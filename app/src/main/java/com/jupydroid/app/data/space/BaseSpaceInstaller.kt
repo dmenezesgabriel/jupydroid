@@ -25,7 +25,7 @@ data class InstalledSpace(
  * BaseSpaceInstaller(
  *   archive = { assets.open("spaces/base/rootfs-x86_64.tgz") },
  *   baseDir = File(filesDir, "spaces/base"),
- *   nativeLoader = File(applicationInfo.nativeLibraryDir, "libld-linux.so"),
+ *   nativeLoader = File(applicationInfo.nativeLibraryDir, "libloader.so"),
  * ).installIfNeeded()
  * ```
  */

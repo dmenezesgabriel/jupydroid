@@ -353,9 +353,29 @@ works on both targets; `useLegacyPackaging`, the patchelf'd `PT_INTERP`, and the
 installer's loader symlink are all validated. What is refuted is only the choice of
 **glibc** as the Space's libc.
 
-Open decision (see the four options weighed at the end of Step 8.3's investigation):
-patch glibc the way Winlator patches it, move the rootfs to musl/Alpine, or build
-against bionic the way Termux does.
+**Resolved: the rootfs is Alpine/musl, and the runtime target is arm64 hardware.**
+Measured on Android 16 / SDK 36, everything else held constant:
+
+|  | glibc (debian bookworm) | musl (alpine 3.21) |
+|---|---|---|
+| arm64 hardware (Tab A9+) | SIGSYS | **exit 0** |
+| x86_64 emulator (dev36) | SIGSYS | SIGSYS |
+
+The dynamic loader runs in every cell; it is full libc startup that is killed. The
+filter is defined per architecture, and Android's x86_64 policy is stricter than its
+arm64 one. arm64-v8a is the shipping target, so this does not block the product — but
+it does mean **the emulator can no longer validate the runtime**. Steps 8.4–8.6 run
+against the tablet; the emulator stays the target for UI and Maestro work.
+
+The whole Jupyter stack installs on musl from wheels (`--only-binary=:all:`) at the
+same versions as the Debian image, so nothing about the server or kernel design
+changes. `evidence/step8.3/musl-is-arm64-only.txt`.
+
+Two further things the device taught us, both now encoded rather than assumed:
+`PT_INTERP` may not point inside the rootfs (EACCES — the interpreter faces the same
+SELinux restriction as the program, which is why `BaseSpaceInstaller` symlinks it into
+`nativeLibraryDir`), and the rootfs runs without a chroot, so its absolute symlinks
+(`/bin/echo` → `/bin/busybox`) dangle against the device root.
 
 Before 8.x: `Environment` is renamed to `Space` across the domain, ports and
 fakes — 3 files today, many more once the runtime lands.

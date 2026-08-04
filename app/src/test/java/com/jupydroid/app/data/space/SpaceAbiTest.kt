@@ -7,22 +7,16 @@ import org.junit.Test
 
 class SpaceAbiTest {
   @Test
-  fun of_mapsAndroidAbiNamesToDebianLayout() {
+  fun of_mapsAndroidAbiNamesToMuslLayout() {
     assertEquals(SpaceAbi.X86_64, SpaceAbi.of("x86_64"))
     assertEquals(SpaceAbi.ARM64, SpaceAbi.of("arm64-v8a"))
   }
 
-  /** Debian puts the loader under lib64/ on x86_64 but lib/ on arm64, with different names. */
+  /** musl names its loader per architecture and keeps it in /lib on both. */
   @Test
-  fun loaderLinkPath_followsDebianPerArchitecture() {
-    assertEquals("lib64/ld-linux-x86-64.so.2", SpaceAbi.X86_64.loaderLinkPath)
-    assertEquals("lib/ld-linux-aarch64.so.1", SpaceAbi.ARM64.loaderLinkPath)
-  }
-
-  @Test
-  fun triplet_followsDebianMultiarch() {
-    assertEquals("x86_64-linux-gnu", SpaceAbi.X86_64.triplet)
-    assertEquals("aarch64-linux-gnu", SpaceAbi.ARM64.triplet)
+  fun loaderLinkPath_followsMuslPerArchitecture() {
+    assertEquals("lib/ld-musl-x86_64.so.1", SpaceAbi.X86_64.loaderLinkPath)
+    assertEquals("lib/ld-musl-aarch64.so.1", SpaceAbi.ARM64.loaderLinkPath)
   }
 
   @Test

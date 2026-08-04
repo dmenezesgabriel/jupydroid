@@ -19,12 +19,11 @@ set -euo pipefail
 
 ABI="${1:-x86_64}"
 case "$ABI" in
-  # LOADER_LINK must match SpaceAbi.loaderLinkPath: Debian puts the loader under
-  # lib64/ on x86_64 but lib/ on arm64, and it is baked into PT_INTERP below.
-  x86_64)    PLATFORM=linux/amd64; LOADER=ld-linux-x86-64.so.2;  TRIPLET=x86_64-linux-gnu
-             LOADER_LINK=lib64/ld-linux-x86-64.so.2 ;;
-  arm64-v8a) PLATFORM=linux/arm64; LOADER=ld-linux-aarch64.so.1; TRIPLET=aarch64-linux-gnu
-             LOADER_LINK=lib/ld-linux-aarch64.so.1 ;;
+  # LOADER must match SpaceAbi.loaderLinkPath: it is baked into PT_INTERP below and
+  # symlinked into nativeLibraryDir by BaseSpaceInstaller. musl keeps its loader in
+  # /lib on every architecture, named after the architecture.
+  x86_64)    PLATFORM=linux/amd64; LOADER=lib/ld-musl-x86_64.so.1 ;;
+  arm64-v8a) PLATFORM=linux/arm64; LOADER=lib/ld-musl-aarch64.so.1 ;;
   *) echo "unknown abi '$ABI'; expected x86_64 or arm64-v8a" >&2; exit 1 ;;
 esac
 
@@ -48,21 +47,22 @@ echo "==> staging rootfs asset"
 cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tgz"
 
 echo "==> extracting and patching the two executable ELFs"
-# patchelf runs inside the image so it edits binaries against the glibc that
+# patchelf runs inside the image so it edits binaries against the same libc that
 # produced them, and so the host needs no patchelf installed.
 docker run --rm --platform "$PLATFORM" --user "$(id -u):$(id -g)" -v "$JNI_DIR:/out" "$IMAGE" sh -euc "
   cp \"\$(readlink -f /usr/bin/python3)\" /tmp/libpython3.so
-  cp \"\$(readlink -f /lib64/$LOADER 2>/dev/null || readlink -f /lib/$LOADER)\" /tmp/libld-linux.so
+  cp \"\$(readlink -f /$LOADER)\" /tmp/libloader.so
 
-  # The stock PT_INTERP is /lib64/$LOADER, an absolute path that on Android
-  # resolves against the device root, not the rootfs. Repoint both it and the
-  # library search path at the rootfs's on-device location.
-  patchelf --set-interpreter '$ROOTFS_ON_DEVICE/$LOADER_LINK' \
-           --set-rpath '$ROOTFS_ON_DEVICE/usr/lib/$TRIPLET:$ROOTFS_ON_DEVICE/usr/lib' \
+  # The stock PT_INTERP is /$LOADER, an absolute path that on Android resolves
+  # against the device root, not the rootfs. Repoint it at the rootfs's on-device
+  # location, where the installer symlinks it on into nativeLibraryDir - the only
+  # place an ELF interpreter may live (evidence/step8.3/musl-runs.txt).
+  patchelf --set-interpreter '$ROOTFS_ON_DEVICE/$LOADER' \
+           --set-rpath '$ROOTFS_ON_DEVICE/usr/lib:$ROOTFS_ON_DEVICE/lib' \
            /tmp/libpython3.so
 
-  cp /tmp/libpython3.so /tmp/libld-linux.so /out/
-  chmod 0644 /out/libpython3.so /out/libld-linux.so
+  cp /tmp/libpython3.so /tmp/libloader.so /out/
+  chmod 0644 /out/libpython3.so /out/libloader.so
 "
 
 echo "==> staged:"

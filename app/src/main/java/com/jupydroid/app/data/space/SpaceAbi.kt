@@ -1,22 +1,23 @@
 package com.jupydroid.app.data.space
 
 /**
- * The per-architecture facts about a Debian rootfs that the app has to know.
+ * The per-architecture facts about the rootfs that the app has to know.
  *
- * Debian names the dynamic loader and its multiarch library directory differently
- * per architecture, and puts them in different places: `lib64/` on x86_64, `lib/`
- * on arm64. Everything else about a Space is architecture-neutral.
+ * musl names its dynamic loader after the architecture and keeps it in `/lib` on
+ * every target, with no multiarch subdirectories - which is why a Space needs only
+ * this one path and not the library-directory triplet glibc would require.
  *
- * These must stay in step with `tools/rootfs/stage-app-artifacts.sh`, which bakes
- * [loaderLinkPath] into the interpreter's `PT_INTERP` at build time.
+ * [loaderLinkPath] must stay in step with `tools/rootfs/stage-app-artifacts.sh`,
+ * which bakes it into the interpreter's `PT_INTERP` at build time, and with
+ * `BaseSpaceInstaller`, which symlinks it into the APK native library directory -
+ * the only place an ELF interpreter may live (`evidence/step8.3/musl-runs.txt`).
  */
 enum class SpaceAbi(
   val androidAbi: String,
-  val triplet: String,
   val loaderLinkPath: String,
 ) {
-  X86_64("x86_64", "x86_64-linux-gnu", "lib64/ld-linux-x86-64.so.2"),
-  ARM64("arm64-v8a", "aarch64-linux-gnu", "lib/ld-linux-aarch64.so.1"),
+  X86_64("x86_64", "lib/ld-musl-x86_64.so.1"),
+  ARM64("arm64-v8a", "lib/ld-musl-aarch64.so.1"),
   ;
 
   companion object {

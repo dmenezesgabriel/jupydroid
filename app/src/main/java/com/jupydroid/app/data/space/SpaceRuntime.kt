@@ -22,7 +22,6 @@ import java.io.File
 class SpaceRuntime(
   private val baseDir: File,
   private val nativeInterpreter: File,
-  private val triplet: String = SpaceAbi.X86_64.triplet,
 ) {
   fun command(vararg args: String): List<String> = listOf(nativeInterpreter.path) + args
 
@@ -32,7 +31,8 @@ class SpaceRuntime(
     "TMPDIR" to inBase("tmp"),
     "PATH" to listOf(inBase("usr/local/bin"), inBase("usr/bin"), inBase("bin")).joinToString(":"),
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.
-    "LD_LIBRARY_PATH" to listOf(inBase("usr/lib/$triplet"), inBase("usr/lib")).joinToString(":"),
+    // musl has no multiarch directories, so these two cover the whole rootfs.
+    "LD_LIBRARY_PATH" to listOf(inBase("usr/lib"), inBase("lib")).joinToString(":"),
   )
 
   private fun inBase(relative: String): String = File(baseDir, relative).path

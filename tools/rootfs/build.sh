@@ -51,8 +51,7 @@ echo "==> recording manifest"
   echo "# python + interpreter paths the app needs (Step 8.2 patches these)"
   docker run --rm --platform "$PLATFORM" "$IMAGE" sh -c '
     echo "python3: $(readlink -f /usr/bin/python3)"
-    echo "loader:  $(readlink -f /lib64/ld-linux-x86-64.so.2 2>/dev/null ||
-                     readlink -f /lib/ld-linux-aarch64.so.1 2>/dev/null)"
+    echo "loader:  $(readlink -f /lib/ld-musl-*.so.1)"
     python3 -c "import sys; print(\"python-version: \" + sys.version.split()[0])"
     python3 -c "import jupyter_server, ipykernel; print(\"jupyter_server: \" + jupyter_server.__version__); print(\"ipykernel: \" + ipykernel.__version__)"
   '

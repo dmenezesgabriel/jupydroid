@@ -14,16 +14,15 @@ fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpace
   BaseSpaceInstaller(
     archive = { context.assets.open("spaces/base/rootfs-${abi.androidAbi}.tgz") },
     baseDir = baseSpaceDir(context),
-    nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libld-linux.so"),
+    nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libloader.so"),
     loaderLinkPath = abi.loaderLinkPath,
   )
 
 /** Command line and environment for the installed base Space's interpreter. */
-fun baseSpaceRuntime(context: Context, abi: SpaceAbi = deviceAbi()): SpaceRuntime =
+fun baseSpaceRuntime(context: Context): SpaceRuntime =
   SpaceRuntime(
     baseDir = baseSpaceDir(context),
     nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
-    triplet = abi.triplet,
   )
 
 fun baseSpaceDir(context: Context): File = File(context.filesDir, "spaces/base")

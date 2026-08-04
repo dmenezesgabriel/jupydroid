@@ -37,11 +37,14 @@ class SpaceRuntimeTest {
   fun environment_setsLdLibraryPathForDlopenedExtensionModules() {
     val libraryPath = runtime.environment().getValue("LD_LIBRARY_PATH").split(":")
 
-    assertTrue(
-      "expected the triplet lib dir, got $libraryPath",
-      libraryPath.contains("/data/data/com.jupydroid.app/files/spaces/base/usr/lib/x86_64-linux-gnu"),
+    // musl has no multiarch directories: everything is in /usr/lib and /lib.
+    assertEquals(
+      listOf(
+        "/data/data/com.jupydroid.app/files/spaces/base/usr/lib",
+        "/data/data/com.jupydroid.app/files/spaces/base/lib",
+      ),
+      libraryPath,
     )
-    assertTrue(libraryPath.contains("/data/data/com.jupydroid.app/files/spaces/base/usr/lib"))
   }
 
   /** Android's own PATH would leak toybox into the Space; the rootfs supplies its own. */

@@ -1,34 +1,37 @@
-# Builds the base Space rootfs: a real Debian glibc userland running stock
-# jupyter_server. Not an app build - the output is a tarball that ships as an
-# Android asset and is extracted to files/spaces/base/ on first run (Step 8.2).
+# Builds the base Space rootfs: a Linux userland running stock jupyter_server.
+# Not an app build - the output is a tarball that ships as an Android asset and is
+# extracted to files/spaces/base/ on first run (Step 8.2).
 #
-# Debian rather than something hand-cross-compiled, because the whole point of
-# the rootfs approach (docs/PLAN.md, "Exec model") is that Python packages stay
-# ordinary manylinux wheels. bookworm gives glibc 2.36, comfortably above the
-# manylinux_2_28 floor that numpy/scipy wheels target.
+# Alpine/musl, not Debian/glibc, and the reason is measured rather than stylistic:
+# Android 16's app seccomp filter kills glibc's libc startup with SIGSYS, on both the
+# x86_64 emulator and real arm64 hardware. musl starts cleanly under the same filter
+# with everything else held constant. Full evidence in evidence/step8.3/.
+#
+# The Jupyter stack still comes from ordinary wheels - musllinux rather than manylinux -
+# so the premise of the rootfs approach is intact: no hand-cross-compiling.
 #
 # Pinned by digest so a rebuild reproduces the image that produced the committed
-# evidence. bookworm-slim as of 2026-08-04:
-FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
+# evidence. alpine:3.21 as of 2026-08-04:
+FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 
-# patchelf is installed here rather than on the host so the ELF edits in Step 8.2
-# run against the same glibc that produced the binaries.
-RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 python3-pip patchelf \
- && rm -rf /var/lib/apt/lists/*
+# patchelf is installed here rather than on the host so the ELF edits in
+# stage-app-artifacts.sh run against the same libc that produced the binaries.
+RUN apk add --no-cache python3 py3-pip patchelf
 
-# --break-system-packages: Debian 12 marks the system interpreter PEP 668
+# --break-system-packages: Alpine marks the system interpreter PEP 668
 # externally-managed. This image *is* the environment, so there is nothing to
-# protect it from; a venv would only add a second layer of paths to patch.
+# protect it from; a venv would only add another layer of paths to patch.
+# --only-binary=:all: is a gate, not an optimisation - if a package ever stops
+# publishing a musllinux wheel we want the build to fail loudly rather than
+# quietly start compiling from source under emulation.
 COPY requirements.lock /tmp/requirements.lock
-RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.lock \
+RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: \
+      -r /tmp/requirements.lock \
  && rm /tmp/requirements.lock
 
-# The spike only has to answer "does this run on Android"; docs, locales and
-# bytecode caches are pure bulk. Kept as one layer so the export is smaller.
-RUN rm -rf \
-      /usr/share/doc /usr/share/man /usr/share/info /usr/share/locale \
-      /var/cache/apt /var/lib/apt/lists /var/log/* \
+# The spike only has to answer whether this runs on Android; docs and bytecode
+# caches are pure bulk. One layer, so the export is smaller.
+RUN rm -rf /usr/share/man /usr/share/doc /var/cache/apk \
  && find / -xdev -type d -name __pycache__ -prune -exec rm -rf {} + \
  && find /usr/lib/python3* -xdev -type d -name test -prune -exec rm -rf {} + \
  && find /usr/lib/python3* -xdev -type d -name tests -prune -exec rm -rf {} +

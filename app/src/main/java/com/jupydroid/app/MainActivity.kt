@@ -3,7 +3,6 @@ package com.jupydroid.app
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.os.Build
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -19,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.space.PythonRunner
-import com.jupydroid.app.data.space.SpaceAbi
 import com.jupydroid.app.data.space.SpaceRuntime
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceInstaller
@@ -86,18 +84,18 @@ class MainActivity : ComponentActivity() {
    * with the server in Step 8.4.
    */
   private suspend fun probeInterpreter() {
-    val abi = SpaceAbi.of(Build.SUPPORTED_ABIS.first())
-    val runtime = baseSpaceRuntime(applicationContext, abi)
+    val runtime = baseSpaceRuntime(applicationContext)
     val base = baseSpaceDir(applicationContext)
-    val loader = File(applicationInfo.nativeLibraryDir, "libld-linux.so")
-    val bare = SpaceRuntime(base, loader, abi.triplet)
+    val loader = File(applicationInfo.nativeLibraryDir, "libloader.so")
+    val bare = SpaceRuntime(base, loader)
     val loaderOut = PythonRunner(bare).run("--version")
     Log.i(BASE_SPACE_LOG_TAG, "loader: exit=${loaderOut.exitCode} ${loaderOut.output}")
 
-    // Any full-libc program, not just Python: separates "CPython does something odd"
-    // from "glibc startup itself is blocked".
-    val echo = PythonRunner(bare).run(File(base, "bin/echo").path, "hello")
-    Log.i(BASE_SPACE_LOG_TAG, "coreutils echo: exit=${echo.exitCode} ${echo.output}")
+    // A non-Python program, to keep "libc starts" separable from "CPython starts".
+    // busybox by its real path, not /bin/echo: the rootfs runs without a chroot, so
+    // its absolute symlinks (/bin/echo -> /bin/busybox) dangle against the device root.
+    val busybox = PythonRunner(bare).run(File(base, "bin/busybox").path, "echo", "hello")
+    Log.i(BASE_SPACE_LOG_TAG, "busybox: exit=${busybox.exitCode} ${busybox.output}")
 
     val runner = PythonRunner(runtime)
     val version = runner.run("-S", "-c", "import sys; print(sys.version.split()[0], sys.executable)")
