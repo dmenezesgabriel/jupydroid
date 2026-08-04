@@ -35,5 +35,17 @@ class SpaceRuntime(
     "LD_LIBRARY_PATH" to listOf(inBase("usr/lib"), inBase("lib")).joinToString(":"),
   )
 
+  /**
+   * A [ProcessBuilder] with Android's own environment replaced by the Space's.
+   * Shared so the short-lived [PythonRunner] and the long-lived server launcher
+   * cannot drift apart on how a Space process is set up.
+   */
+  fun processBuilder(args: List<String>, extraEnv: Map<String, String> = emptyMap()): ProcessBuilder =
+    ProcessBuilder(command(*args.toTypedArray())).apply {
+      // Android's PATH and linker variables would otherwise leak into the Space.
+      environment().clear()
+      environment().putAll(this@SpaceRuntime.environment() + extraEnv)
+    }
+
   private fun inBase(relative: String): String = File(baseDir, relative).path
 }

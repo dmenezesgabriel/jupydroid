@@ -27,6 +27,13 @@ fun baseSpaceRuntime(context: Context): SpaceRuntime =
 
 fun baseSpaceDir(context: Context): File = File(context.filesDir, "spaces/base")
 
+/** Runs jupyter_server out of the installed base Space, on loopback. */
+fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher =
+  JupyterServerLauncher(
+    runtime = baseSpaceRuntime(context),
+    runtimeDir = File(baseSpaceDir(context), "run"),
+  )
+
 /**
  * The rootfs must match the ABI Android picked for the APK's native libraries, which
  * is the first supported one - not necessarily the only one the device can run.

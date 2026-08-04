@@ -308,6 +308,7 @@ rebuilding them. Each sub-step is one commit with its own evidence:
 | 8.4 | `jupyter_server` on 127.0.0.1, ephemeral port, empty token | `GET /api/status` returns a version |
 | 8.5 | Start a kernel — `POST /api/kernels` | proves the **subprocess** `execve` path needs no shim |
 | 8.6 | Execute a cell over the kernel WebSocket | `2 + 2` → `4` |
+| 8.7 | **numpy/scipy on musl** — add them to the image and import them on device | musllinux wheels are far less exercised than manylinux, and Step 8.3 showed what assuming costs. Gate it here rather than discover it in Step 12 |
 
 Risks to measure rather than assume: glibc syscalls under Android's seccomp
 filter (the reason proot was rejected); bundle size once numpy/scipy join

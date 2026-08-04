@@ -33,12 +33,7 @@ class PythonRunner(
   }
 
   private fun processBuilder(args: Array<out String>): ProcessBuilder =
-    ProcessBuilder(runtime.command(*args))
+    runtime.processBuilder(args.toList())
       .directory(workingDir)
       .redirectErrorStream(true) // one ordered stream: a traceback belongs with the output
-      .apply {
-        // Android's own environment would leak its PATH and linker vars into the Space.
-        environment().clear()
-        environment().putAll(runtime.environment())
-      }
 }

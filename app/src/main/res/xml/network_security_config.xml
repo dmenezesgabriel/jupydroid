@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  jupyter_server runs inside this app's own sandbox on loopback, so its traffic is
+  plain HTTP and never leaves the device. Cleartext is blocked by default from
+  Android 9, and is re-enabled here for 127.0.0.1 only - not app-wide - so nothing
+  else in the app can accidentally talk HTTP to the network.
+-->
+<network-security-config>
+  <domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="false">127.0.0.1</domain>
+    <domain includeSubdomains="false">localhost</domain>
+  </domain-config>
+</network-security-config>
