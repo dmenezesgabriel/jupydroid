@@ -1,0 +1,17 @@
+# Probe image for the Step 8.3 blocker: does a musl userland survive Android's app
+# seccomp filter where glibc does not?
+#
+# Deliberately minimal - python3 and nothing else. The question is whether libc
+# startup is killed, and jupyter_server cannot change that answer. If this clears
+# the gate, the full package stack follows in a rebuilt Dockerfile.
+FROM alpine:3.21
+
+RUN apk add --no-cache python3 patchelf
+
+# Second phase: does the Jupyter stack install on musl/aarch64 from wheels?
+# pyzmq is the one that matters - it is a native extension and the kernel
+# transport. musllinux wheels exist for it; anything without one would have to
+# build from source, which is the signal we are looking for.
+RUN apk add --no-cache py3-pip
+RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: \
+      jupyter_server ipykernel
