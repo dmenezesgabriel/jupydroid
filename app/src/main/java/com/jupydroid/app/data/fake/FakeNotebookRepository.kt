@@ -40,8 +40,10 @@ class FakeNotebookRepository : NotebookRepository {
     notebooks.value = notebooks.value - id
   }
 
+  // IllegalArgumentException, not IllegalStateException: DiskNotebookRepository is the
+  // reference behaviour for this port and callers catch that type.
   override suspend fun readNotebook(id: String): Notebook =
-    notebooks.value[id] ?: error("no notebook with id '$id'")
+    requireNotNull(notebooks.value[id]) { "no notebook with id '$id'" }
 
   override suspend fun saveNotebook(notebook: Notebook) {
     notebooks.value = notebooks.value + (notebook.id to notebook)

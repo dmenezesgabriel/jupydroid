@@ -4,9 +4,7 @@
 # Used by .pre-commit-config.yaml for the ktlint/detekt/lint/test hooks.
 set -euo pipefail
 
-jbr=/home/user/android-studio/jbr
-if [ -z "${JAVA_HOME:-}" ] && [ -x "$jbr/bin/java" ]; then
-  export JAVA_HOME="$jbr"
-fi
+# shellcheck source=scripts/java-home.sh
+. "$(dirname "${BASH_SOURCE[0]}")/java-home.sh"
 
 exec ./gradlew "$@"

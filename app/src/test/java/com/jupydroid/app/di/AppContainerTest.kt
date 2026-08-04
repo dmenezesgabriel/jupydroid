@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class AppContainerTest {
@@ -45,6 +46,19 @@ class AppContainerTest {
 
     val summaries = repository.observeNotebooks().first()
     assertEquals(listOf("Renamed"), summaries.map { it.title })
+  }
+
+  /** The fake must fail the same way the disk adapter does, or callers that catch one break on the other. */
+  @Test
+  fun fakeNotebookRepository_rejectsUnknownIdLikeTheDiskAdapter() = runTest {
+    val repository = FakeNotebookRepository()
+
+    try {
+      repository.readNotebook("ghost")
+      fail("expected IllegalArgumentException for an unknown notebook id")
+    } catch (e: IllegalArgumentException) {
+      assertTrue("message must name the offending id, was '${e.message}'", e.message!!.contains("ghost"))
+    }
   }
 
   @Test

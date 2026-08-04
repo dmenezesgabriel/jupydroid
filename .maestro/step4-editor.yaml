@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step4-editor-driver.sh; clearState would delete the fixture.
+- launchApp
+- assertVisible: "Two Cells"
+- takeScreenshot: 01-home-with-seeded-notebook
+- tapOn: "Two Cells"
+- assertVisible: "code"
+- assertVisible: "answer = 42"
+- assertVisible: "markdown"
+- assertVisible: "Markdown cell here"
+- takeScreenshot: 02-editor-cells
+- tapOn: "Back"          # the TopAppBar navigation icon's contentDescription
+- assertVisible: "Two Cells"
+- takeScreenshot: 03-back-to-home

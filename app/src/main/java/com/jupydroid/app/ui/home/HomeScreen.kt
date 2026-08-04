@@ -49,6 +49,7 @@ fun HomeScreen(
   notebookRepository: NotebookRepository,
   importTitle: String? = null,
   onImportConsumed: () -> Unit = {},
+  onOpenNotebook: (String) -> Unit = {},
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = viewModel { HomeViewModel(notebookRepository) },
 ) {
@@ -67,6 +68,7 @@ fun HomeScreen(
     onCreatePythonFile = { viewModel.createNotebook(NEW_PYTHON_FILE_TITLE, DEFAULT_KERNEL_ID) },
     onRenameNotebook = { id, title -> viewModel.renameNotebook(id, title) },
     onDeleteNotebook = { id -> viewModel.deleteNotebook(id) },
+    onOpenNotebook = onOpenNotebook,
     modifier = modifier,
   )
 }
@@ -78,6 +80,7 @@ private fun HomeScaffold(
   onCreatePythonFile: () -> Unit,
   onRenameNotebook: (String, String) -> Unit,
   onDeleteNotebook: (String) -> Unit,
+  onOpenNotebook: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
@@ -91,6 +94,7 @@ private fun HomeScaffold(
       now = Instant.now(),
       onRenameNotebook = onRenameNotebook,
       onDeleteNotebook = onDeleteNotebook,
+      onOpenNotebook = onOpenNotebook,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -148,6 +152,7 @@ private fun HomeContent(
   now: Instant,
   onRenameNotebook: (String, String) -> Unit,
   onDeleteNotebook: (String) -> Unit,
+  onOpenNotebook: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   if (notebooks.isEmpty()) {
@@ -158,6 +163,7 @@ private fun HomeContent(
         NotebookRow(
           notebook = notebook,
           now = now,
+          onOpen = { onOpenNotebook(notebook.id) },
           onRename = { newTitle -> onRenameNotebook(notebook.id, newTitle) },
           onDelete = { onDeleteNotebook(notebook.id) },
         )
@@ -182,6 +188,7 @@ private fun EmptyRecents(modifier: Modifier = Modifier) {
 private fun NotebookRow(
   notebook: NotebookSummary,
   now: Instant,
+  onOpen: () -> Unit,
   onRename: (String) -> Unit,
   onDelete: () -> Unit,
   modifier: Modifier = Modifier,
@@ -193,7 +200,7 @@ private fun NotebookRow(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .combinedClickable(onClick = {}, onLongClick = { menuExpanded = true })
+        .combinedClickable(onClick = onOpen, onLongClick = { menuExpanded = true })
         .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
       Text(
@@ -279,6 +286,7 @@ private fun HomeEmptyPreview() {
       now = Instant.now(),
       onRenameNotebook = { _, _ -> },
       onDeleteNotebook = {},
+      onOpenNotebook = {},
     )
   }
 }
