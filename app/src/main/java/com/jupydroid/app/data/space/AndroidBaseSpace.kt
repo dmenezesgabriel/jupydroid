@@ -15,6 +15,7 @@ fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpace
     archive = { context.assets.open("spaces/base/rootfs-${abi.androidAbi}.tgz") },
     baseDir = baseSpaceDir(context),
     nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libloader.so"),
+    nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
     loaderLinkPath = abi.loaderLinkPath,
   )
 

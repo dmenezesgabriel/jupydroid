@@ -33,6 +33,7 @@ class BaseSpaceInstaller(
   private val archive: ArchiveSource,
   private val baseDir: File,
   private val nativeLoader: File,
+  private val nativeInterpreter: File,
   private val loaderLinkPath: String = SpaceAbi.X86_64.loaderLinkPath,
   private val bundledVersion: Int = BUNDLED_ROOTFS_VERSION,
   private val extractor: TarGzExtractor = TarGzExtractor(),
@@ -46,6 +47,7 @@ class BaseSpaceInstaller(
     // update while the extracted Space survives, so a stale link would leave exec
     // failing with ENOENT until the user cleared the app's data.
     linkLoaderToNativeLibrary()
+    SpaceKernelSpec.install(baseDir, nativeInterpreter, ioDispatcher)
 
     if (!alreadyInstalled) stampVersion()
     return InstalledSpace(baseDir, bundledVersion, !alreadyInstalled, written)

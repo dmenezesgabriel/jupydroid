@@ -103,6 +103,7 @@ class BaseSpaceInstallerTest {
     archive = { rootfsArchive().inputStream() },
     baseDir = baseDir,
     nativeLoader = nativeLoader,
+    nativeInterpreter = nativeLoader,
     loaderLinkPath = "lib64/ld-linux-x86-64.so.2",
     bundledVersion = version,
   )

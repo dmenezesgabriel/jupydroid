@@ -114,16 +114,58 @@ class MainActivity : ComponentActivity() {
   }
 
   /** Step 8.4: stock jupyter_server on loopback, reached over HTTP from the app. */
+  private var serverLauncher: com.jupydroid.app.data.space.JupyterServerLauncher? = null
+
   private suspend fun startServer() {
-    val launcher = baseSpaceServerLauncher(applicationContext)
+    val launcher = baseSpaceServerLauncher(applicationContext).also { serverLauncher = it }
     val connection = launcher.start(BASE_SPACE)
     Log.i(BASE_SPACE_LOG_TAG, "server: ${connection.baseUrl} running=${launcher.isRunning()}")
-    Log.i(BASE_SPACE_LOG_TAG, "api/status: ${httpGet(connection.baseUrl + "api/status")}")
+    Log.i(BASE_SPACE_LOG_TAG, "api/status: ${httpGet(connection.baseUrl + "api/status", connection.token)}")
+    Log.i(BASE_SPACE_LOG_TAG, "kernelspecs: ${httpGet(connection.baseUrl + "api/kernelspecs", connection.token)}")
+    startKernel(connection.baseUrl, connection.token)
   }
 
-  private suspend fun httpGet(url: String): String = withContext(Dispatchers.IO) {
+  /**
+   * Step 8.5: POST /api/kernels. This is the subprocess execve gate - jupyter_server
+   * spawns the kernel itself, through the kernelspec argv the installer rewrote.
+   */
+  private suspend fun startKernel(baseUrl: String, token: String) {
+    val launcher = serverLauncher ?: return
+    Log.i(BASE_SPACE_LOG_TAG, "before POST: running=${launcher.isRunning()}")
+    val kernel = runCatching { httpPost(baseUrl + "api/kernels", "{}", token) }
+    Log.i(
+      BASE_SPACE_LOG_TAG,
+      "kernel: ${kernel.getOrElse { "FAILED ${it::class.simpleName}: ${it.message}" }} " +
+        "(running=${launcher.isRunning()} exit=${launcher.exitCode()})",
+    )
+    Log.i(BASE_SPACE_LOG_TAG, "server log tail:\n" + serverLogTail())
+  }
+
+  private suspend fun serverLogTail(): String = withContext(Dispatchers.IO) {
+    File(baseSpaceDir(applicationContext), "run/jupyter_server.log")
+      .takeIf { it.isFile }?.readText()?.takeLast(LOG_TAIL_CHARS).orEmpty()
+  }
+
+  private suspend fun httpPost(url: String, body: String, token: String): String = withContext(Dispatchers.IO) {
     (URL(url).openConnection() as HttpURLConnection).run {
       try {
+        requestMethod = "POST"
+        setRequestProperty("Authorization", "token $token")
+        doOutput = true
+        setRequestProperty("Content-Type", "application/json")
+        outputStream.use { it.write(body.toByteArray()) }
+        val stream = if (responseCode in 200..299) inputStream else errorStream
+        "HTTP $responseCode " + stream.bufferedReader().use { it.readText() }
+      } finally {
+        disconnect()
+      }
+    }
+  }
+
+  private suspend fun httpGet(url: String, token: String): String = withContext(Dispatchers.IO) {
+    (URL(url).openConnection() as HttpURLConnection).run {
+      try {
+        setRequestProperty("Authorization", "token $token")
         inputStream.bufferedReader().use { it.readText() }
       } finally {
         disconnect()
@@ -133,6 +175,7 @@ class MainActivity : ComponentActivity() {
 
   private companion object {
     const val BASE_SPACE_LOG_TAG = "JupydroidSpace"
+    const val LOG_TAIL_CHARS = 1500
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
 
     /** pyzmq is the one that matters: it is the first dlopen'd native extension. */

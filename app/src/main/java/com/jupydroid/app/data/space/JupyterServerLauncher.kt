@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
 import java.io.File
+import java.security.SecureRandom
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -34,6 +35,15 @@ class JupyterServerLauncher(
 ) : ServerLauncher {
   private var process: Process? = null
 
+  /**
+   * Fresh per launch. Loopback already keeps the server inside this app's sandbox, but
+   * a token is what jupyter_server offers non-browser clients: without one it rejects
+   * every POST with an XSRF error, and disabling that check would be the weaker answer.
+   */
+  private val token: String = SecureRandom().let { random ->
+    ByteArray(TOKEN_BYTES).also(random::nextBytes).joinToString("") { "%02x".format(it) }
+  }
+
   override suspend fun start(space: Space): ServerConnection {
     stop()
     val started = withContext(ioDispatcher) {
@@ -54,6 +64,12 @@ class JupyterServerLauncher(
   }
 
   override fun isRunning(): Boolean = process?.isAlive == true
+
+  /**
+   * Why the server stopped, or null while it is alive. Values above 128 are
+   * `128 + signal`, which is how a seccomp kill (SIGSYS, 159) shows up.
+   */
+  fun exitCode(): Int? = process?.takeIf { !it.isAlive }?.exitValue()
 
   private suspend fun awaitConnection(): ServerConnection? =
     withTimeoutOrNull(startTimeout) {
@@ -81,14 +97,15 @@ class JupyterServerLauncher(
     "-m", "jupyter_server",
     "--ServerApp.ip=127.0.0.1",
     "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
-    "--IdentityProvider.token=", // ServerApp.token is deprecated since jupyter_server 2.0
+    "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
     "--no-browser",
   )
 
   private fun JupyterRuntimeFile.toConnection() =
-    ServerConnection(baseUrl = url.ifBlank { "http://127.0.0.1:$port/" }, port = port)
+    ServerConnection(baseUrl = url.ifBlank { "http://127.0.0.1:$port/" }, port = port, token = token)
 
   private companion object {
+    const val TOKEN_BYTES = 32
     val START_TIMEOUT = 60.seconds
     val POLL_INTERVAL = 100.milliseconds
     const val LOG_EXCERPT = 2000
