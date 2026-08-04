@@ -27,6 +27,16 @@ class SpaceKernelSpecTest {
     assertTrue(kernelJson(baseDir).readText().contains("\"${interpreter.path}\""))
   }
 
+  /** A kernel death with no traceback is the failure mode we refuse to ship. */
+  @Test
+  fun install_keepsFaulthandlerOnSoAKernelCrashIsNeverSilent() = runTest {
+    val baseDir = tempFolder.newFolder("base")
+
+    SpaceKernelSpec.install(baseDir, interpreter)
+
+    assertTrue(kernelJson(baseDir).readText().contains("PYTHONFAULTHANDLER"))
+  }
+
   @Test
   fun install_launchesIpykernelWithTheConnectionFilePlaceholder() = runTest {
     val baseDir = tempFolder.newFolder("base")
@@ -34,7 +44,7 @@ class SpaceKernelSpecTest {
     SpaceKernelSpec.install(baseDir, interpreter)
 
     val argv = kernelJson(baseDir).readText()
-    assertTrue(argv, argv.contains("ipykernel_launcher"))
+    assertTrue(argv, argv.contains("jupydroid_kernel"))
     assertTrue(argv, argv.contains("{connection_file}"))
   }
 

@@ -24,6 +24,13 @@ object SpaceKernelSpec {
   private const val KERNEL_PATH = "usr/share/jupyter/kernels/python3/kernel.json"
 
   /**
+   * Our entry point rather than `ipykernel_launcher`: stock ipykernel aborts on
+   * Android because its IOPub subprocess pipe binds TCP. Shipped in the image, see
+   * `tools/rootfs/jupydroid_kernel.py` for the full reasoning.
+   */
+  private const val KERNEL_MODULE = "jupydroid_kernel"
+
+  /**
    * Rewritten on every launch, not just on a fresh install: nativeLibraryDir carries
    * per-install path segments, so after an app update a baked argv points at a
    * directory that no longer exists.
@@ -41,9 +48,10 @@ object SpaceKernelSpec {
   private fun kernelSpecJson(interpreter: File): String =
     """
     {
-      "argv": ["${interpreter.path}", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+      "argv": ["${interpreter.path}", "-m", "$KERNEL_MODULE", "-f", "{connection_file}"],
       "display_name": "Python 3",
       "language": "python",
+      "env": {"PYTHONFAULTHANDLER": "1"},
       "metadata": {"debugger": true}
     }
     """.trimIndent()

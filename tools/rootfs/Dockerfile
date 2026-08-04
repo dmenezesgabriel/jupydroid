@@ -29,6 +29,23 @@ RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: \
       -r /tmp/requirements.lock \
  && rm /tmp/requirements.lock
 
+# The kernel entry point ships as a real, reviewable module rather than being
+# generated at runtime from strings. Placed on the default sys.path so the
+# kernelspec can name it with -m and nothing has to set PYTHONPATH.
+COPY jupydroid_kernel.py /usr/lib/python3.12/site-packages/jupydroid_kernel.py
+
+# Fail the image build, not the device, if the kernel entry point is broken: an
+# ipykernel upgrade that moved init_iopub or _bind_socket must surface here.
+RUN python3 -c "\
+import jupydroid_kernel as k, inspect;\
+from ipykernel.kernelapp import IPKernelApp;\
+assert issubclass(k.JupydroidKernelApp, IPKernelApp);\
+assert 'init_iopub' in vars(k.JupydroidKernelApp), 'override no longer applies';\
+assert hasattr(IPKernelApp, '_bind_socket'), 'IPKernelApp._bind_socket is gone';\
+assert hasattr(IPKernelApp, '_apply_curve_server_options'), 'curve options hook is gone';\
+assert 'pipe' in inspect.signature(__import__('ipykernel.iostream', fromlist=['IOPubThread']).IOPubThread.__init__).parameters;\
+print('kernel entry point OK')"
+
 # The spike only has to answer whether this runs on Android; docs and bytecode
 # caches are pure bulk. One layer, so the export is smaller.
 RUN rm -rf /usr/share/man /usr/share/doc /var/cache/apk \
