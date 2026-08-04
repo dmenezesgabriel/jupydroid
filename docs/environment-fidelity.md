@@ -76,3 +76,58 @@ Linux userland. On this evidence it cannot, for any userland that is not bionic.
 The performance of a TCG guest on this class of hardware is the number that
 decides whether fidelity is affordable. Nothing else should be decided before
 it is measured.
+
+## How the maintained projects actually handle it
+
+Neither of the two obvious precedents achieves "every Linux package just works"
+inside an app process. They avoid the problem in different ways, and the cost of
+each is visible in their repositories.
+
+**Termux — rebuild the ecosystem against bionic.** `targetSdkVersion=28`, which
+buys the exec exemption but *not* seccomp relief: the filter is applied to every
+zygote-spawned process regardless of target SDK. Termux does not need relief,
+because its packages are compiled against bionic and therefore only ever issue
+syscalls bionic issues. Fidelity is achieved by construction, and paid for by
+maintaining a package build farm — `termux-packages` rebuilds the userland rather
+than importing Linux binaries. The app ships that as a bootstrap zip
+(`TermuxInstaller` extracts it; `app/src/main/cpp/termux-bootstrap-zip.S`).
+
+**Winlator — patch glibc where Android differs.** It does ship a glibc rootfs,
+and it carries `glibc_patches/`. Those patches are, in their entirety:
+`shmget`, `shmat`, `shmctl`, `shmdt` and a supporting `android_sysvshm.[ch]` -
+SysV shared memory reimplemented in userspace over Unix sockets, derived from
+`pelya/android-shmem`. Nothing about the robust list, nothing general. It is a
+targeted fix for one gap that Wine needs, not a fidelity layer, and it works
+because Winlator only has to make Wine and box64 run - not arbitrary Linux
+software.
+
+So the honest reading of the precedent: **nobody solves this inside an app
+process.** The closest anyone gets is Termux, and it gets there by rebuilding
+every package rather than by running Linux binaries. Projects that do run
+unmodified Linux userlands faithfully - the AVF "Linux Terminal", QEMU-in-an-APK
+efforts - all put a guest kernel underneath.
+
+That maps onto three honest options, and they should be named plainly:
+
+1. **Guest kernel (fidelity).** Unmodified Linux, every wheel works, no
+   per-package handling ever. Needs a VM. AVF is unavailable here (measured
+   above) and privileged besides, so it means software emulation, at a
+   performance cost that is currently unmeasured.
+2. **Bionic userland (Termux's answer).** Reliable and proven, but it means
+   sourcing or building the Python stack against bionic and giving up
+   manylinux/musllinux wheels - i.e. owning a build farm.
+3. **Patch the libc for specific gaps (Winlator's answer).** Cheap per gap, and
+   exactly the band-aid strategy rejected here, because our gap is not one
+   feature like SysV shm - it is the whole difference between Linux's syscall
+   surface and bionic's.
+
+## The measurement that decides between 1 and 2
+
+Not yet done, and not to be guessed at. It requires building QEMU system-mode for
+android-arm64, shipping it the same way the interpreter is shipped today
+(nativeLibraryDir, which is already proven), booting a minimal arm64 guest, and
+timing the same numpy workload inside the guest against the native musl figure we
+already have from this device.
+
+Until that number exists, option 1 cannot be compared with option 2 on anything
+but preference, and no more runtime code should be written on either path.
