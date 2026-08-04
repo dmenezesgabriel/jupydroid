@@ -15,7 +15,7 @@ data class ProcessOutcome(val exitCode: Int, val output: String) {
  *
  * For short commands only - `jupyter_server` is long-lived and gets its own launcher
  * in Step 8.4. This exists to answer the question the whole rootfs design rests on:
- * can the app execve a glibc interpreter at all?
+ * can the app execve the Space interpreter at all?
  *
  * ```
  * PythonRunner(runtime).run("-c", "import sys; print(sys.version)")

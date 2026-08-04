@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.port.ServerConnection
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,9 +30,11 @@ class SpaceProbe(
     // An x86_64 emulator has no Space it could run - the runtime is arm64-only by
     // measurement, not by omission. UI work still needs the app to start there, so this
     // is a logged no-op rather than a crash.
-    val installed = runCatching { installSpace() }
-    if (installed.isFailure) {
-      Log.w(TAG, "no Space runtime on this device", installed.exceptionOrNull())
+    runCatching { installSpace() }.exceptionOrNull()?.let { failure ->
+      // No stack trace for the designed outcome: a stack dump on a non-error is how you
+      // teach yourself to ignore warnings. Genuine install failures still get one.
+      if (failure is IllegalArgumentException) Log.w(TAG, "no Space runtime here: ${failure.message}")
+      else Log.e(TAG, "base Space install failed", failure)
       return
     }
     probeInstalledSpace()
@@ -61,7 +64,7 @@ class SpaceProbe(
     val imports = runner.run("-c", IMPORT_PROBE)
     Log.i(TAG, "imports: exit=${imports.exitCode} ${imports.output}")
 
-    for ((label, code) in SCIENCE_PROBES) {
+    for ((label, code) in RUNTIME_PROBES) {
       val outcome = runner.run("-c", code)
       Log.i(TAG, "$label: exit=${outcome.exitCode} ${outcome.output}")
     }
@@ -107,6 +110,12 @@ class SpaceProbe(
 
     Log.i(TAG, "execute 1 / 0 -> ${channel.execute(kernelId, "1 / 0")}")
     Log.i(TAG, "execute on unknown kernel -> ${channel.execute(UNKNOWN_KERNEL, "2 + 2")}")
+
+    // TimedOut had only ever been unit-tested. Its real case is a kernel that is alive and
+    // merely slow - not one that died or dropped - so drive it with exactly that rather
+    // than trust the branch. Last, because the kernel stays busy after we stop waiting.
+    val impatient = KernelChannel(connection, timeout = SLOW_CELL_TIMEOUT)
+    Log.i(TAG, "execute a slow cell -> ${impatient.execute(kernelId, "import time; time.sleep(5)")}")
 
     // Settles where the UI should read execution state from: the REST field is only
     // as fresh as the last iopub message the server saw.
@@ -156,6 +165,9 @@ class SpaceProbe(
     val KERNEL_ID = Regex("\"id\": \"([^\"]+)\"")
 
     const val NUMPY_CELL = "import numpy; numpy.linalg.det(numpy.array([[4.0, 7.0], [2.0, 6.0]]))"
+
+    /** Short so the probe stays quick; the cell it races sleeps for five. */
+    val SLOW_CELL_TIMEOUT = 2.seconds
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
 
     /**
@@ -163,7 +175,12 @@ class SpaceProbe(
      * A musllinux wheel that imports and then faults on the first real call would be
      * the worst outcome to discover in Step 12.
      */
-    val SCIENCE_PROBES = listOf(
+    val RUNTIME_PROBES = listOf(
+      // A known landmine rather than a sealed hole: psutil's getifaddrs() gets EACCES from
+      // Android's network restrictions and does not check the return, so it segfaults.
+      // Nothing in our path calls it - this asks the device whether that is still true,
+      // instead of the plan carrying the word "probably".
+      "psutil net_if_addrs" to "import psutil; print('interfaces', len(psutil.net_if_addrs()))",
       "numpy import" to "import numpy; print(numpy.__version__)",
       "numpy compute" to
         "import numpy; a = numpy.array([[3.0, 1.0], [1.0, 2.0]]); print('dot', a.dot(a).sum())",

@@ -262,7 +262,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 7 | Output rendering | stream/error/display_data renderers, themed output area, collapse, clear outputs |
 | 8 | **Risk gate** (base Space) | x86_64 rootfs → `files/spaces/base/`, loader launch, `jupyter_server` on 127.0.0.1, kernel started, cell run — broken into 8.1–8.6 below |
 | 9 | Phase 1: JupyterLab-in-WebView | WebView → `/lab`, cleartext config |
-| 10 | Real KernelGateway (WebSocket) | swap fake → real behind the port |
+| 10 | Real KernelGateway (WebSocket) | swap fake → real behind the port — broken into 10.1–10.5 below |
 | 11 | Console REPL | REPL sharing the open notebook's kernel; Enter=run, Shift+Enter=newline; input history, clear transcript |
 | 12–13 | xeus-python, xeus-sqlite, multi-kernel | kernelspecs + language switch |
 | 14 | Workspace & export | data/ vs output files, `+ Data`, ZIP export, import |
@@ -309,6 +309,41 @@ rebuilding them. Each sub-step is one commit with its own evidence:
 | 8.5 | Start a kernel — `POST /api/kernels` | proves the **subprocess** `execve` path needs no shim |
 | 8.6 | Execute a cell over the kernel WebSocket | `2 + 2` → `4` |
 | 8.7 | **numpy/scipy on musl** — add them to the image and import them on device | musllinux wheels are far less exercised than manylinux, and Step 8.3 showed what assuming costs. Gate it here rather than discover it in Step 12. **Passed** once SIGSYS was handled rather than left to kill the process |
+
+### Step 10 broken down (real `KernelGateway`)
+
+`KernelChannel` is not the answer and must not be stretched into one: it says so in
+its own docstring - *connect, run one statement, report, close*. The port needs a
+socket that stays open and streams `KernelEvent`s. That is a rewrite, so it is split
+into slices that each end green, testable and reversible.
+
+What is reused rather than rebuilt: `JupyterMessage` already builds `execute_request`
+and already correlates replies by `parent_header.msg_id`, and every reader in it is
+total by design (a malformed or unrelated frame returns null, because a shared kernel's
+iopub carries other people's traffic). That correlation logic is the hard part of the
+protocol and it is already proven on device.
+
+| # | Slice | Test seam | Gate |
+|---|---|---|---|
+| 10.1 | `JupyterMessage` readers for the rest of iopub: `stream`, `display_data`, `execute_input`, `status` | pure JVM, frames as strings | unit tests only — no device, no socket. Round-trips into the existing `CellOutput` types |
+| 10.2 | `KernelSocket`: open, keep open, emit frames, close. No Jupyter semantics | fake `WebSocket` behind an interface owned by us | unit tests for open/frame/close/failure; no real server |
+| 10.3 | `RealKernelGateway.execute` as a `Flow<KernelEvent>`: correlate by `msg_id`, map frames to `Output`/`ExecutionCount`, complete on `status: idle` | 10.1 + 10.2 fakes | contract-tested against the same suite as `FakeKernelGateway` — that is what the port is for |
+| 10.4 | `connect`/`disconnect` lifecycle, one socket per session, and `interrupt` via `POST /api/kernels/<id>/interrupt` | fakes, then device | device: a long cell interrupted mid-run actually stops |
+| 10.5 | Swap it into `AppContainer` behind the port and delete `SpaceProbe`'s kernel exercise | — | **Maestro on the tablet**: open a notebook, run a cell, see output. The first flow that proves the product rather than the runtime |
+
+Notes that keep this honest:
+
+- **`complete` is not in Step 10.** The port declares it, `FakeKernelGateway` answers it,
+  and nothing calls it until the CodeMirror editor lands in Step 5. Implementing it here
+  would be untested-by-use code. It stays fake until Step 5 needs it, and that is a
+  deliberate deferral rather than an oversight.
+- **Each slice keeps the app working.** `FakeKernelGateway` stays wired in `AppContainer`
+  until 10.5, so 10.1–10.4 cannot break a running app.
+- **Maestro lands at 10.5, not before.** 10.1–10.3 have no UI to drive; claiming a
+  Maestro gate on them would be theatre. Device evidence at 10.4, real flow at 10.5.
+- **Do not reuse `ExecutionOutcome`.** It models one-shot execution and the port models a
+  stream. Two shapes for one idea is how drift starts; `KernelChannel` and
+  `ExecutionOutcome` retire with `SpaceProbe` at 10.5.
 
 Risks to measure rather than assume: glibc syscalls under Android's seccomp
 filter (the reason proot was rejected); bundle size once numpy/scipy join
@@ -465,6 +500,20 @@ no longer a pending decision for the UI to be built against.
 
 ### Known residual risks
 
+Everything here is measured. Where a line used to say "probably", it now says what
+the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
+`evidence/step8.7/x86_64-no-space-degrades.txt`.
+
+- **psutil `net_if_addrs` segfaults — confirmed live, not theoretical.**
+  `exit=139`, `psutil/__init__.py:2246`, extension module `psutil._psutil_linux`.
+  `getifaddrs()` gets EACCES from Android's network restrictions and psutil does
+  not check the return. The SIGSYS handler cannot help: this is a SIGSEGV from a
+  bad dereference, not a refused syscall, and handling *that* would be far more
+  dangerous than the crash.
+  psutil cannot simply be dropped - it is an `ipykernel` dependency - but
+  ipykernel only uses it for process management, which is why the whole stack
+  works. So the hazard is exactly one function, reachable only if a user's own
+  notebook calls it. Known, bounded, upstream.
 - A refused syscall that a package genuinely *needs* would still be fatal.
   `mbind` was tolerable; nothing guarantees the next one is. The set is now
   discovered by running software and reading the reported refusals, which is a
@@ -474,9 +523,22 @@ no longer a pending decision for the UI to be built against.
   loader symlink, which an app update leaves dangling because
   `nativeLibraryDir` moves. Fixed and regression-tested. Worth remembering that
   every install-time path needs a second install to be tested at all.
-- psutil segfaults if anything calls `net_if_addrs`. Nothing in our path does,
-  but it is a landmine rather than a sealed hole.
-- `ExecutionOutcome.TimedOut` is unit-tested but never exercised on device; it
-  needs a kernel that neither answers nor drops.
 - `scripts/gradlew-jbr` still hardcodes this machine's JBR path, and there is
-  no CI.
+  no CI. Dev-environment debt: it slows a new machine down, it cannot corrupt a
+  build.
+- `SpaceProbe` starts a server and a kernel on every app launch and never stops
+  them (~143 MB RSS held while backgrounded). Scaffolding by intent, and Step 18
+  owns the lifecycle - but it must not outlive Step 10's UI.
+
+### Closed by measurement, so nobody re-investigates them
+
+- **Orphaned Space processes: not a problem.** The server and kernel are ordinary
+  children of the app process, and both `am force-stop` and `am kill` take them
+  with it - Android kills the whole process group. Nothing leaks across app death.
+- **`ExecutionOutcome.TimedOut`: exercised on device.** Driven with a live kernel
+  running `time.sleep(5)` against a 2 s channel - alive and merely slow, which is
+  the case the branch exists for, not a kernel that died or dropped. Returned
+  `TimedOut(after=2s)`.
+- **x86_64 degrades cleanly.** The app starts on the emulator, logs
+  `no Space runtime here: no rootfs is built for ABI 'x86_64'; expected one of
+  [arm64-v8a]`, and runs. No crash, and no stack trace for a designed outcome.
