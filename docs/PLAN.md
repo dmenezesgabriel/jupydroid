@@ -431,23 +431,30 @@ rootfs, interpreter exec'd from `nativeLibraryDir`, stock musllinux wheels. See
 the "The correction" section of **`docs/environment-fidelity.md`** for why this
 is not the per-gap libc patching that document rejects.
 
-### What that leaves to decide
+**The handler is runtime behaviour, not a diagnostic.** It lives in
+`SpaceRuntime.environment()`, so the server, the kernel and every future Space
+subprocess inherit it by construction rather than by each launcher remembering.
+That mattered: the kernel is spawned by `jupyter_server`, not by us, and
+`import numpy; numpy.linalg.det(...)` returning `10.0` through the WebSocket is
+what proves the preload survived that hop
+(`evidence/step8.7/numpy-in-a-notebook-cell.txt`). It reports every distinct
+refusal to stderr, which the server log captures - a handler that swallowed them
+would trade loud deaths for quiet wrong answers.
 
-The SIGSYS handler is currently a *diagnostic*, LD_PRELOAD'd onto one probe. To
-become the runtime's behaviour it needs a home - preloaded for every Space
-process, or installed by the kernel entry point - and it must **log every
-distinct refusal**. A handler that silently swallows them trades loud deaths for
-quiet wrong answers, which is the worse of the two.
+**The runtime is arm64-only, and `SpaceAbi` now says so.** x86_64 cannot run a
+Space at all, so listing it promised something no build could deliver. The
+x86_64 *native libs* still ship so the APK installs on emulators for UI work;
+`SpaceProbe` treats a missing Space as a logged no-op rather than a crash.
 
 ### Small items to clear
 
-- numpy and scipy now work, so they stay in `tools/rootfs/requirements.lock`.
-  What remains is the packaging decision the size measurement set up: 76 MB vs
-  33 MB compressed, 278 MB vs ~120 MB unpacked, asset-pack versus first-run
-  download.
-- Restart the `dev36` emulator; it died mid-session. Still fine for UI and
-  Maestro, just not for the runtime (x86_64 fails there regardless - see
-  `evidence/step8.3/musl-is-arm64-only.txt`).
+- numpy and scipy work, so they stay in `tools/rootfs/requirements.lock`.
+- Packaging is the open decision: debug APK is **115 MB**, of which **79 MB** is
+  the rootfs (278 MB unpacked). Asset pack versus first-run download. Measure
+  from a clean build - an incremental one reports ~175 MB because zipflinger
+  leaves gaps where replaced entries were.
+- Restart the `dev36` emulator; it died mid-session. Fine for UI and Maestro,
+  never for the runtime.
 
 ### What can proceed in parallel, safely
 
