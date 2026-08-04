@@ -8,13 +8,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jupydroid.app.data.DataRepository
 import com.jupydroid.app.data.DefaultDataRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 
 @Composable
 fun MainScreen(
   modifier: Modifier = Modifier,
-  viewModel: MainScreenViewModel = viewModel { MainScreenViewModel(DefaultDataRepository()) },
+  dataRepository: DataRepository = DefaultDataRepository(),
+  viewModel: MainScreenViewModel = viewModel { MainScreenViewModel(dataRepository) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   when (state) {
