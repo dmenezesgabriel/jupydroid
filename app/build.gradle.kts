@@ -38,6 +38,20 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            // The whole exec model depends on this (docs/PLAN.md, "Exec model"):
+            // only files extracted to /data/app/.../lib/<abi>/ get the apk_data_file
+            // SELinux context that permits execve. Left at the modern default the
+            // libs stay inside the APK, nativeLibraryDir points into it, and nothing
+            // is executable.
+            useLegacyPackaging = true
+        }
+    }
+
+    androidResources {
+        // The rootfs asset is already gzipped; recompressing it in the APK costs
+        // build time and buys nothing.
+        noCompress += "gz"
     }
 }
 

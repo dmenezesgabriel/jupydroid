@@ -3,9 +3,13 @@
 #
 #   tools/rootfs/build.sh [abi]      abi: x86_64 (default) | arm64-v8a
 #
-# Writes build/rootfs/rootfs-<abi>.tar.zst plus a manifest of what went in.
+# Writes build/rootfs/rootfs-<abi>.tar.gz plus a manifest of what went in.
 # The tarball is a build artifact, not a committed file: it is far too big for
 # git and is reproducible from the pinned Dockerfile + requirements.lock.
+#
+# gzip, not zstd, even though zstd is ~25% smaller: the installer that unpacks
+# this on device (Step 8.2b) gets GZIPInputStream from the JDK, whereas zstd
+# would mean shipping a native decompressor to save a few MB of APK.
 set -euo pipefail
 
 ABI="${1:-x86_64}"
@@ -17,7 +21,7 @@ esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT_DIR="$ROOT/build/rootfs"
-TARBALL="$OUT_DIR/rootfs-$ABI.tar.zst"
+TARBALL="$OUT_DIR/rootfs-$ABI.tar.gz"
 MANIFEST="$OUT_DIR/rootfs-$ABI.manifest.txt"
 IMAGE="jupydroid-rootfs:$ABI"
 
@@ -31,7 +35,7 @@ docker build --platform "$PLATFORM" -t "$IMAGE" "$ROOT/tools/rootfs"
 echo "==> exporting filesystem"
 CONTAINER="$(docker create --platform "$PLATFORM" "$IMAGE" /bin/true)"
 trap 'docker rm -f "$CONTAINER" >/dev/null 2>&1 || true' EXIT
-docker export "$CONTAINER" | zstd -19 -T0 -q -o "$TARBALL" -f
+docker export "$CONTAINER" | gzip -9 > "$TARBALL"
 
 echo "==> recording manifest"
 {
