@@ -1,0 +1,5 @@
+appId: com.jupydroid.app
+---
+- launchApp
+- assertVisible: "No recent notebooks yet"
+- takeScreenshot: 01-home-empty

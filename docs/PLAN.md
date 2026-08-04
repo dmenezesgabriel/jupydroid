@@ -148,7 +148,18 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 18 | Foreground service + lifecycle | server held while notebook open |
 | 19 | Settings polish + About | licences, storage |
 
-**Step 0 and Step 1 are the immediate next actions.**
+**Step 2 is the current step, broken into sub-steps (each closes with unit tests
++ Maestro evidence + a semantic commit):**
+
+- **2.1** Home list — replace the scaffold landing with Home: recents list, relative
+  timestamps, empty state. Removes scaffold `MainScreen`/`DataRepository` cruft.
+- **2.2** Create — FAB menu (New notebook / New Python file) → item appears in recents.
+- **2.3** Manage — long-press row → rename / delete.
+- **2.4** Open — VIEW intent imports an `.ipynb` into the list (nbformat parsing lands
+  in Step 3; Step 2 imports the title only).
+
+On-device verification is Maestro flows (the established harness); unit tests cover
+state/logic. `connectedAndroidTest` is not part of the gate to keep each sub-step fast.
 
 ---
 
