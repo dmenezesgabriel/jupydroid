@@ -49,7 +49,16 @@ class JupyterServerLauncher(
     val started = withContext(ioDispatcher) {
       runtimeDir.mkdirs()
       JupyterRuntimeFile.clear(runtimeDir) // a stale file would advertise a dead port
-      runtime.processBuilder(serverArgs(), mapOf("JUPYTER_RUNTIME_DIR" to runtimeDir.path))
+      runtime.processBuilder(
+        serverArgs(),
+        mapOf(
+          "JUPYTER_RUNTIME_DIR" to runtimeDir.path,
+          // A fatal signal in a non-Android process produces no tombstone, because
+          // debuggerd never attaches. faulthandler turns a silent death into a Python
+          // traceback in the server log, for every thread.
+          "PYTHONFAULTHANDLER" to "1",
+        ),
+      )
         .redirectErrorStream(true)
         .redirectOutput(logFile())
         .start()
@@ -97,6 +106,12 @@ class JupyterServerLauncher(
     "-m", "jupyter_server",
     "--ServerApp.ip=127.0.0.1",
     "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
+    // Unix domain sockets rather than TCP for the kernel transport. Everything here
+    // is one app on one device, so kernels need no ports and no network stack at all.
+    // It also avoids jupyter_client validating the kernel IP against every local
+    // interface, which it does via psutil.net_if_addrs() - that segfaults on Android
+    // (evidence/step8.5/psutil-segfault.txt).
+    "--KernelManager.transport=ipc",
     "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
     "--no-browser",
   )

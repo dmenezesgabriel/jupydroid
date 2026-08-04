@@ -110,6 +110,9 @@ class MainActivity : ComponentActivity() {
     val imports = runner.run("-c", IMPORT_PROBE)
     Log.i(BASE_SPACE_LOG_TAG, "imports: exit=${imports.exitCode} ${imports.output}")
 
+    val zmqBind = runner.run("-c", ZMQ_BIND_PROBE)
+    Log.i(BASE_SPACE_LOG_TAG, "zmq tcp bind: exit=${zmqBind.exitCode} ${zmqBind.output}")
+
     startServer()
   }
 
@@ -176,6 +179,11 @@ class MainActivity : ComponentActivity() {
   private companion object {
     const val BASE_SPACE_LOG_TAG = "JupydroidSpace"
     const val LOG_TAIL_CHARS = 1500
+
+    /** ipykernel binds this exact way for its subprocess-output pipe, ignoring transport. */
+    const val ZMQ_BIND_PROBE =
+      "import zmq; s = zmq.Context().socket(zmq.PULL); " +
+        "print('bound port', s.bind_to_random_port('tcp://127.0.0.1'))"
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
 
     /** pyzmq is the one that matters: it is the first dlopen'd native extension. */
