@@ -50,6 +50,20 @@ class SpaceProbe(
     val imports = runner.run("-c", IMPORT_PROBE)
     Log.i(TAG, "imports: exit=${imports.exitCode} ${imports.output}")
 
+    probeScientificStack()
+  }
+
+  /**
+   * Run under the SIGSYS reporter, because these are the probes that die at exit 159 and
+   * the signal carries the only detail that matters: which syscall the filter refused
+   * (evidence/step8.7). The reporter only reports, so the outcomes should be unchanged -
+   * a probe that starts passing because of it would itself be the news.
+   */
+  private suspend fun probeScientificStack() {
+    val runner = PythonRunner(
+      runtime = baseSpaceRuntime(context),
+      extraEnv = mapOf("LD_PRELOAD" to File(baseSpaceDir(context), SIGSYS_REPORTER).path),
+    )
     for ((label, code) in SCIENCE_PROBES) {
       val outcome = runner.run("-c", code)
       Log.i(TAG, "$label: exit=${outcome.exitCode} ${outcome.output}")
@@ -138,6 +152,9 @@ class SpaceProbe(
     val HTTP_OK_RANGE = 200..299
     const val UNKNOWN_KERNEL = "00000000-0000-0000-0000-000000000000"
     val KERNEL_ID = Regex("\"id\": \"([^\"]+)\"")
+
+    /** Built by tools/rootfs/Dockerfile; see tools/rootfs/sigsys_report.c. */
+    const val SIGSYS_REPORTER = "lib/libsigsys_report.so"
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
 
     /**
@@ -154,6 +171,16 @@ class SpaceProbe(
         "import numpy, scipy.linalg as la; " +
           "print('solve', la.solve(numpy.array([[3.0, 1.0], [1.0, 2.0]]), " +
           "numpy.array([9.0, 8.0])).tolist())",
+      // Threads and a real BLAS allocation, because that is where a second refused
+      // syscall would show up if the set is not just mbind: pthread creation, futexes
+      // and OpenBLAS's per-thread arenas all sit outside the 2x2 toy path above.
+      "numpy under load" to
+        "import numpy, threading; " +
+          "a = numpy.random.default_rng(0).random((512, 512)); " +
+          "r = []; t = [threading.Thread(target=lambda: r.append(float((a @ a).sum()))) " +
+          "for _ in range(4)]; " +
+          "[x.start() for x in t]; [x.join() for x in t]; " +
+          "print('threads', len(r), 'fft', float(abs(numpy.fft.fft(a[0])).sum()))",
     )
 
     /** pyzmq is the one that matters: it is the first dlopen'd native extension. */

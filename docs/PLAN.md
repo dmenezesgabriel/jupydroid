@@ -308,7 +308,7 @@ rebuilding them. Each sub-step is one commit with its own evidence:
 | 8.4 | `jupyter_server` on 127.0.0.1, ephemeral port, empty token | `GET /api/status` returns a version |
 | 8.5 | Start a kernel — `POST /api/kernels` | proves the **subprocess** `execve` path needs no shim |
 | 8.6 | Execute a cell over the kernel WebSocket | `2 + 2` → `4` |
-| 8.7 | **numpy/scipy on musl** — add them to the image and import them on device | musllinux wheels are far less exercised than manylinux, and Step 8.3 showed what assuming costs. Gate it here rather than discover it in Step 12 |
+| 8.7 | **numpy/scipy on musl** — add them to the image and import them on device | musllinux wheels are far less exercised than manylinux, and Step 8.3 showed what assuming costs. Gate it here rather than discover it in Step 12. **Passed** once SIGSYS was handled rather than left to kill the process |
 
 Risks to measure rather than assume: glibc syscalls under Android's seccomp
 filter (the reason proot was rejected); bundle size once numpy/scipy join
@@ -411,39 +411,40 @@ fakes — 3 files today, many more once the runtime lands.
 
 ## Where we are, and what to do next (2026-08-04)
 
-**Step 8 is closed apart from 8.7.** On a Galaxy Tab A9+ (Android 16, arm64) the
+**Step 8 is closed, 8.7 included.** On a Galaxy Tab A9+ (Android 16, arm64) the
 whole runtime chain works: bundled Alpine/musl rootfs → extracted to app storage →
 interpreter exec'd from `nativeLibraryDir` → stock `jupyter_server` on loopback →
 kernel spawned as a subprocess → `2 + 2` over the WebSocket returns `4`. All
 `ExecutionOutcome` branches are verified against a real kernel. Evidence per step
 in `evidence/step8.*/`.
 
-**8.7 is blocked, and it is not a numpy problem.** numpy/scipy musllinux aarch64
-wheels exist and install; numpy's import dies with SIGSYS under the app seccomp
-filter and runs fine under `run-as`. The cause is structural: Android's app
-seccomp policy is an allowlist of the syscalls *bionic* uses, so any non-bionic
-userland keeps hitting syscalls outside it. Full argument, with the AOSP
-citations, the confirmed missing syscalls, and what Termux and Winlator actually
-do about it: **`docs/environment-fidelity.md`**.
+**8.7 is unblocked. Step 8 is closed.** The syscall that killed numpy is
+**`mbind` (235)**, numpy does not need it, and the process died only because
+nothing handled the SIGSYS that Android's `SECCOMP_RET_TRAP` raises. With a
+handler that reports and returns, numpy and scipy import *and compute correctly*
+inside the app process - including a 4-thread 512x512 matmul and an FFT. Exit 0
+across the board. `evidence/step8.7/sigsys-syscall-named.txt`.
 
-### The one thing blocking the architecture
+This retires the guest-kernel question without measuring it: no VM, no QEMU, no
+bionic build farm. The runtime keeps the architecture Step 8 proved - musl
+rootfs, interpreter exec'd from `nativeLibraryDir`, stock musllinux wheels. See
+the "The correction" section of **`docs/environment-fidelity.md`** for why this
+is not the per-gap libc patching that document rejects.
 
-Build QEMU system-mode for android-arm64, ship it via `nativeLibraryDir` (that
-machinery is already proven), boot a minimal arm64 guest, and time the same numpy
-workload inside the guest against the native musl figure from this device.
+### What that leaves to decide
 
-- Tolerable → **guest kernel**: full fidelity, every wheel works, no per-package
-  handling ever.
-- Not tolerable → **bionic userland** (Termux's answer): proven, but it means
-  owning a package build farm and giving up manylinux/musllinux wheels.
+The SIGSYS handler is currently a *diagnostic*, LD_PRELOAD'd onto one probe. To
+become the runtime's behaviour it needs a home - preloaded for every Space
+process, or installed by the kernel entry point - and it must **log every
+distinct refusal**. A handler that silently swallows them trades loud deaths for
+quiet wrong answers, which is the worse of the two.
 
-Nothing else on the runtime should be built until that number exists. Patching
-the libc per gap (Winlator's answer) is rejected - see the doc for why.
+### Small items to clear
 
-### Small items to clear first
-
-- Drop numpy and scipy from `tools/rootfs/requirements.lock`. They ship inert and
-  cost 43 MB of asset (76 MB vs 33 MB compressed, 278 MB vs ~120 MB unpacked).
+- numpy and scipy now work, so they stay in `tools/rootfs/requirements.lock`.
+  What remains is the packaging decision the size measurement set up: 76 MB vs
+  33 MB compressed, 278 MB vs ~120 MB unpacked, asset-pack versus first-run
+  download.
 - Restart the `dev36` emulator; it died mid-session. Still fine for UI and
   Maestro, just not for the runtime (x86_64 fails there regardless - see
   `evidence/step8.3/musl-is-arm64-only.txt`).
@@ -452,12 +453,20 @@ the libc per gap (Winlator's answer) is rejected - see the doc for why.
 
 Steps 5-7 (CodeMirror 6 cell editor, execute behaviour, output rendering) and
 Step 4b (cell Run/Stop, long-press menu, Run All, dirty state). `2 + 2 = 4`
-already works end to end, so the UI can be built against today's runtime whatever
-userland eventually wins - the `KernelGateway` port is the seam that absorbs the
-difference.
+already works end to end, and the userland question is now settled, so there is
+no longer a pending decision for the UI to be built against.
 
 ### Known residual risks
 
+- A refused syscall that a package genuinely *needs* would still be fatal.
+  `mbind` was tolerable; nothing guarantees the next one is. The set is now
+  discovered by running software and reading the reported refusals, which is a
+  bounded and observable unknown rather than an open-ended one.
+- The re-extract path was never exercised on device until the rootfs version was
+  bumped, and it crash-looped the app: `TarGzExtractor` wrote *through* the stale
+  loader symlink, which an app update leaves dangling because
+  `nativeLibraryDir` moves. Fixed and regression-tested. Worth remembering that
+  every install-time path needs a second install to be tested at all.
 - psutil segfaults if anything calls `net_if_addrs`. Nothing in our path does,
   but it is a landmine rather than a sealed hole.
 - `ExecutionOutcome.TimedOut` is unit-tested but never exercised on device; it

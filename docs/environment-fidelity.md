@@ -1,6 +1,14 @@
-# Environment fidelity: why per-package fixes cannot work
+# Environment fidelity: what the sandbox actually costs
 
 Recorded 2026-08-04, after Steps 8.3-8.7.
+
+> **Superseded in its central claim, same day.** This document argued that the
+> refused-syscall gap was unbounded and that only a guest kernel could close it. Then
+> the syscall was named. It is `mbind`, numpy does not need it, and handling SIGSYS is
+> enough to make numpy and scipy run correctly inside the app process
+> (`evidence/step8.7/sigsys-syscall-named.txt`). The reasoning below is kept because
+> the AOSP citations and the survey of Termux and Winlator remain accurate and are
+> what the correction is built on - but read "The correction" at the bottom first.
 
 ## The pattern
 
@@ -9,10 +17,12 @@ Recorded 2026-08-04, after Steps 8.3-8.7.
 | glibc (any binary) | SIGSYS at libc startup | `set_robust_list` refused |
 | psutil.net_if_addrs | SIGSEGV | `getifaddrs()` EACCES, return unchecked |
 | libzmq TCP bind | SIGABRT | same EACCES, `errno_assert` |
-| numpy import | SIGSYS | a refused syscall, not yet named |
+| ~~numpy import~~ | ~~SIGSYS~~ | **`mbind` refused, and unhandled. Not needed - see the correction.** |
 
 Four failures, three mechanisms, one sandbox. Fixing them one at a time was
-working, and was the wrong strategy.
+working, and was the wrong strategy. The error in what follows is subtler than that:
+it treated "the kernel refused a syscall" and "the program cannot proceed" as the same
+event. They are not.
 
 ## Why it is unbounded
 
@@ -73,9 +83,10 @@ Linux userland. On this evidence it cannot, for any userland that is not bionic.
 
 ## Open
 
-The performance of a TCG guest on this class of hardware is the number that
-decides whether fidelity is affordable. Nothing else should be decided before
-it is measured.
+~~The performance of a TCG guest on this class of hardware is the number that
+decides whether fidelity is affordable.~~ Closed without being measured: see
+"The correction" below. What is open instead is which *other* packages report
+refusals, and that is answered by running them.
 
 ## How the maintained projects actually handle it
 
@@ -123,11 +134,55 @@ That maps onto three honest options, and they should be named plainly:
 
 ## The measurement that decides between 1 and 2
 
-Not yet done, and not to be guessed at. It requires building QEMU system-mode for
-android-arm64, shipping it the same way the interpreter is shipped today
-(nativeLibraryDir, which is already proven), booting a minimal arm64 guest, and
-timing the same numpy workload inside the guest against the native musl figure we
-already have from this device.
+Superseded before it was taken - see below. It would have required building QEMU
+system-mode for android-arm64, booting a minimal arm64 guest, and timing numpy inside
+it against the native figure. That work is not needed, because option 4 exists.
 
-Until that number exists, option 1 cannot be compared with option 2 on anything
-but preference, and no more runtime code should be written on either path.
+---
+
+## The correction: SECCOMP_RET_TRAP is a signal, not a verdict
+
+Measured 2026-08-04, after the above was written.
+Evidence: `evidence/step8.7/sigsys-syscall-named.txt`.
+
+The syscall numpy's import could not make is **235, `mbind`** - NUMA memory policy.
+numpy and OpenBLAS call it opportunistically and do not care whether it succeeds; on a
+one-memory-node phone it is a no-op regardless. On a Linux kernel built without NUMA it
+returns ENOSYS and every caller copes silently.
+
+What killed the process was not the refusal. Android's filter refuses with
+`SECCOMP_RET_TRAP`, which raises SIGSYS - and nothing in a musl process handles SIGSYS,
+so the default action, terminate, applied. Install a handler that reports and returns,
+and the refused call simply returns -ENOSYS as it already did, numpy imports, and both
+numpy and scipy compute correct answers under threads and BLAS. Exit 0 across the board.
+
+So the argument above conflated two things: the syscall surface a userland *uses* and
+the surface it *requires*. The gap between Linux and bionic is real and is not
+enumerable from the policy - that part stands. But a program only breaks on the part of
+that gap it cannot tolerate an error from, and that is a much smaller set. It is also
+an empirical one: run the software, read the reported refusals.
+
+That is a fourth option, and it is the cheapest of the four:
+
+4. **Handle SIGSYS and let ENOSYS propagate.** No syscall is reimplemented and no libc
+   is patched, so it is not option 3 in disguise - Winlator's `android_sysvshm` supplies
+   a missing feature over Unix sockets, whereas this supplies nothing and merely stops
+   converting "unsupported" into a fatal signal. Arguably *more* faithful to Linux than
+   the status quo, since ENOSYS from an unsupported syscall is ordinary Linux behaviour.
+
+Its limits, stated plainly so they are not discovered later:
+
+- It fixes only refusals the caller tolerates. A package that genuinely needs a refused
+  syscall still fails, and no handler can change that.
+- As shipped behaviour rather than a diagnostic, the handler must log every distinct
+  refusal. Silently swallowing them would trade loud deaths for quiet wrong answers,
+  which is a worse failure mode than the one being fixed.
+- The set is now discovered by running software, not derived in advance. That is a
+  different kind of unknown from the one above - bounded per package, and observable -
+  but it is still an unknown.
+
+**Where this leaves the three original options.** Option 1 (guest kernel) is no longer
+required for the scientific stack and its TCG cost need not be measured. Option 2
+(bionic userland, a build farm) is not needed either. Option 3 stays rejected. The
+runtime keeps the architecture Step 8 already proved: musl rootfs, interpreter exec'd
+from nativeLibraryDir, stock wheels.

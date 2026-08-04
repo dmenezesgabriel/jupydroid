@@ -12,6 +12,15 @@
 #
 # Pinned by digest so a rebuild reproduces the image that produced the committed
 # evidence. alpine:3.21 as of 2026-08-04:
+
+# A separate stage purely so the shipped rootfs does not grow a C toolchain: only the
+# 8 KB .so crosses over. See sigsys_report.c for why it exists.
+FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d AS sigsys-builder
+RUN apk add --no-cache gcc musl-dev
+COPY sigsys_report.c /tmp/sigsys_report.c
+RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libsigsys_report.so /tmp/sigsys_report.c \
+ && strip /tmp/libsigsys_report.so
+
 FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 
 # patchelf is installed here rather than on the host so the ELF edits in
@@ -45,6 +54,19 @@ assert hasattr(IPKernelApp, '_bind_socket'), 'IPKernelApp._bind_socket is gone';
 assert hasattr(IPKernelApp, '_apply_curve_server_options'), 'curve options hook is gone';\
 assert 'pipe' in inspect.signature(__import__('ipykernel.iostream', fromlist=['IOPubThread']).IOPubThread.__init__).parameters;\
 print('kernel entry point OK')"
+
+# Diagnostic only, and inert unless LD_PRELOAD names it, so it costs 8 KB and nothing else.
+COPY --from=sigsys-builder /tmp/libsigsys_report.so /lib/libsigsys_report.so
+
+# Prove the constructor actually installs the handler, here rather than on the device.
+# getsignal() returns None precisely when something outside Python installed a handler,
+# and SIG_DFL when nothing did - so this distinguishes "preloaded and armed" from
+# "preloaded and silently did nothing".
+RUN LD_PRELOAD=/lib/libsigsys_report.so python3 -c "\
+import signal;\
+handler = signal.getsignal(signal.SIGSYS);\
+assert handler is None, f'SIGSYS handler not installed by the preload: {handler!r}';\
+print('sigsys reporter armed')"
 
 # The spike only has to answer whether this runs on Android; docs and bytecode
 # caches are pure bulk. One layer, so the export is smaller.
