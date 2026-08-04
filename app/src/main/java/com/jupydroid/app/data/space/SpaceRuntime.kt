@@ -46,10 +46,18 @@ class SpaceRuntime(
    *
    * Omitted rather than dangling when absent, so a Space extracted by an older version
    * gets a clean environment instead of a preload pointing at nothing.
+   *
+   * The reports go to a log file, never stderr: ipykernel captures a kernel's stderr and
+   * forwards it as cell output, so reporting there would print "SIGSYS seccomp-refused" into
+   * the user's notebook on every numpy import. Measured on device, not guessed.
    */
   private fun sigsysHandler(): Map<String, String> {
     val handler = File(baseDir, SIGSYS_HANDLER)
-    return if (handler.isFile) mapOf("LD_PRELOAD" to handler.path) else emptyMap()
+    if (!handler.isFile) return emptyMap()
+    return mapOf(
+      "LD_PRELOAD" to handler.path,
+      "JUPYDROID_SIGSYS_LOG" to inBase(SIGSYS_LOG),
+    )
   }
 
   /**
@@ -69,5 +77,8 @@ class SpaceRuntime(
   private companion object {
     /** Built by tools/rootfs/Dockerfile; see tools/rootfs/sigsys_report.c. */
     const val SIGSYS_HANDLER = "lib/libsigsys_report.so"
+
+    /** In tmp/ because it always exists in the rootfs, unlike run/ before the server starts. */
+    const val SIGSYS_LOG = "tmp/sigsys.log"
   }
 }

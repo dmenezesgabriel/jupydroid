@@ -120,6 +120,8 @@ class SpaceProbe(
     // Settles where the UI should read execution state from: the REST field is only
     // as fresh as the last iopub message the server saw.
     Log.i(TAG, "kernels after execution: ${get(connection, "api/kernels")}")
+
+    KernelGatewayProbe(connection).run()
   }
 
   private suspend fun serverLogTail(): String = withContext(ioDispatcher) {

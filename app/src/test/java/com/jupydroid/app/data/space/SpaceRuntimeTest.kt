@@ -70,6 +70,20 @@ class SpaceRuntimeTest {
     assertEquals(File(installed, "lib/libsigsys_report.so").path, preload)
   }
 
+  /**
+   * The reports must go to a file, not stderr: ipykernel captures a kernel's stderr and
+   * forwards it as cell output, so reporting there prints "SIGSYS seccomp-refused" into the
+   * user's notebook on every numpy import. Measured on device before this was set.
+   */
+  @Test
+  fun environment_sendsSigsysReportsToALogFileRatherThanTheUsersCellOutput() {
+    val installed = spaceWithHandler()
+
+    val env = SpaceRuntime(installed, interpreter).environment()
+
+    assertEquals(File(installed, "tmp/sigsys.log").path, env["JUPYDROID_SIGSYS_LOG"])
+  }
+
   /** A Space extracted before the handler existed must not get a preload pointing at nothing. */
   @Test
   fun environment_omitsThePreloadWhenTheHandlerIsNotInTheRootfs() {

@@ -20,18 +20,23 @@ class KernelChannelException(reason: String) : IllegalStateException(reason)
  * RealKernelGateway(OkHttpKernelSocketOpener(connection)).execute(session, cellId, "2 + 2")
  * ```
  *
- * Step 10.3 covers [execute]. [connect] still derives a session rather than starting a
- * kernel over REST, and [interrupt] is not wired - both land in 10.4. [complete] stays
- * unimplemented until Step 5's editor calls it, rather than shipping code nothing exercises.
+ * A socket is opened per execution and closed with it. One socket per session is 10.4b;
+ * [disconnect] becomes meaningful there. [complete] stays unimplemented until Step 5's
+ * editor calls it, rather than shipping code nothing exercises.
  */
 class RealKernelGateway(
   private val opener: KernelSocketOpener,
+  private val lifecycle: KernelLifecycle,
 ) : KernelGateway {
+  /**
+   * Starts a kernel and binds a session to it. The session id is ours and identifies this
+   * client to the server; the kernel id is the server's.
+   */
   override suspend fun connect(space: Space): KernelSession =
     KernelSession(
       id = UUID.randomUUID().toString(),
       spaceId = space.id,
-      kernelId = space.kernels.firstOrNull()?.id ?: DEFAULT_KERNEL,
+      kernelId = lifecycle.start(),
     )
 
   /**
@@ -71,7 +76,7 @@ class RealKernelGateway(
     awaitClose { socket.close() }
   }
 
-  override suspend fun interrupt(session: KernelSession) = TODO("Step 10.4")
+  override suspend fun interrupt(session: KernelSession) = lifecycle.interrupt(session.kernelId)
 
   override suspend fun complete(
     session: KernelSession,
@@ -89,9 +94,5 @@ class RealKernelGateway(
   ) {
     KernelOutputs.executionCountOf(frame, requestMsgId)?.let { trySend(KernelEvent.ExecutionCount(cellId, it)) }
     KernelOutputs.outputOf(frame, requestMsgId)?.let { trySend(KernelEvent.Output(cellId, it)) }
-  }
-
-  private companion object {
-    const val DEFAULT_KERNEL = "python3"
   }
 }

@@ -20,11 +20,24 @@
  * cannot spin silently forever.
  */
 #define _GNU_SOURCE
+#include <fcntl.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #define MAX_DISTINCT 64
+
+/*
+ * Where reports go. Set by SpaceRuntime for every Space process, and it must be a file
+ * rather than stderr: ipykernel captures a kernel's stderr and forwards it as cell output,
+ * so reporting there prints "SIGSYS seccomp-refused" into the user's notebook every time
+ * numpy is imported. Diagnostics belong in a log, not in someone's results.
+ *
+ * Falling back to stderr when the file cannot be opened is deliberate - losing the report
+ * entirely would be worse, and a noisy cell is at least a visible symptom.
+ */
+#define LOG_PATH_VAR "JUPYDROID_SIGSYS_LOG"
 
 #ifndef si_syscall
 #error "siginfo_t has no si_syscall; needs a libc with SIGSYS sigaction support"
@@ -32,6 +45,7 @@
 
 static int reported[MAX_DISTINCT];
 static int reported_count;
+static int report_fd = STDERR_FILENO;
 
 static char *put_str(char *out, const char *text) {
   while (*text) *out++ = *text++;
@@ -72,12 +86,23 @@ static void report(int signal_number, siginfo_t *info, void *context) {
   end = put_str(end, " at=0x");
   end = put_num(end, (unsigned long)info->si_call_addr, 16);
   end = put_str(end, "\n");
-  write(STDERR_FILENO, line, (size_t)(end - line));
+  write(report_fd, line, (size_t)(end - line));
+}
+
+/* Opened once at startup rather than per report: open() is async-signal-safe, but doing it
+ * in the handler would retry on every refusal in a loop. */
+static void open_report_log(void) {
+  const char *path = getenv(LOG_PATH_VAR);
+  if (!path || !*path) return;
+
+  int fd = open(path, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0600);
+  if (fd >= 0) report_fd = fd;
 }
 
 __attribute__((constructor)) static void install_handler(void) {
   struct sigaction action;
 
+  open_report_log();
   memset(&action, 0, sizeof action);
   action.sa_sigaction = report;
   action.sa_flags = SA_SIGINFO;

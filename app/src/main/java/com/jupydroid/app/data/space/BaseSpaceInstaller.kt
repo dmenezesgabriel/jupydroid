@@ -81,6 +81,6 @@ class BaseSpaceInstaller(
     const val STAMP_PATH = ".jupydroid/rootfs-version"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
-    const val BUNDLED_ROOTFS_VERSION = 2
+    const val BUNDLED_ROOTFS_VERSION = 3
   }
 }
