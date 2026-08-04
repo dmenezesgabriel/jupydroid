@@ -2,7 +2,7 @@ package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
-import com.jupydroid.app.domain.model.Environment
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
@@ -15,7 +15,7 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 class AppContainerTest {
-  private val environment = Environment(
+  private val space = Space(
     id = "base",
     name = "Base",
     kernels = listOf(KernelSpec(id = "python3", displayName = "Python 3")),
@@ -26,12 +26,12 @@ class AppContainerTest {
     val container = AppContainer(notebookRepository = FakeNotebookRepository())
 
     assertTrue(!container.serverLauncher.isRunning())
-    val connection = container.serverLauncher.start(environment)
+    val connection = container.serverLauncher.start(space)
     assertEquals("http://127.0.0.1:8888", connection.baseUrl)
     assertTrue(container.serverLauncher.isRunning())
 
-    val session = container.kernelGateway.connect(environment)
-    assertEquals("base", session.environmentId)
+    val session = container.kernelGateway.connect(space)
+    assertEquals("base", session.spaceId)
   }
 
   @Test
@@ -64,7 +64,7 @@ class AppContainerTest {
   @Test
   fun fakeKernelGateway_executeEmitsIdle() = runTest {
     val gateway = FakeKernelGateway()
-    val session = KernelSession(id = "s1", environmentId = "base", kernelId = "python3")
+    val session = KernelSession(id = "s1", spaceId = "base", kernelId = "python3")
 
     val events = gateway.execute(session, cellId = "cell-1", code = "1 + 1").toList()
     assertTrue(events.last() is KernelEvent.Idle)

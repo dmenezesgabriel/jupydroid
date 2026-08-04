@@ -1,7 +1,7 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.CellOutput
-import com.jupydroid.app.domain.model.Environment
+import com.jupydroid.app.domain.model.Space
 import kotlinx.coroutines.flow.Flow
 
 data class CompletionResult(val matches: List<String>)
@@ -9,7 +9,7 @@ data class CompletionResult(val matches: List<String>)
 /** A live kernel that one notebook (or the Console REPL) is executing against. */
 data class KernelSession(
   val id: String,
-  val environmentId: String,
+  val spaceId: String,
   val kernelId: String,
 )
 
@@ -24,7 +24,7 @@ sealed interface KernelEvent {
 
 /** Talks to a real jupyter_server kernel; swapped behind the port in Step 10. */
 interface KernelGateway {
-  suspend fun connect(environment: Environment): KernelSession
+  suspend fun connect(space: Space): KernelSession
 
   suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent>
 

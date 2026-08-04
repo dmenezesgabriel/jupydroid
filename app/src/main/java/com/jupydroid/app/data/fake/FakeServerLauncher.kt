@@ -1,6 +1,6 @@
 package com.jupydroid.app.data.fake
 
-import com.jupydroid.app.domain.model.Environment
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
 
@@ -8,7 +8,7 @@ import com.jupydroid.app.domain.port.ServerLauncher
 class FakeServerLauncher : ServerLauncher {
   private var running = false
 
-  override suspend fun start(environment: Environment): ServerConnection {
+  override suspend fun start(space: Space): ServerConnection {
     running = true
     return ServerConnection(baseUrl = "http://127.0.0.1:8888", port = 8888)
   }

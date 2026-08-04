@@ -25,7 +25,7 @@ Dependencies point inward: `ui → domain`, `data → domain`, `domain → nothi
                 │ uses (domain types + ports)      │ drives
 ┌───────────────┴──────────────────────────────────▼────────────────────┐
 │ domain (pure Kotlin, zero android.* imports — guard-tested)           │
-│   model/  — Environment, KernelSpec, Notebook, Cell, CellOutput, …    │
+│   model/  — Space, KernelSpec, Notebook, Cell, CellOutput, …          │
 │   port/   — NotebookRepository, KernelGateway, ServerLauncher         │
 └───────▲───────────────────────────────────────┬───────────────────────┘
         │ implemented by                        │ implemented by
@@ -57,14 +57,16 @@ Defined in `domain/port/`; each has a fake (Steps 1–2) and a real implementati
 |---|---|---|---|
 | `NotebookRepository` | CRUD + observe list/summaries | `DiskNotebookRepository` over nbformat JSON | Step 3 |
 | `KernelGateway` | execute/interrupt/complete against a kernel session | WebSocket client to `jupyter_server` | Step 10 |
-| `ServerLauncher` | start/stop the `jupyter_server` process for an environment | `ProcessBuilder` → rootfs dynamic loader | Step 8 |
+| `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `ProcessBuilder` → rootfs dynamic loader | Step 8 |
 
-`Environment` is a **first-class domain type** (`files/containers/<id>/`), not a string.
+`Space` is a **first-class domain type** (`files/spaces/<id>/`), not a string. Named
+after SageMaker Studio rather than "environment", which would collide with the Python
+environments living inside one.
 
 ## 3. Data model (domain)
 
 ```
-Environment(id, name, kernels: List<KernelSpec>)
+Space(id, name, kernels: List<KernelSpec>)
 KernelSpec(id, displayName)
 
 Notebook(id, title, kernelId, cells: List<Cell>, updatedAt: Instant)
@@ -79,7 +81,7 @@ CellOutput (sealed)
   ExecuteResult(mimeBundle, executionCount)
   ClearOutput
 
-KernelSession(id, environmentId, kernelId)
+KernelSession(id, spaceId, kernelId)
 KernelEvent (sealed)
   ExecutionCount(cellId, count)
   Output(cellId, output: CellOutput)
@@ -172,7 +174,7 @@ ServerConnection(baseUrl, port)
 │ Symbol bar           [✓]     │
 │ Background autosave  [✓]     │
 │ ──────────────────────────── │
-│ Environments                 │
+│ Spaces                       │
 │  ◗ base (bundled, default)   │
 └──────────────────────────────┘
 ```

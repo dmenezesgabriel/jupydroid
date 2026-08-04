@@ -1,7 +1,7 @@
 package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.CellOutput
-import com.jupydroid.app.domain.model.Environment
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelEvent
@@ -12,11 +12,11 @@ import kotlinx.coroutines.flow.flow
 
 /** Stub [KernelGateway] echoing the code back; replaced by the real one in Step 10. */
 class FakeKernelGateway : KernelGateway {
-  override suspend fun connect(environment: Environment): KernelSession =
+  override suspend fun connect(space: Space): KernelSession =
     KernelSession(
-      id = "fake-${environment.id}",
-      environmentId = environment.id,
-      kernelId = environment.kernels.firstOrNull()?.id ?: "python3",
+      id = "fake-${space.id}",
+      spaceId = space.id,
+      kernelId = space.kernels.firstOrNull()?.id ?: "python3",
     )
 
   override suspend fun execute(
