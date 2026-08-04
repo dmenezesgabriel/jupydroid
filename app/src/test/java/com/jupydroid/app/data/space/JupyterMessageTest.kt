@@ -62,6 +62,6 @@ class JupyterMessageTest {
 
   private fun iopubFrame(msgType: String, parent: String, text: String) = """
     {"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"$msgType"},
-     "content":{"data":{"text/plain":"$text"}}}
+     "content":{"execution_count":1,"data":{"text/plain":"$text"}}}
   """.trimIndent()
 }

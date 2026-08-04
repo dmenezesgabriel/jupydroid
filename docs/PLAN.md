@@ -325,11 +325,19 @@ protocol and it is already proven on device.
 
 | # | Slice | Test seam | Gate |
 |---|---|---|---|
-| 10.1 | `JupyterMessage` readers for the rest of iopub: `stream`, `display_data`, `execute_input`, `status` | pure JVM, frames as strings | unit tests only — no device, no socket. Round-trips into the existing `CellOutput` types |
+| 10.1 | Frame readers: `stream`, `display_data`, `execute_result`, `error`, `clear_output`, `execute_input`, `status`, `execute_reply` | pure JVM, frames as strings | **Done.** `JupyterFrame` (decode + correlate), `KernelOutputs` (frames → `CellOutput`), `JupyterMessage` (requests). 17 unit tests, no device, no socket |
 | 10.2 | `KernelSocket`: open, keep open, emit frames, close. No Jupyter semantics | fake `WebSocket` behind an interface owned by us | unit tests for open/frame/close/failure; no real server |
-| 10.3 | `RealKernelGateway.execute` as a `Flow<KernelEvent>`: correlate by `msg_id`, map frames to `Output`/`ExecutionCount`, complete on `status: idle` | 10.1 + 10.2 fakes | contract-tested against the same suite as `FakeKernelGateway` — that is what the port is for |
+| 10.3 | `RealKernelGateway.execute` as a `Flow<KernelEvent>`: correlate by `msg_id`, map frames to `Output`/`ExecutionCount`, complete on **reply *and* idle** | 10.1 + 10.2 fakes | contract-tested against the same suite as `FakeKernelGateway` — that is what the port is for |
 | 10.4 | `connect`/`disconnect` lifecycle, one socket per session, and `interrupt` via `POST /api/kernels/<id>/interrupt` | fakes, then device | device: a long cell interrupted mid-run actually stops |
 | 10.5 | Swap it into `AppContainer` behind the port and delete `SpaceProbe`'s kernel exercise | — | **Maestro on the tablet**: open a notebook, run a cell, see output. The first flow that proves the product rather than the runtime |
+
+**Completion needs both signals, not just idle** — found by reading JupyterLab rather than
+assuming, and the first draft of this table had it wrong. `KernelFutureHandler` is done only
+once **both** the shell `execute_reply` and the iopub `status: idle` have arrived, in either
+order (`reference/research_repos/jupyterlab/packages/services/src/kernel/future.ts:14-17`,
+`241-243`, `265-269`). They travel on separate channels with no ordering guarantee, so
+finishing on idle alone ends the cell while output may still be in flight, and finishing on
+the reply alone does the same. Both readers exist as of 10.1; the state machine is 10.3's.
 
 Notes that keep this honest:
 
