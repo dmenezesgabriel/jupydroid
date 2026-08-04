@@ -1,0 +1,73 @@
+package com.jupydroid.app.data.space
+
+import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.KernelEvent
+import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.ServerConnection
+import com.jupydroid.app.domain.port.ServerLauncher
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Brings a Space up on first use, then gets out of the way.
+ *
+ * `jupyter_server` takes seconds to start and cannot be waited on while an app is being
+ * constructed, so this exists to defer that: the Space is installed and the server started
+ * the first time anyone actually wants a kernel, and every call after that goes straight to
+ * the real gateway.
+ *
+ * ```
+ * BaseSpaceKernelGateway(
+ *   installSpace = { baseSpaceInstaller(context).installIfNeeded() },
+ *   launcher = baseSpaceServerLauncher(context),
+ *   gatewayFor = { RealKernelGateway(OkHttpKernelSocketOpener(it), OkHttpKernelLifecycle(it)) },
+ * )
+ * ```
+ */
+class BaseSpaceKernelGateway(
+  private val installSpace: suspend () -> Unit,
+  private val launcher: ServerLauncher,
+  private val gatewayFor: (ServerConnection) -> KernelGateway,
+) : KernelGateway {
+  private var started: KernelGateway? = null
+
+  // Two cells run at once would otherwise each find no server and each start one; the second
+  // would bind a different port and the first would be orphaned.
+  private val startLock = Mutex()
+
+  override suspend fun connect(space: Space): KernelSession = running().connect(space)
+
+  override suspend fun execute(
+    session: KernelSession,
+    cellId: String,
+    code: String,
+  ): Flow<KernelEvent> = running().execute(session, cellId, code)
+
+  override suspend fun interrupt(session: KernelSession) = running().interrupt(session)
+
+  override suspend fun complete(
+    session: KernelSession,
+    code: String,
+    cursorLine: Int,
+    cursorColumn: Int,
+  ): CompletionResult = running().complete(session, code, cursorLine, cursorColumn)
+
+  override suspend fun disconnect(session: KernelSession) = running().disconnect(session)
+
+  private suspend fun running(): KernelGateway = startLock.withLock {
+    started ?: startSpace().also { started = it }
+  }
+
+  private suspend fun startSpace(): KernelGateway {
+    installSpace()
+    return gatewayFor(launcher.start(BASE_SPACE))
+  }
+
+  private companion object {
+    /** Step 17 introduces real Spaces; until then there is exactly one and it is this. */
+    val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
+  }
+}

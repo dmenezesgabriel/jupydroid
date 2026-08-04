@@ -262,7 +262,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 7 | Output rendering | stream/error/display_data renderers, themed output area, collapse, clear outputs |
 | 8 | **Risk gate** (base Space) | x86_64 rootfs → `files/spaces/base/`, loader launch, `jupyter_server` on 127.0.0.1, kernel started, cell run — broken into 8.1–8.6 below |
 | 9 | Phase 1: JupyterLab-in-WebView | WebView → `/lab`, cleartext config |
-| 10 | Real KernelGateway (WebSocket) | swap fake → real behind the port — broken into 10.1–10.5 below |
+| 10 | Real KernelGateway (WebSocket) | **Done** — 10.1–10.5 below |
 | 11 | Console REPL | REPL sharing the open notebook's kernel; Enter=run, Shift+Enter=newline; input history, clear transcript |
 | 12–13 | xeus-python, xeus-sqlite, multi-kernel | kernelspecs + language switch |
 | 14 | Workspace & export | data/ vs output files, `+ Data`, ZIP export, import |
@@ -331,7 +331,7 @@ protocol and it is already proven on device.
 | 10.4a | Kernel lifecycle over REST: `connect` starts a kernel via `POST /api/kernels`, `interrupt` via `POST /api/kernels/<id>/interrupt` | `MockWebServer`, then device | **Done.** On the tablet: kernel started over REST, `2 + 2` → `4` and `import numpy` → `10.0` as `KernelEvent`s, and a 30 s sleep interrupted in **2158 ms** with `KeyboardInterrupt`. `evidence/step10.4a/` |
 | 10.4b | One socket per session rather than per execution, closed by `disconnect` | fakes, then device | **Done.** Witnessed by the server, not our own counter: `/api/kernels/<id>` reports `"connections": 1` after four cells and `0` after `disconnect`. `evidence/step10.4b/` |
 | 4b-min | **Re-sequenced ahead of 10.5.** Run one code cell from the editor and render its output, against `FakeKernelGateway` | `FakeKernelGateway` + `EditorViewModel` tests | Maestro on the emulator: tap Run, see output. 10.5's gate says "run a cell, see output" and there was no Run button — the editor is read-only from Step 4a and `Cell` has no outputs |
-| 10.5 | Swap `RealKernelGateway` into `AppContainer` behind the port and delete `SpaceProbe`/`KernelChannel`/`ExecutionOutcome` | — | **Maestro on the tablet**: the *same* flow as 4b-min, now against a real kernel. Running it twice — fake then real — is the port earning its keep |
+| 10.5 | Swap `RealKernelGateway` into `AppContainer` behind the port and delete `SpaceProbe`/`KernelGatewayProbe`/`KernelChannel`/`ExecutionOutcome` | — | **Done.** Maestro on the tablet: `print(6 * 7)` → `42` and a numpy determinant → `np.float64(10.000000000000002)`, tapped in the real UI. `evidence/step10.5/` |
 
 **Completion needs both signals, not just idle** — found by reading JupyterLab rather than
 assuming, and the first draft of this table had it wrong. `KernelFutureHandler` is done only

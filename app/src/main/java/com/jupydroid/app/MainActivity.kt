@@ -14,19 +14,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
 import com.jupydroid.app.data.disk.DiskNotebookRepository
-import com.jupydroid.app.data.space.SpaceProbe
+import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.space.baseSpaceKernelGateway
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.import.importTitleFrom
 import com.jupydroid.app.theme.JupyterDroidTheme
 import java.io.File
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   private val appContainer: AppContainer by lazy {
+    // A device with no runnable Space keeps the fake, so the UI still works on an x86_64
+    // emulator where the runtime cannot (evidence/step8.3/musl-is-arm64-only.txt).
+    val kernelGateway = baseSpaceKernelGateway(applicationContext)
     AppContainer(
       notebookRepository = DiskNotebookRepository(File(applicationContext.filesDir, "notebooks")),
+      kernelGateway = kernelGateway ?: FakeKernelGateway(),
     )
   }
   private var importTitle by mutableStateOf<String?>(null)
@@ -34,7 +37,6 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    installBaseSpace()
     importTitle = importTitleFrom(intent)
     enableEdgeToEdge()
     setContent {
@@ -53,15 +55,6 @@ class MainActivity : ComponentActivity() {
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     importTitle = importTitleFrom(intent)
-  }
-
-  /**
-   * Walks the Step 8 runtime chain and logs each stage. Off the main thread and not
-   * awaited: no UI depends on it yet, and every stage is idempotent. Replaced by real
-   * Space UI as those screens land.
-   */
-  private fun installBaseSpace() {
-    lifecycleScope.launch { SpaceProbe(applicationContext).run() }
   }
 
   private fun importTitleFrom(intent: Intent): String? {

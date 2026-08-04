@@ -1,6 +1,5 @@
 package com.jupydroid.app.data.space
 
-import com.jupydroid.app.domain.model.CellOutput
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -24,18 +23,6 @@ object JupyterMessage {
       put("content", executeContent(code))
       put("buffers", buildJsonArray { })
     }.toString()
-
-  /**
-   * The `text/plain` rendering of our request's result, or null if this is not it.
-   * Retires with [KernelChannel] at Step 10.5; [KernelOutputs.outputOf] is the shape the
-   * `KernelGateway` port streams.
-   */
-  fun resultOf(frame: String, requestMsgId: String): String? =
-    (KernelOutputs.outputOf(frame, requestMsgId) as? CellOutput.ExecuteResult)?.mimeBundle?.get("text/plain")
-
-  /** `ename: evalue` when our request raised, or null. Retires with [resultOf]. */
-  fun errorOf(frame: String, requestMsgId: String): String? =
-    (KernelOutputs.outputOf(frame, requestMsgId) as? CellOutput.Error)?.let { "${it.name}: ${it.value}" }
 
   private fun header(msgId: String, sessionId: String) = buildJsonObject {
     put("msg_id", msgId)

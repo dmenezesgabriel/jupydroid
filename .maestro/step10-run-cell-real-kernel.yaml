@@ -1,0 +1,28 @@
+appId: com.jupydroid.app
+---
+# The step4b flow could not be reused as-is: its cell is `answer = 42`, an assignment that
+# produces no output at all. FakeKernelGateway echoes the source back, so it looked like
+# output; a real kernel correctly returns nothing. This asserts a computed value instead.
+- launchApp
+- assertVisible: "Real Kernel"
+- tapOn: "Real Kernel"
+- assertVisible: "print(6 * 7)"
+- takeScreenshot: 01-before-running
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run installs the Space if needed and starts jupyter_server.
+# 42 is the kernel's answer, not ours - the fake could not have produced it.
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- takeScreenshot: 02-real-kernel-printed-42
+# numpy, in the app process, through the whole chain. index 1 is the second cell's Run
+# button - index 0 would re-run the first, which is what it did on the first attempt.
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*10.000000000000002.*"
+    timeout: 60000
+- takeScreenshot: 03-real-kernel-numpy

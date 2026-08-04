@@ -4,7 +4,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 class JupyterMessageTest {
@@ -19,49 +18,14 @@ class JupyterMessageTest {
     assertEquals("2 + 2", json["content"]!!.jsonObject["code"]!!.jsonPrimitive.content)
   }
 
+  /** A kernel refusing stdin matters: there is no terminal behind this one to answer it. */
   @Test
-  fun resultOf_readsTextPlainFromOurOwnExecuteResult() {
-    val frame = iopubFrame("execute_result", parent = "m1", text = "4")
+  fun executeRequest_disablesStdinAndStopsOnError() {
+    val content = Json.parseToJsonElement(
+      JupyterMessage.executeRequest("2 + 2", sessionId = "s1", msgId = "m1"),
+    ).jsonObject["content"]!!.jsonObject
 
-    assertEquals("4", JupyterMessage.resultOf(frame, requestMsgId = "m1"))
+    assertEquals("false", content["allow_stdin"]!!.jsonPrimitive.content)
+    assertEquals("true", content["stop_on_error"]!!.jsonPrimitive.content)
   }
-
-  /** Two notebooks share a kernel; another cell's output must not be mistaken for ours. */
-  @Test
-  fun resultOf_ignoresResultsBelongingToAnotherRequest() {
-    val frame = iopubFrame("execute_result", parent = "someone-else", text = "99")
-
-    assertNull(JupyterMessage.resultOf(frame, requestMsgId = "m1"))
-  }
-
-  @Test
-  fun resultOf_ignoresTheOtherIopubTrafficThatArrivesFirst() {
-    assertNull(JupyterMessage.resultOf(iopubFrame("status", "m1", "irrelevant"), "m1"))
-    assertNull(JupyterMessage.resultOf(iopubFrame("execute_input", "m1", "irrelevant"), "m1"))
-  }
-
-  /** A kernel-side exception must surface, not read as "no result yet" and hang. */
-  @Test
-  fun errorOf_reportsATracebackFromTheKernel() {
-    val frame = """
-      {"channel":"iopub","parent_header":{"msg_id":"m1"},"header":{"msg_type":"error"},
-       "content":{"ename":"ZeroDivisionError","evalue":"division by zero",
-                  "traceback":["Traceback...","ZeroDivisionError: division by zero"]}}
-    """.trimIndent()
-
-    val error = JupyterMessage.errorOf(frame, requestMsgId = "m1")
-
-    assertEquals("ZeroDivisionError: division by zero", error)
-  }
-
-  @Test
-  fun malformedFrames_areIgnoredRatherThanCrashingTheChannel() {
-    assertNull(JupyterMessage.resultOf("not json at all", "m1"))
-    assertNull(JupyterMessage.errorOf("{\"truncated\":", "m1"))
-  }
-
-  private fun iopubFrame(msgType: String, parent: String, text: String) = """
-    {"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"$msgType"},
-     "content":{"execution_count":1,"data":{"text/plain":"$text"}}}
-  """.trimIndent()
 }
