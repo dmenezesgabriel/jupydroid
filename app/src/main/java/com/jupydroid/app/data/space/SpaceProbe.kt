@@ -26,7 +26,18 @@ class SpaceProbe(
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   suspend fun run() {
-    installSpace()
+    // An x86_64 emulator has no Space it could run - the runtime is arm64-only by
+    // measurement, not by omission. UI work still needs the app to start there, so this
+    // is a logged no-op rather than a crash.
+    val installed = runCatching { installSpace() }
+    if (installed.isFailure) {
+      Log.w(TAG, "no Space runtime on this device", installed.exceptionOrNull())
+      return
+    }
+    probeInstalledSpace()
+  }
+
+  private suspend fun probeInstalledSpace() {
     probeInterpreter()
     val connection = startServer() ?: return
     val kernelId = startKernel(connection) ?: return

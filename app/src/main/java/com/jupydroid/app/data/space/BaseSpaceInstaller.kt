@@ -34,7 +34,7 @@ class BaseSpaceInstaller(
   private val baseDir: File,
   private val nativeLoader: File,
   private val nativeInterpreter: File,
-  private val loaderLinkPath: String = SpaceAbi.X86_64.loaderLinkPath,
+  private val loaderLinkPath: String = SpaceAbi.ARM64.loaderLinkPath,
   private val bundledVersion: Int = BUNDLED_ROOTFS_VERSION,
   private val extractor: TarGzExtractor = TarGzExtractor(),
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,

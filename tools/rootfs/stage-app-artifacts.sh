@@ -43,8 +43,18 @@ ROOTFS_ON_DEVICE="/data/data/$APP_ID/files/spaces/base"
 
 mkdir -p "$JNI_DIR" "$ASSET_DIR"
 
-echo "==> staging rootfs asset"
-cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tgz"
+# x86_64 gets the ELFs but not the rootfs. Android's seccomp filter is defined per
+# architecture and its x86_64 policy kills musl's libc startup, so no Space can run on
+# an x86_64 device (evidence/step8.3/musl-is-arm64-only.txt) and SpaceAbi lists arm64
+# alone. The native libs still ship so the APK installs on x86_64 emulators for UI work;
+# the 33 MB rootfs would be 33 MB that nothing can ever execute.
+if [ "$ABI" = "arm64-v8a" ]; then
+  echo "==> staging rootfs asset"
+  cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tgz"
+else
+  echo "==> skipping rootfs asset for $ABI (no Space can run there)"
+  rm -f "$ASSET_DIR/rootfs-$ABI.tgz"
+fi
 
 echo "==> extracting and patching the two executable ELFs"
 # patchelf runs inside the image so it edits binaries against the same libc that
