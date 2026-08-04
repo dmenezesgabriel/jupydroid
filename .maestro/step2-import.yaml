@@ -1,0 +1,6 @@
+appId: com.jupydroid.app
+---
+# Launched by scripts/step2-import-driver.sh (VIEW intent on a MediaStore .ipynb);
+# no launchApp here: the in-memory fake repository must survive this process.
+- assertVisible: "Intro to NumPy"
+- takeScreenshot: 05-imported

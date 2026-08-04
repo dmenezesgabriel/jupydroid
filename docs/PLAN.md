@@ -157,8 +157,11 @@ screenshots → `assembleDebug` green → commit → proceed**.
   timestamps, empty state. Removes scaffold `MainScreen`/`DataRepository` cruft.
 - **2.2** Create — FAB menu (New notebook / New Python file) → item appears in recents.
 - **2.3** Manage — long-press row → rename / delete. **(Done)**
-- **2.4** Open — VIEW intent imports an `.ipynb` into the list (nbformat parsing lands
-  in Step 3; Step 2 imports the title only).
+- **2.4** Open — VIEW intent imports an `.ipynb` into the list (title only; nbformat
+  parsing lands in Step 3). **(Done)** — driver: `scripts/step2-import-driver.sh` +
+  `.maestro/step2-import.yaml`; note the filter matches any `content://` VIEW
+  (`.ipynb` has no standard MIME type and file managers hand out content URIs
+  whose path does not encode the extension), the app validates via the display name.
 
 On-device verification is Maestro flows (the established harness); unit tests cover
 state/logic. `connectedAndroidTest` is not part of the gate to keep each sub-step fast.
@@ -180,3 +183,11 @@ state/logic. `connectedAndroidTest` is not part of the gate to keep each sub-ste
   `pkill -f '[q]emu-system'` (bracket trick).
 - Maestro `takeScreenshot` rejects `../` paths; capture into Maestro's output dir
   and copy the PNG into `evidence/<step>/`.
+- Emulator handwriting IME steals focus from text fields and swallows Maestro
+  `inputText`; disable it once per boot: `adb shell settings put secure
+  stylus_handwriting_enabled 0` (+ `settings put secure stylus_handwriting 0`).
+- VIEW-intent evidence (2.4): `scripts/step2-import-driver.sh` pushes
+  `.maestro/fixtures/Intro to NumPy.ipynb`, scans it into MediaStore, and starts
+  the app with `am start -a VIEW -d content://media/external/file/<id> -t '*/*'
+  -f 0x1` (shell can grant MediaStore URIs but not DocumentsUI ones, whose path
+  also does not carry the extension).

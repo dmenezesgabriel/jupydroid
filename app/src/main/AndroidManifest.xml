@@ -11,10 +11,23 @@
         android:theme="@style/Theme.JupyterDroid">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- .ipynb has no standard MIME type and file managers hand out
+                     content URIs whose path does not encode the extension
+                     (e.g. MediaStore /external/file/<id>), so match any content
+                     URI and validate the extension via the display name. -->
+                <data
+                    android:scheme="content"
+                    android:mimeType="*/*" />
             </intent-filter>
         </activity>
     </application>

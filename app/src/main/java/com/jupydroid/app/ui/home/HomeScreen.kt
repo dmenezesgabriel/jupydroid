@@ -19,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,10 +47,20 @@ private const val RENAME_FIELD_TAG = "rename-field"
 @Composable
 fun HomeScreen(
   notebookRepository: NotebookRepository,
+  importTitle: String? = null,
+  onImportConsumed: () -> Unit = {},
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = viewModel { HomeViewModel(notebookRepository) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+  LaunchedEffect(importTitle) {
+    importTitle?.let { title ->
+      viewModel.createNotebook(title, DEFAULT_KERNEL_ID)
+      onImportConsumed()
+    }
+  }
+
   HomeScaffold(
     notebooks = state.notebooks,
     onCreateNotebook = { viewModel.createNotebook(NEW_NOTEBOOK_TITLE, DEFAULT_KERNEL_ID) },

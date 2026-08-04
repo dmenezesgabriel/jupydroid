@@ -9,7 +9,11 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.ui.home.HomeScreen
 
 @Composable
-fun MainNavigation(appContainer: AppContainer) {
+fun MainNavigation(
+  appContainer: AppContainer,
+  importTitle: String?,
+  onImportConsumed: () -> Unit,
+) {
   val backStack = rememberNavBackStack(Home)
 
   NavDisplay(
@@ -18,7 +22,11 @@ fun MainNavigation(appContainer: AppContainer) {
     entryProvider =
       entryProvider {
         entry<Home> {
-          HomeScreen(notebookRepository = appContainer.notebookRepository)
+          HomeScreen(
+            notebookRepository = appContainer.notebookRepository,
+            importTitle = importTitle,
+            onImportConsumed = onImportConsumed,
+          )
         }
       },
   )
