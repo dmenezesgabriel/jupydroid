@@ -57,6 +57,22 @@ class OkHttpKernelSocketOpenerTest {
     assertEquals(listOf("echo:frame-0", "echo:frame-1", "echo:frame-2"), List(3) { received() })
   }
 
+  /**
+   * The gateway sends its execute_request straight after open(), without waiting for
+   * Opened - which is only correct if frames queue until the connection completes. Asserted
+   * rather than assumed, because the alternative is a lost first frame and a cell that
+   * hangs with no output.
+   */
+  @Test
+  fun send_beforeTheConnectionOpensIsQueuedRatherThanLost() {
+    val socket = opener(echoServer()).open("kernel-1", "session-9") { events.put(it) }
+
+    assertTrue("send() must accept a frame before Opened", socket.send("early"))
+
+    assertTrue(nextEvent() is KernelSocketEvent.Opened)
+    assertEquals("echo:early", received())
+  }
+
   @Test
   fun close_endsTheSocketAndSaysSo() {
     val socket = opener(echoServer()).open("kernel-1", "session-9") { events.put(it) }

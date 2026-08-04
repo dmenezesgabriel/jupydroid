@@ -23,7 +23,13 @@ sealed interface KernelSocketEvent {
  * against a fake and the transport can change without touching it.
  */
 interface KernelSocket {
-  /** False when the frame could not be queued - the socket is already ending. */
+  /**
+   * Queues a frame. May be called before [KernelSocketEvent.Opened] arrives - frames wait
+   * for the connection rather than being lost, which is what lets a caller send its request
+   * straight after opening instead of racing the listener for the socket reference.
+   *
+   * False when the frame could not be queued - the socket is already ending.
+   */
   fun send(frame: String): Boolean
 
   fun close()
