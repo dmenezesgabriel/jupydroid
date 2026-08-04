@@ -1,0 +1,37 @@
+# Pre-commit hooks: Working Agreement (docs/PLAN.md, rule 7).
+# Install with:  pip install pre-commit && pre-commit install
+# Hooks are pure checkers (non-mutating). Format with: ./gradlew ktlintFormat
+# Gradle hooks run through scripts/gradlew-jbr (resolves JAVA_HOME from the
+# Android Studio JBR) so they work without JAVA_HOME exported.
+repos:
+  - repo: local
+    hooks:
+      - id: file-line-length
+        name: kotlin files <= 500 lines
+        entry: scripts/check-file-line-length.sh
+        language: system
+        files: '\.kt$'
+      - id: ktlint-check
+        name: ktlint format check
+        entry: scripts/gradlew-jbr ktlintCheck
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: detekt
+        name: detekt static analysis
+        entry: scripts/gradlew-jbr detekt
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: android-lint
+        name: android lint
+        entry: scripts/gradlew-jbr :app:lintDebug
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: unit-tests
+        name: unit tests
+        entry: scripts/gradlew-jbr :app:testDebugUnitTest
+        language: system
+        pass_filenames: false
+        always_run: true

@@ -1,0 +1,18 @@
+# detekt configuration (v2). Overrides on top of the default config
+# (buildUponDefaultConfig = true in app/build.gradle.kts).
+# Enforces the Working Agreement (docs/PLAN.md, rule 6): classes <= 500 lines,
+# functions 4-20 lines, complexity cap. Naming rules and MaxLineLength (120)
+# come from the defaults.
+complexity:
+  CyclomaticComplexMethod:
+    allowedComplexity: 15
+  LargeClass:
+    allowedLines: 500
+  LongMethod:
+    allowedLines: 20
+
+# Compose composables are conventionally PascalCase (e.g. MainScreen);
+# keep enforcing camelCase/PascalCase but reject snake_case etc.
+naming:
+  FunctionNaming:
+    functionPattern: '[a-zA-Z][a-zA-Z0-9]*'

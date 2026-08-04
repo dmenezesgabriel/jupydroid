@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Wraps ./gradlew with the Android Studio JBR so pre-commit's gradle hooks are
+# self-contained (JAVA_HOME is not guaranteed in the hook environment).
+# Used by .pre-commit-config.yaml for the ktlint/detekt/lint/test hooks.
+set -euo pipefail
+
+jbr=/home/user/android-studio/jbr
+if [ -z "${JAVA_HOME:-}" ] && [ -x "$jbr/bin/java" ]; then
+  export JAVA_HOME="$jbr"
+fi
+
+exec ./gradlew "$@"

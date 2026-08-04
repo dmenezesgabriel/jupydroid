@@ -8,7 +8,11 @@ optimized UI (Jetpack Compose shell + per-cell CodeMirror 6 WebViews).
 
 Project scaffold only. The Android app shell (Kotlin + Jetpack Compose, `com.jupydroid.app`)
 is generated from the official Android CLI `empty-activity` template (AGP 9, minSdk 32) and
-builds green. Phases 0-2 (rootfs/loader spikes, JupyterLab-in-WebView, native editor) come next.
+builds green.
+
+**Build plan + working agreement (mandatory TDD + Maestro evidence gating):
+`docs/PLAN.md`.** Phases 0-2 (rootfs/loader spikes, JupyterLab-in-WebView, native editor)
+come next.
 
 ## Build
 

@@ -1,0 +1,5 @@
+appId: com.jupydroid.app
+---
+- launchApp
+- assertVisible: "Hello Android!"
+- takeScreenshot: 01-scaffold-home

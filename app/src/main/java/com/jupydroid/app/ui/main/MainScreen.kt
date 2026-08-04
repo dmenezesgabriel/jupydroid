@@ -8,13 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.data.DefaultDataRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 
 @Composable
 fun MainScreen(
-  onItemClick: (NavKey) -> Unit,
   modifier: Modifier = Modifier,
   viewModel: MainScreenViewModel = viewModel { MainScreenViewModel(DefaultDataRepository()) },
 ) {
