@@ -49,6 +49,11 @@ class SpaceProbe(
 
     val imports = runner.run("-c", IMPORT_PROBE)
     Log.i(TAG, "imports: exit=${imports.exitCode} ${imports.output}")
+
+    for ((label, code) in SCIENCE_PROBES) {
+      val outcome = runner.run("-c", code)
+      Log.i(TAG, "$label: exit=${outcome.exitCode} ${outcome.output}")
+    }
   }
 
   private suspend fun startServer(): ServerConnection? {
@@ -134,6 +139,22 @@ class SpaceProbe(
     const val UNKNOWN_KERNEL = "00000000-0000-0000-0000-000000000000"
     val KERNEL_ID = Regex("\"id\": \"([^\"]+)\"")
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
+
+    /**
+     * Importing proves the wheel loads; solving proves its BLAS/LAPACK backend runs.
+     * A musllinux wheel that imports and then faults on the first real call would be
+     * the worst outcome to discover in Step 12.
+     */
+    val SCIENCE_PROBES = listOf(
+      "numpy import" to "import numpy; print(numpy.__version__)",
+      "numpy compute" to
+        "import numpy; a = numpy.array([[3.0, 1.0], [1.0, 2.0]]); print('dot', a.dot(a).sum())",
+      "scipy import" to "import scipy; print(scipy.__version__)",
+      "scipy compute" to
+        "import numpy, scipy.linalg as la; " +
+          "print('solve', la.solve(numpy.array([[3.0, 1.0], [1.0, 2.0]]), " +
+          "numpy.array([9.0, 8.0])).tolist())",
+    )
 
     /** pyzmq is the one that matters: it is the first dlopen'd native extension. */
     const val IMPORT_PROBE =

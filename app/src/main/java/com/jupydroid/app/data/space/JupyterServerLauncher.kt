@@ -51,13 +51,7 @@ class JupyterServerLauncher(
       JupyterRuntimeFile.clear(runtimeDir) // a stale file would advertise a dead port
       runtime.processBuilder(
         serverArgs(),
-        mapOf(
-          "JUPYTER_RUNTIME_DIR" to runtimeDir.path,
-          // A fatal signal in a non-Android process produces no tombstone, because
-          // debuggerd never attaches. faulthandler turns a silent death into a Python
-          // traceback in the server log, for every thread.
-          "PYTHONFAULTHANDLER" to "1",
-        ),
+        mapOf("JUPYTER_RUNTIME_DIR" to runtimeDir.path), // faulthandler comes from SpaceRuntime
       )
         .redirectErrorStream(true)
         .redirectOutput(logFile())

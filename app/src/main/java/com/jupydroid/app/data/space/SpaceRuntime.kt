@@ -27,6 +27,9 @@ class SpaceRuntime(
 
   fun environment(): Map<String, String> = mapOf(
     "PYTHONHOME" to inBase("usr"),
+    // No Space process is an Android process, so none of them get a tombstone from
+    // debuggerd. Without this a fatal signal leaves nothing at all to debug.
+    "PYTHONFAULTHANDLER" to "1",
     "HOME" to inBase("home/jupydroid"),
     "TMPDIR" to inBase("tmp"),
     "PATH" to listOf(inBase("usr/local/bin"), inBase("usr/bin"), inBase("bin")).joinToString(":"),
