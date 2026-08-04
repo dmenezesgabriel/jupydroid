@@ -69,6 +69,10 @@ class TarGzExtractor(private val ioDispatcher: CoroutineDispatcher = Dispatchers
 
   private fun File.writeFrom(tar: TarArchiveInputStream): Boolean {
     parentFile?.mkdirs()
+    // Replace, never write through: on a re-extract this entry may be the loader symlink
+    // into nativeLibraryDir, which an app update has just left dangling. Opening that for
+    // write follows the link and fails with ENOENT.
+    delete()
     outputStream().use { tar.copyTo(it) }
     return true
   }

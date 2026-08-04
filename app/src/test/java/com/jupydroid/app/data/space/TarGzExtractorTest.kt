@@ -63,6 +63,26 @@ class TarGzExtractorTest {
     assertEquals("shared", File(target, "bin/second").readText())
   }
 
+  /**
+   * Regression: the app-update path. A previous install left `lib/ld-musl-aarch64.so.1`
+   * symlinked into nativeLibraryDir, and an app update moves that directory - so at
+   * re-extract time the link dangles. Writing through it fails with ENOENT because the
+   * old target's directory is gone, which crash-looped the app on the first bundled
+   * rootfs bump. Replace the entry, never write through it.
+   */
+  @Test
+  fun extract_replacesADanglingSymlinkLeftByAPreviousInstall() = runTest {
+    val target = tempFolder.newFolder("rootfs")
+    val stale = File(target, "lib/ld-musl-aarch64.so.1").apply { parentFile!!.mkdirs() }
+    Files.createSymbolicLink(stale.toPath(), File("/data/app/gone-on-update/lib/arm64/libloader.so").toPath())
+    val archive = tarGz { file("lib/ld-musl-aarch64.so.1", "fresh loader") }
+
+    extractor.extract({ archive.inputStream() }, target)
+
+    assertTrue("expected the dangling link to be replaced by a real file", !stale.isSymlink())
+    assertEquals("fresh loader", stale.readText())
+  }
+
   /** A crafted archive must not be able to write outside the Space directory. */
   @Test
   fun extract_rejectsPathsEscapingTheTargetDirectory() = runTest {
