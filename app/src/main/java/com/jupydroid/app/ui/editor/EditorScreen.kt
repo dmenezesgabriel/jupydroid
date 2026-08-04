@@ -3,6 +3,8 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,27 +29,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
 
 @Composable
 fun EditorScreen(
   notebookId: String,
   notebookRepository: NotebookRepository,
+  kernelGateway: KernelGateway,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: EditorViewModel = viewModel { EditorViewModel(notebookId, notebookRepository) },
+  viewModel: EditorViewModel = viewModel { EditorViewModel(notebookId, notebookRepository, kernelGateway) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = { EditorTopBar(title = state.title, onBack = onBack) },
   ) { innerPadding ->
-    EditorContent(state = state, modifier = Modifier.padding(innerPadding))
+    EditorContent(
+      state = state,
+      onRunCell = viewModel::runCell,
+      modifier = Modifier.padding(innerPadding),
+    )
   }
 }
 
@@ -63,26 +77,41 @@ private fun EditorTopBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun EditorContent(state: EditorUiState, modifier: Modifier = Modifier) {
+private fun EditorContent(
+  state: EditorUiState,
+  onRunCell: (Cell) -> Unit,
+  modifier: Modifier = Modifier,
+) {
   when {
     state.error != null -> ErrorMessage(message = state.error, modifier = modifier)
     !state.loaded -> EmptyMessage("Loading\u2026", modifier)
     state.cells.isEmpty() -> EmptyMessage("No cells yet", modifier)
     else ->
       LazyColumn(modifier = modifier.fillMaxSize()) {
-        items(state.cells, key = { it.id }) { cell -> EditorCell(cell) }
+        items(state.cells, key = { it.id }) { cell ->
+          EditorCell(
+            cell = cell,
+            outputs = state.outputs[cell.id].orEmpty(),
+            executionCount = state.executionCounts[cell.id],
+            running = state.runningCellId == cell.id,
+            onRun = { onRunCell(cell) },
+          )
+        }
       }
   }
 }
 
 @Composable
-private fun EditorCell(cell: Cell, modifier: Modifier = Modifier) {
+private fun EditorCell(
+  cell: Cell,
+  outputs: List<CellOutput>,
+  executionCount: Int?,
+  running: Boolean,
+  onRun: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
   Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-    Text(
-      text = cell.kind.label(),
-      style = MaterialTheme.typography.labelSmall,
-      color = MaterialTheme.colorScheme.primary,
-    )
+    CellHeader(cell = cell, executionCount = executionCount, running = running, onRun = onRun)
     Spacer(modifier = Modifier.height(4.dp))
     Text(
       text = cell.source,
@@ -98,7 +127,62 @@ private fun EditorCell(cell: Cell, modifier: Modifier = Modifier) {
           Modifier.fillMaxWidth()
         },
     )
+    CellOutputs(outputs)
   }
+}
+
+@Composable
+private fun CellHeader(cell: Cell, executionCount: Int?, running: Boolean, onRun: () -> Unit) {
+  Row(verticalAlignment = Alignment.CenterVertically) {
+    Text(
+      // The bracket notation a Jupyter user already reads as "this cell has run N times".
+      text = executionCount?.let { "[$it]" } ?: cell.kind.label(),
+      style = MaterialTheme.typography.labelSmall,
+      color = MaterialTheme.colorScheme.primary,
+    )
+    if (cell.kind != CellKind.CODE) return@Row
+    if (running) {
+      CircularProgressIndicator(
+        modifier = Modifier.padding(start = 8.dp).size(16.dp).semantics { contentDescription = "Running" },
+        strokeWidth = 2.dp,
+      )
+    } else {
+      IconButton(onClick = onRun, modifier = Modifier.size(32.dp)) {
+        Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell")
+      }
+    }
+  }
+}
+
+/**
+ * Plain text for every output kind. Rich rendering - images, HTML, themed error tracebacks -
+ * is Step 7; this exists so a run has something visible to prove it worked.
+ */
+@Composable
+private fun CellOutputs(outputs: List<CellOutput>) {
+  if (outputs.isEmpty()) return
+  Spacer(modifier = Modifier.height(4.dp))
+  Column(modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Cell output" }) {
+    outputs.forEach { output ->
+      Text(
+        text = output.asText(),
+        style = MaterialTheme.typography.bodySmall,
+        fontFamily = FontFamily.Monospace,
+        color = if (output.isError()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+      )
+    }
+  }
+}
+
+private fun CellOutput.isError(): Boolean =
+  this is CellOutput.Error || (this is CellOutput.Stream && name == StreamName.STDERR)
+
+private fun CellOutput.asText(): String = when (this) {
+  is CellOutput.Stream -> text.trimEnd()
+  is CellOutput.Error -> "$name: $value"
+  is CellOutput.ExecuteResult -> mimeBundle["text/plain"].orEmpty()
+  is CellOutput.DisplayData -> mimeBundle["text/plain"] ?: mimeBundle.keys.joinToString()
+  CellOutput.ClearOutput -> ""
 }
 
 @Composable
