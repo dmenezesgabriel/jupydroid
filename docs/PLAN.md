@@ -406,3 +406,61 @@ fakes — 3 files today, many more once the runtime lands.
   the app with `am start -a VIEW -d content://media/external/file/<id> -t '*/*'
   -f 0x1` (shell can grant MediaStore URIs but not DocumentsUI ones, whose path
   also does not carry the extension).
+
+---
+
+## Where we are, and what to do next (2026-08-04)
+
+**Step 8 is closed apart from 8.7.** On a Galaxy Tab A9+ (Android 16, arm64) the
+whole runtime chain works: bundled Alpine/musl rootfs → extracted to app storage →
+interpreter exec'd from `nativeLibraryDir` → stock `jupyter_server` on loopback →
+kernel spawned as a subprocess → `2 + 2` over the WebSocket returns `4`. All
+`ExecutionOutcome` branches are verified against a real kernel. Evidence per step
+in `evidence/step8.*/`.
+
+**8.7 is blocked, and it is not a numpy problem.** numpy/scipy musllinux aarch64
+wheels exist and install; numpy's import dies with SIGSYS under the app seccomp
+filter and runs fine under `run-as`. The cause is structural: Android's app
+seccomp policy is an allowlist of the syscalls *bionic* uses, so any non-bionic
+userland keeps hitting syscalls outside it. Full argument, with the AOSP
+citations, the confirmed missing syscalls, and what Termux and Winlator actually
+do about it: **`docs/environment-fidelity.md`**.
+
+### The one thing blocking the architecture
+
+Build QEMU system-mode for android-arm64, ship it via `nativeLibraryDir` (that
+machinery is already proven), boot a minimal arm64 guest, and time the same numpy
+workload inside the guest against the native musl figure from this device.
+
+- Tolerable → **guest kernel**: full fidelity, every wheel works, no per-package
+  handling ever.
+- Not tolerable → **bionic userland** (Termux's answer): proven, but it means
+  owning a package build farm and giving up manylinux/musllinux wheels.
+
+Nothing else on the runtime should be built until that number exists. Patching
+the libc per gap (Winlator's answer) is rejected - see the doc for why.
+
+### Small items to clear first
+
+- Drop numpy and scipy from `tools/rootfs/requirements.lock`. They ship inert and
+  cost 43 MB of asset (76 MB vs 33 MB compressed, 278 MB vs ~120 MB unpacked).
+- Restart the `dev36` emulator; it died mid-session. Still fine for UI and
+  Maestro, just not for the runtime (x86_64 fails there regardless - see
+  `evidence/step8.3/musl-is-arm64-only.txt`).
+
+### What can proceed in parallel, safely
+
+Steps 5-7 (CodeMirror 6 cell editor, execute behaviour, output rendering) and
+Step 4b (cell Run/Stop, long-press menu, Run All, dirty state). `2 + 2 = 4`
+already works end to end, so the UI can be built against today's runtime whatever
+userland eventually wins - the `KernelGateway` port is the seam that absorbs the
+difference.
+
+### Known residual risks
+
+- psutil segfaults if anything calls `net_if_addrs`. Nothing in our path does,
+  but it is a landmine rather than a sealed hole.
+- `ExecutionOutcome.TimedOut` is unit-tested but never exercised on device; it
+  needs a kernel that neither answers nor drops.
+- `scripts/gradlew-jbr` still hardcodes this machine's JBR path, and there is
+  no CI.
