@@ -51,7 +51,7 @@ android {
     androidResources {
         // The rootfs asset is already gzipped; recompressing it in the APK costs
         // build time and buys nothing.
-        noCompress += "gz"
+        noCompress += "tgz"
     }
 }
 
@@ -87,6 +87,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.commons.compress)
     // Tooling
     debugImplementation(libs.androidx.compose.ui.tooling)
     // Instrumented tests

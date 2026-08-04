@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,11 +15,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.space.baseSpaceInstaller
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.import.importTitleFrom
 import com.jupydroid.app.theme.JupyterDroidTheme
 import java.io.File
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   private val appContainer: AppContainer by lazy {
@@ -31,6 +35,7 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
+    installBaseSpace()
     importTitle = importTitleFrom(intent)
     enableEdgeToEdge()
     setContent {
@@ -49,6 +54,27 @@ class MainActivity : ComponentActivity() {
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     importTitle = importTitleFrom(intent)
+  }
+
+  /**
+   * Unpacks the bundled rootfs on first launch. Off the main thread and not awaited:
+   * nothing in the UI depends on it yet, and it is idempotent, so a launch that is
+   * killed mid-extract simply redoes the work. Progress UI arrives with Step 8.4,
+   * when the server actually needs the Space to be ready.
+   */
+  private fun installBaseSpace() {
+    lifecycleScope.launch {
+      val installed = baseSpaceInstaller(applicationContext).installIfNeeded()
+      Log.i(
+        BASE_SPACE_LOG_TAG,
+        "base Space v${installed.version} at ${installed.baseDir}: " +
+          if (installed.freshlyInstalled) "extracted ${installed.entriesWritten} entries" else "already installed",
+      )
+    }
+  }
+
+  private companion object {
+    const val BASE_SPACE_LOG_TAG = "JupydroidSpace"
   }
 
   private fun importTitleFrom(intent: Intent): String? {

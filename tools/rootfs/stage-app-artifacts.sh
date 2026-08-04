@@ -26,7 +26,7 @@ esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 IMAGE="jupydroid-rootfs:$ABI"
-TARBALL="$ROOT/build/rootfs/rootfs-$ABI.tar.gz"
+TARBALL="$ROOT/build/rootfs/rootfs-$ABI.tgz"
 JNI_DIR="$ROOT/app/src/main/jniLibs/$ABI"
 ASSET_DIR="$ROOT/app/src/main/assets/spaces/base"
 
@@ -41,7 +41,7 @@ ROOTFS_ON_DEVICE="/data/data/$APP_ID/files/spaces/base"
 mkdir -p "$JNI_DIR" "$ASSET_DIR"
 
 echo "==> staging rootfs asset"
-cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tar.gz"
+cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tgz"
 
 echo "==> extracting and patching the two executable ELFs"
 # patchelf runs inside the image so it edits binaries against the glibc that
