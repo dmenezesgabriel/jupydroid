@@ -6,28 +6,41 @@ import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import java.util.UUID
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.flow.transformWhile
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** A kernel socket ended before the execution did. */
 class KernelChannelException(reason: String) : IllegalStateException(reason)
 
 /**
- * The real [KernelGateway]: one execution, streamed off a live kernel socket.
+ * The real [KernelGateway]: executions streamed off one long-lived socket per session.
  *
  * ```
- * RealKernelGateway(OkHttpKernelSocketOpener(connection)).execute(session, cellId, "2 + 2")
+ * RealKernelGateway(OkHttpKernelSocketOpener(conn), OkHttpKernelLifecycle(conn))
+ *   .execute(session, cellId, "2 + 2")
  * ```
  *
- * A socket is opened per execution and closed with it. One socket per session is 10.4b;
- * [disconnect] becomes meaningful there. [complete] stays unimplemented until Step 5's
- * editor calls it, rather than shipping code nothing exercises.
+ * One socket per session rather than per execution, which is how JupyterLab connects: the
+ * server counts connections against a kernel, and a socket per cell means a WebSocket
+ * handshake on every run. [disconnect] is what closes it.
+ *
+ * [complete] stays unimplemented until Step 5's editor calls it, rather than shipping code
+ * nothing exercises.
  */
 class RealKernelGateway(
   private val opener: KernelSocketOpener,
   private val lifecycle: KernelLifecycle,
 ) : KernelGateway {
+  private val sessionSockets = mutableMapOf<String, SessionSocket>()
+  private val socketsLock = Mutex()
+
   /**
    * Starts a kernel and binds a session to it. The session id is ours and identifies this
    * client to the server; the kernel id is the server's.
@@ -40,40 +53,32 @@ class RealKernelGateway(
     )
 
   /**
-   * Frames arrive on the socket's thread and are handed to the collector through
-   * [callbackFlow]'s buffer, so a slow renderer cannot block the kernel.
+   * Everything is filtered by our own `msg_id`: one socket now carries every cell's traffic,
+   * and a kernel may be shared with another notebook besides.
    *
-   * Everything is filtered by our own `msg_id`: a kernel is shared, so most of what arrives
-   * belongs to another cell.
+   * The request is sent from `onSubscription`, not before, because a [MutableSharedFlow]
+   * with no replay drops what it emits while nobody is listening - sending first would race
+   * the kernel's first frames against our own subscription.
    */
   override suspend fun execute(
     session: KernelSession,
     cellId: String,
     code: String,
-  ): Flow<KernelEvent> = callbackFlow {
-    val requestMsgId = UUID.randomUUID().toString()
-    val completion = ExecutionCompletion()
+  ): Flow<KernelEvent> {
+    val sessionSocket = socketFor(session)
 
-    val socket = opener.open(session.kernelId, session.id) { event ->
-      when (event) {
-        is KernelSocketEvent.Opened -> Unit
-        is KernelSocketEvent.Received -> {
-          emitEventsIn(event.frame, requestMsgId, cellId)
-          if (completion.accept(event.frame, requestMsgId)) {
-            trySend(KernelEvent.Idle)
-            close()
-          }
-        }
-        // A socket that ends mid-execution must fail the flow rather than complete it:
-        // a silently truncated cell looks like a cell that produced nothing.
-        is KernelSocketEvent.Ended -> close(if (event.failed) KernelChannelException(event.reason) else null)
-      }
+    // Request id and completion state are built per collection, not once per call: the flow
+    // is cold, so sharing them would make a second collection finish instantly on the first
+    // frame, having already seen its reply and idle.
+    return flow {
+      val requestMsgId = UUID.randomUUID().toString()
+      val completion = ExecutionCompletion()
+      emitAll(
+        sessionSocket.events
+          .onSubscription { sessionSocket.socket.send(JupyterMessage.executeRequest(code, session.id, requestMsgId)) }
+          .transformWhile { event -> emitUntilComplete(event, requestMsgId, cellId, completion) },
+      )
     }
-
-    // Sent without waiting for Opened; frames queue until the connection completes.
-    socket.send(JupyterMessage.executeRequest(code, session.id, requestMsgId))
-
-    awaitClose { socket.close() }
   }
 
   override suspend fun interrupt(session: KernelSession) = lifecycle.interrupt(session.kernelId)
@@ -85,14 +90,46 @@ class RealKernelGateway(
     cursorColumn: Int,
   ): CompletionResult = TODO("Step 5, when the editor asks for completions")
 
-  override suspend fun disconnect(session: KernelSession) = Unit
+  /** Closes the session's socket. The kernel keeps running; this only ends our connection. */
+  override suspend fun disconnect(session: KernelSession) {
+    socketsLock.withLock { sessionSockets.remove(session.id) }?.socket?.close()
+  }
 
-  private fun kotlinx.coroutines.channels.ProducerScope<KernelEvent>.emitEventsIn(
-    frame: String,
+  /** Returns false once this execution is complete, which is what ends the flow. */
+  private suspend fun FlowCollector<KernelEvent>.emitUntilComplete(
+    event: KernelSocketEvent,
     requestMsgId: String,
     cellId: String,
-  ) {
-    KernelOutputs.executionCountOf(frame, requestMsgId)?.let { trySend(KernelEvent.ExecutionCount(cellId, it)) }
-    KernelOutputs.outputOf(frame, requestMsgId)?.let { trySend(KernelEvent.Output(cellId, it)) }
+    completion: ExecutionCompletion,
+  ): Boolean {
+    // A socket that ends mid-execution must fail the cell rather than complete it: a cell
+    // that silently produced nothing looks exactly like one that ran and printed nothing.
+    if (event is KernelSocketEvent.Ended) throw KernelChannelException(event.reason)
+    if (event !is KernelSocketEvent.Received) return true
+
+    KernelOutputs.executionCountOf(event.frame, requestMsgId)?.let { emit(KernelEvent.ExecutionCount(cellId, it)) }
+    KernelOutputs.outputOf(event.frame, requestMsgId)?.let { emit(KernelEvent.Output(cellId, it)) }
+    val complete = completion.accept(event.frame, requestMsgId)
+    if (complete) emit(KernelEvent.Idle)
+    return !complete
+  }
+
+  private suspend fun socketFor(session: KernelSession): SessionSocket = socketsLock.withLock {
+    sessionSockets.getOrPut(session.id) { openSocket(session) }
+  }
+
+  private fun openSocket(session: KernelSession): SessionSocket {
+    // Buffered so the socket's thread is never blocked by a slow collector. A kernel's shell
+    // channel is serial - one execution in flight at a time - so this is generous, and with
+    // no replay the flow discards frames arriving between executions rather than growing.
+    val events = MutableSharedFlow<KernelSocketEvent>(extraBufferCapacity = FRAME_BUFFER)
+    val socket = opener.open(session.kernelId, session.id) { events.tryEmit(it) }
+    return SessionSocket(socket, events)
+  }
+
+  private class SessionSocket(val socket: KernelSocket, val events: MutableSharedFlow<KernelSocketEvent>)
+
+  private companion object {
+    const val FRAME_BUFFER = 256
   }
 }

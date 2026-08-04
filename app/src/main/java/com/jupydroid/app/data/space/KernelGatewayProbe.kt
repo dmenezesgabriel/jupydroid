@@ -4,10 +4,14 @@ import android.util.Log
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.ServerConnection
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.withContext
 
 /**
  * Drives [RealKernelGateway] on a device, against a kernel it starts itself over REST.
@@ -17,7 +21,7 @@ import kotlinx.coroutines.flow.toList
  * this exercises the path the app will actually use. Filter with
  * `adb logcat -s JupydroidSpace`.
  */
-class KernelGatewayProbe(connection: ServerConnection) {
+class KernelGatewayProbe(private val connection: ServerConnection) {
   private val gateway = RealKernelGateway(
     opener = OkHttpKernelSocketOpener(connection),
     lifecycle = OkHttpKernelLifecycle(connection),
@@ -30,6 +34,19 @@ class KernelGatewayProbe(connection: ServerConnection) {
     Log.i(TAG, "gateway execute import numpy -> ${gateway.execute(session, "cell-2", NUMPY_CELL).toList()}")
 
     interruptALongCell(session)
+    reportSocketReuse(session)
+  }
+
+  /**
+   * Step 10.4b, witnessed by the server rather than by our own counter: jupyter_server
+   * reports how many connections a kernel has, so four cells over one socket must read as
+   * one connection, and disconnect must take it back to zero.
+   */
+  private suspend fun reportSocketReuse(session: KernelSession) {
+    Log.i(TAG, "connections after four cells: ${kernelState(session.kernelId)}")
+    gateway.disconnect(session)
+    delay(SETTLE_MILLIS)
+    Log.i(TAG, "connections after disconnect: ${kernelState(session.kernelId)}")
   }
 
   /**
@@ -46,9 +63,25 @@ class KernelGatewayProbe(connection: ServerConnection) {
     Log.i(TAG, "gateway interrupt after ${System.currentTimeMillis() - started}ms -> $events")
   }
 
+  private suspend fun kernelState(kernelId: String): String = withContext(Dispatchers.IO) {
+    runCatching {
+      (URL("${connection.baseUrl}api/kernels/$kernelId").openConnection() as HttpURLConnection).run {
+        try {
+          setRequestProperty("Authorization", "token ${connection.token}")
+          inputStream.bufferedReader().use { it.readText() }
+        } finally {
+          disconnect()
+        }
+      }
+    }.getOrElse { "unreadable: ${it.message}" }
+  }
+
   private companion object {
     const val TAG = "JupydroidSpace"
     const val INTERRUPT_AFTER_MILLIS = 2000L
+
+    /** The server drops a connection asynchronously; without this the count reads stale. */
+    const val SETTLE_MILLIS = 1500L
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
     const val NUMPY_CELL = "import numpy; numpy.linalg.det(numpy.array([[4.0, 7.0], [2.0, 6.0]]))"
   }

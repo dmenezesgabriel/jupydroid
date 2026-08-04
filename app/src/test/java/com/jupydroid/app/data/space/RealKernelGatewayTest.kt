@@ -85,7 +85,58 @@ class RealKernelGatewayTest : KernelGatewayContract() {
 
     assertEquals(session.kernelId, opener.openedKernelId)
     assertEquals(session.id, opener.openedSessionId)
-    assertTrue("the socket must be closed when the flow ends", opener.closed)
+  }
+
+  // --- Step 10.4b: one socket per session, not per execution ---
+
+  /** A socket per cell means a WebSocket handshake on every run, and a connection count that churns. */
+  @Test
+  fun execute_reusesOneSocketAcrossEveryCellInTheSession() = runTest {
+    val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
+    val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
+    val session = gateway.connect(SPACE)
+
+    repeat(3) { gateway.execute(session, "cell-$it", "2 + 2").toList() }
+
+    assertEquals(1, opener.openCount)
+    assertTrue("a finished cell must not close the session's socket", !opener.closed)
+  }
+
+  @Test
+  fun disconnect_closesTheSessionSocket() = runTest {
+    val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
+    val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
+    val session = gateway.connect(SPACE)
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+
+    gateway.disconnect(session)
+
+    assertTrue("disconnect must close the socket", opener.closed)
+  }
+
+  /** Two sessions are two kernels; sharing a socket between them would cross their traffic. */
+  @Test
+  fun execute_givesEachSessionItsOwnSocket() = runTest {
+    val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
+    val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
+
+    gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2").toList()
+    gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2").toList()
+
+    assertEquals(2, opener.openCount)
+  }
+
+  /** The flow is cold: collecting it twice must run the cell twice, not finish instantly. */
+  @Test
+  fun execute_canBeCollectedTwiceAndRunsTheCellEachTime() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) }),
+      FakeKernelLifecycle(),
+    )
+    val cell = gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2")
+
+    assertEquals(cell.toList(), cell.toList())
+    assertEquals(KernelEvent.Idle, cell.toList().last())
   }
 
   /** A dropped socket must fail the cell, not quietly complete it as producing nothing. */

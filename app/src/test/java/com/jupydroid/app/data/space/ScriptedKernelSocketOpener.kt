@@ -26,6 +26,8 @@ class ScriptedKernelSocketOpener(
     private set
   var closed = false
     private set
+  var openCount = 0
+    private set
 
   override fun open(
     kernelId: String,
@@ -34,6 +36,7 @@ class ScriptedKernelSocketOpener(
   ): KernelSocket {
     openedKernelId = kernelId
     openedSessionId = sessionId
+    openCount++
     onEvent(KernelSocketEvent.Opened)
     return ScriptedSocket(onEvent)
   }
