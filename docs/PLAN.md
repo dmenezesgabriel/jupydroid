@@ -341,10 +341,21 @@ where seccomp kills `set_robust_list` with SIGSYS — the very syscall
 would sidestep it. It does not: the filter applies to the process, not to how it
 was launched.
 
-Not yet tested, and material before concluding anything: **real arm64 hardware.**
-Only an x86_64 emulator has been measured, a published write-up reports this same
-patchelf approach working on Android 15 arm64, and `FEASIBILITY.md` §9.1 asked for
-the spike on real devices specifically. Emulator kernels differ from shipping ones.
+**Confirmed on real arm64 hardware** — Samsung Galaxy Tab A9+ (SM-X216B),
+Android 16 / SDK 36, kernel 6.1.128, with an arm64 rootfs and `PT_INTERP` baked as
+`lib/ld-linux-aarch64.so.1`. Byte-for-byte the same outcome: loader exit 0,
+coreutils and Python both SIGSYS, `run-as` control prints `Python 3.11.2`. So this
+is not an emulator artifact, not x86_64-specific, and not something a shipping
+device relaxes. `evidence/step8.3/arm64-device.txt`.
+
+**The packaging model is sound and stays.** `jniLibs` → `apk_data_file` → `execve`
+works on both targets; `useLegacyPackaging`, the patchelf'd `PT_INTERP`, and the
+installer's loader symlink are all validated. What is refuted is only the choice of
+**glibc** as the Space's libc.
+
+Open decision (see the four options weighed at the end of Step 8.3's investigation):
+patch glibc the way Winlator patches it, move the rootfs to musl/Alpine, or build
+against bionic the way Termux does.
 
 Before 8.x: `Environment` is renamed to `Space` across the domain, ports and
 fakes — 3 files today, many more once the runtime lands.

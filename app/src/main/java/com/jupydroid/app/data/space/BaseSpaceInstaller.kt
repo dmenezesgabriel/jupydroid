@@ -33,7 +33,7 @@ class BaseSpaceInstaller(
   private val archive: ArchiveSource,
   private val baseDir: File,
   private val nativeLoader: File,
-  private val loaderLinkPath: String = DEFAULT_LOADER_LINK_PATH,
+  private val loaderLinkPath: String = SpaceAbi.X86_64.loaderLinkPath,
   private val bundledVersion: Int = BUNDLED_ROOTFS_VERSION,
   private val extractor: TarGzExtractor = TarGzExtractor(),
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -76,7 +76,6 @@ class BaseSpaceInstaller(
   private fun stampFile(): File = File(baseDir, STAMP_PATH)
 
   private companion object {
-    const val DEFAULT_LOADER_LINK_PATH = "lib64/ld-linux-x86-64.so.2"
     const val STAMP_PATH = ".jupydroid/rootfs-version"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */

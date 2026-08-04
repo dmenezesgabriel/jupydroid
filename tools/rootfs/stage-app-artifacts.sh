@@ -19,8 +19,12 @@ set -euo pipefail
 
 ABI="${1:-x86_64}"
 case "$ABI" in
-  x86_64)    PLATFORM=linux/amd64; LOADER=ld-linux-x86-64.so.2; TRIPLET=x86_64-linux-gnu ;;
-  arm64-v8a) PLATFORM=linux/arm64; LOADER=ld-linux-aarch64.so.1; TRIPLET=aarch64-linux-gnu ;;
+  # LOADER_LINK must match SpaceAbi.loaderLinkPath: Debian puts the loader under
+  # lib64/ on x86_64 but lib/ on arm64, and it is baked into PT_INTERP below.
+  x86_64)    PLATFORM=linux/amd64; LOADER=ld-linux-x86-64.so.2;  TRIPLET=x86_64-linux-gnu
+             LOADER_LINK=lib64/ld-linux-x86-64.so.2 ;;
+  arm64-v8a) PLATFORM=linux/arm64; LOADER=ld-linux-aarch64.so.1; TRIPLET=aarch64-linux-gnu
+             LOADER_LINK=lib/ld-linux-aarch64.so.1 ;;
   *) echo "unknown abi '$ABI'; expected x86_64 or arm64-v8a" >&2; exit 1 ;;
 esac
 
@@ -53,7 +57,7 @@ docker run --rm --platform "$PLATFORM" --user "$(id -u):$(id -g)" -v "$JNI_DIR:/
   # The stock PT_INTERP is /lib64/$LOADER, an absolute path that on Android
   # resolves against the device root, not the rootfs. Repoint both it and the
   # library search path at the rootfs's on-device location.
-  patchelf --set-interpreter '$ROOTFS_ON_DEVICE/lib64/$LOADER' \
+  patchelf --set-interpreter '$ROOTFS_ON_DEVICE/$LOADER_LINK' \
            --set-rpath '$ROOTFS_ON_DEVICE/usr/lib/$TRIPLET:$ROOTFS_ON_DEVICE/usr/lib' \
            /tmp/libpython3.so
 

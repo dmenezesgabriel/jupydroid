@@ -3,6 +3,7 @@ package com.jupydroid.app
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -18,7 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.space.PythonRunner
+import com.jupydroid.app.data.space.SpaceAbi
 import com.jupydroid.app.data.space.SpaceRuntime
+import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceInstaller
 import com.jupydroid.app.data.space.baseSpaceRuntime
 import com.jupydroid.app.di.AppContainer
@@ -83,15 +86,16 @@ class MainActivity : ComponentActivity() {
    * with the server in Step 8.4.
    */
   private suspend fun probeInterpreter() {
-    val runtime = baseSpaceRuntime(applicationContext)
+    val abi = SpaceAbi.of(Build.SUPPORTED_ABIS.first())
+    val runtime = baseSpaceRuntime(applicationContext, abi)
+    val base = baseSpaceDir(applicationContext)
     val loader = File(applicationInfo.nativeLibraryDir, "libld-linux.so")
-    val bare = SpaceRuntime(File(filesDir, "spaces/base"), loader)
+    val bare = SpaceRuntime(base, loader, abi.triplet)
     val loaderOut = PythonRunner(bare).run("--version")
     Log.i(BASE_SPACE_LOG_TAG, "loader: exit=${loaderOut.exitCode} ${loaderOut.output}")
 
     // Any full-libc program, not just Python: separates "CPython does something odd"
     // from "glibc startup itself is blocked".
-    val base = File(filesDir, "spaces/base")
     val echo = PythonRunner(bare).run(File(base, "bin/echo").path, "hello")
     Log.i(BASE_SPACE_LOG_TAG, "coreutils echo: exit=${echo.exitCode} ${echo.output}")
 

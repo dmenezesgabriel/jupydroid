@@ -22,7 +22,7 @@ import java.io.File
 class SpaceRuntime(
   private val baseDir: File,
   private val nativeInterpreter: File,
-  private val triplet: String = DEFAULT_TRIPLET,
+  private val triplet: String = SpaceAbi.X86_64.triplet,
 ) {
   fun command(vararg args: String): List<String> = listOf(nativeInterpreter.path) + args
 
@@ -36,8 +36,4 @@ class SpaceRuntime(
   )
 
   private fun inBase(relative: String): String = File(baseDir, relative).path
-
-  private companion object {
-    const val DEFAULT_TRIPLET = "x86_64-linux-gnu"
-  }
 }
