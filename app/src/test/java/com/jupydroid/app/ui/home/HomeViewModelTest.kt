@@ -31,4 +31,17 @@ class HomeViewModelTest {
     assertEquals(listOf("Untitled"), viewModel.uiState.value.notebooks.map { it.title })
     collector.cancel()
   }
+
+  @Test
+  fun createNotebook_addsRowToUiState() = runTest {
+    val viewModel = HomeViewModel(FakeNotebookRepository())
+    val collector = launch { viewModel.uiState.collect {} }
+    advanceUntilIdle()
+
+    viewModel.createNotebook(title = "Untitled", kernelId = "python3")
+    advanceUntilIdle()
+
+    assertEquals(listOf("Untitled"), viewModel.uiState.value.notebooks.map { it.title })
+    collector.cancel()
+  }
 }
