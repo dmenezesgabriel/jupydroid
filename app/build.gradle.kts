@@ -82,6 +82,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 
+    // nbformat JSON persistence (Step 3)
+    implementation(libs.kotlinx.serialization.json)
+
     // Instrumented tests: jUnit rules and runners
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.ext.junit)

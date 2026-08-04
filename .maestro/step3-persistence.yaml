@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "No recent notebooks yet"
+- tapOn: "\\+"
+- tapOn: "New notebook"
+- assertVisible: "Untitled"
+- stopApp
+- launchApp:
+    clearState: false
+- assertVisible: "Untitled"
+- takeScreenshot: 01-persisted-after-restart

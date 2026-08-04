@@ -14,12 +14,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.import.importTitleFrom
 import com.jupydroid.app.theme.JupyterDroidTheme
+import java.io.File
 
 class MainActivity : ComponentActivity() {
-  private val appContainer: AppContainer by lazy { AppContainer() }
+  private val appContainer: AppContainer by lazy {
+    AppContainer(
+      notebookRepository = DiskNotebookRepository(File(applicationContext.filesDir, "notebooks")),
+    )
+  }
   private var importTitle by mutableStateOf<String?>(null)
 
   override fun onCreate(savedInstanceState: Bundle?) {

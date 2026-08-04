@@ -21,8 +21,8 @@ class AppContainerTest {
   )
 
   @Test
-  fun container_wiresFakePorts() = runTest {
-    val container = AppContainer()
+  fun container_wiresPorts() = runTest {
+    val container = AppContainer(notebookRepository = FakeNotebookRepository())
 
     assertTrue(!container.serverLauncher.isRunning())
     val connection = container.serverLauncher.start(environment)

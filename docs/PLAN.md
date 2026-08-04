@@ -132,8 +132,8 @@ screenshots → `assembleDebug` green → commit → proceed**.
 |---|---|---|
 | 0 | Verification harness | adb on PATH, boot dev36, install Maestro, `evidence/` convention, **wire ktlint/detekt/Lint + pre-commit gate and verify it blocks a bad commit** |
 | 1 | Architecture + draw interfaces | `docs/architecture.md`: layers, ports, data model, wireframes (Home Recent, Editor cells, Console, Workspace, Settings); AppContainer skeleton; architecture-guard test |
-| 2 | Home: notebook list | Recent list + relative timestamps, empty state, FAB; long-press rename/delete; New notebook / New Python file / Open `.ipynb` (VIEW intent) |
-| 3 | Notebook persistence | `DiskNotebookRepository` over nbformat JSON; round-trip tests |
+| 2 | Home: notebook list | Recent list + relative timestamps, empty state, FAB; long-press rename/delete; New notebook / New Python file / Open `.ipynb` (VIEW intent). **Done** |
+| 3 | Notebook persistence | `DiskNotebookRepository` over nbformat JSON; round-trip tests. **Done** |
 | 4 | Editor shell | cell header Run/Stop + long-press context menu (run, insert code/markdown below, move up/down, duplicate, delete, clear outputs, collapse), Run All, busy indicator, dirty state |
 | 5 | CodeMirror 6 cell editor | per-cell WebView: self-sizing + keyboard-aware height, theme via CSS vars, id-based async completion, `Mod-Enter`, debounced edit, `?mode=`; bridges as JVM-testable core |
 | 6 | Execute behaviour | Run → `KernelGateway.execute` → outputs; Running/Idle; Stop/interrupt; execution count (FakeKernel) |
@@ -150,21 +150,23 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 18 | Foreground service + lifecycle | server held while notebook open |
 | 19 | Settings polish + About | licences, storage |
 
-**Step 2 is the current step, broken into sub-steps (each closes with unit tests
-+ Maestro evidence + a semantic commit):**
+**Step 2 is done** (2.1–2.4, each closed with unit tests + Maestro evidence + a
+semantic commit):
 
-- **2.1** Home list — replace the scaffold landing with Home: recents list, relative
-  timestamps, empty state. Removes scaffold `MainScreen`/`DataRepository` cruft.
-- **2.2** Create — FAB menu (New notebook / New Python file) → item appears in recents.
+- **2.1** Home list — recents list, relative timestamps, empty state. **(Done)**
+- **2.2** Create — FAB menu (New notebook / New Python file) → item appears in recents. **(Done)**
 - **2.3** Manage — long-press row → rename / delete. **(Done)**
 - **2.4** Open — VIEW intent imports an `.ipynb` into the list (title only; nbformat
-  parsing lands in Step 3). **(Done)** — driver: `scripts/step2-import-driver.sh` +
+  parsing landed in Step 3). **(Done)** — driver: `scripts/step2-import-driver.sh` +
   `.maestro/step2-import.yaml`; note the filter matches any `content://` VIEW
   (`.ipynb` has no standard MIME type and file managers hand out content URIs
   whose path does not encode the extension), the app validates via the display name.
 
-On-device verification is Maestro flows (the established harness); unit tests cover
-state/logic. `connectedAndroidTest` is not part of the gate to keep each sub-step fast.
+**Step 3 is done** (`DiskNotebookRepository` + nbformat DTOs, 9 repo tests,
+persistence proven by Maestro `stopApp`→relaunch flow `step3-persistence.yaml`).
+
+**Step 4 is next** — it will be broken into sub-steps (each closing with unit
+tests + Maestro evidence + a semantic commit) when work starts.
 
 ---
 
