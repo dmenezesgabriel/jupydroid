@@ -30,7 +30,7 @@ class SpaceProbe(
     probeInterpreter()
     val connection = startServer() ?: return
     val kernelId = startKernel(connection) ?: return
-    executeCell(connection, kernelId)
+    exerciseKernel(connection, kernelId)
   }
 
   private suspend fun installSpace() {
@@ -72,10 +72,24 @@ class SpaceProbe(
     return kernelId
   }
 
-  private suspend fun executeCell(connection: ServerConnection, kernelId: String) {
-    val outcome = KernelChannel(connection).execute(kernelId, "2 + 2")
-    Log.i(TAG, "execute 2 + 2 -> $outcome")
-    if (outcome !is ExecutionOutcome.Result) Log.w(TAG, "server log tail:\n${serverLogTail()}")
+  /**
+   * Exercises every branch of [ExecutionOutcome] against a real kernel, not just the
+   * happy one: a value, a raising cell, and a socket that cannot be opened. An error
+   * path that has never run is an error path that does not work.
+   */
+  private suspend fun exerciseKernel(connection: ServerConnection, kernelId: String) {
+    val channel = KernelChannel(connection)
+
+    val value = channel.execute(kernelId, "2 + 2")
+    Log.i(TAG, "execute 2 + 2 -> $value")
+    if (value !is ExecutionOutcome.Result) Log.w(TAG, "server log tail:\n${serverLogTail()}")
+
+    Log.i(TAG, "execute 1 / 0 -> ${channel.execute(kernelId, "1 / 0")}")
+    Log.i(TAG, "execute on unknown kernel -> ${channel.execute(UNKNOWN_KERNEL, "2 + 2")}")
+
+    // Settles where the UI should read execution state from: the REST field is only
+    // as fresh as the last iopub message the server saw.
+    Log.i(TAG, "kernels after execution: ${get(connection, "api/kernels")}")
   }
 
   private suspend fun serverLogTail(): String = withContext(ioDispatcher) {
@@ -117,6 +131,7 @@ class SpaceProbe(
     const val TAG = "JupydroidSpace"
     const val LOG_TAIL_CHARS = 1500
     val HTTP_OK_RANGE = 200..299
+    const val UNKNOWN_KERNEL = "00000000-0000-0000-0000-000000000000"
     val KERNEL_ID = Regex("\"id\": \"([^\"]+)\"")
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
 

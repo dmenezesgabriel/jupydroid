@@ -60,7 +60,11 @@ class KernelChannel(
       override fun onMessage(webSocket: WebSocket, text: String) {
         val outcome = JupyterMessage.resultOf(text, requestMsgId)?.let(ExecutionOutcome::Result)
           ?: JupyterMessage.errorOf(text, requestMsgId)?.let(ExecutionOutcome::KernelError)
-        if (outcome != null && continuation.isActive) continuation.resume(outcome)
+        if (outcome == null) return
+        // Close before resuming: the server counts this connection against the kernel
+        // until we do, and one socket per execution would accumulate.
+        webSocket.close(NORMAL_CLOSURE, null)
+        if (continuation.isActive) continuation.resume(outcome)
       }
 
       // A closed or failed socket must end the wait: silently hanging until the
@@ -89,6 +93,7 @@ class KernelChannel(
       .build()
 
   private companion object {
+    const val NORMAL_CLOSURE = 1000
     val EXECUTE_TIMEOUT = 30.seconds
   }
 }
