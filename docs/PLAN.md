@@ -326,7 +326,7 @@ protocol and it is already proven on device.
 | # | Slice | Test seam | Gate |
 |---|---|---|---|
 | 10.1 | Frame readers: `stream`, `display_data`, `execute_result`, `error`, `clear_output`, `execute_input`, `status`, `execute_reply` | pure JVM, frames as strings | **Done.** `JupyterFrame` (decode + correlate), `KernelOutputs` (frames → `CellOutput`), `JupyterMessage` (requests). 17 unit tests, no device, no socket |
-| 10.2 | `KernelSocket`: open, keep open, emit frames, close. No Jupyter semantics | fake `WebSocket` behind an interface owned by us | unit tests for open/frame/close/failure; no real server |
+| 10.2 | `KernelSocket`: open, keep open, emit frames, close. No Jupyter semantics | `MockWebServer` on loopback, in-process | **Done.** `KernelSocket`/`KernelSocketOpener` (ours) + `OkHttpKernelSocketOpener`. 5 tests: endpoint + token, send/receive, many frames, close handshake, refused upgrade carries its status |
 | 10.3 | `RealKernelGateway.execute` as a `Flow<KernelEvent>`: correlate by `msg_id`, map frames to `Output`/`ExecutionCount`, complete on **reply *and* idle** | 10.1 + 10.2 fakes | contract-tested against the same suite as `FakeKernelGateway` — that is what the port is for |
 | 10.4 | `connect`/`disconnect` lifecycle, one socket per session, and `interrupt` via `POST /api/kernels/<id>/interrupt` | fakes, then device | device: a long cell interrupted mid-run actually stops |
 | 10.5 | Swap it into `AppContainer` behind the port and delete `SpaceProbe`'s kernel exercise | — | **Maestro on the tablet**: open a notebook, run a cell, see output. The first flow that proves the product rather than the runtime |
@@ -349,6 +349,11 @@ Notes that keep this honest:
   until 10.5, so 10.1–10.4 cannot break a running app.
 - **Maestro lands at 10.5, not before.** 10.1–10.3 have no UI to drive; claiming a
   Maestro gate on them would be theatre. Device evidence at 10.4, real flow at 10.5.
+- **10.2 uses a real loopback server, not a mocked OkHttp.** The table first said "no
+  real server", which would have left the OkHttp wiring — the entire content of that
+  slice — proven only on device at 10.4. `MockWebServer` is in-process and ephemeral, so
+  the tests stay fast and hermetic while actually exercising the socket. It also caught
+  that a client's `close()` never completes unless the peer echoes the close frame.
 - **Do not reuse `ExecutionOutcome`.** It models one-shot execution and the port models a
   stream. Two shapes for one idea is how drift starts; `KernelChannel` and
   `ExecutionOutcome` retire with `SpaceProbe` at 10.5.

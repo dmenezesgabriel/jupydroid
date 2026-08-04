@@ -98,6 +98,7 @@ dependencies {
     // Local tests: jUnit, coroutines, Android runner
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 
     // nbformat JSON persistence (Step 3)
     implementation(libs.kotlinx.serialization.json)
