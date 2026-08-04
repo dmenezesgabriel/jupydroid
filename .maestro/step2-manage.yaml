@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "No recent notebooks yet"
+- tapOn: "\\+"
+- tapOn: "New notebook"
+- assertVisible: "Untitled"
+- longPressOn: "Untitled"
+- assertVisible: "Rename"
+- assertVisible: "Delete"
+- takeScreenshot: 02-menu
+- tapOn: "Rename"
+- assertVisible: "Rename notebook"
+- tapOn:
+    id: "rename-field"
+- eraseText
+- inputText: "Math notes"
+- tapOn: "Rename"
+- assertVisible: "Math notes"
+- takeScreenshot: 03-renamed
+- longPressOn: "Math notes"
+- tapOn: "Delete"
+- assertVisible: "No recent notebooks yet"
+- takeScreenshot: 04-deleted

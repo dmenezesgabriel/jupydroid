@@ -52,6 +52,8 @@ is skipped "for speed". A step is only finished when all of them hold.
 ### 6. File size and naming discipline (detekt-enforced)
 - Files ≤ 500 lines (pre-commit gate + detekt `LargeClass.thresholdInFiles`).
 - Functions 4–20 lines, classes ≤ 500 lines (detekt `LongMethod`, `LargeClass`).
+  `@Composable` functions are exempt from `LongMethod` (they wire state +
+  child composables and routinely exceed 20 lines; see `config/detekt/detekt.yml`).
 - Idiomatic, specific, discoverable names for files/classes/vars/functions
   (detekt `NamingRules` + review); no `data`/`handler`/`Manager`-style names.
 - Max line length 120.
@@ -154,7 +156,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 - **2.1** Home list — replace the scaffold landing with Home: recents list, relative
   timestamps, empty state. Removes scaffold `MainScreen`/`DataRepository` cruft.
 - **2.2** Create — FAB menu (New notebook / New Python file) → item appears in recents.
-- **2.3** Manage — long-press row → rename / delete.
+- **2.3** Manage — long-press row → rename / delete. **(Done)**
 - **2.4** Open — VIEW intent imports an `.ipynb` into the list (nbformat parsing lands
   in Step 3; Step 2 imports the title only).
 

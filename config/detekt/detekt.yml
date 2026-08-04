@@ -10,6 +10,10 @@ complexity:
     allowedLines: 500
   LongMethod:
     allowedLines: 20
+    # Compose composables wire state + child composables (menus/dialogs) and
+    # routinely exceed 20 lines; keep the cap for plain functions.
+    ignoreAnnotated:
+      - 'Composable'
 
 # Compose composables are conventionally PascalCase (e.g. MainScreen);
 # keep enforcing camelCase/PascalCase but reject snake_case etc.

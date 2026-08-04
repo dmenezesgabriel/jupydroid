@@ -21,4 +21,12 @@ class HomeViewModel(private val notebookRepository: NotebookRepository) : ViewMo
   fun createNotebook(title: String, kernelId: String) {
     viewModelScope.launch { notebookRepository.createNotebook(title, kernelId) }
   }
+
+  fun renameNotebook(id: String, title: String) {
+    viewModelScope.launch { notebookRepository.renameNotebook(id, title) }
+  }
+
+  fun deleteNotebook(id: String) {
+    viewModelScope.launch { notebookRepository.deleteNotebook(id) }
+  }
 }
