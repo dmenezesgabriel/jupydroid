@@ -17,7 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.space.PythonRunner
+import com.jupydroid.app.data.space.SpaceRuntime
 import com.jupydroid.app.data.space.baseSpaceInstaller
+import com.jupydroid.app.data.space.baseSpaceRuntime
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.import.importTitleFrom
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -70,11 +73,44 @@ class MainActivity : ComponentActivity() {
         "base Space v${installed.version} at ${installed.baseDir}: " +
           if (installed.freshlyInstalled) "extracted ${installed.entriesWritten} entries" else "already installed",
       )
+      probeInterpreter()
     }
+  }
+
+  /**
+   * Step 8.3's risk gate: can the app execve a glibc interpreter at all? Logged rather
+   * than shown, because there is nothing to interact with yet - the Space UI arrives
+   * with the server in Step 8.4.
+   */
+  private suspend fun probeInterpreter() {
+    val runtime = baseSpaceRuntime(applicationContext)
+    val loader = File(applicationInfo.nativeLibraryDir, "libld-linux.so")
+    val bare = SpaceRuntime(File(filesDir, "spaces/base"), loader)
+    val loaderOut = PythonRunner(bare).run("--version")
+    Log.i(BASE_SPACE_LOG_TAG, "loader: exit=${loaderOut.exitCode} ${loaderOut.output}")
+
+    // Any full-libc program, not just Python: separates "CPython does something odd"
+    // from "glibc startup itself is blocked".
+    val base = File(filesDir, "spaces/base")
+    val echo = PythonRunner(bare).run(File(base, "bin/echo").path, "hello")
+    Log.i(BASE_SPACE_LOG_TAG, "coreutils echo: exit=${echo.exitCode} ${echo.output}")
+
+    val runner = PythonRunner(runtime)
+    val version = runner.run("-S", "-c", "import sys; print(sys.version.split()[0], sys.executable)")
+    Log.i(BASE_SPACE_LOG_TAG, "interpreter: exit=${version.exitCode} ${version.output}")
+
+    val imports = runner.run("-c", IMPORT_PROBE)
+    Log.i(BASE_SPACE_LOG_TAG, "imports: exit=${imports.exitCode} ${imports.output}")
   }
 
   private companion object {
     const val BASE_SPACE_LOG_TAG = "JupydroidSpace"
+
+    /** pyzmq is the one that matters: it is the first dlopen'd native extension. */
+    const val IMPORT_PROBE =
+      "import jupyter_server, ipykernel, zmq; " +
+        "print('jupyter_server', jupyter_server.__version__, 'ipykernel', ipykernel.__version__, " +
+        "'libzmq', zmq.zmq_version())"
   }
 
   private fun importTitleFrom(intent: Intent): String? {

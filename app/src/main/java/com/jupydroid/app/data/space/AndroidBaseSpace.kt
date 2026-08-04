@@ -16,5 +16,12 @@ fun baseSpaceInstaller(context: Context, abi: String = deviceAbi()): BaseSpaceIn
     nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libld-linux.so"),
   )
 
+/** Command line and environment for the installed base Space's interpreter. */
+fun baseSpaceRuntime(context: Context): SpaceRuntime =
+  SpaceRuntime(
+    baseDir = File(context.filesDir, "spaces/base"),
+    nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
+  )
+
 /** The ABI the rootfs was built for; only x86_64 ships today (arm64-v8a is Step 8.7). */
 private fun deviceAbi(): String = android.os.Build.SUPPORTED_ABIS.first()

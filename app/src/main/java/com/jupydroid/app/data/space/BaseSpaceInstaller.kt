@@ -39,13 +39,16 @@ class BaseSpaceInstaller(
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   suspend fun installIfNeeded(): InstalledSpace {
-    if (installedVersion() == bundledVersion) {
-      return InstalledSpace(baseDir, bundledVersion, freshlyInstalled = false)
-    }
-    val written = extractor.extract(archive, baseDir)
+    val alreadyInstalled = installedVersion() == bundledVersion
+    val written = if (alreadyInstalled) 0 else extractor.extract(archive, baseDir)
+
+    // Always, not just on a fresh extract: nativeLibraryDir changes on every app
+    // update while the extracted Space survives, so a stale link would leave exec
+    // failing with ENOENT until the user cleared the app's data.
     linkLoaderToNativeLibrary()
-    stampVersion()
-    return InstalledSpace(baseDir, bundledVersion, freshlyInstalled = true, entriesWritten = written)
+
+    if (!alreadyInstalled) stampVersion()
+    return InstalledSpace(baseDir, bundledVersion, !alreadyInstalled, written)
   }
 
   /**

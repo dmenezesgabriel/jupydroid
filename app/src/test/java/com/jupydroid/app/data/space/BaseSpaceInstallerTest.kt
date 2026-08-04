@@ -66,6 +66,25 @@ class BaseSpaceInstallerTest {
     assertEquals(nativeLib.canonicalPath, link.canonicalPath)
   }
 
+  /**
+   * nativeLibraryDir carries per-install random path segments, so it changes on every
+   * app update while the extracted Space survives. If the link were only written on a
+   * fresh extract it would point at the previous install and every update would break
+   * exec with ENOENT.
+   */
+  @Test
+  fun install_refreshesTheLoaderLinkEvenWhenTheRootfsIsAlreadyInstalled() = runTest {
+    val baseDir = tempFolder.newFolder("base")
+    val firstInstall = tempFolder.newFile("old-loader.so").apply { writeText("ELF") }
+    installer(version = 1, baseDir = baseDir, nativeLoader = firstInstall).installIfNeeded()
+
+    val afterUpdate = tempFolder.newFile("new-loader.so").apply { writeText("ELF") }
+    installer(version = 1, baseDir = baseDir, nativeLoader = afterUpdate).installIfNeeded()
+
+    val link = File(baseDir, "lib64/ld-linux-x86-64.so.2")
+    assertEquals(afterUpdate.canonicalPath, link.canonicalPath)
+  }
+
   /** The archive ships its own /lib64 loader symlink; ours has to win. */
   @Test
   fun install_replacesTheLoaderLinkShippedInTheArchive() = runTest {

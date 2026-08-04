@@ -304,7 +304,7 @@ rebuilding them. Each sub-step is one commit with its own evidence:
 |---|---|---|
 | 8.1 | Reproducible x86_64 rootfs (`tools/rootfs/Dockerfile`, host-side only) | tarball runs `python3 -c` in Docker; size recorded |
 | 8.2 | Ship + install: patched ELFs in `jniLibs/x86_64`, `useLegacyPackaging`, extract to `files/spaces/base/` + `Os.symlink` | installed-file count + stamp on screen; `run-as ls -l` of the symlinks |
-| 8.3 | **Execute the interpreter** — `libpython3.so -c "import sys; print(sys.version)"` | **the real risk gate**: SELinux/seccomp fails here or nowhere |
+| 8.3 | **Execute the interpreter** — `libpython3.so -c "import sys; print(sys.version)"` | **the real risk gate**: SELinux/seccomp fails here or nowhere. **FAILED — see below** |
 | 8.4 | `jupyter_server` on 127.0.0.1, ephemeral port, empty token | `GET /api/status` returns a version |
 | 8.5 | Start a kernel — `POST /api/kernels` | proves the **subprocess** `execve` path needs no shim |
 | 8.6 | Execute a cell over the kernel WebSocket | `2 + 2` → `4` |
@@ -313,6 +313,38 @@ Risks to measure rather than assume: glibc syscalls under Android's seccomp
 filter (the reason proot was rejected); bundle size once numpy/scipy join
 (FEASIBILITY.md estimates 250–500 MB unpacked, forcing an
 asset-pack-vs-first-run-download decision); first-run extraction time.
+
+### Step 8.3 result: packaging works, seccomp does not (2026-08-04)
+
+Measured on the `dev36` emulator (API 36, x86_64), from inside the app process.
+Full evidence in `evidence/step8.3/`.
+
+| Probe | Result |
+|---|---|
+| `ld.so --version` from `nativeLibraryDir` | **exit 0** |
+| `/bin/echo` (coreutils) via that loader | **exit 159 = SIGSYS** |
+| `python3 -S -c ...` | **exit 159 = SIGSYS** |
+| the same binaries under `adb shell run-as` | **work** |
+
+**The packaging half of the exec model is proven.** `execve` out of the APK
+native library directory succeeds, the patched `PT_INTERP` resolves through the
+installed symlink, and glibc's loader runs. Nothing about `apk_data_file`,
+`useLegacyPackaging` or patchelf is wrong.
+
+**The seccomp half is refuted.** A trivial coreutils binary dies the same way
+Python does, so this is glibc *libc startup*, not CPython and not our packaging.
+`ld.so --version` survives only because it exits before libc init. `run-as` works
+because it has the app's uid and SELinux label but is not a zygote child, so it
+carries no app seccomp filter. This matches the documented Android 15+ behaviour
+where seccomp kills `set_robust_list` with SIGSYS — the very syscall
+`FEASIBILITY.md` §5.3 cites as breaking proot, while assuming the loader approach
+would sidestep it. It does not: the filter applies to the process, not to how it
+was launched.
+
+Not yet tested, and material before concluding anything: **real arm64 hardware.**
+Only an x86_64 emulator has been measured, a published write-up reports this same
+patchelf approach working on Android 15 arm64, and `FEASIBILITY.md` §9.1 asked for
+the spike on real devices specifically. Emulator kernels differ from shipping ones.
 
 Before 8.x: `Environment` is renamed to `Space` across the domain, ports and
 fakes — 3 files today, many more once the runtime lands.
