@@ -50,20 +50,6 @@ class SpaceProbe(
     val imports = runner.run("-c", IMPORT_PROBE)
     Log.i(TAG, "imports: exit=${imports.exitCode} ${imports.output}")
 
-    probeScientificStack()
-  }
-
-  /**
-   * Run under the SIGSYS reporter, because these are the probes that die at exit 159 and
-   * the signal carries the only detail that matters: which syscall the filter refused
-   * (evidence/step8.7). The reporter only reports, so the outcomes should be unchanged -
-   * a probe that starts passing because of it would itself be the news.
-   */
-  private suspend fun probeScientificStack() {
-    val runner = PythonRunner(
-      runtime = baseSpaceRuntime(context),
-      extraEnv = mapOf("LD_PRELOAD" to File(baseSpaceDir(context), SIGSYS_REPORTER).path),
-    )
     for ((label, code) in SCIENCE_PROBES) {
       val outcome = runner.run("-c", code)
       Log.i(TAG, "$label: exit=${outcome.exitCode} ${outcome.output}")
@@ -102,6 +88,11 @@ class SpaceProbe(
     val value = channel.execute(kernelId, "2 + 2")
     Log.i(TAG, "execute 2 + 2 -> $value")
     if (value !is ExecutionOutcome.Result) Log.w(TAG, "server log tail:\n${serverLogTail()}")
+
+    // The path that actually matters, and the one the preload has to reach: the kernel is
+    // a subprocess jupyter_server spawned, not a process we launched. If LD_PRELOAD did
+    // not survive that hop, this cell is where a user meets exit 159.
+    Log.i(TAG, "execute import numpy -> ${channel.execute(kernelId, NUMPY_CELL)}")
 
     Log.i(TAG, "execute 1 / 0 -> ${channel.execute(kernelId, "1 / 0")}")
     Log.i(TAG, "execute on unknown kernel -> ${channel.execute(UNKNOWN_KERNEL, "2 + 2")}")
@@ -153,8 +144,7 @@ class SpaceProbe(
     const val UNKNOWN_KERNEL = "00000000-0000-0000-0000-000000000000"
     val KERNEL_ID = Regex("\"id\": \"([^\"]+)\"")
 
-    /** Built by tools/rootfs/Dockerfile; see tools/rootfs/sigsys_report.c. */
-    const val SIGSYS_REPORTER = "lib/libsigsys_report.so"
+    const val NUMPY_CELL = "import numpy; numpy.linalg.det(numpy.array([[4.0, 7.0], [2.0, 6.0]]))"
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
 
     /**

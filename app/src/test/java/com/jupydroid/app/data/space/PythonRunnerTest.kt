@@ -35,26 +35,10 @@ class PythonRunnerTest {
     assertEquals(setOf("out", "err"), outcome.output.lines().toSet())
   }
 
-  /**
-   * The reason this parameter exists is `LD_PRELOAD`: naming the syscall that kills
-   * numpy needs a SIGSYS handler preloaded into the Space process (evidence/step8.7).
-   * The assertion deliberately uses an inert variable instead — a real `LD_PRELOAD`
-   * would make the host's dynamic loader a participant in the test.
-   */
+  /** The Space environment must reach the process, not just the command line. */
   @Test
-  fun run_passesExtraEnvironmentToTheProcess() = runTest {
-    val runner = PythonRunner(runtime, extraEnv = mapOf("JUPYDROID_PROBE" to "libsigsys.so"))
-
-    val outcome = runner.run("-c", "echo \$JUPYDROID_PROBE")
-
-    assertEquals("libsigsys.so", outcome.output)
-  }
-
-  @Test
-  fun run_keepsTheSpaceEnvironmentAlongsideTheExtras() = runTest {
-    val runner = PythonRunner(runtime, extraEnv = mapOf("JUPYDROID_PROBE" to "libsigsys.so"))
-
-    val outcome = runner.run("-c", "echo \$PYTHONHOME")
+  fun run_launchesTheProcessWithTheSpaceEnvironment() = runTest {
+    val outcome = PythonRunner(runtime).run("-c", "echo \$PYTHONHOME")
 
     assertEquals("/nonexistent/spaces/base/usr", outcome.output)
   }

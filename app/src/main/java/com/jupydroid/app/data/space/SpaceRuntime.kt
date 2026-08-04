@@ -36,7 +36,21 @@ class SpaceRuntime(
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.
     // musl has no multiarch directories, so these two cover the whole rootfs.
     "LD_LIBRARY_PATH" to listOf(inBase("usr/lib"), inBase("lib")).joinToString(":"),
-  )
+  ) + sigsysHandler()
+
+  /**
+   * Android refuses syscalls outside bionic's allowlist with SECCOMP_RET_TRAP, and an
+   * unhandled SIGSYS terminates the process - the whole reason `import numpy` used to die
+   * (evidence/step8.7/sigsys-syscall-named.txt). The handler reports the syscall and
+   * returns, leaving in place the ENOSYS the kernel already set.
+   *
+   * Omitted rather than dangling when absent, so a Space extracted by an older version
+   * gets a clean environment instead of a preload pointing at nothing.
+   */
+  private fun sigsysHandler(): Map<String, String> {
+    val handler = File(baseDir, SIGSYS_HANDLER)
+    return if (handler.isFile) mapOf("LD_PRELOAD" to handler.path) else emptyMap()
+  }
 
   /**
    * A [ProcessBuilder] with Android's own environment replaced by the Space's.
@@ -51,4 +65,9 @@ class SpaceRuntime(
     }
 
   private fun inBase(relative: String): String = File(baseDir, relative).path
+
+  private companion object {
+    /** Built by tools/rootfs/Dockerfile; see tools/rootfs/sigsys_report.c. */
+    const val SIGSYS_HANDLER = "lib/libsigsys_report.so"
+  }
 }

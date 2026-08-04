@@ -20,16 +20,10 @@ data class ProcessOutcome(val exitCode: Int, val output: String) {
  * ```
  * PythonRunner(runtime).run("-c", "import sys; print(sys.version)")
  * ```
- *
- * [extraEnv] adds to the Space environment for one runner. Note that setting
- * `LD_PRELOAD` through it is not the `termux-exec` interceptor docs/PLAN.md rejects:
- * that one hooks `/system/bin/linker64` for processes we do not own. This is an
- * ordinary env var on our own [ProcessBuilder].
  */
 class PythonRunner(
   private val runtime: SpaceRuntime,
   private val workingDir: File? = null,
-  private val extraEnv: Map<String, String> = emptyMap(),
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   suspend fun run(vararg args: String): ProcessOutcome = withContext(ioDispatcher) {
@@ -39,7 +33,7 @@ class PythonRunner(
   }
 
   private fun processBuilder(args: Array<out String>): ProcessBuilder =
-    runtime.processBuilder(args.toList(), extraEnv)
+    runtime.processBuilder(args.toList())
       .directory(workingDir)
       .redirectErrorStream(true) // one ordered stream: a traceback belongs with the output
 }

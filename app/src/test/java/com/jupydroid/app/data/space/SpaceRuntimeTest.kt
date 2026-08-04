@@ -2,20 +2,26 @@ package com.jupydroid.app.data.space
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 class SpaceRuntimeTest {
+  @get:Rule val tempFolder = TemporaryFolder()
+
+  private val interpreter = File("/data/app/abc==/lib/arm64/libpython3.so")
   private val runtime = SpaceRuntime(
     baseDir = File("/data/data/com.jupydroid.app/files/spaces/base"),
-    nativeInterpreter = File("/data/app/abc==/lib/x86_64/libpython3.so"),
+    nativeInterpreter = interpreter,
   )
 
   @Test
   fun command_execsTheNativeInterpreterNotTheOneInTheRootfs() {
     val command = runtime.command("-c", "print(1)")
 
-    assertEquals("/data/app/abc==/lib/x86_64/libpython3.so", command.first())
+    assertEquals("/data/app/abc==/lib/arm64/libpython3.so", command.first())
     assertEquals(listOf("-c", "print(1)"), command.drop(1))
   }
 
@@ -46,6 +52,37 @@ class SpaceRuntimeTest {
       libraryPath,
     )
   }
+
+  /**
+   * Every Space process, not just the one being debugged. Android refuses some syscalls
+   * with SECCOMP_RET_TRAP, and an unhandled SIGSYS terminates the process - which is the
+   * only reason `import numpy` used to be fatal (evidence/step8.7). The handler turns the
+   * refusal back into the ENOSYS the kernel already returned. Setting it here rather than
+   * per-launcher is what makes the server, the kernel and every future subprocess behave
+   * the same; a Space where only some processes survive a refusal is the worst outcome.
+   */
+  @Test
+  fun environment_preloadsTheSigsysHandlerIntoEverySpaceProcess() {
+    val installed = spaceWithHandler()
+
+    val preload = SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD")
+
+    assertEquals(File(installed, "lib/libsigsys_report.so").path, preload)
+  }
+
+  /** A Space extracted before the handler existed must not get a preload pointing at nothing. */
+  @Test
+  fun environment_omitsThePreloadWhenTheHandlerIsNotInTheRootfs() {
+    val empty = tempFolder.newFolder("space-without-handler")
+
+    assertFalse(SpaceRuntime(empty, interpreter).environment().containsKey("LD_PRELOAD"))
+  }
+
+  private fun spaceWithHandler(): File =
+    tempFolder.newFolder("space-with-handler").apply {
+      File(this, "lib").mkdirs()
+      File(this, "lib/libsigsys_report.so").writeText("ELF")
+    }
 
   /** Android's own PATH would leak toybox into the Space; the rootfs supplies its own. */
   @Test
