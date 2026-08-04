@@ -23,8 +23,9 @@ is skipped "for speed". A step is only finished when all of them hold.
 ### 2. Manual-interaction verification (Maestro, playwright-analogue) is mandatory at the end of every phase
 - After a step's code is done and all tests pass, drive the **real app on the
   dev36 emulator** with Maestro CLI flows: launch, tap, type, navigate.
-- Capture **screenshots and snapshots** of every flow into `evidence/<step>/`
-  and commit them.
+- Capture **screenshots, snapshots and logs** of every flow into
+  `evidence/<step>/` and commit them. `maestro.log` (and `logcat` where the step
+  touches a process or the runtime) counts as evidence, not just PNGs.
 - Unit tests alone are never sufficient to close a step.
 
 ### 3. Evidence-gated progression
@@ -68,6 +69,29 @@ is skipped "for speed". A step is only finished when all of them hold.
 
 ---
 
+## Per-step procedure (mandatory loop)
+
+The rules above say *what* must hold. This says *in what order* to work. Every
+step runs this loop start to finish; no stage is skipped or reordered.
+
+1. **Size the step.** Read the plan entry for the step. If it is too big to close
+   in one functional commit, break it into sub-steps *before* writing any code.
+2. **Research before acting.** Read the plan, the reference codebases
+   (`reference/`, `reference/research_repos/`) and the web. Decisions are made on
+   evidence — never on guesswork or assumption.
+3. **TDD.** Failing test first, then the minimal implementation, then refactor
+   (rule 1).
+4. **Interact with the real app.** Maestro flows on dev36: screenshots,
+   snapshots and logs into `evidence/<step>/` (rule 2).
+5. **Commit semantically and atomically.** One coherent change per commit,
+   conventional-commit subject. No complex git, no reverts, no rewriting
+   history. Every commit is fully functional — never broken mid-series.
+6. **Refactor rather than patch.** Band-aids layered on legacy code are worse
+   than a clean rewrite. Favour clarity, idiom and discoverability; renaming or
+   restructuring is preferred over working around a bad shape.
+
+---
+
 ## Tooling
 
 | Tool | Role | Config |
@@ -99,20 +123,118 @@ Notes:
 - Domain layer: pure Kotlin, **zero `android.*` imports** — enforced by an
   architecture-guard test.
 - Ports (contract-tested in Step 1): `NotebookRepository`, `KernelGateway`,
-  `ServerLauncher`; `Environment` modeled as a first-class domain type.
+  `ServerLauncher`; `Space` modeled as a first-class domain type.
 - Design-token system shared Compose ↔ WebView CSS vars (`--callisto-*`).
 
-### Container ordering (locked)
-- **Step 8** = the **base environment**: rootfs extracted into
-  `files/containers/base/` and `jupyter_server` runs from it. Container-shaped
-  from day one — no throwaway rootfs path to migrate later.
+### Product end state: Spaces
+
+The container/environment concept is user-facing and is called a **Space** (the
+SageMaker Studio term). "Environment" is deliberately *not* used: it would
+collide with the Python environments living inside a Space.
+
+- Create a Space per project, the way Winlator creates a container.
+- Configure it: pick the package manager (**uv**, **conda** or **pip**) and add
+  system packages.
+- Run it and get a notebook UI backed by a **real Jupyter server on the device**,
+  never remote.
+- UI is Jetpack Compose + WebView, styled after the Callisto study, tuned for
+  phones *and* tablets.
+
+Everything below builds toward this incrementally. The vocabulary is fixed now so
+it stays consistent from the first commit.
+
+### Space ordering (locked)
+- **Step 8** = the **base Space**: rootfs extracted into `files/spaces/base/` and
+  `jupyter_server` runs from it. Space-shaped from day one — no throwaway rootfs
+  path to migrate later.
 - **Steps 9–13** validate server / WebSocket adapter / kernelspecs against the
-  single base env.
-- **Step 17** = full container system (env-ids, create/remove, per-env venvs +
-  kernelspecs, offline wheels, env switching) — after the server's
-  kernelspec-discovery mechanics are proven.
+  single base Space.
+- **Step 17** = full Space system (space-ids, create/remove, per-Space venvs +
+  kernelspecs, package-manager choice, offline wheels, switching) — after the
+  server's kernelspec-discovery mechanics are proven.
 - Rootfs spike target: **x86_64 on the emulator**; arm64 deferred to real device
   (per-ABI splits in FEASIBILITY.md).
+
+### Exec model (decided — evidence, not preference)
+
+How a `targetSdk 36` app executes a Linux userland. This is the project's largest
+technical risk and it is settled by packaging, with **no shims**.
+
+`FEASIBILITY.md` rightly rejects proot/chroot (Android 15 seccomp kills them) and
+picks Winlator's rootless-glibc-loader idea, but does not account for this:
+**Winlator only gets away with `ProcessBuilder`-exec'ing out of `filesDir`
+because it sets `targetSdkVersion 28`** — verified in
+`reference/research_repos/winlator/app/app/build.gradle`: `compileSdk 34`,
+`minSdkVersion 26`, `targetSdkVersion 28`, `abiFilters 'arm64-v8a'`. Termux does
+the same (`reference/research_repos/termux-app/gradle.properties`:
+`targetSdkVersion=28`, `compileSdkVersion=36`).
+
+AOSP SELinux commit `0dd738d8` removed `execute_no_trans` from app data files but
+kept `execute`:
+
+| Operation on a file in `filesDir`, targetSdk ≥ 29 | Allowed? |
+|---|---|
+| `execve()` — needs `execute_no_trans` | **blocked** |
+| `dlopen()` / `mmap(PROT_EXEC)` — needs `execute` | **allowed** |
+
+The approved fix is packaging: files shipped in `jniLibs` are extracted at
+install time to `/data/app/…/lib/<abi>/` with SELinux context `apk_data_file`,
+where execution *is* permitted. This is **Termux's APKLF design** — their
+NLnet-funded migration off `targetSdkVersion 28`, not yet shipped. Their current
+installer already uses the half we need, though: `TermuxInstaller.java` reads a
+`SYMLINKS.txt` manifest out of the bootstrap archive and replays it with
+`Os.symlink` (lines 157–210). We adopt that pattern, pointed at
+`nativeLibraryDir`.
+
+We do **not** use the `/system/bin/linker64` + `LD_PRELOAD` interceptor
+(`termux-exec`) — Termux's own docs flag it as Play-policy-violating, and it is
+the shim-heavy path.
+
+For jupydroid this is far smaller than for Termux, because exactly **two files
+must be executable**:
+
+- `jniLibs/<abi>/libld-linux.so` — the glibc dynamic loader
+- `jniLibs/<abi>/libpython3.so` — the CPython binary
+
+Everything else — all of glibc, the stdlib, every `site-packages` native
+extension — lives in the rootfs under `filesDir` and is only ever `mmap`'d.
+
+Two build-time `patchelf` edits and two first-run symlinks tie it together:
+
+```
+patchelf --set-interpreter /data/data/com.jupydroid.app/files/spaces/base/lib64/ld-linux-x86-64.so.2 \
+         --set-rpath      /data/data/com.jupydroid.app/files/spaces/base/usr/lib/<triplet> \
+         libpython3.so
+```
+
+`/data/data/<pkg>` is stable; `nativeLibraryDir` is **not** (per-install random
+segments), which is why `PT_INTERP` points at a rootfs path that first-run
+symlinks to `nativeLibraryDir`. The kernel resolves the symlink and checks the
+*target's* context — `apk_data_file` — so the exec is permitted. This is exactly
+Termux's arrangement.
+
+Kernel subprocesses need no shim either: a kernelspec's `argv` is JSON we write,
+and `ipykernel` writes `sys.executable` into it, which resolves to the
+`nativeLibraryDir` path. `LD_LIBRARY_PATH`, `PYTHONHOME`, `HOME` and `TMPDIR` are
+ordinary `ProcessBuilder` env vars (Winlator does the same).
+
+Net: no proot, no chroot, no `LD_PRELOAD`, no exec interceptor, no `linker64`, no
+targetSdk downgrade, **no NDK** (nothing is compiled — we ship prebuilt ELFs).
+One Gradle line, `useLegacyPackaging = true`, so the libs are extracted to disk
+rather than left inside the APK.
+
+Licensing: Winlator is LGPL-2.1 and Callisto is proprietary, so per
+`STUDY_CASES.md` this is clean-room — techniques studied, no code vendored.
+
+### Correction to the reference material
+
+**Callisto runs no Jupyter server.** It is Chaquopy with in-process CPython 3.10
+and a hand-rolled JSON envelope — no `jupyter`/`ipykernel`/`pyzmq`/`tornado` in
+its assets, no `<service>` in its manifest. It is a **UX reference only**
+(per-cell CodeMirror 6 WebViews, height-sync bridge). Its useful proof: a ~150 MB
+Play-distributed app shipping CPython + numpy/scipy/pandas for `arm64-v8a` +
+`x86_64` passes review. `reference/jnotes/` is an unrelated handwriting-notes app
+and can be ignored.
 
 ### Phase-2 UX target (from Callisto study)
 Self-sizing keyboard-aware per-cell CodeMirror 6 WebViews (height sync, 4px
@@ -138,7 +260,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 5 | CodeMirror 6 cell editor | per-cell WebView: self-sizing + keyboard-aware height, theme via CSS vars, id-based async completion, `Mod-Enter`, debounced edit, `?mode=`; bridges as JVM-testable core |
 | 6 | Execute behaviour | Run → `KernelGateway.execute` → outputs; Running/Idle; Stop/interrupt; execution count (FakeKernel) |
 | 7 | Output rendering | stream/error/display_data renderers, themed output area, collapse, clear outputs |
-| 8 | **Risk gate** (base env) | x86_64 rootfs → `files/containers/base/`, dynamic-loader launch, bind 127.0.0.1 | `adb forward` + HTTP 200 + run a cell |
+| 8 | **Risk gate** (base Space) | x86_64 rootfs → `files/spaces/base/`, loader launch, `jupyter_server` on 127.0.0.1, kernel started, cell run — broken into 8.1–8.6 below |
 | 9 | Phase 1: JupyterLab-in-WebView | WebView → `/lab`, cleartext config |
 | 10 | Real KernelGateway (WebSocket) | swap fake → real behind the port |
 | 11 | Console REPL | REPL sharing the open notebook's kernel; Enter=run, Shift+Enter=newline; input history, clear transcript |
@@ -146,7 +268,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 14 | Workspace & export | data/ vs output files, `+ Data`, ZIP export, import |
 | 15 | Settings | theme, accent presets, code font size, wrap lines, completion, coding-keyboard symbol bar, background autosave |
 | 16 | Onboarding tour | 4-tip welcome |
-| 17 | Environments + offline wheels | full container system on top of the proven base env |
+| 17 | Spaces + offline wheels | full Space system (create/remove, package-manager choice, system packages) on top of the proven base Space |
 | 18 | Foreground service + lifecycle | server held while notebook open |
 | 19 | Settings polish + About | licences, storage |
 
@@ -165,8 +287,35 @@ semantic commit):
 **Step 3 is done** (`DiskNotebookRepository` + nbformat DTOs, 9 repo tests,
 persistence proven by Maestro `stopApp`→relaunch flow `step3-persistence.yaml`).
 
-**Step 4 is next** — it will be broken into sub-steps (each closing with unit
-tests + Maestro evidence + a semantic commit) when work starts.
+**Step 4 is in progress**, split in two because the runtime is pulled forward:
+
+- **4a** Read-only editor — tap a recents row → cell list (code + markdown
+  sources rendered, back to Home). No execution.
+- **4b** Editing + execution shell — cell header Run/Stop, long-press context
+  menu, Run All, busy indicator, dirty state. Deferred until after the Step 8
+  gate, because it is written against a real kernel.
+
+**Step 8 is pulled forward, ahead of Steps 5–7**, and split so the riskiest thing
+fails first. Steps 5–7 (CodeMirror cells, execute behaviour, output rendering)
+are all written against a real kernel; proving the runtime first avoids
+rebuilding them. Each sub-step is one commit with its own evidence:
+
+| # | Sub-step | Gate |
+|---|---|---|
+| 8.1 | Reproducible x86_64 rootfs (`tools/rootfs/Dockerfile`, host-side only) | tarball runs `python3 -c` in Docker; size recorded |
+| 8.2 | Ship + install: patched ELFs in `jniLibs/x86_64`, `useLegacyPackaging`, extract to `files/spaces/base/` + `Os.symlink` | installed-file count + stamp on screen; `run-as ls -l` of the symlinks |
+| 8.3 | **Execute the interpreter** — `libpython3.so -c "import sys; print(sys.version)"` | **the real risk gate**: SELinux/seccomp fails here or nowhere |
+| 8.4 | `jupyter_server` on 127.0.0.1, ephemeral port, empty token | `GET /api/status` returns a version |
+| 8.5 | Start a kernel — `POST /api/kernels` | proves the **subprocess** `execve` path needs no shim |
+| 8.6 | Execute a cell over the kernel WebSocket | `2 + 2` → `4` |
+
+Risks to measure rather than assume: glibc syscalls under Android's seccomp
+filter (the reason proot was rejected); bundle size once numpy/scipy join
+(FEASIBILITY.md estimates 250–500 MB unpacked, forcing an
+asset-pack-vs-first-run-download decision); first-run extraction time.
+
+Before 8.x: `Environment` is renamed to `Space` across the domain, ports and
+fakes — 3 files today, many more once the runtime lands.
 
 ---
 

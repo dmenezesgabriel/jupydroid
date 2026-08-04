@@ -6,13 +6,15 @@ optimized UI (Jetpack Compose shell + per-cell CodeMirror 6 WebViews).
 
 ## Status
 
-Project scaffold only. The Android app shell (Kotlin + Jetpack Compose, `com.jupydroid.app`)
-is generated from the official Android CLI `empty-activity` template (AGP 9, minSdk 32) and
-builds green.
+Steps 0–3 done: verification harness, hexagonal architecture with a guard test, Home
+notebook list (create / rename / delete / open via VIEW intent), and nbformat-on-disk
+persistence. Kotlin + Jetpack Compose, `com.jupydroid.app`, AGP 9, minSdk 32, targetSdk 36.
 
-**Build plan + working agreement (mandatory TDD + Maestro evidence gating):
-`docs/PLAN.md`.** Phases 0-2 (rootfs/loader spikes, JupyterLab-in-WebView, native editor)
-come next.
+Step 4a (read-only editor) is in progress. Step 8 — the runtime risk gate, where a real
+`jupyter_server` starts from a bundled rootfs — is pulled forward ahead of Steps 5–7 and
+split into six sub-steps.
+
+**Build plan, working agreement and the exec-model decision: `docs/PLAN.md`.**
 
 ## Build
 
@@ -30,5 +32,9 @@ plans) lives in `reference/` — a git-ignored copy of the original `reverse-eng
 tree. Do not commit anything under it.
 
 - `reference/xeus-android/` — feasibility + architecture plan, study cases
-- `reference/callisto/` — static analysis of Callisto (UI/UX study)
-- `reference/jnotes/` — prior reverse-engineering notes
+- `reference/callisto/` — static analysis of Callisto (UI/UX study only; it runs no Jupyter
+  server — it embeds CPython in-process via Chaquopy)
+- `reference/jnotes/` — unrelated handwriting-notes app; shares the analysis harness only
+- `reference/research_repos/` — upstream clones studied for technique, never vendored
+  (Winlator is LGPL-2.1, Callisto is proprietary): `winlator`, `termux-app`, `jupyterlab`,
+  `box64`, `box86`
