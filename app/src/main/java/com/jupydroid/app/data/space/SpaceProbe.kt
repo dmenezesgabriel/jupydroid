@@ -1,0 +1,129 @@
+package com.jupydroid.app.data.space
+
+import android.content.Context
+import android.util.Log
+import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.ServerConnection
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/**
+ * Walks the Step 8 runtime chain at startup and logs what happened at each stage:
+ * install the Space, run the interpreter, start the server, start a kernel, execute
+ * a cell. Every stage reports its outcome, so a regression names the stage it broke
+ * at rather than surfacing as a blank screen.
+ *
+ * Temporary by intent. It is replaced by real UI as the Space screens land, and by
+ * the KernelGateway port in Step 10; it exists because the runtime has no UI yet and
+ * a silent runtime is undebuggable. Filter with `adb logcat -s JupydroidSpace`.
+ */
+class SpaceProbe(
+  private val context: Context,
+  private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
+  suspend fun run() {
+    installSpace()
+    probeInterpreter()
+    val connection = startServer() ?: return
+    val kernelId = startKernel(connection) ?: return
+    executeCell(connection, kernelId)
+  }
+
+  private suspend fun installSpace() {
+    val installed = baseSpaceInstaller(context).installIfNeeded()
+    Log.i(
+      TAG,
+      "base Space v${installed.version} at ${installed.baseDir}: " +
+        if (installed.freshlyInstalled) "extracted ${installed.entriesWritten} entries" else "already installed",
+    )
+  }
+
+  private suspend fun probeInterpreter() {
+    val runner = PythonRunner(baseSpaceRuntime(context))
+    val version = runner.run("-c", "import sys; print(sys.version.split()[0], sys.executable)")
+    Log.i(TAG, "interpreter: exit=${version.exitCode} ${version.output}")
+
+    val imports = runner.run("-c", IMPORT_PROBE)
+    Log.i(TAG, "imports: exit=${imports.exitCode} ${imports.output}")
+  }
+
+  private suspend fun startServer(): ServerConnection? {
+    launcher = baseSpaceServerLauncher(context)
+    val connection = runCatching { launcher!!.start(BASE_SPACE) }.getOrElse { failure ->
+      Log.e(TAG, "server failed to start", failure)
+      return null
+    }
+    Log.i(TAG, "server: ${connection.baseUrl} running=${launcher!!.isRunning()}")
+    Log.i(TAG, "api/status: ${get(connection, "api/status")}")
+    return connection
+  }
+
+  private suspend fun startKernel(connection: ServerConnection): String? {
+    val body = runCatching { post(connection, "api/kernels") }
+      .getOrElse { "FAILED ${it::class.simpleName}: ${it.message}" }
+    Log.i(TAG, "kernel: $body (running=${launcher?.isRunning()} exit=${launcher?.exitCode()})")
+
+    val kernelId = KERNEL_ID.find(body)?.groupValues?.get(1)
+    if (kernelId == null) Log.w(TAG, "no kernel id; server log tail:\n${serverLogTail()}")
+    return kernelId
+  }
+
+  private suspend fun executeCell(connection: ServerConnection, kernelId: String) {
+    val outcome = KernelChannel(connection).execute(kernelId, "2 + 2")
+    Log.i(TAG, "execute 2 + 2 -> $outcome")
+    if (outcome !is ExecutionOutcome.Result) Log.w(TAG, "server log tail:\n${serverLogTail()}")
+  }
+
+  private suspend fun serverLogTail(): String = withContext(ioDispatcher) {
+    File(baseSpaceDir(context), "run/jupyter_server.log")
+      .takeIf { it.isFile }?.readText()?.takeLast(LOG_TAIL_CHARS).orEmpty()
+  }
+
+  private suspend fun get(connection: ServerConnection, path: String): String =
+    request(connection, path, body = null)
+
+  private suspend fun post(connection: ServerConnection, path: String): String =
+    request(connection, path, body = "{}")
+
+  private suspend fun request(
+    connection: ServerConnection,
+    path: String,
+    body: String?,
+  ): String = withContext(ioDispatcher) {
+    (URL(connection.baseUrl + path).openConnection() as HttpURLConnection).run {
+      try {
+        setRequestProperty("Authorization", "token ${connection.token}")
+        if (body != null) {
+          requestMethod = "POST"
+          doOutput = true
+          setRequestProperty("Content-Type", "application/json")
+          outputStream.use { it.write(body.toByteArray()) }
+        }
+        val stream = if (responseCode in HTTP_OK_RANGE) inputStream else errorStream
+        "HTTP $responseCode " + stream.bufferedReader().use { it.readText() }
+      } finally {
+        disconnect()
+      }
+    }
+  }
+
+  private var launcher: JupyterServerLauncher? = null
+
+  private companion object {
+    const val TAG = "JupydroidSpace"
+    const val LOG_TAIL_CHARS = 1500
+    val HTTP_OK_RANGE = 200..299
+    val KERNEL_ID = Regex("\"id\": \"([^\"]+)\"")
+    val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
+
+    /** pyzmq is the one that matters: it is the first dlopen'd native extension. */
+    const val IMPORT_PROBE =
+      "import jupyter_server, ipykernel, zmq; " +
+        "print('jupyter_server', jupyter_server.__version__, 'ipykernel', ipykernel.__version__, " +
+        "'libzmq', zmq.zmq_version())"
+  }
+}
