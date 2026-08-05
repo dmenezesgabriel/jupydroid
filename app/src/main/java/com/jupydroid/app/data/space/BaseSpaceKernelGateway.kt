@@ -31,6 +31,7 @@ class BaseSpaceKernelGateway(
   private val installSpace: suspend () -> Unit,
   private val launcher: ServerLauncher,
   private val gatewayFor: (ServerConnection) -> KernelGateway,
+  private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) : KernelGateway {
   private var started: KernelGateway? = null
 
@@ -38,7 +39,8 @@ class BaseSpaceKernelGateway(
   // would bind a different port and the first would be orphaned.
   private val startLock = Mutex()
 
-  override suspend fun connect(space: Space): KernelSession = running().connect(space)
+  override suspend fun connect(space: Space): KernelSession =
+    running().connect(space).also { log.reached("kernel ${it.kernelId} ready for space ${space.id}") }
 
   override suspend fun execute(
     session: KernelSession,
@@ -61,10 +63,19 @@ class BaseSpaceKernelGateway(
     started ?: startSpace().also { started = it }
   }
 
-  private suspend fun startSpace(): KernelGateway {
+  /**
+   * Each stage is logged as it is reached, so a runtime that fails on a device says where.
+   * The alternative is what the first real-kernel run looked like: a cell that never
+   * produced output, nothing in logcat, and the server log dug out through `run-as`.
+   */
+  private suspend fun startSpace(): KernelGateway = runCatching {
+    log.reached("installing base Space")
     installSpace()
-    return gatewayFor(launcher.start(BASE_SPACE))
-  }
+    log.reached("starting jupyter_server")
+    val connection = launcher.start(BASE_SPACE)
+    log.reached("jupyter_server listening on ${connection.baseUrl}")
+    gatewayFor(connection)
+  }.onFailure { log.failed("base Space failed to come up", it) }.getOrThrow()
 
   private companion object {
     /** Step 17 introduces real Spaces; until then there is exactly one and it is this. */

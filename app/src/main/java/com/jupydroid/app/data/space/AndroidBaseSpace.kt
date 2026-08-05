@@ -54,6 +54,7 @@ fun baseSpaceKernelGateway(context: Context): KernelGateway? {
         lifecycle = OkHttpKernelLifecycle(connection),
       )
     },
+    log = LogcatSpaceLifecycleLog,
   )
 }
 

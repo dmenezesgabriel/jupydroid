@@ -63,12 +63,43 @@ class BaseSpaceKernelGatewayTest {
     assertTrue("expected the failure to surface, got $failure", failure.isFailure)
   }
 
+  /** The app was silent when the first real-kernel run produced nothing; this is why. */
+  @Test
+  fun connect_reportsEachStageItReachedSoAFailureNamesOne() = runTest {
+    gateway(RecordingServerLauncher()).connect(SPACE)
+
+    assertTrue("expected the server url to be logged, got $logged", logged.any { it.contains("127.0.0.1:8888") })
+    assertTrue("expected the kernel to be logged, got $logged", logged.any { it.contains("kernel") })
+  }
+
+  @Test
+  fun connect_logsTheStageItFailedAtRatherThanFailingSilently() = runTest {
+    val gateway = gateway(RecordingServerLauncher(failWith = IllegalStateException("port in use")))
+
+    runCatching { gateway.connect(SPACE) }
+
+    assertTrue("expected a failure to be logged, got $failures", failures.isNotEmpty())
+  }
+
   private val installedThenStarted = mutableListOf<String>()
+  private val logged = mutableListOf<String>()
+  private val failures = mutableListOf<String>()
+
+  private val recordingLog = object : SpaceLifecycleLog {
+    override fun reached(stage: String) {
+      logged += stage
+    }
+
+    override fun failed(stage: String, cause: Throwable) {
+      failures += stage
+    }
+  }
 
   private fun gateway(launcher: RecordingServerLauncher): KernelGateway = BaseSpaceKernelGateway(
     installSpace = { installedThenStarted += "install" },
     launcher = launcher,
     gatewayFor = { FakeKernelGateway() },
+    log = recordingLog,
   )
 
   private inner class RecordingServerLauncher(private val failWith: Exception? = null) : ServerLauncher {
