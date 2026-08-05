@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step7-rich-output-driver.sh; clearState would delete the fixture.
+- launchApp
+- assertVisible: "Rich Output"
+- tapOn: "Rich Output"
+- takeScreenshot: 01-before-running
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "Cell image output"
+    timeout: 120000
+- takeScreenshot: 02-image-rendered
+# A traceback, which used to render its ANSI escapes literally as [31m...
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*ZeroDivisionError.*"
+    timeout: 60000
+- takeScreenshot: 03-traceback-without-ansi-noise

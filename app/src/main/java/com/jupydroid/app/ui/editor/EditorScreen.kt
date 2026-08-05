@@ -1,5 +1,7 @@
 package com.jupydroid.app.ui.editor
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,8 +27,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.contentDescription
@@ -37,7 +42,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
-import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
 
@@ -196,35 +200,60 @@ private fun CellHeader(
   }
 }
 
-/**
- * Plain text for every output kind. Rich rendering - images, HTML, themed error tracebacks -
- * is Step 7; this exists so a run has something visible to prove it worked.
- */
+/** What each output kind becomes on screen is [RenderedOutput]'s decision, not this one's. */
 @Composable
 private fun CellOutputs(outputs: List<CellOutput>) {
-  if (outputs.isEmpty()) return
+  val rendered = outputs.mapNotNull { it.render() }
+  if (rendered.isEmpty()) return
   Spacer(modifier = Modifier.height(4.dp))
   Column(modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Cell output" }) {
-    outputs.forEach { output ->
-      Text(
-        text = output.asText(),
-        style = MaterialTheme.typography.bodySmall,
-        fontFamily = FontFamily.Monospace,
-        color = if (output.isError()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-      )
+    rendered.forEach { output ->
+      when (output) {
+        is RenderedOutput.Text -> OutputText(output)
+        is RenderedOutput.Image -> OutputImage(output)
+      }
     }
   }
 }
 
-private fun CellOutput.isError(): Boolean =
-  this is CellOutput.Error || (this is CellOutput.Stream && name == StreamName.STDERR)
+@Composable
+private fun OutputText(output: RenderedOutput.Text) {
+  if (!output.isError) {
+    Text(
+      text = output.text,
+      style = MaterialTheme.typography.bodySmall,
+      fontFamily = FontFamily.Monospace,
+      color = MaterialTheme.colorScheme.onSurface,
+    )
+    return
+  }
+  // A traceback is long and needs to be findable at a glance, so it gets its own tinted
+  // block rather than only a colour that a monospace wall of text swallows.
+  Text(
+    text = output.text,
+    style = MaterialTheme.typography.bodySmall,
+    fontFamily = FontFamily.Monospace,
+    color = MaterialTheme.colorScheme.onErrorContainer,
+    modifier = Modifier
+      .fillMaxWidth()
+      .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.small)
+      .padding(8.dp),
+  )
+}
 
-private fun CellOutput.asText(): String = when (this) {
-  is CellOutput.Stream -> text.trimEnd()
-  is CellOutput.Error -> "$name: $value"
-  is CellOutput.ExecuteResult -> mimeBundle["text/plain"].orEmpty()
-  is CellOutput.DisplayData -> mimeBundle["text/plain"] ?: mimeBundle.keys.joinToString()
-  CellOutput.ClearOutput -> ""
+@Composable
+private fun OutputImage(output: RenderedOutput.Image) {
+  // Decoded here rather than in RenderedOutput so that stays free of Android types and
+  // unit-testable; remembered by content so scrolling does not re-decode every frame.
+  val bitmap = remember(output) {
+    BitmapFactory.decodeByteArray(output.png, 0, output.png.size)?.asImageBitmap()
+  } ?: return
+  Image(
+    bitmap = bitmap,
+    contentDescription = "Cell image output",
+    modifier = Modifier.fillMaxWidth(),
+    contentScale = ContentScale.Fit,
+  )
 }
 
 @Composable
