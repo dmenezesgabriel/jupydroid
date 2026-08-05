@@ -257,7 +257,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 2 | Home: notebook list | Recent list + relative timestamps, empty state, FAB; long-press rename/delete; New notebook / New Python file / Open `.ipynb` (VIEW intent). **Done** |
 | 3 | Notebook persistence | `DiskNotebookRepository` over nbformat JSON; round-trip tests. **Done** |
 | 4 | Editor shell | cell header Run/Stop + long-press context menu (run, insert code/markdown below, move up/down, duplicate, delete, clear outputs, collapse), Run All, busy indicator, dirty state |
-| 5 | CodeMirror 6 cell editor | per-cell WebView: self-sizing + keyboard-aware height, theme via CSS vars, id-based async completion, `Mod-Enter`, debounced edit, `?mode=`; bridges as JVM-testable core |
+| 5 | CodeMirror 6 cell editor | per-cell WebView — broken into 5.1–5.6 below |
 | 6 | Execute behaviour | Run → `KernelGateway.execute` → outputs; Running/Idle; Stop/interrupt; execution count (FakeKernel) |
 | 7.1 | **Outputs persist** — nbformat round-trip of `outputs` and `execution_count` | **Done.** Fixed silent data loss: `toDomain`/`toFile` dropped both, so saving a notebook another tool had run destroyed its results. `evidence/step7.1/` |
 | 7.2 | Output rendering | **Done** for images, tracebacks and streams: PNG decoded and drawn, ANSI colour codes stripped, errors in a themed block. `evidence/step7.2/`. Still open: collapse, clear outputs, and `text/html` (a pandas DataFrame falls back to its `text/plain`, which needs the WebView from Step 5) |
@@ -313,6 +313,30 @@ rebuilding them. Each sub-step is one commit with its own evidence:
 | 8.5 | Start a kernel — `POST /api/kernels` | proves the **subprocess** `execve` path needs no shim |
 | 8.6 | Execute a cell over the kernel WebSocket | `2 + 2` → `4` |
 | 8.7 | **numpy/scipy on musl** — add them to the image and import them on device | musllinux wheels are far less exercised than manylinux, and Step 8.3 showed what assuming costs. Gate it here rather than discover it in Step 12. **Passed** once SIGSYS was handled rather than left to kill the process |
+
+### Step 5 broken down (CodeMirror 6 cell editor)
+
+The protocol is not guesswork: `reference/callisto/FINDINGS.md` §2b records the observed
+bridge, and this follows it. JS posts `{type:"ready"|"height"|"edit"|"run"|"complete"}` via
+`postMessage(JSON.stringify(...))`; the app injects `setSource`/`setTheme`/`completionsReady`
+via `evaluateJavascript`. Callisto's own bundle CSS documents the mobile-adaptation trick —
+no internal scroller, the page reports its height and Compose resizes the cell.
+
+| # | Slice | Test seam | Gate |
+|---|---|---|---|
+| 5.1 | `EditorBridge`: parse the page's messages, build the injected calls | pure JVM, JSON as strings | unit tests only — no WebView. String escaping is the load-bearing part |
+| 5.2 | Reproducible CodeMirror 6 bundle: `tools/editor/` (npm + esbuild) → `assets/editor/index.html`, gitignored like the rootfs | `node`, host-side | bundle builds; size recorded |
+| 5.3 | WebView host + editing: a cell shows CodeMirror, edits post back, the source is saved | fakes, then emulator | Maestro: type into a cell, restart, the text is still there. **Closes 4b's dirty-state gap** |
+| 5.4 | Height sync so cells self-size (4 px threshold, 80 ms debounce, 8000 px cap) | JVM for the policy, then device | Maestro: a long cell grows rather than scrolling internally |
+| 5.5 | Theme via CSS vars, `Mod-Enter` runs the cell | device | Maestro |
+| 5.6 | Completion — **deferred**, and deliberately: it needs `KernelGateway.complete`, which is still `TODO`. Implementing either before the editor asks would be untested-by-use code |
+
+**A simpler option, considered and rejected.** A Compose `BasicTextField` would make cells
+editable in a fraction of the work, and editing is the bigger user-facing gap than
+highlighting. It is rejected because it would be thrown away: the same slices (persistence,
+height, theming, run-from-keyboard) would then be built twice, and syntax highlighting,
+bracket matching and completion — the things a notebook editor is judged on — would still be
+missing. Worth naming so the choice is not re-litigated.
 
 ### Step 10 broken down (real `KernelGateway`)
 
