@@ -291,9 +291,12 @@ persistence proven by Maestro `stopApp`→relaunch flow `step3-persistence.yaml`
 
 - **4a** Read-only editor — tap a recents row → cell list (code + markdown
   sources rendered, back to Home). No execution.
-- **4b** Editing + execution shell — cell header Run/Stop, long-press context
-  menu, Run All, busy indicator, dirty state. Deferred until after the Step 8
-  gate, because it is written against a real kernel.
+- **4b** Editing + execution shell. **Run, Stop, Run All and the busy indicator
+  are done** (`evidence/step4b/`, `evidence/step4b-run-all/`), against a real
+  kernel on the tablet. Still open: the long-press context menu (insert, move,
+  duplicate, delete, clear outputs, collapse) and dirty state — both are
+  *editing*, which needs cell mutation and persistence, whereas everything
+  delivered so far is execution.
 
 **Step 8 is pulled forward, ahead of Steps 5–7**, and split so the riskiest thing
 fails first. Steps 5–7 (CodeMirror cells, execute behaviour, output rendering)

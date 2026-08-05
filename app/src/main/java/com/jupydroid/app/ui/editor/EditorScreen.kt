@@ -53,11 +53,19 @@ fun EditorScreen(
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   Scaffold(
     modifier = modifier.fillMaxSize(),
-    topBar = { EditorTopBar(title = state.title, onBack = onBack) },
+    topBar = {
+      EditorTopBar(
+        title = state.title,
+        busy = state.runningCellId != null,
+        onRunAll = viewModel::runAll,
+        onBack = onBack,
+      )
+    },
   ) { innerPadding ->
     EditorContent(
       state = state,
       onRunCell = viewModel::runCell,
+      onStopCell = viewModel::stopRunningCell,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -65,9 +73,16 @@ fun EditorScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditorTopBar(title: String, onBack: () -> Unit) {
+private fun EditorTopBar(title: String, busy: Boolean, onRunAll: () -> Unit, onBack: () -> Unit) {
   TopAppBar(
     title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+    actions = {
+      // Disabled while a cell runs: a second Run All would queue every cell again behind
+      // the one already going.
+      IconButton(onClick = onRunAll, enabled = !busy) {
+        Icon(Icons.Filled.PlayArrow, contentDescription = "Run all cells")
+      }
+    },
     navigationIcon = {
       IconButton(onClick = onBack) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -80,6 +95,7 @@ private fun EditorTopBar(title: String, onBack: () -> Unit) {
 private fun EditorContent(
   state: EditorUiState,
   onRunCell: (Cell) -> Unit,
+  onStopCell: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   when {
@@ -95,6 +111,7 @@ private fun EditorContent(
             executionCount = state.executionCounts[cell.id],
             running = state.runningCellId == cell.id,
             onRun = { onRunCell(cell) },
+            onStop = onStopCell,
           )
         }
       }
@@ -108,10 +125,17 @@ private fun EditorCell(
   executionCount: Int?,
   running: Boolean,
   onRun: () -> Unit,
+  onStop: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-    CellHeader(cell = cell, executionCount = executionCount, running = running, onRun = onRun)
+    CellHeader(
+      cell = cell,
+      executionCount = executionCount,
+      running = running,
+      onRun = onRun,
+      onStop = onStop,
+    )
     Spacer(modifier = Modifier.height(4.dp))
     Text(
       text = cell.source,
@@ -132,7 +156,13 @@ private fun EditorCell(
 }
 
 @Composable
-private fun CellHeader(cell: Cell, executionCount: Int?, running: Boolean, onRun: () -> Unit) {
+private fun CellHeader(
+  cell: Cell,
+  executionCount: Int?,
+  running: Boolean,
+  onRun: () -> Unit,
+  onStop: () -> Unit,
+) {
   Row(verticalAlignment = Alignment.CenterVertically) {
     Text(
       // The bracket notation a Jupyter user already reads as "this cell has run N times".
@@ -142,10 +172,22 @@ private fun CellHeader(cell: Cell, executionCount: Int?, running: Boolean, onRun
     )
     if (cell.kind != CellKind.CODE) return@Row
     if (running) {
+      // Spinner *and* Stop: the spinner says the kernel is working, the button is the only
+      // way to take it back, since the cell has no handle on the kernel's work.
       CircularProgressIndicator(
         modifier = Modifier.padding(start = 8.dp).size(16.dp).semantics { contentDescription = "Running" },
         strokeWidth = 2.dp,
       )
+      IconButton(onClick = onStop, modifier = Modifier.size(32.dp)) {
+        // The universal stop square, drawn rather than imported: it is the only glyph this
+        // screen would need from material-icons-extended.
+        Box(
+          modifier = Modifier
+            .size(12.dp)
+            .background(MaterialTheme.colorScheme.error, MaterialTheme.shapes.extraSmall)
+            .semantics { contentDescription = "Stop cell" },
+        )
+      }
     } else {
       IconButton(onClick = onRun, modifier = Modifier.size(32.dp)) {
         Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell")

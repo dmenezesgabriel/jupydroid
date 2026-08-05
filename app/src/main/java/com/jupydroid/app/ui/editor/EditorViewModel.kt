@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
@@ -56,13 +57,40 @@ class EditorViewModel(
    * cell shows what it has printed rather than nothing until it finishes.
    */
   fun runCell(cell: Cell) {
+    viewModelScope.launch { execute(cell) }
+  }
+
+  /**
+   * Runs every code cell in order, stopping at the first that raises - which is what Jupyter
+   * does with a queued run. Carrying on would run later cells against state the failed one
+   * never produced, and their output would be wrong rather than merely absent.
+   */
+  fun runAll() {
     viewModelScope.launch {
-      startRun(cell.id)
-      kernelGateway.execute(kernelSession(), cell.id, cell.source)
-        .catch { failure -> emit(kernelFailure(cell.id, failure)) }
-        .collect(::apply)
-      _uiState.update { it.copy(runningCellId = null) }
+      for (cell in _uiState.value.cells.filter { it.kind == CellKind.CODE }) {
+        if (!execute(cell)) return@launch
+      }
     }
+  }
+
+  /**
+   * Interrupts the kernel, which is how a running cell is stopped: the cell itself has no
+   * handle on the kernel's work. Does nothing when nothing is running, since the kernel may
+   * be busy with somebody else's cell.
+   */
+  fun stopRunningCell() {
+    if (_uiState.value.runningCellId == null) return
+    viewModelScope.launch { session?.let { kernelGateway.interrupt(it) } }
+  }
+
+  /** Returns whether the cell finished without raising, which is what [runAll] gates on. */
+  private suspend fun execute(cell: Cell): Boolean {
+    startRun(cell.id)
+    kernelGateway.execute(kernelSession(), cell.id, cell.source)
+      .catch { failure -> emit(kernelFailure(cell.id, failure)) }
+      .collect(::apply)
+    _uiState.update { it.copy(runningCellId = null) }
+    return _uiState.value.outputs[cell.id].orEmpty().none { it is CellOutput.Error }
   }
 
   /** Clears the previous run's output first: a re-run replaces its output, never appends. */

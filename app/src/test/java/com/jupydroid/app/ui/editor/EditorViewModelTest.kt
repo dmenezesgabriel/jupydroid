@@ -12,6 +12,7 @@ import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -113,14 +114,105 @@ class EditorViewModelTest {
     assertEquals(null, viewModel.uiState.value.runningCellId)
   }
 
-  private val codeCell = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
+  // --- Step 4b: Stop and Run All ---
 
-  private fun TestScope.loadedEditor(gateway: KernelGateway = FakeKernelGateway()): EditorViewModel {
+  /**
+   * The cell only finishes because it was interrupted, which is what a real kernel does:
+   * running it to completion first and then stopping would assert nothing.
+   */
+  @Test
+  fun stopRunningCell_asksTheKernelToInterrupt() = runTest {
+    val gateway = RecordingKernelGateway(runsUntilInterrupted = true)
+    val viewModel = loadedEditor(gateway = gateway)
+
+    viewModel.runCell(codeCell)
+    advanceUntilIdle()
+    assertEquals("the cell should still be running", "c1", viewModel.uiState.value.runningCellId)
+
+    viewModel.stopRunningCell()
+    advanceUntilIdle()
+
+    assertEquals(1, gateway.interruptCount)
+    assertEquals(null, viewModel.uiState.value.runningCellId)
+  }
+
+  /** Interrupting with nothing running would ask the kernel to abandon somebody else's work. */
+  @Test
+  fun stopRunningCell_doesNothingWhenNoCellIsRunning() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway)
+
+    viewModel.stopRunningCell()
+    advanceUntilIdle()
+
+    assertEquals(0, gateway.interruptCount)
+  }
+
+  @Test
+  fun runAll_runsEveryCodeCellAndSkipsMarkdown() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell, markdownCell, secondCodeCell))
+
+    viewModel.runAll()
+    advanceUntilIdle()
+
+    assertEquals(listOf("c1", "c3"), gateway.executed)
+  }
+
+  /**
+   * Jupyter aborts the rest of a queued run once a cell raises, and so must this: carrying on
+   * would run later cells against state the failed one never produced.
+   */
+  @Test
+  fun runAll_stopsAtTheFirstCellThatRaises() = runTest {
+    val gateway = RecordingKernelGateway(raiseOn = "c1")
+    val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell, secondCodeCell))
+
+    viewModel.runAll()
+    advanceUntilIdle()
+
+    assertEquals(listOf("c1"), gateway.executed)
+  }
+
+  private val codeCell = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
+  private val markdownCell = Cell(id = "c2", kind = CellKind.MARKDOWN, source = "# heading")
+  private val secondCodeCell = Cell(id = "c3", kind = CellKind.CODE, source = "print(2)")
+
+  /** Records what the editor asked of a kernel, and can make a cell raise on demand. */
+  private class RecordingKernelGateway(
+    private val raiseOn: String? = null,
+    private val runsUntilInterrupted: Boolean = false,
+  ) : KernelGateway by FakeKernelGateway() {
+    val executed = mutableListOf<String>()
+    var interruptCount = 0
+      private set
+
+    private val interrupted = CompletableDeferred<Unit>()
+
+    override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {
+      executed += cellId
+      return flow {
+        if (runsUntilInterrupted) interrupted.await()
+        if (cellId == raiseOn) {
+          emit(KernelEvent.Output(cellId, CellOutput.Error("ValueError", "boom", emptyList())))
+        }
+        emit(KernelEvent.Idle)
+      }
+    }
+
+    override suspend fun interrupt(session: KernelSession) {
+      interruptCount++
+      interrupted.complete(Unit)
+    }
+  }
+
+  private fun TestScope.loadedEditor(
+    gateway: KernelGateway = FakeKernelGateway(),
+    cells: List<Cell> = listOf(codeCell),
+  ): EditorViewModel {
     val repository = FakeNotebookRepository()
     launch {
-      repository.saveNotebook(
-        Notebook("nb-1", "Data", "python3", listOf(codeCell), Instant.EPOCH),
-      )
+      repository.saveNotebook(Notebook("nb-1", "Data", "python3", cells, Instant.EPOCH))
     }
     advanceUntilIdle()
     // No collector: uiState is a StateFlow, so .value is current without one - and a
