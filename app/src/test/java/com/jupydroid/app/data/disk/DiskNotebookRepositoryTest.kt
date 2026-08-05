@@ -2,6 +2,8 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.model.Notebook
 import java.io.File
 import java.time.Instant
@@ -60,6 +62,34 @@ class DiskNotebookRepositoryTest {
     val decoded = Json.decodeFromString<NotebookFile>(notebookFile("nb-1").readText())
     assertEquals(listOf("code", "markdown"), decoded.cells.map { it.cellType })
     assertEquals(listOf("print(1)", "# Title"), decoded.cells.map { it.source })
+  }
+
+  /**
+   * Regression: toDomain/toFile dropped outputs and execution_count, so opening a notebook
+   * another tool had run and saving it - a rename was enough - silently destroyed its
+   * results. Someone else's work, lost without a message.
+   */
+  @Test
+  fun saveAndRead_keepsCellOutputsAndExecutionCounts() = runTest {
+    val repository = repository()
+    val notebook = repository.createNotebook("With Outputs", "python3")
+    val ran = notebook.copy(
+      cells = listOf(
+        Cell(
+          id = "c1",
+          kind = CellKind.CODE,
+          source = "print('hi')",
+          outputs = listOf(CellOutput.Stream(StreamName.STDOUT, "hi\n")),
+          executionCount = 4,
+        ),
+      ),
+    )
+
+    repository.saveNotebook(ran)
+    val reread = repository.readNotebook(notebook.id)
+
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "hi\n")), reread.cells.single().outputs)
+    assertEquals(4, reread.cells.single().executionCount)
   }
 
   @Test

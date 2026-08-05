@@ -259,7 +259,8 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 4 | Editor shell | cell header Run/Stop + long-press context menu (run, insert code/markdown below, move up/down, duplicate, delete, clear outputs, collapse), Run All, busy indicator, dirty state |
 | 5 | CodeMirror 6 cell editor | per-cell WebView: self-sizing + keyboard-aware height, theme via CSS vars, id-based async completion, `Mod-Enter`, debounced edit, `?mode=`; bridges as JVM-testable core |
 | 6 | Execute behaviour | Run → `KernelGateway.execute` → outputs; Running/Idle; Stop/interrupt; execution count (FakeKernel) |
-| 7 | Output rendering | stream/error/display_data renderers, themed output area, collapse, clear outputs |
+| 7.1 | **Outputs persist** — nbformat round-trip of `outputs` and `execution_count` | **Done.** Fixed silent data loss: `toDomain`/`toFile` dropped both, so saving a notebook another tool had run destroyed its results. `evidence/step7.1/` |
+| 7.2 | Output rendering | stream/error/display_data renderers, themed output area, collapse, clear outputs |
 | 8 | **Risk gate** (base Space) | x86_64 rootfs → `files/spaces/base/`, loader launch, `jupyter_server` on 127.0.0.1, kernel started, cell run — broken into 8.1–8.6 below |
 | 9 | Phase 1: JupyterLab-in-WebView | WebView → `/lab`, cleartext config |
 | 10 | Real KernelGateway (WebSocket) | **Done** — 10.1–10.5 below |

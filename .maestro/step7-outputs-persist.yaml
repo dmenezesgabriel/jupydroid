@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step7-outputs-driver.sh; clearState would delete the fixture.
+- launchApp
+- assertVisible: "Real Kernel"
+- tapOn: "Real Kernel"
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- takeScreenshot: 01-output-produced
+# The whole point: kill the app, come back, and the result is still there without re-running.
+- stopApp
+- launchApp
+- assertVisible: "Real Kernel"
+- tapOn: "Real Kernel"
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 20000
+- assertVisible: "[1]"
+- takeScreenshot: 02-output-survived-restart

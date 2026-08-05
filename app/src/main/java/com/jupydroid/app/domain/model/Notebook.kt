@@ -8,6 +8,9 @@ data class Cell(
   val id: String,
   val kind: CellKind,
   val source: String,
+  /** What the kernel last produced for this cell; persisted in nbformat like Jupyter's. */
+  val outputs: List<CellOutput> = emptyList(),
+  val executionCount: Int? = null,
 )
 
 data class Notebook(

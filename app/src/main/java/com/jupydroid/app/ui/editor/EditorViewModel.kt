@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
@@ -39,18 +40,27 @@ class EditorViewModel(
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
   private var session: KernelSession? = null
+  private var notebook: Notebook? = null
 
   init {
     viewModelScope.launch {
       _uiState.value =
         try {
-          val notebook = notebookRepository.readNotebook(notebookId)
-          EditorUiState(title = notebook.title, cells = notebook.cells, loaded = true)
+          notebookRepository.readNotebook(notebookId).also { notebook = it }.toUiState()
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
     }
   }
+
+  /** Seeded from what was saved, so reopening a notebook shows the results it already had. */
+  private fun Notebook.toUiState() = EditorUiState(
+    title = title,
+    cells = cells,
+    loaded = true,
+    outputs = cells.filter { it.outputs.isNotEmpty() }.associate { it.id to it.outputs },
+    executionCounts = cells.mapNotNull { cell -> cell.executionCount?.let { cell.id to it } }.toMap(),
+  )
 
   /**
    * Runs one cell and streams its output into the state as it arrives, so a long-running
@@ -90,7 +100,25 @@ class EditorViewModel(
       .catch { failure -> emit(kernelFailure(cell.id, failure)) }
       .collect(::apply)
     _uiState.update { it.copy(runningCellId = null) }
+    save(cell.id)
     return _uiState.value.outputs[cell.id].orEmpty().none { it is CellOutput.Error }
+  }
+
+  /**
+   * Writes the run's results back to the notebook. Per cell rather than per Run All, so a
+   * long run that is interrupted still keeps what the cells before it produced.
+   */
+  private suspend fun save(cellId: String) {
+    val state = _uiState.value
+    val updated = notebook?.copy(
+      cells = state.cells.map { cell ->
+        if (cell.id != cellId) cell
+        else cell.copy(outputs = state.outputs[cellId].orEmpty(), executionCount = state.executionCounts[cellId])
+      },
+    ) ?: return
+    notebook = updated
+    _uiState.update { it.copy(cells = updated.cells) }
+    notebookRepository.saveNotebook(updated)
   }
 
   /** Clears the previous run's output first: a re-run replaces its output, never appends. */

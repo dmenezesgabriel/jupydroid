@@ -111,6 +111,8 @@ fun CellFile.toDomain(): Cell =
           )
       },
     source = source,
+    outputs = outputs.mapNotNull { it.toDomainOutput() },
+    executionCount = executionCount,
   )
 
 fun Notebook.toFile(): NotebookFile =
@@ -132,6 +134,8 @@ fun Cell.toFile(): CellFile =
         CellKind.MARKDOWN -> "markdown"
       },
     source = source,
+    outputs = outputs.map { it.toFileOutput() },
+    executionCount = executionCount,
   )
 
 fun Notebook.toSummary(): NotebookSummary =

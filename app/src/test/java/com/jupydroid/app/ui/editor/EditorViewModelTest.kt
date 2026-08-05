@@ -114,6 +114,37 @@ class EditorViewModelTest {
     assertEquals(null, viewModel.uiState.value.runningCellId)
   }
 
+  // --- Step 7.1: outputs survive closing the notebook ---
+
+  @Test
+  fun uiState_showsOutputsSavedByAPreviousSession() = runTest {
+    val saved = codeCell.copy(
+      outputs = listOf(CellOutput.Stream(StreamName.STDOUT, "from last time")),
+      executionCount = 9,
+    )
+    val viewModel = loadedEditor(cells = listOf(saved))
+
+    assertEquals(saved.outputs, viewModel.uiState.value.outputs["c1"])
+    assertEquals(9, viewModel.uiState.value.executionCounts["c1"])
+  }
+
+  /** Closing a notebook must not throw away what the kernel produced. */
+  @Test
+  fun runCell_savesItsOutputSoItSurvivesReopening() = runTest {
+    val repository = FakeNotebookRepository()
+    launch { repository.saveNotebook(Notebook("nb-1", "Data", "python3", listOf(codeCell), Instant.EPOCH)) }
+    advanceUntilIdle()
+    val viewModel = EditorViewModel("nb-1", repository, FakeKernelGateway())
+    advanceUntilIdle()
+
+    viewModel.runCell(codeCell)
+    advanceUntilIdle()
+
+    val reread = repository.readNotebook("nb-1").cells.single()
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "print(1)")), reread.outputs)
+    assertEquals(1, reread.executionCount)
+  }
+
   // --- Step 4b: Stop and Run All ---
 
   /**
