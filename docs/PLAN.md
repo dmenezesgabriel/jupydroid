@@ -607,6 +607,8 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 | A1b | **Markdown is never rendered** — parse it with commonmark-java into a model | **Done.** `MarkdownDocument`, 13 JVM tests. No Maestro: nothing draws it yet, so a flow would be theatre — A1c carries the device gate |
 | A1c | Draw that model in Compose, and toggle rendered ↔ source | **Done.** `MarkdownText` + `MarkdownCell`, 7 JVM + 5 instrumented tests, `evidence/audit-a1c-markdown-render/` |
 | A4 | **A markdown cell being edited is barely readable** — black on black in the dark theme | **Done.** `markdownSourceStyle()`, asserted in both schemes. `evidence/audit-a4-markdown-contrast/` |
+| A5a | Line numbers in the markdown editor | open |
+| A5b | Syntax highlighting for markdown source | open |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | **Done.** `toEditorUiState` gives a cell-less notebook one code cell, `evidence/audit-a2-empty-notebook/` |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | **Done.** Recents scrolls to a newly-topmost notebook; `HomeCreateTest` seeds 30 to reproduce it. `evidence/audit-a3-create-shows-up/` |
 
@@ -675,6 +677,36 @@ fine, so a single-theme check passes it.
 Second, smaller half: the editing state has no background, while a code cell sits on a
 `surfaceVariant` panel. Nothing says "this is a field you are typing in" - and the panel belongs
 to the *editor* only, since rendered prose in a box would be wrong.
+
+### A5 — the markdown editor gets what the code editor has
+
+Split because the two halves cost very different amounts, and only one of them has a decision
+in it.
+
+**A5a — line numbers.** Nearly free: `Modifier.lineNumbers(text: CharSequence, …)` and
+`gutterWidth` are already language-agnostic, and `LineNumbersTest` already covers the maths
+(`logicalLineStarts`, `gutterDigits`). Wiring is the same four lines `CodeCellField` has — a
+`layout` state, `onTextLayout`, `gutterWidth`, the modifier. **No new unit test is honest here**;
+nothing new is computed, so the gate is the screenshot, as it was for 5.4b.
+
+**A5b — highlighting.** Cheaper than Python was, because **no second lexer is needed**:
+commonmark already carries source offsets. `Parser.builder().includeSourceSpans(BLOCKS_AND_INLINES)`
+turns them on and `SourceSpan.getInputIndex()` / `getLength()` read them — both verified against
+the 0.30.0 jar. So `MarkdownSyntax` is a walk over the AST we already parse, dropped into the
+existing `SyntaxHighlighter` seam.
+
+Two costs that are real:
+
+- **`SyntaxKind` is Python-shaped** — `PLAIN, KEYWORD, STRING, NUMBER, COMMENT, FUNCTION`. A
+  heading is not a `KEYWORD`, so mapping markdown onto those names would be a lie. The enum
+  grows into the shared vocabulary of every language the editor highlights, each highlighter
+  emitting the subset that means something to it, and `syntaxColors()` grows with it.
+- **`HighlightTransformation` is `private`** in `CodeCellField.kt` and has to be extracted to
+  be shared. Mechanical, but it is that file's only real coupling.
+
+Worth remembering while doing it: `MarkdownCellField` exists *because* code machinery is wrong
+for prose (A1), and rendering is now the resting state — so this only shows while someone is
+editing source. It is wanted, but it is not free of that tension.
 
 ### A2 — a new notebook has no cells and no way to get one
 
