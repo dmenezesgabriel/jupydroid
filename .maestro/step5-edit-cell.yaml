@@ -4,11 +4,11 @@ appId: com.jupydroid.app
 - launchApp
 - assertVisible: "Two Cells"
 - tapOn: "Two Cells"
-# CodeMirror renders the source, so seeing it proves the bundle loaded and setSource arrived.
+# The field renders the source, so seeing it proves the highlighter ran over real text.
 - extendedWaitUntil:
     visible: "answer = 42"
     timeout: 30000
-- takeScreenshot: 01-codemirror-loaded
+- takeScreenshot: 01-editor-loaded
 - tapOn: "answer = 42"
 - inputText: "0"
 - takeScreenshot: 02-typed

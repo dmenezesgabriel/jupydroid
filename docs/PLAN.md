@@ -350,7 +350,7 @@ a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question
 | # | Slice | Test seam | Gate |
 |---|---|---|---|
 | 5.1 | `PythonSyntax`: ANTLR-generated lexer → highlight spans, behind a `SyntaxHighlighter` interface | JVM | unit tests only. Comments, f-strings, triple-quoted strings, numbers - the things that go wrong at boundaries |
-| 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | Compose UI test, then emulator | Maestro: type into a cell, restart, the text and the colours are both there |
+| 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | emulator | **Done.** Maestro: typed, restarted, `answer = 420` still there and coloured. WebView editor deleted in the same commit. Renderer processes: **0**, where the per-cell design ran one at 93 MB. `evidence/step5.2/` |
 | 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | Maestro |
 | 5.4 | Line numbers and bracket-match highlight | JVM for the matching, device for the drawing | Maestro |
 | 5.5 | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by `KernelGateway.complete` — **which this finally implements** | fakes, then device | device: type `pri`, get `print` from the real kernel |

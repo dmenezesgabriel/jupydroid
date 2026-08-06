@@ -146,14 +146,13 @@ private fun EditorCell(
     )
     Spacer(modifier = Modifier.height(4.dp))
     if (cell.kind == CellKind.CODE) {
-      CellEditor(
+      CodeCellField(
         source = cell.source,
-        theme = cellEditorTheme(),
         onSourceEdited = onSourceEdited,
-        onRunRequested = onRun,
         modifier = Modifier
           .fillMaxWidth()
-          .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small),
+          .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+          .padding(8.dp),
       )
     } else {
       Text(
