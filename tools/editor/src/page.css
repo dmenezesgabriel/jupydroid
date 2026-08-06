@@ -1,0 +1,20 @@
+/* Colours come from Compose through setTheme, so the editor matches the app rather than
+   guessing. The fallbacks are only what a browser preview shows. */
+:root {
+  --jupydroid-background: #ffffff;
+  --jupydroid-foreground: #1c1b1f;
+  --jupydroid-gutter: #79747e;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--jupydroid-background);
+  color: var(--jupydroid-foreground);
+  /* No scrolling of our own: the cell is sized to this page, never the other way round. */
+  overflow: hidden;
+}
+.cm-editor { background: var(--jupydroid-background); }
+.cm-editor.cm-focused { outline: none; }
+.cm-scroller { font-family: ui-monospace, "Roboto Mono", monospace; overflow: visible !important; }
+.cm-gutters { background: var(--jupydroid-background); color: var(--jupydroid-gutter); border: none; }
+.cm-content { caret-color: var(--jupydroid-foreground); }
