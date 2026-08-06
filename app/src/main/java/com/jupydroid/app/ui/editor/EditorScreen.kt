@@ -70,6 +70,7 @@ fun EditorScreen(
       state = state,
       onRunCell = viewModel::runCell,
       onStopCell = viewModel::stopRunningCell,
+      onEditCell = viewModel::editCell,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -100,6 +101,7 @@ private fun EditorContent(
   state: EditorUiState,
   onRunCell: (Cell) -> Unit,
   onStopCell: () -> Unit,
+  onEditCell: (String, String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   when {
@@ -116,6 +118,7 @@ private fun EditorContent(
             running = state.runningCellId == cell.id,
             onRun = { onRunCell(cell) },
             onStop = onStopCell,
+            onSourceEdited = { source -> onEditCell(cell.id, source) },
           )
         }
       }
@@ -130,6 +133,7 @@ private fun EditorCell(
   running: Boolean,
   onRun: () -> Unit,
   onStop: () -> Unit,
+  onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -141,20 +145,28 @@ private fun EditorCell(
       onStop = onStop,
     )
     Spacer(modifier = Modifier.height(4.dp))
-    Text(
-      text = cell.source,
-      style = MaterialTheme.typography.bodyMedium,
-      fontFamily = if (cell.kind == CellKind.CODE) FontFamily.Monospace else FontFamily.Default,
-      modifier =
-        if (cell.kind == CellKind.CODE) {
-          Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-            .padding(8.dp)
-        } else {
-          Modifier.fillMaxWidth()
-        },
-    )
+    if (cell.kind == CellKind.CODE) {
+      CellEditor(
+        source = cell.source,
+        theme = EditorTheme(
+          background = MaterialTheme.colorScheme.surfaceVariant,
+          foreground = MaterialTheme.colorScheme.onSurface,
+          gutter = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        onSourceEdited = onSourceEdited,
+        onRunRequested = onRun,
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(CODE_EDITOR_HEIGHT)
+          .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small),
+      )
+    } else {
+      Text(
+        text = cell.source,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.fillMaxWidth(),
+      )
+    }
     CellOutputs(outputs)
   }
 }
@@ -282,3 +294,6 @@ private fun CellKind.label(): String = when (this) {
   CellKind.CODE -> "code"
   CellKind.MARKDOWN -> "markdown"
 }
+
+/** Fixed until Step 5.4 lets the page's own reported height drive the cell. */
+private val CODE_EDITOR_HEIGHT = 180.dp

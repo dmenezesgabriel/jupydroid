@@ -326,7 +326,7 @@ no internal scroller, the page reports its height and Compose resizes the cell.
 |---|---|---|---|
 | 5.1 | `EditorBridge`: parse the page's messages, build the injected calls | pure JVM, JSON as strings | unit tests only — no WebView. String escaping is the load-bearing part |
 | 5.2 | Reproducible CodeMirror 6 bundle: `tools/editor/` (npm + esbuild) → `assets/editor/index.html`, gitignored like the rootfs | `node`, host-side | **Done.** 380 KB, one self-contained file (Callisto's is 814 KB). `npm ci` off a committed lockfile; the build fails if the minifier loses either bridge global |
-| 5.3 | WebView host + editing: a cell shows CodeMirror, edits post back, the source is saved | fakes, then emulator | Maestro: type into a cell, restart, the text is still there. **Closes 4b's dirty-state gap** |
+| 5.3 | WebView host + editing: a cell shows CodeMirror, edits post back, the source is saved | fakes, then emulator | **Done.** Maestro: typed into a CodeMirror cell, stopped the app, reopened - `answer = 420` still there, highlighted. Closes 4b's dirty-state gap. `evidence/step5.3/` |
 | 5.4 | Height sync so cells self-size (4 px threshold, 80 ms debounce, 8000 px cap) | JVM for the policy, then device | Maestro: a long cell grows rather than scrolling internally |
 | 5.5 | Theme via CSS vars, `Mod-Enter` runs the cell | device | Maestro |
 | 5.6 | Completion — **deferred**, and deliberately: it needs `KernelGateway.complete`, which is still `TODO`. Implementing either before the editor asks would be untested-by-use code |

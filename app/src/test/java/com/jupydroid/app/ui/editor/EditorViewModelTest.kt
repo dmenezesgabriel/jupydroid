@@ -11,6 +11,7 @@ import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.NotebookRepository
 import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -145,6 +146,66 @@ class EditorViewModelTest {
     assertEquals(1, reread.executionCount)
   }
 
+  // --- Step 5.3: editing a cell ---
+
+  @Test
+  fun editCell_updatesTheSourceAndMarksTheNotebookDirty() = runTest {
+    val viewModel = loadedEditor()
+
+    viewModel.editCell("c1", "print(2)")
+
+    assertEquals("print(2)", viewModel.uiState.value.cells.single().source)
+    assertTrue(viewModel.uiState.value.dirty)
+  }
+
+  /**
+   * A save per keystroke would write the file on every character. Debounced, so typing costs
+   * one write - and the debounce is what the dirty flag exists to make visible.
+   */
+  @Test
+  fun editCell_savesOnceAfterTypingStops() = runTest {
+    val repository = RecordingNotebookRepository()
+    val viewModel = loadedEditor(repository = repository)
+    // loadedEditor seeds the notebook through this same repository, so count from here.
+    val writesBefore = repository.saveCount
+
+    viewModel.editCell("c1", "p")
+    viewModel.editCell("c1", "pr")
+    viewModel.editCell("c1", "pri")
+    advanceUntilIdle()
+
+    assertEquals(1, repository.saveCount - writesBefore)
+    assertEquals("pri", repository.readNotebook("nb-1").cells.single().source)
+    assertTrue("a saved notebook is not dirty", !viewModel.uiState.value.dirty)
+  }
+
+  /** The edit must reach disk even if the app is closed before the debounce elapses. */
+  @Test
+  fun saveNow_writesImmediatelyWithoutWaitingForTheDebounce() = runTest {
+    val repository = RecordingNotebookRepository()
+    val viewModel = loadedEditor(repository = repository)
+    viewModel.editCell("c1", "typed but not settled")
+
+    viewModel.saveNow()
+    advanceUntilIdle()
+
+    assertEquals("typed but not settled", repository.readNotebook("nb-1").cells.single().source)
+  }
+
+  /** Running a cell must use what is on screen now, not what was loaded from the file. */
+  @Test
+  fun runCell_executesTheEditedSourceRatherThanTheSavedOne() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway)
+
+    viewModel.editCell("c1", "print('edited')")
+    viewModel.runCell(viewModel.uiState.value.cells.single())
+    advanceUntilIdle()
+
+    assertEquals(listOf("c1"), gateway.executed)
+    assertEquals("print('edited')", gateway.executedSource.single())
+  }
+
   // --- Step 4b: Stop and Run All ---
 
   /**
@@ -220,8 +281,11 @@ class EditorViewModelTest {
 
     private val interrupted = CompletableDeferred<Unit>()
 
+    val executedSource = mutableListOf<String>()
+
     override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {
       executed += cellId
+      executedSource += code
       return flow {
         if (runsUntilInterrupted) interrupted.await()
         if (cellId == raiseOn) {
@@ -237,11 +301,24 @@ class EditorViewModelTest {
     }
   }
 
+  /** Counts writes, so the debounce can be asserted rather than assumed. */
+  private class RecordingNotebookRepository(
+    private val delegate: FakeNotebookRepository = FakeNotebookRepository(),
+  ) : NotebookRepository by delegate {
+    var saveCount = 0
+      private set
+
+    override suspend fun saveNotebook(notebook: Notebook) {
+      saveCount++
+      delegate.saveNotebook(notebook)
+    }
+  }
+
   private fun TestScope.loadedEditor(
     gateway: KernelGateway = FakeKernelGateway(),
     cells: List<Cell> = listOf(codeCell),
+    repository: NotebookRepository = FakeNotebookRepository(),
   ): EditorViewModel {
-    val repository = FakeNotebookRepository()
     launch {
       repository.saveNotebook(Notebook("nb-1", "Data", "python3", cells, Instant.EPOCH))
     }

@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step5-edit-driver.sh; clearState would delete the fixture.
+- launchApp
+- assertVisible: "Two Cells"
+- tapOn: "Two Cells"
+# CodeMirror renders the source, so seeing it proves the bundle loaded and setSource arrived.
+- extendedWaitUntil:
+    visible: "answer = 42"
+    timeout: 30000
+- takeScreenshot: 01-codemirror-loaded
+- tapOn: "answer = 42"
+- inputText: "0"
+- takeScreenshot: 02-typed
+# The debounce is 500 ms; stopping the app is the harder case - it must already be on disk.
+- stopApp
+- launchApp
+- tapOn: "Two Cells"
+- extendedWaitUntil:
+    visible: ".*answer = 420.*"
+    timeout: 30000
+- takeScreenshot: 03-edit-survived-restart
