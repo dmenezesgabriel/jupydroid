@@ -604,6 +604,8 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 | # | Finding | Status |
 |---|---|---|
 | A1 | **A markdown cell cannot be edited**, and "Insert markdown below" makes an unusable one | **Done.** `MarkdownCellField`, 4 instrumented tests, `evidence/audit-a1-markdown/` |
+| A1b | **Markdown is never rendered** — parse it with commonmark-java into a model | open |
+| A1c | Draw that model in Compose, and toggle rendered ↔ source | open |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | open |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | open |
 
@@ -624,9 +626,40 @@ An empty one shows a dimmed italic `Write markdown…`, which is how JupyterLab 
 case (`packages/cells/style/widget.css`, `jp-mod-emptyMarkdownPlaceholder`) - without it the
 cell is a row with nothing in it, which is the bug's worst half.
 
-**Rendering markdown stays open.** JupyterLab keeps a `_rendered` flag per markdown cell and
-calls `showEditor()` to go back to the source (`packages/cells/src/widget.ts:2500`, `2563`);
-we show the source always. That is a feature, not this fix.
+**Rendering markdown stays open** — it is A1b and A1c below. JupyterLab keeps a `_rendered`
+flag per markdown cell and calls `showEditor()` to go back to the source
+(`packages/cells/src/widget.ts:2500`, `2563`); we show the source always.
+
+### A1b / A1c — render markdown natively, with no WebView and no HTML
+
+**Parsed with `org.commonmark:commonmark` 0.30.0.** BSD-2-Clause, so the same permissive footing
+as ANTLR and grammars-v4 - attribution only, no copyleft, no native code. Verified against the
+published jar rather than the README: `Parser` produces a `Node` tree, `AbstractVisitor` has a
+`visit` for every node kind we care about, `Heading.getLevel()` and `Text.getLiteral()` are
+there, and **`org/commonmark/renderer/` is a separate package we never touch** - the AST is
+walked directly, so no HTML is ever produced and no WebView is needed. Latest version confirmed
+from Maven Central's `maven-metadata.xml`, not from a search result.
+
+**The shape follows JetBrains Jewel**, cloned to `reference/research_repos/intellij-community`
+(`platform/jewel/markdown`), which solves exactly this problem for Compose:
+
+- Blocks are a recursive model - `BlockQuote(children)`, `ListItem(children)` - rendered by
+  recursive composables (`MarkdownBlock.kt`, `DefaultMarkdownBlockRenderer.kt`).
+- **Leaf blocks hold an inline *model*, not an `AnnotatedString`** (`InlineMarkdown.kt`). The
+  string is built at render time. That is what keeps the parsing layer free of Compose and
+  testable on the JVM, and it is the reason A1b and A1c split where they do.
+- Inline code takes `SpanStyle.background` (`DefaultInlineMarkdownRenderer.kt:171-179`), and a
+  block quote's rule is drawn with `drawBehind` on the Column
+  (`DefaultMarkdownBlockRenderer.kt:324`).
+
+**On `TextLayoutResult` + `drawBehind` for inline backgrounds:** that is the upgrade, not the
+baseline. `SpanStyle.background` paints a flat rectangle with no padding or rounding, which is
+why measuring the span and drawing it yourself looks better - but Jewel ships the simple version,
+and so does A1c until the flat one is shown to be the problem.
+
+Scope: headings, paragraphs, emphasis, strong, inline code, code blocks, lists, block quotes,
+thematic breaks and links. Images and inline HTML are out - a cell that needs them is rarer than
+the cost of getting them right.
 
 ### A2 — a new notebook has no cells and no way to get one
 
