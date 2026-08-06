@@ -1,0 +1,58 @@
+package com.jupydroid.app.markdown
+
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+
+/** Where a link's destination is stashed, so a tap can find it without re-parsing. */
+const val MARKDOWN_LINK_TAG = "markdown-link"
+
+/** What each inline mark is painted with. Passed in so this stays testable off a device. */
+data class MarkdownInlineStyles(
+  val emphasis: SpanStyle,
+  val strong: SpanStyle,
+  val code: SpanStyle,
+  val link: SpanStyle,
+)
+
+/**
+ * Flattens the inline tree into one styled string.
+ *
+ * Nesting survives because [withStyle] merges rather than replaces: `**bold *both* **` leaves
+ * the inner run carrying both spans.
+ *
+ * Inline code takes [SpanStyle.background], which is what Jewel does too
+ * (`DefaultInlineMarkdownRenderer.kt`). That paints a flat rectangle with no padding or
+ * rounding; measuring the run with `TextLayoutResult` and drawing it behind the text is the
+ * upgrade, and is not paid for until the flat one is the thing that looks wrong.
+ *
+ * ```
+ * MarkdownDocument.parse("a **b**").inlines.toAnnotatedString(styles)
+ * ```
+ */
+fun List<MarkdownInline>.toAnnotatedString(styles: MarkdownInlineStyles): AnnotatedString =
+  buildAnnotatedString { appendInlines(this@toAnnotatedString, styles) }
+
+private fun AnnotatedString.Builder.appendInlines(
+  inlines: List<MarkdownInline>,
+  styles: MarkdownInlineStyles,
+) {
+  inlines.forEach { inline ->
+    when (inline) {
+      is MarkdownInline.Text -> append(inline.text)
+      is MarkdownInline.Code -> withStyle(styles.code) { append(inline.code) }
+      is MarkdownInline.Emphasis -> withStyle(styles.emphasis) { appendInlines(inline.children, styles) }
+      is MarkdownInline.StrongEmphasis -> withStyle(styles.strong) { appendInlines(inline.children, styles) }
+      is MarkdownInline.Link -> appendLink(inline, styles)
+      MarkdownInline.SoftLineBreak -> append(" ")
+      MarkdownInline.HardLineBreak -> append("\n")
+    }
+  }
+}
+
+private fun AnnotatedString.Builder.appendLink(link: MarkdownInline.Link, styles: MarkdownInlineStyles) {
+  val start = length
+  withStyle(styles.link) { appendInlines(link.children, styles) }
+  addStringAnnotation(MARKDOWN_LINK_TAG, link.destination, start, length)
+}

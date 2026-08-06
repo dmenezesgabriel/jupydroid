@@ -5,7 +5,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import com.jupydroid.app.markdown.MarkdownInlineStyles
 import com.jupydroid.app.syntax.SyntaxKind
 
 /**
@@ -41,3 +45,22 @@ fun bracketMatchStyle(): SpanStyle = SpanStyle(
 )
 
 private const val MATCH_TINT = 0.3f
+
+/**
+ * What each inline markdown mark is painted with, from the Material scheme like the syntax
+ * colours - so light and dark both work without a second palette to keep in step.
+ */
+@Composable
+@ReadOnlyComposable
+fun markdownInlineStyles(): MarkdownInlineStyles = MarkdownInlineStyles(
+  emphasis = SpanStyle(fontStyle = FontStyle.Italic),
+  strong = SpanStyle(fontWeight = FontWeight.Bold),
+  code = SpanStyle(
+    fontFamily = FontFamily.Monospace,
+    background = MaterialTheme.colorScheme.surfaceVariant,
+  ),
+  link = SpanStyle(
+    color = MaterialTheme.colorScheme.primary,
+    textDecoration = TextDecoration.Underline,
+  ),
+)

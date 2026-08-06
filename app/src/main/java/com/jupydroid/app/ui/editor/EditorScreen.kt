@@ -143,12 +143,16 @@ private fun EditorCell(
   onCellAction: (CellAction) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  // Markdown never reaches a kernel: for those cells Run means "render", which is what running
+  // one means in Jupyter too.
+  val rendered = rememberMarkdownRendered(cell.id)
+  val markdown = cell.kind == CellKind.MARKDOWN
   Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
     CellHeader(
       cell = cell,
       executionCount = executionCount,
       running = running,
-      onRun = onRun,
+      onRun = if (markdown) ({ rendered.value = true }) else onRun,
       onStop = onStop,
       onCellAction = onCellAction,
     )
@@ -164,8 +168,10 @@ private fun EditorCell(
           .padding(8.dp),
       )
     } else {
-      MarkdownCellField(
+      MarkdownCell(
         source = cell.source,
+        rendered = rendered.value,
+        onEditRequested = { rendered.value = false },
         onSourceEdited = onSourceEdited,
         modifier = Modifier.fillMaxWidth(),
       )

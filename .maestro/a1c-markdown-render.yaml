@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# Audit A1c: markdown is drawn as Compose - no WebView, no HTML. Seeded by the driver.
+- launchApp
+- assertVisible: "Markdown Render"
+- tapOn: "Markdown Render"
+# Rendered, not source: the heading reads without its hashes and the bullet without its dash.
+- extendedWaitUntil:
+    visible: "Analysis"
+    timeout: 30000
+- assertNotVisible: "# Analysis"
+- assertVisible: "first point"
+- assertVisible: "A quoted remark."
+- takeScreenshot: 01-rendered
+# Tapping the rendered cell shows the source again, hashes and all.
+- tapOn: "Rendered markdown"
+- extendedWaitUntil:
+    visible: "(?s).*# Analysis.*"
+    timeout: 10000
+- takeScreenshot: 02-tapped-to-edit
+# Run renders it again, which is what running a markdown cell means in Jupyter.
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "Rendered markdown"
+    timeout: 10000
+- assertNotVisible: "# Analysis"
+- takeScreenshot: 03-run-renders-it-again

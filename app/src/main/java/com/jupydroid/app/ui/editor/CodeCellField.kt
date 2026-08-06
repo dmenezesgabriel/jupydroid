@@ -12,11 +12,13 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -132,11 +134,22 @@ private fun cursorAnchor(layout: TextLayoutResult?, cursorOffset: Int, gutter: D
  */
 @Composable
 internal fun ReportEdits(state: TextFieldState, onSourceEdited: (String) -> Unit) {
+  val report by rememberUpdatedState(onSourceEdited)
   LaunchedEffect(state) {
     snapshotFlow { state.text.toString() }
       .drop(1)
       .debounce(EDIT_REPORT_MILLIS)
-      .collect(onSourceEdited)
+      .collect(report)
+  }
+  // A debounced edit is lost if the field leaves before the delay elapses, and the markdown
+  // cell's rendered/editing toggle makes exactly that reachable: type, tap Run, lose the last
+  // keystrokes. Reported straight away on the way out instead.
+  DisposableEffect(state) {
+    val initial = state.text.toString()
+    onDispose {
+      val last = state.text.toString()
+      if (last != initial) report(last)
+    }
   }
 }
 

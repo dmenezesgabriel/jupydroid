@@ -605,7 +605,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 |---|---|---|
 | A1 | **A markdown cell cannot be edited**, and "Insert markdown below" makes an unusable one | **Done.** `MarkdownCellField`, 4 instrumented tests, `evidence/audit-a1-markdown/` |
 | A1b | **Markdown is never rendered** — parse it with commonmark-java into a model | **Done.** `MarkdownDocument`, 13 JVM tests. No Maestro: nothing draws it yet, so a flow would be theatre — A1c carries the device gate |
-| A1c | Draw that model in Compose, and toggle rendered ↔ source | open |
+| A1c | Draw that model in Compose, and toggle rendered ↔ source | **Done.** `MarkdownText` + `MarkdownCell`, 7 JVM + 5 instrumented tests, `evidence/audit-a1c-markdown-render/` |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | open |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | open |
 

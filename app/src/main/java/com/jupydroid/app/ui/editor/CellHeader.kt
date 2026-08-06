@@ -57,7 +57,13 @@ internal fun CellHeader(
       style = MaterialTheme.typography.labelSmall,
       color = MaterialTheme.colorScheme.primary,
     )
-    if (cell.kind == CellKind.CODE) RunControl(running = running, onRun = onRun, onStop = onStop)
+    // Markdown gets Run as well - it renders the cell - but never a spinner or Stop, because
+    // nothing of it ever reaches a kernel.
+    if (cell.kind == CellKind.CODE) {
+      RunControl(running = running, onRun = onRun, onStop = onStop)
+    } else {
+      IconButtonSized(onClick = onRun) { Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell") }
+    }
     Spacer(modifier = Modifier.weight(1f))
     // Visible, not just long-pressable. A thin strip that happens to react to a long press is
     // not something anyone finds; JupyterLab puts real buttons on the cell for the same
