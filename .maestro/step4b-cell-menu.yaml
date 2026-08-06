@@ -12,30 +12,31 @@ appId: com.jupydroid.app
     visible: "first = 1"
     timeout: 30000
 - takeScreenshot: 01-three-cells
-# The header strip, not the code: a long press inside the field is text selection.
-- longPressOn:
-    text: "code"
+# The button is the only way in, and the only one that needs to be: it is visible on every
+# cell, and it is a target of its own rather than a gesture on the whole header.
+- tapOn:
+    text: "Cell actions"
     index: 0
 - assertVisible: "Cell menu Insert code below"
-- takeScreenshot: 02-menu-open
+- takeScreenshot: 02-menu-open-by-button
 # Insert: a new empty cell lands between the first and second.
 - tapOn: "Cell menu Insert code below"
 - takeScreenshot: 03-cell-inserted
 # Move: the third cell goes above the second, so "third = 3" ends up before "second = 2".
-- longPressOn:
-    text: "code"
+- tapOn:
+    text: "Cell actions"
     index: 3
 - tapOn: "Cell menu Move up"
 - takeScreenshot: 04-cell-moved-up
 # Duplicate index 2 - which is `third = 3` by now, after the move - then delete the first
 # cell. The driver reads the file back afterwards; that order is the real assertion.
-- longPressOn:
-    text: "code"
+- tapOn:
+    text: "Cell actions"
     index: 2
 - tapOn: "Cell menu Duplicate"
 - takeScreenshot: 05-cell-duplicated
-- longPressOn:
-    text: "code"
+- tapOn:
+    text: "Cell actions"
     index: 0
 - tapOn: "Cell menu Delete"
 - assertNotVisible: "first = 1"

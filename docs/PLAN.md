@@ -28,6 +28,14 @@ is skipped "for speed". A step is only finished when all of them hold.
   touches a process or the runtime) counts as evidence, not just PNGs.
 - Unit tests alone are never sufficient to close a step.
 
+### 2b. Instrumented tests exist as of Step 4b
+- `app/src/androidTest` was empty until the cell menu, though the Compose test
+  dependencies had been declared since Step 1. `CellHeaderTest` is the first, and
+  earns it: whether there is something *visible to press* is not a question any
+  JVM test can answer.
+- Run with `./gradlew :app:connectedDebugAndroidTest`; the emulator is enough,
+  since UI needs no Space runtime.
+
 ### 3. Evidence-gated progression
 - A step is NOT complete — and the next step does NOT start — until:
   1. Unit + instrumented tests are green (`red → green → refactor`).
@@ -303,11 +311,22 @@ persistence proven by Maestro `stopApp`→relaunch flow `step3-persistence.yaml`
   `metadata.jupyter.source_hidden`/`outputs_hidden` round-tripped through the
   nbformat DTOs and so belongs with 7.2's remainder rather than here.
 
-  **The menu hangs off the cell header, not the cell.** A long press inside the code
-  field is text selection — the first attempt produced Android's Select all / Autofill
-  toolbar and never reached the menu (`evidence/step4b-cell-menu/00-…png`). Taking that
-  gesture back would undo the reason the editor is a real text field at all (Step 5.2),
-  so the header strip carries it instead, padded to be a reachable target.
+  **The way in is a `⋮` button on the cell header, and it took three attempts.** A long
+  press on the cell is text selection — `BasicTextField` owns that gesture, and the first
+  attempt produced Android's Select all / Autofill toolbar. Moving the press to the header
+  worked but was undiscoverable: nothing on screen says a thin strip is interactive, and a
+  gesture on the `Row` made the whole header one target that would fight every button added
+  beside it later. JupyterLab settles it — `@jupyterlab/cell-toolbar` puts **six independent
+  buttons** on the cell (duplicate, move up/down, insert above/below, delete), and only hides
+  them below 760px, which is every screen this app runs on. So: a real button, no gesture on
+  the Row, and the header stays somewhere more buttons can go.
+
+  **A popup's position is not observable from a Compose test.** The menu first opened at the
+  far left of the cell — a `DropdownMenu` anchors to its parent layout node, and the header
+  `Row` fills the width. The geometry assertion written to catch it failed *identically*
+  before and after the fix: a popup has its own window, so `getUnclippedBoundsInRoot` reports
+  coordinates inside it. The test was deleted rather than left asserting something it cannot
+  see; anchoring is a screenshot gate. `evidence/step4b-cell-menu/00b-…png`.
 
   Three semantics come from JupyterLab's `NotebookActions`, read rather than guessed, and
   all three differ from the obvious answer: deleting the **last** cell leaves an empty code

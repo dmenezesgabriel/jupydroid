@@ -17,6 +17,9 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        // The Compose test deps have been declared since Step 1 with nothing to run; this is
+        // what lets androidTest actually execute (first used by CellHeaderTest).
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {

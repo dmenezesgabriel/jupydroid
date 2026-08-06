@@ -2,11 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,8 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -179,64 +174,6 @@ private fun EditorCell(
   }
 }
 
-@Composable
-private fun CellHeader(
-  cell: Cell,
-  executionCount: Int?,
-  running: Boolean,
-  onRun: () -> Unit,
-  onStop: () -> Unit,
-  onCellAction: (CellAction) -> Unit,
-) {
-  var menuOpen by remember { mutableStateOf(false) }
-  Row(
-    verticalAlignment = Alignment.CenterVertically,
-    // The header, not the cell: a long press inside the code field belongs to text selection,
-    // and taking it would undo the reason the editor is a real text field at all (Step 5.2).
-    // Padded so the strip is a reachable target rather than the height of its label.
-    modifier = Modifier
-      .fillMaxWidth()
-      .combinedClickable(
-        onClickLabel = null,
-        onClick = {},
-        onLongClickLabel = "Cell actions",
-        onLongClick = { menuOpen = true },
-      )
-      .padding(vertical = 6.dp),
-  ) {
-    CellMenu(expanded = menuOpen, onDismiss = { menuOpen = false }, onAction = onCellAction)
-    Text(
-      // The bracket notation a Jupyter user already reads as "this cell has run N times".
-      text = executionCount?.let { "[$it]" } ?: cell.kind.label(),
-      style = MaterialTheme.typography.labelSmall,
-      color = MaterialTheme.colorScheme.primary,
-    )
-    if (cell.kind != CellKind.CODE) return@Row
-    if (running) {
-      // Spinner *and* Stop: the spinner says the kernel is working, the button is the only
-      // way to take it back, since the cell has no handle on the kernel's work.
-      CircularProgressIndicator(
-        modifier = Modifier.padding(start = 8.dp).size(16.dp).semantics { contentDescription = "Running" },
-        strokeWidth = 2.dp,
-      )
-      IconButton(onClick = onStop, modifier = Modifier.size(32.dp)) {
-        // The universal stop square, drawn rather than imported: it is the only glyph this
-        // screen would need from material-icons-extended.
-        Box(
-          modifier = Modifier
-            .size(12.dp)
-            .background(MaterialTheme.colorScheme.error, MaterialTheme.shapes.extraSmall)
-            .semantics { contentDescription = "Stop cell" },
-        )
-      }
-    } else {
-      IconButton(onClick = onRun, modifier = Modifier.size(32.dp)) {
-        Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell")
-      }
-    }
-  }
-}
-
 /** What each output kind becomes on screen is [RenderedOutput]'s decision, not this one's. */
 @Composable
 private fun CellOutputs(outputs: List<CellOutput>) {
@@ -313,9 +250,4 @@ private fun EmptyMessage(text: String, modifier: Modifier = Modifier) {
       color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
   }
-}
-
-private fun CellKind.label(): String = when (this) {
-  CellKind.CODE -> "code"
-  CellKind.MARKDOWN -> "markdown"
 }
