@@ -13,12 +13,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontFamily
 import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
@@ -31,10 +35,11 @@ import kotlinx.coroutines.flow.drop
  * One cell's code editor.
  *
  * A plain Compose text field, so IME composing regions, autocorrect, gesture typing,
- * selection handles and the magnifier are the platform's problem rather than ours. Two things
- * are added, and both are the language's rather than the widget's: colour and bracket matching
- * through [OutputTransformation], which style what is drawn without touching what is stored,
- * and the indent/bracket edits through [InputTransformation].
+ * selection handles and the magnifier are the platform's problem rather than ours. What is
+ * added sits on top of it and never inside it: colour and bracket matching through
+ * [OutputTransformation], which style what is drawn without touching what is stored, the
+ * indent/bracket edits through [InputTransformation], and the [lineNumbers] gutter, which reads
+ * the field's layout rather than the field reading it.
  *
  * ```
  * CodeCellField(source = cell.source, onSourceEdited = { … })
@@ -53,16 +58,21 @@ fun CodeCellField(
   val matched = bracketMatchStyle()
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
+  var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+  val codeStyle = LocalTextStyle.current.copy(
+    fontFamily = FontFamily.Monospace,
+    color = MaterialTheme.colorScheme.onSurfaceVariant,
+  )
 
   ReportEdits(state, onSourceEdited)
 
   BasicTextField(
     state = state,
-    modifier = modifier,
-    textStyle = LocalTextStyle.current.copy(
-      fontFamily = FontFamily.Monospace,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-    ),
+    // The gutter's width comes from the line *count*, so it never depends on the layout this
+    // callback publishes - which is what keeps writing state from here out of a measure loop.
+    modifier = modifier.lineNumbers(state.text, layout, codeStyle.copy(color = MaterialTheme.colorScheme.outline)),
+    onTextLayout = { getResult -> layout = getResult() },
+    textStyle = codeStyle,
     interactionSource = interactions,
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
     inputTransformation = typing,

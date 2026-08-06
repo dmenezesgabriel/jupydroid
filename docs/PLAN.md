@@ -353,7 +353,7 @@ a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question
 | 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | emulator, then tablet | **Done.** Maestro green on both. Like-for-like on the tablet: a 30-cell notebook costs **+10.5 MB** and **no renderer process**, where the per-cell WebView cost +56.7 MB plus a 93.4 MB renderer — about **139 MB saved**. `evidence/step5.2/tablet/` |
 | 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | **Done.** `PythonTypingRules`, 19 tests. Maestro on the tablet types **strictly fewer characters than the cell ends up holding**, so the result cannot be faked: no indent is ever typed, and `)` `'` only ever arrive on top of a partner already there. `evidence/step5.3/` |
 | 5.4a | Bracket-match highlight | JVM for the matching, device for the drawing | **Done.** `bracketPairAround`, 11 tests. `evidence/step5.4a/` |
-| 5.4b | Line numbers | JVM for which visual lines start a logical one, device for the drawing | Maestro |
+| 5.4b | Line numbers | JVM for where the logical lines start, device for the drawing | **Done.** Positions come from the field's `TextLayoutResult`, so a wrapped line keeps one number. `evidence/step5.4b/` |
 | 5.5 | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by `KernelGateway.complete` — **which this finally implements** | fakes, then device | device: type `pri`, get `print` from the real kernel |
 
 #### The lexer is generated, never hand-written
@@ -604,11 +604,10 @@ subprocess → tap Run in the app → `print(6 * 7)` shows `42` and a numpy dete
 render, cells are editable with syntax highlighting.
 
 **Done:** Steps 0–3, 4a, 4b (execution half), 7.1, 7.2, 8 (all sub-steps), 10 (all sub-steps),
-5.1, 5.2, 5.3, 5.4a.
+5.1, 5.2, 5.3, 5.4a, 5.4b.
 
-**Next: Step 5.4b** — line numbers, drawn from the field's own `TextLayoutResult` so a wrapped
-line does not drift out of step with its number; then 5.5 (completion popup fed by
-`KernelGateway.complete`).
+**Next: Step 5.5** — the completion popup, anchored with `TextLayoutResult.getCursorRect` and fed
+by `KernelGateway.complete`, which this is where the port finally implements. That closes Step 5.
 
 **Also open, in rough priority order:**
 

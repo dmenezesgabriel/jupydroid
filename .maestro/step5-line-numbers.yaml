@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step5-line-numbers-driver.sh; clearState would delete the fixture.
+#
+# The numbers are drawn on a canvas, not laid out as text, so they carry no accessibility node
+# and Maestro cannot assert them - deliberately, since a line number must never be selectable
+# or copyable with the code. The screenshots are the evidence; the fixture is built so they
+# cannot be read two ways.
+- launchApp
+- assertVisible: "Line Numbers"
+- tapOn: "Line Numbers"
+- extendedWaitUntil:
+    visible: "(?s).*import numpy as np.*"
+    timeout: 30000
+# 11 logical lines, one of which wraps: the gutter must show 1..11 with a single number beside
+# the wrapped line, and two-digit numbers must not shift the code sideways.
+- takeScreenshot: 01-numbers-with-a-wrapped-line
+- tapOn: "(?s).*import numpy as np.*"
+- pressKey: Enter
+- inputText: "extra = 1"
+# The count grew, so the gutter has to have grown with it.
+- assertVisible: "(?s).*extra = 1.*"
+- takeScreenshot: 02-gutter-follows-an-edit
