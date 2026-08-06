@@ -193,6 +193,8 @@ private fun CellOutputs(outputs: List<CellOutput>) {
       when (output) {
         is RenderedOutput.Text -> OutputText(output)
         is RenderedOutput.Image -> OutputImage(output)
+        // The same renderer a markdown cell uses: `text/html` parses to the same blocks.
+        is RenderedOutput.Document -> RichText(output.blocks, Modifier.fillMaxWidth())
       }
     }
   }

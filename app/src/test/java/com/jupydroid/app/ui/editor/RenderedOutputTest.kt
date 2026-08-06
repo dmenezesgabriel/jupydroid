@@ -2,6 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.html.PANDAS_DATAFRAME_HTML
+import com.jupydroid.app.richtext.RichBlock
+import com.jupydroid.app.richtext.plainText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -62,6 +65,63 @@ class RenderedOutputTest {
     val rendered = output.render()
 
     assertTrue("expected an image, got $rendered", rendered is RenderedOutput.Image)
+  }
+
+  /**
+   * `IPython.display.HTML`'s `text/plain` is literally `<IPython.core.display.HTML object>`,
+   * so getting the order wrong is not a subtle regression - it is that string on screen.
+   */
+  @Test
+  fun render_prefersHtmlOverItsPlainTextFallback() {
+    val output = CellOutput.ExecuteResult(
+      mapOf("text/plain" to "<IPython.core.display.HTML object>", "text/html" to "<h3>Report</h3>"),
+      1,
+    )
+
+    val rendered = output.render()
+
+    assertTrue("expected a document, got $rendered", rendered is RenderedOutput.Document)
+    val heading = (rendered as RenderedOutput.Document).blocks.single() as RichBlock.Heading
+    assertEquals("Report", heading.inlines.plainText())
+  }
+
+  /**
+   * JupyterLab's own ranking, not a guess: `htmlRendererFactory.defaultRank` is 50 and
+   * `imageRendererFactory.defaultRank` is 90, and `preferredMimeType` walks them ascending
+   * (`packages/rendermime/src/factories.ts`, `registry.ts:105`). Lower rank wins.
+   */
+  @Test
+  fun render_prefersHtmlOverAnImage() {
+    val output = CellOutput.DisplayData(
+      mapOf("image/png" to ONE_PIXEL_PNG, "text/html" to "<p>a table</p>", "text/plain" to "fallback"),
+    )
+
+    assertTrue("expected a document, got ${output.render()}", output.render() is RenderedOutput.Document)
+  }
+
+  /** Markup that draws nothing keeps looking, the way an undecodable image does. */
+  @Test
+  fun render_fallsBackToTextWhenTheHtmlRendersToNothing() {
+    val output = CellOutput.DisplayData(
+      mapOf("text/html" to "<style>.dataframe { color: red; }</style>", "text/plain" to "the table"),
+    )
+
+    assertEquals("the table", text(output).text)
+  }
+
+  /**
+   * A real `DataFrame._repr_html_`, captured from pandas rather than written from memory.
+   * Until there is a table block to draw it with, it must keep showing the `text/plain` grid
+   * it ships beside it - a run of cell text with no columns would be a regression, not progress.
+   */
+  @Test
+  fun render_keepsThePlainTextGridWhileATableCannotBeDrawn() {
+    val output = CellOutput.ExecuteResult(
+      mapOf("text/html" to PANDAS_DATAFRAME_HTML, "text/plain" to "   a  b\n0  1  x\n1  2  y"),
+      1,
+    )
+
+    assertEquals("   a  b\n0  1  x\n1  2  y", text(output).text)
   }
 
   /** A truncated or non-base64 payload must degrade to its text, not crash the notebook. */

@@ -2,6 +2,8 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.html.HtmlDocument
+import com.jupydroid.app.richtext.RichBlock
 import java.util.Base64
 
 /** What the editor can actually draw for one output. */
@@ -14,6 +16,9 @@ sealed interface RenderedOutput {
 
     override fun hashCode(): Int = png.contentHashCode()
   }
+
+  /** Parsed markup - `text/html` today, and whatever else parses to the same model later. */
+  data class Document(val blocks: List<RichBlock>) : RenderedOutput
 }
 
 /**
@@ -41,26 +46,40 @@ private fun CellOutput.Error.readable(): String =
     ?: "$name: $value"
 
 /**
- * An image if there is one, because a figure's `text/plain` is only ever a placeholder like
- * `<Figure size 640x480>`. Text otherwise, and the mime types themselves as a last resort so
- * an unrenderable output says what it was rather than appearing blank.
+ * The best form the bundle offers, richest first, then the mime types themselves as a last
+ * resort so an unrenderable output says what it was rather than appearing blank.
+ *
+ * The order is JupyterLab's, read off `defaultRank` rather than guessed: `text/html` 50,
+ * `image/png` 90, `text/plain` 120, walked ascending and first-present wins
+ * (`packages/rendermime/src/factories.ts`; `registry.ts:105`). Only the three we can draw are
+ * listed - a registry holds the types it has a renderer for, and the rest fall through.
+ *
+ * A type that is present but unusable - a truncated image, markup that parses to nothing -
+ * keeps looking rather than rendering blank, which is the one thing JupyterLab's registry
+ * does not do for us: it picks by presence, not by whether the render then worked.
  */
-private fun Map<String, String>.renderRichest(): RenderedOutput {
-  decodedPng()?.let { return RenderedOutput.Image(it) }
-  val text = get("text/plain") ?: keys.joinToString().ifEmpty { "" }
-  return RenderedOutput.Text(text.trimEnd(), isError = false)
+private fun Map<String, String>.renderRichest(): RenderedOutput =
+  RANKED_MIME_TYPES.firstNotNullOfOrNull { mime -> get(mime)?.let { renderAs(mime, it) } }
+    ?: RenderedOutput.Text(keys.joinToString(), isError = false)
+
+private val RANKED_MIME_TYPES = listOf("text/html", "image/png", "text/plain")
+
+private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when (mimeType) {
+  "text/html" -> HtmlDocument.parse(payload).takeIf { it.isNotEmpty() }?.let(RenderedOutput::Document)
+  "image/png" -> payload.decodedPng()?.let(RenderedOutput::Image)
+  else -> RenderedOutput.Text(payload.trimEnd(), isError = false)
 }
 
 /**
- * Null when absent or undecodable - a truncated payload degrades to text, never a crash.
+ * Null when undecodable - a truncated payload degrades to text, never a crash.
  *
  * Whitespace is stripped and then the *strict* decoder used: the lenient MIME one ignores
  * invalid characters, so it happily "decodes" text that is not base64 at all, and the
  * fallback would never fire. nbformat wraps its base64 across lines, hence the stripping.
  */
-private fun Map<String, String>.decodedPng(): ByteArray? =
-  get("image/png")?.filterNot { it.isWhitespace() }
-    ?.let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
+private fun String.decodedPng(): ByteArray? =
+  filterNot { it.isWhitespace() }
+    .let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
 
 /**
  * Removes the SGR escapes a kernel colours its tracebacks with. Both the real `ESC [ … m`

@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# Step 7.2 `text/html`: an output arrives as markup and is drawn as Compose, not shown as its
+# `text/plain` twin and not shown as its own tags. Seeded by the driver; needs a real kernel,
+# so this runs on the tablet.
+- launchApp
+- assertVisible: "Html Output"
+- tapOn: "Html Output"
+- takeScreenshot: 01-before-running
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run starts jupyter_server and the kernel.
+- extendedWaitUntil:
+    visible: "Quarterly report"
+    timeout: 120000
+# The two ways this can go green while being wrong, both asserted against:
+#   the markup drawn literally, and the text/plain fallback winning the mime race.
+- assertNotVisible: "<h3>Quarterly report</h3>"
+- assertNotVisible: "<IPython.core.display.HTML object>"
+# Blocks, not one run-together paragraph: a list item, a quote and a link each survived.
+- assertVisible: "EMEA up"
+- assertVisible: "APAC flat"
+- assertVisible: "Signed off by finance."
+- assertVisible: "See the docs."
+- takeScreenshot: 02-html-rendered-as-compose
