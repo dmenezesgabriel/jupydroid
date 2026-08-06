@@ -713,6 +713,33 @@ thirty notebooks, and any future test of a list behaviour should ask what size m
 
 ## Harness notes
 
+### Running a Maestro flow
+
+Most flows need a notebook seeded first, so they have a driver beside them — the driver is the
+entry point, not the yaml:
+
+```
+ANDROID_SERIAL=<serial> ./scripts/<name>-driver.sh
+```
+
+A driver pushes its fixture into the app's own storage with `run-as`, then runs the flow. The
+naming is not perfectly mechanical (`step5-edit-cell.yaml` is driven by
+`scripts/step5-edit-driver.sh`), so grep for the yaml's name in `scripts/` rather than guessing.
+
+The handful with no driver — `step2-*`, `step3-persistence`, `step5-height-sync`,
+`step7-outputs-persist` — need no seeding and run directly:
+
+```
+. scripts/java-home.sh                       # sourced, not executed; that is why it is not +x
+~/.maestro/bin/maestro --device <serial> test .maestro/<flow>.yaml
+```
+
+`ANDROID_SERIAL` is **not** honoured by Maestro itself — always pass `--device`. Screenshots
+land in `~/.maestro/tests/<timestamp>/<flow>/takeScreenshot/`; copy them into `evidence/<step>/`
+and **look at them**, because more than one flow in this repo's history has gone green against
+the wrong thing.
+
+
 - Emulator: `dev36` AVD = **API 36 (Android 16, `google_apis/x86_64`, `x86_64-36_r07`)**,
   `-gpu swiftshader_indirect`. The originally planned API 37 (`dev37`, Android 17
   CE2A) image was **abandoned after evidence**: its guest vendor HAL
@@ -734,6 +761,18 @@ thirty notebooks, and any future test of a list behaviour should ask what size m
   dp and CSS px are all the same number — which hides unit bugs completely. Force
   a real density with `adb shell wm density 320` (and `wm density reset`) rather
   than assuming 1x is representative.
+- **Check both themes, or ship A4 again.** `adb shell cmd uimode night yes|no` flips the
+  device; `scripts/a4-markdown-contrast-driver.sh` shows the shape — run the same flow twice and
+  keep a screenshot of each. A4 was black text in *both* themes, which reads perfectly on light,
+  so a one-theme check passed it. Anything that draws text is worth seeing in both.
+- **Instrumented tests run with `./gradlew :app:connectedDebugAndroidTest`** and the emulator is
+  enough — none of them needs a Space runtime. They exist as of Step 4b; before that
+  `app/src/androidTest` was empty despite the Compose test dependencies being declared since
+  Step 1. Reach for one when the question is *whether something is visible or reachable*, which
+  no JVM test can answer.
+- **A popup's position is not observable from a Compose test.** It gets its own window, so
+  `getUnclippedBoundsInRoot` reports coordinates inside that window — a menu pinned across the
+  screen and one under its button read identically. Anchoring is a screenshot gate.
 - The Galaxy Tab sleeps and then wants its PIN, which no adb command can supply.
   `adb shell svc power stayon usb` keeps it awake once unlocked; if a flow fails
   at the very first assertion, screenshot before debugging anything else.
@@ -758,31 +797,46 @@ subprocess → tap Run in the app → `print(6 * 7)` shows `42` and a numpy dete
 `np.float64(10.000000000000002)`. Outputs persist across app restarts, images and tracebacks
 render, cells are editable with syntax highlighting.
 
-**Done:** Steps 0–3, 4a, 4b (execution half), 7.1, 7.2, 8 (all sub-steps), 10 (all sub-steps),
-5.1, 5.2, 5.3, 5.4a, 5.4b, 5.5a, 5.5b. **Step 5 is closed**, and with it the last fake behind
-the `KernelGateway` port.
+**Done:** Steps 0–3, 4a, 4b, 7.1, 7.2 (bar `text/html`), 8 (all sub-steps), 10 (all sub-steps),
+5.1–5.5b. **Step 5 is closed**, and with it the last fake behind the `KernelGateway` port.
+**Step 6 is already satisfied** by 4b and Step 10 — run → outputs, Running/Idle, interrupt and
+execution count, all against a real kernel.
 
-**Step 6 is already satisfied** by 4b and Step 10 (run → outputs, Running/Idle, interrupt,
-execution count, against a real kernel), and **4b's cell menu is now done** bar collapse.
+**Markdown cells are editable and rendered** (audit A1, A1b, A1c): parsed with commonmark-java,
+drawn with recursive Compose, rendered by default with a tap to edit and Run to render again.
+No WebView and no HTML.
 
-**Next: collapse** — `metadata.jupyter.source_hidden` and `outputs_hidden` round-tripped through
-the nbformat DTOs, which closes both 4b's menu and one of 7.2's leftovers. Then 7.2's
-`text/html`, and Step 11 (Console REPL).
+**All five audit findings are closed** — see "Audit findings" above for what each was and how it
+was fixed. They came from driving the built app rather than reading it, and four of the five
+were invisible to every test that existed at the time.
+
+**Next: 7.2's `text/html`** — a pandas DataFrame still falls back to its `text/plain`. Then
+**collapse** (`metadata.jupyter.source_hidden` / `outputs_hidden` through the nbformat DTOs),
+which is the last piece of 4b's cell menu, and then Step 11 (Console REPL).
 
 **Also open, in rough priority order:**
 
-- **Collapse**, the one piece of 4b's menu still missing, and 7.2's `text/html` — a pandas
-  DataFrame still falls back to its `text/plain`. Collapse needs
-  `metadata.jupyter.source_hidden`/`outputs_hidden` through the nbformat DTOs; clear outputs
-  landed with the cell menu.
-- **Packaging**: debug APK is 115 MB, 79 MB of it the rootfs (278 MB unpacked). Asset pack
+- **7.2's `text/html`**, then **collapse** — the two remaining gaps in cells that already work.
+- **Packaging**: debug APK is 116 MB, most of it the rootfs (278 MB unpacked). Asset pack
   versus first-run download is undecided.
 - **LSP** (see below) would supersede 5.5's completion rather than duplicate it.
+- **Server lifecycle** (Step 18): `jupyter_server` is started on first use and never stopped.
 
 ### Reference studies, and what each settled
 
-`reference/` is **gitignored**, so these do not travel with a fresh clone — the summaries here
-are the durable record. `reference/*/FINDINGS.md` has the detail on this machine.
+`reference/` is **gitignored**, so none of these travel with a fresh clone — the summaries here
+are the durable record, and `reference/*/FINDINGS.md` has the detail on this machine. What is
+worth re-cloning, and why it is not vendored:
+
+```
+cd reference/research_repos
+git clone --depth 1 https://github.com/jupyterlab/jupyterlab.git          # protocol + cell semantics
+git clone --depth 1 https://github.com/JetBrains/intellij-community.git   # 2.4 GB; platform/jewel/markdown
+```
+
+JupyterLab is the one consulted most: the kernel protocol's message shapes (5.5a), the cell
+actions' semantics (4b) and the never-empty-notebook rule (A2) were all read out of it rather
+than guessed, and each time it contradicted the obvious answer.
 
 | Reference | Shape | What it does | What it settled |
 |---|---|---|---|
@@ -791,6 +845,7 @@ are the durable record. `reference/*/FINDINGS.md` has the detail on this machine
 | **JupyterLab** | notebook, N cells | CodeMirror 6, **one page**, many instances | The architecture we would have taken had we stayed on WebViews — and, still, the reference for *behaviour*: the kernel protocol's message shapes (5.5a) and the cell actions' semantics (4b) were both read out of it rather than guessed |
 | **GitHub Mobile** | code browser | **No editor at all** — server-highlighted HTML (primer `.pl-*`) in a WebView, plain `EditText` for edits | Not a model: it moves tokenising to a server, which offline forbids |
 | **sora-editor** (LGPL-2.1) | IDE, one file | native view + tree-sitter via an **archived LGPL** binding | Ruled out on licence; its tree-sitter route ruled out on NDK |
+| **JetBrains Jewel** (Apache-2.0), in `intellij-community/platform/jewel/markdown` | markdown in Compose | commonmark-java AST → recursive composables | How to render markdown without a WebView (A1b/A1c): blocks recurse, leaf blocks hold an inline **model** and the `AnnotatedString` is built at draw time, inline code takes `SpanStyle.background`, a quote's rule is `drawBehind` |
 
 ### Language intelligence: the options, priced
 
