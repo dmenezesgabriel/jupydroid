@@ -223,8 +223,11 @@ targetSdk downgrade, **no NDK** (nothing is compiled — we ship prebuilt ELFs).
 One Gradle line, `useLegacyPackaging = true`, so the libs are extracted to disk
 rather than left inside the APK.
 
-Licensing: Winlator is LGPL-2.1 and Callisto is proprietary, so per
-`STUDY_CASES.md` this is clean-room — techniques studied, no code vendored.
+Licensing: Winlator is LGPL-2.1, sora-editor is LGPL-2.1 and Callisto is
+proprietary, so per `STUDY_CASES.md` every one of them is clean-room — techniques
+studied, no code vendored. For sora this is load-bearing rather than tidy: it is the
+reference for the editor we are writing ourselves, and copying from it would put the
+app under LGPL-2.1.
 
 ### Correction to the reference material
 
@@ -257,7 +260,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 2 | Home: notebook list | Recent list + relative timestamps, empty state, FAB; long-press rename/delete; New notebook / New Python file / Open `.ipynb` (VIEW intent). **Done** |
 | 3 | Notebook persistence | `DiskNotebookRepository` over nbformat JSON; round-trip tests. **Done** |
 | 4 | Editor shell | cell header Run/Stop + long-press context menu (run, insert code/markdown below, move up/down, duplicate, delete, clear outputs, collapse), Run All, busy indicator, dirty state |
-| 5 | CodeMirror 6 cell editor | per-cell WebView — broken into 5.1–5.6 below |
+| 5 | Cell editor | Compose-native `BasicTextField` + our own highlighting — broken into 5.1–5.5 below. **Was** CodeMirror-in-WebView; changed on measurement |
 | 6 | Execute behaviour | Run → `KernelGateway.execute` → outputs; Running/Idle; Stop/interrupt; execution count (FakeKernel) |
 | 7.1 | **Outputs persist** — nbformat round-trip of `outputs` and `execution_count` | **Done.** Fixed silent data loss: `toDomain`/`toFile` dropped both, so saving a notebook another tool had run destroyed its results. `evidence/step7.1/` |
 | 7.2 | Output rendering | **Done** for images, tracebacks and streams: PNG decoded and drawn, ANSI colour codes stripped, errors in a themed block. `evidence/step7.2/`. Still open: collapse, clear outputs, and `text/html` (a pandas DataFrame falls back to its `text/plain`, which needs the WebView from Step 5) |
@@ -314,29 +317,58 @@ rebuilding them. Each sub-step is one commit with its own evidence:
 | 8.6 | Execute a cell over the kernel WebSocket | `2 + 2` → `4` |
 | 8.7 | **numpy/scipy on musl** — add them to the image and import them on device | musllinux wheels are far less exercised than manylinux, and Step 8.3 showed what assuming costs. Gate it here rather than discover it in Step 12. **Passed** once SIGSYS was handled rather than left to kill the process |
 
-### Step 5 broken down (CodeMirror 6 cell editor)
+### Step 5 broken down (a Compose-native cell editor)
 
-The protocol is not guesswork: `reference/callisto/FINDINGS.md` §2b records the observed
-bridge, and this follows it. JS posts `{type:"ready"|"height"|"edit"|"run"|"complete"}` via
-`postMessage(JSON.stringify(...))`; the app injects `setSource`/`setTheme`/`completionsReady`
-via `evaluateJavascript`. Callisto's own bundle CSS documents the mobile-adaptation trick —
-no internal scroller, the page reports its height and Compose resizes the cell.
+**Decision changed 2026-08-05, on measurement.** Steps 5.1-5.5 built a CodeMirror 6 editor in
+a per-cell WebView, following `reference/callisto/FINDINGS.md` §2b. It works and is on device.
+It is being retired anyway, for reasons that are numbers rather than taste:
+
+| | |
+|---|---|
+| App PSS, home screen | 125 MB |
+| App PSS, one 30-cell notebook open | **181 MB** |
+| Plus a WebView renderer process | **93 MB RSS** |
+
+Measured on the Galaxy Tab A9+. LazyColumn recycles, so that +57 MB is the *visible* cells
+only, and every scroll builds new WebViews that each re-load a 380 KB page. On top of that,
+two of the last three editor bugs came from the bridge and nothing else - the `ready` race
+(`Cannot read properties of undefined`, a blank editor) and CSS-pixels treated as physical
+pixels (invisible on a 1x emulator, wrong on every real device). Both are impossible without
+a bridge.
+
+**What replaces it: `BasicTextField` + `TextFieldState`, with our own highlighting.** Compose
+owns the hard part - IME composing regions, autocorrect, gesture typing, selection handles,
+the magnifier - and we own only the language layer. The known weakness of that approach,
+styling degrading over long text, does not reach us: a notebook cell is tens of lines.
+
+**sora-editor was the other candidate and is cloned into
+`reference/research_repos/sora-editor` for study.** It is **LGPL-2.1**, so the same rule as
+Winlator applies and is not negotiable: read it to understand how a problem was solved, never
+copy it. Nothing from that tree may be vendored, and a fork would not have helped anyway -
+a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question with "no".
 
 | # | Slice | Test seam | Gate |
 |---|---|---|---|
-| 5.1 | `EditorBridge`: parse the page's messages, build the injected calls | pure JVM, JSON as strings | unit tests only — no WebView. String escaping is the load-bearing part |
-| 5.2 | Reproducible CodeMirror 6 bundle: `tools/editor/` (npm + esbuild) → `assets/editor/index.html`, gitignored like the rootfs | `node`, host-side | **Done.** 380 KB, one self-contained file (Callisto's is 814 KB). `npm ci` off a committed lockfile; the build fails if the minifier loses either bridge global |
-| 5.3 | WebView host + editing: a cell shows CodeMirror, edits post back, the source is saved | fakes, then emulator | **Done.** Maestro: typed into a CodeMirror cell, stopped the app, reopened - `answer = 420` still there, highlighted. Closes 4b's dirty-state gap. `evidence/step5.3/` |
-| 5.4 | Height sync so cells self-size (4 px threshold, 80 ms debounce, 8000 px cap) | JVM for the policy, then device | **Done.** A 16-line cell grows, a one-line cell is compact. Verified at **2x density**, because a 1x emulator hides the dp-vs-px bug entirely. `evidence/step5.4/` |
-| 5.5 | Theme via CSS vars, `Mod-Enter` runs the cell | device | **Theme done** — every syntax colour comes from the Material scheme, so light and dark both work from one palette. **`Mod-Enter` is wired but unverified**: Maestro has no modifier chord and `adb input keycombination` does not carry Ctrl through the soft keyboard into a WebView - it arrives as a plain Enter. Needs a physical keyboard. `evidence/step5.5/` |
-| 5.6 | Completion — **deferred**, and deliberately: it needs `KernelGateway.complete`, which is still `TODO`. Implementing either before the editor asks would be untested-by-use code |
+| 5.1 | `PythonTokens`: source → highlight spans. Pure Kotlin, no Compose | JVM | unit tests only. Strings, f-strings, comments, keywords, numbers - the things that go wrong at line boundaries |
+| 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | Compose UI test, then emulator | Maestro: type into a cell, restart, the text and the colours are both there |
+| 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | Maestro |
+| 5.4 | Line numbers and bracket-match highlight | JVM for the matching, device for the drawing | Maestro |
+| 5.5 | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by `KernelGateway.complete` — **which this finally implements**, since the editor now asks for it | fakes, then device | device: type `pri`, get `print` from the real kernel |
 
-**A simpler option, considered and rejected.** A Compose `BasicTextField` would make cells
-editable in a fraction of the work, and editing is the bigger user-facing gap than
-highlighting. It is rejected because it would be thrown away: the same slices (persistence,
-height, theming, run-from-keyboard) would then be built twice, and syntax highlighting,
-bracket matching and completion — the things a notebook editor is judged on — would still be
-missing. Worth naming so the choice is not re-litigated.
+**Deleted when 5.2 lands**, not before, so the tree is never without an editor: `EditorBridge`,
+`EditorMessage`, `EditorPageHandle`, `EditorHeight`, the `CellEditor` WebView, `tools/editor/`
+and the generated asset. Kept, because none of it was WebView-specific: the debounced save and
+`saveNow`, `EditorUiState`'s transitions, and the theme derived from the Material scheme.
+
+**Height sync stops being a feature.** A native text field measures itself; there is no page to
+ask, no threshold, no debounce, and no unit to get wrong. That whole slice disappears rather
+than being ported.
+
+**Multi-language and LSP are a later step, not this one.** Both are widget-agnostic - LSP is
+JSON-RPC over stdio, and a Space can run `python-lsp-server` the same way it runs a kernel -
+and multi-language highlighting means tree-sitter grammars (`kotlin-tree-sitter`, JNI,
+Android SDK 23+) rather than more hand-written lexers. Named here so 5.1 is not
+over-engineered in anticipation: one language, by hand, is a few hundred lines.
 
 ### Step 10 broken down (real `KernelGateway`)
 
