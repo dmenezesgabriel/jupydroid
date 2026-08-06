@@ -872,10 +872,34 @@ than the screen — `scripts/foreign-metadata-driver.sh` drives a real edit on t
 checks 13 foreign keys key-by-key in the file it reads back off the device
 (`evidence/foreign-metadata/keys-kept.txt`).
 
-Still open and listed under residual risks: a **newly captured** object-valued mime payload is
-stored as a JSON string rather than an object. Narrow — it needs a live run in this app, and the
-content is not lost — but it is the same family, and closing it means changing `CellOutput`'s
-mime bundle to `Map<String, JsonElement>`.
+#### A mime payload's shape, which nbformat defines twice and asymmetrically
+
+The round-trip fix left one gap and it is now closed. A bundle was `Map<String, String>`, so a
+payload that is not a string had to be flattened to reach the domain — `KernelOutputs` used
+`toString()`, turning a live `application/json` display and every jupyter-widget view into a
+*string* of JSON. Still valid JSON in the file, and a shape no Jupyter tool can render back.
+
+The bundle is `Map<String, JsonElement>` now, which is JupyterLab's own model: `convertBundle`
+copies each value through `extract`, returning primitives as they are and deep-cloning anything
+else, stringifying nothing (`packages/rendermime/src/outputmodel.ts:334-356`).
+
+**The two line rules come from nbformat itself** — read out of the installed library, not
+guessed — and they are not symmetric:
+
+| | Rule | Function |
+|---|---|---|
+| read | join a list into a string **unless** the key is a JSON mime (`application/json`, `application/…+json`) or the list holds anything but strings | `_rejoin_mimebundle` |
+| write | split a string into lines **only** when the key starts with `text/`, or is `application/javascript` / `image/svg+xml` | `_split_mimebundle`, `_non_text_split_mimes` |
+
+So `image/png` is one long base64 string on disk while `text/plain` beside it is a list of
+lines, and a widget payload is an object neither rule touches. Writing an image split into
+lines, or a text mime as one string, produces a file no Jupyter tool would have written.
+
+The renderer picks a mime only if its payload is a string and falls through otherwise: every
+type in the ranked list is a text mime, so an object under one is markup this app cannot draw —
+and JupyterLab reaches for `String(model.data[mime])` only *after* picking a mime it has a
+renderer for. Device gate is the file again: a real kernel emitting a raw bundle, and
+`evidence/mime-shapes/shapes-kept.txt` checks each payload's shape in what landed on disk.
 
 ### A2 — a new notebook has no cells and no way to get one
 
@@ -971,6 +995,11 @@ the wrong thing.
   `app/src/androidTest` was empty despite the Compose test dependencies being declared since
   Step 1. Reach for one when the question is *whether something is visible or reachable*, which
   no JVM test can answer.
+- **A fixture whose output text is written in its own cell proves nothing.** Maestro matches a
+  cell's source field too, so waiting for `omega` when the source reads `print("omega")` passes
+  whether or not the kernel ever ran — `mime-shapes` went green on an untouched file that way,
+  and `collapse-outputs` failed for the same reason. Assemble the output text at runtime
+  (`"om" + "ega"`) so it appears nowhere in the source. This has bitten three times.
 - **`assertVisible` means on screen, so assert what the screenshot shows.** A node below the
   fold passed `extendedWaitUntil` on one run of `step7-html-output` and failed it on the next,
   against an identical state — and the screenshot in between showed only source. Reach for
@@ -1123,13 +1152,6 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   `colorScheme.secondary`, which on the dark scheme sits close to the body text - visible
   in `evidence/step5.2/tablet/04-syntax-colours.png`. The other four read clearly. Worth a
   deliberate palette rather than more scheme roles, but not wrong today.
-- **A newly captured object-valued mime payload is stored as a JSON *string*.** Narrow and not
-  a loss of content: `KernelOutputs.mimeBundle` keeps a non-primitive payload as `toString()`,
-  so an `application/json` display or a widget view survives as its own JSON text rather than
-  as an object. Outputs read from a file and left alone are written back verbatim, so this
-  only reaches results produced by a live run in this app. Fixing it means
-  `CellOutput`'s bundle becoming `Map<String, JsonElement>`, which touches the kernel path,
-  the renderer and their tests — a separate piece of work, not a leftover of the round-trip fix.
 - **The server has no lifecycle.** `BaseSpaceKernelGateway` starts `jupyter_server` on
   first use and nothing ever stops it (~143 MB RSS held while backgrounded).
   `disconnect()` closes the socket only. Step 18 owns this. The old `SpaceProbe`
