@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step5-height-driver.sh; clearState would delete the fixture.
+- launchApp
+- assertVisible: "Tall Cell"
+- tapOn: "Tall Cell"
+# The last line of a 16-line cell is only reachable if the cell grew to fit it. With a fixed
+# height it would be hidden behind the page's own scroller.
+- extendedWaitUntil:
+    visible: "short = 1"
+    timeout: 30000
+- takeScreenshot: 01-short-cell-is-short
+- extendedWaitUntil:
+    visible: ".*last_line.*"
+    timeout: 30000
+- takeScreenshot: 02-tall-cell-grew-to-fit

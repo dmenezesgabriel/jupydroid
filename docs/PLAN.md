@@ -327,7 +327,7 @@ no internal scroller, the page reports its height and Compose resizes the cell.
 | 5.1 | `EditorBridge`: parse the page's messages, build the injected calls | pure JVM, JSON as strings | unit tests only — no WebView. String escaping is the load-bearing part |
 | 5.2 | Reproducible CodeMirror 6 bundle: `tools/editor/` (npm + esbuild) → `assets/editor/index.html`, gitignored like the rootfs | `node`, host-side | **Done.** 380 KB, one self-contained file (Callisto's is 814 KB). `npm ci` off a committed lockfile; the build fails if the minifier loses either bridge global |
 | 5.3 | WebView host + editing: a cell shows CodeMirror, edits post back, the source is saved | fakes, then emulator | **Done.** Maestro: typed into a CodeMirror cell, stopped the app, reopened - `answer = 420` still there, highlighted. Closes 4b's dirty-state gap. `evidence/step5.3/` |
-| 5.4 | Height sync so cells self-size (4 px threshold, 80 ms debounce, 8000 px cap) | JVM for the policy, then device | Maestro: a long cell grows rather than scrolling internally |
+| 5.4 | Height sync so cells self-size (4 px threshold, 80 ms debounce, 8000 px cap) | JVM for the policy, then device | **Done.** A 16-line cell grows, a one-line cell is compact. Verified at **2x density**, because a 1x emulator hides the dp-vs-px bug entirely. `evidence/step5.4/` |
 | 5.5 | Theme via CSS vars, `Mod-Enter` runs the cell | device | Maestro |
 | 5.6 | Completion — **deferred**, and deliberately: it needs `KernelGateway.complete`, which is still `TODO`. Implementing either before the editor asks would be untested-by-use code |
 
@@ -474,6 +474,19 @@ fakes — 3 files today, many more once the runtime lands.
   `pm` responsive). UI flows are API-agnostic, so no plan scope changed.
 - `pkill -f <pattern>` self-matches the calling shell and hangs it — use
   `pkill -f '[q]emu-system'` (bracket trick).
+- **Maestro does not honour `ANDROID_SERIAL`.** With an emulator and a phone both
+  attached it picks one of its own accord, which silently runs a flow on the
+  device the fixture is *not* on. Pass `--device`; the step drivers do.
+- Compose `contentDescription` surfaces as accessibility **text**, so Maestro
+  matches it with a text selector, not `id:`. Maestro also regex-matches the
+  *whole* string: `"42"` will not match `np.float64(42)`, `".*42.*"` will.
+- **Density matters for WebView work.** The dev36 emulator is 160 dpi, where px,
+  dp and CSS px are all the same number — which hides unit bugs completely. Force
+  a real density with `adb shell wm density 320` (and `wm density reset`) rather
+  than assuming 1x is representative.
+- The Galaxy Tab sleeps and then wants its PIN, which no adb command can supply.
+  `adb shell svc power stayon usb` keeps it awake once unlocked; if a flow fails
+  at the very first assertion, screenshot before debugging anything else.
 - Maestro `takeScreenshot` rejects `../` paths; capture into Maestro's output dir
   and copy the PNG into `evidence/<step>/`.
 - Emulator handwriting IME steals focus from text fields and swallows Maestro

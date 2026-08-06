@@ -157,7 +157,6 @@ private fun EditorCell(
         onRunRequested = onRun,
         modifier = Modifier
           .fillMaxWidth()
-          .height(CODE_EDITOR_HEIGHT)
           .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small),
       )
     } else {
@@ -294,6 +293,3 @@ private fun CellKind.label(): String = when (this) {
   CellKind.CODE -> "code"
   CellKind.MARKDOWN -> "markdown"
 }
-
-/** Fixed until Step 5.4 lets the page's own reported height drive the cell. */
-private val CODE_EDITOR_HEIGHT = 180.dp

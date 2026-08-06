@@ -3,9 +3,14 @@ package com.jupydroid.app.ui.editor
 import android.annotation.SuppressLint
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
@@ -28,13 +33,18 @@ fun CellEditor(
   onRunRequested: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  // The page has no scroller of its own: it reports how tall it rendered and the cell becomes
+  // that, so a long cell grows instead of hiding its own text behind an inner scrollbar.
+  // dp, not pixels: the page measures in CSS pixels and one CSS pixel is one dp under this
+  // viewport, so converting by density here would shrink every cell on any device above 1x.
+  var heightDp by remember { mutableIntStateOf(EditorHeight.MINIMUM_DP) }
   // Survives recomposition so a cell being redrawn does not reload its editor.
   val page = remember { mutableStateOf<EditorPageHandle?>(null) }
 
   AndroidView(
-    modifier = modifier,
+    modifier = modifier.height(heightDp.dp),
     factory = { context ->
-      editorWebView(context, theme, onSourceEdited, onRunRequested) { page.value = it }
+      editorWebView(context, theme, onSourceEdited, onRunRequested, { heightDp = it }) { page.value = it }
     },
     // Queued until the page reports ready; the page ignores a source equal to what it already
     // holds, so echoing our own edit back cannot loop.
@@ -48,6 +58,7 @@ private fun editorWebView(
   theme: EditorTheme,
   onSourceEdited: (String) -> Unit,
   onRunRequested: () -> Unit,
+  onHeightReported: (Int) -> Unit,
   onHandleCreated: (EditorPageHandle) -> Unit,
 ): WebView = WebView(context).apply {
   val page = EditorPageHandle { js -> evaluateJavascript(js, null) }
@@ -62,7 +73,9 @@ private fun editorWebView(
   // takes a string. The danger with addJavascriptInterface is remote content, which
   // blockNetworkLoads plus a file:///android_asset URL rules out.
   addJavascriptInterface(
-    EditorPageChannel { message -> post { page.handle(message, onSourceEdited, onRunRequested) } },
+    EditorPageChannel { message ->
+      post { page.handle(message, onSourceEdited, onRunRequested, onHeightReported) }
+    },
     "JupydroidBridge",
   )
   loadUrl(EDITOR_PAGE)
@@ -72,13 +85,15 @@ private fun EditorPageHandle.handle(
   message: EditorMessage,
   onSourceEdited: (String) -> Unit,
   onRunRequested: () -> Unit,
+  onHeightReported: (Int) -> Unit,
 ) {
   when (message) {
     EditorMessage.Ready -> onReady()
     is EditorMessage.SourceEdited -> onSourceEdited(message.source)
     EditorMessage.RunRequested -> onRunRequested()
-    // Height is Step 5.4; completion is 5.6 and needs KernelGateway.complete.
-    is EditorMessage.HeightChanged, is EditorMessage.CompletionRequested -> Unit
+    is EditorMessage.HeightChanged -> onHeightReported(EditorHeight.accept(message.px))
+    // Completion is 5.6 and needs KernelGateway.complete, still TODO.
+    is EditorMessage.CompletionRequested -> Unit
   }
 }
 
