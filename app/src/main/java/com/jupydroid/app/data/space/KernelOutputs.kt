@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.data.space.JupyterFrame.content
 import com.jupydroid.app.data.space.JupyterFrame.msgType
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -92,13 +93,14 @@ object KernelOutputs {
   }
 
   /**
-   * mime -> payload. Text mimes are strings; `application/json` and friends are objects,
-   * so they keep their JSON rather than being dropped for not being a primitive.
+   * mime -> payload, each kept as the JSON the kernel sent. A text mime arrives as a string
+   * and `application/json` and friends as objects; `toString()`-ing the latter used to turn a
+   * widget view into a *string* of JSON, which is a shape no Jupyter tool can render back.
+   *
+   * The wire protocol never splits text into lines - that is a file-format convention - so
+   * nothing needs rejoining here, only carrying through.
    */
-  private fun JsonObject.mimeBundle(): Map<String, String> =
-    get("data")?.jsonObject.orEmpty().mapValues { (_, payload) ->
-      (payload as? JsonPrimitive)?.content ?: payload.toString()
-    }
+  private fun JsonObject.mimeBundle(): MimeBundle = get("data")?.jsonObject.orEmpty()
 
   private fun JsonObject.executionCount(): Int? = get("execution_count")?.jsonPrimitive?.intOrNull
 }

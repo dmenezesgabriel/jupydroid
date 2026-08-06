@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# A mime payload's *shape* must survive a live run. `application/json` is an object on the wire
+# and must stay one on disk; `text/plain` beside it is a string in memory and a list of lines on
+# disk. Both rules are nbformat's and they are not symmetric - see MimeBundleLines.kt.
+#
+# The flow only has to make the app run a cell and save. The assertion is the file, which the
+# driver reads back off the device.
+- launchApp
+- assertVisible: "Mime Shapes"
+- tapOn: "Mime Shapes"
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run starts jupyter_server and the kernel. `text/plain` is what the app
+# can draw of this bundle, so seeing it means the output arrived - and `omega` is assembled at
+# runtime, so it appears nowhere in the source. The first version of this fixture printed a
+# string that was written out in its own cell, and the wait matched *that*: the flow went green
+# without the kernel having run at all.
+- extendedWaitUntil:
+    visible: ".*omega.*"
+    timeout: 120000
+- takeScreenshot: 01-output-shown
+- stopApp

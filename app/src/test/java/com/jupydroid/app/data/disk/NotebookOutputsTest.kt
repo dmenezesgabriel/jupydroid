@@ -1,10 +1,12 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -36,7 +38,7 @@ class NotebookOutputsTest {
       """{"output_type":"execute_result","execution_count":3,"data":{"text/plain":"42"},"metadata":{}}""",
     )
 
-    assertEquals(CellOutput.ExecuteResult(mapOf("text/plain" to "42"), 3), output)
+    assertEquals(CellOutput.ExecuteResult(mimeBundleOf("text/plain" to "42"), 3), output)
   }
 
   @Test
@@ -45,8 +47,8 @@ class NotebookOutputsTest {
       """{"output_type":"display_data","data":{"image/png":"iVBOR","text/plain":"<Figure>"},"metadata":{}}""",
     ) as CellOutput.DisplayData
 
-    assertEquals("iVBOR", output.mimeBundle["image/png"])
-    assertEquals("<Figure>", output.mimeBundle["text/plain"])
+    assertEquals(JsonPrimitive("iVBOR"), output.mimeBundle["image/png"])
+    assertEquals(JsonPrimitive("<Figure>"), output.mimeBundle["text/plain"])
   }
 
   @Test
@@ -68,8 +70,8 @@ class NotebookOutputsTest {
   fun roundTrip_survivesEveryOutputKindWeModel() {
     val outputs = listOf(
       CellOutput.Stream(StreamName.STDOUT, "hello\nworld"),
-      CellOutput.ExecuteResult(mapOf("text/plain" to "42"), 7),
-      CellOutput.DisplayData(mapOf("image/png" to "iVBOR")),
+      CellOutput.ExecuteResult(mimeBundleOf("text/plain" to "42"), 7),
+      CellOutput.DisplayData(mimeBundleOf("image/png" to "iVBOR")),
       CellOutput.Error("ValueError", "bad", listOf("line one")),
     )
 

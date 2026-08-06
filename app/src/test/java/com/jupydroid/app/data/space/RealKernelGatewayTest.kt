@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
@@ -24,7 +25,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     assertEquals(
       listOf(
         KernelEvent.ExecutionCount("cell-1", 1),
-        KernelEvent.Output("cell-1", CellOutput.ExecuteResult(mapOf("text/plain" to "4"), 1)),
+        KernelEvent.Output("cell-1", CellOutput.ExecuteResult(mimeBundleOf("text/plain" to "4"), 1)),
         KernelEvent.Idle,
       ),
       events,

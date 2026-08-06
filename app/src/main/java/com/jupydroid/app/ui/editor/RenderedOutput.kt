@@ -1,10 +1,13 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.html.HtmlDocument
 import com.jupydroid.app.richtext.RichBlock
 import java.util.Base64
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 
 /** What the editor can actually draw for one output. */
 sealed interface RenderedOutput {
@@ -58,11 +61,19 @@ private fun CellOutput.Error.readable(): String =
  * keeps looking rather than rendering blank, which is the one thing JupyterLab's registry
  * does not do for us: it picks by presence, not by whether the render then worked.
  */
-private fun Map<String, String>.renderRichest(): RenderedOutput =
-  RANKED_MIME_TYPES.firstNotNullOfOrNull { mime -> get(mime)?.let { renderAs(mime, it) } }
+private fun MimeBundle.renderRichest(): RenderedOutput =
+  RANKED_MIME_TYPES.firstNotNullOfOrNull { mime -> get(mime)?.asText()?.let { renderAs(mime, it) } }
     ?: RenderedOutput.Text(keys.joinToString(), isError = false)
 
 private val RANKED_MIME_TYPES = listOf("text/html", "image/png", "text/plain")
+
+/**
+ * Null for a payload that is not a string, which is a real answer rather than a guard: every
+ * type in [RANKED_MIME_TYPES] is a text mime, so an object under one of them is markup this app
+ * cannot draw, and falling through to the next is what a registry with no renderer for it does.
+ * JupyterLab reaches for `String(model.data[mime])` only *after* picking a mime it can render.
+ */
+private fun JsonElement.asText(): String? = (this as? JsonPrimitive)?.takeIf { it.isString }?.content
 
 private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when (mimeType) {
   "text/html" -> HtmlDocument.parse(payload).takeIf { it.isNotEmpty() }?.let(RenderedOutput::Document)

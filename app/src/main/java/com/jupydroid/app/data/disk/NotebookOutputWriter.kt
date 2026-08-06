@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -61,5 +62,4 @@ private fun String.toJsonLines(): JsonArray = buildJsonArray {
     .forEach { add(JsonPrimitive(it)) }
 }
 
-private fun Map<String, String>.toJsonData(): JsonObject =
-  JsonObject(mapValues { (_, payload) -> JsonPrimitive(payload) })
+private fun MimeBundle.toJsonData(): JsonObject = splitIntoLines()

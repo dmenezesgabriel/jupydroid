@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -49,8 +50,9 @@ private fun JsonObject.toError(): CellOutput? {
   )
 }
 
-private fun JsonObject.mimeBundle(): Map<String, String> =
-  (get("data") as? JsonObject).orEmpty().mapValues { (_, payload) -> payload.joinedText() }
+/** nbformat's `_rejoin_mimebundle`; see [rejoinedBundle] for why a JSON mime is exempt. */
+private fun JsonObject.mimeBundle(): MimeBundle =
+  (get("data") as? JsonObject)?.rejoinedBundle().orEmpty()
 
 /** Jupyter writes long text as an array of lines and short text as a string; accept both. */
 private fun JsonElement?.joinedText(): String = when (this) {

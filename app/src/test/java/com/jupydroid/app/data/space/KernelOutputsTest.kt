@@ -1,7 +1,10 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -38,7 +41,7 @@ class KernelOutputsTest {
        "content":{"execution_count":7,"data":{"text/plain":"4"}}}
     """.trimIndent()
 
-    assertEquals(CellOutput.ExecuteResult(mapOf("text/plain" to "4"), 7), KernelOutputs.outputOf(frame, "m1"))
+    assertEquals(CellOutput.ExecuteResult(mimeBundleOf("text/plain" to "4"), 7), KernelOutputs.outputOf(frame, "m1"))
   }
 
   /** A figure arrives as display_data, and its payload is base64 that must survive intact. */
@@ -51,11 +54,15 @@ class KernelOutputsTest {
 
     val output = KernelOutputs.outputOf(frame, "m1") as CellOutput.DisplayData
 
-    assertEquals("iVBORw0KGgo=", output.mimeBundle["image/png"])
-    assertEquals("<Figure>", output.mimeBundle["text/plain"])
+    assertEquals(JsonPrimitive("iVBORw0KGgo="), output.mimeBundle["image/png"])
+    assertEquals(JsonPrimitive("<Figure>"), output.mimeBundle["text/plain"])
   }
 
-  /** application/json payloads are objects, not strings; they must not be dropped. */
+  /**
+   * An `application/json` payload stays an **object**. It used to be `toString()`-ed into a
+   * string of JSON, which is the shape no Jupyter tool can render back - and the same flaw
+   * that would have stored every widget view as text.
+   */
   @Test
   fun outputOf_keepsNonTextMimePayloadsAsTheirJson() {
     val frame = """
@@ -65,7 +72,7 @@ class KernelOutputsTest {
 
     val output = KernelOutputs.outputOf(frame, "m1") as CellOutput.DisplayData
 
-    assertEquals("""{"a":1}""", output.mimeBundle["application/json"])
+    assertEquals(Json.parseToJsonElement("""{"a":1}"""), output.mimeBundle["application/json"])
   }
 
   @Test

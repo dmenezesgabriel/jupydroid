@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.html.PANDAS_DATAFRAME_HTML
@@ -52,14 +53,14 @@ class RenderedOutputTest {
 
   @Test
   fun render_showsTheTextOfAResultThatHasNoRicherForm() {
-    assertEquals("42", text(CellOutput.ExecuteResult(mapOf("text/plain" to "42"), 1)).text)
+    assertEquals("42", text(CellOutput.ExecuteResult(mimeBundleOf("text/plain" to "42"), 1)).text)
   }
 
   /** A figure arrives with a text/plain placeholder beside it; the image is the point. */
   @Test
   fun render_prefersAnImageOverItsTextPlaceholder() {
     val output = CellOutput.DisplayData(
-      mapOf("text/plain" to "<Figure size 640x480>", "image/png" to ONE_PIXEL_PNG),
+      mimeBundleOf("text/plain" to "<Figure size 640x480>", "image/png" to ONE_PIXEL_PNG),
     )
 
     val rendered = output.render()
@@ -74,7 +75,7 @@ class RenderedOutputTest {
   @Test
   fun render_prefersHtmlOverItsPlainTextFallback() {
     val output = CellOutput.ExecuteResult(
-      mapOf("text/plain" to "<IPython.core.display.HTML object>", "text/html" to "<h3>Report</h3>"),
+      mimeBundleOf("text/plain" to "<IPython.core.display.HTML object>", "text/html" to "<h3>Report</h3>"),
       1,
     )
 
@@ -93,7 +94,7 @@ class RenderedOutputTest {
   @Test
   fun render_prefersHtmlOverAnImage() {
     val output = CellOutput.DisplayData(
-      mapOf("image/png" to ONE_PIXEL_PNG, "text/html" to "<p>a table</p>", "text/plain" to "fallback"),
+      mimeBundleOf("image/png" to ONE_PIXEL_PNG, "text/html" to "<p>a table</p>", "text/plain" to "fallback"),
     )
 
     assertTrue("expected a document, got ${output.render()}", output.render() is RenderedOutput.Document)
@@ -103,7 +104,7 @@ class RenderedOutputTest {
   @Test
   fun render_fallsBackToTextWhenTheHtmlRendersToNothing() {
     val output = CellOutput.DisplayData(
-      mapOf("text/html" to "<style>.dataframe { color: red; }</style>", "text/plain" to "the table"),
+      mimeBundleOf("text/html" to "<style>.dataframe { color: red; }</style>", "text/plain" to "the table"),
     )
 
     assertEquals("the table", text(output).text)
@@ -116,7 +117,7 @@ class RenderedOutputTest {
   @Test
   fun render_drawsADataFrameAsATableRatherThanItsAsciiGrid() {
     val output = CellOutput.ExecuteResult(
-      mapOf("text/html" to PANDAS_DATAFRAME_HTML, "text/plain" to "   a  b\n0  1  x\n1  2  y"),
+      mimeBundleOf("text/html" to PANDAS_DATAFRAME_HTML, "text/plain" to "   a  b\n0  1  x\n1  2  y"),
       1,
     )
 
@@ -131,7 +132,7 @@ class RenderedOutputTest {
   @Test
   fun render_fallsBackToTextWhenTheImageCannotBeDecoded() {
     val output = CellOutput.DisplayData(
-      mapOf("text/plain" to "<Figure>", "image/png" to "not base64 at all!!"),
+      mimeBundleOf("text/plain" to "<Figure>", "image/png" to "not base64 at all!!"),
     )
 
     assertEquals("<Figure>", text(output).text)
@@ -139,7 +140,7 @@ class RenderedOutputTest {
 
   @Test
   fun render_showsTheMimeTypesWhenNothingIsRenderable() {
-    val rendered = text(CellOutput.DisplayData(mapOf("application/vnd.custom+json" to "{}")))
+    val rendered = text(CellOutput.DisplayData(mimeBundleOf("application/vnd.custom+json" to "{}")))
 
     assertTrue(
       "expected the mime type named, got '${rendered.text}'",
