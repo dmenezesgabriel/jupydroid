@@ -9,9 +9,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 
@@ -21,11 +24,12 @@ internal const val MARKDOWN_PLACEHOLDER = "Write markdown…"
 /**
  * One markdown cell's editor.
  *
- * Prose, not code: no line numbers, no bracket matching, no Python auto-indent and no kernel
- * completions - every one of those is meaningless here, which is why this is its own field
- * rather than [CodeCellField] with the language parts switched off.
+ * Prose, not code: no bracket matching, no Python auto-indent and no kernel completions - every
+ * one of those is meaningless here, which is why this is its own field rather than
+ * [CodeCellField] with the language parts switched off.
  *
- * Rendering the markdown is a separate concern and still open; this shows and edits its source.
+ * It does get a line-number gutter, because [lineNumbers] counts lines rather than code, and a
+ * line number is as useful for finding your place in prose as in Python.
  *
  * ```
  * MarkdownCellField(source = cell.source, onSourceEdited = { … })
@@ -35,6 +39,9 @@ internal const val MARKDOWN_PLACEHOLDER = "Write markdown…"
 fun MarkdownCellField(source: String, onSourceEdited: (String) -> Unit, modifier: Modifier = Modifier) {
   val state = rememberTextFieldState(initialText = source)
   val empty by remember { derivedStateOf { state.text.isEmpty() } }
+  var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+  val numberStyle = markdownSourceStyle().copy(color = MaterialTheme.colorScheme.outline)
+  val gutter = gutterWidth(state.text, numberStyle)
 
   ReportEdits(state, onSourceEdited)
 
@@ -45,7 +52,9 @@ fun MarkdownCellField(source: String, onSourceEdited: (String) -> Unit, modifier
     // here rather than around MarkdownCell.
     modifier = modifier
       .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-      .padding(8.dp),
+      .padding(8.dp)
+      .lineNumbers(state.text, layout, numberStyle, gutter),
+    onTextLayout = { getResult -> layout = getResult() },
     textStyle = markdownSourceStyle(),
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
     decorator = { field ->
@@ -54,6 +63,7 @@ fun MarkdownCellField(source: String, onSourceEdited: (String) -> Unit, modifier
       if (empty) {
         Text(
           text = MARKDOWN_PLACEHOLDER,
+          modifier = Modifier.padding(start = gutter),
           style = MaterialTheme.typography.bodyMedium,
           fontStyle = FontStyle.Italic,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
