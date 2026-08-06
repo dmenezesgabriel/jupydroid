@@ -349,11 +349,38 @@ a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question
 
 | # | Slice | Test seam | Gate |
 |---|---|---|---|
-| 5.1 | `PythonTokens`: source → highlight spans. Pure Kotlin, no Compose | JVM | unit tests only. Strings, f-strings, comments, keywords, numbers - the things that go wrong at line boundaries |
+| 5.1 | `PythonSyntax`: ANTLR-generated lexer → highlight spans, behind a `SyntaxHighlighter` interface | JVM | unit tests only. Comments, f-strings, triple-quoted strings, numbers - the things that go wrong at boundaries |
 | 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | Compose UI test, then emulator | Maestro: type into a cell, restart, the text and the colours are both there |
 | 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | Maestro |
 | 5.4 | Line numbers and bracket-match highlight | JVM for the matching, device for the drawing | Maestro |
-| 5.5 | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by `KernelGateway.complete` — **which this finally implements**, since the editor now asks for it | fakes, then device | device: type `pri`, get `print` from the real kernel |
+| 5.5 | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by `KernelGateway.complete` — **which this finally implements** | fakes, then device | device: type `pri`, get `print` from the real kernel |
+
+#### The lexer is generated, never hand-written
+
+A rule, not a preference. The grammar comes from **`antlr/grammars-v4`** (MIT, 11.1k stars,
+maintained) and is turned into a lexer by **ANTLR 4.13.2** (BSD-3-Clause). Both are permissive:
+attribution only, no copyleft, and no native code - so no NDK, no CMake, no 16 KB page-size
+obligation, and no crash surface that debugs like C.
+
+Everything below was verified by generating, compiling and lexing real Python before any of it
+was written down. Pinned at grammars-v4 `42b1ea521705`.
+
+**`python/python3_14`, not `python/python3`.** The older grammar discards comments -
+`SKIP_: (SPACES | COMMENT | LINE_JOINING) -> skip` with `COMMENT` only a fragment - so they
+never reach the token stream and cannot be coloured at all. `python3_14` emits
+`COMMENT -> channel(HIDDEN)`, which a `CommonTokenStream` can still read.
+
+**f-strings tokenise structurally**, which is better than expected:
+`FSTRING_START`, `FSTRING_MIDDLE`, `LBRACE`, `NAME`, `RBRACE`, `FSTRING_END` - so `{name}`
+inside a string can be coloured as an expression the way VS Code does it.
+
+Two costs, both measured rather than guessed:
+
+- **The parser has to be generated too.** `PythonLexerBase` constructs a `PythonParser`, so
+  the lexer will not compile alone. That is 552 KB of extra generated Java (840 KB total,
+  1.2 MB compiled).
+- **`INDENT`/`DEDENT` are synthetic**, zero-width, and carry inverted ranges like `[33..32]`.
+  They must be filtered when building spans or they produce negative-length ones.
 
 **Deleted when 5.2 lands**, not before, so the tree is never without an editor: `EditorBridge`,
 `EditorMessage`, `EditorPageHandle`, `EditorHeight`, the `CellEditor` WebView, `tools/editor/`
@@ -364,11 +391,15 @@ and the generated asset. Kept, because none of it was WebView-specific: the debo
 ask, no threshold, no debounce, and no unit to get wrong. That whole slice disappears rather
 than being ported.
 
-**Multi-language and LSP are a later step, not this one.** Both are widget-agnostic - LSP is
-JSON-RPC over stdio, and a Space can run `python-lsp-server` the same way it runs a kernel -
-and multi-language highlighting means tree-sitter grammars (`kotlin-tree-sitter`, JNI,
-Android SDK 23+) rather than more hand-written lexers. Named here so 5.1 is not
-over-engineered in anticipation: one language, by hand, is a few hundred lines.
+**Another language is another `.g4` from the same MIT repo** - no native build, no grammar
+pipeline, no second engine. tree-sitter was the alternative and is rejected for now: it is
+MIT and official (`io.github.tree-sitter:ktreesitter-android` even ships prebuilt runtime
+natives), but grammars are not published as artifacts, so each one means NDK + CMake, a
+`.so` per ABI, Play's 16 KB page-size obligation, and native crashes that debug like C.
+Highlighting is lexical; none of that buys colour.
+
+**LSP is a later step and is widget-agnostic** - JSON-RPC over stdio, and a Space can run
+`python-lsp-server` exactly as it runs a kernel.
 
 ### Step 10 broken down (real `KernelGateway`)
 
