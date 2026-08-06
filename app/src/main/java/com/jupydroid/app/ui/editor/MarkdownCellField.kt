@@ -1,6 +1,8 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -17,6 +19,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.syntax.MarkdownSyntax
+import com.jupydroid.app.syntax.SyntaxHighlighter
 
 /** What an empty markdown cell says, so it is never a row with nothing in it. */
 internal const val MARKDOWN_PLACEHOLDER = "Write markdown…"
@@ -36,8 +40,16 @@ internal const val MARKDOWN_PLACEHOLDER = "Write markdown…"
  * ```
  */
 @Composable
-fun MarkdownCellField(source: String, onSourceEdited: (String) -> Unit, modifier: Modifier = Modifier) {
+fun MarkdownCellField(
+  source: String,
+  onSourceEdited: (String) -> Unit,
+  modifier: Modifier = Modifier,
+  highlighter: SyntaxHighlighter = remember { MarkdownSyntax() },
+) {
   val state = rememberTextFieldState(initialText = source)
+  val colors = syntaxColors()
+  val interactions = remember { MutableInteractionSource() }
+  val focused = interactions.collectIsFocusedAsState()
   val empty by remember { derivedStateOf { state.text.isEmpty() } }
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
   val numberStyle = markdownSourceStyle().copy(color = MaterialTheme.colorScheme.outline)
@@ -56,7 +68,12 @@ fun MarkdownCellField(source: String, onSourceEdited: (String) -> Unit, modifier
       .lineNumbers(state.text, layout, numberStyle, gutter),
     onTextLayout = { getResult -> layout = getResult() },
     textStyle = markdownSourceStyle(),
+    interactionSource = interactions,
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+    // No bracket matching: a parenthesis in prose is punctuation, not structure.
+    outputTransformation = remember(highlighter, colors) {
+      HighlightTransformation(highlighter, colors, focused)
+    },
     decorator = { field ->
       // Dimmed and italic, the way JupyterLab marks an empty markdown cell
       // (packages/cells/style/widget.css, jp-mod-emptyMarkdownPlaceholder).

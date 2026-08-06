@@ -29,6 +29,15 @@ fun syntaxColors(): Map<SyntaxKind, Color> = mapOf(
   SyntaxKind.NUMBER to MaterialTheme.colorScheme.secondary,
   SyntaxKind.COMMENT to MaterialTheme.colorScheme.outline,
   SyntaxKind.FUNCTION to MaterialTheme.colorScheme.primary,
+  // Markdown. One map for both languages: a highlighter only ever emits its own kinds, so
+  // Python never asks for HEADING and markdown never asks for KEYWORD.
+  SyntaxKind.HEADING to MaterialTheme.colorScheme.primary,
+  SyntaxKind.STRONG to MaterialTheme.colorScheme.primary,
+  SyntaxKind.EMPHASIS to MaterialTheme.colorScheme.tertiary,
+  SyntaxKind.CODE to MaterialTheme.colorScheme.tertiary,
+  SyntaxKind.LINK to MaterialTheme.colorScheme.secondary,
+  SyntaxKind.QUOTE to MaterialTheme.colorScheme.outline,
+  SyntaxKind.MARKER to MaterialTheme.colorScheme.outline,
 )
 
 /**

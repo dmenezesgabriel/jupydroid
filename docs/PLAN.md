@@ -608,7 +608,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 | A1c | Draw that model in Compose, and toggle rendered ↔ source | **Done.** `MarkdownText` + `MarkdownCell`, 7 JVM + 5 instrumented tests, `evidence/audit-a1c-markdown-render/` |
 | A4 | **A markdown cell being edited is barely readable** — black on black in the dark theme | **Done.** `markdownSourceStyle()`, asserted in both schemes. `evidence/audit-a4-markdown-contrast/` |
 | A5a | Line numbers in the markdown editor | **Done.** Four lines of wiring; `evidence/audit-a5-markdown-editor/a5a-line-numbers.png` |
-| A5b | Syntax highlighting for markdown source | open |
+| A5b | Syntax highlighting for markdown source | **Done.** `MarkdownSyntax` off commonmark's source spans, 9 JVM tests. `evidence/audit-a5-markdown-editor/` |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | **Done.** `toEditorUiState` gives a cell-less notebook one code cell, `evidence/audit-a2-empty-notebook/` |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | **Done.** Recents scrolls to a newly-topmost notebook; `HomeCreateTest` seeds 30 to reproduce it. `evidence/audit-a3-create-shows-up/` |
 

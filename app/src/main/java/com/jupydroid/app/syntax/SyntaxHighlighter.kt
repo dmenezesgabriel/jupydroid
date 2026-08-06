@@ -1,7 +1,34 @@
 package com.jupydroid.app.syntax
 
-/** The colourable categories a cell's text falls into. Deliberately few: a cell is not an IDE. */
-enum class SyntaxKind { PLAIN, KEYWORD, STRING, NUMBER, COMMENT, FUNCTION }
+/**
+ * The colourable categories a cell's text falls into - the shared vocabulary of every language
+ * the editor highlights, with each highlighter emitting only the subset that means something to
+ * it. Python never produces a [HEADING]; markdown never produces a [KEYWORD].
+ *
+ * Deliberately few per language: a cell is not an IDE.
+ */
+enum class SyntaxKind {
+  PLAIN,
+
+  // Python
+  KEYWORD,
+  STRING,
+  NUMBER,
+  COMMENT,
+  FUNCTION,
+
+  // Markdown. A heading is not a keyword and a quote is not a comment, so they are named for
+  // what they are rather than mapped onto the Python set.
+  HEADING,
+  EMPHASIS,
+  STRONG,
+  CODE,
+  LINK,
+  QUOTE,
+
+  /** A bullet or number that introduces a list item. */
+  MARKER,
+}
 
 /** A half-open range of the source, `[start, end)`, and what it is. */
 data class SyntaxSpan(val start: Int, val end: Int, val kind: SyntaxKind)

@@ -92,7 +92,7 @@ fun CodeCellField(
       cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
       inputTransformation = typing,
       outputTransformation = remember(highlighter, colors, matched) {
-        HighlightTransformation(highlighter, colors, matched, focused)
+        HighlightTransformation(highlighter, colors, focused, matched)
       },
     )
     val offered = completions?.takeIf { it.query.code != settled }
@@ -150,40 +150,6 @@ internal fun ReportEdits(state: TextFieldState, onSourceEdited: (String) -> Unit
       val last = state.text.toString()
       if (last != initial) report(last)
     }
-  }
-}
-
-/**
- * Applies the highlighter's spans as styles on the rendered text, then marks the bracket pair
- * the cursor is touching.
- *
- * Nothing is inserted or removed, so offsets need no mapping - a span from the lexer is
- * already an offset into exactly this text.
- *
- * Re-runs when the cursor moves, and when the field gains or loses focus, without any plumbing
- * to make it: foundation holds the transformed text in a `derivedStateOf` over
- * `TextFieldState.value`, whose equality covers the selection, and any state read *inside*
- * `transformOutput` joins that same dependency set - which is what [focused] relies on.
- */
-private class HighlightTransformation(
-  private val highlighter: SyntaxHighlighter,
-  private val colors: Map<SyntaxKind, Color>,
-  private val matched: SpanStyle,
-  private val focused: State<Boolean>,
-) : OutputTransformation {
-  override fun TextFieldBuffer.transformOutput() {
-    val source = asCharSequence().toString()
-    val spans = highlighter.spansOf(source)
-    spans.forEach { span ->
-      colors[span.kind]?.let { addStyle(SpanStyle(color = it), span.start, span.end) }
-    }
-    // An unfocused cell still carries a cursor - at the end of its text, on the very first
-    // composition - so without this every notebook would open with brackets lit up in cells
-    // nobody had touched.
-    if (!focused.value || !selection.collapsed) return
-    val pair = bracketPairAround(source, selection.start, spans) ?: return
-    addStyle(matched, pair.open, pair.open + 1)
-    addStyle(matched, pair.close, pair.close + 1)
   }
 }
 
