@@ -14,6 +14,7 @@ detekt = "2.0.0-alpha.5"
 junit = "4.13.2"
 kotlin = "2.3.20"
 kotlinxSerialization = "1.11.0"
+antlr = "4.13.2"
 okhttp = "5.4.0"
 ktlint = "12.2.0"
 nav3Core = "1.0.1"
@@ -46,6 +47,8 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
 # WebSocket client for the kernel channel. Android ships no WebSocket API and no
 # java.net.http (verified against android.jar for API 36), so a library is required.
+antlr-tool = { module = "org.antlr:antlr4", version.ref = "antlr" }
+antlr-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver3-junit4", version.ref = "okhttp" }
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }

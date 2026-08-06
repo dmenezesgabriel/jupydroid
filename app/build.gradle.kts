@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.JavaExec
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
@@ -68,6 +70,9 @@ ktlint {
     android = false
 }
 
+// Declared before `dependencies` uses it: the Kotlin DSL evaluates the file top to bottom.
+val antlrTool: Configuration by configurations.creating
+
 dependencies {
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
@@ -88,6 +93,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.commons.compress)
+    implementation(libs.antlr.runtime)
+    // Tool-only: it generates the lexer at build time and is never packaged.
+    antlrTool(libs.antlr.tool)
     implementation(libs.okhttp)
     // Tooling
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -113,4 +121,64 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+}
+
+// --- Python lexer, generated from a vendored ANTLR grammar ---------------------------
+//
+// Generated rather than hand-written, and vendored rather than fetched, so a build is
+// reproducible offline. The grammar is antlr/grammars-v4 python3_14 (MIT); see
+// tools/grammars/python/README.md for why that variant and not python3.
+//
+// Gradle's built-in `antlr` plugin is a Java-plugin feature and does not wire into AGP's
+// source sets, so the tool is invoked directly and registered through the Variant API.
+
+abstract class GeneratePythonLexer : JavaExec() {
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val grammarDir: DirectoryProperty
+}
+
+val generatePythonLexer by tasks.registering(GeneratePythonLexer::class) {
+    description = "Generates the Python lexer and parser from the vendored ANTLR grammar."
+    group = "build"
+    grammarDir.set(layout.projectDirectory.dir("../tools/grammars/python"))
+
+    classpath = antlrTool
+    mainClass = "org.antlr.v4.Tool"
+    argumentProviders.add(
+        CommandLineArgumentProvider {
+            val grammars = grammarDir.get()
+            listOf(
+                "-Dlanguage=Java",
+                "-package",
+                "com.jupydroid.app.syntax.python",
+                "-o",
+                outputDir.get().asFile.absolutePath,
+                grammars.file("PythonLexer.g4").asFile.absolutePath,
+                // The parser is not optional: PythonLexerBase constructs a PythonParser, so
+                // the lexer does not compile without it.
+                grammars.file("PythonParser.g4").asFile.absolutePath,
+            )
+        },
+    )
+
+    doLast {
+        // The grammar's superClass ships as plain Java beside it and needs the same package
+        // declaration as the generated code.
+        val base = grammarDir.get().file("PythonLexerBase.java").asFile.readText()
+        outputDir.get().file("PythonLexerBase.java").asFile
+            .writeText("package com.jupydroid.app.syntax.python;\n\n" + base)
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.java?.addGeneratedSourceDirectory(
+            generatePythonLexer,
+            GeneratePythonLexer::outputDir,
+        )
+    }
 }

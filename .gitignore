@@ -28,3 +28,7 @@ local.properties
 # self-contained CodeMirror page. Reproducible, and not something to review as a diff.
 /app/src/main/assets/editor/
 /tools/editor/node_modules/
+
+# ANTLR output: generated from the vendored grammar in tools/grammars/python, reproducible
+# and not something to review as a diff.
+/app/build/generated/
