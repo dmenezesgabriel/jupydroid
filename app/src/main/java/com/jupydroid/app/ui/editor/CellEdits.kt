@@ -85,5 +85,18 @@ fun EditorUiState.withSourceHiddenToggled(cellId: String): EditorUiState {
   )
 }
 
+/**
+ * Hides the outputs without discarding them - which is the whole difference from
+ * [withOutputsCleared], and why both are in the menu. Independent of the source's collapse:
+ * JupyterLab has a separate command for each and stores them under separate keys.
+ */
+fun EditorUiState.withOutputsHiddenToggled(cellId: String): EditorUiState {
+  if (cells.none { it.id == cellId }) return this
+  return copy(
+    cells = cells.map { if (it.id == cellId) it.copy(outputsHidden = !it.outputsHidden) else it },
+    dirty = true,
+  )
+}
+
 private fun <T> Map<String, T>.carryOver(from: String, to: String): Map<String, T> =
   get(from)?.let { this + (to to it) } ?: this

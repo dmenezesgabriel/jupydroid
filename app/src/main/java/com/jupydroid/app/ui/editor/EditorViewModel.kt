@@ -85,6 +85,7 @@ class EditorViewModel(
         CellAction.Delete -> state.withCellDeleted(cellId, replacementId = UUID.randomUUID().toString())
         CellAction.ClearOutputs -> state.withOutputsCleared(cellId)
         CellAction.ToggleSourceHidden -> state.withSourceHiddenToggled(cellId)
+        CellAction.ToggleOutputsHidden -> state.withOutputsHiddenToggled(cellId)
       }
     }
     scheduleSave()

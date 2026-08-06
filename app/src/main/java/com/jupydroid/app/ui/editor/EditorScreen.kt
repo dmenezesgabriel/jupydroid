@@ -162,7 +162,11 @@ private fun EditorCell(
     if (cell.sourceHidden) {
       // Collapsed beats every other source state: there is nothing to type into, and the tap
       // that expands must not also land in a text field.
-      CollapsedCell(source = cell.source, onExpand = { onCellAction(CellAction.ToggleSourceHidden) })
+      CollapsedCell(
+        preview = firstNonEmptyLine(cell.source),
+        description = COLLAPSED_SOURCE,
+        onExpand = { onCellAction(CellAction.ToggleSourceHidden) },
+      )
     } else if (cell.kind == CellKind.CODE) {
       CodeCellField(
         source = cell.source,
@@ -182,16 +186,25 @@ private fun EditorCell(
         modifier = Modifier.fillMaxWidth(),
       )
     }
-    CellOutputs(outputs)
+    CellOutputs(
+      outputs = outputs,
+      hidden = cell.outputsHidden,
+      onExpand = { onCellAction(CellAction.ToggleOutputsHidden) },
+    )
   }
 }
 
 /** What each output kind becomes on screen is [RenderedOutput]'s decision, not this one's. */
 @Composable
-private fun CellOutputs(outputs: List<CellOutput>) {
+private fun CellOutputs(outputs: List<CellOutput>, hidden: Boolean, onExpand: () -> Unit) {
   val rendered = outputs.mapNotNull { it.render() }
+  // Nothing to fold when there is nothing to show, so an empty cell looks the same either way.
   if (rendered.isEmpty()) return
   Spacer(modifier = Modifier.height(4.dp))
+  if (hidden) {
+    CollapsedCell(rendered.collapsedPreview(), COLLAPSED_OUTPUTS, onExpand)
+    return
+  }
   Column(modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Cell output" }) {
     rendered.forEach { output ->
       when (output) {

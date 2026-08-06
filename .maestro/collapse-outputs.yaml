@@ -1,0 +1,42 @@
+appId: com.jupydroid.app
+---
+# Collapse, the other half: a cell's *outputs* fold away while its source stays put, and the
+# fold is written into the cell's nbformat metadata - under `collapsed`, which is the key
+# JupyterLab reads, not the `jupyter.outputs_hidden` the name suggests. Real kernel, so tablet.
+- launchApp
+- assertVisible: "Collapse Outputs"
+- tapOn: "Collapse Outputs"
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run starts jupyter_server and the kernel.
+- extendedWaitUntil:
+    visible: ".*omega.*"
+    timeout: 120000
+- takeScreenshot: 01-output-shown
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Collapse outputs"
+# `alpha` on its own can only be the placeholder - the output node reads "alpha\nomega".
+# And `omega` appears nowhere in the source, which the first version of this fixture got
+# wrong: it printed "second line 120" from a line reading print("second line 120"), so the
+# "not visible" assertion was matching the source field and would never have passed.
+- assertVisible: "alpha"
+- assertNotVisible: ".*omega.*"
+# The source is untouched. The two collapses are separate commands and separate metadata keys,
+# and folding one must not fold the other.
+- assertVisible: ".*print.*"
+- takeScreenshot: 02-outputs-collapsed
+# stopApp is a real kill. Surviving it also re-proves 7.1: with no persisted outputs there
+# would be nothing left to fold, and the placeholder would not be drawn at all.
+- stopApp
+- launchApp
+- tapOn: "Collapse Outputs"
+- extendedWaitUntil:
+    visible: "alpha"
+    timeout: 30000
+- assertNotVisible: ".*omega.*"
+- takeScreenshot: 03-still-collapsed-after-restart
+# Ends folded on purpose: the driver dumps the saved file next, and it is the only thing that
+# shows which key was written.

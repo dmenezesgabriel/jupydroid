@@ -16,32 +16,33 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-/** Named so a flow can tell a collapsed cell from the field it replaced. */
+/** Named so a flow can tell a folded cell from the field or the outputs it replaced. */
 internal const val COLLAPSED_SOURCE = "Collapsed code"
+internal const val COLLAPSED_OUTPUTS = "Collapsed outputs"
 
 /**
- * What a collapsed cell shows instead of its source: **its first line**, then an ellipsis, and
- * a tap anywhere on it expands again.
+ * What a collapsed source or a collapsed set of outputs shows in place of itself: **one line of
+ * what is folded**, then an ellipsis, and a tap anywhere on it expands again.
  *
- * All three are JupyterLab's, not invented - its `InputPlaceholder` is built with
- * `text: source.split('\n')[0]`, an ellipsis icon beside it and `title: "Click to expand"`
- * (`packages/cells/src/widget.ts:626-632`, `packages/cells/src/placeholder.ts:72-105`).
- * The first line is what makes a collapsed cell identifiable at all; a bare "collapsed" row
- * would turn a folded notebook into a list of identical stubs.
+ * All three are JupyterLab's, not invented - its placeholders carry a line of the hidden
+ * content, an ellipsis icon beside it and `title: "Click to expand"`
+ * (`packages/cells/src/widget.ts:626-632`, `packages/cells/src/placeholder.ts:72-105`). The
+ * line is what makes a folded cell identifiable at all; a bare "collapsed" row would turn a
+ * folded notebook into a list of identical stubs.
  */
 @Composable
-fun CollapsedCell(source: String, onExpand: () -> Unit, modifier: Modifier = Modifier) {
+fun CollapsedCell(preview: String, description: String, onExpand: () -> Unit, modifier: Modifier = Modifier) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = modifier
       .fillMaxWidth()
-      .clickable(onClickLabel = "Expand code") { onExpand() }
+      .clickable(onClickLabel = "Expand") { onExpand() }
       .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
       .padding(horizontal = 8.dp, vertical = 6.dp)
-      .semantics { contentDescription = COLLAPSED_SOURCE },
+      .semantics { contentDescription = description },
   ) {
     Text(
-      text = source.lineSequence().firstOrNull().orEmpty(),
+      text = preview,
       style = MaterialTheme.typography.bodySmall,
       fontFamily = FontFamily.Monospace,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -57,3 +58,24 @@ fun CollapsedCell(source: String, onExpand: () -> Unit, modifier: Modifier = Mod
     )
   }
 }
+
+/**
+ * The line that names what is folded.
+ *
+ * JupyterLab's two placeholders disagree here - the input one takes `source.split('\n')[0]`
+ * and the output one takes the first *non-empty* line (`widget.ts:630`, `:1283-1289`). The
+ * non-empty rule is used for both, because taking line zero literally shows an empty
+ * placeholder for a cell that opens with a blank line, which is the one case a preview is for.
+ */
+internal fun firstNonEmptyLine(text: String): String =
+  text.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+
+/**
+ * A line of the first output that has one. An image or a rendered document has no string form,
+ * and neither does JupyterLab's placeholder for it - `getOutputPlaceholderText` returns
+ * undefined and the row is just the ellipsis.
+ */
+internal fun List<RenderedOutput>.collapsedPreview(): String =
+  firstNotNullOfOrNull { (it as? RenderedOutput.Text)?.text?.takeIf { text -> text.isNotBlank() } }
+    ?.let(::firstNonEmptyLine)
+    .orEmpty()

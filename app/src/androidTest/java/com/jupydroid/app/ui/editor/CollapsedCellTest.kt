@@ -16,51 +16,52 @@ import org.junit.runner.RunWith
 /**
  * Collapse is an affordance question - is there anything left to press, and does it say which
  * cell it is - which is exactly the kind no JVM test can answer. `CellCollapseTest` covers
- * where the flag is stored and `CellEditsTest` covers the toggle; this covers what is on screen.
+ * where the flags are stored, `CellEditsTest` the toggles and `CollapsedPreviewTest` the line
+ * that names the fold; this covers what is on screen.
  */
 @RunWith(AndroidJUnit4::class)
 class CollapsedCellTest {
   @get:Rule val compose = createComposeRule()
 
-  /** A folded notebook of identical stubs would be unusable; the first line is what names it. */
+  /** A folded notebook of identical stubs would be unusable; the preview is what names it. */
   @Test
-  fun showsTheFirstLineOfTheSource() {
-    compose.setContent { CollapsedCell(source = "import numpy as np\nx = np.eye(3)", onExpand = {}) }
+  fun showsThePreviewOfWhatIsFolded() {
+    compose.setContent { CollapsedCell("import numpy as np", COLLAPSED_SOURCE, onExpand = {}) }
 
     compose.onNodeWithText("import numpy as np").assertIsDisplayed()
-    compose.onNodeWithText("x = np.eye(3)").assertDoesNotExist()
   }
 
   @Test
   fun tappingItAsksToExpand() {
     var asked = 0
-    compose.setContent { CollapsedCell(source = "x = 1", onExpand = { asked++ }) }
+    compose.setContent { CollapsedCell("x = 1", COLLAPSED_SOURCE, onExpand = { asked++ }) }
 
     compose.onNodeWithContentDescription(COLLAPSED_SOURCE).performClick()
 
     assertEquals(1, asked)
   }
 
-  /** An empty cell still has to leave something to press, or it collapses to nothing at all. */
+  /** An output with no string form previews as nothing, and still has to be pressable. */
   @Test
-  fun anEmptyCellIsStillTappable() {
-    compose.setContent { CollapsedCell(source = "", onExpand = {}) }
+  fun anEmptyPreviewIsStillTappable() {
+    compose.setContent { CollapsedCell("", COLLAPSED_OUTPUTS, onExpand = {}) }
 
-    compose.onNodeWithContentDescription(COLLAPSED_SOURCE).assertIsDisplayed()
+    compose.onNodeWithContentDescription(COLLAPSED_OUTPUTS).assertIsDisplayed()
   }
 
   @Test
-  fun theMenuOffersCollapseOnAnExpandedCodeCell() {
+  fun theMenuOffersBothCollapsesOnAnExpandedCodeCell() {
     compose.setContent { CellHeader(CODE_CELL, null, running = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_OUTPUTS").assertIsDisplayed()
   }
 
-  /** The label is the verb, so a collapsed cell offers the opposite one and only that one. */
+  /** The label is the verb, so a folded cell offers the opposite one and only that one. */
   @Test
-  fun theMenuOffersExpandOnceTheCellIsCollapsed() {
+  fun theMenuOffersExpandOnceTheSourceIsCollapsed() {
     compose.setContent { CellHeader(CODE_CELL.copy(sourceHidden = true), null, false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
@@ -69,17 +70,30 @@ class CollapsedCellTest {
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertDoesNotExist()
   }
 
+  /** The two are independent: folding the source must not relabel the outputs' item. */
+  @Test
+  fun theTwoCollapsesAreLabelledIndependently() {
+    compose.setContent { CellHeader(CODE_CELL.copy(outputsHidden = true), null, false, {}, {}, {}) }
+
+    compose.onNodeWithContentDescription("Cell actions").performClick()
+
+    compose.onNodeWithContentDescription("Cell menu $EXPAND_OUTPUTS").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertIsDisplayed()
+  }
+
   /**
    * JupyterLab's collapse actions all check `cell.model.type === 'code'`
-   * (`packages/notebook/src/actions.tsx:1877`). A markdown cell already has rendered and source.
+   * (`packages/notebook/src/actions.tsx:1877`, `:1957`). A markdown cell already has rendered
+   * and source, and never has outputs.
    */
   @Test
-  fun theMenuDoesNotOfferCollapseOnAMarkdownCell() {
+  fun theMenuOffersNeitherCollapseOnAMarkdownCell() {
     compose.setContent { CellHeader(MARKDOWN_CELL, null, running = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertDoesNotExist()
+    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_OUTPUTS").assertDoesNotExist()
     compose.onNodeWithContentDescription("Cell menu Delete").assertIsDisplayed()
   }
 

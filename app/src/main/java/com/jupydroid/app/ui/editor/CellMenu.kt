@@ -55,10 +55,15 @@ private fun itemsFor(cell: Cell): List<Pair<String, CellAction>> = buildList {
   add("Duplicate" to CellAction.Duplicate)
   if (cell.kind == CellKind.CODE) {
     add((if (cell.sourceHidden) EXPAND_CODE else COLLAPSE_CODE) to CellAction.ToggleSourceHidden)
+    add((if (cell.outputsHidden) EXPAND_OUTPUTS else COLLAPSE_OUTPUTS) to CellAction.ToggleOutputsHidden)
   }
+  // Beside collapsing them, because the two read as a pair and are not: this one throws the
+  // outputs away, the one above only folds them.
   add("Clear outputs" to CellAction.ClearOutputs)
   add("Delete" to CellAction.Delete)
 }
 
 internal const val COLLAPSE_CODE = "Collapse code"
 internal const val EXPAND_CODE = "Expand code"
+internal const val COLLAPSE_OUTPUTS = "Collapse outputs"
+internal const val EXPAND_OUTPUTS = "Expand outputs"

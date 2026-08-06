@@ -16,6 +16,8 @@ data class Cell(
    * metadata so a notebook opens the way it was left.
    */
   val sourceHidden: Boolean = false,
+  /** Collapsed outputs. Independent of [sourceHidden], and stored under a different key. */
+  val outputsHidden: Boolean = false,
 )
 
 data class Notebook(

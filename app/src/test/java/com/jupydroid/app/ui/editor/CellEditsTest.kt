@@ -151,6 +151,37 @@ class CellEditsTest {
     assertEquals(state, state.withSourceHiddenToggled("gone"))
   }
 
+  /** The two collapses are independent: JupyterLab has a command for each, not one for both. */
+  @Test
+  fun toggleOutputsHidden_hidesTheOutputsWithoutTouchingTheSource() {
+    val hidden = stateOf("a").withOutputsHiddenToggled("a")
+
+    assertTrue(hidden.cells.single().outputsHidden)
+    assertFalse(hidden.cells.single().sourceHidden)
+    assertFalse(hidden.withOutputsHiddenToggled("a").cells.single().outputsHidden)
+  }
+
+  /**
+   * Collapsing outputs hides them; it does not throw them away. That is the difference from
+   * Clear outputs, and the reason both are in the menu.
+   */
+  @Test
+  fun toggleOutputsHidden_keepsTheOutputsAndTheExecutionCount() {
+    val state = stateOf("a").withOutputOn("a", "kept").withCount("a", 7)
+
+    val hidden = state.withOutputsHiddenToggled("a")
+
+    assertEquals(state.outputs, hidden.outputs)
+    assertEquals(7, hidden.executionCounts["a"])
+  }
+
+  @Test
+  fun toggleOutputsHidden_ignoresACellThatIsGone() {
+    val state = stateOf("a")
+
+    assertEquals(state, state.withOutputsHiddenToggled("gone"))
+  }
+
   @Test
   fun everyEditMarksTheNotebookDirty() {
     val state = stateOf("a", "b")

@@ -121,6 +121,7 @@ fun CellFile.toDomain(): Cell =
     outputs = outputs.mapNotNull { it.toDomainOutput() },
     executionCount = executionCount,
     sourceHidden = metadata.sourceHidden(),
+    outputsHidden = metadata.outputsHidden(),
   )
 
 fun Notebook.toFile(): NotebookFile =
@@ -142,7 +143,7 @@ fun Cell.toFile(): CellFile =
         CellKind.MARKDOWN -> "markdown"
       },
     source = source,
-    metadata = collapseMetadata(sourceHidden),
+    metadata = collapseMetadata(sourceHidden, outputsHidden),
     outputs = outputs.map { it.toFileOutput() },
     executionCount = executionCount,
   )
