@@ -63,7 +63,14 @@ data class CellFile(
   @SerialName("execution_count") val executionCount: Int? = null,
 )
 
-/** Jupyter writes `source` as either a string or an array of lines; accept both. */
+/**
+ * Jupyter writes `source` as either a string or an array of lines; accept both.
+ *
+ * The array is joined with **nothing**, because nbformat's lines already carry their own
+ * trailing newlines - that is what its spec means by "each ending with a newline except
+ * possibly the last", and what nbformat itself does (`"".join(source)`). Joining with "\n"
+ * instead inserts a blank line between every line of every notebook Jupyter ever wrote.
+ */
 object MultiLineSourceSerializer : KSerializer<String> {
   override val descriptor: SerialDescriptor =
     PrimitiveSerialDescriptor("MultiLineSource", PrimitiveKind.STRING)
@@ -75,7 +82,7 @@ object MultiLineSourceSerializer : KSerializer<String> {
   override fun deserialize(decoder: Decoder): String =
     when (val element = JsonElement.serializer().deserialize(decoder)) {
       is JsonPrimitive -> element.content
-      is JsonArray -> element.joinToString("\n") { it.jsonPrimitive.content }
+      is JsonArray -> element.joinToString("") { it.jsonPrimitive.content }
       else ->
         throw IllegalArgumentException(
           "expected source as string or array of strings, got ${element::class.simpleName}",

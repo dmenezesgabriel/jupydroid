@@ -328,7 +328,7 @@ no internal scroller, the page reports its height and Compose resizes the cell.
 | 5.2 | Reproducible CodeMirror 6 bundle: `tools/editor/` (npm + esbuild) → `assets/editor/index.html`, gitignored like the rootfs | `node`, host-side | **Done.** 380 KB, one self-contained file (Callisto's is 814 KB). `npm ci` off a committed lockfile; the build fails if the minifier loses either bridge global |
 | 5.3 | WebView host + editing: a cell shows CodeMirror, edits post back, the source is saved | fakes, then emulator | **Done.** Maestro: typed into a CodeMirror cell, stopped the app, reopened - `answer = 420` still there, highlighted. Closes 4b's dirty-state gap. `evidence/step5.3/` |
 | 5.4 | Height sync so cells self-size (4 px threshold, 80 ms debounce, 8000 px cap) | JVM for the policy, then device | **Done.** A 16-line cell grows, a one-line cell is compact. Verified at **2x density**, because a 1x emulator hides the dp-vs-px bug entirely. `evidence/step5.4/` |
-| 5.5 | Theme via CSS vars, `Mod-Enter` runs the cell | device | Maestro |
+| 5.5 | Theme via CSS vars, `Mod-Enter` runs the cell | device | **Theme done** — every syntax colour comes from the Material scheme, so light and dark both work from one palette. **`Mod-Enter` is wired but unverified**: Maestro has no modifier chord and `adb input keycombination` does not carry Ctrl through the soft keyboard into a WebView - it arrives as a plain Enter. Needs a physical keyboard. `evidence/step5.5/` |
 | 5.6 | Completion — **deferred**, and deliberately: it needs `KernelGateway.complete`, which is still `TODO`. Implementing either before the editor asks would be untested-by-use code |
 
 **A simpler option, considered and rejected.** A Compose `BasicTextField` would make cells

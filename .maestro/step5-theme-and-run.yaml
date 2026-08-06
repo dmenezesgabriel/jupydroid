@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step5-theme-driver.sh; clearState would delete the fixture.
+# Mod-Enter is not driven here: Maestro has no modifier chord, so the driver script sends it
+# with `adb shell input keycombination` once this flow has focused the cell.
+- launchApp
+- assertVisible: "Themed Cell"
+- tapOn: "Themed Cell"
+- extendedWaitUntil:
+    visible: ".*def greet.*"
+    timeout: 30000
+# Colour is judged from the screenshot by a human; what is asserted is that the tokens
+# rendered at all and the page took its styling from Compose.
+- takeScreenshot: 01-themed-tokens
+- tapOn: '.*print\(greet.*'

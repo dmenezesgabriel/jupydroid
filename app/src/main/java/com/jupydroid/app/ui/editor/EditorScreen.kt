@@ -148,11 +148,7 @@ private fun EditorCell(
     if (cell.kind == CellKind.CODE) {
       CellEditor(
         source = cell.source,
-        theme = EditorTheme(
-          background = MaterialTheme.colorScheme.surfaceVariant,
-          foreground = MaterialTheme.colorScheme.onSurface,
-          gutter = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
+        theme = cellEditorTheme(),
         onSourceEdited = onSourceEdited,
         onRunRequested = onRun,
         modifier = Modifier

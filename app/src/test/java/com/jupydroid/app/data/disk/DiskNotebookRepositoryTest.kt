@@ -153,6 +153,26 @@ class DiskNotebookRepositoryTest {
     }
   }
 
+  /**
+   * Regression: nbformat's source lines already end in newlines, and joining them with
+   * another one put a blank line between every line of every notebook Jupyter wrote. It was
+   * in every screenshot from Step 3 onwards before anyone read one closely.
+   */
+  @Test
+  fun readNotebook_doesNotDoubleTheNewlinesInAJupyterWrittenSource() = runTest {
+    val repository = repository()
+    notebookFile("jupyter").writeText(
+      """
+      {"cells":[{"cell_type":"code","source":["import sys\n","print(sys.version)\n","x = 1"]}],
+       "metadata":{},"nbformat":4,"nbformat_minor":5}
+      """.trimIndent(),
+    )
+
+    val source = repository.readNotebook("jupyter").cells.single().source
+
+    assertEquals("import sys\nprint(sys.version)\nx = 1", source)
+  }
+
   @Test
   fun readForeignNotebook_withArraySource_andUnknownKeys() = runTest {
     val repository = repository()
@@ -200,7 +220,7 @@ class DiskNotebookRepositoryTest {
             "execution_count": 1,
             "metadata": {"collapsed": false},
             "outputs": [{"output_type": "stream", "name": "stdout", "text": ["1\n"]}],
-            "source": ["print(", "1)"]
+            "source": ["print(\n", "1)"]
           }
         ],
         "metadata": {

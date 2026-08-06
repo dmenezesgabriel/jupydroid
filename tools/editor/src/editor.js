@@ -4,7 +4,8 @@ import { EditorState, Compartment } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { closeBrackets, closeBracketsKeymap, autocompletion } from "@codemirror/autocomplete";
-import { syntaxHighlighting, defaultHighlightStyle, indentUnit } from "@codemirror/language";
+import { syntaxHighlighting, HighlightStyle, indentUnit } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import { python } from "@codemirror/lang-python";
 
 /** Android injects this object; without it the page is being previewed in a browser. */
@@ -49,7 +50,20 @@ const view = new EditorView({
       history(),
       closeBrackets(),
       autocompletion({ override: [requestCompletion] }),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      // Token colours come from Compose as CSS variables rather than being baked in. The
+      // default style is built for light backgrounds, and on the app's dark theme it renders
+      // numbers and comments almost invisibly against their own background.
+      syntaxHighlighting(
+        HighlightStyle.define([
+          { tag: [tags.keyword, tags.controlKeyword, tags.moduleKeyword], color: "var(--jupydroid-keyword)" },
+          { tag: [tags.string, tags.special(tags.string)], color: "var(--jupydroid-string)" },
+          { tag: [tags.number, tags.bool, tags.null], color: "var(--jupydroid-number)" },
+          { tag: [tags.comment, tags.lineComment, tags.blockComment], color: "var(--jupydroid-comment)", fontStyle: "italic" },
+          { tag: [tags.function(tags.variableName), tags.definition(tags.variableName)], color: "var(--jupydroid-function)" },
+          { tag: [tags.operator, tags.punctuation], color: "var(--jupydroid-foreground)" },
+        ]),
+        { fallback: true },
+      ),
       indentUnit.of("    "),
       python(),
       EditorView.lineWrapping,

@@ -4,6 +4,11 @@
   --jupydroid-background: #ffffff;
   --jupydroid-foreground: #1c1b1f;
   --jupydroid-gutter: #79747e;
+  --jupydroid-keyword: #7c4dff;
+  --jupydroid-string: #0b7261;
+  --jupydroid-number: #1a73e8;
+  --jupydroid-comment: #79747e;
+  --jupydroid-function: #9334e6;
 }
 html, body {
   margin: 0;
