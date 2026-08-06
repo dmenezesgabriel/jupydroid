@@ -350,7 +350,7 @@ a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question
 | # | Slice | Test seam | Gate |
 |---|---|---|---|
 | 5.1 | `PythonSyntax`: ANTLR-generated lexer → highlight spans, behind a `SyntaxHighlighter` interface | JVM | **Done.** 8 tests: comments, f-string interpolation, triple-quoted strings, no zero-width spans, tolerates half-typed code |
-| 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | emulator | **Done.** Maestro: typed, restarted, `answer = 420` still there and coloured. WebView editor deleted in the same commit. Renderer processes: **0**, where the per-cell design ran one at 93 MB. `evidence/step5.2/` |
+| 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | emulator, then tablet | **Done.** Maestro green on both. Like-for-like on the tablet: a 30-cell notebook costs **+10.5 MB** and **no renderer process**, where the per-cell WebView cost +56.7 MB plus a 93.4 MB renderer — about **139 MB saved**. `evidence/step5.2/tablet/` |
 | 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | Maestro |
 | 5.4 | Line numbers and bracket-match highlight | JVM for the matching, device for the drawing | Maestro |
 | 5.5 | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by `KernelGateway.complete` — **which this finally implements** | fakes, then device | device: type `pri`, get `print` from the real kernel |
@@ -651,6 +651,10 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
 - `scripts/gradlew-jbr` still hardcodes this machine's JBR path, and there is
   no CI. Dev-environment debt: it slows a new machine down, it cannot corrupt a
   build.
+- **`SyntaxKind.NUMBER` has the weakest contrast of the five colours.** It maps to
+  `colorScheme.secondary`, which on the dark scheme sits close to the body text - visible
+  in `evidence/step5.2/tablet/04-syntax-colours.png`. The other four read clearly. Worth a
+  deliberate palette rather than more scheme roles, but not wrong today.
 - **The server has no lifecycle.** `BaseSpaceKernelGateway` starts `jupyter_server` on
   first use and nothing ever stops it (~143 MB RSS held while backgrounded).
   `disconnect()` closes the socket only. Step 18 owns this. The old `SpaceProbe`
