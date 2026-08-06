@@ -266,6 +266,38 @@ class EditorViewModelTest {
     assertEquals(listOf("c1"), gateway.executed)
   }
 
+  // --- Audit A2: a notebook being looked at never has zero cells ---
+
+  /**
+   * JupyterLab's rule, and it lives at the view layer rather than at creation: when a model
+   * with no cells is displayed it inserts a default one (`packages/notebook/src/widget.ts:606`).
+   * One rule covers a new notebook, an imported one and the last cell being deleted.
+   */
+  @Test
+  fun openingANotebookWithNoCellsGivesItOneToTypeIn() = runTest {
+    val viewModel = loadedEditor(cells = emptyList())
+
+    val cell = viewModel.uiState.value.cells.single()
+    assertEquals(CellKind.CODE, cell.kind)
+    assertEquals("", cell.source)
+    assertTrue("the cell needs an id of its own", cell.id.isNotBlank())
+  }
+
+  /** Opening a notebook must not rewrite it: that would bump its timestamp and reorder Recents. */
+  @Test
+  fun openingANotebookWithNoCellsDoesNotWriteItBack() = runTest {
+    val repository = FakeNotebookRepository()
+    loadedEditor(cells = emptyList(), repository = repository)
+    advanceUntilIdle()
+
+    assertTrue(repository.readNotebook("nb-1").cells.isEmpty())
+  }
+
+  @Test
+  fun openingANotebookWithNoCellsIsNotAnEdit() = runTest {
+    assertTrue("nothing was typed", !loadedEditor(cells = emptyList()).uiState.value.dirty)
+  }
+
   // --- Step 4b: the cell-management half ---
 
   @Test

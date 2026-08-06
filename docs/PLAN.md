@@ -606,7 +606,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 | A1 | **A markdown cell cannot be edited**, and "Insert markdown below" makes an unusable one | **Done.** `MarkdownCellField`, 4 instrumented tests, `evidence/audit-a1-markdown/` |
 | A1b | **Markdown is never rendered** — parse it with commonmark-java into a model | **Done.** `MarkdownDocument`, 13 JVM tests. No Maestro: nothing draws it yet, so a flow would be theatre — A1c carries the device gate |
 | A1c | Draw that model in Compose, and toggle rendered ↔ source | **Done.** `MarkdownText` + `MarkdownCell`, 7 JVM + 5 instrumented tests, `evidence/audit-a1c-markdown-render/` |
-| A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | open |
+| A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | **Done.** `toEditorUiState` gives a cell-less notebook one code cell, `evidence/audit-a2-empty-notebook/` |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | open |
 
 ### A1 — markdown cells are read-only
@@ -665,8 +665,14 @@ the cost of getting them right.
 
 `DiskNotebookRepository.createNotebook` writes `cells = emptyList()`, and the editor's empty
 branch is a dead "No cells yet". The cell menu lives on cell headers, of which there are none.
-JupyterLab's `deleteCells` already gives us the rule we follow elsewhere - a notebook is never
-left with nothing to type into - and the same should hold at creation.
+
+**Fixed at the view layer, not at creation**, which is where JupyterLab puts it: when a model
+with no cells is displayed it inserts a default one (`packages/notebook/src/widget.ts:606`), and
+again when the last cell is removed (`:663`). One rule then covers a notebook just created, one
+imported with no cells, and the last cell being deleted. `toEditorUiState` does it here.
+
+It is not an edit, so the notebook is not marked dirty and is not written back - writing on open
+would bump its timestamp and reorder Recents for having been looked at.
 
 ### A3 — the created notebook lands above the fold
 

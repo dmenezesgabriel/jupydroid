@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.port.KernelEvent
@@ -49,10 +50,18 @@ fun EditorUiState.withSource(cellId: String, source: String): EditorUiState =
  *
  * The inverse of [withResultsOnCells], and kept beside it: how a notebook enters this state and
  * how it leaves are one idea, and reading them apart is how they drift.
+ *
+ * **A notebook being looked at never has zero cells.** [defaultCellId] names the empty code cell
+ * a cell-less notebook is given, so there is always something to type into. That is JupyterLab's
+ * rule and it lives here for the same reason it lives in its view layer
+ * (`packages/notebook/src/widget.ts:606`): one place covers a notebook just created, one
+ * imported with no cells, and the last cell being deleted. It is not an edit - nothing was
+ * typed - so the notebook is not dirty and is not written back, which would only bump its
+ * timestamp and reorder Recents for having been opened.
  */
-fun Notebook.toEditorUiState() = EditorUiState(
+fun Notebook.toEditorUiState(defaultCellId: String) = EditorUiState(
   title = title,
-  cells = cells,
+  cells = cells.ifEmpty { listOf(Cell(defaultCellId, CellKind.CODE, "")) },
   loaded = true,
   outputs = cells.filter { it.outputs.isNotEmpty() }.associate { it.id to it.outputs },
   executionCounts = cells.mapNotNull { cell -> cell.executionCount?.let { cell.id to it } }.toMap(),

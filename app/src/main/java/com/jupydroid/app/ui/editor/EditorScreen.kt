@@ -110,7 +110,9 @@ private fun EditorContent(
   when {
     state.error != null -> ErrorMessage(message = state.error, modifier = modifier)
     !state.loaded -> EmptyMessage("Loading\u2026", modifier)
-    state.cells.isEmpty() -> EmptyMessage("No cells yet", modifier)
+    // No empty branch: a loaded notebook always has at least one cell, given one by
+    // toEditorUiState if the file had none. A "No cells yet" message would advertise a state
+    // that cannot happen, and used to be a dead end when it did.
     else ->
       LazyColumn(modifier = modifier.fillMaxSize()) {
         items(state.cells, key = { it.id }) { cell ->

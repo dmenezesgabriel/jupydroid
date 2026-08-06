@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# Audit A2: a notebook with no cells used to show "No cells yet" and offer no way to add one.
+# The fixture has no `cells` key at all - which is exactly what createNotebook writes, and what
+# an import leaves behind. Seeded by scripts/a2-empty-notebook-driver.sh.
+- launchApp
+- assertVisible: "Empty Notebook"
+- tapOn: "Empty Notebook"
+- extendedWaitUntil:
+    visible: "code"
+    timeout: 30000
+- assertNotVisible: "No cells yet"
+- takeScreenshot: 01-empty-notebook-has-a-cell
+# The point of the cell is that it can be typed into.
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Insert code below"
+- takeScreenshot: 02-and-the-menu-works-from-it
+# Now the other route in: a notebook created from the FAB.
+- back
+- tapOn: "+"
+- tapOn: "New notebook"
+# Restarted on purpose: audit A3 is still open, so a new notebook does not appear in Recents
+# until the list is rebuilt. This flow is about A2, not A3.
+- stopApp
+- launchApp
+- tapOn:
+    text: "Untitled"
+    index: 0
+- extendedWaitUntil:
+    visible: "code"
+    timeout: 30000
+- assertNotVisible: "No cells yet"
+- takeScreenshot: 03-created-notebook-has-a-cell

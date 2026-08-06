@@ -36,7 +36,9 @@ class EditorViewModel(
     viewModelScope.launch {
       _uiState.value =
         try {
-          notebookRepository.readNotebook(notebookId).also { notebook = it }.toEditorUiState()
+          notebookRepository.readNotebook(notebookId)
+            .also { notebook = it }
+            .toEditorUiState(defaultCellId = UUID.randomUUID().toString())
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
