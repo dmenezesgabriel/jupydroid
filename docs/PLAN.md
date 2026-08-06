@@ -822,10 +822,60 @@ Two things the flows taught, both about writing the flow rather than the feature
   could never distinguish folded from unfolded. It prints `omega` from `print("om" + "ega")`
   now — the output text appears nowhere in the source.
 
-Left alone deliberately: **`CellFile.metadata` is read and then dropped for every key that is
-not ours**, so `tags`, `scrolled` and `slideshow` do not survive a save. That predates this work
-and is unchanged by it — `toFile` wrote `{}` before and writes the collapse keys now — but it is
-the same shape of silent loss Step 7.1 fixed for outputs, and it is listed under residual risks.
+Collapse left one thing open — the cell metadata beside its keys was still being dropped on save.
+That is fixed in the section below, and was eight losses rather than one.
+
+### A save must not shred the file (2026-08-06)
+
+Found while closing collapse and fixed as its own commit. Saving **rebuilt** each notebook from
+the fields this app models, so everything else went. Measured with a characterization test
+against a notebook carrying what real tools write, rather than assumed:
+
+| Lost | Written by |
+|---|---|
+| cell `tags`, `slideshow`, `scrolled`, `nbgrader` | nbgrader, RISE, JupyterLab itself |
+| other keys inside the `jupyter` namespace | anything that collapses outputs |
+| a cell's `attachments` — **every pasted image** | JupyterLab's paste |
+| an output's own `metadata` — a figure's rendered size | matplotlib |
+| an **object-valued mime payload** — every widget view | jupyter-widgets |
+| notebook `language_info`, `widgets`, `authors` | the kernel, jupyter-widgets, nbformat |
+| extra `kernelspec` fields, including `display_name` | conda/venv kernels |
+| unknown top-level keys | any newer tool |
+
+**The cause is a category error about the format, and nbformat says so in its own types.** Every
+interface in JupyterLab's `packages/nbformat/src/index.ts` extends `PartialJSONObject` —
+`IBaseCell`, `IBaseCellMetadata`, `INotebookMetadata`, `IBaseOutput`, `IMimeBundle`. "These keys,
+plus anything else" is the contract. A reader that keeps only what it recognises and a writer
+that rebuilds from those keys is a shredder, however careful each field mapping is.
+
+**So the writer stopped rebuilding.** `NotebookJsonWriter.toFileJson` lays the object as read
+back down and writes the owned fields over it. Three details that are not obvious:
+
+- **Owned keys are excluded from the copy, not overwritten after it**, because some must end up
+  *absent*: an un-collapsed cell has no `collapsed` key at all, and a markdown cell has no
+  `outputs`, so a stale value copied first would survive.
+- **Outputs the app did not change are written back byte for byte** — `outputsJson` compares the
+  file's outputs, parsed, against the domain's, and keeps the original array when they match.
+  Regenerating them is what dropped output metadata and flattened widget payloads.
+- **`display_name` is kept if the file had one.** Overwriting someone's "Python 3.11 (conda)"
+  with our default is the same loss in miniature.
+
+**The preserved JSON rides on the domain types** (`Cell.preserved`, `Notebook.preserved`) rather
+than being merged from the file at save time, and that is the one real design decision. A
+duplicated cell has a **new id**, so there would be nothing on disk to merge it with — and
+JupyterLab's duplicate keeps the metadata, because it clones the cell's JSON. It is what protobuf
+calls unknown-field retention, and `copy()` carries it for free.
+
+15 round-trip tests: read-and-write untouched, through an edit, through a collapse, through a
+duplicate, through a re-run, and for cells the app created itself. Device gate is the file rather
+than the screen — `scripts/foreign-metadata-driver.sh` drives a real edit on the tablet and then
+checks 13 foreign keys key-by-key in the file it reads back off the device
+(`evidence/foreign-metadata/keys-kept.txt`).
+
+Still open and listed under residual risks: a **newly captured** object-valued mime payload is
+stored as a JSON string rather than an object. Narrow — it needs a live run in this app, and the
+content is not lost — but it is the same family, and closing it means changing `CellOutput`'s
+mime bundle to `Map<String, JsonElement>`.
 
 ### A2 — a new notebook has no cells and no way to get one
 
@@ -970,6 +1020,10 @@ were invisible to every test that existed at the time.
 last piece, closed) — both written up below. **Steps 4b and 7.2 are done**, so every cell
 behaviour the plan set out is on the device.
 
+**Saving no longer shreds the file.** A notebook another tool wrote keeps its `tags`,
+`attachments`, `language_info` and the rest through an edit here — eight losses, found by
+measuring rather than by reading. See "A save must not shred the file".
+
 **Next: Step 11 (Console REPL)** — a REPL sharing the open notebook's kernel.
 
 **Also open, in rough priority order:**
@@ -1069,11 +1123,13 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   `colorScheme.secondary`, which on the dark scheme sits close to the body text - visible
   in `evidence/step5.2/tablet/04-syntax-colours.png`. The other four read clearly. Worth a
   deliberate palette rather than more scheme roles, but not wrong today.
-- **A cell's other metadata is dropped on save.** `CellFile.metadata` is parsed on read and
-  `toFile` writes only the keys we own, so `tags`, `scrolled`, `slideshow` and anything else
-  another tool put there do not survive. Pre-dates collapse and is unchanged by it — `toFile`
-  wrote `{}` before — but it is the same silent loss Step 7.1 fixed for outputs, and the fix
-  is the same shape: carry the raw object on `Cell` and merge rather than replace.
+- **A newly captured object-valued mime payload is stored as a JSON *string*.** Narrow and not
+  a loss of content: `KernelOutputs.mimeBundle` keeps a non-primitive payload as `toString()`,
+  so an `application/json` display or a widget view survives as its own JSON text rather than
+  as an object. Outputs read from a file and left alone are written back verbatim, so this
+  only reaches results produced by a live run in this app. Fixing it means
+  `CellOutput`'s bundle becoming `Map<String, JsonElement>`, which touches the kernel path,
+  the renderer and their tests — a separate piece of work, not a leftover of the round-trip fix.
 - **The server has no lifecycle.** `BaseSpaceKernelGateway` starts `jupyter_server` on
   first use and nothing ever stops it (~143 MB RSS held while backgrounded).
   `disconnect()` closes the socket only. Step 18 owns this. The old `SpaceProbe`
