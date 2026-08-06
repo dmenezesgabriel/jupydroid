@@ -59,7 +59,7 @@ fun MarkdownCell(
     )
     return
   }
-  MarkdownText(blocks = blocks, modifier = openEditor)
+  RichText(blocks = blocks, modifier = openEditor)
 }
 
 /** Rendered or editing, remembered per cell so scrolling or rotating does not reset it. */

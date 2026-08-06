@@ -19,43 +19,46 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import com.jupydroid.app.markdown.MarkdownBlock
-import com.jupydroid.app.markdown.toAnnotatedString
+import com.jupydroid.app.richtext.RichBlock
+import com.jupydroid.app.richtext.toAnnotatedString
 
 /**
- * Draws parsed markdown as Compose, with no WebView and no HTML anywhere in the path.
+ * Draws a parsed document as Compose, with no WebView and no HTML anywhere in the path.
  *
  * Recursive, because the model is: a quote holds blocks, a list item holds blocks, and either
  * may hold the other. Only leaves reach [Text].
  *
+ * One renderer for both front ends - markdown cells and `text/html` outputs parse to the same
+ * [RichBlock]s, so there is nothing language-specific left by the time it gets here.
+ *
  * ```
- * MarkdownText(MarkdownDocument.parse(cell.source))
+ * RichText(MarkdownDocument.parse(cell.source))
  * ```
  */
 @Composable
-fun MarkdownText(blocks: List<MarkdownBlock>, modifier: Modifier = Modifier) {
+fun RichText(blocks: List<RichBlock>, modifier: Modifier = Modifier) {
   Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(BLOCK_GAP)) {
-    blocks.forEach { MarkdownBlockText(it) }
+    blocks.forEach { RichBlockText(it) }
   }
 }
 
 @Composable
-private fun MarkdownBlockText(block: MarkdownBlock) {
-  val styles = markdownInlineStyles()
+private fun RichBlockText(block: RichBlock) {
+  val styles = richInlineStyles()
   when (block) {
-    is MarkdownBlock.Heading -> Text(block.inlines.toAnnotatedString(styles), style = headingStyle(block.level))
-    is MarkdownBlock.Paragraph ->
+    is RichBlock.Heading -> Text(block.inlines.toAnnotatedString(styles), style = headingStyle(block.level))
+    is RichBlock.Paragraph ->
       Text(block.inlines.toAnnotatedString(styles), style = MaterialTheme.typography.bodyMedium)
-    is MarkdownBlock.CodeBlock -> CodeBlockText(block)
-    is MarkdownBlock.BlockQuote -> BlockQuoteText(block)
-    is MarkdownBlock.ListBlock -> ListBlockText(block)
-    MarkdownBlock.ThematicBreak -> HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    is RichBlock.CodeBlock -> CodeBlockText(block)
+    is RichBlock.BlockQuote -> BlockQuoteText(block)
+    is RichBlock.ListBlock -> ListBlockText(block)
+    RichBlock.ThematicBreak -> HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
   }
 }
 
 /** Scrolls rather than wraps: a wrapped line of code is harder to read than one you drag. */
 @Composable
-private fun CodeBlockText(block: MarkdownBlock.CodeBlock) {
+private fun CodeBlockText(block: RichBlock.CodeBlock) {
   Text(
     text = block.code.trimEnd('\n'),
     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
@@ -74,7 +77,7 @@ private fun CodeBlockText(block: MarkdownBlock.CodeBlock) {
  * (`DefaultMarkdownBlockRenderer.kt`).
  */
 @Composable
-private fun BlockQuoteText(block: MarkdownBlock.BlockQuote) {
+private fun BlockQuoteText(block: RichBlock.BlockQuote) {
   val rule = MaterialTheme.colorScheme.outline
   Column(
     modifier = Modifier
@@ -86,12 +89,12 @@ private fun BlockQuoteText(block: MarkdownBlock.BlockQuote) {
       .padding(start = QUOTE_INDENT),
     verticalArrangement = Arrangement.spacedBy(BLOCK_GAP),
   ) {
-    block.children.forEach { MarkdownBlockText(it) }
+    block.children.forEach { RichBlockText(it) }
   }
 }
 
 @Composable
-private fun ListBlockText(block: MarkdownBlock.ListBlock) {
+private fun ListBlockText(block: RichBlock.ListBlock) {
   Column(verticalArrangement = Arrangement.spacedBy(BLOCK_GAP)) {
     block.items.forEachIndexed { index, item ->
       Row {
@@ -102,7 +105,7 @@ private fun ListBlockText(block: MarkdownBlock.ListBlock) {
           modifier = Modifier.width(MARKER_WIDTH),
         )
         Column(verticalArrangement = Arrangement.spacedBy(BLOCK_GAP)) {
-          item.forEach { MarkdownBlockText(it) }
+          item.forEach { RichBlockText(it) }
         }
       }
     }

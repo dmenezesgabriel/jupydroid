@@ -1,4 +1,4 @@
-package com.jupydroid.app.markdown
+package com.jupydroid.app.richtext
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -6,10 +6,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 
 /** Where a link's destination is stashed, so a tap can find it without re-parsing. */
-const val MARKDOWN_LINK_TAG = "markdown-link"
+const val RICH_LINK_TAG = "rich-link"
 
 /** What each inline mark is painted with. Passed in so this stays testable off a device. */
-data class MarkdownInlineStyles(
+data class RichInlineStyles(
   val emphasis: SpanStyle,
   val strong: SpanStyle,
   val code: SpanStyle,
@@ -31,28 +31,28 @@ data class MarkdownInlineStyles(
  * MarkdownDocument.parse("a **b**").inlines.toAnnotatedString(styles)
  * ```
  */
-fun List<MarkdownInline>.toAnnotatedString(styles: MarkdownInlineStyles): AnnotatedString =
+fun List<RichInline>.toAnnotatedString(styles: RichInlineStyles): AnnotatedString =
   buildAnnotatedString { appendInlines(this@toAnnotatedString, styles) }
 
 private fun AnnotatedString.Builder.appendInlines(
-  inlines: List<MarkdownInline>,
-  styles: MarkdownInlineStyles,
+  inlines: List<RichInline>,
+  styles: RichInlineStyles,
 ) {
   inlines.forEach { inline ->
     when (inline) {
-      is MarkdownInline.Text -> append(inline.text)
-      is MarkdownInline.Code -> withStyle(styles.code) { append(inline.code) }
-      is MarkdownInline.Emphasis -> withStyle(styles.emphasis) { appendInlines(inline.children, styles) }
-      is MarkdownInline.StrongEmphasis -> withStyle(styles.strong) { appendInlines(inline.children, styles) }
-      is MarkdownInline.Link -> appendLink(inline, styles)
-      MarkdownInline.SoftLineBreak -> append(" ")
-      MarkdownInline.HardLineBreak -> append("\n")
+      is RichInline.Text -> append(inline.text)
+      is RichInline.Code -> withStyle(styles.code) { append(inline.code) }
+      is RichInline.Emphasis -> withStyle(styles.emphasis) { appendInlines(inline.children, styles) }
+      is RichInline.StrongEmphasis -> withStyle(styles.strong) { appendInlines(inline.children, styles) }
+      is RichInline.Link -> appendLink(inline, styles)
+      RichInline.SoftLineBreak -> append(" ")
+      RichInline.HardLineBreak -> append("\n")
     }
   }
 }
 
-private fun AnnotatedString.Builder.appendLink(link: MarkdownInline.Link, styles: MarkdownInlineStyles) {
+private fun AnnotatedString.Builder.appendLink(link: RichInline.Link, styles: RichInlineStyles) {
   val start = length
   withStyle(styles.link) { appendInlines(link.children, styles) }
-  addStringAnnotation(MARKDOWN_LINK_TAG, link.destination, start, length)
+  addStringAnnotation(RICH_LINK_TAG, link.destination, start, length)
 }

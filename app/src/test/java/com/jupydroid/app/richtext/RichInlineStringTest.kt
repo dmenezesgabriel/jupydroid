@@ -1,10 +1,11 @@
-package com.jupydroid.app.markdown
+package com.jupydroid.app.richtext
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import com.jupydroid.app.markdown.MarkdownDocument
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -13,8 +14,8 @@ import org.junit.Test
  * Building the `AnnotatedString` is separated from drawing it precisely so it can be tested
  * here, on the JVM, rather than only by looking at a screenshot.
  */
-class MarkdownInlineStringTest {
-  private val styles = MarkdownInlineStyles(
+class RichInlineStringTest {
+  private val styles = RichInlineStyles(
     emphasis = SpanStyle(fontStyle = FontStyle.Italic),
     strong = SpanStyle(fontWeight = FontWeight.Bold),
     code = SpanStyle(fontFamily = FontFamily.Monospace, background = Color.Red),
@@ -72,7 +73,7 @@ class MarkdownInlineStringTest {
 
     assertEquals("see docs", built.text)
     assertEquals(Color.Blue, built.spanStyles.single().item.color)
-    val link = built.getStringAnnotations(MARKDOWN_LINK_TAG, 0, built.length).single()
+    val link = built.getStringAnnotations(RICH_LINK_TAG, 0, built.length).single()
     assertEquals("https://x.dev", link.item)
     assertEquals("docs", built.text.substring(link.start, link.end))
   }
@@ -83,6 +84,6 @@ class MarkdownInlineStringTest {
     assertEquals("one\ntwo", MarkdownDocument.parse("one  \ntwo").paragraphInlines().toAnnotatedString(styles).text)
   }
 
-  private fun List<MarkdownBlock>.paragraphInlines(): List<MarkdownInline> =
-    (single() as MarkdownBlock.Paragraph).inlines
+  private fun List<RichBlock>.paragraphInlines(): List<RichInline> =
+    (single() as RichBlock.Paragraph).inlines
 }
