@@ -66,6 +66,27 @@ abstract class KernelGatewayContract {
   }
 
   @Test
+  fun complete_offersTheObviousMatchForAPrefix() = runTest {
+    val gateway = gateway()
+
+    val result = gateway.complete(gateway.connect(SPACE), PREFIX, PREFIX.length)
+
+    assertTrue("completing \"$PREFIX\" must offer print, got $result", "print" in result.matches)
+  }
+
+  /** The caller splices a match into the code by this range, so out-of-bounds is a crash there. */
+  @Test
+  fun complete_replacesARangeInsideTheCodeItWasGiven() = runTest {
+    val gateway = gateway()
+
+    val result = gateway.complete(gateway.connect(SPACE), PREFIX, PREFIX.length)
+
+    assertTrue("range must not run backwards, got $result", result.replacedEnd >= result.replacedStart)
+    assertTrue("range must stay in the code, got $result", result.replacedEnd <= PREFIX.length)
+    assertTrue("range must not start before the code, got $result", result.replacedStart >= 0)
+  }
+
+  @Test
   fun connect_returnsASessionBoundToTheSpace() = runTest {
     val session = gateway().connect(SPACE)
 
@@ -79,5 +100,8 @@ abstract class KernelGatewayContract {
 
   protected companion object {
     val SPACE = Space(id = "base", name = "Base", kernels = emptyList())
+
+    /** The plan's own gate for Step 5.5, and short enough that every kernel agrees on it. */
+    const val PREFIX = "pri"
   }
 }

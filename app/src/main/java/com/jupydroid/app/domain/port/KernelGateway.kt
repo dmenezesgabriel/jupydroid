@@ -4,7 +4,23 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Space
 import kotlinx.coroutines.flow.Flow
 
-data class CompletionResult(val matches: List<String>)
+/**
+ * What a kernel offers for the code under the cursor.
+ *
+ * [replacedStart] and [replacedEnd] are the half-open range of the code that a chosen match
+ * replaces. Carrying them is not detail: for `np.ar` a kernel answers with whole names, and
+ * without the range a caller has to guess how much of the line to drop - which is how a
+ * completion turns into `np.np.arange`.
+ */
+data class CompletionResult(
+  val matches: List<String>,
+  val replacedStart: Int,
+  val replacedEnd: Int,
+) {
+  companion object {
+    val NONE = CompletionResult(emptyList(), 0, 0)
+  }
+}
 
 /** A live kernel that one notebook (or the Console REPL) is executing against. */
 data class KernelSession(
@@ -30,12 +46,12 @@ interface KernelGateway {
 
   suspend fun interrupt(session: KernelSession)
 
-  suspend fun complete(
-    session: KernelSession,
-    code: String,
-    cursorLine: Int,
-    cursorColumn: Int,
-  ): CompletionResult
+  /**
+   * [cursorOffset] is an absolute offset in characters, because that is what both ends of this
+   * already speak: a text field's selection and the protocol's own `cursor_pos`. A line and
+   * column in between would be two conversions that can only lose.
+   */
+  suspend fun complete(session: KernelSession, code: String, cursorOffset: Int): CompletionResult
 
   suspend fun disconnect(session: KernelSession)
 }

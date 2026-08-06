@@ -28,4 +28,20 @@ class JupyterMessageTest {
     assertEquals("false", content["allow_stdin"]!!.jsonPrimitive.content)
     assertEquals("true", content["stop_on_error"]!!.jsonPrimitive.content)
   }
+
+  /**
+   * `cursor_pos` is an absolute offset in characters, not a line and column - the protocol's
+   * own shape, and the reason the port carries an offset too.
+   */
+  @Test
+  fun completeRequest_carriesTheCodeAndAnAbsoluteCursorOffset() {
+    val frame = JupyterMessage.completeRequest("import nu", cursorOffset = 9, sessionId = "s1", msgId = "m2")
+
+    val json = Json.parseToJsonElement(frame).jsonObject
+    assertEquals("shell", json["channel"]!!.jsonPrimitive.content)
+    assertEquals("complete_request", json["header"]!!.jsonObject["msg_type"]!!.jsonPrimitive.content)
+    assertEquals("m2", json["header"]!!.jsonObject["msg_id"]!!.jsonPrimitive.content)
+    assertEquals("import nu", json["content"]!!.jsonObject["code"]!!.jsonPrimitive.content)
+    assertEquals("9", json["content"]!!.jsonObject["cursor_pos"]!!.jsonPrimitive.content)
+  }
 }

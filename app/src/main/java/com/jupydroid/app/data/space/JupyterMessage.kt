@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -15,20 +16,35 @@ import kotlinx.serialization.json.put
  */
 object JupyterMessage {
   fun executeRequest(code: String, sessionId: String, msgId: String): String =
+    shellRequest("execute_request", sessionId, msgId, executeContent(code))
+
+  /** [cursorOffset] becomes `cursor_pos`, which the protocol counts in characters, not bytes. */
+  fun completeRequest(code: String, cursorOffset: Int, sessionId: String, msgId: String): String =
+    shellRequest(
+      "complete_request",
+      sessionId,
+      msgId,
+      buildJsonObject {
+        put("code", code)
+        put("cursor_pos", cursorOffset)
+      },
+    )
+
+  private fun shellRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) =
     buildJsonObject {
       put("channel", "shell")
-      put("header", header(msgId, sessionId))
+      put("header", header(msgType, msgId, sessionId))
       put("parent_header", buildJsonObject { })
       put("metadata", buildJsonObject { })
-      put("content", executeContent(code))
+      put("content", content)
       put("buffers", buildJsonArray { })
     }.toString()
 
-  private fun header(msgId: String, sessionId: String) = buildJsonObject {
+  private fun header(msgType: String, msgId: String, sessionId: String) = buildJsonObject {
     put("msg_id", msgId)
     put("session", sessionId)
     put("username", "jupydroid")
-    put("msg_type", "execute_request")
+    put("msg_type", msgType)
     put("version", PROTOCOL_VERSION)
   }
 

@@ -10,7 +10,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.sync.Mutex
@@ -83,12 +85,27 @@ class RealKernelGateway(
 
   override suspend fun interrupt(session: KernelSession) = lifecycle.interrupt(session.kernelId)
 
+  /**
+   * Sends one `complete_request` and returns the first reply that answers it.
+   *
+   * There is no timeout, and that is deliberate: the shell channel is serial, so a request sent
+   * while a cell runs waits behind it, and the answer to a stale request is to cancel this
+   * coroutine - which the caller does by typing again - not to invent a deadline for the kernel.
+   */
   override suspend fun complete(
     session: KernelSession,
     code: String,
-    cursorLine: Int,
-    cursorColumn: Int,
-  ): CompletionResult = TODO("Step 5, when the editor asks for completions")
+    cursorOffset: Int,
+  ): CompletionResult {
+    val sessionSocket = socketFor(session)
+    val requestMsgId = UUID.randomUUID().toString()
+    return sessionSocket.events
+      .onSubscription {
+        sessionSocket.socket.send(JupyterMessage.completeRequest(code, cursorOffset, session.id, requestMsgId))
+      }
+      .mapNotNull { event -> completionOrFail(event, requestMsgId) }
+      .first()
+  }
 
   /** Closes the session's socket. The kernel keeps running; this only ends our connection. */
   override suspend fun disconnect(session: KernelSession) {
@@ -112,6 +129,13 @@ class RealKernelGateway(
     val complete = completion.accept(event.frame, requestMsgId)
     if (complete) emit(KernelEvent.Idle)
     return !complete
+  }
+
+  /** Null until the reply arrives; a socket that ends first fails rather than answering nothing. */
+  private fun completionOrFail(event: KernelSocketEvent, requestMsgId: String): CompletionResult? {
+    if (event is KernelSocketEvent.Ended) throw KernelChannelException(event.reason)
+    if (event !is KernelSocketEvent.Received) return null
+    return KernelCompletions.of(event.frame, requestMsgId)
   }
 
   private suspend fun socketFor(session: KernelSession): SessionSocket = socketsLock.withLock {

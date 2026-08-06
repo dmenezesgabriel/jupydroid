@@ -74,6 +74,11 @@ object KernelFrames {
     """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"execute_reply"},
        "content":{"status":"ok","execution_count":1}}"""
 
+  fun completeReply(parent: String, matches: List<String>, cursorStart: Int, cursorEnd: Int) =
+    """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"complete_reply"},
+       "content":{"status":"ok","matches":[${matches.joinToString { "\"$it\"" }}],
+       "cursor_start":$cursorStart,"cursor_end":$cursorEnd}}"""
+
   fun idle(parent: String) =
     """{"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"status"},
        "content":{"execution_state":"idle"}}"""

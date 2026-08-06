@@ -354,7 +354,8 @@ a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question
 | 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | **Done.** `PythonTypingRules`, 19 tests. Maestro on the tablet types **strictly fewer characters than the cell ends up holding**, so the result cannot be faked: no indent is ever typed, and `)` `'` only ever arrive on top of a partner already there. `evidence/step5.3/` |
 | 5.4a | Bracket-match highlight | JVM for the matching, device for the drawing | **Done.** `bracketPairAround`, 11 tests. `evidence/step5.4a/` |
 | 5.4b | Line numbers | JVM for where the logical lines start, device for the drawing | **Done.** Positions come from the field's `TextLayoutResult`, so a wrapped line keeps one number. `evidence/step5.4b/` |
-| 5.5 | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by `KernelGateway.complete` — **which this finally implements** | fakes, then device | device: type `pri`, get `print` from the real kernel |
+| 5.5a | `KernelGateway.complete` over the socket — **the port's last fake, implemented** | `ScriptedKernelSocketOpener`, pure JVM | **Done.** No Maestro, and deliberately: nothing calls `complete` yet, so a flow would be theatre — the same call made for 10.1–10.3. The device gate is 5.5b's |
+| 5.5b | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by 5.5a | fakes, then device | device: type `pri`, get `print` from the real kernel |
 
 #### The lexer is generated, never hand-written
 
@@ -467,9 +468,13 @@ the reply alone does the same. Both readers exist as of 10.1; the state machine 
 Notes that keep this honest:
 
 - **`complete` is not in Step 10.** The port declares it, `FakeKernelGateway` answers it,
-  and nothing calls it until the CodeMirror editor lands in Step 5. Implementing it here
-  would be untested-by-use code. It stays fake until Step 5 needs it, and that is a
-  deliberate deferral rather than an oversight.
+  and nothing calls it until the editor lands in Step 5. Implementing it here would be
+  untested-by-use code. It stays fake until Step 5 needs it, and that is a deliberate
+  deferral rather than an oversight. **Landed in 5.5a**, and the deferral paid: the port
+  declared `cursorLine`/`cursorColumn`, and the first real caller showed that both ends of it
+  speak absolute offsets — a text field's selection and the protocol's own `cursor_pos`
+  (`reference/research_repos/jupyterlab/packages/services/src/kernel/messages.ts:860-866`).
+  Two conversions that could only lose, deleted before anything depended on them.
 - **Each slice keeps the app working.** `FakeKernelGateway` stays wired in `AppContainer`
   until 10.5, so 10.1–10.4 cannot break a running app.
 - **Maestro lands at 10.5, not before.** 10.1–10.3 have no UI to drive; claiming a

@@ -13,7 +13,7 @@ import org.junit.Test
 /** The real gateway owes the same contract as the fake, plus the protocol's own rules. */
 class RealKernelGatewayTest : KernelGatewayContract() {
   override fun gateway(): KernelGateway = RealKernelGateway(
-    ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) }),
+    ScriptedKernelSocketOpener(reply = { executionThenCompletion(it) }),
     FakeKernelLifecycle(),
   )
 
@@ -168,6 +168,82 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     assertEquals(KernelEvent.Idle, events.last())
   }
 
+  // --- Step 5.5a: completion over the same socket ---
+
+  @Test
+  fun complete_returnsTheMatchesAndTheRangeFromTheKernelsReply() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(reply = { listOf(KernelFrames.completeReply(it, listOf("print", "printf"), 4, 7)) }),
+      FakeKernelLifecycle(),
+    )
+
+    val result = gateway.complete(gateway.connect(SPACE), "x = pri", cursorOffset = 7)
+
+    assertEquals(listOf("print", "printf"), result.matches)
+    assertEquals(4, result.replacedStart)
+    assertEquals(7, result.replacedEnd)
+  }
+
+  /** The shell channel is shared, so a reply to another client must not be taken as ours. */
+  @Test
+  fun complete_waitsPastAReplyToSomebodyElsesRequest() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(
+        reply = { ours ->
+          listOf(
+            KernelFrames.completeReply("someone-else", listOf("wrong"), 0, 1),
+            KernelFrames.completeReply(ours, listOf("print"), 0, 3),
+          )
+        },
+      ),
+      FakeKernelLifecycle(),
+    )
+
+    val result = gateway.complete(gateway.connect(SPACE), "pri", cursorOffset = 3)
+
+    assertEquals(listOf("print"), result.matches)
+  }
+
+  /** A completion asked for while a cell is running arrives after the execution's own frames. */
+  @Test
+  fun complete_ignoresTheExecutionTrafficItArrivesAmong() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(reply = { executionThenCompletion(it) }),
+      FakeKernelLifecycle(),
+    )
+
+    val result = gateway.complete(gateway.connect(SPACE), "pri", cursorOffset = 3)
+
+    assertEquals(listOf("print"), result.matches)
+  }
+
+  @Test
+  fun complete_failsWhenTheSocketEndsBeforeTheReply() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(
+        reply = { emptyList() },
+        endAfter = KernelSocketEvent.Ended("connection reset", failed = true),
+      ),
+      FakeKernelLifecycle(),
+    )
+
+    val failure = runCatching { gateway.complete(gateway.connect(SPACE), "pri", cursorOffset = 3) }
+
+    assertTrue("expected the request to fail, got $failure", failure.isFailure)
+  }
+
+  @Test
+  fun complete_reusesTheSessionSocketRatherThanOpeningAnother() = runTest {
+    val opener = ScriptedKernelSocketOpener(reply = { executionThenCompletion(it) })
+    val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
+    val session = gateway.connect(SPACE)
+
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+    gateway.complete(session, "pri", cursorOffset = 3)
+
+    assertEquals(1, opener.openCount)
+  }
+
   // --- Step 10.4a: kernel lifecycle over REST ---
 
   @Test
@@ -210,4 +286,12 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val gateway = RealKernelGateway(ScriptedKernelSocketOpener(reply = script), FakeKernelLifecycle())
     return gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2").toList()
   }
+
+  /**
+   * Answers both request kinds from one script. The gateway filters by `msg_type`, so the
+   * execution frames are invisible to a completion and the reply is invisible to an execution -
+   * the same indifference a real kernel's shared channel demands.
+   */
+  private fun executionThenCompletion(parent: String): List<String> =
+    KernelFrames.successfulExecution(parent) + KernelFrames.completeReply(parent, listOf("print"), 0, 3)
 }

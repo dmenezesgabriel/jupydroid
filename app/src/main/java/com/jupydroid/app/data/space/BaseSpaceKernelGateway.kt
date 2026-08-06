@@ -53,9 +53,8 @@ class BaseSpaceKernelGateway(
   override suspend fun complete(
     session: KernelSession,
     code: String,
-    cursorLine: Int,
-    cursorColumn: Int,
-  ): CompletionResult = running().complete(session, code, cursorLine, cursorColumn)
+    cursorOffset: Int,
+  ): CompletionResult = running().complete(session, code, cursorOffset)
 
   override suspend fun disconnect(session: KernelSession) = running().disconnect(session)
 

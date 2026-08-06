@@ -32,12 +32,33 @@ class FakeKernelGateway : KernelGateway {
 
   override suspend fun interrupt(session: KernelSession) = Unit
 
+  /**
+   * Answers from a handful of builtins rather than from nothing, because this is what the
+   * editor's completion popup is built and tested against until a Space is running.
+   */
   override suspend fun complete(
     session: KernelSession,
     code: String,
-    cursorLine: Int,
-    cursorColumn: Int,
-  ): CompletionResult = CompletionResult(emptyList())
+    cursorOffset: Int,
+  ): CompletionResult {
+    val start = identifierStartBefore(code, cursorOffset)
+    val prefix = code.substring(start, cursorOffset)
+    return CompletionResult(
+      matches = if (prefix.isEmpty()) emptyList() else BUILTINS.filter { it.startsWith(prefix) },
+      replacedStart = start,
+      replacedEnd = cursorOffset,
+    )
+  }
 
   override suspend fun disconnect(session: KernelSession) = Unit
+
+  private fun identifierStartBefore(code: String, cursorOffset: Int): Int {
+    var start = cursorOffset.coerceIn(0, code.length)
+    while (start > 0 && (code[start - 1].isLetterOrDigit() || code[start - 1] == '_')) start--
+    return start
+  }
+
+  private companion object {
+    val BUILTINS = listOf("print", "range", "len", "sum", "sorted", "int", "input", "isinstance")
+  }
 }
