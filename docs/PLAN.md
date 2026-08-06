@@ -351,7 +351,7 @@ a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question
 |---|---|---|---|
 | 5.1 | `PythonSyntax`: ANTLR-generated lexer → highlight spans, behind a `SyntaxHighlighter` interface | JVM | **Done.** 8 tests: comments, f-string interpolation, triple-quoted strings, no zero-width spans, tolerates half-typed code |
 | 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | emulator, then tablet | **Done.** Maestro green on both. Like-for-like on the tablet: a 30-cell notebook costs **+10.5 MB** and **no renderer process**, where the per-cell WebView cost +56.7 MB plus a 93.4 MB renderer — about **139 MB saved**. `evidence/step5.2/tablet/` |
-| 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | Maestro |
+| 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | **Done.** `PythonTypingRules`, 19 tests. Maestro on the tablet types **strictly fewer characters than the cell ends up holding**, so the result cannot be faked: no indent is ever typed, and `)` `'` only ever arrive on top of a partner already there. `evidence/step5.3/` |
 | 5.4 | Line numbers and bracket-match highlight | JVM for the matching, device for the drawing | Maestro |
 | 5.5 | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by `KernelGateway.complete` — **which this finally implements** | fakes, then device | device: type `pri`, get `print` from the real kernel |
 
@@ -390,6 +390,23 @@ and the generated asset. Kept, because none of it was WebView-specific: the debo
 **Height sync stops being a feature.** A native text field measures itself; there is no page to
 ask, no threshold, no debounce, and no unit to get wrong. That whole slice disappears rather
 than being ported.
+
+#### An `InputTransformation` is testable on the JVM, with no device and no Robolectric
+
+Found by spiking it rather than assuming, and it is why 5.3 needed no instrumented test.
+`TextFieldState.edit { }` is public and hands out the same `TextFieldBuffer` the field passes to
+`transformInput`, with real change tracking - so a test types into a real buffer:
+
+```kotlin
+state.edit { insert(selection.start, "\n"); with(rules) { transformInput() } }
+```
+
+Two things the spike settled that the docs do not say:
+
+- **Inserting at a collapsed cursor pushes the cursor past the insertion.** So auto-closing a
+  bracket has to place the cursor back explicitly, or it lands *after* the closer.
+- **`changes` coalesces.** Two adjacent inserts read back as one change, so the user's keystroke
+  must be inspected *before* the transformation edits anything.
 
 **Another language is another `.g4` from the same MIT repo** - no native build, no grammar
 pipeline, no second engine. tree-sitter was the alternative and is rejected for now: it is
@@ -572,11 +589,10 @@ subprocess → tap Run in the app → `print(6 * 7)` shows `42` and a numpy dete
 render, cells are editable with syntax highlighting.
 
 **Done:** Steps 0–3, 4a, 4b (execution half), 7.1, 7.2, 8 (all sub-steps), 10 (all sub-steps),
-5.1, 5.2.
+5.1, 5.2, 5.3.
 
-**Next: Step 5.3** — `InputTransformation` for auto-indent after `:`, indent preservation on
-newline, auto-closing brackets and quotes. Pure text edits, so unit-testable; then 5.4 (line
-numbers, bracket match) and 5.5 (completion).
+**Next: Step 5.4** — line numbers and bracket-match highlight (JVM for the matching, device for
+the drawing); then 5.5 (completion popup fed by `KernelGateway.complete`).
 
 **Also open, in rough priority order:**
 
@@ -651,6 +667,12 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
 - `scripts/gradlew-jbr` still hardcodes this machine's JBR path, and there is
   no CI. Dev-environment debt: it slows a new machine down, it cannot corrupt a
   build.
+- **`PythonTypingRules` reads the line as text, not as tokens**, so a block opener with a
+  trailing comment (`if x:  # note`) gets no extra level. Fixing it means asking the lexer
+  where the comment starts, which is a dependency the transformation does not otherwise have;
+  cheap enough to add if it turns out to grate, deliberately not paid for up front.
+  Replacing a selection is likewise left alone rather than wrapped in the typed bracket -
+  wrapping is a separate feature, and half-doing it would leave an unmatched closer.
 - **`SyntaxKind.NUMBER` has the weakest contrast of the five colours.** It maps to
   `colorScheme.secondary`, which on the dark scheme sits close to the body text - visible
   in `evidence/step5.2/tablet/04-syntax-colours.png`. The other four read clearly. Worth a

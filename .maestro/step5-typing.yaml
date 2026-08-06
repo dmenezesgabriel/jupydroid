@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step5-typing-driver.sh; clearState would delete the fixture.
+#
+# The flow types strictly fewer characters than the cell ends up holding: no indent is ever
+# typed, and `)` `'` only ever arrive on top of a partner that is already there. So the final
+# assertion can only pass if the rules ran.
+- launchApp
+- assertVisible: "Typing Rules"
+- tapOn: "Typing Rules"
+- extendedWaitUntil:
+    visible: "x = 1"
+    timeout: 30000
+- takeScreenshot: 01-cell-loaded
+# The field fills the width, so tapping the node puts the cursor past the end of the one line.
+- tapOn: "x = 1"
+- pressKey: Enter
+- inputText: "if x:"
+- takeScreenshot: 02-block-opener-typed
+# Auto-indent after `:` - four spaces nobody typed.
+- pressKey: Enter
+- inputText: "print"
+- inputText: "("
+- inputText: "'"
+- inputText: "hi"
+- takeScreenshot: 03-pairs-closed
+# Both closers are already there, so typing them must step over rather than double them.
+- inputText: "'"
+- inputText: ")"
+# Indent kept on a line that opens nothing: four more spaces, still untyped.
+- pressKey: Enter
+- inputText: "pass"
+- assertVisible: '(?s).*if x:\n    print\(.hi.\)\n    pass.*'
+- takeScreenshot: 04-indent-and-pairs

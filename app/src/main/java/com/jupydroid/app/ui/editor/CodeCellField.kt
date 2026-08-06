@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldState
@@ -23,9 +24,10 @@ import kotlinx.coroutines.flow.drop
  * One cell's code editor.
  *
  * A plain Compose text field, so IME composing regions, autocorrect, gesture typing,
- * selection handles and the magnifier are the platform's problem rather than ours. Colour is
- * the only thing added, through [OutputTransformation] - which styles what is drawn without
- * touching what is stored.
+ * selection handles and the magnifier are the platform's problem rather than ours. Two things
+ * are added, and both are the language's rather than the widget's: colour through
+ * [OutputTransformation], which styles what is drawn without touching what is stored, and the
+ * indent/bracket edits through [InputTransformation].
  *
  * ```
  * CodeCellField(source = cell.source, onSourceEdited = { … })
@@ -37,6 +39,7 @@ fun CodeCellField(
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
   highlighter: SyntaxHighlighter = remember { PythonSyntax() },
+  typing: InputTransformation = remember { PythonTypingRules() },
 ) {
   val state = rememberTextFieldState(initialText = source)
   val colors = syntaxColors()
@@ -51,6 +54,7 @@ fun CodeCellField(
       color = MaterialTheme.colorScheme.onSurfaceVariant,
     ),
     cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+    inputTransformation = typing,
     outputTransformation = remember(highlighter, colors) { HighlightTransformation(highlighter, colors) },
   )
 }
