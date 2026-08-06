@@ -307,9 +307,9 @@ persistence proven by Maestro `stopApp`→relaunch flow `step3-persistence.yaml`
   are done** (`evidence/step4b/`, `evidence/step4b-run-all/`), against a real
   kernel on the tablet. **The cell menu is done too** — insert code/markdown below,
   move up/down, duplicate, delete, clear outputs, persisted and read back off the
-  device (`evidence/step4b-cell-menu/`). Still open: **collapse**, which needs
-  `metadata.jupyter.source_hidden`/`outputs_hidden` round-tripped through the
-  nbformat DTOs and so belongs with 7.2's remainder rather than here.
+  device (`evidence/step4b-cell-menu/`). **Collapse is done too** — both halves, persisted
+  through the nbformat DTOs; see "Collapse" below, including the correction to what this
+  line used to claim the metadata keys were. **Step 4b is closed.**
 
   **The way in is a `⋮` button on the cell header, and it took three attempts.** A long
   press on the cell is text selection — `BasicTextField` owns that gesture, and the first
@@ -770,6 +770,63 @@ Out of scope and deliberately: `<img>`, forms, iframes, CSS, `colspan`/`rowspan`
 is unranked because nothing draws it — JupyterLab marks it unsafe (rank 80) and we have no trust
 model, which is fine while every type we render is one of its safe ones.
 
+### Collapse — the last piece of 4b's cell menu (2026-08-06)
+
+A code cell can fold its **source** and its **outputs**, independently, and both folds are
+written into the notebook so they survive the app being killed. Two commits, `evidence/collapse/`.
+
+| # | Slice | Gate |
+|---|---|---|
+| C1 | `Cell.sourceHidden` → `metadata.jupyter.source_hidden`, menu item, placeholder | **Done.** 7 DTO + 3 edit + 5 instrumented tests; tablet, both themes |
+| C2 | `Cell.outputsHidden` → `metadata.collapsed`, menu item, placeholder | **Done.** 5 DTO + 3 edit + 6 preview + 6 instrumented tests; tablet, real kernel |
+
+**The two keys are not the symmetric pair the names suggest, and this plan had it wrong.** Step
+4b's entry said `metadata.jupyter.source_hidden`/`outputs_hidden`. Only the first is right:
+
+| Folded | Key | Why |
+|---|---|---|
+| source | `metadata.jupyter.source_hidden` | JupyterLab `saveCollapseState`, `packages/cells/src/widget.ts:472-492` |
+| outputs | `metadata.collapsed` | `jupyter.outputs_hidden` exists in the nbformat types and is exactly what JupyterLab **refuses** to write — "Do not set jupyter.outputs_hidden since it is redundant" (`widget.ts:1437`, citing nbformat issue 137) — and never reads: `loadCollapseState` calls `collapsed` "the source of truth" (`:1452-1458`) |
+
+Honouring the tidier-looking key would have made every notebook we save disagree with the front
+end it is opened in. Found by reading, not by guessing, which is the third time in this project
+that the obvious answer was the wrong one.
+
+Both keys are written **only when true**: Jupyter *deletes* the key to un-collapse rather than
+writing `false`. That falls out for free — an all-empty metadata object equals `CellFile`'s
+default and kotlinx omits it — so an expanded cell writes no metadata key at all.
+
+**Code cells only.** Every JupyterLab collapse action checks `cell.model.type === 'code'`
+(`packages/notebook/src/actions.tsx:1877`, `:1957`), and a markdown cell already has two states
+of its own from A1c. One toggle per fold rather than a hide and a show, which is why JupyterLab
+carries a `toggleOutput` beside its two command pairs.
+
+**Folding is not clearing.** The two sit next to each other in the menu because they read as a
+pair and are not: `Clear outputs` throws the results away and resets the count, `Collapse
+outputs` only hides them. The saved file proves it — `"collapsed":true` with
+`"text":["alpha\n","omega\n"]` still beside it.
+
+**The placeholder previews a line of what is folded**, which is JupyterLab's and not decoration:
+a folded notebook of bare "collapsed" stubs is unreadable. Its two placeholders disagree on the
+rule — the input one takes `source.split('\n')[0]` (`widget.ts:630`), the output one the first
+*non-empty* line (`:1283-1289`) — and both use the non-empty rule here, deliberately, because
+line zero taken literally previews a cell that opens with a blank line as nothing.
+
+Two things the flows taught, both about writing the flow rather than the feature:
+
+- **A flow that ends in the wrong state proves nothing.** The first collapse flow expanded last,
+  and the driver's `run-as cat` — the only evidence of *which key* was written — showed a cell
+  with no metadata at all while every assertion passed. Both flows now end folded.
+- **A "not visible" assertion can be matching the source field.** The output fixture first
+  printed `second line 120` from a line reading `print("second line 120")`, so the assertion
+  could never distinguish folded from unfolded. It prints `omega` from `print("om" + "ega")`
+  now — the output text appears nowhere in the source.
+
+Left alone deliberately: **`CellFile.metadata` is read and then dropped for every key that is
+not ours**, so `tags`, `scrolled` and `slideshow` do not survive a save. That predates this work
+and is unchanged by it — `toFile` wrote `{}` before and writes the collapse keys now — but it is
+the same shape of silent loss Step 7.1 fixed for outputs, and it is listed under residual risks.
+
 ### A2 — a new notebook has no cells and no way to get one
 
 `DiskNotebookRepository.createNotebook` writes `cells = emptyList()`, and the editor's empty
@@ -909,14 +966,14 @@ No WebView and no HTML.
 was fixed. They came from driving the built app rather than reading it, and four of the five
 were invisible to every test that existed at the time.
 
-**`text/html` outputs render natively** (Step 7.2, closed) — see below. **Step 7.2 is done.**
+**`text/html` outputs render natively** (Step 7.2, closed) and **cells collapse** (Step 4b's
+last piece, closed) — both written up below. **Steps 4b and 7.2 are done**, so every cell
+behaviour the plan set out is on the device.
 
-**Next: collapse** (`metadata.jupyter.source_hidden` / `outputs_hidden` through the nbformat
-DTOs), which is the last piece of 4b's cell menu, and then Step 11 (Console REPL).
+**Next: Step 11 (Console REPL)** — a REPL sharing the open notebook's kernel.
 
 **Also open, in rough priority order:**
 
-- **collapse** — the last gap in cells that already work.
 - **Packaging**: debug APK is 116 MB, most of it the rootfs (278 MB unpacked). Asset pack
   versus first-run download is undecided.
 - **LSP** (see below) would supersede 5.5's completion rather than duplicate it.
@@ -1012,6 +1069,11 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   `colorScheme.secondary`, which on the dark scheme sits close to the body text - visible
   in `evidence/step5.2/tablet/04-syntax-colours.png`. The other four read clearly. Worth a
   deliberate palette rather than more scheme roles, but not wrong today.
+- **A cell's other metadata is dropped on save.** `CellFile.metadata` is parsed on read and
+  `toFile` writes only the keys we own, so `tags`, `scrolled`, `slideshow` and anything else
+  another tool put there do not survive. Pre-dates collapse and is unchanged by it — `toFile`
+  wrote `{}` before — but it is the same silent loss Step 7.1 fixed for outputs, and the fix
+  is the same shape: carry the raw object on `Cell` and merge rather than replace.
 - **The server has no lifecycle.** `BaseSpaceKernelGateway` starts `jupyter_server` on
   first use and nothing ever stops it (~143 MB RSS held while backgrounded).
   `disconnect()` closes the socket only. Step 18 owns this. The old `SpaceProbe`
