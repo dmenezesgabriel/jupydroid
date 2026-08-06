@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.commonmark)
     implementation(libs.commons.compress)
     implementation(libs.antlr.runtime)
     // Tool-only: it generates the lexer at build time and is never packaged.

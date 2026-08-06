@@ -1,0 +1,119 @@
+package com.jupydroid.app.markdown
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * The parse half of rendering markdown: source in, a model out, with no Compose anywhere near
+ * it. Drawing that model is [com.jupydroid.app.ui.editor.MarkdownText]'s job and A1c's.
+ */
+class MarkdownDocumentTest {
+  @Test
+  fun readsAHeadingWithItsLevel() {
+    val blocks = MarkdownDocument.parse("## Results")
+
+    val heading = blocks.single() as MarkdownBlock.Heading
+    assertEquals(2, heading.level)
+    assertEquals("Results", heading.inlines.plainText())
+  }
+
+  @Test
+  fun readsAParagraph() {
+    val blocks = MarkdownDocument.parse("Just some prose.")
+
+    assertEquals("Just some prose.", (blocks.single() as MarkdownBlock.Paragraph).inlines.plainText())
+  }
+
+  @Test
+  fun separatesBlocksInTheOrderTheyAppear() {
+    val blocks = MarkdownDocument.parse("# Title\n\nA paragraph.\n\n---")
+
+    assertTrue("got $blocks", blocks[0] is MarkdownBlock.Heading)
+    assertTrue("got $blocks", blocks[1] is MarkdownBlock.Paragraph)
+    assertEquals(MarkdownBlock.ThematicBreak, blocks[2])
+  }
+
+  @Test
+  fun readsEmphasisAndStrongAsNestedInlines() {
+    val inlines = (MarkdownDocument.parse("a *b* and **c**").single() as MarkdownBlock.Paragraph).inlines
+
+    assertTrue("got $inlines", inlines.any { it is MarkdownInline.Emphasis })
+    assertTrue("got $inlines", inlines.any { it is MarkdownInline.StrongEmphasis })
+    assertEquals("a b and c", inlines.plainText())
+  }
+
+  @Test
+  fun readsInlineCode() {
+    val inlines = (MarkdownDocument.parse("run `df.head()` first").single() as MarkdownBlock.Paragraph).inlines
+
+    assertEquals("df.head()", inlines.filterIsInstance<MarkdownInline.Code>().single().code)
+  }
+
+  @Test
+  fun readsAFencedCodeBlockWithItsLanguage() {
+    val block = MarkdownDocument.parse("```python\nx = 1\n```").single() as MarkdownBlock.CodeBlock
+
+    assertEquals("x = 1\n", block.code)
+    assertEquals("python", block.language)
+  }
+
+  @Test
+  fun readsAnIndentedCodeBlockWithNoLanguage() {
+    val block = MarkdownDocument.parse("    x = 1").single() as MarkdownBlock.CodeBlock
+
+    assertEquals("x = 1\n", block.code)
+    assertEquals(null, block.language)
+  }
+
+  @Test
+  fun readsABulletListAsItemsOfBlocks() {
+    val list = MarkdownDocument.parse("- one\n- two").single() as MarkdownBlock.ListBlock
+
+    assertEquals(false, list.ordered)
+    assertEquals(2, list.items.size)
+    assertEquals("one", (list.items[0].single() as MarkdownBlock.Paragraph).inlines.plainText())
+  }
+
+  @Test
+  fun readsAnOrderedListAndWhereItStarts() {
+    val list = MarkdownDocument.parse("3. three\n4. four").single() as MarkdownBlock.ListBlock
+
+    assertEquals(true, list.ordered)
+    assertEquals(3, list.startFrom)
+    assertEquals(2, list.items.size)
+  }
+
+  /** Nesting is why blocks hold blocks rather than a flat list of styled runs. */
+  @Test
+  fun readsABlockQuoteAsBlocksInsideABlock() {
+    val quote = MarkdownDocument.parse("> quoted **text**").single() as MarkdownBlock.BlockQuote
+
+    val inner = quote.children.single() as MarkdownBlock.Paragraph
+    assertEquals("quoted text", inner.inlines.plainText())
+  }
+
+  @Test
+  fun readsALinkWithItsDestination() {
+    val inlines = (MarkdownDocument.parse("see [docs](https://x.dev)").single() as MarkdownBlock.Paragraph).inlines
+
+    val link = inlines.filterIsInstance<MarkdownInline.Link>().single()
+    assertEquals("https://x.dev", link.destination)
+    assertEquals("docs", link.children.plainText())
+  }
+
+  /** A cell is edited constantly, so half-written markdown is the normal case. */
+  @Test
+  fun toleratesEmptyAndHalfWrittenSource() {
+    assertEquals(emptyList<MarkdownBlock>(), MarkdownDocument.parse(""))
+    listOf("#", "**unclosed", "- ", "```", "[link](", ">").forEach { MarkdownDocument.parse(it) }
+  }
+
+  /** Soft breaks are what a wrapped paragraph is made of; they must not be lost. */
+  @Test
+  fun keepsLineBreaksInsideAParagraph() {
+    val inlines = (MarkdownDocument.parse("one\ntwo").single() as MarkdownBlock.Paragraph).inlines
+
+    assertTrue("got $inlines", inlines.any { it is MarkdownInline.SoftLineBreak })
+  }
+}
