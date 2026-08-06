@@ -164,9 +164,9 @@ private fun EditorCell(
           .padding(8.dp),
       )
     } else {
-      Text(
-        text = cell.source,
-        style = MaterialTheme.typography.bodyMedium,
+      MarkdownCellField(
+        source = cell.source,
+        onSourceEdited = onSourceEdited,
         modifier = Modifier.fillMaxWidth(),
       )
     }

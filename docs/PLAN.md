@@ -603,7 +603,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 
 | # | Finding | Status |
 |---|---|---|
-| A1 | **A markdown cell cannot be edited**, and "Insert markdown below" makes an unusable one | open |
+| A1 | **A markdown cell cannot be edited**, and "Insert markdown below" makes an unusable one | **Done.** `MarkdownCellField`, 4 instrumented tests, `evidence/audit-a1-markdown/` |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | open |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | open |
 
@@ -616,8 +616,17 @@ nothing under it - invisible, untappable, unfillable. A regression introduced by
 menu item for a cell type the editor cannot edit.
 
 Reusing `CodeCellField` wholesale is the wrong fix: line numbers, bracket matching, Python
-auto-indent and *kernel completions* are all meaningless in prose. Rendering markdown is a
-separate concern and stays open after this.
+auto-indent and *kernel completions* are all meaningless in prose. `MarkdownCellField` is a
+plain text field; the only thing shared is `ReportEdits`, because when an edit is worth telling
+the ViewModel about is a property of the notebook, not of the language.
+
+An empty one shows a dimmed italic `Write markdown…`, which is how JupyterLab marks the same
+case (`packages/cells/style/widget.css`, `jp-mod-emptyMarkdownPlaceholder`) - without it the
+cell is a row with nothing in it, which is the bug's worst half.
+
+**Rendering markdown stays open.** JupyterLab keeps a `_rendered` flag per markdown cell and
+calls `showEditor()` to go back to the source (`packages/cells/src/widget.ts:2500`, `2563`);
+we show the source always. That is a feature, not this fix.
 
 ### A2 — a new notebook has no cells and no way to get one
 

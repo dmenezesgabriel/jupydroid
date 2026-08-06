@@ -1,0 +1,31 @@
+appId: com.jupydroid.app
+---
+# Audit finding A1: markdown cells were read-only, so an existing one could not be edited and
+# an inserted one was a bare header with nothing under it. Seeded by scripts/a1-markdown-driver.sh.
+- launchApp
+- assertVisible: "Markdown Edit"
+- tapOn: "Markdown Edit"
+- extendedWaitUntil:
+    visible: "Markdown cell here"
+    timeout: 30000
+- takeScreenshot: 01-markdown-cell
+# It is a field now, so it takes typing.
+- tapOn: "Markdown cell here"
+- inputText: " EDITED"
+- assertVisible: ".*Markdown cell here EDITED.*"
+- takeScreenshot: 02-markdown-edited
+# An inserted markdown cell must be visible and fillable, not an empty row.
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Insert markdown below"
+- assertVisible: "Write markdown…"
+- takeScreenshot: 03-inserted-markdown-has-a-placeholder
+# The debounce is 500 ms; stopping the app is the harder case - it must already be on disk.
+- stopApp
+- launchApp
+- tapOn: "Markdown Edit"
+- extendedWaitUntil:
+    visible: ".*Markdown cell here EDITED.*"
+    timeout: 30000
+- takeScreenshot: 04-edit-survived-restart

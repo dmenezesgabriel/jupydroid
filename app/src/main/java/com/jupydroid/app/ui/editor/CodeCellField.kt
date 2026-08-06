@@ -126,9 +126,12 @@ private fun cursorAnchor(layout: TextLayoutResult?, cursorOffset: Int, gutter: D
  * Debounced because a highlighter runs on every keystroke anyway; the ViewModel does not also
  * need to hear about each one. `drop(1)` skips the initial value, which would otherwise mark
  * an untouched notebook dirty the moment it opened.
+ *
+ * Shared with [MarkdownCellField]: the two fields have nothing else in common, but when an edit
+ * is worth telling the ViewModel about is a property of the notebook, not of the language.
  */
 @Composable
-private fun ReportEdits(state: TextFieldState, onSourceEdited: (String) -> Unit) {
+internal fun ReportEdits(state: TextFieldState, onSourceEdited: (String) -> Unit) {
   LaunchedEffect(state) {
     snapshotFlow { state.text.toString() }
       .drop(1)
