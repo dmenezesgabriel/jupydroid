@@ -271,7 +271,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 5 | Cell editor | Compose-native `BasicTextField` + our own highlighting — broken into 5.1–5.5 below. **Was** CodeMirror-in-WebView; changed on measurement |
 | 6 | Execute behaviour | Run → `KernelGateway.execute` → outputs; Running/Idle; Stop/interrupt; execution count (FakeKernel) |
 | 7.1 | **Outputs persist** — nbformat round-trip of `outputs` and `execution_count` | **Done.** Fixed silent data loss: `toDomain`/`toFile` dropped both, so saving a notebook another tool had run destroyed its results. `evidence/step7.1/` |
-| 7.2 | Output rendering | **Done** for images, tracebacks and streams: PNG decoded and drawn, ANSI colour codes stripped, errors in a themed block. `evidence/step7.2/`. Still open: collapse, clear outputs, and `text/html` (a pandas DataFrame falls back to its `text/plain`, which needs the WebView from Step 5) |
+| 7.2 | Output rendering | **Done.** PNG decoded and drawn, ANSI colour codes stripped, errors in a themed block (`evidence/step7.2/`); `text/html` parsed with jsoup and drawn as Compose, tables included, with the mime order read off JupyterLab's `defaultRank` (`evidence/step7.2-html/`). Only **collapse** is left, and it belongs with 4b |
 | 8 | **Risk gate** (base Space) | x86_64 rootfs → `files/spaces/base/`, loader launch, `jupyter_server` on 127.0.0.1, kernel started, cell run — broken into 8.1–8.6 below |
 | 9 | Phase 1: JupyterLab-in-WebView | WebView → `/lab`, cleartext config. **Note:** this is a whole-app fallback view, *not* the cell editor — that is native as of Step 5.2 |
 | 10 | Real KernelGateway (WebSocket) | **Done** — 10.1–10.5 below |
@@ -708,6 +708,68 @@ Worth remembering while doing it: `MarkdownCellField` exists *because* code mach
 for prose (A1), and rendering is now the resting state — so this only shows while someone is
 editing source. It is wanted, but it is not free of that tension.
 
+### Step 7.2's `text/html` — rendered natively, with no WebView (2026-08-06)
+
+The last gap in Step 7.2: a pandas DataFrame fell back to its `text/plain` ASCII grid. The plan
+used to say this "needs the WebView from Step 5" — that WebView was deleted at 5.2 on memory
+grounds, and A1b/A1c had since shown prose renders fine as Compose. So it is rendered the same
+way markdown is, in three commits:
+
+| # | Slice | Gate |
+|---|---|---|
+| 7.2c-0 | `MarkdownBlock`/`MarkdownText` → shared `RichBlock`/`RichText` in a `richtext` package; `MarkdownDocument` becomes one front end onto it | **Done.** Pure rename; the existing suites plus the A1c flow re-run on the tablet |
+| 7.2c-1 | `HtmlDocument` (jsoup) → the same `RichBlock`s, and the mime order | **Done.** 19 JVM tests; `display(HTML(…))` on the tablet in both themes |
+| 7.2c-2 | `RichBlock.Table` + a measured `RichTable` | **Done.** 6 JVM + 4 instrumented tests; a verbatim pandas `_repr_html_` through a real kernel |
+
+**The mime order is JupyterLab's, read rather than guessed.** Every factory declares a
+`defaultRank` and `preferredMimeType` walks them ascending, first present in the bundle wins
+(`packages/rendermime/src/factories.ts`; `registry.ts:105`): `text/html` 50, `text/markdown` 60,
+`text/latex` 70, `image/svg+xml` 80, images 90, javascript/stderr 110, `text/plain` 120. So
+**html outranks an image**, which the old hardcoded png-then-text order would have got wrong.
+Only the three we can draw are listed — a registry holds the types it has a renderer for.
+
+One deliberate difference: ours **keeps looking** when a type is present but unusable — a
+truncated image, markup that parses to nothing. JupyterLab picks by presence, not by whether the
+render then worked, and the undecodable-PNG test predates this.
+
+**jsoup 1.23.1** (MIT, 529 KB, no runtime deps, Java 8 bytecode) — the same footing as commonmark
+and commons-compress. Hand-rolling a lenient HTML tokenizer is what this repo already refused for
+tar and for Python lexing. Only its tree is used; the serialising half is never touched, exactly
+as `org.commonmark.renderer` is never touched.
+
+**The trap is `<style scoped>`**, which pandas wraps around every DataFrame: a walk that treats
+unknown elements as text renders its CSS as prose. `<style>` and `<script>` are dropped whole.
+
+**The table look is read off JupyterLab's stylesheet** (`packages/rendermime/style/base.css:426-476`):
+no gridlines at all, a rule under `thead`, striped body rows, bold `th`, `0.5em` padding, cells
+aligned right — its output columns are usually numbers. Columns are sized to their widest cell by
+a `Layout`, and the table scrolls sideways rather than shrinking, matching
+`.jp-OutputArea-output`'s `overflow-x: auto` and the choice a code block already makes.
+
+**Header-ness is per cell, not per row** — pandas puts its row index in a `<th>` inside `<tbody>`,
+so "is a header cell" and "is the header row" are two different questions. Bold follows the cell,
+the rule follows the row.
+
+Three things only a screenshot caught, and they are the argument for the picture gate:
+
+- The first build **ruled every `th`**, drawing a line across the middle of the table through the
+  index column.
+- It **tinted the first body row** where `tbody tr:nth-child(even)` tints the second.
+  `stripedRows` is extracted and unit-tested so that off-by-one is now arguable on the JVM.
+- The flow **passed every assertion while screenshotting nothing but source** — the verbatim
+  38-line fixture pushes the output below the fold. `scrollUntilVisible` is what makes the
+  assertions and the picture agree about what is on screen; the next run then failed
+  `assertVisible` on that same state, so it was luck either way.
+
+**pandas is not in the rootfs** (`tools/rootfs/requirements.lock`), so the device gate carries a
+verbatim `DataFrame._repr_html_` through `IPython.display.HTML` — same mime bundle, same code
+path, no image rebuild. The markup is captured in `PandasDataFrameHtml.kt` and shared by the JVM
+tests and the Maestro fixture, so neither can drift into markup written from memory.
+
+Out of scope and deliberately: `<img>`, forms, iframes, CSS, `colspan`/`rowspan`. `image/svg+xml`
+is unranked because nothing draws it — JupyterLab marks it unsafe (rank 80) and we have no trust
+model, which is fine while every type we render is one of its safe ones.
+
 ### A2 — a new notebook has no cells and no way to get one
 
 `DiskNotebookRepository.createNotebook` writes `cells = emptyList()`, and the editor's empty
@@ -802,6 +864,11 @@ the wrong thing.
   `app/src/androidTest` was empty despite the Compose test dependencies being declared since
   Step 1. Reach for one when the question is *whether something is visible or reachable*, which
   no JVM test can answer.
+- **`assertVisible` means on screen, so assert what the screenshot shows.** A node below the
+  fold passed `extendedWaitUntil` on one run of `step7-html-output` and failed it on the next,
+  against an identical state — and the screenshot in between showed only source. Reach for
+  `scrollUntilVisible` when the thing being proven can be pushed off screen by a long cell; it
+  retries, so it is also the wait.
 - **A popup's position is not observable from a Compose test.** It gets its own window, so
   `getUnclippedBoundsInRoot` reports coordinates inside that window — a menu pinned across the
   screen and one under its button read identically. Anchoring is a screenshot gate.
@@ -842,13 +909,14 @@ No WebView and no HTML.
 was fixed. They came from driving the built app rather than reading it, and four of the five
 were invisible to every test that existed at the time.
 
-**Next: 7.2's `text/html`** — a pandas DataFrame still falls back to its `text/plain`. Then
-**collapse** (`metadata.jupyter.source_hidden` / `outputs_hidden` through the nbformat DTOs),
-which is the last piece of 4b's cell menu, and then Step 11 (Console REPL).
+**`text/html` outputs render natively** (Step 7.2, closed) — see below. **Step 7.2 is done.**
+
+**Next: collapse** (`metadata.jupyter.source_hidden` / `outputs_hidden` through the nbformat
+DTOs), which is the last piece of 4b's cell menu, and then Step 11 (Console REPL).
 
 **Also open, in rough priority order:**
 
-- **7.2's `text/html`**, then **collapse** — the two remaining gaps in cells that already work.
+- **collapse** — the last gap in cells that already work.
 - **Packaging**: debug APK is 116 MB, most of it the rootfs (278 MB unpacked). Asset pack
   versus first-run download is undecided.
 - **LSP** (see below) would supersede 5.5's completion rather than duplicate it.
@@ -877,7 +945,7 @@ than guessed, and each time it contradicted the obvious answer.
 | **JupyterLab** | notebook, N cells | CodeMirror 6, **one page**, many instances | The architecture we would have taken had we stayed on WebViews — and, still, the reference for *behaviour*: the kernel protocol's message shapes (5.5a) and the cell actions' semantics (4b) were both read out of it rather than guessed |
 | **GitHub Mobile** | code browser | **No editor at all** — server-highlighted HTML (primer `.pl-*`) in a WebView, plain `EditText` for edits | Not a model: it moves tokenising to a server, which offline forbids |
 | **sora-editor** (LGPL-2.1) | IDE, one file | native view + tree-sitter via an **archived LGPL** binding | Ruled out on licence; its tree-sitter route ruled out on NDK |
-| **JetBrains Jewel** (Apache-2.0), in `intellij-community/platform/jewel/markdown` | markdown in Compose | commonmark-java AST → recursive composables | How to render markdown without a WebView (A1b/A1c): blocks recurse, leaf blocks hold an inline **model** and the `AnnotatedString` is built at draw time, inline code takes `SpanStyle.background`, a quote's rule is `drawBehind` |
+| **JetBrains Jewel** (Apache-2.0), in `intellij-community/platform/jewel/markdown` | markdown in Compose | commonmark-java AST → recursive composables | How to render markdown without a WebView (A1b/A1c): blocks recurse, leaf blocks hold an inline **model** and the `AnnotatedString` is built at draw time, inline code takes `SpanStyle.background`, a quote's rule is `drawBehind`. Its `gfm-tables` extension gave 7.2c-2 its shape too: a table is rows of cells, cells hold **inlines only**, and column widths come from `maxIntrinsicWidth` in a custom `Layout` (`BasicTableLayout.kt`) |
 
 ### Language intelligence: the options, priced
 
