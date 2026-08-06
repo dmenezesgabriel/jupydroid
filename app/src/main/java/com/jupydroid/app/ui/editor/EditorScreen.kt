@@ -159,7 +159,11 @@ private fun EditorCell(
       onCellAction = onCellAction,
     )
     Spacer(modifier = Modifier.height(4.dp))
-    if (cell.kind == CellKind.CODE) {
+    if (cell.sourceHidden) {
+      // Collapsed beats every other source state: there is nothing to type into, and the tap
+      // that expands must not also land in a text field.
+      CollapsedCell(source = cell.source, onExpand = { onCellAction(CellAction.ToggleSourceHidden) })
+    } else if (cell.kind == CellKind.CODE) {
       CodeCellField(
         source = cell.source,
         onSourceEdited = onSourceEdited,

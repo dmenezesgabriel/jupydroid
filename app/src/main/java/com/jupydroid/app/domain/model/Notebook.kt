@@ -11,6 +11,11 @@ data class Cell(
   /** What the kernel last produced for this cell; persisted in nbformat like Jupyter's. */
   val outputs: List<CellOutput> = emptyList(),
   val executionCount: Int? = null,
+  /**
+   * Collapsed source. A view state, but a persisted one - Jupyter writes it into the cell's
+   * metadata so a notebook opens the way it was left.
+   */
+  val sourceHidden: Boolean = false,
 )
 
 data class Notebook(

@@ -84,6 +84,7 @@ class EditorViewModel(
         CellAction.Duplicate -> state.withCellDuplicated(cellId, newId = UUID.randomUUID().toString())
         CellAction.Delete -> state.withCellDeleted(cellId, replacementId = UUID.randomUUID().toString())
         CellAction.ClearOutputs -> state.withOutputsCleared(cellId)
+        CellAction.ToggleSourceHidden -> state.withSourceHiddenToggled(cellId)
       }
     }
     scheduleSave()

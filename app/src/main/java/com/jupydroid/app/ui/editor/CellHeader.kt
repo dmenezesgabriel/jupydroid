@@ -74,7 +74,7 @@ internal fun CellHeader(
       IconButtonSized(onClick = { menuOpen = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = "Cell actions")
       }
-      CellMenu(expanded = menuOpen, onDismiss = { menuOpen = false }, onAction = onCellAction)
+      CellMenu(expanded = menuOpen, cell = cell, onDismiss = { menuOpen = false }, onAction = onCellAction)
     }
   }
 }

@@ -5,6 +5,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -120,6 +121,34 @@ class CellEditsTest {
 
     assertTrue(cleared.outputs["a"].isNullOrEmpty())
     assertNull(cleared.executionCounts["a"])
+  }
+
+  /**
+   * A toggle rather than separate hide and show, which is what a one-cell menu wants -
+   * JupyterLab has both pairs and a `toggleOutput` for exactly the same reason
+   * (`packages/notebook/src/actions.tsx:1998`).
+   */
+  @Test
+  fun toggleSourceHidden_hidesAnExpandedCellAndShowsAHiddenOne() {
+    val hidden = stateOf("a", "b").withSourceHiddenToggled("a")
+
+    assertTrue(hidden.cells.single { it.id == "a" }.sourceHidden)
+    assertFalse(hidden.withSourceHiddenToggled("a").cells.single { it.id == "a" }.sourceHidden)
+  }
+
+  @Test
+  fun toggleSourceHidden_leavesEveryOtherCellAlone() {
+    val toggled = stateOf("a", "b").withSourceHiddenToggled("a")
+
+    assertFalse(toggled.cells.single { it.id == "b" }.sourceHidden)
+  }
+
+  /** A menu outlives the cell it was opened on; a stale id is a no-op, as everywhere else here. */
+  @Test
+  fun toggleSourceHidden_ignoresACellThatIsGone() {
+    val state = stateOf("a")
+
+    assertEquals(state, state.withSourceHiddenToggled("gone"))
   }
 
   @Test

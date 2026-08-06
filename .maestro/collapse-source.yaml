@@ -1,0 +1,47 @@
+appId: com.jupydroid.app
+---
+# Collapse (Step 4b's last piece): a cell's source folds to its first line, and the fold
+# survives the app being killed - because it is written into the cell's nbformat metadata,
+# not held in memory. Seeded by the driver.
+- launchApp
+- assertVisible: "Collapse"
+- tapOn: "Collapse"
+# Expanded: the field holds every line, so a substring match finds the last one.
+- extendedWaitUntil:
+    visible: ".*factorial.*"
+    timeout: 30000
+- takeScreenshot: 01-expanded
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Collapse code"
+# `import math` on its own can only be the placeholder: Maestro matches the whole string, and
+# the field node would read "import math\nanswer = …". So this pair is the fold itself -
+# the first line is still named, and the rest of the source is gone.
+- assertVisible: "import math"
+- assertNotVisible: ".*factorial.*"
+- takeScreenshot: 02-collapsed
+# A tap on the placeholder expands it again, which is what JupyterLab's "Click to expand" does.
+- tapOn: "Collapsed code"
+- extendedWaitUntil:
+    visible: ".*factorial.*"
+    timeout: 10000
+- takeScreenshot: 03-tapped-to-expand
+# Collapsed again, and the flow ends this way on purpose: the driver dumps the saved file
+# afterwards, and the first version of this flow expanded last - so every assertion passed
+# while the dump showed a cell with no metadata at all, proving nothing about the write.
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Collapse code"
+- assertVisible: "import math"
+# The point of persisting it. stopApp is a real kill, so anything held only in the ViewModel
+# is gone by the relaunch.
+- stopApp
+- launchApp
+- tapOn: "Collapse"
+- extendedWaitUntil:
+    visible: "import math"
+    timeout: 30000
+- assertNotVisible: ".*factorial.*"
+- takeScreenshot: 04-still-collapsed-after-restart

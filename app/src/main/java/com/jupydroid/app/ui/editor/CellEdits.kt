@@ -72,5 +72,18 @@ fun EditorUiState.withOutputsCleared(cellId: String): EditorUiState {
   return copy(outputs = outputs - cellId, executionCounts = executionCounts - cellId, dirty = true)
 }
 
+/**
+ * A toggle rather than a hide and a show, which is what a menu on one cell wants. JupyterLab
+ * has both pairs *and* a `toggleOutput` for the same reason
+ * (`packages/notebook/src/actions.tsx:1998`).
+ */
+fun EditorUiState.withSourceHiddenToggled(cellId: String): EditorUiState {
+  if (cells.none { it.id == cellId }) return this
+  return copy(
+    cells = cells.map { if (it.id == cellId) it.copy(sourceHidden = !it.sourceHidden) else it },
+    dirty = true,
+  )
+}
+
 private fun <T> Map<String, T>.carryOver(from: String, to: String): Map<String, T> =
   get(from)?.let { this + (to to it) } ?: this

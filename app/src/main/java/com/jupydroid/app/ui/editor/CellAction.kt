@@ -21,4 +21,7 @@ sealed interface CellAction {
   data object Delete : CellAction
 
   data object ClearOutputs : CellAction
+
+  /** Collapse or expand the cell's source. Code cells only, as in JupyterLab. */
+  data object ToggleSourceHidden : CellAction
 }
