@@ -355,7 +355,7 @@ a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question
 | 5.4a | Bracket-match highlight | JVM for the matching, device for the drawing | **Done.** `bracketPairAround`, 11 tests. `evidence/step5.4a/` |
 | 5.4b | Line numbers | JVM for where the logical lines start, device for the drawing | **Done.** Positions come from the field's `TextLayoutResult`, so a wrapped line keeps one number. `evidence/step5.4b/` |
 | 5.5a | `KernelGateway.complete` over the socket — **the port's last fake, implemented** | `ScriptedKernelSocketOpener`, pure JVM | **Done.** No Maestro, and deliberately: nothing calls `complete` yet, so a flow would be theatre — the same call made for 10.1–10.3. The device gate is 5.5b's |
-| 5.5b | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by 5.5a | fakes, then device | device: type `pri`, get `print` from the real kernel |
+| 5.5b | Completion popup anchored with `TextLayoutResult.getCursorRect`, fed by 5.5a | fakes, then device | **Done.** `pri` typed on the tablet, `print` offered by the real kernel, tapped and spliced. `evidence/step5.5b/` — including the run that went green with **no popup on screen** |
 
 #### The lexer is generated, never hand-written
 
@@ -609,10 +609,13 @@ subprocess → tap Run in the app → `print(6 * 7)` shows `42` and a numpy dete
 render, cells are editable with syntax highlighting.
 
 **Done:** Steps 0–3, 4a, 4b (execution half), 7.1, 7.2, 8 (all sub-steps), 10 (all sub-steps),
-5.1, 5.2, 5.3, 5.4a, 5.4b.
+5.1, 5.2, 5.3, 5.4a, 5.4b, 5.5a, 5.5b. **Step 5 is closed**, and with it the last fake behind
+the `KernelGateway` port.
 
-**Next: Step 5.5** — the completion popup, anchored with `TextLayoutResult.getCursorRect` and fed
-by `KernelGateway.complete`, which this is where the port finally implements. That closes Step 5.
+**Next: Step 6 is already satisfied** by 4b and Step 10 (run → outputs, Running/Idle, interrupt,
+execution count, against a real kernel), so the real next piece of work is **4b's editing half** —
+the long-press cell menu: insert, move, duplicate, delete, clear outputs, collapse. That also
+clears two of 7.2's leftovers, since clear-outputs and collapse live in the same menu.
 
 **Also open, in rough priority order:**
 
@@ -687,6 +690,11 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
 - `scripts/gradlew-jbr` still hardcodes this machine's JBR path, and there is
   no CI. Dev-environment debt: it slows a new machine down, it cannot corrupt a
   build.
+- **One unexplained stall in cell execution, seen once.** On the first run of the 5.5b flow
+  the kernel came up in 11 s and the cell then never finished within 169 s. Not reproduced:
+  step10 passed on the same build minutes later, and the flow has since passed three times,
+  once directly after a reinstall — which was the hypothesis. No cause known, recorded so a
+  second sighting is recognised as a second rather than a first.
 - **`PythonTypingRules` reads the line as text, not as tokens**, so a block opener with a
   trailing comment (`if x:  # note`) gets no extra level. Fixing it means asking the lexer
   where the comment starts, which is a dependency the transformation does not otherwise have;

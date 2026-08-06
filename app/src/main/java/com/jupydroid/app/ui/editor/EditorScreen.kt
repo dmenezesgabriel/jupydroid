@@ -42,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
 
@@ -71,6 +72,7 @@ fun EditorScreen(
       onRunCell = viewModel::runCell,
       onStopCell = viewModel::stopRunningCell,
       onEditCell = viewModel::editCell,
+      completionsAt = viewModel::completionsAt,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -102,6 +104,7 @@ private fun EditorContent(
   onRunCell: (Cell) -> Unit,
   onStopCell: () -> Unit,
   onEditCell: (String, String) -> Unit,
+  completionsAt: suspend (String, Int) -> CompletionResult,
   modifier: Modifier = Modifier,
 ) {
   when {
@@ -119,6 +122,7 @@ private fun EditorContent(
             onRun = { onRunCell(cell) },
             onStop = onStopCell,
             onSourceEdited = { source -> onEditCell(cell.id, source) },
+            completionsAt = completionsAt,
           )
         }
       }
@@ -134,6 +138,7 @@ private fun EditorCell(
   onRun: () -> Unit,
   onStop: () -> Unit,
   onSourceEdited: (String) -> Unit,
+  completionsAt: suspend (String, Int) -> CompletionResult,
   modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -149,6 +154,7 @@ private fun EditorCell(
       CodeCellField(
         source = cell.source,
         onSourceEdited = onSourceEdited,
+        completionsAt = completionsAt,
         modifier = Modifier
           .fillMaxWidth()
           .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)

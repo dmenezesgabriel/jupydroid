@@ -11,6 +11,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -26,27 +27,42 @@ import androidx.compose.ui.unit.dp
  * ```
  *
  * @param layout the field's latest [TextLayoutResult], or null before it has laid out once.
+ * @param width from [gutterWidth]; passed in rather than computed here because the completion
+ *   popup anchors against the same edge and the two must not disagree.
  */
 @Composable
-fun Modifier.lineNumbers(text: CharSequence, layout: TextLayoutResult?, style: TextStyle): Modifier {
+fun Modifier.lineNumbers(
+  text: CharSequence,
+  layout: TextLayoutResult?,
+  style: TextStyle,
+  width: Dp,
+): Modifier {
   val starts = logicalLineStarts(text)
   val measurer = rememberTextMeasurer()
   // Measured once per line count rather than per frame: a TextMeasurer's cache is small, and a
   // thirty-line cell would miss it on every draw.
   val numbers = remember(starts.size, style) { List(starts.size) { measurer.measure("${it + 1}", style) } }
-  val gutter = remember(starts.size, style) {
-    measurer.measure("0".repeat(gutterDigits(starts.size)), style).size.width
-  }
-  val gap = with(LocalDensity.current) { NUMBER_GAP.roundToPx() }
+  val digits = with(LocalDensity.current) { (width - NUMBER_GAP).roundToPx() }
 
   return drawBehind {
     if (layout == null) return@drawBehind
     numbers.forEachIndexed { index, number ->
       // Right-aligned, so the digits line up with each other rather than with the code.
-      val x = (gutter - number.size.width).toFloat()
+      val x = (digits - number.size.width).toFloat()
       drawText(number, topLeft = Offset(x, layout.getLineTop(layout.getLineForOffset(starts[index]))))
     }
-  }.padding(start = with(LocalDensity.current) { (gutter + gap).toDp() })
+  }.padding(start = width)
+}
+
+/** How far the code is pushed right to make room for the numbers. */
+@Composable
+fun gutterWidth(text: CharSequence, style: TextStyle): Dp {
+  val measurer = rememberTextMeasurer()
+  val lineCount = logicalLineStarts(text).size
+  val digits = remember(lineCount, style) {
+    measurer.measure("0".repeat(gutterDigits(lineCount)), style).size.width
+  }
+  return with(LocalDensity.current) { digits.toDp() } + NUMBER_GAP
 }
 
 /**

@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step5-completion-driver.sh; clearState would delete the fixture.
+#
+# The cell is RUN first, and that is not scene-setting: completion deliberately never starts a
+# kernel, because typing must not boot a Python runtime the user has not asked for. So the
+# popup can only appear at all if a real kernel is already answering - which is the gate.
+- launchApp
+- assertVisible: "Completion"
+- tapOn: "Completion"
+- extendedWaitUntil:
+    visible: "1 \\+ 1"
+    timeout: 30000
+# Starting the base Space takes seconds on first use: rootfs, jupyter_server, then a kernel.
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible: "2"
+    timeout: 180000
+- takeScreenshot: 01-kernel-answering
+# A fresh line, so what gets completed is `pri` and not `1 + 1pri`.
+- tapOn: "1 \\+ 1"
+- pressKey: Enter
+- inputText: "pri"
+# Matched by contentDescription, never by the bare word: the Samsung keyboard offers "print"
+# in its own suggestion bar, and an earlier version of this flow passed green against that
+# instead of against the popup. Only this app writes "Completion print".
+- extendedWaitUntil:
+    visible: "Completions"
+    timeout: 60000
+- assertVisible: "Completion print"
+- takeScreenshot: 02-popup-from-the-real-kernel
+- tapOn: "Completion print"
+- assertVisible: "(?s).*1 \\+ 1\nprint.*"
+- takeScreenshot: 03-completion-applied

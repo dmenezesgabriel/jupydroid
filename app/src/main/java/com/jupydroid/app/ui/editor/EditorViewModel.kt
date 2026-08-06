@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
@@ -99,6 +100,26 @@ class EditorViewModel(
   fun stopRunningCell() {
     if (_uiState.value.runningCellId == null) return
     viewModelScope.launch { session?.let { kernelGateway.interrupt(it) } }
+  }
+
+  /**
+   * What the kernel offers for the code under the cursor.
+   *
+   * Uses the session the notebook already has and never opens one. Typing must not boot a
+   * Python runtime the user has not asked for by running a cell - `BaseSpaceKernelGateway`
+   * installs a Space and starts `jupyter_server` on first use, which is seconds and ~143 MB.
+   *
+   * A completion that fails is silence, not a crash: the socket dying is worth reporting when
+   * a cell is running, and worth ignoring when the user is only typing.
+   */
+  @Suppress("SwallowedException") // a kernel that cannot answer has nothing to say, which is not an error
+  suspend fun completionsAt(code: String, cursorOffset: Int): CompletionResult {
+    val open = session ?: return CompletionResult.NONE
+    return try {
+      kernelGateway.complete(open, code, cursorOffset)
+    } catch (e: IllegalStateException) {
+      CompletionResult.NONE
+    }
   }
 
   /** Returns whether the cell finished without raising, which is what [runAll] gates on. */
