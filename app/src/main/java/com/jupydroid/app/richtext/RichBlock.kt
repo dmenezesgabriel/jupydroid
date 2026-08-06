@@ -32,7 +32,19 @@ sealed interface RichBlock {
   ) : RichBlock
 
   data object ThematicBreak : RichBlock
+
+  /**
+   * Rows of cells, every row the same length so a renderer can treat it as a grid.
+   *
+   * Header-ness is a property of the cell rather than of the first row, because a pandas
+   * DataFrame puts its row index in a `<th>` inside `<tbody>` - so "header" and "first row"
+   * are two different things and the model has to hold both.
+   */
+  data class Table(val rows: List<List<TableCell>>) : RichBlock
 }
+
+/** A cell holds inlines and never blocks, which is Jewel's rule for the same model. */
+data class TableCell(val inlines: List<RichInline>, val isHeader: Boolean)
 
 /** The styled runs inside a block. Nested, so `**bold with *italic* inside**` survives. */
 sealed interface RichInline {

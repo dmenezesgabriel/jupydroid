@@ -54,6 +54,7 @@ object HtmlDocument {
       "ul" -> listOf(RichBlock.ListBlock(ordered = false, startFrom = 1, items = element.items()))
       "ol" -> listOf(RichBlock.ListBlock(ordered = true, startFrom = element.startFrom(), items = element.items()))
       "hr" -> listOf(RichBlock.ThematicBreak)
+      "table" -> element.asTable()
       // A container has no shape of its own; its children flatten into the document.
       in CONTAINER_TAGS -> element.blocks()
       else -> null

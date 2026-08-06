@@ -156,6 +156,63 @@ class HtmlDocumentTest {
     assertEquals(2, blocks.size)
   }
 
+  /**
+   * The whole point of the slice, against the captured fixture rather than markup written
+   * from memory: a DataFrame is one table and nothing else - no paragraph of stylesheet.
+   */
+  @Test
+  fun readsARealPandasDataFrameAsOneTable() {
+    val table = HtmlDocument.parse(PANDAS_DATAFRAME_HTML).single() as RichBlock.Table
+
+    assertEquals(3, table.rows.size)
+    assertEquals(listOf("", "a", "b"), table.rows[0].map { it.inlines.plainText() })
+    assertEquals(listOf("0", "1", "x"), table.rows[1].map { it.inlines.plainText() })
+    assertEquals(listOf("1", "2", "y"), table.rows[2].map { it.inlines.plainText() })
+  }
+
+  /** `thead`'s cells are headers, and so is the index `<th>` pandas puts inside `tbody`. */
+  @Test
+  fun marksHeaderCellsWhereverTheySit() {
+    val table = HtmlDocument.parse(PANDAS_DATAFRAME_HTML).single() as RichBlock.Table
+
+    assertEquals(listOf(true, true, true), table.rows[0].map { it.isHeader })
+    assertEquals(listOf(true, false, false), table.rows[1].map { it.isHeader })
+  }
+
+  /** A `<tr>` need not sit in a `thead` or a `tbody`; hand-written HTML often skips both. */
+  @Test
+  fun readsRowsWithNoRowGroupAroundThem() {
+    val table = HtmlDocument.parse("<table><tr><th>h</th></tr><tr><td>v</td></tr></table>").single()
+      as RichBlock.Table
+
+    assertEquals(listOf("h", "v"), table.rows.map { it.single().inlines.plainText() })
+  }
+
+  /** A grid is only a grid if the rows are the same length, so short ones are padded. */
+  @Test
+  fun padsARaggedRowSoEveryRowIsTheSameLength() {
+    val table = HtmlDocument.parse("<table><tr><td>a</td><td>b</td></tr><tr><td>c</td></tr></table>")
+      .single() as RichBlock.Table
+
+    assertEquals(listOf(2, 2), table.rows.map { it.size })
+    assertEquals("", table.rows[1][1].inlines.plainText())
+  }
+
+  /** Nothing to draw is better than an empty frame, and lets the output fall back to its text. */
+  @Test
+  fun dropsATableThatHasNoRows() {
+    assertEquals(emptyList<RichBlock>(), HtmlDocument.parse("<table><caption>Empty</caption></table>"))
+  }
+
+  /** A cell keeps its marks - `<td><b>x</b></td>` is bold, not the literal tags. */
+  @Test
+  fun keepsTheInlineMarksInsideACell() {
+    val table = HtmlDocument.parse("<table><tr><td>a <b>bold</b></td></tr></table>").single()
+      as RichBlock.Table
+
+    assertTrue("got ${table.rows[0][0]}", table.rows[0][0].inlines.any { it is RichInline.StrongEmphasis })
+  }
+
   /** An output is whatever the kernel sent; malformed markup must degrade, never throw. */
   @Test
   fun toleratesEmptyAndMalformedMarkup() {

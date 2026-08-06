@@ -110,18 +110,21 @@ class RenderedOutputTest {
   }
 
   /**
-   * A real `DataFrame._repr_html_`, captured from pandas rather than written from memory.
-   * Until there is a table block to draw it with, it must keep showing the `text/plain` grid
-   * it ships beside it - a run of cell text with no columns would be a regression, not progress.
+   * A real `DataFrame._repr_html_`, captured from pandas rather than written from memory: the
+   * case this whole step exists for. The ASCII grid beside it is what used to be shown.
    */
   @Test
-  fun render_keepsThePlainTextGridWhileATableCannotBeDrawn() {
+  fun render_drawsADataFrameAsATableRatherThanItsAsciiGrid() {
     val output = CellOutput.ExecuteResult(
       mapOf("text/html" to PANDAS_DATAFRAME_HTML, "text/plain" to "   a  b\n0  1  x\n1  2  y"),
       1,
     )
 
-    assertEquals("   a  b\n0  1  x\n1  2  y", text(output).text)
+    val rendered = output.render()
+
+    assertTrue("expected a document, got $rendered", rendered is RenderedOutput.Document)
+    val table = (rendered as RenderedOutput.Document).blocks.single() as RichBlock.Table
+    assertEquals(listOf("", "a", "b"), table.rows.first().map { it.inlines.plainText() })
   }
 
   /** A truncated or non-base64 payload must degrade to its text, not crash the notebook. */

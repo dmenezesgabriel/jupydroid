@@ -37,12 +37,6 @@ private fun Element.markedInlines(): List<RichInline> = when (tagName()) {
 /**
  * `<style>` and `<script>` hold text that is not content: pandas wraps every DataFrame in a
  * `<style scoped>` block, and a walk that treats unknown elements as text puts its CSS on screen.
- *
- * `table` is here for a different reason - there is no table block yet, and the inline walk
- * would run every cell together into one paragraph, which is worse than the `text/plain` grid
- * a DataFrame ships beside it. Ignoring it leaves nothing to draw, so `RenderedOutput` falls
- * through to that grid, which is what the app already showed. It leaves this set the moment
- * there is a block to move it to.
  */
 internal fun Node.isIgnored(): Boolean =
   this is Comment || (this is Element && tagName() in IGNORED_TAGS)
@@ -65,5 +59,4 @@ private fun RichInline.isBlankText(): Boolean = this is RichInline.Text && text.
 private fun RichInline.mapText(transform: (String) -> String): RichInline =
   if (this is RichInline.Text) RichInline.Text(transform(text)) else this
 
-private val IGNORED_TAGS =
-  setOf("style", "script", "head", "title", "meta", "link", "table")
+private val IGNORED_TAGS = setOf("style", "script", "head", "title", "meta", "link")

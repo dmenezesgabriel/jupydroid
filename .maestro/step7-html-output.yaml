@@ -24,3 +24,30 @@ appId: com.jupydroid.app
 - assertVisible: "Signed off by finance."
 - assertVisible: "See the docs."
 - takeScreenshot: 02-html-rendered-as-compose
+# The DataFrame case. The markup is a verbatim `pandas._repr_html_`, carried by
+# IPython.display.HTML because pandas is not in the rootfs - the mime bundle and the code
+# path are the same either way.
+- tapOn:
+    text: "Run cell"
+    index: 1
+# The verbatim fixture is 38 lines, so the output starts below the fold - the first run of
+# this flow screenshotted nothing but source while passing every assertion, and the second
+# then failed `assertVisible` on the very same state. Scrolling is what makes the screenshot
+# and the assertions agree about what is on screen, and it retries, so it is also the wait
+# for the kernel. `y` is the last body cell; Maestro matches the whole string, so this can
+# only be the rendered cell - the source above it holds `<td>y</td>`, which is not a match.
+- scrollUntilVisible:
+    element:
+      text: "y"
+    direction: DOWN
+    timeout: 90000
+    centerElement: true
+# Header and values as separate nodes: a grid, not one run of text.
+- assertVisible: "a"
+- assertVisible: "b"
+- assertVisible: "x"
+# The `<style scoped>` block that ships with every DataFrame cannot be asserted absent here -
+# the source cell puts that same CSS on screen, so any match would be its own. The precise
+# gate for it is `HtmlDocumentTest.readsARealPandasDataFrameAsOneTable`, which asserts the
+# fixture parses to one table block and nothing else. This screenshot is the visual half.
+- takeScreenshot: 03-dataframe-as-a-table

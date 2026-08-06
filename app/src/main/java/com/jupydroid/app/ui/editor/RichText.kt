@@ -53,6 +53,7 @@ private fun RichBlockText(block: RichBlock) {
     is RichBlock.BlockQuote -> BlockQuoteText(block)
     is RichBlock.ListBlock -> ListBlockText(block)
     RichBlock.ThematicBreak -> HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    is RichBlock.Table -> RichTable(block)
   }
 }
 
