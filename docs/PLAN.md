@@ -265,7 +265,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 7.1 | **Outputs persist** — nbformat round-trip of `outputs` and `execution_count` | **Done.** Fixed silent data loss: `toDomain`/`toFile` dropped both, so saving a notebook another tool had run destroyed its results. `evidence/step7.1/` |
 | 7.2 | Output rendering | **Done** for images, tracebacks and streams: PNG decoded and drawn, ANSI colour codes stripped, errors in a themed block. `evidence/step7.2/`. Still open: collapse, clear outputs, and `text/html` (a pandas DataFrame falls back to its `text/plain`, which needs the WebView from Step 5) |
 | 8 | **Risk gate** (base Space) | x86_64 rootfs → `files/spaces/base/`, loader launch, `jupyter_server` on 127.0.0.1, kernel started, cell run — broken into 8.1–8.6 below |
-| 9 | Phase 1: JupyterLab-in-WebView | WebView → `/lab`, cleartext config |
+| 9 | Phase 1: JupyterLab-in-WebView | WebView → `/lab`, cleartext config. **Note:** this is a whole-app fallback view, *not* the cell editor — that is native as of Step 5.2 |
 | 10 | Real KernelGateway (WebSocket) | **Done** — 10.1–10.5 below |
 | 11 | Console REPL | REPL sharing the open notebook's kernel; Enter=run, Shift+Enter=newline; input history, clear transcript |
 | 12–13 | xeus-python, xeus-sqlite, multi-kernel | kernelspecs + language switch |
@@ -349,7 +349,7 @@ a derivative of LGPL-2.1 stays LGPL-2.1, so forking answers the licence question
 
 | # | Slice | Test seam | Gate |
 |---|---|---|---|
-| 5.1 | `PythonSyntax`: ANTLR-generated lexer → highlight spans, behind a `SyntaxHighlighter` interface | JVM | unit tests only. Comments, f-strings, triple-quoted strings, numbers - the things that go wrong at boundaries |
+| 5.1 | `PythonSyntax`: ANTLR-generated lexer → highlight spans, behind a `SyntaxHighlighter` interface | JVM | **Done.** 8 tests: comments, f-string interpolation, triple-quoted strings, no zero-width spans, tolerates half-typed code |
 | 5.2 | `CodeCellField`: `BasicTextField` + `TextFieldState`, spans applied through `OutputTransformation` | emulator | **Done.** Maestro: typed, restarted, `answer = 420` still there and coloured. WebView editor deleted in the same commit. Renderer processes: **0**, where the per-cell design ran one at 93 MB. `evidence/step5.2/` |
 | 5.3 | `InputTransformation`: auto-indent after `:`, keep indent on newline, auto-close brackets and quotes | JVM - it is a pure text edit | Maestro |
 | 5.4 | Line numbers and bracket-match highlight | JVM for the matching, device for the drawing | Maestro |
@@ -563,59 +563,65 @@ fakes — 3 files today, many more once the runtime lands.
 
 ---
 
-## Where we are, and what to do next (2026-08-04)
+## Where we are, and what to do next (2026-08-06)
 
-**Step 8 is closed, 8.7 included.** On a Galaxy Tab A9+ (Android 16, arm64) the
-whole runtime chain works: bundled Alpine/musl rootfs → extracted to app storage →
-interpreter exec'd from `nativeLibraryDir` → stock `jupyter_server` on loopback →
-kernel spawned as a subprocess → `2 + 2` over the WebSocket returns `4`. All
-`ExecutionOutcome` branches are verified against a real kernel. Evidence per step
-in `evidence/step8.*/`.
+**Working end to end on a Galaxy Tab A9+ (Android 16, arm64):** bundled Alpine/musl rootfs →
+interpreter exec'd from `nativeLibraryDir` → stock `jupyter_server` on loopback → kernel as a
+subprocess → tap Run in the app → `print(6 * 7)` shows `42` and a numpy determinant shows
+`np.float64(10.000000000000002)`. Outputs persist across app restarts, images and tracebacks
+render, cells are editable with syntax highlighting.
 
-**8.7 is unblocked. Step 8 is closed.** The syscall that killed numpy is
-**`mbind` (235)**, numpy does not need it, and the process died only because
-nothing handled the SIGSYS that Android's `SECCOMP_RET_TRAP` raises. With a
-handler that reports and returns, numpy and scipy import *and compute correctly*
-inside the app process - including a 4-thread 512x512 matmul and an FFT. Exit 0
-across the board. `evidence/step8.7/sigsys-syscall-named.txt`.
+**Done:** Steps 0–3, 4a, 4b (execution half), 7.1, 7.2, 8 (all sub-steps), 10 (all sub-steps),
+5.1, 5.2.
 
-This retires the guest-kernel question without measuring it: no VM, no QEMU, no
-bionic build farm. The runtime keeps the architecture Step 8 proved - musl
-rootfs, interpreter exec'd from `nativeLibraryDir`, stock musllinux wheels. See
-the "The correction" section of **`docs/environment-fidelity.md`** for why this
-is not the per-gap libc patching that document rejects.
+**Next: Step 5.3** — `InputTransformation` for auto-indent after `:`, indent preservation on
+newline, auto-closing brackets and quotes. Pure text edits, so unit-testable; then 5.4 (line
+numbers, bracket match) and 5.5 (completion).
 
-**The handler is runtime behaviour, not a diagnostic.** It lives in
-`SpaceRuntime.environment()`, so the server, the kernel and every future Space
-subprocess inherit it by construction rather than by each launcher remembering.
-That mattered: the kernel is spawned by `jupyter_server`, not by us, and
-`import numpy; numpy.linalg.det(...)` returning `10.0` through the WebSocket is
-what proves the preload survived that hop
-(`evidence/step8.7/numpy-in-a-notebook-cell.txt`). It reports every distinct
-refusal to stderr, which the server log captures - a handler that swallowed them
-would trade loud deaths for quiet wrong answers.
+**Also open, in rough priority order:**
 
-**The runtime is arm64-only, and `SpaceAbi` now says so.** x86_64 cannot run a
-Space at all, so listing it promised something no build could deliver. The
-x86_64 *native libs* still ship so the APK installs on emulators for UI work;
-`SpaceProbe` treats a missing Space as a logged no-op rather than a crash.
+- **4b's editing half**: the long-press context menu (insert, move, duplicate, delete, clear
+  outputs, collapse). Execution is done; cell *management* is not.
+- **7.2 remainder**: collapse, clear outputs, and `text/html` — a pandas DataFrame currently
+  falls back to its `text/plain`.
+- **Packaging**: debug APK is 115 MB, 79 MB of it the rootfs (278 MB unpacked). Asset pack
+  versus first-run download is undecided.
+- **LSP** (see below) would supersede 5.5's completion rather than duplicate it.
 
-### Small items to clear
+### Reference studies, and what each settled
 
-- numpy and scipy work, so they stay in `tools/rootfs/requirements.lock`.
-- Packaging is the open decision: debug APK is **115 MB**, of which **79 MB** is
-  the rootfs (278 MB unpacked). Asset pack versus first-run download. Measure
-  from a clean build - an incremental one reports ~175 MB because zipflinger
-  leaves gaps where replaced entries were.
-- Restart the `dev36` emulator; it died mid-session. Fine for UI and Maestro,
-  never for the runtime.
+`reference/` is **gitignored**, so these do not travel with a fresh clone — the summaries here
+are the durable record. `reference/*/FINDINGS.md` has the detail on this machine.
 
-### What can proceed in parallel, safely
+| Reference | Shape | What it does | What it settled |
+|---|---|---|---|
+| **Callisto** | notebook, N cells | CodeMirror 6, one WebView **per cell** | The exec model and the bridge protocol; also the memory cost we later rejected |
+| **Acode** (6.4k★, MIT) | one file | CodeMirror 6 in a WebView, 23 langs, own LSP client fork | WebView editing is viable at scale — for *one* editor |
+| **JupyterLab** | notebook, N cells | CodeMirror 6, **one page**, many instances | The architecture we would have taken had we stayed on WebViews |
+| **GitHub Mobile** | code browser | **No editor at all** — server-highlighted HTML (primer `.pl-*`) in a WebView, plain `EditText` for edits | Not a model: it moves tokenising to a server, which offline forbids |
+| **sora-editor** (LGPL-2.1) | IDE, one file | native view + tree-sitter via an **archived LGPL** binding | Ruled out on licence; its tree-sitter route ruled out on NDK |
 
-Steps 5-7 (CodeMirror 6 cell editor, execute behaviour, output rendering) and
-Step 4b (cell Run/Stop, long-press menu, Run All, dirty state). `2 + 2 = 4`
-already works end to end, and the userland question is now settled, so there is
-no longer a pending decision for the UI to be built against.
+### Language intelligence: the options, priced
+
+Highlighting is lexical and settled (ANTLR, Step 5.1). *Structure* — folding, semantic
+colouring, go-to-definition — needs a parser, and there are four, in the order they should be
+considered:
+
+1. **The ANTLR parser we already generate.** `PythonParser` is compiled today because
+   `PythonLexerBase` requires it, and is otherwise unused. Free. Untested against half-typed
+   code, which is the normal state of a cell.
+2. **CPython itself, in the Space.** `ast.parse` is the authoritative parser, always exactly
+   the installed version, no grammar to drift. Costs an IPC round-trip, which folding can
+   afford.
+3. **LSP in the Space** — the strongest, and the one to take. `python-lsp-server` (MIT) and
+   `jedi-language-server` (MIT) both publish **pure-Python `py3-none-any` wheels**, so they
+   install into the musl rootfs exactly as `jupyter_server` did. Gives semantic tokens,
+   folding, symbols, diagnostics *and* completion over one protocol, and is widget-agnostic.
+   `pyright` is out: it needs Node, which the Space does not have.
+4. **tree-sitter** — best error tolerance by design, `io.github.tree-sitter:ktreesitter-android`
+   is MIT and ships prebuilt runtime natives. Rejected only because grammars are not published
+   as artifacts, so each language costs NDK + CMake, a `.so` per ABI, Play's 16 KB page-size
+   obligation, and crashes that debug like C.
 
 ### Known residual risks
 
@@ -645,19 +651,22 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
 - `scripts/gradlew-jbr` still hardcodes this machine's JBR path, and there is
   no CI. Dev-environment debt: it slows a new machine down, it cannot corrupt a
   build.
-- `SpaceProbe` starts a server and a kernel on every app launch and never stops
-  them (~143 MB RSS held while backgrounded). Scaffolding by intent, and Step 18
-  owns the lifecycle - but it must not outlive Step 10's UI.
+- **The server has no lifecycle.** `BaseSpaceKernelGateway` starts `jupyter_server` on
+  first use and nothing ever stops it (~143 MB RSS held while backgrounded).
+  `disconnect()` closes the socket only. Step 18 owns this. The old `SpaceProbe`
+  that made it worse - starting a server on every launch - is gone as of 10.5.
 
 ### Closed by measurement, so nobody re-investigates them
 
 - **Orphaned Space processes: not a problem.** The server and kernel are ordinary
   children of the app process, and both `am force-stop` and `am kill` take them
   with it - Android kills the whole process group. Nothing leaks across app death.
-- **`ExecutionOutcome.TimedOut`: exercised on device.** Driven with a live kernel
-  running `time.sleep(5)` against a 2 s channel - alive and merely slow, which is
-  the case the branch exists for, not a kernel that died or dropped. Returned
-  `TimedOut(after=2s)`.
+- **`ExecutionOutcome.TimedOut`: exercised on device, then retired.** It was driven
+  with a live kernel running `time.sleep(5)` against a 2 s channel - alive and merely
+  slow, which is the case the branch existed for - and returned `TimedOut(after=2s)`.
+  The type itself went with `KernelChannel` at 10.5; `RealKernelGateway` has no
+  timeout, because a cell that runs for an hour is a cell, not a failure. **Stopping
+  one is the user's job, via interrupt.**
 - **x86_64 degrades cleanly.** The app starts on the emulator, logs
   `no Space runtime here: no rootfs is built for ABI 'x86_64'; expected one of
   [arm64-v8a]`, and runs. No crash, and no stack trace for a designed outcome.
