@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step5-brackets-driver.sh; clearState would delete the fixture.
+#
+# The match is a colour, so the screenshots are the evidence. They are taken in an order that
+# rules out the two ways this could be faked: 01 is the same text with nothing lit, and 03 is a
+# different pair lit after the cursor moved, so the highlight is neither always-on nor baked in
+# when the cell loaded.
+- launchApp
+- assertVisible: "Bracket Match"
+- tapOn: "Bracket Match"
+- extendedWaitUntil:
+    visible: "total = sum\\(\\[1, 2, 3\\]\\)"
+    timeout: 30000
+# Nothing focused yet: the cursor sits at the end of the text but must not light anything up.
+- takeScreenshot: 01-unfocused-nothing-lit
+# The field fills the width, so tapping the node puts the cursor past the end of the one line -
+# right after the `)` that closes `sum(`.
+- tapOn: "total = sum\\(\\[1, 2, 3\\]\\)"
+- takeScreenshot: 02-outer-pair-lit
+# A new pair, opened by typing one character (5.3 closes it), and the cursor moves inside it.
+- inputText: "["
+- assertVisible: "total = sum\\(\\[1, 2, 3\\]\\)\\[\\]"
+- takeScreenshot: 03-match-follows-the-cursor
