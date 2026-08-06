@@ -593,6 +593,55 @@ fakes — 3 files today, many more once the runtime lands.
 
 ---
 
+---
+
+## Audit findings (2026-08-06) — tracked, one commit each
+
+Found by driving the built app with Maestro rather than by reading it, after Step 4b's cell
+menu landed. All three are reproduced on hardware; none was visible to any existing test.
+Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
+
+| # | Finding | Status |
+|---|---|---|
+| A1 | **A markdown cell cannot be edited**, and "Insert markdown below" makes an unusable one | open |
+| A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | open |
+| A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | open |
+
+### A1 — markdown cells are read-only
+
+`EditorCell` gives `CodeCellField` only to `CellKind.CODE`; markdown gets a plain `Text`. So an
+existing markdown cell cannot be edited (typing into one does nothing), and the **"Insert
+markdown below"** item shipped with the cell menu creates a cell that is a bare header with
+nothing under it - invisible, untappable, unfillable. A regression introduced by offering a
+menu item for a cell type the editor cannot edit.
+
+Reusing `CodeCellField` wholesale is the wrong fix: line numbers, bracket matching, Python
+auto-indent and *kernel completions* are all meaningless in prose. Rendering markdown is a
+separate concern and stays open after this.
+
+### A2 — a new notebook has no cells and no way to get one
+
+`DiskNotebookRepository.createNotebook` writes `cells = emptyList()`, and the editor's empty
+branch is a dead "No cells yet". The cell menu lives on cell headers, of which there are none.
+JupyterLab's `deleteCells` already gives us the rule we follow elsewhere - a notebook is never
+left with nothing to type into - and the same should hold at creation.
+
+### A3 — the created notebook lands above the fold
+
+Not a data bug: the row **is** added. `LazyColumn` keeps the viewport anchored to the items
+already on screen, so a prepended row goes above it and Recents looks unchanged. Scrolling up
+finds it; restarting the app shows it at the top.
+
+Ruled out one layer at a time, and this is why it hid: the repository, `HomeViewModel`,
+`HomeScreen` and the whole `MainNavigation` graph all pass instrumented tests for
+create-then-appear, **on an empty directory**. A short list does not scroll, so nothing anchors.
+It only reproduces with enough notebooks to fill the screen - proven by copying the tablet's 16
+notebooks onto the emulator, where it then failed identically (17 files to 18, five `Untitled`
+rows before and after).
+
+Worth weighing while fixing: JupyterLab **opens** a newly created notebook rather than only
+listing it, which would answer A2 and A3 together.
+
 ## Harness notes
 
 - Emulator: `dev36` AVD = **API 36 (Android 16, `google_apis/x86_64`, `x86_64-36_r07`)**,
