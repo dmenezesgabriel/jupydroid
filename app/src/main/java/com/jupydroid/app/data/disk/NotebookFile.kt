@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookSummary
+import java.io.File
 import java.time.Instant
 import java.util.UUID
 import kotlinx.serialization.KSerializer
@@ -14,6 +15,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -90,21 +92,51 @@ object MultiLineSourceSerializer : KSerializer<String> {
     }
 }
 
-fun NotebookFile.toDomain(id: String, updatedAtFallback: Instant): Notebook {
+/**
+ * A notebook file into the domain, keeping the file's own JSON alongside.
+ *
+ * Parsed twice on purpose: once into [NotebookFile] for the fields the app models, and once as a
+ * raw object that rides along on the domain types so a save can write *over* the file rather than
+ * rebuild it from what the app happens to understand. See
+ * [com.jupydroid.app.domain.model.PreservedJson].
+ */
+internal fun Json.readNotebook(file: File, id: String): Notebook {
+  val root = parseToJsonElement(file.readText()) as? JsonObject
+    ?: throw IllegalArgumentException("notebook file '$file' is not a JSON object")
+  return decodeFromJsonElement(NotebookFile.serializer(), root).toDomain(
+    id = id,
+    updatedAtFallback = Instant.ofEpochMilli(file.lastModified()),
+    preserved = root,
+  )
+}
+
+/**
+ * [preserved] is the file's own JSON, threaded back onto the domain types so [toFileJson] can
+ * write over it instead of rebuilding from what this app happens to model. Defaulted so tests
+ * that only care about the modelled fields need not supply it; the repository always does.
+ */
+fun NotebookFile.toDomain(
+  id: String,
+  updatedAtFallback: Instant,
+  preserved: JsonObject = JsonObject(emptyMap()),
+): Notebook {
   val appMeta = metadata.jupydroid
   val title = appMeta?.title?.takeIf { it.isNotBlank() } ?: id
   val updatedAt =
     appMeta?.updatedAt?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: updatedAtFallback
+  // By index, because a cell's id is optional in nbformat before 4.5 and duplicated ids happen.
+  val preservedCells = preserved["cells"] as? JsonArray
   return Notebook(
     id = id,
     title = title,
     kernelId = metadata.kernelspec?.name ?: "python3",
-    cells = cells.map { it.toDomain() },
+    cells = cells.mapIndexed { at, cell -> cell.toDomain(preservedCells?.getOrNull(at) as? JsonObject) },
     updatedAt = updatedAt,
+    preserved = preserved,
   )
 }
 
-fun CellFile.toDomain(): Cell =
+fun CellFile.toDomain(preserved: JsonObject? = null): Cell =
   Cell(
     id = id.ifBlank { UUID.randomUUID().toString() },
     kind =
@@ -122,30 +154,7 @@ fun CellFile.toDomain(): Cell =
     executionCount = executionCount,
     sourceHidden = metadata.sourceHidden(),
     outputsHidden = metadata.outputsHidden(),
-  )
-
-fun Notebook.toFile(): NotebookFile =
-  NotebookFile(
-    cells = cells.map { it.toFile() },
-    metadata =
-      NotebookFileMetadata(
-        kernelspec = KernelSpecMeta(name = kernelId, displayName = "Python 3"),
-        jupydroid = JupyterDroidMeta(title = title, updatedAt = updatedAt.toString()),
-      ),
-  )
-
-fun Cell.toFile(): CellFile =
-  CellFile(
-    id = id,
-    cellType =
-      when (kind) {
-        CellKind.CODE -> "code"
-        CellKind.MARKDOWN -> "markdown"
-      },
-    source = source,
-    metadata = collapseMetadata(sourceHidden, outputsHidden),
-    outputs = outputs.map { it.toFileOutput() },
-    executionCount = executionCount,
+    preserved = preserved ?: JsonObject(emptyMap()),
   )
 
 fun Notebook.toSummary(): NotebookSummary =

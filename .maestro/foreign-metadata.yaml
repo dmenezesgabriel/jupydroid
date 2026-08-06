@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# Saving must not destroy what this app does not model. The seeded notebook carries what real
+# tools write - nbgrader and RISE cell metadata, a pasted image's `attachments`, `language_info`,
+# `widgets`, a kernelspec `display_name` that is not ours, and a key nbformat 4 never had.
+#
+# The flow's job is only to make the app *save*: the assertion is the file, which the driver
+# reads back off the device and checks key by key.
+#
+# It has no `metadata.jupydroid`, which is the realistic case for a notebook another tool
+# wrote - so Home shows the file's own name rather than a title.
+- launchApp
+- assertVisible: "foreign-metadata"
+- tapOn: "foreign-metadata"
+- extendedWaitUntil:
+    visible: ".*x = 1.*"
+    timeout: 30000
+- takeScreenshot: 01-opened
+# A real edit through the real UI, which is what triggers the debounced save. Collapse is the
+# one that writes *inside* `metadata`, so it is the edit most likely to evict a neighbour.
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Collapse code"
+- assertVisible: "x = 1"
+- takeScreenshot: 02-collapsed
+# stopApp forces the pending save to have landed by the time the driver reads the file.
+- stopApp
+- launchApp
+- tapOn: "foreign-metadata"
+- extendedWaitUntil:
+    visible: "x = 1"
+    timeout: 30000
+- takeScreenshot: 03-still-collapsed

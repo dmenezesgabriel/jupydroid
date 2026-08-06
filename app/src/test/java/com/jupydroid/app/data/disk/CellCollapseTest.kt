@@ -2,8 +2,12 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.Notebook
+import java.time.Instant
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -55,7 +59,7 @@ class CellCollapseTest {
 
   @Test
   fun toFile_writesAHiddenSourceUnderJupyter() {
-    val metadata = codeCell(sourceHidden = true).toFile().metadata
+    val metadata = codeCell(sourceHidden = true).metadataOf()
 
     assertEquals("""{"jupyter":{"source_hidden":true}}""", Json.encodeToString(JsonObject.serializer(), metadata))
   }
@@ -63,7 +67,7 @@ class CellCollapseTest {
   /** Un-collapsing deletes the key rather than writing false, which is what Jupyter does. */
   @Test
   fun toFile_writesNoCollapseMetadataForAnExpandedCell() {
-    val metadata = codeCell(sourceHidden = false).toFile().metadata
+    val metadata = codeCell(sourceHidden = false).metadataOf()
 
     assertEquals("{}", Json.encodeToString(JsonObject.serializer(), metadata))
   }
@@ -72,7 +76,7 @@ class CellCollapseTest {
   fun roundTrip_keepsAHiddenSource() {
     val cell = codeCell(sourceHidden = true)
 
-    assertTrue(cell.toFile().toDomain().sourceHidden)
+    assertTrue(cell.rewritten().sourceHidden)
   }
 
   @Test
@@ -98,7 +102,7 @@ class CellCollapseTest {
 
   @Test
   fun toFile_writesHiddenOutputsAsCollapsed() {
-    val metadata = codeCell(outputsHidden = true).toFile().metadata
+    val metadata = codeCell(outputsHidden = true).metadataOf()
 
     assertEquals("""{"collapsed":true}""", Json.encodeToString(JsonObject.serializer(), metadata))
   }
@@ -106,7 +110,7 @@ class CellCollapseTest {
   /** Both collapses at once, and they must not overwrite each other's key. */
   @Test
   fun toFile_writesBothKeysWhenBothAreHidden() {
-    val metadata = codeCell(sourceHidden = true, outputsHidden = true).toFile().metadata
+    val metadata = codeCell(sourceHidden = true, outputsHidden = true).metadataOf()
 
     assertEquals(
       """{"jupyter":{"source_hidden":true},"collapsed":true}""",
@@ -116,13 +120,28 @@ class CellCollapseTest {
 
   @Test
   fun roundTrip_keepsBothCollapses() {
-    val read = codeCell(sourceHidden = true, outputsHidden = true).toFile().toDomain()
+    val read = codeCell(sourceHidden = true, outputsHidden = true).rewritten()
 
     assertTrue(read.sourceHidden)
     assertTrue(read.outputsHidden)
   }
 
-  private fun cellOf(json: String): Cell = Json.decodeFromString(CellFile.serializer(), json).toDomain()
+  private fun cellOf(json: String): Cell {
+    val raw = Json.parseToJsonElement(json) as JsonObject
+    return Json.decodeFromJsonElement(CellFile.serializer(), raw).toDomain(raw)
+  }
+
+  /** Through the real writer, so what is asserted is what lands in the file. */
+  private fun Cell.metadataOf(): JsonObject =
+    (notebookOf(this)["cells"] as JsonArray).single().jsonObject["metadata"] as JsonObject
+
+  /** Written and read straight back, which is the round trip a save-then-open performs. */
+  private fun Cell.rewritten(): Cell = cellOf(
+    (notebookOf(this)["cells"] as JsonArray).single().jsonObject.toString(),
+  )
+
+  private fun notebookOf(cell: Cell): JsonObject =
+    Notebook("nb", "Title", "python3", listOf(cell), Instant.EPOCH).toFileJson()
 
   private fun codeCell(sourceHidden: Boolean = false, outputsHidden: Boolean = false) = Cell(
     id = "c1",

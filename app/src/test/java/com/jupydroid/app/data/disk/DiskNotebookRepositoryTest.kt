@@ -10,6 +10,7 @@ import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -20,6 +21,17 @@ import org.junit.rules.TemporaryFolder
 
 class DiskNotebookRepositoryTest {
   @get:Rule val tempFolder = TemporaryFolder()
+
+  /**
+   * [com.jupydroid.app.domain.model.PreservedJson] is by design unequal across a round trip: a
+   * notebook built in memory has none and one read from a file carries the file it came from.
+   * Dropping it leaves the modelled fields, which is what these tests are about - the blob
+   * itself is `NotebookRoundTripTest`'s subject.
+   */
+  private fun Notebook.withoutPreserved(): Notebook = copy(
+    preserved = JsonObject(emptyMap()),
+    cells = cells.map { it.copy(preserved = JsonObject(emptyMap())) },
+  )
 
   private fun repository(): DiskNotebookRepository = DiskNotebookRepository(tempFolder.root)
 
@@ -37,7 +49,7 @@ class DiskNotebookRepositoryTest {
     assertEquals(5, decoded.nbformatMinor)
     assertEquals("python3", decoded.metadata.kernelspec?.name)
     assertTrue(decoded.cells.isEmpty())
-    assertEquals(created, repository.readNotebook(created.id))
+    assertEquals(created, repository.readNotebook(created.id).withoutPreserved())
   }
 
   @Test
@@ -58,7 +70,7 @@ class DiskNotebookRepositoryTest {
 
     repository.saveNotebook(notebook)
 
-    assertEquals(notebook, repository.readNotebook("nb-1"))
+    assertEquals(notebook, repository.readNotebook("nb-1").withoutPreserved())
     val decoded = Json.decodeFromString<NotebookFile>(notebookFile("nb-1").readText())
     assertEquals(listOf("code", "markdown"), decoded.cells.map { it.cellType })
     assertEquals(listOf("print(1)", "# Title"), decoded.cells.map { it.source })

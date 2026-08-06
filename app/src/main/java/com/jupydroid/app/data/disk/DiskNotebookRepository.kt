@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Notebook persistence over nbformat 4 JSON files (`<rootDir>/<id>.ipynb`).
@@ -66,10 +67,7 @@ class DiskNotebookRepository(
       throw IllegalArgumentException("no notebook file for id '$id' at '$file'")
     }
     try {
-      json.decodeFromString<NotebookFile>(file.readText()).toDomain(
-        id = id,
-        updatedAtFallback = Instant.ofEpochMilli(file.lastModified()),
-      )
+      json.readNotebook(file, id)
     } catch (e: SerializationException) {
       throw IllegalArgumentException("notebook file '$file' is not valid nbformat JSON: ${e.message}")
     }
@@ -83,7 +81,7 @@ class DiskNotebookRepository(
   private fun writeFile(notebook: Notebook) {
     val file = fileFor(notebook.id)
     file.parentFile?.mkdirs()
-    file.writeText(json.encodeToString(NotebookFile.serializer(), notebook.toFile()))
+    file.writeText(json.encodeToString(JsonObject.serializer(), notebook.toFileJson()))
   }
 
   private fun fileFor(id: String): File = File(rootDir, "$id.ipynb")
@@ -102,10 +100,7 @@ class DiskNotebookRepository(
   private fun trySummaryOf(file: File): NotebookSummary? {
     val id = file.name.removeSuffix(".ipynb")
     return try {
-      json.decodeFromString<NotebookFile>(file.readText()).toDomain(
-        id = id,
-        updatedAtFallback = Instant.ofEpochMilli(file.lastModified()),
-      ).toSummary()
+      json.readNotebook(file, id).toSummary()
     } catch (e: SerializationException) {
       null
     } catch (e: IllegalArgumentException) {
