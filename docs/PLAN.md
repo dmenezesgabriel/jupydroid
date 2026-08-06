@@ -297,10 +297,23 @@ persistence proven by Maestro `stopApp`→relaunch flow `step3-persistence.yaml`
   sources rendered, back to Home). No execution.
 - **4b** Editing + execution shell. **Run, Stop, Run All and the busy indicator
   are done** (`evidence/step4b/`, `evidence/step4b-run-all/`), against a real
-  kernel on the tablet. Still open: the long-press context menu (insert, move,
-  duplicate, delete, clear outputs, collapse) and dirty state — both are
-  *editing*, which needs cell mutation and persistence, whereas everything
-  delivered so far is execution.
+  kernel on the tablet. **The cell menu is done too** — insert code/markdown below,
+  move up/down, duplicate, delete, clear outputs, persisted and read back off the
+  device (`evidence/step4b-cell-menu/`). Still open: **collapse**, which needs
+  `metadata.jupyter.source_hidden`/`outputs_hidden` round-tripped through the
+  nbformat DTOs and so belongs with 7.2's remainder rather than here.
+
+  **The menu hangs off the cell header, not the cell.** A long press inside the code
+  field is text selection — the first attempt produced Android's Select all / Autofill
+  toolbar and never reached the menu (`evidence/step4b-cell-menu/00-…png`). Taking that
+  gesture back would undo the reason the editor is a real text field at all (Step 5.2),
+  so the header strip carries it instead, padded to be a reachable target.
+
+  Three semantics come from JupyterLab's `NotebookActions`, read rather than guessed, and
+  all three differ from the obvious answer: deleting the **last** cell leaves an empty code
+  cell rather than an empty notebook; **clear outputs also clears the execution count**
+  (`clearExecution`, `packages/cells/src/model.ts:706`); and a **duplicate keeps the
+  original's outputs and count**, with only its id renewed (`addCells`).
 
 **Step 8 is pulled forward, ahead of Steps 5–7**, and split so the riskiest thing
 fails first. Steps 5–7 (CodeMirror cells, execute behaviour, output rendering)
@@ -612,17 +625,19 @@ render, cells are editable with syntax highlighting.
 5.1, 5.2, 5.3, 5.4a, 5.4b, 5.5a, 5.5b. **Step 5 is closed**, and with it the last fake behind
 the `KernelGateway` port.
 
-**Next: Step 6 is already satisfied** by 4b and Step 10 (run → outputs, Running/Idle, interrupt,
-execution count, against a real kernel), so the real next piece of work is **4b's editing half** —
-the long-press cell menu: insert, move, duplicate, delete, clear outputs, collapse. That also
-clears two of 7.2's leftovers, since clear-outputs and collapse live in the same menu.
+**Step 6 is already satisfied** by 4b and Step 10 (run → outputs, Running/Idle, interrupt,
+execution count, against a real kernel), and **4b's cell menu is now done** bar collapse.
+
+**Next: collapse** — `metadata.jupyter.source_hidden` and `outputs_hidden` round-tripped through
+the nbformat DTOs, which closes both 4b's menu and one of 7.2's leftovers. Then 7.2's
+`text/html`, and Step 11 (Console REPL).
 
 **Also open, in rough priority order:**
 
-- **4b's editing half**: the long-press context menu (insert, move, duplicate, delete, clear
-  outputs, collapse). Execution is done; cell *management* is not.
-- **7.2 remainder**: collapse, clear outputs, and `text/html` — a pandas DataFrame currently
-  falls back to its `text/plain`.
+- **Collapse**, the one piece of 4b's menu still missing, and 7.2's `text/html` — a pandas
+  DataFrame still falls back to its `text/plain`. Collapse needs
+  `metadata.jupyter.source_hidden`/`outputs_hidden` through the nbformat DTOs; clear outputs
+  landed with the cell menu.
 - **Packaging**: debug APK is 115 MB, 79 MB of it the rootfs (278 MB unpacked). Asset pack
   versus first-run download is undecided.
 - **LSP** (see below) would supersede 5.5's completion rather than duplicate it.
@@ -636,7 +651,7 @@ are the durable record. `reference/*/FINDINGS.md` has the detail on this machine
 |---|---|---|---|
 | **Callisto** | notebook, N cells | CodeMirror 6, one WebView **per cell** | The exec model and the bridge protocol; also the memory cost we later rejected |
 | **Acode** (6.4k★, MIT) | one file | CodeMirror 6 in a WebView, 23 langs, own LSP client fork | WebView editing is viable at scale — for *one* editor |
-| **JupyterLab** | notebook, N cells | CodeMirror 6, **one page**, many instances | The architecture we would have taken had we stayed on WebViews |
+| **JupyterLab** | notebook, N cells | CodeMirror 6, **one page**, many instances | The architecture we would have taken had we stayed on WebViews — and, still, the reference for *behaviour*: the kernel protocol's message shapes (5.5a) and the cell actions' semantics (4b) were both read out of it rather than guessed |
 | **GitHub Mobile** | code browser | **No editor at all** — server-highlighted HTML (primer `.pl-*`) in a WebView, plain `EditText` for edits | Not a model: it moves tokenising to a server, which offline forbids |
 | **sora-editor** (LGPL-2.1) | IDE, one file | native view + tree-sitter via an **archived LGPL** binding | Ruled out on licence; its tree-sitter route ruled out on NDK |
 

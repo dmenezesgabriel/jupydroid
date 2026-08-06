@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.port.KernelEvent
 
 data class EditorUiState(
@@ -42,6 +43,20 @@ fun EditorUiState.startingRun(cellId: String): EditorUiState =
 
 fun EditorUiState.withSource(cellId: String, source: String): EditorUiState =
   copy(cells = cells.map { if (it.id == cellId) it.copy(source = source) else it }, dirty = true)
+
+/**
+ * Seeded from what was saved, so reopening a notebook shows the results it already had.
+ *
+ * The inverse of [withResultsOnCells], and kept beside it: how a notebook enters this state and
+ * how it leaves are one idea, and reading them apart is how they drift.
+ */
+fun Notebook.toEditorUiState() = EditorUiState(
+  title = title,
+  cells = cells,
+  loaded = true,
+  outputs = cells.filter { it.outputs.isNotEmpty() }.associate { it.id to it.outputs },
+  executionCounts = cells.mapNotNull { cell -> cell.executionCount?.let { cell.id to it } }.toMap(),
+)
 
 /** Moves this run's results onto the cells, which is what gets persisted. */
 fun EditorUiState.withResultsOnCells(): List<Cell> =

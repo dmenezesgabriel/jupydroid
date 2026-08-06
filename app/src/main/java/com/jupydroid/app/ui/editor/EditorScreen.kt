@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +76,7 @@ fun EditorScreen(
       onStopCell = viewModel::stopRunningCell,
       onEditCell = viewModel::editCell,
       completionsAt = viewModel::completionsAt,
+      onCellAction = viewModel::applyToCell,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -105,6 +109,7 @@ private fun EditorContent(
   onStopCell: () -> Unit,
   onEditCell: (String, String) -> Unit,
   completionsAt: suspend (String, Int) -> CompletionResult,
+  onCellAction: (String, CellAction) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   when {
@@ -123,6 +128,7 @@ private fun EditorContent(
             onStop = onStopCell,
             onSourceEdited = { source -> onEditCell(cell.id, source) },
             completionsAt = completionsAt,
+            onCellAction = { action -> onCellAction(cell.id, action) },
           )
         }
       }
@@ -139,6 +145,7 @@ private fun EditorCell(
   onStop: () -> Unit,
   onSourceEdited: (String) -> Unit,
   completionsAt: suspend (String, Int) -> CompletionResult,
+  onCellAction: (CellAction) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -148,6 +155,7 @@ private fun EditorCell(
       running = running,
       onRun = onRun,
       onStop = onStop,
+      onCellAction = onCellAction,
     )
     Spacer(modifier = Modifier.height(4.dp))
     if (cell.kind == CellKind.CODE) {
@@ -178,8 +186,25 @@ private fun CellHeader(
   running: Boolean,
   onRun: () -> Unit,
   onStop: () -> Unit,
+  onCellAction: (CellAction) -> Unit,
 ) {
-  Row(verticalAlignment = Alignment.CenterVertically) {
+  var menuOpen by remember { mutableStateOf(false) }
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    // The header, not the cell: a long press inside the code field belongs to text selection,
+    // and taking it would undo the reason the editor is a real text field at all (Step 5.2).
+    // Padded so the strip is a reachable target rather than the height of its label.
+    modifier = Modifier
+      .fillMaxWidth()
+      .combinedClickable(
+        onClickLabel = null,
+        onClick = {},
+        onLongClickLabel = "Cell actions",
+        onLongClick = { menuOpen = true },
+      )
+      .padding(vertical = 6.dp),
+  ) {
+    CellMenu(expanded = menuOpen, onDismiss = { menuOpen = false }, onAction = onCellAction)
     Text(
       // The bracket notation a Jupyter user already reads as "this cell has run N times".
       text = executionCount?.let { "[$it]" } ?: cell.kind.label(),

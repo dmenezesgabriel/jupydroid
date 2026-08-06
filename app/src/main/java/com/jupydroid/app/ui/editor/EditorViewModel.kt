@@ -19,6 +19,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class EditorViewModel(
   notebookId: String,
@@ -35,21 +36,12 @@ class EditorViewModel(
     viewModelScope.launch {
       _uiState.value =
         try {
-          notebookRepository.readNotebook(notebookId).also { notebook = it }.toUiState()
+          notebookRepository.readNotebook(notebookId).also { notebook = it }.toEditorUiState()
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
     }
   }
-
-  /** Seeded from what was saved, so reopening a notebook shows the results it already had. */
-  private fun Notebook.toUiState() = EditorUiState(
-    title = title,
-    cells = cells,
-    loaded = true,
-    outputs = cells.filter { it.outputs.isNotEmpty() }.associate { it.id to it.outputs },
-    executionCounts = cells.mapNotNull { cell -> cell.executionCount?.let { cell.id to it } }.toMap(),
-  )
 
   /**
    * Takes an edit from the cell's editor. Saving is debounced because a write per keystroke
@@ -58,6 +50,10 @@ class EditorViewModel(
    */
   fun editCell(cellId: String, source: String) {
     _uiState.update { it.withSource(cellId, source) }
+    scheduleSave()
+  }
+
+  private fun scheduleSave() {
     pendingSave?.cancel()
     pendingSave = viewModelScope.launch {
       delay(SAVE_DEBOUNCE_MILLIS)
@@ -69,6 +65,26 @@ class EditorViewModel(
   fun saveNow() {
     pendingSave?.cancel()
     viewModelScope.launch { persist() }
+  }
+
+  /**
+   * The cell-management half of the editor: everything the long-press menu offers.
+   *
+   * Each one is a pure transform in [CellEdits] followed by the same debounced save an edit
+   * gets, so re-ordering a notebook survives leaving the screen exactly as typing does. Ids
+   * are minted here rather than inside the transforms, which keeps those testable.
+   */
+  fun applyToCell(cellId: String, action: CellAction) {
+    _uiState.update { state ->
+      when (action) {
+        is CellAction.Insert -> state.withCellInserted(cellId, action.kind, newId = UUID.randomUUID().toString())
+        is CellAction.Move -> state.withCellMoved(cellId, action.move)
+        CellAction.Duplicate -> state.withCellDuplicated(cellId, newId = UUID.randomUUID().toString())
+        CellAction.Delete -> state.withCellDeleted(cellId, replacementId = UUID.randomUUID().toString())
+        CellAction.ClearOutputs -> state.withOutputsCleared(cellId)
+      }
+    }
+    scheduleSave()
   }
 
   /**

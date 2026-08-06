@@ -1,0 +1,158 @@
+package com.jupydroid.app.ui.editor
+
+import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.StreamName
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * Semantics follow JupyterLab's `NotebookActions`, read rather than assumed - three of them are
+ * not what a first guess would produce, and each is called out on the test that covers it.
+ */
+class CellEditsTest {
+  @Test
+  fun insert_putsAnEmptyCellAfterTheOneChosen() {
+    val state = stateOf("a", "b")
+
+    val cells = state.withCellInserted("a", CellKind.CODE, newId = "new").cells
+
+    assertEquals(listOf("a", "new", "b"), cells.map { it.id })
+    assertEquals("", cells[1].source)
+    assertEquals(CellKind.CODE, cells[1].kind)
+  }
+
+  @Test
+  fun insert_canAddAMarkdownCell() {
+    val cells = stateOf("a").withCellInserted("a", CellKind.MARKDOWN, newId = "new").cells
+
+    assertEquals(CellKind.MARKDOWN, cells[1].kind)
+  }
+
+  @Test
+  fun move_swapsWithTheNeighbourInEachDirection() {
+    val state = stateOf("a", "b", "c")
+
+    assertEquals(listOf("a", "c", "b"), state.withCellMoved("c", CellMove.UP).cells.map { it.id })
+    assertEquals(listOf("b", "a", "c"), state.withCellMoved("a", CellMove.DOWN).cells.map { it.id })
+  }
+
+  @Test
+  fun move_doesNothingAtEitherEnd() {
+    val state = stateOf("a", "b")
+
+    assertEquals(state.cells, state.withCellMoved("a", CellMove.UP).cells)
+    assertEquals(state.cells, state.withCellMoved("b", CellMove.DOWN).cells)
+  }
+
+  /**
+   * JupyterLab duplicates the cell's nbformat JSON and only clears its id
+   * (`packages/notebook/src/actions.tsx`, `addCells`), so the copy keeps what the original
+   * had run - outputs and execution count included.
+   */
+  @Test
+  fun duplicate_copiesTheResultsTooAndOnlyTheIdIsNew() {
+    val state = stateOf("a").withOutputOn("a", "hello").withCount("a", 7)
+
+    val duplicated = state.withCellDuplicated("a", newId = "copy")
+
+    assertEquals(listOf("a", "copy"), duplicated.cells.map { it.id })
+    assertEquals(state.outputs["a"], duplicated.outputs["copy"])
+    assertEquals(7, duplicated.executionCounts["copy"])
+  }
+
+  @Test
+  fun duplicate_keepsTheSourceAndKind() {
+    val state = EditorUiState(cells = listOf(Cell("a", CellKind.MARKDOWN, "# title")), loaded = true)
+
+    val copy = state.withCellDuplicated("a", newId = "copy").cells[1]
+
+    assertEquals("# title", copy.source)
+    assertEquals(CellKind.MARKDOWN, copy.kind)
+  }
+
+  @Test
+  fun delete_removesTheCellAndTheResultsItLeftBehind() {
+    val state = stateOf("a", "b").withOutputOn("a", "gone").withCount("a", 3)
+
+    val deleted = state.withCellDeleted("a", replacementId = "unused")
+
+    assertEquals(listOf("b"), deleted.cells.map { it.id })
+    assertNull(deleted.outputs["a"])
+    assertNull(deleted.executionCounts["a"])
+  }
+
+  /**
+   * JupyterLab's `deleteCells` inserts a default cell when the notebook would be emptied, so a
+   * notebook is never left with nothing to type into.
+   */
+  @Test
+  fun delete_leavesAnEmptyCodeCellRatherThanAnEmptyNotebook() {
+    val deleted = stateOf("only").withCellDeleted("only", replacementId = "fresh")
+
+    assertEquals(listOf("fresh"), deleted.cells.map { it.id })
+    assertEquals(CellKind.CODE, deleted.cells.single().kind)
+    assertEquals("", deleted.cells.single().source)
+  }
+
+  /** Otherwise the spinner's cell is gone and Run All stays disabled for ever. */
+  @Test
+  fun delete_stopsTheNotebookLookingBusyWhenTheRunningCellGoes() {
+    val state = stateOf("a", "b").copy(runningCellId = "a")
+
+    assertNull(state.withCellDeleted("a", replacementId = "x").runningCellId)
+    assertEquals("a", state.withCellDeleted("b", replacementId = "x").runningCellId)
+  }
+
+  /**
+   * JupyterLab's `clearOutputs` calls `clearExecution`, which sets `executionCount = null` as
+   * well as emptying the outputs (`packages/cells/src/model.ts:706`). Leaving `[7]` beside a
+   * cell with nothing under it would claim a result that is no longer there.
+   */
+  @Test
+  fun clearOutputs_dropsTheExecutionCountWithThem() {
+    val state = stateOf("a").withOutputOn("a", "old").withCount("a", 7)
+
+    val cleared = state.withOutputsCleared("a")
+
+    assertTrue(cleared.outputs["a"].isNullOrEmpty())
+    assertNull(cleared.executionCounts["a"])
+  }
+
+  @Test
+  fun everyEditMarksTheNotebookDirty() {
+    val state = stateOf("a", "b")
+
+    assertTrue(state.withCellInserted("a", CellKind.CODE, "n").dirty)
+    assertTrue(state.withCellMoved("a", CellMove.DOWN).dirty)
+    assertTrue(state.withCellDuplicated("a", "n").dirty)
+    assertTrue(state.withCellDeleted("a", "n").dirty)
+    assertTrue(state.withOutputsCleared("a").dirty)
+  }
+
+  /** A menu can outlive the cell it was opened on; none of these may throw on a stale id. */
+  @Test
+  fun anUnknownCellIdChangesNothing() {
+    val state = stateOf("a", "b")
+
+    assertEquals(state, state.withCellInserted("gone", CellKind.CODE, "n"))
+    assertEquals(state, state.withCellMoved("gone", CellMove.UP))
+    assertEquals(state, state.withCellDuplicated("gone", "n"))
+    assertEquals(state, state.withCellDeleted("gone", "n"))
+    assertEquals(state, state.withOutputsCleared("gone"))
+  }
+
+  private fun stateOf(vararg ids: String) = EditorUiState(
+    cells = ids.map { Cell(it, CellKind.CODE, "source of $it") },
+    loaded = true,
+  )
+
+  private fun EditorUiState.withOutputOn(cellId: String, text: String) =
+    copy(outputs = outputs + (cellId to listOf(CellOutput.Stream(StreamName.STDOUT, text))))
+
+  private fun EditorUiState.withCount(cellId: String, count: Int) =
+    copy(executionCounts = executionCounts + (cellId to count))
+}

@@ -266,6 +266,62 @@ class EditorViewModelTest {
     assertEquals(listOf("c1"), gateway.executed)
   }
 
+  // --- Step 4b: the cell-management half ---
+
+  @Test
+  fun applyToCell_insertsMovesDuplicatesAndDeletesThroughOneEntryPoint() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell, secondCodeCell))
+
+    viewModel.applyToCell("c1", CellAction.Insert(CellKind.MARKDOWN))
+    assertEquals(3, viewModel.uiState.value.cells.size)
+    assertEquals(CellKind.MARKDOWN, viewModel.uiState.value.cells[1].kind)
+
+    viewModel.applyToCell("c1", CellAction.Move(CellMove.DOWN))
+    assertEquals(1, viewModel.uiState.value.cells.indexOfFirst { it.id == "c1" })
+
+    viewModel.applyToCell("c1", CellAction.Duplicate)
+    assertEquals(4, viewModel.uiState.value.cells.size)
+
+    viewModel.applyToCell("c1", CellAction.Delete)
+    assertTrue(viewModel.uiState.value.cells.none { it.id == "c1" })
+  }
+
+  /** Every inserted or duplicated cell needs an id of its own, or the list keys collide. */
+  @Test
+  fun applyToCell_givesEveryNewCellAnIdNobodyElseHas() = runTest {
+    val viewModel = loadedEditor()
+
+    repeat(3) { viewModel.applyToCell("c1", CellAction.Duplicate) }
+
+    val ids = viewModel.uiState.value.cells.map { it.id }
+    assertEquals("ids must be unique, got $ids", ids.size, ids.toSet().size)
+  }
+
+  /** Re-ordering a notebook must survive leaving the screen exactly as typing does. */
+  @Test
+  fun applyToCell_savesTheNewOrderOnTheSameDebounceAsAnEdit() = runTest {
+    val repository = FakeNotebookRepository()
+    val viewModel = loadedEditor(cells = listOf(codeCell, secondCodeCell), repository = repository)
+
+    viewModel.applyToCell("c3", CellAction.Move(CellMove.UP))
+    advanceUntilIdle()
+
+    assertEquals(listOf("c3", "c1"), repository.readNotebook("nb-1").cells.map { it.id })
+  }
+
+  @Test
+  fun applyToCell_clearOutputsRemovesWhatTheCellHadProduced() = runTest {
+    val viewModel = loadedEditor()
+    viewModel.runCell(codeCell)
+    advanceUntilIdle()
+    assertTrue(viewModel.uiState.value.outputs["c1"].orEmpty().isNotEmpty())
+
+    viewModel.applyToCell("c1", CellAction.ClearOutputs)
+
+    assertTrue(viewModel.uiState.value.outputs["c1"].isNullOrEmpty())
+    assertEquals(null, viewModel.uiState.value.executionCounts["c1"])
+  }
+
   private val codeCell = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
   private val markdownCell = Cell(id = "c2", kind = CellKind.MARKDOWN, source = "# heading")
   private val secondCodeCell = Cell(id = "c3", kind = CellKind.CODE, source = "print(2)")

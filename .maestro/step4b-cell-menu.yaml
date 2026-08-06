@@ -1,0 +1,42 @@
+appId: com.jupydroid.app
+---
+# Seeded by scripts/step4b-cell-menu-driver.sh; clearState would delete the fixture.
+#
+# Menu items are matched by contentDescription ("Cell menu Delete"), never by their label: a
+# soft keyboard and the app's own text both offer competing matches for words like "Delete",
+# and step 5.5b showed what a flow that matches the wrong node looks like — green.
+- launchApp
+- assertVisible: "Cell Menu"
+- tapOn: "Cell Menu"
+- extendedWaitUntil:
+    visible: "first = 1"
+    timeout: 30000
+- takeScreenshot: 01-three-cells
+# The header strip, not the code: a long press inside the field is text selection.
+- longPressOn:
+    text: "code"
+    index: 0
+- assertVisible: "Cell menu Insert code below"
+- takeScreenshot: 02-menu-open
+# Insert: a new empty cell lands between the first and second.
+- tapOn: "Cell menu Insert code below"
+- takeScreenshot: 03-cell-inserted
+# Move: the third cell goes above the second, so "third = 3" ends up before "second = 2".
+- longPressOn:
+    text: "code"
+    index: 3
+- tapOn: "Cell menu Move up"
+- takeScreenshot: 04-cell-moved-up
+# Duplicate index 2 - which is `third = 3` by now, after the move - then delete the first
+# cell. The driver reads the file back afterwards; that order is the real assertion.
+- longPressOn:
+    text: "code"
+    index: 2
+- tapOn: "Cell menu Duplicate"
+- takeScreenshot: 05-cell-duplicated
+- longPressOn:
+    text: "code"
+    index: 0
+- tapOn: "Cell menu Delete"
+- assertNotVisible: "first = 1"
+- takeScreenshot: 06-cell-deleted
