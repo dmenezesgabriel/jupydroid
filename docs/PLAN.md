@@ -607,7 +607,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 | A1b | **Markdown is never rendered** — parse it with commonmark-java into a model | **Done.** `MarkdownDocument`, 13 JVM tests. No Maestro: nothing draws it yet, so a flow would be theatre — A1c carries the device gate |
 | A1c | Draw that model in Compose, and toggle rendered ↔ source | **Done.** `MarkdownText` + `MarkdownCell`, 7 JVM + 5 instrumented tests, `evidence/audit-a1c-markdown-render/` |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | **Done.** `toEditorUiState` gives a cell-less notebook one code cell, `evidence/audit-a2-empty-notebook/` |
-| A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | open |
+| A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | **Done.** Recents scrolls to a newly-topmost notebook; `HomeCreateTest` seeds 30 to reproduce it. `evidence/audit-a3-create-shows-up/` |
 
 ### A1 — markdown cells are read-only
 
@@ -687,8 +687,14 @@ It only reproduces with enough notebooks to fill the screen - proven by copying 
 notebooks onto the emulator, where it then failed identically (17 files to 18, five `Untitled`
 rows before and after).
 
-Worth weighing while fixing: JupyterLab **opens** a newly created notebook rather than only
-listing it, which would answer A2 and A3 together.
+JupyterLab **opens** a newly created notebook rather than only listing it, which would sidestep
+the anchoring question rather than answer it. That is a product decision and was left alone;
+both bugs are fixed as bugs.
+
+**All three audit findings are closed.** The lasting lesson is A3's: every layer had a passing
+test for create-then-appear while the bug was live, because they all ran against an empty
+directory. A list that does not scroll cannot show a scrolling bug - so `HomeCreateTest` seeds
+thirty notebooks, and any future test of a list behaviour should ask what size makes it real.
 
 ## Harness notes
 

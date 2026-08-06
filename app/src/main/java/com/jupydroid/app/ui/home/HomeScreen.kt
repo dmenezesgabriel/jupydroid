@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -19,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -158,7 +161,9 @@ private fun HomeContent(
   if (notebooks.isEmpty()) {
     EmptyRecents(modifier)
   } else {
-    LazyColumn(modifier = modifier.fillMaxSize()) {
+    val listState = rememberLazyListState()
+    ShowTheMostRecent(notebooks.first().id, listState)
+    LazyColumn(state = listState, modifier = modifier.fillMaxSize()) {
       items(notebooks, key = { it.id }) { notebook ->
         NotebookRow(
           notebook = notebook,
@@ -170,6 +175,20 @@ private fun HomeContent(
       }
     }
   }
+}
+
+/**
+ * Brings a newly-topmost notebook into view.
+ *
+ * Without this, creating one looked like it did nothing: the row **was** added, but a
+ * `LazyColumn` keeps the items already on screen anchored where they are, so a row prepended
+ * above them lands above the viewport - and is never even composed. It only showed up once the
+ * list was long enough to scroll, which is why every test of create-then-appear passed while
+ * the bug was live.
+ */
+@Composable
+private fun ShowTheMostRecent(topNotebookId: String, listState: LazyListState) {
+  LaunchedEffect(topNotebookId) { listState.scrollToItem(0) }
 }
 
 @Composable

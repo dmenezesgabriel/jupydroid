@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# Audit A3: the created notebook was added but landed above the fold, so Recents looked
+# unchanged until the app was restarted. Needs a list long enough to scroll - a short one has
+# nothing to anchor to, which is why every create-then-appear test passed while the bug was
+# live. Run it against a device that already has notebooks, or seed some first.
+- launchApp
+- takeScreenshot: 01-recents-before
+- tapOn: "+"
+- tapOn: "New notebook"
+# No restart anywhere in this flow. "just now" is the new row's timestamp, and it can only be
+# asserted if the row is actually in view.
+- extendedWaitUntil:
+    visible: "just now"
+    timeout: 15000
+- takeScreenshot: 02-created-and-visible-without-a-restart
