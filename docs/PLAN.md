@@ -606,6 +606,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 | A1 | **A markdown cell cannot be edited**, and "Insert markdown below" makes an unusable one | **Done.** `MarkdownCellField`, 4 instrumented tests, `evidence/audit-a1-markdown/` |
 | A1b | **Markdown is never rendered** — parse it with commonmark-java into a model | **Done.** `MarkdownDocument`, 13 JVM tests. No Maestro: nothing draws it yet, so a flow would be theatre — A1c carries the device gate |
 | A1c | Draw that model in Compose, and toggle rendered ↔ source | **Done.** `MarkdownText` + `MarkdownCell`, 7 JVM + 5 instrumented tests, `evidence/audit-a1c-markdown-render/` |
+| A4 | **A markdown cell being edited is barely readable** — black on black in the dark theme | **Done.** `markdownSourceStyle()`, asserted in both schemes. `evidence/audit-a4-markdown-contrast/` |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | **Done.** `toEditorUiState` gives a cell-less notebook one code cell, `evidence/audit-a2-empty-notebook/` |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | **Done.** Recents scrolls to a newly-topmost notebook; `HomeCreateTest` seeds 30 to reproduce it. `evidence/audit-a3-create-shows-up/` |
 
@@ -660,6 +661,20 @@ and so does A1c until the flat one is shown to be the problem.
 Scope: headings, paragraphs, emphasis, strong, inline code, code blocks, lists, block quotes,
 thematic breaks and links. Images and inline HTML are out - a cell that needs them is rarer than
 the cost of getting them right.
+
+### A4 — the markdown editor's text is not themed
+
+`MarkdownCellField` passes `LocalTextStyle.current.merge(typography.bodyMedium)` as its text
+style, and **neither carries a colour**. A `BasicTextField` given `Color.Unspecified` draws
+**black** - it does not fall back to `LocalContentColor` the way `Text` does. So the source is
+black in both themes: readable on light, nearly invisible on dark.
+
+Seen on the tablet in both, which is the only way this shows up: the light screenshot looks
+fine, so a single-theme check passes it.
+
+Second, smaller half: the editing state has no background, while a code cell sits on a
+`surfaceVariant` panel. Nothing says "this is a field you are typing in" - and the panel belongs
+to the *editor* only, since rendered prose in a box would be wrong.
 
 ### A2 — a new notebook has no cells and no way to get one
 

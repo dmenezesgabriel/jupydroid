@@ -1,8 +1,9 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.dp
 
 /** What an empty markdown cell says, so it is never a row with nothing in it. */
 internal const val MARKDOWN_PLACEHOLDER = "Write markdown…"
@@ -38,8 +40,13 @@ fun MarkdownCellField(source: String, onSourceEdited: (String) -> Unit, modifier
 
   BasicTextField(
     state = state,
-    modifier = modifier,
-    textStyle = LocalTextStyle.current.merge(MaterialTheme.typography.bodyMedium),
+    // The panel is the editor's, not the cell's: it is what says "you are typing in this", the
+    // same way a code cell reads. Rendered prose sitting in a box would be wrong, so this is
+    // here rather than around MarkdownCell.
+    modifier = modifier
+      .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+      .padding(8.dp),
+    textStyle = markdownSourceStyle(),
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
     decorator = { field ->
       // Dimmed and italic, the way JupyterLab marks an empty markdown cell

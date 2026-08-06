@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -64,3 +65,15 @@ fun markdownInlineStyles(): MarkdownInlineStyles = MarkdownInlineStyles(
     textDecoration = TextDecoration.Underline,
   ),
 )
+
+/**
+ * The markdown source as it is being written.
+ *
+ * The colour is explicit and that is the point: a `BasicTextField` handed `Color.Unspecified`
+ * draws black rather than falling back to `LocalContentColor` the way `Text` does, so leaving
+ * it off made the source black in both themes - fine on light, nearly invisible on dark.
+ */
+@Composable
+@ReadOnlyComposable
+fun markdownSourceStyle(): TextStyle =
+  MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)

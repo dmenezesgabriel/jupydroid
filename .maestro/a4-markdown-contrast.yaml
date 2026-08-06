@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# Audit A4: the markdown editor drew its source black in both themes, which is invisible on
+# dark. Run once per theme - the driver flips the device between them, because a single-theme
+# check is exactly what let this through.
+- launchApp
+- assertVisible: "Markdown Render"
+- tapOn: "Markdown Render"
+- extendedWaitUntil:
+    visible: "Rendered markdown"
+    timeout: 20000
+- tapOn: "Rendered markdown"
+- extendedWaitUntil:
+    visible: "(?s).*# Analysis.*"
+    timeout: 10000
+- takeScreenshot: markdown-edit-mode
