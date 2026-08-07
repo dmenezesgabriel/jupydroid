@@ -7,7 +7,17 @@ appId: com.jupydroid.app
 # or copyable with the code. The screenshots are the evidence; the fixture is built so they
 # cannot be read two ways.
 - launchApp
-- assertVisible: "Line Numbers"
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Line Numbers"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Line Numbers"
 - extendedWaitUntil:
     visible: "(?s).*import numpy as np.*"

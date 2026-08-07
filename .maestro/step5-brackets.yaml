@@ -7,7 +7,17 @@ appId: com.jupydroid.app
 # different pair lit after the cursor moved, so the highlight is neither always-on nor baked in
 # when the cell loaded.
 - launchApp
-- assertVisible: "Bracket Match"
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Bracket Match"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Bracket Match"
 - extendedWaitUntil:
     visible: "total = sum\\(\\[1, 2, 3\\]\\)"

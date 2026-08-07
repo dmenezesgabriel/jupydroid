@@ -4,7 +4,17 @@ appId: com.jupydroid.app
 # The fixture has no `cells` key at all - which is exactly what createNotebook writes, and what
 # an import leaves behind. Seeded by scripts/a2-empty-notebook-driver.sh.
 - launchApp
-- assertVisible: "Empty Notebook"
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Empty Notebook"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Empty Notebook"
 - extendedWaitUntil:
     visible: "code"

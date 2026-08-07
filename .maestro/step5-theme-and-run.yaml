@@ -4,7 +4,17 @@ appId: com.jupydroid.app
 # Mod-Enter is not driven here: Maestro has no modifier chord, so the driver script sends it
 # with `adb shell input keycombination` once this flow has focused the cell.
 - launchApp
-- assertVisible: "Themed Cell"
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Themed Cell"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Themed Cell"
 - extendedWaitUntil:
     visible: ".*def greet.*"

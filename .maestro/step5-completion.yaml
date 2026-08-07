@@ -6,7 +6,17 @@ appId: com.jupydroid.app
 # kernel, because typing must not boot a Python runtime the user has not asked for. So the
 # popup can only appear at all if a real kernel is already answering - which is the gate.
 - launchApp
-- assertVisible: "Completion"
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Completion"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Completion"
 - extendedWaitUntil:
     visible: "1 \\+ 1"

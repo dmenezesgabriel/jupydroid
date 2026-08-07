@@ -4,7 +4,17 @@ appId: com.jupydroid.app
 # fold is written into the cell's nbformat metadata - under `collapsed`, which is the key
 # JupyterLab reads, not the `jupyter.outputs_hidden` the name suggests. Real kernel, so tablet.
 - launchApp
-- assertVisible: "Collapse Outputs"
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Collapse Outputs"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Collapse Outputs"
 - tapOn:
     text: "Run cell"
@@ -18,23 +28,34 @@ appId: com.jupydroid.app
     text: "Cell actions"
     index: 0
 - tapOn: "Cell menu Collapse outputs"
-# `alpha` on its own can only be the placeholder - the output node reads "alpha\nomega".
-# And `omega` appears nowhere in the source, which the first version of this fixture got
-# wrong: it printed "second line 120" from a line reading print("second line 120"), so the
-# "not visible" assertion was matching the source field and would never have passed.
-- assertVisible: "alpha"
+# The placeholder by its own name, which no source text can collide with. Asserting its
+# *preview* text here was tempting and wrong: `alpha` is in the cell's source too, and the
+# placeholder cannot be scoped around - a hierarchy dump shows the clickable row and its
+# preview as siblings, not parent and child. What the preview says is already covered off the
+# device, by CollapsedPreviewTest and CollapsedCellTest.
+- assertVisible: "Collapsed outputs"
 - assertNotVisible: ".*omega.*"
 # The source is untouched. The two collapses are separate commands and separate metadata keys,
 # and folding one must not fold the other.
+# matches-source: reading the source is the point here - it must still be on screen
 - assertVisible: ".*print.*"
 - takeScreenshot: 02-outputs-collapsed
 # stopApp is a real kill. Surviving it also re-proves 7.1: with no persisted outputs there
 # would be nothing left to fold, and the placeholder would not be drawn at all.
 - stopApp
 - launchApp
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Collapse Outputs"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Collapse Outputs"
 - extendedWaitUntil:
-    visible: "alpha"
+    visible: "Collapsed outputs"
     timeout: 30000
 - assertNotVisible: ".*omega.*"
 - takeScreenshot: 03-still-collapsed-after-restart

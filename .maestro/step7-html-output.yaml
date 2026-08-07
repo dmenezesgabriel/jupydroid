@@ -4,25 +4,56 @@ appId: com.jupydroid.app
 # `text/plain` twin and not shown as its own tags. Seeded by the driver; needs a real kernel,
 # so this runs on the tablet.
 - launchApp
-- assertVisible: "Html Output"
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Html Output"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Html Output"
 - takeScreenshot: 01-before-running
 - tapOn:
     text: "Run cell"
     index: 0
+# Every assertion below is scoped to the output subtree, because the cell's *source* holds
+# this same markup and is on screen too - unscoped, they would pass on a run that never
+# happened. `Cell output` is the contentDescription CellOutputs sets.
 # Generous: the first run starts jupyter_server and the kernel.
 - extendedWaitUntil:
-    visible: "Quarterly report"
+    visible:
+      text: "Quarterly report"
+      childOf:
+        text: "Cell output"
     timeout: 120000
 # The two ways this can go green while being wrong, both asserted against:
 #   the markup drawn literally, and the text/plain fallback winning the mime race.
-- assertNotVisible: "<h3>Quarterly report</h3>"
+- assertNotVisible:
+    text: "<h3>Quarterly report</h3>"
+    childOf:
+      text: "Cell output"
 - assertNotVisible: "<IPython.core.display.HTML object>"
 # Blocks, not one run-together paragraph: a list item, a quote and a link each survived.
-- assertVisible: "EMEA up"
-- assertVisible: "APAC flat"
-- assertVisible: "Signed off by finance."
-- assertVisible: "See the docs."
+- assertVisible:
+    text: "EMEA up"
+    childOf:
+      text: "Cell output"
+- assertVisible:
+    text: "APAC flat"
+    childOf:
+      text: "Cell output"
+- assertVisible:
+    text: "Signed off by finance."
+    childOf:
+      text: "Cell output"
+- assertVisible:
+    text: "See the docs."
+    childOf:
+      text: "Cell output"
 - takeScreenshot: 02-html-rendered-as-compose
 # The DataFrame case. The markup is a verbatim `pandas._repr_html_`, carried by
 # IPython.display.HTML because pandas is not in the rootfs - the mime bundle and the code

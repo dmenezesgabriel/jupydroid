@@ -11,6 +11,12 @@ repos:
         entry: scripts/check-file-line-length.sh
         language: system
         files: '\.kt$'
+      - id: maestro-output-assertions
+        name: maestro flows observe the output, not the source
+        entry: scripts/check-maestro-output-assertions.py
+        language: system
+        files: '^\.maestro/.*\.(yaml|ipynb)$'
+        pass_filenames: false
       - id: ktlint-check
         name: ktlint format check
         entry: scripts/gradlew-jbr ktlintCheck
