@@ -19,16 +19,16 @@ import org.junit.Test
  * in every role no screen happens to use yet - and U5 is about to add a bottom bar and a bottom
  * sheet, which reach for several of them.
  */
-class IntelliJColorSchemeTest {
+class ColorSchemeTest {
   @Test
-  fun theDarkSchemeIsEntirelyIntelliJ() = assertEveryRoleIsFromTheRamp("dark", DarkColorScheme)
+  fun everyDarkRoleComesFromTheRamp() = assertEveryRoleIsFromTheRamp("dark", DarkColorScheme)
 
   @Test
-  fun theLightSchemeIsEntirelyIntelliJ() = assertEveryRoleIsFromTheRamp("light", LightColorScheme)
+  fun everyLightRoleComesFromTheRamp() = assertEveryRoleIsFromTheRamp("light", LightColorScheme)
 
   private fun assertEveryRoleIsFromTheRamp(name: String, scheme: ColorScheme) {
-    val strays = scheme.roles().filterValues { it !in IntelliJRamp.all }
-    assertEquals("$name roles that are not IntelliJ colours", emptyMap<String, Color>(), strays)
+    val strays = scheme.roles().filterValues { it !in ColorRamp.all }
+    assertEquals("$name roles that are not on the ramp", emptyMap<String, Color>(), strays)
   }
 
   /**

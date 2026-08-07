@@ -17,7 +17,7 @@ import org.junit.Test
  * gets a contrast floor.
  */
 class EditorPaletteTest {
-  private val palettes = mapOf("dark" to DarculaEditorPalette, "light" to IntelliJLightEditorPalette)
+  private val palettes = mapOf("dark" to DarkEditorPalette, "light" to LightEditorPalette)
 
   @Test
   fun everySyntaxKindButPlainIsStyled() {
@@ -119,8 +119,8 @@ class EditorPaletteTest {
 
   @Test
   fun theTwoPalettesAreNotTheSamePalette() {
-    assertNotEquals(DarculaEditorPalette.editorBackground, IntelliJLightEditorPalette.editorBackground)
-    assertNotEquals(DarculaEditorPalette.syntax.keyword, IntelliJLightEditorPalette.syntax.keyword)
+    assertNotEquals(DarkEditorPalette.editorBackground, LightEditorPalette.editorBackground)
+    assertNotEquals(DarkEditorPalette.syntax.keyword, LightEditorPalette.syntax.keyword)
   }
 
   private companion object {

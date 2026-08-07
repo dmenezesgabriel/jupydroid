@@ -3,19 +3,23 @@ package com.jupydroid.app.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * IntelliJ's New UI colour ramps, the source every Material role and every editor token here is
- * drawn from.
+ * The app's raw colour ramps - every hex value it draws with, dark and light, in one place.
  *
- * Copied from `platform/platform-resources/src/themes/expUI/expUI_{dark,light}.theme.json` in the
- * reference tree. Named by ramp position, exactly as JetBrains names them, so a value can be
- * checked against its origin instead of being argued about - `Gray2` is one specific grey, where
- * "surfaceVariant" is a job that several greys could apply for.
+ * Nothing outside this file states a colour: [EditorPalette] and the Material schemes both name
+ * positions here, so a colour can be changed once and a colour that has drifted can be caught by
+ * a test (see `ColorSchemeTest`).
+ *
+ * Named by ramp position rather than by job, because a position is a fact and a job is an
+ * opinion: `Gray2` is one specific grey, where "surfaceVariant" is a role several greys could
+ * fill. The values were transcribed from the reference tree's editor themes
+ * (`platform/platform-resources/src/themes/expUI/expUI_{dark,light}.theme.json`); the citation is
+ * there so a value can be checked against its origin instead of argued about.
  *
  * The two ramps are not reflections of each other: dark's greys run light-on-dark from `Gray1`
  * (the darkest surface) upward, light's run dark-on-light from `Gray1` (black text) downward. So
  * `DarkGray2` is a background and `LightGray2` is a foreground, and they must not be swapped.
  */
-internal object IntelliJRamp {
+internal object ColorRamp {
   // Dark - expUI_dark.theme.json
   val DarkGray1 = Color(0xFF1E1F22)
   val DarkGray2 = Color(0xFF2B2D30)

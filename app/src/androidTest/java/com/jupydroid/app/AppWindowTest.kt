@@ -6,8 +6,8 @@ import android.view.WindowManager
 import androidx.compose.ui.graphics.Color
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.DarculaEditorPalette
-import com.jupydroid.app.theme.IntelliJLightEditorPalette
+import com.jupydroid.app.theme.DarkEditorPalette
+import com.jupydroid.app.theme.LightEditorPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -63,7 +63,7 @@ class AppWindowTest {
       scenario.onActivity { activity ->
         val night = activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
           Configuration.UI_MODE_NIGHT_YES
-        val expected = if (night) DarculaEditorPalette else IntelliJLightEditorPalette
+        val expected = if (night) DarkEditorPalette else LightEditorPalette
         val background = activity.window.decorView.background
         assertTrue("windowBackground must be a flat colour, was $background", background is ColorDrawable)
         assertEquals(

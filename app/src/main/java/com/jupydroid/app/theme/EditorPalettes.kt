@@ -3,18 +3,18 @@ package com.jupydroid.app.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * The two palettes, read out of IntelliJ's own colour schemes rather than eyeballed from a
- * screenshot.
+ * The app's two editor palettes, dark and light.
  *
- * Source, in the reference tree (`reference/research_repos/intellij-community/`):
+ * Every value is transcribed from a real IDE colour scheme rather than eyeballed from a
+ * screenshot, so the syntax colours are ones that have been read by a lot of people for a long
+ * time. The sources, for anyone checking a value:
  *
  * - `platform/platform-resources/src/themes/expUI/expUI_darkScheme.xml`
  * - `platform/platform-resources/src/themes/expUI/expUI_lightScheme.xml`
- * - `platform/platform-resources/src/themes/expUI/expUI_{dark,light}.theme.json` for the grey
- *   and blue ramps the surfaces come from
+ * - `platform/platform-resources/src/themes/expUI/expUI_{dark,light}.theme.json` for the surfaces
  *
- * These are the **New UI** schemes, not classic Darcula: they are what a current IntelliJ shows.
- * The names here keep "Darcula" because that is what users call the dark one.
+ * all under `reference/research_repos/`, which is gitignored - so these constants, and the
+ * citations beside them, are the durable record.
  *
  * Two traps in reading those files, both hit while extracting these values:
  *
@@ -24,12 +24,12 @@ import androidx.compose.ui.graphics.Color
  *    resolve through `MarkdownHighlighterColors.java` to the general keys - which is why
  *    [SyntaxPalette] has no markdown fields.
  *
- * The Jupyter plugin's own `JUPYTER.*` keys are **not** in the community repository (the plugin
- * is closed), so the four cell surfaces are the only values here that are not copied outright:
- * they are taken from the New UI grey ramp that the rest of the IDE chrome uses, which is where
- * the plugin's own defaults come from.
+ * The notebook-specific `JUPYTER.*` keys are **not** in that tree (they ship with a closed
+ * plugin), so the four cell surfaces are the only values not copied outright: they come from the
+ * same grey ramp as the rest of the IDE chrome, which is where those defaults are derived from
+ * anyway.
  */
-val DarculaEditorPalette: EditorPalette =
+val DarkEditorPalette: EditorPalette =
   EditorPalette(
     // Gray1 / the `TEXT` background.
     editorBackground = Color(0xFF1E1F22),
@@ -66,7 +66,7 @@ val DarculaEditorPalette: EditorPalette =
       ),
   )
 
-val IntelliJLightEditorPalette: EditorPalette =
+val LightEditorPalette: EditorPalette =
   EditorPalette(
     // Gray14 / the `TEXT` background.
     editorBackground = Color(0xFFFFFFFF),

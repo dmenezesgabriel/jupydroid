@@ -2,7 +2,7 @@
 <resources>
 
     <!--
-      IntelliJLightEditorPalette.editorBackground (Gray14). Duplicated from Kotlin on purpose and
+      LightEditorPalette.editorBackground (Gray14). Duplicated from Kotlin on purpose and
       not by oversight: the window is drawn before Compose exists, so this value cannot be read
       from the palette. Keep the two in step - a mismatch shows as a flash of the wrong colour on
       every cold launch.

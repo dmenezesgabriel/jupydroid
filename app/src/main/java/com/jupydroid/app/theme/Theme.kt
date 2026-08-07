@@ -14,10 +14,11 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * The editor tokens in scope. Static because the palette changes only with the system theme -
  * a whole-tree recomposition then is correct and is not something to optimise around.
  */
-val LocalEditorPalette = staticCompositionLocalOf { DarculaEditorPalette }
+val LocalEditorPalette = staticCompositionLocalOf { DarkEditorPalette }
 
 /**
- * IntelliJ's New UI, dark and light, following the system.
+ * The app's theme: the editor palette and the Material scheme that matches it, dark or light,
+ * following the system.
  *
  * **Dynamic colour is deliberately not offered.** It was on before, which meant the wallpaper
  * chose the syntax colours: `NUMBER` resolved to `colorScheme.secondary` and on some wallpapers
@@ -34,7 +35,7 @@ fun JupyterDroidTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
   content: @Composable () -> Unit,
 ) {
-  val palette = if (darkTheme) DarculaEditorPalette else IntelliJLightEditorPalette
+  val palette = if (darkTheme) DarkEditorPalette else LightEditorPalette
   CompositionLocalProvider(LocalEditorPalette provides palette) {
     MaterialTheme(
       colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
@@ -56,10 +57,10 @@ val editorPalette: EditorPalette
  * left out keeps `darkColorScheme()`'s default, and those defaults are the Material *baseline
  * purple* - a colour from a different design system. Setting most of them is what put a purple
  * FAB on Home beside a Darcula editor: `FloatingActionButton` reaches for `primaryContainer`,
- * which nothing had set. `IntelliJColorSchemeTest` enumerates them so the next omission fails a
+ * which nothing had set. `ColorSchemeTest` enumerates them so the next omission fails a
  * test rather than waiting to be noticed in a screenshot.
  */
-internal val DarkColorScheme: ColorScheme = with(IntelliJRamp) {
+internal val DarkColorScheme: ColorScheme = with(ColorRamp) {
   darkColorScheme(
     primary = DarkBlue6,
     onPrimary = DarkGray14,
@@ -100,7 +101,7 @@ internal val DarkColorScheme: ColorScheme = with(IntelliJRamp) {
   )
 }
 
-internal val LightColorScheme: ColorScheme = with(IntelliJRamp) {
+internal val LightColorScheme: ColorScheme = with(ColorRamp) {
   lightColorScheme(
     primary = LightBlue4,
     onPrimary = LightGray14,
