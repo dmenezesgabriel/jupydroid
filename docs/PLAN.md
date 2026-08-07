@@ -995,11 +995,30 @@ the wrong thing.
   `app/src/androidTest` was empty despite the Compose test dependencies being declared since
   Step 1. Reach for one when the question is *whether something is visible or reachable*, which
   no JVM test can answer.
-- **A fixture whose output text is written in its own cell proves nothing.** Maestro matches a
-  cell's source field too, so waiting for `omega` when the source reads `print("omega")` passes
-  whether or not the kernel ever ran — `mime-shapes` went green on an untouched file that way,
-  and `collapse-outputs` failed for the same reason. Assemble the output text at runtime
-  (`"om" + "ega"`) so it appears nowhere in the source. This has bitten three times.
+- **A flow must prove it observed the output, not the source — and this is now enforced.**
+  Maestro matches text anywhere on screen, the cell's source included, so waiting for `omega`
+  when the source reads `print("omega")` passes whether or not the kernel ever ran. Three
+  incidents; `scripts/check-maestro-output-assertions.py` (pre-commit) now fails a commit where
+  a visibility assertion *after* a Run matches the seeded fixture's cell sources. Two ways to
+  satisfy it:
+    - **Scope it**: `childOf: {text: "Cell output"}`, the contentDescription `CellOutputs` sets.
+      Probed on device both ways — source-only text is visible unscoped and not visible scoped.
+      It resolves against the *first* matching ancestor, so it only works while one `Cell output`
+      is on screen; with two code cells visible it silently checks the wrong one.
+    - **Or make the text unconfusable**: have the fixture assemble what it prints
+      (`'sec' + 'ond'`) so the word exists only in the output. This is the one to reach for when
+      several cells are on screen.
+  Assertions *before* a Run read the source deliberately and are exempt; a deliberate one after
+  a Run takes `# matches-source: <why>`. The narrowing is what makes the check usable — a blanket
+  rule fires on 38 legitimate assertions, most in markdown flows where the rendered text *is* the
+  source text. It found a live defect the day it was written: `step4b-run-all-and-stop` had never
+  checked Run All's second result.
+- **Open a seeded notebook by scrolling to it, after a settle.** Home is sorted by recency, so a
+  seeded notebook sinks below the fold as a device accumulates notebooks — two flows began
+  failing at their first assertion with the row present the whole time. Every driver-seeded flow
+  now does `launchApp` → `waitForAnimationToEnd` → `scrollUntilVisible` → `tapOn`. The settle is
+  load-bearing: a scroll started before the list has rendered *ends* rather than retrying.
+  Keep fixture titles distinct, too — "Collapse" is a prefix of "Collapse Outputs".
 - **`assertVisible` means on screen, so assert what the screenshot shows.** A node below the
   fold passed `extendedWaitUntil` on one run of `step7-html-output` and failed it on the next,
   against an identical state — and the screenshot in between showed only source. Reach for
