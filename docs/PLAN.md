@@ -190,8 +190,12 @@ persistence proven by Maestro `stopApp`→relaunch flow `step3-persistence.yaml`
 - **4a** Read-only editor — tap a recents row → cell list (code + markdown
   sources rendered, back to Home). No execution.
 - **4b** Editing + execution shell. **Run, Stop, Run All and the busy indicator
-  are done** (`evidence/step4b/`, `evidence/step4b-run-all/`), against a real
-  kernel on the tablet. **The cell menu is done too** — insert code/markdown below,
+  are done** — Run All, Stop and the indicator against a real kernel on the tablet
+  (`evidence/step4b-run-all/`), running a single cell against a real kernel by
+  `step10-run-cell-real-kernel` (`evidence/run-cell-one-gate/`). `evidence/step4b/`
+  is the older half and predates the runtime: its screenshot is `answer = 42` echoed
+  back by `FakeKernelGateway`, kept as history rather than as a live gate. See
+  "One gate for running a cell" below. **The cell menu is done too** — insert code/markdown below,
   move up/down, duplicate, delete, clear outputs, persisted and read back off the
   device (`evidence/step4b-cell-menu/`). **Collapse is done too** — both halves, persisted
   through the nbformat DTOs; see "Collapse" below, including the correction to what this
@@ -821,6 +825,29 @@ both bugs are fixed as bugs.
 test for create-then-appear while the bug was live, because they all ran against an empty
 directory. A list that does not scroll cannot show a scrolling bug - so `HomeCreateTest` seeds
 thirty notebooks, and any future test of a list behaviour should ask what size makes it real.
+
+### One gate for running a cell (2026-08-07)
+
+`step4b-run-cell` is **deleted**, along with `scripts/step4b-run-cell-driver.sh`. It was written
+against `FakeKernelGateway`, whose `execute` echoes the cell's source back as stdout, and its
+fixture cell is `answer = 42` — an assignment a real kernel answers with nothing. So the flow
+waited on `Cell output`, the bare contentDescription `CellOutputs` sets, which the echo always
+satisfied and the real kernel never did. `evidence/step4b/02-cell-output.png` is the fake caught
+in the act: `answer = 42` appears twice, once as source and once as its own "output" — and
+`evidence/step4b/maestro.log:13` records the device as `emulator-5554`, which is x86_64, which
+is where `MainActivity` falls back to the fake because the rootfs is arm64-only.
+
+Step 10 already knew. `step10-run-cell-real-kernel.yaml` was written *because* the 4b flow could
+not be reused, said so in its header, and asserts values the kernel computes — `42` from
+`print(6 * 7)`, and a numpy determinant. It was run green on the tablet **before** the deletion
+rather than after (`evidence/run-cell-one-gate/`), so the coverage was demonstrated, not assumed.
+Repairing 4b's flow instead would have meant a third fixture doing what step10's already does;
+its own fixture could not simply be edited, because `step4-cells.ipynb` is shared with
+`step4-editor` and `step5-edit-cell`, which assert `answer = 42` as *source* on purpose.
+
+**The general rule this leaves:** after a Run, never assert that an output *container* exists.
+`Cell output` proves only that something rendered, and something always renders — the fake can
+make it true without a kernel. Assert a value the kernel had to compute.
 
 ## Harness notes
 
