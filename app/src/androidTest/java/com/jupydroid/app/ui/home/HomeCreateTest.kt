@@ -8,7 +8,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.domain.model.Notebook
-import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -37,7 +36,7 @@ class HomeCreateTest {
     runBlocking {
       repeat(CROWD) { index ->
         repository.saveNotebook(
-          Notebook("older-$index", "Older $index", "python3", emptyList(), Instant.EPOCH.plusSeconds(index.toLong())),
+          Notebook("older-$index", "Older $index", "python3", emptyList()),
         )
       }
     }

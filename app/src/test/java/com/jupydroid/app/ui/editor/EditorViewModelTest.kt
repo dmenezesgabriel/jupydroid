@@ -12,7 +12,6 @@ import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.NotebookRepository
-import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -133,7 +132,7 @@ class EditorViewModelTest {
   @Test
   fun runCell_savesItsOutputSoItSurvivesReopening() = runTest {
     val repository = FakeNotebookRepository()
-    launch { repository.saveNotebook(Notebook("nb-1", "Data", "python3", listOf(codeCell), Instant.EPOCH)) }
+    launch { repository.saveNotebook(Notebook("nb-1", "Data", "python3", listOf(codeCell))) }
     advanceUntilIdle()
     val viewModel = EditorViewModel("nb-1", repository, FakeKernelGateway())
     advanceUntilIdle()
@@ -408,7 +407,7 @@ class EditorViewModelTest {
     repository: NotebookRepository = FakeNotebookRepository(),
   ): EditorViewModel {
     launch {
-      repository.saveNotebook(Notebook("nb-1", "Data", "python3", cells, Instant.EPOCH))
+      repository.saveNotebook(Notebook("nb-1", "Data", "python3", cells))
     }
     advanceUntilIdle()
     // No collector: uiState is a StateFlow, so .value is current without one - and a

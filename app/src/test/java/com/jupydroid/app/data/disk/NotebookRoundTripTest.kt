@@ -5,7 +5,6 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.StreamName
-import java.time.Instant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -154,7 +153,7 @@ class NotebookRoundTripTest {
   /** A cell the app created has nothing preserved and must still write valid nbformat. */
   @Test
   fun writesAValidCellForOneTheAppCreated() {
-    val notebook = Notebook("nb", "New", "python3", listOf(Cell("c1", CellKind.CODE, "x = 1")), Instant.EPOCH)
+    val notebook = Notebook("nb", "New", "python3", listOf(Cell("c1", CellKind.CODE, "x = 1")))
 
     val cell = notebook.toFileJson().array("cells").single() as JsonObject
 
@@ -236,7 +235,7 @@ class NotebookRoundTripTest {
     fun JsonObject.toNotebook() =
       Json { ignoreUnknownKeys = true }
         .decodeFromJsonElement(NotebookFile.serializer(), this)
-        .toDomain(id = "nb", updatedAtFallback = Instant.EPOCH, preserved = this)
+        .toDomain(id = "nb", preserved = this)
 
     fun savedCells(): List<JsonObject> = SAVED.array("cells").map { it as JsonObject }
 

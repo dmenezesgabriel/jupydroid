@@ -24,8 +24,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * nbformat 4 JSON shape for one notebook file. App-only fields (title, updatedAt)
- * live under `metadata.jupydroid` so other tools can read the file unchanged;
+ * nbformat 4 JSON shape for one notebook file. The one app-only field, the title,
+ * lives under `metadata.jupydroid` so other tools can read the file unchanged;
  * cells keep their Jupyter shape (`cell_type`, `source`, `outputs`, `execution_count`).
  */
 @Serializable
@@ -48,11 +48,14 @@ data class KernelSpecMeta(
   @SerialName("display_name") val displayName: String,
 )
 
+/**
+ * Only the title. There was an `updated_at` here until 2026-08-07, and it was the bug: nothing
+ * bumped it on save, so an edited notebook kept the time it was created. Jupyter never stored
+ * one - `last_modified` is the file's mtime - so the app stopped storing one too. Files written
+ * before then still carry the key; `ignoreUnknownKeys` reads past it and the next save drops it.
+ */
 @Serializable
-data class JupyterDroidMeta(
-  val title: String,
-  @SerialName("updated_at") val updatedAt: String,
-)
+data class JupyterDroidMeta(val title: String)
 
 @Serializable
 data class CellFile(
@@ -103,11 +106,7 @@ object MultiLineSourceSerializer : KSerializer<String> {
 internal fun Json.readNotebook(file: File, id: String): Notebook {
   val root = parseToJsonElement(file.readText()) as? JsonObject
     ?: throw IllegalArgumentException("notebook file '$file' is not a JSON object")
-  return decodeFromJsonElement(NotebookFile.serializer(), root).toDomain(
-    id = id,
-    updatedAtFallback = Instant.ofEpochMilli(file.lastModified()),
-    preserved = root,
-  )
+  return decodeFromJsonElement(NotebookFile.serializer(), root).toDomain(id = id, preserved = root)
 }
 
 /**
@@ -115,15 +114,8 @@ internal fun Json.readNotebook(file: File, id: String): Notebook {
  * write over it instead of rebuilding from what this app happens to model. Defaulted so tests
  * that only care about the modelled fields need not supply it; the repository always does.
  */
-fun NotebookFile.toDomain(
-  id: String,
-  updatedAtFallback: Instant,
-  preserved: JsonObject = JsonObject(emptyMap()),
-): Notebook {
-  val appMeta = metadata.jupydroid
-  val title = appMeta?.title?.takeIf { it.isNotBlank() } ?: id
-  val updatedAt =
-    appMeta?.updatedAt?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: updatedAtFallback
+fun NotebookFile.toDomain(id: String, preserved: JsonObject = JsonObject(emptyMap())): Notebook {
+  val title = metadata.jupydroid?.title?.takeIf { it.isNotBlank() } ?: id
   // By index, because a cell's id is optional in nbformat before 4.5 and duplicated ids happen.
   val preservedCells = preserved["cells"] as? JsonArray
   return Notebook(
@@ -131,7 +123,6 @@ fun NotebookFile.toDomain(
     title = title,
     kernelId = metadata.kernelspec?.name ?: "python3",
     cells = cells.mapIndexed { at, cell -> cell.toDomain(preservedCells?.getOrNull(at) as? JsonObject) },
-    updatedAt = updatedAt,
     preserved = preserved,
   )
 }
@@ -157,5 +148,6 @@ fun CellFile.toDomain(preserved: JsonObject? = null): Cell =
     preserved = preserved ?: JsonObject(emptyMap()),
   )
 
-fun Notebook.toSummary(): NotebookSummary =
+/** [updatedAt] comes from whoever knows when the notebook was last written - see the callers. */
+fun Notebook.toSummary(updatedAt: Instant): NotebookSummary =
   NotebookSummary(id = id, title = title, updatedAt = updatedAt)

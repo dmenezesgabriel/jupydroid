@@ -25,10 +25,10 @@ appId: com.jupydroid.app
 - stopApp
 - launchApp
 # The relaunch needs the same settle and scroll as the first launch, and used to have neither -
-# so it failed here with the row present all along (evidence/relaunch-settles/). Saving does not
-# move a notebook up Recents: `saveNotebook` writes what it is given and only `createNotebook`
-# stamps `updatedAt`, so running a cell leaves this fixture at its seeded 2026-08-04 timestamp,
-# well below the fold on a device with notebooks newer than that.
+# so it failed here with the row present all along (evidence/relaunch-settles/). Running a cell
+# does now move the notebook up Recents, since `updatedAt` is the file's mtime (audit A6), but
+# the scroll stays: it costs nothing when the row is already in view, and where the row sits is
+# not something this flow should have to know.
 - waitForAnimationToEnd:
     timeout: 5000
 - scrollUntilVisible:

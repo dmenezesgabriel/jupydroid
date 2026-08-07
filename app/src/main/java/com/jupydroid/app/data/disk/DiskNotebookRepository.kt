@@ -43,7 +43,6 @@ class DiskNotebookRepository(
           title = title,
           kernelId = kernelId,
           cells = emptyList(),
-          updatedAt = Instant.now(),
         )
       writeFile(notebook)
       refreshSummaries()
@@ -96,11 +95,17 @@ class DiskNotebookRepository(
       .mapNotNull(::trySummaryOf)
       .sortedByDescending { it.updatedAt }
 
-  /** Corrupt or foreign unreadable files are skipped so one bad file does not break Home. */
+  /**
+   * Corrupt or foreign unreadable files are skipped so one bad file does not break Home.
+   *
+   * `updatedAt` is the file's own mtime, the way Jupyter's Contents API reads it
+   * (`filemanager.py:285`). So every write counts - an edit, a run, a rename, the creation
+   * itself - because every one of them writes the file, and nothing has to remember to say so.
+   */
   private fun trySummaryOf(file: File): NotebookSummary? {
     val id = file.name.removeSuffix(".ipynb")
     return try {
-      json.readNotebook(file, id).toSummary()
+      json.readNotebook(file, id).toSummary(Instant.ofEpochMilli(file.lastModified()))
     } catch (e: SerializationException) {
       null
     } catch (e: IllegalArgumentException) {

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -65,7 +66,6 @@ class DiskNotebookRepositoryTest {
             Cell(id = "c1", kind = CellKind.CODE, source = "print(1)"),
             Cell(id = "c2", kind = CellKind.MARKDOWN, source = "# Title"),
           ),
-        updatedAt = Instant.parse("2026-01-02T03:04:05Z"),
       )
 
     repository.saveNotebook(notebook)
@@ -125,17 +125,20 @@ class DiskNotebookRepositoryTest {
     assertTrue(repository.observeNotebooks().first().isEmpty())
   }
 
+  /**
+   * The order is the files' own mtimes, the way Jupyter reads `last_modified`, so this sets
+   * those - there is no longer a field in the JSON to set. Read back through a second
+   * repository because summaries are scanned in `init` and refreshed only after a mutation.
+   */
   @Test
   fun observeNotebooks_listsNewestFirst() = runTest {
     val repository = repository()
-    repository.saveNotebook(
-      notebook(id = "older", updatedAt = Instant.parse("2026-01-01T00:00:00Z")),
-    )
-    repository.saveNotebook(
-      notebook(id = "newer", updatedAt = Instant.parse("2026-01-02T00:00:00Z")),
-    )
+    repository.saveNotebook(notebook(id = "older"))
+    repository.saveNotebook(notebook(id = "newer"))
+    notebookFile("older").setLastModified(Instant.parse("2026-01-01T00:00:00Z").toEpochMilli())
+    notebookFile("newer").setLastModified(Instant.parse("2026-01-02T00:00:00Z").toEpochMilli())
 
-    val summaries = repository.observeNotebooks().first()
+    val summaries = DiskNotebookRepository(tempFolder.root).observeNotebooks().first()
 
     assertEquals(listOf("newer", "older"), summaries.map { it.id })
   }
@@ -212,16 +215,51 @@ class DiskNotebookRepositoryTest {
     }
   }
 
-  private fun notebook(id: String, updatedAt: Instant): Notebook =
-    Notebook(
-      id = id,
-      title = id,
-      kernelId = "python3",
-      cells = emptyList(),
-      updatedAt = updatedAt,
-    )
+  /**
+   * A6: `updated_at` used to live in `metadata.jupydroid` and nothing bumped it on save, so an
+   * edited notebook kept the time it was created. Jupyter stores no such field - `last_modified`
+   * is the file's mtime - so neither do we, and a save drops the key from files that have one.
+   */
+  @Test
+  fun saveNotebook_writesNoTimestampOfItsOwn() = runTest {
+    val repository = repository()
+
+    repository.saveNotebook(notebook(id = "nb-1"))
+
+    val jupydroid = Json.parseToJsonElement(notebookFile("nb-1").readText())
+      .jsonObject.getValue("metadata").jsonObject.getValue("jupydroid").jsonObject
+    assertEquals(setOf("title"), jupydroid.keys)
+  }
+
+  @Test
+  fun aFileStillCarryingTheOldTimestampIsListedByItsMtime() = runTest {
+    notebookFile("legacy").writeText(LEGACY_WITH_UPDATED_AT)
+    notebookFile("legacy").setLastModified(Instant.parse("2026-03-04T05:06:07Z").toEpochMilli())
+
+    val summary = repository().observeNotebooks().first().single()
+
+    assertEquals(Instant.parse("2026-03-04T05:06:07Z"), summary.updatedAt)
+    assertEquals("Legacy", summary.title)
+  }
+
+  private fun notebook(id: String): Notebook =
+    Notebook(id = id, title = id, kernelId = "python3", cells = emptyList())
 
   companion object {
+    /** As this app wrote them until 2026-08-07: the stored timestamp is stale by construction. */
+    private val LEGACY_WITH_UPDATED_AT =
+      """
+      {
+        "cells": [],
+        "metadata": {
+          "kernelspec": {"name": "python3", "display_name": "Python 3"},
+          "jupydroid": {"title": "Legacy", "updated_at": "2020-01-01T00:00:00Z"}
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5
+      }
+      """.trimIndent()
+
     // Jupyter writes source as an array of lines and files often carry unknown keys.
     private val FOREIGN_NOTEBOOK_JSON =
       """

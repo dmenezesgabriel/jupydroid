@@ -3,7 +3,6 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
-import java.time.Instant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -141,7 +140,7 @@ class CellCollapseTest {
   )
 
   private fun notebookOf(cell: Cell): JsonObject =
-    Notebook("nb", "Title", "python3", listOf(cell), Instant.EPOCH).toFileJson()
+    Notebook("nb", "Title", "python3", listOf(cell)).toFileJson()
 
   private fun codeCell(sourceHidden: Boolean = false, outputsHidden: Boolean = false) = Cell(
     id = "c1",

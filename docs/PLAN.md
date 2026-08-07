@@ -501,7 +501,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 | A5b | Syntax highlighting for markdown source | **Done.** `MarkdownSyntax` off commonmark's source spans, 9 JVM tests. `evidence/audit-a5-markdown-editor/` |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | **Done.** `toEditorUiState` gives a cell-less notebook one code cell, `evidence/audit-a2-empty-notebook/` |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | **Done.** Recents scrolls to a newly-topmost notebook; `HomeCreateTest` seeds 30 to reproduce it. `evidence/audit-a3-create-shows-up/` |
-| A6 | **Editing a notebook does not update its "last updated" time** | **Open**, found 2026-08-07. See below |
+| A6 | **Editing a notebook does not update its "last updated" time** | **Done.** `updatedAt` is the file's mtime, the way Jupyter reads it; `NotebookRepositoryContract` holds both repositories to it. `evidence/audit-a6-updated-at/` |
 
 ### A1 — markdown cells are read-only
 
@@ -846,25 +846,44 @@ test for create-then-appear while the bug was live, because they all ran against
 directory. A list that does not scroll cannot show a scrolling bug - so `HomeCreateTest` seeds
 thirty notebooks, and any future test of a list behaviour should ask what size makes it real.
 
-### A6 — editing a notebook does not update its "last updated" time (open, 2026-08-07)
+### A6 — every write is an update, the way Jupyter means it (closed, 2026-08-07)
 
-Found while fixing a Maestro flow, not while looking for it, and **left open on purpose**:
-fixing it changes Recents ordering, which nearly every flow navigates by, so it deserves its
-own step rather than a ride-along.
+**Was:** `metadata.jupydroid.updated_at`, written on create and bumped by nothing.
+`saveNotebook` wrote the notebook it was handed and `EditorViewModel.persist()` did
+`notebook.copy(cells = …)`, carrying the old value straight through. Home sorts
+`sortedByDescending { it.updatedAt }` and labels each row from the same field, so a notebook you
+had just typed in neither rose in Recents nor stopped claiming it was touched days ago.
 
-`DiskNotebookRepository.saveNotebook` writes the notebook it is handed. Only `createNotebook`
-stamps `updatedAt = Instant.now()`; `EditorViewModel.persist()` does `notebook.copy(cells = …)`,
-which carries the old value straight through. Home sorts `sortedByDescending { it.updatedAt }`
-and labels each row from the same field, so a notebook you just typed in neither rises in
-Recents nor stops claiming it was touched three days ago.
+**The product question answered itself in the source.** Jupyter's `last_modified` is
+`os.lstat(os_path).st_mtime` and nothing else — read out of the `jupyter_server` this app ships
+(`services/contents/filemanager.py:266-305`), not remembered. Nothing is stored in the notebook,
+so there is no notion of an edit that does not count: everything that changes a notebook writes
+the file, and writing the file *is* the update. JupyterLab leans on that hard — comparing
+`last_modified` on disk against its own copy is how it detects a file changed underneath it
+(`packages/docregistry/src/context.ts:769-776`).
 
-Measured, not read: `a2-empty-notebook` inserts a cell, the app saves two cells to disk, and
-the driver reads the file back with `updated_at` still at the seeded `2026-08-06T16:00:00Z`
-(`evidence/relaunch-settles/`). It is also why `step7-outputs-persist` needed a scroll after
-its relaunch — running a cell did not bring the notebook back to the top.
+**So the app stopped keeping its own.** `updatedAt` is gone from the notebook JSON and gone from
+`Notebook` itself: when a notebook was last written is a fact about the stored file, not about
+the cells, and a field on the domain type is one a caller can set and a writer must remember to
+honour — which is precisely how this broke. It lives on `NotebookSummary`, filled in from
+`file.lastModified()` when the repository lists what is on disk. Edits, runs, renames and
+creation all count, and none of them has to say so.
 
-Whether "updated" should mean *edited* or *executed* is the actual product question, and
-`renameNotebook` has the same gap. Worth answering before writing the fix.
+Files written before the change still carry the old key; `ignoreUnknownKeys` reads past it and
+the next save drops it, because this app owns the `jupydroid` namespace and a key it no longer
+writes should not linger.
+
+**`NotebookRepositoryContract`** holds the fake and the disk one to it together — both were
+wrong in the same way, and the fake is what every ViewModel test runs against. Written as
+ordering ("touch the older notebook and it must not still sort below the newer one") rather than
+as a comparison against the clock, so it needs no clock to inject and no sleep to be reliable.
+Four of its six tests failed before the fix.
+
+Device gate: `a6-edit-updates-recents` on the tablet. The driver backdates the fixture with
+`touch -t 202001010000`, because a fixture it has just pushed has this moment's mtime and there
+would be nothing to see. One typed character turns the row from "1 Jan" into "just now", and the
+driver reads the file back to show the mtime moved and the stale key is gone
+(`evidence/audit-a6-updated-at/`).
 
 ### One gate for running a cell (2026-08-07)
 
@@ -987,6 +1006,11 @@ the wrong thing.
   `launchApp` it makes**, not just the first. Flows that relaunch mid-flow need it twice. The
   settle is load-bearing: a scroll started before the list has rendered *ends* rather than
   retrying. Keep fixture titles distinct, too — "Collapse" is a prefix of "Collapse Outputs".
+  **The settle has an in-app twin.** Anything that re-orders Recents needs one before the next
+  tap: A3's fix scrolls to a newly-topmost notebook, and a tap dispatched mid-animation lands
+  where the row *was*. `a2-empty-notebook` failed exactly there once in thirty flows and was
+  green on the retry — a flake, which is worse than a failure, because a suite that is green
+  four times in five reads as green.
 - **A sweep across N flows is not finished until N flows have been re-run.** 62352d7 edited 22
   and re-ran 10, which read as thorough and was not: of the twelve it left alone, one was red the
   whole time (`a1-markdown`, and for a defect in the app rather than in the flow), one relaunch
@@ -1037,9 +1061,9 @@ No WebView and no HTML.
 
 **All five of the 2026-08-06 audit findings are closed** — see "Audit findings" above for what
 each was and how it was fixed. They came from driving the built app rather than reading it, and
-four of the five were invisible to every test that existed at the time. **A6 is open**: saving a
-notebook does not touch its `updatedAt`, so an edited notebook neither rises in Recents nor
-refreshes its timestamp.
+four of the five were invisible to every test that existed at the time. **A6 is closed too**:
+`updatedAt` is now the file's mtime, the way Jupyter's `last_modified` is, so an edit, a run and
+a rename all move a notebook to the top of Recents.
 
 **`text/html` outputs render natively** (Step 7.2, closed) and **cells collapse** (Step 4b's
 last piece, closed) — both written up below. **Steps 4b and 7.2 are done**, so every cell
@@ -1049,19 +1073,18 @@ behaviour the plan set out is on the device.
 `attachments`, `language_info` and the rest through an edit here — eight losses, found by
 measuring rather than by reading. See "A save must not shred the file".
 
-**Every Maestro flow is green on the tablet as of 2026-08-07**, which had not been true for a
-while and nothing said so. Closing 62352d7's half-finished sweep turned up four things a partial
+**All 30 Maestro flows are green on the tablet as of 2026-08-07**, which had not been true for a
+while and nothing said so. Closing 62352d7's half-finished sweep turned up five things a partial
 re-run had hidden: a flow that could only ever be green on a fake kernel (deleted), a relaunch
-with no settle (fixed), two seeded flows the sweep skipped entirely (fixed), and a real app
-defect — tapping a rendered markdown cell opened an editor with no caret (fixed, A1c above).
-The record is `evidence/maestro-observability/flows-reverified.txt`.
+with no settle (fixed), three seeded flows the sweep skipped entirely (fixed), a real app defect
+— tapping a rendered markdown cell opened an editor with no caret (fixed, A1c above) — and a
+flake only a full run could surface. The record is
+`evidence/maestro-observability/flows-reverified.txt`.
 
 **Next: Step 11 (Console REPL)** — a REPL sharing the open notebook's kernel.
 
 **Also open, in rough priority order:**
 
-- **Audit A6**: saving does not update `updatedAt`, so Recents ordering and every "3 days ago"
-  label go stale the moment a notebook is edited. Small fix, product question attached.
 - **Packaging**: debug APK is 116 MB, most of it the rootfs (278 MB unpacked). Asset pack
   versus first-run download is undecided.
 - **LSP** (see below) would supersede 5.5's completion rather than duplicate it.

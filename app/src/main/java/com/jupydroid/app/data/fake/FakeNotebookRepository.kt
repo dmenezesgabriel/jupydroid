@@ -7,15 +7,25 @@ import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 
-/** In-memory [NotebookRepository] feeding the UI until the disk impl lands (Step 3). */
+/**
+ * In-memory [NotebookRepository] feeding the UI until the disk impl lands (Step 3).
+ *
+ * [written] is this fake's stand-in for a file's mtime, which is where the disk one gets
+ * `updatedAt`. Every mutation stamps it, because on disk every mutation writes the file - a fake
+ * that only stamped on create would let the UI look right against a behaviour the real
+ * repository does not have. `NotebookRepositoryContract` holds both to it.
+ */
 class FakeNotebookRepository : NotebookRepository {
   private val notebooks = MutableStateFlow<Map<String, Notebook>>(emptyMap())
+  private val written = MutableStateFlow<Map<String, Instant>>(emptyMap())
 
   override fun observeNotebooks(): Flow<List<NotebookSummary>> =
-    notebooks.map { all ->
-      all.values.map { it.toSummary() }.sortedByDescending { it.updatedAt }
+    combine(notebooks, written) { all, times ->
+      all.values
+        .map { NotebookSummary(it.id, it.title, times[it.id] ?: Instant.EPOCH) }
+        .sortedByDescending { it.updatedAt }
     }
 
   override suspend fun createNotebook(title: String, kernelId: String): Notebook {
@@ -24,20 +34,18 @@ class FakeNotebookRepository : NotebookRepository {
       title = title,
       kernelId = kernelId,
       cells = emptyList(),
-      updatedAt = Instant.now(),
     )
-    notebooks.value = notebooks.value + (notebook.id to notebook)
+    put(notebook)
     return notebook
   }
 
   override suspend fun renameNotebook(id: String, title: String) {
-    notebooks.value = notebooks.value.mapValues { entry ->
-      if (entry.key == id) entry.value.copy(title = title) else entry.value
-    }
+    notebooks.value[id]?.let { put(it.copy(title = title)) }
   }
 
   override suspend fun deleteNotebook(id: String) {
     notebooks.value = notebooks.value - id
+    written.value = written.value - id
   }
 
   // IllegalArgumentException, not IllegalStateException: DiskNotebookRepository is the
@@ -45,10 +53,11 @@ class FakeNotebookRepository : NotebookRepository {
   override suspend fun readNotebook(id: String): Notebook =
     requireNotNull(notebooks.value[id]) { "no notebook with id '$id'" }
 
-  override suspend fun saveNotebook(notebook: Notebook) {
-    notebooks.value = notebooks.value + (notebook.id to notebook)
-  }
+  override suspend fun saveNotebook(notebook: Notebook) = put(notebook)
 
-  private fun Notebook.toSummary(): NotebookSummary =
-    NotebookSummary(id = id, title = title, updatedAt = updatedAt)
+  /** The one way in, so no mutation can forget to count as an update. */
+  private fun put(notebook: Notebook) {
+    notebooks.value = notebooks.value + (notebook.id to notebook)
+    written.value = written.value + (notebook.id to Instant.now())
+  }
 }

@@ -36,7 +36,9 @@ fun Notebook.toFileJson(): JsonObject = buildJsonObject {
 private fun Notebook.notebookMetadataJson(): JsonObject = buildJsonObject {
   preserved.objectAt("metadata").forEach { (key, value) -> put(key, value) }
   put("kernelspec", kernelspecJson())
-  put("jupydroid", buildJsonObject { put("title", title); put("updated_at", updatedAt.toString()) })
+  // Replaced whole rather than merged, which is how the old `updated_at` leaves a file that has
+  // one: this app owns the `jupydroid` namespace, so a key it no longer writes should not linger.
+  put("jupydroid", buildJsonObject { put("title", title) })
 }
 
 /**
