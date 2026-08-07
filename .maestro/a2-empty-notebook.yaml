@@ -31,10 +31,15 @@ appId: com.jupydroid.app
 - back
 - tapOn: "+"
 - tapOn: "New notebook"
-# Restarted on purpose: audit A3 is still open, so a new notebook does not appear in Recents
-# until the list is rebuilt. This flow is about A2, not A3.
-- stopApp
-- launchApp
+# No restart. This flow used to stop and relaunch here because audit A3 was open and a new
+# notebook did not reach Recents until the list was rebuilt; A3 was fixed in 5403bd9, and
+# a3-create-shows-up proves the row arrives on its own. The relaunch also had no settle, so it
+# raced the disk scan - a workaround that had outlived its reason and could only misfire.
+# "just now" is the new row's timestamp: only createNotebook stamps updatedAt, so it is unique
+# to the row just made, and waiting on it means the row is really in view.
+- extendedWaitUntil:
+    visible: "just now"
+    timeout: 15000
 - tapOn:
     text: "Untitled"
     index: 0

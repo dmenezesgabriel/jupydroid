@@ -501,6 +501,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 | A5b | Syntax highlighting for markdown source | **Done.** `MarkdownSyntax` off commonmark's source spans, 9 JVM tests. `evidence/audit-a5-markdown-editor/` |
 | A2 | **A new notebook is a dead end** — "No cells yet" and no way to add a first cell | **Done.** `toEditorUiState` gives a cell-less notebook one code cell, `evidence/audit-a2-empty-notebook/` |
 | A3 | **Creating a notebook looks like it does nothing** — the new row lands above the fold | **Done.** Recents scrolls to a newly-topmost notebook; `HomeCreateTest` seeds 30 to reproduce it. `evidence/audit-a3-create-shows-up/` |
+| A6 | **Editing a notebook does not update its "last updated" time** | **Open**, found 2026-08-07. See below |
 
 ### A1 — markdown cells are read-only
 
@@ -826,6 +827,26 @@ test for create-then-appear while the bug was live, because they all ran against
 directory. A list that does not scroll cannot show a scrolling bug - so `HomeCreateTest` seeds
 thirty notebooks, and any future test of a list behaviour should ask what size makes it real.
 
+### A6 — editing a notebook does not update its "last updated" time (open, 2026-08-07)
+
+Found while fixing a Maestro flow, not while looking for it, and **left open on purpose**:
+fixing it changes Recents ordering, which nearly every flow navigates by, so it deserves its
+own step rather than a ride-along.
+
+`DiskNotebookRepository.saveNotebook` writes the notebook it is handed. Only `createNotebook`
+stamps `updatedAt = Instant.now()`; `EditorViewModel.persist()` does `notebook.copy(cells = …)`,
+which carries the old value straight through. Home sorts `sortedByDescending { it.updatedAt }`
+and labels each row from the same field, so a notebook you just typed in neither rises in
+Recents nor stops claiming it was touched three days ago.
+
+Measured, not read: `a2-empty-notebook` inserts a cell, the app saves two cells to disk, and
+the driver reads the file back with `updated_at` still at the seeded `2026-08-06T16:00:00Z`
+(`evidence/relaunch-settles/`). It is also why `step7-outputs-persist` needed a scroll after
+its relaunch — running a cell did not bring the notebook back to the top.
+
+Whether "updated" should mean *edited* or *executed* is the actual product question, and
+`renameNotebook` has the same gap. Worth answering before writing the fix.
+
 ### One gate for running a cell (2026-08-07)
 
 `step4b-run-cell` is **deleted**, along with `scripts/step4b-run-cell-driver.sh`. It was written
@@ -988,9 +1009,11 @@ execution count, all against a real kernel.
 drawn with recursive Compose, rendered by default with a tap to edit and Run to render again.
 No WebView and no HTML.
 
-**All five audit findings are closed** — see "Audit findings" above for what each was and how it
-was fixed. They came from driving the built app rather than reading it, and four of the five
-were invisible to every test that existed at the time.
+**All five of the 2026-08-06 audit findings are closed** — see "Audit findings" above for what
+each was and how it was fixed. They came from driving the built app rather than reading it, and
+four of the five were invisible to every test that existed at the time. **A6 is open**: saving a
+notebook does not touch its `updatedAt`, so an edited notebook neither rises in Recents nor
+refreshes its timestamp.
 
 **`text/html` outputs render natively** (Step 7.2, closed) and **cells collapse** (Step 4b's
 last piece, closed) — both written up below. **Steps 4b and 7.2 are done**, so every cell
@@ -1004,6 +1027,8 @@ measuring rather than by reading. See "A save must not shred the file".
 
 **Also open, in rough priority order:**
 
+- **Audit A6**: saving does not update `updatedAt`, so Recents ordering and every "3 days ago"
+  label go stale the moment a notebook is edited. Small fix, product question attached.
 - **Packaging**: debug APK is 116 MB, most of it the rootfs (278 MB unpacked). Asset pack
   versus first-run download is undecided.
 - **LSP** (see below) would supersede 5.5's completion rather than duplicate it.

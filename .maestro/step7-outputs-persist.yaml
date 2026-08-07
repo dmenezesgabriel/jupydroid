@@ -24,7 +24,18 @@ appId: com.jupydroid.app
 # The whole point: kill the app, come back, and the result is still there without re-running.
 - stopApp
 - launchApp
-- assertVisible: "Real Kernel"
+# The relaunch needs the same settle and scroll as the first launch, and used to have neither -
+# so it failed here with the row present all along (evidence/relaunch-settles/). Saving does not
+# move a notebook up Recents: `saveNotebook` writes what it is given and only `createNotebook`
+# stamps `updatedAt`, so running a cell leaves this fixture at its seeded 2026-08-04 timestamp,
+# well below the fold on a device with notebooks newer than that.
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Real Kernel"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Real Kernel"
 - extendedWaitUntil:
     visible: "42"
