@@ -153,7 +153,7 @@ screenshots → `assembleDebug` green → commit → proceed**.
 | 1 | Architecture + draw interfaces | `docs/architecture.md`: layers, ports, data model, wireframes (Home Recent, Editor cells, Console, Workspace, Settings); AppContainer skeleton; architecture-guard test |
 | 2 | Home: notebook list | Recent list + relative timestamps, empty state, FAB; long-press rename/delete; New notebook / New Python file / Open `.ipynb` (VIEW intent). **Done** |
 | 3 | Notebook persistence | `DiskNotebookRepository` over nbformat JSON; round-trip tests. **Done** |
-| 4 | Editor shell | cell header Run/Stop + long-press context menu (run, insert code/markdown below, move up/down, duplicate, delete, clear outputs, collapse), Run All, busy indicator, dirty state |
+| 4 | Editor shell | cell header Run/Stop + long-press context menu (run, insert code/markdown below, move up/down, duplicate, delete, clear outputs, collapse), Run All, busy indicator, dirty state (**modelled, not shown** — see "Known residual risks") |
 | 5 | Cell editor | Compose-native `BasicTextField` + our own highlighting — broken into 5.1–5.5 below. **Was** CodeMirror-in-WebView; changed on measurement |
 | 6 | Execute behaviour | Run → `KernelGateway.execute` → outputs; Running/Idle; Stop/interrupt; execution count (FakeKernel) |
 | 7.1 | **Outputs persist** — nbformat round-trip of `outputs` and `execution_count` | **Done.** Fixed silent data loss: `toDomain`/`toFile` dropped both, so saving a notebook another tool had run destroyed its results. `evidence/step7.1/` |
@@ -1377,6 +1377,38 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   first use and nothing ever stops it (~143 MB RSS held while backgrounded).
   `disconnect()` closes the socket only. Step 18 owns this. The old `SpaceProbe`
   that made it worse - starting a server on every launch - is gone as of 10.5.
+- **`dirty` is tracked and shown nowhere.** `EditorUiState.dirty` is set by every edit and by
+  every `CellEdits` transform, cleared by `persist()`, and asserted in unit tests — and no
+  composable reads it. Step 4's row in the table above still lists "dirty state" as a
+  deliverable, so read that as *modelled*, not *visible*. It is arguably right that it stays
+  invisible: saving is automatic and debounced, so a "•" that appears for 500 ms after every
+  keystroke would be noise. The gap is the claim, not the behaviour — decide whether anything
+  should render it, or drop it from the deliverable.
+- **`openNotebook` guards only the top of the back stack.** `lastOrNull() == Editor(id)` is
+  enough today because a notebook can only be opened from Recents, which is always the entry
+  directly beneath it. A future screen that opens a notebook from *inside* another one — a link
+  between notebooks, a Console attached to one — could push a duplicate `contentKey` deeper in
+  the stack, and two entries sharing a `contentKey` share a `ViewModelStore` and a
+  `SaveableStateHolder` slot. JupyterLab's `findWidget` searches every context for the path
+  rather than only the active one (`packages/docmanager/src/manager.ts:390-418`), which is the
+  shape to grow into. Not paid for now, because there is no second caller to justify it.
+- **`EditorViewModel` sits exactly on detekt's function limit** (11 of 11, after the debounce
+  moved out to `NotebookSaveDebounce`). The next method added to it trips `TooManyFunctions`,
+  and the answer will again be to find the responsibility that wants its own object rather than
+  to raise the threshold. Likely candidates when it happens: the run/kernel half (`runCell`,
+  `runAll`, `stopRunningCell`, `completionsAt`, `execute`, `kernelSession`), which is a
+  different subject from the document half.
+- **Nothing in the repo runs every Maestro flow.** The 33-flow sweeps that closed 62352d7 and
+  the 2026-08-07 defects were both done with throwaway shell loops, which is exactly the
+  condition that makes a *partial* sweep the path of least resistance — and this project has
+  already been burned by one. A `scripts/` entry point that runs every flow through its driver
+  and prints a pass/fail line each would make the whole-suite run the cheap option. Deliberately
+  not added mid-defect-fix; it is tooling, and it wants its own change.
+- **`notebook-session-ends` is tablet-only, and only a comment says so.** It runs cells, so on
+  the x86_64 emulator `MainActivity` falls back to `FakeKernelGateway` and the flow fails rather
+  than skipping. The same is true of every other cell-running flow; the device rule lives in
+  `CLAUDE.md` §2 and in each flow's header, and nothing enforces it. Whatever runs the whole
+  suite (above) is where that belongs.
 
 ### Closed by measurement, so nobody re-investigates them
 
