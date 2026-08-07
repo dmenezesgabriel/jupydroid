@@ -1128,10 +1128,49 @@ Evidence: `evidence/u1-tokens/{dark,light}/`, driven by `scripts/u1-palette-driv
 point: a single-theme screenshot cannot tell a working palette from one that has collapsed onto
 whatever the scheme handed it, which is precisely how audit A4 survived.
 
-**Two things the screenshots showed that the flow could not.** A markdown cell has no surface of
-its own while a code cell does, so the two do not read as the same kind of object — that is U3's
-`CellFrame`. And with the keyboard up the top app bar draws *under the status bar*: an inset
-defect, already owned by U6, and now captured rather than waiting to be discovered.
+### U1a — two things the screenshots showed, one of which was not a defect
+
+Looking at the evidence turned up two observations. Only one survived being checked, and the
+other is worth recording precisely because the obvious "fix" would have been wrong.
+
+**A markdown cell has no surface of its own while a code cell does — and that is correct.**
+IntelliJ does exactly the same thing, deliberately: `CodeCellBackgroundControllerFactory` opens
+with `if (editorCell.interval.type == CellType.MARKDOWN) return null`, so markdown cells sit
+straight on the editor background. Giving them a panel to "make them match" would have diverged
+from the reference to fix something the reference does not consider broken. What makes every cell
+read as a cell in IntelliJ is the **left stripe**, which is U3's job and which markdown gets too.
+
+**The top app bar drew under the status bar whenever the keyboard opened, and that was real.**
+Measured rather than eyeballed: `Back` sat at `[16,44][40,68]` with no keyboard and
+`[16,0][40,17]` with one — shifted up by the status-bar inset, and clipped.
+
+Three hypotheses were tested and two were wrong, which is the only reason the third was found:
+
+1. *A screenshot caught a mid-animation frame.* No — it survives `waitForAnimationToEnd`, which
+   is now in the flow anyway because it should have been.
+2. *`adjustResize` is fighting edge-to-edge.* No — removing it changed the numbers not at all.
+3. **`dumpsys window` said `sim={adjust=pan}` while the manifest said `adjustResize`.** The
+   attribute was on `<application>`, and the platform only reads `windowSoftInputMode` on
+   `<activity>`. One level up it is silently ignored, so the activity ran at the framework
+   default and the window *panned*: the whole thing slides up to keep the focused field visible,
+   app bar and all.
+
+Moved onto the activity, `dumpsys` reports `adjust=resize` and the app bar's bounds are now
+**identical** with and without the keyboard. `AppWindowTest` pins it, because nothing else could:
+a manifest attribute in the wrong element is valid XML, Lint has no rule for it, and every
+Compose test builds its own host activity rather than the app's.
+
+**A second defect fell out of the same investigation.** `Theme.JupyterDroid` was
+`android:Theme.Material.Light.NoActionBar` with **no `values-night` variant**, so the window
+stayed light whatever the system theme was and a cold launch in dark mode flashed white before
+the first Compose frame. There is now a night variant, and `windowBackground` is pinned to each
+palette's `editorBackground` — stated twice, in Kotlin and in XML, because the window is resolved
+before a composition exists. `AppWindowTest` asserts the two copies agree, so the duplication
+cannot drift silently.
+
+What is *not* fixed here, and is still U6's: with `adjust=resize` the keyboard now arrives as an
+inset, but nothing consumes it yet, so a focused cell near the bottom is still covered. That is
+the right failure to have — an inset the layout can answer, rather than a shove it cannot.
 
 ## Harness notes
 
@@ -1486,6 +1525,14 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   already been burned by one. A `scripts/` entry point that runs every flow through its driver
   and prints a pass/fail line each would make the whole-suite run the cheap option. Deliberately
   not added mid-defect-fix; it is tooling, and it wants its own change.
+- **`step5-brackets` is tablet-only too, and nothing said so at all.** Found while re-running the
+  keyboard-touching flows after the `adjust=pan` fix: it fails on the dev36 emulator at
+  `Input text [` → expect `[]`, and passes on the tablet on the same build. Attributed rather
+  than assumed — it fails on the emulator against the U1a build, the U1 build **and** c373b74,
+  so it predates all of that and is an emulator IME artefact, not an app defect and not a
+  regression. It is not even in the group below, because it runs no cell: the device rule this
+  one needs is about the *keyboard*, which is a second reason a flow can be device-specific.
+  Whatever runs the whole suite has to model both.
 - **`notebook-session-ends` is tablet-only, and only a comment says so.** It runs cells, so on
   the x86_64 emulator `MainActivity` falls back to `FakeKernelGateway` and the flow fails rather
   than skipping. The same is true of every other cell-running flow; the device rule lives in

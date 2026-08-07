@@ -17,12 +17,21 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:windowSoftInputMode="adjustResize"
         android:theme="@style/Theme.JupyterDroid">
+        <!--
+          windowSoftInputMode belongs on the activity, not on <application>: the platform only
+          reads it here, and set one level up it is silently ignored. It was, and the activity
+          therefore ran at the framework default, which resolved to `adjust=pan` - visible in
+          `dumpsys window` as `sim={adjust=pan}`. Panning translates the whole window to keep
+          the focused field on screen, which dragged the top app bar up under the status bar
+          whenever the keyboard opened. Resize instead, so the keyboard arrives as an inset the
+          layout can respond to rather than as a shove.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

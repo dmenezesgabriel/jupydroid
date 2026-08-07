@@ -34,4 +34,9 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "(?s).*# Palette check.*"
     timeout: 10000
+# The tap raises the keyboard, and the insets animate. Without this the screenshot catches a
+# mid-animation frame in which the app bar has not yet settled under the status bar - which
+# looked exactly like an inset defect and was not one.
+- waitForAnimationToEnd:
+    timeout: 5000
 - takeScreenshot: 02-markdown-source-spans

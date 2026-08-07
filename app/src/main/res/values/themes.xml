@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.JupyterDroid" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+      The window's own styling, which exists before any Compose runs and therefore cannot come
+      from the palette in `theme/`. It has to be told the same thing twice, and the values-night
+      copy beside this one is the other half.
+
+      This was `android:Theme.Material.Light.NoActionBar` with no night variant, so the window
+      stayed light no matter the system theme: launching the app in dark mode flashed a white
+      screen until the first Compose frame drew over it.
+
+      windowBackground is pinned to each palette's `editorBackground` rather than left to the
+      platform's colorBackground, so the pre-Compose frame is already the colour the app is
+      about to draw.
+    -->
+    <style name="Theme.JupyterDroid" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
 </resources>
