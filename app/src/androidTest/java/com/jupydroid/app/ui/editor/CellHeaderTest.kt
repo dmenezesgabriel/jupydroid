@@ -32,14 +32,14 @@ class CellHeaderTest {
 
   @Test
   fun showsAVisibleMenuButton() {
-    compose.setContent { CellHeader(CODE_CELL, null, running = false, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, {}, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).assertIsDisplayed()
   }
 
   @Test
   fun tappingTheMenuButtonOpensTheActions() {
-    compose.setContent { CellHeader(CODE_CELL, null, running = false, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, {}, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
 
@@ -53,7 +53,7 @@ class CellHeaderTest {
    */
   @Test
   fun aMarkdownCellHasTheMenuButtonToo() {
-    compose.setContent { CellHeader(MARKDOWN_CELL, null, running = false, {}, {}, {}) }
+    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, {}, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
 
@@ -63,7 +63,7 @@ class CellHeaderTest {
   @Test
   fun choosingAnActionReportsItAndClosesTheMenu() {
     val chosen = mutableListOf<CellAction>()
-    compose.setContent { CellHeader(CODE_CELL, null, running = false, {}, {}, { chosen += it }) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, {}, {}, { chosen += it }) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
     compose.onNodeWithContentDescription("Cell menu Move down").performClick()

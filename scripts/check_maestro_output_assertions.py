@@ -50,15 +50,27 @@ OUTPUT_SCOPE = 'childOf: {text: "Cell output"}'
 GENERIC_OUTPUT_CONTAINER = "Cell output"
 
 
+# Two ways a driver names its notebook: an older `FIXTURE=` variable, and the `seed_notebook`
+# helper the U-phase drivers call. Both are matched, and that is not tidiness - a driver whose
+# fixture this cannot find silently loses rule 1, because `seeded_sources` then returns "" and
+# every assertion looks like it cannot match the source. Adding the helper without adding it
+# here is exactly how that would happen.
+FIXTURE_PATTERNS = (
+    r'FIXTURE="\$ROOT/(.+?)"',
+    r'seed_notebook\s+"\$ROOT/(.+?)"',
+)
+
+
 def fixture_of(flow: pathlib.Path, scripts: pathlib.Path) -> pathlib.Path | None:
     """The notebook a driver seeds before running this flow, if it has one."""
     for driver in sorted(scripts.glob("*.sh")):
         text = driver.read_text()
         if flow.name not in text:
             continue
-        match = re.search(r'FIXTURE="\$ROOT/(.+?)"', text)
-        if match:
-            return flow.parent.parent / match.group(1)
+        for pattern in FIXTURE_PATTERNS:
+            match = re.search(pattern, text)
+            if match:
+                return flow.parent.parent / match.group(1)
     return None
 
 

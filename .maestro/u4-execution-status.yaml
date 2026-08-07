@@ -1,0 +1,53 @@
+appId: com.jupydroid.app
+---
+# U4: a cell says where its run got to, not just whether it is spinning.
+#
+# TABLET ONLY - this runs cells. On the x86_64 emulator MainActivity falls back to
+# FakeKernelGateway, which echoes the source back as stdout: the second cell would not raise, the
+# queue would not stop, and the two states this flow exists to show would never occur.
+#
+# The notebook is built so one Run All produces four of the seven states at once: the first cell
+# sleeps (RUNNING, then STOPPED_OK with a duration), the second raises (STOPPED_ERROR), and the
+# third is never reached (SKIPPED). QUEUED is the state the others pass through on the way.
+#
+# Seeded by scripts/u4-execution-status-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Execution Status"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Execution Status"
+- extendedWaitUntil:
+    visible: ".*never reached.*"
+    timeout: 30000
+# Nothing has run: every code cell shows the empty bracket rather than the word "code".
+- assertVisible: "\\[ \\]"
+- takeScreenshot: 01-nothing-run-yet
+- tapOn: "Run all cells"
+# Caught while the first cell is still sleeping: the star is the queued/running mark, and the
+# cells below it are queued behind this one rather than looking untouched.
+- extendedWaitUntil:
+    visible: "\\[\\*\\]"
+    timeout: 60000
+- takeScreenshot: 02-queued-and-running
+# The interpreter's traceback banner, and deliberately *not* scoped with `childOf`.
+#
+# Two things are going on. The banner is text no cell's source contains - only CPython writes
+# it - so it needs no scope to be honest, and the gate agrees. And `childOf: {text: "Cell
+# output"}` does not work here anyway: this notebook produces two output containers, both with
+# that same contentDescription, and the scoped assertion failed against a screen that plainly
+# showed the traceback. One container is what the scope was built for; several are not.
+- extendedWaitUntil:
+    visible: '.*Traceback \(most recent call last\).*'
+    timeout: 120000
+# The first cell finished and says how long it took - a label that only exists once a run has
+# both a start and an end.
+- assertVisible: ".*ran in .*"
+# And the third cell, which the failure stopped the queue before reaching, says *skipped* rather
+# than drawing the empty bracket of a cell nobody ran. The whole point of tracking the state is
+# that it reaches the screen.
+- assertVisible: "\\[-\\]"
+- takeScreenshot: 03-finished-failed-and-skipped

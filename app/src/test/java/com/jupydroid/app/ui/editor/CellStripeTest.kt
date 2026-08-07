@@ -22,7 +22,17 @@ class CellStripeTest {
 
   @Test
   fun anUnselectedCellStillHasAStripe() {
-    val stripe = cellStripe(selected = false, mode = CellMode.COMMAND, failed = false, palette = palette)
+    val stripe = cellStripe(
+
+      selected = false,
+
+      mode = CellMode.COMMAND,
+
+      status = ExecutionStatus.STOPPED_OK,
+
+      palette = palette,
+
+    )
 
     assertEquals(palette.stripeResting, stripe.color)
     assertEquals(4.dp, stripe.width)
@@ -36,7 +46,17 @@ class CellStripeTest {
    */
   @Test
   fun theSelectedCellIsMarkedInTheAccentColour() {
-    val stripe = cellStripe(selected = true, mode = CellMode.COMMAND, failed = false, palette = palette)
+    val stripe = cellStripe(
+
+      selected = true,
+
+      mode = CellMode.COMMAND,
+
+      status = ExecutionStatus.STOPPED_OK,
+
+      palette = palette,
+
+    )
 
     assertEquals(palette.stripeSelected, stripe.color)
   }
@@ -44,7 +64,17 @@ class CellStripeTest {
   /** `commandModeCellLeftLineWidth = 4`, `editModeCellLeftLineWidth = 2`. */
   @Test
   fun theStripeNarrowsWhileTheCellIsBeingTypedInto() {
-    val editing = cellStripe(selected = true, mode = CellMode.EDIT, failed = false, palette = palette)
+    val editing = cellStripe(
+
+      selected = true,
+
+      mode = CellMode.EDIT,
+
+      status = ExecutionStatus.STOPPED_OK,
+
+      palette = palette,
+
+    )
 
     assertEquals(2.dp, editing.width)
   }
@@ -52,7 +82,17 @@ class CellStripeTest {
   /** Only the selected cell narrows: an unselected cell is not in edit mode whatever the notebook is. */
   @Test
   fun anUnselectedCellKeepsTheCommandWidthWhileAnotherIsEdited() {
-    val other = cellStripe(selected = false, mode = CellMode.EDIT, failed = false, palette = palette)
+    val other = cellStripe(
+
+      selected = false,
+
+      mode = CellMode.EDIT,
+
+      status = ExecutionStatus.STOPPED_OK,
+
+      palette = palette,
+
+    )
 
     assertEquals(4.dp, other.width)
   }
@@ -64,7 +104,17 @@ class CellStripeTest {
    */
   @Test
   fun aCellThatRaisedIsMarkedInTheErrorColour() {
-    val stripe = cellStripe(selected = false, mode = CellMode.COMMAND, failed = true, palette = palette)
+    val stripe = cellStripe(
+
+      selected = false,
+
+      mode = CellMode.COMMAND,
+
+      status = ExecutionStatus.STOPPED_ERROR,
+
+      palette = palette,
+
+    )
 
     assertEquals(palette.stripeError, stripe.color)
   }
@@ -72,7 +122,17 @@ class CellStripeTest {
   /** Selection wins: you always know which cell you are on, and the failure is still in its output. */
   @Test
   fun selectionOutranksFailure() {
-    val stripe = cellStripe(selected = true, mode = CellMode.COMMAND, failed = true, palette = palette)
+    val stripe = cellStripe(
+
+      selected = true,
+
+      mode = CellMode.COMMAND,
+
+      status = ExecutionStatus.STOPPED_ERROR,
+
+      palette = palette,
+
+    )
 
     assertEquals(palette.stripeSelected, stripe.color)
   }

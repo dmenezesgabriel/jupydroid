@@ -17,7 +17,12 @@ data class EditorUiState(
    */
   val outputs: Map<String, List<CellOutput>> = emptyMap(),
   val executionCounts: Map<String, Int> = emptyMap(),
-  val runningCellId: String? = null,
+  /**
+   * Per cell, where its run got to. Replaces a single nullable `runningCellId`, which could say
+   * only "this one is running" or "none is" - a queued cell, a skipped one and one nobody had
+   * ever run were all the same absence. `runningCellId` is derived from this now.
+   */
+  val executions: Map<String, CellExecution> = emptyMap(),
   /** Edited since the last write. Cleared by the save, not by the edit. */
   val dirty: Boolean = false,
   /** JupyterLab's `activeCellIndex`, by id: the one cell every cell-scoped action means. */
@@ -38,12 +43,10 @@ fun EditorUiState.after(event: KernelEvent): EditorUiState = when (event) {
   is KernelEvent.ExecutionCount ->
     copy(executionCounts = executionCounts + (event.cellId to event.count))
 
-  KernelEvent.Idle -> copy(runningCellId = null)
+  // Idle says the kernel is done with this cell, but not whether it raised - that is decided by
+  // what it emitted, so the run is closed by NotebookKernel rather than here.
+  KernelEvent.Idle -> this
 }
-
-/** Clears the previous run's output: a re-run replaces its output, never appends. */
-fun EditorUiState.startingRun(cellId: String): EditorUiState =
-  copy(runningCellId = cellId, outputs = outputs - cellId)
 
 fun EditorUiState.withSource(cellId: String, source: String): EditorUiState =
   copy(cells = cells.map { if (it.id == cellId) it.copy(source = source) else it }, dirty = true)

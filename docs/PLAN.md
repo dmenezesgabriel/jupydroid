@@ -1277,6 +1277,58 @@ Evidence: `evidence/u3-cell-chrome/`, **tablet only** — the flow runs a cell t
 raise, and on the emulator `FakeKernelGateway` would echo the source back, so the cell would
 "succeed" and the error stripe would never appear.
 
+### U4 — a cell says where its run got to (done)
+
+`EditorUiState.runningCellId` was one nullable string, so it could express exactly two things:
+this cell is running, or none is. A cell waiting its turn, a cell skipped because an earlier one
+raised, and a cell nobody had ever run were the same absence.
+
+`CellExecution(status, startedAt, endedAt)` per cell replaces it, with `runningCellId` derived —
+which kept the change to the writers and left every reader alone. The states are the reference's
+`ProgressStatus` (`visualization/ui/ProgressStatus.kt`) and the transitions its four
+`ExecutionEvent`s; only the ones something here can actually produce are kept, because a status
+nothing produces is a branch nobody can test.
+
+Three of them are new behaviour rather than new names:
+
+- **QUEUED.** Run All claims every code cell before starting any, so waiting its turn is a state
+  a user can see. Done per cell as each began, it would not exist.
+- **SKIPPED.** Run All stops at the first cell that raises, so the rest are skipped, not un-run.
+- **CANCELLED.** The kernel reports a `KeyboardInterrupt` whether the user pressed Stop or the
+  code raised one, so without remembering which cell was interrupted, the Stop button would
+  report the user's own action back to them as their code being broken.
+
+The bracket is Jupyter's — `[ ]`, `[*]`, `[7]` — replacing a label that showed `[7]` or the word
+"code". `[-]` for skipped is ours, because Jupyter has no notation for it: Jupyter's Run All does
+not stop. The duration rides beside it in the reference's own `EXECUTION_TIME_COLOR`, and is
+absent while a cell runs rather than counting up — a ticking label recomposes the header every
+frame and the spinner already says the same thing.
+
+**Two defects came out of this step's own evidence, and both were the feature failing to reach
+the screen while the state underneath was correct:**
+
+- Every *queued* cell drew a spinner and a Stop button. A queued cell is not what the kernel is
+  doing, and Stop interrupts the kernel — offered on three cells at once it reads as three things
+  to cancel. Queued now gets a disabled Run, which says "claimed, waiting" and promises neither.
+- A *skipped* cell drew `[ ]`, so on screen it was still exactly the state `SKIPPED` exists to
+  tell apart. Hence `[-]`, and a flow assertion for it.
+
+**A gap in the repo's own gate, introduced two steps earlier.**
+`check_maestro_output_assertions.py` finds a flow's fixture by looking for `FIXTURE="$ROOT/…"` in
+its driver. U2's shared `scripts/maestro-run.sh` calls `seed_notebook` instead — so for every
+U-phase flow `seeded_sources` returned `""`, every assertion looked incapable of matching the
+cell source, and **rule 1 silently stopped applying**. The gate matches both forms now and has a
+case pinning it. Worth noting the shape: the gate did not fail, it quietly checked less.
+
+`childOf: {text: "Cell output"}` also turns out not to survive more than one output container -
+this notebook has two, and a scoped assertion failed against a screen plainly showing the
+traceback. The banner `Traceback (most recent call last)` is text no cell source contains, so the
+assertion is unscoped and the gate is satisfied by the fixture rather than by the scope.
+
+Evidence: `evidence/u4-execution-status/`, **tablet only** — one Run All produces four states at
+once, and on the emulator `FakeKernelGateway` would echo the source back, so the second cell would
+not raise and the queue would never stop.
+
 ## Harness notes
 
 ### Running a Maestro flow

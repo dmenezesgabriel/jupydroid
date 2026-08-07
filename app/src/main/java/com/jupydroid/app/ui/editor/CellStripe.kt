@@ -25,13 +25,13 @@ data class CellStripe(val width: Dp, val color: Color)
  * minimum that governs every button beside it does not apply here.
  *
  * ```
- * val stripe = cellStripe(selected, mode, failed, palette)
+ * val stripe = cellStripe(selected, mode, status, palette)
  * ```
  */
 internal fun cellStripe(
   selected: Boolean,
   mode: CellMode,
-  failed: Boolean,
+  status: ExecutionStatus,
   palette: EditorPalette,
 ): CellStripe = CellStripe(
   // Only the selected cell can be the one being edited, so a notebook in edit mode leaves every
@@ -41,7 +41,7 @@ internal fun cellStripe(
     // Selection outranks failure: you always know which cell you are on, and the failure is
     // still sitting in the cell's output either way.
     selected -> palette.stripeSelected
-    failed -> palette.stripeError
+    status == ExecutionStatus.STOPPED_ERROR -> palette.stripeError
     else -> palette.stripeResting
   },
 )

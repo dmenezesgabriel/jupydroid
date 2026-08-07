@@ -36,7 +36,7 @@ class EditorViewModel(
   private val save = NotebookSaveDebounce(viewModelScope) { persist() }
 
   /** Run, interrupt and complete. Driven straight from the screen; see [NotebookKernel]. */
-  val kernel = NotebookKernel(_uiState, kernelGateway, viewModelScope) { persist() }
+  val kernel = NotebookKernel(_uiState, kernelGateway, viewModelScope, persist = { persist() })
 
   init {
     viewModelScope.launch {

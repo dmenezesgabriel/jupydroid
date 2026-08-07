@@ -119,7 +119,7 @@ private fun EditorContent(
             cell = cell,
             outputs = state.outputs[cell.id].orEmpty(),
             executionCount = state.executionCounts[cell.id],
-            running = state.runningCellId == cell.id,
+            execution = state.executionOf(cell.id),
             selected = state.selectedCellId == cell.id,
             mode = state.mode,
             onRun = { onRunCell(cell) },
@@ -139,7 +139,7 @@ private fun EditorCell(
   cell: Cell,
   outputs: List<CellOutput>,
   executionCount: Int?,
-  running: Boolean,
+  execution: CellExecution?,
   selected: Boolean,
   mode: CellMode,
   onRun: () -> Unit,
@@ -157,14 +157,14 @@ private fun EditorCell(
   val stripe = cellStripe(
     selected = selected,
     mode = mode,
-    failed = outputs.any { it is CellOutput.Error },
+    status = execution?.status ?: ExecutionStatus.NOT_STARTED,
     palette = editorPalette,
   )
   CellFrame(stripe = stripe, modifier = modifier) {
     CellHeader(
       cell = cell,
       executionCount = executionCount,
-      running = running,
+      execution = execution,
       onRun = if (markdown) ({ rendered.value = true }) else onRun,
       onStop = onStop,
       onCellAction = onCellAction,

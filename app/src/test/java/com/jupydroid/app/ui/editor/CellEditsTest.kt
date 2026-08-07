@@ -102,7 +102,7 @@ class CellEditsTest {
   /** Otherwise the spinner's cell is gone and Run All stays disabled for ever. */
   @Test
   fun delete_stopsTheNotebookLookingBusyWhenTheRunningCellGoes() {
-    val state = stateOf("a", "b").copy(runningCellId = "a")
+    val state = stateOf("a", "b").startingRun("a", at = java.time.Instant.EPOCH)
 
     assertNull(state.withCellDeleted("a", replacementId = "x").runningCellId)
     assertEquals("a", state.withCellDeleted("b", replacementId = "x").runningCellId)

@@ -7,6 +7,8 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import java.time.Clock
+import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
@@ -37,8 +39,13 @@ class NotebookKernel(
   private val scope: CoroutineScope,
   /** Writing belongs to the document half; this only says when there is something to write. */
   private val persist: suspend () -> Unit,
+  /** Injected so a test can assert on a run's duration without waiting for one. */
+  private val clock: Clock = Clock.systemUTC(),
 ) {
   private var session: KernelSession? = null
+
+  /** Set while an interrupt is in flight, so the stop is reported as cancelled and not as error. */
+  private var interrupting: String? = null
 
   /**
    * Runs one cell and streams its output into the state as it arrives, so a long-running
@@ -55,9 +62,14 @@ class NotebookKernel(
    */
   fun runAll() {
     scope.launch {
-      for (cell in uiState.value.cells.filter { it.kind == CellKind.CODE }) {
-        if (!execute(cell)) return@launch
+      val queue = uiState.value.cells.filter { it.kind == CellKind.CODE }
+      // Claimed up front so every waiting cell says so, rather than looking un-run until its
+      // turn comes. Anything still queued when one raises becomes SKIPPED.
+      uiState.update { it.queueingRun(queue.map(Cell::id)) }
+      for (cell in queue) {
+        if (!execute(cell)) break
       }
+      uiState.update { it.skippingQueued() }
     }
   }
 
@@ -67,7 +79,11 @@ class NotebookKernel(
    * be busy with somebody else's cell.
    */
   fun stopRunningCell() {
-    if (uiState.value.runningCellId == null) return
+    val running = uiState.value.runningCellId ?: return
+    // Remembered rather than applied now: the cell is still executing, and the kernel will
+    // report a KeyboardInterrupt through the ordinary output path. This is what tells the stop
+    // apart from the user's own code raising.
+    interrupting = running
     scope.launch { session?.let { kernelGateway.interrupt(it) } }
   }
 
@@ -106,14 +122,24 @@ class NotebookKernel(
 
   /** Returns whether the cell finished without raising, which is what [runAll] gates on. */
   private suspend fun execute(cell: Cell): Boolean {
-    uiState.update { it.startingRun(cell.id) }
+    uiState.update { it.startingRun(cell.id, at = now()) }
     kernelGateway.execute(openSession(), cell.id, cell.source)
       .catch { failure -> emit(kernelFailure(cell.id, failure)) }
       .collect { event -> uiState.update { state -> state.after(event) } }
-    uiState.update { it.copy(runningCellId = null) }
+
+    val raised = uiState.value.outputs[cell.id].orEmpty().any { it is CellOutput.Error }
+    val cancelled = interrupting == cell.id
+    interrupting = null
+    uiState.update {
+      if (cancelled) it.cancellingRun(cell.id, at = now()) else it.finishedRun(cell.id, at = now(), failed = raised)
+    }
     persist()
-    return uiState.value.outputs[cell.id].orEmpty().none { it is CellOutput.Error }
+    // A cancelled cell stops the queue too: the user asked for the run to stop, not for the
+    // next cell to start.
+    return !raised && !cancelled
   }
+
+  private fun now(): Instant = clock.instant()
 
   private suspend fun openSession(): KernelSession =
     session ?: kernelGateway.connect(BASE_SPACE).also { session = it }

@@ -36,7 +36,7 @@ class CellTouchTargetTest {
 
   @Test
   fun theRunAndMenuButtonsAreBigEnoughToHit() {
-    compose.setContent { CellHeader(CODE_CELL, executionCount = null, running = false, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, executionCount = null, execution = null, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Run cell").assertIsAtLeastMinimumTouchTarget()
     compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget()
@@ -45,7 +45,7 @@ class CellTouchTargetTest {
   /** Stop replaces Run mid-execution, so it is a separate composition and a separate risk. */
   @Test
   fun theStopButtonIsBigEnoughToHit() {
-    compose.setContent { CellHeader(CODE_CELL, executionCount = null, running = true, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, executionCount = null, execution = CellExecution(ExecutionStatus.RUNNING), {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Stop cell").assertIsAtLeastMinimumTouchTarget()
   }
@@ -53,7 +53,7 @@ class CellTouchTargetTest {
   /** A markdown cell composes a different branch of the header, with its own Run button. */
   @Test
   fun aMarkdownCellsControlsAreBigEnoughToHit() {
-    compose.setContent { CellHeader(MARKDOWN_CELL, executionCount = null, running = false, {}, {}, {}) }
+    compose.setContent { CellHeader(MARKDOWN_CELL, executionCount = null, execution = null, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Run cell").assertIsAtLeastMinimumTouchTarget()
     compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget()

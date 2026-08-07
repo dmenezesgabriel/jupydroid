@@ -26,7 +26,19 @@ FIXTURE = {"cells": [{"cell_type": "code", "source": ["print('omega')\n"]}]}
 class FlowUnderTest:
     """A throwaway .maestro/scripts pair, so a case reads as the flow it is about."""
 
-    def __init__(self, root: pathlib.Path, steps: str, fixture: dict | None = FIXTURE) -> None:
+    #: How the driver names its fixture. Both forms are in the tree, and both have to work.
+    FIXTURE_LINES = {
+        "variable": 'FIXTURE="$ROOT/.maestro/seed.ipynb"',
+        "helper": 'seed_notebook "$ROOT/.maestro/seed.ipynb" seed',
+    }
+
+    def __init__(
+        self,
+        root: pathlib.Path,
+        steps: str,
+        fixture: dict | None = FIXTURE,
+        names_fixture: str = "variable",
+    ) -> None:
         self.flows, self.scripts = root / ".maestro", root / "scripts"
         self.flows.mkdir()
         self.scripts.mkdir()
@@ -35,7 +47,7 @@ class FlowUnderTest:
         if fixture is not None:
             (self.flows / "seed.ipynb").write_text(json.dumps(fixture))
             (self.scripts / "driver.sh").write_text(
-                'FIXTURE="$ROOT/.maestro/seed.ipynb"\nmaestro test under-test.yaml\n'
+                f"{self.FIXTURE_LINES[names_fixture]}\nmaestro test under-test.yaml\n"
             )
 
     def offences(self) -> list[str]:
@@ -43,9 +55,26 @@ class FlowUnderTest:
 
 
 class MaestroGateTest(unittest.TestCase):
-    def flow(self, steps: str, fixture: dict | None = FIXTURE) -> list[str]:
+    def flow(
+        self,
+        steps: str,
+        fixture: dict | None = FIXTURE,
+        names_fixture: str = "variable",
+    ) -> list[str]:
         with tempfile.TemporaryDirectory() as directory:
-            return FlowUnderTest(pathlib.Path(directory), steps, fixture).offences()
+            return FlowUnderTest(pathlib.Path(directory), steps, fixture, names_fixture).offences()
+
+    def test_finds_a_fixture_named_by_the_shared_seed_helper(self):
+        """The U-phase drivers call `seed_notebook` instead of setting FIXTURE=.
+
+        A driver whose fixture the gate cannot find loses rule 1 *silently*: `seeded_sources`
+        returns "" and every assertion then looks incapable of matching the source. Adding the
+        helper without teaching the gate about it is exactly how that would have happened, and
+        it did - `u4-execution-status` was unchecked until this case existed.
+        """
+        offences = self.flow('- tapOn: "Run All"\n- assertVisible: "omega"\n', names_fixture="helper")
+
+        self.assertEqual(1, len(offences), offences)
 
     # --- a flow that reads the source while claiming to read the output -------------------
 

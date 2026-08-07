@@ -57,8 +57,9 @@ fun EditorUiState.withCellDeleted(cellId: String, replacementId: String): Editor
     cells = remaining.ifEmpty { listOf(Cell(replacementId, CellKind.CODE, "")) },
     outputs = outputs - cellId,
     executionCounts = executionCounts - cellId,
-    // The spinner's cell is gone; leaving the id would keep Run All disabled for ever.
-    runningCellId = runningCellId?.takeIf { it != cellId },
+    // The record goes with the cell. Left behind, a deleted cell that happened to be running
+    // would keep `runningCellId` pointing at it and Run All disabled for ever.
+    executions = executions - cellId,
     dirty = true,
   )
 }

@@ -24,24 +24,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.theme.editorPalette
 
 /**
- * The strip above a cell: what it is or how many times it has run, its Run/Stop control, and
- * the way into [CellMenu].
+ * The strip above a cell: where its run got to, its Run/Stop control, and the way into
+ * [CellMenu].
  */
 @Composable
 internal fun CellHeader(
   cell: Cell,
   executionCount: Int?,
-  running: Boolean,
+  execution: CellExecution?,
   onRun: () -> Unit,
   onStop: () -> Unit,
   onCellAction: (CellAction) -> Unit,
 ) {
   var menuOpen by remember { mutableStateOf(false) }
+  val status = execution?.status ?: ExecutionStatus.NOT_STARTED
   // No gesture on the Row itself. It briefly carried a long press - a workaround for having no
   // button - and that made the whole strip one target: it took the ripple, it took focus, and
   // any further control added here would have been competing with a parent already claiming
@@ -52,20 +55,30 @@ internal fun CellHeader(
   // reserves more height than this padding added.
   Row(
     verticalAlignment = Alignment.CenterVertically,
-    modifier = Modifier.fillMaxWidth(),
+    modifier = Modifier.fillMaxWidth().semantics { stateDescription = status.spokenState() },
   ) {
     Text(
-      // The bracket notation a Jupyter user already reads as "this cell has run N times".
-      text = executionCount?.let { "[$it]" } ?: cell.kind.label(),
+      text = executionLabel(cell.kind, status, executionCount),
       style = MaterialTheme.typography.labelSmall,
       color = MaterialTheme.colorScheme.primary,
     )
     // Markdown gets Run as well - it renders the cell - but never a spinner or Stop, because
     // nothing of it ever reaches a kernel.
     if (cell.kind == CellKind.CODE) {
-      RunControl(running = running, onRun = onRun, onStop = onStop)
+      RunControl(status = status, onRun = onRun, onStop = onStop)
     } else {
       IconButton(onClick = onRun) { Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell") }
+    }
+    // How long the last one took, in the reference's own `EXECUTION_TIME_COLOR`. Absent while a
+    // cell is running rather than counting up: a ticking label would recompose the header on
+    // every frame, and the spinner beside it already says the same thing.
+    runDurationLabel(execution?.took)?.let { took ->
+      Text(
+        text = took,
+        style = MaterialTheme.typography.labelSmall,
+        color = editorPalette.executionTime,
+        modifier = Modifier.padding(start = 8.dp),
+      )
     }
     Spacer(modifier = Modifier.weight(1f))
     // Visible, not just long-pressable. A thin strip that happens to react to a long press is
@@ -83,8 +96,21 @@ internal fun CellHeader(
 }
 
 @Composable
-private fun RunControl(running: Boolean, onRun: () -> Unit, onStop: () -> Unit) {
-  if (!running) {
+private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () -> Unit) {
+  // A queued cell is spoken for but is not what the kernel is doing, so it gets neither. The
+  // spinner would claim work that has not started, and Stop interrupts *the kernel* - offered on
+  // three queued cells at once it reads as three separate things to cancel. Run is disabled
+  // instead, which says "claimed, waiting" without promising either.
+  //
+  // Found by looking at the evidence: every queued cell had a spinner and a Stop button
+  // (evidence/u4-execution-status/02-queued-and-running.png, before this).
+  if (status == ExecutionStatus.QUEUED) {
+    IconButton(onClick = onRun, enabled = false) {
+      Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell")
+    }
+    return
+  }
+  if (status != ExecutionStatus.RUNNING) {
     IconButton(onClick = onRun) {
       Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell")
     }
@@ -107,9 +133,4 @@ private fun RunControl(running: Boolean, onRun: () -> Unit, onStop: () -> Unit) 
         .semantics { contentDescription = "Stop cell" },
     )
   }
-}
-
-internal fun CellKind.label(): String = when (this) {
-  CellKind.CODE -> "code"
-  CellKind.MARKDOWN -> "markdown"
 }
