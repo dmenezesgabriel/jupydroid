@@ -1,0 +1,79 @@
+appId: com.jupydroid.app
+---
+# Leaving a notebook ends its kernel session, so reopening it gets a fresh kernel and the
+# variables from the previous visit are gone.
+#
+# This is the device-observable half of the editor's teardown. Closing the socket is what
+# `EditorViewModel.onCleared` does, and it is the client-side close JupyterLab's
+# `SessionContext.dispose()` performs - not a kernel shutdown, which it only does when
+# `shutdownOnDispose` is set (packages/apputils/src/sessioncontext.tsx:679-709). We do not yet
+# reconnect to a running kernel by path the way JupyterLab does on reopen, so what a fresh
+# session means here is a fresh namespace; docs/PLAN.md tracks the reconnect half.
+#
+# The other half of the teardown - flushing a save still inside its 500 ms debounce - has no
+# honest flow: any gesture Maestro can make takes longer than the debounce, so the save would
+# have happened anyway and the flow would be green with or without the fix. It is gated on the
+# JVM instead, by EditorTeardownTest, whose assertions were checked by emptying onCleared.
+#
+# **Tablet only.** It runs cells, and on the x86_64 emulator MainActivity falls back to
+# FakeKernelGateway, which echoes the source back and never holds a session at all.
+#
+# Seeded by scripts/notebook-session-ends-driver.sh.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Session Ends"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Session Ends"
+# No assertion on the cell's source here: Maestro regex-matches the *whole* node string, and
+# this cell is two lines, so "carried = 6 * 7" can never match it. The claims this flow makes
+# are the computed outputs below.
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 00-opened
+# The first cell defines the variable AND prints it - an assignment on its own produces no
+# output at all, which is the trap `answer = 42` fell into (docs/PLAN.md, "One gate for running
+# a cell"). 42 and 43 are both computed; neither appears in any cell's source.
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run installs the Space if needed and starts jupyter_server.
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+# The second cell reads the variable the first one defined, so this is the same session.
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: "43"
+    timeout: 60000
+- takeScreenshot: 01-carried-across-cells-in-one-session
+- tapOn: "Back"          # the TopAppBar navigation icon's contentDescription
+# The FAB is Home's and the editor has none: assert it before looking for a row, so a flow
+# still stuck in the editor fails here rather than against the title in the app bar.
+- extendedWaitUntil:
+    visible: "\\+"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Session Ends"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Session Ends"
+# Run only the second cell. The first never ran in *this* session, so a kernel that is genuinely
+# new has never heard of `carried` - and NameError is a traceback the kernel produced, not a
+# container that renders whatever is there. Its own saved "43" is cleared by startingRun before
+# the run, so what is on screen afterwards is this run's answer and not last session's.
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*NameError.*"
+    timeout: 120000
+- takeScreenshot: 02-fresh-kernel-has-not-heard-of-it

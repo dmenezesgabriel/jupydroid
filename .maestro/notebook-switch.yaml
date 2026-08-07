@@ -1,0 +1,46 @@
+appId: com.jupydroid.app
+---
+# Opening one notebook, going back, and opening another must show the *second* one.
+#
+# It showed the first. NavDisplay was given no entryDecorators, and its default is the
+# saveable-state one alone, so LocalViewModelStoreOwner inside an entry was the Activity -
+# viewModel {} keyed on the class name and handed the second notebook the first one's ViewModel.
+# Worse than a stale screen: persist() would have written an edit into the first notebook's file.
+#
+# Seeded by scripts/notebook-switch-driver.sh with two fixtures whose cell sources share no
+# words, so neither can be matched by the other's.
+- launchApp
+# Home's list comes from a disk scan, and a scroll started before it has rendered ends rather
+# than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Switch Alpha"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Switch Alpha"
+- extendedWaitUntil:
+    visible: "first_only = 111"
+    timeout: 10000
+- takeScreenshot: 01-alpha-open
+- tapOn: "Back"          # the TopAppBar navigation icon's contentDescription
+# The FAB is Home's and the editor has none: assert it before looking for a row, so a flow still
+# stuck in the editor fails here rather than against the title in the app bar.
+- extendedWaitUntil:
+    visible: "\\+"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Switch Beta"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Switch Beta"
+# The whole point of the flow. Before the fix this waited out its timeout showing Alpha's cell.
+- extendedWaitUntil:
+    visible: "second_only = 222"
+    timeout: 10000
+- assertNotVisible: "first_only = 111"
+- takeScreenshot: 02-beta-open-not-alpha
