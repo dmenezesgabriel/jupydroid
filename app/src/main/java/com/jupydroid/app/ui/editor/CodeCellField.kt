@@ -35,6 +35,7 @@ import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.syntax.SyntaxKind
 import com.jupydroid.app.syntax.bracketPairAround
+import com.jupydroid.app.theme.editorPalette
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 
@@ -62,16 +63,19 @@ fun CodeCellField(
   typing: InputTransformation = remember { PythonTypingRules() },
 ) {
   val state = rememberTextFieldState(initialText = source)
-  val colors = syntaxColors()
+  val styles = syntaxStyles()
   val matched = bracketMatchStyle()
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+  val palette = editorPalette
   val codeStyle = LocalTextStyle.current.copy(
     fontFamily = FontFamily.Monospace,
-    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    // The editor's `TEXT` foreground, so text the highlighter leaves alone is the colour
+    // IntelliJ leaves it - and so the palette's contrast assertions describe what is drawn.
+    color = palette.syntax.plain,
   )
-  val numberStyle = codeStyle.copy(color = MaterialTheme.colorScheme.outline)
+  val numberStyle = codeStyle.copy(color = palette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle)
   val completions by rememberCellCompletions(state, focused, completionsAt)
   // The code a popup was already answered for, so accepting or dismissing one does not
@@ -91,8 +95,8 @@ fun CodeCellField(
       interactionSource = interactions,
       cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
       inputTransformation = typing,
-      outputTransformation = remember(highlighter, colors, matched) {
-        HighlightTransformation(highlighter, colors, focused, matched)
+      outputTransformation = remember(highlighter, styles, matched) {
+        HighlightTransformation(highlighter, styles, focused, matched)
       },
     )
     val offered = completions?.takeIf { it.query.code != settled }

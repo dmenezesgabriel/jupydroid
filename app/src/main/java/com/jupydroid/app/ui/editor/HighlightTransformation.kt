@@ -23,7 +23,11 @@ import com.jupydroid.app.syntax.bracketPairAround
  */
 internal class HighlightTransformation(
   private val highlighter: SyntaxHighlighter,
-  private val colors: Map<SyntaxKind, Color>,
+  /**
+   * A style rather than a colour per kind, because two of them carry no colour: emphasis is
+   * weight and slant, the way IntelliJ declares `MARKDOWN_BOLD` and `MARKDOWN_ITALIC`.
+   */
+  private val styles: Map<SyntaxKind, SpanStyle>,
   private val focused: State<Boolean>,
   /** Null where matching brackets means nothing - prose has parentheses, not structure. */
   private val matched: SpanStyle? = null,
@@ -32,7 +36,7 @@ internal class HighlightTransformation(
     val source = asCharSequence().toString()
     val spans = highlighter.spansOf(source)
     spans.forEach { span ->
-      colors[span.kind]?.let { addStyle(SpanStyle(color = it), span.start, span.end) }
+      styles[span.kind]?.let { addStyle(it, span.start, span.end) }
     }
     // An unfocused cell still carries a cursor - at the end of its text, on the very first
     // composition - so without this every notebook would open with brackets lit up in cells

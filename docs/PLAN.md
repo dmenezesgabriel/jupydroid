@@ -1056,6 +1056,83 @@ workaround, so the debounce moved out into `NotebookSaveDebounce` — which is t
 already uses: `SaveHandler` is constructed per document context, owns its own timer, and is
 disposed with that context (`packages/docmanager/src/savehandler.ts:18-30`, `62-69`).
 
+## Phase U — an IntelliJ visual language, built for touch (2026-08-07)
+
+The app had no visual identity of its own: `dynamicColor = true` meant the wallpaper chose every
+colour, `theme/Color.kt` was still the Android Studio template, and there was no cell anatomy,
+no selection, no modal model and one layout at every width. Phase U fixes that in seven slices —
+tokens, cell mode, cell chrome, execution status, the touch action surface, IME correctness and
+adaptive layout — before the file explorer (Phase X) and the terminal (Phase T) are built on it.
+
+**IntelliJ's dp are ratios, not sizes.** `DefaultNotebookEditorAppearanceSizes` gives a 24px cell
+toolbar and a 4px/2px stripe. The proportions port; the sizes do not — a 24px control is not
+usable with a thumb, so every interactive size comes from Material's 48.dp minimum instead. The
+same substitution applies to hover: IntelliJ shows the run gutter and the cell toolbar when
+`isHovered || isSelected`, a finger never hovers, so **hover collapses into selection** — which
+IntelliJ's own `showToolbarForSelectedCell` setting shows was already a supported path.
+
+### U1 — the palette, read out of IntelliJ rather than derived from a role (done)
+
+`EditorPalette` / `SyntaxPalette` (`theme/EditorPalette.kt`), two instances
+(`theme/IntelliJPalettes.kt`), in scope through `LocalEditorPalette`. `JupyterDroidTheme` no
+longer offers dynamic colour, and its Material roles now come off the same ramp as the editor
+tokens so bars, menus and dialogs sit in the cells' world rather than beside it.
+
+**This closes the `SyntaxKind.NUMBER` contrast item** under "Known residual risks", and closes it
+at the cause rather than the symptom: the colours came from `MaterialTheme.colorScheme` roles, so
+`NUMBER` was `secondary` — whatever the user's wallpaper made it — and *no test could ever have
+asserted it*. `EditorPaletteTest` now pins every syntax colour's WCAG ratio against the cell
+background it is drawn on.
+
+**Where the values come from**, all in the reference tree, none eyeballed:
+
+| | |
+|---|---|
+| Syntax + editor colours | `platform/platform-resources/src/themes/expUI/expUI_{dark,light}Scheme.xml` |
+| Surface greys and accents | `platform/platform-resources/src/themes/expUI/expUI_{dark,light}.theme.json` |
+| Which markdown category is which colour | `plugins/markdown/core/src/.../MarkdownHighlighterColors.java` |
+
+These are the **New UI** schemes, not classic Darcula — what a current IntelliJ actually shows.
+
+Four things the sources settled that guessing would have got wrong:
+
+- **Hex is stored without leading zeros.** `value="33b3"` is `#0033B3`, `value="67d17"` is
+  `#067D17`. Read literally they parse as short, wrong colours.
+- **Markdown has almost no colours of its own.** `MARKDOWN_CODE_SPAN` and `MARKDOWN_BLOCK_QUOTE`
+  inherit `DEFAULT_STRING`, `MARKDOWN_LIST_MARKER` inherits `DEFAULT_KEYWORD`, and
+  `MARKDOWN_HEADER_LEVEL_1..6` inherit `DEFAULT_CONSTANT`. The old map put quote and marker on
+  `outline` and code on `tertiary`; all three were wrong.
+- **Emphasis carries no colour at all.** `MARKDOWN_BOLD` and `MARKDOWN_ITALIC` are declared with
+  **no base attributes** — they are weight and slant and nothing else. That is why
+  `syntaxColors(): Map<SyntaxKind, Color>` became `syntaxStyles(): Map<SyntaxKind, SpanStyle>`:
+  a colour-only map cannot express two of its own twelve entries, and the change costs
+  `HighlightTransformation` one line (it now adds the style it is given instead of wrapping a
+  colour in one).
+- **A uniqueness rule over every kind is a rule the reference breaks.** Asserting "no two syntax
+  colours are equal" was planned and had to be dropped: code and quote *are* the same colour in
+  IntelliJ, deliberately. What replaced it asserts what actually matters — no syntax colour
+  equals the body-text colour (the shape of the NUMBER defect), and the five kinds Python emits,
+  which do appear in one cell together, are mutually distinct.
+
+**The contrast floor is 4.5:1, except for comments at 3:1**, and that exception is a decision:
+IntelliJ's own comment grey measures 3.39:1 dark and 3.16:1 light, a comment is meant to recede,
+and dragging it to 4.5 would make comments shout as loudly as the code they annotate. Everything
+else clears AA on the cell background it is actually drawn on.
+
+The Jupyter plugin's own `JUPYTER.*` keys are **not in the community repository** — the plugin is
+closed — so the four cell surfaces are the only values not copied outright. They come from the New
+UI grey ramp the rest of the IDE chrome uses.
+
+Evidence: `evidence/u1-tokens/{dark,light}/`, driven by `scripts/u1-palette-driver.sh`, which sets
+`cmd uimode night` and runs `u1-palette.yaml` once per theme. Two runs and not one is the whole
+point: a single-theme screenshot cannot tell a working palette from one that has collapsed onto
+whatever the scheme handed it, which is precisely how audit A4 survived.
+
+**Two things the screenshots showed that the flow could not.** A markdown cell has no surface of
+its own while a code cell does, so the two do not read as the same kind of object — that is U3's
+`CellFrame`. And with the keyboard up the top app bar draws *under the status bar*: an inset
+defect, already owned by U6, and now captured rather than waiting to be discovered.
+
 ## Harness notes
 
 ### Running a Maestro flow
@@ -1249,7 +1326,10 @@ its file), and a title could not be changed from the notebook itself. See "Defec
 above. The editor's ViewModel is scoped per back-stack entry now, which also means it is *cleared*
 for the first time — so leaving a notebook flushes its last edit and closes its kernel socket.
 
-**Next: Step 11 (Console REPL)** — a REPL sharing the open notebook's kernel.
+**Next: Phase U (an IntelliJ visual language, built for touch)**, written up below. U1 — the
+palette — is done. **Step 11 (Console REPL) is superseded** by Phase T, which puts a real shell
+into the rootfs instead: a REPL would be a second way to talk to the kernel we already talk to,
+where a terminal is the thing the Space cannot currently do at all.
 
 **Also open, in rough priority order:**
 
@@ -1369,10 +1449,12 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   cheap enough to add if it turns out to grate, deliberately not paid for up front.
   Replacing a selection is likewise left alone rather than wrapped in the typed bracket -
   wrapping is a separate feature, and half-doing it would leave an unmatched closer.
-- **`SyntaxKind.NUMBER` has the weakest contrast of the five colours.** It maps to
-  `colorScheme.secondary`, which on the dark scheme sits close to the body text - visible
-  in `evidence/step5.2/tablet/04-syntax-colours.png`. The other four read clearly. Worth a
-  deliberate palette rather than more scheme roles, but not wrong today.
+- ~~**`SyntaxKind.NUMBER` has the weakest contrast of the five colours.**~~ **Closed by U1.**
+  It mapped to `colorScheme.secondary`, so on the dark scheme it sat close to the body text
+  (`evidence/step5.2/tablet/04-syntax-colours.png`) - and, more to the point, the value came from
+  the user's wallpaper, so nothing could assert it. The colours now come from a palette read out
+  of IntelliJ's own schemes and every one of them has its WCAG ratio pinned by
+  `EditorPaletteTest`. See "Phase U / U1".
 - **The server has no lifecycle.** `BaseSpaceKernelGateway` starts `jupyter_server` on
   first use and nothing ever stops it (~143 MB RSS held while backgrounded).
   `disconnect()` closes the socket only. Step 18 owns this. The old `SpaceProbe`

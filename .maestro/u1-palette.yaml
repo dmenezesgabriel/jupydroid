@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# U1: the editor palette reaches the screen, in both system themes.
+#
+# Seeded by scripts/u1-palette-driver.sh, which sets the system night mode and then runs this
+# flow once per theme from its own output directory; clearState would delete the fixture.
+#
+# Colour is judged from the screenshots by a human - a flow cannot see a hex value. What it
+# asserts is that both cells rendered, because a palette that never reached the composition
+# would fail here before any screenshot was worth looking at.
+- launchApp
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Palette Check"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Palette Check"
+# The rendered markdown cell is the resting state, so this is what an opened notebook shows:
+# the rich-text inline styles and the code cell's syntax spans in one frame.
+- extendedWaitUntil:
+    visible: "Rendered markdown"
+    timeout: 30000
+- assertVisible: ".*def area.*"
+- takeScreenshot: 01-code-and-rendered-markdown
+# Tap the markdown into its editor. This is the only view where HEADING, MARKER, QUOTE, CODE
+# and LINK are coloured at all - the rendered view above shows none of those spans.
+- tapOn: "Rendered markdown"
+- extendedWaitUntil:
+    visible: "(?s).*# Palette check.*"
+    timeout: 10000
+- takeScreenshot: 02-markdown-source-spans

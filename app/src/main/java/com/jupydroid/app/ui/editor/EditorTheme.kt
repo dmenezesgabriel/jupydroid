@@ -3,7 +3,6 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -12,53 +11,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import com.jupydroid.app.richtext.RichInlineStyles
 import com.jupydroid.app.syntax.SyntaxKind
+import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.app.theme.styles
 
 /**
- * What each syntax category is painted with, derived from the Material scheme.
+ * How each syntax category is drawn.
  *
- * From the scheme rather than a palette of its own, so light and dark both work without a
- * second set of colours to keep in step - and so the editor never fights the app it sits in.
- * [SyntaxKind.PLAIN] is absent on purpose: unstyled text already uses the field's own colour,
- * and restating it would just be a span that changes nothing.
+ * From [com.jupydroid.app.theme.EditorPalette] rather than from `MaterialTheme.colorScheme`, and
+ * that change is the point: roles gave `NUMBER` whatever `secondary` happened to be, which on the
+ * dark scheme sat almost on the body text and could not be asserted anywhere, because the value
+ * came from the user's wallpaper. The palette's contrast is pinned by `EditorPaletteTest`.
  */
 @Composable
 @ReadOnlyComposable
-fun syntaxColors(): Map<SyntaxKind, Color> = mapOf(
-  SyntaxKind.KEYWORD to MaterialTheme.colorScheme.primary,
-  SyntaxKind.STRING to MaterialTheme.colorScheme.tertiary,
-  SyntaxKind.NUMBER to MaterialTheme.colorScheme.secondary,
-  SyntaxKind.COMMENT to MaterialTheme.colorScheme.outline,
-  SyntaxKind.FUNCTION to MaterialTheme.colorScheme.primary,
-  // Markdown. One map for both languages: a highlighter only ever emits its own kinds, so
-  // Python never asks for HEADING and markdown never asks for KEYWORD.
-  SyntaxKind.HEADING to MaterialTheme.colorScheme.primary,
-  SyntaxKind.STRONG to MaterialTheme.colorScheme.primary,
-  SyntaxKind.EMPHASIS to MaterialTheme.colorScheme.tertiary,
-  SyntaxKind.CODE to MaterialTheme.colorScheme.tertiary,
-  SyntaxKind.LINK to MaterialTheme.colorScheme.secondary,
-  SyntaxKind.QUOTE to MaterialTheme.colorScheme.outline,
-  SyntaxKind.MARKER to MaterialTheme.colorScheme.outline,
-)
+fun syntaxStyles(): Map<SyntaxKind, SpanStyle> = editorPalette.syntax.styles()
 
 /**
  * How the bracket pair under the cursor is marked.
  *
- * A tinted box and a heavier weight rather than a colour swap: the five syntax colours are all
- * spoken for, and a sixth would have to be told apart from them at a glance while a bracket sits
- * inside coloured code anyway.
+ * A tinted box and a heavier weight rather than a colour swap, which is IntelliJ's answer too -
+ * `MATCHED_BRACE_ATTRIBUTES` carries a background and no foreground, because a bracket already
+ * sits inside coloured code and a sixth colour would have to be told apart from the five there.
  */
 @Composable
 @ReadOnlyComposable
 fun bracketMatchStyle(): SpanStyle = SpanStyle(
-  background = MaterialTheme.colorScheme.primary.copy(alpha = MATCH_TINT),
+  background = editorPalette.matchedBracket,
   fontWeight = FontWeight.Bold,
 )
 
-private const val MATCH_TINT = 0.3f
-
 /**
- * What each inline mark is painted with, from the Material scheme like the syntax colours - so
- * light and dark both work without a second palette to keep in step.
+ * How each inline mark in rendered prose is drawn.
+ *
+ * Emphasis is weight and slant with no colour, the way IntelliJ declares `MARKDOWN_BOLD` and
+ * `MARKDOWN_ITALIC`; inline code and links take the palette's own values so a rendered cell and
+ * the source behind it agree.
  */
 @Composable
 @ReadOnlyComposable
@@ -67,10 +54,11 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
   strong = SpanStyle(fontWeight = FontWeight.Bold),
   code = SpanStyle(
     fontFamily = FontFamily.Monospace,
-    background = MaterialTheme.colorScheme.surfaceVariant,
+    color = editorPalette.syntax.string,
+    background = editorPalette.cellSelectionBackground,
   ),
   link = SpanStyle(
-    color = MaterialTheme.colorScheme.primary,
+    color = editorPalette.syntax.link,
     textDecoration = TextDecoration.Underline,
   ),
 )
@@ -85,4 +73,4 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
 @Composable
 @ReadOnlyComposable
 fun markdownSourceStyle(): TextStyle =
-  MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+  MaterialTheme.typography.bodyMedium.copy(color = editorPalette.syntax.plain)

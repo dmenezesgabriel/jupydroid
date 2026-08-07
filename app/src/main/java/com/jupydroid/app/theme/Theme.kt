@@ -1,50 +1,130 @@
 package com.jupydroid.app.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.jupydroid.app.theme.IntelliJRamp.DarkBlue6
+import com.jupydroid.app.theme.IntelliJRamp.DarkGray1
+import com.jupydroid.app.theme.IntelliJRamp.DarkGray10
+import com.jupydroid.app.theme.IntelliJRamp.DarkGray11
+import com.jupydroid.app.theme.IntelliJRamp.DarkGray2
+import com.jupydroid.app.theme.IntelliJRamp.DarkGray3
+import com.jupydroid.app.theme.IntelliJRamp.DarkGray4
+import com.jupydroid.app.theme.IntelliJRamp.DarkGray5
+import com.jupydroid.app.theme.IntelliJRamp.DarkGray9
+import com.jupydroid.app.theme.IntelliJRamp.DarkGreen7
+import com.jupydroid.app.theme.IntelliJRamp.DarkRed1
+import com.jupydroid.app.theme.IntelliJRamp.DarkRed10
+import com.jupydroid.app.theme.IntelliJRamp.DarkRed7
+import com.jupydroid.app.theme.IntelliJRamp.LightBlue4
+import com.jupydroid.app.theme.IntelliJRamp.LightGray1
+import com.jupydroid.app.theme.IntelliJRamp.LightGray11
+import com.jupydroid.app.theme.IntelliJRamp.LightGray12
+import com.jupydroid.app.theme.IntelliJRamp.LightGray13
+import com.jupydroid.app.theme.IntelliJRamp.LightGray14
+import com.jupydroid.app.theme.IntelliJRamp.LightGray2
+import com.jupydroid.app.theme.IntelliJRamp.LightGray5
+import com.jupydroid.app.theme.IntelliJRamp.LightGray6
+import com.jupydroid.app.theme.IntelliJRamp.LightGray8
+import com.jupydroid.app.theme.IntelliJRamp.LightGreen5
+import com.jupydroid.app.theme.IntelliJRamp.LightRed1
+import com.jupydroid.app.theme.IntelliJRamp.LightRed10
+import com.jupydroid.app.theme.IntelliJRamp.LightRed4
 
-private val DarkColorScheme = darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
+/**
+ * The editor tokens in scope. Static because the palette changes only with the system theme -
+ * a whole-tree recomposition then is correct and is not something to optimise around.
+ */
+val LocalEditorPalette = staticCompositionLocalOf { DarculaEditorPalette }
 
-private val LightColorScheme =
-  lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-  )
-
+/**
+ * IntelliJ's New UI, dark and light, following the system.
+ *
+ * **Dynamic colour is deliberately not offered.** It was on before, which meant the wallpaper
+ * chose the syntax colours: `NUMBER` resolved to `colorScheme.secondary` and on some wallpapers
+ * landed close enough to the body text to be unreadable (`docs/PLAN.md`, "Known residual risks").
+ * A palette whose contrast can be asserted is worth more here than one that matches the launcher,
+ * because the thing being coloured is code.
+ *
+ * ```
+ * JupyterDroidTheme { EditorScreen(...) }
+ * ```
+ */
 @Composable
 fun JupyterDroidTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
-  // Dynamic color is available on Android 12+
-  dynamicColor: Boolean = true,
   content: @Composable () -> Unit,
 ) {
-  val colorScheme =
-    when {
-      dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-        val context = LocalContext.current
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-      }
-      darkTheme -> DarkColorScheme
-      else -> LightColorScheme
-    }
-
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  val palette = if (darkTheme) DarculaEditorPalette else IntelliJLightEditorPalette
+  CompositionLocalProvider(LocalEditorPalette provides palette) {
+    MaterialTheme(
+      colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+      typography = Typography,
+      content = content,
+    )
+  }
 }
+
+/** The palette in scope, for call sites that read one token and would rather not name the local. */
+val editorPalette: EditorPalette
+  @Composable @ReadOnlyComposable get() = LocalEditorPalette.current
+
+/**
+ * The Material roles, mapped onto the same ramp the editor tokens come from, so app chrome
+ * (bars, menus, dialogs, FAB) sits in the same world as the cells rather than beside it.
+ */
+private val DarkColorScheme: ColorScheme =
+  darkColorScheme(
+    primary = DarkBlue6,
+    onPrimary = LightGray14,
+    secondary = DarkGray9,
+    onSecondary = DarkGray1,
+    tertiary = DarkGreen7,
+    onTertiary = DarkGray1,
+    background = DarkGray1,
+    onBackground = DarkGray11,
+    surface = DarkGray1,
+    onSurface = DarkGray11,
+    surfaceVariant = DarkGray2,
+    onSurfaceVariant = DarkGray10,
+    surfaceContainer = DarkGray2,
+    surfaceContainerHigh = DarkGray3,
+    surfaceContainerHighest = DarkGray4,
+    outline = DarkGray5,
+    outlineVariant = DarkGray3,
+    error = DarkRed7,
+    onError = LightGray14,
+    errorContainer = DarkRed1,
+    onErrorContainer = DarkRed10,
+  )
+
+private val LightColorScheme: ColorScheme =
+  lightColorScheme(
+    primary = LightBlue4,
+    onPrimary = LightGray14,
+    secondary = LightGray6,
+    onSecondary = LightGray14,
+    tertiary = LightGreen5,
+    onTertiary = LightGray14,
+    background = LightGray14,
+    onBackground = LightGray1,
+    surface = LightGray14,
+    onSurface = LightGray2,
+    surfaceVariant = LightGray13,
+    onSurfaceVariant = LightGray5,
+    surfaceContainer = LightGray13,
+    surfaceContainerHigh = LightGray12,
+    surfaceContainerHighest = LightGray11,
+    outline = LightGray8,
+    outlineVariant = LightGray11,
+    error = LightRed4,
+    onError = LightGray14,
+    errorContainer = LightRed10,
+    onErrorContainer = LightRed1,
+  )

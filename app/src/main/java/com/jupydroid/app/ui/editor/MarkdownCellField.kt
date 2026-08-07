@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.syntax.MarkdownSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
+import com.jupydroid.app.theme.editorPalette
 
 /** What an empty markdown cell says, so it is never a row with nothing in it. */
 internal const val MARKDOWN_PLACEHOLDER = "Write markdown…"
@@ -50,13 +51,13 @@ fun MarkdownCellField(
   highlighter: SyntaxHighlighter = remember { MarkdownSyntax() },
 ) {
   val state = rememberTextFieldState(initialText = source)
-  val colors = syntaxColors()
+  val styles = syntaxStyles()
   val caret = remember { FocusRequester() }
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
   val empty by remember { derivedStateOf { state.text.isEmpty() } }
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-  val numberStyle = markdownSourceStyle().copy(color = MaterialTheme.colorScheme.outline)
+  val numberStyle = markdownSourceStyle().copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle)
 
   ReportEdits(state, onSourceEdited)
@@ -81,8 +82,8 @@ fun MarkdownCellField(
     interactionSource = interactions,
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
     // No bracket matching: a parenthesis in prose is punctuation, not structure.
-    outputTransformation = remember(highlighter, colors) {
-      HighlightTransformation(highlighter, colors, focused)
+    outputTransformation = remember(highlighter, styles) {
+      HighlightTransformation(highlighter, styles, focused)
     },
     decorator = { field ->
       // Dimmed and italic, the way JupyterLab marks an empty markdown cell
