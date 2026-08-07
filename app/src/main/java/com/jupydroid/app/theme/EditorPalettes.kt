@@ -39,8 +39,10 @@ val DarkEditorPalette: EditorPalette =
     cellSelectionBackground = Color(0xFF393B40),
     // Blue6, the New UI accent.
     stripeSelected = Color(0xFF3574F0),
-    // Gray4, the same grey `MATCHED_BRACE_ATTRIBUTES` uses for its background.
-    stripeResting = Color(0xFF43454A),
+    // Gray5. One step above the `MATCHED_BRACE_ATTRIBUTES` grey, and the step is deliberate:
+    // at Gray4 the resting stripe was invisible against the editor background on device
+    // (evidence/u3-cell-chrome/01-resting-stripes.png, before this).
+    stripeResting = Color(0xFF4E5157),
     // Red4.
     stripeError = Color(0xFF7A4343),
     caretRow = Color(0xFF26282E),
@@ -76,8 +78,8 @@ val LightEditorPalette: EditorPalette =
     cellSelectionBackground = Color(0xFFEBECF0),
     // Blue4, the New UI accent.
     stripeSelected = Color(0xFF3574F0),
-    // Gray9.
-    stripeResting = Color(0xFFC9CCD6),
+    // Gray8, matching the dark scheme's step up from the matched-brace grey.
+    stripeResting = Color(0xFFA8ADBD),
     // Red4.
     stripeError = Color(0xFFDB3B4B),
     // Blue13.

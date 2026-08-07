@@ -47,9 +47,12 @@ internal fun CellHeader(
   // any further control added here would have been competing with a parent already claiming
   // every gesture. JupyterLab puts six independent buttons on a cell; this has to stay a place
   // buttons can be added, not a single hit area.
+  //
+  // No vertical padding either: every child is a full-size IconButton now, and one already
+  // reserves more height than this padding added.
   Row(
     verticalAlignment = Alignment.CenterVertically,
-    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+    modifier = Modifier.fillMaxWidth(),
   ) {
     Text(
       // The bracket notation a Jupyter user already reads as "this cell has run N times".
@@ -62,7 +65,7 @@ internal fun CellHeader(
     if (cell.kind == CellKind.CODE) {
       RunControl(running = running, onRun = onRun, onStop = onStop)
     } else {
-      IconButtonSized(onClick = onRun) { Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell") }
+      IconButton(onClick = onRun) { Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell") }
     }
     Spacer(modifier = Modifier.weight(1f))
     // Visible, not just long-pressable. A thin strip that happens to react to a long press is
@@ -71,7 +74,7 @@ internal fun CellHeader(
     // Boxed together on purpose: a DropdownMenu anchors to its parent layout node, and left in
     // the full-width Row it opened at the far left - a whole cell away from the button tapped.
     Box {
-      IconButtonSized(onClick = { menuOpen = true }) {
+      IconButton(onClick = { menuOpen = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = "Cell actions")
       }
       CellMenu(expanded = menuOpen, cell = cell, onDismiss = { menuOpen = false }, onAction = onCellAction)
@@ -82,7 +85,7 @@ internal fun CellHeader(
 @Composable
 private fun RunControl(running: Boolean, onRun: () -> Unit, onStop: () -> Unit) {
   if (!running) {
-    IconButtonSized(onClick = onRun) {
+    IconButton(onClick = onRun) {
       Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell")
     }
     return
@@ -93,9 +96,10 @@ private fun RunControl(running: Boolean, onRun: () -> Unit, onStop: () -> Unit) 
     modifier = Modifier.padding(start = 8.dp).size(16.dp).semantics { contentDescription = "Running" },
     strokeWidth = 2.dp,
   )
-  IconButtonSized(onClick = onStop) {
+  IconButton(onClick = onStop) {
     // The universal stop square, drawn rather than imported: it is the only glyph this screen
-    // would need from material-icons-extended.
+    // would need from material-icons-extended. The 12dp is the *glyph*; the button around it
+    // reserves 48dp of pressable area regardless, which `CellTouchTargetTest` pins.
     Box(
       modifier = Modifier
         .size(12.dp)
@@ -103,11 +107,6 @@ private fun RunControl(running: Boolean, onRun: () -> Unit, onStop: () -> Unit) 
         .semantics { contentDescription = "Stop cell" },
     )
   }
-}
-
-@Composable
-private fun IconButtonSized(onClick: () -> Unit, content: @Composable () -> Unit) {
-  IconButton(onClick = onClick, modifier = Modifier.size(32.dp)) { content() }
 }
 
 internal fun CellKind.label(): String = when (this) {

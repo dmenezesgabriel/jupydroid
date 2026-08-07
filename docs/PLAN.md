@@ -1227,6 +1227,56 @@ the ramp fails a test instead of waiting to be noticed in a screenshot. The `*Fi
 deliberately excluded - nothing here reads it, and a rule about colours no component uses is a
 rule about nothing.
 
+### U3 — cell chrome, at touch scale (done)
+
+`CellFrame` draws a stripe down each cell with `drawBehind`, so selection changes re-draw and do
+not re-measure — the same reason `LineNumbers` draws its gutter. `cellStripe` decides width and
+colour as a pure function, which is where the rules are argued; the drawing is the part only a
+screenshot can check.
+
+**Every cell gets a stripe, including markdown, and the reference backs both halves of that.**
+`markerRenderers/README.txt` describes a *"vertical gray line for markdown cells in the gutter"*
+while `CodeCellBackgroundControllerFactory` returns null for markdown — so markdown gets a line
+and no panel, which is exactly what the app now does. Drawing it at rest rather than on hover is
+ours: there is no hover on a phone, so the line is the only thing always on screen saying where
+one cell ends.
+
+Widths are copied rather than scaled — 4dp command, 2dp edit, from
+`DefaultNotebookEditorAppearanceSizes`. A stripe is a marker nobody taps, which is the opposite
+call from the buttons beside it.
+
+Three things came out of looking at the first run's screenshots, and none was visible in a green
+log:
+
+- **The stripe sat flush at x=0**, against the window edge, where a rounded corner or a gesture
+  inset would eat it. It is inset now, inside the left margin, so the content keeps equal padding
+  on both sides — a 9dp left inset against a 16dp right one read as a mistake on device.
+- **The resting stripe was invisible.** Gray4 on the editor background is about 1.5:1; one step up
+  the ramp (Gray5 dark, Gray8 light) reads without shouting.
+- The stripe is anchored on its **left** edge, so narrowing it in edit mode widens the gap rather
+  than moving the line.
+
+**The 48dp claim was wrong, and the correction matters more than the change.** The header wrapped
+each `IconButton` in `Modifier.size(32.dp)`, which was written up here and in the plan as an
+accessibility defect. It was not. `IconButton` applies `minimumInteractiveComponentSize()`
+*outside* the caller's modifier, so the pressable area stayed 48dp and only the ripple shrank —
+measured on device with the 32dp wrapper still in place: `touch target is 48.0.dp x 48.0.dp`. The
+wrapper is gone anyway, for the reason that survives contact with the measurement: 32dp is below
+Material's 40dp default and looked cramped. That is taste, not accessibility.
+
+The test found this by failing for the *right* reason and being read rather than patched: asked
+about `getUnclippedBoundsInRoot`, it reported 40dp for buttons that were already correct, because
+layout bounds are not touch bounds. `CellTouchTargetTest` asks `touchBoundsInRoot` now and is kept
+for the case that could still break — a control built from a bare `clickable`, which would have a
+real 24dp target and nothing else watching it.
+
+`LazyColumn` items also gained `contentType = cell.kind`: code and markdown cells compose very
+different trees, and saying so lets the list reuse each kind against its own pool.
+
+Evidence: `evidence/u3-cell-chrome/`, **tablet only** — the flow runs a cell that is meant to
+raise, and on the emulator `FakeKernelGateway` would echo the source back, so the cell would
+"succeed" and the error stripe would never appear.
+
 ## Harness notes
 
 ### Running a Maestro flow

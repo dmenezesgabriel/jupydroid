@@ -1,0 +1,61 @@
+appId: com.jupydroid.app
+---
+# U3: the stripe down each cell, and what it says.
+#
+# TABLET ONLY - this flow runs cells. On the x86_64 emulator MainActivity falls back to
+# FakeKernelGateway, which echoes the source back as output, so the failing cell would not fail
+# and the error stripe would never appear.
+#
+# The stripe's colour and width are judged from the screenshots; a flow cannot read a pixel.
+# What it drives is the three states worth seeing: resting, selected, and failed.
+#
+# Seeded by scripts/u3-cell-chrome-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Cell Chrome"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cell Chrome"
+- extendedWaitUntil:
+    visible: "Rendered markdown"
+    timeout: 30000
+# Nothing selected yet: every stripe is at rest, and the markdown cell has one despite having
+# no panel behind it - which is the thing this step is for.
+- takeScreenshot: 01-resting-stripes
+# Selecting the code cell: its stripe takes the accent colour and, because focus lands in the
+# editor, narrows to the edit width.
+- tapOn: '.*chrome ok.*'
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-selected-and-editing
+# Out of edit mode so the keyboard stops covering the cells below.
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 03-selected-command-width
+# Run the cell that raises, so one stripe goes to the error colour while the others do not.
+- scrollUntilVisible:
+    element:
+      text: ".*raise ValueError.*"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    text: "Run cell"
+    index: 2
+# Waits on the traceback rather than on the output container, and scoped to it: the cell's own
+# source says "raise ValueError" too, so an unscoped match would go green against the text that
+# was already on screen before the kernel did anything. Only the interpreter writes the
+# "Traceback (most recent call last)" banner.
+- extendedWaitUntil:
+    visible:
+      text: '.*Traceback \(most recent call last\).*'
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- takeScreenshot: 04-failed-cell-stripe

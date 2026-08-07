@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.jupydroid.app.theme.editorPalette
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -110,12 +111,17 @@ private fun EditorContent(
     // that cannot happen, and used to be a dead end when it did.
     else ->
       LazyColumn(modifier = modifier.fillMaxSize()) {
-        items(state.cells, key = { it.id }) { cell ->
+        // contentType as well as key: a code cell and a markdown cell compose to very different
+        // trees, and telling the list so lets it reuse each kind against its own pool instead of
+        // rebuilding whenever the two alternate.
+        items(state.cells, key = { it.id }, contentType = { it.kind }) { cell ->
           EditorCell(
             cell = cell,
             outputs = state.outputs[cell.id].orEmpty(),
             executionCount = state.executionCounts[cell.id],
             running = state.runningCellId == cell.id,
+            selected = state.selectedCellId == cell.id,
+            mode = state.mode,
             onRun = { onRunCell(cell) },
             onStop = onStopCell,
             onSourceEdited = { source -> onEditCell(cell.id, source) },
@@ -134,6 +140,8 @@ private fun EditorCell(
   outputs: List<CellOutput>,
   executionCount: Int?,
   running: Boolean,
+  selected: Boolean,
+  mode: CellMode,
   onRun: () -> Unit,
   onStop: () -> Unit,
   onSourceEdited: (String) -> Unit,
@@ -146,7 +154,13 @@ private fun EditorCell(
   // one means in Jupyter too.
   val rendered = rememberMarkdownRendered(cell.id)
   val markdown = cell.kind == CellKind.MARKDOWN
-  Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+  val stripe = cellStripe(
+    selected = selected,
+    mode = mode,
+    failed = outputs.any { it is CellOutput.Error },
+    palette = editorPalette,
+  )
+  CellFrame(stripe = stripe, modifier = modifier) {
     CellHeader(
       cell = cell,
       executionCount = executionCount,
@@ -176,7 +190,7 @@ private fun EditorCell(
           completionsAt = completionsAt,
           modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+            .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
             .padding(8.dp),
         )
       } else {
