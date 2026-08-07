@@ -46,7 +46,7 @@ class EditorViewModelTest {
   fun runCell_showsTheOutputTheKernelProduced() = runTest {
     val viewModel = loadedEditor()
 
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
     val outputs = viewModel.uiState.value.outputs.getValue("c1")
@@ -57,7 +57,7 @@ class EditorViewModelTest {
   fun runCell_marksTheCellRunningWhileItRunsAndIdleAfter() = runTest {
     val viewModel = loadedEditor()
 
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
     assertEquals(
@@ -71,7 +71,7 @@ class EditorViewModelTest {
   fun runCell_recordsTheExecutionCountTheKernelAssigned() = runTest {
     val viewModel = loadedEditor()
 
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
     assertEquals(1, viewModel.uiState.value.executionCounts["c1"])
@@ -82,9 +82,9 @@ class EditorViewModelTest {
   fun runCell_replacesOutputFromAPreviousRun() = runTest {
     val viewModel = loadedEditor()
 
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
     assertEquals(1, viewModel.uiState.value.outputs.getValue("c1").size)
@@ -98,7 +98,7 @@ class EditorViewModelTest {
   fun runCell_surfacesAKernelFailureAsCellOutputAndStopsRunning() = runTest {
     val viewModel = loadedEditor(gateway = UnreachableKernelGateway())
 
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
     val error = viewModel.uiState.value.outputs.getValue("c1").single()
@@ -129,7 +129,7 @@ class EditorViewModelTest {
     val viewModel = EditorViewModel("nb-1", repository, FakeKernelGateway(), this)
     advanceUntilIdle()
 
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
     val reread = repository.readNotebook("nb-1").cells.single()
@@ -180,7 +180,7 @@ class EditorViewModelTest {
     val viewModel = loadedEditor(gateway = gateway)
 
     viewModel.editCell("c1", "print('edited')")
-    viewModel.runCell(viewModel.uiState.value.cells.single())
+    viewModel.kernel.runCell(viewModel.uiState.value.cells.single())
     advanceUntilIdle()
 
     assertEquals(listOf("c1"), gateway.executed)
@@ -198,11 +198,11 @@ class EditorViewModelTest {
     val gateway = RecordingKernelGateway(runsUntilInterrupted = true)
     val viewModel = loadedEditor(gateway = gateway)
 
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
     assertEquals("the cell should still be running", "c1", viewModel.uiState.value.runningCellId)
 
-    viewModel.stopRunningCell()
+    viewModel.kernel.stopRunningCell()
     advanceUntilIdle()
 
     assertEquals(1, gateway.interruptCount)
@@ -215,7 +215,7 @@ class EditorViewModelTest {
     val gateway = RecordingKernelGateway()
     val viewModel = loadedEditor(gateway = gateway)
 
-    viewModel.stopRunningCell()
+    viewModel.kernel.stopRunningCell()
     advanceUntilIdle()
 
     assertEquals(0, gateway.interruptCount)
@@ -226,7 +226,7 @@ class EditorViewModelTest {
     val gateway = RecordingKernelGateway()
     val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell, markdownCell, secondCodeCell))
 
-    viewModel.runAll()
+    viewModel.kernel.runAll()
     advanceUntilIdle()
 
     assertEquals(listOf("c1", "c3"), gateway.executed)
@@ -241,7 +241,7 @@ class EditorViewModelTest {
     val gateway = RecordingKernelGateway(raiseOn = "c1")
     val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell, secondCodeCell))
 
-    viewModel.runAll()
+    viewModel.kernel.runAll()
     advanceUntilIdle()
 
     assertEquals(listOf("c1"), gateway.executed)
@@ -325,7 +325,7 @@ class EditorViewModelTest {
   @Test
   fun applyToCell_clearOutputsRemovesWhatTheCellHadProduced() = runTest {
     val viewModel = loadedEditor()
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
     assertTrue(viewModel.uiState.value.outputs["c1"].orEmpty().isNotEmpty())
 

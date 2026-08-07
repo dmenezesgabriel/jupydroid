@@ -72,7 +72,7 @@ class EditorTeardownTest {
   fun leavingDisconnectsTheKernel() = runTest {
     val gateway = RecordingKernelGateway()
     val viewModel = loadedEditor(gateway = gateway, applicationScope = this)
-    viewModel.runCell(codeCell)
+    viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
     viewModel.onCleared()

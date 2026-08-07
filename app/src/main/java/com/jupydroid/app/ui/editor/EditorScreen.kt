@@ -64,7 +64,7 @@ fun EditorScreen(
       EditorTopBar(
         title = state.title,
         busy = state.runningCellId != null,
-        onRunAll = viewModel::runAll,
+        onRunAll = viewModel.kernel::runAll,
         onRename = viewModel::renameNotebook,
         onBack = onBack,
       )
@@ -72,10 +72,10 @@ fun EditorScreen(
   ) { innerPadding ->
     EditorContent(
       state = state,
-      onRunCell = viewModel::runCell,
-      onStopCell = viewModel::stopRunningCell,
+      onRunCell = viewModel.kernel::runCell,
+      onStopCell = viewModel.kernel::stopRunningCell,
       onEditCell = viewModel::editCell,
-      completionsAt = viewModel::completionsAt,
+      completionsAt = viewModel.kernel::completionsAt,
       onCellAction = viewModel::applyToCell,
       modifier = Modifier.padding(innerPadding),
     )
