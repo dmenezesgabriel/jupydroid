@@ -174,9 +174,11 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | Android Lint | Android-specific checks | AGP built-in (`:app:lintDebug`) |
 | pre-commit | commit gate | `.pre-commit-config.yaml` |
 | file-length gate | ≤500 lines/file | `scripts/check-file-line-length.sh` |
+| maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
 
 Local verification command (same as the commit gate):
 `JAVA_HOME=<jdk> ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug`
+and `python3 -m unittest discover -s scripts -p '*_test.py'`
 
 Notes:
 - `JAVA_HOME` must point at a JDK (the Gradle hooks run inside the current

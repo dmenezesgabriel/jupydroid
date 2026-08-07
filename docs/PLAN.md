@@ -910,12 +910,15 @@ the wrong thing.
   `app/src/androidTest` was empty despite the Compose test dependencies being declared since
   Step 1. Reach for one when the question is *whether something is visible or reachable*, which
   no JVM test can answer.
-- **A flow must prove it observed the output, not the source — and this is now enforced.**
-  Maestro matches text anywhere on screen, the cell's source included, so waiting for `omega`
-  when the source reads `print("omega")` passes whether or not the kernel ever ran. Three
-  incidents; `scripts/check-maestro-output-assertions.py` (pre-commit) now fails a commit where
-  a visibility assertion *after* a Run matches the seeded fixture's cell sources. Two ways to
-  satisfy it:
+- **A flow must prove the kernel produced what it waits for — and this is now enforced.**
+  `scripts/check_maestro_output_assertions.py` (pre-commit) fails a commit on either of the two
+  ways a post-Run wait can pass without a kernel, and has its own tests in
+  `check_maestro_output_assertions_test.py` — a gate is only worth having while it still catches
+  things, and this one shipped once without them.
+
+  **Waiting for text the source already shows.** Maestro matches text anywhere on screen, the
+  cell's source included, so waiting for `omega` when the source reads `print("omega")` passes
+  whether or not the kernel ever ran. Three incidents. Two ways to satisfy the gate:
     - **Scope it**: `childOf: {text: "Cell output"}`, the contentDescription `CellOutputs` sets.
       Probed on device both ways — source-only text is visible unscoped and not visible scoped.
       It resolves against the *first* matching ancestor, so it only works while one `Cell output`
@@ -928,6 +931,16 @@ the wrong thing.
   rule fires on 38 legitimate assertions, most in markdown flows where the rendered text *is* the
   source text. It found a live defect the day it was written: `step4b-run-all-and-stop` had never
   checked Run All's second result.
+
+  **Waiting for the output container instead of a result.** `Cell output` wraps every output
+  kind, so it appears the moment anything renders — and `FakeKernelGateway` renders the cell's
+  own source on every run, so the wait is satisfied on any x86_64 device with no Space. Assert a
+  value the kernel had to compute; waive with `# container-only: <why>`. `Cell image output` is
+  deliberately *not* covered — the fake emits a stream and never an image, so that container does
+  prove a kernel made one — and asserting a container is *gone* is a real claim, which is how
+  Clear outputs is checked. This rule is retroactive proof rather than theory: run against the
+  tree as it stood before `step4b-run-cell` was deleted, it fails on exactly that flow
+  (`evidence/maestro-gate-tested/catches-the-deleted-flow.txt`).
 - **Open a seeded notebook by scrolling to it, after a settle.** Home is sorted by recency, so a
   seeded notebook sinks below the fold as a device accumulates notebooks — two flows began
   failing at their first assertion with the row present the whole time. Every driver-seeded flow

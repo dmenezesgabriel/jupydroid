@@ -12,11 +12,19 @@ repos:
         language: system
         files: '\.kt$'
       - id: maestro-output-assertions
-        name: maestro flows observe the output, not the source
-        entry: scripts/check-maestro-output-assertions.py
+        name: maestro flows observe what the kernel produced
+        entry: scripts/check_maestro_output_assertions.py
         language: system
         files: '^\.maestro/.*\.(yaml|ipynb)$'
         pass_filenames: false
+      # Always run: the gate above is only worth having while it still catches things,
+      # and its tests are milliseconds.
+      - id: maestro-gate-tests
+        name: the maestro gate's own tests
+        entry: python3 -m unittest discover -s scripts -p '*_test.py'
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: ktlint-check
         name: ktlint format check
         entry: scripts/gradlew-jbr ktlintCheck
