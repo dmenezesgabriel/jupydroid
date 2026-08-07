@@ -11,17 +11,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,9 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,12 +33,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.NotebookSummary
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.RenameNotebookDialog
 import java.time.Instant
 
 private const val NEW_NOTEBOOK_TITLE = "Untitled"
 private const val NEW_PYTHON_FILE_TITLE = "untitled.py"
 private const val DEFAULT_KERNEL_ID = "python3"
-private const val RENAME_FIELD_TAG = "rename-field"
 
 @Composable
 fun HomeScreen(
@@ -253,8 +246,8 @@ private fun NotebookRow(
   }
 
   if (renameOpen) {
-    RenameDialog(
-      notebook = notebook,
+    RenameNotebookDialog(
+      currentTitle = notebook.title,
       onConfirm = { newTitle ->
         renameOpen = false
         onRename(newTitle)
@@ -262,38 +255,6 @@ private fun NotebookRow(
       onDismiss = { renameOpen = false },
     )
   }
-}
-
-@Composable
-private fun RenameDialog(
-  notebook: NotebookSummary,
-  onConfirm: (String) -> Unit,
-  onDismiss: () -> Unit,
-) {
-  var title by remember(notebook.id) { mutableStateOf(notebook.title) }
-  AlertDialog(
-    onDismissRequest = onDismiss,
-    title = { Text("Rename notebook") },
-    text = {
-      OutlinedTextField(
-        value = title,
-        onValueChange = { title = it },
-        modifier = Modifier
-          .semantics { testTagsAsResourceId = true }
-          .testTag(RENAME_FIELD_TAG),
-        singleLine = true,
-        label = { Text("Title") },
-      )
-    },
-    confirmButton = {
-      TextButton(onClick = { onConfirm(title.trim()) }, enabled = title.isNotBlank()) {
-        Text("Rename")
-      }
-    },
-    dismissButton = {
-      TextButton(onClick = onDismiss) { Text("Cancel") }
-    },
-  )
 }
 
 @Preview(showBackground = true)

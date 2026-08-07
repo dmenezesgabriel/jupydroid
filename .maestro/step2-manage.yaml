@@ -12,6 +12,9 @@ appId: com.jupydroid.app
 - takeScreenshot: 02-menu
 - tapOn: "Rename"
 - assertVisible: "Rename notebook"
+# The dialog opens with the caret already in the field and the stem selected, so this state is
+# worth a picture: it is the half of RenameNotebookDialog that no assertion here describes.
+- takeScreenshot: 02b-rename-dialog
 - tapOn:
     id: "rename-field"
 - eraseText
