@@ -9,33 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.jupydroid.app.theme.IntelliJRamp.DarkBlue6
-import com.jupydroid.app.theme.IntelliJRamp.DarkGray1
-import com.jupydroid.app.theme.IntelliJRamp.DarkGray10
-import com.jupydroid.app.theme.IntelliJRamp.DarkGray11
-import com.jupydroid.app.theme.IntelliJRamp.DarkGray2
-import com.jupydroid.app.theme.IntelliJRamp.DarkGray3
-import com.jupydroid.app.theme.IntelliJRamp.DarkGray4
-import com.jupydroid.app.theme.IntelliJRamp.DarkGray5
-import com.jupydroid.app.theme.IntelliJRamp.DarkGray9
-import com.jupydroid.app.theme.IntelliJRamp.DarkGreen7
-import com.jupydroid.app.theme.IntelliJRamp.DarkRed1
-import com.jupydroid.app.theme.IntelliJRamp.DarkRed10
-import com.jupydroid.app.theme.IntelliJRamp.DarkRed7
-import com.jupydroid.app.theme.IntelliJRamp.LightBlue4
-import com.jupydroid.app.theme.IntelliJRamp.LightGray1
-import com.jupydroid.app.theme.IntelliJRamp.LightGray11
-import com.jupydroid.app.theme.IntelliJRamp.LightGray12
-import com.jupydroid.app.theme.IntelliJRamp.LightGray13
-import com.jupydroid.app.theme.IntelliJRamp.LightGray14
-import com.jupydroid.app.theme.IntelliJRamp.LightGray2
-import com.jupydroid.app.theme.IntelliJRamp.LightGray5
-import com.jupydroid.app.theme.IntelliJRamp.LightGray6
-import com.jupydroid.app.theme.IntelliJRamp.LightGray8
-import com.jupydroid.app.theme.IntelliJRamp.LightGreen5
-import com.jupydroid.app.theme.IntelliJRamp.LightRed1
-import com.jupydroid.app.theme.IntelliJRamp.LightRed10
-import com.jupydroid.app.theme.IntelliJRamp.LightRed4
 
 /**
  * The editor tokens in scope. Static because the palette changes only with the system theme -
@@ -78,53 +51,92 @@ val editorPalette: EditorPalette
 /**
  * The Material roles, mapped onto the same ramp the editor tokens come from, so app chrome
  * (bars, menus, dialogs, FAB) sits in the same world as the cells rather than beside it.
+ *
+ * **Every reachable role is set, and that is not thoroughness for its own sake.** Whatever is
+ * left out keeps `darkColorScheme()`'s default, and those defaults are the Material *baseline
+ * purple* - a colour from a different design system. Setting most of them is what put a purple
+ * FAB on Home beside a Darcula editor: `FloatingActionButton` reaches for `primaryContainer`,
+ * which nothing had set. `IntelliJColorSchemeTest` enumerates them so the next omission fails a
+ * test rather than waiting to be noticed in a screenshot.
  */
-private val DarkColorScheme: ColorScheme =
+internal val DarkColorScheme: ColorScheme = with(IntelliJRamp) {
   darkColorScheme(
     primary = DarkBlue6,
-    onPrimary = LightGray14,
+    onPrimary = DarkGray14,
+    primaryContainer = DarkBlue1,
+    onPrimaryContainer = DarkBlue11,
+    inversePrimary = LightBlue4,
     secondary = DarkGray9,
     onSecondary = DarkGray1,
+    secondaryContainer = DarkGray3,
+    onSecondaryContainer = DarkGray11,
     tertiary = DarkGreen7,
     onTertiary = DarkGray1,
+    tertiaryContainer = DarkGreen1,
+    onTertiaryContainer = DarkGreen11,
     background = DarkGray1,
     onBackground = DarkGray11,
     surface = DarkGray1,
     onSurface = DarkGray11,
     surfaceVariant = DarkGray2,
     onSurfaceVariant = DarkGray10,
+    surfaceTint = DarkBlue6,
+    inverseSurface = DarkGray12,
+    inverseOnSurface = DarkGray1,
+    surfaceDim = DarkGray1,
+    surfaceBright = DarkGray4,
+    surfaceContainerLowest = DarkGray1,
+    surfaceContainerLow = DarkGray2,
     surfaceContainer = DarkGray2,
     surfaceContainerHigh = DarkGray3,
     surfaceContainerHighest = DarkGray4,
     outline = DarkGray5,
     outlineVariant = DarkGray3,
+    scrim = DarkGray1,
     error = DarkRed7,
-    onError = LightGray14,
+    onError = DarkGray14,
     errorContainer = DarkRed1,
     onErrorContainer = DarkRed10,
   )
+}
 
-private val LightColorScheme: ColorScheme =
+internal val LightColorScheme: ColorScheme = with(IntelliJRamp) {
   lightColorScheme(
     primary = LightBlue4,
     onPrimary = LightGray14,
+    primaryContainer = LightBlue11,
+    onPrimaryContainer = LightBlue2,
+    inversePrimary = DarkBlue11,
     secondary = LightGray6,
     onSecondary = LightGray14,
+    secondaryContainer = LightGray12,
+    onSecondaryContainer = LightGray2,
     tertiary = LightGreen5,
     onTertiary = LightGray14,
+    tertiaryContainer = LightGreen10,
+    onTertiaryContainer = LightGreen1,
     background = LightGray14,
     onBackground = LightGray1,
     surface = LightGray14,
     onSurface = LightGray2,
     surfaceVariant = LightGray13,
     onSurfaceVariant = LightGray5,
+    surfaceTint = LightBlue4,
+    inverseSurface = LightGray2,
+    inverseOnSurface = LightGray14,
+    surfaceDim = LightGray11,
+    surfaceBright = LightGray14,
+    surfaceContainerLowest = LightGray14,
+    surfaceContainerLow = LightGray13,
     surfaceContainer = LightGray13,
     surfaceContainerHigh = LightGray12,
     surfaceContainerHighest = LightGray11,
     outline = LightGray8,
     outlineVariant = LightGray11,
+    scrim = LightGray1,
     error = LightRed4,
     onError = LightGray14,
     errorContainer = LightRed10,
     onErrorContainer = LightRed1,
   )
+}

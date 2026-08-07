@@ -23,11 +23,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
@@ -58,6 +60,12 @@ fun EditorScreen(
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val focusManager = LocalFocusManager.current
+  // Back in edit mode returns to command mode instead of leaving the notebook - the touch
+  // analogue of `Escape`, which is what both references bind it to. Dropping focus is what
+  // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
+  // reports the mode change, so there is one path out of edit mode rather than two.
+  BackHandler(enabled = state.mode == CellMode.EDIT) { focusManager.clearFocus() }
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = {
@@ -77,6 +85,7 @@ fun EditorScreen(
       onEditCell = viewModel::editCell,
       completionsAt = viewModel.kernel::completionsAt,
       onCellAction = viewModel::applyToCell,
+      onCellFocusChanged = viewModel::cellFocusChanged,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -90,6 +99,7 @@ private fun EditorContent(
   onEditCell: (String, String) -> Unit,
   completionsAt: suspend (String, Int) -> CompletionResult,
   onCellAction: (String, CellAction) -> Unit,
+  onCellFocusChanged: (String, Boolean) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   when {
@@ -111,6 +121,7 @@ private fun EditorContent(
             onSourceEdited = { source -> onEditCell(cell.id, source) },
             completionsAt = completionsAt,
             onCellAction = { action -> onCellAction(cell.id, action) },
+            onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
           )
         }
       }
@@ -128,6 +139,7 @@ private fun EditorCell(
   onSourceEdited: (String) -> Unit,
   completionsAt: suspend (String, Int) -> CompletionResult,
   onCellAction: (CellAction) -> Unit,
+  onFocusChanged: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   // Markdown never reaches a kernel: for those cells Run means "render", which is what running
@@ -144,32 +156,38 @@ private fun EditorCell(
       onCellAction = onCellAction,
     )
     Spacer(modifier = Modifier.height(4.dp))
-    if (cell.sourceHidden) {
-      // Collapsed beats every other source state: there is nothing to type into, and the tap
-      // that expands must not also land in a text field.
-      CollapsedCell(
-        preview = firstNonEmptyLine(cell.source),
-        description = COLLAPSED_SOURCE,
-        onExpand = { onCellAction(CellAction.ToggleSourceHidden) },
-      )
-    } else if (cell.kind == CellKind.CODE) {
-      CodeCellField(
-        source = cell.source,
-        onSourceEdited = onSourceEdited,
-        completionsAt = completionsAt,
-        modifier = Modifier
-          .fillMaxWidth()
-          .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-          .padding(8.dp),
-      )
-    } else {
-      MarkdownCell(
-        source = cell.source,
-        rendered = rendered.value,
-        onEditRequested = { rendered.value = false },
-        onSourceEdited = onSourceEdited,
-        modifier = Modifier.fillMaxWidth(),
-      )
+    // Wrapped so the focus listener sits on the *input area* rather than the whole cell, which
+    // is the distinction JupyterLab draws in `_evtFocusIn`: focus anywhere in a cell selects it,
+    // but only focus inside the editor means edit mode. Put on the Column, the header's buttons
+    // would count as typing.
+    Box(modifier = onCellInputFocus(onFocusChanged)) {
+      if (cell.sourceHidden) {
+        // Collapsed beats every other source state: there is nothing to type into, and the tap
+        // that expands must not also land in a text field.
+        CollapsedCell(
+          preview = firstNonEmptyLine(cell.source),
+          description = COLLAPSED_SOURCE,
+          onExpand = { onCellAction(CellAction.ToggleSourceHidden) },
+        )
+      } else if (cell.kind == CellKind.CODE) {
+        CodeCellField(
+          source = cell.source,
+          onSourceEdited = onSourceEdited,
+          completionsAt = completionsAt,
+          modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+            .padding(8.dp),
+        )
+      } else {
+        MarkdownCell(
+          source = cell.source,
+          rendered = rendered.value,
+          onEditRequested = { rendered.value = false },
+          onSourceEdited = onSourceEdited,
+          modifier = Modifier.fillMaxWidth(),
+        )
+      }
     }
     CellOutputs(
       outputs = outputs,

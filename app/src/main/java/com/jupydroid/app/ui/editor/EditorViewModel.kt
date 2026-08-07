@@ -104,6 +104,34 @@ class EditorViewModel(
   }
 
   /**
+   * Focus arrived in or left a cell's editor, which is the only thing that moves this notebook
+   * between its two modes. The Compose analogue of JupyterLab's `_evtFocusIn`/`_evtFocusOut`
+   * (`packages/notebook/src/widget.ts:3541-3599`), and it follows both closely.
+   *
+   * **Gained: select, then edit — in that order, and it is load-bearing.** JupyterLab sets
+   * `activeCellIndex` before calling `setMode` and says why in as many words: *"Cell index needs
+   * to be updated before changing mode, otherwise the previous cell may get un-rendered"*.
+   * Editing is done *to* the selected cell, so selecting second would apply it to whichever cell
+   * was selected before.
+   *
+   * **Lost: only if [cellId] is still the selected cell.** If focus went straight to another
+   * cell, that cell has already selected itself and this is a stale report from the one it left.
+   * The guard is JupyterLab's `relatedTarget` check under a different name - both are asking
+   * "did focus go somewhere that still counts as editing?" - and without it a cell scrolling out
+   * of a `LazyColumn` and being disposed would drop the notebook out of edit mode while the user
+   * is typing in a different one.
+   */
+  fun cellFocusChanged(cellId: String, focused: Boolean) {
+    _uiState.update { state ->
+      when {
+        focused -> state.withCellSelected(cellId).withMode(CellMode.EDIT)
+        state.selectedCellId == cellId -> state.withMode(CellMode.COMMAND)
+        else -> state
+      }
+    }
+  }
+
+  /**
    * The cell-management half of the editor: everything the cell menu offers.
    *
    * Each one is a pure transform in [CellEdits] followed by the same debounced save an edit
@@ -121,6 +149,9 @@ class EditorViewModel(
         CellAction.ToggleSourceHidden -> state.withSourceHiddenToggled(cellId)
         CellAction.ToggleOutputsHidden -> state.withOutputsHiddenToggled(cellId)
       }
+      // Delete is the one that can strand the selection, but clamping every transform costs
+      // nothing and means a transform added later cannot forget to.
+      .withSelectionClamped()
     }
     save.schedule()
   }

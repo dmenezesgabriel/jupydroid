@@ -20,6 +20,9 @@ data class EditorUiState(
   val runningCellId: String? = null,
   /** Edited since the last write. Cleared by the save, not by the edit. */
   val dirty: Boolean = false,
+  /** JupyterLab's `activeCellIndex`, by id: the one cell every cell-scoped action means. */
+  val selectedCellId: String? = null,
+  val mode: CellMode = CellMode.COMMAND,
 )
 
 /**

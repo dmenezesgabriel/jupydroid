@@ -1172,6 +1172,61 @@ What is *not* fixed here, and is still U6's: with `adjust=resize` the keyboard n
 inset, but nothing consumes it yet, so a focused cell near the bottom is still covered. That is
 the right failure to have — an inset the layout can answer, rather than a shove it cannot.
 
+### U2 — the notebook's two modes (done)
+
+`CellMode { COMMAND, EDIT }` plus `selectedCellId` on `EditorUiState`, with the transitions as
+pure functions in `CellSelection.kt`. It is the seam U3–U6 all hang from: the stripe reads the
+mode, the action bars swap on it, and the keymap is scoped by it.
+
+Everything here is read out of JupyterLab's `Notebook.setMode` and `_evtFocusIn`
+(`packages/notebook/src/widget.ts:1897-1949`, `3541-3563`), and three of the rules are not what
+you would guess:
+
+- **Selection is set *before* the mode**, and JupyterLab says why in as many words: *"Cell index
+  needs to be updated before changing mode, otherwise the previous cell may get un-rendered"*.
+  Editing is done *to* the selected cell, so selecting second applies it to the wrong one.
+- **Edit mode requires a cell.** `if (!activeCell) newValue = 'command'` is the first line of
+  `setMode` - asking to edit with nothing selected is not an error, it simply does not happen.
+- **Entering edit expands a collapsed cell** (`activeCell!.inputHidden = false`), which is
+  reachable here because a cell can be collapsed from the menu and then edited from the keyboard.
+
+**Focus is the only thing that moves the mode**, as it is in JupyterLab, and the modifier that
+reports it sits on the cell's *input area* rather than the cell - focus anywhere in a cell selects
+it, but only focus inside the editor is editing. On the whole cell, the header's buttons would
+count as typing.
+
+Two failure modes were designed out rather than discovered later. A cell scrolling out of a
+`LazyColumn` reports losing focus, so `cellFocusChanged` ignores that report unless the cell is
+still the selected one - JupyterLab's `relatedTarget` check under another name. And a deleted cell
+would leave a selection naming nothing, which looks live while every action scoped to it quietly
+no-ops, so `withSelectionClamped` runs after every cell transform.
+
+**How many backs it takes was measured, not decided.** The keyboard is a window of its own and
+consumes the first press before the app's dispatcher sees it, so: back #1 closes the keyboard,
+back #2 leaves edit mode (caret and selection handle gone, notebook still open), back #3 leaves
+the notebook. The flow screenshots after each rather than asserting a number, and **asserts the
+third**, because the way a `BackHandler` fails is by staying enabled and trapping the user.
+Evidence: `evidence/u2-cell-mode/`.
+
+**A prerequisite, and detekt asked for it.** `EditorViewModel` was at 11 of 11 functions, so U2
+could not add one. `NotebookKernel` now owns the `KernelSession` and everything asked over it -
+run, run all, interrupt, complete - and the ViewModel keeps the document. Completion went with the
+kernel despite not being execution, because the session is what all three need.
+
+### U2a — the Material roles were half IntelliJ and half baseline purple
+
+Found in U2's own evidence: back reached Home and **the FAB was Material's baseline purple**,
+sitting next to a Darcula editor. U1 set `primary`, `surface`, `error` and a dozen more and left
+the rest at `darkColorScheme()`'s defaults - and those defaults come from a different design
+system. `FloatingActionButton` reaches for `primaryContainer`, which nothing had set.
+
+Fixing the FAB alone would have left the same bug waiting in every role no screen happens to use
+yet, and U5 is about to add a bottom bar and a bottom sheet. So every reachable role is set now,
+and `IntelliJColorSchemeTest` enumerates them against `IntelliJRamp.all`: a role that drifts off
+the ramp fails a test instead of waiting to be noticed in a screenshot. The `*Fixed` family is
+deliberately excluded - nothing here reads it, and a rule about colours no component uses is a
+rule about nothing.
+
 ## Harness notes
 
 ### Running a Maestro flow
