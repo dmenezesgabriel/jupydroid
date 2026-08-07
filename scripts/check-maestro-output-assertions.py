@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (docs/PLAN.md, rule 2): a flow must observe what it claims to.
+"""Working Agreement (CLAUDE.md, rule 2): a flow must observe what it claims to.
 
 Maestro matches text anywhere on screen, and a cell's *source* is on screen too. So a flow
 that runs a cell and then waits for text that its own fixture already contains passes whether

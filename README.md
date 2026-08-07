@@ -14,7 +14,8 @@ Step 4a (read-only editor) is in progress. Step 8 — the runtime risk gate, whe
 `jupyter_server` starts from a bundled rootfs — is pulled forward ahead of Steps 5–7 and
 split into six sub-steps.
 
-**Build plan, working agreement and the exec-model decision: `docs/PLAN.md`.**
+**Build plan and the exec-model decision: `docs/PLAN.md`. Working agreement, per-step
+procedure and the locked architecture: `CLAUDE.md`.**
 
 ## Build
 

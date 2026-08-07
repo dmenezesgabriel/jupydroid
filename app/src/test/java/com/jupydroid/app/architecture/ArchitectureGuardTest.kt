@@ -4,7 +4,7 @@ import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Enforces the Working Agreement (docs/PLAN.md): the domain layer is pure Kotlin. */
+/** Enforces the Working Agreement (CLAUDE.md, "Architecture"): the domain layer is pure Kotlin. */
 class ArchitectureGuardTest {
   private val domainRoot = File("src/main/java/com/jupydroid/app/domain")
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Working Agreement (docs/PLAN.md, rule 6): no Kotlin file may exceed 500 lines.
+# Working Agreement (CLAUDE.md, rule 6): no Kotlin file may exceed 500 lines.
 # Fails on the files passed by pre-commit. Used by .pre-commit-config.yaml.
 set -euo pipefail
 

@@ -1,4 +1,4 @@
-# Pre-commit hooks: Working Agreement (docs/PLAN.md, rule 7).
+# Pre-commit hooks: Working Agreement (CLAUDE.md, rule 7).
 # Install with:  pip install pre-commit && pre-commit install
 # Hooks are pure checkers (non-mutating). Format with: ./gradlew ktlintFormat
 # Gradle hooks run through scripts/gradlew-jbr (resolves JAVA_HOME from the
