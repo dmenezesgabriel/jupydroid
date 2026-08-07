@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -36,6 +37,23 @@ class MarkdownCellTest {
     compose.onNodeWithContentDescription(RENDERED_MARKDOWN).performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { asked }
+  }
+
+  /**
+   * Asking for the editor is not the same as being able to type in it. The tap used to leave an
+   * unfocused field, so the next keystroke went nowhere - invisible to every test here, because
+   * `performTextInput` focuses the node itself, and caught only by `a1-markdown` on the tablet.
+   */
+  @Test
+  fun openingTheEditorPutsTheCursorInIt() {
+    var rendered by mutableStateOf(true)
+    compose.setContent {
+      MarkdownCell("# Title", rendered, onEditRequested = { rendered = false }, onSourceEdited = {})
+    }
+
+    compose.onNodeWithContentDescription(RENDERED_MARKDOWN).performClick()
+
+    compose.onNodeWithText("# Title").assertIsFocused()
   }
 
   /** Rendered empty markdown is nothing at all, which would be a row with no way into it. */

@@ -29,6 +29,16 @@ appId: com.jupydroid.app
     visible: "(?s).*# Analysis.*"
     timeout: 10000
 - takeScreenshot: 02-tapped-to-edit
+# Screenshotted before this, not after: the keyboard being up *is* the state a tap leaves you in
+# now that the editor takes the caret, and the shot should show that. But this cell is 19 lines,
+# so focusing it scrolled its header - and the Run button on it - above the viewport. Put the
+# keyboard away and come back up to the button, which is what a person does before pressing Run.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: "Run cell"
+    direction: UP
+    timeout: 10000
 # Run renders it again, which is what running a markdown cell means in Jupyter.
 - tapOn:
     text: "Run cell"

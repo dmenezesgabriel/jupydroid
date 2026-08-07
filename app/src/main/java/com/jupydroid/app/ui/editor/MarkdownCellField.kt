@@ -9,12 +9,15 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
@@ -48,6 +51,7 @@ fun MarkdownCellField(
 ) {
   val state = rememberTextFieldState(initialText = source)
   val colors = syntaxColors()
+  val caret = remember { FocusRequester() }
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
   val empty by remember { derivedStateOf { state.text.isEmpty() } }
@@ -56,6 +60,11 @@ fun MarkdownCellField(
   val gutter = gutterWidth(state.text, numberStyle)
 
   ReportEdits(state, onSourceEdited)
+  // This field only exists because someone tapped the rendered cell to edit it, so it takes the
+  // caret on arrival. Without this the tap left an unfocused field and the next keystroke went
+  // nowhere - a tap that opens an editor you must tap again is half a tap. Invisible to the
+  // Compose tests, whose `performTextInput` focuses the node itself; `a1-markdown` caught it.
+  LaunchedEffect(Unit) { caret.requestFocus() }
 
   BasicTextField(
     state = state,
@@ -65,6 +74,7 @@ fun MarkdownCellField(
     modifier = modifier
       .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
       .padding(8.dp)
+      .focusRequester(caret)
       .lineNumbers(state.text, layout, numberStyle, gutter),
     onTextLayout = { getResult -> layout = getResult() },
     textStyle = markdownSourceStyle(),

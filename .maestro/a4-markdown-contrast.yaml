@@ -23,4 +23,13 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "(?s).*# Analysis.*"
     timeout: 10000
+# The editor takes the caret when it opens, so the keyboard covers half the screen and the cell
+# has scrolled past its first lines. This flow's evidence is a screenshot of the source text's
+# colour, and half a keyboard is not that - so put it away and come back to the top of the cell.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: "markdown"
+    direction: UP
+    timeout: 10000
 - takeScreenshot: markdown-edit-mode
