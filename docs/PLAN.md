@@ -495,7 +495,7 @@ Each is closed the same way as a plan step: evidence, TDD, Maestro, commit.
 |---|---|---|
 | A1 | **A markdown cell cannot be edited**, and "Insert markdown below" makes an unusable one | **Done.** `MarkdownCellField`, 4 instrumented tests, `evidence/audit-a1-markdown/` |
 | A1b | **Markdown is never rendered** — parse it with commonmark-java into a model | **Done.** `MarkdownDocument`, 13 JVM tests. No Maestro: nothing draws it yet, so a flow would be theatre — A1c carries the device gate |
-| A1c | Draw that model in Compose, and toggle rendered ↔ source | **Done.** `MarkdownText` + `MarkdownCell`, 7 JVM + 5 instrumented tests, `evidence/audit-a1c-markdown-render/` |
+| A1c | Draw that model in Compose, and toggle rendered ↔ source | **Done.** `MarkdownText` + `MarkdownCell`, 7 JVM + 6 instrumented tests, `evidence/audit-a1c-markdown-render/`. Left the tap opening an *unfocused* editor; fixed 2026-08-07, `evidence/audit-a1-focus/` |
 | A4 | **A markdown cell being edited is barely readable** — black on black in the dark theme | **Done.** `markdownSourceStyle()`, asserted in both schemes. `evidence/audit-a4-markdown-contrast/` |
 | A5a | Line numbers in the markdown editor | **Done.** Four lines of wiring; `evidence/audit-a5-markdown-editor/a5a-line-numbers.png` |
 | A5b | Syntax highlighting for markdown source | **Done.** `MarkdownSyntax` off commonmark's source spans, 9 JVM tests. `evidence/audit-a5-markdown-editor/` |
@@ -554,6 +554,25 @@ and so does A1c until the flat one is shown to be the problem.
 Scope: headings, paragraphs, emphasis, strong, inline code, code blocks, lists, block quotes,
 thematic breaks and links. Images and inline HTML are out - a cell that needs them is rarer than
 the cost of getting them right.
+
+**A1c left the tap half-done, and only the tablet said so (fixed 2026-08-07).** Making rendered
+the resting state meant a tap now had to *open* the editor, and it did - as an unfocused field.
+The keystroke after the tap went nowhere; you had to tap a second time to get a caret. Every
+Compose test passed throughout, because `performTextInput` focuses the node itself, so the one
+thing the real gesture depended on was the one thing no test exercised. `a1-markdown` was the
+only thing that could have caught it, and it had not been re-run since A1c landed.
+
+`MarkdownCellField` now takes the caret on arrival (`FocusRequester` + `LaunchedEffect`), which
+is safe precisely because the field only exists when someone asked to edit: `rememberMarkdownRendered`
+starts at `true`, so nothing composes a field unbidden. `MarkdownCellTest.openingTheEditorPutsTheCursorInIt`
+asserts focus rather than the callback, and fails without the fix. Evidence: `evidence/audit-a1-focus/`.
+
+**Two flows had to change with it, and that is the fix being real rather than a regression.** A
+caret means a keyboard, and on a 19-line cell the header — with the Run button on it — scrolls
+out of view. `a1c-markdown-render` could no longer reach Run, and `a4-markdown-contrast`'s
+evidence screenshot became half keyboard. Both now `hideKeyboard` and scroll back up before
+doing the thing they are about, which is what a person does. `a1c` screenshots the keyboard-up
+state first, deliberately: that *is* what a tap leaves you in now.
 
 ### A4 — the markdown editor's text is not themed
 
@@ -885,10 +904,9 @@ A driver pushes its fixture into the app's own storage with `run-as`, then runs 
 naming is not perfectly mechanical (`step5-edit-cell.yaml` is driven by
 `scripts/step5-edit-driver.sh`), so grep for the yaml's name in `scripts/` rather than guessing.
 
-The handful with no driver — `step2-create`, `step2-home`, `step2-manage`,
-`step3-persistence`, `a5-markdown-editor` — need no seeding and run directly (note
-`step2-import` *does* have one, and so do `step5-height-sync` and `step7-outputs-persist`,
-which this list used to claim did not):
+Only three have no driver — `step2-create`, `step2-home` and `step2-manage`, which all
+`clearState` because they are about Home with *nothing* in it — plus `step3-persistence`, which
+creates what it needs through the UI. They run directly:
 
 ```
 . scripts/java-home.sh                       # sourced, not executed; that is why it is not +x
@@ -965,9 +983,17 @@ the wrong thing.
 - **Open a seeded notebook by scrolling to it, after a settle.** Home is sorted by recency, so a
   seeded notebook sinks below the fold as a device accumulates notebooks — two flows began
   failing at their first assertion with the row present the whole time. Every driver-seeded flow
-  now does `launchApp` → `waitForAnimationToEnd` → `scrollUntilVisible` → `tapOn`. The settle is
-  load-bearing: a scroll started before the list has rendered *ends* rather than retrying.
-  Keep fixture titles distinct, too — "Collapse" is a prefix of "Collapse Outputs".
+  now does `launchApp` → `waitForAnimationToEnd` → `scrollUntilVisible` → `tapOn`, **at every
+  `launchApp` it makes**, not just the first. Flows that relaunch mid-flow need it twice. The
+  settle is load-bearing: a scroll started before the list has rendered *ends* rather than
+  retrying. Keep fixture titles distinct, too — "Collapse" is a prefix of "Collapse Outputs".
+- **A sweep across N flows is not finished until N flows have been re-run.** 62352d7 edited 22
+  and re-ran 10, which read as thorough and was not: of the twelve it left alone, one was red the
+  whole time (`a1-markdown`, and for a defect in the app rather than in the flow), one relaunch
+  had been missed in a flow that *was* on the list, and two more seeded flows had been skipped by
+  the sweep entirely. Closed 2026-08-07 — every flow re-run, all green,
+  `evidence/maestro-observability/flows-reverified.txt`. If a change touches a flow, that flow is
+  part of the evidence; a partial list is worse than none, because it looks like coverage.
 - **`assertVisible` means on screen, so assert what the screenshot shows.** A node below the
   fold passed `extendedWaitUntil` on one run of `step7-html-output` and failed it on the next,
   against an identical state — and the screenshot in between showed only source. Reach for
@@ -1022,6 +1048,13 @@ behaviour the plan set out is on the device.
 **Saving no longer shreds the file.** A notebook another tool wrote keeps its `tags`,
 `attachments`, `language_info` and the rest through an edit here — eight losses, found by
 measuring rather than by reading. See "A save must not shred the file".
+
+**Every Maestro flow is green on the tablet as of 2026-08-07**, which had not been true for a
+while and nothing said so. Closing 62352d7's half-finished sweep turned up four things a partial
+re-run had hidden: a flow that could only ever be green on a fake kernel (deleted), a relaunch
+with no settle (fixed), two seeded flows the sweep skipped entirely (fixed), and a real app
+defect — tapping a rendered markdown cell opened an editor with no caret (fixed, A1c above).
+The record is `evidence/maestro-observability/flows-reverified.txt`.
 
 **Next: Step 11 (Console REPL)** — a REPL sharing the open notebook's kernel.
 
