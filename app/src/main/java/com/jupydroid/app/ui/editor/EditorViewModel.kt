@@ -15,6 +15,7 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
@@ -22,9 +23,15 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 class EditorViewModel(
-  notebookId: String,
+  private val notebookId: String,
   private val notebookRepository: NotebookRepository,
   private val kernelGateway: KernelGateway,
+  /**
+   * Outlives this ViewModel, because [onCleared] runs *after* `viewModelScope` has been
+   * cancelled - `ViewModel.clear()` closes the closeables and only then calls `onCleared`
+   * (`ViewModel.jvm.kt:66-68`). Work launched on `viewModelScope` there would never run.
+   */
+  private val applicationScope: CoroutineScope,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -47,7 +54,7 @@ class EditorViewModel(
 
   /**
    * Takes an edit from the cell's editor. Saving is debounced because a write per keystroke
-   * would rewrite the file on every character; [saveNow] is the escape hatch for when the
+   * would rewrite the file on every character; [onCleared] is the escape hatch for when the
    * screen is going away and the debounce will not get its chance.
    */
   fun editCell(cellId: String, source: String) {
@@ -63,10 +70,35 @@ class EditorViewModel(
     }
   }
 
-  /** Writes now rather than on the debounce - for a screen that is being left. */
-  fun saveNow() {
+  /**
+   * Closes the notebook: flushes a save the debounce never got to, then closes the kernel socket.
+   *
+   * In that order, which is JupyterLab's - `DocumentWidgetManager.onClose` awaits
+   * `context.save()` before `widget.dispose()`, and disposing the context is what disposes the
+   * session (`packages/docmanager/src/widgetmanager.ts:335-388`).
+   *
+   * **Only when there is something to write.** `updatedAt` is the file's mtime, so a write is
+   * what makes a notebook "updated" - saving on the way out would push a notebook to the top of
+   * Recents for having been looked at. The pending job is cancelled before the flush so a
+   * debounce that happens to be mid-flight cannot write the same thing twice.
+   *
+   * **Closing the socket is not shutting the kernel down**, and that is deliberate:
+   * `SessionContext.dispose()` disposes the client connection and shuts the kernel down only
+   * when `shutdownOnDispose` is set, which defaults to false
+   * (`packages/apputils/src/sessioncontext.tsx:679-709`).
+   *
+   * Public rather than protected because `clear()` is `internal` to lifecycle, so this is the
+   * only seam a test has on leaving the screen.
+   */
+  public override fun onCleared() {
+    val hadUnsavedWork = pendingSave?.isActive == true
     pendingSave?.cancel()
-    viewModelScope.launch { persist() }
+    val openSession = session
+    session = null
+    applicationScope.launch {
+      if (hadUnsavedWork) persist()
+      openSession?.let { kernelGateway.disconnect(it) }
+    }
   }
 
   /**

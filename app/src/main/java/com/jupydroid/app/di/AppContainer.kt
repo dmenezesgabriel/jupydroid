@@ -5,6 +5,9 @@ import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.ServerLauncher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * Manual composition root (single :app module). Constructed once in MainActivity and passed
@@ -14,4 +17,11 @@ class AppContainer(
   val notebookRepository: NotebookRepository,
   val kernelGateway: KernelGateway = FakeKernelGateway(),
   val serverLauncher: ServerLauncher = FakeServerLauncher(),
+  /**
+   * For work that must finish after the screen that asked for it is gone - closing a notebook
+   * flushes its last edit and closes its socket from here, because `viewModelScope` is already
+   * cancelled by then. It lives on the container because an external scope belongs to something
+   * longer-lived than the screen, which is what the composition root is.
+   */
+  val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 )

@@ -35,6 +35,7 @@ fun MainNavigation(
             notebookId = editor.notebookId,
             notebookRepository = appContainer.notebookRepository,
             kernelGateway = appContainer.kernelGateway,
+            applicationScope = appContainer.applicationScope,
             onBack = { backStack.removeLastOrNull() },
           )
         }

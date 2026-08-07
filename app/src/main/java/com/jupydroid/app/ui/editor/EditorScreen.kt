@@ -43,15 +43,19 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
+import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun EditorScreen(
   notebookId: String,
   notebookRepository: NotebookRepository,
   kernelGateway: KernelGateway,
+  applicationScope: CoroutineScope,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: EditorViewModel = viewModel { EditorViewModel(notebookId, notebookRepository, kernelGateway) },
+  viewModel: EditorViewModel = viewModel {
+    EditorViewModel(notebookId, notebookRepository, kernelGateway, applicationScope)
+  },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   Scaffold(

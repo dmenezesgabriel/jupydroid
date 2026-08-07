@@ -3,20 +3,11 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
-import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.StreamName
-import com.jupydroid.app.domain.port.KernelEvent
-import com.jupydroid.app.domain.port.KernelGateway
-import com.jupydroid.app.domain.port.KernelSession
-import com.jupydroid.app.domain.port.NotebookRepository
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -42,6 +33,7 @@ class EditorViewModelTest {
       notebookId = "ghost",
       notebookRepository = FakeNotebookRepository(),
       kernelGateway = FakeKernelGateway(),
+      applicationScope = this,
     )
     val collector = launch { viewModel.uiState.collect {} }
     advanceUntilIdle()
@@ -134,7 +126,7 @@ class EditorViewModelTest {
     val repository = FakeNotebookRepository()
     launch { repository.saveNotebook(Notebook("nb-1", "Data", "python3", listOf(codeCell))) }
     advanceUntilIdle()
-    val viewModel = EditorViewModel("nb-1", repository, FakeKernelGateway())
+    val viewModel = EditorViewModel("nb-1", repository, FakeKernelGateway(), this)
     advanceUntilIdle()
 
     viewModel.runCell(codeCell)
@@ -178,18 +170,8 @@ class EditorViewModelTest {
     assertTrue("a saved notebook is not dirty", !viewModel.uiState.value.dirty)
   }
 
-  /** The edit must reach disk even if the app is closed before the debounce elapses. */
-  @Test
-  fun saveNow_writesImmediatelyWithoutWaitingForTheDebounce() = runTest {
-    val repository = RecordingNotebookRepository()
-    val viewModel = loadedEditor(repository = repository)
-    viewModel.editCell("c1", "typed but not settled")
-
-    viewModel.saveNow()
-    advanceUntilIdle()
-
-    assertEquals("typed but not settled", repository.readNotebook("nb-1").cells.single().source)
-  }
+  // The edit-must-reach-disk-before-the-debounce case moved to EditorTeardownTest with
+  // saveNow(): leaving the screen is what triggers it, and onCleared is where that now lives.
 
   /** Running a cell must use what is on screen now, not what was loaded from the file. */
   @Test
@@ -353,73 +335,4 @@ class EditorViewModelTest {
     assertEquals(null, viewModel.uiState.value.executionCounts["c1"])
   }
 
-  private val codeCell = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
-  private val markdownCell = Cell(id = "c2", kind = CellKind.MARKDOWN, source = "# heading")
-  private val secondCodeCell = Cell(id = "c3", kind = CellKind.CODE, source = "print(2)")
-
-  /** Records what the editor asked of a kernel, and can make a cell raise on demand. */
-  private class RecordingKernelGateway(
-    private val raiseOn: String? = null,
-    private val runsUntilInterrupted: Boolean = false,
-  ) : KernelGateway by FakeKernelGateway() {
-    val executed = mutableListOf<String>()
-    var interruptCount = 0
-      private set
-
-    private val interrupted = CompletableDeferred<Unit>()
-
-    val executedSource = mutableListOf<String>()
-
-    override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {
-      executed += cellId
-      executedSource += code
-      return flow {
-        if (runsUntilInterrupted) interrupted.await()
-        if (cellId == raiseOn) {
-          emit(KernelEvent.Output(cellId, CellOutput.Error("ValueError", "boom", emptyList())))
-        }
-        emit(KernelEvent.Idle)
-      }
-    }
-
-    override suspend fun interrupt(session: KernelSession) {
-      interruptCount++
-      interrupted.complete(Unit)
-    }
-  }
-
-  /** Counts writes, so the debounce can be asserted rather than assumed. */
-  private class RecordingNotebookRepository(
-    private val delegate: FakeNotebookRepository = FakeNotebookRepository(),
-  ) : NotebookRepository by delegate {
-    var saveCount = 0
-      private set
-
-    override suspend fun saveNotebook(notebook: Notebook) {
-      saveCount++
-      delegate.saveNotebook(notebook)
-    }
-  }
-
-  private fun TestScope.loadedEditor(
-    gateway: KernelGateway = FakeKernelGateway(),
-    cells: List<Cell> = listOf(codeCell),
-    repository: NotebookRepository = FakeNotebookRepository(),
-  ): EditorViewModel {
-    launch {
-      repository.saveNotebook(Notebook("nb-1", "Data", "python3", cells))
-    }
-    advanceUntilIdle()
-    // No collector: uiState is a StateFlow, so .value is current without one - and a
-    // collector that is never cancelled leaves runTest waiting on it.
-    val viewModel = EditorViewModel("nb-1", repository, gateway)
-    advanceUntilIdle()
-    return viewModel
-  }
-
-  /** Named fake for the failure path: connecting is fine, executing never works. */
-  private class UnreachableKernelGateway : KernelGateway by FakeKernelGateway() {
-    override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> =
-      flow { throw IllegalStateException("closed early: 1006") }
-  }
 }
