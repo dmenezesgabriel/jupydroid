@@ -65,6 +65,7 @@ fun EditorScreen(
         title = state.title,
         busy = state.runningCellId != null,
         onRunAll = viewModel::runAll,
+        onRename = viewModel::renameNotebook,
         onBack = onBack,
       )
     },
@@ -79,26 +80,6 @@ fun EditorScreen(
       modifier = Modifier.padding(innerPadding),
     )
   }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EditorTopBar(title: String, busy: Boolean, onRunAll: () -> Unit, onBack: () -> Unit) {
-  TopAppBar(
-    title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-    actions = {
-      // Disabled while a cell runs: a second Run All would queue every cell again behind
-      // the one already going.
-      IconButton(onClick = onRunAll, enabled = !busy) {
-        Icon(Icons.Filled.PlayArrow, contentDescription = "Run all cells")
-      }
-    },
-    navigationIcon = {
-      IconButton(onClick = onBack) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-      }
-    },
-  )
 }
 
 @Composable

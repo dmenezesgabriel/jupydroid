@@ -16,8 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -37,7 +35,7 @@ class EditorViewModel(
   val uiState = _uiState.asStateFlow()
   private var session: KernelSession? = null
   private var notebook: Notebook? = null
-  private var pendingSave: Job? = null
+  private val save = NotebookSaveDebounce(viewModelScope) { persist() }
 
   init {
     viewModelScope.launch {
@@ -59,15 +57,26 @@ class EditorViewModel(
    */
   fun editCell(cellId: String, source: String) {
     _uiState.update { it.withSource(cellId, source) }
-    scheduleSave()
+    save.schedule()
   }
 
-  private fun scheduleSave() {
-    pendingSave?.cancel()
-    pendingSave = viewModelScope.launch {
-      delay(SAVE_DEBOUNCE_MILLIS)
-      persist()
-    }
+  /**
+   * Retitles the notebook, from the app bar.
+   *
+   * The dialog decides *whether* to rename - it reports nothing for a blank or unchanged title -
+   * so this writes whatever it is handed.
+   *
+   * ```
+   * viewModel.renameNotebook("Math notes")
+   * ```
+   */
+  fun renameNotebook(title: String) {
+    val current = notebook ?: return
+    // The in-memory copy has to move too. persist() writes `notebook.copy(cells = ...)`, so a
+    // rename that only reached the repository would be overwritten by the next keystroke.
+    notebook = current.copy(title = title)
+    _uiState.update { it.copy(title = title) }
+    viewModelScope.launch { notebookRepository.renameNotebook(notebookId, title) }
   }
 
   /**
@@ -91,8 +100,7 @@ class EditorViewModel(
    * only seam a test has on leaving the screen.
    */
   public override fun onCleared() {
-    val hadUnsavedWork = pendingSave?.isActive == true
-    pendingSave?.cancel()
+    val hadUnsavedWork = save.cancelPending()
     val openSession = session
     session = null
     applicationScope.launch {
@@ -120,7 +128,7 @@ class EditorViewModel(
         CellAction.ToggleOutputsHidden -> state.withOutputsHiddenToggled(cellId)
       }
     }
-    scheduleSave()
+    save.schedule()
   }
 
   /**
@@ -204,8 +212,5 @@ class EditorViewModel(
   private companion object {
     /** Step 17 introduces real Spaces; until then every notebook runs in the base one. */
     val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
-
-    /** Long enough that a burst of typing is one write, short enough to feel immediate. */
-    const val SAVE_DEBOUNCE_MILLIS = 500L
   }
 }

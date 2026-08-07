@@ -1,0 +1,60 @@
+appId: com.jupydroid.app
+---
+# A notebook's title is editable from the notebook, not only from a long press in Recents.
+#
+# The title in the app bar is the target, which is where JupyterLab puts it - docmanager:rename
+# hangs off "[data-type=\"document-title\"]" (docmanager-extension/schema/plugin.json:73-77) -
+# and the pencil beside it is what says the title is a control rather than a label.
+#
+# Seeded by scripts/rename-in-editor-driver.sh, which also reads the file back off the device
+# afterwards: the title lives in metadata.jupydroid.title, and the screen agreeing is only half
+# the claim.
+- launchApp
+# Home's list comes from a disk scan, and a scroll started before it has rendered ends rather
+# than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Rename Me Here"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Rename Me Here"
+- assertVisible: "renamed_here = 1"
+- takeScreenshot: 01-editor-before-rename
+# The app bar title, which is the rename target.
+- tapOn: "Rename Me Here"
+- assertVisible: "Rename notebook"
+- takeScreenshot: 02-dialog-from-the-title
+- tapOn:
+    id: "rename-field"
+- eraseText
+- inputText: "Renamed From Editor"
+- tapOn: "Rename"
+# The bar updates from the ViewModel's own state, without a reload.
+- extendedWaitUntil:
+    visible: "Renamed From Editor"
+    timeout: 10000
+- assertNotVisible: "Rename Me Here"
+- takeScreenshot: 03-title-bar-updated
+# No hideKeyboard here, and that is not an oversight. The dialog owns the keyboard and takes it
+# with it when it closes, so hideKeyboard has none to hide - and on Android it is a system BACK,
+# which popped the editor. The next `tapOn: "Back"` then matched the *system* navigation bar's
+# back button, whose contentDescription is also "Back", and left the app for the launcher.
+- tapOn: "Back"          # the TopAppBar navigation icon's contentDescription
+# The FAB is Home's and the editor has none: assert it before looking for a row, so a flow still
+# stuck in the editor fails here rather than against the title in the app bar.
+- extendedWaitUntil:
+    visible: "\\+"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+# Renaming writes the file, and a write is what makes a notebook "updated" - so the row is now
+# the most recent and sits at the top.
+- scrollUntilVisible:
+    element:
+      text: "Renamed From Editor"
+    direction: DOWN
+    timeout: 20000
+- assertNotVisible: "Rename Me Here"
+- takeScreenshot: 04-recents-agrees
