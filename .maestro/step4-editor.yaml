@@ -2,7 +2,18 @@ appId: com.jupydroid.app
 ---
 # Seeded by scripts/step4-editor-driver.sh; clearState would delete the fixture.
 - launchApp
-- assertVisible: "Two Cells"
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by `updatedAt` descending and the fixture
+# is seeded at 2026-08-04, so it sinks below the fold as the device accumulates notebooks. This
+# flow was missed by the sweep in 62352d7 that gave every other seeded flow the same two steps.
+- scrollUntilVisible:
+    element:
+      text: "Two Cells"
+    direction: DOWN
+    timeout: 20000
 - takeScreenshot: 01-home-with-seeded-notebook
 - tapOn: "Two Cells"
 - assertVisible: "code"
@@ -11,5 +22,10 @@ appId: com.jupydroid.app
 - assertVisible: "Markdown cell here"
 - takeScreenshot: 02-editor-cells
 - tapOn: "Back"          # the TopAppBar navigation icon's contentDescription
-- assertVisible: "Two Cells"
+# Home comes back scrolled to the top, so the row needs finding again for the same reason.
+- scrollUntilVisible:
+    element:
+      text: "Two Cells"
+    direction: DOWN
+    timeout: 20000
 - takeScreenshot: 03-back-to-home

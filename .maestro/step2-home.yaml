@@ -1,5 +1,10 @@
 appId: com.jupydroid.app
 ---
-- launchApp
+# clearState, like step2-create beside it: this flow is about the *empty* state, and without
+# it the assertion is only true on a device that happens to have no notebooks. It was green for
+# months on that accident and went red the first time it ran on the tablet, which by then had
+# twenty-seven.
+- launchApp:
+    clearState: true
 - assertVisible: "No recent notebooks yet"
 - takeScreenshot: 01-home-empty
