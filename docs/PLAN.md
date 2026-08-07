@@ -908,6 +908,154 @@ its own fixture could not simply be edited, because `step4-cells.ipynb` is share
 `Cell output` proves only that something rendered, and something always renders — the fake can
 make it true without a kernel. Assert a value the kernel had to compute.
 
+---
+
+## Defects found on device (2026-08-07) — closed
+
+Two, reported from driving the tablet. Both are about the same thing: how a notebook gets from
+Recents to the editor, and what its identity is once there. Closed the same way an audit finding
+is — reference research first, TDD, Maestro, evidence, one commit each.
+
+| # | Finding | Status |
+|---|---|---|
+| D1 | **Opening a second notebook shows the first one** — and an edit made there would have been written into the first notebook's file | **Done.** `evidence/notebook-switch/` |
+| D1b | A **double tap** pushes two back-stack entries for one notebook, which share one `ViewModelStore` | **Done.** Same evidence |
+| D2 | **A notebook's title cannot be edited from the notebook**, only by long-pressing its row | **Done.** `evidence/rename-in-editor/`, `evidence/rename-dialog/` |
+
+### D1 — the editor's ViewModel was scoped to the Activity
+
+`NavDisplay` was given no `entryDecorators`, and its default is
+`listOf(rememberSaveableStateHolderNavEntryDecorator())` and nothing else (`NavDisplay.kt:184-185`
+in the `navigation3-ui:1.0.1` sources). So `LocalViewModelStoreOwner` inside an entry was
+`MainActivity`, and `viewModel { … }` with no key resolves on the class name alone and only runs
+its initializer on a cache miss — the second visit got notebook A's instance and dropped B's id.
+`EditorViewModel` loads once, in `init`, so it could not have noticed even in principle.
+
+The fix is the pair of decorators the **lifecycle 2.10.0** release notes publish, in that order:
+saveable state first, ViewModel store inside it. `decorateEntry` folds right, so the first is the
+outermost, and the ViewModel decorator reads its `SavedStateRegistryOwner` from its surroundings.
+`viewModel(key = notebookId)` would have hidden the symptom while leaving every editor ViewModel
+alive on the Activity for the life of the process.
+
+**Keying per document rather than per type is what every reference does**, and it is worth stating
+because it is the whole bug: JupyterLab's `_findContext` keys on `(normalize(path), factoryName)`
+(`packages/docmanager/src/manager.ts:545-558`) and links widgets to contexts with instance-keyed
+`AttachedProperty`s; IntelliJ hangs notebook state off the open editor under `EDITOR_NOTEBOOK_KEY`
+and disposes it with that editor. Nothing anywhere is keyed by class.
+
+**The version risk that did not fire.** `ViewModelStoreNavEntryDecorator` 2.10.0 carries
+`require(lifecycle.currentState == INITIALIZED)` over `LocalSavedStateRegistryOwner.current`, and
+nothing in `navigation3-runtime` 1.0.1 **or** 1.1.5 provides a per-entry `SavedStateRegistryOwner`
+— checked by `javap` over both aars, and the check is gone in `androidx-main`. It was expected to
+throw and never did, on device or in the instrumented test, so `lifecycleViewmodelNav3` stays at
+2.10.0. Recorded so nobody re-derives the worry.
+
+### D1b — `openOrReveal`, because two entries share one store
+
+`MutableList<NavKey>.openNotebook` returns early when that notebook is already on top. This is
+JupyterLab's `openOrReveal`, which activates the widget already showing a path rather than opening
+a second (`packages/docmanager/src/manager.ts:481-503`, and the opener guards again with
+`if (!widget.isAttached)`).
+
+It is not tidiness. Both nav3 decorators key on `NavEntry.contentKey`, which defaults to
+`key.toString()`, so two entries for one notebook share a single `ViewModelStore` **and** a single
+`SaveableStateHolder` slot — and popping the first clears state the second still needs. A double
+tap is enough, because Recents is still on screen and still hittable while the transition runs.
+
+### Scoping the ViewModel made `onCleared` real, and two things then had to exist
+
+The editor's ViewModel was never cleared before, so neither of these was missed:
+
+- a save still inside its 500 ms debounce died with `viewModelScope`;
+- the kernel socket was never closed, leaking one per notebook opened.
+
+`onCleared` flushes then disconnects, in that order — JupyterLab's `DocumentWidgetManager.onClose`
+awaits `context.save()` before `widget.dispose()`, and disposing the context disposes the session
+(`packages/docmanager/src/widgetmanager.ts:335-388`, `packages/docregistry/src/context.ts:205-220`).
+It flushes **only when something is owed**, for A6's reason: a write is what makes a notebook
+"updated", so saving on the way out would push a notebook to the top of Recents for having been
+looked at. JupyterLab gates its autosave on `context.model.dirty` for the same reason.
+
+**The scope has to outlive the ViewModel**, because `ViewModel.clear()` closes the closeables —
+`viewModelScope` among them — and only *then* calls `onCleared` (`ViewModel.jvm.kt:66-68`). It
+lives on `AppContainer`, which is where the Android guidance puts an external scope: something
+longer-lived than the screen. `saveNow()` is deleted; it was called from no production code and
+`onCleared` is now the escape hatch its KDoc described.
+
+**Closing the socket is not shutting the kernel down.** `SessionContext.dispose()` shuts a kernel
+down only when `kernelPreference.shutdownOnDispose` is set, and it defaults to false
+(`packages/apputils/src/sessioncontext.tsx:679-709`; the `kernelShutdown` setting in
+`notebook-extension/schema/tracker.json` is `false` too). Ours disposes the client connection, the
+same half. **What we do not yet have is the other half** — see the open item below.
+
+### D2 — the title is renameable from the notebook
+
+The anchor is the document title, which is where JupyterLab puts it: `docmanager:rename` hangs off
+`"selector": "[data-type=\"document-title\"]"`
+(`packages/docmanager-extension/schema/plugin.json:73-77`), labelled "Rename Notebook…". A tap is
+the touch analogue of that right-click, and an `Icons.Filled.Edit` beside the title is what says
+the title is a control — Step 4b's lesson, applied without a second menu.
+
+JupyterLab's **single-document mode**, its closest thing to a phone, instead edits the title inline
+in the shell bar (`packages/application/src/shell.ts:2767-2858`). Considered and not taken: its two
+inline paths disagree about what a blur means — the file browser **commits** on blur
+(`listing.ts:3958-3961`), the title bar **discards** (`shell.ts:2790`) — and on a touch screen a
+blur is any stray tap, with no Cancel to undo it.
+
+Home's dialog moved to `ui/RenameNotebookDialog` so both callers share one, and reading
+`DocumentManagerDialogs.rename` turned up three things ours had wrong:
+
+| | JupyterLab | Was here |
+|---|---|---|
+| the field takes focus on open | `focusNodeSelector: 'input'` | nothing — no caret, first keystroke lost |
+| the stem is selected, the extension is not | `setSelectionRange(0, value.length - ext.length)` | nothing selected |
+| an unchanged name is a silent no-op | `if (!newPath \|\| newPath === fileName) return null` | renamed anyway |
+
+The second earns its keep on `untitled.py`, which `NEW_PYTHON_FILE_TITLE` creates. `titleStemEnd`
+states the rule once — JupyterLab has three that disagree (`PathExt.extname` in the dialog,
+`lastIndexOf('.')` in the file browser, `indexOf('.')` in the title bar) and we take the dialog's.
+
+**What does not transfer, deliberately:** `isValidFileName`'s `/ \ :` rule, and the overwrite
+prompt on a 409 (`dialogs.ts:202-250`). There the title *is* the filename. Here a notebook is
+`<uuid>.ipynb` and its title lives in `metadata.jupydroid.title`, so a title cannot corrupt a path
+and two notebooks may share one. Non-blank plus changed is the whole rule.
+
+`renameNotebook` moves the **in-memory** copy as well as writing through the port, because
+`persist()` writes `notebook.copy(cells = …)` — a rename that only reached the repository would be
+overwritten by the very next keystroke. That is what `renamingSurvivesTheNextCellEdit` forces.
+
+### Three tests that were green against the wrong thing
+
+All caught before landing, and the reason to distrust a first green.
+
+- `leavingWithAPendingEditStillWritesIt` passed against an `onCleared` that did nothing:
+  `advanceUntilIdle` ran virtual time past the debounce and the ordinary scheduled save did the
+  writing. It uses **`runCurrent`** now, which advances no time at all.
+- `tappingTheSameNotebookTwiceOpensOneEditor` passed with no guard at all: `performClick` lets the
+  composition settle, so by the second tap Recents was gone and the title it matched was the
+  *editor's* app bar. Freezing `mainClock.autoAdvance` across both taps is the real gesture — and
+  it then failed, which is how D1b was found.
+- The first `notebook-session-ends` fixture waited for `42` from `carried = 6 * 7`, an assignment
+  that prints nothing. `answer = 42` all over again, one section above.
+
+Each surviving assertion was re-checked by mutation: emptying `onCleared` fails two of the teardown
+tests, and deleting one line of `renameNotebook` fails `renamingSurvivesTheNextCellEdit`.
+
+### Two things the flows taught
+
+- **`hideKeyboard` with no keyboard up is a system BACK.** The rename dialog owns the keyboard and
+  takes it with it when it closes, so `hideKeyboard` afterwards popped the editor — and the next
+  `tapOn: "Back"` matched the **system navigation bar's** back button, whose contentDescription is
+  also `"Back"`, and left the app for the launcher. Only reach for it when a keyboard is actually up.
+- **A cell you are going to assert on has to print.** See above; this is the third sighting.
+
+### One refactor detekt asked for, and it was right
+
+`EditorViewModel` reached 12 functions against a max of 11. Raising the threshold would have been a
+workaround, so the debounce moved out into `NotebookSaveDebounce` — which is the shape JupyterLab
+already uses: `SaveHandler` is constructed per document context, owns its own timer, and is
+disposed with that context (`packages/docmanager/src/savehandler.ts:18-30`, `62-69`).
+
 ## Harness notes
 
 ### Running a Maestro flow
@@ -1026,6 +1174,15 @@ the wrong thing.
 - **A popup's position is not observable from a Compose test.** It gets its own window, so
   `getUnclippedBoundsInRoot` reports coordinates inside that window — a menu pinned across the
   screen and one under its button read identically. Anchoring is a screenshot gate.
+- **`hideKeyboard` with no keyboard up is a system BACK, and it will pop a screen.** A dialog owns
+  the keyboard and takes it with it when it closes, so `hideKeyboard` afterwards has none to hide
+  and pops the screen underneath instead. Worse, the `tapOn: "Back"` that usually follows then
+  matches the **system navigation bar's** back button — whose contentDescription is also `"Back"` —
+  and leaves the app for the launcher, which reads as "the flow's assertion is wrong" rather than
+  "the flow navigated twice". Only reach for `hideKeyboard` when a keyboard is actually up.
+- **Maestro regex-matches the *whole* node string, so a multi-line cell cannot be matched by one of
+  its lines.** `assertVisible: "carried = 6 * 7"` fails against a cell whose source is
+  `carried = 6 * 7\nprint(carried)`. Assert on something single-line, or on what the run produced.
 - The Galaxy Tab sleeps and then wants its PIN, which no adb command can supply.
   `adb shell svc power stayon usb` keeps it awake once unlocked; if a flow fails
   at the very first assertion, screenshot before debugging anything else.
@@ -1073,18 +1230,39 @@ behaviour the plan set out is on the device.
 `attachments`, `language_info` and the rest through an edit here — eight losses, found by
 measuring rather than by reading. See "A save must not shred the file".
 
-**All 30 Maestro flows are green on the tablet as of 2026-08-07**, which had not been true for a
-while and nothing said so. Closing 62352d7's half-finished sweep turned up five things a partial
-re-run had hidden: a flow that could only ever be green on a fake kernel (deleted), a relaunch
-with no settle (fixed), three seeded flows the sweep skipped entirely (fixed), a real app defect
-— tapping a rendered markdown cell opened an editor with no caret (fixed, A1c above) — and a
-flake only a full run could surface. The record is
-`evidence/maestro-observability/flows-reverified.txt`.
+**All 33 Maestro flows are green on the tablet as of 2026-08-07** — re-run in full after the two
+device defects below, because `Navigation.kt` and the editor's app bar are on every flow's path.
+One, `step5-completion`, failed in the sweep and passed on an immediate re-run: it is a second
+sighting of a stall recorded before these changes, in that same flow, and it is written up under
+"Known residual risks". Record: `evidence/notebook-defects-sweep/flows-reverified.txt`.
+
+The earlier full sweep (30 flows) is `evidence/maestro-observability/flows-reverified.txt`.
+Closing 62352d7's half-finished version turned up five things a partial re-run had hidden: a flow
+that could only ever be green on a fake kernel (deleted), a relaunch with no settle (fixed),
+three seeded flows the sweep skipped entirely (fixed), a real app defect — tapping a rendered
+markdown cell opened an editor with no caret (fixed, A1c above) — and a flake only a full run
+could surface.
+
+**Two device defects were found and closed on 2026-08-07**, both about how a notebook gets from
+Recents to the editor: opening a second notebook showed the first (and would have saved edits into
+its file), and a title could not be changed from the notebook itself. See "Defects found on device"
+above. The editor's ViewModel is scoped per back-stack entry now, which also means it is *cleared*
+for the first time — so leaving a notebook flushes its last edit and closes its kernel socket.
 
 **Next: Step 11 (Console REPL)** — a REPL sharing the open notebook's kernel.
 
 **Also open, in rough priority order:**
 
+- **Reconnect to a notebook's running kernel on reopen.** Leaving a notebook now closes its socket,
+  which is the half of JupyterLab's behaviour we have; the half we do not is that `connect()`
+  always `POST`s a new kernel, where JupyterLab looks a session up by path and reattaches. So the
+  namespace is lost on reopen where JupyterLab keeps it (`notebook-session-ends.yaml` is that
+  behaviour, pinned). Belongs with Steps 17/18, where sessions and server lifecycle live.
+- **Adaptive layout for the tablet.** The app declares no `material3-adaptive` dependency and uses
+  no `WindowSizeClass` anywhere, so Recents and the editor are one pane at every width. On the
+  Tab A9+ they could sit side by side — `ListDetailPaneScaffold` is the canonical shape, and the
+  guidance is to branch on window size class, never on device type. It is a change to the whole
+  navigation graph, which is why it is an item rather than a patch.
 - **Packaging**: debug APK is 116 MB, most of it the rootfs (278 MB unpacked). Asset pack
   versus first-run download is undecided.
 - **LSP** (see below) would supersede 5.5's completion rather than duplicate it.
@@ -1165,11 +1343,26 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
 - `scripts/gradlew-jbr` still hardcodes this machine's JBR path, and there is
   no CI. Dev-environment debt: it slows a new machine down, it cannot corrupt a
   build.
-- **One unexplained stall in cell execution, seen once.** On the first run of the 5.5b flow
-  the kernel came up in 11 s and the cell then never finished within 169 s. Not reproduced:
-  step10 passed on the same build minutes later, and the flow has since passed three times,
-  once directly after a reinstall — which was the hypothesis. No cause known, recorded so a
-  second sighting is recognised as a second rather than a first.
+- **An unexplained stall in cell execution — now seen twice, both times in `step5-completion`.**
+  First sighting: the kernel came up in 11 s and the cell never finished within 169 s. Not
+  reproduced then — step10 passed on the same build minutes later, and the flow passed three
+  times after, once directly following a reinstall, which was the hypothesis.
+
+  **Second sighting, 2026-08-07**, in the full sweep that closed the two device defects: the
+  flow's first `Run` on `1 + 1` never produced `2`, and the failure screenshot
+  (`evidence/notebook-defects-sweep/step5-completion-stall.png`) shows the cell **still
+  spinning** with the Stop button up and no output — the same symptom, not a different one. It
+  passed on an immediate re-run of the same build.
+
+  **Not caused by that day's changes**, and this is worth stating rather than assuming: the
+  changes were to *teardown* (`onCleared`) and to how the ViewModel is *obtained*, and the stall
+  is in the first `execute` of a freshly launched app, before anything is torn down. Every driver
+  `am force-stop`s first, which takes the server and its kernels with it, so nothing carries over
+  between flows either.
+
+  So: two sightings, one flow, no cause, and the same shape both times. Worth a real look before
+  Step 11 leans harder on the same execute path — the useful next step is `logcat` captured
+  *during* a stall, which neither sighting has.
 - **`PythonTypingRules` reads the line as text, not as tokens**, so a block opener with a
   trailing comment (`if x:  # note`) gets no extra level. Fixing it means asking the lexer
   where the comment starts, which is a dependency the transformation does not otherwise have;
