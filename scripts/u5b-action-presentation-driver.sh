@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
-# Runs the U5b flow twice: once at the device's own width, once forced to a phone width.
+# Runs the U5b flow at the width the device it is given actually has.
 #
-# `wm density` rather than a second device, and rather than `wm size`. The rule under test is
-# about the window's width **in dp**, not in pixels, so raising the density narrows the window in
-# exactly the unit the rule reads.
+# **Two devices, not one device wearing a costume.** Cell actions branch on window width, so the
+# evidence has to come from a genuinely narrow window and a genuinely wide one:
 #
-# The density is *computed* from the window rather than hardcoded, and that is the whole lesson
-# here. Two hardcoded attempts both produced a wide window and a green-looking compact run:
-# `wm size 1233x2400` made the larger number the width (1600dp), and `wm density 480` forgot that
-# this tablet is held in landscape - so the 1920px edge is the width, and 480dpi over it is
-# 640dp. Deriving the number from `wm size` cannot make either mistake, on any device, in either
-# orientation.
+#   ANDROID_SERIAL=emulator-5554 scripts/u5b-action-presentation-driver.sh   # 320dp -> sheet
+#   ANDROID_SERIAL=TABLET_SERIAL   scripts/u5b-action-presentation-driver.sh   # 800dp -> menu
+#
+# An earlier version forced the tablet narrow with `wm density` instead, and that was a mistake
+# worth recording rather than quietly deleting. Two hardcoded overrides silently produced *wide*
+# windows - `wm size 1233x2400` made the larger number the width on a landscape device, and
+# `wm density 480` over the 1920px landscape edge is 640dp - so both "compact" runs got the
+# dropdown and looked green. Computing the density fixed the width but not the shape: the result
+# was a 450x281dp letterbox, and assertions had to be weakened to survive a window no phone has.
+# The width is now read from `am get-config`, not computed - see `window_width_dp`.
+#
+# The evidence directory is named from the *measured* width, so a run cannot be mislabelled.
 #
 # Runs no cell, so it needs no Space runtime.
 set -euo pipefail
@@ -22,42 +27,27 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-FLOW="$ROOT/.maestro/u5b-action-presentation.yaml"
-EVIDENCE="$ROOT/evidence/u5b-action-presentation"
-
-# Restored however this exits: leaving a device at 411dp would silently narrow every flow run
-# after this one, and that is the kind of thing that is found three steps later.
-restore_density() { "$ADB" shell wm density reset >/dev/null 2>&1 || true; }
-trap restore_density EXIT
-
-run_at() {
-  local name="$1" density="$2"
-  echo "=== $name ==="
-  if [ "$density" = "native" ]; then "$ADB" shell wm density reset; else "$ADB" shell wm density "$density"; fi
-  echo "window width: $("$ADB" shell wm size | tail -1) at $("$ADB" shell wm density | tail -1)"
-  seed_notebook "$ROOT/.maestro/fixtures/u5a-cell-actions.ipynb" u5a-cell-actions
-  run_flow "$FLOW" "$EVIDENCE/$name"
+# Asked of the framework rather than computed, and that is the point.
+#
+# `am get-config` reports the configuration the app actually runs under - `w1280dp` on the
+# landscape tablet, `w320dp` on the portrait emulator - which is the same number
+# `WindowSizeClass` reads. Every attempt to derive it instead got it wrong in a different way:
+# `wm size` reports the *natural* size, so "the larger edge" is the width on a landscape device
+# and the height on a portrait one, and a run in the wrong class still looks green.
+window_width_dp() {
+  "$ADB" shell am get-config | tr '-' '\n' | sed -n 's/^w\([0-9]\+\)dp$/\1/p' | head -1
 }
 
-# The window's *widest* edge, which is its width when the device is held in landscape.
-window_width_px() {
-  "$ADB" shell wm size | tail -1 | sed 's/.*: //' | tr 'x' '\n' | sort -n | tail -1
-}
+WIDTH_DP="$(window_width_dp)"
+# The same 600dp boundary `cellActionPresentationFor` uses.
+if [ "$WIDTH_DP" -ge 600 ]; then CLASS=expanded; else CLASS=compact; fi
+echo "=== ${CLASS}, ${WIDTH_DP}dp wide ==="
 
-# The density that makes the window COMPACT_TARGET_DP wide. 450dp is an ordinary phone width and
-# sits well clear of the 600dp boundary without landing on it.
-COMPACT_TARGET_DP=450
-compact_density() {
-  echo $(( $(window_width_px) * 160 / COMPACT_TARGET_DP ))
-}
+seed_notebook "$ROOT/.maestro/fixtures/u5a-cell-actions.ipynb" u5a-cell-actions
+run_flow "$ROOT/.maestro/u5b-action-presentation.yaml" \
+  "$ROOT/evidence/u5b-action-presentation/${CLASS}-${WIDTH_DP}dp"
 
-run_at compact "$(compact_density)"
-run_at native native
-
-# Three cells at each width: the action each surface offered actually reshaped the notebook.
-# The screenshots show *which* surface appeared; only the file shows that it worked.
+# Three cells: the action the surface offered actually reshaped the notebook. The screenshots
+# show *which* surface appeared; only the file shows that it worked.
 echo "--- notebook as saved after the flow ---"
 "$ADB" shell run-as com.jupydroid.app cat files/notebooks/u5a-cell-actions.ipynb
-
-echo
-echo "screenshots: $EVIDENCE/{compact,native}/"

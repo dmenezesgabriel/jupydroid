@@ -2,10 +2,10 @@ appId: com.jupydroid.app
 ---
 # U5b: the same cell actions, on the surface the window has room for.
 #
-# Runs no cell, so any device will do. The driver runs this flow twice - once at the device's own
-# width and once with `wm size` forced to a phone width - and the screenshots are what show which
-# surface appeared. The labels are identical on both, which is the point: one flow addresses a
-# dropdown and a bottom sheet without knowing which it got.
+# Runs no cell, so any device will do - and that is the point: the driver is run once per device,
+# a phone emulator and a tablet, and the screenshots show which surface each width produced. The
+# labels are identical on both, so this one flow addresses a dropdown and a bottom sheet without
+# knowing which it got.
 #
 # Seeded by scripts/u5b-action-presentation-driver.sh; clearState would delete the fixture.
 - launchApp
@@ -39,8 +39,11 @@ appId: com.jupydroid.app
 - tapOn: "Cell menu Insert code below"
 - waitForAnimationToEnd:
     timeout: 5000
-# The notebook is still there and the surface has closed. That a *third cell* was inserted is
-# proved by the saved file the driver prints, not asserted here: how many cells fit on screen is
-# a property of the window this flow deliberately varies, and the compact run has room for one.
+# Both original cells still on screen, and the surface has closed. This assertion was briefly
+# weakened to one cell, to survive a 450x281dp letterbox produced by forcing a tablet narrow with
+# `wm density`; a real phone window is tall, both cells fit, and the assertion is back.
+# That a *third* cell was inserted is proved by the saved file the driver prints - a count of
+# cells on screen would be a property of the device rather than of the action.
 - assertVisible: "alpha = 1"
+- assertVisible: "beta = 2"
 - takeScreenshot: 02-action-taken

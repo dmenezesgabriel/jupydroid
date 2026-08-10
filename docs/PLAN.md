@@ -1397,17 +1397,27 @@ for the pane scaffolds and nothing uses those yet.
   before reading the rest. `skipPartiallyExpanded = true`: a list of actions is not content to
   peek at, it is the reason the sheet opened.
 
-**Three attempts at driving a compact window, and the first two looked green while proving
-nothing.** The flow needs a narrow window on whatever device is plugged in:
+**Two devices, and it took four attempts to stop faking one.** The evidence needs a genuinely
+narrow window and a genuinely wide one, and every attempt to manufacture the narrow one on the
+tablet failed differently — three of them while looking green:
 
 1. `wm size 1233x2400` — the tablet is held in landscape, so the *larger* number became the
    width: a 1600dp window that got the dropdown, in a run labelled "compact".
 2. `wm density 480` — same trap one level down. 480dpi over the 1920px landscape edge is 640dp,
    still over the boundary.
-3. **Compute the density from the window.** `window_width_px` takes the widest edge and the
-   driver derives the density that lands at 450dp. That cannot make either mistake, on any
-   device, in either orientation — and the run prints the width it achieved, so a future wrong
-   answer is visible in the log rather than only in a screenshot nobody compared.
+3. **Density computed from the window.** This got the width right (450dp) and the *shape* wrong:
+   1920×1200px at 682dpi is a **450×281dp letterbox**, which no phone is. Assertions had to be
+   weakened to survive it — "both cells visible after an insert" became "one cell" — and that
+   weakening was the tell that the window was wrong, not the assertion.
+4. **Run it on a phone.** `dev36` is natively 320×640dp: compact, and the right shape. No
+   override at all, and the weakened assertion goes back to asserting both cells.
+
+The width is now **asked of the framework** rather than derived: `am get-config` reports `w320dp`
+on the emulator and `w1280dp` on the tablet, which is the same number `WindowSizeClass` reads.
+Deriving it from `wm size` was wrong a fourth time — that reports the *natural* size, so "the
+larger edge" is the width on a landscape device and the height on a portrait one, and both runs
+came out classified `expanded`. The driver names its evidence directory from the measured width,
+so a run cannot be mislabelled.
 
 **Reachability of the rows below the fold is asserted by the instrumented test, not the flow.**
 A `scrollUntilVisible` swipe on a bottom sheet *is* a dismiss gesture: the first attempt closed
@@ -1419,7 +1429,8 @@ The flow's own assertions are limited to what certainly fits at both widths; tha
 actually inserted is proved by the saved `.ipynb` the driver prints, for the same reason U5a
 needed it.
 
-Evidence: `evidence/u5b-action-presentation/{compact,native}/`.
+Evidence: `evidence/u5b-action-presentation/{compact-320dp,expanded-1280dp}/`, one run per
+device. Instrumented suite green on both.
 
 ## Harness notes
 
