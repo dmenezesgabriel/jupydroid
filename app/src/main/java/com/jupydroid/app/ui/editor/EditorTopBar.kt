@@ -56,7 +56,13 @@ fun EditorTopBar(
     title = { RenameableTitle(title = title, onClick = { renameOpen = true }) },
     navigationIcon = {
       IconButton(onClick = onBack) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+        // Named for where it goes, not for the gesture. "Back" is also the system navigation
+        // bar's button, and a `uiautomator` dump has both - so five Maestro flows meaning this
+        // arrow have been tapping the system one and passing anyway, because before the modal
+        // back of U2 the two did the same thing. They stopped agreeing, which is how it was
+        // found (`evidence/u-flow-sweep/`). A destination-naming label is also what TalkBack
+        // wants: "Back" leaves a screen reader to guess back to what.
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to notebooks")
       }
     },
   )

@@ -10,6 +10,11 @@
 # would read identically folded and unfolded and prove nothing.
 set -euo pipefail
 
+# TABLET ONLY (SM-X216B). The flow asserts output a kernel produced, scoped to the output subtree.
+# On the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's
+# source back as stdout, so the run proves nothing. scripts/run-all-flows.sh reads this marker and
+# skips the flow rather than failing it there.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/collapse-outputs.ipynb"
 APP="com.jupydroid.app"

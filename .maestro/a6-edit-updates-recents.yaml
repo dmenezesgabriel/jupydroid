@@ -28,7 +28,8 @@ appId: com.jupydroid.app
 # never left the editor - and then matched "Updated At" against the *app bar title* and failed
 # looking for a timestamp that was never on screen. Dismiss, then use the app's own Back button.
 - hideKeyboard
-- tapOn: "Back"          # the TopAppBar navigation icon's contentDescription
+- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+                               # and a uiautomator dump carries both (evidence/u-flow-sweep/).
 # The FAB is Home's and the editor has none: assert it before looking for a row, so a flow that
 # is still in the editor fails here rather than against the title in the app bar.
 - extendedWaitUntil:

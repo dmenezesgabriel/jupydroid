@@ -20,6 +20,19 @@ APP="com.jupydroid.app"
 # phone attached it picks one of its own accord and the fixture is on the other.
 MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 
+# Empties the notebooks directory, so a flow sees the Home list it seeded and no other.
+#
+# Flows were not independent, and it took a whole-suite sweep to show it. Every run leaves
+# notebooks behind - `a3-create-shows-up` seeds a crowd of 25 on purpose, and every flow that
+# taps the FAB adds a UUID that nothing ever removes - so Home grows by a couple of rows per
+# sweep, forever. `a6-edit-updates-recents` is the one that breaks first: it backdates its
+# fixture to 2020 precisely so the row is stale, which pins it to the *bottom* of a list sorted
+# by recency, and at 64 notebooks a 20-second `scrollUntilVisible` no longer reaches it.
+reset_notebooks() {
+  "$ADB" shell am force-stop "$APP"
+  "$ADB" shell "run-as $APP sh -c 'rm -f files/notebooks/*.ipynb'"
+}
+
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.
 #
 # A notebook created from the FAB has no cells (DiskNotebookRepository.createNotebook), so a
@@ -31,7 +44,7 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 seed_notebook() {
   local fixture="$1" id="$2"
   local remote="files/notebooks/$id.ipynb"
-  "$ADB" shell am force-stop "$APP"
+  reset_notebooks
   "$ADB" shell run-as "$APP" mkdir -p files/notebooks
   # base64 on the command line rather than piping to `cat`: adb shell can mangle stdin line
   # endings, and a fixture is small enough to pass as an argument.
@@ -40,6 +53,28 @@ seed_notebook() {
   "$ADB" shell "run-as $APP sh -c 'echo $payload | base64 -d > $remote'"
   "$ADB" shell run-as "$APP" test -s "$remote" ||
     { echo "fixture did not land at $remote"; exit 1; }
+}
+
+# Stamps an evidence directory with the device that produced it.
+#
+# An evidence directory that does not say where it came from is a trap. Ten drivers promote
+# artefacts into evidence/ and only three are marked TABLET ONLY, so a sweep run on the emulator
+# overwrites tablet captures with x86_64 ones and nothing on disk says so - and the difference
+# matters: on x86_64 `MainActivity` falls back to `FakeKernelGateway`. The width is here for the
+# same reason U5b needed it: a screenshot at one width is a layout with an untested branch.
+record_device() {
+  local out="$1"
+  local adb=("$ADB")
+  if [ -n "$MAESTRO_DEVICE" ]; then adb+=(-s "$MAESTRO_DEVICE"); fi
+  {
+    echo "serial   $("${adb[@]}" get-serialno | tr -d '\r')"
+    echo "model    $("${adb[@]}" shell getprop ro.product.model | tr -d '\r')"
+    echo "abi      $("${adb[@]}" shell getprop ro.product.cpu.abi | tr -d '\r')"
+    # `am get-config` rather than `wm size`, which is pixels and three wrong derivations away
+    # from the dp the window actually reports.
+    echo "window   $("${adb[@]}" shell am get-config | tr -d '\r' | grep -oE 'w[0-9]+dp-h[0-9]+dp' | head -1)"
+    echo "captured $(date -Iseconds)"
+  } >"$out/device.txt"
 }
 
 # Runs a flow and copies its screenshots and logcat into an evidence directory.
@@ -61,4 +96,5 @@ run_flow() {
   [ -n "$run_dir" ] || { echo "no maestro run directory found for $flow"; exit 1; }
   cp "$run_dir/takeScreenshot"/*.png "$out/"
   cp "$run_dir/logs/device-logcat.txt" "$out/logcat.txt"
+  record_device "$out"
 }

@@ -1555,6 +1555,85 @@ Evidence: `evidence/u5d-symbol-row/`, emulator — typing needs no kernel.
 cell, so TalkBack can reach run/move/delete without hunting for a target. That is accessibility
 rather than input, and it belongs with its own evidence.
 
+### The whole suite, run against Phase U — and what it found (done)
+
+Phase U changed the editor's top bar, added a bottom bar, took the cell menu from 8 items to 13,
+replaced the boolean spinner with seven execution states, put a stripe down every cell and a
+symbol row above the keyboard. **No pre-existing flow had been run against any of it.** Each step
+ran its own flow and stopped, because running the other thirty-odd meant writing a shell loop by
+hand — the exact condition the residual-risk list has been naming since Step 10. `scripts/run-all-flows.sh`
+makes it one command, skips `TABLET ONLY` drivers on non-arm64 rather than letting them fail
+confusingly, and counts the skips.
+
+First run: **33 passed, 4 failed**. Every failure was real.
+
+**Two flows asserted on a label that no longer exists.** `step4-editor` and `a2-empty-notebook`
+waited on the text `"code"`; U4 replaced a code cell's kind label with Jupyter's `[ ]`. The
+intent held, the string did not.
+
+**Five flows had been tapping a button they did not mean, and four were green while doing it.**
+`- tapOn: "Back"`, commented *"the TopAppBar navigation icon's contentDescription"*, was resolving
+to the **system navigation bar's** back button — maestro names the node it hits, and it was an
+`android.widget.ImageView` at `[1713,1128][1840,1200]`, the bottom-right corner of a 1920×1200
+screen. Both carry `contentDescription = "Back"`; a `uiautomator` dump carries both. It had never
+mattered, because until U2 the two did the same thing. U2 made back modal — from EDIT it returns
+to COMMAND rather than popping — and they stopped agreeing, which is the only reason this surfaced
+at all. This hazard was *already written down*, in `rename-in-editor`'s own comment, as something
+to watch for; a note is not a fix. The arrow is `"Back to notebooks"` now: unambiguous in a dump,
+and a better thing for TalkBack to say than a bare "Back".
+
+**One driver of thirty-seven had never sourced `scripts/java-home.sh`.** `step2-import` died with
+`JAVA_HOME is not set` the first time anything but a hand-typed shell invoked it. It had been
+green for months on the strength of the operator's environment.
+
+**The flows are not independent, and only a second sweep could show it.** `a6-edit-updates-recents`
+passed the first sweep and failed the next with a different error: it could no longer find its
+notebook on Home at all. Nothing in the app had changed — the list had grown. Every run leaves
+notebooks behind: `a3-create-shows-up` seeds a crowd of 25 *on purpose*, and every flow that taps
+the FAB adds a UUID nothing removes, so Home gains a couple of rows per sweep forever. The device
+was at **64 notebooks**. `a6` is the one that breaks first because backdating to 2020 is the whole
+point of its setup, and a stale row sorts to the bottom of a list ordered by recency — where a
+20-second `scrollUntilVisible` stopped reaching it. This is the F.I.R.S.T. *independent* property,
+and the suite did not have it. `reset_notebooks` (`scripts/maestro-run.sh`) empties the notebooks
+directory; `seed_notebook` calls it, so every U-phase driver is now isolated, and `a6` and `a3`
+call it directly — `a3` because "a screenful" stops being a number it controls if it inherits a
+crowd.
+
+After: **37 passed, 0 failed** on `SM-X216B`, alongside 62/62 instrumented and the full Gradle gate.
+
+**Two things about evidence, fixed while here.** Nine drivers promote maestro artefacts into
+`evidence/`, so a sweep rewrites those directories — right in itself, but only three drivers are
+marked `TABLET ONLY`, so a sweep on the emulator would overwrite tablet captures with x86_64 ones
+(where `MainActivity` falls back to `FakeKernelGateway`) and nothing on disk would say so.
+`record_device` now stamps every evidence directory with serial, model, ABI, the window size from
+`am get-config`, and a timestamp. Separately, `a4-markdown-contrast-driver.sh` was forcing
+`cmd uimode night yes` on exit, so in a whole-suite run every driver alphabetically after it
+captured its screenshots in dark — appearance depending on sort order. It restores `auto` now, as
+`u1-palette-driver.sh` already did.
+
+**The device rule is now enforced for every flow it applies to, not three of them.** `TABLET ONLY`
+was carried by `u3`, `u4` and `u5c` alone, which meant `step10-real-kernel` — the flow that exists
+to prove a real CPython — had no marker at all. Twelve drivers carry it now: every flow that
+asserts something only a kernel can produce (`10.000000000000002`, a `ZeroDivisionError`
+traceback, a completion list, a Stop button that only exists while work is in flight). They were
+never at risk of a silent *pass* — `check_maestro_output_assertions.py` already forces each to
+assert a computed value, which `FakeKernelGateway` cannot echo — but they failed confusingly on
+x86_64 instead of saying why. `ANDROID_SERIAL=emulator-5554 scripts/run-all-flows.sh` now reports
+`skipped 12` with the reason on each line. The two flows that tap Run and are *not* marked are
+deliberate: `a1c-markdown-render` runs a markdown cell, which renders rather than executes, and
+`u5d-symbol-row` only asserts that Restart is absent.
+
+Evidence: `evidence/u-flow-sweep/`.
+
+**The follow-up this leaves, named rather than left to be rediscovered:** about twenty-five legacy
+drivers still carry their own copy of the seeding block instead of calling `seed_notebook`, so
+they do not get `reset_notebooks` and still scroll through whatever Home has accumulated. That is
+the migration `scripts/maestro-run.sh` was written for ("the older drivers each carry their own
+copy; new ones do not have to") and it is mechanical, but it touches twenty-five files and is a
+commit of its own rather than a rider on this one. Its failure mode is a loud `FAIL` of exactly
+the shape `a6` just produced — never a silent pass — which is why it can wait and did not have to
+be guessed at.
+
 ## Harness notes
 
 ### Running a Maestro flow

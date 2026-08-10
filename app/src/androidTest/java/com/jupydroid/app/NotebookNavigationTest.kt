@@ -52,7 +52,7 @@ class NotebookNavigationTest {
 
     compose.onNodeWithText(ALPHA_TITLE).performClick()
     waitForText(ALPHA_SOURCE)
-    compose.onNodeWithContentDescription("Back").performClick()
+    compose.onNodeWithContentDescription("Back to notebooks").performClick()
     waitForText(BETA_TITLE)
 
     compose.onNodeWithText(BETA_TITLE).performClick()
@@ -87,7 +87,7 @@ class NotebookNavigationTest {
     compose.mainClock.autoAdvance = true
     waitForText(ALPHA_SOURCE)
 
-    compose.onNodeWithContentDescription("Back").performClick()
+    compose.onNodeWithContentDescription("Back to notebooks").performClick()
 
     // One Back is enough only if one entry was pushed; a second editor would still be on screen.
     waitForText(BETA_TITLE)

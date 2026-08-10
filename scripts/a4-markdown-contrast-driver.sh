@@ -11,6 +11,10 @@ OUT="$ROOT/evidence/audit-a4-markdown-contrast"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"
+# Not for run_flow - this driver keeps one named screenshot per theme rather than the whole set -
+# but record_device belongs to every evidence directory, however it was filled.
+# shellcheck source=scripts/maestro-run.sh
+. "$ROOT/scripts/maestro-run.sh"
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
@@ -26,4 +30,9 @@ for MODE in yes no; do
   NAME=$([ "$MODE" = yes ] && echo dark || echo light)
   cp "$RUN/a4-markdown-contrast/takeScreenshot/markdown-edit-mode.png" "$OUT/after-$NAME.png"
 done
-"$ADB" shell cmd uimode night yes >/dev/null
+record_device "$OUT"
+# `auto`, not the `yes` this used to force. Forcing dark left the setting somewhere the device
+# never chose, and in a whole-suite sweep every driver that ran afterwards captured its evidence
+# in whatever theme this one happened to leave behind - which made a screenshot's appearance
+# depend on alphabetical order. `u1-palette-driver.sh` already restores `auto` for this reason.
+"$ADB" shell cmd uimode night auto >/dev/null

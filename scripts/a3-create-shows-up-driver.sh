@@ -12,12 +12,16 @@ CROWD=25
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"
+# shellcheck source=scripts/maestro-run.sh
+. "$ROOT/scripts/maestro-run.sh"   # for reset_notebooks
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 
-"$ADB" shell am force-stop "$APP"
+# Reset first, or the crowd is 25 *plus* whatever earlier flows left, and "a screenful" - the
+# whole premise of this flow - stops being a number this driver controls.
+reset_notebooks
 "$ADB" shell run-as "$APP" mkdir -p files/notebooks
 for i in $(seq 1 "$CROWD"); do
   # Distinct, old timestamps so the ordering is deterministic and anything created now is first.

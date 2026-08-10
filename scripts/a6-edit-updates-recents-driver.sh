@@ -17,13 +17,18 @@ REMOTE="files/notebooks/a6-updated-at.ipynb"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too
+# shellcheck source=scripts/maestro-run.sh
+. "$ROOT/scripts/maestro-run.sh"   # for reset_notebooks
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
-"$ADB" shell am force-stop "$APP"
+# This flow is the one that breaks first as Home accumulates: backdating to 2020 is what makes
+# the row stale, and a stale row sorts to the bottom of a list ordered by recency. At 64
+# notebooks the flow's `scrollUntilVisible` stopped reaching it.
+reset_notebooks
 "$ADB" shell run-as "$APP" mkdir -p files/notebooks
 
 # base64 on the command line rather than piping to `cat`: adb shell can mangle

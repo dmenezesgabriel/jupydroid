@@ -6,6 +6,11 @@
 # DiskNotebookRepository scans rootDir in its init block, so a fresh launch picks it up.
 set -euo pipefail
 
+# TABLET ONLY (SM-X216B). The flow asserts `42`, computed by the kernel and reloaded from disk. On
+# the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's source
+# back as stdout, so the run proves nothing. scripts/run-all-flows.sh reads this marker and skips
+# the flow rather than failing it there.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/step10-real-kernel.ipynb"
 APP="com.jupydroid.app"

@@ -16,12 +16,16 @@ appId: com.jupydroid.app
     timeout: 20000
 - takeScreenshot: 01-home-with-seeded-notebook
 - tapOn: "Two Cells"
-- assertVisible: "code"
+# `[ ]` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
+# bracket, where `[ ]` is "never run". Markdown keeps its name - it never reaches a kernel, so a
+# bracket would promise a count that cannot arrive.
+- assertVisible: "\\[ \\]"
 - assertVisible: "answer = 42"
 - assertVisible: "markdown"
 - assertVisible: "Markdown cell here"
 - takeScreenshot: 02-editor-cells
-- tapOn: "Back"          # the TopAppBar navigation icon's contentDescription
+- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+                               # and a uiautomator dump carries both (evidence/u-flow-sweep/).
 # Home comes back scrolled to the top, so the row needs finding again for the same reason.
 - scrollUntilVisible:
     element:

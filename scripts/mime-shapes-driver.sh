@@ -10,6 +10,11 @@
 # show the first, so asserting one visible and the other gone is the fold itself.
 set -euo pipefail
 
+# TABLET ONLY (SM-X216B). The flow asserts mime bundles only a kernel produces. On the x86_64
+# emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's source back as
+# stdout, so the run proves nothing. scripts/run-all-flows.sh reads this marker and skips the flow
+# rather than failing it there.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/mime-shapes.ipynb"
 APP="com.jupydroid.app"

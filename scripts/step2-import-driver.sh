@@ -9,6 +9,9 @@ FIXTURE="$ROOT/.maestro/fixtures/Intro to NumPy.ipynb"
 APP="com.jupydroid.app"
 REMOTE="/sdcard/Download/Intro to NumPy.ipynb"
 
+# shellcheck source=scripts/java-home.sh
+. "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too
+
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"

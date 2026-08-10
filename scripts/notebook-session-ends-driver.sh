@@ -5,6 +5,11 @@
 # FakeKernelGateway, which holds no session and so cannot show one ending.
 set -euo pipefail
 
+# TABLET ONLY (SM-X216B). The flow asserts `43`, a sum only a kernel computes. On the x86_64
+# emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's source back as
+# stdout, so the run proves nothing. scripts/run-all-flows.sh reads this marker and skips the flow
+# rather than failing it there.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP="com.jupydroid.app"
 

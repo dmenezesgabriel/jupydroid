@@ -9,6 +9,11 @@
 # past the end of the text and the cursor is where the flow assumes it is.
 set -euo pipefail
 
+# TABLET ONLY (SM-X216B). Completions come from the kernel's `complete_request`; the fake has none.
+# On the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's
+# source back as stdout, so the run proves nothing. scripts/run-all-flows.sh reads this marker and
+# skips the flow rather than failing it there.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/step5-completion.ipynb"
 APP="com.jupydroid.app"

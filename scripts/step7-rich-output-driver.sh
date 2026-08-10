@@ -6,6 +6,11 @@
 # DiskNotebookRepository scans rootDir in its init block, so a fresh launch picks it up.
 set -euo pipefail
 
+# TABLET ONLY (SM-X216B). The flow asserts a real traceback and an image the fake never emits. On
+# the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's source
+# back as stdout, so the run proves nothing. scripts/run-all-flows.sh reads this marker and skips
+# the flow rather than failing it there.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/step7-rich-output.ipynb"
 APP="com.jupydroid.app"

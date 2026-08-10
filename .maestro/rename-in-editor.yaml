@@ -41,7 +41,8 @@ appId: com.jupydroid.app
 # with it when it closes, so hideKeyboard has none to hide - and on Android it is a system BACK,
 # which popped the editor. The next `tapOn: "Back"` then matched the *system* navigation bar's
 # back button, whose contentDescription is also "Back", and left the app for the launcher.
-- tapOn: "Back"          # the TopAppBar navigation icon's contentDescription
+- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+                               # and a uiautomator dump carries both (evidence/u-flow-sweep/).
 # The FAB is Home's and the editor has none: assert it before looking for a row, so a flow still
 # stuck in the editor fails here rather than against the title in the app bar.
 - extendedWaitUntil:
