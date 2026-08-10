@@ -14,13 +14,19 @@ import com.jupydroid.app.domain.model.CellKind
  * The menu the `⋮` on a cell header opens.
  *
  * ```
- * CellMenu(expanded = open, cell = cell, onDismiss = { open = false }, onAction = { … })
+ * CellMenu(expanded = open, cell = cell, canPaste = false, onDismiss = { open = false }) { … }
  * ```
  */
 @Composable
-fun CellMenu(expanded: Boolean, cell: Cell, onDismiss: () -> Unit, onAction: (CellAction) -> Unit) {
+fun CellMenu(
+  expanded: Boolean,
+  cell: Cell,
+  canPaste: Boolean,
+  onDismiss: () -> Unit,
+  onAction: (CellAction) -> Unit,
+) {
   DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-    itemsFor(cell).forEach { (label, action) ->
+    itemsFor(cell, canPaste).forEach { (label, action) ->
       DropdownMenuItem(
         // Named for the accessibility tree as well as the eye: "Delete" alone would also match
         // any other Delete on screen, and these are what a Maestro flow taps.
@@ -47,21 +53,52 @@ fun CellMenu(expanded: Boolean, cell: Cell, onDismiss: () -> Unit, onAction: (Ce
  * The label says what tapping will do rather than what the cell is, so the menu reads as a
  * verb list throughout.
  */
-private fun itemsFor(cell: Cell): List<Pair<String, CellAction>> = buildList {
-  add("Insert code below" to CellAction.Insert(CellKind.CODE))
-  add("Insert markdown below" to CellAction.Insert(CellKind.MARKDOWN))
-  add("Move up" to CellAction.Move(CellMove.UP))
-  add("Move down" to CellAction.Move(CellMove.DOWN))
-  add("Duplicate" to CellAction.Duplicate)
+private fun itemsFor(cell: Cell, canPaste: Boolean): List<Pair<String, CellAction>> =
+  addingItems() + shapingItems(cell) + clipboardItems(canPaste) + foldingItems(cell) + removingItems()
+
+private fun addingItems(): List<Pair<String, CellAction>> = listOf(
+  "Insert code above" to CellAction.InsertAbove(CellKind.CODE),
+  "Insert code below" to CellAction.Insert(CellKind.CODE),
+  "Insert markdown below" to CellAction.Insert(CellKind.MARKDOWN),
+)
+
+private fun shapingItems(cell: Cell): List<Pair<String, CellAction>> = listOf(
+  "Move up" to CellAction.Move(CellMove.UP),
+  "Move down" to CellAction.Move(CellMove.DOWN),
+  "Duplicate" to CellAction.Duplicate,
+  // The type the cell is *not*, so the item reads as the change rather than as the state.
   if (cell.kind == CellKind.CODE) {
-    add((if (cell.sourceHidden) EXPAND_CODE else COLLAPSE_CODE) to CellAction.ToggleSourceHidden)
-    add((if (cell.outputsHidden) EXPAND_OUTPUTS else COLLAPSE_OUTPUTS) to CellAction.ToggleOutputsHidden)
-  }
-  // Beside collapsing them, because the two read as a pair and are not: this one throws the
-  // outputs away, the one above only folds them.
-  add("Clear outputs" to CellAction.ClearOutputs)
-  add("Delete" to CellAction.Delete)
+    CHANGE_TO_MARKDOWN to CellAction.ChangeKind(CellKind.MARKDOWN)
+  } else {
+    CHANGE_TO_CODE to CellAction.ChangeKind(CellKind.CODE)
+  },
+  "Merge with above" to CellAction.Merge(MergeInto.ABOVE),
+  "Merge with below" to CellAction.Merge(MergeInto.BELOW),
+)
+
+private fun clipboardItems(canPaste: Boolean): List<Pair<String, CellAction>> = buildList {
+  add("Cut" to CellAction.Cut)
+  add("Copy" to CellAction.Copy)
+  // Offered only when there is something to paste. An item that silently does nothing teaches
+  // the user that the menu lies, which is worse than the item being absent.
+  if (canPaste) add("Paste below" to CellAction.Paste)
 }
+
+private fun foldingItems(cell: Cell): List<Pair<String, CellAction>> = buildList {
+  if (cell.kind != CellKind.CODE) return@buildList
+  add((if (cell.sourceHidden) EXPAND_CODE else COLLAPSE_CODE) to CellAction.ToggleSourceHidden)
+  add((if (cell.outputsHidden) EXPAND_OUTPUTS else COLLAPSE_OUTPUTS) to CellAction.ToggleOutputsHidden)
+}
+
+private fun removingItems(): List<Pair<String, CellAction>> = listOf(
+  // Beside folding them, because the two read as a pair and are not: this one throws the
+  // outputs away, the one above only folds them.
+  "Clear outputs" to CellAction.ClearOutputs,
+  "Delete" to CellAction.Delete,
+)
+
+internal const val CHANGE_TO_MARKDOWN = "Change to markdown"
+internal const val CHANGE_TO_CODE = "Change to code"
 
 internal const val COLLAPSE_CODE = "Collapse code"
 internal const val EXPAND_CODE = "Expand code"

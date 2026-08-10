@@ -25,6 +25,16 @@ data class EditorUiState(
   val executions: Map<String, CellExecution> = emptyMap(),
   /** Edited since the last write. Cleared by the save, not by the edit. */
   val dirty: Boolean = false,
+  /**
+   * Cells taken by cut or copy, waiting to be pasted.
+   *
+   * Per notebook rather than per app, which is narrower than JupyterLab's - its `Clipboard` is a
+   * singleton, so cells cross between open notebooks. Ours cannot yet, because only one notebook
+   * is open at a time; widening it is a change to where this lives, not to what it means.
+   */
+  val clipboard: List<Cell> = emptyList(),
+  /** Whether [clipboard] came from a cut, which decides if a pasted code cell keeps its id. */
+  val clipboardWasCut: Boolean = false,
   /** JupyterLab's `activeCellIndex`, by id: the one cell every cell-scoped action means. */
   val selectedCellId: String? = null,
   val mode: CellMode = CellMode.COMMAND,

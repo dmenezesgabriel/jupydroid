@@ -39,6 +39,7 @@ internal fun CellHeader(
   cell: Cell,
   executionCount: Int?,
   execution: CellExecution?,
+  canPaste: Boolean,
   onRun: () -> Unit,
   onStop: () -> Unit,
   onCellAction: (CellAction) -> Unit,
@@ -90,7 +91,13 @@ internal fun CellHeader(
       IconButton(onClick = { menuOpen = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = "Cell actions")
       }
-      CellMenu(expanded = menuOpen, cell = cell, onDismiss = { menuOpen = false }, onAction = onCellAction)
+      CellMenu(
+        expanded = menuOpen,
+        cell = cell,
+        canPaste = canPaste,
+        onDismiss = { menuOpen = false },
+        onAction = onCellAction,
+      )
     }
   }
 }

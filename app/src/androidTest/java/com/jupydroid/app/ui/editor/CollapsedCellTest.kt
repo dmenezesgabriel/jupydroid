@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
@@ -51,34 +52,34 @@ class CollapsedCellTest {
 
   @Test
   fun theMenuOffersBothCollapsesOnAnExpandedCodeCell() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
-    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertIsDisplayed()
-    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_OUTPUTS").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").performScrollTo().assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_OUTPUTS").performScrollTo().assertIsDisplayed()
   }
 
   /** The label is the verb, so a folded cell offers the opposite one and only that one. */
   @Test
   fun theMenuOffersExpandOnceTheSourceIsCollapsed() {
-    compose.setContent { CellHeader(CODE_CELL.copy(sourceHidden = true), null, null, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL.copy(sourceHidden = true), null, null, canPaste = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
-    compose.onNodeWithContentDescription("Cell menu $EXPAND_CODE").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu $EXPAND_CODE").performScrollTo().assertIsDisplayed()
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertDoesNotExist()
   }
 
   /** The two are independent: folding the source must not relabel the outputs' item. */
   @Test
   fun theTwoCollapsesAreLabelledIndependently() {
-    compose.setContent { CellHeader(CODE_CELL.copy(outputsHidden = true), null, null, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL.copy(outputsHidden = true), null, null, canPaste = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
-    compose.onNodeWithContentDescription("Cell menu $EXPAND_OUTPUTS").assertIsDisplayed()
-    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu $EXPAND_OUTPUTS").performScrollTo().assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").performScrollTo().assertIsDisplayed()
   }
 
   /**
@@ -88,13 +89,13 @@ class CollapsedCellTest {
    */
   @Test
   fun theMenuOffersNeitherCollapseOnAMarkdownCell() {
-    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, {}, {}, {}) }
+    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertDoesNotExist()
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_OUTPUTS").assertDoesNotExist()
-    compose.onNodeWithContentDescription("Cell menu Delete").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu Delete").performScrollTo().assertIsDisplayed()
   }
 
   private companion object {

@@ -1329,6 +1329,51 @@ Evidence: `evidence/u4-execution-status/`, **tablet only** — one Run All produ
 once, and on the emulator `FakeKernelGateway` would echo the source back, so the second cell would
 not raise and the queue would never stop.
 
+### U5 is four steps, not one
+
+The plan's U5 bundled new cell transforms, a width-driven presentation split, a notebook bottom
+bar and an IME symbol row — and the bar needs a `KernelGateway.restart` the port does not have.
+That is four functional commits wearing one number, so it was split before any code was written:
+**U5a** the transforms, **U5b** the presentation, **U5c** the bottom bar (with the port change),
+**U5d** the symbol row.
+
+### U5a — the cell actions the reference has and we did not (done)
+
+Insert above, change cell type, merge above/below, and cut/copy/paste, as pure transforms in
+`CellRestructure.kt` beside `CellEdits`. Every rule is read out of
+`packages/notebook/src/actions.tsx`, and four of them are not what you would guess:
+
+- **Merge joins with a blank line**, because `addExtraLine` defaults to true.
+- **The cell you invoke merge *from* decides the type.** `cell_type` comes from the *primary*
+  cell, so merging markdown into code gives code and the reverse gives markdown.
+- **Change-type keeps the id** (`insertCell` is passed `id: raw.id`) while **merge mints a new
+  one** (its model carries no id). The asymmetry is the reference's, not an oversight.
+- **A pasted cell gets a fresh id, except a code cell that was *cut***, which keeps its own
+  (`actions.tsx:1666-1677`). That exception exists so a cut-and-pasted code cell is the same cell
+  moving, and a running execution can still find it.
+
+Both merge and change-type discard outputs and the execution count — *"the outputs will be
+removed"*, *"After change of type outputs are deleted"*.
+
+**Three things went wrong, and the saved file caught two of them.**
+
+1. **`index:` on a repeated description is not addressing.** Every cell header carries the same
+   `Cell actions`, and `index: 1` tapped the **first** cell twice: the change-type landed on the
+   wrong cell and the merge silently no-opped past the top of the notebook. The screenshot looked
+   perfectly reasonable; the printed `.ipynb` did not. Cells are anchored by their own text now
+   (`below: {text: "alpha = 1"}`), and the driver prints the file for the same reason Step 4b's
+   cell menu had to be read back off the device.
+2. **A merged markdown cell renders**, so its two paragraphs are two Text nodes and
+   `(?s).*alpha.*beta.*` could never match either. Three separate claims replace it, including
+   `assertNotVisible: "[ ]"` — the bracket only a code cell draws, which is what proves the code
+   cell was folded in rather than merely hidden.
+3. **The cell menu outgrew the screen.** Eight items became thirteen, so Delete no longer fits on
+   a phone-height screen. `DropdownMenu` scrolls, so nothing is unreachable, and the instrumented
+   tests scroll to it — but a thirteen-item dropdown *is* the argument for U5b's bottom sheet, and
+   `CellHeaderTest` is where that argument is now recorded rather than asserted away.
+
+Evidence: `evidence/u5a-cell-actions/`. Emulator or tablet — this flow runs no cell.
+
 ## Harness notes
 
 ### Running a Maestro flow

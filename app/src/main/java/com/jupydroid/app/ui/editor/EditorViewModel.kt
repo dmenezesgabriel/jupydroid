@@ -139,28 +139,31 @@ class EditorViewModel(
    * are minted here rather than inside the transforms, which keeps those testable.
    */
   fun applyToCell(cellId: String, action: CellAction) {
-    _uiState.update { state ->
-      when (action) {
-        is CellAction.Insert -> state.withCellInserted(cellId, action.kind, newId = UUID.randomUUID().toString())
-        is CellAction.Move -> state.withCellMoved(cellId, action.move)
-        CellAction.Duplicate -> state.withCellDuplicated(cellId, newId = UUID.randomUUID().toString())
-        CellAction.Delete -> state.withCellDeleted(cellId, replacementId = UUID.randomUUID().toString())
-        CellAction.ClearOutputs -> state.withOutputsCleared(cellId)
-        CellAction.ToggleSourceHidden -> state.withSourceHiddenToggled(cellId)
-        CellAction.ToggleOutputsHidden -> state.withOutputsHiddenToggled(cellId)
-      }
-      // Delete is the one that can strand the selection, but clamping every transform costs
-      // nothing and means a transform added later cannot forget to.
-      .withSelectionClamped()
-    }
+    // Clamped after every transform, not only after Delete: it costs nothing, and a transform
+    // added later cannot forget to.
+    _uiState.update { it.applying(action, cellId).withSelectionClamped() }
     save.schedule()
   }
 
-  /**
-   * Writes what is on screen - sources, outputs and counts - back to the notebook. Called
-   * per cell rather than per Run All, so a long run that is interrupted still keeps what the
-   * cells before it produced.
-   */
+  private fun EditorUiState.applying(action: CellAction, cellId: String): EditorUiState = when (action) {
+    is CellAction.Insert -> withCellInserted(cellId, action.kind, newId = newId())
+    is CellAction.InsertAbove -> withCellInsertedAbove(cellId, action.kind, newId = newId())
+    is CellAction.ChangeKind -> withCellKindChanged(cellId, action.kind)
+    is CellAction.Merge -> withCellMerged(cellId, action.into, newId = newId())
+    is CellAction.Move -> withCellMoved(cellId, action.move)
+    CellAction.Copy -> withCellCopied(cellId)
+    CellAction.Cut -> withCellCut(cellId, replacementId = newId())
+    CellAction.Paste -> withClipboardPasted(cellId, newIds = clipboard.map { newId() })
+    CellAction.Duplicate -> withCellDuplicated(cellId, newId = newId())
+    CellAction.Delete -> withCellDeleted(cellId, replacementId = newId())
+    CellAction.ClearOutputs -> withOutputsCleared(cellId)
+    CellAction.ToggleSourceHidden -> withSourceHiddenToggled(cellId)
+    CellAction.ToggleOutputsHidden -> withOutputsHiddenToggled(cellId)
+  }
+
+  /** Ids are minted here rather than inside the transforms, which keeps those testable. */
+  private fun newId(): String = UUID.randomUUID().toString()
+
   private suspend fun persist() {
     val state = _uiState.value
     val updated = notebook?.copy(cells = state.withResultsOnCells()) ?: return

@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# U5a: the cell actions the reference has and this app did not.
+#
+# Runs no cell, so the emulator is enough. What it drives is the two actions whose *result* is
+# structural rather than cosmetic - change type, and merge - because those are the ones where a
+# wrong implementation still looks plausible on screen. The driver prints the saved file
+# afterwards: the order and shape on disk is the real assertion, and a screenshot cannot make it.
+#
+# **Cells are addressed by their own text, never by `index:`.** Every cell header carries the same
+# "Cell actions" description, and a first attempt at `index: 1` tapped the *first* cell twice -
+# the change landed on the wrong cell and the merge silently no-opped past the top of the
+# notebook. The saved file caught it; the screenshot alone would have looked reasonable.
+#
+# Seeded by scripts/u5a-cell-actions-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Cell Actions"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cell Actions"
+- extendedWaitUntil:
+    visible: "alpha = 1"
+    timeout: 30000
+- takeScreenshot: 01-two-code-cells
+# The second cell's menu: the only "Cell actions" that sits below the first cell's source.
+- tapOn:
+    text: "Cell actions"
+    below:
+      text: "alpha = 1"
+- tapOn: "Cell menu Change to markdown"
+- waitForAnimationToEnd:
+    timeout: 5000
+# It is markdown now, so it renders rather than showing a code panel.
+- assertVisible: "Rendered markdown"
+- takeScreenshot: 02-changed-to-markdown
+# Merge it back up into the first. The *first* cell is code, but the merge is invoked from the
+# second, and the cell you invoke it from decides the type - so the result is markdown.
+- tapOn:
+    text: "Cell actions"
+    below:
+      text: "alpha = 1"
+- tapOn: "Cell menu Merge with above"
+- waitForAnimationToEnd:
+    timeout: 5000
+# One markdown cell now, holding both sources.
+#
+# Asserted as three separate claims rather than one regex over both sources: the merged cell is
+# markdown and therefore *rendered*, so its two paragraphs are two Text nodes and no single node
+# contains both. A `(?s).*alpha.*beta.*` match looked right and could never have passed.
+- assertVisible: "alpha = 1"
+- assertVisible: "beta = 2"
+# And no code cell is left: `[ ]` is the bracket only a code cell draws, and the first cell had
+# one until the merge folded it into the markdown one.
+- assertNotVisible: "\\[ \\]"
+- takeScreenshot: 03-merged-into-one-cell

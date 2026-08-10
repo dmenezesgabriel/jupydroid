@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
@@ -32,19 +33,24 @@ class CellHeaderTest {
 
   @Test
   fun showsAVisibleMenuButton() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).assertIsDisplayed()
   }
 
   @Test
   fun tappingTheMenuButtonOpensTheActions() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
 
     compose.onNodeWithContentDescription("Cell menu Insert code below").assertIsDisplayed()
-    compose.onNodeWithContentDescription("Cell menu Delete").assertIsDisplayed()
+    // Scrolled to, and that is a finding rather than a workaround: the menu grew from eight
+    // items to thirteen when insert-above, change-type, merge and cut/copy/paste arrived, so
+    // Delete no longer fits on a phone-height screen. `DropdownMenu` scrolls, so the action is
+    // still reachable - but a thirteen-item dropdown is the argument for U5b's bottom sheet,
+    // and this assertion is where that argument is recorded.
+    compose.onNodeWithContentDescription("Cell menu Delete").performScrollTo().assertIsDisplayed()
   }
 
   /**
@@ -53,17 +59,17 @@ class CellHeaderTest {
    */
   @Test
   fun aMarkdownCellHasTheMenuButtonToo() {
-    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, {}, {}, {}) }
+    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, {}, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
 
-    compose.onNodeWithContentDescription("Cell menu Delete").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu Delete").performScrollTo().assertIsDisplayed()
   }
 
   @Test
   fun choosingAnActionReportsItAndClosesTheMenu() {
     val chosen = mutableListOf<CellAction>()
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, {}, {}, { chosen += it }) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, {}, {}, { chosen += it }) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
     compose.onNodeWithContentDescription("Cell menu Move down").performClick()
