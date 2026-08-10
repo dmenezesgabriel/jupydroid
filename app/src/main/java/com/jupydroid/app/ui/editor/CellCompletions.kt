@@ -25,6 +25,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.window.Popup
 import com.jupydroid.app.domain.port.CompletionResult
 import kotlinx.coroutines.delay
@@ -79,18 +85,27 @@ private fun queryFor(state: TextFieldState): CompletionQuery? {
 /**
  * The list of matches, anchored under the cursor.
  *
+ * Placed by [CompletionPopupPosition] rather than by a raw offset, so it flips above the caret
+ * when the keyboard has taken the room below it.
+ *
  * ```
- * CompletionPopup(completions, anchor = IntOffset(x, y), onPick = { … })
+ * CompletionPopup(completions, caret = IntRect(...), onPick = { … })
  * ```
  */
 @Composable
 fun CompletionPopup(
   completions: CellCompletions,
-  anchor: IntOffset,
+  caret: IntRect,
   onPick: (String) -> Unit,
   onDismiss: () -> Unit,
 ) {
-  Popup(offset = anchor, onDismissRequest = onDismiss) {
+  // The keyboard's height, plus whatever the navigation bar takes. `windowSize` does not shrink
+  // for the IME under edge-to-edge, so the provider has to be told.
+  val bottomInset = WindowInsets.ime.union(WindowInsets.navigationBars).getBottom(LocalDensity.current)
+  Popup(
+    popupPositionProvider = CompletionPopupPosition(caret, bottomInset),
+    onDismissRequest = onDismiss,
+  ) {
     Surface(
       shape = MaterialTheme.shapes.small,
       color = MaterialTheme.colorScheme.surfaceContainerHigh,

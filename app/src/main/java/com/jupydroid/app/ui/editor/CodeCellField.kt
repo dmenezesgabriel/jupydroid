@@ -29,7 +29,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
@@ -103,7 +103,7 @@ fun CodeCellField(
     if (offered != null && layout != null) {
       CompletionPopup(
         completions = offered,
-        anchor = cursorAnchor(layout, offered.query.cursorOffset, gutter),
+        caret = caretRect(layout, offered.query.cursorOffset, gutter),
         onPick = { match ->
           applyCompletion(state, offered, match)
           settled = state.text.toString()
@@ -115,17 +115,25 @@ fun CodeCellField(
 }
 
 /**
- * Where the popup sits: under the cursor, offset by the gutter the code is pushed past.
+ * Where the text cursor is within this field, gutter included.
+ *
+ * The whole rect rather than just its bottom edge: the popup needs the *top* too, so it can sit
+ * above the caret when there is no room below without covering the character being completed.
  *
  * [TextLayoutResult.getCursorRect] answers in the text's own coordinates, which start at the
  * gutter's right edge rather than at the cell's left.
  */
 @Composable
-private fun cursorAnchor(layout: TextLayoutResult?, cursorOffset: Int, gutter: Dp): IntOffset {
+private fun caretRect(layout: TextLayoutResult?, cursorOffset: Int, gutter: Dp): IntRect {
   val gutterPx = with(LocalDensity.current) { gutter.roundToPx() }
   val rect = layout?.getCursorRect(cursorOffset.coerceIn(0, layout.layoutInput.text.length))
-    ?: return IntOffset(gutterPx, 0)
-  return IntOffset(gutterPx + rect.left.toInt(), rect.bottom.toInt())
+    ?: return IntRect(gutterPx, 0, gutterPx, 0)
+  return IntRect(
+    left = gutterPx + rect.left.toInt(),
+    top = rect.top.toInt(),
+    right = gutterPx + rect.right.toInt(),
+    bottom = rect.bottom.toInt(),
+  )
 }
 
 /**
