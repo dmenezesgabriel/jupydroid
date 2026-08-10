@@ -1168,9 +1168,18 @@ palette's `editorBackground` — stated twice, in Kotlin and in XML, because the
 before a composition exists. `AppWindowTest` asserts the two copies agree, so the duplication
 cannot drift silently.
 
-What is *not* fixed here, and is still U6's: with `adjust=resize` the keyboard now arrives as an
-inset, but nothing consumes it yet, so a focused cell near the bottom is still covered. That is
-the right failure to have — an inset the layout can answer, rather than a shove it cannot.
+What is *not* fixed here, and is still U6's: with `adjust=resize` the keyboard arrives as an
+inset that nothing yet consumes. That is the right failure to have — an inset the layout can
+answer, rather than a shove it cannot.
+
+**Corrected after U5c, by measuring rather than re-reading this paragraph.** It said "a focused
+cell near the bottom is still covered", and that is *not* what the device does. Focusing the last
+cell of an eight-cell notebook on a 320dp phone scrolls it into view: `cell_8` moves from
+`[54,476][296,524]` to `[54,265][296,301]`, clear of the bar at `y=331` and the keyboard below it.
+`BasicTextField` brings itself into view on focus, and `imePadding()` keeps the bar above the
+keyboard. What remains genuinely open for U6 is the **completion popup**, which is anchored from
+`getCursorRect` and has never been checked against a raised keyboard — and that one needs a real
+kernel, so it is a tablet gate.
 
 ### U2 — the notebook's two modes (done)
 
