@@ -1374,6 +1374,53 @@ removed"*, *"After change of type outputs are deleted"*.
 
 Evidence: `evidence/u5a-cell-actions/`. Emulator or tablet — this flow runs no cell.
 
+### U5b — the same actions, on the surface the window has room for (done)
+
+One list of items, two presentations: a `ModalBottomSheet` under 600dp, a `DropdownMenu` at or
+above it. The labels are identical on both, so one Maestro flow, one accessibility vocabulary and
+one set of tests address either. `cellActionPresentationFor(widthDp)` is pure and tested on the
+JVM; `currentCellActionPresentation()` reads `currentWindowAdaptiveInfo()`.
+
+**A width rule, never a device one** — a tablet in a 480dp split-screen window is a compact
+window, and the class changes at runtime. The dependency is
+`androidx.compose.material3.adaptive:adaptive`, version-less because the Compose BOM already
+manages that family; only `adaptive` is added, because the layout and navigation artifacts exist
+for the pane scaffolds and nothing uses those yet.
+
+**Two defects in the new surface, both found by tests rather than by looking:**
+
+- The sheet's `Column` did not scroll, so thirteen rows were clipped — the same "on screen but
+  out of reach" bug the sheet exists to fix, one layer down. A `Column` with `verticalScroll`
+  rather than a `LazyColumn`: the rows are few and short, and keeping every one in the semantics
+  tree is what lets a screen reader and a test walk the list.
+- It opened *partially expanded*, showing about five of thirteen rows and asking the user to drag
+  before reading the rest. `skipPartiallyExpanded = true`: a list of actions is not content to
+  peek at, it is the reason the sheet opened.
+
+**Three attempts at driving a compact window, and the first two looked green while proving
+nothing.** The flow needs a narrow window on whatever device is plugged in:
+
+1. `wm size 1233x2400` — the tablet is held in landscape, so the *larger* number became the
+   width: a 1600dp window that got the dropdown, in a run labelled "compact".
+2. `wm density 480` — same trap one level down. 480dpi over the 1920px landscape edge is 640dp,
+   still over the boundary.
+3. **Compute the density from the window.** `window_width_px` takes the widest edge and the
+   driver derives the density that lands at 450dp. That cannot make either mistake, on any
+   device, in either orientation — and the run prints the width it achieved, so a future wrong
+   answer is visible in the log rather than only in a screenshot nobody compared.
+
+**Reachability of the rows below the fold is asserted by the instrumented test, not the flow.**
+A `scrollUntilVisible` swipe on a bottom sheet *is* a dismiss gesture: the first attempt closed
+the sheet and then failed looking for a row on the notebook behind it. `CellActionsTest` walks
+the semantics tree instead, which has no such side effect, and asserts Delete — the last of
+thirteen and the one that fell off when the list grew — is reachable on both surfaces.
+
+The flow's own assertions are limited to what certainly fits at both widths; that a cell was
+actually inserted is proved by the saved `.ipynb` the driver prints, for the same reason U5a
+needed it.
+
+Evidence: `evidence/u5b-action-presentation/{compact,native}/`.
+
 ## Harness notes
 
 ### Running a Maestro flow

@@ -94,6 +94,9 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    // Only `adaptive`, for currentWindowAdaptiveInfo(). The layout and navigation artifacts come
+    // with the pane scaffolds, which nothing uses yet.
+    implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.commonmark)
     implementation(libs.jsoup)

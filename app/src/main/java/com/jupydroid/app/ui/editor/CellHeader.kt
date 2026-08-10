@@ -91,7 +91,7 @@ internal fun CellHeader(
       IconButton(onClick = { menuOpen = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = "Cell actions")
       }
-      CellMenu(
+      CellActions(
         expanded = menuOpen,
         cell = cell,
         canPaste = canPaste,
