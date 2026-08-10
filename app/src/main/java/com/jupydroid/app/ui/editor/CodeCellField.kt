@@ -61,6 +61,8 @@ fun CodeCellField(
   completionsAt: suspend (code: String, cursorOffset: Int) -> CompletionResult = NO_COMPLETIONS,
   highlighter: SyntaxHighlighter = remember { PythonSyntax() },
   typing: InputTransformation = remember { PythonTypingRules() },
+  /** Null where no symbol row is on screen, which is every test that drives a field alone. */
+  input: FocusedCellInput? = null,
 ) {
   val state = rememberTextFieldState(initialText = source)
   val styles = syntaxStyles()
@@ -83,6 +85,15 @@ fun CodeCellField(
   var settled by remember { mutableStateOf<String?>(null) }
 
   ReportEdits(state, onSourceEdited)
+
+  // Hands the symbol row this field while the caret is in it. Detach is guarded by identity
+  // inside FocusedCellInput, so a cell being left cannot unhook the one just entered.
+  if (input != null) {
+    DisposableEffect(state, focused.value) {
+      if (focused.value) input.attach(state)
+      onDispose { input.detach(state) }
+    }
+  }
 
   Box {
     BasicTextField(

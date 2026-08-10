@@ -62,6 +62,7 @@ fun EditorScreen(
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val focusManager = LocalFocusManager.current
+  val cellInput = remember { FocusedCellInput() }
   // Back in edit mode returns to command mode instead of leaving the notebook - the touch
   // analogue of `Escape`, which is what both references bind it to. Dropping focus is what
   // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
@@ -77,13 +78,20 @@ fun EditorScreen(
       )
     },
     bottomBar = {
-      NotebookBar(
-        busy = state.runningCellId != null,
-        onRunAll = viewModel.kernel::runAll,
-        onInterrupt = viewModel.kernel::stopRunningCell,
-        onRestart = { viewModel.kernel.restart() },
-        onRestartAndRunAll = { viewModel.kernel.restart(andRunAll = true) },
-      )
+      // One bar at a time, and which one is the mode's answer: typing wants the characters a
+      // touch keyboard lacks, and a notebook being read wants the kernel. Showing both would
+      // stack two bars over a keyboard that already owns half the screen.
+      if (state.mode == CellMode.EDIT) {
+        SymbolRow(input = cellInput)
+      } else {
+        NotebookBar(
+          busy = state.runningCellId != null,
+          onRunAll = viewModel.kernel::runAll,
+          onInterrupt = viewModel.kernel::stopRunningCell,
+          onRestart = { viewModel.kernel.restart() },
+          onRestartAndRunAll = { viewModel.kernel.restart(andRunAll = true) },
+        )
+      }
     },
   ) { innerPadding ->
     EditorContent(
@@ -94,6 +102,7 @@ fun EditorScreen(
       completionsAt = viewModel.kernel::completionsAt,
       onCellAction = viewModel::applyToCell,
       onCellFocusChanged = viewModel::cellFocusChanged,
+      cellInput = cellInput,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -108,6 +117,7 @@ private fun EditorContent(
   completionsAt: suspend (String, Int) -> CompletionResult,
   onCellAction: (String, CellAction) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
+  cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
   when {
@@ -136,6 +146,7 @@ private fun EditorContent(
             completionsAt = completionsAt,
             onCellAction = { action -> onCellAction(cell.id, action) },
             onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
+            cellInput = cellInput,
           )
         }
       }
@@ -157,6 +168,7 @@ private fun EditorCell(
   completionsAt: suspend (String, Int) -> CompletionResult,
   onCellAction: (CellAction) -> Unit,
   onFocusChanged: (Boolean) -> Unit,
+  cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
   // Markdown never reaches a kernel: for those cells Run means "render", which is what running
@@ -198,6 +210,7 @@ private fun EditorCell(
           source = cell.source,
           onSourceEdited = onSourceEdited,
           completionsAt = completionsAt,
+          input = cellInput,
           modifier = Modifier
             .fillMaxWidth()
             .background(editorPalette.cellBackground, MaterialTheme.shapes.small)

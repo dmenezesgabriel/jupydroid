@@ -1517,6 +1517,44 @@ completion deliberately never boots a runtime by itself. Both facts are in the e
 because they cost real time to rediscover: the first attempt produced no popup at all, and the
 second a one-row popup that fitted the gap and proved nothing.
 
+### U5d — the characters a touch keyboard hides (done)
+
+A scrollable row above the keyboard, shown only in `CellMode.EDIT`: `Tab : ( ) [ ] { } ' " = # _`
+and the two arrows. This is what edit-mode keys mean on a phone — both references hang a great
+deal on keys a touch keyboard simply lacks, and the ones a *code* editor needs most are not
+letters: `:` ends every block header, brackets and quotes come in pairs, `#` starts every comment.
+On a soft keyboard each is two taps behind a symbols page.
+
+**One bar at a time, chosen by the mode.** The kernel bar and the symbol row share the
+`bottomBar` slot: typing wants characters, a notebook being read wants the kernel, and stacking
+both over a keyboard that already owns half the screen would cost a third of the notebook.
+
+**A key on the row must do exactly what the same key on the keyboard does, and that is not free.**
+A programmatic `state.edit { }` **bypasses the field's `InputTransformation`**, so `(` from the
+row would insert a lone bracket where the keyboard gives `()`. `FocusedCellInput.type` applies
+[PythonTypingRules] inside the edit — the same thing `PythonTypingRulesTest` does — so the two
+agree about every character. The flow proves it end to end: three taps, `(` `)` `:`, and the file
+on disk reads `def area():` — the `(` auto-closed, the `)` stepped over its partner instead of
+doubling.
+
+`FocusedCellInput` is the seam that lets a row outside every cell reach the focused one: a field
+registers itself on focus and unregisters on blur, which keeps `TextFieldState` inside the field
+rather than hoisting it into the ViewModel to be shared. Detach is guarded by identity for the
+same reason `cellFocusChanged` is — focus reports arrive in no guaranteed order, and a stale
+"I lost focus" would otherwise unhook the cell that just gained it.
+
+**The instrumented test failed first for a reason worth keeping.** It asserted on
+`onSourceEdited` immediately after a tap and read an empty list — because the field **debounces
+reports by 150ms**, and `runOnIdle` does not wait for that. The field had typed perfectly well.
+The test waits for the report now, and the negative case advances the clock past the debounce so
+that "nothing happened" means nothing happened rather than nothing had happened *yet*.
+
+Evidence: `evidence/u5d-symbol-row/`, emulator — typing needs no kernel.
+
+**Not in this step, and not forgotten:** the plan also listed `semantics { customActions }` per
+cell, so TalkBack can reach run/move/delete without hunting for a target. That is accessibility
+rather than input, and it belongs with its own evidence.
+
 ## Harness notes
 
 ### Running a Maestro flow
