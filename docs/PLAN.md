@@ -1177,9 +1177,8 @@ cell near the bottom is still covered", and that is *not* what the device does. 
 cell of an eight-cell notebook on a 320dp phone scrolls it into view: `cell_8` moves from
 `[54,476][296,524]` to `[54,265][296,301]`, clear of the bar at `y=331` and the keyboard below it.
 `BasicTextField` brings itself into view on focus, and `imePadding()` keeps the bar above the
-keyboard. What remains genuinely open for U6 is the **completion popup**, which is anchored from
-`getCursorRect` and has never been checked against a raised keyboard — and that one needs a real
-kernel, so it is a tablet gate.
+keyboard. The **completion popup** was the one real defect left here, and it is fixed — see
+"U6a" below.
 
 ### U2 — the notebook's two modes (done)
 
@@ -1486,6 +1485,37 @@ regression worth catching now, and `NotebookBarTest` covers Run All in its new h
 
 Evidence: `evidence/u5c-notebook-bar/`, **tablet only** — the proof is a *variable*, and on the
 emulator `FakeKernelGateway` never evaluates `dir()`, so the assertion could not fail.
+
+### U6a — the completion popup was behind the keyboard (done)
+
+`Popup(offset = caretBottom)` is a raw offset that knows nothing about the window or the
+keyboard. With the caret in the last of seven cells and `co` typed, the 220dp list ran from
+y≈470 past y≈800 on the tablet: four matches readable, `%code_wrap` and `%%code_wrap` painted
+over the keys, and anything below them unreachable
+(`evidence/u6-completion-popup/01-behind-the-keyboard.png`).
+
+`CompletionPopupPosition` is a `PopupPositionProvider`, which Compose hands exactly what the
+decision needs — where the anchor is in the window, how big the window is, and how big the popup
+turned out to be. It places the list under the caret when it fits and above it when it does not:
+same notebook, same prefix, same keyboard, now y≈95 to y≈435 with every match on screen.
+
+Three things worth stating, because each is a place this could have been done wrong:
+
+- **Above the caret's *top*, not its bottom**, so the flipped popup never covers the characters
+  being completed — the one piece of context that makes the matches mean anything.
+- **The IME height is passed in.** `windowSize` does *not* shrink for the keyboard under
+  edge-to-edge: the window stays full height and the keyboard sits on top of it, so a provider
+  trusting `windowSize` alone would compute the same wrong answer as before.
+- **Pinned to the top when it fits neither way.** Part of the list is out of reach either way,
+  and the top is where the first and likeliest match is.
+
+The rules are a pure function of four arguments, so `CompletionPopupPositionTest` argues them on
+the JVM; the device's job is only to show the pixels, which is what the two screenshots are.
+
+**Reproducing it needs a kernel**, so it is a tablet gate and a cell has to be run first —
+completion deliberately never boots a runtime by itself. Both facts are in the evidence README
+because they cost real time to rediscover: the first attempt produced no popup at all, and the
+second a one-row popup that fitted the gap and proved nothing.
 
 ## Harness notes
 
