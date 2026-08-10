@@ -11,6 +11,7 @@ class FakeKernelLifecycle(
   var startCount = 0
     private set
   val interrupted = mutableListOf<String>()
+  val restarted = mutableListOf<String>()
 
   override suspend fun start(): String {
     failWith?.let { throw it }
@@ -21,5 +22,10 @@ class FakeKernelLifecycle(
   override suspend fun interrupt(kernelId: String) {
     failWith?.let { throw it }
     interrupted += kernelId
+  }
+
+  override suspend fun restart(kernelId: String) {
+    failWith?.let { throw it }
+    restarted += kernelId
   }
 }

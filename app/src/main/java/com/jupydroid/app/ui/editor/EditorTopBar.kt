@@ -30,7 +30,11 @@ import com.jupydroid.app.ui.RenameNotebookDialog
 private val TITLE_EDIT_ICON_SIZE = 18.dp
 
 /**
- * The notebook's app bar: back, its title, and Run All.
+ * The notebook's app bar: back and the title.
+ *
+ * Run All lives on [NotebookBar] now, not here. It is a kernel action like interrupt and restart,
+ * it belongs beside them rather than alone at the far corner of the screen, and the bottom of a
+ * phone is where a thumb already is.
  *
  * **The title is the rename target**, which is where JupyterLab puts it too - `docmanager:rename`
  * is on the document-title context menu, `"selector": "[data-type=\"document-title\"]"`
@@ -43,8 +47,6 @@ private val TITLE_EDIT_ICON_SIZE = 18.dp
 @Composable
 fun EditorTopBar(
   title: String,
-  busy: Boolean,
-  onRunAll: () -> Unit,
   onRename: (String) -> Unit,
   onBack: () -> Unit,
 ) {
@@ -52,13 +54,6 @@ fun EditorTopBar(
 
   TopAppBar(
     title = { RenameableTitle(title = title, onClick = { renameOpen = true }) },
-    actions = {
-      // Disabled while a cell runs: a second Run All would queue every cell again behind
-      // the one already going.
-      IconButton(onClick = onRunAll, enabled = !busy) {
-        Icon(Icons.Filled.PlayArrow, contentDescription = "Run all cells")
-      }
-    },
     navigationIcon = {
       IconButton(onClick = onBack) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

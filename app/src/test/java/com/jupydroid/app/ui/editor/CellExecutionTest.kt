@@ -123,6 +123,36 @@ class CellExecutionTest {
     assertNull(notebook.queueingRun(listOf("c1")).runningCellId)
   }
 
+  /**
+   * A restart replaces the interpreter, so anything mid-flight is not merely finished - it never
+   * happened. Left alone, a cell that was RUNNING when the kernel was restarted would spin for
+   * ever, because the events that would have ended it died with the process.
+   */
+  @Test
+  fun restartingAbandonsWhateverWasInFlight() {
+    val busy = notebook.queueingRun(listOf("c1", "c2")).startingRun("c1", at = start)
+
+    val restarted = busy.abandoningRun()
+
+    assertEquals(ExecutionStatus.NOT_STARTED, restarted.statusOf("c1"))
+    assertEquals(ExecutionStatus.NOT_STARTED, restarted.statusOf("c2"))
+    assertNull(restarted.runningCellId)
+  }
+
+  /**
+   * What already finished is history and stays: JupyterLab keeps outputs and counts across a
+   * plain restart and offers "restart and clear" as a separate command. Wiping them here would
+   * make the two indistinguishable.
+   */
+  @Test
+  fun restartingKeepsWhatAlreadyFinished() {
+    val done = notebook.startingRun("c1", at = start).finishedRun("c1", at = start, failed = false)
+
+    val restarted = done.abandoningRun()
+
+    assertEquals(ExecutionStatus.STOPPED_OK, restarted.statusOf("c1"))
+  }
+
   private fun streamOutput() =
     com.jupydroid.app.domain.model.CellOutput.Stream(
       name = com.jupydroid.app.domain.model.StreamName.STDOUT,

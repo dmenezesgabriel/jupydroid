@@ -47,6 +47,18 @@ interface KernelGateway {
   suspend fun interrupt(session: KernelSession)
 
   /**
+   * Restarts the kernel behind this session: a fresh interpreter, and **every variable gone**.
+   *
+   * Distinct from [interrupt], which stops the work and keeps the state. The socket survives, so
+   * the session stays valid - it is the process on the other end that is replaced.
+   *
+   * Outputs and execution counts are deliberately *not* the gateway's business to clear.
+   * JupyterLab keeps them on a plain restart and offers "restart and clear" as a separate
+   * command (`kernelmenu:restart-and-clear`), so a caller that wants them gone has to say so.
+   */
+  suspend fun restart(session: KernelSession)
+
+  /**
    * [cursorOffset] is an absolute offset in characters, because that is what both ends of this
    * already speak: a text field's selection and the protocol's own `cursor_pos`. A line and
    * column in between would be two conversions that can only lose.

@@ -86,6 +86,13 @@ class RealKernelGateway(
   override suspend fun interrupt(session: KernelSession) = lifecycle.interrupt(session.kernelId)
 
   /**
+   * The socket is deliberately left open. jupyter_server replaces the process behind the same
+   * kernel id, so the connection this session already holds is still the right one - which is
+   * why [KernelSession] survives a restart and callers keep using it.
+   */
+  override suspend fun restart(session: KernelSession) = lifecycle.restart(session.kernelId)
+
+  /**
    * Sends one `complete_request` and returns the first reply that answers it.
    *
    * There is no timeout, and that is deliberate: the shell channel is serial, so a request sent

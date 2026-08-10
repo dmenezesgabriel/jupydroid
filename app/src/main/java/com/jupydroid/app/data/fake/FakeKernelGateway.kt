@@ -32,6 +32,9 @@ class FakeKernelGateway : KernelGateway {
 
   override suspend fun interrupt(session: KernelSession) = Unit
 
+  /** Nothing to restart: there is no process, and the echo has no state to lose. */
+  override suspend fun restart(session: KernelSession) = Unit
+
   /**
    * Answers from a handful of builtins rather than from nothing, because this is what the
    * editor's completion popup is built and tested against until a Space is running.

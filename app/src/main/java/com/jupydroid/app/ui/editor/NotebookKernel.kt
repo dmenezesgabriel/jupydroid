@@ -61,16 +61,18 @@ class NotebookKernel(
    * never produced, and their output would be wrong rather than merely absent.
    */
   fun runAll() {
-    scope.launch {
-      val queue = uiState.value.cells.filter { it.kind == CellKind.CODE }
-      // Claimed up front so every waiting cell says so, rather than looking un-run until its
-      // turn comes. Anything still queued when one raises becomes SKIPPED.
-      uiState.update { it.queueingRun(queue.map(Cell::id)) }
-      for (cell in queue) {
-        if (!execute(cell)) break
-      }
-      uiState.update { it.skippingQueued() }
+    scope.launch { runAllCells() }
+  }
+
+  private suspend fun runAllCells() {
+    val queue = uiState.value.cells.filter { it.kind == CellKind.CODE }
+    // Claimed up front so every waiting cell says so, rather than looking un-run until its turn
+    // comes. Anything still queued when one raises becomes SKIPPED.
+    uiState.update { it.queueingRun(queue.map(Cell::id)) }
+    for (cell in queue) {
+      if (!execute(cell)) break
     }
+    uiState.update { it.skippingQueued() }
   }
 
   /**
@@ -85,6 +87,27 @@ class NotebookKernel(
     // apart from the user's own code raising.
     interrupting = running
     scope.launch { session?.let { kernelGateway.interrupt(it) } }
+  }
+
+  /**
+   * Restarts the kernel: a fresh interpreter, and every variable gone.
+   *
+   * **The caller is expected to have asked first.** This is irreversible and silent - nothing on
+   * screen changes except that the notebook's state is no longer real - which is why JupyterLab
+   * puts it behind a warn dialog reading *"All variables will be lost"*
+   * (`packages/apputils/src/sessioncontext.tsx:1505-1520`).
+   *
+   * Does nothing when no kernel has been opened: there is no process to replace, and connecting
+   * one only to restart it would boot a runtime the user did not ask for.
+   */
+  fun restart(andRunAll: Boolean = false) {
+    val open = session ?: return
+    scope.launch {
+      kernelGateway.restart(open)
+      // Whatever was in flight died with the process; anything finished is history and stays.
+      uiState.update { it.abandoningRun() }
+      if (andRunAll) runAllCells()
+    }
   }
 
   /**

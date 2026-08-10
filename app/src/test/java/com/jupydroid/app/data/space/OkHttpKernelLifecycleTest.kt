@@ -88,6 +88,30 @@ class OkHttpKernelLifecycleTest {
     assertTrue("expected a failure, got $failure", failure.isFailure)
   }
 
+  /**
+   * `POST /api/kernels/<id>/restart`, the same shape as interrupt and the endpoint JupyterLab
+   * calls (`packages/services/src/kernel/restapi.ts:127-145`).
+   */
+  @Test
+  fun restart_postsToTheKernelsRestartEndpoint() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 200, body = "{\"id\":\"kernel-abc\",\"name\":\"python3\"}"))
+
+    lifecycle().restart("kernel-abc")
+
+    val request = takeRequest()
+    assertEquals("POST", request.method)
+    assertEquals("/api/kernels/kernel-abc/restart", request.target)
+  }
+
+  @Test
+  fun restart_failsLoudlyWhenTheKernelIsGone() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 404, body = "no such kernel"))
+
+    val failure = runCatching { lifecycle().restart("kernel-gone") }
+
+    assertTrue("expected a failure, got $failure", failure.isFailure)
+  }
+
   private fun takeRequest() = serverRule.server.takeRequest(TIMEOUT_SECONDS, TimeUnit.SECONDS)!!
 
   private fun lifecycle(server: MockWebServer = serverRule.server) = OkHttpKernelLifecycle(

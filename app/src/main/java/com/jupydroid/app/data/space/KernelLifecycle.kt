@@ -26,6 +26,9 @@ interface KernelLifecycle {
   suspend fun start(): String
 
   suspend fun interrupt(kernelId: String)
+
+  /** Replaces the kernel process. The id survives; the interpreter behind it does not. */
+  suspend fun restart(kernelId: String)
 }
 
 /** Raised when jupyter_server refuses a lifecycle call; the message carries the status. */
@@ -49,6 +52,10 @@ class OkHttpKernelLifecycle(
 
   override suspend fun interrupt(kernelId: String) {
     post("api/kernels/$kernelId/interrupt")
+  }
+
+  override suspend fun restart(kernelId: String) {
+    post("api/kernels/$kernelId/restart")
   }
 
   private suspend fun post(path: String): String = withContext(ioDispatcher) {

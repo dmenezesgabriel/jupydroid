@@ -72,10 +72,17 @@ fun EditorScreen(
     topBar = {
       EditorTopBar(
         title = state.title,
-        busy = state.runningCellId != null,
-        onRunAll = viewModel.kernel::runAll,
         onRename = viewModel::renameNotebook,
         onBack = onBack,
+      )
+    },
+    bottomBar = {
+      NotebookBar(
+        busy = state.runningCellId != null,
+        onRunAll = viewModel.kernel::runAll,
+        onInterrupt = viewModel.kernel::stopRunningCell,
+        onRestart = { viewModel.kernel.restart() },
+        onRestartAndRunAll = { viewModel.kernel.restart(andRunAll = true) },
       )
     },
   ) { innerPadding ->

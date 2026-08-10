@@ -95,6 +95,19 @@ abstract class KernelGatewayContract {
     assertTrue("a session needs its own id", session.id.isNotBlank())
   }
 
+  /**
+   * Restart is offered by every implementation, and asserted here because it is the one kernel
+   * action with no visible result of its own: nothing is emitted, no output changes, and a
+   * gateway that silently did nothing would look identical to one that worked.
+   */
+  @Test
+  fun restart_isAcceptedForALiveSession() = runTest {
+    val gateway = gateway()
+    val session = gateway.connect(SPACE)
+
+    gateway.restart(session)
+  }
+
   private suspend fun KernelGateway.runCell(cellId: String = "cell-1"): List<KernelEvent> =
     execute(connect(SPACE), cellId, "2 + 2").toList()
 

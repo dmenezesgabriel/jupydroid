@@ -1432,6 +1432,52 @@ needed it.
 Evidence: `evidence/u5b-action-presentation/{compact-320dp,expanded-1280dp}/`, one run per
 device. Instrumented suite green on both.
 
+### U5c — the kernel bar, and `KernelGateway.restart` (done)
+
+A `BottomAppBar` carrying Run All, Interrupt, Restart and Restart-and-run-all, plus the port
+method the last two needed: `restart`, `POST /api/kernels/<id>/restart`, contract-tested against
+both the fake and the real gateway.
+
+**The bar is short because it is the *kernel's*, not the cell's.** JupyterLab's notebook toolbar
+also carries cut, copy, paste and the cell-type picker — but its *cell* toolbar has six buttons
+where ours has thirteen actions. Repeating them here would be two homes for one thing on a screen
+with room for neither. What a cell menu cannot offer is the kernel, and that is the whole bar.
+Run All moved off the top app bar for the same reason: it is a kernel action, it belongs beside
+interrupt and restart, and the bottom of a phone is where a thumb already is.
+
+**Restart asks first, because it is silent and irreversible.** Nothing on screen changes except
+that every variable the notebook built is gone, so a restart that did nothing and one that worked
+look identical. JupyterLab guards it with the same sentence — *"All variables will be lost."* —
+and `NotebookBarTest` pins that nothing happens before the user agrees.
+
+Two things the port change had to get right, both read from the reference rather than assumed:
+
+- **The socket stays open.** jupyter_server replaces the process behind the same kernel id, so
+  the `KernelSession` a caller holds is still valid.
+- **Outputs and counts are kept.** JupyterLab keeps them on a plain restart and offers
+  "restart and clear" as a separate command, so clearing them here would make the two the same
+  thing. What *is* discarded is anything in flight: a RUNNING or QUEUED cell did not finish, it
+  never happened, and the events that would have ended it died with the process — left alone it
+  spins for ever. That is `abandoningRun`.
+
+**The first version of the flow proved nothing, and looked green doing it.** It ran Run All after
+the restart to check that `kept` was gone — but Run All re-runs the *first* cell first, which
+redefines `kept` before the second cell ever looks. The fix is to run the second cell alone.
+Only the screenshot showed it: `after restart: True` where the assertion expected False.
+
+**Two identical `Refresh` icons side by side, both destructive**, was the other defect the
+evidence showed. `material-icons-core` has nothing that reads as "restart, then run", and pulling
+in `material-icons-extended` for one glyph is a dependency this project already declined once —
+the Stop square on a cell header is hand-drawn for exactly that reason. The button composes the
+two glyphs that do exist (`↻▶`) under a single `contentDescription`.
+
+`EditorTopBarTest.runAllIsStillThere` was the right guard while Run All lived on the app bar. It
+is **inverted rather than deleted** — a kernel action drifting back onto the title bar is the
+regression worth catching now, and `NotebookBarTest` covers Run All in its new home.
+
+Evidence: `evidence/u5c-notebook-bar/`, **tablet only** — the proof is a *variable*, and on the
+emulator `FakeKernelGateway` never evaluates `dir()`, so the assertion could not fail.
+
 ## Harness notes
 
 ### Running a Maestro flow

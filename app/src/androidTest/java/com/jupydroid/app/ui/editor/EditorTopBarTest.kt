@@ -68,12 +68,20 @@ class EditorTopBarTest {
     assertEquals(emptyList<String>(), renamed)
   }
 
-  /** Run All stays reachable: adding a rename target to the bar must not cost the action on it. */
+  /**
+   * The bar carries the title and nothing that belongs to the kernel.
+   *
+   * This used to assert the opposite - that Run All was still here - which was the right guard
+   * while Run All lived on this bar. It moved to [NotebookBar], beside interrupt and restart and
+   * within reach of a thumb, so the assertion is inverted rather than deleted: a kernel action
+   * drifting back onto the app bar is exactly the regression worth catching, and `NotebookBarTest`
+   * covers Run All being reachable in its new home.
+   */
   @Test
-  fun runAllIsStillThere() {
+  fun theBarCarriesNoKernelActions() {
     showTopBar()
 
-    compose.onNodeWithContentDescription("Run all cells").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Run all cells").assertDoesNotExist()
   }
 
   private val renamed = mutableListOf<String>()
@@ -83,8 +91,6 @@ class EditorTopBarTest {
       JupyterDroidTheme {
         EditorTopBar(
           title = "Intro to NumPy",
-          busy = false,
-          onRunAll = {},
           onRename = { renamed += it },
           onBack = {},
         )

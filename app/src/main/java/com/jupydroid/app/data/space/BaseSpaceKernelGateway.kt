@@ -50,6 +50,8 @@ class BaseSpaceKernelGateway(
 
   override suspend fun interrupt(session: KernelSession) = running().interrupt(session)
 
+  override suspend fun restart(session: KernelSession) = running().restart(session)
+
   override suspend fun complete(
     session: KernelSession,
     code: String,

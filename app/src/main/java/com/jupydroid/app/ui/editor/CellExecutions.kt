@@ -54,6 +54,22 @@ fun EditorUiState.skippingQueued(): EditorUiState = copy(
   },
 )
 
+/**
+ * Forgets whatever was in flight, which is what a restart leaves behind.
+ *
+ * A restart replaces the interpreter, so a RUNNING or QUEUED cell did not finish - it never
+ * happened, and the events that would have ended it died with the process. Left alone such a cell
+ * spins for ever.
+ *
+ * What already finished stays: JupyterLab keeps outputs and counts across a plain restart and
+ * offers "restart and clear" separately, so wiping them here would make the two the same thing.
+ */
+fun EditorUiState.abandoningRun(): EditorUiState = copy(
+  executions = executions.filterValues {
+    it.status != ExecutionStatus.RUNNING && it.status != ExecutionStatus.QUEUED
+  },
+)
+
 /** Drops a cell's record entirely, for when the cell itself goes. */
 fun EditorUiState.withoutExecution(cellId: String): EditorUiState = copy(executions = executions - cellId)
 
