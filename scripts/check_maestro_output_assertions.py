@@ -86,6 +86,21 @@ def seeded_sources(flow: pathlib.Path, scripts: pathlib.Path) -> str:
     return "\n".join("".join(cell.get("source", [])) for cell in notebook.get("cells", []))
 
 
+def missing_fixture(flow: pathlib.Path, scripts: pathlib.Path) -> list[str]:
+    """A driver naming a fixture the filesystem does not have, which silently disables rule 1.
+
+    Not the same as seeding nothing. `seeded_sources` returns "" either way, and with "" every
+    assertion looks like it cannot match the source - so a flow whose driver names
+    `fixtures/$name.ipynb` (a shell variable this gate cannot expand) passes rule 1 without rule
+    1 ever having been applied. That is the failure this file was written to stop, so it cannot
+    be allowed in through the back door.
+    """
+    fixture = fixture_of(flow, scripts)
+    if fixture is None or fixture.exists():
+        return []
+    return [f"{flow}: its driver names a fixture that is not on disk ({fixture}); an unexpanded shell variable?"]
+
+
 def steps(flow: pathlib.Path) -> list:
     documents = list(yaml.safe_load_all(flow.read_text()))
     return documents[-1] if len(documents) > 1 and isinstance(documents[-1], list) else []
@@ -158,7 +173,7 @@ def complaints(flow: pathlib.Path, step: object, sources: str) -> list[str]:
 def offences(flow: pathlib.Path, scripts: pathlib.Path = SCRIPTS) -> list[str]:
     """Everything this flow asserts after a Run that a kernel need not have produced."""
     sources = seeded_sources(flow, scripts)
-    found, after_run = [], False
+    found, after_run = missing_fixture(flow, scripts), False
     for step in steps(flow):
         if taps_run(step):
             after_run = True

@@ -17,10 +17,16 @@ repos:
         language: system
         files: '^\.maestro/.*\.(yaml|ipynb)$'
         pass_filenames: false
-      # Always run: the gate above is only worth having while it still catches things,
-      # and its tests are milliseconds.
+      - id: driver-isolation
+        name: every flow starts from the Home list it seeded
+        entry: scripts/check_driver_isolation.py
+        language: system
+        files: '^scripts/.*-driver\.sh$'
+        pass_filenames: false
+      # Always run: the gates above are only worth having while they still catch things,
+      # and their tests are milliseconds.
       - id: maestro-gate-tests
-        name: the maestro gate's own tests
+        name: the maestro gates' own tests
         entry: python3 -m unittest discover -s scripts -p '*_test.py'
         language: system
         pass_filenames: false

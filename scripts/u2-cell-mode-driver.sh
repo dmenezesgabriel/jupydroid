@@ -20,5 +20,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
+reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/u2-cell-mode.ipynb" u2-cell-mode
 run_flow "$ROOT/.maestro/u2-cell-mode.yaml" "$ROOT/evidence/u2-cell-mode"

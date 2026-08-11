@@ -20,6 +20,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
+reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/u5a-cell-actions.ipynb" u5a-cell-actions
 run_flow "$ROOT/.maestro/u5a-cell-actions.yaml" "$ROOT/evidence/u5a-cell-actions"
 

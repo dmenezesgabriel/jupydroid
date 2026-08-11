@@ -30,6 +30,9 @@ class FlowUnderTest:
     FIXTURE_LINES = {
         "variable": 'FIXTURE="$ROOT/.maestro/seed.ipynb"',
         "helper": 'seed_notebook "$ROOT/.maestro/seed.ipynb" seed',
+        # A path the gate can read but the filesystem cannot resolve, because a shell variable
+        # is still in it. This is the shape that loses rule 1 without saying so.
+        "missing": 'seed_notebook "$ROOT/.maestro/fixtures/$name.ipynb" "$name"',
     }
 
     def __init__(
@@ -46,6 +49,7 @@ class FlowUnderTest:
         self.flow.write_text(f"appId: com.jupydroid.app\n---\n{steps}")
         if fixture is not None:
             (self.flows / "seed.ipynb").write_text(json.dumps(fixture))
+        if fixture is not None or names_fixture == "missing":
             (self.scripts / "driver.sh").write_text(
                 f"{self.FIXTURE_LINES[names_fixture]}\nmaestro test under-test.yaml\n"
             )
@@ -77,6 +81,18 @@ class MaestroGateTest(unittest.TestCase):
         self.assertEqual(1, len(offences), offences)
 
     # --- a flow that reads the source while claiming to read the output -------------------
+
+    def test_flags_a_driver_whose_fixture_is_not_on_disk(self):
+        """The silent loss this gate's own docstring warns about, made loud.
+
+        `seeded_sources` returns "" for a fixture it cannot read, and every assertion then looks
+        like it cannot match the source - so rule 1 stops applying and the flow passes for the
+        wrong reason. A path the gate matched but the filesystem does not have is a driver bug
+        (usually an unexpanded shell variable), not an absence of fixture.
+        """
+        offences = self.flow('- tapOn: "Run All"\n- assertVisible: "omega"\n', fixture=None, names_fixture="missing")
+        self.assertEqual(1, len(offences), offences)
+        self.assertIn("not on disk", offences[0])
 
     def test_flags_an_assertion_after_a_run_that_the_source_alone_satisfies(self):
         found = self.flow('- tapOn: "Run cell"\n- assertVisible: "omega"\n')

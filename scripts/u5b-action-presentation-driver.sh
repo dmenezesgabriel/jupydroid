@@ -43,6 +43,7 @@ WIDTH_DP="$(window_width_dp)"
 if [ "$WIDTH_DP" -ge 600 ]; then CLASS=expanded; else CLASS=compact; fi
 echo "=== ${CLASS}, ${WIDTH_DP}dp wide ==="
 
+reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/u5a-cell-actions.ipynb" u5a-cell-actions
 run_flow "$ROOT/.maestro/u5b-action-presentation.yaml" \
   "$ROOT/evidence/u5b-action-presentation/${CLASS}-${WIDTH_DP}dp"

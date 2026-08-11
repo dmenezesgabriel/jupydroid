@@ -23,21 +23,16 @@ REMOTE="files/notebooks/collapse-outputs.ipynb"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too
+# shellcheck source=scripts/maestro-run.sh
+. "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
-"$ADB" shell am force-stop "$APP"
-"$ADB" shell run-as "$APP" mkdir -p files/notebooks
-
-# base64 on the command line rather than piping to `cat`: adb shell can mangle
-# stdin line endings, and the fixture is small enough to pass as an argument.
-PAYLOAD="$(base64 -w0 "$FIXTURE")"
-"$ADB" shell "run-as $APP sh -c 'echo $PAYLOAD | base64 -d > $REMOTE'"
-"$ADB" shell run-as "$APP" test -s "$REMOTE" ||
-  { echo "fixture did not land at $REMOTE"; exit 1; }
+reset_notebooks
+seed_notebook "$FIXTURE" collapse-outputs
 
 # The handwriting IME steals focus from text fields and swallows inputText; this flow is
 # nothing but typing, so it cannot run with it enabled.

@@ -1625,14 +1625,41 @@ deliberate: `a1c-markdown-render` runs a markdown cell, which renders rather tha
 
 Evidence: `evidence/u-flow-sweep/`.
 
-**The follow-up this leaves, named rather than left to be rediscovered:** about twenty-five legacy
-drivers still carry their own copy of the seeding block instead of calling `seed_notebook`, so
-they do not get `reset_notebooks` and still scroll through whatever Home has accumulated. That is
-the migration `scripts/maestro-run.sh` was written for ("the older drivers each carry their own
-copy; new ones do not have to") and it is mechanical, but it touches twenty-five files and is a
-commit of its own rather than a rider on this one. Its failure mode is a loud `FAIL` of exactly
-the shape `a6` just produced — never a silent pass — which is why it can wait and did not have to
-be guessed at.
+### Every driver on one seeding helper, and a gate that keeps them there (done)
+
+The sweep left one thing half-done: `reset_notebooks` reached the eight U-phase drivers through
+`seed_notebook`, and the other twenty-six still carried their own copy of the force-stop /
+`mkdir` / base64 / verify block. Those are the drivers that had been accumulating notebooks for
+months. This finishes it — **34 drivers, −231 lines, +116** — and closes the migration
+`scripts/maestro-run.sh` was written for in the first place ("the older drivers each carry their
+own copy; new ones do not have to").
+
+**`seed_notebook` no longer resets, and that is the point.** Folding the reset into it made the
+helper do two things and made two notebooks impossible to seed — the second call would delete the
+first, which is exactly what `notebook-switch` needs. So the helper seeds one notebook, isolation
+is `reset_notebooks`, and every driver states both. Stating something in thirty-four files is
+something people forget, so it is enforced rather than trusted: **`scripts/check_driver_isolation.py`**
+(with `_test.py`, wired into pre-commit) fails a driver that seeds without resetting, *and* one
+that resets after seeding — a reset below a seed deletes the fixture it just wrote, which is the
+mistake this shape invites. It was written before the migration and started red at 34 offences.
+
+**The gate's own first rule was a false positive worth keeping the note about.** Detecting the
+hand-rolled form by the bare string `files/notebooks` matched `REMOTE="files/notebooks/x.ipynb"`,
+a declaration that sits at the *top* of every driver — so all twenty-three freshly-migrated
+drivers were reported as resetting too late. It matches `mkdir -p files/notebooks` now: a write,
+not a name.
+
+**And the migration walked straight into the hole the older gate had documented and not closed.**
+`check_maestro_output_assertions.py` warns in its own docstring that a driver whose fixture it
+cannot find loses rule 1 *silently* — `seeded_sources` returns `""`, every assertion then looks
+unable to match the source, and the flow passes without the rule ever being applied. Writing
+`notebook-switch`'s two fixtures as `fixtures/$name.ipynb` produced exactly that: a path the gate
+can match and the filesystem cannot resolve. The gate now reports a fixture that is named but not
+on disk, and caught it on the first run. The loop is two explicit lines instead.
+
+Evidence: the same `evidence/u-flow-sweep/sweep-after.txt` — 37 flows, re-run against 34 rewritten
+drivers, because a mechanical edit to every driver in the tree is exactly the change a whole-suite
+run exists to check.
 
 ## Harness notes
 

@@ -26,6 +26,7 @@ run_in_theme() {
   # `cmd uimode night` is the system-wide setting isSystemInDarkTheme() reads. Set before the
   # launch, not after: a mid-flow change recreates the activity and loses the opened notebook.
   "$ADB" shell cmd uimode night "$night"
+  reset_notebooks
   seed_notebook "$FIXTURE" u1-palette
   run_flow "$FLOW" "$EVIDENCE/$theme"
 }

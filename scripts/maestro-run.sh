@@ -41,10 +41,14 @@ reset_notebooks() {
 # so force-stopping first is what makes the fresh launch pick the file up.
 #
 # The id is the filename stem, so `seed_notebook fixture.ipynb my-id` lands at my-id.ipynb.
+#
+# It seeds one notebook and does not clear the others, so a driver that needs two can call it
+# twice - `notebook-switch` does. Isolation is [reset_notebooks]'s job and every driver states
+# it, which `scripts/check_driver_isolation.py` enforces so that stating it cannot be forgotten.
 seed_notebook() {
   local fixture="$1" id="$2"
   local remote="files/notebooks/$id.ipynb"
-  reset_notebooks
+  "$ADB" shell am force-stop "$APP"
   "$ADB" shell run-as "$APP" mkdir -p files/notebooks
   # base64 on the command line rather than piping to `cat`: adb shell can mangle stdin line
   # endings, and a fixture is small enough to pass as an argument.
