@@ -19,7 +19,7 @@ APP="com.jupydroid.app"
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="$NOTEBOOK_DIR/step5-typing.ipynb"
+REMOTE="$NOTEBOOK_DIR/Typing Rules.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -27,7 +27,7 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
 reset_notebooks
-seed_notebook "$FIXTURE" step5-typing
+seed_notebook "$FIXTURE" "Typing Rules"
 
 # The handwriting IME steals focus from text fields and swallows inputText; this flow is
 # nothing but typing, so it cannot run with it enabled.

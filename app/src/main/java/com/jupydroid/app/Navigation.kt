@@ -1,6 +1,10 @@
 package com.jupydroid.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -23,6 +27,11 @@ fun MainNavigation(
   twoPane: Boolean = isWindowWideEnoughForTwoPanes(),
 ) {
   val backStack = rememberNavBackStack(Home)
+  // Where the open notebook lives *now*. The navigation key keeps the path it was opened under,
+  // because replacing it would re-create the entry and discard the editor's state; a rename is
+  // reported here instead. `_contextsForPath` does the same - it filters live contexts by their
+  // current path, never by the one a widget was created with.
+  var openNotebookId by remember { mutableStateOf<String?>(null) }
 
   NavDisplay(
     backStack = backStack,
@@ -53,7 +62,7 @@ fun MainNavigation(
             // Only while the list is *beside* the notebook. In one pane the list is on screen
             // exactly when nothing is open, so a marked row would point at a pane that is not
             // there - and would be the only thing on screen still claiming a notebook is open.
-            openNotebookId = (backStack.lastOrNull() as? Editor)?.notebookId.takeIf { twoPane },
+            openNotebookId = openNotebookId.takeIf { twoPane && backStack.lastOrNull() is Editor },
           )
         }
         entry<Editor> { editor ->
@@ -63,6 +72,7 @@ fun MainNavigation(
             kernelGateway = appContainer.kernelGateway,
             applicationScope = appContainer.applicationScope,
             onBack = { backStack.removeLastOrNull() },
+            onNotebookMoved = { moved -> openNotebookId = moved },
           )
         }
       },

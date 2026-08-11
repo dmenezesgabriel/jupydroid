@@ -45,9 +45,11 @@ abstract class NotebookRepositoryContract {
     val renamed = repository.createNotebook(title = "Renamed", kernelId = "python3")
     repository.createNotebook(title = "Newer", kernelId = "python3")
 
-    repository.renameNotebook(renamed.id, "Renamed again")
+    // The new id, because a rename moves the file and the old one stops naming anything - which
+    // is the contract every implementation owes since X1b, fake and disk alike.
+    val movedTo = repository.renameNotebook(renamed.id, "Renamed again")
 
-    assertFirst(repository, renamed.id, "renaming")
+    assertFirst(repository, movedTo, "renaming")
   }
 
   @Test

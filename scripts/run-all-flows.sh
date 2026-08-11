@@ -41,7 +41,18 @@ failed=()
 
 for driver in "$ROOT"/scripts/*-driver.sh; do
   name="$(basename "$driver" -driver.sh)"
-  if [ "$#" -gt 0 ] && ! printf '%s\n' "$@" | grep -q -- "$name"; then continue; fi
+  # Exact names when FLOW_NAMES is set, substring when a human types arguments. The sharded
+  # runner needs exact: `step5-completion-repeat` as an argument also matched `step5-completion`,
+  # so a shard asked for one driver and got two.
+  if [ -n "${FLOW_NAMES:-}" ]; then
+    printf '%s\n' $FLOW_NAMES | grep -qx -- "$name" || continue
+  elif [ "$#" -gt 0 ] && ! printf '%s\n' "$@" | grep -q -- "$name"; then
+    continue
+  fi
+
+  # A driver can be a tool rather than a check - `step5-completion-repeat` runs one flow twenty
+  # times to measure a rare defect. Running it here would add twenty launches to every sweep.
+  if grep -q "NOT A SUITE FLOW" "$driver"; then continue; fi
 
   if grep -q "TABLET ONLY" "$driver" && [ "$ABI" != "arm64-v8a" ]; then
     printf 'SKIP  %-28s needs arm64: it runs a cell, and the fake would answer\n' "$name"

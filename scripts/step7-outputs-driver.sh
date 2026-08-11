@@ -21,7 +21,7 @@ APP="com.jupydroid.app"
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="$NOTEBOOK_DIR/step10-real-kernel.ipynb"
+REMOTE="$NOTEBOOK_DIR/Real Kernel.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -29,6 +29,6 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
 reset_notebooks
-seed_notebook "$FIXTURE" step10-real-kernel
+seed_notebook "$FIXTURE" "Real Kernel"
 
 maestro_test "$ROOT/.maestro/step7-outputs-persist.yaml"

@@ -19,7 +19,7 @@ APP="com.jupydroid.app"
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="$NOTEBOOK_DIR/a1-markdown.ipynb"
+REMOTE="$NOTEBOOK_DIR/Markdown Edit.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -27,7 +27,7 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
 reset_notebooks
-seed_notebook "$FIXTURE" a1-markdown
+seed_notebook "$FIXTURE" "Markdown Edit"
 
 # The handwriting IME steals focus from text fields and swallows inputText; this flow is
 # nothing but typing, so it cannot run with it enabled.
@@ -39,4 +39,4 @@ maestro_test "$ROOT/.maestro/a1-markdown.yaml"
 # The order on disk is the real assertion: the screenshots show a menu, but only the saved
 # file proves the notebook was actually re-shaped and persisted.
 echo "--- notebook as saved after the flow ---"
-"$ADB" shell run-as "$APP" cat "$REMOTE"
+"$ADB" shell "run-as $APP cat \"$REMOTE\""

@@ -32,7 +32,7 @@ if [ "$WIDTH_DP" -ge 840 ]; then FLOW=u7-two-panes; else FLOW=u7-one-pane; fi
 echo "=== ${FLOW}, ${WIDTH_DP}dp wide ==="
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/switch-alpha.ipynb" switch-alpha
-seed_notebook "$ROOT/.maestro/fixtures/switch-beta.ipynb" switch-beta
+seed_notebook "$ROOT/.maestro/fixtures/switch-alpha.ipynb" "Switch Alpha"
+seed_notebook "$ROOT/.maestro/fixtures/switch-beta.ipynb" "Switch Beta"
 
 run_flow "$ROOT/.maestro/$FLOW.yaml" "$ROOT/evidence/u7-adaptive/${FLOW}-${WIDTH_DP}dp"

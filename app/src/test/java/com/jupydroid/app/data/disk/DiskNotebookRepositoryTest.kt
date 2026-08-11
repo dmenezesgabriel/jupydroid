@@ -58,8 +58,11 @@ class DiskNotebookRepositoryTest {
     val repository = repository()
     val notebook =
       Notebook(
+        // Title and id are the same string, and since X1b that is the invariant rather than a
+        // coincidence: the name *is* the file, so a round trip through disk can only return the
+        // name on disk. JupyterLab has the same shape - a path, with the name derived from it.
         id = "nb-1",
-        title = "Data",
+        title = "nb-1",
         kernelId = "python3",
         cells =
           listOf(
@@ -109,9 +112,9 @@ class DiskNotebookRepositoryTest {
     val repository = repository()
     val created = repository.createNotebook(title = "Untitled", kernelId = "python3")
 
-    repository.renameNotebook(created.id, "Renamed")
+    val renamed = repository.renameNotebook(created.id, "Renamed")
 
-    assertEquals("Renamed", repository.readNotebook(created.id).title)
+    assertEquals("Renamed", repository.readNotebook(renamed).title)
   }
 
   @Test
@@ -218,17 +221,20 @@ class DiskNotebookRepositoryTest {
   /**
    * A6: `updated_at` used to live in `metadata.jupydroid` and nothing bumped it on save, so an
    * edited notebook kept the time it was created. Jupyter stores no such field - `last_modified`
-   * is the file's mtime - so neither do we, and a save drops the key from files that have one.
+   * is the file's mtime - so neither do we.
+   *
+   * Since X1b the whole `jupydroid` namespace is gone: the title was the last thing in it, and the
+   * title is now the file's name. A `.ipynb` this app writes is one any other tool would write.
    */
   @Test
-  fun saveNotebook_writesNoTimestampOfItsOwn() = runTest {
+  fun saveNotebook_writesNoMetadataOfItsOwn() = runTest {
     val repository = repository()
 
     repository.saveNotebook(notebook(id = "nb-1"))
 
-    val jupydroid = Json.parseToJsonElement(notebookFile("nb-1").readText())
-      .jsonObject.getValue("metadata").jsonObject.getValue("jupydroid").jsonObject
-    assertEquals(setOf("title"), jupydroid.keys)
+    val metadata = Json.parseToJsonElement(notebookFile("nb-1").readText())
+      .jsonObject.getValue("metadata").jsonObject
+    assertEquals(false, metadata.containsKey("jupydroid"))
   }
 
   @Test
@@ -239,7 +245,10 @@ class DiskNotebookRepositoryTest {
     val summary = repository().observeNotebooks().first().single()
 
     assertEquals(Instant.parse("2026-03-04T05:06:07Z"), summary.updatedAt)
-    assertEquals("Legacy", summary.title)
+    // Its file is `legacy.ipynb`, so that is its name: the `metadata.jupydroid.title` this fixture
+    // still carries is no longer read. Files like it are renamed once by NotebookWorkspaceMigration
+    // before they are ever shown, so nobody sees a notebook lose its name.
+    assertEquals("legacy", summary.title)
   }
 
   private fun notebook(id: String): Notebook =

@@ -59,7 +59,7 @@ class NotebookWorkspaceMigrationTest {
     migrate()
 
     assertEquals("already here", File(to, "alpha.ipynb").readText())
-    assertEquals("incoming", File(to, "alpha-1.ipynb").readText())
+    assertEquals("incoming", File(to, "alpha1.ipynb").readText())
   }
 
   @Test
@@ -67,11 +67,11 @@ class NotebookWorkspaceMigrationTest {
     notebook("alpha", body = "incoming")
     to.mkdirs()
     File(to, "alpha.ipynb").writeText("already here")
-    File(to, "alpha-1.ipynb").writeText("also here")
+    File(to, "alpha1.ipynb").writeText("also here")
 
     migrate()
 
-    assertEquals("incoming", File(to, "alpha-2.ipynb").readText())
+    assertEquals("incoming", File(to, "alpha2.ipynb").readText())
   }
 
   /** Not a notebook, not our business: it stays where it is rather than being swept along. */
@@ -123,6 +123,55 @@ class NotebookWorkspaceMigrationTest {
 
     assertFalse(File(to, "late.ipynb").exists())
   }
+
+  /**
+   * The file's own title, moved out of the JSON and onto the file - the second half of X1.
+   *
+   * It has to happen *here*, in the same one-shot pass, and before anything stops reading
+   * `metadata.jupydroid.title`: a notebook whose name lived only in its JSON would otherwise come
+   * back called `9f3a1c02-8e4d-…` and the user would have to rename every one of them by hand.
+   */
+  @Test
+  fun aNotebooksTitleBecomesItsFileName() {
+    notebook("9f3a1c02-8e4d", body = titled("Analysis of sales"))
+
+    migrate()
+
+    assertEquals(setOf("Analysis of sales.ipynb"), to.list()?.toSet())
+  }
+
+  @Test
+  fun aFileWithNoTitleKeepsItsName() {
+    notebook("already-named", body = """{"nbformat":4,"cells":[]}""")
+
+    migrate()
+
+    assertEquals(setOf("already-named.ipynb"), to.list()?.toSet())
+  }
+
+  /** Two notebooks that were both called "Draft" cannot both be `Draft.ipynb`. */
+  @Test
+  fun twoNotebooksWithOneTitleAreIncremented() {
+    notebook("uuid-a", body = titled("Draft"))
+    notebook("uuid-b", body = titled("Draft"))
+
+    migrate()
+
+    assertEquals(setOf("Draft.ipynb", "Draft1.ipynb"), to.list()?.toSet())
+  }
+
+  /** A title no file system will take is left as the id rather than mangled into something else. */
+  @Test
+  fun aTitleThatIsNotAValidNameKeepsTheOldFileName() {
+    notebook("uuid-c", body = titled("reports/2026"))
+
+    migrate()
+
+    assertEquals(setOf("uuid-c.ipynb"), to.list()?.toSet())
+  }
+
+  private fun titled(title: String) =
+    """{"nbformat":4,"cells":[],"metadata":{"jupydroid":{"title":"$title"}}}"""
 
   private fun notebook(name: String, body: String = "{}") {
     from.mkdirs()

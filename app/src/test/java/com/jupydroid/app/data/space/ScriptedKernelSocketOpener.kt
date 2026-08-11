@@ -27,6 +27,13 @@ class ScriptedKernelSocketOpener(
    * [failHandshake] to end the socket without ever opening.
    */
   private val openImmediately: Boolean = true,
+  /**
+   * Whether a `kernel_info_request` is answered.
+   *
+   * False is the case JupyterLab's own FIXME describes - a kernel whose ZMQ subscriptions are not
+   * established never resolves it - and it is what the failsafe timeout exists for.
+   */
+  private val answerKernelInfo: Boolean = true,
 ) : KernelSocketOpener {
   var openedKernelId: String? = null
     private set
@@ -39,6 +46,9 @@ class ScriptedKernelSocketOpener(
 
   /** What was sent before the handshake finished - lost frames, on a real server. */
   val sentBeforeOpen = mutableListOf<String>()
+
+  /** The `msg_type` of everything sent, in order, so the handshake's place in it can be asserted. */
+  val sentMsgTypes = mutableListOf<String>()
 
   private var opened = false
   private var events: ((KernelSocketEvent) -> Unit)? = null
@@ -75,14 +85,25 @@ class ScriptedKernelSocketOpener(
       // A real server drops what arrives before its own `open()` has associated the session, so
       // the fake keeps it and answers nothing - which is what the stall looks like.
       if (!opened) {
+        // A real server drops what arrives before its own `open()` has associated the session.
         sentBeforeOpen += frame
         return true
       }
-      val requestMsgId = Json.parseToJsonElement(frame)
-        .jsonObject["header"]!!.jsonObject["msg_id"]!!.jsonPrimitive.content
+      val header = Json.parseToJsonElement(frame).jsonObject["header"]!!.jsonObject
+      val requestMsgId = header["msg_id"]!!.jsonPrimitive.content
+      val msgType = header["msg_type"]!!.jsonPrimitive.content
+      sentMsgTypes += msgType
+      answer(msgType, requestMsgId)
+      return true
+    }
+
+    private fun answer(msgType: String, requestMsgId: String) {
+      if (msgType == "kernel_info_request") {
+        if (answerKernelInfo) onEvent(KernelSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId)))
+        return
+      }
       reply(requestMsgId).forEach { onEvent(KernelSocketEvent.Received(it)) }
       endAfter?.let(onEvent)
-      return true
     }
 
     override fun close() {
@@ -113,6 +134,10 @@ object KernelFrames {
     """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"complete_reply"},
        "content":{"status":"ok","matches":[${matches.joinToString { "\"$it\"" }}],
        "cursor_start":$cursorStart,"cursor_end":$cursorEnd}}"""
+
+  fun kernelInfoReply(parent: String) =
+    """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"kernel_info_reply"},
+       "content":{"status":"ok","protocol_version":"5.3"}}"""
 
   fun idle(parent: String) =
     """{"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"status"},

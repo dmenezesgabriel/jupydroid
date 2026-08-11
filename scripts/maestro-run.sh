@@ -38,7 +38,7 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 # by recency, and at 64 notebooks a 20-second `scrollUntilVisible` no longer reaches it.
 reset_notebooks() {
   "$ADB" shell am force-stop "$APP"
-  "$ADB" shell "run-as $APP sh -c 'rm -f $NOTEBOOK_DIR/*.ipynb'"
+  "$ADB" shell "run-as $APP sh -c 'rm -f \"$NOTEBOOK_DIR\"/*.ipynb'"
 }
 
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.
@@ -62,8 +62,11 @@ seed_notebook() {
   # endings, and a fixture is small enough to pass as an argument.
   local payload
   payload="$(base64 -w0 "$fixture")"
-  "$ADB" shell "run-as $APP sh -c 'echo $payload | base64 -d > $remote'"
-  "$ADB" shell run-as "$APP" test -s "$remote" ||
+  # The path is quoted, because X1b made the file name the notebook's title and titles have
+  # spaces in them - `Markdown Render.ipynb`. Unquoted, the redirect target was two words and the
+  # fixture landed in a file called `Markdown`.
+  "$ADB" shell "run-as $APP sh -c 'echo $payload | base64 -d > \"$remote\"'"
+  "$ADB" shell "run-as $APP sh -c 'test -s \"$remote\"'" ||
     { echo "fixture did not land at $remote"; exit 1; }
 }
 

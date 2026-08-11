@@ -12,6 +12,8 @@
 #   ANDROID_SERIAL=TABLET_SERIAL scripts/step5-completion-repeat-driver.sh 30
 #
 # Every run is a fresh launch with a fresh kernel, which is the state all four sightings were in.
+# NOT A SUITE FLOW. `scripts/run-all-flows.sh` skips this: it is a measuring instrument, not a
+# check, and a sweep that ran it would quietly grow by twenty launches of the same flow.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,7 +28,7 @@ passed=0
 failed=0
 for run in $(seq 1 "$RUNS"); do
   reset_notebooks
-  seed_notebook "$ROOT/.maestro/fixtures/step5-completion.ipynb" step5-completion
+  seed_notebook "$ROOT/.maestro/fixtures/step5-completion.ipynb" "Completion"
   if maestro_test "$ROOT/.maestro/step5-completion.yaml" >"$ROOT/build/flow-logs/repeat-$run.log" 2>&1; then
     passed=$((passed + 1))
     printf '.'

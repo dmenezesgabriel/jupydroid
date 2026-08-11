@@ -17,6 +17,8 @@ import org.junit.Test
  * debounce, so a rename that only reaches the repository gets overwritten by the next keystroke.
  */
 class EditorRenameTest {
+  // Read back under the *new* id throughout: X1b made the name the file, so renaming moves it and
+  // "nb-1" stops naming anything. That is the contract, not an accident of these tests.
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
   @Test
@@ -27,7 +29,7 @@ class EditorRenameTest {
     viewModel.renameNotebook("Math notes")
     advanceUntilIdle()
 
-    assertEquals("Math notes", repository.readNotebook("nb-1").title)
+    assertEquals("Math notes", repository.readNotebook("Math notes").title)
   }
 
   @Test
@@ -53,7 +55,7 @@ class EditorRenameTest {
     viewModel.editCell("c1", "print(2)")
     advanceUntilIdle()
 
-    val saved = repository.readNotebook("nb-1")
+    val saved = repository.readNotebook("Math notes")
     assertEquals("Math notes", saved.title)
     assertEquals("print(2)", saved.cells.single().source)
   }

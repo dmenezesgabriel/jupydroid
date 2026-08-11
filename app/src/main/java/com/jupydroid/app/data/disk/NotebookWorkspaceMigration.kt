@@ -1,6 +1,14 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.incrementedName
+import com.jupydroid.app.domain.model.isValidNotebookName
+import com.jupydroid.app.domain.model.notebookFileName
+import com.jupydroid.app.domain.model.notebookNameOf
 import java.io.File
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Moves notebooks out of the app's private folder and into the workspace the kernel can see.
@@ -21,6 +29,11 @@ import java.io.File
  *
  * Copy-then-delete rather than `renameTo`: the two directories are the same filesystem today, but
  * that is a fact about the current layout and not one worth betting a user's notebooks on.
+ *
+ * **It also gives each notebook its name back.** X1b makes the file name the title, the way
+ * JupyterLab does - there is no title inside a `.ipynb`, only a path. A notebook whose name lived
+ * in `metadata.jupydroid.title` would otherwise reappear called `9f3a1c02-8e4d-…`, and the user
+ * would have to rename every one by hand. So the same pass that moves the file also renames it.
  */
 class NotebookWorkspaceMigration(
   private val legacyDir: File,
@@ -48,15 +61,33 @@ class NotebookWorkspaceMigration(
 
   private fun notebooksToMove(): List<File> =
     (legacyDir.listFiles() ?: emptyArray())
-      .filter { it.isFile && it.name.endsWith(NOTEBOOK_SUFFIX) }
+      .filter { it.isFile && it.name.endsWith(".ipynb") }
       .sortedBy { it.name }
 
   private fun move(file: File): Boolean {
     workspaceDir.mkdirs()
-    val target = freeNameFor(file.name)
+    val target = freeNameFor(notebookFileName(nameFor(file)))
     file.copyTo(target)
     return file.delete()
   }
+
+  /**
+   * The title the file carries, or its current stem when it has none or the title cannot be one.
+   *
+   * A title with a `/` in it is not a file name ([isValidNotebookName]) and mangling it would hand
+   * the user a notebook they did not name; keeping the old stem loses nothing, because the name is
+   * still theirs to change. A file that will not parse keeps its stem too - the migration moves
+   * notebooks, it does not sit in judgement on them.
+   */
+  private fun nameFor(file: File): String {
+    val stem = notebookNameOf(file.name)
+    val title = runCatching { titleIn(file.readText()) }.getOrNull()
+    return title?.takeIf(::isValidNotebookName) ?: stem
+  }
+
+  private fun titleIn(text: String): String? =
+    (Json.parseToJsonElement(text) as? JsonObject)
+      ?.get("metadata")?.jsonObject?.get("jupydroid")?.jsonObject?.get("title")?.jsonPrimitive?.content
 
   /**
    * The incoming name, or that name with a counter, never a name already taken.
@@ -65,20 +96,15 @@ class NotebookWorkspaceMigration(
    * and the file already there may well be the newer one. Suffixing keeps both.
    */
   private fun freeNameFor(name: String): File {
-    val stem = name.removeSuffix(NOTEBOOK_SUFFIX)
-    var candidate = File(workspaceDir, name)
-    var counter = 1
-    while (candidate.exists()) {
-      candidate = File(workspaceDir, "$stem-$counter$NOTEBOOK_SUFFIX")
-      counter++
-    }
-    return candidate
+    // jupyter_server's own `increment_filename`, so a clash here is resolved the way the server
+    // that serves this directory would resolve it: `Draft`, `Draft1`, `Draft2`.
+    val free = incrementedName(notebookNameOf(name)) { File(workspaceDir, notebookFileName(it)).exists() }
+    return File(workspaceDir, notebookFileName(free))
   }
 
   private fun stamp(): File = stampFile
 
   private companion object {
-    const val NOTEBOOK_SUFFIX = ".ipynb"
     const val STAMP_TEXT = "1"
   }
 }

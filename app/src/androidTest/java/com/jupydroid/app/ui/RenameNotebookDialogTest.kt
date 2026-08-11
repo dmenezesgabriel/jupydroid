@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
@@ -66,6 +67,44 @@ class RenameNotebookDialogTest {
 
     assertEquals(emptyList<String>(), confirmed)
     assertEquals(1, dismissed)
+  }
+
+  /**
+   * A name the filesystem cannot hold is refused here, not silently rewritten.
+   *
+   * JupyterLab validates in this same dialog and names the rule rather than mangling the input:
+   * *"Names must have nonzero length, and cannot include "/", "\\", or ":"* (`packages/docmanager/src/dialogs.ts`, `isValidFileName` and the error beside it). Since X1b
+   * the name **is** the file, so `a/b` is not a preference we are declining - it is not a name.
+   */
+  @Test
+  fun aNameWithASeparatorCannotBeConfirmed() {
+    showDialog("Draft")
+
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput("reports/final")
+
+    compose.onNodeWithText("Rename").assertIsNotEnabled()
+  }
+
+  @Test
+  fun aRefusedNameSaysWhichCharactersAreAtFault() {
+    showDialog("Draft")
+
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput("a:b")
+
+    compose.onNodeWithText("Names must have nonzero length", substring = true).assertExists()
+  }
+
+  /** A leading dot hides the file from the explorer, from `ls`, and from jupyter_server. */
+  @Test
+  fun aHiddenNameCannotBeConfirmed() {
+    showDialog("Draft")
+
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput(".secret")
+
+    compose.onNodeWithText("Rename").assertIsNotEnabled()
   }
 
   @Test

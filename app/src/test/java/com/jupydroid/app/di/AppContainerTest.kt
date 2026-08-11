@@ -41,8 +41,8 @@ class AppContainerTest {
     val created = repository.createNotebook(title = "Untitled", kernelId = "python3")
     assertEquals("Untitled", repository.readNotebook(created.id).title)
 
-    repository.renameNotebook(created.id, "Renamed")
-    assertEquals("Renamed", repository.readNotebook(created.id).title)
+    val renamed = repository.renameNotebook(created.id, "Renamed")
+    assertEquals("Renamed", repository.readNotebook(renamed).title)
 
     val summaries = repository.observeNotebooks().first()
     assertEquals(listOf("Renamed"), summaries.map { it.title })

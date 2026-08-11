@@ -27,7 +27,7 @@ run_in_theme() {
   # launch, not after: a mid-flow change recreates the activity and loses the opened notebook.
   "$ADB" shell cmd uimode night "$night"
   reset_notebooks
-  seed_notebook "$FIXTURE" u1-palette
+  seed_notebook "$FIXTURE" "Palette Check"
   run_flow "$FLOW" "$EVIDENCE/$theme"
 }
 

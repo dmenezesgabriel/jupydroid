@@ -34,11 +34,14 @@ fun Notebook.toFileJson(): JsonObject = buildJsonObject {
 }
 
 private fun Notebook.notebookMetadataJson(): JsonObject = buildJsonObject {
-  preserved.objectAt("metadata").forEach { (key, value) -> put(key, value) }
+  // Dropped rather than carried over: this app owns the `jupydroid` namespace and no longer
+  // writes anything into it, so a key from an older build must not linger. It held the title
+  // until X1b, and a file that kept one would be claiming a name its own filename contradicts -
+  // which is precisely the split Phase X exists to close. `updated_at` went the same way in A6.
+  preserved.objectAt("metadata")
+    .filterKeys { it != JUPYDROID_METADATA }
+    .forEach { (key, value) -> put(key, value) }
   put("kernelspec", kernelspecJson())
-  // Replaced whole rather than merged, which is how the old `updated_at` leaves a file that has
-  // one: this app owns the `jupydroid` namespace, so a key it no longer writes should not linger.
-  put("jupydroid", buildJsonObject { put("title", title) })
 }
 
 /**
@@ -113,3 +116,6 @@ private val OWNED_METADATA_KEYS = setOf("jupyter", "collapsed")
 private const val NBFORMAT_MAJOR = 4
 private const val NBFORMAT_MINOR = 5
 private const val DEFAULT_DISPLAY_NAME = "Python 3"
+
+/** The namespace this app used to keep its own fields in. Nothing writes it now; writes strip it. */
+private const val JUPYDROID_METADATA = "jupydroid"

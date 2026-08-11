@@ -68,10 +68,15 @@ class RealKernelGatewayObservabilityTest {
     gateway.execute(session, "cell-1", "2 + 2").toList()
 
     assertTrue("no frame was reported at all", log.countOf(KernelLog.FRAME_RECEIVED) > 0)
-    assertEquals("1", log.fieldsOf(KernelLog.FRAME_RECEIVED)["subscribers"])
+    // Not zero, rather than exactly one: the `kernel_info` handshake is collecting alongside the
+    // cell, so two is ordinary. Zero is the signal - a frame nobody was listening for, which
+    // `MutableSharedFlow(replay = 0)` discards in silence.
+    val subscribers = log.fieldsOf(KernelLog.FRAME_RECEIVED)["subscribers"]?.toInt()
+    assertTrue("a frame arrived with nobody listening", (subscribers ?: 0) > 0)
     // Which message, not merely how many bytes: the fourth sighting of the stall showed three
-    // frames and then silence, and the log could not say which three.
-    assertEquals("execute_input", log.fieldsOf(KernelLog.FRAME_RECEIVED)["msgType"])
+    // frames and then silence, and the log could not say which three. The first frame on any
+    // socket is now the `kernel_info_reply` that releases the cell - see KernelInfoHandshakeTest.
+    assertEquals("kernel_info_reply", log.fieldsOf(KernelLog.FRAME_RECEIVED)["msgType"])
   }
 
   /** A socket that ends under a running cell is the other way this stalls, and it is loud. */

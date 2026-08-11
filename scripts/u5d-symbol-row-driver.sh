@@ -19,10 +19,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/u5d-symbol-row.ipynb" u5d-symbol-row
+seed_notebook "$ROOT/.maestro/fixtures/u5d-symbol-row.ipynb" "Symbol Row"
 run_flow "$ROOT/.maestro/u5d-symbol-row.yaml" "$ROOT/evidence/u5d-symbol-row"
 
 # The order and shape on disk is the real assertion: two code cells became one code cell holding
 # both sources, by way of a markdown cell that the merge folded back into code.
 echo "--- notebook as saved after the flow ---"
-"$ADB" shell run-as com.jupydroid.app cat $NOTEBOOK_DIR/u5d-symbol-row.ipynb
+"$ADB" shell "run-as com.jupydroid.app cat \"$NOTEBOOK_DIR/Symbol Row.ipynb\""

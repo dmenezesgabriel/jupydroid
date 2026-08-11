@@ -97,8 +97,11 @@ class NotebookNavigationTest {
   private fun startAppWithTwoNotebooks() {
     val repository = DiskNotebookRepository(tempFolder.root)
     runBlocking {
-      repository.saveNotebook(notebook("alpha", ALPHA_TITLE, ALPHA_SOURCE))
-      repository.saveNotebook(notebook("beta", BETA_TITLE, BETA_SOURCE))
+      // The id *is* the name since X1b - a notebook's file is what it is called - so these two
+      // cannot differ. They used to, and Home then listed "alpha" while the test looked for
+      // "Alpha notebook".
+      repository.saveNotebook(notebook(ALPHA_TITLE, ALPHA_SOURCE))
+      repository.saveNotebook(notebook(BETA_TITLE, BETA_SOURCE))
     }
     compose.setContent {
       JupyterDroidTheme {
@@ -111,8 +114,8 @@ class NotebookNavigationTest {
     }
   }
 
-  private fun notebook(id: String, title: String, source: String) =
-    Notebook(id, title, "python3", listOf(Cell("$id-c1", CellKind.CODE, source)))
+  private fun notebook(name: String, source: String) =
+    Notebook(name, name, "python3", listOf(Cell("$name-c1", CellKind.CODE, source)))
 
   private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {
     compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()

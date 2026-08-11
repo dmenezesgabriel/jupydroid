@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 
 /** A kernel socket ended before the execution did. */
 class KernelChannelException(reason: String) : IllegalStateException(reason)
@@ -82,7 +84,7 @@ class RealKernelGateway(
       emitAll(
         sessionSocket.events
           .onSubscription {
-            sessionSocket.awaitConnected()
+            sessionSocket.awaitReady()
             // `enqueued`, not `sent`: OkHttp returns true when the frame is *queued*, so a true
             // here says the app let go of the request and nothing about the kernel having heard
             // it. That is why the await above exists rather than trusting this.
@@ -122,6 +124,7 @@ class RealKernelGateway(
     val requestMsgId = UUID.randomUUID().toString()
     return sessionSocket.events
       .onSubscription {
+        sessionSocket.awaitReady()
         sessionSocket.socket.send(JupyterMessage.completeRequest(code, cursorOffset, session.id, requestMsgId))
       }
       .mapNotNull { event -> completionOrFail(event, requestMsgId) }
@@ -180,7 +183,7 @@ class RealKernelGateway(
       settle(connected, event)
       report(event, subscribers = events.subscriptionCount.value, accepted = events.tryEmit(event))
     }
-    return SessionSocket(socket, events, connected)
+    return SessionSocket(socket, events, session.id, connected)
   }
 
   /**
@@ -223,14 +226,57 @@ class RealKernelGateway(
   private class SessionSocket(
     val socket: KernelSocket,
     val events: MutableSharedFlow<KernelSocketEvent>,
+    private val sessionId: String,
     private val connected: CompletableDeferred<Unit>,
   ) {
-    /** Returns at once when the socket is already open, which every cell after the first is. */
-    suspend fun awaitConnected() = connected.await()
+    private val handshake = Mutex()
+    private var greeted = false
+
+    /**
+     * Waits until this socket can actually be asked to run something.
+     *
+     * Two parts, both taken from JupyterLab's `_updateConnectionStatus`: the handshake must have
+     * completed, **and** the kernel must have answered a `kernel_info_request`. The second is the
+     * one that matters - `jupyter_server` finishes the websocket handshake before it has
+     * subscribed the session to the kernel's ZMQ channels, so a request sent in between is
+     * dropped without a word. That is the execution stall, five sightings
+     * (`evidence/kernel-observability/`).
+     *
+     * Once per socket, not once per cell, so every later cell returns here immediately.
+     */
+    suspend fun awaitReady() {
+      connected.await()
+      handshake.withLock {
+        if (greeted) return
+        greetKernel()
+        greeted = true
+      }
+    }
+
+    /**
+     * Asks, and gives up after [KERNEL_INFO_TIMEOUT] rather than waiting for ever.
+     *
+     * The failsafe is the reference's too, and their standing note says why: "if sent while zmq
+     * subscriptions are not established, kernelInfo may not resolve, so use a timeout to ensure we
+     * don't hang forever". Without it this would trade a stall that recovers on retry for one that
+     * never does.
+     */
+    private suspend fun greetKernel() {
+      val msgId = UUID.randomUUID().toString()
+      withTimeoutOrNull(KERNEL_INFO_TIMEOUT) {
+        events
+          .onSubscription { socket.send(JupyterMessage.kernelInfoRequest(sessionId, msgId)) }
+          .first { it is KernelSocketEvent.Received && JupyterFrame.ofType(it.frame, msgId, KERNEL_INFO_REPLY) != null }
+      }
+    }
   }
 
   private companion object {
     const val FRAME_BUFFER = 256
+
+    /** JupyterLab's `DEFAULT_KERNEL_INFO_TIMEOUT`, which is 3000ms. */
+    val KERNEL_INFO_TIMEOUT = 3.seconds
+    const val KERNEL_INFO_REPLY = "kernel_info_reply"
   }
 }
 

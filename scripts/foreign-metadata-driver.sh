@@ -40,7 +40,7 @@ maestro_test "$ROOT/.maestro/foreign-metadata.yaml"
 # The file on disk is the whole assertion here - the screenshots only show that the app was
 # driven. Every key below was written by something other than this app and must still be there.
 echo "--- notebook as saved after the flow ---"
-SAVED="$("$ADB" shell run-as "$APP" cat "$REMOTE")"
+SAVED="$("$ADB" shell "run-as $APP cat \"$REMOTE\"")"
 echo "$SAVED"
 
 missing=0

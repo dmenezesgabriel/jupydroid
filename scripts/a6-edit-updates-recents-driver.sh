@@ -19,7 +19,7 @@ APP="com.jupydroid.app"
 . "$ROOT/scripts/maestro-run.sh"   # for reset_notebooks
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="$NOTEBOOK_DIR/a6-updated-at.ipynb"
+REMOTE="$NOTEBOOK_DIR/Updated At.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -30,15 +30,12 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 # the row stale, and a stale row sorts to the bottom of a list ordered by recency. At 64
 # notebooks the flow's `scrollUntilVisible` stopped reaching it.
 reset_notebooks
-"$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"
-
-# base64 on the command line rather than piping to `cat`: adb shell can mangle
-# stdin line endings, and the fixture is small enough to pass as an argument.
-PAYLOAD="$(base64 -w0 "$FIXTURE")"
-"$ADB" shell "run-as $APP sh -c 'echo $PAYLOAD | base64 -d > $REMOTE'"
-"$ADB" shell run-as "$APP" test -s "$REMOTE" ||
-  { echo "fixture did not land at $REMOTE"; exit 1; }
-"$ADB" shell "run-as $APP touch -t 202001010000 $REMOTE"
+# The last driver that still seeded by hand, and the last to be bitten by it: X1b made the file
+# name the notebook's title, so the path is `Updated At.ipynb` and the unquoted redirect split it
+# into a file called `Updated`. The helper quotes; backdating is the only step this driver ever
+# needed of its own.
+seed_notebook "$FIXTURE" "Updated At"
+"$ADB" shell "run-as $APP touch -t 202001010000 \"$REMOTE\""
 
 # The handwriting IME steals focus from text fields and swallows inputText, and this flow types.
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
@@ -49,6 +46,6 @@ maestro_test "$ROOT/.maestro/a6-edit-updates-recents.yaml"
 # The file is the other half of the assertion: mtime moved, and the stale `updated_at` the
 # fixture carried is gone rather than merely ignored.
 echo "--- mtime after the edit ---"
-"$ADB" shell run-as "$APP" ls -l "$REMOTE"
+"$ADB" shell "run-as $APP ls -l \"$REMOTE\""
 echo "--- notebook as saved after the flow ---"
-"$ADB" shell run-as "$APP" cat "$REMOTE"
+"$ADB" shell "run-as $APP cat \"$REMOTE\""

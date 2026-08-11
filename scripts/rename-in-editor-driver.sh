@@ -15,7 +15,7 @@ APP="com.jupydroid.app"
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="$NOTEBOOK_DIR/rename-in-editor.ipynb"
+REMOTE="$NOTEBOOK_DIR/Rename Me Here.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -23,7 +23,7 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/rename-in-editor.ipynb" rename-in-editor
+seed_notebook "$ROOT/.maestro/fixtures/rename-in-editor.ipynb" "Rename Me Here"
 
 # The handwriting IME steals focus from text fields and swallows inputText, and this flow types.
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
@@ -32,7 +32,13 @@ seed_notebook "$ROOT/.maestro/fixtures/rename-in-editor.ipynb" rename-in-editor
 maestro_test "$ROOT/.maestro/rename-in-editor.yaml"
 
 echo "--- the notebook as saved after the rename ---"
-"$ADB" shell run-as "$APP" cat "$REMOTE"
+# The *renamed* file: X1b makes a rename move it, so `$REMOTE` names nothing afterwards. That the
+# old path is gone and the new one holds the cells is the whole claim of this flow now.
+RENAMED="$NOTEBOOK_DIR/Renamed From Editor.ipynb"
+"$ADB" shell "run-as $APP cat \"$RENAMED\""
 echo
-echo "--- the filename did not change; only the title inside it did ---"
-"$ADB" shell run-as "$APP" ls -l "$REMOTE"
+echo "--- the file the rename moved it to ---"
+"$ADB" shell "run-as $APP ls -l \"$RENAMED\""
+echo "--- the name it was opened under must be gone ---"
+"$ADB" shell "run-as $APP sh -c 'test ! -e \"$REMOTE\"'" ||
+  { echo "the old file survived the rename: $REMOTE"; exit 1; }

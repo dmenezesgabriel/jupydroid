@@ -25,7 +25,7 @@ APP="com.jupydroid.app"
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="$NOTEBOOK_DIR/mime-shapes.ipynb"
+REMOTE="$NOTEBOOK_DIR/Mime Shapes.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -33,7 +33,7 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
 reset_notebooks
-seed_notebook "$FIXTURE" mime-shapes
+seed_notebook "$FIXTURE" "Mime Shapes"
 
 # The handwriting IME steals focus from text fields and swallows inputText; this flow is
 # nothing but typing, so it cannot run with it enabled.
@@ -46,7 +46,7 @@ maestro_test "$ROOT/.maestro/mime-shapes.yaml"
 # and `_rejoin_mimebundle`, and the failure they guard against is silent: a stringified object
 # still reads as JSON, it just describes a payload no Jupyter tool can render back.
 echo "--- notebook as saved after the flow ---"
-SAVED="$("$ADB" shell run-as "$APP" cat "$REMOTE")"
+SAVED="$("$ADB" shell "run-as $APP cat \"$REMOTE\"")"
 echo "$SAVED"
 
 fail=0

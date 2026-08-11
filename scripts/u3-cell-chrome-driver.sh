@@ -19,5 +19,5 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/u3-cell-chrome.ipynb" u3-cell-chrome
+seed_notebook "$ROOT/.maestro/fixtures/u3-cell-chrome.ipynb" "Cell Chrome"
 run_flow "$ROOT/.maestro/u3-cell-chrome.yaml" "$ROOT/evidence/u3-cell-chrome"

@@ -22,8 +22,16 @@ class HomeViewModel(private val notebookRepository: NotebookRepository) : ViewMo
     viewModelScope.launch { notebookRepository.createNotebook(title, kernelId) }
   }
 
+  /**
+   * A refusal leaves the list as it was rather than crashing.
+   *
+   * Since X1b a rename can fail - the name is the file, so it can be invalid or already taken -
+   * and an exception thrown inside `viewModelScope.launch` is uncaught and fatal. The list is
+   * rebuilt from disk by the repository, so there is nothing to roll back here; not dying is the
+   * whole job.
+   */
   fun renameNotebook(id: String, title: String) {
-    viewModelScope.launch { notebookRepository.renameNotebook(id, title) }
+    viewModelScope.launch { runCatching { notebookRepository.renameNotebook(id, title) } }
   }
 
   fun deleteNotebook(id: String) {

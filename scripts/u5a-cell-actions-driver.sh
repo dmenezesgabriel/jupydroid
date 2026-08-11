@@ -21,10 +21,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/u5a-cell-actions.ipynb" u5a-cell-actions
+seed_notebook "$ROOT/.maestro/fixtures/u5a-cell-actions.ipynb" "Cell Actions"
 run_flow "$ROOT/.maestro/u5a-cell-actions.yaml" "$ROOT/evidence/u5a-cell-actions"
 
 # The order and shape on disk is the real assertion: two code cells became one code cell holding
 # both sources, by way of a markdown cell that the merge folded back into code.
 echo "--- notebook as saved after the flow ---"
-"$ADB" shell run-as com.jupydroid.app cat $NOTEBOOK_DIR/u5a-cell-actions.ipynb
+"$ADB" shell "run-as com.jupydroid.app cat \"$NOTEBOOK_DIR/Cell Actions.ipynb\""

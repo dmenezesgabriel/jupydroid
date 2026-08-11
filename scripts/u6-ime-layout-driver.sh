@@ -29,6 +29,6 @@ echo "=== ${WIDTH_DP}dp wide ==="
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/u6-ime-layout.ipynb" u6-ime-layout
+seed_notebook "$ROOT/.maestro/fixtures/u6-ime-layout.ipynb" "Ime Layout"
 
 run_flow "$ROOT/.maestro/u6-ime-layout.yaml" "$ROOT/evidence/u6-ime-layout/${WIDTH_DP}dp"

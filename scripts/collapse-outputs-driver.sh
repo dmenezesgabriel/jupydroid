@@ -25,7 +25,7 @@ APP="com.jupydroid.app"
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="$NOTEBOOK_DIR/collapse-outputs.ipynb"
+REMOTE="$NOTEBOOK_DIR/Collapse Outputs.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -33,7 +33,7 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
 reset_notebooks
-seed_notebook "$FIXTURE" collapse-outputs
+seed_notebook "$FIXTURE" "Collapse Outputs"
 
 # The handwriting IME steals focus from text fields and swallows inputText; this flow is
 # nothing but typing, so it cannot run with it enabled.
@@ -45,4 +45,4 @@ maestro_test "$ROOT/.maestro/collapse-outputs.yaml"
 # The file on disk is the real assertion: the screenshots show a folded cell, but only the
 # saved metadata proves `collapsed` was written - the key JupyterLab actually reads.
 echo "--- notebook as saved after the flow ---"
-"$ADB" shell run-as "$APP" cat "$REMOTE"
+"$ADB" shell "run-as $APP cat \"$REMOTE\""

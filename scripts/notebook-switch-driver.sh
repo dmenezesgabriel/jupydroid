@@ -27,7 +27,7 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 # fixture it cannot read makes rule 1 pass without ever being applied. Two lines, no variable.
 reset_notebooks
 # DiskNotebookRepository derives the notebook id from the filename stem.
-seed_notebook "$ROOT/.maestro/fixtures/switch-alpha.ipynb" switch-alpha
-seed_notebook "$ROOT/.maestro/fixtures/switch-beta.ipynb" switch-beta
+seed_notebook "$ROOT/.maestro/fixtures/switch-alpha.ipynb" "Switch Alpha"
+seed_notebook "$ROOT/.maestro/fixtures/switch-beta.ipynb" "Switch Beta"
 
 maestro_test "$ROOT/.maestro/notebook-switch.yaml"

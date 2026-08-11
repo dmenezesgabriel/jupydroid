@@ -18,6 +18,18 @@ object JupyterMessage {
   fun executeRequest(code: String, sessionId: String, msgId: String): String =
     shellRequest("execute_request", sessionId, msgId, executeContent(code))
 
+  /**
+   * The first message on any new socket, and the reason is not curiosity about the kernel.
+   *
+   * A completed websocket handshake is not a kernel ready to be asked anything: `jupyter_server`
+   * is still subscribing the session to the kernel's ZMQ channels, and a request arriving in that
+   * window is dropped in silence. JupyterLab sends this first on every connection "to get kernel
+   * status back and ensure iopub is fully established"
+   * (`packages/services/src/kernel/default.ts`, `_updateConnectionStatus`).
+   */
+  fun kernelInfoRequest(sessionId: String, msgId: String): String =
+    shellRequest("kernel_info_request", sessionId, msgId, buildJsonObject { })
+
   /** [cursorOffset] becomes `cursor_pos`, which the protocol counts in characters, not bytes. */
   fun completeRequest(code: String, cursorOffset: Int, sessionId: String, msgId: String): String =
     shellRequest(

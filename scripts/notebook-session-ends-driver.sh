@@ -25,6 +25,6 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/session-ends.ipynb" session-ends
+seed_notebook "$ROOT/.maestro/fixtures/session-ends.ipynb" "Session Ends"
 
 maestro_test "$ROOT/.maestro/notebook-session-ends.yaml"

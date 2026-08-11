@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -55,6 +56,15 @@ fun EditorScreen(
   kernelGateway: KernelGateway,
   applicationScope: CoroutineScope,
   onBack: () -> Unit,
+  /**
+   * Reports where the notebook lives *now*, because a rename moves it.
+   *
+   * The navigation key keeps the path the editor was opened under - replacing it would re-create
+   * the entry and throw the editor's state away. The reference has the same split: a `Context`
+   * holds the live path and `_contextsForPath` looks up by that, never by the path a widget was
+   * created with.
+   */
+  onNotebookMoved: (String) -> Unit = {},
   modifier: Modifier = Modifier,
   viewModel: EditorViewModel = viewModel {
     EditorViewModel(notebookId, notebookRepository, kernelGateway, applicationScope)
@@ -68,6 +78,16 @@ fun EditorScreen(
   // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
   // reports the mode change, so there is one path out of edit mode rather than two.
   BackHandler(enabled = state.mode == CellMode.EDIT) { focusManager.clearFocus() }
+  LaunchedEffect(state.notebookId) {
+    if (state.notebookId.isNotEmpty()) onNotebookMoved(state.notebookId)
+  }
+  state.nameTaken?.let { taken ->
+    OverwriteNotebookDialog(
+      name = taken,
+      onOverwrite = { viewModel.answerOverwrite(accepted = true) },
+      onDismiss = { viewModel.answerOverwrite(accepted = false) },
+    )
+  }
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = {

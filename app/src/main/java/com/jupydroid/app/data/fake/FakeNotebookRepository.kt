@@ -2,6 +2,7 @@ package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookSummary
+import com.jupydroid.app.domain.port.NotebookNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import java.time.Instant
 import java.util.UUID
@@ -39,8 +40,21 @@ class FakeNotebookRepository : NotebookRepository {
     return notebook
   }
 
-  override suspend fun renameNotebook(id: String, title: String) {
-    notebooks.value[id]?.let { put(it.copy(title = title)) }
+  /** Re-keyed, not merely re-titled: the id *is* the name, so a rename moves the entry. */
+  override suspend fun renameNotebook(id: String, title: String): String {
+    val existing = notebooks.value[id] ?: return id
+    if (title != id && notebooks.value.containsKey(title)) throw NotebookNameTakenException(title)
+    notebooks.value = notebooks.value - id
+    put(existing.copy(id = title, title = title))
+    return title
+  }
+
+  /** Takes the name whatever is there, which is what the user asked for when they confirmed. */
+  override suspend fun overwriteNotebook(id: String, title: String): String {
+    val existing = notebooks.value[id] ?: return id
+    notebooks.value = notebooks.value - id - title
+    put(existing.copy(id = title, title = title))
+    return title
   }
 
   override suspend fun deleteNotebook(id: String) {

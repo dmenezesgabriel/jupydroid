@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.NotebookNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +21,16 @@ import java.util.UUID
  * state flow, and running a cell has nothing to say about renaming a file.
  */
 class EditorViewModel(
-  private val notebookId: String,
+  /**
+   * The notebook this editor is on - **mutable**, because the id is the file's name and a rename
+   * moves the file.
+   *
+   * This is JupyterLab's `Context._path`, which `_updatePath` reassigns in place while the open
+   * widget carries on (`packages/docregistry/src/context.ts`). Keeping it here rather than in the
+   * navigation key is what lets a rename leave the editor's cells, outputs and execution state
+   * alone; re-creating the screen instead would throw away everything that is not on disk.
+   */
+  private var notebookId: String,
   private val notebookRepository: NotebookRepository,
   kernelGateway: KernelGateway,
   /**
@@ -75,26 +85,74 @@ class EditorViewModel(
     val current = notebook ?: return
     // The in-memory copy has to move too. persist() writes `notebook.copy(cells = ...)`, so a
     // rename that only reached the repository would be overwritten by the next keystroke.
+    val before = current.title
     notebook = current.copy(title = title)
     _uiState.update { it.copy(title = title) }
-    viewModelScope.launch { notebookRepository.renameNotebook(notebookId, title) }
+    viewModelScope.launch { applyRename(title, before) }
   }
 
   /**
-   * Closes the notebook: flushes a save the debounce never got to, then closes the kernel socket.
+   * Adopts the new id, or puts the old name back when the repository refuses.
    *
-   * In that order, which is JupyterLab's - `DocumentWidgetManager.onClose` awaits
-   * `context.save()` before `widget.dispose()`, and disposing the context is what disposes the
-   * session (`packages/docmanager/src/widgetmanager.ts:335-388`).
+   * X1b gave a rename the power to fail - the name is the file, so `a/b` is not a name and a name
+   * already taken would overwrite somebody else's notebook. Refusals arrive as exceptions, and an
+   * exception in a bare `viewModelScope.launch` is an uncaught exception in a coroutine, which
+   * takes the process down: typing a `/` into the rename dialog crashed the app.
    *
-   * **Only when there is something to write.** `updatedAt` is the file's mtime, so a write is
-   * what makes a notebook "updated" - saving on the way out would push a notebook to the top of
-   * Recents for having been looked at. The pending job is cancelled before the flush so a
-   * debounce that happens to be mid-flight cannot write the same thing twice.
-   *
-   * Public rather than protected because `clear()` is `internal` to lifecycle, so this is the
-   * only seam a test has on leaving the screen.
+   * On success the id is adopted, which is `Context._updatePath` - the document did not change,
+   * only where it lives. On refusal the optimistic title is rolled back, so the name snapping
+   * back is what the user sees rather than a notebook that claims a name it does not have.
    */
+  /**
+   * Adopts the new id, or puts the old name back when the repository refuses.
+   *
+   * X1b gave a rename the power to fail - the name is the file, so `a/b` is not a name and a name
+   * already taken would overwrite somebody else's notebook. Refusals arrive as exceptions, and an
+   * exception in a bare `viewModelScope.launch` is uncaught and fatal: typing a `/` into the
+   * rename dialog crashed the app.
+   *
+   * On success the id is adopted, which is `Context._updatePath` - the document did not change,
+   * only where it lives.
+   */
+  private suspend fun applyRename(title: String, before: String) {
+    runCatching { notebookRepository.renameNotebook(notebookId, title) }
+      .onSuccess { moved -> adopt(moved) }
+      .onFailure { failure ->
+        notebook = notebook?.copy(title = before)
+        // Only a taken name becomes a question, exactly as only a 409 does in `renameFile`.
+        val taken = if (failure is NotebookNameTakenException) title else null
+        _uiState.update { it.copy(title = before, nameTaken = taken) }
+      }
+  }
+
+  /**
+   * Answers "already exists, overwrite?" - yes replaces the file, no keeps the current name.
+   *
+   * One method taking the answer rather than two named for the outcomes, because that is the shape
+   * the reference has: `shouldOverwrite(path): Promise<boolean>`, with `renameFile` acting on the
+   * boolean. The name comes from state, so there is no second copy to fall out of step.
+   */
+  fun answerOverwrite(accepted: Boolean) {
+    val taken = _uiState.value.nameTaken ?: return
+    _uiState.update { it.copy(nameTaken = null) }
+    if (!accepted) return
+    viewModelScope.launch {
+      runCatching { notebookRepository.overwriteNotebook(notebookId, taken) }.onSuccess { adopt(it) }
+    }
+  }
+
+  /**
+   * Takes on the id the repository moved the file to.
+   *
+   * `Context._updatePath`: the document did not change, only where it lives - so the id is
+   * reassigned in place and everything the editor holds carries on.
+   */
+  private fun adopt(moved: String) {
+    notebookId = moved
+    notebook = notebook?.copy(id = moved, title = moved)
+    _uiState.update { it.copy(title = moved, notebookId = moved) }
+  }
+
   public override fun onCleared() {
     val hadUnsavedWork = save.cancelPending()
     applicationScope.launch {

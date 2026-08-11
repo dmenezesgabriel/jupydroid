@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.jupydroid.app.domain.model.isValidNotebookName
 
 const val RENAME_FIELD_TAG = "rename-field"
 
@@ -60,9 +61,16 @@ fun RenameNotebookDialog(
     onDismissRequest = onDismiss,
     title = { Text("Rename notebook") },
     text = {
+      // Refused, not rewritten. JupyterLab validates in this dialog and names the characters at
+      // fault rather than turning `a/b` into `a-b` and handing back a notebook the user never
+      // named (`packages/docmanager/src/dialogs.ts`). Since X1b the name *is* the file, so an
+      // invalid one is not a matter of taste - the filesystem cannot store it.
+      val refused = title.text.isNotBlank() && !isValidNotebookName(title.text)
       OutlinedTextField(
         value = title,
         onValueChange = { title = it },
+        isError = refused,
+        supportingText = { if (refused) Text(INVALID_NAME_MESSAGE) },
         modifier = Modifier
           .focusRequester(field)
           .semantics { testTagsAsResourceId = true }
@@ -83,7 +91,7 @@ fun RenameNotebookDialog(
       val renamed = title.text.trim()
       TextButton(
         onClick = { if (renamed == currentTitle) onDismiss() else onConfirm(renamed) },
-        enabled = renamed.isNotBlank(),
+        enabled = isValidNotebookName(renamed),
       ) {
         Text("Rename")
       }
@@ -110,3 +118,7 @@ fun titleStemEnd(title: String): Int {
   val lastDot = title.lastIndexOf('.')
   return if (lastDot <= 0) title.length else lastDot
 }
+
+/** The reference's own wording: it names the rule instead of merely greying the button out. */
+private const val INVALID_NAME_MESSAGE =
+  "Names must have nonzero length, cannot start with \".\", and cannot include / \\ :"

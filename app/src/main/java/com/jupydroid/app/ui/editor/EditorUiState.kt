@@ -7,10 +7,27 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.port.KernelEvent
 
 data class EditorUiState(
+  /**
+   * Where the notebook lives now, which a rename changes - since X1b the file *is* the name.
+   *
+   * Carried explicitly rather than inferred from [title]: they are equal, and that is an invariant
+   * of the store, not something a reader should have to know. It is what tells the notebook list
+   * which row is the open one, the way `_contextsForPath` filters live contexts by their *current*
+   * path rather than by the path a widget was opened under.
+   */
+  val notebookId: String = "",
   val title: String = "",
   val cells: List<Cell> = emptyList(),
   val loaded: Boolean = false,
   val error: String? = null,
+  /**
+   * The name a rename asked for and could not have, or null when nothing is pending.
+   *
+   * Non-null puts the reference's question on screen - `"%1" already exists, overwrite?` - and it
+   * is set **only** for a name already taken. `renameFile` rethrows anything that is not a 409,
+   * so an invalid name is never offered an overwrite; it is simply not a name.
+   */
+  val nameTaken: String? = null,
   /**
    * Held here rather than on [Cell] while a run is in flight: the cell list is what gets
    * written to disk, and half a run's output has no business being saved.
@@ -76,6 +93,7 @@ fun EditorUiState.withSource(cellId: String, source: String): EditorUiState =
  * timestamp and reorder Recents for having been opened.
  */
 fun Notebook.toEditorUiState(defaultCellId: String) = EditorUiState(
+  notebookId = id,
   title = title,
   cells = cells.ifEmpty { listOf(Cell(defaultCellId, CellKind.CODE, "")) },
   loaded = true,

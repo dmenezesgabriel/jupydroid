@@ -20,5 +20,5 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/u5c-notebook-bar.ipynb" u5c-notebook-bar
+seed_notebook "$ROOT/.maestro/fixtures/u5c-notebook-bar.ipynb" "Notebook Bar"
 run_flow "$ROOT/.maestro/u5c-notebook-bar.yaml" "$ROOT/evidence/u5c-notebook-bar"

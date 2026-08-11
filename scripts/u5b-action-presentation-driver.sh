@@ -33,11 +33,11 @@ if [ "$WIDTH_DP" -ge 600 ]; then CLASS=expanded; else CLASS=compact; fi
 echo "=== ${CLASS}, ${WIDTH_DP}dp wide ==="
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/u5a-cell-actions.ipynb" u5a-cell-actions
+seed_notebook "$ROOT/.maestro/fixtures/u5a-cell-actions.ipynb" "Cell Actions"
 run_flow "$ROOT/.maestro/u5b-action-presentation.yaml" \
   "$ROOT/evidence/u5b-action-presentation/${CLASS}-${WIDTH_DP}dp"
 
 # Three cells: the action the surface offered actually reshaped the notebook. The screenshots
 # show *which* surface appeared; only the file shows that it worked.
 echo "--- notebook as saved after the flow ---"
-"$ADB" shell run-as com.jupydroid.app cat $NOTEBOOK_DIR/u5a-cell-actions.ipynb
+"$ADB" shell "run-as com.jupydroid.app cat \"$NOTEBOOK_DIR/Cell Actions.ipynb\""

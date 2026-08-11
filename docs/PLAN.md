@@ -1841,7 +1841,154 @@ run cannot assert two panes against a window with room for one. The negative hal
 worth having: a strategy that returned a scene unconditionally would pass the two-pane flow on any
 device, and only asserting that a narrow window does *not* get a second pane catches it.
 
+## Phase X — one filesystem, and a notebook named after itself
+
+### X1a — notebooks live where the kernel can see them (done)
+
+Until now a notebook was `filesDir/notebooks/<id>.ipynb` while the kernel's `HOME` was
+`files/spaces/base/home/jupydroid` - two trees that never met, so a notebook could not `open()` a
+file the user could see and the user could not see a file a notebook wrote. The repository roots at
+the workspace now, and `jupyter_server` is finally given `--ServerApp.root_dir` to match: it had
+been unset for eight steps, leaving the Contents API rooted at whatever cwd `ProcessBuilder` gave
+it, which nothing noticed while nothing but the app read the files.
+
+`notebookWorkspaceIn` is the one definition, used by `HOME`, by the server's root and by the
+repository. Three components agreeing by coincidence is not agreement.
+
+**Safe to put user files there, and checked rather than assumed:** the bundled rootfs archive
+carries `home/` and `home/jupydroid/` as bare directory entries with no files beneath them, and
+`TarGzExtractor` never wipes its destination - so a version bump re-extracts over the tree without
+touching a notebook. Had the archive shipped files there, this design would have eaten user data on
+the next release.
+
+The migration is stamped and **proven twice on device**, which is this project's own rule about
+install-time paths. Its stamp was first derived as `workspaceDir.parentFile`, which put our
+bookkeeping inside the rootfs's `home` and left the location a matter of reading the code; the
+driver deleted the path it *assumed*, the migration became a no-op, and the flow failed looking for
+a notebook that had never moved. It is a constructor parameter now, beside `BaseSpaceInstaller`'s
+version stamp.
+
+Twenty-eight drivers were repointed with `NOTEBOOK_DIR` written down once - a driver seeding the
+old path would still be green against an empty Home. The move broke 25 flows on the first sweep,
+because the `REMOTE=` declarations sat *above* the `source` line that defines the variable and
+`set -u` aborted; no unit test could have said anything about that.
+
+Evidence: `evidence/x1-workspace-migration/`.
+
+### X1b — the notebook's name is its file (done)
+
+The other half of path identity, and the one the plan described loosely. The id was *already* the
+filename stem; what was missing is that the **title** lived in `metadata.jupydroid.title` while the
+file was a UUID. So the workspace the kernel shares - and the explorer X2 builds over it - would
+have shown `9f3a1c02-….ipynb` for a notebook called "Analysis of sales".
+
+Built by reading JupyterLab rather than reasoning about it, and it corrected three of my guesses:
+
+- **A rename moves the file.** `Context._rename` calls `contents.rename(this.path, newPath)`; the
+  file moves and nothing is re-created.
+- **The path is mutable state on the live object.** `_updatePath` reassigns `_path`, retitles the
+  session and emits `pathChanged`; the open widget carries on. So `EditorViewModel` holds the id as
+  mutable state and adopts the new one - which is why a rename keeps the cells, outputs and
+  execution state instead of remounting the screen. Keying the navigation entry on the path would
+  have re-created it, and that would have been a *regression*: today's rename loses nothing.
+- **Lookups use the current path, never a stored handle.** `_contextsForPath` filters live contexts
+  by `context.path`. So the navigation key stays frozen at the path the editor was opened under, and
+  the editor reports where it lives now - which is what keeps the two-pane list highlighting the
+  right row after a rename.
+- **Names are refused, not rewritten.** `isValidFileName` disallows `/`, `\`, `:` and empty, and the
+  dialog says which characters are at fault. Quietly turning `a/b` into `a-b` hands back a notebook
+  the user never named.
+- **A taken name is a question, not a failure.** `renameFile` catches **only** a 409 and asks
+  `"%1" already exists, overwrite?`; anything else rethrows. Hence `NotebookNameTakenException` as
+  its own type - an invalid name is never offered an overwrite - and `answerOverwrite(accepted)`
+  mirroring `shouldOverwrite(path): Promise<boolean>`, one method taking the answer rather than two
+  named for the outcomes.
+- **Overwriting moves ours aside first.** `DocumentManager.overwrite`: "Cleanly overwrite the file
+  by moving it, making sure the original does not exist, and then renaming to the new path."
+  Deleting the target first would open a window in which neither file exists.
+- **`Untitled1`, not `Untitled-1`.** `FileContentsManager.increment_filename`, read out of the
+  jupyter_server inside our own rootfs: the bare name first, then a counter with no separator. I had
+  invented a hyphen in two places.
+
+**The file now carries no title at all**, and the writer *strips* a stale `jupydroid` namespace
+rather than leaving one behind - a `.ipynb` this app writes is one any other tool would write. The
+X1 migration renames `<uuid>.ipynb` to `<title>.ipynb` in the same one-shot pass, so nobody's
+notebook comes back called `9f3a1c02-…`.
+
+**A defect I introduced and did not notice until asked.** Giving `renameNotebook` the power to fail
+made both ViewModels' bare `viewModelScope.launch` a crash path: an uncaught exception in a
+coroutine takes the process down, and typing a `/` into the rename dialog was enough. Fixed, and
+pinned by a test that first died with the raw exception escaping.
+
+**And a process failure worth recording.** The repository layer and that crash fix were test-first;
+`nameTaken`, `answerOverwrite`, the live-id reporting, the overwrite dialog and the rename
+validation were not - I wrote them implementation-first and was about to verify afterwards. They
+were backed out and rebuilt test-first on being called on it. The revert itself then failed to
+compile because the slice took `onCleared` with it, which is precisely the kind of thing test-after
+hides and red-first surfaces.
+
+**Three device-only defects it shook out**, none visible to any unit test: `seed_notebook` did not
+quote paths, so `Markdown Render.ipynb` landed as a file called `Markdown`; nine drivers had the
+same bug in `cat`/`ls`/`touch`; and three drivers still named the pre-rename path, which after X1b
+names nothing.
+
+**Not matched to the reference, deliberately:** we do not offer to overwrite from Home's list, only
+from the editor. The list has no open document to update afterwards, and a destructive confirm on a
+long-press menu is a different design question.
+
+Evidence: `evidence/x1b-name-is-the-file/`.
+
 ## Harness notes
+
+### Never `kill -9` maestro
+
+It leaves the device-side driver behind, and the symptom points nowhere near the cause: **every**
+subsequent flow on that device dies with
+
+```
+maestro.android.DeviceServerDiedException: Device server died during 'deviceInfo'
+Caused by: io.grpc.StatusRuntimeException: UNAVAILABLE
+```
+
+Maestro drives a device through a gRPC server it installs and runs there (`dev.mobile.maestro` and
+`dev.mobile.maestro.test`); a hard kill of the CLI orphans it. This cost an hour and nearly cost a
+correct conclusion: a sharded run failed 8 of 20 flows and the obvious reading was "concurrent
+maestro processes are unsafe, sharding cannot be used". Running **one flow alone** failed
+identically, which is what separated the two. The fix is to uninstall the driver so maestro
+reinstalls it:
+
+```
+adb -s <device> uninstall dev.mobile.maestro.test
+adb -s <device> uninstall dev.mobile.maestro
+```
+
+`adb uninstall` may answer `Failure [DELETE_FAILED_INTERNAL_ERROR]`, which leaves the device still
+broken while looking handled - check `pm list packages | grep maestro` afterwards rather than
+trusting the exit. Stop a run with `pkill -f run-all-flows` and let maestro exit on its own.
+
+### Running the suite across both devices
+
+`scripts/run-flows-sharded.sh` runs every flow across every attached device at once: measured
+**14m54s against ~40 minutes** sequential, with no flow, timeout or assertion changed.
+
+**Maestro's own `--shard-split` cannot be used here.** It splits a suite "evenly across N connected
+devices" and knows nothing about our rules, so the twelve `TABLET ONLY` flows would land on the
+x86_64 emulator where `FakeKernelGateway` answers from the cell's own source - green, and proving
+nothing. The rules live in the drivers, so the partition is made here and each shard is an ordinary
+`run-all-flows.sh`.
+
+Two passes, and the second one matters: constrained flows go where their rule allows, then free
+flows go to **whichever device is carrying least**. Round-robin looked fair and was not - the tablet
+is the only device that can run the kernel flows, so an even deal of the rest gave it 27 against the
+emulator's 13 and left the emulator idle for half the run. Least-loaded gives 20/20.
+
+Every driver runs on exactly one device, which is what makes this safe rather than merely fast:
+nine drivers write into a fixed `evidence/<step>/`, and two devices filling one directory at once
+would interleave two runs' screenshots. It is also why maestro's docs warn about sharding *the same
+flow* across devices - a hazard this never creates.
+
+`FLOW_NAMES` selects flows by exact name, because the human-facing substring filter matched
+`step5-completion` when asked for `step5-completion-repeat`.
 
 ### Running a Maestro flow
 

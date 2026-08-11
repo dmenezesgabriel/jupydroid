@@ -25,9 +25,11 @@ reset_notebooks
 "$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"
 for i in $(seq 1 "$CROWD"); do
   # Distinct, old timestamps so the ordering is deterministic and anything created now is first.
-  BODY="{\"metadata\":{\"kernelspec\":{\"name\":\"python3\",\"display_name\":\"Python 3\"},\"jupydroid\":{\"title\":\"Seeded $i\",\"updated_at\":\"2026-08-0${i:0:1}T0$((i % 9)):00:00Z\"}}}"
+  # No title in the JSON any more: X1b made the file's name the notebook's name, so the crowd is
+  # named by its files. The old timestamps stay - they are what makes the ordering deterministic.
+  BODY="{\"metadata\":{\"kernelspec\":{\"name\":\"python3\",\"display_name\":\"Python 3\"}}}"
   PAYLOAD="$(printf '%s' "$BODY" | base64 -w0)"
-  "$ADB" shell "run-as $APP sh -c 'echo $PAYLOAD | base64 -d > $NOTEBOOK_DIR/seeded-$i.ipynb'"
+  "$ADB" shell "run-as $APP sh -c 'echo $PAYLOAD | base64 -d > \"$NOTEBOOK_DIR/Seeded $i.ipynb\"'"
 done
 "$ADB" shell run-as "$APP" ls "$NOTEBOOK_DIR" | wc -l
 
