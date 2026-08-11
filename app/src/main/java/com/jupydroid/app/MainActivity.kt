@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.notebookWorkspace
@@ -40,6 +41,7 @@ class MainActivity : ComponentActivity() {
     ).runOnce()
     AppContainer(
       notebookRepository = DiskNotebookRepository(workspace),
+      workspaceRepository = DiskWorkspaceRepository(workspace),
       kernelGateway = kernelGateway ?: FakeKernelGateway(),
     )
   }

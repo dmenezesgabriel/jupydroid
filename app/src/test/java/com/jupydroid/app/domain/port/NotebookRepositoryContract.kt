@@ -5,6 +5,7 @@ import com.jupydroid.app.domain.model.CellKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
@@ -37,6 +38,23 @@ abstract class NotebookRepositoryContract {
     )
 
     assertFirst(repository, edited.id, "saving")
+  }
+
+  /**
+   * A rename supplies a *name*, and the notebook keeps the folder its id names.
+   *
+   * `Context._rename` replaces the path's last segment and joins the rest back on
+   * (`packages/docregistry/src/context.ts:611-614`); the file browser joins onto the directory it
+   * is showing (`packages/filebrowser/src/listing.ts:2621`). Both implementations have to agree,
+   * because the editor calls this with whatever the rename dialog was given and a name can never
+   * contain a `/` - `isValidFileName` refuses one (`packages/docmanager/src/dialogs.ts:257`).
+   */
+  @Test
+  fun renamingANotebookInAFolderKeepsItInThatFolder() = runTest {
+    val repository = repository()
+    val nested = repository.createNotebook("reports/Draft", "python3")
+
+    assertEquals("reports/Final", repository.renameNotebook(nested.id, "Final"))
   }
 
   @Test

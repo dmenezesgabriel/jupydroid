@@ -1,0 +1,65 @@
+appId: com.jupydroid.app
+---
+# X2a: the workspace as files. Recents lists notebooks wherever they are and cannot show a folder
+# at all, so everything below - the folder, the notebook inside it, the data file beside it - is
+# invisible to every other flow in the suite.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+# Recents first, because the explorer is reached from it and the bar is what says so.
+- assertVisible: "Recents"
+- takeScreenshot: 01-recents-with-the-door-to-files
+
+# The bar's folder action, by its contentDescription - `id:` matches a resource id, which a
+# Compose icon does not have.
+- tapOn: "Browse files"
+- assertVisible: "Files"
+# "Workspace" is the root crumb; the reference labels its own root the same way rather than
+# showing an empty path.
+- assertVisible: "Workspace"
+- assertVisible: "reports"
+- assertVisible: "At Root.ipynb"
+- takeScreenshot: 02-workspace-root
+
+- tapOn: "reports"
+# The crumb trail grew a segment, which is what makes it navigation rather than a label.
+- assertVisible: "reports"
+- assertVisible: "Nested.ipynb"
+- assertVisible: "data.csv"
+- takeScreenshot: 03-inside-the-folder
+
+# A file nothing can open says so. Tapping it must not open the notebook editor - a `.csv` in the
+# notebook editor is the same confusion "New Python file" causes, and a tap that does nothing at
+# all is indistinguishable from a broken row.
+- tapOn: "data.csv"
+- assertVisible: "No editor for data.csv yet"
+- takeScreenshot: 04-nothing-opens-a-csv-yet
+
+# The notebook in the folder opens, asserted by its cell: a title alone would be matched by the
+# row that was tapped, and the path is what the editor has to resolve - `reports/Nested`, not
+# `Nested`, and not `reports/Nested.ipynb` with the suffix left on.
+- tapOn: "Nested.ipynb"
+# The whole cell source. Maestro matches a selector against the *entire* text of a node, so a
+# substring finds nothing even when it is plainly on screen.
+- extendedWaitUntil:
+    visible: "print('this notebook lives in a folder')"
+    timeout: 10000
+- takeScreenshot: 05-notebook-from-a-folder
+
+# Back returns to the folder it was opened from, not to Recents: the explorer is still an entry
+# underneath.
+- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+- assertVisible: "Nested.ipynb"
+- takeScreenshot: 06-back-to-the-folder
+
+# `filebrowser:go-up`. Back climbs the workspace one directory before it leaves the screen, which
+# is the reference's Backspace binding.
+- back
+- assertVisible: "At Root.ipynb"
+- assertNotVisible: "Nested.ipynb"
+- takeScreenshot: 07-back-climbed-to-the-root
+
+# At the root there is no parent left, so the same gesture leaves - nothing swallows it.
+- back
+- assertVisible: "Recents"
+- takeScreenshot: 08-and-then-out-to-recents

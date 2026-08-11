@@ -26,6 +26,38 @@ fun isValidNotebookName(name: String): Boolean {
 fun notebookFileName(name: String): String = "${name.trim()}$NOTEBOOK_SUFFIX"
 
 /** And back again: the name a file carries, which is the notebook's title and its id's last part. */
+/**
+ * The folder a notebook id names, joined back onto a new name.
+ *
+ * An id is a *path* and a rename supplies a *name*, so the two are joined rather than swapped.
+ * `Context._rename` replaces the last segment and keeps the rest
+ * (`packages/docregistry/src/context.ts:611-614`):
+ *
+ * ```ts
+ * const splitPath = this.localPath.split('/');
+ * splitPath[splitPath.length - 1] = newName;
+ * let newPath = PathExt.join(...splitPath);
+ * ```
+ *
+ * The file browser joins the same way, onto the directory it is showing -
+ * `PathExt.join(this._model.path, newName)` (`packages/filebrowser/src/listing.ts:2621`) - and
+ * `isValidFileName` refuses `/`, `\` and `:` in a name (`packages/docmanager/src/dialogs.ts:257`)
+ * so a name can never carry a folder of its own. Without this a rename moves a notebook to the
+ * root, silently, and X2a made notebooks in folders reachable for the first time.
+ *
+ * ```
+ * idBeside("reports/Draft", "Final")   // "reports/Final"
+ * idBeside("Draft", "Final")           // "Final"
+ * ```
+ */
+fun idBeside(id: String, name: String): String {
+  val folder = id.substringBeforeLast('/', missingDelimiterValue = "")
+  return if (folder.isEmpty()) name else "$folder/$name"
+}
+
+/** The last segment of a notebook id, which is what a title bar shows - `Contents.IModel.name`. */
+fun notebookLeafOf(id: String): String = id.substringAfterLast('/')
+
 fun notebookNameOf(fileName: String): String = fileName.removeSuffix(NOTEBOOK_SUFFIX)
 
 /**

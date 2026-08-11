@@ -4,18 +4,26 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.KernelEvent
 
 data class EditorUiState(
   /**
    * Where the notebook lives now, which a rename changes - since X1b the file *is* the name.
    *
-   * Carried explicitly rather than inferred from [title]: they are equal, and that is an invariant
-   * of the store, not something a reader should have to know. It is what tells the notebook list
-   * which row is the open one, the way `_contextsForPath` filters live contexts by their *current*
-   * path rather than by the path a widget was opened under.
+   * Carried explicitly rather than inferred from [title], which is only the last segment of it -
+   * a notebook in a folder has a path the name cannot reconstruct. It is what tells the notebook
+   * list which row is the open one, the way `_contextsForPath` filters live contexts by their
+   * *current* path rather than by the path a widget was opened under.
    */
   val notebookId: String = "",
+  /**
+   * What the notebook is *called* - the last segment of [notebookId], not the whole path.
+   *
+   * `DocumentWidget` labels itself the same way: `PathExt.basename(sender.localPath)`
+   * (`packages/docregistry/src/default.ts:618-621`). A rename is given this and the folder is
+   * joined back on, so a name never has to carry one.
+   */
   val title: String = "",
   val cells: List<Cell> = emptyList(),
   val loaded: Boolean = false,
@@ -94,7 +102,7 @@ fun EditorUiState.withSource(cellId: String, source: String): EditorUiState =
  */
 fun Notebook.toEditorUiState(defaultCellId: String) = EditorUiState(
   notebookId = id,
-  title = title,
+  title = notebookLeafOf(title),
   cells = cells.ifEmpty { listOf(Cell(defaultCellId, CellKind.CODE, "")) },
   loaded = true,
   outputs = cells.filter { it.outputs.isNotEmpty() }.associate { it.id to it.outputs },

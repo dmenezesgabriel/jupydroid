@@ -2203,6 +2203,26 @@ where a terminal is the thing the Space cannot currently do at all.
 - **LSP** (see below) would supersede 5.5's completion rather than duplicate it.
 - **Server lifecycle** (Step 18): `jupyter_server` is started on first use and never stopped.
 
+### Which reference answers which question (settled, 2026-08-11)
+
+This app is a **JupyterLab client for a phone**, so the references are not interchangeable and
+each is authoritative for one thing:
+
+| reference | authoritative for |
+|---|---|
+| **JupyterLab** (`reference/research_repos/jupyterlab`) | **behaviour and features** - what the app *does*. When in doubt, read it. |
+| **Winlator** (`reference/research_repos/winlator`) | the rootfs and container problem: how a Space is installed, run and browsed from an Android app |
+| **IntelliJ** (`reference/research_repos/intellij-community`) | the editor: syntax, LSP, autocomplete, markdown rendering, and the notebook's visual layout |
+| **Compose docs** (developer.android.com) | which Material/Compose component exists, and how it should be used on a phone or a tablet |
+
+Two of these have already been checked and found **empty** for a question that looked like theirs,
+which is worth recording so nobody re-checks: IntelliJ Community ships **no Jupyter kernel-protocol
+client** and **no Jupyter file browser**. Where it has nothing, JupyterLab is the answer, and a
+statement that "the reference does X" must name which reference.
+
+A behaviour we cannot reach on a phone is adapted, never invented: the adaptation is written down
+with what it departs from (as U5b did for the cell-actions surface, and U3 for hover).
+
 ### Reference studies, and what each settled
 
 `reference/` is **gitignored**, so none of these travel with a fresh clone — the summaries here

@@ -21,6 +21,7 @@ import unittest
 from check_driver_isolation import offences
 
 SEEDS = 'seed_notebook "$ROOT/.maestro/seed.ipynb" seed'
+SEEDS_A_PLAIN_FILE = 'seed_file "$ROOT/.maestro/seed.csv" "reports/seed.csv"'
 RESETS = "reset_notebooks"
 TOUCHES_STORAGE_BY_HAND = '"$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"'
 
@@ -49,6 +50,11 @@ class DriverIsolationTest(unittest.TestCase):
 
     def test_a_driver_that_seeds_without_resetting_is_reported(self) -> None:
         found = self.assertOffences(SEEDS, 1)
+        self.assertIn("reset_notebooks", found[0])
+
+    def test_a_driver_that_seeds_a_plain_file_without_resetting_is_reported(self) -> None:
+        """`seed_file` puts a folder in the workspace, which the explorer lists like any other."""
+        found = self.assertOffences(SEEDS_A_PLAIN_FILE, 1)
         self.assertIn("reset_notebooks", found[0])
 
     def test_a_driver_that_writes_the_notebooks_directory_by_hand_is_reported(self) -> None:

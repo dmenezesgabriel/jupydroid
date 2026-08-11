@@ -12,12 +12,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +56,7 @@ fun HomeScreen(
   importTitle: String? = null,
   onImportConsumed: () -> Unit = {},
   onOpenNotebook: (String) -> Unit = {},
+  onBrowseFiles: () -> Unit = {},
   // Null whenever the list has the window to itself, which is every compact window and every
   // wide one with nothing open. Marking a row then would point at a pane that is not there.
   openNotebookId: String? = null,
@@ -72,6 +79,7 @@ fun HomeScreen(
     onRenameNotebook = { id, title -> viewModel.renameNotebook(id, title) },
     onDeleteNotebook = { id -> viewModel.deleteNotebook(id) },
     onOpenNotebook = onOpenNotebook,
+    onBrowseFiles = onBrowseFiles,
     openNotebookId = openNotebookId,
     modifier = modifier,
   )
@@ -85,11 +93,13 @@ private fun HomeScaffold(
   onRenameNotebook: (String, String) -> Unit,
   onDeleteNotebook: (String) -> Unit,
   onOpenNotebook: (String) -> Unit,
+  onBrowseFiles: () -> Unit,
   openNotebookId: String?,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
     modifier = modifier.fillMaxSize(),
+    topBar = { RecentsBar(onBrowseFiles = onBrowseFiles) },
     floatingActionButton = {
       HomeFab(onCreateNotebook = onCreateNotebook, onCreatePythonFile = onCreatePythonFile)
     },
@@ -104,6 +114,26 @@ private fun HomeScaffold(
       modifier = Modifier.padding(innerPadding),
     )
   }
+}
+
+/**
+ * Names the list, and offers the workspace it is a view of.
+ *
+ * Recents is not a place - it is these notebooks ordered by when they were touched, and it cannot
+ * show a folder or the `data.csv` a cell wrote. The explorer is the tree itself, which is what
+ * JupyterLab puts in its sidebar; this is the door to it until the two swap places.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecentsBar(onBrowseFiles: () -> Unit) {
+  TopAppBar(
+    title = { Text("Recents") },
+    actions = {
+      IconButton(onClick = onBrowseFiles) {
+        Icon(Icons.Filled.FolderOpen, contentDescription = "Browse files")
+      }
+    },
+  )
 }
 
 @Composable

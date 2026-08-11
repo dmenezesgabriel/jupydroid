@@ -2,6 +2,7 @@ package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookSummary
+import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.port.NotebookNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import java.time.Instant
@@ -30,8 +31,11 @@ class FakeNotebookRepository : NotebookRepository {
     }
 
   override suspend fun createNotebook(title: String, kernelId: String): Notebook {
+    // The id *is* the name since X1b, as it is on disk. It was a UUID here long after the disk
+    // repository stopped minting them, so a fake-backed test could pass with an id no real
+    // notebook could ever have - and `idBeside` reads a folder out of that id.
     val notebook = Notebook(
-      id = UUID.randomUUID().toString(),
+      id = title,
       title = title,
       kernelId = kernelId,
       cells = emptyList(),
@@ -43,10 +47,13 @@ class FakeNotebookRepository : NotebookRepository {
   /** Re-keyed, not merely re-titled: the id *is* the name, so a rename moves the entry. */
   override suspend fun renameNotebook(id: String, title: String): String {
     val existing = notebooks.value[id] ?: return id
-    if (title != id && notebooks.value.containsKey(title)) throw NotebookNameTakenException(title)
+    // The name joined onto the folder the id names, never used as a path of its own - see
+    // `idBeside`, and `NotebookRepositoryContract.renamingANotebookInAFolderKeepsItInThatFolder`.
+    val moved = idBeside(id, title)
+    if (moved != id && notebooks.value.containsKey(moved)) throw NotebookNameTakenException(title)
     notebooks.value = notebooks.value - id
-    put(existing.copy(id = title, title = title))
-    return title
+    put(existing.copy(id = moved, title = moved))
+    return moved
   }
 
   /** Takes the name whatever is there, which is what the user asked for when they confirmed. */

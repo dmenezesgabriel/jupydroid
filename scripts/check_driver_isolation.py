@@ -40,12 +40,15 @@ RESET = "reset_notebooks"
 # pre-U drivers used to carry. The second is here so that the gate keeps its grip on a driver
 # mid-migration rather than losing it exactly when the driver is being edited.
 #
+# `seed_file` counts as well as `seed_notebook`: since X2 a driver can put a folder and a data
+# file in the workspace, and the explorer lists those exactly like a notebook.
+#
 # `mkdir -p`, not the path on its own: `REMOTE="$NOTEBOOK_DIR/x.ipynb"` is a declaration and
 # sits at the top of every driver, above the reset, so matching the bare path reported all
 # twenty-three migrated drivers as resetting too late. Both spellings of the directory, because
 # X1a moved it and a rule that only knew the old one would have silently stopped matching.
 SEEDS = (
-    re.compile(r"^\s*seed_notebook\s"),
+    re.compile(r"^\s*seed_(notebook|file)\s"),
     re.compile(r'mkdir -p ("?\$NOTEBOOK_DIR"?|files/notebooks)'),
 )
 # Any direct `"$MAESTRO" … test`. Not "one without --device": the shape every driver used to

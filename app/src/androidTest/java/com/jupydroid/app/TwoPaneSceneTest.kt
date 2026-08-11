@@ -5,10 +5,14 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.di.AppContainer
@@ -32,9 +36,15 @@ import org.junit.runner.RunWith
  * stops being its own navigation entry is handed the previous notebook's ViewModel, id and all).
  *
  * `twoPane` is passed in, not measured. `currentWindowAdaptiveInfo()` reads the *activity's*
- * window, which a `DeviceConfigurationOverride` around a composable does not change, so forcing
- * a width here would drive one branch twice while looking like it covered both - the same
- * reasoning `CellActionsTest` carries.
+ * window, which a `DeviceConfigurationOverride` around a composable does not change, so *choosing*
+ * the branch by forcing a width would drive one branch twice while looking like it covered both -
+ * the same reasoning `CellActionsTest` carries.
+ *
+ * The **size** is still forced, which is a different thing: `ForcedSize` does change the layout
+ * constraints, and [TwoPaneScene] gives its list pane a fixed 360dp. On the 320dp emulator that
+ * leaves the detail pane no width at all, so both wide cases failed there while passing on the
+ * tablet - a suite that quietly meant "whatever device you happened to run it on". The window a
+ * test needs is part of the test.
  */
 @RunWith(AndroidJUnit4::class)
 class TwoPaneSceneTest {
@@ -130,16 +140,22 @@ class TwoPaneSceneTest {
       repository.saveNotebook(notebook(BETA_TITLE, BETA_SOURCE))
     }
     compose.setContent {
-      JupyterDroidTheme {
-        MainNavigation(
-          appContainer = AppContainer(notebookRepository = repository),
-          importTitle = null,
-          onImportConsumed = {},
-          twoPane = twoPane,
-        )
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = AppContainer(notebookRepository = repository),
+            importTitle = null,
+            onImportConsumed = {},
+            twoPane = twoPane,
+          )
+        }
       }
     }
   }
+
+  /** Expanded enough for 360dp of list and a readable notebook, or a phone that fits neither. */
+  private fun windowFor(twoPane: Boolean) =
+    if (twoPane) DpSize(900.dp, 800.dp) else DpSize(360.dp, 720.dp)
 
   private fun notebook(name: String, source: String) =
     Notebook(name, name, "python3", listOf(Cell("$name-c1", CellKind.CODE, source)))

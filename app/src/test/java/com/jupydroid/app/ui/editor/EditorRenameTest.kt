@@ -32,6 +32,33 @@ class EditorRenameTest {
     assertEquals("Math notes", repository.readNotebook("Math notes").title)
   }
 
+  /**
+   * A notebook in a folder is titled by its name alone.
+   *
+   * `DocumentWidget` labels itself `PathExt.basename(sender.localPath)`
+   * (`packages/docregistry/src/default.ts:618-621`) - the path is what the document *is*, the
+   * basename is what it is *called*. Showing "reports/Draft" would also prefill the rename dialog
+   * with a string containing a `/`, which `isValidFileName` refuses, so the user would have to
+   * delete the folder out of their own notebook's name before they could rename it.
+   */
+  @Test
+  fun aNotebookInAFolderIsTitledByItsNameAlone() = runTest {
+    val viewModel = loadedEditor(notebookId = "reports/Draft", title = "reports/Draft")
+
+    assertEquals("Draft", viewModel.uiState.value.title)
+  }
+
+  @Test
+  fun renamingANotebookInAFolderKeepsItThereAndShowsTheNewName() = runTest {
+    val viewModel = loadedEditor(notebookId = "reports/Draft", title = "reports/Draft")
+
+    viewModel.renameNotebook("Final")
+    advanceUntilIdle()
+
+    assertEquals("Final", viewModel.uiState.value.title)
+    assertEquals("reports/Final", viewModel.uiState.value.notebookId)
+  }
+
   @Test
   fun renameShowsInTheTitleBarImmediately() = runTest {
     val viewModel = loadedEditor()

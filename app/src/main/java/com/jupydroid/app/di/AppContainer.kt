@@ -2,9 +2,11 @@ package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeServerLauncher
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.ServerLauncher
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,6 +17,12 @@ import kotlinx.coroutines.SupervisorJob
  */
 class AppContainer(
   val notebookRepository: NotebookRepository,
+  /**
+   * The same tree [notebookRepository] writes into, read as files rather than as notebooks - the
+   * explorer shows the folders and the data files a notebook puts there, which a list of
+   * notebooks cannot.
+   */
+  val workspaceRepository: WorkspaceRepository = FakeWorkspaceRepository(),
   val kernelGateway: KernelGateway = FakeKernelGateway(),
   val serverLauncher: ServerLauncher = FakeServerLauncher(),
   /**
@@ -25,3 +33,4 @@ class AppContainer(
    */
   val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 )
+

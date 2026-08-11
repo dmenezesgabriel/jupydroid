@@ -90,17 +90,21 @@ internal fun TestScope.loadedEditor(
   gateway: KernelGateway = FakeKernelGateway(),
   cells: List<Cell> = listOf(codeCell),
   repository: NotebookRepository = FakeNotebookRepository(),
+  // The path the notebook lives at, which is its id since X1b. Overridden by the cases about
+  // folders; "nb-1"/"Data" is kept as the default so the cases that predate them read unchanged.
+  notebookId: String = "nb-1",
+  title: String = "Data",
   // The test scope stands in for the application scope, so work that outlives the ViewModel is
   // driven by advanceUntilIdle like everything else.
   applicationScope: CoroutineScope = this,
 ): EditorViewModel {
   launch {
-    repository.saveNotebook(Notebook("nb-1", "Data", "python3", cells))
+    repository.saveNotebook(Notebook(notebookId, title, "python3", cells))
   }
   advanceUntilIdle()
   // No collector: uiState is a StateFlow, so .value is current without one - and a
   // collector that is never cancelled leaves runTest waiting on it.
-  val viewModel = EditorViewModel("nb-1", repository, gateway, applicationScope)
+  val viewModel = EditorViewModel(notebookId, repository, gateway, applicationScope)
   advanceUntilIdle()
   return viewModel
 }

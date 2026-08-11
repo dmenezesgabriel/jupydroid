@@ -33,6 +33,39 @@ class NotebookIsItsFileTest {
     assertTrue("Analysis of sales.ipynb" in temp.root.list()!!.toList())
   }
 
+  /**
+   * A rename inside a folder stays inside that folder.
+   *
+   * The id is a *path* and the new name is a *name* - the reference joins them rather than
+   * swapping one for the other. `Context._rename` replaces the path's last segment
+   * (`packages/docregistry/src/context.ts:611-614`) and the file browser joins onto the directory
+   * it is showing (`packages/filebrowser/src/listing.ts:2621`); `isValidFileName` rejects `/` in a
+   * name for exactly this reason (`packages/docmanager/src/dialogs.ts:257`). Treating the name as
+   * a whole path would move a notebook out of its folder on a rename, silently, and X2a made
+   * notebooks in folders reachable for the first time.
+   */
+  @Test
+  fun renamingANotebookInAFolderKeepsItInThatFolder() = runTest {
+    File(temp.root, "reports").mkdirs()
+    val nested = repository.createNotebook("reports/Draft", "python3")
+
+    val renamed = repository.renameNotebook(nested.id, "Final")
+
+    assertEquals("reports/Final", renamed)
+    assertTrue(File(temp.root, "reports/Final.ipynb").exists())
+    assertFalse("it must not have escaped to the root", File(temp.root, "Final.ipynb").exists())
+  }
+
+  /** A name taken in *another* folder is not taken here - the reference checks the joined path. */
+  @Test
+  fun aNameTakenElsewhereDoesNotBlockARenameInThisFolder() = runTest {
+    File(temp.root, "reports").mkdirs()
+    repository.createNotebook("Final", "python3")
+    val nested = repository.createNotebook("reports/Draft", "python3")
+
+    assertEquals("reports/Final", repository.renameNotebook(nested.id, "Final"))
+  }
+
   @Test
   fun theIdIsTheName() = runTest {
     val notebook = repository.createNotebook("Analysis of sales", "python3")

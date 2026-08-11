@@ -1,0 +1,14 @@
+package com.jupydroid.app
+
+import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.Serializable
+
+/**
+ * The workspace as files, which is the view Recents cannot give: folders, and the data a notebook
+ * wrote beside itself.
+ *
+ * No path in the key. The explorer keeps its own directory in its `ViewModel`, so descending is
+ * not a back-stack push - `filebrowser:go-up` is one directory, not one screen, and the reference
+ * navigates the same way: one `DirListing` whose contents are replaced.
+ */
+@Serializable data object Explorer : NavKey

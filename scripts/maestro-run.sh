@@ -28,7 +28,11 @@ NOTEBOOK_DIR="files/spaces/base/home/jupydroid"
 # phone attached it picks one of its own accord and the fixture is on the other.
 MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 
-# Empties the notebooks directory, so a flow sees the Home list it seeded and no other.
+# Empties the workspace, so a flow sees the state it seeded and no other.
+#
+# Everything, not just `*.ipynb`: since X2 a driver can seed a folder and a data file too, and a
+# `reports/` left behind by the previous run is a row the next flow did not put there. `cd` first
+# so a mistyped path removes nothing rather than the wrong thing.
 #
 # Flows were not independent, and it took a whole-suite sweep to show it. Every run leaves
 # notebooks behind - `a3-create-shows-up` seeds a crowd of 25 on purpose, and every flow that
@@ -38,7 +42,7 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 # by recency, and at 64 notebooks a 20-second `scrollUntilVisible` no longer reaches it.
 reset_notebooks() {
   "$ADB" shell am force-stop "$APP"
-  "$ADB" shell "run-as $APP sh -c 'rm -f \"$NOTEBOOK_DIR\"/*.ipynb'"
+  "$ADB" shell "run-as $APP sh -c 'cd \"$NOTEBOOK_DIR\" 2>/dev/null && rm -rf ./*' || true"
 }
 
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.
@@ -55,9 +59,24 @@ reset_notebooks() {
 # it, which `scripts/check_driver_isolation.py` enforces so that stating it cannot be forgotten.
 seed_notebook() {
   local fixture="$1" id="$2"
-  local remote="$NOTEBOOK_DIR/$id.ipynb"
+  seed_file "$fixture" "$id.ipynb"
+}
+
+# Puts any file into the workspace at [path], relative to the workspace root.
+#
+# The explorer lists the tree as it is, so a flow about browsing needs a folder and something in
+# it that is not a notebook. Notebooks go through [seed_notebook], which only knows that the id
+# is the filename stem.
+#
+# ```
+# seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
+# ```
+seed_file() {
+  local fixture="$1" path="$2"
+  local remote="$NOTEBOOK_DIR/$path"
   "$ADB" shell am force-stop "$APP"
-  "$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"
+  # Parents included: a seeded path may name a folder the workspace does not have yet.
+  "$ADB" shell run-as "$APP" mkdir -p "$(dirname "$remote")"
   # base64 on the command line rather than piping to `cat`: adb shell can mangle stdin line
   # endings, and a fixture is small enough to pass as an argument.
   local payload

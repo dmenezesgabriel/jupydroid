@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -87,22 +88,12 @@ class EditorViewModel(
     // rename that only reached the repository would be overwritten by the next keystroke.
     val before = current.title
     notebook = current.copy(title = title)
+    // `title` is a name; the bar shows names. `before` is the notebook's path, so rolling back
+    // has to take the leaf out of it again - see [applyRename].
     _uiState.update { it.copy(title = title) }
     viewModelScope.launch { applyRename(title, before) }
   }
 
-  /**
-   * Adopts the new id, or puts the old name back when the repository refuses.
-   *
-   * X1b gave a rename the power to fail - the name is the file, so `a/b` is not a name and a name
-   * already taken would overwrite somebody else's notebook. Refusals arrive as exceptions, and an
-   * exception in a bare `viewModelScope.launch` is an uncaught exception in a coroutine, which
-   * takes the process down: typing a `/` into the rename dialog crashed the app.
-   *
-   * On success the id is adopted, which is `Context._updatePath` - the document did not change,
-   * only where it lives. On refusal the optimistic title is rolled back, so the name snapping
-   * back is what the user sees rather than a notebook that claims a name it does not have.
-   */
   /**
    * Adopts the new id, or puts the old name back when the repository refuses.
    *
@@ -121,7 +112,7 @@ class EditorViewModel(
         notebook = notebook?.copy(title = before)
         // Only a taken name becomes a question, exactly as only a 409 does in `renameFile`.
         val taken = if (failure is NotebookNameTakenException) title else null
-        _uiState.update { it.copy(title = before, nameTaken = taken) }
+        _uiState.update { it.copy(title = notebookLeafOf(before), nameTaken = taken) }
       }
   }
 
@@ -150,7 +141,9 @@ class EditorViewModel(
   private fun adopt(moved: String) {
     notebookId = moved
     notebook = notebook?.copy(id = moved, title = moved)
-    _uiState.update { it.copy(title = moved, notebookId = moved) }
+    // The id is the path and the bar shows the name: `PathExt.basename(sender.localPath)`
+    // (`packages/docregistry/src/default.ts:618-621`).
+    _uiState.update { it.copy(title = notebookLeafOf(moved), notebookId = moved) }
   }
 
   public override fun onCleared() {
