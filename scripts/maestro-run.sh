@@ -16,6 +16,14 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 APP="com.jupydroid.app"
 
+# Where notebooks live on the device, which X1a moved.
+#
+# It is the kernel's HOME, so a notebook can now `open()` a file the user can see and the user can
+# see what a notebook wrote (`notebookWorkspaceIn`). Written down once here because twenty-nine
+# drivers used to spell `files/notebooks` out by hand, and a driver seeding the old path would
+# still "work" - the app would simply show an empty Home, which is a green flow proving nothing.
+NOTEBOOK_DIR="files/spaces/base/home/jupydroid"
+
 # --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator and a
 # phone attached it picks one of its own accord and the fixture is on the other.
 MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
@@ -30,7 +38,7 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 # by recency, and at 64 notebooks a 20-second `scrollUntilVisible` no longer reaches it.
 reset_notebooks() {
   "$ADB" shell am force-stop "$APP"
-  "$ADB" shell "run-as $APP sh -c 'rm -f files/notebooks/*.ipynb'"
+  "$ADB" shell "run-as $APP sh -c 'rm -f $NOTEBOOK_DIR/*.ipynb'"
 }
 
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.
@@ -47,9 +55,9 @@ reset_notebooks() {
 # it, which `scripts/check_driver_isolation.py` enforces so that stating it cannot be forgotten.
 seed_notebook() {
   local fixture="$1" id="$2"
-  local remote="files/notebooks/$id.ipynb"
+  local remote="$NOTEBOOK_DIR/$id.ipynb"
   "$ADB" shell am force-stop "$APP"
-  "$ADB" shell run-as "$APP" mkdir -p files/notebooks
+  "$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"
   # base64 on the command line rather than piping to `cat`: adb shell can mangle stdin line
   # endings, and a fixture is small enough to pass as an argument.
   local payload

@@ -29,11 +29,19 @@ fun baseSpaceRuntime(context: Context): SpaceRuntime =
 
 fun baseSpaceDir(context: Context): File = File(context.filesDir, "spaces/base")
 
+/**
+ * Where notebooks live: the kernel's `HOME`, which is also the server's root and the repository's.
+ *
+ * See [notebookWorkspaceIn] for why one definition rather than three.
+ */
+fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir(context))
+
 /** Runs jupyter_server out of the installed base Space, on loopback. */
 fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher =
   JupyterServerLauncher(
     runtime = baseSpaceRuntime(context),
     runtimeDir = File(baseSpaceDir(context), "run"),
+    rootDir = notebookWorkspace(context),
   )
 
 /**

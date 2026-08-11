@@ -30,7 +30,7 @@ class SpaceRuntime(
     // No Space process is an Android process, so none of them get a tombstone from
     // debuggerd. Without this a fatal signal leaves nothing at all to debug.
     "PYTHONFAULTHANDLER" to "1",
-    "HOME" to inBase("home/jupydroid"),
+    "HOME" to notebookWorkspaceIn(baseDir).path,
     "TMPDIR" to inBase("tmp"),
     "PATH" to listOf(inBase("usr/local/bin"), inBase("usr/bin"), inBase("bin")).joinToString(":"),
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.

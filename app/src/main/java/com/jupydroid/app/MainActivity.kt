@@ -15,6 +15,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
+import com.jupydroid.app.data.space.baseSpaceDir
+import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
 import com.jupydroid.app.di.AppContainer
@@ -27,8 +30,16 @@ class MainActivity : ComponentActivity() {
     // A device with no runnable Space keeps the fake, so the UI still works on an x86_64
     // emulator where the runtime cannot (evidence/step8.3/musl-is-arm64-only.txt).
     val kernelGateway = baseSpaceKernelGateway(applicationContext)
+    val workspace = notebookWorkspace(applicationContext)
+    // Before the repository reads, never after: `DiskNotebookRepository` scans its root in `init`,
+    // so a migration running second would leave Home empty until the next launch.
+    NotebookWorkspaceMigration(
+      legacyDir = File(applicationContext.filesDir, "notebooks"),
+      workspaceDir = workspace,
+      stampFile = File(baseSpaceDir(applicationContext), ".jupydroid/notebooks-migrated"),
+    ).runOnce()
     AppContainer(
-      notebookRepository = DiskNotebookRepository(File(applicationContext.filesDir, "notebooks")),
+      notebookRepository = DiskNotebookRepository(workspace),
       kernelGateway = kernelGateway ?: FakeKernelGateway(),
     )
   }

@@ -193,8 +193,10 @@ class RealKernelGateway(
         val why = mapOf("reason" to event.reason, "failed" to event.failed.toString())
         log.reached(KernelLog.SOCKET_ENDED, fields + why)
       }
-      is KernelSocketEvent.Received ->
-        log.reached(KernelLog.FRAME_RECEIVED, fields + mapOf("bytes" to event.frame.length.toString()))
+      is KernelSocketEvent.Received -> {
+        val what = mapOf("msgType" to (JupyterFrame.msgTypeOf(event.frame) ?: "?"))
+        log.reached(KernelLog.FRAME_RECEIVED, fields + what + mapOf("bytes" to event.frame.length.toString()))
+      }
     }
     if (!accepted) log.reached(KernelLog.FRAME_DROPPED, fields)
   }

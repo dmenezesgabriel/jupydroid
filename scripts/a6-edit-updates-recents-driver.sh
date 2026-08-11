@@ -12,13 +12,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/a6-updated-at.ipynb"
 APP="com.jupydroid.app"
-# DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="files/notebooks/a6-updated-at.ipynb"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"   # for reset_notebooks
+
+# DiskNotebookRepository derives the notebook id from the filename stem.
+REMOTE="$NOTEBOOK_DIR/a6-updated-at.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -29,7 +30,7 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 # the row stale, and a stale row sorts to the bottom of a list ordered by recency. At 64
 # notebooks the flow's `scrollUntilVisible` stopped reaching it.
 reset_notebooks
-"$ADB" shell run-as "$APP" mkdir -p files/notebooks
+"$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"
 
 # base64 on the command line rather than piping to `cat`: adb shell can mangle
 # stdin line endings, and the fixture is small enough to pass as an argument.

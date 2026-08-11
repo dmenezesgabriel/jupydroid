@@ -40,4 +40,4 @@ run_flow "$ROOT/.maestro/u5b-action-presentation.yaml" \
 # Three cells: the action the surface offered actually reshaped the notebook. The screenshots
 # show *which* surface appeared; only the file shows that it worked.
 echo "--- notebook as saved after the flow ---"
-"$ADB" shell run-as com.jupydroid.app cat files/notebooks/u5a-cell-actions.ipynb
+"$ADB" shell run-as com.jupydroid.app cat $NOTEBOOK_DIR/u5a-cell-actions.ipynb

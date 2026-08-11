@@ -69,6 +69,9 @@ class RealKernelGatewayObservabilityTest {
 
     assertTrue("no frame was reported at all", log.countOf(KernelLog.FRAME_RECEIVED) > 0)
     assertEquals("1", log.fieldsOf(KernelLog.FRAME_RECEIVED)["subscribers"])
+    // Which message, not merely how many bytes: the fourth sighting of the stall showed three
+    // frames and then silence, and the log could not say which three.
+    assertEquals("execute_input", log.fieldsOf(KernelLog.FRAME_RECEIVED)["msgType"])
   }
 
   /** A socket that ends under a running cell is the other way this stalls, and it is loud. */

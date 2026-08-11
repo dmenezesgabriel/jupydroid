@@ -2183,9 +2183,31 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   the stall's shape exactly: first Run after a fresh launch, no output, no failure, and fine on
   the retry once the connection is warm.
 
-  Deliberately **not fixed**: three sightings, one plausible mechanism, no reproduction. A guessed
-  fix would trade a defect whose shape is understood for one whose shape is not. The next sighting
-  confirms or rules this out in one `grep`.
+  **Fourth sighting, and the logging diagnosed it.** `step5-completion`, the X1a sweep. The log:
+
+      kernel.execute.request   enqueued: true
+      kernel.socket.connected  subscribers: 1
+      kernel.frame.received    subscribers: 1  msgType: status   bytes: 632   (x3)
+      <nothing further, no kernel.execute.complete>
+
+  A healthy run of the same cell gets eight frames: `status` x3 at 632 bytes, then `status` 621,
+  `execute_input`, `execute_result`, `execute_reply`, `status`. So the three frames the stalled run
+  received are the kernel's **startup** statuses, and it never saw `execute_input` - which is the
+  kernel echoing back the code it is about to run. **The `execute_request` was lost.**
+
+  That rules out two of the three hypotheses outright: something did come back, and somebody was
+  listening (`subscribers: 1`). It leaves the one the first capture flagged: the app enqueues the
+  request *before* the handshake completes, OkHttp flushes it the moment the socket opens, and it
+  reaches `jupyter_server` before its `open()` has finished associating the session - which drops
+  it. JupyterLab does not send before the connection is up.
+
+  `msgType` was added to the frame log for exactly this: the third sighting could say "three
+  frames and then silence" and not which three, which is the difference between a symptom and a
+  cause.
+
+  **The fix is not yet applied.** It is to hold the request until the socket reports `Opened`, and
+  verifying it is statistical - the stall appears roughly once in twenty runs - so it wants its own
+  change with a repeat-run gate rather than a line slipped into another step.
 
   **A harness defect found while chasing it, and fixed:** `run_flow` copied screenshots and
   logcat into `evidence/` only when the flow *passed* - `set -e` killed the driver at the failed

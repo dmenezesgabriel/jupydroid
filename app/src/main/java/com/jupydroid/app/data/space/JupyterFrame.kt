@@ -36,6 +36,16 @@ internal object JupyterFrame {
   fun JsonObject.msgType(): String? =
     get("header")?.jsonObject?.get("msg_type")?.jsonPrimitive?.content
 
+  /**
+   * The message type of any frame, ours or not, for the log.
+   *
+   * The fourth sighting of the execution stall showed three frames arriving and then silence -
+   * which ruled out "nothing came back" and "nobody was listening" and left "which three?"
+   * unanswerable, because the log carried only their byte length. Unparseable frames report
+   * null rather than throwing: this is a diagnostic, and it must never be the thing that fails.
+   */
+  fun msgTypeOf(frame: String): String? = decode(frame)?.msgType()
+
   fun JsonObject.content(): JsonObject? = get("content")?.jsonObject
 
   @Suppress("SwallowedException") // an unparseable frame is other traffic, not our failure

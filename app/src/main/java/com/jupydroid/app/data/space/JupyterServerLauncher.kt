@@ -30,6 +30,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 class JupyterServerLauncher(
   private val runtime: SpaceRuntime,
   private val runtimeDir: File,
+  /** Where the server's Contents API is rooted - the same directory the app reads notebooks from. */
+  private val rootDir: File,
   private val startTimeout: Duration = START_TIMEOUT,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ServerLauncher {
@@ -96,19 +98,7 @@ class JupyterServerLauncher(
 
   private fun logFile(): File = File(runtimeDir, "jupyter_server.log")
 
-  private fun serverArgs(): List<String> = listOf(
-    "-m", "jupyter_server",
-    "--ServerApp.ip=127.0.0.1",
-    "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
-    // Unix domain sockets rather than TCP for the kernel transport. Everything here
-    // is one app on one device, so kernels need no ports and no network stack at all.
-    // It also avoids jupyter_client validating the kernel IP against every local
-    // interface, which it does via psutil.net_if_addrs() - that segfaults on Android
-    // (evidence/step8.5/psutil-segfault.txt).
-    "--KernelManager.transport=ipc",
-    "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
-    "--no-browser",
-  )
+  private fun serverArgs(): List<String> = jupyterServerArgs(rootDir, token)
 
   private fun JupyterRuntimeFile.toConnection() =
     ServerConnection(baseUrl = url.ifBlank { "http://127.0.0.1:$port/" }, port = port, token = token)
@@ -120,3 +110,27 @@ class JupyterServerLauncher(
     const val LOG_EXCERPT = 2000
   }
 }
+
+
+/**
+ * The server's command line, as a value rather than a side effect of starting one.
+ *
+ * Separated so it can be asserted without a Space: starting a real jupyter_server is a tablet
+ * gate. [rootDir] is what makes the server and the app agree about where a notebook is - it went
+ * unset for eight steps, which left the Contents API rooted at whatever cwd `ProcessBuilder` gave
+ * it, and nothing noticed because nothing but the app read the files.
+ */
+internal fun jupyterServerArgs(rootDir: File, token: String): List<String> = listOf(
+  "-m", "jupyter_server",
+  "--ServerApp.ip=127.0.0.1",
+  "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
+  "--ServerApp.root_dir=${rootDir.path}",
+  // Unix domain sockets rather than TCP for the kernel transport. Everything here
+  // is one app on one device, so kernels need no ports and no network stack at all.
+  // It also avoids jupyter_client validating the kernel IP against every local
+  // interface, which it does via psutil.net_if_addrs() - that segfaults on Android
+  // (evidence/step8.5/psutil-segfault.txt).
+  "--KernelManager.transport=ipc",
+  "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
+  "--no-browser",
+)

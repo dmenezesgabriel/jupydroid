@@ -22,7 +22,7 @@ from check_driver_isolation import offences
 
 SEEDS = 'seed_notebook "$ROOT/.maestro/seed.ipynb" seed'
 RESETS = "reset_notebooks"
-TOUCHES_STORAGE_BY_HAND = '"$ADB" shell run-as "$APP" mkdir -p files/notebooks'
+TOUCHES_STORAGE_BY_HAND = '"$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"'
 
 
 class DriverUnderTest:
@@ -54,6 +54,10 @@ class DriverIsolationTest(unittest.TestCase):
     def test_a_driver_that_writes_the_notebooks_directory_by_hand_is_reported(self) -> None:
         """The pre-helper form counts too, or migrating a driver could remove the gate's grip."""
         self.assertOffences(TOUCHES_STORAGE_BY_HAND, 1)
+
+    def test_the_directorys_old_spelling_still_counts(self) -> None:
+        """X1a moved the notebooks; a rule that knew only the new path would miss a stale driver."""
+        self.assertOffences('"$ADB" shell run-as "$APP" mkdir -p files/notebooks', 1)
 
     def test_a_driver_that_touches_no_notebook_is_not_asked_to_reset(self) -> None:
         """`t1-pty-gate` and its kind measure the runtime and never open Home."""

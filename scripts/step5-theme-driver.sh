@@ -9,13 +9,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/step5-themed-cell.ipynb"
 APP="com.jupydroid.app"
-# DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="files/notebooks/step5-themed-cell.ipynb"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
+
+# DiskNotebookRepository derives the notebook id from the filename stem.
+REMOTE="$NOTEBOOK_DIR/step5-themed-cell.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"

@@ -22,13 +22,13 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 # Reset first, or the crowd is 25 *plus* whatever earlier flows left, and "a screenful" - the
 # whole premise of this flow - stops being a number this driver controls.
 reset_notebooks
-"$ADB" shell run-as "$APP" mkdir -p files/notebooks
+"$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"
 for i in $(seq 1 "$CROWD"); do
   # Distinct, old timestamps so the ordering is deterministic and anything created now is first.
   BODY="{\"metadata\":{\"kernelspec\":{\"name\":\"python3\",\"display_name\":\"Python 3\"},\"jupydroid\":{\"title\":\"Seeded $i\",\"updated_at\":\"2026-08-0${i:0:1}T0$((i % 9)):00:00Z\"}}}"
   PAYLOAD="$(printf '%s' "$BODY" | base64 -w0)"
-  "$ADB" shell "run-as $APP sh -c 'echo $PAYLOAD | base64 -d > files/notebooks/seeded-$i.ipynb'"
+  "$ADB" shell "run-as $APP sh -c 'echo $PAYLOAD | base64 -d > $NOTEBOOK_DIR/seeded-$i.ipynb'"
 done
-"$ADB" shell run-as "$APP" ls files/notebooks | wc -l
+"$ADB" shell run-as "$APP" ls "$NOTEBOOK_DIR" | wc -l
 
 maestro_test "$ROOT/.maestro/a3-create-shows-up.yaml"
