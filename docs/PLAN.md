@@ -1661,6 +1661,38 @@ Evidence: the same `evidence/u-flow-sweep/sweep-after.txt` — 37 flows, re-run 
 drivers, because a mechanical edit to every driver in the tree is exactly the change a whole-suite
 run exists to check.
 
+### U6 — the keyboard, and the one window where there was no notebook left (done)
+
+**Most of what this step listed was already true, and the flow is what says so.** An eight-cell
+notebook on a 320×640dp phone, the last cell focused and then typed six lines longer with the
+keyboard up: the caret line stays above the symbol row the whole time, because Compose brings the
+*cursor* into view and the list scrolls under it. `imeNestedScroll` and an explicit
+`contentWindowInsets` were on the plan's list and **neither was added** — nothing measured wanted
+them. U6a had already fixed the one real IME defect, the completion popup.
+
+**The defect was a phone in landscape, and only a screenshot at that height could find it.** At
+640×320dp the status bar, app bar, symbol row and keyboard add up to more than the window, and
+`Scaffold` resolves the overflow by handing the body **zero height** — a `uiautomator` dump of a
+notebook being typed into contained no cell node at all. `editorTopBarVisible` drops the app bar
+below the compact/medium height breakpoint (480dp) *while a cell is being edited*, which is the
+only time the keyboard is there to take the room; command mode on the same short window keeps it.
+Back still leaves edit mode without the arrow, so the way out never depends on the bar.
+
+**A correction worth keeping.** Reading that landscape screenshot at 1:1 I said the content was
+drawn under the status bar and added `contentWindowInsets = WindowInsets.systemBars` to fix it.
+Cropped and scaled, the content had never been under the status bar — and
+`ScaffoldDefaults.contentWindowInsets` is `systemBarsForVisualComponents`, *wider* than what I
+substituted. The change fixed nothing and narrowed the default; it was reverted. 640×320 is small
+enough that reading it unmagnified is guesswork.
+
+**The flow types instead of seeding a tall cell**, because Maestro addresses a whole
+`BasicTextField` as one node: a 13-line cell can never be 100% visible, so `scrollUntilVisible`
+can neither reach nor assert a line inside it. It also needs `waitForAnimationToEnd` after the
+tap — the symbol row appears on the *mode* change, well before the keyboard has animated in, and
+the first screenshot caught a focused cell and no keyboard, which is a picture of nothing.
+
+Evidence: `evidence/u6-ime-layout/{320dp,640dp}/`.
+
 ### U7 — two panes on a tablet, and the pane scaffold we could not use (done)
 
 At 840dp and wider the notebook list and the open notebook are side by side; below that nothing

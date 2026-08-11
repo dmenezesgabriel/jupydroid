@@ -71,11 +71,16 @@ fun EditorScreen(
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = {
-      EditorTopBar(
-        title = state.title,
-        onRename = viewModel::renameNotebook,
-        onBack = onBack,
-      )
+      // Dropped only on a window too short to afford it while a keyboard is up - see
+      // [editorTopBarVisible]. On a phone in landscape the alternative is a notebook with zero
+      // height, which is what this was.
+      if (isEditorTopBarVisible(state.mode)) {
+        EditorTopBar(
+          title = state.title,
+          onRename = viewModel::renameNotebook,
+          onBack = onBack,
+        )
+      }
     },
     bottomBar = {
       // One bar at a time, and which one is the mode's answer: typing wants the characters a
