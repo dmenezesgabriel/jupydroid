@@ -59,6 +59,17 @@ seed_notebook() {
     { echo "fixture did not land at $remote"; exit 1; }
 }
 
+# The width the app actually runs at, in dp - the same number `WindowSizeClass` reads.
+#
+# Asked of the framework rather than computed, and that is the point. Every attempt to derive it
+# got it wrong in a different way: `wm size` reports the *natural* size, so "the larger edge" is
+# the width on a landscape device and the height on a portrait one, and a run in the wrong size
+# class still looks green (docs/PLAN.md, U5b).
+window_width_dp() {
+  # `sed -n 1p` rather than `head -1`, for the reason `newest_run_dir` explains at length.
+  "$ADB" shell am get-config | tr '-' '\n' | sed -n 's/^w\([0-9]\+\)dp$/\1/p' | sed -n '1p'
+}
+
 # Stamps an evidence directory with the device that produced it.
 #
 # An evidence directory that does not say where it came from is a trap. Ten drivers promote
@@ -76,16 +87,29 @@ record_device() {
     echo "abi      $("${adb[@]}" shell getprop ro.product.cpu.abi | tr -d '\r')"
     # `am get-config` rather than `wm size`, which is pixels and three wrong derivations away
     # from the dp the window actually reports.
-    echo "window   $("${adb[@]}" shell am get-config | tr -d '\r' | grep -oE 'w[0-9]+dp-h[0-9]+dp' | head -1)"
+    echo "window   $("${adb[@]}" shell am get-config | tr -d '\r' | grep -m1 -oE 'w[0-9]+dp-h[0-9]+dp')"
     echo "captured $(date -Iseconds)"
   } >"$out/device.txt"
 }
 
-# Runs a flow and copies its screenshots and logcat into an evidence directory.
+# The directory maestro just wrote for [flow_name], newest first.
 #
-# Screenshots do not land in the working directory: maestro writes every artefact under
-# ~/.maestro/tests/<timestamp>/<flow>/ and never says where. Taking the newest run directory is
-# safe only because the copy happens immediately after the run it belongs to.
+# Maestro writes every artefact under ~/.maestro/tests/<timestamp>/<flow>/ and never says where,
+# so the newest is the only handle there is. Safe only because the caller asks immediately after
+# the run it belongs to.
+#
+# `sed -n 1p` and not `head -1`, which is the bug this function exists to stop repeating: `head`
+# exits after the first line and the still-writing `ls` upstream takes SIGPIPE, which under
+# `set -o pipefail` fails the driver with 141. It is a *race*, so it was invisible until the
+# directory grew - at 629 runs `ls` finally wrote more than a pipe buffer before `head` left,
+# and `a4-markdown-contrast` began failing after every flow in it had passed. `sed` reads its
+# input to the end, so there is nothing to race.
+newest_run_dir() {
+  local flow_name="$1"
+  ls -1dt "$HOME/.maestro/tests"/*/"$flow_name" 2>/dev/null | sed -n '1p'
+}
+
+# Runs a flow and copies its screenshots and logcat into an evidence directory.
 run_flow() {
   local flow="$1" out="$2"
   mkdir -p "$out"
@@ -96,7 +120,7 @@ run_flow() {
   fi
 
   local run_dir
-  run_dir="$(ls -1dt "$HOME/.maestro/tests"/*/"$(basename "$flow" .yaml)" 2>/dev/null | head -1)"
+  run_dir="$(newest_run_dir "$(basename "$flow" .yaml)")"
   [ -n "$run_dir" ] || { echo "no maestro run directory found for $flow"; exit 1; }
   cp "$run_dir/takeScreenshot"/*.png "$out/"
   cp "$run_dir/logs/device-logcat.txt" "$out/logcat.txt"

@@ -22,8 +22,15 @@ appId: com.jupydroid.app
 - tapOn: "Rename Me Here"
 - assertVisible: "renamed_here = 1"
 - takeScreenshot: 01-editor-before-rename
-# The app bar title, which is the rename target.
-- tapOn: "Rename Me Here"
+# The app bar title, which is the rename target - and on a wide window the *only* one of two.
+# U7 puts the notebook list beside the editor, so the open notebook's name is on screen twice,
+# once as a list row and once in the app bar. Plain `tapOn` took the row, which merely re-opened
+# the notebook it was already showing, and the dialog never came. `rightOf` the back arrow is
+# what tells them apart: the list pane is to its left.
+- tapOn:
+    text: "Rename Me Here"
+    rightOf:
+      text: "Back to notebooks"
 - assertVisible: "Rename notebook"
 - takeScreenshot: 02-dialog-from-the-title
 - tapOn:

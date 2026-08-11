@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# U7, expanded width (>= 840dp): the notebook list and the open notebook side by side.
+#
+# Seeded by scripts/u7-adaptive-driver.sh, which picks this flow or u7-one-pane.yaml from the
+# width `am get-config` reports - so a run cannot assert two panes against a window that has room
+# for one. clearState would delete the fixtures.
+#
+# Runs no cell: what is on screen is a layout question, and layout needs no kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Switch Alpha"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Switch Alpha"
+- extendedWaitUntil:
+    visible: "first_only = 111"
+    timeout: 30000
+# The whole claim of this step, in one assertion: a notebook the editor never shows is on screen
+# beside the one it does. A single pane cannot satisfy this, however wide it is.
+- assertVisible: "Switch Beta"
+- takeScreenshot: 01-list-beside-the-notebook
+# Only two panes make this gesture reachable - the list is next to the editor rather than behind
+# it - and it is the one that defect D1 would break: tapping the other notebook must swap the
+# *detail*, not stack a second editor where the list belongs.
+- tapOn: "Switch Beta"
+- extendedWaitUntil:
+    visible: "second_only = 222"
+    timeout: 30000
+- assertNotVisible: "first_only = 111"
+# Still two panes after the swap, rather than one editor that grew.
+- assertVisible: "Switch Alpha"
+- takeScreenshot: 02-detail-swapped-list-kept

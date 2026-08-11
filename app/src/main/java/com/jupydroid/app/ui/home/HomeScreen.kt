@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.home
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,8 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -25,6 +26,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,6 +50,9 @@ fun HomeScreen(
   importTitle: String? = null,
   onImportConsumed: () -> Unit = {},
   onOpenNotebook: (String) -> Unit = {},
+  // Null whenever the list has the window to itself, which is every compact window and every
+  // wide one with nothing open. Marking a row then would point at a pane that is not there.
+  openNotebookId: String? = null,
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = viewModel { HomeViewModel(notebookRepository) },
 ) {
@@ -65,6 +72,7 @@ fun HomeScreen(
     onRenameNotebook = { id, title -> viewModel.renameNotebook(id, title) },
     onDeleteNotebook = { id -> viewModel.deleteNotebook(id) },
     onOpenNotebook = onOpenNotebook,
+    openNotebookId = openNotebookId,
     modifier = modifier,
   )
 }
@@ -77,6 +85,7 @@ private fun HomeScaffold(
   onRenameNotebook: (String, String) -> Unit,
   onDeleteNotebook: (String) -> Unit,
   onOpenNotebook: (String) -> Unit,
+  openNotebookId: String?,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
@@ -91,6 +100,7 @@ private fun HomeScaffold(
       onRenameNotebook = onRenameNotebook,
       onDeleteNotebook = onDeleteNotebook,
       onOpenNotebook = onOpenNotebook,
+      openNotebookId = openNotebookId,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -149,6 +159,7 @@ private fun HomeContent(
   onRenameNotebook: (String, String) -> Unit,
   onDeleteNotebook: (String) -> Unit,
   onOpenNotebook: (String) -> Unit,
+  openNotebookId: String?,
   modifier: Modifier = Modifier,
 ) {
   if (notebooks.isEmpty()) {
@@ -161,6 +172,7 @@ private fun HomeContent(
         NotebookRow(
           notebook = notebook,
           now = now,
+          isOpen = notebook.id == openNotebookId,
           onOpen = { onOpenNotebook(notebook.id) },
           onRename = { newTitle -> onRenameNotebook(notebook.id, newTitle) },
           onDelete = { onDeleteNotebook(notebook.id) },
@@ -200,6 +212,7 @@ private fun EmptyRecents(modifier: Modifier = Modifier) {
 private fun NotebookRow(
   notebook: NotebookSummary,
   now: Instant,
+  isOpen: Boolean,
   onOpen: () -> Unit,
   onRename: (String) -> Unit,
   onDelete: () -> Unit,
@@ -212,6 +225,11 @@ private fun NotebookRow(
     Column(
       modifier = Modifier
         .fillMaxWidth()
+        // One accessible item, not two Texts and a click target: a row reads as
+        // "Switch Alpha, just now, selected" instead of making TalkBack walk three nodes. It is
+        // also what lets `selected` below be found on the node the title is on.
+        .semantics(mergeDescendants = true) { selected = isOpen }
+        .background(if (isOpen) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
         .combinedClickable(onClick = onOpen, onLongClick = { menuExpanded = true })
         .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
@@ -267,6 +285,7 @@ private fun HomeEmptyPreview() {
       onRenameNotebook = { _, _ -> },
       onDeleteNotebook = {},
       onOpenNotebook = {},
+      openNotebookId = null,
     )
   }
 }

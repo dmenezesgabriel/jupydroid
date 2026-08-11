@@ -1661,6 +1661,86 @@ Evidence: the same `evidence/u-flow-sweep/sweep-after.txt` — 37 flows, re-run 
 drivers, because a mechanical edit to every driver in the tree is exactly the change a whole-suite
 run exists to check.
 
+### U7 — two panes on a tablet, and the pane scaffold we could not use (done)
+
+At 840dp and wider the notebook list and the open notebook are side by side; below that nothing
+changes. A width rule, never a device one — the tablet in a split-screen window is a compact
+window and gets one pane.
+
+**The plan said `NavigableListDetailPaneScaffold` and the plan was wrong.** The scaffold puts both
+panes inside *one* `NavEntry`, which stops the editor being a navigation entry at all — and both
+nav3 decorators key on `NavEntry.contentKey`. That is defect D1 twice over: `viewModel { }`
+resolves on the class name, so the second notebook is handed the first one's ViewModel; and
+nothing disposes the previous notebook's entry, so `EditorViewModel.onCleared` never runs and its
+kernel socket is never closed — the guarantee `notebook-session-ends` exists to prove.
+`viewModel(key = notebookId)` would fix identity and not lifetime.
+
+**Any fix has to keep both entries alive, which is what a scene strategy *is*.** The library
+answer is `androidx.compose.material3.adaptive:adaptive-navigation3`, which has no stable release
+(`1.3.0-rc01`) and whose POM requires `adaptive-navigation` **strictly** at that version — taking
+it would move the whole adaptive family, `currentWindowAdaptiveInfo()` included, off the Compose
+BOM and onto pinned release candidates. So `TwoPaneSceneStrategy` is ours: ~40 lines against
+`SceneStrategy`, which is public API in the released `navigation3-ui` already on the classpath.
+Both entries stay entries and this only decides where they are painted, so every decorator is
+exactly where it was. **If that artifact goes stable, this is the thing to delete.**
+
+**Opening a notebook now replaces the one open instead of stacking on it.** That was unreachable
+on a phone — Home is not on screen while an editor is — and so never wrong. Two panes make it
+reachable, and `[Home, Editor(a), Editor(b)]` would hand the strategy the last two entries and
+put a notebook where the list belongs. Replacing is also what disposes the outgoing entry, so
+`onCleared` runs.
+
+**The list had to say which row the pane beside it belongs to.** A need two panes create: nothing
+was ever shown next to the list before, so there was nothing to point at. The row carries
+`selected` semantics as well as a `secondaryContainer` background, so TalkBack says it too — and
+the row became one merged accessible item rather than two Texts and a click target.
+
+**A screenshot found the test's bug, not the code's.** `theListPaneMarksTheNotebookThatIsOpen`
+failed on "found 2 nodes": two panes put the open notebook's name on screen twice, once in the
+list and once above the editor. The row was correctly selected all along; the selector was
+ambiguous. It matches on `hasText(title) and isSelectable()` now.
+
+`twoPane` is a parameter of `MainNavigation`, not something it measures, for the reason
+`CellActionsTest` already records: `currentWindowAdaptiveInfo()` reads the *activity's* window,
+which a `DeviceConfigurationOverride` around a composable does not change — so a test that forced
+a width would drive one branch twice while appearing to cover both.
+
+**The sweep found four flows that had assumed a full-width editor, and one flake that was ours.**
+Nothing in the app was wrong in any of them:
+
+- `step7-html-output` and `step7-rich-output` tapped `Run cell` with `index: 1`. An index counts
+  the buttons *rendered*, and with 360dp gone to the list pane the first cell's source began to
+  wrap and the second cell fell below the fold — so index 1 stopped existing. They use
+  `Run all cells` from the notebook bar now, which is on screen at every width. An index over a
+  scrolling list was never addressing the cell it named.
+- `step7-rich-output` then failed a second time on the traceback, which renders *below* the
+  second cell's source: both cells had run (`[3] ran in 0.2 s`, red stripe) and
+  `extendedWaitUntil` cannot scroll. `scrollUntilVisible` retries, so it is the wait as well.
+- `rename-in-editor` tapped the notebook's name meaning the app-bar title and got the **list
+  row**, which merely re-opened the notebook already showing — so the dialog never came. Anchored
+  `rightOf: "Back to notebooks"` now; the list pane is to its left. That is the third thing this
+  session broken by the open notebook's name being on screen twice, after the instrumented test
+  and `openNotebook`'s stacking.
+- `a4-markdown-contrast` was **a flake introduced with `record_device`'s neighbours**:
+  `ls -dt ~/.maestro/tests/*/ | head -1` under `set -o pipefail`. `head` exits after one line and
+  the still-writing `ls` takes SIGPIPE, failing the driver with 141. A pure race, invisible until
+  the directory grew — at 629 run directories `ls` finally wrote more than a pipe buffer before
+  `head` left. Three identical runs gave 141, 1 and 0. `newest_run_dir` in `scripts/maestro-run.sh`
+  is now the one copy of "the directory maestro just wrote", using `sed -n 1p`, which reads its
+  input to the end and so has nothing to race; the other two `head -1` pipelines became `grep -m1`.
+
+**Not built, and not forgotten:** the plan's medium-width navigation rail. A rail needs a second
+top-level destination to hold, and this app has one; it belongs with the explorer or the terminal,
+whichever lands first. The 840dp boundary is chosen over 600dp for the same reason — 360dp of list
+plus a divider leaves 239dp for the notebook in a 600dp window, narrower than the phone the
+single-pane layout was designed for.
+
+Evidence: `evidence/u7-adaptive/`, both widths — `u7-two-panes-1280dp/` on the tablet and
+`u7-one-pane-320dp/` on the emulator, the flow chosen from the width `am get-config` reports so a
+run cannot assert two panes against a window with room for one. The negative half is the half
+worth having: a strategy that returned a scene unconditionally would pass the two-pane flow on any
+device, and only asserting that a narrow window does *not* get a second pane catches it.
+
 ## Harness notes
 
 ### Running a Maestro flow

@@ -58,9 +58,14 @@ appId: com.jupydroid.app
 # The DataFrame case. The markup is a verbatim `pandas._repr_html_`, carried by
 # IPython.display.HTML because pandas is not in the rootfs - the mime bundle and the code
 # path are the same either way.
-- tapOn:
-    text: "Run cell"
-    index: 1
+# Run All from the notebook bar rather than the second cell's own button.
+#
+# `index: 1` counted the `Run cell` buttons *rendered*, and how many of a notebook is rendered
+# is a function of the window: U7 gave 360dp of the tablet to the list pane, the first cell's
+# source began to wrap, and the second cell fell below the fold - so index 1 stopped existing.
+# An index over a scrolling list was never addressing the cell it named; the bar is on screen
+# at every width and runs both, which is what this flow wants anyway.
+- tapOn: "Run all cells"
 # The verbatim fixture is 38 lines, so the output starts below the fold - the first run of
 # this flow screenshotted nothing but source while passing every assertion, and the second
 # then failed `assertVisible` on the very same state. Scrolling is what makes the screenshot

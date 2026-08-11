@@ -26,9 +26,9 @@ for MODE in yes no; do
   sleep 2
   "$ADB" shell am force-stop "$APP"
   "$MAESTRO" ${ANDROID_SERIAL:+--device "$ANDROID_SERIAL"} test "$ROOT/.maestro/a4-markdown-contrast.yaml"
-  RUN="$(ls -dt "$HOME"/.maestro/tests/*/ | head -1)"
+  RUN="$(newest_run_dir a4-markdown-contrast)"
   NAME=$([ "$MODE" = yes ] && echo dark || echo light)
-  cp "$RUN/a4-markdown-contrast/takeScreenshot/markdown-edit-mode.png" "$OUT/after-$NAME.png"
+  cp "$RUN/takeScreenshot/markdown-edit-mode.png" "$OUT/after-$NAME.png"
 done
 record_device "$OUT"
 # `auto`, not the `yes` this used to force. Forcing dark left the setting somewhere the device

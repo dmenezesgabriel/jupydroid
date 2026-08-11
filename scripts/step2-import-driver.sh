@@ -23,7 +23,7 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 sleep 2
 
 MEDIA_ID="$("$ADB" shell content query --uri content://media/external/file \
-  --projection _id:_display_name | grep "Intro to NumPy.ipynb" | grep -oE '_id=[0-9]+' | head -1 | cut -d= -f2)"
+  --projection _id:_display_name | grep "Intro to NumPy.ipynb" | grep -m1 -oE '_id=[0-9]+' | cut -d= -f2)"
 [ -n "$MEDIA_ID" ] || { echo "media id not found"; exit 1; }
 
 "$ADB" shell am force-stop "$APP"

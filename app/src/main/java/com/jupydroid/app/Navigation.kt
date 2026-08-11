@@ -16,6 +16,11 @@ fun MainNavigation(
   appContainer: AppContainer,
   importTitle: String?,
   onImportConsumed: () -> Unit,
+  // Passed in rather than read at the point of use, for the reason `CellActionsTest` records:
+  // `currentWindowAdaptiveInfo()` measures the *activity's* window, which a
+  // `DeviceConfigurationOverride` around a composable does not change - so a test that tried to
+  // force a width would drive one branch twice while appearing to cover both.
+  twoPane: Boolean = isWindowWideEnoughForTwoPanes(),
 ) {
   val backStack = rememberNavBackStack(Home)
 
@@ -33,6 +38,10 @@ fun MainNavigation(
       rememberSaveableStateHolderNavEntryDecorator(),
       rememberViewModelStoreNavEntryDecorator(),
     ),
+    // Both entries stay entries; this only decides whether they are drawn one at a time or
+    // beside each other. Declining a scene (a narrow window, or nothing open) falls through to
+    // NavDisplay's single-pane default. See TwoPaneSceneStrategy for why not the pane scaffold.
+    sceneStrategy = TwoPaneSceneStrategy(twoPane = twoPane),
     entryProvider =
       entryProvider {
         entry<Home> {
@@ -41,6 +50,10 @@ fun MainNavigation(
             importTitle = importTitle,
             onImportConsumed = onImportConsumed,
             onOpenNotebook = { id -> backStack.openNotebook(id) },
+            // Only while the list is *beside* the notebook. In one pane the list is on screen
+            // exactly when nothing is open, so a marked row would point at a pane that is not
+            // there - and would be the only thing on screen still claiming a notebook is open.
+            openNotebookId = (backStack.lastOrNull() as? Editor)?.notebookId.takeIf { twoPane },
           )
         }
         entry<Editor> { editor ->

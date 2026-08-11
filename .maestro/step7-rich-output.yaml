@@ -23,10 +23,22 @@ appId: com.jupydroid.app
     timeout: 120000
 - takeScreenshot: 02-image-rendered
 # A traceback, which used to render its ANSI escapes literally as [31m...
-- tapOn:
-    text: "Run cell"
-    index: 1
-- extendedWaitUntil:
-    visible: ".*ZeroDivisionError.*"
+#
+# Run All from the notebook bar rather than the second cell's own button. `index: 1` counted
+# the `Run cell` buttons *rendered*, and how much of a notebook is rendered is a function of
+# the window: U7 gave 360dp of the tablet to the list pane and the second cell fell below the
+# fold, so index 1 stopped existing. The bar is on screen at every width, and `1 / 0` is the
+# last cell, so nothing is skipped behind the failure.
+- tapOn: "Run all cells"
+# Scrolled to, not merely waited for. The traceback renders *below* the second cell's source,
+# and how much of the notebook is on screen is a function of the window - U7 gave 360dp of the
+# tablet to the list pane, so it fell below the fold and a wait that cannot scroll sat there
+# until it timed out while the cell had failed correctly all along. `scrollUntilVisible` retries,
+# so it is the wait as well, which is the argument step7-html-output.yaml already makes.
+- scrollUntilVisible:
+    element:
+      text: ".*ZeroDivisionError.*"
+    direction: DOWN
     timeout: 60000
+    centerElement: true
 - takeScreenshot: 03-traceback-without-ansi-noise

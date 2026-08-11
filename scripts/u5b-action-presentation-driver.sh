@@ -27,18 +27,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-# Asked of the framework rather than computed, and that is the point.
-#
-# `am get-config` reports the configuration the app actually runs under - `w1280dp` on the
-# landscape tablet, `w320dp` on the portrait emulator - which is the same number
-# `WindowSizeClass` reads. Every attempt to derive it instead got it wrong in a different way:
-# `wm size` reports the *natural* size, so "the larger edge" is the width on a landscape device
-# and the height on a portrait one, and a run in the wrong class still looks green.
-window_width_dp() {
-  "$ADB" shell am get-config | tr '-' '\n' | sed -n 's/^w\([0-9]\+\)dp$/\1/p' | head -1
-}
-
-WIDTH_DP="$(window_width_dp)"
+WIDTH_DP="$(window_width_dp)"   # from maestro-run.sh; asked of the framework, never derived
 # The same 600dp boundary `cellActionPresentationFor` uses.
 if [ "$WIDTH_DP" -ge 600 ]; then CLASS=expanded; else CLASS=compact; fi
 echo "=== ${CLASS}, ${WIDTH_DP}dp wide ==="
