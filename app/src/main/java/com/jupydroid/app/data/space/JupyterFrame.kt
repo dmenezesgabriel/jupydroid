@@ -46,6 +46,17 @@ internal object JupyterFrame {
    */
   fun msgTypeOf(frame: String): String? = decode(frame)?.msgType()
 
+  /**
+   * The request a frame is answering, or null when it answers none.
+   *
+   * The field that separates "the kernel never saw our request" from "the kernel is answering it
+   * slowly": a `status` with our `msg_id` as its parent is the kernel acknowledging the execute,
+   * while a parentless one is its own startup chatter. The fifth sighting of the stall showed
+   * three statuses and no `execute_input`, and without the parent there was no way to say which.
+   */
+  fun parentMsgIdOf(frame: String): String? =
+    decode(frame)?.get("parent_header")?.jsonObject?.get("msg_id")?.jsonPrimitive?.content
+
   fun JsonObject.content(): JsonObject? = get("content")?.jsonObject
 
   @Suppress("SwallowedException") // an unparseable frame is other traffic, not our failure

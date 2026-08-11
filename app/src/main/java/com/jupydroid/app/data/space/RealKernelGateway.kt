@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import java.util.UUID
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -81,10 +82,10 @@ class RealKernelGateway(
       emitAll(
         sessionSocket.events
           .onSubscription {
-            // `enqueued`, not `sent`: OkHttp returns true when the frame is *queued*, which it
-            // will be before the handshake has finished - the first device capture shows
-            // `execute.request` ahead of `socket.connected` every time. So a true here says the
-            // app let go of the request, and nothing at all about the kernel having heard it.
+            sessionSocket.awaitConnected()
+            // `enqueued`, not `sent`: OkHttp returns true when the frame is *queued*, so a true
+            // here says the app let go of the request and nothing about the kernel having heard
+            // it. That is why the await above exists rather than trusting this.
             val enqueued = sessionSocket.socket.send(JupyterMessage.executeRequest(code, session.id, requestMsgId))
             log.reached(
               KernelLog.EXECUTE_REQUEST,
@@ -170,11 +171,16 @@ class RealKernelGateway(
     // channel is serial - one execution in flight at a time - so this is generous, and with
     // no replay the flow discards frames arriving between executions rather than growing.
     val events = MutableSharedFlow<KernelSocketEvent>(extraBufferCapacity = FRAME_BUFFER)
+    val connected = CompletableDeferred<Unit>()
     log.reached(KernelLog.SOCKET_OPENED, mapOf("kernelId" to session.kernelId, "sessionId" to session.id))
     val socket = opener.open(session.kernelId, session.id) { event ->
+      // Not via the SessionSocket being constructed: an opener may report `Opened` synchronously
+      // from inside `open()`, before there is anything to hold it in - which is exactly what the
+      // scripted opener does, and a fake that mimics reality is the point of having one.
+      settle(connected, event)
       report(event, subscribers = events.subscriptionCount.value, accepted = events.tryEmit(event))
     }
-    return SessionSocket(socket, events)
+    return SessionSocket(socket, events, connected)
   }
 
   /**
@@ -194,16 +200,50 @@ class RealKernelGateway(
         log.reached(KernelLog.SOCKET_ENDED, fields + why)
       }
       is KernelSocketEvent.Received -> {
-        val what = mapOf("msgType" to (JupyterFrame.msgTypeOf(event.frame) ?: "?"))
+        val what = mapOf(
+          "msgType" to (JupyterFrame.msgTypeOf(event.frame) ?: "?"),
+          // Empty means the frame answers no request of ours - the kernel's own startup chatter.
+          "parent" to (JupyterFrame.parentMsgIdOf(event.frame) ?: ""),
+        )
         log.reached(KernelLog.FRAME_RECEIVED, fields + what + mapOf("bytes" to event.frame.length.toString()))
       }
     }
     if (!accepted) log.reached(KernelLog.FRAME_DROPPED, fields)
   }
 
-  private class SessionSocket(val socket: KernelSocket, val events: MutableSharedFlow<KernelSocketEvent>)
+  /**
+   * One session's socket, and whether it is connected yet.
+   *
+   * [connected] is the fix for the execution stall, four sightings and one diagnosis
+   * (`evidence/kernel-observability/stall-diagnosed.md`). `onSubscription` runs the instant a
+   * collector attaches, which is long before OkHttp has finished the handshake; the frame was
+   * queued and flushed on open, reaching `jupyter_server` before its own `open()` had associated
+   * the session, and dropped. The kernel then sent its startup statuses and nothing else.
+   */
+  private class SessionSocket(
+    val socket: KernelSocket,
+    val events: MutableSharedFlow<KernelSocketEvent>,
+    private val connected: CompletableDeferred<Unit>,
+  ) {
+    /** Returns at once when the socket is already open, which every cell after the first is. */
+    suspend fun awaitConnected() = connected.await()
+  }
 
   private companion object {
     const val FRAME_BUFFER = 256
+  }
+}
+
+/**
+ * Releases whoever is waiting to send, or fails them when the socket dies first.
+ *
+ * Completing exceptionally matters as much as completing: waiting for a handshake that never lands
+ * would turn a lost frame into a hang, which is worse than the defect being fixed.
+ */
+private fun settle(connected: CompletableDeferred<Unit>, event: KernelSocketEvent) {
+  when (event) {
+    is KernelSocketEvent.Opened -> connected.complete(Unit)
+    is KernelSocketEvent.Ended -> connected.completeExceptionally(KernelChannelException(event.reason))
+    is KernelSocketEvent.Received -> Unit
   }
 }

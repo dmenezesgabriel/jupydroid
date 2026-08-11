@@ -2205,9 +2205,40 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   frames and then silence" and not which three, which is the difference between a symptom and a
   cause.
 
-  **The fix is not yet applied.** It is to hold the request until the socket reports `Opened`, and
-  verifying it is statistical - the stall appears roughly once in twenty runs - so it wants its own
-  change with a repeat-run gate rather than a line slipped into another step.
+  **Not fixed - and the correction matters more than the change.** Holding the request until the
+  socket connects was applied, and **run 24 of 50 stalled again with the ordering correct**:
+  `socket.connected`, then `execute.request`, then three startup statuses and silence. So sending
+  before the handshake was a real race worth removing - JupyterLab does not do it either - but it
+  is not the mechanism. One failure in 75 runs is also not evidence of improvement: that is what a
+  one-in-fifty defect looks like.
+
+  What remains unknown is whether those three `status` frames answer our request or are the
+  kernel's own startup chatter - indistinguishable without `parent_header.msg_id`, which is now
+  logged on every frame. The next candidate is the one `jupyter_client` and JupyterLab both handle:
+  `jupyter_server` completes the websocket handshake before its `ZMQChannelsWebsocketConnection`
+  has subscribed the session to the kernel's channels, so a request sent straight after `Opened`
+  can still be dropped; the standard answer is `kernel_info_request` / `kernel_info_reply` before
+  any user request.
+
+  The change that was made: `SessionSocket` carries a `CompletableDeferred` completed on `Opened`, and `execute`
+  awaits it before sending; a cell on an already-open socket returns from that await at once.
+  `settle` completes it *exceptionally* when the socket ends first - without that, waiting for a
+  handshake that never lands turns a lost frame into a hang, which is a worse defect than the one
+  being fixed and an easy one to introduce here.
+
+  **Reproduced in a unit test, which is worth more than the field capture.**
+  `ScriptedKernelSocketOpener` can now withhold `Opened` the way a real socket does and records
+  anything sent before it as `sentBeforeOpen`; that list is non-empty before the fix. So the
+  mechanism is not inferred from a log any more - it is driven.
+
+  **On the repeat runs, and what they are worth.** `scripts/step5-completion-repeat-driver.sh`
+  runs the flow N times, each a fresh launch with a fresh kernel - the state all four sightings
+  were in. Absence is not provable this way: at roughly one in twenty, 25 clean runs happen by
+  chance about 27% of the time even with nothing fixed, and 75 runs about 2%. The claim is
+  therefore that the mechanism is identified, reproduced and removed, with no recurrence in the
+  runs recorded - not that the stall is proven gone. A recurrence arrives pre-diagnosed now: the
+  driver dumps that run's `kernel.*` lines and the frame sequence says at once whether the request
+  was lost again. See `evidence/kernel-observability/stall-fixed.md`.
 
   **A harness defect found while chasing it, and fixed:** `run_flow` copied screenshots and
   logcat into `evidence/` only when the flow *passed* - `set -e` killed the driver at the failed

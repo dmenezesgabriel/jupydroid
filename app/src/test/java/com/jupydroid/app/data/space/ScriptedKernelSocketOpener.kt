@@ -19,6 +19,14 @@ class ScriptedKernelSocketOpener(
   private val reply: (requestMsgId: String) -> List<String>,
   /** Ends the socket once the scripted frames are delivered, so failure paths can be driven. */
   private val endAfter: KernelSocketEvent.Ended? = null,
+  /**
+   * Whether the handshake has finished by the time [open] returns.
+   *
+   * False is the case that matters and the one a real socket has: OkHttp returns a `WebSocket`
+   * immediately and reports `Opened` later. Call [finishHandshake] to release it, or
+   * [failHandshake] to end the socket without ever opening.
+   */
+  private val openImmediately: Boolean = true,
 ) : KernelSocketOpener {
   var openedKernelId: String? = null
     private set
@@ -29,6 +37,23 @@ class ScriptedKernelSocketOpener(
   var openCount = 0
     private set
 
+  /** What was sent before the handshake finished - lost frames, on a real server. */
+  val sentBeforeOpen = mutableListOf<String>()
+
+  private var opened = false
+  private var events: ((KernelSocketEvent) -> Unit)? = null
+
+  /** Completes the handshake, the way OkHttp's `onOpen` does. */
+  fun finishHandshake() {
+    opened = true
+    events?.invoke(KernelSocketEvent.Opened)
+  }
+
+  /** Ends the socket without it ever opening: a refused upgrade, a 404 for a dead kernel. */
+  fun failHandshake(reason: String) {
+    events?.invoke(KernelSocketEvent.Ended(reason = reason, failed = true))
+  }
+
   override fun open(
     kernelId: String,
     sessionId: String,
@@ -37,12 +62,22 @@ class ScriptedKernelSocketOpener(
     openedKernelId = kernelId
     openedSessionId = sessionId
     openCount++
-    onEvent(KernelSocketEvent.Opened)
+    events = onEvent
+    if (openImmediately) {
+      opened = true
+      onEvent(KernelSocketEvent.Opened)
+    }
     return ScriptedSocket(onEvent)
   }
 
   private inner class ScriptedSocket(private val onEvent: (KernelSocketEvent) -> Unit) : KernelSocket {
     override fun send(frame: String): Boolean {
+      // A real server drops what arrives before its own `open()` has associated the session, so
+      // the fake keeps it and answers nothing - which is what the stall looks like.
+      if (!opened) {
+        sentBeforeOpen += frame
+        return true
+      }
       val requestMsgId = Json.parseToJsonElement(frame)
         .jsonObject["header"]!!.jsonObject["msg_id"]!!.jsonPrimitive.content
       reply(requestMsgId).forEach { onEvent(KernelSocketEvent.Received(it)) }
