@@ -186,7 +186,11 @@ private fun EditorCell(
     status = execution?.status ?: ExecutionStatus.NOT_STARTED,
     palette = editorPalette,
   )
-  CellFrame(stripe = stripe, modifier = modifier) {
+  // The whole cell carries its actions for a screen reader, not only the `⋮` that opens them.
+  CellFrame(
+    stripe = stripe,
+    modifier = modifier.cellCustomActions(cell = cell, canPaste = canPaste, onAction = onCellAction),
+  ) {
     CellHeader(
       cell = cell,
       executionCount = executionCount,

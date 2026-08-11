@@ -42,7 +42,7 @@ fun CellActions(
   presentation: CellActionPresentation = currentCellActionPresentation(),
 ) {
   if (!expanded) return
-  val items = itemsFor(cell, canPaste)
+  val items = cellActionItems(cell, canPaste)
   val choose: (CellAction) -> Unit = { action ->
     onAction(action)
     onDismiss()
@@ -135,8 +135,11 @@ private fun cellMenuDescription(label: String) = "Cell menu $label"
  *
  * The label says what tapping will do rather than what the cell is, so the menu reads as a
  * verb list throughout.
+ *
+ * Internal rather than private because it is the one list three surfaces are built from: the
+ * menu, the sheet, and the cell's accessibility context menu ([Modifier.cellCustomActions]).
  */
-private fun itemsFor(cell: Cell, canPaste: Boolean): List<Pair<String, CellAction>> =
+internal fun cellActionItems(cell: Cell, canPaste: Boolean): List<Pair<String, CellAction>> =
   addingItems() + shapingItems(cell) + clipboardItems(canPaste) + foldingItems(cell) + removingItems()
 
 private fun addingItems(): List<Pair<String, CellAction>> = listOf(

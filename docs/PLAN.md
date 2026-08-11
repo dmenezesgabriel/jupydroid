@@ -1661,6 +1661,32 @@ Evidence: the same `evidence/u-flow-sweep/sweep-after.txt` — 37 flows, re-run 
 drivers, because a mechanical edit to every driver in the tree is exactly the change a whole-suite
 run exists to check.
 
+### U5e — every cell action reachable from the cell (done)
+
+The item U5d deferred, and the last of Phase U. TalkBack reaches the `⋮` menu in three moves —
+find that button among the cell's other controls, activate it, then walk a list that has just
+replaced the screen; on a compact window the list is a `ModalBottomSheet`, so the cell it belongs
+to is *gone* while it is open. `Modifier.cellCustomActions` puts the same items in the local
+context menu of the cell the user is already on.
+
+**One list, now three surfaces.** `cellActionItems` stopped being private: the menu, the sheet and
+the accessibility context menu are built from the same function, so a fourteenth action cannot
+appear on two of them and not the third. The test asserts against that function rather than
+against a copied list, which is what makes that true rather than merely intended.
+
+Run and Stop are deliberately absent: full-size buttons on the header with their own
+`contentDescription`, already one move away. This covers what is *behind* something.
+
+**There is no flow, and that is the honest answer rather than a gap.** `customActions` lives on
+`AccessibilityNodeInfo.getActionList()`, which `uiautomator dump` does not print and a screenshot
+cannot show; the only surface it appears on is TalkBack's own menu. A flow asserting anything here
+would be asserting something else and calling it this. The gate is the instrumented test —
+`fetchSemanticsNode` is the only way to ask what a node offers, and `action()` the only way to
+know a label is wired to anything. The whole-suite sweep still ran, because this adds a semantics
+node to every cell and moving the semantics tree is exactly what broke four flows in U7.
+
+Evidence: `evidence/u5e-cell-actions-for-talkback/`.
+
 ### U6 — the keyboard, and the one window where there was no notebook left (done)
 
 **Most of what this step listed was already true, and the flow is what says so.** An eight-cell
