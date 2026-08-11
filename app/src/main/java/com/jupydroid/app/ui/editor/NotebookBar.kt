@@ -1,10 +1,9 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -19,11 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 
 /**
  * The bar along the bottom: what you ask the *kernel*, as opposed to what you ask a cell.
@@ -84,31 +79,20 @@ internal fun NotebookBar(
 }
 
 /**
- * Two glyphs, because there is no single one for this and two identical buttons side by side is
- * worse than a slightly busy one.
+ * Fast-forward, which is the icon the reference uses - not a composed one, and not another Refresh.
  *
- * `material-icons-core` has `Refresh` and nothing that reads as "restart, then run", and pulling
- * in `material-icons-extended` for one icon is a dependency this project has already declined
- * once - the Stop square on a cell header is drawn by hand for the same reason. Composing the
- * two that do exist says what the action is: restart, then play.
+ * `packages/notebook-extension/src/index.ts`: `restart-kernel` takes `refreshIcon` (line 3157) and
+ * `restart-run-all` takes `fastForwardIcon` (line 3326). Its `fast-forward.svg` is the double
+ * triangle `m4 18 8.5-6L4 6zm9-12v12l8.5-6z`, which is Material's `FastForward`.
  *
- * One `contentDescription` on the row rather than one per glyph: an `IconButton` merges its
- * descendants' semantics, so naming both would give a screen reader two things to say about one
- * control.
+ * This was a `Refresh` and a `PlayArrow` drawn side by side while `material-icons-extended` was
+ * not a dependency - an invention that read plausibly and was not what a JupyterLab user sees.
+ * X2a added the dependency; reading the reference settled which icon it should have been.
  */
 @Composable
 private fun RestartAndRunAllIcon() {
-  Row(
-    verticalAlignment = Alignment.CenterVertically,
-    modifier = Modifier.semantics { contentDescription = "Restart kernel and run all cells" },
-  ) {
-    Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(RESTART_GLYPH))
-    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(RUN_GLYPH))
-  }
+  Icon(Icons.Filled.FastForward, contentDescription = "Restart kernel and run all cells")
 }
-
-private val RESTART_GLYPH = 17.dp
-private val RUN_GLYPH = 13.dp
 
 /** Which of the two restarts is waiting on the user. */
 private enum class RestartRequest { RESTART, RESTART_AND_RUN_ALL }

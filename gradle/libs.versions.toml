@@ -32,6 +32,15 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive"}
 # material3 no longer pulls the icons in transitively; -core is the small set (not -extended).
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core"}
+# Version-less like the rest of the Compose family: the BOM manages it. Added in X2a for the
+# explorer's file-type icons.
+#
+# **It is big**: the debug APK went from 116 MB to 142 MB, and Android's own guidance says so -
+# "material-icons-extended is a large library and can affect your APK size, so you should consider
+# using R8/Proguard in production builds to remove the resources that aren't used". Release builds
+# do not shrink it today, because `isMinifyEnabled` is false; that is a Step 15 packaging question
+# alongside the rootfs, and it is written down here rather than assumed away.
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended"}
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui"}
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview"}
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4"}

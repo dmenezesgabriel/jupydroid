@@ -98,6 +98,7 @@ dependencies {
     // with the pane scaffolds, which nothing uses yet.
     implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.commonmark)
     implementation(libs.jsoup)
     implementation(libs.commons.compress)

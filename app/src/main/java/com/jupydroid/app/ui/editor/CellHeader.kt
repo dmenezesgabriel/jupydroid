@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -130,14 +131,13 @@ private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () ->
     strokeWidth = 2.dp,
   )
   IconButton(onClick = onStop) {
-    // The universal stop square, drawn rather than imported: it is the only glyph this screen
-    // would need from material-icons-extended. The 12dp is the *glyph*; the button around it
-    // reserves 48dp of pressable area regardless, which `CellTouchTargetTest` pins.
-    Box(
-      modifier = Modifier
-        .size(12.dp)
-        .background(MaterialTheme.colorScheme.error, MaterialTheme.shapes.extraSmall)
-        .semantics { contentDescription = "Stop cell" },
+    // The real glyph now that material-icons-extended is a dependency (X2a). It was a drawn Box
+    // only because importing the whole icon set for one square was the worse trade; that reason
+    // is gone. The button around it still reserves 48dp, which `CellTouchTargetTest` pins.
+    Icon(
+      imageVector = Icons.Filled.Stop,
+      contentDescription = "Stop cell",
+      tint = MaterialTheme.colorScheme.error,
     )
   }
 }
