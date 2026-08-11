@@ -34,14 +34,7 @@ seed_notebook "$FIXTURE" foreign-metadata
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
-# --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator
-# and a phone attached it picks one of its own accord and the fixture is on the other.
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/foreign-metadata.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/foreign-metadata.yaml"
-fi
+maestro_test "$ROOT/.maestro/foreign-metadata.yaml"
 
 # The file on disk is the whole assertion here - the screenshots only show that the app was
 # driven. Every key below was written by something other than this app and must still be there.

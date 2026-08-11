@@ -24,8 +24,14 @@ appId: com.jupydroid.app
     timeout: 30000
 # Nothing focused yet: the cursor sits at the end of the text but must not light anything up.
 - takeScreenshot: 01-unfocused-nothing-lit
-# The field fills the width, so tapping the node puts the cursor past the end of the one line -
-# right after the `)` that closes `sum(`.
+# Tapping the node puts the caret past the end of this one short line only while the field is
+# wider than the text - which is why this flow needs a >= 600dp window and its driver says so. At
+# 320dp the centre lands inside `sum([1, 2, 3])`, the `[` goes in front of the `1`, and
+# `opensAPair` correctly declines to wedge a partner into existing text. Recorded for months as an
+# "emulator IME artefact": it is neither the emulator nor the IME, and not an app defect at all -
+# the app did the right thing with the caret it was given. Maestro has no End key, this version
+# has no `relativePoint`, and neither scrolling nor swiping reaches the symbol row's arrow at that
+# width, so the caret cannot be placed from a flow.
 - tapOn: "total = sum\\(\\[1, 2, 3\\]\\)"
 - takeScreenshot: 02-outer-pair-lit
 # A new pair, opened by typing one character (5.3 closes it), and the cursor moves inside it.

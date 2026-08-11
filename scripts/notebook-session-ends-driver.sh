@@ -27,11 +27,4 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/session-ends.ipynb" session-ends
 
-# --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator and a
-# tablet attached it picks one of its own accord and the fixture is on the other.
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/notebook-session-ends.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/notebook-session-ends.yaml"
-fi
+maestro_test "$ROOT/.maestro/notebook-session-ends.yaml"

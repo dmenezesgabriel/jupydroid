@@ -30,7 +30,10 @@ DEVICE="${ANDROID_SERIAL:-$("$ADB" devices | awk 'NR==2 {print $1}')}"
 # `ro.product.cpu.abi` rather than a device name: what matters is whether a Space can run here,
 # and that is an ABI question (see SpaceAbi - arm64 only, and deliberately).
 ABI="$("$ADB" -s "$DEVICE" shell getprop ro.product.cpu.abi | tr -d '\r')"
-echo "device $DEVICE ($ABI)"
+# Asked of the framework, never derived - the same number `WindowSizeClass` reads. `sed -n 1p`
+# rather than `head -1`, for the reason `maestro-run.sh`'s `newest_run_dir` explains.
+WIDTH_DP="$("$ADB" -s "$DEVICE" shell am get-config | tr '-' '\n' | sed -n 's/^w\([0-9]\+\)dp$/\1/p' | sed -n '1p')"
+echo "device $DEVICE ($ABI, ${WIDTH_DP}dp wide)"
 echo
 
 pass=0; fail=0; skip=0
@@ -42,6 +45,12 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
 
   if grep -q "TABLET ONLY" "$driver" && [ "$ABI" != "arm64-v8a" ]; then
     printf 'SKIP  %-28s needs arm64: it runs a cell, and the fake would answer\n' "$name"
+    skip=$((skip + 1))
+    continue
+  fi
+
+  if grep -q "WIDE WINDOW" "$driver" && [ "${WIDTH_DP:-0}" -lt 600 ]; then
+    printf 'SKIP  %-28s needs >=600dp: it taps a text field and reads the caret\n' "$name"
     skip=$((skip + 1))
     continue
   fi

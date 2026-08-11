@@ -38,11 +38,4 @@ seed_notebook "$FIXTURE" step5-completion
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
-# --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator
-# and a phone attached it picks one of its own accord and the fixture is on the other.
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/step5-completion.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/step5-completion.yaml"
-fi
+maestro_test "$ROOT/.maestro/step5-completion.yaml"

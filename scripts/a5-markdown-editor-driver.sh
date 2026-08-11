@@ -29,11 +29,4 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 reset_notebooks
 seed_notebook "$FIXTURE" a1c-markdown-render
 
-# --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator
-# and a phone attached it picks one of its own accord and the fixture is on the other.
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/a5-markdown-editor.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/a5-markdown-editor.yaml"
-fi
+maestro_test "$ROOT/.maestro/a5-markdown-editor.yaml"

@@ -33,14 +33,7 @@ seed_notebook "$FIXTURE" step4b-cell-menu
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
-# --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator
-# and a phone attached it picks one of its own accord and the fixture is on the other.
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/step4b-cell-menu.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/step4b-cell-menu.yaml"
-fi
+maestro_test "$ROOT/.maestro/step4b-cell-menu.yaml"
 
 # The order on disk is the real assertion: the screenshots show a menu, but only the saved
 # file proves the notebook was actually re-shaped and persisted.

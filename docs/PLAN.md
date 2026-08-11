@@ -1661,6 +1661,48 @@ Evidence: the same `evidence/u-flow-sweep/sweep-after.txt` — 37 flows, re-run 
 drivers, because a mechanical edit to every driver in the tree is exactly the change a whole-suite
 run exists to check.
 
+### The suite at phone width, which had never been run (done)
+
+Every sweep so far had been on the tablet. Running all 39 flows on the 320×640dp emulator found
+four failures, and **not one was an app defect** — every one was a flow assuming the window it
+was written on.
+
+**Two of them were not even running where they thought.** `step2-import` and `step4-editor` were
+the only drivers that never passed `--device`, and `maestro-run.sh` had documented for months why
+that matters: `adb` honours `ANDROID_SERIAL`, **maestro does not**, so with two devices attached
+it picks one of its own accord. They seeded the emulator and drove the tablet — the failure
+screenshot is a 1920×1200 Home showing a notebook from a different flow. Every tablet sweep had
+been passing them by luck of which device maestro chose.
+
+The fix is not two `--device` flags. Twenty-six drivers carried the same six-line if/else by hand,
+and a per-line rule about `--device` would have passed all of them *including* the two that were
+broken, because the `else` branch is legitimately bare. `maestro_test` is now the one copy of that
+decision, every driver goes through it or through `run_flow`, and
+`check_driver_isolation.py` gained a second rule so the twenty-seventh cannot half-copy it. The
+gate's two rules are one idea: **a flow runs against the state its own driver set up** — the right
+Home, on the right device.
+
+**The other two were index-based targeting, again.** `a1c-markdown-render` tapped
+`Run cell, index: 0`; at 320dp the markdown cell's header is above the fold, so index 0 was the
+*code* cell below it — the flow ran the wrong cell and then failed looking for a render nobody
+had asked for. `step4b-cell-menu` tapped `Cell menu Delete` with no scroll; below 600dp the
+actions are a `ModalBottomSheet` and Delete is the last of thirteen rows. Both now address the
+thing they mean: `rightOf: {text: "markdown"}`, and a `scrollUntilVisible` that settles instantly
+on the tablet's dropdown. That is the third and fourth flow this phase to be caught counting
+rendered nodes instead of naming one.
+
+**`step5-brackets` was mis-attributed for months and is now enforced.** PLAN recorded it as an
+"emulator IME artefact" — it is neither the emulator nor the IME. The flow taps a one-line cell
+expecting the caret past the end of the text, which holds only while the field is wider than the
+line; at 320dp the tap lands inside `sum([1, 2, 3])` and `opensAPair` **correctly** declines to
+wedge a partner into existing text. The app was right every time. Maestro has no End key, this
+version has no `relativePoint`, and neither scrolling nor swiping reaches the symbol row's arrow
+at that width, so the caret cannot be placed from a flow — the honest answer is a width rule.
+`scripts/run-all-flows.sh` now enforces **two** device rules rather than one:
+`TABLET ONLY` (an ABI rule: it runs a cell and the fake would answer) and `WIDE WINDOW` (a width
+rule: it taps a text field and reads the caret). Skipped and counted, never silently passed and
+never failed for a reason that has nothing to do with the app.
+
 ### U5e — every cell action reachable from the cell (done)
 
 The item U5d deferred, and the last of Phase U. TalkBack reaches the `⋮` menu in three moves —
@@ -2106,9 +2148,50 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   `am force-stop`s first, which takes the server and its kernels with it, so nothing carries over
   between flows either.
 
-  So: two sightings, one flow, no cause, and the same shape both times. Worth a real look before
-  Step 11 leans harder on the same execute path — the useful next step is `logcat` captured
-  *during* a stall, which neither sighting has.
+  **Third sighting, 2026-08-11**, in `u5c-notebook-bar` during the tablet sweep that closed Phase
+  U — and the first one that is not `step5-completion`, so the flow is not the variable. Same
+  shape: first `Run` after a fresh launch, `[*]` with the spinner and Stop up, the second cell
+  queued behind it, nothing after 120 s, and it passed on an immediate re-run of the same build.
+
+  **This one has the `logcat` the previous two lacked, and what it says is that we cannot see.**
+  Out of 33,279 lines, five mention the runtime at all:
+
+      13:48:04.032  JupydroidSpace: starting jupyter_server
+      13:48:07.946  JupydroidSpace: jupyter_server listening on http://127.0.0.1:39771/
+      13:48:11.061  io_stats: a second libpython3.so (pid 14832)   <- the kernel process starts
+
+  Then silence until the flow gave up at 13:50:07. So the server came up in 3.9 s and a kernel
+  process exists; the stall is *after* that. Beyond it the app logs nothing at all - not the
+  kernel session, not the websocket, not the `execute_request`, not a single received message -
+  so the capture cannot say whether the request was sent, whether the socket ever connected, or
+  whether the kernel replied and nobody read it. Three sightings and still no cause, because
+  **the execute path has no observability**, which `CLAUDE.md` asks for in as many words.
+
+  **The execute path says what it is doing now** (`KernelLog`, `evidence/kernel-observability/`).
+  Eight stages as structured JSON under the existing `JupydroidSpace` tag: session opened, socket
+  opened and connected and ended, every frame received *with the subscriber count*, frames
+  dropped, request enqueued, execution complete. A stall now reads as one of three distinct
+  things rather than as silence - nothing came back, something came back to nobody
+  (`subscribers: 0`, which `MutableSharedFlow(replay = 0)` discards without a word), or the
+  handshake never finished.
+
+  **And the first healthy capture already found the prime suspect.** On every device run,
+  `kernel.execute.request` precedes `kernel.socket.connected`: the app hands the frame to OkHttp
+  before the handshake completes, and OkHttp queues it. `send()` returns true on *enqueue* - which
+  is why the field is `enqueued` and not `sent` - so a request against a socket that never
+  connects is waited on forever with `enqueued: true` and no error raised anywhere. That matches
+  the stall's shape exactly: first Run after a fresh launch, no output, no failure, and fine on
+  the retry once the connection is warm.
+
+  Deliberately **not fixed**: three sightings, one plausible mechanism, no reproduction. A guessed
+  fix would trade a defect whose shape is understood for one whose shape is not. The next sighting
+  confirms or rules this out in one `grep`.
+
+  **A harness defect found while chasing it, and fixed:** `run_flow` copied screenshots and
+  logcat into `evidence/` only when the flow *passed* - `set -e` killed the driver at the failed
+  assertion first. The evidence for a failure is the evidence that matters, and it was the one
+  thing being discarded; the logcat sitting in `evidence/u5c-notebook-bar/` was from a run 84
+  minutes earlier. It captures either way now, and propagates the failure afterwards.
 - **`PythonTypingRules` reads the line as text, not as tokens**, so a block opener with a
   trailing comment (`if x:  # note`) gets no extra level. Fixing it means asking the lexer
   where the comment starts, which is a dependency the transformation does not otherwise have;

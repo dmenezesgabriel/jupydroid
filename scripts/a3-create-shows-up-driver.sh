@@ -31,9 +31,4 @@ for i in $(seq 1 "$CROWD"); do
 done
 "$ADB" shell run-as "$APP" ls files/notebooks | wc -l
 
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/a3-create-shows-up.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/a3-create-shows-up.yaml"
-fi
+maestro_test "$ROOT/.maestro/a3-create-shows-up.yaml"

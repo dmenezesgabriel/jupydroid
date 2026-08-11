@@ -67,6 +67,28 @@ class DriverIsolationTest(unittest.TestCase):
     def test_a_comment_naming_the_helper_does_not_count_as_calling_it(self) -> None:
         self.assertOffences(f"# reset_notebooks would go here\n{SEEDS}", 1)
 
+    def test_a_driver_running_maestro_without_a_device_is_reported(self) -> None:
+        """The flow has to run where the fixture went.
+
+        Maestro does not honour `ANDROID_SERIAL`: with two devices attached it picks one of its
+        own accord, so a driver that seeds through `adb` (which *does* honour it) and then runs
+        `maestro test` bare can drive the other device entirely. Two drivers did, and the whole
+        emulator sweep ran their flows against the tablet.
+        """
+        found = self.assertOffences(f'{RESETS}\n{SEEDS}\n"$MAESTRO" test "$ROOT/.maestro/x.yaml"', 1)
+        self.assertIn("--device", found[0])
+
+    def test_running_maestro_through_the_helpers_is_clean(self) -> None:
+        self.assertOffences(f'{RESETS}\n{SEEDS}\nmaestro_test "$ROOT/.maestro/x.yaml"', 0)
+        self.assertOffences(f'{RESETS}\n{SEEDS}\nrun_flow "$ROOT/.maestro/x.yaml" "$OUT"', 0)
+
+    def test_passing_the_device_by_hand_is_reported_too(self) -> None:
+        """Not "bare invocations": the shape every driver carried was an if/else whose *else*
+        branch is legitimately bare, so a rule about `--device` per line passed the two drivers
+        that were actually broken. One copy of the decision, in the helper."""
+        body = f'{RESETS}\n{SEEDS}\n"$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/x.yaml"'
+        self.assertOffences(body, 1)
+
     def test_the_real_drivers_are_clean(self) -> None:
         """The gate against the tree it ships with, which is what a commit is judged on."""
         self.assertEqual([], offences(pathlib.Path(__file__).resolve().parent))

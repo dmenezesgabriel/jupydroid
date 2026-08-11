@@ -25,4 +25,4 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 reset_notebooks
 seed_notebook "$FIXTURE" step4-cells
 
-"$MAESTRO" test "$ROOT/.maestro/step4-editor.yaml"
+maestro_test "$ROOT/.maestro/step4-editor.yaml"

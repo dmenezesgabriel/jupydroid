@@ -25,7 +25,7 @@ for MODE in yes no; do
   "$ADB" shell cmd uimode night "$MODE" >/dev/null
   sleep 2
   "$ADB" shell am force-stop "$APP"
-  "$MAESTRO" ${ANDROID_SERIAL:+--device "$ANDROID_SERIAL"} test "$ROOT/.maestro/a4-markdown-contrast.yaml"
+  maestro_test "$ROOT/.maestro/a4-markdown-contrast.yaml"
   RUN="$(newest_run_dir a4-markdown-contrast)"
   NAME=$([ "$MODE" = yes ] && echo dark || echo light)
   cp "$RUN/takeScreenshot/markdown-edit-mode.png" "$OUT/after-$NAME.png"

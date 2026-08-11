@@ -11,6 +11,8 @@ REMOTE="/sdcard/Download/Intro to NumPy.ipynb"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too
+# shellcheck source=scripts/maestro-run.sh
+. "$ROOT/scripts/maestro-run.sh"   # maestro_test: maestro does not honour ANDROID_SERIAL
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
@@ -30,4 +32,4 @@ MEDIA_ID="$("$ADB" shell content query --uri content://media/external/file \
 "$ADB" shell "am start -a android.intent.action.VIEW -d 'content://media/external/file/$MEDIA_ID' -t '*/*' -f 0x1 $APP" >/dev/null
 sleep 3
 
-"$MAESTRO" test "$ROOT/.maestro/step2-import.yaml"
+maestro_test "$ROOT/.maestro/step2-import.yaml"

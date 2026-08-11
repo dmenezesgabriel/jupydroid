@@ -34,15 +34,21 @@ appId: com.jupydroid.app
 # so focusing it scrolled its header - and the Run button on it - above the viewport. Put the
 # keyboard away and come back up to the button, which is what a person does before pressing Run.
 - hideKeyboard
+# Scrolled to the *kind label*, not to "Run cell", and then anchored to it. `markdown` appears on
+# exactly one header, so this addresses that cell's Run whatever else is on screen. `index: 0`
+# counted the Run buttons *rendered*, and at 320dp the markdown header is above the fold while
+# the code cell below it is not - so index 0 was the code cell's Run and the flow ran the wrong
+# cell entirely, then failed looking for a render that was never asked for.
 - scrollUntilVisible:
     element:
-      text: "Run cell"
+      text: "markdown"
     direction: UP
     timeout: 10000
 # Run renders it again, which is what running a markdown cell means in Jupyter.
 - tapOn:
     text: "Run cell"
-    index: 0
+    rightOf:
+      text: "markdown"
 - extendedWaitUntil:
     visible: "Rendered markdown"
     timeout: 10000

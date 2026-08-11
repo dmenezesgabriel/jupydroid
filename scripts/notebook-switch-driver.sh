@@ -30,11 +30,4 @@ reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/switch-alpha.ipynb" switch-alpha
 seed_notebook "$ROOT/.maestro/fixtures/switch-beta.ipynb" switch-beta
 
-# --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator and a
-# tablet attached it picks one of its own accord and the fixtures are on the other.
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/notebook-switch.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/notebook-switch.yaml"
-fi
+maestro_test "$ROOT/.maestro/notebook-switch.yaml"

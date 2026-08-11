@@ -39,6 +39,9 @@ class KernelChannelException(reason: String) : IllegalStateException(reason)
 class RealKernelGateway(
   private val opener: KernelSocketOpener,
   private val lifecycle: KernelLifecycle,
+  // Silent by default so the many tests that do not care about logging need not pass one; the
+  // app wires the real thing in `AppContainer`. See [KernelLog] for what these lines are for.
+  private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) : KernelGateway {
   private val sessionSockets = mutableMapOf<String, SessionSocket>()
   private val socketsLock = Mutex()
@@ -52,7 +55,7 @@ class RealKernelGateway(
       id = UUID.randomUUID().toString(),
       spaceId = space.id,
       kernelId = lifecycle.start(),
-    )
+    ).also { log.reached(KernelLog.SESSION_OPENED, mapOf("kernelId" to it.kernelId, "sessionId" to it.id)) }
 
   /**
    * Everything is filtered by our own `msg_id`: one socket now carries every cell's traffic,
@@ -77,7 +80,17 @@ class RealKernelGateway(
       val completion = ExecutionCompletion()
       emitAll(
         sessionSocket.events
-          .onSubscription { sessionSocket.socket.send(JupyterMessage.executeRequest(code, session.id, requestMsgId)) }
+          .onSubscription {
+            // `enqueued`, not `sent`: OkHttp returns true when the frame is *queued*, which it
+            // will be before the handshake has finished - the first device capture shows
+            // `execute.request` ahead of `socket.connected` every time. So a true here says the
+            // app let go of the request, and nothing at all about the kernel having heard it.
+            val enqueued = sessionSocket.socket.send(JupyterMessage.executeRequest(code, session.id, requestMsgId))
+            log.reached(
+              KernelLog.EXECUTE_REQUEST,
+              mapOf("cellId" to cellId, "msgId" to requestMsgId, "enqueued" to enqueued.toString()),
+            )
+          }
           .transformWhile { event -> emitUntilComplete(event, requestMsgId, cellId, completion) },
       )
     }
@@ -134,7 +147,10 @@ class RealKernelGateway(
     KernelOutputs.executionCountOf(event.frame, requestMsgId)?.let { emit(KernelEvent.ExecutionCount(cellId, it)) }
     KernelOutputs.outputOf(event.frame, requestMsgId)?.let { emit(KernelEvent.Output(cellId, it)) }
     val complete = completion.accept(event.frame, requestMsgId)
-    if (complete) emit(KernelEvent.Idle)
+    if (complete) {
+      emit(KernelEvent.Idle)
+      log.reached(KernelLog.EXECUTE_COMPLETE, mapOf("cellId" to cellId, "msgId" to requestMsgId))
+    }
     return !complete
   }
 
@@ -154,8 +170,33 @@ class RealKernelGateway(
     // channel is serial - one execution in flight at a time - so this is generous, and with
     // no replay the flow discards frames arriving between executions rather than growing.
     val events = MutableSharedFlow<KernelSocketEvent>(extraBufferCapacity = FRAME_BUFFER)
-    val socket = opener.open(session.kernelId, session.id) { events.tryEmit(it) }
+    log.reached(KernelLog.SOCKET_OPENED, mapOf("kernelId" to session.kernelId, "sessionId" to session.id))
+    val socket = opener.open(session.kernelId, session.id) { event ->
+      report(event, subscribers = events.subscriptionCount.value, accepted = events.tryEmit(event))
+    }
     return SessionSocket(socket, events)
+  }
+
+  /**
+   * Says what came off the socket *before* anything downstream can swallow it.
+   *
+   * `subscribers` is the field that matters. `MutableSharedFlow` with `replay = 0` drops what it
+   * emits to nobody and says nothing about it, so "the kernel never replied" and "the kernel
+   * replied between executions and it was discarded" are indistinguishable after the fact - and
+   * they are opposite defects. `accepted` catches the other loss, a full buffer.
+   */
+  private fun report(event: KernelSocketEvent, subscribers: Int, accepted: Boolean) {
+    val fields = mapOf("subscribers" to subscribers.toString())
+    when (event) {
+      is KernelSocketEvent.Opened -> log.reached(KernelLog.SOCKET_CONNECTED, fields)
+      is KernelSocketEvent.Ended -> {
+        val why = mapOf("reason" to event.reason, "failed" to event.failed.toString())
+        log.reached(KernelLog.SOCKET_ENDED, fields + why)
+      }
+      is KernelSocketEvent.Received ->
+        log.reached(KernelLog.FRAME_RECEIVED, fields + mapOf("bytes" to event.frame.length.toString()))
+    }
+    if (!accepted) log.reached(KernelLog.FRAME_DROPPED, fields)
   }
 
   private class SessionSocket(val socket: KernelSocket, val events: MutableSharedFlow<KernelSocketEvent>)

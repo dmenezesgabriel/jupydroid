@@ -52,6 +52,10 @@ fun baseSpaceKernelGateway(context: Context): KernelGateway? {
       RealKernelGateway(
         opener = OkHttpKernelSocketOpener(connection),
         lifecycle = OkHttpKernelLifecycle(connection),
+        // The same tag the rest of the runtime reports under, so a stall is one filter to read:
+        // `adb logcat -s JupydroidSpace`. Without this the execute path is silent, which is why
+        // three sightings of the stall produced no diagnosis. See [KernelLog].
+        log = LogcatSpaceLifecycleLog,
       )
     },
     log = LogcatSpaceLifecycleLog,

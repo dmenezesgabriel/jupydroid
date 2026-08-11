@@ -109,20 +109,41 @@ newest_run_dir() {
   ls -1dt "$HOME/.maestro/tests"/*/"$flow_name" 2>/dev/null | sed -n '1p'
 }
 
+# Runs a flow on the device this driver seeded, and nowhere else.
+#
+# `adb` honours `ANDROID_SERIAL`; **maestro does not**. With two devices attached it picks one of
+# its own accord, so a driver that seeds through `adb` and then runs `maestro test` bare drives
+# the other device - which `step2-import` and `step4-editor` did, and the first whole-suite run
+# on the emulator ran their flows against the tablet against a Home that had never been seeded.
+#
+# Twenty-five drivers carried this same six-line if/else by hand. `scripts/check_driver_isolation.py`
+# requires going through here now, so it cannot be half-copied into the twenty-sixth.
+maestro_test() {
+  local flow="$1"
+  if [ -n "$MAESTRO_DEVICE" ]; then
+    "$MAESTRO" --device "$MAESTRO_DEVICE" test "$flow"
+  else
+    "$MAESTRO" test "$flow"
+  fi
+}
+
 # Runs a flow and copies its screenshots and logcat into an evidence directory.
 run_flow() {
-  local flow="$1" out="$2"
+  local flow="$1" out="$2" status=0
   mkdir -p "$out"
-  if [ -n "$MAESTRO_DEVICE" ]; then
-    "$MAESTRO" --device "$MAESTRO_DEVICE" test "$flow" 2>&1 | tee "$out/maestro.log"
-  else
-    "$MAESTRO" test "$flow" 2>&1 | tee "$out/maestro.log"
-  fi
+  # The status is captured rather than allowed to abort, because the evidence for a *failure* is
+  # the evidence that matters and this used to throw it away: `set -e` killed the driver at the
+  # failed assertion, before any of the copying below, so `evidence/<step>/` kept the artefacts
+  # of the last run that passed. Chasing the third sighting of the execution stall, the logcat in
+  # evidence/ turned out to be from a different run 84 minutes earlier.
+  maestro_test "$flow" 2>&1 | tee "$out/maestro.log" || status=$?
 
   local run_dir
   run_dir="$(newest_run_dir "$(basename "$flow" .yaml)")"
   [ -n "$run_dir" ] || { echo "no maestro run directory found for $flow"; exit 1; }
-  cp "$run_dir/takeScreenshot"/*.png "$out/"
+  # A failed flow has fewer screenshots than it planned, and may have none.
+  cp "$run_dir/takeScreenshot"/*.png "$out/" 2>/dev/null || true
   cp "$run_dir/logs/device-logcat.txt" "$out/logcat.txt"
   record_device "$out"
+  return "$status"
 }

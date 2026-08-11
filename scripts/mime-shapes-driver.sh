@@ -39,14 +39,7 @@ seed_notebook "$FIXTURE" mime-shapes
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
-# --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator
-# and a phone attached it picks one of its own accord and the fixture is on the other.
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/mime-shapes.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/mime-shapes.yaml"
-fi
+maestro_test "$ROOT/.maestro/mime-shapes.yaml"
 
 # The file on disk is the whole assertion here. Both rules are nbformat's `_split_mimebundle`
 # and `_rejoin_mimebundle`, and the failure they guard against is silent: a stringified object

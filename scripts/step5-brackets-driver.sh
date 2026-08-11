@@ -9,6 +9,12 @@
 # past the end of the text and the cursor is where the flow assumes it is.
 set -euo pipefail
 
+# WIDE WINDOW (>= 600dp). The flow taps a one-line cell expecting the caret to land past the end
+# of the text, which holds only while the field is wider than the line. At 320dp the tap lands
+# inside `sum([1, 2, 3])` and `opensAPair` correctly declines to close a bracket wedged into
+# existing text - the app is right and the flow's assumption is not. Recorded for months as an
+# emulator IME artefact; it is a width rule, and scripts/run-all-flows.sh enforces it.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/step5-brackets.ipynb"
 APP="com.jupydroid.app"
@@ -33,11 +39,4 @@ seed_notebook "$FIXTURE" step5-brackets
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
-# --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator
-# and a phone attached it picks one of its own accord and the fixture is on the other.
-MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
-if [ -n "$MAESTRO_DEVICE" ]; then
-  "$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/.maestro/step5-brackets.yaml"
-else
-  "$MAESTRO" test "$ROOT/.maestro/step5-brackets.yaml"
-fi
+maestro_test "$ROOT/.maestro/step5-brackets.yaml"

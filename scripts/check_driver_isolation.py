@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md): a Maestro flow must be independent of the ones before it.
+"""Working Agreement (CLAUDE.md): a flow runs against the state its own driver set up.
+
+Two rules, one idea. The driver prepares a device and then runs a flow; both halves have to be
+talking about the same thing.
 
 Every driver that puts a notebook on the device has to clear the ones already there first, or
 the suite is not repeatable - it is a function of how many times it has been run.
@@ -17,6 +20,13 @@ check_driver_isolation_test.py.
 
 Drivers that never touch `files/notebooks` are not asked to reset; measuring the runtime is not
 the same as opening Home.
+
+**And the flow has to run where the fixture went.** `adb` honours `ANDROID_SERIAL`; **maestro does
+not**. With two devices attached it picks one of its own accord, so a driver that seeds through
+`adb` and then runs `maestro test` bare can drive the other device entirely - which is exactly
+what `step2-import` and `step4-editor` did, and the first whole-suite run on the emulator drove
+their flows against the tablet. Passing `--device` is not optional; go through `maestro_test` or
+`run_flow` and it is not possible to forget.
 """
 from __future__ import annotations
 
@@ -34,6 +44,11 @@ RESET = "reset_notebooks"
 # sits at the top of every driver, above the reset, so matching the bare path reported all
 # twenty-three migrated drivers as resetting too late.
 SEEDS = (re.compile(r"^\s*seed_notebook\s"), re.compile(r"mkdir -p files/notebooks"))
+# Any direct `"$MAESTRO" … test`. Not "one without --device": the shape every driver used to
+# carry was an if/else whose *else* branch is legitimately bare, so a per-line rule passed the
+# two drivers that were actually broken. Go through `maestro_test` or `run_flow`, which is one
+# copy of the decision instead of twenty-six.
+RUNS_MAESTRO_DIRECTLY = re.compile(r'"\$MAESTRO".*\btest\b')
 
 
 def _statements(driver: pathlib.Path) -> list[str]:
@@ -59,7 +74,15 @@ def offences(scripts: pathlib.Path = SCRIPTS) -> list[str]:
             found.append(f"{driver}: seeds a notebook without calling {RESET} first")
         elif reset > seeded:
             found.append(f"{driver}: calls {RESET} after seeding; it has to run before, or it deletes the fixture")
+        found += untargeted_maestro(driver, statements)
     return found
+
+
+def untargeted_maestro(driver: pathlib.Path, statements: list[str]) -> list[str]:
+    """A driver that seeds one device and then lets maestro choose another."""
+    if not any(RUNS_MAESTRO_DIRECTLY.search(line) for line in statements):
+        return []
+    return [f"{driver}: invokes maestro directly, so --device can go missing; use maestro_test or run_flow"]
 
 
 def main() -> int:

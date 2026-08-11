@@ -68,8 +68,9 @@ class BaseSpaceKernelGatewayTest {
   fun connect_reportsEachStageItReachedSoAFailureNamesOne() = runTest {
     gateway(RecordingServerLauncher()).connect(SPACE)
 
-    assertTrue("expected the server url to be logged, got $logged", logged.any { it.contains("127.0.0.1:8888") })
-    assertTrue("expected the kernel to be logged, got $logged", logged.any { it.contains("kernel") })
+    val stages = recordingLog.stages
+    assertTrue("expected the server url to be logged, got $stages", stages.any { it.contains("127.0.0.1:8888") })
+    assertTrue("expected the kernel to be logged, got $stages", stages.any { it.contains("kernel") })
   }
 
   @Test
@@ -78,22 +79,11 @@ class BaseSpaceKernelGatewayTest {
 
     runCatching { gateway.connect(SPACE) }
 
-    assertTrue("expected a failure to be logged, got $failures", failures.isNotEmpty())
+    assertTrue("expected the failing stage to be logged", recordingLog.failures.isNotEmpty())
   }
 
   private val installedThenStarted = mutableListOf<String>()
-  private val logged = mutableListOf<String>()
-  private val failures = mutableListOf<String>()
-
-  private val recordingLog = object : SpaceLifecycleLog {
-    override fun reached(stage: String) {
-      logged += stage
-    }
-
-    override fun failed(stage: String, cause: Throwable) {
-      failures += stage
-    }
-  }
+  private val recordingLog = RecordingSpaceLifecycleLog()
 
   private fun gateway(launcher: RecordingServerLauncher): KernelGateway = BaseSpaceKernelGateway(
     installSpace = { installedThenStarted += "install" },
