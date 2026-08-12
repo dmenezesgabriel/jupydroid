@@ -2,6 +2,9 @@ package com.jupydroid.app.ui.home
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.WorkspaceEntry
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -15,7 +18,7 @@ class HomeViewModelTest {
 
   @Test
   fun uiState_startsEmpty() = runTest {
-    val viewModel = HomeViewModel(FakeNotebookRepository())
+    val viewModel = HomeViewModel(FakeNotebookRepository(), FakeWorkspaceRepository())
 
     assertEquals(HomeUiState(emptyList()), viewModel.uiState.value)
   }
@@ -24,7 +27,7 @@ class HomeViewModelTest {
   fun uiState_reflectsRepositoryContents() = runTest {
     val repository = FakeNotebookRepository()
     repository.createNotebook(title = "Untitled", kernelId = "python3")
-    val viewModel = HomeViewModel(repository)
+    val viewModel = HomeViewModel(repository, FakeWorkspaceRepository())
 
     val collector = launch { viewModel.uiState.collect {} }
     advanceUntilIdle()
@@ -35,7 +38,7 @@ class HomeViewModelTest {
 
   @Test
   fun createNotebook_addsRowToUiState() = runTest {
-    val viewModel = HomeViewModel(FakeNotebookRepository())
+    val viewModel = HomeViewModel(FakeNotebookRepository(), FakeWorkspaceRepository())
     val collector = launch { viewModel.uiState.collect {} }
     advanceUntilIdle()
 
@@ -48,7 +51,7 @@ class HomeViewModelTest {
 
   @Test
   fun renameNotebook_updatesRowTitle() = runTest {
-    val viewModel = HomeViewModel(FakeNotebookRepository())
+    val viewModel = HomeViewModel(FakeNotebookRepository(), FakeWorkspaceRepository())
     val collector = launch { viewModel.uiState.collect {} }
     advanceUntilIdle()
     viewModel.createNotebook(title = "Untitled", kernelId = "python3")
@@ -64,7 +67,7 @@ class HomeViewModelTest {
 
   @Test
   fun deleteNotebook_removesRowFromUiState() = runTest {
-    val viewModel = HomeViewModel(FakeNotebookRepository())
+    val viewModel = HomeViewModel(FakeNotebookRepository(), FakeWorkspaceRepository())
     val collector = launch { viewModel.uiState.collect {} }
     advanceUntilIdle()
     viewModel.createNotebook(title = "Untitled", kernelId = "python3")
@@ -77,4 +80,43 @@ class HomeViewModelTest {
     assertTrue(viewModel.uiState.value.notebooks.isEmpty())
     collector.cancel()
   }
+
+  /**
+   * "New Python file" creates a *file* named `untitled.py`, not a notebook that only looks like
+   * one - the reference's `new_untitled({type: "file", ext})` - and reports the path it made, so
+   * the caller can open exactly what was created.
+   */
+  @Test
+  fun createPythonFile_makesTheFileAndHandsBackItsPath() = runTest {
+    val workspace = MakingWorkspaceRepository()
+    val viewModel = HomeViewModel(FakeNotebookRepository(), workspace)
+    var createdPath: String? = null
+
+    viewModel.createPythonFile { createdPath = it }
+    advanceUntilIdle()
+
+    assertEquals("", workspace.directory)
+    assertEquals("py", workspace.extension)
+    assertEquals("untitled.py", createdPath)
+  }
+}
+
+/** A workspace whose creation succeeds, so Home's "New Python file" has something to report. */
+private class MakingWorkspaceRepository : WorkspaceRepository {
+  var directory: String? = null
+  var extension: String? = null
+
+  override suspend fun list(path: String): List<WorkspaceEntry> = emptyList()
+
+  override suspend fun readText(path: String): String = error("not read")
+
+  override suspend fun writeText(path: String, text: String) = Unit
+
+  override suspend fun createFile(directory: String, extension: String): String {
+    this.directory = directory
+    this.extension = extension
+    return "untitled.py"
+  }
+
+  override suspend fun createFolder(directory: String): String = error("not created")
 }

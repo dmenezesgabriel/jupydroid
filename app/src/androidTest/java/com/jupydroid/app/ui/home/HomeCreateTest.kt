@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.domain.model.Notebook
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -40,7 +41,12 @@ class HomeCreateTest {
         )
       }
     }
-    compose.setContent { HomeScreen(notebookRepository = repository) }
+    compose.setContent {
+      HomeScreen(
+        notebookRepository = repository,
+        workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+      )
+    }
 
     compose.onNodeWithText("+").performClick()
     compose.onNodeWithText("New notebook").performClick()

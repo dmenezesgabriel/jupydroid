@@ -59,9 +59,11 @@ fun MainNavigation(
         entry<Home>(metadata = HOME_PANE_METADATA) {
           HomeScreen(
             notebookRepository = appContainer.notebookRepository,
+            workspaceRepository = appContainer.workspaceRepository,
             importTitle = importTitle,
             onImportConsumed = onImportConsumed,
             onOpenNotebook = { id -> backStack.openNotebook(id) },
+            onOpenFile = { path -> backStack.openFile(path) },
             // Only while the list is *beside* the notebook. In one pane the list is on screen
             // exactly when nothing is open, so a marked row would point at a pane that is not
             // there - and would be the only thing on screen still claiming a notebook is open.

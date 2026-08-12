@@ -44,24 +44,26 @@ import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.NotebookSummary
 import com.jupydroid.app.domain.model.UNTITLED_NOTEBOOK
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RenameNotebookDialog
 import java.time.Instant
 
-private const val NEW_PYTHON_FILE_TITLE = "untitled.py"
-
 @Composable
 fun HomeScreen(
   notebookRepository: NotebookRepository,
+  workspaceRepository: WorkspaceRepository,
   importTitle: String? = null,
   onImportConsumed: () -> Unit = {},
   onOpenNotebook: (String) -> Unit = {},
+  onOpenFile: (String) -> Unit = {},
   onBrowseFiles: () -> Unit = {},
   // Null whenever the list has the window to itself, which is every compact window and every
   // wide one with nothing open. Marking a row then would point at a pane that is not there.
   openNotebookId: String? = null,
   modifier: Modifier = Modifier,
-  viewModel: HomeViewModel = viewModel { HomeViewModel(notebookRepository) },
+  viewModel: HomeViewModel =
+    viewModel { HomeViewModel(notebookRepository, workspaceRepository) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -75,7 +77,7 @@ fun HomeScreen(
   HomeScaffold(
     notebooks = state.notebooks,
     onCreateNotebook = { viewModel.createNotebook(UNTITLED_NOTEBOOK, DEFAULT_KERNEL_ID) },
-    onCreatePythonFile = { viewModel.createNotebook(NEW_PYTHON_FILE_TITLE, DEFAULT_KERNEL_ID) },
+    onCreatePythonFile = { viewModel.createPythonFile(onOpenFile) },
     onRenameNotebook = { id, title -> viewModel.renameNotebook(id, title) },
     onDeleteNotebook = { id -> viewModel.deleteNotebook(id) },
     onOpenNotebook = onOpenNotebook,

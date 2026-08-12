@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.NotebookSummary
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -12,7 +13,10 @@ import kotlinx.coroutines.launch
 
 data class HomeUiState(val notebooks: List<NotebookSummary>)
 
-class HomeViewModel(private val notebookRepository: NotebookRepository) : ViewModel() {
+class HomeViewModel(
+  private val notebookRepository: NotebookRepository,
+  private val workspaceRepository: WorkspaceRepository,
+) : ViewModel() {
   val uiState: StateFlow<HomeUiState> =
     notebookRepository.observeNotebooks()
       .map { HomeUiState(it) }
@@ -20,6 +24,21 @@ class HomeViewModel(private val notebookRepository: NotebookRepository) : ViewMo
 
   fun createNotebook(title: String, kernelId: String) {
     viewModelScope.launch { notebookRepository.createNotebook(title, kernelId) }
+  }
+
+  /**
+   * "New Python file" creates a file at the workspace root and hands its path back for opening.
+   *
+   * The reference's `new_untitled({type: "file", ext})` is *not* a notebook `Untitled` — it is
+   * `untitled.py`, plain content with nothing to execute — and the file editor is its default
+   * document factory (`packages/fileeditor`), the same split the explorer's `onOpenFile` makes.
+   * The path is the one thing only the creation can know — the server's incremented name — so
+   * the caller gets it rather than guessing `untitled.py` again.
+   */
+  fun createPythonFile(onCreated: (String) -> Unit) {
+    viewModelScope.launch {
+      runCatching { workspaceRepository.createFile("", "py") }.onSuccess { onCreated(it) }
+    }
   }
 
   /**
