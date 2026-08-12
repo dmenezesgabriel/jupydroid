@@ -57,4 +57,49 @@ class NotebookBackStackTest {
 
     assertEquals(listOf(Home, Editor("nb-2")), backStack)
   }
+
+  /** A plain file opens the same way a notebook does: one document, pushed onto the browser. */
+  @Test
+  fun openingAFilePushesItsEditor() {
+    val backStack = mutableListOf<NavKey>(Home, Explorer)
+
+    backStack.openFile("data.csv")
+
+    assertEquals(listOf(Home, Explorer, FileEditor("data.csv")), backStack)
+  }
+
+  @Test
+  fun openingTheFileAlreadyOnTopChangesNothing() {
+    val backStack = mutableListOf<NavKey>(Home, Explorer, FileEditor("data.csv"))
+
+    backStack.openFile("data.csv")
+
+    assertEquals(listOf(Home, Explorer, FileEditor("data.csv")), backStack)
+  }
+
+  /** A second file replaces the one open - the reference's `openOrReveal`, applied to files. */
+  @Test
+  fun openingADifferentFileReplacesTheOneOpen() {
+    val backStack = mutableListOf<NavKey>(Home, Explorer, FileEditor("a.csv"))
+
+    backStack.openFile("b.csv")
+
+    assertEquals(listOf(Home, Explorer, FileEditor("b.csv")), backStack)
+  }
+
+  /**
+   * The two document kinds swap each other. The explorer can open both, and a detail it cannot
+   * swap would stack `[Explorer, FileEditor(a), Editor(b)]`, whose last two entries
+   * [TwoPaneSceneStrategy] refuses to pair - one stray tap would collapse the two panes.
+   */
+  @Test
+  fun openingANotebookReplacesAPlainFileAndViceVersa() {
+    val fromFile = mutableListOf<NavKey>(Home, Explorer, FileEditor("a.py"))
+    fromFile.openNotebook("nb-1")
+    assertEquals(listOf(Home, Explorer, Editor("nb-1")), fromFile)
+
+    val fromNotebook = mutableListOf<NavKey>(Home, Explorer, Editor("nb-1"))
+    fromNotebook.openFile("a.py")
+    assertEquals(listOf(Home, Explorer, FileEditor("a.py")), fromNotebook)
+  }
 }

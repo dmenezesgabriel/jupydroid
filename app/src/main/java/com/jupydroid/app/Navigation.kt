@@ -56,7 +56,7 @@ fun MainNavigation(
     sceneStrategy = TwoPaneSceneStrategy(twoPane = twoPane),
     entryProvider =
       entryProvider {
-        entry<Home> {
+        entry<Home>(metadata = HOME_PANE_METADATA) {
           HomeScreen(
             notebookRepository = appContainer.notebookRepository,
             importTitle = importTitle,
@@ -69,7 +69,7 @@ fun MainNavigation(
             onBrowseFiles = { backStack.add(Explorer) },
           )
         }
-        entry<Explorer> {
+        entry<Explorer>(metadata = EXPLORER_PANE_METADATA) {
           ExplorerScreen(
             workspaceRepository = appContainer.workspaceRepository,
             notebookRepository = appContainer.notebookRepository,
@@ -83,13 +83,24 @@ fun MainNavigation(
               if (file.name.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
                 backStack.openNotebook(file.path)
               } else {
-                backStack.add(FileEditor(file.path))
+                backStack.openFile(file.path)
               }
             },
-            onBack = { backStack.removeLastOrNull() },
+            // The arrow exists only while the explorer is the top of the stack - a screen with a
+            // door back to what pushed it. Once it is the list pane beside a document it is a
+            // *surface*, and a "Back to recents" that would swallow the landscape is the same
+            // confusion Recents itself caused (TwoPaneSceneStrategy's table).
+            onBack =
+              if (backStack.lastOrNull() is Explorer) {
+                { backStack.removeLastOrNull() }
+              } else {
+                null
+              },
           )
         }
-        entry<FileEditor> { file ->
+        entry<FileEditor>(
+          metadata = mapOf(PANE_ROLE to PANE_ROLE_DOCUMENT, PANE_DOCUMENT_KIND to PANE_KIND_FILE),
+        ) { file ->
           FileEditorScreen(
             path = file.path,
             workspaceRepository = appContainer.workspaceRepository,
@@ -97,7 +108,9 @@ fun MainNavigation(
             onBack = { backStack.removeLastOrNull() },
           )
         }
-        entry<Editor> { editor ->
+        entry<Editor>(
+          metadata = mapOf(PANE_ROLE to PANE_ROLE_DOCUMENT, PANE_DOCUMENT_KIND to PANE_KIND_NOTEBOOK),
+        ) { editor ->
           EditorScreen(
             notebookId = editor.notebookId,
             notebookRepository = appContainer.notebookRepository,

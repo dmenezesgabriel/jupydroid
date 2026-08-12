@@ -29,8 +29,30 @@ import androidx.navigation3.runtime.NavKey
  * ```
  */
 fun MutableList<NavKey>.openNotebook(notebookId: String) {
-  val editor = Editor(notebookId)
-  if (lastOrNull() == editor) return
-  if (lastOrNull() is Editor) removeAt(lastIndex)
-  add(editor)
+  chooseDetailThatFitsTheSurface { Editor(notebookId) }
 }
+
+/** Opens a plain file as the detail - [openNotebook] for the file editor's document kind. */
+fun MutableList<NavKey>.openFile(filePath: String) {
+  chooseDetailThatFitsTheSurface { FileEditor(filePath) }
+}
+
+/**
+ * One document, revealed or replaced - never two.
+ *
+ * Both document kinds swap each other, because the explorer opens both and a detail it cannot
+ * swap would stack `[Explorer, FileEditor(a), Editor(b)]`, whose last two entries
+ * [TwoPaneSceneStrategy] refuses to pair - one stray tap would collapse the two panes.
+ */
+private fun MutableList<NavKey>.chooseDetailThatFitsTheSurface(opened: () -> NavKey) {
+  val document = opened()
+  if (lastOrNull() == document) return
+  if (lastOrNull().isDocument()) removeAt(lastIndex)
+  add(document)
+}
+
+/**
+ * Special-casing which kinds are documents is only true until the next document opens; when it
+ * does, add it here - the rule is "anything a surface opens replaces the current detail".
+ */
+private fun Any?.isDocument(): Boolean = this is Editor || this is FileEditor

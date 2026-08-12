@@ -9,20 +9,41 @@ import androidx.navigation3.scene.SceneStrategyScope
 import androidx.window.core.layout.WindowSizeClass
 
 /**
- * Puts the notebook list and the open notebook side by side once the window is wide enough.
+ * Puts the file surface and the document it opened side by side once the window is wide enough.
  *
  * ```
  * NavDisplay(sceneStrategy = TwoPaneSceneStrategy(twoPane = isWidthAtLeastExpanded()), …)
  * ```
  *
- * **Why a scene strategy and not `NavigableListDetailPaneScaffold`.** The scaffold puts both panes
- * inside *one* `NavEntry`, which stops the editor being a navigation entry at all - and both nav3
- * decorators key on `NavEntry.contentKey`, so the editor's `ViewModelStore` would become the
- * list's. That is defect D1 twice over: `viewModel { }` resolves on the class name and hands the
- * second notebook the first one's ViewModel, and nothing disposes the previous notebook's entry,
- * so `EditorViewModel.onCleared` never runs and its kernel socket is never closed - the guarantee
- * `notebook-session-ends` exists to prove. A scene keeps both entries alive and merely draws them
- * together, which leaves every decorator exactly where it was.
+ * **What pairs.** The two panes are a surface and *a document that surface opens*, never any two
+ * entries. Which entry is which is declared in metadata when the entry providers are built
+ * (`Navigation.kt`), because `NavEntry` does not expose its key - the pairing rule has to read
+ * what the builder chose to say. The notebook home opens notebooks, so it pairs with an [Editor];
+ * the explorer opens notebooks and plain files, so it pairs with an [Editor] or a [FileEditor].
+ * Everything else - four of the six stack shapes the app can reach - draws one pane:
+ *
+ * | stack                                  | panes            |
+ * |----------------------------------------|------------------|
+ * | Home, Editor                           | Home\|Editor          |
+ * | Home, Explorer                         | Explorer         |
+ * | Home, Explorer, Editor                 | Explorer\|Editor      |
+ * | Home, Explorer, FileEditor             | Explorer\|FileEditor  |
+ * | Home, Editor, Explorer                 | Explorer         |
+ * | Home, FileEditor                       | FileEditor       |
+ *
+ * The second row is the defect that made the rule explicit: it used to put Recents beside the
+ * file browser, because "the last two entries" is a montage, not a pairing. `filebrowser` is a
+ * standalone browser for the tree (a tab in the reference, a destination here), and Recents is a
+ * list of notebooks - neither opens the other.
+ *
+ * **Why a scene strategy and not `NavigableListDetailPaneScaffold`.** The scaffold puts both
+ * panes inside *one* `NavEntry`, which stops the editor being a navigation entry at all - and
+ * both nav3 decorators key on `NavEntry.contentKey`, so the editor's `ViewModelStore` would
+ * become the list's. That is defect D1 twice over: `viewModel { }` resolves on the class name and
+ * hands the second notebook the first one's ViewModel, and nothing disposes the previous
+ * notebook's entry, so `EditorViewModel.onCleared` never runs and its kernel socket is never
+ * closed - the guarantee `notebook-session-ends` exists to prove. A scene keeps both entries alive
+ * and merely draws them together, which leaves every decorator exactly where it was.
  *
  * The library answer is `androidx.compose.material3.adaptive:adaptive-navigation3`, which has no
  * stable release (`1.3.0-rc01`) and whose POM requires `adaptive-navigation` **strictly** at that
@@ -36,14 +57,44 @@ import androidx.window.core.layout.WindowSizeClass
  */
 class TwoPaneSceneStrategy<T : Any>(private val twoPane: Boolean) : SceneStrategy<T> {
   override fun SceneStrategyScope<T>.calculateScene(entries: List<NavEntry<T>>): Scene<T>? {
-    if (!twoPane || entries.size < PANES) return null
+    if (!twoPane || !pairsIntoTwoPanes(entries)) return null
     return TwoPaneScene(entries = entries.takeLast(PANES), previousEntries = entries.dropLast(1))
+  }
+
+  /** Whether the two top entries are a surface and a document that surface opens - table above. */
+  private fun pairsIntoTwoPanes(entries: List<NavEntry<T>>): Boolean {
+    if (entries.size < PANES) return false
+    val surface = entries[entries.size - 2]
+    val role = surface.metadata[PANE_ROLE]
+    val kind = entries.last().metadata[PANE_DOCUMENT_KIND]
+    val opens = surface.metadata[PANE_SURFACE_OPENS] as? List<*>
+    return role == PANE_ROLE_SURFACE && kind is String && opens?.contains(kind) == true
   }
 
   private companion object {
     const val PANES = 2
   }
 }
+
+/** The metadata vocabulary [TwoPaneSceneStrategy] pairs on, declared in `Navigation.kt`. */
+internal const val PANE_ROLE = "paneRole"
+internal const val PANE_ROLE_SURFACE = "surface"
+internal const val PANE_ROLE_DOCUMENT = "document"
+internal const val PANE_DOCUMENT_KIND = "documentKind"
+internal const val PANE_KIND_NOTEBOOK = "notebook"
+internal const val PANE_KIND_FILE = "file"
+internal const val PANE_SURFACE_OPENS = "opens"
+
+/** Home opens notebooks and nothing else; see [TwoPaneSceneStrategy]'s table. */
+internal val HOME_PANE_METADATA =
+  mapOf(PANE_ROLE to PANE_ROLE_SURFACE, PANE_SURFACE_OPENS to listOf(PANE_KIND_NOTEBOOK))
+
+/** Explorer opens both document kinds; see [TwoPaneSceneStrategy]'s table. */
+internal val EXPLORER_PANE_METADATA =
+  mapOf(
+    PANE_ROLE to PANE_ROLE_SURFACE,
+    PANE_SURFACE_OPENS to listOf(PANE_KIND_NOTEBOOK, PANE_KIND_FILE),
+  )
 
 /**
  * Whether this window has room for both panes: `WIDTH_DP_EXPANDED_LOWER_BOUND`, 840dp.

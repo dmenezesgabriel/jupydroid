@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -114,6 +115,10 @@ class ExplorerScreenTest {
       JupyterDroidTheme {
         ExplorerScreen(
           workspaceRepository = DiskWorkspaceRepository(temp.root),
+          // Explore, don't create: this test keeps its view-model noise out and a FakeWorkspace
+          // would eat `WorkspaceEntry` rows. The repository is unused by the screen save to
+          // construct the ViewModel, so the DiskNotebookRepository(temp.root) is inert here.
+          notebookRepository = DiskNotebookRepository(temp.root),
           onOpenFile = onOpenFile,
           onBack = onBack,
         )

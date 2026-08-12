@@ -8,17 +8,22 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.WorkspaceEntry
+import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.theme.JupyterDroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -123,6 +128,46 @@ class TwoPaneSceneTest {
   }
 
   /**
+   * The defect the step opened with, driven at the width that shows it: a wide window used to
+   * pair Recents with the file browser, because `calculateScene` put any two last entries beside
+   * each other. The browser is not a document the notebook home opens, so it draws alone.
+   */
+  @Test
+  fun aWideWindowBrowseFilesDrawsTheExplorerAlone() {
+    startAppWithAFileToBrowse(twoPane = true)
+
+    compose.onNodeWithContentDescription("Browse files").performClick()
+
+    waitForText("Files")
+    assertGone("Recents")
+  }
+
+  /**
+   * A file opened from the explorer pairs it the same way a notebook does: Explorer|FileEditor,
+   * with the explorer's back arrow gone - it is the list pane, and the drawer's own arrow would
+   * point nowhere.
+   */
+  @Test
+  fun aWideWindowPairsTheExplorerWithTheFileItOpened() {
+    startAppWithAFileToBrowse(twoPane = true)
+
+    compose.onNodeWithContentDescription("Browse files").performClick()
+    waitForText("Files")
+    compose.onNodeWithText(FILE_NAME).performClick()
+
+    waitForText(FILE_TEXT)
+    compose.onNodeWithText(FILE_TEXT).assertIsDisplayed()
+    // Still the two panes: only the explorer draws the "Workspace" crumb, and only the editor
+    // draws the field's text - together they mean the browser is beside the document. (The file
+    // name itself appears twice, row and title, so it cannot name the panes.)
+    waitForText("Workspace")
+    compose.onNodeWithText("Workspace").assertIsDisplayed()
+    val backArrows = compose.onAllNodesWithContentDescription("Back to recents").fetchSemanticsNodes()
+    assert(backArrows.isEmpty()) { "the explorer list pane still draws a back arrow" }
+    assertGone("Recents")
+  }
+
+  /**
    * The row, not the app-bar title.
    *
    * Two panes put the open notebook's name on screen twice - once in the list and once above the
@@ -143,6 +188,28 @@ class TwoPaneSceneTest {
         JupyterDroidTheme {
           MainNavigation(
             appContainer = AppContainer(notebookRepository = repository),
+            importTitle = null,
+            onImportConsumed = {},
+            twoPane = twoPane,
+          )
+        }
+      }
+    }
+  }
+
+  private fun startAppWithAFileToBrowse(twoPane: Boolean) {
+    val workspace = FakeWorkspaceRepository(
+      entriesByPath = mapOf("" to listOf(WorkspaceEntry(FILE_NAME, FILE_NAME, WorkspaceEntryKind.FILE))),
+      textByPath = mapOf(FILE_NAME to FILE_TEXT),
+    )
+    compose.setContent {
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = AppContainer(
+              notebookRepository = DiskNotebookRepository(tempFolder.root),
+              workspaceRepository = workspace,
+            ),
             importTitle = null,
             onImportConsumed = {},
             twoPane = twoPane,
@@ -175,6 +242,8 @@ class TwoPaneSceneTest {
     // Disjoint on purpose: neither string can be matched by the other notebook's cell.
     const val ALPHA_SOURCE = "print('first one only')"
     const val BETA_SOURCE = "print('second one only')"
+    const val FILE_NAME = "script.py"
+    const val FILE_TEXT = "print('plain of this file')"
     const val TIMEOUT_MILLIS = 5_000L
   }
 }
