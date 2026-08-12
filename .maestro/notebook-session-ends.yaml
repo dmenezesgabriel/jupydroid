@@ -24,10 +24,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Session Ends"
+      text: "Session Ends.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Session Ends"
+- tapOn: "Session Ends.ipynb"
 # No assertion on the cell's source here: Maestro regex-matches the *whole* node string, and
 # this cell is two lines, so "carried = 6 * 7" can never match it. The claims this flow makes
 # are the computed outputs below.
@@ -63,10 +63,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Session Ends"
+      text: "Session Ends.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Session Ends"
+- tapOn: "Session Ends.ipynb"
 # Run only the second cell. The first never ran in *this* session, so a kernel that is genuinely
 # new has never heard of `carried` - and NameError is a traceback the kernel produced, not a
 # container that renders whatever is there. Its own saved "43" is cleared by startingRun before

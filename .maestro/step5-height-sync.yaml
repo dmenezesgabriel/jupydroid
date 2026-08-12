@@ -10,10 +10,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Tall Cell"
+      text: "Tall Cell.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Tall Cell"
+- tapOn: "Tall Cell.ipynb"
 # The last line of a 16-line cell is only reachable if the cell grew to fit it. With a fixed
 # height it would be hidden behind the page's own scroller.
 - extendedWaitUntil:

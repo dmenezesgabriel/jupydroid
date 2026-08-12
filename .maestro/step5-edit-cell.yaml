@@ -10,10 +10,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Two Cells"
+      text: "Two Cells.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Two Cells"
+- tapOn: "Two Cells.ipynb"
 # The field renders the source, so seeing it proves the highlighter ran over real text.
 - extendedWaitUntil:
     visible: "answer = 42"
@@ -31,10 +31,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Two Cells"
+      text: "Two Cells.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Two Cells"
+- tapOn: "Two Cells.ipynb"
 - extendedWaitUntil:
     visible: ".*answer = 420.*"
     timeout: 30000

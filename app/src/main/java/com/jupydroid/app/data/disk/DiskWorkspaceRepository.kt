@@ -3,6 +3,7 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.inWorkspaceOrder
+import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
@@ -50,6 +51,45 @@ class DiskWorkspaceRepository(
     return target
   }
 
+  override suspend fun readText(path: String): String = withContext(ioDispatcher) {
+    val file = resolve(path)
+    require(file.isFile) { "no file at '$path' in the workspace" }
+    file.readText()
+  }
+
+  override suspend fun writeText(path: String, text: String): Unit = withContext(ioDispatcher) {
+    // `resolve` refuses an escape before anything is written, so a bad path cannot reach the
+    // filesystem at all - jupyter_server validates before it saves for the same reason.
+    val file = resolve(path)
+    require(!file.isDirectory) { "'$path' is a directory in the workspace, not a file" }
+    file.writeText(text)
+  }
+
+  override suspend fun createFile(directory: String, extension: String): String =
+    withContext(ioDispatcher) {
+      val name = freeNameIn(directory, "$UNTITLED_FILE.$extension")
+      resolve(pathIn(directory, name)).createNewFile()
+      pathIn(directory, name)
+    }
+
+  override suspend fun createFolder(directory: String): String = withContext(ioDispatcher) {
+    // The space is the server's `insert` for a directory and for nothing else, so the second one
+    // is `Untitled Folder 1` while a second file is `untitled1.txt`.
+    val name = freeNameIn(directory, UNTITLED_FOLDER, insert = " ")
+    resolve(pathIn(directory, name)).mkdir()
+    pathIn(directory, name)
+  }
+
+  /** The first name in the server's series that this directory does not already hold. */
+  private fun freeNameIn(directory: String, wanted: String, insert: String = ""): String {
+    val parent = resolve(directory)
+    require(parent.isDirectory) { "no directory at '$directory' in the workspace" }
+    return incrementedFileName(wanted, insert) { File(parent, it).exists() }
+  }
+
+  private fun pathIn(directory: String, name: String): String =
+    if (directory.isEmpty()) name else "$directory/$name"
+
   /**
    * A symlink is described by what it points at, which is how a rootfs has to be read.
    *
@@ -64,3 +104,8 @@ class DiskWorkspaceRepository(
       kind = if (file.isDirectory) WorkspaceEntryKind.DIRECTORY else WorkspaceEntryKind.FILE,
     )
 }
+
+/** `untitled`, lowercase - the server's `untitled_file`, which is not its `Untitled` notebook. */
+private const val UNTITLED_FILE = "untitled"
+
+private const val UNTITLED_FOLDER = "Untitled Folder"

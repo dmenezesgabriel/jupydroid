@@ -18,11 +18,11 @@ appId: com.jupydroid.app
 # The notebook is on Home at all, which means the repository found it at the new root.
 - scrollUntilVisible:
     element:
-      text: "Moved Notebook"
+      text: "Moved Notebook.ipynb"
     direction: DOWN
     timeout: 20000
 - takeScreenshot: 01-migrated-notebook-on-home
-- tapOn: "Moved Notebook"
+- tapOn: "Moved Notebook.ipynb"
 # Its contents survived the move, not just its name.
 - extendedWaitUntil:
     visible: "moved = 'intact'"

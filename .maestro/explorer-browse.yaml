@@ -28,12 +28,17 @@ appId: com.jupydroid.app
 - assertVisible: "data.csv"
 - takeScreenshot: 03-inside-the-folder
 
-# A file nothing can open says so. Tapping it must not open the notebook editor - a `.csv` in the
-# notebook editor is the same confusion "New Python file" causes, and a tap that does nothing at
-# all is indistinguishable from a broken row.
+# A file that is not a notebook opens in the plain editor, which is the reference's own split:
+# the notebook factory claims `.ipynb` and the file editor is the default for everything else.
+# It must NOT open in the notebook editor - a `.csv` shown as cells is the same confusion that
+# "New Python file" caused.
 - tapOn: "data.csv"
-- assertVisible: "No editor for data.csv yet"
-- takeScreenshot: 04-nothing-opens-a-csv-yet
+# The whole file is one text node, so the regex must span it: maestro matches a selector against
+# the *entire* text of a node, and the field holds `region,amount\nnorth,120\nsouth,80`.
+- assertVisible: ".*region,amount.*"
+- takeScreenshot: 04-a-csv-in-the-file-editor
+- tapOn: "Back to files"
+- assertVisible: "Nested.ipynb"
 
 # The notebook in the folder opens, asserted by its cell: a title alone would be matched by the
 # row that was tapped, and the path is what the editor has to resolve - `reports/Nested`, not

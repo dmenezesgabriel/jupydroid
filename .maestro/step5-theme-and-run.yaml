@@ -12,10 +12,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Themed Cell"
+      text: "Themed Cell.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Themed Cell"
+- tapOn: "Themed Cell.ipynb"
 - extendedWaitUntil:
     visible: ".*def greet.*"
     timeout: 30000

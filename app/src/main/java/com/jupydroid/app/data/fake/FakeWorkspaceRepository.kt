@@ -16,6 +16,22 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
  */
 class FakeWorkspaceRepository(
   private val entriesByPath: Map<String, List<WorkspaceEntry>> = emptyMap(),
+  textByPath: Map<String, String> = emptyMap(),
 ) : WorkspaceRepository {
+  private val text = textByPath.toMutableMap()
+
   override suspend fun list(path: String): List<WorkspaceEntry> = entriesByPath[path].orEmpty()
+
+  override suspend fun readText(path: String): String =
+    requireNotNull(text[path]) { "no file at '$path' in the workspace" }
+
+  override suspend fun writeText(path: String, text: String) {
+    this.text[path] = text
+  }
+
+  override suspend fun createFile(directory: String, extension: String): String =
+    throw UnsupportedOperationException("FakeWorkspaceRepository holds a fixed listing; it creates nothing")
+
+  override suspend fun createFolder(directory: String): String =
+    throw UnsupportedOperationException("FakeWorkspaceRepository holds a fixed listing; it creates nothing")
 }

@@ -1,9 +1,8 @@
 package com.jupydroid.app.data.disk
 
-import com.jupydroid.app.domain.model.incrementedName
+import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
+import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.model.isValidNotebookName
-import com.jupydroid.app.domain.model.notebookFileName
-import com.jupydroid.app.domain.model.notebookNameOf
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -61,28 +60,27 @@ class NotebookWorkspaceMigration(
 
   private fun notebooksToMove(): List<File> =
     (legacyDir.listFiles() ?: emptyArray())
-      .filter { it.isFile && it.name.endsWith(".ipynb") }
+      .filter { it.isFile && it.name.endsWith(NOTEBOOK_SUFFIX) }
       .sortedBy { it.name }
 
   private fun move(file: File): Boolean {
     workspaceDir.mkdirs()
-    val target = freeNameFor(notebookFileName(nameFor(file)))
+    val target = freeNameFor(fileNameFor(file))
     file.copyTo(target)
     return file.delete()
   }
 
   /**
-   * The title the file carries, or its current stem when it has none or the title cannot be one.
+   * The file name the title asks for, or the file's current name when it has no usable title.
    *
    * A title with a `/` in it is not a file name ([isValidNotebookName]) and mangling it would hand
-   * the user a notebook they did not name; keeping the old stem loses nothing, because the name is
-   * still theirs to change. A file that will not parse keeps its stem too - the migration moves
+   * the user a notebook they did not name; keeping the old name loses nothing, because the name is
+   * still theirs to change. A file that will not parse keeps its name too - the migration moves
    * notebooks, it does not sit in judgement on them.
    */
-  private fun nameFor(file: File): String {
-    val stem = notebookNameOf(file.name)
+  private fun fileNameFor(file: File): String {
     val title = runCatching { titleIn(file.readText()) }.getOrNull()
-    return title?.takeIf(::isValidNotebookName) ?: stem
+    return title?.takeIf(::isValidNotebookName)?.let { "$it$NOTEBOOK_SUFFIX" } ?: file.name
   }
 
   private fun titleIn(text: String): String? =
@@ -98,8 +96,8 @@ class NotebookWorkspaceMigration(
   private fun freeNameFor(name: String): File {
     // jupyter_server's own `increment_filename`, so a clash here is resolved the way the server
     // that serves this directory would resolve it: `Draft`, `Draft1`, `Draft2`.
-    val free = incrementedName(notebookNameOf(name)) { File(workspaceDir, notebookFileName(it)).exists() }
-    return File(workspaceDir, notebookFileName(free))
+    val free = incrementedFileName(name) { File(workspaceDir, it).exists() }
+    return File(workspaceDir, free)
   }
 
   private fun stamp(): File = stampFile

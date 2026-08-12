@@ -6,5 +6,5 @@ appId: com.jupydroid.app
 - tapOn: "\\+"
 - assertVisible: "New notebook"
 - tapOn: "New notebook"
-- assertVisible: "Untitled"
+- assertVisible: "Untitled.ipynb"
 - takeScreenshot: 01-created-notebook

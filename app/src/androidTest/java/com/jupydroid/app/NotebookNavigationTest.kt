@@ -97,9 +97,9 @@ class NotebookNavigationTest {
   private fun startAppWithTwoNotebooks() {
     val repository = DiskNotebookRepository(tempFolder.root)
     runBlocking {
-      // The id *is* the name since X1b - a notebook's file is what it is called - so these two
-      // cannot differ. They used to, and Home then listed "alpha" while the test looked for
-      // "Alpha notebook".
+      // The id *is* the file name - suffix included, `Contents.IModel.path` - so these two
+      // cannot differ, and the row shows exactly what the file is called. They used to differ,
+      // and Home then listed "alpha" while the test looked for "Alpha notebook".
       repository.saveNotebook(notebook(ALPHA_TITLE, ALPHA_SOURCE))
       repository.saveNotebook(notebook(BETA_TITLE, BETA_SOURCE))
     }
@@ -127,8 +127,8 @@ class NotebookNavigationTest {
   }
 
   private companion object {
-    const val ALPHA_TITLE = "Alpha notebook"
-    const val BETA_TITLE = "Beta notebook"
+    const val ALPHA_TITLE = "Alpha notebook.ipynb"
+    const val BETA_TITLE = "Beta notebook.ipynb"
 
     // Disjoint on purpose: neither string can be matched by the other notebook's cell.
     const val ALPHA_SOURCE = "print('first one only')"

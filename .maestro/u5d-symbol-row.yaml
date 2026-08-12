@@ -15,10 +15,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Symbol Row"
+      text: "Symbol Row.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Symbol Row"
+- tapOn: "Symbol Row.ipynb"
 - extendedWaitUntil:
     visible: ".*def area.*"
     timeout: 30000

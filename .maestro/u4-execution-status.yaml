@@ -16,10 +16,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Execution Status"
+      text: "Execution Status.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Execution Status"
+- tapOn: "Execution Status.ipynb"
 - extendedWaitUntil:
     visible: ".*never reached.*"
     timeout: 30000

@@ -12,10 +12,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Collapse Outputs"
+      text: "Collapse Outputs.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Collapse Outputs"
+- tapOn: "Collapse Outputs.ipynb"
 - tapOn:
     text: "Run cell"
     index: 0
@@ -50,10 +50,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Collapse Outputs"
+      text: "Collapse Outputs.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Collapse Outputs"
+- tapOn: "Collapse Outputs.ipynb"
 - extendedWaitUntil:
     visible: "Collapsed outputs"
     timeout: 30000

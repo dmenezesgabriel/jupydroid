@@ -11,10 +11,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Markdown Edit"
+      text: "Markdown Edit.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Markdown Edit"
+- tapOn: "Markdown Edit.ipynb"
 - extendedWaitUntil:
     visible: "Markdown cell here"
     timeout: 30000
@@ -40,10 +40,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Markdown Edit"
+      text: "Markdown Edit.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Markdown Edit"
+- tapOn: "Markdown Edit.ipynb"
 - extendedWaitUntil:
     visible: ".*Markdown cell here EDITED.*"
     timeout: 30000

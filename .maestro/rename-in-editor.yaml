@@ -16,10 +16,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Rename Me Here"
+      text: "Rename Me Here.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Rename Me Here"
+- tapOn: "Rename Me Here.ipynb"
 - assertVisible: "renamed_here = 1"
 - takeScreenshot: 01-editor-before-rename
 # The app bar title, which is the rename target - and on a wide window the *only* one of two.
@@ -28,21 +28,23 @@ appId: com.jupydroid.app
 # the notebook it was already showing, and the dialog never came. `rightOf` the back arrow is
 # what tells them apart: the list pane is to its left.
 - tapOn:
-    text: "Rename Me Here"
+    text: "Rename Me Here.ipynb"
     rightOf:
       text: "Back to notebooks"
 - assertVisible: "Rename notebook"
 - takeScreenshot: 02-dialog-from-the-title
-- tapOn:
-    id: "rename-field"
-- eraseText
+# No tap and no erase: the dialog opens focused with only the *stem* selected
+# (`dialogs.ts:271-274` sets the value to the whole basename and the selection to
+# `0..length - ext.length`), so typing replaces the stem and the suffix survives. Tapping into
+# the field is what collapses that selection - with the tap in place, `eraseText` stopped at the
+# unselected `.ipynb` and the rename landed as "Renamed From Editor.ipynbynb".
 - inputText: "Renamed From Editor"
 - tapOn: "Rename"
 # The bar updates from the ViewModel's own state, without a reload.
 - extendedWaitUntil:
-    visible: "Renamed From Editor"
+    visible: "Renamed From Editor.ipynb"
     timeout: 10000
-- assertNotVisible: "Rename Me Here"
+- assertNotVisible: "Rename Me Here.ipynb"
 - takeScreenshot: 03-title-bar-updated
 # No hideKeyboard here, and that is not an oversight. The dialog owns the keyboard and takes it
 # with it when it closes, so hideKeyboard has none to hide - and on Android it is a system BACK,
@@ -61,8 +63,8 @@ appId: com.jupydroid.app
 # the most recent and sits at the top.
 - scrollUntilVisible:
     element:
-      text: "Renamed From Editor"
+      text: "Renamed From Editor.ipynb"
     direction: DOWN
     timeout: 20000
-- assertNotVisible: "Rename Me Here"
+- assertNotVisible: "Rename Me Here.ipynb"
 - takeScreenshot: 04-recents-agrees

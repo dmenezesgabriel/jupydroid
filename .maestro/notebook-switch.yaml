@@ -16,10 +16,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Switch Alpha"
+      text: "Switch Alpha.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Switch Alpha"
+- tapOn: "Switch Alpha.ipynb"
 - extendedWaitUntil:
     visible: "first_only = 111"
     timeout: 10000
@@ -35,10 +35,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Switch Beta"
+      text: "Switch Beta.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Switch Beta"
+- tapOn: "Switch Beta.ipynb"
 # The whole point of the flow. Before the fix this waited out its timeout showing Alpha's cell.
 - extendedWaitUntil:
     visible: "second_only = 222"

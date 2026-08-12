@@ -12,25 +12,25 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Switch Alpha"
+      text: "Switch Alpha.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Switch Alpha"
+- tapOn: "Switch Alpha.ipynb"
 - extendedWaitUntil:
     visible: "first_only = 111"
     timeout: 30000
 # The whole claim of this step, in one assertion: a notebook the editor never shows is on screen
 # beside the one it does. A single pane cannot satisfy this, however wide it is.
-- assertVisible: "Switch Beta"
+- assertVisible: "Switch Beta.ipynb"
 - takeScreenshot: 01-list-beside-the-notebook
 # Only two panes make this gesture reachable - the list is next to the editor rather than behind
 # it - and it is the one that defect D1 would break: tapping the other notebook must swap the
 # *detail*, not stack a second editor where the list belongs.
-- tapOn: "Switch Beta"
+- tapOn: "Switch Beta.ipynb"
 - extendedWaitUntil:
     visible: "second_only = 222"
     timeout: 30000
 - assertNotVisible: "first_only = 111"
 # Still two panes after the swap, rather than one editor that grew.
-- assertVisible: "Switch Alpha"
+- assertVisible: "Switch Alpha.ipynb"
 - takeScreenshot: 02-detail-swapped-list-kept

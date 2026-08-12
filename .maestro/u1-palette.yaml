@@ -17,10 +17,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Palette Check"
+      text: "Palette Check.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Palette Check"
+- tapOn: "Palette Check.ipynb"
 # The rendered markdown cell is the resting state, so this is what an opened notebook shows:
 # the rich-text inline styles and the code cell's syntax spans in one frame.
 - extendedWaitUntil:

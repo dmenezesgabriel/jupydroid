@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# X2c: a file that is not a notebook opens in the plain editor, and typing lands on disk via the
+# debounced save. Seeded by scripts/file-editor-driver.sh.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Browse files"
+- assertVisible: "Files"
+- tapOn: "file_editor.py"
+# "Back to files" is the FileEditor's own toolbar action - the notebook editor labels its back
+# arrow "Back to notebooks" (see explorer-browse), so seeing it proves the file did NOT open as a
+# notebook. The content itself is one node spanning the whole file, hence the spanning regex.
+- assertVisible: "Back to files"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 10000
+- takeScreenshot: 01-file-in-the-plain-editor
+# The field fills the width, so tapping the node would put the cursor mid-string (verified: the
+# split landed inside `the fil|e editor`). Point-tap past the last character instead - the right
+# edge of the field, on the top line - so Enter really opens a fresh line below the source.
+- tapOn: ".*the file editor.*"
+- tapOn:
+    point: "95%,25%"
+- pressKey: Enter
+- inputText: "print("
+- inputText: "'"
+- inputText: "typed"
+- inputText: "'"
+- inputText: ")"
+- assertVisible: "(?s).*print\\(\"the file editor\"\\)\nprint\\('typed'\\)"
+# The screenshot is the yield point: saving is debounced at 500ms, so by the time it is taken the
+# debounced write has gone through. The driver then proves it on disk with `run-as cat`.
+- takeScreenshot: 02-typed-and-saved
+- tapOn: "Back to files"
+- assertVisible: "Files"
+- assertVisible: "file_editor.py"
+- takeScreenshot: 03-back-to-the-explorer

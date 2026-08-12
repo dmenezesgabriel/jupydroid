@@ -27,9 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 
 /**
@@ -50,11 +48,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
  * ```
  * ExplorerScreen(workspaceRepository, onOpenFile = { backStack.openNotebook(it.path) })
  * ```
- *
- * @param canOpenFile whether [onOpenFile] has anywhere to put a file. Every file is listed, but
- *   until the plain-text editor lands only `.ipynb` opens, and a row that absorbs a tap is
- *   indistinguishable from a broken one. The reference never needs this - its default factory
- *   opens any text file in CodeMirror - so the parameter goes when ours does the same.
+
  * @param onBack how to leave, or null when there is nowhere to leave to. Recents pushes the
  *   explorer today and the explorer becomes the root once Recents is a section of it; the arrow
  *   follows that rather than being drawn unconditionally.
@@ -62,14 +56,14 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 @Composable
 fun ExplorerScreen(
   workspaceRepository: WorkspaceRepository,
+  notebookRepository: NotebookRepository,
   onOpenFile: (WorkspaceEntry) -> Unit,
-  canOpenFile: (WorkspaceEntry) -> Boolean = { true },
   onBack: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
-  viewModel: ExplorerViewModel = viewModel { ExplorerViewModel(workspaceRepository) },
+  viewModel: ExplorerViewModel =
+    viewModel { ExplorerViewModel(workspaceRepository, notebookRepository) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
-  var unopenable by remember { mutableStateOf<String?>(null) }
 
   // Back climbs the workspace before it leaves the screen, which is `filebrowser:go-up` - the
   // reference binds Backspace to the same thing. Enabled only when there is a parent, so at the
@@ -83,21 +77,13 @@ fun ExplorerScreen(
     Column(modifier = Modifier.padding(padding)) {
       Breadcrumb(crumbs = state.crumbs, onGoTo = viewModel::goTo)
       HorizontalDivider()
-      (state.error ?: unopenable?.let { "No editor for $it yet" })?.let { ExplorerError(it) }
+      state.error?.let { ExplorerError(it) }
       LazyColumn(modifier = Modifier.fillMaxSize()) {
         // Keyed by path, which is the identity of a workspace entry and a String, so it survives
         // the Bundle round trip Compose needs for state restoration. contentType by kind, so a
         // folder row and a file row reuse separate composition pools rather than each other's.
         items(state.entries, key = { it.path }, contentType = { it.kind }) { entry ->
-          EntryRow(
-            entry = entry,
-            onOpen = {
-              viewModel.open(entry) { file ->
-                unopenable = file.name.takeUnless { canOpenFile(file) }
-                if (unopenable == null) onOpenFile(file)
-              }
-            },
-          )
+          EntryRow(entry = entry, onOpen = { viewModel.open(entry, onOpenFile) })
         }
       }
     }

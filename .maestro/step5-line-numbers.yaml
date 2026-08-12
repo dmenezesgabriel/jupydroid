@@ -15,10 +15,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Line Numbers"
+      text: "Line Numbers.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Line Numbers"
+- tapOn: "Line Numbers.ipynb"
 - extendedWaitUntil:
     visible: "(?s).*import numpy as np.*"
     timeout: 30000

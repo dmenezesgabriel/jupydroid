@@ -15,10 +15,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Collapse Source"
+      text: "Collapse Source.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Collapse Source"
+- tapOn: "Collapse Source.ipynb"
 # Expanded: the field holds every line, so a substring match finds the last one.
 - extendedWaitUntil:
     visible: ".*factorial.*"
@@ -58,10 +58,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Collapse Source"
+      text: "Collapse Source.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Collapse Source"
+- tapOn: "Collapse Source.ipynb"
 - extendedWaitUntil:
     visible: "import math"
     timeout: 30000

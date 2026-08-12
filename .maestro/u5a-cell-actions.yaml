@@ -18,10 +18,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Cell Actions"
+      text: "Cell Actions.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Cell Actions"
+- tapOn: "Cell Actions.ipynb"
 - extendedWaitUntil:
     visible: "alpha = 1"
     timeout: 30000

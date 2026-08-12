@@ -5,9 +5,9 @@ appId: com.jupydroid.app
 - assertVisible: "No recent notebooks yet"
 - tapOn: "\\+"
 - tapOn: "New notebook"
-- assertVisible: "Untitled"
+- assertVisible: "Untitled.ipynb"
 - stopApp
 - launchApp:
     clearState: false
-- assertVisible: "Untitled"
+- assertVisible: "Untitled.ipynb"
 - takeScreenshot: 01-persisted-after-restart

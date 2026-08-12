@@ -93,25 +93,6 @@ class ExplorerScreenTest {
   }
 
   /**
-   * A file nothing can open says so, rather than absorbing the tap.
-   *
-   * Every file is listed, but until the plain-text editor lands only `.ipynb` has anywhere to go -
-   * and a row that does nothing when tapped is indistinguishable from one that is broken. The
-   * reference never has this state: its default factory opens any text file in CodeMirror.
-   */
-  @Test
-  fun aFileNothingCanOpenSaysSoRatherThanDoingNothing() {
-    given("data.csv")
-    val opened = mutableListOf<String>()
-    showExplorer(onOpenFile = { opened += it.path }, canOpenFile = { false })
-
-    compose.onNodeWithText("data.csv").performClick()
-
-    waitForText("No editor for data.csv yet")
-    compose.runOnIdle { assertEquals(emptyList<String>(), opened) }
-  }
-
-  /**
    * No back arrow when there is nowhere to go back to.
    *
    * The explorer is pushed from Recents today and will be the root once Recents becomes a section
@@ -127,7 +108,6 @@ class ExplorerScreenTest {
 
   private fun showExplorer(
     onOpenFile: (WorkspaceEntry) -> Unit = {},
-    canOpenFile: (WorkspaceEntry) -> Boolean = { true },
     onBack: (() -> Unit)? = {},
   ) {
     compose.setContent {
@@ -135,7 +115,6 @@ class ExplorerScreenTest {
         ExplorerScreen(
           workspaceRepository = DiskWorkspaceRepository(temp.root),
           onOpenFile = onOpenFile,
-          canOpenFile = canOpenFile,
           onBack = onBack,
         )
       }

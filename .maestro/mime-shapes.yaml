@@ -15,10 +15,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Mime Shapes"
+      text: "Mime Shapes.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Mime Shapes"
+- tapOn: "Mime Shapes.ipynb"
 - tapOn:
     text: "Run cell"
     index: 0

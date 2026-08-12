@@ -15,10 +15,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Bracket Match"
+      text: "Bracket Match.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Bracket Match"
+- tapOn: "Bracket Match.ipynb"
 - extendedWaitUntil:
     visible: "total = sum\\(\\[1, 2, 3\\]\\)"
     timeout: 30000

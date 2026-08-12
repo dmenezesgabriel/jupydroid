@@ -15,10 +15,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Cell Chrome"
+      text: "Cell Chrome.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Cell Chrome"
+- tapOn: "Cell Chrome.ipynb"
 - extendedWaitUntil:
     visible: "Rendered markdown"
     timeout: 30000

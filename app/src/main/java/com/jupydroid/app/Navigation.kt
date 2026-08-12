@@ -13,9 +13,9 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
-import com.jupydroid.app.domain.model.notebookNameOf
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.explorer.ExplorerScreen
+import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.home.HomeScreen
 
 @Composable
@@ -72,14 +72,28 @@ fun MainNavigation(
         entry<Explorer> {
           ExplorerScreen(
             workspaceRepository = appContainer.workspaceRepository,
-            // The id is the path *without* the suffix - `notebookFileName` puts it back on the
-            // way to disk - so handing over `file.path` whole would look up `Nested.ipynb.ipynb`
-            // and open nothing. `ExplorerNavigationTest` asserts the cell for that reason.
-            onOpenFile = { file -> backStack.openNotebook(notebookNameOf(file.path)) },
-            // Only notebooks, until the plain-text editor lands. Opening a `.py` in the notebook
-            // editor is precisely the confusion "New Python file" already causes, and doing it
-            // from here would spread it rather than fix it.
-            canOpenFile = { file -> file.name.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true) },
+            notebookRepository = appContainer.notebookRepository,
+            // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
+            // so there is nothing to translate. It briefly was not, and the suffix went on twice:
+            // `Nested.ipynb.ipynb` opened nothing.
+            // Everything opens. A `.ipynb` goes to the notebook editor and anything else to the
+            // plain one, which is the reference's own split: the notebook factory claims its
+            // extension and the file editor is the default for the rest (`packages/fileeditor`).
+            onOpenFile = { file ->
+              if (file.name.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
+                backStack.openNotebook(file.path)
+              } else {
+                backStack.add(FileEditor(file.path))
+              }
+            },
+            onBack = { backStack.removeLastOrNull() },
+          )
+        }
+        entry<FileEditor> { file ->
+          FileEditorScreen(
+            path = file.path,
+            workspaceRepository = appContainer.workspaceRepository,
+            applicationScope = appContainer.applicationScope,
             onBack = { backStack.removeLastOrNull() },
           )
         }

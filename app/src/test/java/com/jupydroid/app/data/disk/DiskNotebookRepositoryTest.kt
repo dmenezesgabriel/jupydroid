@@ -36,7 +36,8 @@ class DiskNotebookRepositoryTest {
 
   private fun repository(): DiskNotebookRepository = DiskNotebookRepository(tempFolder.root)
 
-  private fun notebookFile(id: String): File = File(tempFolder.root, "$id.ipynb")
+  // The id *is* the file name now, suffix included - `Contents.IModel.path`.
+  private fun notebookFile(id: String): File = File(tempFolder.root, id)
 
   @Test
   fun createNotebook_writesNbformatFileThatRoundTrips() = runTest {
@@ -61,8 +62,8 @@ class DiskNotebookRepositoryTest {
         // Title and id are the same string, and since X1b that is the invariant rather than a
         // coincidence: the name *is* the file, so a round trip through disk can only return the
         // name on disk. JupyterLab has the same shape - a path, with the name derived from it.
-        id = "nb-1",
-        title = "nb-1",
+        id = "nb-1.ipynb",
+        title = "nb-1.ipynb",
         kernelId = "python3",
         cells =
           listOf(
@@ -73,8 +74,8 @@ class DiskNotebookRepositoryTest {
 
     repository.saveNotebook(notebook)
 
-    assertEquals(notebook, repository.readNotebook("nb-1").withoutPreserved())
-    val decoded = Json.decodeFromString<NotebookFile>(notebookFile("nb-1").readText())
+    assertEquals(notebook, repository.readNotebook("nb-1.ipynb").withoutPreserved())
+    val decoded = Json.decodeFromString<NotebookFile>(notebookFile("nb-1.ipynb").readText())
     assertEquals(listOf("code", "markdown"), decoded.cells.map { it.cellType })
     assertEquals(listOf("print(1)", "# Title"), decoded.cells.map { it.source })
   }
@@ -136,14 +137,14 @@ class DiskNotebookRepositoryTest {
   @Test
   fun observeNotebooks_listsNewestFirst() = runTest {
     val repository = repository()
-    repository.saveNotebook(notebook(id = "older"))
-    repository.saveNotebook(notebook(id = "newer"))
-    notebookFile("older").setLastModified(Instant.parse("2026-01-01T00:00:00Z").toEpochMilli())
-    notebookFile("newer").setLastModified(Instant.parse("2026-01-02T00:00:00Z").toEpochMilli())
+    repository.saveNotebook(notebook(id = "older.ipynb"))
+    repository.saveNotebook(notebook(id = "newer.ipynb"))
+    notebookFile("older.ipynb").setLastModified(Instant.parse("2026-01-01T00:00:00Z").toEpochMilli())
+    notebookFile("newer.ipynb").setLastModified(Instant.parse("2026-01-02T00:00:00Z").toEpochMilli())
 
     val summaries = DiskNotebookRepository(tempFolder.root).observeNotebooks().first()
 
-    assertEquals(listOf("newer", "older"), summaries.map { it.id })
+    assertEquals(listOf("newer.ipynb", "older.ipynb"), summaries.map { it.id })
   }
 
   @Test
@@ -151,7 +152,7 @@ class DiskNotebookRepositoryTest {
     val repository = repository()
 
     try {
-      repository.readNotebook("ghost")
+      repository.readNotebook("ghost.ipynb")
       fail("expected IllegalArgumentException")
     } catch (e: IllegalArgumentException) {
       assertTrue(e.message.orEmpty().contains("ghost"))
@@ -161,10 +162,10 @@ class DiskNotebookRepositoryTest {
   @Test
   fun readNotebook_corruptFile_throwsMeaningfulError() = runTest {
     val repository = repository()
-    notebookFile("broken").writeText("{not json")
+    notebookFile("broken.ipynb").writeText("{not json")
 
     try {
-      repository.readNotebook("broken")
+      repository.readNotebook("broken.ipynb")
       fail("expected IllegalArgumentException")
     } catch (e: IllegalArgumentException) {
       assertTrue(e.message.orEmpty().contains("broken"))
@@ -179,14 +180,14 @@ class DiskNotebookRepositoryTest {
   @Test
   fun readNotebook_doesNotDoubleTheNewlinesInAJupyterWrittenSource() = runTest {
     val repository = repository()
-    notebookFile("jupyter").writeText(
+    notebookFile("jupyter.ipynb").writeText(
       """
       {"cells":[{"cell_type":"code","source":["import sys\n","print(sys.version)\n","x = 1"]}],
        "metadata":{},"nbformat":4,"nbformat_minor":5}
       """.trimIndent(),
     )
 
-    val source = repository.readNotebook("jupyter").cells.single().source
+    val source = repository.readNotebook("jupyter.ipynb").cells.single().source
 
     assertEquals("import sys\nprint(sys.version)\nx = 1", source)
   }
@@ -194,11 +195,11 @@ class DiskNotebookRepositoryTest {
   @Test
   fun readForeignNotebook_withArraySource_andUnknownKeys() = runTest {
     val repository = repository()
-    notebookFile("foreign").writeText(FOREIGN_NOTEBOOK_JSON)
+    notebookFile("foreign.ipynb").writeText(FOREIGN_NOTEBOOK_JSON)
 
-    val notebook = repository.readNotebook("foreign")
+    val notebook = repository.readNotebook("foreign.ipynb")
 
-    assertEquals("foreign", notebook.title)
+    assertEquals("foreign.ipynb", notebook.title)
     assertEquals("python3", notebook.kernelId)
     assertEquals(1, notebook.cells.size)
     assertEquals("print(\n1)", notebook.cells.single().source)
@@ -208,10 +209,10 @@ class DiskNotebookRepositoryTest {
   @Test
   fun readNotebook_unknownCellType_throwsMeaningfulError() = runTest {
     val repository = repository()
-    notebookFile("odd").writeText(UNKNOWN_CELL_TYPE_JSON)
+    notebookFile("odd.ipynb").writeText(UNKNOWN_CELL_TYPE_JSON)
 
     try {
-      repository.readNotebook("odd")
+      repository.readNotebook("odd.ipynb")
       fail("expected IllegalArgumentException")
     } catch (e: IllegalArgumentException) {
       assertTrue(e.message.orEmpty().contains("raw"))
@@ -230,17 +231,17 @@ class DiskNotebookRepositoryTest {
   fun saveNotebook_writesNoMetadataOfItsOwn() = runTest {
     val repository = repository()
 
-    repository.saveNotebook(notebook(id = "nb-1"))
+    repository.saveNotebook(notebook(id = "nb-1.ipynb"))
 
-    val metadata = Json.parseToJsonElement(notebookFile("nb-1").readText())
+    val metadata = Json.parseToJsonElement(notebookFile("nb-1.ipynb").readText())
       .jsonObject.getValue("metadata").jsonObject
     assertEquals(false, metadata.containsKey("jupydroid"))
   }
 
   @Test
   fun aFileStillCarryingTheOldTimestampIsListedByItsMtime() = runTest {
-    notebookFile("legacy").writeText(LEGACY_WITH_UPDATED_AT)
-    notebookFile("legacy").setLastModified(Instant.parse("2026-03-04T05:06:07Z").toEpochMilli())
+    notebookFile("legacy.ipynb").writeText(LEGACY_WITH_UPDATED_AT)
+    notebookFile("legacy.ipynb").setLastModified(Instant.parse("2026-03-04T05:06:07Z").toEpochMilli())
 
     val summary = repository().observeNotebooks().first().single()
 
@@ -248,7 +249,7 @@ class DiskNotebookRepositoryTest {
     // Its file is `legacy.ipynb`, so that is its name: the `metadata.jupydroid.title` this fixture
     // still carries is no longer read. Files like it are renamed once by NotebookWorkspaceMigration
     // before they are ever shown, so nobody sees a notebook lose its name.
-    assertEquals("legacy", summary.title)
+    assertEquals("legacy.ipynb", summary.title)
   }
 
   private fun notebook(id: String): Notebook =

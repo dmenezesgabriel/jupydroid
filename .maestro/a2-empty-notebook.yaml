@@ -12,10 +12,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Empty Notebook"
+      text: "Empty Notebook.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Empty Notebook"
+- tapOn: "Empty Notebook.ipynb"
 # `[ ]` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
 # bracket, where `[ ]` is "never run".
 - extendedWaitUntil:
@@ -48,7 +48,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - tapOn:
-    text: "Untitled"
+    text: "Untitled.ipynb"
     index: 0
 # `[ ]` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
 # bracket, where `[ ]` is "never run".

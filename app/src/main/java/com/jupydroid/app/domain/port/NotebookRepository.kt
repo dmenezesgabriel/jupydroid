@@ -23,7 +23,9 @@ interface NotebookRepository {
   /**
    * Renames a notebook, moving its file, and answers with its new id.
    *
-   * The id *is* the name, so a rename changes it - which is why the caller gets the new one back.
+   * The id is the *path*, suffix included (`Contents.IModel.path`), and [title] is a bare name
+   * joined onto the folder that path names - so a rename changes the id, which is why the caller
+   * gets the new one back.
    * `Context._rename` does the same thing: `contents.rename(this.path, newPath)`, and the open
    * document follows its new path rather than being reopened.
    *

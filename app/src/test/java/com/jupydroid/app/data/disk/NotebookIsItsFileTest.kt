@@ -49,9 +49,9 @@ class NotebookIsItsFileTest {
     File(temp.root, "reports").mkdirs()
     val nested = repository.createNotebook("reports/Draft", "python3")
 
-    val renamed = repository.renameNotebook(nested.id, "Final")
+    val renamed = repository.renameNotebook(nested.id, "Final.ipynb")
 
-    assertEquals("reports/Final", renamed)
+    assertEquals("reports/Final.ipynb", renamed)
     assertTrue(File(temp.root, "reports/Final.ipynb").exists())
     assertFalse("it must not have escaped to the root", File(temp.root, "Final.ipynb").exists())
   }
@@ -63,22 +63,23 @@ class NotebookIsItsFileTest {
     repository.createNotebook("Final", "python3")
     val nested = repository.createNotebook("reports/Draft", "python3")
 
-    assertEquals("reports/Final", repository.renameNotebook(nested.id, "Final"))
+    assertEquals("reports/Final.ipynb", repository.renameNotebook(nested.id, "Final.ipynb"))
   }
 
+  /** The id is the *path*, suffix and all - `Contents.IModel.path`, which is what the browser lists. */
   @Test
-  fun theIdIsTheName() = runTest {
+  fun theIdIsTheFileName() = runTest {
     val notebook = repository.createNotebook("Analysis of sales", "python3")
 
-    assertEquals("Analysis of sales", notebook.id)
-    assertEquals("Analysis of sales", notebook.title)
+    assertEquals("Analysis of sales.ipynb", notebook.id)
+    assertEquals("Analysis of sales.ipynb", notebook.title)
   }
 
   @Test
   fun renamingMovesTheFile() = runTest {
     val notebook = repository.createNotebook("Draft", "python3")
 
-    repository.renameNotebook(notebook.id, "Final")
+    repository.renameNotebook(notebook.id, "Final.ipynb")
 
     assertEquals(listOf("Final.ipynb"), temp.root.list()!!.toList())
   }
@@ -88,10 +89,10 @@ class NotebookIsItsFileTest {
   fun renamingReturnsTheNewId() = runTest {
     val notebook = repository.createNotebook("Draft", "python3")
 
-    val renamed = repository.renameNotebook(notebook.id, "Final")
+    val renamed = repository.renameNotebook(notebook.id, "Final.ipynb")
 
-    assertEquals("Final", renamed)
-    assertEquals("Final", repository.readNotebook(renamed).title)
+    assertEquals("Final.ipynb", renamed)
+    assertEquals("Final.ipynb", repository.readNotebook(renamed).title)
   }
 
   @Test
@@ -99,7 +100,7 @@ class NotebookIsItsFileTest {
     val notebook = repository.createNotebook("Draft", "python3")
     repository.saveNotebook(repository.readNotebook(notebook.id).copy(cells = cellsOf("keep = 1")))
 
-    val renamed = repository.renameNotebook(notebook.id, "Final")
+    val renamed = repository.renameNotebook(notebook.id, "Final.ipynb")
 
     assertEquals("keep = 1", repository.readNotebook(renamed).cells.single().source)
   }
@@ -115,7 +116,7 @@ class NotebookIsItsFileTest {
     repository.createNotebook("Taken", "python3")
     val other = repository.createNotebook("Draft", "python3")
 
-    val failure = runCatching { repository.renameNotebook(other.id, "Taken") }
+    val failure = runCatching { repository.renameNotebook(other.id, "Taken.ipynb") }
 
     assertTrue("expected a refusal, got $failure", failure.isFailure)
     assertTrue("the other notebook must still exist", File(temp.root, "Draft.ipynb").exists())
@@ -145,8 +146,8 @@ class NotebookIsItsFileTest {
     repository.createNotebook("Taken", "python3")
     val other = repository.createNotebook("Draft", "python3")
 
-    val taken = runCatching { repository.renameNotebook(other.id, "Taken") }.exceptionOrNull()
-    val invalid = runCatching { repository.renameNotebook(other.id, "a/b") }.exceptionOrNull()
+    val taken = runCatching { repository.renameNotebook(other.id, "Taken.ipynb") }.exceptionOrNull()
+    val invalid = runCatching { repository.renameNotebook(other.id, "a/b.ipynb") }.exceptionOrNull()
 
     assertTrue("a taken name must be distinguishable, got $taken", taken is NotebookNameTakenException)
     assertTrue("an invalid name is not an overwrite offer, got $invalid", invalid is IllegalArgumentException)
@@ -168,9 +169,9 @@ class NotebookIsItsFileTest {
     val ours = repository.createNotebook("Draft", "python3")
     repository.saveNotebook(repository.readNotebook(ours.id).copy(cells = cellsOf("ours = 2")))
 
-    val moved = repository.overwriteNotebook(ours.id, "Taken")
+    val moved = repository.overwriteNotebook(ours.id, "Taken.ipynb")
 
-    assertEquals("Taken", moved)
+    assertEquals("Taken.ipynb", moved)
     assertEquals("ours = 2", repository.readNotebook(moved).cells.single().source)
     assertEquals(listOf("Taken.ipynb"), temp.root.list()!!.toList())
   }
@@ -181,7 +182,7 @@ class NotebookIsItsFileTest {
     repository.createNotebook("Taken", "python3")
     val ours = repository.createNotebook("Draft", "python3")
 
-    repository.overwriteNotebook(ours.id, "Taken")
+    repository.overwriteNotebook(ours.id, "Taken.ipynb")
 
     assertEquals(emptyList<String>(), temp.root.list()!!.filter { !it.endsWith(".ipynb") })
   }
@@ -193,7 +194,7 @@ class NotebookIsItsFileTest {
 
     val second = repository.createNotebook("Untitled", "python3")
 
-    assertEquals("Untitled1", second.id)
+    assertEquals("Untitled1.ipynb", second.id)
     assertTrue(File(temp.root, "Untitled.ipynb").exists())
   }
 

@@ -10,10 +10,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Real Kernel"
+      text: "Real Kernel.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Real Kernel"
+- tapOn: "Real Kernel.ipynb"
 - tapOn:
     text: "Run cell"
     index: 0
@@ -33,10 +33,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Real Kernel"
+      text: "Real Kernel.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Real Kernel"
+- tapOn: "Real Kernel.ipynb"
 - extendedWaitUntil:
     visible: "42"
     timeout: 20000

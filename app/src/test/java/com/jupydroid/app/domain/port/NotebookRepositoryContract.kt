@@ -65,7 +65,7 @@ abstract class NotebookRepositoryContract {
 
     // The new id, because a rename moves the file and the old one stops naming anything - which
     // is the contract every implementation owes since X1b, fake and disk alike.
-    val movedTo = repository.renameNotebook(renamed.id, "Renamed again")
+    val movedTo = repository.renameNotebook(renamed.id, "Renamed again.ipynb")
 
     assertFirst(repository, movedTo, "renaming")
   }

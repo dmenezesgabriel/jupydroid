@@ -10,10 +10,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Run All"
+      text: "Run All.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Run All"
+- tapOn: "Run All.ipynb"
 - assertVisible: ".*'fi' \\+ 'rst'.*"
 - takeScreenshot: 01-before-run-all
 - tapOn: "Run all cells"

@@ -12,10 +12,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Html Output"
+      text: "Html Output.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Html Output"
+- tapOn: "Html Output.ipynb"
 - takeScreenshot: 01-before-running
 - tapOn:
     text: "Run cell"

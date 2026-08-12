@@ -22,10 +22,6 @@ fun isValidNotebookName(name: String): Boolean {
   return trimmed.isNotEmpty() && FORBIDDEN.none { it in trimmed } && !trimmed.startsWith(".")
 }
 
-/** The file a valid name maps to. Trimmed, because `"a "` is a name nobody can type twice. */
-fun notebookFileName(name: String): String = "${name.trim()}$NOTEBOOK_SUFFIX"
-
-/** And back again: the name a file carries, which is the notebook's title and its id's last part. */
 /**
  * The folder a notebook id names, joined back onto a new name.
  *
@@ -58,8 +54,6 @@ fun idBeside(id: String, name: String): String {
 /** The last segment of a notebook id, which is what a title bar shows - `Contents.IModel.name`. */
 fun notebookLeafOf(id: String): String = id.substringAfterLast('/')
 
-fun notebookNameOf(fileName: String): String = fileName.removeSuffix(NOTEBOOK_SUFFIX)
-
 /**
  * `/` and `\` would make the name a path, `:` is refused by the reference alongside them, and a
  * leading `.` hides the file - from the explorer Phase X is for, from `ls`, and from
@@ -68,6 +62,9 @@ fun notebookNameOf(fileName: String): String = fileName.removeSuffix(NOTEBOOK_SU
 private val FORBIDDEN = listOf('/', '\\', ':')
 
 const val NOTEBOOK_SUFFIX = ".ipynb"
+
+/** Without the dot, which is the form `increment_filename` compares against. */
+private const val NOTEBOOK_EXTENSION = "ipynb"
 
 /**
  * The first name in the series that [isTaken] says nothing holds.
@@ -88,7 +85,7 @@ const val NOTEBOOK_SUFFIX = ".ipynb"
  * names files this way, and two conventions in one directory is two answers to one question.
  *
  * ```
- * incrementedName("Untitled") { File(dir, notebookFileName(it)).exists() }
+ * incrementedName("Untitled") { File(dir, "$it.ipynb").exists() }
  * ```
  */
 fun incrementedName(base: String, insert: String = "", isTaken: (String) -> Boolean): String {
@@ -98,4 +95,50 @@ fun incrementedName(base: String, insert: String = "", isTaken: (String) -> Bool
     if (!isTaken(candidate)) return candidate
     counter++
   }
+}
+
+/**
+ * Where a file's name ends and its suffix begins.
+ *
+ * `increment_filename` (`services/contents/manager.py:543-549`), and the asymmetry is the point:
+ *
+ * ```python
+ * basename, dot, ext = filename.rpartition(".")
+ * if ext != "ipynb":
+ *     basename, dot, ext = filename.partition(".")
+ * suffix = dot + ext
+ * ```
+ *
+ * A notebook is read from the *right*, so `data.backup.ipynb` keeps the middle dot in its stem.
+ * Everything else is read from the *left*, which is what gives `archive.tar.gz` the whole
+ * `.tar.gz` - the server's own comment calls it "the full suffix".
+ *
+ * ```
+ * stemAndSuffixOf("Untitled.ipynb")   // "Untitled" to ".ipynb"
+ * stemAndSuffixOf("archive.tar.gz")   // "archive" to ".tar.gz"
+ * ```
+ */
+fun stemAndSuffixOf(fileName: String): Pair<String, String> {
+  val fromTheRight = fileName.substringBeforeLast('.', missingDelimiterValue = "")
+  if (fileName.substringAfterLast('.', missingDelimiterValue = "") == NOTEBOOK_EXTENSION) {
+    return fromTheRight to NOTEBOOK_SUFFIX
+  }
+  val stem = fileName.substringBefore('.', missingDelimiterValue = fileName)
+  return stem to fileName.removePrefix(stem)
+}
+
+/**
+ * The first name in the series nothing holds, counting on the stem so the suffix survives.
+ *
+ * [incrementedName] applied where `increment_filename` applies it: `f"{basename}{insert_i}{suffix}"`
+ * - `untitled1.txt`, never `untitled.txt1`.
+ *
+ * ```
+ * incrementedFileName("Untitled.ipynb") { File(dir, it).exists() }
+ * incrementedFileName("Untitled Folder", insert = " ") { File(dir, it).exists() }
+ * ```
+ */
+fun incrementedFileName(fileName: String, insert: String = "", isTaken: (String) -> Boolean): String {
+  val (stem, suffix) = stemAndSuffixOf(fileName)
+  return incrementedName(stem, insert) { isTaken("$it$suffix") } + suffix
 }

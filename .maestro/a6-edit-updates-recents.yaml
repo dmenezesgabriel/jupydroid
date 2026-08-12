@@ -14,14 +14,14 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Updated At"
+      text: "Updated At.ipynb"
     direction: DOWN
     timeout: 20000
 # "1 Jan" is how relativeTime renders anything older than a week (`d MMM`). Asserting it first
 # is what makes the assertion after the edit mean something.
 - assertVisible: "1 Jan"
 - takeScreenshot: 01-stale-before-the-edit
-- tapOn: "Updated At"
+- tapOn: "Updated At.ipynb"
 - tapOn: "value = 1"
 - inputText: " + 1"
 # `back` with the keyboard up only dismisses the keyboard, so the first version of this flow
@@ -39,7 +39,7 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Updated At"
+      text: "Updated At.ipynb"
     direction: DOWN
     timeout: 20000
 - extendedWaitUntil:

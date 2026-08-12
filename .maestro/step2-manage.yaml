@@ -5,8 +5,8 @@ appId: com.jupydroid.app
 - assertVisible: "No recent notebooks yet"
 - tapOn: "\\+"
 - tapOn: "New notebook"
-- assertVisible: "Untitled"
-- longPressOn: "Untitled"
+- assertVisible: "Untitled.ipynb"
+- longPressOn: "Untitled.ipynb"
 - assertVisible: "Rename"
 - assertVisible: "Delete"
 - takeScreenshot: 02-menu
@@ -15,14 +15,14 @@ appId: com.jupydroid.app
 # The dialog opens with the caret already in the field and the stem selected, so this state is
 # worth a picture: it is the half of RenameNotebookDialog that no assertion here describes.
 - takeScreenshot: 02b-rename-dialog
-- tapOn:
-    id: "rename-field"
-- eraseText
+# Typing replaces the selected stem and leaves `.ipynb` alone, which is the whole point of
+# opening with `setSelectionRange(0, value.length - ext.length)`: renaming a notebook should not
+# require retyping - or remembering - its suffix.
 - inputText: "Math notes"
 - tapOn: "Rename"
-- assertVisible: "Math notes"
+- assertVisible: "Math notes.ipynb"
 - takeScreenshot: 03-renamed
-- longPressOn: "Math notes"
+- longPressOn: "Math notes.ipynb"
 - tapOn: "Delete"
 - assertVisible: "No recent notebooks yet"
 - takeScreenshot: 04-deleted

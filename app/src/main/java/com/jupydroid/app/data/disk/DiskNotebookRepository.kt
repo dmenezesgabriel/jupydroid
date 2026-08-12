@@ -3,10 +3,9 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookSummary
-import com.jupydroid.app.domain.model.incrementedName
+import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.idBeside
-import com.jupydroid.app.domain.model.notebookFileName
-import com.jupydroid.app.domain.model.notebookNameOf
+import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.model.isValidNotebookName
 import com.jupydroid.app.domain.port.NotebookNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -23,9 +22,16 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
 /**
- * Notebook persistence over nbformat 4 JSON files (`<rootDir>/<id>.ipynb`).
- * Replaces the in-memory [com.jupydroid.app.data.fake.FakeNotebookRepository] in
- * Step 3; summaries are re-read from disk after every mutation.
+ * Notebook persistence over nbformat 4 JSON files, addressed by path from [rootDir].
+ *
+ * **The id is the path, suffix included** - `reports/Analysis.ipynb`, not `reports/Analysis`.
+ * That is `Contents.IModel.path`, and it is what lets a notebook be one entry in a workspace the
+ * explorer lists rather than a special case that has to have `.ipynb` put back on at every
+ * boundary. Leaving the suffix off cost a defect the day folders became reachable: the explorer
+ * handed over `Nested.ipynb`, this appended the suffix again, and `Nested.ipynb.ipynb` opened
+ * nothing.
+ *
+ * Summaries are re-read from disk after every mutation.
  */
 class DiskNotebookRepository(
   private val rootDir: File,
@@ -42,13 +48,17 @@ class DiskNotebookRepository(
   override fun observeNotebooks(): Flow<List<NotebookSummary>> = summaries
 
   /**
-   * The file is named after the notebook, and a taken name is incremented rather than refused:
-   * the user asked for *a new notebook*, not for this exact name. `incrementedName` is
-   * jupyter_server's own `increment_filename`, so `Untitled`, `Untitled1`, `Untitled2`.
+   * The suffix is added here, not by the caller: this is the *typed* call, and `new_untitled`
+   * gives `type: "notebook"` its own `ext = ".ipynb"` (`services/contents/manager.py:605-607`).
+   * [title] is therefore a bare name and the id that comes back is a path with the suffix on.
+   *
+   * A taken name is incremented rather than refused - the user asked for *a new notebook*, not for
+   * this exact name - by jupyter_server's own `increment_filename`, so `Untitled.ipynb`,
+   * `Untitled1.ipynb`, with the counter on the stem.
    */
   override suspend fun createNotebook(title: String, kernelId: String): Notebook =
     withContext(ioDispatcher) {
-      val free = incrementedName(title.trim()) { fileFor(it).exists() }
+      val free = incrementedFileName("${title.trim()}$NOTEBOOK_SUFFIX") { fileFor(it).exists() }
       val notebook = Notebook(id = free, title = free, kernelId = kernelId, cells = emptyList())
       writeFile(notebook)
       refreshSummaries()
@@ -113,12 +123,13 @@ class DiskNotebookRepository(
   override suspend fun overwriteNotebook(id: String, title: String): String = withContext(ioDispatcher) {
     val wanted = title.trim()
     require(isValidNotebookName(wanted)) { "notebook name '$title' is not valid" }
-    val temporary = File(rootDir, "${notebookFileName(wanted)}.${UUID.randomUUID()}")
+    val moved = idBeside(id, wanted)
+    val temporary = File(rootDir, "$moved.${UUID.randomUUID()}")
     fileFor(id).renameTo(temporary)
-    fileFor(wanted).delete()
-    temporary.renameTo(fileFor(wanted))
+    fileFor(moved).delete()
+    temporary.renameTo(fileFor(moved))
     refreshSummaries()
-    wanted
+    moved
   }
 
   private fun writeFile(notebook: Notebook) {
@@ -127,7 +138,8 @@ class DiskNotebookRepository(
     file.writeText(json.encodeToString(JsonObject.serializer(), notebook.toFileJson()))
   }
 
-  private fun fileFor(id: String): File = File(rootDir, notebookFileName(id))
+  /** The id is already the path - there is no suffix to add and none to strip. */
+  private fun fileFor(id: String): File = File(rootDir, id)
 
   private fun refreshSummaries() {
     summaries.value = scanSummaries()
@@ -135,7 +147,7 @@ class DiskNotebookRepository(
 
   private fun scanSummaries(): List<NotebookSummary> =
     (rootDir.listFiles() ?: emptyArray())
-      .filter { it.isFile && it.name.endsWith(".ipynb") }
+      .filter { it.isFile && it.name.endsWith(NOTEBOOK_SUFFIX) }
       .mapNotNull { trySummaryIn(json, it) }
       .sortedByDescending { it.updatedAt }
 
@@ -158,7 +170,7 @@ class DiskNotebookRepository(
  * because every one of them writes the file, and nothing has to remember to say so.
  */
 private fun trySummaryIn(json: Json, file: File): NotebookSummary? {
-  val id = notebookNameOf(file.name)
+  val id = file.name
   return try {
     json.readNotebook(file, id).toSummary(Instant.ofEpochMilli(file.lastModified()))
   } catch (e: SerializationException) {

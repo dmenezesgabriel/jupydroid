@@ -12,13 +12,13 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Switch Alpha"
+      text: "Switch Alpha.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Switch Alpha"
+- tapOn: "Switch Alpha.ipynb"
 - extendedWaitUntil:
     visible: "first_only = 111"
     timeout: 30000
 # The editor has the window to itself: nothing of the list is left on screen.
-- assertNotVisible: "Switch Beta"
+- assertNotVisible: "Switch Beta.ipynb"
 - takeScreenshot: 01-notebook-has-the-window

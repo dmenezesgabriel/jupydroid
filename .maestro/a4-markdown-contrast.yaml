@@ -12,10 +12,10 @@ appId: com.jupydroid.app
 # sinks below the fold as soon as anything else is saved.
 - scrollUntilVisible:
     element:
-      text: "Markdown Render"
+      text: "Markdown Render.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Markdown Render"
+- tapOn: "Markdown Render.ipynb"
 - extendedWaitUntil:
     visible: "Rendered markdown"
     timeout: 20000

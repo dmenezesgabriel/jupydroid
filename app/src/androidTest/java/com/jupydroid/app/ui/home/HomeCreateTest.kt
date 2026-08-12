@@ -46,11 +46,13 @@ class HomeCreateTest {
     compose.onNodeWithText("New notebook").performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) {
-      compose.onAllNodesWithText("Untitled").fetchSemanticsNodes().isNotEmpty()
+      compose.onAllNodesWithText("Untitled.ipynb").fetchSemanticsNodes().isNotEmpty()
     }
     // Displayed, not merely present: the bug put the row above the viewport, where it is
     // composed but never seen.
-    compose.onNodeWithText("Untitled").assertIsDisplayed()
+    // The suffix is part of the name the row shows, the way the reference lists
+    // `Untitled.ipynb` - and the way the rename dialog now offers it for editing.
+    compose.onNodeWithText("Untitled.ipynb").assertIsDisplayed()
   }
 
   private companion object {

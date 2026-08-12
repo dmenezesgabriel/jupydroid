@@ -15,10 +15,10 @@ appId: com.jupydroid.app
 # notebook sinks below the fold as the device accumulates notebooks.
 - scrollUntilVisible:
     element:
-      text: "Markdown Render"
+      text: "Markdown Render.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Markdown Render"
+- tapOn: "Markdown Render.ipynb"
 - extendedWaitUntil:
     visible: "Rendered markdown"
     timeout: 20000

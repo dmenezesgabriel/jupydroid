@@ -1,7 +1,9 @@
 package com.jupydroid.app.ui.explorer
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.domain.port.NotebookRepository
 import java.io.File
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -157,14 +159,67 @@ class ExplorerViewModelTest {
   }
 
   /**
+   * A new file appears in the directory being browsed, named the way the server names one.
+   *
+   * `_createNew` passes `path: this.model.path` - the directory the browser is *showing*
+   * (`packages/filebrowser/src/browser.ts:558-566`) - so creating while inside `reports/` creates
+   * inside `reports/`, not at the root.
+   */
+  @Test
+  fun creatingAFileCreatesItInTheDirectoryBeingBrowsed() = runTest {
+    given("reports/keep.txt")
+    val viewModel = explorer()
+    viewModel.open(viewModel.uiState.value.entries.single())
+
+    viewModel.createFile("py")
+
+    assertTrue("untitled.py" in viewModel.uiState.value.entries.map { it.name })
+    assertTrue(File(temp.root, "reports/untitled.py").exists())
+  }
+
+  @Test
+  fun creatingAFolderShowsItStraightAway() = runTest {
+    given("keep.txt")
+    val viewModel = explorer()
+
+    viewModel.createFolder()
+
+    assertTrue("Untitled Folder" in viewModel.uiState.value.entries.map { it.name })
+  }
+
+  /**
+   * A new notebook is a *valid* notebook, not an empty file with an `.ipynb` name.
+   *
+   * Which is why it does not go through `createFile("ipynb")`: `new_untitled` gives
+   * `type: "notebook"` its own branch and the server writes nbformat into it
+   * (`manager.py:605-607`), and an empty file would fail to load the moment it was opened.
+   */
+  @Test
+  fun creatingANotebookProducesOneThatCanBeRead() = runTest {
+    given("keep.txt")
+    val notebooks = DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler))
+    val viewModel = explorer(notebooks)
+
+    viewModel.createNotebook()
+
+    assertTrue("Untitled.ipynb" in viewModel.uiState.value.entries.map { it.name })
+    assertEquals("Untitled.ipynb", notebooks.readNotebook("Untitled.ipynb").id)
+  }
+
+  /**
    * The repository is given the *test* dispatcher, or nothing here waits for it.
    *
    * `DiskWorkspaceRepository` reads on `Dispatchers.IO`, and the ViewModel lists from `init`. On a
    * real IO dispatcher that coroutine suspends onto another thread and the test body races past
    * it, seeing an empty listing - which is exactly what every case here first reported.
    */
-  private fun TestScope.explorer() =
-    ExplorerViewModel(DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler)))
+  private fun TestScope.explorer(
+    notebooks: NotebookRepository =
+      DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler)),
+  ) = ExplorerViewModel(
+    DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler)),
+    notebooks,
+  )
 
   private fun given(vararg paths: String) {
     paths.forEach { path ->

@@ -1,5 +1,6 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -97,6 +98,133 @@ abstract class WorkspaceRepositoryContract {
     val escaped = runCatching { repository().list("../..") }
 
     assertTrue("expected a refusal, got $escaped", escaped.isFailure)
+  }
+
+  @Test
+  fun textIsReadBackWholeAndUnchanged() = runTest {
+    given("notes.txt")
+
+    assertEquals("x", repository().readText("notes.txt"))
+  }
+
+  @Test
+  fun writingReplacesTheWholeFile() = runTest {
+    given("notes.txt")
+    val repository = repository()
+
+    repository.writeText("notes.txt", "rewritten\nover two lines\n")
+
+    assertEquals("rewritten\nover two lines\n", repository.readText("notes.txt"))
+  }
+
+  /** A file the editor creates has to be readable by the same path it was written under. */
+  @Test
+  fun writingAFileThatIsNotThereCreatesIt() = runTest {
+    given("keep.txt")
+    val repository = repository()
+
+    repository.writeText("fresh.txt", "new")
+
+    assertEquals("new", repository.readText("fresh.txt"))
+    assertTrue("fresh.txt" in repository.list("").map { it.name })
+  }
+
+  @Test
+  fun readingOutsideTheRootIsRefused() = runTest {
+    given("notes.txt")
+
+    val escaped = runCatching { repository().readText("../../secrets") }
+
+    assertTrue("expected a refusal, got $escaped", escaped.isFailure)
+  }
+
+  @Test
+  fun writingOutsideTheRootIsRefused() = runTest {
+    given("notes.txt")
+
+    val escaped = runCatching { repository().writeText("../escaped.txt", "no") }
+
+    assertTrue("expected a refusal, got $escaped", escaped.isFailure)
+  }
+
+  @Test
+  fun readingAFileThatIsNotThereIsRefused() = runTest {
+    given("notes.txt")
+
+    val missing = runCatching { repository().readText("nope.txt") }
+
+    assertTrue("expected a refusal, got $missing", missing.isFailure)
+  }
+
+  /**
+   * `untitled.txt`, which is the server's name and not one we chose.
+   *
+   * `new_untitled` builds `untitled` + `.<ext>` for `type: "file"` (`manager.py:608-613`). The
+   * caller picks a type; the name comes from the server, and the rename the reference opens on
+   * the new item is where a person picks one.
+   */
+  @Test
+  fun aNewFileIsNamedTheWayTheServerNamesIt() = runTest {
+    given("keep.txt")
+
+    assertEquals("untitled.txt", repository().createFile("", "txt"))
+  }
+
+  @Test
+  fun aNewFileIsCreatedEmptyAndInsideTheDirectoryAsked() = runTest {
+    given("reports/keep.txt")
+    val repository = repository()
+
+    val created = repository.createFile("reports", "py")
+
+    assertEquals("reports/untitled.py", created)
+    assertEquals("", repository.readText(created))
+  }
+
+  /** The counter goes on the stem, so the extension survives: `untitled1.txt`. */
+  @Test
+  fun aSecondFileOfTheSameTypeIsCounted() = runTest {
+    given("keep.txt")
+    val repository = repository()
+    repository.createFile("", "txt")
+
+    assertEquals("untitled1.txt", repository.createFile("", "txt"))
+  }
+
+  @Test
+  fun aNewFolderIsNamedTheWayTheServerNamesIt() = runTest {
+    given("keep.txt")
+
+    assertEquals("Untitled Folder", repository().createFolder(""))
+  }
+
+  /** `insert=" "` is passed for a directory and nothing else, so this counts with a space. */
+  @Test
+  fun aSecondFolderCountsWithASpace() = runTest {
+    given("keep.txt")
+    val repository = repository()
+    repository.createFolder("")
+
+    assertEquals("Untitled Folder 1", repository.createFolder(""))
+  }
+
+  @Test
+  fun aNewFolderIsADirectoryThatCanBeListed() = runTest {
+    given("keep.txt")
+    val repository = repository()
+
+    val created = repository.createFolder("")
+
+    assertEquals(emptyList<WorkspaceEntry>(), repository.list(created))
+    assertEquals(WorkspaceEntryKind.DIRECTORY, repository.list("").first { it.path == created }.kind)
+  }
+
+  @Test
+  fun creatingOutsideTheRootIsRefused() = runTest {
+    given("keep.txt")
+
+    assertTrue(runCatching { repository().createFile("../..", "txt") }.isFailure)
+    assertTrue(runCatching { repository().createFolder("../..") }.isFailure)
   }
 
   @Test

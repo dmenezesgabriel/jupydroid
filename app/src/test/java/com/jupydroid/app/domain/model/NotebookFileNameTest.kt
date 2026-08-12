@@ -59,19 +59,16 @@ class NotebookFileNameTest {
     assertFalse(isValidNotebookName(".secret"))
   }
 
+  /**
+   * A name carries its own suffix now, so `Report.ipynb` is a name and not a name plus a rule.
+   *
+   * The two helpers that put the suffix on and took it back off are gone with it: the id is the
+   * path (`Contents.IModel.path`), and every boundary that had to add or strip `.ipynb` was a
+   * chance to do it twice - which is exactly what `Nested.ipynb.ipynb` was.
+   */
   @Test
-  fun theFileIsTheNamePlusTheSuffix() {
-    assertEquals("Analysis of sales.ipynb", notebookFileName("Analysis of sales"))
-  }
-
-  /** Surrounding space is trimmed, because a file called `"a "` is one nobody can type twice. */
-  @Test
-  fun surroundingSpaceIsTrimmed() {
-    assertEquals("Report.ipynb", notebookFileName("  Report  "))
-  }
-
-  @Test
-  fun theNameComesBackOffTheFile() {
-    assertEquals("Analysis of sales", notebookNameOf("Analysis of sales.ipynb"))
+  fun aNameWithItsSuffixIsAName() {
+    assertTrue(isValidNotebookName("Analysis of sales.ipynb"))
+    assertTrue(isValidNotebookName("script.py"))
   }
 }

@@ -11,10 +11,10 @@ appId: com.jupydroid.app
 # assertion for exactly that reason, with the row present the whole time.
 - scrollUntilVisible:
     element:
-      text: "Markdown Render"
+      text: "Markdown Render.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Markdown Render"
+- tapOn: "Markdown Render.ipynb"
 # Rendered, not source: the heading reads without its hashes and the bullet without its dash.
 - extendedWaitUntil:
     visible: "Analysis"

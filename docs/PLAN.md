@@ -1938,6 +1938,91 @@ long-press menu is a different design question.
 
 Evidence: `evidence/x1b-name-is-the-file/`.
 
+### X2a — the workspace as files (done)
+
+`WorkspaceRepository` + `DiskWorkspaceRepository` over the kernel's HOME, and a single-pane
+browser with a breadcrumb - `packages/filebrowser`'s shape (BreadCrumbs + DirListing, contents
+replaced rather than a tree expanded), which is also the shape a phone wants: indentation would
+spend the width the names need.
+
+Reached from a Recents bar rather than replacing Recents. The explorer cannot create, rename or
+delete yet, so swapping it in would have been a regression wearing a new feature's clothes.
+
+**Two defects, both found by its own tests**: the explorer handed over a path with `.ipynb` on it
+and the repository put the suffix on again (`Nested.ipynb.ipynb`); and renaming a notebook inside a
+folder moved it to the workspace root, silently.
+
+Evidence: `evidence/x2a-explorer-browse/`.
+
+### X2b — the id is the path, suffix included (done)
+
+The second defect above was a symptom. X1b made an id a path with the suffix *stripped*, so every
+boundary between the workspace and the repository had to put `.ipynb` back on - and one of them did
+it twice the day folders became reachable.
+
+`Contents.IModel.path` carries the suffix, and so does ours now. What that buys, beyond removing a
+class of bug:
+
+- **The extension is visible**, in Recents, in the explorer and in the editor's title bar -
+  `Untitled.ipynb`, which is what the reference lists and labels
+  (`title.label = PathExt.basename(sender.localPath)`, `docregistry/src/default.ts:618-621`).
+- **The extension is editable with the name.** The rename dialog is prefilled with the whole
+  basename and opens with only the *stem* selected - `setSelectionRange(0, value.length -
+  ext.length)` (`docmanager/src/dialogs.ts:271-274`) - so typing replaces the stem and the suffix
+  survives, while a user who wants `.py` can have it.
+- **A `.py` or a `.csv` is no longer a special case**, which is what X2c needs: an editor for a
+  file the notebook editor cannot open has somewhere to be addressed from.
+
+Two rules transcribed rather than guessed, from the jupyter_server in our own rootfs:
+
+- `new_untitled` is *typed*, and the server supplies the extension: `Untitled` + `.ipynb` for a
+  notebook, `untitled` + `.<ext>` for a file, `Untitled Folder` with `insert=" "` for a directory
+  (`services/contents/manager.py:599-614`). So `createNotebook` adds the suffix and its callers do
+  not spell it.
+- `increment_filename` splits the suffix asymmetrically (`manager.py:543-549`): `rpartition` first,
+  and only if the extension is not `ipynb` does it fall back to `partition`. That is what gives
+  `archive.tar.gz` its *full* suffix while `data.backup.ipynb` keeps the middle dot in its stem.
+  The counter goes on the stem either way - `untitled1.txt`, never `untitled.txt1`.
+
+**A device-only finding, from the flows.** Two rename flows tapped into the field before typing.
+The dialog already opens focused with the stem selected, so the tap collapsed that selection and
+`eraseText` then stopped at the unselected suffix: the rename landed as
+`Renamed From Editor.ipynbynb`. The tap and the erase are both gone - typing the stem *is* the
+interaction, which is what the reference's selection range is for.
+
+**Still open, and now visible**: Recents scans the workspace root only, so a notebook in a folder
+is reachable through the explorer and absent from Recents. It goes when Recents becomes a section
+of the explorer.
+
+### X2c — a file that is not a notebook (in progress)
+
+JupyterLab opens anything its notebook factory does not claim in the *file editor*: one CodeMirror
+over the whole document, with the language taken from the file type (`packages/fileeditor`). Ours
+is the **cell editor's own field** over the whole file - `CodeCellField` already takes a
+`SyntaxHighlighter` and an `InputTransformation`, so line numbers, bracket matching, the caret row
+and the IME symbol row are the same code and not a second implementation to drift from.
+
+- `WorkspaceRepository` gained `readText`/`writeText`, whole-file both ways, which is what
+  `Contents.IModel.content` is for a `fileFormat: 'text'` type. Writes go through the same
+  `NotebookSaveDebounce` as a cell's source.
+- `syntaxForFile(name)` is the reference's file-type table with the grammars we have
+  (`docregistry/src/registry.ts:1356-1508`): `.py` Python, `.md` Markdown, `.json`/`.ipynb` JSON,
+  everything else plain. **A type with no grammar is plain text, not a refusal** - a `.csv` opens.
+  The reference has a `csv` type too, but what it gives it is a data grid, not colouring, so
+  colouring commas would be our invention.
+- `JsonSyntax` is hand-lexed rather than generated, because a generated parser refuses a file the
+  moment it stops being valid - which is exactly when someone is editing it. It scans and never
+  fails: an unterminated string is coloured to the end and the file still renders.
+- Auto-closing brackets only where brackets are structure (`.py`, `.json`), because a `(` in prose
+  is not the start of anything.
+
+**This is what closes the "New Python file" defect at its cause.** That FAB item called
+`createNotebook("untitled.py")`, which produced `untitled.py.ipynb` - a notebook wearing a Python
+file's name. A `.py` now has somewhere real to open, so creating one can mean what it says.
+
+Still to do: creating files and folders from the explorer (`newUntitled` with a type, `Untitled
+Folder` with `insert=" "`), which is where that FAB item gets rewired; and the flow evidence.
+
 ## Harness notes
 
 ### Never `kill -9` maestro

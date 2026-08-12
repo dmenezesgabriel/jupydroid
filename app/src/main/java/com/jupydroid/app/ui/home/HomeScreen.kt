@@ -40,15 +40,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.NotebookSummary
+import com.jupydroid.app.domain.model.UNTITLED_NOTEBOOK
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RenameNotebookDialog
 import java.time.Instant
 
-private const val NEW_NOTEBOOK_TITLE = "Untitled"
 private const val NEW_PYTHON_FILE_TITLE = "untitled.py"
-private const val DEFAULT_KERNEL_ID = "python3"
 
 @Composable
 fun HomeScreen(
@@ -74,7 +74,7 @@ fun HomeScreen(
 
   HomeScaffold(
     notebooks = state.notebooks,
-    onCreateNotebook = { viewModel.createNotebook(NEW_NOTEBOOK_TITLE, DEFAULT_KERNEL_ID) },
+    onCreateNotebook = { viewModel.createNotebook(UNTITLED_NOTEBOOK, DEFAULT_KERNEL_ID) },
     onCreatePythonFile = { viewModel.createNotebook(NEW_PYTHON_FILE_TITLE, DEFAULT_KERNEL_ID) },
     onRenameNotebook = { id, title -> viewModel.renameNotebook(id, title) },
     onDeleteNotebook = { id -> viewModel.deleteNotebook(id) },

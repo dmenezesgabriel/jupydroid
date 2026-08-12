@@ -17,10 +17,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: "Notebook Bar"
+      text: "Notebook Bar.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "Notebook Bar"
+- tapOn: "Notebook Bar.ipynb"
 - extendedWaitUntil:
     visible: ".*after restart.*"
     timeout: 30000

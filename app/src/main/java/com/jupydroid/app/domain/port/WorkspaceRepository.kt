@@ -28,4 +28,42 @@ interface WorkspaceRepository {
    * out of the reference.
    */
   suspend fun list(path: String): List<WorkspaceEntry>
+
+  /**
+   * The whole file at [path] as text.
+   *
+   * One string rather than a stream: this serves an editor, and `Contents.IModel.content` for a
+   * text file is likewise the whole thing (`fileFormat: 'text'` in the type registry). Refuses a
+   * path outside the root, and a path that names nothing, the same way [list] does.
+   */
+  suspend fun readText(path: String): String
+
+  /**
+   * Replaces the file at [path] with [text], creating it when it is not there.
+   *
+   * Whole-file too, because that is what `contents.save` sends. The parent directory must already
+   * exist - creating one is a separate act with its own name, as `newUntitled(type: 'directory')`
+   * is in the reference.
+   */
+  suspend fun writeText(path: String, text: String)
+
+  /**
+   * Creates an empty file in [directory] and answers with its path.
+   *
+   * `newUntitled({path, type: "file", ext})`, whose name the *server* supplies: `untitled` plus
+   * the extension, incremented past whatever is already there
+   * (`services/contents/manager.py:608-613`). So the caller chooses a type, never a name - naming
+   * comes after, from the rename the reference opens on the new item.
+   *
+   * @param extension without the dot, as `createNewFile({ ext: 'txt' })` passes it.
+   */
+  suspend fun createFile(directory: String, extension: String): String
+
+  /**
+   * Creates a folder in [directory] and answers with its path.
+   *
+   * `Untitled Folder`, counting with a **space** - the server passes `insert=" "` for a directory
+   * and for nothing else (`manager.py:603-604`), so the second one is `Untitled Folder 1`.
+   */
+  suspend fun createFolder(directory: String): String
 }

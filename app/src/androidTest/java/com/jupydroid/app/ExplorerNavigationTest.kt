@@ -85,8 +85,8 @@ class ExplorerNavigationTest {
     runBlocking {
       repository.saveNotebook(
         Notebook(
-          "reports/Nested",
-          "reports/Nested",
+          "reports/Nested.ipynb",
+          "reports/Nested.ipynb",
           "python3",
           listOf(Cell("c1", CellKind.CODE, NESTED_SOURCE)),
         ),
