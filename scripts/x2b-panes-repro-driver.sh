@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # X2b: reproducible evidence of the two-pane defect - run against the PRE-fix build.
+# NOT A SUITE FLOW: it asserts the defect (Recents beside the browser), which a fixed build no
+# longer shows - it is a repro tool, not a regression check, and it refuses narrow windows itself.
 #
 # After "Browse files" on the tablet's wide window, the browser opens. The defect pairs it with
 # Recents, which draws the app's own "Recents" bar-title beside it. `assertAppText "Recents"

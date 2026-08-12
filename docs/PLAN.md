@@ -1994,7 +1994,7 @@ interaction, which is what the reference's selection range is for.
 is reachable through the explorer and absent from Recents. It goes when Recents becomes a section
 of the explorer.
 
-### X2c — a file that is not a notebook (in progress)
+### X2c — a file that is not a notebook (done)
 
 JupyterLab opens anything its notebook factory does not claim in the *file editor*: one CodeMirror
 over the whole document, with the language taken from the file type (`packages/fileeditor`). Ours
@@ -2022,6 +2022,52 @@ file's name. A `.py` now has somewhere real to open, so creating one can mean wh
 
 Still to do: creating files and folders from the explorer (`newUntitled` with a type, `Untitled
 Folder` with `insert=" "`), which is where that FAB item gets rewired; and the flow evidence.
+
+That is now X2d and X2e below: the explorer gained the create menu, and the FAB item now creates
+a real file and opens it in the file editor instead of a notebook wearing a `.py` name. Evidence:
+`evidence/x2c-file-editor/`, `evidence/x2d-explorer-create/`, `evidence/x2e-home-new-python-file/`.
+
+### X2d — create notebook, python file, and folder from the browser (done)
+
+The reference's filebrowser toolbar has a New widget with exactly three items — New Notebook,
+"New %1 File" per filetype, New Folder (`packages/filebrowser-extension`). `_createNew`
+(`packages/filebrowser/src/browser.ts:529-546`) calls `newUntitled({path, type})` with the
+*browsed* directory, then renames in place.
+
+- Ours is a "+" in the Files bar opening a Material `DropdownMenu` with the same three, labelled
+  `New notebook` / `New Python file` / `New folder`. On a phone the filetype menu collapses to
+  the one type Home and the explorer actually create; the reference's full per-type list would be
+  a menu whose items mostly create something nothing here can open.
+- Creating goes through `ExplorerViewModel.create{Notebook,File,Folder}`, which reuses the Step 1
+  wiring that the ViewModel tests already argued — the names come from the server
+  (`untitled.py`, `Untitled Folder`, `Untitled.ipynb` written as real nbformat) via
+  `WorkspaceRepository.createFile`/`createFolder` and `NotebookRepository.createNotebook`.
+- Creation lands in the directory **being browsed** — `path: this.model.path`
+  (`browser.ts:558-566`) — which the create-menu instrumented tests and the explorer-create flow
+  prove by creating inside `reports/` and reading the file back from disk.
+- **The reference renames the result in place** (`_createNew` -> `rename()`); ours defers the
+  rename box, which is a later step. Instrumented: `ExplorerScreenTest`, three menu tests.
+  Maestro: `explorer-create` (`scripts/explorer-create-driver.sh`), on the 320dp emulator —
+  nothing runs a cell, so the fake kernel is never consulted.
+
+### X2e — Home's "New Python file" creates a real file (done)
+
+The FAB's `New Python file` used to call `createNotebook("untitled.py")`, producing
+`untitled.py.ipynb` — the exact confusion X2c's editor exists to resolve. Creating a Python file
+is `new_untitled({type: "file", ext})`, which the server names `untitled.py`, and the file editor
+is its default document factory (`packages/fileeditor`), the same split the explorer's `onOpenFile`
+makes for a `.py`.
+
+- `HomeViewModel` gained `workspaceRepository` and `createPythonFile(onCreated)`: it asks the
+  workspace for `untitled.py` and reports the path back, because the name only the creation knows
+  — the server's incremented series (`untitled.py`, `untitled1.py`). The screen hands it to
+  `HomeScreen.onOpenFile`, which navigation routes to the `FileEditor` entry
+  (`backStack.openFile`), so Home now has the same open-to-the-two-editors split as the explorer.
+- Unit: `HomeViewModelTest.createPythonFile_makesTheFileAndHandsBackItsPath`; instrumented:
+  `HomeNewPythonFileTest`, which taps the FAB menu on a device and asserts the created path comes
+  out of the screen. Maestro: `home-new-python-file`
+  (`scripts/home-new-python-file-driver.sh`) creates through the real UI, types a line, and the
+  driver reads `untitled.py` back from disk — and asserts it is *not* nbformat.
 
 ## Harness notes
 

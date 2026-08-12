@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # X2b, fixed: the file browser is a surface beside the document it opened - on the tablet.
+# WIDE WINDOW (>= 840dp): the driver checks its own width before running.
 #
 # The tablet's window (>= 840dp) is what makes two panes exist, so this refuses to run anywhere
 # narrower - a green run on the 320dp emulator would prove nothing about panes.
