@@ -107,6 +107,45 @@ class ExplorerScreenTest {
     compose.onAllNodesWithContentDescription("Back to recents").assertCountEquals(0)
   }
 
+  /**
+   * The filebrowser's New drop-down, on a phone: a "+" in the bar opens Notebook / Python file /
+   * Folder. The creation itself is tested by `ExplorerViewModelTest`; this proves the menu is on
+   * screen and reachable, and that a notebook created in the browsed directory shows up in the
+   * list it opened from - `path: this.model.path` (`browser.ts:558-566`).
+   */
+  @Test
+  fun theNewMenuCreatesANotebookInTheDirectoryBeingBrowsed() {
+    showExplorer()
+
+    compose.onNodeWithContentDescription("New").performClick()
+    compose.onNodeWithText("New notebook").performClick()
+
+    waitForText("Untitled.ipynb")
+    compose.onNodeWithText("Untitled.ipynb").assertIsDisplayed()
+  }
+
+  @Test
+  fun theNewMenuCreatesAPythonFile() {
+    showExplorer()
+
+    compose.onNodeWithContentDescription("New").performClick()
+    compose.onNodeWithText("New Python file").performClick()
+
+    waitForText("untitled.py")
+    compose.onNodeWithText("untitled.py").assertIsDisplayed()
+  }
+
+  @Test
+  fun theNewMenuCreatesAFolder() {
+    showExplorer()
+
+    compose.onNodeWithContentDescription("New").performClick()
+    compose.onNodeWithText("New folder").performClick()
+
+    waitForText("Untitled Folder")
+    compose.onNodeWithContentDescription("Folder").assertIsDisplayed()
+  }
+
   private fun showExplorer(
     onOpenFile: (WorkspaceEntry) -> Unit = {},
     onBack: (() -> Unit)? = {},

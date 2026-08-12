@@ -16,7 +16,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +30,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,7 +78,14 @@ fun ExplorerScreen(
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
-    topBar = { FilesBar(onBack = onBack) },
+    topBar = {
+      FilesBar(
+        onBack = onBack,
+        onCreateNotebook = viewModel::createNotebook,
+        onCreatePythonFile = { viewModel.createFile("py") },
+        onCreateFolder = viewModel::createFolder,
+      )
+    },
   ) { padding ->
     Column(modifier = Modifier.padding(padding)) {
       Breadcrumb(crumbs = state.crumbs, onGoTo = viewModel::goTo)
@@ -98,7 +111,12 @@ fun ExplorerScreen(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FilesBar(onBack: (() -> Unit)?) {
+private fun FilesBar(
+  onBack: (() -> Unit)?,
+  onCreateNotebook: () -> Unit,
+  onCreatePythonFile: () -> Unit,
+  onCreateFolder: () -> Unit,
+) {
   TopAppBar(
     title = { Text("Files") },
     navigationIcon = {
@@ -108,7 +126,49 @@ private fun FilesBar(onBack: (() -> Unit)?) {
         }
       }
     },
+    actions = {
+      NewMenu(
+        onCreateNotebook = onCreateNotebook,
+        onCreatePythonFile = onCreatePythonFile,
+        onCreateFolder = onCreateFolder,
+      )
+    },
   )
+}
+
+/**
+ * The reference's New drop-down, on a phone: a "+" that opens Notebook / Python file / Folder.
+ *
+ * The reference offers the same three from the filebrowser toolbar's New widget and then renames
+ * the result in place (`browser.ts:_createNew` -> `rename()`); a phone's rename box is a later
+ * step, so for now whatever the creation yields lands in the browsed directory - the server's own
+ * `untitled{ext}` family is incremented by `ExplorerViewModel` and shows up in the list it was
+ * created in.
+ */
+@Composable
+private fun NewMenu(
+  onCreateNotebook: () -> Unit,
+  onCreatePythonFile: () -> Unit,
+  onCreateFolder: () -> Unit,
+) {
+  var open by remember { mutableStateOf(false) }
+  IconButton(onClick = { open = true }) {
+    Icon(Icons.Filled.Add, contentDescription = "New")
+  }
+  DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+    DropdownMenuItem(text = { Text("New notebook") }, onClick = {
+      open = false
+      onCreateNotebook()
+    })
+    DropdownMenuItem(text = { Text("New Python file") }, onClick = {
+      open = false
+      onCreatePythonFile()
+    })
+    DropdownMenuItem(text = { Text("New folder") }, onClick = {
+      open = false
+      onCreateFolder()
+    })
+  }
 }
 
 /**

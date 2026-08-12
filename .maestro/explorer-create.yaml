@@ -1,0 +1,62 @@
+appId: com.jupydroid.app
+---
+# X2d: the Files bar's New drop-down creates through the real UI. The reference's filebrowser
+# toolbar has a New widget for exactly these three; this is the same menu adapted to a phone's
+# bar. Nothing below runs a cell, so the emulator - and its FakeKernelGateway - is enough; the
+# disk side of each creation is proven by the driver, not by what a screenshot shows.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Recents"
+- tapOn: "Browse files"
+- assertVisible: "Files"
+- assertVisible: "Workspace"
+- assertVisible: "reports"
+
+# The "+" is the bar's New drop-down, by its contentDescription - `id:` matches a resource id,
+# which a Compose icon does not have. The menu must show all three before any is tapped, or
+# "New notebook" alone could come from anywhere.
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- assertVisible: "New Python file"
+- assertVisible: "New folder"
+- takeScreenshot: 02-the-new-menu
+
+# A notebook created at the root: the server's own `Untitled.ipynb`, written next to the crumb
+# that says where it went.
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- assertNotVisible: "New Python file"   # the drop-down closed; only rows are left
+- takeScreenshot: 03-notebook-created-at-the-root
+
+# Browse into reports/ and create the file there: `path: this.model.path` (browser.ts:558), so
+# the file lands beside data.csv, not at the root.
+- tapOn: "reports"
+- extendedWaitUntil:
+    visible: "data.csv"
+    timeout: 5000
+- tapOn: "New"
+- tapOn: "New Python file"
+- extendedWaitUntil:
+    visible: "untitled.py"
+    timeout: 10000
+- takeScreenshot: 04-to-the-browsed-directory
+
+# Back to the root via the crumb, then a folder - the third of the trio.
+- tapOn: "Workspace"
+- assertVisible: "Untitled.ipynb"
+- tapOn: "New"
+- tapOn: "New folder"
+- extendedWaitUntil:
+    visible: "Untitled Folder"
+    timeout: 10000
+- takeScreenshot: 05-folder-created-at-the-root
+
+# At the root there is no parent left, so back leaves the explorer rather than being swallowed.
+- back
+- assertVisible: "Recents"
+- takeScreenshot: 06-and-then-out-to-recents
