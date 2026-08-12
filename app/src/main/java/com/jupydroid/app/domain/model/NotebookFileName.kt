@@ -1,14 +1,14 @@
 package com.jupydroid.app.domain.model
 
 /**
- * The rule for what a notebook may be called, once its name is its filename.
+ * The rule for what a file may be called - a notebook, a `.py`, or a folder.
  *
  * Taken from JupyterLab rather than invented
  * (`reference/research_repos/jupyterlab/packages/docmanager/src/dialogs.ts`, `isValidFileName`):
  * a name must have nonzero length and must not contain `/`, `\` or `:`.
  *
  * ```
- * if (!isValidNotebookName(typed)) { /* tell the user which characters are refused */ }
+ * if (!isValidFileName(typed)) { /* tell the user which characters are refused */ }
  * ```
  *
  * **Rejects, never rewrites.** Turning `a/b` quietly into `a-b` hands the user a notebook they did
@@ -17,7 +17,7 @@ package com.jupydroid.app.domain.model
  *
  * Pure, so it belongs in the domain: no file, no repository, nothing to mock.
  */
-fun isValidNotebookName(name: String): Boolean {
+fun isValidFileName(name: String): Boolean {
   val trimmed = name.trim()
   return trimmed.isNotEmpty() && FORBIDDEN.none { it in trimmed } && !trimmed.startsWith(".")
 }

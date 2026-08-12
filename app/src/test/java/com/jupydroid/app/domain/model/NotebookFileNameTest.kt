@@ -25,28 +25,28 @@ import org.junit.Test
 class NotebookFileNameTest {
   @Test
   fun anOrdinaryNameIsFine() {
-    assertTrue(isValidNotebookName("Analysis of sales"))
+    assertTrue(isValidFileName("Analysis of sales"))
   }
 
   @Test
   fun aNameMustHaveSomethingInIt() {
-    assertFalse(isValidNotebookName(""))
-    assertFalse(isValidNotebookName("   "))
+    assertFalse(isValidFileName(""))
+    assertFalse(isValidFileName("   "))
   }
 
   /** The three the reference names, and no more: this is a rejection list, not a taste list. */
   @Test
   fun separatorsAndColonsAreRefused() {
-    assertFalse(isValidNotebookName("a/b"))
-    assertFalse(isValidNotebookName("a\\b"))
-    assertFalse(isValidNotebookName("a:b"))
+    assertFalse(isValidFileName("a/b"))
+    assertFalse(isValidFileName("a\\b"))
+    assertFalse(isValidFileName("a:b"))
   }
 
   @Test
   fun everythingElseIsAllowed() {
-    assertTrue(isValidNotebookName("π ≈ 3.14, or is it?"))
-    assertTrue(isValidNotebookName("notebook (2)"))
-    assertTrue(isValidNotebookName("a.b"))
+    assertTrue(isValidFileName("π ≈ 3.14, or is it?"))
+    assertTrue(isValidFileName("notebook (2)"))
+    assertTrue(isValidFileName("a.b"))
   }
 
   /**
@@ -56,7 +56,7 @@ class NotebookFileNameTest {
    */
   @Test
   fun aHiddenNameIsRefused() {
-    assertFalse(isValidNotebookName(".secret"))
+    assertFalse(isValidFileName(".secret"))
   }
 
   /**
@@ -68,7 +68,7 @@ class NotebookFileNameTest {
    */
   @Test
   fun aNameWithItsSuffixIsAName() {
-    assertTrue(isValidNotebookName("Analysis of sales.ipynb"))
-    assertTrue(isValidNotebookName("script.py"))
+    assertTrue(isValidFileName("Analysis of sales.ipynb"))
+    assertTrue(isValidFileName("script.py"))
   }
 }

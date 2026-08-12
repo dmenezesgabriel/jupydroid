@@ -6,8 +6,8 @@ import com.jupydroid.app.domain.model.NotebookSummary
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.model.incrementedFileName
-import com.jupydroid.app.domain.model.isValidNotebookName
-import com.jupydroid.app.domain.port.NotebookNameTakenException
+import com.jupydroid.app.domain.model.isValidFileName
+import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import java.io.File
 import java.util.UUID
@@ -75,13 +75,13 @@ class DiskNotebookRepository(
    */
   override suspend fun renameNotebook(id: String, title: String): String = withContext(ioDispatcher) {
     val wanted = title.trim()
-    require(isValidNotebookName(wanted)) {
+    require(isValidFileName(wanted)) {
       "notebook name '$title' is not valid: it must not be empty, start with '.', or contain / \\ :"
     }
     // The new *name* joined onto the id's folder, never used as a path in its own right: a
     // notebook in `reports/` must stay in `reports/`. See `idBeside`.
     val moved = idBeside(id, wanted)
-    if (moved != id && fileFor(moved).exists()) throw NotebookNameTakenException(wanted)
+    if (moved != id && fileFor(moved).exists()) throw FileNameTakenException(wanted)
     val notebook = readNotebook(id).copy(id = moved, title = moved)
     writeFile(notebook)
     if (moved != id) fileFor(id).delete()
@@ -122,7 +122,7 @@ class DiskNotebookRepository(
    */
   override suspend fun overwriteNotebook(id: String, title: String): String = withContext(ioDispatcher) {
     val wanted = title.trim()
-    require(isValidNotebookName(wanted)) { "notebook name '$title' is not valid" }
+    require(isValidFileName(wanted)) { "notebook name '$title' is not valid" }
     val moved = idBeside(id, wanted)
     val temporary = File(rootDir, "$moved.${UUID.randomUUID()}")
     fileFor(id).renameTo(temporary)

@@ -1,6 +1,6 @@
 package com.jupydroid.app.data.disk
 
-import com.jupydroid.app.domain.port.NotebookNameTakenException
+import com.jupydroid.app.domain.port.FileNameTakenException
 import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -149,9 +149,9 @@ class NotebookIsItsFileTest {
     val taken = runCatching { repository.renameNotebook(other.id, "Taken.ipynb") }.exceptionOrNull()
     val invalid = runCatching { repository.renameNotebook(other.id, "a/b.ipynb") }.exceptionOrNull()
 
-    assertTrue("a taken name must be distinguishable, got $taken", taken is NotebookNameTakenException)
+    assertTrue("a taken name must be distinguishable, got $taken", taken is FileNameTakenException)
     assertTrue("an invalid name is not an overwrite offer, got $invalid", invalid is IllegalArgumentException)
-    assertFalse("invalid must not be reported as taken", invalid is NotebookNameTakenException)
+    assertFalse("invalid must not be reported as taken", invalid is FileNameTakenException)
   }
 
   /**

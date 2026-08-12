@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.KernelGateway
-import com.jupydroid.app.domain.port.NotebookNameTakenException
+import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -111,7 +111,7 @@ class EditorViewModel(
       .onFailure { failure ->
         notebook = notebook?.copy(title = before)
         // Only a taken name becomes a question, exactly as only a 409 does in `renameFile`.
-        val taken = if (failure is NotebookNameTakenException) title else null
+        val taken = if (failure is FileNameTakenException) title else null
         _uiState.update { it.copy(title = notebookLeafOf(before), nameTaken = taken) }
       }
   }

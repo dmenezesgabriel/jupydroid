@@ -18,7 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import com.jupydroid.app.domain.model.isValidNotebookName
+import com.jupydroid.app.domain.model.isValidFileName
 
 const val RENAME_FIELD_TAG = "rename-field"
 
@@ -65,7 +65,7 @@ fun RenameNotebookDialog(
       // fault rather than turning `a/b` into `a-b` and handing back a notebook the user never
       // named (`packages/docmanager/src/dialogs.ts`). Since X1b the name *is* the file, so an
       // invalid one is not a matter of taste - the filesystem cannot store it.
-      val refused = title.text.isNotBlank() && !isValidNotebookName(title.text)
+      val refused = title.text.isNotBlank() && !isValidFileName(title.text)
       OutlinedTextField(
         value = title,
         onValueChange = { title = it },
@@ -91,7 +91,7 @@ fun RenameNotebookDialog(
       val renamed = title.text.trim()
       TextButton(
         onClick = { if (renamed == currentTitle) onDismiss() else onConfirm(renamed) },
-        enabled = isValidNotebookName(renamed),
+        enabled = isValidFileName(renamed),
       ) {
         Text("Rename")
       }

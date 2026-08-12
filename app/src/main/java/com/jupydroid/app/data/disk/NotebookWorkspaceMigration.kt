@@ -2,7 +2,7 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.incrementedFileName
-import com.jupydroid.app.domain.model.isValidNotebookName
+import com.jupydroid.app.domain.model.isValidFileName
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -73,14 +73,14 @@ class NotebookWorkspaceMigration(
   /**
    * The file name the title asks for, or the file's current name when it has no usable title.
    *
-   * A title with a `/` in it is not a file name ([isValidNotebookName]) and mangling it would hand
+   * A title with a `/` in it is not a file name ([isValidFileName]) and mangling it would hand
    * the user a notebook they did not name; keeping the old name loses nothing, because the name is
    * still theirs to change. A file that will not parse keeps its name too - the migration moves
    * notebooks, it does not sit in judgement on them.
    */
   private fun fileNameFor(file: File): String {
     val title = runCatching { titleIn(file.readText()) }.getOrNull()
-    return title?.takeIf(::isValidNotebookName)?.let { "$it$NOTEBOOK_SUFFIX" } ?: file.name
+    return title?.takeIf(::isValidFileName)?.let { "$it$NOTEBOOK_SUFFIX" } ?: file.name
   }
 
   private fun titleIn(text: String): String? =

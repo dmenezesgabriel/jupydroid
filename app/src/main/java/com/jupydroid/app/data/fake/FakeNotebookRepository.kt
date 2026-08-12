@@ -3,7 +3,7 @@ package com.jupydroid.app.data.fake
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookSummary
 import com.jupydroid.app.domain.model.idBeside
-import com.jupydroid.app.domain.port.NotebookNameTakenException
+import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import java.time.Instant
 import java.util.UUID
@@ -50,7 +50,7 @@ class FakeNotebookRepository : NotebookRepository {
     // The name joined onto the folder the id names, never used as a path of its own - see
     // `idBeside`, and `NotebookRepositoryContract.renamingANotebookInAFolderKeepsItInThatFolder`.
     val moved = idBeside(id, title)
-    if (moved != id && notebooks.value.containsKey(moved)) throw NotebookNameTakenException(title)
+    if (moved != id && notebooks.value.containsKey(moved)) throw FileNameTakenException(title)
     notebooks.value = notebooks.value - id
     put(existing.copy(id = moved, title = moved))
     return moved
