@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
@@ -32,6 +33,7 @@ class EditorViewModelTest {
     val viewModel = EditorViewModel(
       notebookId = "ghost",
       notebookRepository = FakeNotebookRepository(),
+      workspaceRepository = FakeWorkspaceRepository(),
       kernelGateway = FakeKernelGateway(),
       applicationScope = this,
     )
@@ -126,7 +128,7 @@ class EditorViewModelTest {
     val repository = FakeNotebookRepository()
     launch { repository.saveNotebook(Notebook("nb-1", "Data", "python3", listOf(codeCell))) }
     advanceUntilIdle()
-    val viewModel = EditorViewModel("nb-1", repository, FakeKernelGateway(), this)
+    val viewModel = EditorViewModel("nb-1", repository, FakeWorkspaceRepository(), FakeKernelGateway(), this)
     advanceUntilIdle()
 
     viewModel.kernel.runCell(codeCell)

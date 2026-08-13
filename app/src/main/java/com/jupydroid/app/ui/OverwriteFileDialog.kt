@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui.editor
+package com.jupydroid.app.ui
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -18,14 +18,14 @@ import androidx.compose.runtime.Composable
  * file, and it should not look like the one that merely renames it.
  *
  * ```
- * state.nameTaken?.let { OverwriteNotebookDialog(it, onOverwrite = …, onDismiss = …) }
+ * state.nameTaken?.let { OverwriteFileDialog(it, onOverwrite = …, onDismiss = …) }
  * ```
  */
 @Composable
-internal fun OverwriteNotebookDialog(name: String, onOverwrite: () -> Unit, onDismiss: () -> Unit) {
+fun OverwriteFileDialog(name: String, onOverwrite: () -> Unit, onDismiss: () -> Unit) {
   AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text("Overwrite notebook?") },
+    title = { Text("Overwrite file?") },
     text = { Text("\"$name\" already exists, overwrite?") },
     confirmButton = {
       TextButton(onClick = onOverwrite) {

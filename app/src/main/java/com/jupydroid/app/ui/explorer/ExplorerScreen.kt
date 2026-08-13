@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.explorer
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,6 +47,8 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.ui.OverwriteFileDialog
+import com.jupydroid.app.ui.RenameFileDialog
 
 /**
  * The workspace, one directory at a time.
@@ -70,6 +76,9 @@ fun ExplorerScreen(
     viewModel { ExplorerViewModel(workspaceRepository, notebookRepository) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  // The entry whose name is being typed, held here rather than in the row: a `DropdownMenu` item
+  // that opened its own dialog would take it down with itself the moment it dismissed.
+  var renaming by remember { mutableStateOf<WorkspaceEntry?>(null) }
 
   // Back climbs the workspace before it leaves the screen, which is `filebrowser:go-up` - the
   // reference binds Backspace to the same thing. Enabled only when there is a parent, so at the
@@ -96,10 +105,36 @@ fun ExplorerScreen(
         // the Bundle round trip Compose needs for state restoration. contentType by kind, so a
         // folder row and a file row reuse separate composition pools rather than each other's.
         items(state.entries, key = { it.path }, contentType = { it.kind }) { entry ->
-          EntryRow(entry = entry, onOpen = { viewModel.open(entry, onOpenFile) })
+          EntryRow(
+            entry = entry,
+            onOpen = { viewModel.open(entry, onOpenFile) },
+            onRename = { renaming = entry },
+          )
         }
       }
     }
+  }
+
+  renaming?.let { entry ->
+    RenameFileDialog(
+      currentTitle = entry.name,
+      heading = if (entry.kind == WorkspaceEntryKind.DIRECTORY) "Rename folder" else "Rename file",
+      onConfirm = { name ->
+        renaming = null
+        viewModel.rename(entry, name)
+      },
+      onDismiss = { renaming = null },
+    )
+  }
+
+  // Only a name already taken gets here: the repository refuses everything else outright, exactly
+  // as `renameFile` rethrows anything that is not a 409.
+  state.nameTaken?.let { name ->
+    OverwriteFileDialog(
+      name = name,
+      onOverwrite = { viewModel.answerOverwrite(accepted = true) },
+      onDismiss = { viewModel.answerOverwrite(accepted = false) },
+    )
   }
 }
 
@@ -140,10 +175,10 @@ private fun FilesBar(
  * The reference's New drop-down, on a phone: a "+" that opens Notebook / Python file / Folder.
  *
  * The reference offers the same three from the filebrowser toolbar's New widget and then renames
- * the result in place (`browser.ts:_createNew` -> `rename()`); a phone's rename box is a later
- * step, so for now whatever the creation yields lands in the browsed directory - the server's own
- * `untitled{ext}` family is incremented by `ExplorerViewModel` and shows up in the list it was
- * created in.
+ * the result in place (`browser.ts:_createNew` -> `rename()`). Ours lands the creation in the
+ * browsed directory under the server's own `untitled{ext}` name and leaves the rename to the row's
+ * own menu, which X2f gave it - one way to name a thing rather than a second one that only new
+ * files can reach.
  */
 @Composable
 private fun NewMenu(
@@ -209,10 +244,23 @@ private fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> U
  * `data-isdir` its own menu selectors read.
  */
 @Composable
-private fun EntryRow(entry: WorkspaceEntry, onOpen: () -> Unit) {
+private fun EntryRow(entry: WorkspaceEntry, onOpen: () -> Unit, onRename: () -> Unit) {
   val directory = entry.kind == WorkspaceEntryKind.DIRECTORY
+  var menuOpen by remember { mutableStateOf(false) }
+  // The same items the long press opens, in the local context menu TalkBack reads. A long press is
+  // not reachable by a screen reader at all, which U5e already paid to learn on the cell actions.
+  val actions = remember(entry.path, onRename) {
+    listOf(CustomAccessibilityAction("Rename") { onRename(); true })
+  }
   Row(
-    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = 16.dp, vertical = 14.dp),
+    modifier = Modifier
+      .fillMaxWidth()
+      // Long press for the row's own actions, which is the touch equivalent of the reference's
+      // right-click context menu (`filebrowser-extension`) and of Winlator's per-row menu - and is
+      // already what a notebook row on Home opens.
+      .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
+      .semantics { customActions = actions }
+      .padding(horizontal = 16.dp, vertical = 14.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Icon(
@@ -230,6 +278,15 @@ private fun EntryRow(entry: WorkspaceEntry, onOpen: () -> Unit) {
       overflow = TextOverflow.Ellipsis,
       modifier = Modifier.padding(start = 16.dp),
     )
+    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+      DropdownMenuItem(
+        text = { Text("Rename") },
+        onClick = {
+          menuOpen = false
+          onRename()
+        },
+      )
+    }
   }
 }
 

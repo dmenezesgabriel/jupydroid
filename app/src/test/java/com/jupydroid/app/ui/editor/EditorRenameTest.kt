@@ -86,4 +86,51 @@ class EditorRenameTest {
     assertEquals("Math notes", saved.title)
     assertEquals("print(2)", saved.cells.single().source)
   }
+
+  /**
+   * A rename made from the file browser moves the open notebook, and its edits go to the new file.
+   *
+   * `Context._onFileChanged` -> `_updatePath`: the open document subscribes to the contents layer
+   * and retargets itself, because the rename can come from anywhere - the browser beside it on a
+   * tablet, or another client. Without this the next debounced save writes the *old* path, which
+   * re-creates the notebook under the name the user just renamed away from: two files, and the
+   * edits in the one they are not looking at.
+   */
+  @Test
+  fun aRenameMadeInTheBrowserMovesTheOpenNotebook() = runTest {
+    val workspace = AnnouncingWorkspaceRepository()
+    val repository = RecordingNotebookRepository()
+    val viewModel = loadedEditor(repository = repository, workspace = workspace)
+
+    workspace.announce(from = "nb-1", to = "Renamed elsewhere")
+    viewModel.editCell("c1", "print(2)")
+    advanceUntilIdle()
+
+    assertEquals("Renamed elsewhere", viewModel.uiState.value.notebookId)
+    assertEquals("print(2)", repository.readNotebook("Renamed elsewhere").cells.single().source)
+  }
+
+  /** A folder rename moves what is open inside it - the case the prefix rule exists for. */
+  @Test
+  fun aRenamedFolderMovesTheNotebookInsideIt() = runTest {
+    val workspace = AnnouncingWorkspaceRepository()
+    val viewModel = loadedEditor(notebookId = "reports/Draft", title = "Draft", workspace = workspace)
+
+    workspace.announce(from = "reports", to = "archive")
+    advanceUntilIdle()
+
+    assertEquals("archive/Draft", viewModel.uiState.value.notebookId)
+  }
+
+  /** A rename of something else must leave this notebook exactly where it is. */
+  @Test
+  fun aRenameOfAnotherFileLeavesThisOneAlone() = runTest {
+    val workspace = AnnouncingWorkspaceRepository()
+    val viewModel = loadedEditor(workspace = workspace)
+
+    workspace.announce(from = "nb-2", to = "Something else")
+    advanceUntilIdle()
+
+    assertEquals("nb-1", viewModel.uiState.value.notebookId)
+  }
 }

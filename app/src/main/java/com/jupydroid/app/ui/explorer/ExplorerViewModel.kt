@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.UNTITLED_NOTEBOOK
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,14 @@ class ExplorerViewModel(
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(ExplorerUiState())
   val uiState: StateFlow<ExplorerUiState> = _uiState.asStateFlow()
+
+  /**
+   * What a pending overwrite would move, since the answer arrives long after the question.
+   *
+   * The state carries the *name* because that is what the dialog says; the path it would move is
+   * bookkeeping, and putting it on screen state would be putting it somewhere it is never read.
+   */
+  private var renamingPath: String? = null
 
   init {
     goTo("")
@@ -109,6 +118,34 @@ class ExplorerViewModel(
   }
 
   /**
+   * Renames [entry] to [name], or asks before replacing something already called that.
+   *
+   * The reference renames from the row itself and joins the typed name onto the directory being
+   * browsed (`PathExt.join(this._model.path, newName)`, `listing.ts:2621`); the repository does
+   * that joining, so a name is only ever a name here.
+   */
+  fun rename(entry: WorkspaceEntry, name: String) = move(entry.path, name) {
+    workspaceRepository.rename(entry.path, name)
+  }
+
+  /**
+   * Answers "already exists, overwrite?" - yes replaces what is there, no leaves both alone.
+   *
+   * One method taking the answer rather than two named for the outcomes, which is the shape of
+   * `shouldOverwrite(path): Promise<boolean>` with `renameFile` acting on the boolean, and the
+   * shape `EditorViewModel` already answers this same question in.
+   */
+  fun answerOverwrite(accepted: Boolean) {
+    val taken = _uiState.value.nameTaken ?: return
+    val renaming = renamingPath
+    // Cleared either way: the question has been answered, and leaving it up would ask it again.
+    _uiState.update { it.copy(nameTaken = null) }
+    if (accepted && renaming != null) {
+      move(renaming, taken) { workspaceRepository.overwrite(renaming, taken) }
+    }
+  }
+
+  /**
    * Runs a creation and shows the result, or reports why it did not happen.
    *
    * Listing again rather than appending: the workspace is shared, so the directory may have
@@ -119,6 +156,31 @@ class ExplorerViewModel(
       runCatching { creating() }
         .onSuccess { goTo(_uiState.value.path) }
         .onFailure { failure -> _uiState.update { it.copy(error = failure.message) } }
+    }
+  }
+
+  /**
+   * Moves [from] to [name] and re-lists, or says why it did not happen.
+   *
+   * The split between the two refusals is the reference's: only a taken name becomes
+   * `"%1" already exists, overwrite?`, everything else rethrows (`renameFile`,
+   * `docmanager/src/dialogs.ts`). The name comes from the caller rather than out of the
+   * exception, the way `EditorViewModel.applyRename` keeps the title it asked for.
+   */
+  private fun move(from: String, name: String, moving: suspend () -> String) {
+    renamingPath = from
+    viewModelScope.launch {
+      runCatching { moving() }
+        .onSuccess { goTo(_uiState.value.path) }
+        .onFailure { failure ->
+          _uiState.update {
+            if (failure is FileNameTakenException) {
+              it.copy(nameTaken = name)
+            } else {
+              it.copy(error = failure.message)
+            }
+          }
+        }
     }
   }
 }

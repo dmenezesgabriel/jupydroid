@@ -6,13 +6,18 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.RENAME_FIELD_TAG
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -144,6 +149,58 @@ class ExplorerScreenTest {
 
     waitForText("Untitled Folder")
     compose.onNodeWithContentDescription("Folder").assertIsDisplayed()
+  }
+
+  /**
+   * A row's own actions, behind the gesture Android puts them behind.
+   *
+   * The reference opens these from a right-click context menu on the row
+   * (`filebrowser-extension`'s `filebrowser:rename`); Winlator's browser puts the same two behind
+   * a per-row menu as well (`ContainerFileManagerFragment.showListItemMenu`). Long press is the
+   * touch equivalent, and it is what Home's notebook rows already use, so the app has one gesture
+   * for "what else can I do to this row" rather than two.
+   */
+  @Test
+  fun aLongPressOnARowOffersRenaming() {
+    given("notes.txt")
+    showExplorer()
+
+    compose.onNodeWithText("notes.txt").performTouchInput { longClick() }
+
+    compose.onNodeWithText("Rename").assertIsDisplayed()
+  }
+
+  /** The dialog opens with the stem selected, so typing replaces the name and keeps `.txt`. */
+  @Test
+  fun renamingARowMovesTheFileAndShowsTheNewName() {
+    given("notes.txt")
+    showExplorer()
+
+    compose.onNodeWithText("notes.txt").performTouchInput { longClick() }
+    compose.onNodeWithText("Rename").performClick()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput("kept")
+    compose.onNodeWithText("Rename").performClick()
+
+    waitForText("kept.txt")
+    compose.runOnIdle { assertEquals(listOf("kept.txt"), temp.root.list()?.toList()) }
+  }
+
+  /**
+   * A taken name is asked about rather than refused, which is the reference's one recoverable
+   * failure: `renameFile` catches the 409 and offers `"%1" already exists, overwrite?`.
+   */
+  @Test
+  fun renamingOntoATakenNameAsksBeforeReplacing() {
+    given("notes.txt", "taken.txt")
+    showExplorer()
+
+    compose.onNodeWithText("notes.txt").performTouchInput { longClick() }
+    compose.onNodeWithText("Rename").performClick()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput("taken")
+    compose.onNodeWithText("Rename").performClick()
+
+    waitForText("Overwrite")
+    compose.onNodeWithText("\"taken.txt\" already exists, overwrite?").assertIsDisplayed()
   }
 
   private fun showExplorer(

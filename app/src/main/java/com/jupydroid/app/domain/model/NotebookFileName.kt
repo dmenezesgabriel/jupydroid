@@ -55,6 +55,30 @@ fun idBeside(id: String, name: String): String {
 fun notebookLeafOf(id: String): String = id.substringAfterLast('/')
 
 /**
+ * Where [path] ends up when [from] is renamed to [to], or null when it did not move.
+ *
+ * `Context._onFileChanged` (`packages/docregistry/src/context.ts`), which is how an open document
+ * learns that a rename made *somewhere else* - the file browser, another client - moved its file.
+ * It matches by prefix on purpose, in its own words: "When folder name changed, `oldPath` is
+ * `foo`, `newPath` is `bar` and `this._path` is `foo/test`, we should update `foo/test` to
+ * `bar/test` as well".
+ *
+ * The one correction: the reference tests `this._path.indexOf(oldPath) === 0`, which also matches
+ * `foobar/x` against `foo` and would retarget a document that never moved. Segments are compared
+ * whole here.
+ *
+ * ```
+ * pathAfterRename("foo/test", from = "foo", to = "bar")   // "bar/test"
+ * pathAfterRename("other.ipynb", from = "a", to = "b")    // null
+ * ```
+ */
+fun pathAfterRename(path: String, from: String, to: String): String? = when {
+  path == from -> to
+  path.startsWith("$from/") -> to + path.removePrefix(from)
+  else -> null
+}
+
+/**
  * `/` and `\` would make the name a path, `:` is refused by the reference alongside them, and a
  * leading `.` hides the file - from the explorer Phase X is for, from `ls`, and from
  * jupyter_server, whose `ContentsManager.allow_hidden` is false by default.

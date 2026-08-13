@@ -47,12 +47,16 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.ui.OverwriteFileDialog
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun EditorScreen(
   notebookId: String,
   notebookRepository: NotebookRepository,
+  /** Only listened to: a rename made in the browser beside this document moves it. */
+  workspaceRepository: WorkspaceRepository,
   kernelGateway: KernelGateway,
   applicationScope: CoroutineScope,
   onBack: () -> Unit,
@@ -67,7 +71,7 @@ fun EditorScreen(
   onNotebookMoved: (String) -> Unit = {},
   modifier: Modifier = Modifier,
   viewModel: EditorViewModel = viewModel {
-    EditorViewModel(notebookId, notebookRepository, kernelGateway, applicationScope)
+    EditorViewModel(notebookId, notebookRepository, workspaceRepository, kernelGateway, applicationScope)
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -82,7 +86,7 @@ fun EditorScreen(
     if (state.notebookId.isNotEmpty()) onNotebookMoved(state.notebookId)
   }
   state.nameTaken?.let { taken ->
-    OverwriteNotebookDialog(
+    OverwriteFileDialog(
       name = taken,
       onOverwrite = { viewModel.answerOverwrite(accepted = true) },
       onDismiss = { viewModel.answerOverwrite(accepted = false) },

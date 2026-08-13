@@ -1,0 +1,64 @@
+appId: com.jupydroid.app
+---
+# X2f, the case only two panes can reach: renaming the document that is open *beside* the browser.
+#
+# `Context._onFileChanged` -> `_updatePath`: the open document follows its file rather than
+# holding the path it was opened under. Without that, the notebook's next debounced save writes
+# the old path back into existence - one document, two files, and the edits in the one nobody is
+# looking at. The driver reads the disk afterwards, because that second file is invisible from
+# here: the screen would look correct either way.
+#
+# Runs no cell - a rename is a filesystem question, and the panes are a layout one.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Browse files"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "Switch Alpha.ipynb"
+- extendedWaitUntil:
+    visible: "first_only = 111"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+# Both panes: the browser's crumb and the notebook's cell on screen together.
+- assertVisible: "Workspace"
+- takeScreenshot: 01-the-notebook-beside-the-browser
+
+# An edit that has not been written yet - the debounce is 500ms, and the rename lands on top of it.
+- tapOn: "first_only = 111"
+# No newline: maestro's `inputText` types the escape literally rather than pressing enter, so the
+# marker is appended to the line. What matters is that it is unsaved text in the open document.
+- inputText: "edited_after_open = 1"
+- takeScreenshot: 02-an-edit-in-flight
+
+# Rename it from the *browser*, not from the notebook's own title bar.
+- longPressOn: "Switch Alpha.ipynb"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 5000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "Renamed From The Browser"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Renamed From The Browser.ipynb"
+    timeout: 15000
+- assertNotVisible: "Switch Alpha.ipynb"
+- takeScreenshot: 03-renamed-from-the-browser
+
+# The document is still open, still holding the edit, and its bar now says where it lives. Matched
+# as a regex because the cell is one text node holding the whole line, and maestro anchors a plain
+# string against the whole of it.
+- assertVisible: ".*first_only = 111.*"
+- assertVisible: ".*edited_after_open = 1.*"
+- takeScreenshot: 04-the-document-followed-its-file
+
+# Another edit, so a stale path would be written *after* the rename rather than before it.
+- inputText: "edited_after_rename = 2"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 05-edited-again-after-the-rename

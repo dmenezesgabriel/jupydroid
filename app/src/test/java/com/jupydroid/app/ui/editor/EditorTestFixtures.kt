@@ -2,17 +2,21 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.PathRename
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -86,10 +90,26 @@ internal class RecordingNotebookRepository(
   }
 }
 
+/**
+ * A workspace that moves nothing and can say something moved.
+ *
+ * The editor only ever *listens* to this port - a rename it did not make is announced by the
+ * contents layer, the way `Contents.fileChanged` is - so a double that can announce is the whole
+ * of what these tests need.
+ */
+internal class AnnouncingWorkspaceRepository : WorkspaceRepository by FakeWorkspaceRepository() {
+  private val _renames = MutableSharedFlow<PathRename>()
+  override val renames: Flow<PathRename> = _renames
+
+  /** Emits the way the real repository does, so a test drives the collector and not a setter. */
+  suspend fun announce(from: String, to: String) = _renames.emit(PathRename(from, to))
+}
+
 internal fun TestScope.loadedEditor(
   gateway: KernelGateway = FakeKernelGateway(),
   cells: List<Cell> = listOf(codeCell),
   repository: NotebookRepository = FakeNotebookRepository(),
+  workspace: WorkspaceRepository = FakeWorkspaceRepository(),
   // The path the notebook lives at, which is its id since X1b. Overridden by the cases about
   // folders; "nb-1"/"Data" is kept as the default so the cases that predate them read unchanged.
   notebookId: String = "nb-1",
@@ -104,7 +124,7 @@ internal fun TestScope.loadedEditor(
   advanceUntilIdle()
   // No collector: uiState is a StateFlow, so .value is current without one - and a
   // collector that is never cancelled leaves runTest waiting on it.
-  val viewModel = EditorViewModel(notebookId, repository, gateway, applicationScope)
+  val viewModel = EditorViewModel(notebookId, repository, workspace, gateway, applicationScope)
   advanceUntilIdle()
   return viewModel
 }

@@ -24,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jupydroid.app.ui.RenameNotebookDialog
+import com.jupydroid.app.ui.RenameFileDialog
 
 /** Small enough to read as part of the title rather than as a button beside it. */
 private val TITLE_EDIT_ICON_SIZE = 18.dp
@@ -68,7 +68,7 @@ fun EditorTopBar(
   )
 
   if (renameOpen) {
-    RenameNotebookDialog(
+    RenameFileDialog(
       currentTitle = title,
       onConfirm = { renamed ->
         renameOpen = false

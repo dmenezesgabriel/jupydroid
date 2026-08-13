@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.notebookLeafOf
+import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +35,14 @@ class EditorViewModel(
    */
   private var notebookId: String,
   private val notebookRepository: NotebookRepository,
+  /**
+   * Not for reading or writing this notebook - only to hear where it went.
+   *
+   * A rename can come from the file browser sitting beside the document on a tablet, and the
+   * reference's open document learns of it from the contents layer rather than from that browser
+   * (`Context._onFileChanged`, `docregistry/src/context.ts:93`).
+   */
+  workspaceRepository: WorkspaceRepository,
   kernelGateway: KernelGateway,
   /**
    * Outlives this ViewModel, because [onCleared] runs *after* `viewModelScope` has been
@@ -59,6 +69,14 @@ class EditorViewModel(
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
+    }
+    // The rename that did not come from this screen - from the browser beside it, or from a folder
+    // above it. `Context._onFileChanged` -> `_updatePath`, and without it the next debounced save
+    // writes the old path back into existence.
+    viewModelScope.launch {
+      workspaceRepository.renames.collect { moved ->
+        pathAfterRename(notebookId, moved.from, moved.to)?.let { adopt(it) }
+      }
     }
   }
 

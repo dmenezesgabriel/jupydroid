@@ -1,13 +1,23 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.PathRename
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.model.inWorkspaceOrder
 import com.jupydroid.app.domain.model.incrementedFileName
+import com.jupydroid.app.domain.model.isValidFileName
+import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 /**
@@ -22,11 +32,17 @@ import kotlinx.coroutines.withContext
  * ```
  */
 class DiskWorkspaceRepository(
-  private val rootDir: File,
+  rootDir: File,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : WorkspaceRepository {
+  // No replay and no buffer: `emit` returns at once when nothing is open, which is exactly when
+  // there is nobody a moved path could matter to.
+  private val root = WorkspaceRoot(rootDir)
+  private val _renames = MutableSharedFlow<PathRename>()
+  override val renames: Flow<PathRename> = _renames.asSharedFlow()
+
   override suspend fun list(path: String): List<WorkspaceEntry> = withContext(ioDispatcher) {
-    val directory = resolve(path)
+    val directory = root.fileAt(path)
     require(directory.isDirectory) { "no directory at '$path' in the workspace" }
     (directory.listFiles() ?: emptyArray())
       .filterNot { it.name.startsWith(".") }
@@ -34,25 +50,8 @@ class DiskWorkspaceRepository(
       .inWorkspaceOrder()
   }
 
-  /**
-   * The file [path] names, refusing anything that leaves the workspace.
-   *
-   * Compared by canonical path, so `..`, a doubled separator and an absolute path are all caught
-   * by the same check rather than by a list of spellings to remember. Above the root are the
-   * rootfs and the app's private files, and the answer must not depend on the UI never asking -
-   * jupyter_server refuses the same thing in `_validate_path`.
-   */
-  private fun resolve(path: String): File {
-    val root = rootDir.canonicalFile
-    val target = File(root, path).canonicalFile
-    require(target == root || target.path.startsWith("${root.path}${File.separator}")) {
-      "path '$path' is outside the workspace"
-    }
-    return target
-  }
-
   override suspend fun readText(path: String): String = withContext(ioDispatcher) {
-    val file = resolve(path)
+    val file = root.fileAt(path)
     require(file.isFile) { "no file at '$path' in the workspace" }
     file.readText()
   }
@@ -60,7 +59,7 @@ class DiskWorkspaceRepository(
   override suspend fun writeText(path: String, text: String): Unit = withContext(ioDispatcher) {
     // `resolve` refuses an escape before anything is written, so a bad path cannot reach the
     // filesystem at all - jupyter_server validates before it saves for the same reason.
-    val file = resolve(path)
+    val file = root.fileAt(path)
     require(!file.isDirectory) { "'$path' is a directory in the workspace, not a file" }
     file.writeText(text)
   }
@@ -68,27 +67,64 @@ class DiskWorkspaceRepository(
   override suspend fun createFile(directory: String, extension: String): String =
     withContext(ioDispatcher) {
       val name = freeNameIn(directory, "$UNTITLED_FILE.$extension")
-      resolve(pathIn(directory, name)).createNewFile()
-      pathIn(directory, name)
+      root.fileAt(root.pathIn(directory, name)).createNewFile()
+      root.pathIn(directory, name)
     }
 
   override suspend fun createFolder(directory: String): String = withContext(ioDispatcher) {
     // The space is the server's `insert` for a directory and for nothing else, so the second one
     // is `Untitled Folder 1` while a second file is `untitled1.txt`.
     val name = freeNameIn(directory, UNTITLED_FOLDER, insert = " ")
-    resolve(pathIn(directory, name)).mkdir()
-    pathIn(directory, name)
+    root.fileAt(root.pathIn(directory, name)).mkdir()
+    root.pathIn(directory, name)
+  }
+
+  override suspend fun rename(path: String, name: String): String = withContext(ioDispatcher) {
+    val moved = idBeside(path, name)
+    // The server's own first line: `if new_path == old_path: return`, before anything is validated.
+    if (moved == path) return@withContext path
+    require(isValidFileName(name)) { "'$name$NOT_A_NAME" }
+    val from = root.fileAt(path)
+    require(root.isPresent(from)) { "nothing at '$path' in the workspace to rename" }
+    val to = root.fileAt(moved)
+    // Before the move, because `rename(2)` would replace the target without a word.
+    if (root.isPresent(to)) throw FileNameTakenException(moved)
+    check(from.renameTo(to)) { "could not rename '$path' to '$moved' in the workspace" }
+    _renames.emit(PathRename(from = path, to = moved))
+    moved
+  }
+
+  /**
+   * `DocumentManager.overwrite`, in its order: ours aside, the target gone, ours into place.
+   *
+   * The reference's `finally` swallows a failed delete (`manager.ts:520-522`), which would leave
+   * ours parked under a temporary name and nothing at either path. Ours is moved back instead - an
+   * overwrite that fails must not be the operation that loses the file.
+   */
+  override suspend fun overwrite(path: String, name: String): String = withContext(ioDispatcher) {
+    val moved = idBeside(path, name)
+    if (moved == path) return@withContext path
+    require(isValidFileName(name)) { "'$name$NOT_A_NAME" }
+    val from = root.fileAt(path)
+    require(root.isPresent(from)) { "nothing at '$path' in the workspace to rename" }
+    val target = root.fileAt(moved)
+    val aside = File(target.parentFile, "${target.name}.${UUID.randomUUID()}")
+    check(from.renameTo(aside)) { "could not move '$path' aside to overwrite '$moved'" }
+    if (root.isPresent(target) && !target.delete()) {
+      check(aside.renameTo(from)) { "could not put '$path' back after failing to overwrite '$moved'" }
+      error("could not replace '$moved' in the workspace; a folder with anything in it cannot be replaced")
+    }
+    check(aside.renameTo(target)) { "could not move '$path' into place as '$moved'" }
+    _renames.emit(PathRename(from = path, to = moved))
+    moved
   }
 
   /** The first name in the server's series that this directory does not already hold. */
   private fun freeNameIn(directory: String, wanted: String, insert: String = ""): String {
-    val parent = resolve(directory)
+    val parent = root.fileAt(directory)
     require(parent.isDirectory) { "no directory at '$directory' in the workspace" }
     return incrementedFileName(wanted, insert) { File(parent, it).exists() }
   }
-
-  private fun pathIn(directory: String, name: String): String =
-    if (directory.isEmpty()) name else "$directory/$name"
 
   /**
    * A symlink is described by what it points at, which is how a rootfs has to be read.
@@ -109,3 +145,8 @@ class DiskWorkspaceRepository(
 private const val UNTITLED_FILE = "untitled"
 
 private const val UNTITLED_FOLDER = "Untitled Folder"
+
+/** The reference's own wording, which names the rule instead of merely refusing. */
+private const val NOT_A_NAME =
+  "' is not a valid file name: names must have nonzero length, cannot start with '.', " +
+    "and cannot include / \\ :"

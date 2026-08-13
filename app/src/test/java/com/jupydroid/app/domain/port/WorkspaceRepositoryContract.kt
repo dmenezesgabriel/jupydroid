@@ -235,4 +235,138 @@ abstract class WorkspaceRepositoryContract {
 
     assertTrue("expected a refusal, got $missing", missing.isFailure)
   }
+
+  /**
+   * A rename takes a *name* and answers with the path it now lives at.
+   *
+   * `Contents.rename(oldPath, newPath)` moves the file; nothing is re-created and the content is
+   * the same file's (`filemanager.py:619-647` is `shutil.move`).
+   */
+  @Test
+  fun renamingMovesTheFileAndAnswersWithItsNewPath() = runTest {
+    given("notes.txt")
+    val repository = repository()
+
+    val renamed = repository.rename("notes.txt", "kept.txt")
+
+    assertEquals("kept.txt", renamed)
+    assertEquals("x", repository.readText(renamed))
+    assertEquals(listOf("kept.txt"), repository.list("").map { it.name })
+  }
+
+  /**
+   * The new name joins onto the folder the old path names, never onto the root.
+   *
+   * `PathExt.join(this._model.path, newName)` (`listing.ts:2621`), and `Context._rename` replaces
+   * only the last segment. Renaming a notebook inside a folder to the root was a real defect once
+   * (X2a), which is why this is a contract test and not a detail of one implementation.
+   */
+  @Test
+  fun renamingInsideAFolderStaysInThatFolder() = runTest {
+    given("reports/summary.ipynb")
+
+    val renamed = repository().rename("reports/summary.ipynb", "final.ipynb")
+
+    assertEquals("reports/final.ipynb", renamed)
+  }
+
+  /** `rename_file` is `shutil.move`, so a directory moves exactly like a file. */
+  @Test
+  fun aFolderRenamesLikeAFile() = runTest {
+    given("reports/summary.ipynb")
+    val repository = repository()
+
+    val renamed = repository.rename("reports", "archive")
+
+    assertEquals("archive", renamed)
+    assertEquals(listOf("summary.ipynb"), repository.list("archive").map { it.name })
+  }
+
+  /** `if new_path == old_path: return` - the server does nothing, and says nothing. */
+  @Test
+  fun renamingToTheSameNameDoesNothing() = runTest {
+    given("notes.txt")
+    val repository = repository()
+
+    val renamed = repository.rename("notes.txt", "notes.txt")
+
+    assertEquals("notes.txt", renamed)
+    assertEquals("x", repository.readText("notes.txt"))
+  }
+
+  /**
+   * A name is refused, never rewritten - and a name carrying a folder is not a name.
+   *
+   * `isValidFileName` disallows `/`, `\`, `:` and a leading dot. Winlator strips the reserved
+   * characters instead (`StringUtils.clearReservedChars`), which hands back a file the user never
+   * named; X1b settled that we follow JupyterLab here.
+   */
+  @Test
+  fun anInvalidNameIsRefused() = runTest {
+    given("notes.txt")
+    val repository = repository()
+
+    listOf("a/b", "a\\b", "a:b", "", "   ", ".hidden").forEach { name ->
+      val refused = runCatching { repository.rename("notes.txt", name) }
+      assertTrue("expected '$name' to be refused, got $refused", refused.isFailure)
+    }
+    assertEquals("x", repository.readText("notes.txt"))
+  }
+
+  /**
+   * A taken name is [FileNameTakenException] and nothing else, because the caller branches on it.
+   *
+   * JupyterLab catches exactly a 409 and turns it into "already exists, overwrite?"; every other
+   * failure rethrows (`docmanager/src/dialogs.ts`, `renameFile`). An invalid name must therefore
+   * *not* arrive as this type - it is never offered an overwrite.
+   */
+  @Test
+  fun aTakenNameIsItsOwnRefusal() = runTest {
+    given("notes.txt", "taken.txt")
+    val repository = repository()
+
+    val taken = runCatching { repository.rename("notes.txt", "taken.txt") }.exceptionOrNull()
+    val invalid = runCatching { repository.rename("notes.txt", "a/b") }.exceptionOrNull()
+
+    assertTrue("a taken name must be distinguishable, got $taken", taken is FileNameTakenException)
+    assertTrue("invalid must not be reported as taken", invalid !is FileNameTakenException)
+  }
+
+  @Test
+  fun renamingSomethingThatIsNotThereIsRefused() = runTest {
+    given("notes.txt")
+
+    val missing = runCatching { repository().rename("nope.txt", "something.txt") }
+
+    assertTrue("expected a refusal, got $missing", missing.isFailure)
+  }
+
+  @Test
+  fun renamingOutsideTheRootIsRefused() = runTest {
+    given("notes.txt")
+
+    val escaped = runCatching { repository().rename("../../secrets", "mine.txt") }
+
+    assertTrue("expected a refusal, got $escaped", escaped.isFailure)
+  }
+
+  /**
+   * Overwriting replaces the target and leaves exactly one file.
+   *
+   * Offered only after the user has been asked. `DocumentManager.overwrite` moves ours aside,
+   * deletes the target and renames into place (`manager.ts:514-528`) - deleting first would open a
+   * window in which neither file exists.
+   */
+  @Test
+  fun overwritingReplacesTheTargetAndLeavesOneFile() = runTest {
+    given("notes.txt", "taken.txt")
+    val repository = repository()
+    repository.writeText("notes.txt", "the one that survives")
+
+    val overwritten = repository.overwrite("notes.txt", "taken.txt")
+
+    assertEquals("taken.txt", overwritten)
+    assertEquals("the one that survives", repository.readText("taken.txt"))
+    assertEquals(listOf("taken.txt"), repository.list("").map { it.name })
+  }
 }

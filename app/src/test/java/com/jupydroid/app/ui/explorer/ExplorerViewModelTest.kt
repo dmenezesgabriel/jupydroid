@@ -207,6 +207,82 @@ class ExplorerViewModelTest {
   }
 
   /**
+   * A rename shows the new name where the old one was, in the directory being browsed.
+   *
+   * Re-listed rather than patched in place, for the reason every other mutation here re-lists: the
+   * workspace is shared with the kernel, so the directory may have moved on for reasons of its own
+   * and a re-read is the only honest answer.
+   */
+  @Test
+  fun renamingShowsTheNewNameInPlaceOfTheOld() = runTest {
+    given("reports/summary.ipynb")
+    val viewModel = explorer()
+    viewModel.open(viewModel.uiState.value.entries.single())
+
+    viewModel.rename(viewModel.uiState.value.entries.single(), "final.ipynb")
+
+    assertEquals(listOf("final.ipynb"), viewModel.uiState.value.entries.map { it.name })
+    assertTrue(File(temp.root, "reports/final.ipynb").exists())
+  }
+
+  /** An invalid name is refused and said out loud, and nothing on disk moves. */
+  @Test
+  fun aRefusedRenameIsReportedAndChangesNothing() = runTest {
+    given("notes.txt")
+    val viewModel = explorer()
+
+    viewModel.rename(viewModel.uiState.value.entries.single(), "a/b")
+
+    assertTrue("expected the refusal to be reported", viewModel.uiState.value.error != null)
+    assertEquals(listOf("notes.txt"), viewModel.uiState.value.entries.map { it.name })
+  }
+
+  /**
+   * A taken name is a question, not an error - which is the one refusal the user can resolve.
+   *
+   * `renameFile` catches only a 409 and asks `"%1" already exists, overwrite?`; anything else
+   * rethrows (`docmanager/src/dialogs.ts`). So this must not land in `error`, where nothing can be
+   * answered.
+   */
+  @Test
+  fun aTakenNameAsksBeforeItReplacesAnything() = runTest {
+    given("notes.txt", "taken.txt")
+    val viewModel = explorer()
+
+    viewModel.rename(viewModel.uiState.value.entries.first { it.name == "notes.txt" }, "taken.txt")
+
+    assertEquals("taken.txt", viewModel.uiState.value.nameTaken)
+    assertNull(viewModel.uiState.value.error)
+    assertTrue("nothing may move before the answer", File(temp.root, "notes.txt").exists())
+  }
+
+  @Test
+  fun answeringYesReplacesTheFileAndLeavesOne() = runTest {
+    given("notes.txt", "taken.txt")
+    val viewModel = explorer()
+    File(temp.root, "notes.txt").writeText("the one that survives")
+    viewModel.rename(viewModel.uiState.value.entries.first { it.name == "notes.txt" }, "taken.txt")
+
+    viewModel.answerOverwrite(accepted = true)
+
+    assertEquals(listOf("taken.txt"), viewModel.uiState.value.entries.map { it.name })
+    assertEquals("the one that survives", File(temp.root, "taken.txt").readText())
+    assertNull(viewModel.uiState.value.nameTaken)
+  }
+
+  @Test
+  fun answeringNoLeavesBothFilesAlone() = runTest {
+    given("notes.txt", "taken.txt")
+    val viewModel = explorer()
+    viewModel.rename(viewModel.uiState.value.entries.first { it.name == "notes.txt" }, "taken.txt")
+
+    viewModel.answerOverwrite(accepted = false)
+
+    assertEquals(listOf("notes.txt", "taken.txt"), viewModel.uiState.value.entries.map { it.name })
+    assertNull(viewModel.uiState.value.nameTaken)
+  }
+
+  /**
    * The repository is given the *test* dispatcher, or nothing here waits for it.
    *
    * `DiskWorkspaceRepository` reads on `Dispatchers.IO`, and the ViewModel lists from `init`. On a

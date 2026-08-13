@@ -4,7 +4,10 @@ import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.WorkspaceEntry
+import com.jupydroid.app.domain.model.PathRename
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -106,6 +109,8 @@ private class MakingWorkspaceRepository : WorkspaceRepository {
   var directory: String? = null
   var extension: String? = null
 
+  override val renames: Flow<PathRename> = emptyFlow()
+
   override suspend fun list(path: String): List<WorkspaceEntry> = emptyList()
 
   override suspend fun readText(path: String): String = error("not read")
@@ -119,4 +124,8 @@ private class MakingWorkspaceRepository : WorkspaceRepository {
   }
 
   override suspend fun createFolder(directory: String): String = error("not created")
+
+  override suspend fun rename(path: String, name: String): String = error("not renamed")
+
+  override suspend fun overwrite(path: String, name: String): String = error("not overwritten")
 }

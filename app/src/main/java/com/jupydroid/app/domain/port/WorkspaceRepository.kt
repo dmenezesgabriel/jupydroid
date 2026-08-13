@@ -1,6 +1,8 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.PathRename
 import com.jupydroid.app.domain.model.WorkspaceEntry
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Reads the directory the kernel, the server and the app all share.
@@ -19,6 +21,19 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
  * ```
  */
 interface WorkspaceRepository {
+  /**
+   * Every path this repository moves, as it moves.
+   *
+   * `Contents.fileChanged` with `type: 'rename'`, which is how an open document in the reference
+   * learns that its file went somewhere - it subscribes to the contents layer rather than being
+   * told by whichever screen did the renaming (`docregistry/src/context.ts:93`). A document that
+   * kept a stale path would write itself back under the old name at the next save.
+   *
+   * Nothing is replayed: a document that opens after a rename opens at the path it asked for, and
+   * there is nobody to notify when nothing is open.
+   */
+  val renames: Flow<PathRename>
+
   /**
    * What is in [path], already in the order the browser shows it.
    *
@@ -66,4 +81,40 @@ interface WorkspaceRepository {
    * and for nothing else (`manager.py:603-604`), so the second one is `Untitled Folder 1`.
    */
   suspend fun createFolder(directory: String): String
+
+  /**
+   * Renames whatever is at [path] to [name] and answers with the path it now lives at.
+   *
+   * `Contents.rename(oldPath, newPath)`: the file **moves**, nothing is re-created, and a directory
+   * moves exactly like a file - `rename_file` is `shutil.move` (`filemanager.py:619-647`). [name] is
+   * a bare name joined onto the folder [path] names, the way the browser joins onto the directory
+   * it is showing (`PathExt.join(this._model.path, newName)`, `listing.ts:2621`); a name carrying a
+   * `/` is not a name and is refused.
+   *
+   * Renaming to the name it already has does nothing, silently, which is the server's own first
+   * line (`if new_path == old_path: return`).
+   *
+   * A symlink is moved **as a link**. The workspace lives inside the rootfs, and both references
+   * address a link rather than its target - `os.lstat` and an unresolved `normpath` in
+   * jupyter_server, `isSymlink` in Winlator's `FileUtils`.
+   *
+   * ```
+   * repository.rename("reports/summary.ipynb", "final.ipynb")   // "reports/final.ipynb"
+   * ```
+   *
+   * @throws FileNameTakenException when [name] is already taken, and only then - the caller offers
+   *   an overwrite for exactly this and rethrows everything else, as `renameFile` branches on 409.
+   */
+  @Throws(FileNameTakenException::class)
+  suspend fun rename(path: String, name: String): String
+
+  /**
+   * Renames onto a name already taken, replacing what was there.
+   *
+   * Offered only after the user has been asked - `"%1" already exists, overwrite?` - which is the
+   * reference's division of labour, and the same pair [NotebookRepository] already has. Ours is
+   * moved aside, the target deleted, then ours moved into place (`DocumentManager.overwrite`,
+   * `manager.ts:514-528`): deleting first would open a window in which neither file exists.
+   */
+  suspend fun overwrite(path: String, name: String): String
 }

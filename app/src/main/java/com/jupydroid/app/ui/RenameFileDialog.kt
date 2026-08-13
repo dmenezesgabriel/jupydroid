@@ -23,11 +23,13 @@ import com.jupydroid.app.domain.model.isValidFileName
 const val RENAME_FIELD_TAG = "rename-field"
 
 /**
- * Renames a notebook, from Recents or from the notebook itself.
+ * Renames a file, from Recents, from the document itself, or from the browser's row menu.
  *
- * One dialog for both, because two would drift: JupyterLab keeps a single
+ * One dialog for all three, because two would drift: JupyterLab keeps a single
  * `DocumentManagerDialogs.rename` and reaches it from the File menu and from the document title
- * alike (`packages/docmanager/src/dialogs.ts:55-100`).
+ * alike (`packages/docmanager/src/dialogs.ts:55-100`). Its own title is "Rename File" and its
+ * accept button is "Rename" (`dialogs.ts:65-71`), which is the split [heading] keeps: what is
+ * being renamed varies, what the button does not.
  *
  * [onConfirm] is called **only when the title actually changed**. That is JupyterLab's rule -
  * `if (!newPath || newPath === fileName) return null`, silently, with no error - and it matters
@@ -37,7 +39,7 @@ const val RENAME_FIELD_TAG = "rename-field"
  *
  * ```
  * if (renameOpen) {
- *   RenameNotebookDialog(
+ *   RenameFileDialog(
  *     currentTitle = notebook.title,
  *     onConfirm = { renameOpen = false; viewModel.renameNotebook(it) },
  *     onDismiss = { renameOpen = false },
@@ -46,10 +48,11 @@ const val RENAME_FIELD_TAG = "rename-field"
  * ```
  */
 @Composable
-fun RenameNotebookDialog(
+fun RenameFileDialog(
   currentTitle: String,
   onConfirm: (String) -> Unit,
   onDismiss: () -> Unit,
+  heading: String = "Rename notebook",
 ) {
   // Selected, not merely filled: typing should replace the name and leave `.py` alone.
   var title by remember(currentTitle) {
@@ -59,7 +62,7 @@ fun RenameNotebookDialog(
 
   AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text("Rename notebook") },
+    title = { Text(heading) },
     text = {
       // Refused, not rewritten. JupyterLab validates in this dialog and names the characters at
       // fault rather than turning `a/b` into `a-b` and handing back a notebook the user never
@@ -76,7 +79,7 @@ fun RenameNotebookDialog(
           .semantics { testTagsAsResourceId = true }
           .testTag(RENAME_FIELD_TAG),
         singleLine = true,
-        label = { Text("Title") },
+        label = { Text("Name") },
       )
       // Without this the dialog opens with no caret and the first keystroke goes nowhere - the
       // defect audit A1c cost a device run to find. JupyterLab asks for the same thing

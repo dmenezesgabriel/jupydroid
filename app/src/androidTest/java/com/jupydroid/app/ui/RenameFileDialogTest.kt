@@ -133,7 +133,7 @@ class RenameNotebookDialogTest {
   private fun showDialog(currentTitle: String) {
     compose.setContent {
       JupyterDroidTheme {
-        RenameNotebookDialog(
+        RenameFileDialog(
           currentTitle = currentTitle,
           onConfirm = { confirmed += it },
           onDismiss = { dismissed++ },

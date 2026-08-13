@@ -46,7 +46,7 @@ import com.jupydroid.app.domain.model.UNTITLED_NOTEBOOK
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.ui.RenameNotebookDialog
+import com.jupydroid.app.ui.RenameFileDialog
 import java.time.Instant
 
 @Composable
@@ -296,7 +296,7 @@ private fun NotebookRow(
   }
 
   if (renameOpen) {
-    RenameNotebookDialog(
+    RenameFileDialog(
       currentTitle = notebook.title,
       onConfirm = { newTitle ->
         renameOpen = false

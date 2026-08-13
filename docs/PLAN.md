@@ -1945,8 +1945,9 @@ browser with a breadcrumb - `packages/filebrowser`'s shape (BreadCrumbs + DirLis
 replaced rather than a tree expanded), which is also the shape a phone wants: indentation would
 spend the width the names need.
 
-Reached from a Recents bar rather than replacing Recents. The explorer cannot create, rename or
-delete yet, so swapping it in would have been a regression wearing a new feature's clothes.
+Reached from a Recents bar rather than replacing Recents. The explorer could not create, rename or
+delete when this landed, so swapping it in would have been a regression wearing a new feature's
+clothes. Create arrived with X2d, rename with X2f; delete is X2g.
 
 **Two defects, both found by its own tests**: the explorer handed over a path with `.ipynb` on it
 and the repository put the suffix on again (`Nested.ipynb.ipynb`); and renaming a notebook inside a
@@ -2045,8 +2046,9 @@ The reference's filebrowser toolbar has a New widget with exactly three items �
 - Creation lands in the directory **being browsed** — `path: this.model.path`
   (`browser.ts:558-566`) — which the create-menu instrumented tests and the explorer-create flow
   prove by creating inside `reports/` and reading the file back from disk.
-- **The reference renames the result in place** (`_createNew` -> `rename()`); ours defers the
-  rename box, which is a later step. Instrumented: `ExplorerScreenTest`, three menu tests.
+- **The reference renames the result in place** (`_createNew` -> `rename()`); ours deferred the
+  rename box to X2f, which gave it to *every* row rather than only to a newly created one.
+  Instrumented: `ExplorerScreenTest`, three menu tests.
   Maestro: `explorer-create` (`scripts/explorer-create-driver.sh`), on the 320dp emulator —
   nothing runs a cell, so the fake kernel is never consulted.
 
@@ -2068,6 +2070,73 @@ makes for a `.py`.
   out of the screen. Maestro: `home-new-python-file`
   (`scripts/home-new-python-file-driver.sh`) creates through the real UI, types a line, and the
   driver reads `untitled.py` back from disk — and asserts it is *not* nbformat.
+
+### X2f — rename from the browser (done)
+
+The other half of a file browser. X2a said the explorer "cannot create, rename or delete yet";
+X2d closed create and deferred the rename box it opens on a new item. This is rename; delete is
+X2g.
+
+**Read, not assumed.** JupyterLab renames from the row itself (`listing.ts:2556` `_doRename`):
+an unchanged name is kept silently, an invalid one shows an error naming the characters and
+reverts, and the typed name is joined onto the directory being browsed
+(`PathExt.join(this._model.path, newName)`, `:2621`). Only a **409** is caught - `renameFile`
+(`docmanager/src/dialogs.ts`) turns exactly that into `"%1" already exists, overwrite?` and
+rethrows everything else. The jupyter_server in our own rootfs agrees:
+`rename_file` (`filemanager.py:619-647`) returns silently when the path is unchanged, answers 409
+when the target exists, and is otherwise `shutil.move` - **so a directory renames like a file**.
+
+**Adapted, and from what.** The reference edits the name inline in the row; a 48dp row with a
+caret under the IME is not that interaction, so it goes through the dialog we already have -
+which is the reference's *other* rename surface, stem-selected so `.py` survives being typed over
+(`dialogs.ts:271-274`). The row's menu opens on a **long press**, the touch equivalent of the
+right-click context menu (`filebrowser-extension`) and of Winlator's own per-row menu
+(`ContainerFileManagerFragment.showListItemMenu:324`), and it is what Home's rows already use.
+The same items are on the row as `customActions`, because a long press is unreachable for
+TalkBack - which U5e already paid to learn.
+
+**Two things Winlator does that we deliberately do not.** `FileInfo.renameTo:75-80` *sanitises*
+the typed name (`StringUtils.clearReservedChars`) where JupyterLab refuses it - X1b settled that
+one - and it discards `renameTo`'s boolean, so a failed rename silently redraws the old name.
+The second is a defect, not a model: ours throws with the offending value.
+
+**The defect this was written around, and it is the reason to read Winlator at all.**
+`DiskWorkspaceRepository.resolve` returned `canonicalFile`, which **resolves symlinks**. Reading
+and writing never noticed, because both follow a link anyway - but a rename built on it would
+have moved the link's **target**. Our workspace lives inside the rootfs, and this is the same
+defect as `TarGzExtractor` writing through the stale loader symlink, which crash-looped the app.
+Both references guard it: jupyter_server joins and `normpath`s **without resolving** and stats
+with `os.lstat` (`fileio.py:290-329`, `utils.py:153-162`), and Winlator checks `isSymlink` before
+it walks anything (`FileUtils.delete:114-119`). Paths are now **checked canonically and acted on
+as named**, and a contract test renames a symlink and asserts its target did not move. That
+addressing is its own object, `WorkspaceRoot` - which is the split the server makes too, between
+`fileio.py` and `filemanager.py`, and detekt asked for it independently.
+
+**The open document follows its file.** A rename from the browser beside a notebook used to leave
+the editor holding a path that no longer existed, and its next debounced save would **re-create**
+the file under the old name: one document, two files, and the edits in the one nobody is looking
+at. The reference does not tell the document from the browser - the *contents layer* announces it
+and every open `Context` listens (`context.ts:93` -> `_onFileChanged` -> `_updatePath`). So
+`WorkspaceRepository.renames` is that signal, `pathAfterRename` is the rule, and both editors
+adopt. The rule is prefix-based **by whole segments**: the reference's own
+`this._path.indexOf(oldPath) === 0` also matches `foobar/x` against `foo` and would retarget a
+document that never moved.
+
+**Overwrite moves ours aside first**, as `DocumentManager.overwrite` does (`manager.ts:514-528`),
+and - unlike the reference, whose `finally` swallows a failed delete - puts ours *back* if the
+target will not go. An overwrite that fails must not be the operation that loses the file.
+
+Evidence: `evidence/x2f-explorer-rename/` (320dp emulator: rename a file, rename a folder with
+its contents, and a taken name asking before it replaces anything) and
+`evidence/x2f-explorer-rename/open-document/` (tablet, two panes: the notebook renamed from the
+browser beside it keeps both edits, and the old path stays gone). Both drivers read the disk
+afterwards, because a rename that copied would look identical on screen. The flow was checked
+against a build with the follower removed and failed, so it is a gate and not a decoration.
+
+Also renamed, in their own commit first: `isValidNotebookName` -> `isValidFileName` (the
+reference's own name) and `NotebookNameTakenException` -> `FileNameTakenException` - one 409, one
+type, now that both repositories can raise it. The X1b section above still names the old one; it
+is a record of what was decided then, not a claim about today's symbols.
 
 ## Harness notes
 

@@ -1,0 +1,91 @@
+appId: com.jupydroid.app
+---
+# X2f: a row's own menu renames the thing it names, through the real UI.
+#
+# The reference renames from the row and joins the typed name onto the directory being browsed
+# (`listing.ts:_doRename`); ours is a long press for the menu and a dialog for the name, because
+# an inline caret on a 48dp row sits under the keyboard. Nothing here runs a cell, so the emulator
+# and its FakeKernelGateway are enough - and the *disk* side is proven by the driver, since a
+# rename that copied instead of moving would look identical on screen.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Recents"
+- tapOn: "Browse files"
+- assertVisible: "Files"
+- assertVisible: "notes.txt"
+- takeScreenshot: 01-the-workspace-before
+
+# Long press is the touch equivalent of the reference's context menu. The menu must be up before
+# anything is tapped, or "Rename" could be matching the dialog that has not opened yet.
+- longPressOn: "notes.txt"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 5000
+- takeScreenshot: 02-the-row-menu
+
+# The dialog opens with the stem selected, so typing replaces `notes` and leaves `.txt` alone -
+# `setSelectionRange(0, value.length - ext.length)` (`docmanager/src/dialogs.ts:271`). No tap into
+# the field: X2b's rename flows learned that a tap collapses that selection and the suffix
+# survives twice over as `notes.txtxt`.
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "kept"
+- takeScreenshot: 03-the-name-typed
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "kept.txt"
+    timeout: 10000
+- assertNotVisible: "notes.txt"
+- takeScreenshot: 04-renamed-in-place
+
+# A folder renames the same way - `rename_file` is `shutil.move`, so a directory moves like a file.
+- longPressOn: "reports"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 5000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename folder"
+    timeout: 5000
+- inputText: "archive"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "archive"
+    timeout: 10000
+- takeScreenshot: 05-folder-renamed
+
+# What is inside came with it, which is what makes it a move and not a new empty folder.
+- tapOn: "archive"
+- extendedWaitUntil:
+    visible: "data.csv"
+    timeout: 5000
+- takeScreenshot: 06-the-contents-came-along
+- tapOn: "Workspace"
+
+# A name already taken is a question, not a refusal: `renameFile` catches the 409 and asks.
+- longPressOn: "kept.txt"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 5000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "taken"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Overwrite file?"
+    timeout: 10000
+- assertVisible: '"taken.txt" already exists, overwrite?'
+- takeScreenshot: 07-a-taken-name-asks
+
+# Answering no leaves both files exactly where they were.
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "kept.txt"
+    timeout: 5000
+- assertVisible: "taken.txt"
+- takeScreenshot: 08-cancelled-and-both-remain

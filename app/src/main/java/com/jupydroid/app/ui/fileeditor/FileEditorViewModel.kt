@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.fileeditor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.notebookLeafOf
+import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.syntax.syntaxForFile
@@ -43,7 +44,12 @@ data class FileEditorUiState(
  *   the same arrangement `EditorViewModel` uses.
  */
 class FileEditorViewModel(
-  private val path: String,
+  /**
+   * Where this file lives - **mutable**, because a rename made anywhere moves it.
+   *
+   * `Context._path`, which `_updatePath` reassigns in place while the open widget carries on.
+   */
+  private var path: String,
   private val workspaceRepository: WorkspaceRepository,
   private val applicationScope: CoroutineScope,
 ) : ViewModel() {
@@ -62,6 +68,19 @@ class FileEditorViewModel(
         }
         .onFailure { failure -> _uiState.update { it.copy(error = failure.message, loaded = false) } }
     }
+    // `Context._onFileChanged`: the open document follows its file rather than waiting to be told
+    // by whichever screen moved it. Without this the next write re-creates the old path.
+    viewModelScope.launch {
+      workspaceRepository.renames.collect { moved ->
+        pathAfterRename(path, moved.from, moved.to)?.let { adopt(it) }
+      }
+    }
+  }
+
+  /** Takes on where the file lives now; the document did not change, only its path. */
+  private fun adopt(moved: String) {
+    path = moved
+    _uiState.update { it.copy(path = moved, name = notebookLeafOf(moved)) }
   }
 
   /** Takes an edit from the field. Written back on a debounce, as a cell's source is. */

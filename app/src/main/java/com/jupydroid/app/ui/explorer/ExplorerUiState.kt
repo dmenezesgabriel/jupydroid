@@ -9,12 +9,17 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
  * @property entries already ordered: directories first, then names naturally (`inWorkspaceOrder`)
  * @property crumbs each ancestor as `path to label`, root first, so a crumb is a target
  * @property error what went wrong reaching a directory, or null
+ * @property nameTaken the name a rename asked for and found occupied, or null. Non-null puts the
+ *   reference's question on screen - `"%1" already exists, overwrite?` - and only a taken name
+ *   gets there, exactly as only a 409 does in `renameFile`; an invalid name is never offered an
+ *   overwrite, because it is simply not a name.
  */
 data class ExplorerUiState(
   val path: String = "",
   val entries: List<WorkspaceEntry> = emptyList(),
   val crumbs: List<Pair<String, String>> = emptyList(),
   val error: String? = null,
+  val nameTaken: String? = null,
 ) {
   /** The root is where the explorer stops going up; from anywhere else there is a parent. */
   val canGoUp: Boolean get() = path.isNotEmpty()

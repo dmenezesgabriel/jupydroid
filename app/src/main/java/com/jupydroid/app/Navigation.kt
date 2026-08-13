@@ -116,6 +116,7 @@ fun MainNavigation(
           EditorScreen(
             notebookId = editor.notebookId,
             notebookRepository = appContainer.notebookRepository,
+            workspaceRepository = appContainer.workspaceRepository,
             kernelGateway = appContainer.kernelGateway,
             applicationScope = appContainer.applicationScope,
             onBack = { backStack.removeLastOrNull() },
