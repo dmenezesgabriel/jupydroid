@@ -2281,6 +2281,105 @@ menu on a screen X2h-2 deletes, and would have broken `a6-edit-updates-recents` 
 gain. X2h-1 therefore lands the source of truth with no visible change; the surface swap and the
 timestamp's new home are X2h-2's.
 
+#### X2h-2 — the explorer is the screen, and Recents is a section of it
+
+**Home is gone.** `rememberNavBackStack(Explorer)`, and `HomeScreen`, `HomeViewModel`, the `Home`
+nav key and `HOME_PANE_METADATA` with it. That is the reference's arrangement rather than a
+simplification of ours: JupyterLab has one file browser and no separate recents screen.
+
+**The adaptation, and what it departs from.** The reference surfaces recents in a **File > Open
+Recent submenu** (`mainmenu-extension/src/recents.ts`) and in the **Running panel**
+(`running-extension/src/recents.ts`); its file browser has none. A phone has neither a menu bar nor
+a second sidebar, and the browser is the only always-present surface, so the submenu's contents
+become a section at the top of it. Shown at the **root only** - a recents list is not a property of
+the folder you are standing in, and neither reference surface is scoped to a directory. Ordered
+directories first (`RecentsMenu.updateItems`), each row carrying the **whole path**, because the
+list is flat and global and two `summary.ipynb` in different folders would otherwise be one row
+repeated - which is why the reference labels its own by path.
+
+**Where the timestamp went, and why A6 survives.** Recents rows carry no time, because neither
+reference surface does. It moved to the **explorer's rows**, which is where `DirListing` keeps it:
+a `last_modified` column, shown by default - only `file_size` and `date_created` start in
+`_hiddenColumns` (`listing.ts:259-261`) - humanized, and narrowing as the space shrinks
+(`:1061-1073`). A 320dp phone is the end of that scale, so the name and its age stack instead of
+sitting in two columns. `WorkspaceEntry` carries `updatedAt` now, `relativeTime` moved out of
+`ui/home` ahead of its deletion, and `a6-edit-updates-recents` was rewritten against the new label -
+it is the flow that proves the rule survived the move rather than being dropped with the screen.
+
+**The open document is still marked, and the rule is now the reference's.** Home's two-pane
+highlight would have died with Home. `DirListing` does the same thing from `_onActivateRequested`:
+it selects the row for the document just activated, **and only when that document is in the
+directory being browsed** (`listing.ts:2761-2770`, which returns early on
+`dirname !== this._model.path`). Comparing whole paths says that once, and it covers the file
+editor too, which Home's version never did.
+
+**Two refactors the change asked for, both taken rather than worked around.**
+
+- `ExplorerViewModel` hit detekt's function limit at 13, exactly where the residual-risks list
+  predicted the next one would land. The answer was not the recents half: it was that
+  `createNotebook`/`createFile`/`createFolder` were **three spellings of one act**, and the
+  reference has one - `_createNew({path, type})` over a typed `new_untitled`
+  (`browser.ts:529-566`, `manager.py:599-614`). One `create(NewItem)` now, and the menu is a list
+  rather than three wired callbacks.
+- `observeNotebooks`, `NotebookSummary`, `scanSummaries` and `toSummary` lost their last reader and
+  are gone. That is not only dead weight removed: the scan ran on **every** notebook write, parsing
+  every other notebook in the root to rebuild a list nothing was showing.
+
+**A defect the section created and the tests caught.** At the root a document's name is now on
+screen twice - once in Recents, once in the listing - so any selector matching by name alone is
+ambiguous. `NotebookNavigationTest` failed on exactly that (`Expected exactly '1' node but found
+'2'`), and the fix is to name which row: the icons differ, `File` against `Recent file`, which is
+also what a screen reader hears. The Maestro flows have the same hazard wherever a long press must
+reach a listing row.
+
+**Four things only the flows could find, and two of them were defects rather than drift.** The
+first sweep failed eight flows; every one was run down rather than re-run.
+
+- **The browser never re-listed.** Coming back from an editor left the row's time stale
+  (`a6-edit-updates-recents`), and the VIEW-intent import raced the initial listing and never
+  appeared at all (`step2-import`). `refresh()` on resume now, which is the reference's concern
+  solved at the moment a phone actually has: it shows one thing at a time, so coming back *is* the
+  refresh. The import also opens what it imported - `ACTION_VIEW` asks to view a document, and it
+  removes the race outright rather than papering over it.
+- **A3's defect resurfaced on the new surface.** A created row lands in name order, so among
+  twenty-five notebooks it fell below the fold and the screen looked unchanged - exactly what audit
+  A3 was written for. Home answered by prepending and scrolling to the top; the browser scrolls to
+  the created row, which is where the reference arrives from the other direction (`_createNew`
+  hands its result to `rename()`, which selects and scrolls to it).
+  **And the first fix was wrong in a way only the flow could show:** `justCreated` was set *after*
+  `goTo`, which launches its own coroutine, so the fresh state the listing built overwrote it. Every
+  unit test stayed green. It is carried into the listing now.
+- **A renamed file left a dead recent on screen** (`rename-in-editor`). The reference does not make
+  a recent follow a rename - it drops what stops resolving, with `_isValid` treating a 404 as
+  invalid and `RecentsMenu.onBeforeAttach` re-checking every time the list is about to be shown. A
+  surface that keeps recents permanently on screen has to ask when it refreshes, so `revalidate()`
+  does, and only writes when something actually went.
+- One failure was **the flow's fault and mine**: `explorer-create` asserted `untitled.py` at the
+  root when the flow had deliberately created it inside `reports/`, which is the very thing that
+  step proves.
+- **An open document is on screen twice, and only one of the two has a menu.** The tablet sweep
+  found it where the emulator could not: with the notebook open *beside* the browser,
+  `longPressOn: "Switch Alpha.ipynb"` reached the Recents row - which is deliberately not
+  long-pressable, since renaming and deleting belong to the file rather than to the memory of
+  having opened it - and the row menu never came up. **Selecting by index was tried and rejected
+  on evidence:** a live `uiautomator` dump shows three nodes carrying that text (the recent row,
+  the listing row, and the editor's own app-bar title), all of them plain text with the clickable
+  on the merged parent, and maestro's index order is its own rather than the visual one. The two
+  flows empty the section first instead, which is deterministic, uses a real feature, and leaves
+  the browser in the state they were written against. The duplication itself is kept: it is the
+  cost of putting a global list above a directory listing, which the reference avoids only by
+  having a menu to put recents in.
+
+**Flows reworked, not patched.** Nine lost their `Browse files` hop, and several changed subject
+rather than wording: `step2-home`'s empty state is now an empty listing (the reference has no
+empty-state copy either), `a3-create-shows-up` asserts the created row rather than a timestamp at
+the top (the browser orders by name, where Home prepended by recency), and `home-new-python-file`
+became `new-python-file` - its FAB is the browser's "+", and creating no longer opens what it made,
+because `_createNew` creates and renames in place. `x2b-panes-repro` was **deleted**: it captured
+Recents being drawn beside the browser, and with one surface that shape is structurally
+unreachable. `TwoPaneSceneStrategyTest` keeps the rule that guarded it, driven with a synthetic
+surface, so `PANE_SURFACE_OPENS` is not left doing something nothing checks.
+
 ## Harness notes
 
 ### Never `kill -9` maestro
@@ -2852,6 +2951,16 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   `CellAction` dispatch (`applying`, `newCellId`) moved to `CellEdits.kt`, beside the transforms it
   dispatches to. It is back to ten, so there is room for one more before the next split - and the
   run/kernel half named here is still the candidate.
+- **The browser only refreshes when it comes back, so a file written while you are watching does
+  not appear.** X2h-2 added a refresh on resume, which covers an editor writing the notebook the
+  row names and covers an import - both found by flows (`a6-edit-updates-recents` read a stale
+  timestamp; `step2-import` never saw its row). What it does not cover is the workspace changing
+  while the browser is on screen: a cell calling `open('data.csv', 'w')` writes into the same tree
+  since X1a, and nothing tells the listing. The reference's answer is a **poll** -
+  `FileBrowserModel` runs one at `DEFAULT_REFRESH_INTERVAL = 10000` with `standby: 'when-hidden'`
+  (`packages/filebrowser/src/model.ts:26,79-106`) - and that is the thing to add if it grates.
+  Deliberately not paid for up front: it is a timer nothing currently tests, and the gap predates
+  X2h, since the explorer never refreshed at all before it.
 - **29 drivers call bare `adb` rather than `$ADB`**, so the suite only runs from a shell that has
   `platform-tools` on its PATH - `maestro-run.sh` already computes `$ADB` with a fallback for
   exactly this, and half the drivers use it. It surfaces as a flow that passes every step and then

@@ -32,4 +32,7 @@ class FakeRecentDocumentsRepository(
   override suspend fun clear() {
     recents.value = emptyList()
   }
+
+  /** Nothing here has a filesystem behind it, so nothing can have gone. */
+  override suspend fun revalidate() = Unit
 }

@@ -12,7 +12,8 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-- tapOn: "Browse files"
+# The workspace is the first screen since X2h, so there is no "Browse files" to tap: Recents
+# stopped being a screen and became a section of this one.
 - extendedWaitUntil:
     visible: "Files"
     timeout: 10000
@@ -32,6 +33,18 @@ appId: com.jupydroid.app
 # marker is appended to the line. What matters is that it is unsaved text in the open document.
 - inputText: "edited_after_open = 1"
 - takeScreenshot: 02-an-edit-in-flight
+
+# **Clear Recents first, to remove an ambiguity rather than to test one.** Since X2h an open
+# document is on screen twice in the browser pane - the section carries what was opened, the
+# listing carries what is on disk - and only the listing row has a menu, because renaming and
+# deleting belong to the file rather than to the memory of having opened it. Selecting by index
+# was tried and is not stable: maestro's ordering is its own, and the editor's app-bar title is a
+# third node with the same text. Emptying the section leaves one row in the browser, which is the
+# state these flows were written against.
+- tapOn: "Clear recents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
 
 # Rename it from the *browser*, not from the notebook's own title bar.
 - longPressOn: "Switch Alpha.ipynb"

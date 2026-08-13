@@ -7,8 +7,8 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-- assertVisible: "Recents"
-- tapOn: "Browse files"
+# The workspace is the first screen since X2h, so there is no "Browse files" to tap: Recents
+# stopped being a screen and became a section of this one.
 - assertVisible: "Files"
 - assertVisible: "Workspace"
 - assertVisible: "reports"
@@ -56,7 +56,13 @@ appId: com.jupydroid.app
     timeout: 10000
 - takeScreenshot: 05-folder-created-at-the-root
 
-# At the root there is no parent left, so back leaves the explorer rather than being swallowed.
-- back
-- assertVisible: "Recents"
-- takeScreenshot: 06-and-then-out-to-recents
+# At the root there is no parent left, so `BackHandler` is disabled and back leaves the app rather
+# than being swallowed. What is pinned here is the state it leaves from - the root, with all three
+# creations still on it.
+# The two made *here*. `untitled.py` was created inside `reports/` and stays there - which is the
+# whole point of `path: this.model.path`, and why asserting it at the root would be wrong.
+- assertVisible: "Workspace"
+- assertVisible: "Untitled.ipynb"
+- assertVisible: "Untitled Folder"
+- assertNotVisible: "untitled.py"
+- takeScreenshot: 06-created-where-they-were-made

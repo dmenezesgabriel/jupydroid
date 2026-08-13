@@ -1,10 +1,18 @@
 appId: com.jupydroid.app
 ---
-# clearState, like step2-create beside it: this flow is about the *empty* state, and without
-# it the assertion is only true on a device that happens to have no notebooks. It was green for
-# months on that accident and went red the first time it ran on the tablet, which by then had
-# twenty-seven.
+# clearState, like step2-create beside it: this flow is about the *empty* state, and without it the
+# assertion is only true on a device that happens to have no notebooks. It was green for months on
+# that accident and went red the first time it ran on the tablet, which by then had twenty-seven.
+#
+# **The empty state is the browser's since X2h.** Home had a "No recent notebooks yet" message;
+# an empty workspace is an empty listing under a breadcrumb, which is what `DirListing` shows
+# too - the reference has no empty-state copy either. So what is asserted is the surface being
+# there with nothing on it, which is the same claim without inventing a message.
 - launchApp:
     clearState: true
-- assertVisible: "No recent notebooks yet"
-- takeScreenshot: 01-home-empty
+- assertVisible: "Files"
+- assertVisible: "Workspace"
+# Nothing has been created and nothing opened, so neither section has a row.
+- assertNotVisible: "Recent"
+- assertNotVisible: ".*\\.ipynb"
+- takeScreenshot: 01-an-empty-workspace

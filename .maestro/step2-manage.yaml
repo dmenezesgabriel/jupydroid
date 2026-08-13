@@ -1,9 +1,15 @@
 appId: com.jupydroid.app
 ---
+# Step 2.3, on the surface X2h left: a row's own menu renames and deletes. Home's rows carried the
+# same two items and went with Home; the browser's row menu is what X2f and X2g gave every entry,
+# and it is the reference's right-click context menu adapted to a finger.
 - launchApp:
     clearState: true
-- assertVisible: "No recent notebooks yet"
-- tapOn: "\\+"
+- assertVisible: "Files"
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
 - tapOn: "New notebook"
 - assertVisible: "Untitled.ipynb"
 - longPressOn: "Untitled.ipynb"
@@ -11,7 +17,7 @@ appId: com.jupydroid.app
 - assertVisible: "Delete"
 - takeScreenshot: 02-menu
 - tapOn: "Rename"
-- assertVisible: "Rename notebook"
+- assertVisible: "Rename file"
 # The dialog opens with the caret already in the field and the stem selected, so this state is
 # worth a picture: it is the half of RenameNotebookDialog that no assertion here describes.
 - takeScreenshot: 02b-rename-dialog
@@ -44,5 +50,7 @@ appId: com.jupydroid.app
 - tapOn:
     text: "Delete"
     index: 1
-- assertVisible: "No recent notebooks yet"
+# Gone from the listing, and nothing left behind it.
+- assertNotVisible: "Math notes.ipynb"
+- assertVisible: "Workspace"
 - takeScreenshot: 05-deleted

@@ -1,5 +1,6 @@
 package com.jupydroid.app.domain.model
 
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -60,7 +61,31 @@ class WorkspaceOrderTest {
     assertEquals(listOf("alpha.py", "Beta.py"), listed.inWorkspaceOrder().map { it.name })
   }
 
-  private fun dir(name: String) = WorkspaceEntry(name = name, path = name, kind = WorkspaceEntryKind.DIRECTORY)
+  /**
+   * `filebrowser:go-up` is one directory, and at the root there is nowhere above to go.
+   *
+   * The rule left `ExplorerViewModel` when detekt counted its thirteenth function: it is a pure
+   * fact about a path, so it belongs beside the other path rules where it can be driven without a
+   * ViewModel at all.
+   */
+  @Test
+  fun theParentOfAPathIsTheDirectoryHoldingIt() {
+    assertEquals("reports", "reports/deep".parentDirectory())
+    assertEquals("reports/deep", "reports/deep/file.txt".parentDirectory())
+  }
 
-  private fun file(name: String) = WorkspaceEntry(name = name, path = name, kind = WorkspaceEntryKind.FILE)
+  /** The root is the empty string, so a top-level entry's parent is the root and not itself. */
+  @Test
+  fun anythingAtTheRootHasTheRootAsItsParent() {
+    assertEquals("", "notes.txt".parentDirectory())
+    assertEquals("", "".parentDirectory())
+  }
+
+  // The epoch for every entry, and identically so: this is about *order*, and the order is by
+  // kind then name. A varying time here would let a sort that secretly used it still pass.
+  private fun dir(name: String) =
+    WorkspaceEntry(name, path = name, kind = WorkspaceEntryKind.DIRECTORY, updatedAt = Instant.EPOCH)
+
+  private fun file(name: String) =
+    WorkspaceEntry(name, path = name, kind = WorkspaceEntryKind.FILE, updatedAt = Instant.EPOCH)
 }

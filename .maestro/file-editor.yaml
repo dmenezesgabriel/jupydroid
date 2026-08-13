@@ -5,7 +5,8 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-- tapOn: "Browse files"
+# The workspace is the first screen since X2h, so there is no "Browse files" to tap: Recents
+# stopped being a screen and became a section of this one.
 - assertVisible: "Files"
 - tapOn: "file_editor.py"
 # "Back to files" is the FileEditor's own toolbar action - the notebook editor labels its back

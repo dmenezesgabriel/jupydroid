@@ -3,7 +3,12 @@ package com.jupydroid.app.ui.explorer
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
+import com.jupydroid.app.domain.model.RecentDocument
+import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import java.io.File
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -59,7 +64,7 @@ class ExplorerViewModelTest {
     viewModel.open(viewModel.uiState.value.entries.single())
     viewModel.open(viewModel.uiState.value.entries.single())
 
-    viewModel.goUp()
+    viewModel.goTo(viewModel.uiState.value.path.parentDirectory())
 
     assertEquals("reports", viewModel.uiState.value.path)
   }
@@ -171,7 +176,7 @@ class ExplorerViewModelTest {
     val viewModel = explorer()
     viewModel.open(viewModel.uiState.value.entries.single())
 
-    viewModel.createFile("py")
+    viewModel.create(NewItem.PYTHON_FILE)
 
     assertTrue("untitled.py" in viewModel.uiState.value.entries.map { it.name })
     assertTrue(File(temp.root, "reports/untitled.py").exists())
@@ -182,7 +187,7 @@ class ExplorerViewModelTest {
     given("keep.txt")
     val viewModel = explorer()
 
-    viewModel.createFolder()
+    viewModel.create(NewItem.FOLDER)
 
     assertTrue("Untitled Folder" in viewModel.uiState.value.entries.map { it.name })
   }
@@ -190,7 +195,7 @@ class ExplorerViewModelTest {
   /**
    * A new notebook is a *valid* notebook, not an empty file with an `.ipynb` name.
    *
-   * Which is why it does not go through `createFile("ipynb")`: `new_untitled` gives
+   * Which is why it does not go through `create` routing it to the workspace: `new_untitled` gives
    * `type: "notebook"` its own branch and the server writes nbformat into it
    * (`manager.py:605-607`), and an empty file would fail to load the moment it was opened.
    */
@@ -200,7 +205,7 @@ class ExplorerViewModelTest {
     val notebooks = DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler))
     val viewModel = explorer(notebooks)
 
-    viewModel.createNotebook()
+    viewModel.create(NewItem.NOTEBOOK)
 
     assertTrue("Untitled.ipynb" in viewModel.uiState.value.entries.map { it.name })
     assertEquals("Untitled.ipynb", notebooks.readNotebook("Untitled.ipynb").id)
@@ -311,6 +316,82 @@ class ExplorerViewModelTest {
   }
 
   /**
+   * The root carries Recents; a subdirectory does not.
+   *
+   * A recents list is not a property of the folder you are standing in - the reference's own
+   * surfaces are global, a File menu submenu and a sidebar panel, never per-directory. At the root
+   * it is the first thing under the bar; one level down the screen is about *that folder*.
+   */
+  @Test
+  fun theRootCarriesRecentsAndADirectoryDoesNot() = runTest {
+    given("reports/summary.ipynb")
+    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listOf(recent("reports/summary.ipynb"))))
+
+    assertEquals(listOf("reports/summary.ipynb"), viewModel.uiState.value.recents.map { it.path })
+
+    viewModel.open(viewModel.uiState.value.entries.single())
+
+    assertTrue("a subdirectory must not carry Recents", viewModel.uiState.value.recents.isEmpty())
+  }
+
+  /** Directories first, which is `RecentsMenu.updateItems`' only sorting rule. */
+  @Test
+  fun recentsListDirectoriesFirst() = runTest {
+    given("reports/summary.ipynb")
+    val listed = listOf(recent("reports/summary.ipynb"), recentFolder("reports"))
+
+    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listed))
+
+    assertEquals(listOf("reports", "reports/summary.ipynb"), viewModel.uiState.value.recents.map { it.path })
+  }
+
+  /**
+   * A recent folder navigates the browser it lives in; only a document opens.
+   *
+   * The reference makes the same split - `openRecent` prefers the file browser's `openPath` for a
+   * `contentType: 'directory'` and sends everything else to `docmanager:open`
+   * (`packages/mainmenu-extension/src/recents.ts`).
+   */
+  @Test
+  fun openingARecentFolderDescendsRatherThanOpeningADocument() = runTest {
+    given("reports/summary.ipynb")
+    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listOf(recentFolder("reports"))))
+    var opened: String? = null
+
+    viewModel.openRecent(viewModel.uiState.value.recents.single()) { opened = it }
+
+    assertEquals("reports", viewModel.uiState.value.path)
+    assertNull("a folder must not be handed to a document editor", opened)
+  }
+
+  @Test
+  fun openingARecentDocumentHandsItToTheEditor() = runTest {
+    given("reports/summary.ipynb")
+    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listOf(recent("reports/summary.ipynb"))))
+    var opened: String? = null
+
+    viewModel.openRecent(viewModel.uiState.value.recents.single()) { opened = it }
+
+    assertEquals("reports/summary.ipynb", opened)
+    assertEquals("the browser must not have moved", "", viewModel.uiState.value.path)
+  }
+
+  /** `docmanager:clear-recents`, which the reference offers from the same submenu. */
+  @Test
+  fun clearingRecentsEmptiesTheSection() = runTest {
+    given("notes.txt")
+    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listOf(recent("notes.txt"))))
+
+    viewModel.clearRecents()
+
+    assertTrue(viewModel.uiState.value.recents.isEmpty())
+  }
+
+  private fun recent(path: String) = RecentDocument(path, WorkspaceEntryKind.FILE)
+
+  private fun recentFolder(path: String) = RecentDocument(path, WorkspaceEntryKind.DIRECTORY)
+
+  /**
    * The repository is given the *test* dispatcher, or nothing here waits for it.
    *
    * `DiskWorkspaceRepository` reads on `Dispatchers.IO`, and the ViewModel lists from `init`. On a
@@ -320,9 +401,11 @@ class ExplorerViewModelTest {
   private fun TestScope.explorer(
     notebooks: NotebookRepository =
       DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler)),
+    recents: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
   ) = ExplorerViewModel(
     DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler)),
     notebooks,
+    recents,
   )
 
   private fun given(vararg paths: String) {

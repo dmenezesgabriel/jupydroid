@@ -52,10 +52,11 @@ appId: com.jupydroid.app
 # back button, whose contentDescription is also "Back", and left the app for the launcher.
 - tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
                                # and a uiautomator dump carries both (evidence/u-flow-sweep/).
-# The FAB is Home's and the editor has none: assert it before looking for a row, so a flow still
-# stuck in the editor fails here rather than against the title in the app bar.
+# The browser's crumb, which the editor has none of: assert it before looking for a row, so a flow
+# still stuck in the editor fails here rather than against the title in the app bar. (This was
+# Home's FAB until X2h; the browser has no FAB, and "Workspace" is the thing only it draws.)
 - extendedWaitUntil:
-    visible: "\\+"
+    visible: "Workspace"
     timeout: 10000
 - waitForAnimationToEnd:
     timeout: 5000

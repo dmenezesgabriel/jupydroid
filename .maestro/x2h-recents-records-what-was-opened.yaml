@@ -8,18 +8,18 @@ appId: com.jupydroid.app
 # now a record of what was opened - JupyterLab's `RecentsManager` - so where a document lives has
 # stopped deciding whether it can be found again.
 #
-# **This flow drives the app; its driver reads the store.** X2h-1 deliberately changes nothing on
-# screen - Home still renders the old list until X2h-2 swaps the surface - so a screen assertion
-# here would either assert nothing or assert the thing that is about to be deleted. What has to be
-# true is that the *write happened*, which is what the driver checks off the device afterwards.
+# **This flow drives the app; its driver reads the store.** A list that looked right on screen and
+# was never persisted would pass a screen-only assertion, which is the trap `new-python-file`
+# avoids by asserting its file is not nbformat.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-- assertVisible: "Recents"
-- takeScreenshot: 01-recents-before-anything-was-opened
-
-- tapOn: "Browse files"
 - assertVisible: "Files"
+# Nothing has been opened yet, so there is no section at all - a heading over an empty list is
+# noise, and its absence here is what makes its arrival below mean something.
+- assertNotVisible: "Recent"
+- takeScreenshot: 01-no-recents-before-anything-was-opened
+
 - assertVisible: "reports"
 - takeScreenshot: 02-the-folder-the-old-recents-could-not-see
 
@@ -47,3 +47,16 @@ appId: com.jupydroid.app
 - tapOn: "Back to files"
 - assertVisible: "Nested.ipynb"
 - takeScreenshot: 06-back-in-the-folder
+
+# The section is not shown inside a folder - a recents list is not a property of the directory you
+# are standing in, and the reference's own surfaces are global rather than per-directory.
+- assertNotVisible: "Recent"
+# At the root it is, and it carries the whole path: two `summary.ipynb` in different folders would
+# otherwise be one row repeated, which is why the reference labels its recents by path too.
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "Recent"
+    timeout: 5000
+- assertVisible: "reports/Nested.ipynb"
+- assertVisible: "reports/data.csv"
+- takeScreenshot: 07-recents-at-the-root

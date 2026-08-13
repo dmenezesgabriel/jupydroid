@@ -1,15 +1,12 @@
 package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.domain.model.NotebookSummary
 import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import java.time.Instant
 import java.util.UUID
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
 
 /**
  * In-memory [NotebookRepository] feeding the UI until the disk impl lands (Step 3).
@@ -22,13 +19,6 @@ import kotlinx.coroutines.flow.combine
 class FakeNotebookRepository : NotebookRepository {
   private val notebooks = MutableStateFlow<Map<String, Notebook>>(emptyMap())
   private val written = MutableStateFlow<Map<String, Instant>>(emptyMap())
-
-  override fun observeNotebooks(): Flow<List<NotebookSummary>> =
-    combine(notebooks, written) { all, times ->
-      all.values
-        .map { NotebookSummary(it.id, it.title, times[it.id] ?: Instant.EPOCH) }
-        .sortedByDescending { it.updatedAt }
-    }
 
   override suspend fun createNotebook(title: String, kernelId: String): Notebook {
     // The id *is* the name since X1b, as it is on disk. It was a UUID here long after the disk

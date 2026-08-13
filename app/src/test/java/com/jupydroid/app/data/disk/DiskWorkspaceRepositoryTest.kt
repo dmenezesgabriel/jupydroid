@@ -5,6 +5,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceRepositoryContract
 import java.io.File
 import java.nio.file.Files
+import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -50,6 +51,26 @@ class DiskWorkspaceRepositoryTest : WorkspaceRepositoryContract() {
     Files.createSymbolicLink(File(temp.root, "dangling").toPath(), File(temp.root, "gone").toPath())
 
     assertEquals(listOf("dangling"), repository().list("").map { it.name })
+  }
+
+  /**
+   * `updatedAt` is the file's **own mtime**, not the moment it was listed.
+   *
+   * This is A6's rule, moved to where the reference keeps it: `last_modified` is the mtime
+   * (`filemanager.py:285`), which is what makes an edit, a run and a rename all count without
+   * anything having to remember to say so. The contract can only assert that a freshly written
+   * file reads as recent - a backdated one is what tells the two apart, and it is exactly the
+   * fixture `a6-edit-updates-recents` backdates to 2020 for the same reason.
+   */
+  @Test
+  fun updatedAtIsTheFilesOwnMtimeRatherThanTheTimeItWasListed() = runTest {
+    given("stale.txt")
+    val longAgo = Instant.parse("2020-01-01T00:00:00Z")
+    assertTrue(File(temp.root, "stale.txt").setLastModified(longAgo.toEpochMilli()))
+
+    val listed = repository().list("").single()
+
+    assertEquals(longAgo, listed.updatedAt)
   }
 
   /**

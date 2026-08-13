@@ -1,6 +1,7 @@
 package com.jupydroid.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -13,11 +14,11 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
-import com.jupydroid.app.ui.home.HomeScreen
 import kotlinx.coroutines.launch
 
 /**
@@ -62,13 +63,42 @@ fun MainNavigation(
   // force a width would drive one branch twice while appearing to cover both.
   twoPane: Boolean = isWindowWideEnoughForTwoPanes(),
 ) {
-  val backStack = rememberNavBackStack(Home)
+  // The explorer is what the app opens on. Recents was a scan of one directory and is now a
+  // section of this screen, so there is no second surface left to start from - which is also the
+  // reference's arrangement: JupyterLab has one file browser and no separate recents screen.
+  val backStack = rememberNavBackStack(Explorer)
   // Where the open notebook lives *now*. The navigation key keeps the path it was opened under,
   // because replacing it would re-create the entry and discard the editor's state; a rename is
   // reported here instead. `_contextsForPath` does the same - it filters live contexts by their
   // current path, never by the one a widget was created with.
   var openNotebookId by remember { mutableStateOf<String?>(null) }
   val openDocument = rememberDocumentOpener(backStack, appContainer)
+  // Which row the pane beside the browser belongs to, and **only while there is a pane beside it**.
+  // In one window the browser is on screen exactly when nothing is open, so a marked row would
+  // point at a pane that is not there. The notebook's path comes from `openNotebookId` rather than
+  // from the key, because a rename moves the file and the key keeps the path it was opened under.
+  val openDocumentPath = when (val top = backStack.lastOrNull()) {
+    is Editor -> openNotebookId
+    is FileEditor -> top.path
+    else -> null
+  }.takeIf { twoPane }
+
+  // The VIEW intent, which used to be Home's because Home was the first screen. It is an
+  // app-level act rather than a screen's - nothing about it belongs to the browser - so it lives
+  // here now. Keyed on the title so a second import in the same process is not swallowed.
+  //
+  // **Opened, not merely listed.** Home added a row and left it there, which was defensible when
+  // Home was a list of notebooks; an ACTION_VIEW intent asks to *view* the document, and opening
+  // it is also what makes the result deterministic - a row only appears once the browser has
+  // listed again, and the create races that listing on a cold start. Opening also records it as a
+  // recent, so it is on the browser's first section when the editor is left.
+  LaunchedEffect(importTitle) {
+    importTitle?.let { title ->
+      runCatching { appContainer.notebookRepository.createNotebook(title, DEFAULT_KERNEL_ID) }
+        .onSuccess { openDocument(it.id) }
+      onImportConsumed()
+    }
+  }
 
   NavDisplay(
     backStack = backStack,
@@ -90,39 +120,21 @@ fun MainNavigation(
     sceneStrategy = TwoPaneSceneStrategy(twoPane = twoPane),
     entryProvider =
       entryProvider {
-        entry<Home>(metadata = HOME_PANE_METADATA) {
-          HomeScreen(
-            notebookRepository = appContainer.notebookRepository,
-            workspaceRepository = appContainer.workspaceRepository,
-            importTitle = importTitle,
-            onImportConsumed = onImportConsumed,
-            onOpenNotebook = openDocument,
-            onOpenFile = openDocument,
-            // Only while the list is *beside* the notebook. In one pane the list is on screen
-            // exactly when nothing is open, so a marked row would point at a pane that is not
-            // there - and would be the only thing on screen still claiming a notebook is open.
-            openNotebookId = openNotebookId.takeIf { twoPane && backStack.lastOrNull() is Editor },
-            onBrowseFiles = { backStack.add(Explorer) },
-          )
-        }
         entry<Explorer>(metadata = EXPLORER_PANE_METADATA) {
           ExplorerScreen(
             workspaceRepository = appContainer.workspaceRepository,
             notebookRepository = appContainer.notebookRepository,
+            recentDocuments = appContainer.recentDocuments,
             // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
             // so there is nothing to translate. It briefly was not, and the suffix went on twice:
             // `Nested.ipynb.ipynb` opened nothing.
             onOpenFile = { file -> openDocument(file.path) },
-            // The arrow exists only while the explorer is the top of the stack - a screen with a
-            // door back to what pushed it. Once it is the list pane beside a document it is a
-            // *surface*, and a "Back to recents" that would swallow the landscape is the same
-            // confusion Recents itself caused (TwoPaneSceneStrategy's table).
-            onBack =
-              if (backStack.lastOrNull() is Explorer) {
-                { backStack.removeLastOrNull() }
-              } else {
-                null
-              },
+            onOpenRecent = openDocument,
+            openDocumentPath = openDocumentPath,
+            // No arrow at all: this is the first screen now, so there is nowhere to go back *to*.
+            // Back still climbs the workspace while there is a parent - `filebrowser:go-up` - and
+            // at the root it leaves the app, which is what nothing swallowing it means.
+            onBack = null,
           )
         }
         entry<FileEditor>(

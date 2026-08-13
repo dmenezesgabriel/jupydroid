@@ -2,7 +2,6 @@
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.domain.model.NotebookSummary
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.model.incrementedFileName
@@ -38,14 +37,9 @@ class DiskNotebookRepository(
   private val json: Json = Json { ignoreUnknownKeys = true },
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : NotebookRepository {
-  private val summaries = MutableStateFlow(emptyList<NotebookSummary>())
-
   init {
     rootDir.mkdirs()
-    summaries.value = scanSummaries()
   }
-
-  override fun observeNotebooks(): Flow<List<NotebookSummary>> = summaries
 
   /**
    * The suffix is added here, not by the caller: this is the *typed* call, and `new_untitled`
@@ -61,7 +55,6 @@ class DiskNotebookRepository(
       val free = incrementedFileName("${title.trim()}$NOTEBOOK_SUFFIX") { fileFor(it).exists() }
       val notebook = Notebook(id = free, title = free, kernelId = kernelId, cells = emptyList())
       writeFile(notebook)
-      refreshSummaries()
       notebook
     }
 
@@ -85,13 +78,11 @@ class DiskNotebookRepository(
     val notebook = readNotebook(id).copy(id = moved, title = moved)
     writeFile(notebook)
     if (moved != id) fileFor(id).delete()
-    refreshSummaries()
     moved
   }
 
-  override suspend fun deleteNotebook(id: String) = withContext(ioDispatcher) {
-    fileFor(id).delete()
-    refreshSummaries()
+  override suspend fun deleteNotebook(id: String) {
+    withContext(ioDispatcher) { fileFor(id).delete() }
   }
 
   override suspend fun readNotebook(id: String): Notebook = withContext(ioDispatcher) {
@@ -108,7 +99,6 @@ class DiskNotebookRepository(
 
   override suspend fun saveNotebook(notebook: Notebook) = withContext(ioDispatcher) {
     writeFile(notebook)
-    refreshSummaries()
   }
 
   /**
@@ -128,7 +118,6 @@ class DiskNotebookRepository(
     fileFor(id).renameTo(temporary)
     fileFor(moved).delete()
     temporary.renameTo(fileFor(moved))
-    refreshSummaries()
     moved
   }
 
@@ -141,41 +130,4 @@ class DiskNotebookRepository(
   /** The id is already the path - there is no suffix to add and none to strip. */
   private fun fileFor(id: String): File = File(rootDir, id)
 
-  private fun refreshSummaries() {
-    summaries.value = scanSummaries()
-  }
-
-  private fun scanSummaries(): List<NotebookSummary> =
-    (rootDir.listFiles() ?: emptyArray())
-      .filter { it.isFile && it.name.endsWith(NOTEBOOK_SUFFIX) }
-      .mapNotNull { trySummaryIn(json, it) }
-      .sortedByDescending { it.updatedAt }
-
-  /**
-   * Corrupt or foreign unreadable files are skipped so one bad file does not break Home.
-   *
-   * `updatedAt` is the file's own mtime, the way Jupyter's Contents API reads it
-   * (`filemanager.py:285`). So every write counts - an edit, a run, a rename, the creation
-   * itself - because every one of them writes the file, and nothing has to remember to say so.
-   */
-}
-
-/**
- * Outside the class only because detekt counts methods, and this one needs none of its state.
- *
- * Corrupt or foreign unreadable files are skipped so one bad file does not break Home.
- *
- * `updatedAt` is the file's own mtime, the way Jupyter's Contents API reads it
- * (`filemanager.py:285`). So every write counts - an edit, a run, a rename, the creation itself -
- * because every one of them writes the file, and nothing has to remember to say so.
- */
-private fun trySummaryIn(json: Json, file: File): NotebookSummary? {
-  val id = file.name
-  return try {
-    json.readNotebook(file, id).toSummary(Instant.ofEpochMilli(file.lastModified()))
-  } catch (e: SerializationException) {
-    null
-  } catch (e: IllegalArgumentException) {
-    null
-  }
 }

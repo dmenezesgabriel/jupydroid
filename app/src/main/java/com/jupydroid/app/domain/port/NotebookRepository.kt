@@ -1,13 +1,9 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.domain.model.NotebookSummary
-import kotlinx.coroutines.flow.Flow
 
 /** Persistence for notebooks. Disk-backed impl arrives in Step 3; fakes feed Steps 1-2. */
 interface NotebookRepository {
-  fun observeNotebooks(): Flow<List<NotebookSummary>>
-
   suspend fun createNotebook(title: String, kernelId: String): Notebook
 
   /**

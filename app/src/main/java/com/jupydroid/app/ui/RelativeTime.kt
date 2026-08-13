@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui.home
+package com.jupydroid.app.ui
 
 import java.time.Duration
 import java.time.Instant

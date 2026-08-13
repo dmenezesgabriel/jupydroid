@@ -57,6 +57,17 @@ class DiskRecentDocumentsRepository(
 
   override suspend fun clear() = withContext(ioDispatcher) { write(emptyList()) }
 
+  /**
+   * The same filter [loadValidated] applies at launch, applied again on demand.
+   *
+   * Only writes when something actually went, so a refresh on a healthy list costs one `lstat` per
+   * entry and touches no disk.
+   */
+  override suspend fun revalidate() = withContext(ioDispatcher) {
+    val surviving = recents.value.filter { stillThere(it) }
+    if (surviving.size != recents.value.size) write(surviving)
+  }
+
   private fun write(updated: List<RecentDocument>) {
     recents.value = updated
     stateDir.mkdirs()

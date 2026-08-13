@@ -17,60 +17,18 @@ import org.junit.Test
 class TwoPaneSceneStrategyTest {
   @Test
   fun aNarrowWindowGetsNoSceneAndSoFallsBackToOnePane() {
-    assertNull(sceneFor(twoPane = false, Home, EDITOR_A))
+    assertNull(sceneFor(twoPane = false, Explorer, EDITOR_A))
   }
 
   @Test
   fun oneEntryIsNotTwoPanesEvenOnAWideWindow() {
-    assertNull(sceneFor(twoPane = true, Home))
-  }
-
-  @Test
-  fun aWideWindowPutsTheLastTwoEntriesSideBySide() {
-    val scene = sceneFor(twoPane = true, Home, EDITOR_A)
-
-    assertEquals(listOf(Home.toString(), EDITOR_A.toString()), scene?.entries?.map { it.contentKey })
-  }
-
-  /**
-   * Back closes the detail rather than leaving the app: the scene one entry shorter is the list
-   * on its own, which `calculateScene` then declines, so it draws full width.
-   */
-  @Test
-  fun backFromTwoPanesDropsTheDetail() {
-    val scene = sceneFor(twoPane = true, Home, EDITOR_A)
-
-    assertEquals(listOf(Home.toString()), scene?.previousEntries?.map { it.contentKey })
-  }
-
-  /**
-   * The key identifies *which* pair is on screen, or `AnimatedContent` would treat a swap of the
-   * detail as the same scene and skip the transition - and, worse, hold the outgoing entry's
-   * content in a slot the incoming one then reuses.
-   */
-  @Test
-  fun swappingTheDetailIsADifferentScene() {
-    val withA = sceneFor(twoPane = true, Home, EDITOR_A)
-    val withB = sceneFor(twoPane = true, Home, EDITOR_B)
-
-    assertEquals(false, withA?.key == withB?.key)
-  }
-
-  /**
-   * The pair is a *file surface and the document it opened*, not any two entries. Tapping "Browse
-   * files" leaves Recents below the explorer - Recents is the notebook home, and the browser is
-   * not a document it opens - so nothing pairs and the explorer draws alone. This is the defect
-   * the step opened with: it drew Recents beside the file browser on the tablet.
-   */
-  @Test
-  fun theExplorerOnItsOwnIsOnePaneEvenOnAWideWindow() {
-    assertNull(sceneFor(twoPane = true, Home, Explorer))
+    assertNull(sceneFor(twoPane = true, Explorer))
   }
 
   /** A notebook opened from the browser pairs it: the last two entries are Explorer and the Editor. */
   @Test
   fun theExplorerPairsWithTheNotebookItOpened() {
-    val scene = sceneFor(twoPane = true, Home, Explorer, EDITOR_A)
+    val scene = sceneFor(twoPane = true, Explorer, EDITOR_A)
 
     assertEquals(
       listOf(Explorer.toString(), EDITOR_A.toString()),
@@ -81,7 +39,7 @@ class TwoPaneSceneStrategyTest {
   /** A `non-notebook` opened from the browser pairs the same way: Explorer|FileEditor. */
   @Test
   fun theExplorerPairsWithThePlainFileItOpened() {
-    val scene = sceneFor(twoPane = true, Home, Explorer, FILE_A)
+    val scene = sceneFor(twoPane = true, Explorer, FILE_A)
 
     assertEquals(
       listOf(Explorer.toString(), FILE_A.toString()),
@@ -89,30 +47,54 @@ class TwoPaneSceneStrategyTest {
     )
   }
 
-  /** One pop closes the detail and leaves the explorer alone - no second pane to fall into. */
+  /**
+   * Back closes the detail rather than leaving the app: the scene one entry shorter is the browser
+   * on its own, which `calculateScene` then declines, so it draws full width.
+   */
   @Test
-  fun backFromTheExplorerPairLeavesTheExplorerAlone() {
-    val scene = sceneFor(twoPane = true, Home, Explorer, EDITOR_A)
+  fun backFromTwoPanesDropsTheDetail() {
+    val scene = sceneFor(twoPane = true, Explorer, EDITOR_A)
 
-    assertEquals(
-      listOf(Home.toString(), Explorer.toString()),
-      scene?.previousEntries?.map { it.contentKey },
-    )
+    assertEquals(listOf(Explorer.toString()), scene?.previousEntries?.map { it.contentKey })
   }
 
   /**
-   * The notebook home opens notebooks; a `non-notebook` is not one, so nothing pairs and the
-   * editor fills the window - the way a phone shows it (Step 1's file-editor flow).
+   * The key identifies *which* pair is on screen, or `AnimatedContent` would treat a swap of the
+   * detail as the same scene and skip the transition - and, worse, hold the outgoing entry's
+   * content in a slot the incoming one then reuses.
    */
   @Test
-  fun theNotebookHomeNeverPairsWithAPlainFile() {
-    assertNull(sceneFor(twoPane = true, Home, FILE_A))
+  fun swappingTheDetailIsADifferentScene() {
+    val withA = sceneFor(twoPane = true, Explorer, EDITOR_A)
+    val withB = sceneFor(twoPane = true, Explorer, EDITOR_B)
+
+    assertEquals(false, withA?.key == withB?.key)
   }
 
-  /** Explorer below an editor is not an explorer-pair shape either: the browser is not a document. */
+  /**
+   * A surface pairs only with a document *kind it opens*, which is the rule that kept Recents from
+   * being drawn beside the file browser - the defect U7 opened with.
+   *
+   * X2h left one surface, and it opens both kinds, so nothing in the app can reach the refusing
+   * branch any more. The rule is the strategy's own contract rather than any screen's, so it is
+   * driven here with a surface declared to open notebooks only. Deleting the case instead would
+   * leave `PANE_SURFACE_OPENS` doing something nothing checks.
+   */
+  @Test
+  fun aSurfaceNeverPairsWithADocumentKindItDoesNotOpen() {
+    assertNull(sceneFor(twoPane = true, NOTEBOOKS_ONLY_SURFACE, FILE_A))
+  }
+
+  /** Two surfaces are not a pair: a browser is not a document, whichever order they are in. */
+  @Test
+  fun twoSurfacesNeverPair() {
+    assertNull(sceneFor(twoPane = true, NOTEBOOKS_ONLY_SURFACE, Explorer))
+  }
+
+  /** Explorer above an editor is not a pair either: the browser is not a document. */
   @Test
   fun anExplorerPushedAboveTheEditorIsOnePane() {
-    assertNull(sceneFor(twoPane = true, Home, EDITOR_A, Explorer))
+    assertNull(sceneFor(twoPane = true, Explorer, EDITOR_A, Explorer))
   }
 
   /** `calculateScene` is declared on `SceneStrategyScope`, which is what the `with` is for. */
@@ -129,7 +111,8 @@ class TwoPaneSceneStrategyTest {
    */
   private fun paneMetadataOf(key: Any): Map<String, Any> =
     when (key) {
-      Home -> HOME_PANE_METADATA
+      NOTEBOOKS_ONLY_SURFACE ->
+        mapOf(PANE_ROLE to PANE_ROLE_SURFACE, PANE_SURFACE_OPENS to listOf(PANE_KIND_NOTEBOOK))
       Explorer -> EXPLORER_PANE_METADATA
       is Editor -> mapOf(PANE_ROLE to PANE_ROLE_DOCUMENT, PANE_DOCUMENT_KIND to PANE_KIND_NOTEBOOK)
       is FileEditor -> mapOf(PANE_ROLE to PANE_ROLE_DOCUMENT, PANE_DOCUMENT_KIND to PANE_KIND_FILE)
@@ -137,6 +120,8 @@ class TwoPaneSceneStrategyTest {
     }
 
   private companion object {
+    /** No screen has this shape since X2h; it exists to drive the strategy's refusing branch. */
+    const val NOTEBOOKS_ONLY_SURFACE = "notebooks-only-surface"
     val EDITOR_A = Editor("alpha")
     val EDITOR_B = Editor("beta")
     val FILE_A = FileEditor("a.py")

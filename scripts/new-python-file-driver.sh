@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# X2e evidence: Home's "New Python file" creates a plain file and opens it in the file editor,
-# and typing lands on disk - the creation is a file, not a notebook that looks like one.
+# X2e evidence, as X2h leaves it: "New Python file" creates a plain file, opening it gets the file
+# editor, and typing lands on disk - the creation is a file, not a notebook that looks like one.
+#
+# The menu is the explorer's "+" since X2h, because Home is gone and its FAB was the same three
+# items. The creation no longer opens what it made - `_createNew` creates and renames in place -
+# so the flow taps the row, which is the reference's shape rather than a behaviour lost.
 #
 # The emulator is enough: nothing here runs a cell, so `FakeKernelGateway` is never consulted.
 set -euo pipefail
@@ -13,7 +17,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 
 reset_notebooks
-run_flow "$ROOT/.maestro/home-new-python-file.yaml" "$ROOT/evidence/x2e-home-new-python-file"
+run_flow "$ROOT/.maestro/new-python-file.yaml" "$ROOT/evidence/x2e-home-new-python-file"
 
 # The flow proves the editor opened on `untitled.py`; these prove what the creation actually
 # wrote. The debounced save flushes before the back-navigation screenshot, so the file holds the
@@ -26,7 +30,7 @@ done
 on_disk || { echo "untitled.py never appeared on disk" >&2; exit 1; }
 
 content="$("$ADB" shell run-as "$APP" cat "$NOTEBOOK_DIR/untitled.py" | tr -d '\r')"
-if ! grep -q "print('from home')" <<<"$content"; then
+if ! grep -q "print('from the browser')" <<<"$content"; then
   echo "the typed line is not in untitled.py; content was:" >&2
   printf '%s\n' "$content" >&2
   exit 1

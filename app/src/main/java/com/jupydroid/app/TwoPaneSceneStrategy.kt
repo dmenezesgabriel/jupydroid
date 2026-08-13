@@ -85,10 +85,6 @@ internal const val PANE_KIND_NOTEBOOK = "notebook"
 internal const val PANE_KIND_FILE = "file"
 internal const val PANE_SURFACE_OPENS = "opens"
 
-/** Home opens notebooks and nothing else; see [TwoPaneSceneStrategy]'s table. */
-internal val HOME_PANE_METADATA =
-  mapOf(PANE_ROLE to PANE_ROLE_SURFACE, PANE_SURFACE_OPENS to listOf(PANE_KIND_NOTEBOOK))
-
 /** Explorer opens both document kinds; see [TwoPaneSceneStrategy]'s table. */
 internal val EXPLORER_PANE_METADATA =
   mapOf(

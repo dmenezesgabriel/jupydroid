@@ -1,6 +1,7 @@
 package com.jupydroid.app.domain.model
 
 import java.text.Collator
+import java.time.Instant
 
 /** What a workspace entry is, which decides how it sorts and what opens it. */
 enum class WorkspaceEntryKind {
@@ -16,12 +17,33 @@ enum class WorkspaceEntryKind {
  *
  * @property name what the row shows - the last segment of [path]
  * @property path relative to the workspace root, so `reports/summary.ipynb`
+ * @property updatedAt the entry's own mtime, which is what `Contents.IModel.last_modified` is
+ *   (`filemanager.py:285`). `DirListing` shows it in a column of its own and shows it by default -
+ *   only `file_size` and `date_created` start hidden (`listing.ts:259-261`) - so it is part of
+ *   listing a directory rather than an extra. It is also where A6's rule lives now that Recents is
+ *   a history rather than a list of notebooks: every write moves it, so an edit, a run and a
+ *   rename all count without anything having to remember to say so.
  */
 data class WorkspaceEntry(
   val name: String,
   val path: String,
   val kind: WorkspaceEntryKind,
+  val updatedAt: Instant,
 )
+
+/**
+ * The directory holding [path], with the root spelled as the empty string.
+ *
+ * `filebrowser:go-up` is one directory, not one screen - the reference binds Backspace to it and
+ * replaces the listing rather than pushing anything. The rule is pure, so it lives beside the
+ * other path rules rather than inside a ViewModel.
+ *
+ * ```
+ * "reports/deep".parentDirectory()   // "reports"
+ * "notes.txt".parentDirectory()      // ""
+ * ```
+ */
+fun String.parentDirectory(): String = substringBeforeLast('/', missingDelimiterValue = "")
 
 /**
  * The order JupyterLab lists a directory in.

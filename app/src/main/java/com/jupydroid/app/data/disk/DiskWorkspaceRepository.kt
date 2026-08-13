@@ -12,6 +12,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.LinkOption
+import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -151,6 +152,10 @@ class DiskWorkspaceRepository(
       name = file.name,
       path = if (parentPath.isEmpty()) file.name else "$parentPath/${file.name}",
       kind = if (file.isDirectory) WorkspaceEntryKind.DIRECTORY else WorkspaceEntryKind.FILE,
+      // The file's own mtime, which is what `last_modified` is (`filemanager.py:285`). A broken
+      // symlink answers 0 here rather than throwing, and reads as the epoch - which is honest:
+      // there is nothing behind it to have a time.
+      updatedAt = Instant.ofEpochMilli(file.lastModified()),
     )
 }
 

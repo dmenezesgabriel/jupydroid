@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
@@ -25,6 +26,7 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.theme.JupyterDroidTheme
+import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -128,18 +130,21 @@ class TwoPaneSceneTest {
   }
 
   /**
-   * The defect the step opened with, driven at the width that shows it: a wide window used to
-   * pair Recents with the file browser, because `calculateScene` put any two last entries beside
-   * each other. The browser is not a document the notebook home opens, so it draws alone.
+   * The browser with nothing open draws one pane, however wide the window.
+   *
+   * `calculateScene` declines a single entry, which is what stops an empty second pane appearing
+   * beside it. This used to assert something stronger - that Recents was *not* drawn beside the
+   * browser, the defect U7 opened with - and that shape is now unreachable: the explorer is the
+   * root, so there is no surface underneath it. `TwoPaneSceneStrategyTest.twoSurfacesNeverPair`
+   * still holds the rule.
    */
   @Test
-  fun aWideWindowBrowseFilesDrawsTheExplorerAlone() {
+  fun aWideWindowWithNothingOpenDrawsTheBrowserAlone() {
     startAppWithAFileToBrowse(twoPane = true)
 
-    compose.onNodeWithContentDescription("Browse files").performClick()
-
     waitForText("Files")
-    assertGone("Recents")
+    compose.onNodeWithText("Files").assertIsDisplayed()
+    assertGone(FILE_TEXT)
   }
 
   /**
@@ -150,9 +155,8 @@ class TwoPaneSceneTest {
   @Test
   fun aWideWindowPairsTheExplorerWithTheFileItOpened() {
     startAppWithAFileToBrowse(twoPane = true)
-
-    compose.onNodeWithContentDescription("Browse files").performClick()
     waitForText("Files")
+
     compose.onNodeWithText(FILE_NAME).performClick()
 
     waitForText(FILE_TEXT)
@@ -164,7 +168,6 @@ class TwoPaneSceneTest {
     compose.onNodeWithText("Workspace").assertIsDisplayed()
     val backArrows = compose.onAllNodesWithContentDescription("Back to recents").fetchSemanticsNodes()
     assert(backArrows.isEmpty()) { "the explorer list pane still draws a back arrow" }
-    assertGone("Recents")
   }
 
   /**
@@ -187,7 +190,12 @@ class TwoPaneSceneTest {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
         JupyterDroidTheme {
           MainNavigation(
-            appContainer = AppContainer(notebookRepository = repository),
+            appContainer = AppContainer(
+              notebookRepository = repository,
+              // The list pane is the explorer since X2h, and it lists the *workspace* - a fake
+              // one would leave both panes' rows empty and every assertion here vacuous.
+              workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+            ),
             importTitle = null,
             onImportConsumed = {},
             twoPane = twoPane,
@@ -199,7 +207,9 @@ class TwoPaneSceneTest {
 
   private fun startAppWithAFileToBrowse(twoPane: Boolean) {
     val workspace = FakeWorkspaceRepository(
-      entriesByPath = mapOf("" to listOf(WorkspaceEntry(FILE_NAME, FILE_NAME, WorkspaceEntryKind.FILE))),
+      entriesByPath = mapOf(
+        "" to listOf(WorkspaceEntry(FILE_NAME, FILE_NAME, WorkspaceEntryKind.FILE, Instant.EPOCH)),
+      ),
       textByPath = mapOf(FILE_NAME to FILE_TEXT),
     )
     compose.setContent {

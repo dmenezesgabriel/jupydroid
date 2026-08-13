@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.explorer
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -11,14 +12,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,26 +35,35 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
+import com.jupydroid.app.ui.relativeTime
+import java.time.Instant
 
 /**
  * The workspace, one directory at a time.
@@ -70,31 +84,63 @@ import com.jupydroid.app.ui.RenameFileDialog
 fun ExplorerScreen(
   workspaceRepository: WorkspaceRepository,
   notebookRepository: NotebookRepository,
+  recentDocuments: RecentDocumentsRepository,
   onOpenFile: (WorkspaceEntry) -> Unit,
+  onOpenRecent: (String) -> Unit = {},
+  /**
+   * The document open in the pane beside this one, so its row can say so - or null when the
+   * browser has the window to itself.
+   *
+   * The reference does the same from `_onActivateRequested`: the browser selects the row for the
+   * document that was just activated, and **only when it is in the directory being browsed**
+   * (`listing.ts:2761-2770`, which returns early when `dirname !== this._model.path`). Comparing
+   * whole paths is that same rule said once, since every entry carries its full path.
+   */
+  openDocumentPath: String? = null,
   onBack: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
   viewModel: ExplorerViewModel =
-    viewModel { ExplorerViewModel(workspaceRepository, notebookRepository) },
+    viewModel { ExplorerViewModel(workspaceRepository, notebookRepository, recentDocuments) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   // The entry whose name is being typed, held here rather than in the row: a `DropdownMenu` item
   // that opened its own dialog would take it down with itself the moment it dismissed.
   var renaming by remember { mutableStateOf<WorkspaceEntry?>(null) }
   var deleting by remember { mutableStateOf<WorkspaceEntry?>(null) }
+  // Read once per listing rather than per row, so every row on screen is aged against the same
+  // instant - otherwise two files written together can read as different ages.
+  val now = remember(state.path, state.entries) { Instant.now() }
+  val listing = rememberLazyListState()
+
+  // The workspace is shared, so what is on screen goes stale while the screen is away: an editor
+  // writes the notebook this row names, an import lands a file. The reference polls for the same
+  // reason (`FileBrowserModel`, `standby: 'when-hidden'`); on a phone showing one thing at a time,
+  // coming back *is* the moment that matters.
+  LifecycleResumeEffect(Unit) {
+    viewModel.refresh()
+    onPauseOrDispose {}
+  }
+
+  // A created row can land anywhere, because the listing is ordered by name - so it is brought
+  // into view rather than left below the fold, which is audit A3 on this surface.
+  BringCreatedItemIntoView(
+    justCreated = state.justCreated,
+    entries = state.entries,
+    recentsAbove = state.recents.size,
+    listing = listing,
+  )
 
   // Back climbs the workspace before it leaves the screen, which is `filebrowser:go-up` - the
   // reference binds Backspace to the same thing. Enabled only when there is a parent, so at the
   // root back still means "leave", and nothing swallows it.
-  BackHandler(enabled = state.canGoUp) { viewModel.goUp() }
+  BackHandler(enabled = state.canGoUp) { viewModel.goTo(state.path.parentDirectory()) }
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = {
       FilesBar(
         onBack = onBack,
-        onCreateNotebook = viewModel::createNotebook,
-        onCreatePythonFile = { viewModel.createFile("py") },
-        onCreateFolder = viewModel::createFolder,
+        onCreate = viewModel::create,
       )
     },
   ) { padding ->
@@ -102,13 +148,29 @@ fun ExplorerScreen(
       Breadcrumb(crumbs = state.crumbs, onGoTo = viewModel::goTo)
       HorizontalDivider()
       state.error?.let { ExplorerError(it) }
-      LazyColumn(modifier = Modifier.fillMaxSize()) {
+      // One LazyColumn for both sections, through the item/items DSL: a second scrollable nested
+      // in the same direction is what Compose forbids outright, and the guidance is to consolidate
+      // rather than to give the inner one a fixed height.
+      LazyColumn(state = listing, modifier = Modifier.fillMaxSize()) {
+        if (state.recents.isNotEmpty()) {
+          item(key = RECENTS_HEADING_KEY, contentType = RECENTS_HEADING_KEY) {
+            RecentsHeading(onClear = viewModel::clearRecents)
+          }
+          // Keys are namespaced: a recent and a listing row can hold the same path at the root,
+          // and two items sharing a key in one LazyColumn is a crash, not a cosmetic clash.
+          items(state.recents, key = { "recent:${it.path}" }, contentType = { RECENTS_ROW_TYPE }) { document ->
+            RecentRow(document = document, onOpen = { viewModel.openRecent(document, onOpenRecent) })
+          }
+          item(key = RECENTS_DIVIDER_KEY, contentType = RECENTS_DIVIDER_KEY) { HorizontalDivider() }
+        }
         // Keyed by path, which is the identity of a workspace entry and a String, so it survives
         // the Bundle round trip Compose needs for state restoration. contentType by kind, so a
         // folder row and a file row reuse separate composition pools rather than each other's.
         items(state.entries, key = { it.path }, contentType = { it.kind }) { entry ->
           EntryRow(
             entry = entry,
+            now = now,
+            isOpen = entry.path == openDocumentPath,
             onOpen = { viewModel.open(entry, onOpenFile) },
             onRename = { renaming = entry },
             onDelete = { deleting = entry },
@@ -162,12 +224,7 @@ fun ExplorerScreen(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FilesBar(
-  onBack: (() -> Unit)?,
-  onCreateNotebook: () -> Unit,
-  onCreatePythonFile: () -> Unit,
-  onCreateFolder: () -> Unit,
-) {
+private fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit) {
   TopAppBar(
     title = { Text("Files") },
     navigationIcon = {
@@ -177,13 +234,7 @@ private fun FilesBar(
         }
       }
     },
-    actions = {
-      NewMenu(
-        onCreateNotebook = onCreateNotebook,
-        onCreatePythonFile = onCreatePythonFile,
-        onCreateFolder = onCreateFolder,
-      )
-    },
+    actions = { NewMenu(onCreate = onCreate) },
   )
 }
 
@@ -197,28 +248,18 @@ private fun FilesBar(
  * files can reach.
  */
 @Composable
-private fun NewMenu(
-  onCreateNotebook: () -> Unit,
-  onCreatePythonFile: () -> Unit,
-  onCreateFolder: () -> Unit,
-) {
+private fun NewMenu(onCreate: (NewItem) -> Unit) {
   var open by remember { mutableStateOf(false) }
   IconButton(onClick = { open = true }) {
     Icon(Icons.Filled.Add, contentDescription = "New")
   }
   DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-    DropdownMenuItem(text = { Text("New notebook") }, onClick = {
-      open = false
-      onCreateNotebook()
-    })
-    DropdownMenuItem(text = { Text("New Python file") }, onClick = {
-      open = false
-      onCreatePythonFile()
-    })
-    DropdownMenuItem(text = { Text("New folder") }, onClick = {
-      open = false
-      onCreateFolder()
-    })
+    NEW_MENU_ITEMS.forEach { (item, label) ->
+      DropdownMenuItem(text = { Text(label) }, onClick = {
+        open = false
+        onCreate(item)
+      })
+    }
   }
 }
 
@@ -253,6 +294,95 @@ private fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> U
 }
 
 /**
+ * Scrolls a newly created row into view, once.
+ *
+ * The index has to count what sits *above* the listing - the Recents heading, its rows and the
+ * divider - because they are items in the same `LazyColumn`. Off-by-one here would scroll to a
+ * neighbour, which looks like the bug it is fixing.
+ */
+@Composable
+private fun BringCreatedItemIntoView(
+  justCreated: String?,
+  entries: List<WorkspaceEntry>,
+  recentsAbove: Int,
+  listing: LazyListState,
+) {
+  LaunchedEffect(justCreated, entries) {
+    val at = entries.indexOfFirst { it.path == justCreated }
+    if (justCreated == null || at < 0) return@LaunchedEffect
+    val sectionItems = if (recentsAbove == 0) 0 else recentsAbove + HEADING_AND_DIVIDER
+    listing.animateScrollToItem(sectionItems + at)
+  }
+}
+
+/**
+ * What the section is, and the one way to empty it.
+ *
+ * "Recent" rather than "Recently opened": the reference's submenu is `Open Recent` and its panel
+ * section is `Recently Closed`, both of which read as verbs on a phone where the heading has to
+ * sit in a row of its own. Clearing is `docmanager:clear-recents`, which the reference puts at the
+ * foot of the same submenu; here it is an action on the heading, because a phone has no submenu
+ * to put a last item in.
+ */
+@Composable
+private fun RecentsHeading(onClear: () -> Unit) {
+  Row(
+    modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Text(
+      text = "Recent",
+      style = MaterialTheme.typography.labelLarge,
+      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.weight(1f),
+    )
+    IconButton(onClick = onClear) {
+      Icon(
+        Icons.Filled.Clear,
+        contentDescription = "Clear recents",
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+  }
+}
+
+/**
+ * One recent: the path it was opened under, and an icon saying whether it is a folder.
+ *
+ * **The whole path, not the basename.** A recents list is flat and global, so two `summary.ipynb`
+ * in different folders would be one row repeated; the reference labels its own recents by path too
+ * (`joinWithLeadingSlash(recent.root, recent.path)`, `mainmenu-extension/src/recents.ts`). The
+ * *start* is ellipsised rather than the end, because the end is the part that names the document.
+ *
+ * No timestamp, deliberately: neither reference surface carries one. When a thing was last written
+ * belongs to the listing below, which is where `DirListing` puts it.
+ */
+@Composable
+private fun RecentRow(document: RecentDocument, onOpen: () -> Unit) {
+  val directory = document.kind == WorkspaceEntryKind.DIRECTORY
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .clickable(onClick = onOpen)
+      .padding(horizontal = 16.dp, vertical = 14.dp),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Icon(
+      imageVector = if (directory) Icons.Filled.Folder else Icons.Filled.History,
+      contentDescription = if (directory) "Recent folder" else "Recent file",
+      tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+      text = document.path,
+      style = MaterialTheme.typography.bodyLarge,
+      maxLines = 1,
+      overflow = TextOverflow.StartEllipsis,
+      modifier = Modifier.padding(start = 16.dp),
+    )
+  }
+}
+
+/**
  * One entry: an icon that says what it is, and its name.
  *
  * The icon carries the kind for a scanning eye and its `contentDescription` carries it for a
@@ -262,6 +392,8 @@ private fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> U
 @Composable
 private fun EntryRow(
   entry: WorkspaceEntry,
+  now: Instant,
+  isOpen: Boolean,
   onOpen: () -> Unit,
   onRename: () -> Unit,
   onDelete: () -> Unit,
@@ -279,11 +411,15 @@ private fun EntryRow(
   Row(
     modifier = Modifier
       .fillMaxWidth()
+      // One accessible item rather than an icon and two Texts, so a row reads as
+      // "Nested.ipynb, just now, selected" instead of making TalkBack walk three nodes - and so
+      // `selected` is found on the node the name is on.
+      .semantics(mergeDescendants = true) { selected = isOpen; customActions = actions }
+      .background(if (isOpen) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
       // Long press for the row's own actions, which is the touch equivalent of the reference's
       // right-click context menu (`filebrowser-extension`) and of Winlator's per-row menu - and is
       // already what a notebook row on Home opens.
       .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
-      .semantics { customActions = actions }
       .padding(horizontal = 16.dp, vertical = 14.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -295,13 +431,23 @@ private fun EntryRow(
       contentDescription = if (directory) "Folder" else "File",
       tint = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Text(
-      text = entry.name,
-      style = MaterialTheme.typography.bodyLarge,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis,
-      modifier = Modifier.padding(start = 16.dp),
-    )
+    // The name and its time stack rather than sitting in two columns: `DirListing` gives
+    // `last_modified` a column of its own, and a 320dp phone has no second column to give it -
+    // the reference itself narrows the format as the space shrinks (`listing.ts:1061-1073`), and
+    // this is the end of that scale.
+    Column(modifier = Modifier.padding(start = 16.dp)) {
+      Text(
+        text = entry.name,
+        style = MaterialTheme.typography.bodyLarge,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+      )
+      Text(
+        text = relativeTime(entry.updatedAt, now),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
       DropdownMenuItem(
         text = { Text("Rename") },
@@ -333,3 +479,23 @@ private fun ExplorerError(message: String) {
 }
 
 private val SEPARATOR = 16.dp
+
+/**
+ * Keys for the section's non-row items, and a type for its rows.
+ *
+ * Namespaced on purpose: at the root a recent and a listing row can hold the same path, and two
+ * items sharing a key inside one `LazyColumn` is a crash rather than a cosmetic clash.
+ */
+private const val RECENTS_HEADING_KEY = "recents-heading"
+private const val RECENTS_DIVIDER_KEY = "recents-divider"
+private const val RECENTS_ROW_TYPE = "recent"
+
+/** The heading above the recent rows and the divider below them, both items in the same list. */
+private const val HEADING_AND_DIVIDER = 2
+
+/** The three the reference's New widget offers, in its order. */
+private val NEW_MENU_ITEMS = listOf(
+  NewItem.NOTEBOOK to "New notebook",
+  NewItem.PYTHON_FILE to "New Python file",
+  NewItem.FOLDER to "New folder",
+)

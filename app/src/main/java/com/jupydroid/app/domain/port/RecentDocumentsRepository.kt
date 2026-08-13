@@ -29,4 +29,14 @@ interface RecentDocumentsRepository {
 
   /** `docmanager:clear-recents` - forgets the lot, which the reference offers from its submenu. */
   suspend fun clear()
+
+  /**
+   * Drops every entry whose path no longer names anything, and keeps the rest.
+   *
+   * The reference does **not** make a recent follow a rename; it drops what stops resolving.
+   * `_isValid` treats a 404 as invalid (`recents.ts:169-181`) and `RecentsMenu.onBeforeAttach`
+   * re-checks the whole list every time it is about to be shown. A surface that keeps recents on
+   * screen has to ask at the moment it refreshes instead.
+   */
+  suspend fun revalidate()
 }

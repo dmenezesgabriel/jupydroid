@@ -1,10 +1,15 @@
 appId: com.jupydroid.app
 ---
+# Step 2.2, on the surface X2h left: the browser's New menu creates a notebook and the row appears.
+# Home's FAB carried the same two items and went with Home; the menu is the reference's own New
+# widget (`packages/filebrowser-extension`).
 - launchApp:
     clearState: true
-- assertVisible: "No recent notebooks yet"
-- tapOn: "\\+"
-- assertVisible: "New notebook"
+- assertVisible: "Files"
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
 - tapOn: "New notebook"
 - assertVisible: "Untitled.ipynb"
 - takeScreenshot: 01-created-notebook

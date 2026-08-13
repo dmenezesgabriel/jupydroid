@@ -3,8 +3,12 @@ appId: com.jupydroid.app
 # X2b, fixed: the file browser is one pane on its own; when it opens a document, Explorer pairs
 # with it (Explorer|Editor, Explorer|FileEditor) - the split JupyterLab makes between the
 # filebrowser and the dock. Which pane is drawn is then double-checked by the driver FROM THE
-# APP'S OWN TREE (see x2b-explorer-beside-the-document-driver.sh): maestro's "Recents" matcher
-# also sees a system element on this device, so the flow never asserts on that string.
+# APP'S OWN TREE (see x2b-explorer-beside-the-document-driver.sh).
+#
+# **Since X2h the browser has no back arrow in any state**, because it is the first screen: what
+# used to tell "one pane" from "list pane" was that arrow, and the crumb now has to do it alone.
+# "Workspace" is only ever the browser's, so it appearing beside a document's text *is* the pair,
+# and the driver's tree check is what says nothing else is drawn.
 #
 # Seeded by the driver: two notebooks and one plain file at the root. The tablet's window
 # (>= 840dp) is what makes the panes exist, so the driver refuses to run anywhere narrower.
@@ -13,16 +17,15 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-- tapOn: "Browse files"
 - extendedWaitUntil:
     visible: "Files"
     timeout: 10000
 - waitForAnimationToEnd:
     timeout: 5000
-# The browser is a screen now, with its own door back (the arrow proves it is the top of the
-# stack, i.e. one pane). The driver then proves Recents is not drawn beside it.
-- assertVisible: "Back to recents"
+# The browser alone, which is what the app opens on: one pane, however wide the window, because
+# `calculateScene` declines a single entry.
 - assertVisible: "Workspace"
+- assertNotVisible: "first_only = 111"
 - takeScreenshot: 01-the-file-browser-alone
 
 # Opening a notebook makes the pair Explorer|Editor. "Workspace" is only the browser's crumb, so
@@ -35,9 +38,6 @@ appId: com.jupydroid.app
     timeout: 5000
 - assertVisible: "Workspace"
 - assertVisible: "first_only = 111"
-# The browser is the list pane now: its own back arrow is gone, because it no longer has a screen
-# to go back to.
-- assertNotVisible: "Back to recents"
 - takeScreenshot: 02-the-notebook-beside-the-browser
 # Tapping the other notebook from the list swaps the detail rather than stacking a pane.
 - tapOn: "Switch Beta.ipynb"
@@ -48,11 +48,12 @@ appId: com.jupydroid.app
 - assertVisible: "Workspace"
 - takeScreenshot: 03-detail-swapped-browser-kept
 
-# Back leaves the pair, one pop, and the browser is a screen again - full width, arrow restored.
+# Back leaves the pair, one pop, and the browser is full width again - the notebook's own text is
+# what has to be gone, since the crumb was on screen either way.
 - back
 - waitForAnimationToEnd:
     timeout: 5000
-- assertVisible: "Back to recents"
+- assertNotVisible: "second_only = 222"
 - assertVisible: "Switch Alpha.ipynb"
 - takeScreenshot: 04-back-to-the-browser-alone
 
@@ -62,13 +63,12 @@ appId: com.jupydroid.app
     visible: ".*the file editor.*"
     timeout: 10000
 - assertVisible: "Workspace"
-- assertNotVisible: "Back to recents"
 - takeScreenshot: 05-the-plain-file-beside-the-browser
 
-# One more back: the browser alone again - the state the driver then checks has no Recents.
+# One more back: the browser alone again - the state the driver then checks.
 - back
 - waitForAnimationToEnd:
     timeout: 5000
-- assertVisible: "Back to recents"
+- assertNotVisible: ".*the file editor.*"
 - assertVisible: "Workspace"
 - takeScreenshot: 06-back-to-the-browser-alone

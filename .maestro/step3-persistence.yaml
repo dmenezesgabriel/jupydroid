@@ -1,9 +1,14 @@
 appId: com.jupydroid.app
 ---
+# Step 3: what was created is still there after the process dies - the notebook is a file, and the
+# listing is read from disk on every launch.
 - launchApp:
     clearState: true
-- assertVisible: "No recent notebooks yet"
-- tapOn: "\\+"
+- assertVisible: "Files"
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
 - tapOn: "New notebook"
 - assertVisible: "Untitled.ipynb"
 - stopApp

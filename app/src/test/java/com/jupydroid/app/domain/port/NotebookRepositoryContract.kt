@@ -27,17 +27,23 @@ import org.junit.Test
 abstract class NotebookRepositoryContract {
   protected abstract fun repository(): NotebookRepository
 
+  /**
+   * An edit is written where it can be read back, which is all a save owes.
+   *
+   * This used to assert the edit also moved the notebook to the top of Recents. That ordering was
+   * a property of Recents-as-a-scan and went with it in X2h; when a file was last written is now
+   * `WorkspaceEntry.updatedAt`, and `WorkspaceRepositoryContract` holds every implementation to it.
+   */
   @Test
-  fun savingANotebookMovesItAboveOneCreatedAfterIt() = runTest {
+  fun savingANotebookKeepsTheEdit() = runTest {
     val repository = repository()
     val edited = repository.createNotebook(title = "Edited", kernelId = "python3")
-    repository.createNotebook(title = "Newer", kernelId = "python3")
 
     repository.saveNotebook(
       repository.readNotebook(edited.id).copy(cells = listOf(Cell("c1", CellKind.CODE, "x = 1"))),
     )
 
-    assertFirst(repository, edited.id, "saving")
+    assertEquals(listOf("x = 1"), repository.readNotebook(edited.id).cells.map { it.source })
   }
 
   /**
@@ -57,34 +63,23 @@ abstract class NotebookRepositoryContract {
     assertEquals("reports/Final", repository.renameNotebook(nested.id, "Final"))
   }
 
+  /**
+   * A rename answers with the **new** id, because it moves the file and the old one stops naming
+   * anything - the contract every implementation owes since X1b, fake and disk alike.
+   *
+   * This used to assert the renamed notebook then sat at the top of Recents. That ordering was a
+   * property of Recents-as-a-scan and went with it in X2h; when a file was last written is now
+   * `WorkspaceEntry.updatedAt`, where `WorkspaceRepositoryContract` holds every implementation to
+   * it. What is owed *here* is that the id moves, which is what the rest of the app resolves.
+   */
   @Test
-  fun renamingANotebookMovesItAboveOneCreatedAfterIt() = runTest {
+  fun renamingANotebookAnswersWithTheIdItMovedTo() = runTest {
     val repository = repository()
     val renamed = repository.createNotebook(title = "Renamed", kernelId = "python3")
-    repository.createNotebook(title = "Newer", kernelId = "python3")
 
-    // The new id, because a rename moves the file and the old one stops naming anything - which
-    // is the contract every implementation owes since X1b, fake and disk alike.
     val movedTo = repository.renameNotebook(renamed.id, "Renamed again.ipynb")
 
-    assertFirst(repository, movedTo, "renaming")
-  }
-
-  @Test
-  fun aNewNotebookIsTheMostRecentlyUpdatedOne() = runTest {
-    val repository = repository()
-    repository.createNotebook(title = "First", kernelId = "python3")
-
-    val newest = repository.createNotebook(title = "Second", kernelId = "python3")
-
-    assertFirst(repository, newest.id, "creating")
-  }
-
-  private suspend fun assertFirst(repository: NotebookRepository, id: String, act: String) {
-    val recents = repository.observeNotebooks().first()
-    assertTrue(
-      "$act must put '$id' at the top of Recents, got ${recents.map { it.title to it.updatedAt }}",
-      recents.first().id == id,
-    )
+    assertEquals("Renamed again.ipynb", movedTo)
+    assertEquals("Renamed again.ipynb", repository.readNotebook(movedTo).title)
   }
 }

@@ -13,78 +13,78 @@ import org.junit.Test
 class NotebookBackStackTest {
   @Test
   fun openingANotebookPushesItsEditor() {
-    val backStack = mutableListOf<NavKey>(Home)
+    val backStack = mutableListOf<NavKey>(Explorer)
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Home, Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
   }
 
   @Test
   fun openingTheNotebookAlreadyOnTopChangesNothing() {
-    val backStack = mutableListOf<NavKey>(Home, Editor("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Home, Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
   }
 
   /**
    * A second notebook **replaces** the first rather than stacking on it.
    *
-   * It used to push, which was unreachable on a phone - Home is not on screen while an editor
+   * It used to push, which was unreachable on a phone - Explorer is not on screen while an editor
    * is - and so never wrong. Two panes make it reachable: the list is beside the editor, and a
-   * stacked `[Home, Editor(a), Editor(b)]` would pair the *last two* entries and put a notebook
+   * stacked `[Explorer, Editor(a), Editor(b)]` would pair the *last two* entries and put a notebook
    * where the list belongs. Replacing also disposes `Editor(a)`'s entry, which is what makes
    * `EditorViewModel.onCleared` run and close its kernel socket.
    */
   @Test
   fun openingADifferentNotebookReplacesTheOneOpen() {
-    val backStack = mutableListOf<NavKey>(Home, Editor("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
 
     backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Home, Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
   }
 
   /** Only an editor is swapped out. Anything else below stays where it is. */
   @Test
   fun openingFromTheListLeavesTheListInPlace() {
-    val backStack = mutableListOf<NavKey>(Home)
+    val backStack = mutableListOf<NavKey>(Explorer)
 
     backStack.openNotebook("nb-1")
     backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Home, Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
   }
 
   /** A plain file opens the same way a notebook does: one document, pushed onto the browser. */
   @Test
   fun openingAFilePushesItsEditor() {
-    val backStack = mutableListOf<NavKey>(Home, Explorer)
+    val backStack = mutableListOf<NavKey>(Explorer, Explorer)
 
     backStack.openFile("data.csv")
 
-    assertEquals(listOf(Home, Explorer, FileEditor("data.csv")), backStack)
+    assertEquals(listOf(Explorer, Explorer, FileEditor("data.csv")), backStack)
   }
 
   @Test
   fun openingTheFileAlreadyOnTopChangesNothing() {
-    val backStack = mutableListOf<NavKey>(Home, Explorer, FileEditor("data.csv"))
+    val backStack = mutableListOf<NavKey>(Explorer, Explorer, FileEditor("data.csv"))
 
     backStack.openFile("data.csv")
 
-    assertEquals(listOf(Home, Explorer, FileEditor("data.csv")), backStack)
+    assertEquals(listOf(Explorer, Explorer, FileEditor("data.csv")), backStack)
   }
 
   /** A second file replaces the one open - the reference's `openOrReveal`, applied to files. */
   @Test
   fun openingADifferentFileReplacesTheOneOpen() {
-    val backStack = mutableListOf<NavKey>(Home, Explorer, FileEditor("a.csv"))
+    val backStack = mutableListOf<NavKey>(Explorer, Explorer, FileEditor("a.csv"))
 
     backStack.openFile("b.csv")
 
-    assertEquals(listOf(Home, Explorer, FileEditor("b.csv")), backStack)
+    assertEquals(listOf(Explorer, Explorer, FileEditor("b.csv")), backStack)
   }
 
   /**
@@ -94,12 +94,12 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingANotebookReplacesAPlainFileAndViceVersa() {
-    val fromFile = mutableListOf<NavKey>(Home, Explorer, FileEditor("a.py"))
+    val fromFile = mutableListOf<NavKey>(Explorer, Explorer, FileEditor("a.py"))
     fromFile.openNotebook("nb-1")
-    assertEquals(listOf(Home, Explorer, Editor("nb-1")), fromFile)
+    assertEquals(listOf(Explorer, Explorer, Editor("nb-1")), fromFile)
 
-    val fromNotebook = mutableListOf<NavKey>(Home, Explorer, Editor("nb-1"))
+    val fromNotebook = mutableListOf<NavKey>(Explorer, Explorer, Editor("nb-1"))
     fromNotebook.openFile("a.py")
-    assertEquals(listOf(Home, Explorer, FileEditor("a.py")), fromNotebook)
+    assertEquals(listOf(Explorer, Explorer, FileEditor("a.py")), fromNotebook)
   }
 }

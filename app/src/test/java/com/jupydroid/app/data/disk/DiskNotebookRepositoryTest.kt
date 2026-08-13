@@ -119,32 +119,13 @@ class DiskNotebookRepositoryTest {
   }
 
   @Test
-  fun deleteNotebook_removesFileAndSummary() = runTest {
+  fun deleteNotebook_removesTheFile() = runTest {
     val repository = repository()
     val created = repository.createNotebook(title = "Untitled", kernelId = "python3")
 
     repository.deleteNotebook(created.id)
 
     assertFalse(notebookFile(created.id).exists())
-    assertTrue(repository.observeNotebooks().first().isEmpty())
-  }
-
-  /**
-   * The order is the files' own mtimes, the way Jupyter reads `last_modified`, so this sets
-   * those - there is no longer a field in the JSON to set. Read back through a second
-   * repository because summaries are scanned in `init` and refreshed only after a mutation.
-   */
-  @Test
-  fun observeNotebooks_listsNewestFirst() = runTest {
-    val repository = repository()
-    repository.saveNotebook(notebook(id = "older.ipynb"))
-    repository.saveNotebook(notebook(id = "newer.ipynb"))
-    notebookFile("older.ipynb").setLastModified(Instant.parse("2026-01-01T00:00:00Z").toEpochMilli())
-    notebookFile("newer.ipynb").setLastModified(Instant.parse("2026-01-02T00:00:00Z").toEpochMilli())
-
-    val summaries = DiskNotebookRepository(tempFolder.root).observeNotebooks().first()
-
-    assertEquals(listOf("newer.ipynb", "older.ipynb"), summaries.map { it.id })
   }
 
   @Test
@@ -238,18 +219,21 @@ class DiskNotebookRepositoryTest {
     assertEquals(false, metadata.containsKey("jupydroid"))
   }
 
+  /**
+   * A file written before X1b is named by its **file**, not by the title it still carries.
+   *
+   * `metadata.jupydroid.title` is no longer read at all. Files like this one are renamed once by
+   * `NotebookWorkspaceMigration` before they are ever shown, so nobody sees a notebook lose its
+   * name. (When it was last written is no longer asked of this repository - that is the
+   * workspace's `updatedAt` since X2h, and `DiskWorkspaceRepositoryTest` pins it to the mtime.)
+   */
   @Test
-  fun aFileStillCarryingTheOldTimestampIsListedByItsMtime() = runTest {
+  fun aFileWrittenBeforeTheNameWasTheFileIsNamedByItsFile() = runTest {
     notebookFile("legacy.ipynb").writeText(LEGACY_WITH_UPDATED_AT)
-    notebookFile("legacy.ipynb").setLastModified(Instant.parse("2026-03-04T05:06:07Z").toEpochMilli())
 
-    val summary = repository().observeNotebooks().first().single()
+    val read = repository().readNotebook("legacy.ipynb")
 
-    assertEquals(Instant.parse("2026-03-04T05:06:07Z"), summary.updatedAt)
-    // Its file is `legacy.ipynb`, so that is its name: the `metadata.jupydroid.title` this fixture
-    // still carries is no longer read. Files like it are renamed once by NotebookWorkspaceMigration
-    // before they are ever shown, so nobody sees a notebook lose its name.
-    assertEquals("legacy.ipynb", summary.title)
+    assertEquals("legacy.ipynb", read.title)
   }
 
   private fun notebook(id: String): Notebook =

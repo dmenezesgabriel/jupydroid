@@ -80,6 +80,43 @@ class DiskRecentDocumentsRepositoryTest : RecentDocumentsRepositoryContract() {
   }
 
   /**
+   * A renamed file leaves a recent pointing at nothing, and re-checking drops it.
+   *
+   * The reference does not make recents follow a rename - it drops what no longer resolves.
+   * `_isValid` treats a 404 as invalid, and `RecentsMenu.onBeforeAttach` re-validates every time
+   * the list is about to be shown (`mainmenu-extension/src/recents.ts`), which is why a stale
+   * entry is never offered. Ours is always on screen, so the browser re-checks when it refreshes.
+   *
+   * Found by `rename-in-editor`: renaming from the editor left the old name in Recents, on screen,
+   * naming a file that no longer existed.
+   */
+  @Test
+  fun revalidatingDropsAnEntryWhoseFileWasRenamedAway() = runTest {
+    givenInWorkspace("before.ipynb")
+    val store = openStore()
+    store.record(RecentDocument("before.ipynb", WorkspaceEntryKind.FILE))
+    assertTrue(File(workspaceDir, "before.ipynb").renameTo(File(workspaceDir, "after.ipynb")))
+
+    store.revalidate()
+
+    assertTrue("the stale entry is still listed", store.observeRecents().first().isEmpty())
+  }
+
+  /** Re-checking is not a wipe: what is still on disk stays, and stays in order. */
+  @Test
+  fun revalidatingKeepsWhatIsStillThere() = runTest {
+    givenInWorkspace("kept.ipynb", "gone.ipynb")
+    val store = openStore()
+    store.record(RecentDocument("kept.ipynb", WorkspaceEntryKind.FILE))
+    store.record(RecentDocument("gone.ipynb", WorkspaceEntryKind.FILE))
+    assertTrue(File(workspaceDir, "gone.ipynb").delete())
+
+    store.revalidate()
+
+    assertEquals(listOf("kept.ipynb"), store.observeRecents().first().map { it.path })
+  }
+
+  /**
    * The store lives outside the workspace, and that is not an implementation detail.
    *
    * The workspace is the kernel's `HOME` and the server's `root_dir` (X1a), shared with any other

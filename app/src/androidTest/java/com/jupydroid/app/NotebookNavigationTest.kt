@@ -1,6 +1,8 @@
 package com.jupydroid.app
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -8,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
@@ -82,8 +85,12 @@ class NotebookNavigationTest {
     startAppWithTwoNotebooks()
 
     compose.mainClock.autoAdvance = false
-    compose.onNodeWithText(ALPHA_TITLE).performClick()
-    compose.onNodeWithText(ALPHA_TITLE).performClick()
+    listingRow(ALPHA_TITLE).performClick()
+    // The *listing* row both times. Since X2h the first tap makes the notebook a recent, so its
+    // name is on screen twice at the root - once in the Recents section, once in the listing - and
+    // a bare text match finds two nodes. Which row the second tap lands on does not matter to what
+    // this asserts; naming one does.
+    listingRow(ALPHA_TITLE).performClick()
     compose.mainClock.autoAdvance = true
     waitForText(ALPHA_SOURCE)
 
@@ -93,6 +100,13 @@ class NotebookNavigationTest {
     waitForText(BETA_TITLE)
     compose.onNodeWithText(BETA_TITLE).assertIsDisplayed()
   }
+
+  /**
+   * The row in the workspace listing, told from its twin in the Recents section by the icon each
+   * one carries - "File" against "Recent file", which is also what a screen reader hears.
+   */
+  private fun listingRow(title: String) =
+    compose.onNode(hasText(title) and hasContentDescription("File"))
 
   private fun startAppWithTwoNotebooks() {
     val repository = DiskNotebookRepository(tempFolder.root)
@@ -106,7 +120,12 @@ class NotebookNavigationTest {
     compose.setContent {
       JupyterDroidTheme {
         MainNavigation(
-          appContainer = AppContainer(notebookRepository = repository),
+          appContainer = AppContainer(
+            notebookRepository = repository,
+            // The list is the explorer since X2h, and it lists the *workspace* - the default fake
+            // is empty, so without this there are no rows to tap and the test proves nothing.
+            workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+          ),
           importTitle = null,
           onImportConsumed = {},
         )

@@ -6,13 +6,8 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-# Recents first, because the explorer is reached from it and the bar is what says so.
-- assertVisible: "Recents"
-- takeScreenshot: 01-recents-with-the-door-to-files
-
-# The bar's folder action, by its contentDescription - `id:` matches a resource id, which a
-# Compose icon does not have.
-- tapOn: "Browse files"
+# The workspace is the first thing on screen since X2h - there is no door to walk through, because
+# Recents stopped being a screen and became a section of this one.
 - assertVisible: "Files"
 # "Workspace" is the root crumb; the reference labels its own root the same way rather than
 # showing an empty path.
@@ -64,7 +59,10 @@ appId: com.jupydroid.app
 - assertNotVisible: "Nested.ipynb"
 - takeScreenshot: 07-back-climbed-to-the-root
 
-# At the root there is no parent left, so the same gesture leaves - nothing swallows it.
-- back
-- assertVisible: "Recents"
-- takeScreenshot: 08-and-then-out-to-recents
+# At the root there is no parent left, so `BackHandler` is disabled and the gesture leaves the app
+# rather than being swallowed. Asserting the *leaving* is not something maestro can do without
+# reading another app's screen, so what is pinned here is the state it leaves from: the root, with
+# no crumb below "Workspace" to climb to.
+- assertVisible: "Workspace"
+- assertNotVisible: "Nested.ipynb"
+- takeScreenshot: 08-back-at-the-root-with-nothing-left-to-climb

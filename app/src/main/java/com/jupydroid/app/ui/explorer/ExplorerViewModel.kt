@@ -3,11 +3,14 @@ package com.jupydroid.app.ui.explorer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
+import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.UNTITLED_NOTEBOOK
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.domain.model.shownWhileBrowsing
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +37,12 @@ class ExplorerViewModel(
    * server writes content into it (`services/contents/manager.py:605-607`).
    */
   private val notebookRepository: NotebookRepository,
+  /**
+   * What was opened, which no listing of the tree can answer. Its own port because a recent is a
+   * record of an act where a listing is a record of a tree - and because it remembers plain files
+   * and folders too.
+   */
+  private val recentDocuments: RecentDocumentsRepository,
   private val rootLabel: String = ROOT_LABEL,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(ExplorerUiState())
@@ -47,8 +56,37 @@ class ExplorerViewModel(
    */
   private var renamingPath: String? = null
 
+  /**
+   * The whole list, kept apart from what is on screen: [shownWhileBrowsing] decides how much of it
+   * a given directory shows, and it must not be re-derived from a truncated copy.
+   */
+  private var recentlyOpened: List<RecentDocument> = emptyList()
+
   init {
     goTo("")
+    viewModelScope.launch {
+      recentDocuments.observeRecents().collect { opened ->
+        recentlyOpened = opened
+        _uiState.update { it.copy(recents = opened.shownWhileBrowsing(it.path)) }
+      }
+    }
+  }
+
+  /**
+   * A recent folder moves the browser; only a document is handed to an editor.
+   *
+   * The reference's `openRecent` makes the same split - a `contentType: 'directory'` goes to the
+   * file browser's `openPath` and everything else to `docmanager:open`
+   * (`packages/mainmenu-extension/src/recents.ts`). Which editor a document gets is not decided
+   * here, for the same reason [open] does not decide it.
+   */
+  fun openRecent(document: RecentDocument, onOpenFile: (String) -> Unit) {
+    if (document.kind == WorkspaceEntryKind.DIRECTORY) goTo(document.path) else onOpenFile(document.path)
+  }
+
+  /** `docmanager:clear-recents`, which the reference offers from the same submenu. */
+  fun clearRecents() {
+    viewModelScope.launch { recentDocuments.clear() }
   }
 
   /**
@@ -62,11 +100,6 @@ class ExplorerViewModel(
     if (entry.kind == WorkspaceEntryKind.DIRECTORY) goTo(entry.path) else onOpenFile(entry)
   }
 
-  /** Up one level, which the reference calls `filebrowser:go-up` and binds to Backspace. */
-  fun goUp() {
-    goTo(_uiState.value.path.substringBeforeLast('/', missingDelimiterValue = ""))
-  }
-
   /**
    * Lists [path] and shows it, or reports why it could not.
    *
@@ -74,7 +107,13 @@ class ExplorerViewModel(
    * cell can remove the folder being looked at - so a failure leaves the view where it was and
    * says so, rather than emptying the screen or throwing.
    */
-  fun goTo(path: String) {
+  /**
+   * @param justCreated what a creation just made, so the screen can scroll to it - carried *into*
+   *   the listing rather than set after it. This launches its own coroutine, so setting it
+   *   afterwards raced the listing and lost: the fresh state built here overwrote it, audit A3's
+   *   row stayed below the fold, and every unit test stayed green. The flow is what caught it.
+   */
+  fun goTo(path: String, justCreated: String? = null) {
     viewModelScope.launch {
       runCatching { workspaceRepository.list(path) }
         .onSuccess { entries ->
@@ -83,6 +122,8 @@ class ExplorerViewModel(
             entries = entries,
             crumbs = crumbsFor(path, rootLabel),
             error = null,
+            recents = recentlyOpened.shownWhileBrowsing(path),
+            justCreated = justCreated,
           )
         }
         .onFailure { failure ->
@@ -97,24 +138,52 @@ class ExplorerViewModel(
   }
 
   /**
-   * Creates a file of [extension] in the directory being browsed.
+   * Creates one [NewItem] in the directory being browsed.
+   *
+   * **One typed call, not one method per menu item** - which is the reference's own shape:
+   * `_createNew` takes `{path, type}` and the server's `new_untitled` branches on the type
+   * (`packages/filebrowser/src/browser.ts:529-566`, `services/contents/manager.py:599-614`).
+   * Three methods here were three spellings of one act, and detekt counting them was right.
    *
    * The *directory being browsed*, because that is what `_createNew` passes - `path:
-   * this.model.path` (`packages/filebrowser/src/browser.ts:558-566`). The name is the server's,
-   * never ours: `untitled` plus the extension.
+   * this.model.path`. Every name is the server's, never ours: `untitled.py`, `Untitled Folder`
+   * with its counting space, `Untitled.ipynb` written as real nbformat so that opening it is not
+   * an error. A notebook goes through the notebook repository rather than
+   * `createFile("ipynb")` for that last reason - an empty file with an `.ipynb` name is not one.
    */
-  fun createFile(extension: String) = relistAfter { workspaceRepository.createFile(_uiState.value.path, extension) }
-
-  /** `Untitled Folder`, counting with a space - the server's `insert` for a directory. */
-  fun createFolder() = relistAfter { workspaceRepository.createFolder(_uiState.value.path) }
-
-  /** `Untitled.ipynb`, written as real nbformat so that opening it is not an error. */
-  fun createNotebook() = relistAfter {
+  fun create(item: NewItem) = relistAfter {
     val directory = _uiState.value.path
-    notebookRepository.createNotebook(
-      if (directory.isEmpty()) UNTITLED_NOTEBOOK else "$directory/$UNTITLED_NOTEBOOK",
-      DEFAULT_KERNEL_ID,
-    ).id
+    when (item) {
+      NewItem.PYTHON_FILE -> workspaceRepository.createFile(directory, "py")
+      NewItem.FOLDER -> workspaceRepository.createFolder(directory)
+      NewItem.NOTEBOOK -> notebookRepository.createNotebook(
+        if (directory.isEmpty()) UNTITLED_NOTEBOOK else "$directory/$UNTITLED_NOTEBOOK",
+        DEFAULT_KERNEL_ID,
+      ).id
+    }
+  }
+
+  /**
+   * Lists the current directory again.
+   *
+   * The workspace is **shared** - the kernel's `HOME` since X1a - so what is on screen goes stale
+   * without anything here doing wrong: an editor writes the notebook the browser is showing, an
+   * import lands a file, a cell writes beside its own notebook. The reference keeps its browser
+   * fresh with a poll (`FileBrowserModel`, `DEFAULT_REFRESH_INTERVAL = 10000`,
+   * `standby: 'when-hidden'`); ours refreshes when the screen comes back, which is the moment that
+   * matters on a phone showing one thing at a time. See "Known residual risks" for the case that
+   * leaves open.
+   *
+   * A6 is why this is not optional: an edit must move the row's time, and the row is here now.
+   */
+  fun refresh() {
+    // Recents is re-checked here as well as re-listed: an entry whose file has since been renamed
+    // or deleted points at nothing, and the reference drops exactly those - `_isValid` treats a
+    // 404 as invalid and `RecentsMenu.onBeforeAttach` re-validates every time the list is about to
+    // be shown (`mainmenu-extension/src/recents.ts`). Ours is always on screen, so "about to be
+    // shown" is this.
+    viewModelScope.launch { recentDocuments.revalidate() }
+    goTo(_uiState.value.path)
   }
 
   /**
@@ -152,7 +221,11 @@ class ExplorerViewModel(
    * front of `_delete` (`listing.ts:451-500`). A folder with anything in it comes back as an
    * error, because the server sharing this workspace refuses that too.
    */
-  fun delete(entry: WorkspaceEntry) = relistAfter { workspaceRepository.delete(entry.path) }
+  fun delete(entry: WorkspaceEntry) = relistAfter {
+    workspaceRepository.delete(entry.path)
+    // Nothing to bring into view: what it named is gone.
+    ""
+  }
 
   /**
    * Runs a change to the directory and shows the result, or reports why it did not happen.
@@ -161,13 +234,18 @@ class ExplorerViewModel(
    * have changed for other reasons since it was last read, and a re-read is the only honest
    * answer.
    */
-  private fun relistAfter(changing: suspend () -> Unit) {
+  private fun relistAfter(changing: suspend () -> String) {
     viewModelScope.launch {
       runCatching { changing() }
-        .onSuccess { goTo(_uiState.value.path) }
+        // Named so the listing can bring it into view - the reference does the same by other
+        // means: `_createNew` hands the result to `rename()`, which selects and scrolls to it.
+        // Cleared by the next plain `goTo`, which builds a fresh state, so nothing has to
+        // remember to put it down again.
+        .onSuccess { created -> goTo(_uiState.value.path, justCreated = created) }
         .onFailure { failure -> _uiState.update { it.copy(error = failure.message) } }
     }
   }
+
 
   /**
    * Moves [from] to [name] and re-lists, or says why it did not happen.

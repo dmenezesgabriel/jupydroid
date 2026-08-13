@@ -17,7 +17,10 @@ import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
+import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
+import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
 import java.io.File
@@ -39,6 +42,75 @@ class ExplorerScreenTest {
   @get:Rule val compose = createComposeRule()
 
   @get:Rule val temp = TemporaryFolder()
+
+  /**
+   * The section is on screen at the root, and it is what the app now opens on.
+   *
+   * `ExplorerViewModelTest` argues what belongs in the list; only a device can say whether a finger
+   * finds it above the listing.
+   */
+  @Test
+  fun theRootShowsRecentsAboveTheListing() {
+    given("notes.txt")
+    showExplorer(recents = listOf(RecentDocument("notes.txt", WorkspaceEntryKind.FILE)))
+
+    waitForText(RECENTS_HEADING)
+    compose.onNodeWithText(RECENTS_HEADING).assertIsDisplayed()
+  }
+
+  /** Nothing opened yet, so no heading for an empty section - a label over nothing is noise. */
+  @Test
+  fun aWorkspaceWithNothingOpenedShowsNoRecentsHeading() {
+    given("notes.txt")
+    showExplorer()
+
+    compose.onAllNodesWithText(RECENTS_HEADING).assertCountEquals(0)
+  }
+
+  @Test
+  fun tappingARecentOpensIt() {
+    given("reports/summary.ipynb")
+    var opened: String? = null
+    showExplorer(
+      onOpenRecent = { opened = it },
+      recents = listOf(RecentDocument("reports/summary.ipynb", WorkspaceEntryKind.FILE)),
+    )
+    waitForText(RECENTS_HEADING)
+
+    // The recent row carries the whole path; the listing below shows `reports` as a folder row,
+    // so matching the bare name would find the wrong node.
+    compose.onNodeWithText("reports/summary.ipynb").performClick()
+
+    assertEquals("reports/summary.ipynb", opened)
+  }
+
+  /** `docmanager:clear-recents`, reachable as an action on the section rather than buried. */
+  @Test
+  fun theSectionCanBeCleared() {
+    given("notes.txt")
+    showExplorer(recents = listOf(RecentDocument("notes.txt", WorkspaceEntryKind.FILE)))
+    waitForText(RECENTS_HEADING)
+
+    compose.onNodeWithContentDescription("Clear recents").performClick()
+
+    waitUntilGone(RECENTS_HEADING)
+  }
+
+  /**
+   * Every row says when it was last modified.
+   *
+   * This is where A6's rule lives now that Recents is a history: `DirListing` shows a
+   * `last_modified` column by default (`listing.ts:259-261`), humanized. A file written moments
+   * ago reads as "just now".
+   */
+  @Test
+  fun everyRowShowsWhenItWasLastModified() {
+    given("notes.txt")
+    showExplorer()
+
+    waitForText("just now")
+    compose.onNodeWithText("just now").assertIsDisplayed()
+  }
 
   @Test
   fun itListsTheWorkspace() {
@@ -104,8 +176,8 @@ class ExplorerScreenTest {
   /**
    * No back arrow when there is nowhere to go back to.
    *
-   * The explorer is pushed from Recents today and will be the root once Recents becomes a section
-   * of it; a bar that keeps its arrow either way would offer a route out of the first screen.
+   * The explorer is the first screen since X2h, so this is now its only shape - a bar that kept an
+   * arrow would offer a route out of the screen the app opens on.
    */
   @Test
   fun theBackArrowIsAbsentWhenTheExplorerIsTheRoot() {
@@ -260,6 +332,8 @@ class ExplorerScreenTest {
   private fun showExplorer(
     onOpenFile: (WorkspaceEntry) -> Unit = {},
     onBack: (() -> Unit)? = {},
+    onOpenRecent: (String) -> Unit = {},
+    recents: List<RecentDocument> = emptyList(),
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -269,7 +343,9 @@ class ExplorerScreenTest {
           // would eat `WorkspaceEntry` rows. The repository is unused by the screen save to
           // construct the ViewModel, so the DiskNotebookRepository(temp.root) is inert here.
           notebookRepository = DiskNotebookRepository(temp.root),
+          recentDocuments = FakeRecentDocumentsRepository(recents),
           onOpenFile = onOpenFile,
+          onOpenRecent = onOpenRecent,
           onBack = onBack,
         )
       }
@@ -307,5 +383,6 @@ class ExplorerScreenTest {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+    const val RECENTS_HEADING = "Recent"
   }
 }

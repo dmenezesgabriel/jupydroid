@@ -42,8 +42,9 @@ data class Cell(
 /**
  * A notebook's content. Deliberately **without** a "last updated" time: when it was last written
  * is a fact about the stored file, not about the cells, and a field here would be one a caller
- * could set and a writer would have to remember to honour. It is [NotebookSummary]'s, discovered
- * when the repository lists what is on disk.
+ * could set and a writer would have to remember to honour. It is
+ * [com.jupydroid.app.domain.model.WorkspaceEntry.updatedAt]'s, read off the file when the
+ * workspace is listed - which is where the reference keeps it too (`last_modified`).
  */
 data class Notebook(
   val id: String,
@@ -52,17 +53,4 @@ data class Notebook(
   val cells: List<Cell>,
   /** See [PreservedJson]: `language_info`, `widgets`, `authors` and anything a newer tool wrote. */
   val preserved: PreservedJson = JsonObject(emptyMap()),
-)
-
-/** Lightweight row for the Home recent list; avoids loading every cell. */
-data class NotebookSummary(
-  val id: String,
-  val title: String,
-  /**
-   * When the notebook was last written, whatever the reason - an edit, a run, a rename, its
-   * creation. Jupyter reads the same thing off the file
-   * (`jupyter_server/services/contents/filemanager.py:285`, `os.lstat().st_mtime`), which is why
-   * there is no notion here of a change that does not count.
-   */
-  val updatedAt: Instant,
 )

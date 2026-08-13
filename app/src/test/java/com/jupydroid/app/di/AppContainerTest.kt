@@ -43,9 +43,6 @@ class AppContainerTest {
 
     val renamed = repository.renameNotebook(created.id, "Renamed")
     assertEquals("Renamed", repository.readNotebook(renamed).title)
-
-    val summaries = repository.observeNotebooks().first()
-    assertEquals(listOf("Renamed"), summaries.map { it.title })
   }
 
   /** The fake must fail the same way the disk adapter does, or callers that catch one break on the other. */

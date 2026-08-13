@@ -29,17 +29,23 @@ appId: com.jupydroid.app
     index: 0
 - tapOn: "Cell menu Insert code below"
 - takeScreenshot: 02-and-the-menu-works-from-it
-# Now the other route in: a notebook created from the FAB.
+# Now the other route in: a notebook created from the browser's New menu, which is where Home's
+# FAB items went in X2h.
 - back
-- tapOn: "+"
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
 - tapOn: "New notebook"
 # No restart. This flow used to stop and relaunch here because audit A3 was open and a new
 # notebook did not reach Recents until the list was rebuilt; A3 was fixed in 5403bd9, and
 # a3-create-shows-up proves the row arrives on its own. The relaunch also had no settle, so it
 # raced the disk scan - a workaround that had outlived its reason and could only misfire.
-# "just now" is the new row's timestamp, and waiting on it means the row is really in view.
+# `Untitled.ipynb` is the server's name for a new notebook, and waiting on it means the row is
+# really in view - the browser orders by name, so the creation scrolls itself into view rather
+# than being prepended the way Home's list was.
 - extendedWaitUntil:
-    visible: "just now"
+    visible: "Untitled.ipynb"
     timeout: 15000
 # The row arriving is not the list holding still: A3's fix scrolls Recents to a newly-topmost
 # notebook, and a tap dispatched mid-animation lands where the row was rather than where it is.

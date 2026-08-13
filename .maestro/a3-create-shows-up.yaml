@@ -1,20 +1,29 @@
 appId: com.jupydroid.app
 ---
-# Audit A3: the created notebook was added but landed above the fold, so Recents looked
-# unchanged until the app was restarted. Needs a list long enough to scroll - a short one has
-# nothing to anchor to, which is why every create-then-appear test passed while the bug was
-# live. Run it against a device that already has notebooks, or seed some first.
+# Audit A3: the created notebook was added but landed above the fold, so the list looked unchanged
+# until the app was restarted. Needs a list long enough to scroll - a short one has nothing to
+# anchor to, which is why every create-then-appear test passed while the bug was live. Seeded with
+# a crowd by its driver.
+#
+# **The surface changed in X2h and the claim did not**: creating from the browser's "+" must put
+# the thing on screen without a restart. Where it lands differs - the browser orders directories
+# first then naturally by name (`Private.sort`), where Home prepended by recency - so this asserts
+# the row itself rather than a timestamp at the top.
 - launchApp
-# No scroll here - this flow never opens a seeded notebook, it watches a new row arrive at the
-# top. It does need the settle: tapping before the disk scan has rendered races the cold start.
+# No scroll here - this flow watches a new row arrive. It does need the settle: tapping before the
+# disk listing has rendered races the cold start.
 - waitForAnimationToEnd:
     timeout: 5000
-- takeScreenshot: 01-recents-before
-- tapOn: "+"
-- tapOn: "New notebook"
-# No restart anywhere in this flow. "just now" is the new row's timestamp, and it can only be
-# asserted if the row is actually in view.
+- assertVisible: "Files"
+- takeScreenshot: 01-the-crowd-before
+- tapOn: "New"
 - extendedWaitUntil:
-    visible: "just now"
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+# No restart anywhere in this flow. `Untitled.ipynb` is the server's name for a new notebook, and
+# it can only be asserted if the row is actually in view - which is the whole point.
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
     timeout: 15000
 - takeScreenshot: 02-created-and-visible-without-a-restart

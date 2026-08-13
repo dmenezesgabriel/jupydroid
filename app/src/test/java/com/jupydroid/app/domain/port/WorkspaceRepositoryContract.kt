@@ -2,6 +2,8 @@ package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import java.time.Duration
+import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -60,6 +62,30 @@ abstract class WorkspaceRepositoryContract {
     val entry = repository().list("reports").single()
 
     assertEquals("reports/summary.ipynb", entry.path)
+  }
+
+  /**
+   * Every entry says when it was last modified, folders included.
+   *
+   * `DirListing` renders a `last_modified` column and it is **shown by default** - only
+   * `file_size` and `date_created` start in `_hiddenColumns` (`listing.ts:259-261`) - so this is
+   * part of listing a directory rather than an extra somebody asks for. It is also where A6's rule
+   * lives after Recents stops being a list of notebooks: `last_modified` is the file's mtime
+   * (`filemanager.py:285`), so an edit, a run and a rename all move it without anyone remembering
+   * to say so.
+   */
+  @Test
+  fun everyEntrySaysWhenItWasLastModified() = runTest {
+    given("reports/", "notes.txt")
+    val listedAround = Instant.now()
+
+    val listed = repository().list("")
+
+    assertEquals(2, listed.size)
+    listed.forEach { entry ->
+      val age = Duration.between(entry.updatedAt, listedAround).abs()
+      assertTrue("${entry.name} reported ${entry.updatedAt}, which is not a time it was just given", age < RECENT)
+    }
   }
 
   /**
@@ -427,5 +453,10 @@ abstract class WorkspaceRepositoryContract {
     assertEquals("taken.txt", overwritten)
     assertEquals("the one that survives", repository.readText("taken.txt"))
     assertEquals(listOf("taken.txt"), repository.list("").map { it.name })
+  }
+
+  private companion object {
+    /** Generous on purpose: this asserts "the file's own mtime", not a stopwatch. */
+    val RECENT: Duration = Duration.ofMinutes(1)
   }
 }

@@ -88,6 +88,27 @@ abstract class RecentDocumentsRepositoryContract {
     assertTrue(repository.observeRecents().first().isEmpty())
   }
 
+  /**
+   * Re-checking only ever removes, and never throws.
+   *
+   * It cannot assert what *survives*: whether a path still resolves is a question only an
+   * implementation with a filesystem behind it can answer, and the disk store rightly drops a path
+   * this contract never created. So what is owed here is the shape - every implementation has the
+   * operation, calling it is safe, and it cannot invent an entry. What it drops is asked of the
+   * disk adapter, where there is a file to rename away.
+   */
+  @Test
+  fun revalidatingOnlyEverRemoves() = runTest {
+    val repository = repository()
+    repository.record(document("a.ipynb"))
+    val before = repository.observeRecents().first().map { it.path }
+
+    repository.revalidate()
+
+    val after = repository.observeRecents().first().map { it.path }
+    assertTrue("revalidating added $after to $before", before.containsAll(after))
+  }
+
   @Test
   fun startsEmpty() = runTest {
     assertTrue(repository().observeRecents().first().isEmpty())

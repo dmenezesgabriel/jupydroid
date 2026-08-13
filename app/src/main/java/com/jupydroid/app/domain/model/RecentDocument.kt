@@ -77,3 +77,19 @@ fun recentsForOpening(path: String): List<RecentDocument> {
  */
 fun List<RecentDocument>.inRecentsOrder(): List<RecentDocument> =
   sortedBy { it.kind != WorkspaceEntryKind.DIRECTORY }
+
+/**
+ * What the recents section shows while [directory] is being browsed: everything at the root, and
+ * nothing anywhere else.
+ *
+ * A recents list is not a property of the folder you are standing in. The reference's own surfaces
+ * are global - a File menu submenu (`mainmenu-extension/src/recents.ts`) and a sidebar panel
+ * (`running-extension/src/recents.ts`) - and neither is scoped to a directory. One level down, the
+ * screen is about *that folder*, and the width belongs to its rows.
+ *
+ * ```
+ * recents.shownWhileBrowsing(uiState.path)
+ * ```
+ */
+fun List<RecentDocument>.shownWhileBrowsing(directory: String): List<RecentDocument> =
+  if (directory.isEmpty()) inRecentsOrder() else emptyList()

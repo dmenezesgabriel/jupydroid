@@ -3,7 +3,6 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.domain.model.NotebookSummary
 import java.io.File
 import java.time.Instant
 import java.util.UUID
@@ -151,7 +150,3 @@ fun CellFile.toDomain(preserved: JsonObject? = null): Cell =
     outputsHidden = metadata.outputsHidden(),
     preserved = preserved ?: JsonObject(emptyMap()),
   )
-
-/** [updatedAt] comes from whoever knows when the notebook was last written - see the callers. */
-fun Notebook.toSummary(updatedAt: Instant): NotebookSummary =
-  NotebookSummary(id = id, title = title, updatedAt = updatedAt)

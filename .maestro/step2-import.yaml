@@ -1,6 +1,22 @@
 appId: com.jupydroid.app
 ---
 # Launched by scripts/step2-import-driver.sh (VIEW intent on a MediaStore .ipynb);
-# no launchApp here: the in-memory fake repository must survive this process.
-- assertVisible: "Intro to NumPy.ipynb"
+# no launchApp here: the import must land in the process the intent started.
+#
+# **Since X2h the intent opens the notebook** rather than only adding a row. ACTION_VIEW asks to
+# view the document, and Home - which had a list for a row to appear in - is gone. The title above
+# the editor is the notebook's, so seeing it is seeing the imported document open.
+- extendedWaitUntil:
+    visible: "Intro to NumPy.ipynb"
+    timeout: 10000
+- assertVisible: "Back to notebooks"
 - takeScreenshot: 05-imported
+# Leaving it puts it in the browser, in both sections: the listing has the file, and Recents has
+# it because opening is what recents record.
+- tapOn: "Back to notebooks"
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 10000
+- assertVisible: "Recent"
+- assertVisible: "Intro to NumPy.ipynb"
+- takeScreenshot: 06-listed-and-recent

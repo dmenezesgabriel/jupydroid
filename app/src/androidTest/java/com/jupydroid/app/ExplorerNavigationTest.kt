@@ -44,11 +44,10 @@ class ExplorerNavigationTest {
 
   private val recentDocuments by lazy { DiskRecentDocumentsRepository(state.root, temp.root) }
 
+  /** The workspace is the first thing on screen now - there is no door to walk through first. */
   @Test
-  fun browsingFilesReachesTheWorkspace() {
+  fun theAppOpensOnTheWorkspace() {
     startAppWithANotebookInAFolder()
-
-    compose.onNodeWithContentDescription(BROWSE).performClick()
 
     waitForText("reports")
     compose.onNodeWithText("reports").assertIsDisplayed()
@@ -64,7 +63,6 @@ class ExplorerNavigationTest {
   @Test
   fun openingANotebookFromAFolderOpensThatNotebook() {
     startAppWithANotebookInAFolder()
-    compose.onNodeWithContentDescription(BROWSE).performClick()
     waitForText("reports")
 
     compose.onNodeWithText("reports").performClick()
@@ -75,17 +73,25 @@ class ExplorerNavigationTest {
     compose.onNodeWithText(NESTED_SOURCE).assertIsDisplayed()
   }
 
-  /** Back leaves the explorer the way it was reached, rather than the app. */
+  /**
+   * Back climbs the workspace rather than leaving, while there is a parent to climb to.
+   *
+   * `filebrowser:go-up`, which the reference binds to Backspace. It used to be that back from the
+   * explorer returned to Recents; the explorer is the first screen now, so what back owes is the
+   * directory above - and, at the root, nothing at all, which is what lets the app be left.
+   */
   @Test
-  fun theExplorerIsLeftByGoingBack() {
+  fun backClimbsOutOfAFolderRatherThanLeaving() {
     startAppWithANotebookInAFolder()
-    compose.onNodeWithContentDescription(BROWSE).performClick()
     waitForText("reports")
+    compose.onNodeWithText("reports").performClick()
+    waitForText("Nested.ipynb")
 
-    compose.onNodeWithContentDescription(BACK).performClick()
+    androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+      .performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
 
-    waitForText(RECENTS)
-    compose.onNodeWithText(RECENTS).assertIsDisplayed()
+    waitForText("reports")
+    compose.onNodeWithText("reports").assertIsDisplayed()
   }
 
   /**
@@ -100,7 +106,6 @@ class ExplorerNavigationTest {
   @Test
   fun openingANotebookFromAFolderPutsItAndItsFolderInRecents() {
     startAppWithANotebookInAFolder()
-    compose.onNodeWithContentDescription(BROWSE).performClick()
     waitForText("reports")
     compose.onNodeWithText("reports").performClick()
     waitForText("Nested.ipynb")
@@ -151,9 +156,6 @@ class ExplorerNavigationTest {
   }
 
   private companion object {
-    const val BROWSE = "Browse files"
-    const val BACK = "Back to recents"
-    const val RECENTS = "Recents"
     const val NESTED_SOURCE = "print('inside the folder')"
     const val TIMEOUT_MILLIS = 5_000L
   }

@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui.home
+package com.jupydroid.app.ui
 
 import java.time.Instant
 import java.time.ZoneId

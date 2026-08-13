@@ -1,0 +1,55 @@
+appId: com.jupydroid.app
+---
+# X2e, as X2h leaves it: "New Python file" makes a *plain file* - not a notebook wearing a `.py`
+# name - and opening it gets the file editor, which is where a new Untitled Python File lands in
+# the reference (`new_untitled({type: "file", ext})` -> the file editor factory).
+#
+# **What changed in X2h, and why.** This used to be Home's FAB, and Home opened the file it had
+# just made. Home is gone and its menu is the explorer's "+", which lands the creation in the
+# browsed directory and leaves it as a row - `_createNew` creates and renames in place, it does
+# not open (`browser.ts:529-566`). So the open is now a tap, and that is the reference's shape
+# rather than a behaviour lost.
+#
+# Nothing here runs a cell, so the emulator and its FakeKernelGateway are enough; the disk side is
+# the driver's job, because "not nbformat" is not a claim a screenshot can make.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+- takeScreenshot: 01-the-empty-workspace
+
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New Python file"
+    timeout: 5000
+- tapOn: "New Python file"
+# The server's name, not ours: `untitled` plus the extension.
+- extendedWaitUntil:
+    visible: "untitled.py"
+    timeout: 10000
+- takeScreenshot: 02-created-in-the-browsed-directory
+
+# The row, then the editor. "Back to files" is the FileEditor's own arrow - the notebook editor
+# labels its arrow "Back to notebooks" - so seeing it proves the `.py` did NOT open as a notebook,
+# which is the confusion this step exists to have closed.
+- tapOn: "untitled.py"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+- takeScreenshot: 03-a-real-file-not-a-notebook
+
+# The empty field is focusable but has no text to anchor a tap on, so put the cursor on the top
+# line directly; the debounced save (500ms) has long flushed by the time the exit screenshot is
+# taken, and the driver then proves it on disk.
+- tapOn:
+    point: "50%,40%"
+- inputText: "print('from the browser')"
+- assertVisible: "(?s).*print\\('from the browser'\\)"
+- takeScreenshot: 04-typed-in-the-created-file
+
+- tapOn: "Back to files"
+- assertVisible: "Files"
+# It came back as a recent, because opening it is what recents record - the section is above the
+# listing and carries the path.
+- assertVisible: "Recent"
+- takeScreenshot: 05-back-in-the-browser-and-in-recents
