@@ -2195,6 +2195,92 @@ list also predicted - find the responsibility that wants to live elsewhere - and
 `CellAction` dispatch (`applying`, `newCellId`), which is state-in/state-out and now sits beside
 the transforms it dispatches to in `CellEdits.kt`.
 
+### X2h — Recents becomes a section of the explorer
+
+X2b left one thread open and named the condition for closing it: *"Recents scans the workspace root
+only, so a notebook in a folder is reachable through the explorer and absent from Recents. It goes
+when Recents becomes a section of the explorer."* Two sub-steps, because the source of the list and
+the surface it lives on are two functional commits: **X2h-1** changes what feeds it, **X2h-2**
+changes where it lives.
+
+#### X2h-1 — Recents is a record of what was opened (done)
+
+**Read, not assumed, and it corrected the obvious answer.** The obvious fix was to make the scan
+recursive. The reference does not have a scan at all: `RecentsManager`
+(`packages/docmanager/src/recents.ts`) is a **history of documents opened**. `addRecent` (`:94-110`)
+splices out any entry already holding the path and `unshift`s the new one; `_setRecents` (`:186-201`)
+slices to `maxNumberRecents`, default **10** (`docmanager-extension/schema/plugin.json:153-158`). It
+is persisted through `IStateDB` under `docmanager:recents` (`:288`) - **client state, not a file in
+the workspace** - and every entry is validated on load, where invalid means the Contents API
+answered 404 (`_isValid`, `:169-181`; `_loadRecents`, `:203-224`).
+
+So "most recently modified" and "most recently opened" are different features that were wearing the
+same name here. The scan is the reason a notebook in a folder was invisible; a history has no
+opinion about where a document lives.
+
+**Recorded once, from one seam.** `_recordAsRecentlyOpened` hangs off the widget manager's
+`activate-request` hook (`widgetmanager.ts:268-285`), not off the file browser or the launcher.
+Ours hangs off navigation, which Home's rows, the explorer's rows and the VIEW-intent import all
+already went through - and collapsing them into one `rememberDocumentOpener` removed a duplicated
+rule as a side effect: the `.ipynb`-decides-the-editor split had been written out twice, in Home and
+in the explorer, and only one of the two could have recorded anything. The reference has one
+`docmanager:open` for the same reason.
+
+**The containing folder is recorded too** (`widgetmanager.ts:414-422`), so a folder someone actually
+works in is one tap away rather than a descent. **One departure:** the reference records the root as
+`''` for a top-level document, and we do not - the explorer already stands at the root, so that row
+would navigate nowhere.
+
+**Two references are empty here, which is worth recording so nobody re-checks.** JupyterLab's file
+browser has **no** recents concept - `packages/filebrowser/src` matches "recent" only in comments
+about the last-modified column - so recents lives in File > Open Recent
+(`mainmenu-extension/src/recents.ts`) and in the Running panel's "Recently Closed"
+(`running-extension/src/recents.ts`). **Winlator has no recents or history of any kind**: its file
+manager is a pure browser over a `Stack<T> folderStack` (`BaseFileManagerFragment.java:49`), and
+grepping `recent|history` across its sources returns only joystick `historyPos`. Putting the list
+inside the explorer is therefore ours, and X2h-2 is where that adaptation is argued.
+
+**Not built, deliberately:** `recentlyClosed` and "Reopen last". One document is on screen at a time
+and Back is not "close a tab" - there is no tab strip for a reopen to restore into.
+
+**The store is not in the workspace, and that is the design.** The workspace is the kernel's `HOME`
+and the server's `root_dir` (X1a), shared with any other Jupyter client, so a bookkeeping file there
+would appear in the explorer's own listing and in an `ls` from a cell. It lives in `filesDir`,
+mirroring `IStateDB`, and `DiskRecentDocumentsRepositoryTest.keepsItsBookkeepingOutOfTheWorkspace`
+asserts the workspace is untouched rather than leaving it to review.
+
+**What the evidence proves, stated precisely.** `evidence/x2h-1-recents-source/` (320dp emulator;
+nothing runs a cell, so the fake kernel is never consulted). Screenshot 01 is the defect itself:
+Recents with `At Root.ipynb` alone, the notebook in `reports/` nowhere on it. The flow then opens
+that notebook and a `.csv` beside it through the explorer, and **the driver reads the store off the
+device** - X2h-1 changes nothing on screen until X2h-2 swaps the surface, so a screen assertion here
+would prove nothing. It asserts all four facts, including the negative one that separates a history
+from a scan: `At Root.ipynb` was never opened and **must not** be listed. Without that line every
+other assertion would also pass against the old behaviour.
+
+**Isolation had to grow with it.** The store survives a wipe of the workspace, so a path an earlier
+run opened and this one re-seeds under the same name would still be listed - flows would stop being
+repeatable in exactly the way `check_driver_isolation.py` exists to prevent. `reset_notebooks` clears
+it now, and the driver refuses to run if a store survived the reset, because a stale one would carry
+the flow.
+
+**Two things checked by running them rather than reasoning about them.** Deleting the validation
+filter fails `forgetsWhatIsNoLongerThere` and `forgetsADirectoryThatIsGone`, so validation is a gate.
+And the driver's *negative* assertion was tested in both directions before being trusted - a
+`grep -q … && { exit 1; }` under `set -e` had to be shown to survive the absent case and abort on the
+present one, since a check that silently cannot fail is worse than no check.
+
+**The whole suite, both devices**: 50 passed, 0 failed, 0 skipped
+(`evidence/x2h-1-recents-source/sharded-suite.txt`). The emulator shard's first pass failed all 25
+flows to a harness trap rather than to a regression - `connectedAndroidTest` had uninstalled the app
+- which is written up under "Harness notes" and recorded in that file rather than deleted.
+
+**Not done here, and it is a departure from the step's own plan.** `HomeViewModel` still reads
+`observeNotebooks()`. Switching it would have meant rewriting rows, timestamps and the long-press
+menu on a screen X2h-2 deletes, and would have broken `a6-edit-updates-recents` a step early for no
+gain. X2h-1 therefore lands the source of truth with no visible change; the surface swap and the
+timestamp's new home are X2h-2's.
+
 ## Harness notes
 
 ### Never `kill -9` maestro
@@ -2222,6 +2308,25 @@ adb -s <device> uninstall dev.mobile.maestro
 `adb uninstall` may answer `Failure [DELETE_FAILED_INTERNAL_ERROR]`, which leaves the device still
 broken while looking handled - check `pm list packages | grep maestro` afterwards rather than
 trusting the exit. Stop a run with `pkill -f run-all-flows` and let maestro exit on its own.
+
+### `connectedAndroidTest` uninstalls the app, so it cannot precede a sweep
+
+Running `./gradlew :app:connectedDebugAndroidTest` and then a Maestro run on the **same device**
+fails every flow on it, and the symptom does not name the cause:
+
+```
+run-as: unknown package: com.jupydroid.app
+```
+
+AGP uninstalls both the app and the test APK when the instrumented run finishes, so the sweep drives
+a device with no app on it. Twenty-five flows failed identically in the X2h-1 sweep, including one
+that had passed on that device minutes earlier - which is what separated it from a real regression,
+along with `adb shell pm list packages | grep jupydroid` coming back empty.
+
+It reads exactly like the `DeviceServerDiedException` entry above (everything on one device fails at
+once) and is a different cause with a different fix: **`installDebug` again**, then re-run that
+shard. The order that avoids it is instrumented tests first on one device, install, then sweep -
+never instrumented tests *between* an install and a sweep.
 
 ### Running the suite across both devices
 
@@ -2676,8 +2781,26 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
 
   So the remaining candidate is the one already named above - `jupyter_server` completing the
   websocket handshake before `ZMQChannelsWebsocketConnection` has subscribed the session to the
-  kernel's channels - and the standard answer, a `kernel_info_request` round trip before any user
-  request, is still unwritten. It is the next thing to try when this is picked up.
+  kernel's channels.
+
+  **Correction (2026-08-12, found while planning X2h): the round trip was already written, and
+  this entry was wrong to call it unwritten.** `SessionSocket.greetKernel`
+  (`RealKernelGateway.kt:264`) has sent `kernel_info_request` and awaited the reply since `f2363c5`,
+  covered by `KernelInfoHandshakeTest`. So the fifth sighting happened **on a build that already had
+  it** - which changes what the trail means. A healthy run answers within 70 ms:
+  `socket.connected` → `kernel_info_reply` (parent = our msgId) → `execute.request` → complete
+  (`evidence/u5c-notebook-bar/logcat.txt:3801-3821`). The fifth sighting has **no
+  `kernel_info_reply` at all**, three startup statuses in the gap where it belongs, and then the
+  request. So the greeting itself went unanswered, the 3 s failsafe released, and the request was
+  sent into the socket anyway.
+
+  That is JupyterLab's own standing FIXME, sitting three lines below the one already quoted here:
+  *"It may be preferable to retry kernelInfo rather than give up after one timeout"*
+  (`packages/services/src/kernel/default.ts:1589-1591`). We copied the failsafe including its known
+  weakness. **The next thing to try** is therefore that retry - and before it, a log stage for the
+  greeting, because `greetKernel` currently emits none, so a capture cannot distinguish "the
+  greeting timed out" from "no greeting was sent" without inferring it from an absence. Inferring
+  from absence is what cost this investigation its third sighting.
 
   **On the repeat runs, and what they are worth.** `scripts/step5-completion-repeat-driver.sh`
   runs the flow N times, each a fresh launch with a fresh kernel - the state all four sightings

@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# X2h-1: opening a document is what puts it in Recents.
+#
+# The defect this closes is X2b's, recorded in docs/PLAN.md: Recents was a scan of the workspace
+# *root* (`DiskNotebookRepository.scanSummaries`, `rootDir.listFiles()`), so a notebook inside a
+# folder was reachable through the explorer and absent from the list the app opens on. The list is
+# now a record of what was opened - JupyterLab's `RecentsManager` - so where a document lives has
+# stopped deciding whether it can be found again.
+#
+# **This flow drives the app; its driver reads the store.** X2h-1 deliberately changes nothing on
+# screen - Home still renders the old list until X2h-2 swaps the surface - so a screen assertion
+# here would either assert nothing or assert the thing that is about to be deleted. What has to be
+# true is that the *write happened*, which is what the driver checks off the device afterwards.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Recents"
+- takeScreenshot: 01-recents-before-anything-was-opened
+
+- tapOn: "Browse files"
+- assertVisible: "Files"
+- assertVisible: "reports"
+- takeScreenshot: 02-the-folder-the-old-recents-could-not-see
+
+- tapOn: "reports"
+- assertVisible: "Nested.ipynb"
+- takeScreenshot: 03-inside-the-folder
+
+# The notebook in the folder, asserted by its cell: a title alone would be matched by the row that
+# was tapped, and it is the *path* the editor has to resolve - `reports/Nested.ipynb`.
+- tapOn: "Nested.ipynb"
+- extendedWaitUntil:
+    visible: "print('this notebook lives in a folder')"
+    timeout: 10000
+- takeScreenshot: 04-opened-from-inside-the-folder
+
+# A plain file counts as a document too - X2c gave `.py` an editor, and the reference records
+# whatever the document manager opened, not whatever was a notebook.
+- tapOn: "Back to notebooks"
+- assertVisible: "data.csv"
+- tapOn: "data.csv"
+- assertVisible: ".*region,amount.*"
+- takeScreenshot: 05-a-plain-file-is-a-document-too
+
+# Left through the app rather than killed, so the writes are the ones an ordinary session makes.
+- tapOn: "Back to files"
+- assertVisible: "Nested.ipynb"
+- takeScreenshot: 06-back-in-the-folder

@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.space.baseSpaceDir
@@ -42,6 +43,10 @@ class MainActivity : ComponentActivity() {
     AppContainer(
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
+      // `filesDir`, deliberately not `workspace`: the workspace is the kernel's HOME and the
+      // server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from
+      // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
+      recentDocuments = DiskRecentDocumentsRepository(applicationContext.filesDir, workspace),
       kernelGateway = kernelGateway ?: FakeKernelGateway(),
     )
   }

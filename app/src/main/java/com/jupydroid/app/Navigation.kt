@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -17,6 +18,38 @@ import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.home.HomeScreen
+import kotlinx.coroutines.launch
+
+/**
+ * Opening a document, wherever it was opened from: the right editor, and a line in Recents.
+ *
+ * **One opener rather than one per screen.** Home knew which of its rows was a notebook and the
+ * explorer worked it out from the suffix, so the same rule lived in two places and only one of
+ * them could record a recent. The reference has a single `docmanager:open` for the same reason -
+ * the path decides the factory, and recents are recorded once, from the widget manager's
+ * `activate-request` hook (`packages/docmanager/src/widgetmanager.ts:268-285`).
+ *
+ * A `.ipynb` goes to the notebook editor and anything else to the plain one, which is the
+ * reference's own split: the notebook factory claims its extension and the file editor is the
+ * default for the rest (`packages/fileeditor`).
+ *
+ * Recorded on [AppContainer.applicationScope], not on a screen's: the write must finish even if
+ * the tap that caused it is the last thing that screen does.
+ */
+@Composable
+private fun rememberDocumentOpener(
+  backStack: MutableList<NavKey>,
+  appContainer: AppContainer,
+): (String) -> Unit = remember(backStack, appContainer) {
+  { path ->
+    if (path.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
+      backStack.openNotebook(path)
+    } else {
+      backStack.openFile(path)
+    }
+    appContainer.applicationScope.launch { appContainer.recentDocuments.recordOpening(path) }
+  }
+}
 
 @Composable
 fun MainNavigation(
@@ -35,6 +68,7 @@ fun MainNavigation(
   // reported here instead. `_contextsForPath` does the same - it filters live contexts by their
   // current path, never by the one a widget was created with.
   var openNotebookId by remember { mutableStateOf<String?>(null) }
+  val openDocument = rememberDocumentOpener(backStack, appContainer)
 
   NavDisplay(
     backStack = backStack,
@@ -62,8 +96,8 @@ fun MainNavigation(
             workspaceRepository = appContainer.workspaceRepository,
             importTitle = importTitle,
             onImportConsumed = onImportConsumed,
-            onOpenNotebook = { id -> backStack.openNotebook(id) },
-            onOpenFile = { path -> backStack.openFile(path) },
+            onOpenNotebook = openDocument,
+            onOpenFile = openDocument,
             // Only while the list is *beside* the notebook. In one pane the list is on screen
             // exactly when nothing is open, so a marked row would point at a pane that is not
             // there - and would be the only thing on screen still claiming a notebook is open.
@@ -78,16 +112,7 @@ fun MainNavigation(
             // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
             // so there is nothing to translate. It briefly was not, and the suffix went on twice:
             // `Nested.ipynb.ipynb` opened nothing.
-            // Everything opens. A `.ipynb` goes to the notebook editor and anything else to the
-            // plain one, which is the reference's own split: the notebook factory claims its
-            // extension and the file editor is the default for the rest (`packages/fileeditor`).
-            onOpenFile = { file ->
-              if (file.name.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
-                backStack.openNotebook(file.path)
-              } else {
-                backStack.openFile(file.path)
-              }
-            },
+            onOpenFile = { file -> openDocument(file.path) },
             // The arrow exists only while the explorer is the top of the stack - a screen with a
             // door back to what pushed it. Once it is the list pane beside a document it is a
             // *surface*, and a "Back to recents" that would swallow the landscape is the same

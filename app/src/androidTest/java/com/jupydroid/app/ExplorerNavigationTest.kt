@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
@@ -15,7 +16,9 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
 import java.io.File
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -34,6 +37,12 @@ class ExplorerNavigationTest {
   @get:Rule val compose = createComposeRule()
 
   @get:Rule val temp = TemporaryFolder()
+
+  // Its own directory, because that is where it belongs: the store is app state and must not land
+  // in the workspace the explorer lists.
+  @get:Rule val state = TemporaryFolder()
+
+  private val recentDocuments by lazy { DiskRecentDocumentsRepository(state.root, temp.root) }
 
   @Test
   fun browsingFilesReachesTheWorkspace() {
@@ -79,6 +88,33 @@ class ExplorerNavigationTest {
     compose.onNodeWithText(RECENTS).assertIsDisplayed()
   }
 
+  /**
+   * Opening a notebook from a folder puts it in Recents - which is the defect X2h exists to close.
+   *
+   * Recents was `rootDir.listFiles()` (`DiskNotebookRepository:149`), so a notebook in `reports/`
+   * was reachable through the explorer and absent from the list the app opened on. Asserted
+   * through the **real** store rather than a fake, because what has to survive is a write to disk;
+   * and the folder is asserted too, since the reference records the containing directory alongside
+   * the document (`docmanager/src/widgetmanager.ts:418-422`).
+   */
+  @Test
+  fun openingANotebookFromAFolderPutsItAndItsFolderInRecents() {
+    startAppWithANotebookInAFolder()
+    compose.onNodeWithContentDescription(BROWSE).performClick()
+    waitForText("reports")
+    compose.onNodeWithText("reports").performClick()
+    waitForText("Nested.ipynb")
+
+    compose.onNodeWithText("Nested.ipynb").performClick()
+    waitForText(NESTED_SOURCE)
+
+    compose.waitUntil(TIMEOUT_MILLIS) { runBlocking { recordedPaths() }.size == 2 }
+    assertEquals(setOf("reports/Nested.ipynb", "reports"), runBlocking { recordedPaths() })
+  }
+
+  private suspend fun recordedPaths(): Set<String> =
+    recentDocuments.observeRecents().first().map { it.path }.toSet()
+
   private fun startAppWithANotebookInAFolder() {
     File(temp.root, "reports").mkdirs()
     val repository = DiskNotebookRepository(temp.root)
@@ -98,6 +134,7 @@ class ExplorerNavigationTest {
           appContainer = AppContainer(
             notebookRepository = repository,
             workspaceRepository = DiskWorkspaceRepository(temp.root),
+            recentDocuments = recentDocuments,
           ),
           importTitle = null,
           onImportConsumed = {},

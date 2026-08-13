@@ -1,10 +1,12 @@
 package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +25,12 @@ class AppContainer(
    * notebooks cannot.
    */
   val workspaceRepository: WorkspaceRepository = FakeWorkspaceRepository(),
+  /**
+   * What was opened, which no listing of the tree can answer - a recent is a record of an act.
+   * Kept apart from [notebookRepository] for that reason, and because it remembers plain files
+   * and folders too.
+   */
+  val recentDocuments: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
   val kernelGateway: KernelGateway = FakeKernelGateway(),
   val serverLauncher: ServerLauncher = FakeServerLauncher(),
   /**

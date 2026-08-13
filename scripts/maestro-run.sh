@@ -24,6 +24,13 @@ APP="com.jupydroid.app"
 # still "work" - the app would simply show an empty Home, which is a green flow proving nothing.
 NOTEBOOK_DIR="files/spaces/base/home/jupydroid"
 
+# The recents list, which is app state and so deliberately *not* under NOTEBOOK_DIR - the
+# workspace is shared with the kernel, and bookkeeping there would show up in the explorer's own
+# listing (DiskRecentDocumentsRepository). It is cleared by [reset_notebooks] for the same reason
+# the workspace is: since X2h it survives a wipe of the workspace, so a path a previous run opened
+# and this one re-seeds under the same name would still be listed.
+RECENTS_STORE="files/recent-documents.json"
+
 # --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator and a
 # phone attached it picks one of its own accord and the fixture is on the other.
 MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
@@ -43,6 +50,7 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 reset_notebooks() {
   "$ADB" shell am force-stop "$APP"
   "$ADB" shell "run-as $APP sh -c 'cd \"$NOTEBOOK_DIR\" 2>/dev/null && rm -rf ./*' || true"
+  "$ADB" shell "run-as $APP sh -c 'rm -f \"$RECENTS_STORE\"' || true"
 }
 
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.
