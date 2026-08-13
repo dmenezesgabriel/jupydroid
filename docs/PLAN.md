@@ -2655,6 +2655,30 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   anything sent before it as `sentBeforeOpen`; that list is non-empty before the fix. So the
   mechanism is not inferred from a log any more - it is driven.
 
+  **Fifth sighting, 2026-08-12**, in the sharded sweep that closed X2f/X2g - `step7-rich-output`
+  this time, so that is three different flows now and the flow is certainly not the variable. It
+  passed on an immediate re-run of the same build, as every previous one has. The trail is the
+  cleanest yet, and it says two useful things:
+
+      kernel.socket.connected  subscribers: 1
+      kernel.frame.received    msgType: status  parent: …_24843_1  bytes: 632
+      kernel.frame.received    msgType: status  parent: …_24843_2  bytes: 632
+      kernel.frame.received    msgType: status  parent: …_24843_1  bytes: 632
+      kernel.execute.request   msgId: 80b86798-…  enqueued: true
+      <nothing further>
+
+  The ordering fix is holding - `socket.connected` precedes the request, which the first capture
+  said it did not. And `parent` settles the question the third sighting could not: the three
+  frames carry parent ids the app never sent (`…_24843_*` is the kernel's own session counter,
+  not our `msgId`), so they are the kernel's startup chatter and **no frame answering our request
+  ever arrived**. Same conclusion as the fourth sighting, now proven from the frame rather than
+  inferred from its absence: the request is lost after `send()` reports it enqueued.
+
+  So the remaining candidate is the one already named above - `jupyter_server` completing the
+  websocket handshake before `ZMQChannelsWebsocketConnection` has subscribed the session to the
+  kernel's channels - and the standard answer, a `kernel_info_request` round trip before any user
+  request, is still unwritten. It is the next thing to try when this is picked up.
+
   **On the repeat runs, and what they are worth.** `scripts/step5-completion-repeat-driver.sh`
   runs the flow N times, each a fresh launch with a fresh kernel - the state all four sightings
   were in. Absence is not provable this way: at roughly one in twenty, 25 clean runs happen by
@@ -2705,12 +2729,19 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   `CellAction` dispatch (`applying`, `newCellId`) moved to `CellEdits.kt`, beside the transforms it
   dispatches to. It is back to ten, so there is room for one more before the next split - and the
   run/kernel half named here is still the candidate.
-- **Nothing in the repo runs every Maestro flow.** The 33-flow sweeps that closed 62352d7 and
-  the 2026-08-07 defects were both done with throwaway shell loops, which is exactly the
-  condition that makes a *partial* sweep the path of least resistance — and this project has
-  already been burned by one. A `scripts/` entry point that runs every flow through its driver
-  and prints a pass/fail line each would make the whole-suite run the cheap option. Deliberately
-  not added mid-defect-fix; it is tooling, and it wants its own change.
+- **29 drivers call bare `adb` rather than `$ADB`**, so the suite only runs from a shell that has
+  `platform-tools` on its PATH - `maestro-run.sh` already computes `$ADB` with a fallback for
+  exactly this, and half the drivers use it. It surfaces as a flow that passes every step and then
+  fails in its own disk check (`adb: command not found`), which reads like a defect and is not.
+  Cheap to fix, deliberately not folded into X2f/X2g: it is 29 files of churn in a step about the
+  file browser.
+- ~~**Nothing in the repo runs every Maestro flow.**~~ **Closed.** `scripts/run-all-flows.sh` runs
+  every driver on one device and prints a pass/fail line each; `scripts/run-flows-sharded.sh`
+  splits the suite across every attached device at once, respecting each flow's `TABLET ONLY` and
+  `WIDE WINDOW` rule rather than dealing them blindly. The X2f/X2g sweep went through the sharded
+  one: 47 passed, 2 failed, 0 skipped, with both devices attached so every rule was satisfiable -
+  and both failures were explained rather than waved through (the bare-`adb` PATH entry above, and
+  the fifth sighting of the execution stall).
 - **`step5-brackets` is tablet-only too, and nothing said so at all.** Found while re-running the
   keyboard-touching flows after the `adjust=pan` fix: it fails on the dev36 emulator at
   `Input text [` → expect `[]`, and passes on the tablet on the same build. Attributed rather
