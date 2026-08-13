@@ -36,7 +36,7 @@ class KernelInfoHandshakeTest {
   fun theFirstThingSentIsAKernelInfoRequest() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.execute(session, "cell-1", "2 + 2").toList()
 
@@ -47,7 +47,7 @@ class KernelInfoHandshakeTest {
   fun theCellStillRuns() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     val events = gateway.execute(session, "cell-1", "2 + 2").toList()
 
@@ -63,7 +63,7 @@ class KernelInfoHandshakeTest {
   fun aSecondCellDoesNotAskAgain() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.execute(session, "cell-1", "2 + 2").toList()
     gateway.execute(session, "cell-2", "3 + 3").toList()
@@ -85,7 +85,7 @@ class KernelInfoHandshakeTest {
       answerKernelInfo = false,
     )
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     val events = gateway.execute(session, "cell-1", "2 + 2").toList()
 

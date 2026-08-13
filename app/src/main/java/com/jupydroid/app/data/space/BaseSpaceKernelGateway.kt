@@ -39,8 +39,8 @@ class BaseSpaceKernelGateway(
   // would bind a different port and the first would be orphaned.
   private val startLock = Mutex()
 
-  override suspend fun connect(space: Space): KernelSession =
-    running().connect(space).also { log.reached("kernel ${it.kernelId} ready for space ${space.id}") }
+  override suspend fun connect(space: Space, documentPath: String): KernelSession =
+    running().connect(space, documentPath).also { log.reached("kernel ${it.kernelId} ready for space ${space.id}") }
 
   override suspend fun execute(
     session: KernelSession,

@@ -164,8 +164,18 @@ class NotebookKernel(
 
   private fun now(): Instant = clock.instant()
 
+  /**
+   * The notebook's own path goes to the kernel, because that is what gives the kernel a working
+   * directory - so a cell writing `data.csv` writes it beside the notebook, which is the whole
+   * point of the workspace being the kernel's `HOME` (X1a).
+   *
+   * Read from the state rather than captured at construction: since X1b the id *is* the path and
+   * a rename moves it. The kernel keeps the directory it started in either way - a process's cwd
+   * is fixed once it is running - which is also what happens in the reference, where a rename
+   * retitles the session and leaves the running kernel where it was.
+   */
   private suspend fun openSession(): KernelSession =
-    session ?: kernelGateway.connect(BASE_SPACE).also { session = it }
+    session ?: kernelGateway.connect(BASE_SPACE, uiState.value.notebookId).also { session = it }
 
   private companion object {
     /** Step 17 introduces real Spaces; until then every notebook runs in the base one. */

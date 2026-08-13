@@ -13,7 +13,7 @@ class FakeKernelLifecycle(
   val interrupted = mutableListOf<String>()
   val restarted = mutableListOf<String>()
 
-  override suspend fun start(): String {
+  override suspend fun start(documentPath: String): String {
     failWith?.let { throw it }
     startCount++
     return kernelId

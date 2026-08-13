@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.flow
 
 /** Stub [KernelGateway] echoing the code back; replaced by the real one in Step 10. */
 class FakeKernelGateway : KernelGateway {
-  override suspend fun connect(space: Space): KernelSession =
+  override suspend fun connect(space: Space, documentPath: String): KernelSession =
     KernelSession(
       id = "fake-${space.id}",
       spaceId = space.id,

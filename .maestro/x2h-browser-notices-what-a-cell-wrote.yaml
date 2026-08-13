@@ -1,0 +1,63 @@
+appId: com.jupydroid.app
+---
+# X2h: the browser re-reads the directory it is showing, so a file a *cell* wrote appears without
+# anyone touching the screen.
+#
+# This is X1a's promise finally observable from the UI: the workspace is the kernel's `HOME`, so a
+# notebook can `open()` a file the user can see. Until now the browser only listed once and nothing
+# told it otherwise, so the file existed on disk and not on screen.
+#
+# The reference answers this with a poll and not with a signal, and the distinction is the whole
+# point: `FileBrowserModel`'s own `fileChanged` only reports changes the *client* made
+# (`model.ts:655-680`), so a kernel writing a file is invisible to it. The `Poll` at
+# `DEFAULT_REFRESH_INTERVAL = 10000` is what covers this case (`model.ts:26,97-106`).
+#
+# TABLET ONLY, and for both reasons at once: it runs a cell, so on the x86_64 emulator
+# `FakeKernelGateway` would echo the cell's own source back and no file would ever be written; and
+# it needs a WIDE WINDOW, because the browser has to be *beside* the notebook for the appearing
+# row to be watchable while the cell runs.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+# The browser is showing the root, and the file the cell will write is not there yet. Asserting
+# its absence first is what makes its arrival mean something.
+- assertNotVisible: "written_by_a_cell.csv"
+- takeScreenshot: 01-the-root-before-the-cell-ran
+
+- tapOn: "Writes A File.ipynb"
+- extendedWaitUntil:
+    visible: ".*stem = 'written_by_a' \\+ '_cell'.*"
+    timeout: 15000
+# Two panes: only the browser draws the "Workspace" crumb, so it still being visible beside the
+# notebook's source *is* the pair - and it is the pane this flow is really about.
+- assertVisible: "Workspace"
+- takeScreenshot: 02-the-notebook-beside-the-browser
+
+# Run it. The kernel writes the file into the directory the browser is listing.
+- tapOn:
+    text: "Run cell"
+    index: 0
+# The cell's own result, scoped to the output subtree so the source field cannot satisfy it - and
+# a value the kernel had to compute, so the fake could not have produced it.
+- extendedWaitUntil:
+    visible:
+      text: "wrote 14 bytes"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- takeScreenshot: 03-the-cell-wrote-it
+
+# **Nothing is tapped from here.** The browser was already on screen when the file appeared on
+# disk; if the row shows up, it is because the listing re-read itself. The timeout is longer than
+# one refresh interval so a tick has a turn.
+#
+# The cell **assembles** the filename rather than spelling it (`'written_by_a' + '_cell'`), and
+# that is structural rather than fussy: maestro matches substrings, the notebook's source is on
+# screen beside the browser the whole time, and a source that contained `written_by_a_cell.csv`
+# would satisfy this wait on its own - the exact trap `check_maestro_output_assertions.py` exists
+# for. Assembled, the only node on screen carrying that name is the browser's row.
+- extendedWaitUntil:
+    visible: "written_by_a_cell.csv"
+    timeout: 40000
+- takeScreenshot: 04-the-browser-noticed-without-being-touched

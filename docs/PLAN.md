@@ -2380,6 +2380,74 @@ Recents being drawn beside the browser, and with one surface that shape is struc
 unreachable. `TwoPaneSceneStrategyTest` keeps the rule that guarded it, driven with a synthetic
 surface, so `PANE_SURFACE_OPENS` is not left doing something nothing checks.
 
+#### X2h-3 — the browser re-reads the workspace, and the kernel can finally write into it
+
+X2h-2 left one thing open and named the reference's answer to it: the browser refreshed when it
+came back, so a file written *while it was on screen* never appeared. Closing it turned up a much
+older defect underneath.
+
+**The reference answers this with a poll, and the distinction from its signal is the whole point.**
+`FileBrowserModel` runs `cd('.')` on a `Poll` at `DEFAULT_REFRESH_INTERVAL = 10000` with
+`standby: 'when-hidden'` (`packages/filebrowser/src/model.ts:26,97-106`). It *also* listens to
+`contents.fileChanged` and calls `_poll.refresh()` when the change is in the directory being shown
+(`:655-680`) - but that signal only ever reports changes the **client** made, which is why the poll
+exists beside it. Our equivalent of the signal is `relistAfter`, which has re-listed after this
+app's own create, rename and delete since X2a. The poll is what covers a kernel.
+
+**`standby: 'when-hidden'` is `RESUMED` here**, which is the mobile half: `repeatOnLifecycle`
+cancels the loop at `ON_PAUSE` and starts a fresh one at `ON_RESUME`, so a backgrounded app spends
+no wakeups and coming back still refreshes immediately - the case `a6` and `step2-import` needed,
+now covered by the same effect rather than a second one. **Not adapted:** the reference's
+`backoff: true, max: 300000`, which backs off a failing *HTTP* poll against a server that may be
+down. Ours is a `listFiles` on this app's own storage; the one way it fails is the directory being
+removed underneath, which `goTo` already reports while leaving the view where it was.
+
+**Winlator was checked and has nothing here**: no `FileObserver`, no inotify, no poll - it refreshes
+on its own operations and on view lifecycle only (`BaseFileManagerFragment`). So there was no
+Android-native watcher to copy and no rootfs wiring to do; the workspace is plain files under
+`filesDir`, which is how Winlator browses its rootfs too.
+
+**And then the flow found something much worse.** Written to prove the poll end to end - a cell
+writes a file, the browser beside it notices - it failed on the *cell*:
+
+    OSError: [Errno 30] Read-only file system: 'written_by_a_cell.csv'
+
+**The kernel had no working directory, and never had.** `jupyter_server` sets one only when it is
+given a path - `if path is not None: kwargs["cwd"] = self.cwd_for_path(path, ...)`
+(`services/kernels/kernelmanager.py`, read out of the server in our own rootfs) - and
+`OkHttpKernelLifecycle.start()` was posting `{}` to `api/kernels`. With no path there is no `cwd`
+at all and the kernel inherits the server process's, which on the device is read-only. So **X1a's
+promise that a notebook can `open()` a file the user can see had never held for a relative path**,
+and nothing noticed because no flow had ever asked a cell to write one.
+
+JupyterLab gets its working directory by creating a *session* -
+`SessionContext({path: this._path, type: 'notebook', ...})` (`packages/docregistry/src/context.ts:82-90`)
+- whose path is handed to the same `start_kernel(path=...)`. `POST /api/kernels` accepts the path
+directly (`services/kernels/handlers.py:56`), which reaches the identical server code. So
+`connect(space, documentPath)` now, sourced from `EditorUiState.notebookId` - which since X1b *is*
+the path and follows a rename. **This is parity for the working directory and is deliberately not
+the sessions work**: reconnecting to a running kernel by path is still Steps 17/18's, and is still
+listed as open.
+
+**What the evidence proves, stated precisely.**
+`evidence/x2h-3-browser-notices-the-workspace/` (tablet, two panes, real kernel - it runs a cell,
+so the emulator's `FakeKernelGateway` would have echoed the source back and written nothing).
+Screenshot 01 is the root with only the notebook on it; 04 is the same browser, untouched since,
+now listing `written_by_a_cell.csv  just now` beside the notebook whose cell wrote it. The driver
+then reads the file off the device, because a row appearing and a kernel writing a file are
+different claims.
+
+**The cell assembles its filename** (`'written_by_a' + '_cell'`) rather than spelling it, and that
+is structural rather than fussy: maestro matches substrings, the source is on screen beside the
+browser throughout, and a source containing the name would satisfy the closing wait on its own -
+the exact trap `check_maestro_output_assertions.py` exists for.
+
+Unit side, red first: `ExplorerScreenTest` writes a file behind the screen's back and touches
+nothing (and deletes one, for the other half); both timed out at 30 s before the poll existed.
+`OkHttpKernelLifecycleTest` pins the request body to `{"path": …}`. `EXPLORER_REFRESH_INTERVAL` is
+pinned to the reference's 10 s, so changing it is an argument with the reference rather than a
+quiet edit.
+
 ## Harness notes
 
 ### Never `kill -9` maestro
@@ -2893,6 +2961,27 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   request. So the greeting itself went unanswered, the 3 s failsafe released, and the request was
   sent into the socket anyway.
 
+  **Sixth sighting, 2026-08-13**, in the X2h-3 sweep - `step7-html-output`, a fourth distinct flow -
+  and it is the first one captured *after* this entry was corrected, so it was read against the
+  right expectation. It confirms the reading rather than adding to it
+  (`evidence/kernel-observability/sixth-sighting/`):
+
+      kernel.socket.connected  subscribers: 1
+      kernel.frame.received    msgType: status  parent: …_22495_2  bytes: 632
+      kernel.frame.received    msgType: status  parent: …_22495_1  bytes: 632
+      kernel.frame.received    msgType: status  parent: …_22495_1  bytes: 632
+      kernel.execute.request   msgId: 7251f2f0-…  enqueued: true
+      <nothing further>
+
+  **No `kernel_info_reply` at all**, where a healthy run gets one within 70 ms. So the greeting
+  itself went unanswered, the 3 s failsafe released, and the request was then sent into a socket
+  the server had not finished wiring - which is precisely what the correction above predicted the
+  trail would look like. Passed on an immediate re-run of the same build, as all five before it.
+
+  **Not caused by X2h-3, and this is worth stating rather than assuming**: that step's changes are
+  a `listFiles` on a timer and a `path` field in the kernel-start body. Neither touches the socket,
+  and the stall's shape is the one recorded since 2026-08-07.
+
   That is JupyterLab's own standing FIXME, sitting three lines below the one already quoted here:
   *"It may be preferable to retry kernelInfo rather than give up after one timeout"*
   (`packages/services/src/kernel/default.ts:1589-1591`). We copied the failsafe including its known
@@ -2951,16 +3040,11 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   `CellAction` dispatch (`applying`, `newCellId`) moved to `CellEdits.kt`, beside the transforms it
   dispatches to. It is back to ten, so there is room for one more before the next split - and the
   run/kernel half named here is still the candidate.
-- **The browser only refreshes when it comes back, so a file written while you are watching does
-  not appear.** X2h-2 added a refresh on resume, which covers an editor writing the notebook the
-  row names and covers an import - both found by flows (`a6-edit-updates-recents` read a stale
-  timestamp; `step2-import` never saw its row). What it does not cover is the workspace changing
-  while the browser is on screen: a cell calling `open('data.csv', 'w')` writes into the same tree
-  since X1a, and nothing tells the listing. The reference's answer is a **poll** -
-  `FileBrowserModel` runs one at `DEFAULT_REFRESH_INTERVAL = 10000` with `standby: 'when-hidden'`
-  (`packages/filebrowser/src/model.ts:26,79-106`) - and that is the thing to add if it grates.
-  Deliberately not paid for up front: it is a timer nothing currently tests, and the gap predates
-  X2h, since the explorer never refreshed at all before it.
+- ~~**The browser only refreshes when it comes back.**~~ **Closed by X2h-3**, with the reference's
+  own poll (`DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` -> `RESUMED`). Closing it
+  turned up the defect underneath: the kernel had no working directory at all, so X1a's promise
+  that a notebook can `open()` a file the user can see had never held for a relative path. Both
+  are written up under X2h-3.
 - **29 drivers call bare `adb` rather than `$ADB`**, so the suite only runs from a shell that has
   `platform-tools` on its PATH - `maestro-run.sh` already computes `$ADB` with a fallback for
   exactly this, and half the drivers use it. It surfaces as a flow that passes every step and then

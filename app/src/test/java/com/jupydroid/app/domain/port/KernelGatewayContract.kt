@@ -69,7 +69,7 @@ abstract class KernelGatewayContract {
   fun complete_offersTheObviousMatchForAPrefix() = runTest {
     val gateway = gateway()
 
-    val result = gateway.complete(gateway.connect(SPACE), PREFIX, PREFIX.length)
+    val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), PREFIX, PREFIX.length)
 
     assertTrue("completing \"$PREFIX\" must offer print, got $result", "print" in result.matches)
   }
@@ -79,7 +79,7 @@ abstract class KernelGatewayContract {
   fun complete_replacesARangeInsideTheCodeItWasGiven() = runTest {
     val gateway = gateway()
 
-    val result = gateway.complete(gateway.connect(SPACE), PREFIX, PREFIX.length)
+    val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), PREFIX, PREFIX.length)
 
     assertTrue("range must not run backwards, got $result", result.replacedEnd >= result.replacedStart)
     assertTrue("range must stay in the code, got $result", result.replacedEnd <= PREFIX.length)
@@ -88,7 +88,7 @@ abstract class KernelGatewayContract {
 
   @Test
   fun connect_returnsASessionBoundToTheSpace() = runTest {
-    val session = gateway().connect(SPACE)
+    val session = gateway().connect(SPACE, "Analysis.ipynb")
 
     assertEquals(SPACE.id, session.spaceId)
     assertTrue("a session needs a kernel to talk to", session.kernelId.isNotBlank())
@@ -103,13 +103,13 @@ abstract class KernelGatewayContract {
   @Test
   fun restart_isAcceptedForALiveSession() = runTest {
     val gateway = gateway()
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.restart(session)
   }
 
   private suspend fun KernelGateway.runCell(cellId: String = "cell-1"): List<KernelEvent> =
-    execute(connect(SPACE), cellId, "2 + 2").toList()
+    execute(connect(SPACE, "Analysis.ipynb"), cellId, "2 + 2").toList()
 
   protected companion object {
     val SPACE = Space(id = "base", name = "Base", kernels = emptyList())

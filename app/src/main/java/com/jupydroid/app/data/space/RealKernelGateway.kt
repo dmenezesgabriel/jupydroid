@@ -53,11 +53,11 @@ class RealKernelGateway(
    * Starts a kernel and binds a session to it. The session id is ours and identifies this
    * client to the server; the kernel id is the server's.
    */
-  override suspend fun connect(space: Space): KernelSession =
+  override suspend fun connect(space: Space, documentPath: String): KernelSession =
     KernelSession(
       id = UUID.randomUUID().toString(),
       spaceId = space.id,
-      kernelId = lifecycle.start(),
+      kernelId = lifecycle.start(documentPath),
     ).also { log.reached(KernelLog.SESSION_OPENED, mapOf("kernelId" to it.kernelId, "sessionId" to it.id)) }
 
   /**

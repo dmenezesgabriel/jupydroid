@@ -112,6 +112,47 @@ class ExplorerScreenTest {
     compose.onNodeWithText("just now").assertIsDisplayed()
   }
 
+  /**
+   * A file this app did not write appears without the screen being touched.
+   *
+   * The workspace is the kernel's `HOME` since X1a, so a cell calling `open(..., 'w')` puts a file
+   * in the directory being browsed and nothing tells the listing. The reference answers exactly
+   * this with a poll - `FileBrowserModel` runs `cd('.')` on a `Poll` at
+   * `DEFAULT_REFRESH_INTERVAL = 10000` with `standby: 'when-hidden'`
+   * (`packages/filebrowser/src/model.ts:26,97-106`) - because its own `fileChanged` signal only
+   * ever reports changes the *client* made.
+   *
+   * Nothing is tapped here on purpose: a refresh that needed an interaction would not be the
+   * behaviour the reference has.
+   */
+  @Test
+  fun aFileWrittenBySomethingElseAppearsWithoutTouchingTheScreen() {
+    given("notes.txt")
+    showExplorer()
+    compose.onNodeWithText("notes.txt").assertIsDisplayed()
+
+    File(temp.root, "written_by_a_cell.csv").writeText("region,amount")
+
+    compose.waitUntil(POLL_TIMEOUT_MILLIS) {
+      compose.onAllNodesWithText("written_by_a_cell.csv").fetchSemanticsNodes().isNotEmpty()
+    }
+    compose.onNodeWithText("written_by_a_cell.csv").assertIsDisplayed()
+  }
+
+  /** The other half of the same rule: something removed elsewhere stops being listed. */
+  @Test
+  fun aFileRemovedBySomethingElseStopsBeingListed() {
+    given("notes.txt", "removed_by_a_cell.txt")
+    showExplorer()
+    compose.onNodeWithText("removed_by_a_cell.txt").assertIsDisplayed()
+
+    assertTrue(File(temp.root, "removed_by_a_cell.txt").delete())
+
+    compose.waitUntil(POLL_TIMEOUT_MILLIS) {
+      compose.onAllNodesWithText("removed_by_a_cell.txt").fetchSemanticsNodes().isEmpty()
+    }
+  }
+
   @Test
   fun itListsTheWorkspace() {
     given("notes.txt", "reports/")
@@ -383,6 +424,9 @@ class ExplorerScreenTest {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+
+    /** Longer than one refresh interval, so a poll has a turn before this gives up. */
+    const val POLL_TIMEOUT_MILLIS = 30_000L
     const val RECENTS_HEADING = "Recent"
   }
 }

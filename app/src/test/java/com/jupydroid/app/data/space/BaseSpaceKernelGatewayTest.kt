@@ -18,7 +18,7 @@ class BaseSpaceKernelGatewayTest {
     val launcher = RecordingServerLauncher()
     val gateway = gateway(launcher)
 
-    gateway.connect(SPACE)
+    gateway.connect(SPACE, "Analysis.ipynb")
 
     assertEquals(listOf("install", "start"), installedThenStarted)
     assertEquals(1, launcher.startCount)
@@ -30,9 +30,9 @@ class BaseSpaceKernelGatewayTest {
     val launcher = RecordingServerLauncher()
     val gateway = gateway(launcher)
 
-    gateway.connect(SPACE)
-    gateway.connect(SPACE)
-    gateway.execute(gateway.connect(SPACE), "c1", "2 + 2").toList()
+    gateway.connect(SPACE, "Analysis.ipynb")
+    gateway.connect(SPACE, "Analysis.ipynb")
+    gateway.execute(gateway.connect(SPACE, "Analysis.ipynb"), "c1", "2 + 2").toList()
 
     assertEquals(1, launcher.startCount)
   }
@@ -46,8 +46,8 @@ class BaseSpaceKernelGatewayTest {
     val launcher = RecordingServerLauncher()
     val gateway = gateway(launcher)
 
-    val first = async { gateway.connect(SPACE) }
-    val second = async { gateway.connect(SPACE) }
+    val first = async { gateway.connect(SPACE, "Analysis.ipynb") }
+    val second = async { gateway.connect(SPACE, "Analysis.ipynb") }
     first.await()
     second.await()
 
@@ -58,7 +58,7 @@ class BaseSpaceKernelGatewayTest {
   fun connect_surfacesAServerThatWillNotStart() = runTest {
     val gateway = gateway(RecordingServerLauncher(failWith = IllegalStateException("port in use")))
 
-    val failure = runCatching { gateway.connect(SPACE) }
+    val failure = runCatching { gateway.connect(SPACE, "Analysis.ipynb") }
 
     assertTrue("expected the failure to surface, got $failure", failure.isFailure)
   }
@@ -66,7 +66,7 @@ class BaseSpaceKernelGatewayTest {
   /** The app was silent when the first real-kernel run produced nothing; this is why. */
   @Test
   fun connect_reportsEachStageItReachedSoAFailureNamesOne() = runTest {
-    gateway(RecordingServerLauncher()).connect(SPACE)
+    gateway(RecordingServerLauncher()).connect(SPACE, "Analysis.ipynb")
 
     val stages = recordingLog.stages
     assertTrue("expected the server url to be logged, got $stages", stages.any { it.contains("127.0.0.1:8888") })
@@ -77,7 +77,7 @@ class BaseSpaceKernelGatewayTest {
   fun connect_logsTheStageItFailedAtRatherThanFailingSilently() = runTest {
     val gateway = gateway(RecordingServerLauncher(failWith = IllegalStateException("port in use")))
 
-    runCatching { gateway.connect(SPACE) }
+    runCatching { gateway.connect(SPACE, "Analysis.ipynb") }
 
     assertTrue("expected the failing stage to be logged", recordingLog.failures.isNotEmpty())
   }

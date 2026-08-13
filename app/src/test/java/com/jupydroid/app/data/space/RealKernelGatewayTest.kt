@@ -80,7 +80,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   fun execute_opensTheSocketForTheSessionsKernel() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.execute(session, "cell-1", "2 + 2").toList()
 
@@ -95,7 +95,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   fun execute_reusesOneSocketAcrossEveryCellInTheSession() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     repeat(3) { gateway.execute(session, "cell-$it", "2 + 2").toList() }
 
@@ -107,7 +107,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   fun disconnect_closesTheSessionSocket() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
     gateway.execute(session, "cell-1", "2 + 2").toList()
 
     gateway.disconnect(session)
@@ -121,8 +121,8 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
 
-    gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2").toList()
-    gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2").toList()
+    gateway.execute(gateway.connect(SPACE, "Analysis.ipynb"), "cell-1", "2 + 2").toList()
+    gateway.execute(gateway.connect(SPACE, "Analysis.ipynb"), "cell-1", "2 + 2").toList()
 
     assertEquals(2, opener.openCount)
   }
@@ -134,7 +134,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
       ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) }),
       FakeKernelLifecycle(),
     )
-    val cell = gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2")
+    val cell = gateway.execute(gateway.connect(SPACE, "Analysis.ipynb"), "cell-1", "2 + 2")
 
     assertEquals(cell.toList(), cell.toList())
     assertEquals(KernelEvent.Idle, cell.toList().last())
@@ -149,7 +149,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     )
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
 
-    val failure = runCatching { gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2").toList() }
+    val failure = runCatching { gateway.execute(gateway.connect(SPACE, "Analysis.ipynb"), "cell-1", "2 + 2").toList() }
 
     assertTrue("expected the flow to fail, got $failure", failure.isFailure)
     assertTrue("reason must survive", failure.exceptionOrNull()?.message?.contains("connection reset") == true)
@@ -164,7 +164,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     )
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
 
-    val events = gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2").toList()
+    val events = gateway.execute(gateway.connect(SPACE, "Analysis.ipynb"), "cell-1", "2 + 2").toList()
 
     assertEquals(KernelEvent.Idle, events.last())
   }
@@ -178,7 +178,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
       FakeKernelLifecycle(),
     )
 
-    val result = gateway.complete(gateway.connect(SPACE), "x = pri", cursorOffset = 7)
+    val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), "x = pri", cursorOffset = 7)
 
     assertEquals(listOf("print", "printf"), result.matches)
     assertEquals(4, result.replacedStart)
@@ -200,7 +200,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
       FakeKernelLifecycle(),
     )
 
-    val result = gateway.complete(gateway.connect(SPACE), "pri", cursorOffset = 3)
+    val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), "pri", cursorOffset = 3)
 
     assertEquals(listOf("print"), result.matches)
   }
@@ -213,7 +213,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
       FakeKernelLifecycle(),
     )
 
-    val result = gateway.complete(gateway.connect(SPACE), "pri", cursorOffset = 3)
+    val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), "pri", cursorOffset = 3)
 
     assertEquals(listOf("print"), result.matches)
   }
@@ -228,7 +228,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
       FakeKernelLifecycle(),
     )
 
-    val failure = runCatching { gateway.complete(gateway.connect(SPACE), "pri", cursorOffset = 3) }
+    val failure = runCatching { gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), "pri", cursorOffset = 3) }
 
     assertTrue("expected the request to fail, got $failure", failure.isFailure)
   }
@@ -237,7 +237,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   fun complete_reusesTheSessionSocketRatherThanOpeningAnother() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { executionThenCompletion(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.execute(session, "cell-1", "2 + 2").toList()
     gateway.complete(session, "pri", cursorOffset = 3)
@@ -252,7 +252,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val lifecycle = FakeKernelLifecycle(kernelId = "kernel-from-server")
     val gateway = RealKernelGateway(ScriptedKernelSocketOpener(reply = { emptyList() }), lifecycle)
 
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     assertEquals("kernel-from-server", session.kernelId)
     assertEquals(1, lifecycle.startCount)
@@ -263,7 +263,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   fun interrupt_asksTheServerToInterruptTheSessionsKernel() = runTest {
     val lifecycle = FakeKernelLifecycle(kernelId = "kernel-9")
     val gateway = RealKernelGateway(ScriptedKernelSocketOpener(reply = { emptyList() }), lifecycle)
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.interrupt(session)
 
@@ -278,14 +278,14 @@ class RealKernelGatewayTest : KernelGatewayContract() {
       FakeKernelLifecycle(failWith = KernelLifecycleException("HTTP 500")),
     )
 
-    val failure = runCatching { gateway.connect(SPACE) }
+    val failure = runCatching { gateway.connect(SPACE, "Analysis.ipynb") }
 
     assertTrue("expected connect to fail, got $failure", failure.isFailure)
   }
 
   private suspend fun runCell(script: (String) -> List<String>): List<KernelEvent> {
     val gateway = RealKernelGateway(ScriptedKernelSocketOpener(reply = script), FakeKernelLifecycle())
-    return gateway.execute(gateway.connect(SPACE), "cell-1", "2 + 2").toList()
+    return gateway.execute(gateway.connect(SPACE, "Analysis.ipynb"), "cell-1", "2 + 2").toList()
   }
 
   /**

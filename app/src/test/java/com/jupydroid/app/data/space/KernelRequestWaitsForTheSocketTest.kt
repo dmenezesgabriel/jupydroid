@@ -32,7 +32,7 @@ class KernelRequestWaitsForTheSocketTest {
       openImmediately = false,
     )
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     val running = async { gateway.execute(session, "cell-1", "2 + 2").toList() }
     yield()
@@ -55,7 +55,7 @@ class KernelRequestWaitsForTheSocketTest {
   fun aHandshakeThatFailsFailsTheCellRatherThanHanging() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { listOf() }, openImmediately = false)
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     val running = async { runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() } }
     yield()
@@ -70,7 +70,7 @@ class KernelRequestWaitsForTheSocketTest {
   fun aLaterCellOnAnOpenSocketRunsStraightAway() = runTest {
     val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.execute(session, "cell-1", "2 + 2").toList()
     val second = gateway.execute(session, "cell-2", "3 + 3").toList()

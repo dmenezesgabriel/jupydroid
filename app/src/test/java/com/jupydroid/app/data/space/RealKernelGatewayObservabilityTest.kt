@@ -25,7 +25,7 @@ class RealKernelGatewayObservabilityTest {
 
   @Test
   fun connect_reportsTheKernelItBound() = runTest {
-    val session = gateway().connect(SPACE)
+    val session = gateway().connect(SPACE, "Analysis.ipynb")
 
     assertEquals(session.kernelId, log.fieldsOf(KernelLog.SESSION_OPENED)["kernelId"])
     assertEquals(session.id, log.fieldsOf(KernelLog.SESSION_OPENED)["sessionId"])
@@ -34,7 +34,7 @@ class RealKernelGatewayObservabilityTest {
   @Test
   fun execute_reportsTheRequestItSent() = runTest {
     val gateway = gateway()
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.execute(session, "cell-1", "2 + 2").toList()
 
@@ -46,7 +46,7 @@ class RealKernelGatewayObservabilityTest {
   @Test
   fun execute_reportsThatItCompleted() = runTest {
     val gateway = gateway()
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.execute(session, "cell-1", "2 + 2").toList()
 
@@ -63,7 +63,7 @@ class RealKernelGatewayObservabilityTest {
   @Test
   fun everyFrameOffTheSocketIsReportedWithWhetherAnyoneWasListening() = runTest {
     val gateway = gateway()
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     gateway.execute(session, "cell-1", "2 + 2").toList()
 
@@ -87,7 +87,7 @@ class RealKernelGatewayObservabilityTest {
       endAfter = KernelSocketEvent.Ended(reason = "closed: 1006 gone", failed = false),
     )
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle(), log)
-    val session = gateway.connect(SPACE)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }
 

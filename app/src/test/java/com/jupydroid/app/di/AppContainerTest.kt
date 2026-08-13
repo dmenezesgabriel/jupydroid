@@ -30,7 +30,7 @@ class AppContainerTest {
     assertEquals("http://127.0.0.1:8888", connection.baseUrl)
     assertTrue(container.serverLauncher.isRunning())
 
-    val session = container.kernelGateway.connect(space)
+    val session = container.kernelGateway.connect(space, "Analysis.ipynb")
     assertEquals("base", session.spaceId)
   }
 

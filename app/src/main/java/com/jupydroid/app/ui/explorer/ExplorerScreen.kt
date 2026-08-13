@@ -49,8 +49,10 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
@@ -64,6 +66,9 @@ import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.relativeTime
 import java.time.Instant
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 
 /**
  * The workspace, one directory at a time.
@@ -112,21 +117,14 @@ fun ExplorerScreen(
   val now = remember(state.path, state.entries) { Instant.now() }
   val listing = rememberLazyListState()
 
-  // The workspace is shared, so what is on screen goes stale while the screen is away: an editor
-  // writes the notebook this row names, an import lands a file. The reference polls for the same
-  // reason (`FileBrowserModel`, `standby: 'when-hidden'`); on a phone showing one thing at a time,
-  // coming back *is* the moment that matters.
-  LifecycleResumeEffect(Unit) {
-    viewModel.refresh()
-    onPauseOrDispose {}
-  }
+  KeepTheListingFresh(viewModel::refresh)
 
   // A created row can land anywhere, because the listing is ordered by name - so it is brought
   // into view rather than left below the fold, which is audit A3 on this surface.
   BringCreatedItemIntoView(
     justCreated = state.justCreated,
     entries = state.entries,
-    recentsAbove = state.recents.size,
+    itemsAboveTheListing = itemsAboveTheListing(state.recents.size),
     listing = listing,
   )
 
@@ -152,17 +150,11 @@ fun ExplorerScreen(
       // in the same direction is what Compose forbids outright, and the guidance is to consolidate
       // rather than to give the inner one a fixed height.
       LazyColumn(state = listing, modifier = Modifier.fillMaxSize()) {
-        if (state.recents.isNotEmpty()) {
-          item(key = RECENTS_HEADING_KEY, contentType = RECENTS_HEADING_KEY) {
-            RecentsHeading(onClear = viewModel::clearRecents)
-          }
-          // Keys are namespaced: a recent and a listing row can hold the same path at the root,
-          // and two items sharing a key in one LazyColumn is a crash, not a cosmetic clash.
-          items(state.recents, key = { "recent:${it.path}" }, contentType = { RECENTS_ROW_TYPE }) { document ->
-            RecentRow(document = document, onOpen = { viewModel.openRecent(document, onOpenRecent) })
-          }
-          item(key = RECENTS_DIVIDER_KEY, contentType = RECENTS_DIVIDER_KEY) { HorizontalDivider() }
-        }
+        recentsSection(
+          recents = state.recents,
+          onOpen = { document -> viewModel.openRecent(document, onOpenRecent) },
+          onClear = viewModel::clearRecents,
+        )
         // Keyed by path, which is the identity of a workspace entry and a String, so it survives
         // the Bundle round trip Compose needs for state restoration. contentType by kind, so a
         // folder row and a file row reuse separate composition pools rather than each other's.
@@ -294,91 +286,59 @@ private fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> U
 }
 
 /**
- * Scrolls a newly created row into view, once.
+ * Re-lists while the screen is in front of someone, and stops when it is not.
  *
- * The index has to count what sits *above* the listing - the Recents heading, its rows and the
- * divider - because they are items in the same `LazyColumn`. Off-by-one here would scroll to a
- * neighbour, which looks like the bug it is fixing.
+ * **The workspace is shared, so the listing goes stale without this app doing anything.** It is
+ * the kernel's `HOME` since X1a, so a cell calling `open(..., 'w')` writes into the directory
+ * being browsed, and an editor writes the notebook a row names. The reference answers exactly this
+ * with a poll: `FileBrowserModel` runs `cd('.')` on a `Poll` at `DEFAULT_REFRESH_INTERVAL = 10000`
+ * with `standby: 'when-hidden'` (`packages/filebrowser/src/model.ts:26,97-106`). Its own
+ * `fileChanged` signal is not enough and never was - it only reports changes the *client* made,
+ * which is why the poll exists beside it. Our equivalent of that signal is `relistAfter`, which
+ * already re-lists after this app's own create, rename and delete.
+ *
+ * **`standby: 'when-hidden'` is `RESUMED` here**, and that is the mobile half of the adaptation: a
+ * phone that kept polling in the background would spend a wakeup every ten seconds on a listing
+ * nobody is looking at. `repeatOnLifecycle` cancels the loop at `ON_PAUSE` and starts a fresh one
+ * at `ON_RESUME`, so coming back also refreshes immediately - which is the case `a6` and
+ * `step2-import` needed and the reason this replaced a resume-only effect rather than joining it.
+ *
+ * **Not adapted: the reference's `backoff: true, max: 300000`.** That backs off a failing *HTTP*
+ * poll against a server that may be down. Ours is a `listFiles` on this app's own storage; the one
+ * way it fails is the directory being removed underneath, which `goTo` already reports while
+ * leaving the view where it was, and which a later tick recovers from on its own.
  */
 @Composable
-private fun BringCreatedItemIntoView(
-  justCreated: String?,
-  entries: List<WorkspaceEntry>,
-  recentsAbove: Int,
-  listing: LazyListState,
-) {
-  LaunchedEffect(justCreated, entries) {
-    val at = entries.indexOfFirst { it.path == justCreated }
-    if (justCreated == null || at < 0) return@LaunchedEffect
-    val sectionItems = if (recentsAbove == 0) 0 else recentsAbove + HEADING_AND_DIVIDER
-    listing.animateScrollToItem(sectionItems + at)
-  }
-}
-
-/**
- * What the section is, and the one way to empty it.
- *
- * "Recent" rather than "Recently opened": the reference's submenu is `Open Recent` and its panel
- * section is `Recently Closed`, both of which read as verbs on a phone where the heading has to
- * sit in a row of its own. Clearing is `docmanager:clear-recents`, which the reference puts at the
- * foot of the same submenu; here it is an action on the heading, because a phone has no submenu
- * to put a last item in.
- */
-@Composable
-private fun RecentsHeading(onClear: () -> Unit) {
-  Row(
-    modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(
-      text = "Recent",
-      style = MaterialTheme.typography.labelLarge,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      modifier = Modifier.weight(1f),
-    )
-    IconButton(onClick = onClear) {
-      Icon(
-        Icons.Filled.Clear,
-        contentDescription = "Clear recents",
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
+private fun KeepTheListingFresh(refresh: () -> Unit) {
+  val lifecycleOwner = LocalLifecycleOwner.current
+  LaunchedEffect(lifecycleOwner, refresh) {
+    lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+      while (true) {
+        refresh()
+        delay(EXPLORER_REFRESH_INTERVAL)
+      }
     }
   }
 }
 
 /**
- * One recent: the path it was opened under, and an icon saying whether it is a folder.
+ * Scrolls a newly created row into view, once.
  *
- * **The whole path, not the basename.** A recents list is flat and global, so two `summary.ipynb`
- * in different folders would be one row repeated; the reference labels its own recents by path too
- * (`joinWithLeadingSlash(recent.root, recent.path)`, `mainmenu-extension/src/recents.ts`). The
- * *start* is ellipsised rather than the end, because the end is the part that names the document.
- *
- * No timestamp, deliberately: neither reference surface carries one. When a thing was last written
- * belongs to the listing below, which is where `DirListing` puts it.
+ * The index has to count what sits *above* the listing, because the Recents section's items are in
+ * the same `LazyColumn` - see [itemsAboveTheListing]. Off-by-one here would scroll to a neighbour,
+ * which looks like the bug it is fixing.
  */
 @Composable
-private fun RecentRow(document: RecentDocument, onOpen: () -> Unit) {
-  val directory = document.kind == WorkspaceEntryKind.DIRECTORY
-  Row(
-    modifier = Modifier
-      .fillMaxWidth()
-      .clickable(onClick = onOpen)
-      .padding(horizontal = 16.dp, vertical = 14.dp),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Icon(
-      imageVector = if (directory) Icons.Filled.Folder else Icons.Filled.History,
-      contentDescription = if (directory) "Recent folder" else "Recent file",
-      tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Text(
-      text = document.path,
-      style = MaterialTheme.typography.bodyLarge,
-      maxLines = 1,
-      overflow = TextOverflow.StartEllipsis,
-      modifier = Modifier.padding(start = 16.dp),
-    )
+private fun BringCreatedItemIntoView(
+  justCreated: String?,
+  entries: List<WorkspaceEntry>,
+  itemsAboveTheListing: Int,
+  listing: LazyListState,
+) {
+  LaunchedEffect(justCreated, entries) {
+    val at = entries.indexOfFirst { it.path == justCreated }
+    if (justCreated == null || at < 0) return@LaunchedEffect
+    listing.animateScrollToItem(itemsAboveTheListing + at)
   }
 }
 
@@ -480,18 +440,12 @@ private fun ExplorerError(message: String) {
 
 private val SEPARATOR = 16.dp
 
-/**
- * Keys for the section's non-row items, and a type for its rows.
- *
- * Namespaced on purpose: at the root a recent and a listing row can hold the same path, and two
- * items sharing a key inside one `LazyColumn` is a crash rather than a cosmetic clash.
- */
-private const val RECENTS_HEADING_KEY = "recents-heading"
-private const val RECENTS_DIVIDER_KEY = "recents-divider"
-private const val RECENTS_ROW_TYPE = "recent"
 
-/** The heading above the recent rows and the divider below them, both items in the same list. */
-private const val HEADING_AND_DIVIDER = 2
+/**
+ * How often the listing is re-read: `DEFAULT_REFRESH_INTERVAL`, which the reference sets to 10 s
+ * (`packages/filebrowser/src/model.ts:26`).
+ */
+internal val EXPLORER_REFRESH_INTERVAL: Duration = 10.seconds
 
 /** The three the reference's New widget offers, in its order. */
 private val NEW_MENU_ITEMS = listOf(

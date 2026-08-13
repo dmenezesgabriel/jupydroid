@@ -40,7 +40,15 @@ sealed interface KernelEvent {
 
 /** Talks to a real jupyter_server kernel; swapped behind the port in Step 10. */
 interface KernelGateway {
-  suspend fun connect(space: Space): KernelSession
+  /**
+   * Starts a kernel for the document at [documentPath] and binds a session to it.
+   *
+   * The path is what gives the kernel its **working directory**, so a cell's
+   * `open('data.csv', 'w')` lands beside the notebook rather than wherever the server happened to
+   * be started - which on the device is a read-only filesystem. JupyterLab reaches the same thing
+   * by giving its session the document's path (`SessionContext({path, type: 'notebook'})`).
+   */
+  suspend fun connect(space: Space, documentPath: String): KernelSession
 
   suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent>
 
