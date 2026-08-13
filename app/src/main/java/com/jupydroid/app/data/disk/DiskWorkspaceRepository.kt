@@ -1,6 +1,6 @@
 package com.jupydroid.app.data.disk
 
-import com.jupydroid.app.domain.model.PathRename
+import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.idBeside
@@ -35,11 +35,13 @@ class DiskWorkspaceRepository(
   rootDir: File,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : WorkspaceRepository {
-  // No replay and no buffer: `emit` returns at once when nothing is open, which is exactly when
-  // there is nobody a moved path could matter to.
   private val root = WorkspaceRoot(rootDir)
-  private val _renames = MutableSharedFlow<PathRename>()
-  override val renames: Flow<PathRename> = _renames.asSharedFlow()
+
+  // No replay and no buffer, so `emit` suspends until every open document has taken the change -
+  // which is what puts "stop writing" *before* whatever closes the screen - and returns at once
+  // when nothing is open, which is exactly when there is nobody it could matter to.
+  private val _changes = MutableSharedFlow<WorkspaceChange>()
+  override val changes: Flow<WorkspaceChange> = _changes.asSharedFlow()
 
   override suspend fun list(path: String): List<WorkspaceEntry> = withContext(ioDispatcher) {
     val directory = root.fileAt(path)
@@ -90,7 +92,7 @@ class DiskWorkspaceRepository(
     // Before the move, because `rename(2)` would replace the target without a word.
     if (root.isPresent(to)) throw FileNameTakenException(moved)
     check(from.renameTo(to)) { "could not rename '$path' to '$moved' in the workspace" }
-    _renames.emit(PathRename(from = path, to = moved))
+    _changes.emit(WorkspaceChange.Renamed(from = path, to = moved))
     moved
   }
 
@@ -115,8 +117,19 @@ class DiskWorkspaceRepository(
       error("could not replace '$moved' in the workspace; a folder with anything in it cannot be replaced")
     }
     check(aside.renameTo(target)) { "could not move '$path' into place as '$moved'" }
-    _renames.emit(PathRename(from = path, to = moved))
+    _changes.emit(WorkspaceChange.Renamed(from = path, to = moved))
     moved
+  }
+
+  override suspend fun delete(path: String): Unit = withContext(ioDispatcher) {
+    val target = root.fileAt(path)
+    require(root.isPresent(target)) { "nothing at '$path' in the workspace to delete" }
+    // `isDirectory` follows a link, so the link check comes first: unlinking one is not a
+    // recursive delete and must not be refused for what its target happens to hold.
+    val emptyEnough = root.isLink(target) || !target.isDirectory || target.list().isNullOrEmpty()
+    require(emptyEnough) { "'$path' is a folder with something in it; empty it before deleting it" }
+    check(target.delete()) { "could not delete '$path' from the workspace" }
+    _changes.emit(WorkspaceChange.Deleted(path))
   }
 
   /** The first name in the server's series that this directory does not already hold. */

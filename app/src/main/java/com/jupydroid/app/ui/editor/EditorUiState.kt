@@ -37,6 +37,14 @@ data class EditorUiState(
    */
   val nameTaken: String? = null,
   /**
+   * The file behind this notebook was deleted, so the screen showing it should close.
+   *
+   * `DocumentManager.deleteFile` closes every widget open on the path (`manager.ts:351-363`).
+   * Ours is reported rather than commanded, because the delete can come from a cell as easily as
+   * from the browser, and only the repository sees both.
+   */
+  val gone: Boolean = false,
+  /**
    * Held here rather than on [Cell] while a run is in flight: the cell list is what gets
    * written to disk, and half a run's output has no business being saved.
    */

@@ -22,7 +22,27 @@ appId: com.jupydroid.app
 - tapOn: "Rename"
 - assertVisible: "Math notes.ipynb"
 - takeScreenshot: 03-renamed
+# Delete asks first, as of X2g - the same question the browser asks, because it is the same
+# destructive act. Both references ask (`DirListing.delete`, Winlator's `ContentDialog.confirm`),
+# and until X2g this row destroyed a notebook on one tap with no way back.
 - longPressOn: "Math notes.ipynb"
 - tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: Math notes.ipynb?"
+    timeout: 5000
+- takeScreenshot: 04-delete-asks-first
+# Cancel keeps it, which is the half of a confirmation that is worth having.
+- tapOn: "Cancel"
+- assertVisible: "Math notes.ipynb"
+- longPressOn: "Math notes.ipynb"
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: Math notes.ipynb?"
+    timeout: 5000
+# The dialog's button, not its title: the reference titles the dialog with the action name, so
+# both say "Delete", and index 1 is the one below the question.
+- tapOn:
+    text: "Delete"
+    index: 1
 - assertVisible: "No recent notebooks yet"
-- takeScreenshot: 04-deleted
+- takeScreenshot: 05-deleted

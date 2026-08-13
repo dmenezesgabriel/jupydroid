@@ -282,6 +282,34 @@ class ExplorerViewModelTest {
     assertNull(viewModel.uiState.value.nameTaken)
   }
 
+  @Test
+  fun deletingRemovesTheRowAndTheFile() = runTest {
+    given("notes.txt", "keep.txt")
+    val viewModel = explorer()
+
+    viewModel.delete(viewModel.uiState.value.entries.first { it.name == "notes.txt" })
+
+    assertEquals(listOf("keep.txt"), viewModel.uiState.value.entries.map { it.name })
+    assertTrue("the file must be gone", !File(temp.root, "notes.txt").exists())
+  }
+
+  /**
+   * A folder with anything in it is refused out loud, and keeps its contents.
+   *
+   * The server serving this same tree refuses it (`filemanager.py:607-613`, no trash on Android),
+   * so this is where the app says so - in the error line the explorer already has.
+   */
+  @Test
+  fun deletingAFolderWithSomethingInItIsReportedAndChangesNothing() = runTest {
+    given("reports/summary.ipynb")
+    val viewModel = explorer()
+
+    viewModel.delete(viewModel.uiState.value.entries.single())
+
+    assertTrue("expected the refusal to be reported", viewModel.uiState.value.error != null)
+    assertTrue("the folder must survive", File(temp.root, "reports/summary.ipynb").exists())
+  }
+
   /**
    * The repository is given the *test* dispatcher, or nothing here waits for it.
    *

@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import java.util.UUID
 
 /**
  * Managing a notebook's cells, as pure functions over [EditorUiState].
@@ -101,3 +102,30 @@ fun EditorUiState.withOutputsHiddenToggled(cellId: String): EditorUiState {
 
 private fun <T> Map<String, T>.carryOver(from: String, to: String): Map<String, T> =
   get(from)?.let { this + (to to it) } ?: this
+
+/**
+ * The one place a [CellAction] becomes a transform, so a fourteenth action cannot reach the menu
+ * and stop there.
+ *
+ * Beside the transforms rather than inside the ViewModel: it is pure - state in, state out - and
+ * the ViewModel was carrying it only because that is where the caller happened to live. detekt
+ * asked for the split and detekt was right, as it was about `NotebookKernel`.
+ */
+internal fun EditorUiState.applying(action: CellAction, cellId: String): EditorUiState = when (action) {
+  is CellAction.Insert -> withCellInserted(cellId, action.kind, newId = newCellId())
+  is CellAction.InsertAbove -> withCellInsertedAbove(cellId, action.kind, newId = newCellId())
+  is CellAction.ChangeKind -> withCellKindChanged(cellId, action.kind)
+  is CellAction.Merge -> withCellMerged(cellId, action.into, newId = newCellId())
+  is CellAction.Move -> withCellMoved(cellId, action.move)
+  CellAction.Copy -> withCellCopied(cellId)
+  CellAction.Cut -> withCellCut(cellId, replacementId = newCellId())
+  CellAction.Paste -> withClipboardPasted(cellId, newIds = clipboard.map { newCellId() })
+  CellAction.Duplicate -> withCellDuplicated(cellId, newId = newCellId())
+  CellAction.Delete -> withCellDeleted(cellId, replacementId = newCellId())
+  CellAction.ClearOutputs -> withOutputsCleared(cellId)
+  CellAction.ToggleSourceHidden -> withSourceHiddenToggled(cellId)
+  CellAction.ToggleOutputsHidden -> withOutputsHiddenToggled(cellId)
+}
+
+/** Ids are minted here rather than inside the transforms, which keeps those testable. */
+internal fun newCellId(): String = UUID.randomUUID().toString()

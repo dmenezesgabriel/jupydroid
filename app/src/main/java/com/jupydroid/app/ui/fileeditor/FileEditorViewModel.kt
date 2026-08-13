@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.fileeditor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.notebookLeafOf
+import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.syntax.SyntaxHighlighter
@@ -29,6 +30,8 @@ data class FileEditorUiState(
   val syntax: SyntaxHighlighter = syntaxForFile(""),
   val loaded: Boolean = false,
   val error: String? = null,
+  /** The file was deleted, so the screen showing it should close - see `EditorUiState.gone`. */
+  val gone: Boolean = false,
 )
 
 /**
@@ -58,6 +61,9 @@ class FileEditorViewModel(
 
   private val save = NotebookSaveDebounce(viewModelScope) { persist() }
 
+  /** Set when the file this editor is on is deleted; see [stopWriting]. */
+  private var fileIsGone = false
+
   init {
     viewModelScope.launch {
       // A shared workspace can lose a file under the user - a cell can `os.remove` it - so a read
@@ -71,8 +77,11 @@ class FileEditorViewModel(
     // `Context._onFileChanged`: the open document follows its file rather than waiting to be told
     // by whichever screen moved it. Without this the next write re-creates the old path.
     viewModelScope.launch {
-      workspaceRepository.renames.collect { moved ->
-        pathAfterRename(path, moved.from, moved.to)?.let { adopt(it) }
+      workspaceRepository.changes.collect { change ->
+        when (change) {
+          is WorkspaceChange.Renamed -> pathAfterRename(path, change.from, change.to)?.let { adopt(it) }
+          is WorkspaceChange.Deleted -> if (change.path == path) stopWriting()
+        }
       }
     }
   }
@@ -81,6 +90,19 @@ class FileEditorViewModel(
   private fun adopt(moved: String) {
     path = moved
     _uiState.update { it.copy(path = moved, name = notebookLeafOf(moved)) }
+  }
+
+  /**
+   * The file is gone, so nothing more goes to it - not from the debounce, not on the way out.
+   *
+   * `SaveHandler.dispose()` clears its timer and writes nothing, and it is wired to
+   * `context.disposed` (`docmanager/src/savehandler.ts:29,62-69`). Ours has to say so out loud,
+   * because [onCleared] *does* write: a farewell flush after a delete puts the file back.
+   */
+  private fun stopWriting() {
+    fileIsGone = true
+    save.cancelPending()
+    _uiState.update { it.copy(gone = true) }
   }
 
   /** Takes an edit from the field. Written back on a debounce, as a cell's source is. */
@@ -96,7 +118,7 @@ class FileEditorViewModel(
   }
 
   private suspend fun persist() {
-    if (!_uiState.value.loaded) return
+    if (fileIsGone || !_uiState.value.loaded) return
     workspaceRepository.writeText(path, _uiState.value.text)
   }
 }

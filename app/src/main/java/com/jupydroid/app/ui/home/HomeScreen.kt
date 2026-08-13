@@ -46,6 +46,7 @@ import com.jupydroid.app.domain.model.UNTITLED_NOTEBOOK
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
 import java.time.Instant
 
@@ -252,6 +253,7 @@ private fun NotebookRow(
 ) {
   var menuExpanded by remember { mutableStateOf(false) }
   var renameOpen by remember { mutableStateOf(false) }
+  var deleteOpen by remember { mutableStateOf(false) }
 
   Box(modifier = modifier.fillMaxWidth()) {
     Column(
@@ -289,7 +291,7 @@ private fun NotebookRow(
         text = { Text("Delete") },
         onClick = {
           menuExpanded = false
-          onDelete()
+          deleteOpen = true
         },
       )
     }
@@ -303,6 +305,20 @@ private fun NotebookRow(
         onRename(newTitle)
       },
       onDismiss = { renameOpen = false },
+    )
+  }
+
+  // Asked, because it is the same destructive act the browser asks about - and both references ask
+  // (`DirListing.delete`, and Winlator's `ContentDialog.confirm`). It went unasked here until X2g,
+  // which meant a long press one row off destroyed a notebook with no way back.
+  if (deleteOpen) {
+    DeleteFileDialog(
+      name = notebook.title,
+      onDelete = {
+        deleteOpen = false
+        onDelete()
+      },
+      onDismiss = { deleteOpen = false },
     )
   }
 }

@@ -77,4 +77,24 @@ class DiskWorkspaceRepositoryTest : WorkspaceRepositoryContract() {
     assertTrue("the target must not have moved", File(temp.root, "real/inside.txt").exists())
     assertEquals(listOf("inside.txt"), repository.list("renamed-link").map { it.name })
   }
+
+  /**
+   * Deleting a symlink unlinks **the link**, and what it points at stays - even a full directory.
+   *
+   * This is the one case where following the link would destroy a tree nobody asked about, and it
+   * is why Winlator guards its own recursion with `isSymlink` before `delete` (`FileUtils:114-119`)
+   * in a rootfs built out of links. Note it also passes the "not empty" rule for the right reason:
+   * a link is not a directory, so there is nothing in it to refuse.
+   */
+  @Test
+  fun deletingASymlinkUnlinksItAndLeavesItsTarget() = runTest {
+    given("real/inside.txt")
+    Files.createSymbolicLink(File(temp.root, "link").toPath(), File(temp.root, "real").toPath())
+    val repository = repository()
+
+    repository.delete("link")
+
+    assertEquals(listOf("real"), repository.list("").map { it.name })
+    assertTrue("the target must survive", File(temp.root, "real/inside.txt").exists())
+  }
 }

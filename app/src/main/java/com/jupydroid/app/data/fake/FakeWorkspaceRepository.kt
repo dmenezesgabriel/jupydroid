@@ -1,6 +1,6 @@
 package com.jupydroid.app.data.fake
 
-import com.jupydroid.app.domain.model.PathRename
+import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +24,7 @@ class FakeWorkspaceRepository(
   private val text = textByPath.toMutableMap()
 
   /** Nothing moves here, so nothing is ever announced. */
-  override val renames: Flow<PathRename> = emptyFlow()
+  override val changes: Flow<WorkspaceChange> = emptyFlow()
 
   override suspend fun list(path: String): List<WorkspaceEntry> = entriesByPath[path].orEmpty()
 
@@ -46,4 +46,7 @@ class FakeWorkspaceRepository(
 
   override suspend fun overwrite(path: String, name: String): String =
     throw UnsupportedOperationException("FakeWorkspaceRepository holds a fixed listing; it moves nothing")
+
+  override suspend fun delete(path: String) =
+    throw UnsupportedOperationException("FakeWorkspaceRepository holds a fixed listing; it deletes nothing")
 }

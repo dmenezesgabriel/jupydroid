@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.domain.model.WorkspaceChange
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -120,6 +121,49 @@ class EditorRenameTest {
     advanceUntilIdle()
 
     assertEquals("archive/Draft", viewModel.uiState.value.notebookId)
+  }
+
+  /**
+   * A notebook deleted from the browser is not written back by the editor still showing it.
+   *
+   * Our teardown flushes the last edit and our debounce fires 500ms after any keystroke; the
+   * reference's `SaveHandler` is *disposed* when the document goes and writes nothing again
+   * (`savehandler.ts:29,62-69`). Without that, deleting a notebook from the pane beside it and
+   * touching a cell puts the file straight back.
+   */
+  @Test
+  fun aNotebookDeletedElsewhereIsNotWrittenBack() = runTest {
+    val workspace = AnnouncingWorkspaceRepository()
+    val repository = RecordingNotebookRepository()
+    val viewModel = loadedEditor(repository = repository, workspace = workspace)
+    val savesBefore = repository.saveCount
+
+    workspace.announce(WorkspaceChange.Deleted("nb-1"))
+    viewModel.editCell("c1", "typed after the delete")
+    advanceUntilIdle()
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertEquals("nothing may be written after the file is gone", savesBefore, repository.saveCount)
+  }
+
+  /**
+   * And the editor says so, so the screen showing it can close.
+   *
+   * `DocumentManager.deleteFile` closes every widget open on the path (`manager.ts:351-363`).
+   * Ours arrives at the same place from the other end - the document hears that its file went and
+   * reports it - which also covers the delete the reference's path never sees: a cell calling
+   * `os.remove` on the notebook it is running in.
+   */
+  @Test
+  fun aDeletedNotebookReportsThatItIsGone() = runTest {
+    val workspace = AnnouncingWorkspaceRepository()
+    val viewModel = loadedEditor(workspace = workspace)
+
+    workspace.announce(WorkspaceChange.Deleted("nb-1"))
+    advanceUntilIdle()
+
+    assertEquals(true, viewModel.uiState.value.gone)
   }
 
   /** A rename of something else must leave this notebook exactly where it is. */

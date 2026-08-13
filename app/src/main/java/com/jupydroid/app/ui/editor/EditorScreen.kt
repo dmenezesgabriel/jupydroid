@@ -82,6 +82,10 @@ fun EditorScreen(
   // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
   // reports the mode change, so there is one path out of edit mode rather than two.
   BackHandler(enabled = state.mode == CellMode.EDIT) { focusManager.clearFocus() }
+  // The file behind this notebook was deleted, so there is nothing left to show: the reference
+  // closes the widget from the manager (`deleteWidgets`), and this is the same close asked for by
+  // the document, which is the only party that hears every delete.
+  LaunchedEffect(state.gone) { if (state.gone) onBack() }
   LaunchedEffect(state.notebookId) {
     if (state.notebookId.isNotEmpty()) onNotebookMoved(state.notebookId)
   }

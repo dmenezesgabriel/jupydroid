@@ -1,6 +1,8 @@
 package com.jupydroid.app.ui.explorer
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.filterToOne
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -20,6 +22,7 @@ import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -203,6 +206,57 @@ class ExplorerScreenTest {
     compose.onNodeWithText("\"taken.txt\" already exists, overwrite?").assertIsDisplayed()
   }
 
+  /**
+   * Delete asks first, and the question names what would go.
+   *
+   * `DirListing.delete` (`listing.ts:451-500`) puts the dialog in front of `_delete` and focuses
+   * Cancel "to protect from accidental deletion"; a Compose dialog has no focused default, so the
+   * protection here is that Cancel is the dismiss button and Delete is drawn in the error colour.
+   */
+  @Test
+  fun deletingARowAsksFirstAndCancellingKeepsTheFile() {
+    given("notes.txt")
+    showExplorer()
+
+    compose.onNodeWithText("notes.txt").performTouchInput { longClick() }
+    compose.onNodeWithText("Delete").performClick()
+    compose.onNodeWithText("Are you sure you want to permanently delete: notes.txt?").assertIsDisplayed()
+    compose.onNodeWithText("Cancel").performClick()
+
+    compose.onNodeWithText("notes.txt").assertIsDisplayed()
+    compose.runOnIdle { assertEquals(listOf("notes.txt"), temp.root.list()?.toList()) }
+  }
+
+  @Test
+  fun confirmingRemovesTheRowAndTheFile() {
+    given("notes.txt", "keep.txt")
+    showExplorer()
+
+    compose.onNodeWithText("notes.txt").performTouchInput { longClick() }
+    compose.onNodeWithText("Delete").performClick()
+    confirmDelete()
+
+    waitUntilGone("notes.txt")
+    compose.runOnIdle { assertEquals(listOf("keep.txt"), temp.root.list()?.toList()) }
+  }
+
+  /**
+   * A folder with something in it is refused, and the explorer says so where it says everything
+   * else - the server sharing this workspace refuses the same thing (`filemanager.py:607-613`).
+   */
+  @Test
+  fun aFolderWithSomethingInItIsRefusedOutLoud() {
+    given("reports/summary.ipynb")
+    showExplorer()
+
+    compose.onNodeWithText("reports").performTouchInput { longClick() }
+    compose.onNodeWithText("Delete").performClick()
+    confirmDelete()
+
+    waitForText("reports")
+    compose.runOnIdle { assertTrue(File(temp.root, "reports/summary.ipynb").exists()) }
+  }
+
   private fun showExplorer(
     onOpenFile: (WorkspaceEntry) -> Unit = {},
     onBack: (() -> Unit)? = {},
@@ -227,8 +281,21 @@ class ExplorerScreenTest {
     compose.onAllNodesWithText("Workspace").fetchSemanticsNodes().isNotEmpty()
   }
 
+  /**
+   * The dialog's button, not its title - both say "Delete".
+   *
+   * That is the reference's doing rather than ours: `DirListing.delete` titles the dialog with the
+   * action name and labels the accept button with it too (`listing.ts:483-495`).
+   */
+  private fun confirmDelete() =
+    compose.onAllNodesWithText("Delete").filterToOne(hasClickAction()).performClick()
+
   private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {
     compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+  }
+
+  private fun waitUntilGone(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {
+    compose.onAllNodesWithText(text).fetchSemanticsNodes().isEmpty()
   }
 
   private fun given(vararg paths: String) {

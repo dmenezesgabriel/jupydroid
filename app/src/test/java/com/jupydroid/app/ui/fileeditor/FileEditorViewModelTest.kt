@@ -126,6 +126,55 @@ class FileEditorViewModelTest {
     assertEquals("archive/data.csv", viewModel.uiState.value.path)
   }
 
+  /**
+   * A file deleted under the editor is not written back - not by the debounce, not on the way out.
+   *
+   * Our teardown flushes the last edit; the reference's does not - `SaveHandler.dispose()` clears
+   * its timer and writes nothing, and it is wired to `context.disposed`
+   * (`docmanager/src/savehandler.ts:29,62-69`). So a delete has to reach the document *before*
+   * anything closes it, or the farewell write puts the file straight back.
+   */
+  @Test
+  fun aFileDeletedUnderTheEditorIsNotWrittenBack() = runTest {
+    val temp = TemporaryFolder().also { it.create() }
+    val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    File(temp.root, "notes.txt").writeText("before")
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this)
+    advanceUntilIdle()
+    viewModel.edit("an edit that is still owed")
+
+    workspace.delete("notes.txt")
+    advanceUntilIdle()
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertEquals(emptyList<String>(), temp.root.list()?.toList())
+  }
+
+  /**
+   * And it stays gone while the editor is still on screen.
+   *
+   * Dropping the *pending* write is not enough on its own: the delete closes the pane, but not
+   * before the next keystroke can schedule another one, and that write would put the file back
+   * with no pending anything to cancel. The reference's `SaveHandler` is disposed, not paused -
+   * after that it never writes again, whatever the widget does.
+   */
+  @Test
+  fun typingAfterTheFileIsDeletedDoesNotBringItBack() = runTest {
+    val temp = TemporaryFolder().also { it.create() }
+    val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    File(temp.root, "notes.txt").writeText("before")
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this)
+    advanceUntilIdle()
+
+    workspace.delete("notes.txt")
+    advanceUntilIdle()
+    viewModel.edit("typed into a file that is gone")
+    advanceUntilIdle()
+
+    assertEquals(emptyList<String>(), temp.root.list()?.toList())
+  }
+
   private fun kotlinx.coroutines.test.TestScope.editorFor(
     file: Pair<String, String>,
     open: String = file.first,

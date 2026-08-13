@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.KernelGateway
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 /**
  * The document half of the editor: what the notebook *is*, and every change to it.
@@ -56,6 +56,9 @@ class EditorViewModel(
   private var notebook: Notebook? = null
   private val save = NotebookSaveDebounce(viewModelScope) { persist() }
 
+  /** Set when this notebook's file is deleted, so [persist] stops putting it back. */
+  private var notebookIsGone = false
+
   /** Run, interrupt and complete. Driven straight from the screen; see [NotebookKernel]. */
   val kernel = NotebookKernel(_uiState, kernelGateway, viewModelScope, persist = { persist() })
 
@@ -65,7 +68,7 @@ class EditorViewModel(
         try {
           notebookRepository.readNotebook(notebookId)
             .also { notebook = it }
-            .toEditorUiState(defaultCellId = UUID.randomUUID().toString())
+            .toEditorUiState(defaultCellId = newCellId())
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
@@ -74,8 +77,15 @@ class EditorViewModel(
     // above it. `Context._onFileChanged` -> `_updatePath`, and without it the next debounced save
     // writes the old path back into existence.
     viewModelScope.launch {
-      workspaceRepository.renames.collect { moved ->
-        pathAfterRename(notebookId, moved.from, moved.to)?.let { adopt(it) }
+      workspaceRepository.changes.collect { change ->
+        when (change) {
+          is WorkspaceChange.Renamed ->
+            pathAfterRename(notebookId, change.from, change.to)?.let { adopt(it) }
+          // The file is gone, so nothing more goes to it. `SaveHandler.dispose()` clears its timer
+          // and writes nothing; ours has to say so, because `onCleared` *does* write and a
+          // farewell flush after a delete puts the notebook back.
+          is WorkspaceChange.Deleted -> if (change.path == notebookId) stopWriting()
+        }
       }
     }
   }
@@ -151,6 +161,18 @@ class EditorViewModel(
   }
 
   /**
+   * The file is gone: nothing more is written to it, and the screen is told so it can close.
+   *
+   * `SaveHandler.dispose()` clears its timer and writes nothing; ours has to say so, because
+   * [onCleared] *does* write and a farewell flush after a delete puts the notebook back.
+   */
+  private fun stopWriting() {
+    notebookIsGone = true
+    save.cancelPending()
+    _uiState.update { it.copy(gone = true) }
+  }
+
+  /**
    * Takes on the id the repository moved the file to.
    *
    * `Context._updatePath`: the document did not change, only where it lives - so the id is
@@ -214,26 +236,9 @@ class EditorViewModel(
     save.schedule()
   }
 
-  private fun EditorUiState.applying(action: CellAction, cellId: String): EditorUiState = when (action) {
-    is CellAction.Insert -> withCellInserted(cellId, action.kind, newId = newId())
-    is CellAction.InsertAbove -> withCellInsertedAbove(cellId, action.kind, newId = newId())
-    is CellAction.ChangeKind -> withCellKindChanged(cellId, action.kind)
-    is CellAction.Merge -> withCellMerged(cellId, action.into, newId = newId())
-    is CellAction.Move -> withCellMoved(cellId, action.move)
-    CellAction.Copy -> withCellCopied(cellId)
-    CellAction.Cut -> withCellCut(cellId, replacementId = newId())
-    CellAction.Paste -> withClipboardPasted(cellId, newIds = clipboard.map { newId() })
-    CellAction.Duplicate -> withCellDuplicated(cellId, newId = newId())
-    CellAction.Delete -> withCellDeleted(cellId, replacementId = newId())
-    CellAction.ClearOutputs -> withOutputsCleared(cellId)
-    CellAction.ToggleSourceHidden -> withSourceHiddenToggled(cellId)
-    CellAction.ToggleOutputsHidden -> withOutputsHiddenToggled(cellId)
-  }
-
-  /** Ids are minted here rather than inside the transforms, which keeps those testable. */
-  private fun newId(): String = UUID.randomUUID().toString()
 
   private suspend fun persist() {
+    if (notebookIsGone) return
     val state = _uiState.value
     val updated = notebook?.copy(cells = state.withResultsOnCells()) ?: return
     notebook = updated

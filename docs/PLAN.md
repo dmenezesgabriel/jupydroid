@@ -1947,7 +1947,7 @@ spend the width the names need.
 
 Reached from a Recents bar rather than replacing Recents. The explorer could not create, rename or
 delete when this landed, so swapping it in would have been a regression wearing a new feature's
-clothes. Create arrived with X2d, rename with X2f; delete is X2g.
+clothes. Create arrived with X2d, rename with X2f and delete with X2g, so it is all three now.
 
 **Two defects, both found by its own tests**: the explorer handed over a path with `.ipynb` on it
 and the repository put the suffix on again (`Nested.ipynb.ipynb`); and renaming a notebook inside a
@@ -2137,6 +2137,63 @@ Also renamed, in their own commit first: `isValidNotebookName` -> `isValidFileNa
 reference's own name) and `NotebookNameTakenException` -> `FileNameTakenException` - one 409, one
 type, now that both repositories can raise it. The X1b section above still names the old one; it
 is a record of what was decided then, not a claim about today's symbols.
+
+### X2g — delete from the browser (done)
+
+The last of the three X2a listed. Rename was X2f; this is delete, and it is a different risk, which
+is why it is a different step.
+
+**Read, not assumed.** `DirListing.delete` (`listing.ts:451-500`) asks first - title `Delete`, body
+`Are you sure you want to permanently delete: %1?`, and `defaultButton: 0` with the comment "By
+default focus on 'Cancel' to protect from accidental deletion". Winlator asks too
+(`ContainerFileManagerFragment:353`, `ContentDialog.confirm`), so both references agree this is a
+question and not a menu item. `DocumentManager.deleteFile` (`manager.ts:351-363`) then stops the
+session, deletes, and **closes every widget open on the path**.
+
+**Two branches, and Android picks the one with no trash.** `delete_file` (`filemanager.py:569-614`)
+sends the entry to the platform's trash by default (`delete_to_trash = True`, `:129`) and only
+really deletes when there is none. An app's private files have no trash, so ours is the permanent
+branch - which is why the wording says so. In that branch, with `always_delete_dir = False`
+(`:137`), **a folder with anything in it is refused**: `400 "Directory %s not empty"`. Winlator
+would delete the tree (`FileUtils.delete` recurses); the server sharing this workspace would not,
+and it is the server another Jupyter client would be talking to. So the folder must be emptied
+first, and the explorer says so in the error line it already had. **A symlink is unlinked, never
+followed** - the one case where following would destroy a tree nobody named, and the reason
+Winlator checks `isSymlink` before it walks anything.
+
+**Adapted:** the reference's focus default has no Compose equivalent, so the protection is carried
+by colour and placement instead - Delete in `colorScheme.error`, Cancel as the dismiss button,
+which is also what a tap outside and a back press choose.
+
+**The defect it closes, and the direction it comes from.** Our editor flushes its last edit when it
+is torn down; the reference's `SaveHandler` is *disposed* and writes nothing again
+(`savehandler.ts:29,62-69`). So deleting a notebook open in the pane beside the browser used to be
+undone by that write. The document now hears `WorkspaceChange.Deleted` on the same channel X2f
+added, stops writing, and reports `gone` so the screen closes itself. Reported rather than
+commanded, deliberately: `deleteFile` only closes widgets for deletes *it* performs, and ours also
+covers the one the reference never sees - a cell calling `os.remove` on the notebook it is running
+in.
+
+**Home's delete was unguarded and is not any more.** A long press one row off destroyed a notebook
+on one tap. Same act, same question, same dialog.
+
+**What the evidence proves, stated precisely.** `evidence/x2g-explorer-delete/` (320dp emulator):
+the question is asked, Cancel keeps the file, confirming takes the row *and* the file, a full
+folder is refused out loud, and an emptied one then goes.
+`evidence/x2g-explorer-delete/open-document/` (tablet, two panes): the pane closes with the row and
+the notebook is still gone after the app's own teardown. That second flow does **not** gate the
+write-guard in `persist` - by the time the delete is confirmed the debounce has already fired, so
+there is no pending write left to flush, and a build with the guard removed still passes it. What
+covers the guard is `EditorRenameTest.aNotebookDeletedElsewhereIsNotWrittenBack`, which types
+*after* the delete and does fail without it. Both facts came from running the mutation rather than
+reasoning about it, and the driver header says so, because a flow that looks like it covers
+something it does not is worse than no flow.
+
+**One refactor detekt asked for, and it was right again.** `EditorViewModel` hit the twelfth
+function exactly where the residual-risks list predicted it would. The answer was the one that
+list also predicted - find the responsibility that wants to live elsewhere - and it was the pure
+`CellAction` dispatch (`applying`, `newCellId`), which is state-in/state-out and now sits beside
+the transforms it dispatches to in `CellEdits.kt`.
 
 ## Harness notes
 
@@ -2643,12 +2700,11 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   `SaveableStateHolder` slot. JupyterLab's `findWidget` searches every context for the path
   rather than only the active one (`packages/docmanager/src/manager.ts:390-418`), which is the
   shape to grow into. Not paid for now, because there is no second caller to justify it.
-- **`EditorViewModel` sits exactly on detekt's function limit** (11 of 11, after the debounce
-  moved out to `NotebookSaveDebounce`). The next method added to it trips `TooManyFunctions`,
-  and the answer will again be to find the responsibility that wants its own object rather than
-  to raise the threshold. Likely candidates when it happens: the run/kernel half (`runCell`,
-  `runAll`, `stopRunningCell`, `completionsAt`, `execute`, `kernelSession`), which is a
-  different subject from the document half.
+- ~~**`EditorViewModel` sits exactly on detekt's function limit**~~ **Spent, as predicted, by X2g.**
+  Adding `stopWriting` made it twelve, and the answer was the one this entry called for: the pure
+  `CellAction` dispatch (`applying`, `newCellId`) moved to `CellEdits.kt`, beside the transforms it
+  dispatches to. It is back to ten, so there is room for one more before the next split - and the
+  run/kernel half named here is still the candidate.
 - **Nothing in the repo runs every Maestro flow.** The 33-flow sweeps that closed 62352d7 and
   the 2026-08-07 defects were both done with throwaway shell loops, which is exactly the
   condition that makes a *partial* sweep the path of least resistance — and this project has

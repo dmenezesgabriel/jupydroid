@@ -1,0 +1,92 @@
+appId: com.jupydroid.app
+---
+# X2g: the row menu deletes, and asks first.
+#
+# `DirListing.delete` (`listing.ts:451-500`) puts the question in front of the deletion, focuses
+# Cancel "to protect from accidental deletion", and says **permanently** when there is no trash to
+# go to - which on an app's private files there is not. Winlator asks too. Nothing here runs a
+# cell, so the emulator is enough; the disk side is the driver's, since a row that vanished from a
+# list is not the same claim as a file that left the filesystem.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Recents"
+- tapOn: "Browse files"
+- assertVisible: "Files"
+- assertVisible: "notes.txt"
+- takeScreenshot: 01-the-workspace-before
+
+- longPressOn: "notes.txt"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: notes.txt?"
+    timeout: 5000
+- takeScreenshot: 02-it-asks-first
+
+# Cancel keeps the file - the half of a confirmation that is worth having, and the reference's
+# default answer.
+- tapOn: "Cancel"
+- assertVisible: "notes.txt"
+- takeScreenshot: 03-cancelled-and-kept
+
+# Confirming takes the row and the file. The dialog's title is the action name in the reference,
+# so both say "Delete" and the button is the second one.
+- longPressOn: "notes.txt"
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: notes.txt?"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "notes.txt"
+    timeout: 10000
+- assertVisible: "keep.txt"
+- takeScreenshot: 04-deleted-and-the-rest-remains
+
+# A folder with something in it is refused, and the explorer says so where it says everything
+# else - `400 "Directory not empty"` is what the server sharing this workspace answers.
+- longPressOn: "reports"
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: reports?"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*folder with something in it.*"
+    timeout: 10000
+- assertVisible: "reports"
+- takeScreenshot: 05-a-full-folder-is-refused
+
+# An empty one goes, which is the same rule read the other way round.
+- tapOn: "reports"
+- extendedWaitUntil:
+    visible: "data.csv"
+    timeout: 5000
+- longPressOn: "data.csv"
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: data.csv?"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "data.csv"
+    timeout: 10000
+- tapOn: "Workspace"
+- longPressOn: "reports"
+- tapOn: "Delete"
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "reports"
+    timeout: 10000
+- takeScreenshot: 06-emptied-then-deleted

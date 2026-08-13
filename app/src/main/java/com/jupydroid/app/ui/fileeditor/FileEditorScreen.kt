@@ -16,6 +16,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -54,6 +55,9 @@ fun FileEditorScreen(
     viewModel { FileEditorViewModel(path, workspaceRepository, applicationScope) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+  // Its file was deleted, so the screen goes with it - `deleteWidgets`, asked for by the document.
+  LaunchedEffect(state.gone) { if (state.gone) onBack() }
 
   Scaffold(
     modifier = modifier.fillMaxSize(),

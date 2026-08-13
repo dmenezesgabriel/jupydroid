@@ -358,6 +358,65 @@ abstract class WorkspaceRepositoryContract {
    * window in which neither file exists.
    */
   @Test
+  fun deletingRemovesTheFile() = runTest {
+    given("notes.txt", "keep.txt")
+    val repository = repository()
+
+    repository.delete("notes.txt")
+
+    assertEquals(listOf("keep.txt"), repository.list("").map { it.name })
+  }
+
+  @Test
+  fun anEmptyFolderIsDeleted() = runTest {
+    given("empty/", "keep.txt")
+    val repository = repository()
+
+    repository.delete("empty")
+
+    assertEquals(listOf("keep.txt"), repository.list("").map { it.name })
+  }
+
+  /**
+   * A folder with anything in it is **refused**, and says so.
+   *
+   * The server that serves this same tree does exactly this: `delete_file` raises
+   * `400 "Directory %s not empty"` unless `always_delete_dir` (`filemanager.py:607-613`), which
+   * defaults to false. Its other branch sends the directory to the platform's trash - and Android
+   * has no trash for an app's private files, so the trashless branch is the honest one. Winlator
+   * *does* delete a tree recursively (`FileUtils.delete`), and that is the one place we follow the
+   * server instead: behaviour is JupyterLab's question, not the file manager's.
+   */
+  @Test
+  fun aFolderWithAnythingInItIsRefused() = runTest {
+    given("reports/summary.ipynb")
+    val repository = repository()
+
+    val refused = runCatching { repository.delete("reports") }
+
+    assertTrue("expected a refusal, got $refused", refused.isFailure)
+    assertEquals(listOf("summary.ipynb"), repository.list("reports").map { it.name })
+  }
+
+  @Test
+  fun deletingSomethingThatIsNotThereIsRefused() = runTest {
+    given("notes.txt")
+
+    val missing = runCatching { repository().delete("nope.txt") }
+
+    assertTrue("expected a refusal, got $missing", missing.isFailure)
+  }
+
+  @Test
+  fun deletingOutsideTheRootIsRefused() = runTest {
+    given("notes.txt")
+
+    val escaped = runCatching { repository().delete("../../secrets") }
+
+    assertTrue("expected a refusal, got $escaped", escaped.isFailure)
+  }
+
+  @Test
   fun overwritingReplacesTheTargetAndLeavesOneFile() = runTest {
     given("notes.txt", "taken.txt")
     val repository = repository()

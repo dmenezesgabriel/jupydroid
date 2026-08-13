@@ -7,7 +7,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.domain.model.PathRename
+import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
@@ -98,11 +98,13 @@ internal class RecordingNotebookRepository(
  * of what these tests need.
  */
 internal class AnnouncingWorkspaceRepository : WorkspaceRepository by FakeWorkspaceRepository() {
-  private val _renames = MutableSharedFlow<PathRename>()
-  override val renames: Flow<PathRename> = _renames
+  private val _changes = MutableSharedFlow<WorkspaceChange>()
+  override val changes: Flow<WorkspaceChange> = _changes
 
   /** Emits the way the real repository does, so a test drives the collector and not a setter. */
-  suspend fun announce(from: String, to: String) = _renames.emit(PathRename(from, to))
+  suspend fun announce(from: String, to: String) = announce(WorkspaceChange.Renamed(from, to))
+
+  suspend fun announce(change: WorkspaceChange) = _changes.emit(change)
 }
 
 internal fun TestScope.loadedEditor(

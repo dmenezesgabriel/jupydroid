@@ -1,6 +1,6 @@
 package com.jupydroid.app.domain.port
 
-import com.jupydroid.app.domain.model.PathRename
+import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import kotlinx.coroutines.flow.Flow
 
@@ -22,17 +22,18 @@ import kotlinx.coroutines.flow.Flow
  */
 interface WorkspaceRepository {
   /**
-   * Every path this repository moves, as it moves.
+   * Every path this repository moves or removes, as it happens.
    *
-   * `Contents.fileChanged` with `type: 'rename'`, which is how an open document in the reference
-   * learns that its file went somewhere - it subscribes to the contents layer rather than being
-   * told by whichever screen did the renaming (`docregistry/src/context.ts:93`). A document that
-   * kept a stale path would write itself back under the old name at the next save.
+   * `Contents.fileChanged`, which is how an open document in the reference learns that its file
+   * went somewhere - it subscribes to the contents layer rather than being told by whichever
+   * screen did the renaming (`docregistry/src/context.ts:93`). A document that kept a stale path
+   * would write itself back under the old name at the next save, and one whose file was deleted
+   * would put it back.
    *
-   * Nothing is replayed: a document that opens after a rename opens at the path it asked for, and
+   * Nothing is replayed: a document that opens after a change opens at the path it asked for, and
    * there is nobody to notify when nothing is open.
    */
-  val renames: Flow<PathRename>
+  val changes: Flow<WorkspaceChange>
 
   /**
    * What is in [path], already in the order the browser shows it.
@@ -117,4 +118,26 @@ interface WorkspaceRepository {
    * `manager.ts:514-528`): deleting first would open a window in which neither file exists.
    */
   suspend fun overwrite(path: String, name: String): String
+
+  /**
+   * Removes whatever [path] names, permanently.
+   *
+   * `Contents.delete`, in the branch Android leaves us: `delete_file` sends the entry to the
+   * platform's trash by default and only *really* deletes when there is none
+   * (`filemanager.py:569-614`). An app's private files have no trash, so this is the real one -
+   * which is why the caller asks first, and says "permanently".
+   *
+   * **A folder with anything in it is refused**, as the server refuses it: `400 "Directory %s not
+   * empty"` unless `always_delete_dir`, which is false by default. Winlator's file manager deletes
+   * a tree recursively; the server sharing this workspace does not, and it is the server a user's
+   * other Jupyter client would be talking to.
+   *
+   * A symlink is **unlinked**, never followed - the one case where following would destroy a tree
+   * nobody named. Winlator guards its own recursion the same way (`FileUtils.delete:114-119`).
+   *
+   * ```
+   * repository.delete("reports/summary.ipynb")
+   * ```
+   */
+  suspend fun delete(path: String)
 }

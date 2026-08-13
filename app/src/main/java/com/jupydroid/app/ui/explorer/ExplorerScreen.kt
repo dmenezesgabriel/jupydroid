@@ -47,6 +47,7 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
 
@@ -79,6 +80,7 @@ fun ExplorerScreen(
   // The entry whose name is being typed, held here rather than in the row: a `DropdownMenu` item
   // that opened its own dialog would take it down with itself the moment it dismissed.
   var renaming by remember { mutableStateOf<WorkspaceEntry?>(null) }
+  var deleting by remember { mutableStateOf<WorkspaceEntry?>(null) }
 
   // Back climbs the workspace before it leaves the screen, which is `filebrowser:go-up` - the
   // reference binds Backspace to the same thing. Enabled only when there is a parent, so at the
@@ -109,6 +111,7 @@ fun ExplorerScreen(
             entry = entry,
             onOpen = { viewModel.open(entry, onOpenFile) },
             onRename = { renaming = entry },
+            onDelete = { deleting = entry },
           )
         }
       }
@@ -124,6 +127,19 @@ fun ExplorerScreen(
         viewModel.rename(entry, name)
       },
       onDismiss = { renaming = null },
+    )
+  }
+
+  // Asked before anything goes, and the question names what would go: `DirListing.delete` puts
+  // this in front of `_delete`, never after it.
+  deleting?.let { entry ->
+    DeleteFileDialog(
+      name = entry.name,
+      onDelete = {
+        deleting = null
+        viewModel.delete(entry)
+      },
+      onDismiss = { deleting = null },
     )
   }
 
@@ -244,13 +260,21 @@ private fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> U
  * `data-isdir` its own menu selectors read.
  */
 @Composable
-private fun EntryRow(entry: WorkspaceEntry, onOpen: () -> Unit, onRename: () -> Unit) {
+private fun EntryRow(
+  entry: WorkspaceEntry,
+  onOpen: () -> Unit,
+  onRename: () -> Unit,
+  onDelete: () -> Unit,
+) {
   val directory = entry.kind == WorkspaceEntryKind.DIRECTORY
   var menuOpen by remember { mutableStateOf(false) }
   // The same items the long press opens, in the local context menu TalkBack reads. A long press is
   // not reachable by a screen reader at all, which U5e already paid to learn on the cell actions.
-  val actions = remember(entry.path, onRename) {
-    listOf(CustomAccessibilityAction("Rename") { onRename(); true })
+  val actions = remember(entry.path, onRename, onDelete) {
+    listOf(
+      CustomAccessibilityAction("Rename") { onRename(); true },
+      CustomAccessibilityAction("Delete") { onDelete(); true },
+    )
   }
   Row(
     modifier = Modifier
@@ -284,6 +308,13 @@ private fun EntryRow(entry: WorkspaceEntry, onOpen: () -> Unit, onRename: () -> 
         onClick = {
           menuOpen = false
           onRename()
+        },
+      )
+      DropdownMenuItem(
+        text = { Text("Delete") },
+        onClick = {
+          menuOpen = false
+          onDelete()
         },
       )
     }

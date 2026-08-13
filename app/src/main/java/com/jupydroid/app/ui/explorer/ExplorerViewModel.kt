@@ -103,13 +103,13 @@ class ExplorerViewModel(
    * this.model.path` (`packages/filebrowser/src/browser.ts:558-566`). The name is the server's,
    * never ours: `untitled` plus the extension.
    */
-  fun createFile(extension: String) = create { workspaceRepository.createFile(_uiState.value.path, extension) }
+  fun createFile(extension: String) = relistAfter { workspaceRepository.createFile(_uiState.value.path, extension) }
 
   /** `Untitled Folder`, counting with a space - the server's `insert` for a directory. */
-  fun createFolder() = create { workspaceRepository.createFolder(_uiState.value.path) }
+  fun createFolder() = relistAfter { workspaceRepository.createFolder(_uiState.value.path) }
 
   /** `Untitled.ipynb`, written as real nbformat so that opening it is not an error. */
-  fun createNotebook() = create {
+  fun createNotebook() = relistAfter {
     val directory = _uiState.value.path
     notebookRepository.createNotebook(
       if (directory.isEmpty()) UNTITLED_NOTEBOOK else "$directory/$UNTITLED_NOTEBOOK",
@@ -146,14 +146,24 @@ class ExplorerViewModel(
   }
 
   /**
-   * Runs a creation and shows the result, or reports why it did not happen.
+   * Deletes [entry], permanently, and shows what is left.
    *
-   * Listing again rather than appending: the workspace is shared, so the directory may have
-   * changed for other reasons since it was last read, and a re-read is the only honest answer.
+   * Asked about first - the confirmation belongs to the screen, as `DirListing.delete` puts it in
+   * front of `_delete` (`listing.ts:451-500`). A folder with anything in it comes back as an
+   * error, because the server sharing this workspace refuses that too.
    */
-  private fun create(creating: suspend () -> String) {
+  fun delete(entry: WorkspaceEntry) = relistAfter { workspaceRepository.delete(entry.path) }
+
+  /**
+   * Runs a change to the directory and shows the result, or reports why it did not happen.
+   *
+   * Listing again rather than patching the rows: the workspace is shared, so the directory may
+   * have changed for other reasons since it was last read, and a re-read is the only honest
+   * answer.
+   */
+  private fun relistAfter(changing: suspend () -> Unit) {
     viewModelScope.launch {
-      runCatching { creating() }
+      runCatching { changing() }
         .onSuccess { goTo(_uiState.value.path) }
         .onFailure { failure -> _uiState.update { it.copy(error = failure.message) } }
     }

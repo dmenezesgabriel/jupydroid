@@ -51,6 +51,15 @@ internal class WorkspaceRoot(private val rootDir: File) {
    */
   fun isPresent(file: File): Boolean = Files.exists(file.toPath(), LinkOption.NOFOLLOW_LINKS)
 
+  /**
+   * A link, whatever it points at - which `File.isDirectory` cannot answer, since it follows.
+   *
+   * Winlator asks the same question before it walks a directory, and for the same reason: in a
+   * tree built out of symlinks, recursing through one deletes something nobody named
+   * (`FileUtils.isSymlink:110-112`).
+   */
+  fun isLink(file: File): Boolean = Files.isSymbolicLink(file.toPath())
+
   /** A name joined onto the directory holding it, with the root spelled as the empty string. */
   fun pathIn(directory: String, name: String): String =
     if (directory.isEmpty()) name else "$directory/$name"
