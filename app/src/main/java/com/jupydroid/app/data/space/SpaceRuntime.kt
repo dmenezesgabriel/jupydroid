@@ -9,7 +9,7 @@ import java.io.File
  *
  * 1. The interpreter is exec'd from [nativeInterpreter], not from `usr/bin/python3`
  *    inside the rootfs. Only the APK native library directory carries a SELinux
- *    context that permits execve at targetSdk 36 (docs/PLAN.md, "Exec model").
+ *    context that permits execve at targetSdk 36 (docs/DECISIONS.md, "Exec model").
  *    A pleasant side effect is that `sys.executable` is then a path the kernel
  *    subprocess can be launched from too, so kernelspecs need no special casing.
  * 2. `PYTHONHOME` is required, because Python derives its prefix from `argv[0]` and

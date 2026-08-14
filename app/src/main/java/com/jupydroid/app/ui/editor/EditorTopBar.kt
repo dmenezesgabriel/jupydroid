@@ -41,7 +41,7 @@ private val TITLE_EDIT_ICON_SIZE = 18.dp
  * (`packages/docmanager-extension/schema/plugin.json:73-77`). A tap is the touch analogue of
  * that right-click, and the pencil beside it is what says so: a gesture with nothing on screen
  * announcing it is undiscoverable, which is the lesson the cell menu cost three attempts to
- * learn (docs/PLAN.md, Step 4b).
+ * learn.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -102,7 +102,7 @@ seed_file() {
 # Asked of the framework rather than computed, and that is the point. Every attempt to derive it
 # got it wrong in a different way: `wm size` reports the *natural* size, so "the larger edge" is
 # the width on a landscape device and the height on a portrait one, and a run in the wrong size
-# class still looks green (docs/PLAN.md, U5b).
+# class still looks green.
 window_width_dp() {
   # `sed -n 1p` rather than `head -1`, for the reason `newest_run_dir` explains at length.
   "$ADB" shell am get-config | tr '-' '\n' | sed -n 's/^w\([0-9]\+\)dp$/\1/p' | sed -n '1p'

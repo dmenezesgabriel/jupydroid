@@ -22,7 +22,8 @@ val LocalEditorPalette = staticCompositionLocalOf { DarkEditorPalette }
  *
  * **Dynamic colour is deliberately not offered.** It was on before, which meant the wallpaper
  * chose the syntax colours: `NUMBER` resolved to `colorScheme.secondary` and on some wallpapers
- * landed close enough to the body text to be unreadable (`docs/PLAN.md`, "Known residual risks").
+ * landed close enough to the body text to be unreadable (`docs/DECISIONS.md`, "The palette is
+ * read out of IntelliJ, and its contrast is pinned").
  * A palette whose contrast can be asserted is worth more here than one that matches the launcher,
  * because the thing being coloured is code.
  *

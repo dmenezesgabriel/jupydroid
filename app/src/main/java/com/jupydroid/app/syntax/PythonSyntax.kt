@@ -8,7 +8,7 @@ import org.antlr.v4.runtime.Token
 /**
  * Python highlighting from the ANTLR grammar vendored in `tools/grammars/python`.
  *
- * The lexer is generated at build time and never written by hand - see docs/PLAN.md, "The
+ * The lexer is generated at build time and never written by hand - see docs/DECISIONS.md, "The
  * lexer is generated, never hand-written". This class only maps token types onto
  * [SyntaxKind]; nothing here parses anything.
  *

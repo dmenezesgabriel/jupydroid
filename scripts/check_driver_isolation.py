@@ -12,7 +12,7 @@ of them; every flow that taps the FAB leaves a UUID behind. Home grew a couple o
 sweep until the device held 64 notebooks, and `a6-edit-updates-recents` - which backdates its
 fixture to 2020 so that the row reads as stale, and so sorts to the *bottom* of a list ordered
 by recency - could no longer be reached by a 20-second `scrollUntilVisible`. It passed one
-sweep and failed the next with nothing in the app having changed. See docs/PLAN.md.
+sweep and failed the next with nothing in the app having changed.
 
 So: a driver that seeds must call `reset_notebooks` (scripts/maestro-run.sh), and must call it
 *before* it seeds - a reset underneath a seed deletes the fixture it just wrote. Tests in

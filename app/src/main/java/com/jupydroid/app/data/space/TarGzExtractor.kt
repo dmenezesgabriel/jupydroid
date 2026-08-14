@@ -20,7 +20,7 @@ fun interface ArchiveSource {
  *
  * Nothing here sets an executable bit, and nothing needs to: the rootfs is only ever
  * read and `mmap`'d. The two files that are genuinely execve'd ship as APK native
- * libraries instead (docs/PLAN.md, "Exec model").
+ * libraries instead (docs/DECISIONS.md, "Exec model").
  *
  * ```
  * val written = TarGzExtractor().extract({ assets.open("spaces/base/rootfs-x86_64.tgz") }, baseDir)

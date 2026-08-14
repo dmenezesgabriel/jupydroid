@@ -16,14 +16,14 @@ Only the second failed loudly. The first failed for the right reason by luck of 
 the third passed while the file on disk was untouched. The fix is structural rather than
 careful reading: scope the assertion to the output subtree with
 `childOf: {text: "Cell output"}`, which is the contentDescription `CellOutputs` sets - then
-the source field cannot satisfy it. Proven on device both ways, see docs/PLAN.md. Waive a
+the source field cannot satisfy it. Proven on device both ways. Waive a
 deliberate one with `# matches-source: <why>` on the line above.
 
 **2. Waiting for the output container instead of for a result.** `Cell output` wraps every
 output kind, so it appears the moment *anything* renders - and `FakeKernelGateway`, which
 every x86_64 device falls back to, renders the cell's own source as stdout on every run. So
 the wait is satisfied without a Space. `step4b-run-cell` did exactly this and was green for
-months while proving nothing (docs/PLAN.md, "One gate for running a cell"). Assert a value
+months while proving nothing. Assert a value
 the kernel had to compute. Waive with `# container-only: <why>` on the line above.
 
 `Cell image output` is deliberately not covered: the fake emits a stream and never an image,

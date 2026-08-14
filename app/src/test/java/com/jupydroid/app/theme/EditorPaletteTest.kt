@@ -10,7 +10,7 @@ import org.junit.Test
 /**
  * The palettes, held to what a phone needs rather than to what a desktop got away with.
  *
- * This is the regression test for the contrast defect recorded in `docs/PLAN.md`: syntax colours
+ * This is the regression test for the contrast defect recorded in `docs/DECISIONS.md`: syntax colours
  * used to be `MaterialTheme.colorScheme` roles, so `NUMBER` landed on `secondary` and sat almost
  * on top of the body text in dark. Deriving colour from a role can never be asserted, because the
  * role is whatever the wallpaper made it - which is why the fix is a palette and why the palette

@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
  * inside the rootfs - and a rootfs file cannot be execve'd at targetSdk 36. A
  * kernelspec is just JSON we own, so argv[0] becomes the interpreter in
  * nativeLibraryDir, which is the one place execution is permitted
- * (docs/PLAN.md, "Exec model").
+ * (docs/DECISIONS.md, "Exec model").
  *
  * Written over the shipped kernelspec in `usr/share/jupyter/kernels/`. The tidier
  * `usr/local/share/...` override directory is not an option here: jupyter_core builds

@@ -6,7 +6,8 @@
 # the server's `--ServerApp.root_dir`. One filesystem instead of two that never met.
 #
 # **Twice is the point.** The migration is one-shot, stamped, and this project has already been
-# crash-looped once by an install-time path that had never seen a second install (docs/PLAN.md).
+# crash-looped once by an install-time path that had never seen a second install
+# (docs/DECISIONS.md, "`nativeLibraryDir` moves on every app update").
 # A stamp that failed to stick would show here as `Moved Notebook-1.ipynb` beside the original.
 #
 # Runs no cell, so any device will do.

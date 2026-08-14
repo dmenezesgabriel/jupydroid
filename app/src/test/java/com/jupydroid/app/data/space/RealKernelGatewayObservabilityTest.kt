@@ -11,8 +11,9 @@ import org.junit.Test
  * What the execute path says while it works, so that the next time it does not, there is
  * something to read.
  *
- * The execution stall has been seen three times (`docs/PLAN.md`) and diagnosed none of them. The
- * third sighting is the one that explains why: of 33,279 logcat lines, five mentioned the runtime,
+ * The execution stall has been seen seven times (`docs/PLAN.md`, P0) and the captures taken
+ * before this log existed diagnosed none of them. The third sighting is the one that explains
+ * why: of 33,279 logcat lines, five mentioned the runtime,
  * and all five were the server coming up. The stall is *after* that, and past it the app said
  * nothing at all - so the capture could not tell a request that was never sent from a socket that
  * never connected from a reply that arrived with nobody listening.

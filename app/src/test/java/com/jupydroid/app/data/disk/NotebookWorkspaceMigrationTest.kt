@@ -15,7 +15,7 @@ import org.junit.rules.TemporaryFolder
  * here are the ones that lose data if they are wrong: a name already taken, a file that cannot be
  * read, and **running twice** - which is not paranoia but this project's own scar tissue, since
  * the re-extract path was never exercised until a rootfs bump crash-looped the app
- * (`docs/PLAN.md`: "every install-time path needs a second install to be tested at all").
+ * (`docs/DECISIONS.md`: "every install-time path needs a second install to be tested at all").
  */
 class NotebookWorkspaceMigrationTest {
   @get:Rule val temp = TemporaryFolder()

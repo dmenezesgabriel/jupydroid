@@ -3,9 +3,8 @@
 #
 # **Why this exists.** Both full sweeps in this project's history were done with throwaway shell
 # loops, and that is exactly the condition that makes a *partial* sweep the path of least
-# resistance - which this repo has already been burned by once (docs/PLAN.md, "Nothing in the
-# repo runs every Maestro flow"). A whole-suite run has to be the cheap option or it does not
-# happen.
+# resistance - which this repo has already been burned by once. A whole-suite run has to be the
+# cheap option or it does not happen.
 #
 #   ANDROID_SERIAL=TABLET_SERIAL scripts/run-all-flows.sh          # everything
 #   ANDROID_SERIAL=emulator-5554 scripts/run-all-flows.sh        # skips the kernel flows
