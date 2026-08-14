@@ -131,9 +131,10 @@ So of P0's two candidate causes it is the first — *the request never reached t
 the server logs no line per relayed websocket message, so the server's write and the kernel's read
 remain indistinguishable.
 
-**This sharpens P0c rather than replacing it.** Inbound shell delivery stopped while control and
-iopub, each on their own thread and loop, kept working — which is the shape ipykernel 7's
-`ShellChannelThread` would produce, and the A/B now has a specific prediction to falsify.
+**This sharpens the open question rather than closing it.** Inbound shell delivery stopped while
+control and iopub, each on their own thread and loop, kept working — which is the shape
+ipykernel 7's `ShellChannelThread` would produce, and it gives P0c a specific prediction to
+falsify whenever P0c is picked up.
 
 ## Where the cause has to be
 
@@ -145,9 +146,39 @@ that thread's `IOLoop` and **starts the thread**, and `Kernel.start()`
 None of this existed in ipykernel 6. The control channel — the one that has never stalled — is
 the older path.
 
-| # | Sub-step | Gate |
-|---|---|---|
-| **P0c** | **The A/B that settles the cause.** A rootfs variant pinned to the last ipykernel 6.x release — no `ShellChannelThread`, no inproc pairs — same repeat driver, same run count. (JupyterLab still supports that line: `pyproject.toml:41` reads `ipykernel>=6.5.0,!=6.30.0`.) Disappearance is the diagnosis, and the fix is a pin plus an upstream issue; persistence exonerates ipykernel 7 and moves the search to zmq over `ipc://`. | `evidence/p0-stall/ab-ipykernel6/` with both run logs and pass/fail counts, and the statistics stated honestly: at ~1-in-20, 50 clean runs happen by chance about 8% of the time. |
+## P0c — parked, deliberately, with everything needed to restart it
+
+**Decided 2026-08-14: not scheduled.** P0's user-visible damage is fixed — a stall costs ~1.4 s and
+a replaced kernel — so what is left is diagnosis, and it is worth less per hour than P1. Parked
+rather than dropped, because the stall still invalidates any timing measured above it. Everything
+below was established while sizing it; none of it needs re-deriving.
+
+**The experiment is cheaper than this plan used to say, and sharper.** The variable to remove is
+the shell channel *thread*, not the ipykernel version — and **7.3.0 still ships the pre-7 topology
+behind it**: `kernelapp.py:609,617,465` each guard on `if self.shell_channel_thread`,
+`kernelbase.py:562-568` wires `shell_stream.on_recv` straight onto the main loop when it is
+absent, and `_supports_kernel_subshells` (`:1546`) then returns False so a subshell request is
+refused rather than crashing. `JupydroidKernelApp` already overrides `init_iopub` for a comparable
+reason, so `shell_channel_thread = None` is a supported configuration of the shipped kernel and
+changes exactly one variable. The ipykernel 6 pin stays the fallback, since it also changes zmq
+usage.
+
+**One prerequisite, and it is the actual cost.** `jupydroid_kernel.py` is baked into the image
+(`tools/rootfs/Dockerfile:44`), so a six-line change to *our own* kernel entry point needs an
+emulated arm64 rebuild — and this host has no `binfmt` registered (`docker run --platform
+linux/arm64` fails `exec format error`; `docker run --privileged --rm tonistiigi/binfmt --install
+arm64` is how the shipped tarball was evidently produced). Traitlets config cannot substitute:
+`init_sockets` assigns the attribute unconditionally *after* config load, so only a subclass
+override works. The clean unblock is to ship `jupydroid_kernel.py` as an **app asset written into
+the Space on install**, exactly as `SpaceKernelSpec` writes `kernel.json` — which P4's busybox and
+P5's language server will want anyway.
+
+**The arithmetic was wrong and is now measured.** Since P0b a stall shows as `R` on a *passing* run
+costing ~1.4 s rather than a failure costing a 180 s timeout, so runs are cheap and every stall is
+recorded. But the rate is **2 recoveries in 81 valid tablet runs, ≈ 2.5%**, not the 1-in-20 this
+plan assumed. Zero in 50 runs is then a **29%** event even if nothing changed — no evidence at all,
+where the earlier note claimed 8% by using the wrong rate. p < 0.05 needs roughly **120 runs per
+arm** (~2 h at ~55 s/run), with the ipykernel-7 baseline topped up to match.
 
 **P0a and P0b have shipped.** A stall is now recovered from rather than waited on: an unanswered
 greeting restarts the kernel and greets the replacement once, and if that is no better the cell
@@ -155,7 +186,8 @@ fails instead of spinning (`docs/DECISIONS.md`). Measured over 50 tablet runs �
 failed, and **1 was a real stall recovered in 1.4 s**
 (`evidence/kernel-observability/recovery-fifty-runs/`).
 
-P0c is what remains, and it is now diagnosis rather than repair.
+**P0 is therefore closed as a repair and parked as a diagnosis.** Work moves to P1; P0c's state is
+recorded below so picking it up costs nothing.
 
 ---
 
