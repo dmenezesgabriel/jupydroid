@@ -25,7 +25,8 @@ The runtime is **arm64-only**; on x86_64 the app runs against a fake kernel for 
 | `docs/PLAN.md` | what gets built next, phase by phase |
 | `docs/DECISIONS.md` | what is settled and what it forbids — including the exec model |
 | `CLAUDE.md` | how work is done: the working agreement, per-step procedure, tooling |
-| `docs/architecture.md` | layers, ports and the data model |
+| `docs/architecture.md` | layers, ports, navigation and the data model — what lives where |
+| `docs/environment-fidelity.md` | what Android's sandbox costs a Linux userland, and why handling SIGSYS is enough |
 
 ## Build
 

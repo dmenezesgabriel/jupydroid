@@ -369,6 +369,11 @@ Measured, not speculative. Anything closed moves to `docs/DECISIONS.md`.
   once installed and extracted. P3's shared-base design keeps additional Spaces
   cheap, which is what makes deferring safe. Revisit — asset pack versus first-run download —
   when the app is feature-complete, not before.
+- **Three of the five architecture rules are true but unguarded.** `ArchitectureGuardTest`
+  enforces the domain layer's purity and nothing else. `ui ↛ data`, `data ↛ ui` and "only
+  `AppContainer` constructs implementations" hold today — checked by grep, zero hits each — with
+  nothing keeping them true. Extending the guard would go green immediately, which is the point
+  of a regression gate. See `docs/architecture.md` §5.
 - **`scripts/gradlew-jbr` hardcodes this machine's JBR path, and there is no CI.**
   Dev-environment debt: it slows a new machine down, it cannot corrupt a build.
 - **`--ServerApp.log_level=DEBUG` is on.** It costs nothing on screen (`redirectOutput` sends it to
