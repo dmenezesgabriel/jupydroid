@@ -18,23 +18,22 @@ import androidx.window.core.layout.WindowSizeClass
  * **What pairs.** The two panes are a surface and *a document that surface opens*, never any two
  * entries. Which entry is which is declared in metadata when the entry providers are built
  * (`Navigation.kt`), because `NavEntry` does not expose its key - the pairing rule has to read
- * what the builder chose to say. The notebook home opens notebooks, so it pairs with an [Editor];
- * the explorer opens notebooks and plain files, so it pairs with an [Editor] or a [FileEditor].
- * Everything else - four of the six stack shapes the app can reach - draws one pane:
+ * what the builder chose to say. The explorer opens notebooks and plain files, so it pairs with
+ * an [Editor] or a [FileEditor]; it is the only surface there is. Every stack the app can reach:
  *
- * | stack                                  | panes            |
- * |----------------------------------------|------------------|
- * | Home, Editor                           | Home\|Editor          |
- * | Home, Explorer                         | Explorer         |
- * | Home, Explorer, Editor                 | Explorer\|Editor      |
- * | Home, Explorer, FileEditor             | Explorer\|FileEditor  |
- * | Home, Editor, Explorer                 | Explorer         |
- * | Home, FileEditor                       | FileEditor       |
+ * | stack                       | panes                |
+ * |-----------------------------|----------------------|
+ * | Explorer                    | Explorer             |
+ * | Explorer, Editor            | Explorer\|Editor      |
+ * | Explorer, FileEditor        | Explorer\|FileEditor  |
  *
- * The second row is the defect that made the rule explicit: it used to put Recents beside the
- * file browser, because "the last two entries" is a montage, not a pairing. `filebrowser` is a
- * standalone browser for the tree (a tab in the reference, a destination here), and Recents is a
- * list of notebooks - neither opens the other.
+ * Three, because `NotebookBackStack` replaces the open document rather than stacking on it, so a
+ * document is never beneath another document.
+ *
+ * **The defect that made the rule explicit** was a fourth shape that no longer exists: back when
+ * a Recents screen was the first destination, "the last two entries" put it beside the file
+ * browser - two surfaces, neither of which opens the other. That is why the pairing reads
+ * metadata rather than position, and the reason outlives the screen that exposed it.
  *
  * **Why a scene strategy and not `NavigableListDetailPaneScaffold`.** The scaffold puts both
  * panes inside *one* `NavEntry`, which stops the editor being a navigation entry at all - and

@@ -15,7 +15,8 @@ import kotlinx.coroutines.SupervisorJob
 
 /**
  * Manual composition root (single :app module). Constructed once in MainActivity and passed
- * down; each port gets a fake until its real implementation lands (Steps 8/10).
+ * down. Every port defaults to its fake, which is what tests get for free and what a device
+ * with no runnable Space keeps, so the UI works where the runtime cannot.
  */
 class AppContainer(
   val notebookRepository: NotebookRepository,

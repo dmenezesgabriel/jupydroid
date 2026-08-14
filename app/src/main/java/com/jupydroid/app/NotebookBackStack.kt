@@ -17,10 +17,11 @@ import androidx.navigation3.runtime.NavKey
  * screen and still hittable while the transition runs.
  *
  * A *different* notebook replaces the one open rather than stacking on it. That was unreachable
- * on a phone - Home is not on screen while an editor is - and so never wrong; two panes make it
- * reachable, and a stacked `[Home, Editor(a), Editor(b)]` would hand [TwoPaneSceneStrategy] the
- * last two entries and put a notebook where the list belongs. Replacing is also what disposes
- * the outgoing entry, so `EditorViewModel.onCleared` runs and closes its kernel socket.
+ * on a phone - the file surface is not on screen while an editor is - and so never wrong; two
+ * panes make it reachable, and a stacked `[Explorer, Editor(a), Editor(b)]` would hand
+ * [TwoPaneSceneStrategy] the last two entries and put a notebook where the surface belongs.
+ * Replacing is also what disposes the outgoing entry, so `EditorViewModel.onCleared` runs and
+ * closes its kernel socket.
  *
  * ```
  * backStack.openNotebook("6f0b…")   // pushes Editor("6f0b…")

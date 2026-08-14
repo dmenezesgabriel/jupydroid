@@ -32,31 +32,34 @@
 ## Structure
 
 - Prefer small focused modules over god files.
-- Use Package by component (src/component/domain/entities, src/component/domain/value_objects, src/component/application/ports, src/component/application/use_cases, src/component/infrastructure)
-- One home per kind of logic (the greppable test — no `application/services/`):
-  - **Use case** (`application/use_cases/`): orchestrates injected **ports**. One
-    `VerbNoun` class, one `execute()`. A use case depends on ports + domain, **never on
-    another use case**.
-  - **Domain service** (`domain/services/`): **pure** logic over domain types — zero
-    ports, zero I/O. If it needs a port, it is a use case, not a domain service.
-  - **Adapter** (`infrastructure/<kind>/`): implements a port; frameworks live here.
+- **One home per kind of logic** (the greppable test), and `docs/architecture.md` is the
+  full contract for what lives where:
+  - **Domain** (`domain/model/`, `domain/port/`): the app's own types and its ports.
+    Pure Kotlin — no `android.*`, no import of `data`/`ui`/`di`. Enforced by
+    `ArchitectureGuardTest`, not by review.
+  - **Adapter** (`data/<mechanism>/`): implements a port; frameworks live here.
     Name it `<Mechanism><PortConcept>` — the mechanism names the tech it wraps
-    (`InMemoryArtifactRepository`, `StreamWriterProgressReporter`,
-    `SpecStreamDashboardViewBuilder`) — and subclass the port explicitly, so grepping
-    the port name lands on its implementation.
-  - Writes go through a use case; reads may hit the repository directly from a router.
-- Prefer a uniform port / use-case surface over case-by-case minimalism. Keep a
+    (`DiskNotebookRepository`, `DiskWorkspaceRepository`, `JupyterServerLauncher`,
+    `OkHttpKernelSocketOpener`, `FakeKernelGateway`) — and subclass the port explicitly,
+    so grepping the port name lands on its implementation.
+  - **UI** (`ui/<screen>/`): screens and ViewModels. Reads ports; never constructs an
+    adapter.
+  - **Composition root** (`di/AppContainer`): the only place that builds implementations,
+    constructed once in `MainActivity`. Work that must outlive a screen goes on its
+    `applicationScope`, never `viewModelScope`.
+  - **Document and language logic** (`syntax/`, `markdown/`, `html/`, `import/`): parsers
+    and formats. Not domain — they model documents and languages, not this app's domain —
+    and not adapters, because they implement no port. Keep them free of `android.*` so
+    every test for them is a plain JVM test.
+  - **Compose-only** (`theme/`, and the rendering half of `richtext/`): design tokens and
+    the composables that draw a model. Where a model and its renderer share a package,
+    keep them in separate files so the model stays testable without Compose.
+- Prefer a uniform port surface over case-by-case minimalism. Keep a
   single-implementation port when it keeps every boundary and operation discoverable in
-  one place (`application/ports/`, `application/use_cases/`) — that consistency is the map
-  a newcomer navigates by, not ceremony. Don't strip an abstraction just because it has
-  one implementation today.
-- Data-agnostic core: no dataset identity in `src/`. Table/column names and domain
-  values (and prompt examples that name them) are discovered at runtime via
-  `SqlEnginePort` — never hardcoded. Sample-dataset identity lives only in
-  `scripts/seed_dev_data.py`, `test/`, and `dev_data/`. Use neutral placeholders
-  (`events`, `category`, `amount`) in docstrings/examples. This is a review
-  convention, not an automated check — pinning it to the volatile sample-dataset
-  names (which get replaced over time) proved too brittle to enforce statically.
+  one place (`domain/port/`) — that consistency is the map a newcomer navigates by, not
+  ceremony. Don't strip an abstraction just because it has one implementation today.
+- Every port gets a `Fake…` in `data/fake/`, which is also what `AppContainer` defaults
+  to: tests get one for free, and a device that cannot run a Space still runs the UI.
 
 ## Formatting
 
