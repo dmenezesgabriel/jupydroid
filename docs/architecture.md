@@ -1,13 +1,13 @@
 # JupyterDroid — Architecture
 
-Offline Jupyter notebook app for Android. This document defines the layers, ports,
-data model, and interface wireframes, per Step 1 of `docs/PLAN.md`. It is the contract
-for what lives where; the guard test in
+Offline Jupyter notebook app for Android. This document defines the layers, ports and
+data model. It is the contract for what lives where; the guard test in
 `app/src/test/java/com/jupydroid/app/architecture/ArchitectureGuardTest.kt` enforces the
 domain-layer purity rules.
 
-Source material: `reference/xeus-android/FEASIBILITY.md`, `reference/xeus-android/STUDY_CASES.md`,
-`reference/callisto/FINDINGS.md`.
+What is settled and why is `docs/DECISIONS.md`; what gets built next is `docs/PLAN.md`.
+
+Source material: `reference/xeus-android/FEASIBILITY.md`, `reference/xeus-android/STUDY_CASES.md`.
 
 ---
 
@@ -19,7 +19,7 @@ Dependencies point inward: `ui → domain`, `data → domain`, `domain → nothi
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
 │ ui (Compose) — screens, ViewModels, state hoisting (UDF/MVVM)         │
-│   HomeRecent · Editor · Console · Workspace · Settings · Onboarding   │
+│   Explorer (+ Recents) · Editor (notebook) · FileEditor               │
 │   collectAsStateWithLifecycle ← StateFlow                             │
 └───────────────▲──────────────────────────────────┬────────────────────┘
                 │ uses (domain types + ports)      │ drives
@@ -32,8 +32,8 @@ Dependencies point inward: `ui → domain`, `data → domain`, `domain → nothi
 ┌───────┴───────────────────────────────────────▼───────────────────────┐
 │ data — adapters over ports (fakes first, real impls later)            │
 │   fake/   FakeNotebookRepository, FakeKernelGateway, FakeServerLauncher│
-│   disk/   DiskNotebookRepository (Step 3) · websocket (Step 10)        │
-│   server/ ProcessBuilder + rootfs launcher (Step 8)                    │
+│   disk/   DiskNotebookRepository · DiskWorkspaceRepository · …         │
+│   space/  rootfs installer, jupyter_server launcher, kernel WebSocket  │
 └───────────────────────────────────────────────────────────────────────┘
 ┌───────────────────────────────────────────────────────────────────────┐
 │ di — AppContainer: manual composition root, built once in MainActivity │
@@ -46,18 +46,22 @@ Rules:
 - **ui** reads ports through the container or constructor injection; it never constructs
   a `data` implementation directly.
 - **data** implements the ports; the container swaps fakes for real impls step by step.
-- The WebView cell editors (CodeMirror 6) and the rootfs/`jupyter_server` process are
-  **adapters behind ports** — nothing outside `data` knows a WebView or a process exists.
+- The rootfs and the `jupyter_server` process are **adapters behind ports** — nothing outside
+  `data` knows a process exists. (The cell editor is Compose-native and lives in `ui`; the
+  per-cell CodeMirror WebViews this line once described were retired on measurement, see
+  `docs/DECISIONS.md`.)
 
 ## 2. Ports (domain)
 
-Defined in `domain/port/`; each has a fake (Steps 1–2) and a real implementation.
+Defined in `domain/port/`; each is contract-tested and has a real implementation.
 
-| Port | Purpose | Real impl | Lands |
-|---|---|---|---|
-| `NotebookRepository` | CRUD + observe list/summaries | `DiskNotebookRepository` over nbformat JSON | Step 3 |
-| `KernelGateway` | execute/interrupt/complete against a kernel session | WebSocket client to `jupyter_server` | Step 10 |
-| `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `ProcessBuilder` → rootfs dynamic loader | Step 8 |
+| Port | Purpose | Real impl |
+|---|---|---|
+| `NotebookRepository` | read/write one notebook | `DiskNotebookRepository` over nbformat JSON |
+| `WorkspaceRepository` | list/read/write/rename/delete in the shared tree, and a change stream | `DiskWorkspaceRepository` |
+| `RecentDocumentsRepository` | what was opened, persisted outside the workspace | `DiskRecentDocumentsRepository` |
+| `KernelGateway` | connect/execute/interrupt/restart/complete against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
+| `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
 
 `Space` is a **first-class domain type** (`files/spaces/<id>/`), not a string. Named
 after SageMaker Studio rather than "environment", which would collide with the Python
@@ -69,10 +73,16 @@ environments living inside one.
 Space(id, name, kernels: List<KernelSpec>)
 KernelSpec(id, displayName)
 
-Notebook(id, title, kernelId, cells: List<Cell>, updatedAt: Instant)
-Cell(id, kind: CellKind, source)
+Notebook(id, title, kernelId, cells: List<Cell>, preserved: PreservedJson)
+Cell(id, kind, source, outputs, executionCount,
+     sourceHidden, outputsHidden, preserved: PreservedJson)
 CellKind { CODE, MARKDOWN }
-NotebookSummary(id, title, updatedAt)        // Home recent row
+
+// Deliberately NOT on Notebook: when it was last written is a fact about the file.
+// It is WorkspaceEntry.updatedAt, read off the file's mtime — the reference's
+// `last_modified`. PreservedJson is nbformat's open-format remainder, kept verbatim.
+WorkspaceEntry(path, name, kind, updatedAt: Instant, …)
+RecentDocument(path, title, openedAt)
 
 CellOutput (sealed)
   Stream(name: StreamName, text)             // stdout/stderr
@@ -86,12 +96,19 @@ KernelEvent (sealed)
   ExecutionCount(cellId, count)
   Output(cellId, output: CellOutput)
   Idle                                         // kernel done with this cell
-CompletionResult(matches)
+CompletionResult(matches, replacedStart, replacedEnd)
 
-ServerConnection(baseUrl, port)
+ServerConnection(baseUrl, port, token)
 ```
 
-## 4. Wireframes (Step 1 interface drawings)
+## 4. Wireframes — the original Step-1 drawings
+
+**Historical.** These are the sketches the project started from, kept for intent. The shipped UI
+has diverged: the file **Explorer** replaced the Home/Recents screen (Recents is a section of it),
+the cell editor is Compose-native rather than CodeMirror, and cell actions hang off a `⋮` button
+on the cell header rather than a long press — a long press on a cell is `BasicTextField`'s text
+selection. Console, Workspace-as-a-screen and Settings are **not built**; see `docs/PLAN.md`
+P4/P6.
 
 ### 4.1 Home — Recent
 ```
@@ -190,6 +207,7 @@ ServerConnection(baseUrl, port)
 
 - One module, manual DI, constructor injection with defaults to fakes — no DI framework,
   no multi-module Gradle split until a real boundary appears.
-- `NotebookSummary` exists so Home never deserializes every cell just to render recents.
+- Recents is a history of what was *opened*, persisted outside the workspace and validated
+  against it — not a scan of a directory, so it survives files moving.
 - `KernelEvent.Idle` is the kernel-busy signal: the ViewModel derives Running/Idle from
   the event stream, so Run All and per-cell busy indicators need no extra state.

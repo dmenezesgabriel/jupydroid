@@ -1,21 +1,31 @@
 # JupyterDroid
 
-Offline Jupyter notebook app for Android. Runs a real `jupyter_server` (ipykernel +
-xeus-python) inside a bundled, rootless glibc Linux rootfs on loopback, with a mobile
-optimized UI (Jetpack Compose shell + per-cell CodeMirror 6 WebViews).
+Offline Jupyter notebook app for Android. Runs a **real** `jupyter_server` + `ipykernel`
+inside a bundled, rootless **musl** (Alpine) Linux rootfs on loopback, with a mobile-optimised
+UI: a Jetpack Compose shell and a **Compose-native** cell editor.
 
 ## Status
 
-Steps 0–3 done: verification harness, hexagonal architecture with a guard test, Home
-notebook list (create / rename / delete / open via VIEW intent), and nbformat-on-disk
-persistence. Kotlin + Jetpack Compose, `com.jupydroid.app`, AGP 9, minSdk 32, targetSdk 36.
+Working end to end on an arm64 tablet: rootfs installs, `jupyter_server` starts on 127.0.0.1,
+kernels start through `POST /api/sessions` and reattach, cells run and render their outputs
+(stream, tracebacks, PNG, `text/html`, tables), and notebooks persist as nbformat on a filesystem
+the app, the server and the kernel all share. There is a file browser, a Compose cell editor with
+syntax highlighting and kernel-backed completion, and a two-pane layout at ≥ 840dp.
 
-Step 4a (read-only editor) is in progress. Step 8 — the runtime risk gate, where a real
-`jupyter_server` starts from a bundled rootfs — is pulled forward ahead of Steps 5–7 and
-split into six sub-steps.
+Not built yet: the Space system, a terminal, LSP, the debugger, the console, search and ToC —
+and the server has no lifecycle. See `docs/PLAN.md`.
 
-**Build plan and the exec-model decision: `docs/PLAN.md`. Working agreement, per-step
-procedure and the locked architecture: `CLAUDE.md`.**
+Kotlin + Jetpack Compose, `com.jupydroid.app`, AGP 9, compileSdk 36, minSdk 32, targetSdk 36.
+The runtime is **arm64-only**; on x86_64 the app runs against a fake kernel for UI work.
+
+## Documentation
+
+| File | What it is |
+|---|---|
+| `docs/PLAN.md` | what gets built next, phase by phase |
+| `docs/DECISIONS.md` | what is settled and what it forbids — including the exec model |
+| `CLAUDE.md` | how work is done: the working agreement, per-step procedure, tooling |
+| `docs/architecture.md` | layers, ports and the data model |
 
 ## Build
 
@@ -23,19 +33,16 @@ procedure and the locked architecture: `CLAUDE.md`.**
 ./gradlew :app:assembleDebug
 ```
 
-Requires the Android SDK at `~/Android/Sdk` (see `local.properties`). First sync downloads
-AGP/Kotlin/dependencies.
+Requires the Android SDK at `~/Android/Sdk` (see `local.properties`). The rootfs asset and the
+two native ELFs are build artifacts, not committed files — build them with
+`tools/rootfs/build.sh arm64-v8a` then `tools/rootfs/stage-app-artifacts.sh arm64-v8a`.
 
 ## Reference
 
-All study material (Winlator/Callisto reverse-engineering, feasibility and architecture
-plans) lives in `reference/` — a git-ignored copy of the original `reverse-engineer-app`
-tree. Do not commit anything under it.
+Study material lives in `reference/`, which is **git-ignored**: none of it travels with a clone,
+and nothing under it is ever vendored (Winlator is LGPL-2.1). `docs/DECISIONS.md` records what
+each reference is authoritative for, and the clone commands.
 
-- `reference/xeus-android/` — feasibility + architecture plan, study cases
-- `reference/callisto/` — static analysis of Callisto (UI/UX study only; it runs no Jupyter
-  server — it embeds CPython in-process via Chaquopy)
-- `reference/jnotes/` — unrelated handwriting-notes app; shares the analysis harness only
-- `reference/research_repos/` — upstream clones studied for technique, never vendored
-  (Winlator is LGPL-2.1, Callisto is proprietary): `winlator`, `termux-app`, `jupyterlab`,
-  `box64`, `box86`
+- `reference/research_repos/` — upstream clones studied for technique: `jupyterlab`,
+  `winlator`, `intellij-community`, `termux-app`, `box64`, `box86`
+- `reference/xeus-android/` — the original feasibility and architecture study
