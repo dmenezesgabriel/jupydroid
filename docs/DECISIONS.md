@@ -117,6 +117,12 @@ kernel **inherits** the server's; `JupyterServerLauncher` redirects the server's
 and reroutes it to the raw file descriptor (*"Seeing logger to stderr, rerouting to raw
 filedescriptor"*). So kernel logs land in the server's log file, not in the notebook.
 
+**Measured, once the kernel was actually put at DEBUG** (P0a): 29 KB of kernel DEBUG in
+`jupyter_server.log` and nothing on screen, `evidence/kernel-observability/shell-dispatch-logged/`.
+It is upstream behaviour rather than ours, so `step10-run-cell-real-kernel` asserts it —
+`assertNotVisible: ".*MESSAGE TYPE.*"` after the run — instead of trusting that an ipykernel
+upgrade will keep it.
+
 ---
 
 ## Protocol and behaviour

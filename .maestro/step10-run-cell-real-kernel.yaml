@@ -28,6 +28,13 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "42"
     timeout: 120000
+# The kernel runs at --log-level=DEBUG and logs `*** MESSAGE TYPE:<type>***` for every shell
+# message it dispatches (ipykernel/kernelbase.py:455). That has to land in the server's log file
+# and nowhere else: ipykernel forwards a kernel's stderr to iopub, which renders as cell output,
+# so a logger left bound to it would print the app's own diagnostics into the user's notebook.
+# What keeps it out is ipykernel re-pointing such a handler at the raw file descriptor
+# (kernelapp.py:546-554) - upstream behaviour, so this asserts it rather than assuming it.
+- assertNotVisible: ".*MESSAGE TYPE.*"
 - takeScreenshot: 02-real-kernel-printed-42
 # numpy, in the app process, through the whole chain. index 1 is the second cell's Run
 # button - index 0 would re-run the first, which is what it did on the first attempt.

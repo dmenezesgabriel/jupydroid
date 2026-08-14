@@ -111,6 +111,21 @@ Two consequences:
    produced no server-side complaint — and it retires the previous plan of waiting for the
    server's own account at DEBUG. It will not have one.
 
+**Both are now confirmed on device rather than read out of source.** With the kernel at DEBUG
+(P0a, shipped), a healthy run logs `Nudge: attempt 1`, then a shell dispatch **and** a
+`Control received:` for a second request, then `Nudge: shell info reply received`
+(`evidence/kernel-observability/shell-dispatch-logged/`).
+
+## How the next sighting is read
+
+The kernel now logs `*** MESSAGE TYPE:<type>***` per shell dispatch, and the app's own requests
+carry a bare UUID `msg_id` where the server's carry `<session>_<pid>_<n>`. So:
+
+- **no dispatch line for the app's UUID** → the shell channel never delivered it, and the cause is
+  below the kernel's dispatch loop — which is what P0c tests.
+- **the line is there and no reply follows** → the kernel heard it and did not answer, and P0c is
+  the wrong experiment.
+
 ## Where the cause has to be
 
 ipykernel 7 moved the shell channel into its own thread. `ipykernel/shellchannel.py` defines
@@ -123,11 +138,10 @@ the older path.
 
 | # | Sub-step | Gate |
 |---|---|---|
-| **P0a** | **Kernel-side observability.** Add `--log-level=DEBUG` to the kernelspec `argv` in `SpaceKernelSpec` (the alias resolves to `Application.log_level`, `traitlets/config/application.py:364`). `ipykernel/kernelbase.py:455` then logs `*** MESSAGE TYPE:%s***` for every dispatched shell message — the one thing that distinguishes *"the request never reached the kernel"* from *"the kernel received it and never replied"*, two causes with two different fixes. **Where that log lands, verified in three links:** `jupyter_client/launcher.py:68-76` leaves `stdout`/`stderr` as `None` off Windows, so the kernel **inherits** the server's; `JupyterServerLauncher` redirects the server's output to `run/jupyter_server.log`; and `ipykernel/kernelapp.py:546-554` detects a log handler bound to fd 2 and reroutes it to the raw file descriptor (*"Seeing logger to stderr, rerouting to raw filedescriptor"*), so kernel logging **cannot** leak into cell output the way the SIGSYS reports once could. | JVM test on the generated kernelspec JSON; one tablet run showing the line for a healthy `execute_request`, and the notebook showing no log text. |
 | **P0b** | **Recovery, independent of cause.** On `greetKernel` timeout, **restart the kernel and reconnect** instead of sending into a socket whose shell is dead. Every sighting passed on a fresh kernel, so this turns a permanent spinner into a ~3 s hiccup. Departure from the reference, recorded: JupyterLab gives up after one timeout and its own FIXME calls that wrong (`packages/services/src/kernel/default.ts:1589-1591`); the seventh sighting proved *retrying* is not the answer, so restarting is the adaptation. Bounded — one restart, then surface the failure. | Red test first: `ScriptedKernelSocketOpener` withholds `kernel_info_reply`; the gateway must restart and re-greet, and must **not** loop. Then `scripts/step5-completion-repeat-driver.sh` ×50 on the tablet. |
 | **P0c** | **The A/B that settles the cause.** A rootfs variant pinned to the last ipykernel 6.x release — no `ShellChannelThread`, no inproc pairs — same repeat driver, same run count. (JupyterLab still supports that line: `pyproject.toml:41` reads `ipykernel>=6.5.0,!=6.30.0`.) Disappearance is the diagnosis, and the fix is a pin plus an upstream issue; persistence exonerates ipykernel 7 and moves the search to zmq over `ipc://`. | `evidence/p0-stall/ab-ipykernel6/` with both run logs and pass/fail counts, and the statistics stated honestly: at ~1-in-20, 50 clean runs happen by chance about 8% of the time. |
 
-P0b ships regardless of what P0c finds — it is the user-visible fix. P0a ships first, because
+P0b ships regardless of what P0c finds — it is the user-visible fix. P0a shipped first, because
 without it P0c cannot be read.
 
 ---
