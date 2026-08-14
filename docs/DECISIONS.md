@@ -149,14 +149,25 @@ Without it a cell's `open('data.csv','w')` raises `OSError: [Errno 30]` on a rea
 The server root (`--ServerApp.root_dir`), the kernel's `HOME` and the repository root are **one
 tree**.
 
-### Cell semantics come from `NotebookActions`, and three are not the obvious answer
+### Cell semantics come from `NotebookActions`, and most are not the obvious answer
 
 Read out of `packages/notebook/src/actions.tsx` and `packages/cells/src/model.ts`:
 
-- Deleting the **last** cell leaves an empty code cell, not an empty notebook.
+- Deleting the **last** cell leaves an empty cell, not an empty notebook — of
+  `notebookConfig.defaultCell`, not hardcoded "code" — and the replacement is inserted **inside
+  the same transaction**, "to make the deletion of a notebook's last cell undoable". A cell with
+  `deletable: false` is skipped, and deleting a collapsed heading takes its children.
 - Clearing outputs also clears the **execution count** — `clearExecution` at
   `packages/cells/src/model.ts:706` sets `executionCount = null`.
-- A **duplicate keeps** the original's outputs and count; only its id is renewed.
+- A **duplicate keeps** the original's outputs and count; only its id is renewed — and the one
+  exception is deliberate: a code cell pasted after a **cut** keeps its id (`addCells`, the
+  `lastClipboardInteraction === 'cut'` branch).
+- **Splitting keeps the outputs on the *last* fragment**, not the first: the original cell object
+  becomes the final piece "to preserve kernel connection", and every new cell is created with
+  `outputs: undefined`. It splits at every selection, not only at the caret.
+- **The undoable unit is one `sharedModel.transact { }` block**, over a Yjs `undoManager`
+  (`actions.tsx:1704`). That is why `deleteCells` inserts its replacement cell inside the
+  transaction rather than after it.
 
 Mime-bundle preference order is JupyterLab's `defaultRank`, not taste.
 
@@ -243,6 +254,34 @@ Two panes at **840dp**, not 600dp: 360dp of list plus a divider leaves 239dp for
 600dp window, narrower than the phone the single-pane layout was designed for. A width rule, never
 a device one.
 
+### Touch rules, and the two that cost something to learn
+
+- **48dp is the minimum touch target** (Material), pinned by `CellTouchTargetTest`. The nuance is
+  worth keeping because it once produced a false accessibility bug report: `IconButton` applies
+  `minimumInteractiveComponentSize()` **outside** the caller's modifier, so wrapping one in
+  `Modifier.size(32.dp)` shrinks the ripple and *not* the pressable area — measured on device at
+  48×48dp with the wrapper in place. What the test is really guarding is a control built from a
+  bare `clickable`, which would have a real 24dp target and nothing else to catch it.
+- **A long press on a cell is not available.** `BasicTextField` owns that gesture for text
+  selection, so cell actions need a visible control — which is why the cell header carries a `⋮`
+  button and not a hidden gesture. It took three attempts to learn: a press on the cell produced
+  Android's Select all / Autofill toolbar, and a press on the header worked but was
+  undiscoverable. **Nothing on screen announcing an interaction is not an interaction.**
+- **Anything drawn above the soft keyboard needs `imePadding()` *and* `navigationBarsPadding()`** —
+  the second for the moment between the keyboard closing and the layout catching up (`SymbolRow`).
+- **A behaviour that cannot be reached on a phone is adapted, never invented**, and the adaptation
+  is written down beside what it departs from.
+
+### The breakpoints, so 840dp is not a magic number
+
+`WindowSizeClass` (official): compact `< 600dp`, medium `600–840`, expanded `840–1200`, large
+`1200–1600`, extra-large `≥ 1600`. The app reads
+`WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND` rather than a literal.
+
+Two panes start at **expanded**, not medium, and the arithmetic is the reason: the list pane is
+360dp, so a 600dp window leaves the notebook 239dp — narrower than the phone the single-pane
+layout was designed for — where 840dp leaves it 479dp.
+
 ### Window width is a parameter, never measured inside a composable
 
 `currentWindowAdaptiveInfo()` reads the *activity's* window, which `DeviceConfigurationOverride`
@@ -261,6 +300,12 @@ The workspace is read from disk directly (`DiskWorkspaceRepository`) rather than
 `/api/contents`: it is faster and works before the server is up. But checkpoints, notebook
 trust/signing and nbconvert export are **server-side algorithms** and go through the server's API.
 Re-deriving HMAC notebook signing in Kotlin would be re-implementing a security mechanism.
+
+**Writing directly has one known consequence, and it is not free.** `ContentsManager` signs a
+notebook on save — `check_and_sign` over `nbformat.sign.NotebookNotary`
+(`services/contents/manager.py:116-120,694-706`) — so a notebook this app writes is **unsigned**
+and would open untrusted. That is inert today because nothing renders trust, and it is a decision
+P2j has to make rather than discover.
 
 ---
 
