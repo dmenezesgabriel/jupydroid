@@ -104,18 +104,36 @@ class RealKernelGatewayObservabilityTest {
   /** And a kernel that never answers is reported as that, rather than as nothing at all. */
   @Test
   fun aGreetingThatIsNeverAnsweredIsReportedAsTimedOut() = runTest {
-    val opener = ScriptedKernelSocketOpener(
-      reply = { KernelFrames.successfulExecution(it) },
-      answerKernelInfo = false,
-    )
-    val gateway = RealKernelGateway(opener, FakeKernelLifecycle(), log)
+    val gateway = RealKernelGateway(neverGreets(), FakeKernelLifecycle(), log)
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
-    gateway.execute(session, "cell-1", "2 + 2").toList()
+    runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }
 
     assertEquals(session.id, log.fieldsOf(KernelLog.GREET_TIMED_OUT)["sessionId"])
     assertEquals(0, log.countOf(KernelLog.GREET_ANSWERED))
   }
+
+  /**
+   * The recovery restart says so, because it is the app throwing away a kernel the user did not
+   * ask it to - and since a reopened notebook reattaches to the kernel it already had, that is
+   * their variables. Without this line the trail shows a timeout and then a working kernel, which
+   * reads as the stall having fixed itself.
+   */
+  @Test
+  fun theRecoveryRestartIsReported() = runTest {
+    val gateway = RealKernelGateway(neverGreets(), FakeKernelLifecycle(), log)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }
+
+    assertEquals(session.id, log.fieldsOf(KernelLog.GREET_RESTARTING)["sessionId"])
+    assertEquals(1, log.countOf(KernelLog.GREET_RESTARTING))
+  }
+
+  private fun neverGreets() = ScriptedKernelSocketOpener(
+    reply = { KernelFrames.successfulExecution(it) },
+    answerKernelInfo = { false },
+  )
 
   /** A socket that ends under a running cell is the other way this stalls, and it is loud. */
   @Test

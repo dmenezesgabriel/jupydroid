@@ -117,8 +117,8 @@ window_width_dp() {
 # same reason U5b needed it: a screenshot at one width is a layout with an untested branch.
 record_device() {
   local out="$1"
-  local adb=("$ADB")
-  if [ -n "$MAESTRO_DEVICE" ]; then adb+=(-s "$MAESTRO_DEVICE"); fi
+  local adb
+  mapfile -t adb < <(device_adb)
   {
     echo "serial   $("${adb[@]}" get-serialno | tr -d '\r')"
     echo "model    $("${adb[@]}" shell getprop ro.product.model | tr -d '\r')"
@@ -147,6 +147,57 @@ newest_run_dir() {
   ls -1dt "$HOME/.maestro/tests"/*/"$flow_name" 2>/dev/null | sed -n '1p'
 }
 
+# The device this driver is driving, as an `adb` invocation.
+#
+# `$ADB` alone honours `ANDROID_SERIAL`, but a driver run with two devices attached and no serial
+# set would ask whichever adb picks - so the serial is passed when there is one, exactly as
+# `record_device` does.
+device_adb() {
+  local adb=("$ADB")
+  if [ -n "$MAESTRO_DEVICE" ]; then adb+=(-s "$MAESTRO_DEVICE"); fi
+  printf '%s\n' "${adb[@]}"
+}
+
+# A flow drives whatever is on the screen, and a locked device shows a lock screen.
+#
+# **This has already cost a measurement.** A fifty-run sweep of `step5-completion` on the tablet
+# passed 31 and then failed 19 in a row; the app was blameless - `stay_on_while_plugged_in` is 0
+# on this device, the screen went off, and every run after that drove the lock screen. The
+# screen-hierarchy captures are the proof: at the failing step they hold the clock digits
+# `0 9 : 2 0`, and after a `KEYCODE_WAKEUP`, the PIN pad's `1 ABC 2 DEF ... Emergency call`.
+# A run against a lock screen is not a red result, it is *no* result, and nothing in the harness
+# said which it was.
+#
+# So the harness sets the condition rather than hoping for it, and then checks it. Two signals,
+# because they fail apart: `mWakefulness` says the screen is on, and a device woken by
+# `KEYCODE_WAKEUP` reports `Awake` **while still behind its PIN** - which is exactly how the
+# first repair of this function still lost two runs. `mDreamingLockscreen` is the one that says
+# the app is reachable.
+require_unlocked_device() {
+  local adb
+  mapfile -t adb < <(device_adb)
+  # `usb` rather than `true`: the flows run on a plugged-in device, and this removes the
+  # 30-minute fuse under every long sweep. It survives a reboot, which is why it is set here
+  # once rather than saved and restored around each flow.
+  "${adb[@]}" shell svc power stayon usb >/dev/null 2>&1 || true
+  "${adb[@]}" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+  # Dismisses a *non-secure* keyguard - a swipe-to-unlock. A PIN, pattern or password cannot be
+  # cleared from adb at all, and is what the check below is here to report.
+  "${adb[@]}" shell input keyevent KEYCODE_MENU >/dev/null 2>&1 || true
+
+  local wakefulness locked
+  wakefulness="$("${adb[@]}" shell dumpsys power |
+    sed -n 's/.*mWakefulness=\([A-Za-z]*\).*/\1/p' | sed -n '1p' | tr -d '\r')"
+  locked="$("${adb[@]}" shell dumpsys window |
+    sed -n 's/.*mDreamingLockscreen=\([a-z]*\).*/\1/p' | sed -n '1p' | tr -d '\r')"
+  [ "$wakefulness" = "Awake" ] && [ "$locked" = "false" ] && return 0
+
+  echo "device is not usable: mWakefulness=$wakefulness mDreamingLockscreen=$locked" >&2
+  echo "a flow run now would drive the lock screen and report it as an app failure." >&2
+  echo "unlock the device by hand - a secure keyguard cannot be dismissed over adb." >&2
+  return 1
+}
+
 # Runs a flow on the device this driver seeded, and nowhere else.
 #
 # `adb` honours `ANDROID_SERIAL`; **maestro does not**. With two devices attached it picks one of
@@ -155,9 +206,11 @@ newest_run_dir() {
 # on the emulator ran their flows against the tablet against a Home that had never been seeded.
 #
 # Twenty-five drivers carried this same six-line if/else by hand. `scripts/check_driver_isolation.py`
-# requires going through here now, so it cannot be half-copied into the twenty-sixth.
+# requires going through here now, so it cannot be half-copied into the twenty-sixth - which is
+# also what makes this the one place [require_unlocked_device] has to be called from.
 maestro_test() {
   local flow="$1"
+  require_unlocked_device || return 1
   if [ -n "$MAESTRO_DEVICE" ]; then
     "$MAESTRO" --device "$MAESTRO_DEVICE" test "$flow"
   else

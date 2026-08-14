@@ -51,4 +51,13 @@ internal object KernelLog {
   const val GREET_SENT = "kernel.greet.sent"
   const val GREET_ANSWERED = "kernel.greet.answered"
   const val GREET_TIMED_OUT = "kernel.greet.timedout"
+
+  /**
+   * The recovery restart, which is the app replacing a kernel the user did not ask it to.
+   *
+   * Worth a line of its own even though [GREET_TIMED_OUT] precedes it: it is the point where a
+   * reattached kernel's variables are discarded, and a trail that only showed the timeout would
+   * leave "the app restarted my kernel" looking like the kernel died on its own.
+   */
+  const val GREET_RESTARTING = "kernel.greet.restarting"
 }

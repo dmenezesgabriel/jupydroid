@@ -28,12 +28,20 @@ class ScriptedKernelSocketOpener(
    */
   private val openImmediately: Boolean = true,
   /**
-   * Whether a `kernel_info_request` is answered.
+   * Whether the *nth* `kernel_info_request` on this socket is answered, counting from 1.
    *
-   * False is the case JupyterLab's own FIXME describes - a kernel whose ZMQ subscriptions are not
-   * established never resolves it - and it is what the failsafe timeout exists for.
+   * Never answering is the case JupyterLab's own FIXME describes - a kernel whose ZMQ
+   * subscriptions are not established never resolves it - and it is what the failsafe timeout
+   * exists for. Answering only from the second ask is what a **restart** looks like from the
+   * socket's side: the process behind it is replaced while the socket stays open, because
+   * `jupyter_server` restarts with `newports=False` and so reuses the same endpoints
+   * (`jupyter_client/manager.py`, `_async_restart_kernel`).
+   *
+   * ```
+   * answerKernelInfo = { ask -> ask > 1 }   // dead until the kernel is restarted
+   * ```
    */
-  private val answerKernelInfo: Boolean = true,
+  private val answerKernelInfo: (ask: Int) -> Boolean = { true },
 ) : KernelSocketOpener {
   var openedKernelId: String? = null
     private set
@@ -52,6 +60,7 @@ class ScriptedKernelSocketOpener(
 
   private var opened = false
   private var events: ((KernelSocketEvent) -> Unit)? = null
+  private var kernelInfoAsks = 0
 
   /** Completes the handshake, the way OkHttp's `onOpen` does. */
   fun finishHandshake() {
@@ -99,7 +108,10 @@ class ScriptedKernelSocketOpener(
 
     private fun answer(msgType: String, requestMsgId: String) {
       if (msgType == "kernel_info_request") {
-        if (answerKernelInfo) onEvent(KernelSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId)))
+        kernelInfoAsks++
+        if (answerKernelInfo(kernelInfoAsks)) {
+          onEvent(KernelSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId)))
+        }
         return
       }
       reply(requestMsgId).forEach { onEvent(KernelSocketEvent.Received(it)) }

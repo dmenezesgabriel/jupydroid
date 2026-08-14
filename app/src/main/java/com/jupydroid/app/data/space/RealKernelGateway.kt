@@ -84,7 +84,7 @@ class RealKernelGateway(
       emitAll(
         sessionSocket.events
           .onSubscription {
-            sessionSocket.awaitReady()
+            sessionSocket.awaitReady(mayRestartTheKernel = true)
             // `enqueued`, not `sent`: OkHttp returns true when the frame is *queued*, so a true
             // here says the app let go of the request and nothing about the kernel having heard
             // it. That is why the await above exists rather than trusting this.
@@ -124,7 +124,7 @@ class RealKernelGateway(
     val requestMsgId = UUID.randomUUID().toString()
     return sessionSocket.events
       .onSubscription {
-        sessionSocket.awaitReady()
+        sessionSocket.awaitReady(mayRestartTheKernel = false)
         sessionSocket.socket.send(JupyterMessage.completeRequest(code, cursorOffset, session.id, requestMsgId))
       }
       .mapNotNull { event -> completionOrFail(event, requestMsgId) }
@@ -183,7 +183,14 @@ class RealKernelGateway(
       settle(connected, event)
       report(event, subscribers = events.subscriptionCount.value, accepted = events.tryEmit(event))
     }
-    return SessionSocket(socket, events, session.id, connected, log)
+    return SessionSocket(
+      socket,
+      events,
+      session.id,
+      connected,
+      restartKernel = { lifecycle.restart(session.kernelId) },
+      log,
+    )
   }
 
   /**
@@ -228,6 +235,8 @@ class RealKernelGateway(
     val events: MutableSharedFlow<KernelSocketEvent>,
     private val sessionId: String,
     private val connected: CompletableDeferred<Unit>,
+    /** Replaces the process behind this socket; see [recoverOnce] for when that is the answer. */
+    private val restartKernel: suspend () -> Unit,
     private val log: SpaceLifecycleLog,
   ) {
     private val handshake = Mutex()
@@ -244,26 +253,78 @@ class RealKernelGateway(
      * (`evidence/kernel-observability/`).
      *
      * Once per socket, not once per cell, so every later cell returns here immediately.
+     *
+     * [mayRestartTheKernel] is what separates the two callers, and it has no default so that
+     * neither gets recovery by accident. A cell is worth replacing a silent kernel for; a
+     * completion popup is not - it has an answer for "the kernel cannot say", which is nothing,
+     * and restarting would discard the variables of a kernel the user had merely opened onto.
      */
-    suspend fun awaitReady() {
+    suspend fun awaitReady(mayRestartTheKernel: Boolean) {
       connected.await()
       handshake.withLock {
         if (greeted) return
-        greetKernel()
-        greeted = true
+        greeted = greetOrRecover(mayRestartTheKernel)
       }
     }
 
     /**
-     * Asks once, and gives up after [KERNEL_INFO_TIMEOUT] rather than waiting for ever.
+     * Whether this socket can now be asked to run something.
+     *
+     * False only for the caller that may not restart: the greeting went unanswered, and a
+     * completion has an answer for that. [recoverOnce] either makes the socket usable or throws,
+     * so there is no third outcome to report.
+     */
+    private suspend fun greetOrRecover(mayRestartTheKernel: Boolean): Boolean = when {
+      greetKernel() -> true
+      !mayRestartTheKernel -> false
+      else -> {
+        recoverOnce()
+        true
+      }
+    }
+
+    /**
+     * Replaces the kernel and greets the new one, once.
+     *
+     * An unanswered greeting means the shell channel is not carrying replies, and no amount of
+     * asking makes it - the seventh sighting put the greeting on `jupyter_server`'s own 0.5 s
+     * nudge cadence for 60 s and got 120 asks and no reply. Every sighting did clear on the next
+     * launch with a fresh kernel, so replacing the process is the act that has ever worked.
+     *
+     * **The socket is not reopened with it.** JupyterLab's `restart()` follows the REST call with
+     * `reconnect()` "to address cases where kernel ports have changed during the restart"
+     * (`packages/services/src/kernel/default.ts:547-563`), but `jupyter_server` restarts with
+     * `newports=False` and its `on_kernel_restarted` only publishes a status - so the endpoints
+     * are the same ones this socket is already attached to.
+     *
+     * **What it costs, stated rather than discovered.** A reopened notebook reattaches to the
+     * kernel it already had, so a restart here discards that kernel's variables. They were
+     * already unreachable - the channel that would run a cell is the one that answered nothing -
+     * and the alternative is a cell that waits for ever.
+     *
+     * Bounded at one. A loop of restarts is the same defect wearing a different hat.
+     */
+    private suspend fun recoverOnce() {
+      log.reached(KernelLog.GREET_RESTARTING, mapOf("sessionId" to sessionId))
+      restartKernel()
+      if (greetKernel()) return
+      throw KernelChannelException(
+        "kernel for session '$sessionId' answered no kernel_info_request within " +
+          "$KERNEL_INFO_TIMEOUT, before or after a restart; its shell channel is not delivering",
+      )
+    }
+
+    /**
+     * Asks once and reports whether it was answered, giving up after [KERNEL_INFO_TIMEOUT].
      *
      * The failsafe is the reference's too, and their standing note says why: "if sent while zmq
      * subscriptions are not established, kernelInfo may not resolve, so use a timeout to ensure we
      * don't hang forever". Without it this would trade a stall that recovers on retry for one that
      * never does.
      *
-     * **Asking repeatedly was tried, and does not work.** The same note muses that "it may be
-     * preferable to retry kernelInfo rather than give up after one timeout"
+     * **Asking the same kernel again does not work**, which is why the answer to `false` is
+     * [recoverOnce] and not another call to this. The same note muses that "it may be preferable
+     * to retry kernelInfo rather than give up after one timeout"
      * (`packages/services/src/kernel/default.ts:1589-1591`), so the greeting was put on
      * `jupyter_server`'s own 0.5 s nudge cadence for up to the server's 60 s and measured on the
      * tablet: **2 stalls in 80 runs**, both trails showing 120 asks and not one `kernel_info_reply`
@@ -272,7 +333,7 @@ class RealKernelGateway(
      * asking that channel again is asking a channel that is not carrying replies. The 60 s only
      * bought a cell a minute in Queued ahead of a request it lost anyway.
      */
-    private suspend fun greetKernel() {
+    private suspend fun greetKernel(): Boolean {
       val msgId = UUID.randomUUID().toString()
       log.reached(KernelLog.GREET_SENT, mapOf("sessionId" to sessionId))
       val answered = withTimeoutOrNull(KERNEL_INFO_TIMEOUT) {
@@ -284,6 +345,7 @@ class RealKernelGateway(
         if (answered != null) KernelLog.GREET_ANSWERED else KernelLog.GREET_TIMED_OUT,
         mapOf("sessionId" to sessionId),
       )
+      return answered != null
     }
   }
 

@@ -5,9 +5,13 @@
 # FakeKernelGateway, which answers from the source rather than from a kernel.
 #
 # **Why a repeat driver exists at all.** The execution stall appeared roughly once in twenty runs
-# over four sightings, so a single green flow was never evidence either way - that is exactly how
-# it survived three investigations. Holding `execute_request` until the socket reports `Opened`
-# (RealKernelGateway) is the fix; this is what makes "it stopped happening" a measurement.
+# over seven sightings, so a single green flow was never evidence either way - that is exactly how
+# it survived three investigations. This is what makes "it stopped happening" a measurement.
+#
+# It reports three outcomes, not two. Since P0b an unanswered greeting restarts the kernel and
+# greets the new one, so a stall now ends in a *passing* run - and a driver that only counted
+# pass/fail could not tell "no stall occurred" from "a stall occurred and was recovered from",
+# which are the two readings this instrument exists to separate. `R` is the second.
 #
 #   ANDROID_SERIAL=TABLET_SERIAL scripts/step5-completion-repeat-driver.sh 30
 #
@@ -26,27 +30,46 @@ RUNS="${1:-20}"
 
 passed=0
 failed=0
+recovered=0
+
+# Everything the kernel and the server said during one run, kept beside each other.
+#
+# Pulled for a *pass* as well as a failure, which a driver written before P0b did not need to do.
+# The recovery restarts the kernel on an unanswered greeting, so a stall that used to be a failed
+# run is now a passed one - and capturing only failures would throw away the very run that shows
+# the fix working. "Passed" and "passed after recovering" are different results.
+capture_run() {
+  local run="$1" why="$2"
+  grep -oE '\{"stage":"kernel[^}]*\}' "$(newest_run_dir step5-completion)/logs/device-logcat.txt" \
+    > "$ROOT/build/flow-logs/repeat-$run-$why-kernel.jsonl" || true
+  # The server's half, which is the one no sighting before the seventh ever had, and which since
+  # P0a carries the kernel's own `*** MESSAGE TYPE:...***` per shell dispatch - so a stall says
+  # whether the request reached the kernel at all.
+  "$ADB" shell run-as "$APP" cat files/spaces/base/run/jupyter_server.log \
+    > "$ROOT/build/flow-logs/repeat-$run-$why-server.log" 2>/dev/null || true
+}
+
 for run in $(seq 1 "$RUNS"); do
   reset_notebooks
   seed_notebook "$ROOT/.maestro/fixtures/step5-completion.ipynb" "Completion"
   if maestro_test "$ROOT/.maestro/step5-completion.yaml" >"$ROOT/build/flow-logs/repeat-$run.log" 2>&1; then
+    # `R` rather than `.`: the run passed *because* the kernel was replaced, which is the stall
+    # happening and being recovered from. Counting it as a plain pass would hide the rate.
+    if grep -q 'kernel.greet.restarting' "$(newest_run_dir step5-completion)/logs/device-logcat.txt"; then
+      recovered=$((recovered + 1))
+      printf 'R'
+      capture_run "$run" recovered
+    else
+      printf '.'
+    fi
     passed=$((passed + 1))
-    printf '.'
   else
     failed=$((failed + 1))
     printf 'F'
-    # The kernel's own account of the failure, which is the whole point of the logging.
-    grep -oE '\{"stage":"kernel[^}]*\}' "$(newest_run_dir step5-completion)/logs/device-logcat.txt" \
-      > "$ROOT/build/flow-logs/repeat-$run-kernel.jsonl" || true
-    # And the server's, which is the half no sighting has ever had. Ours can say "nothing came
-    # back" and never which of `Nudge: attempt N`, `No such channel` or `Received message on
-    # closed websocket` the server was reporting - three causes with three different fixes, and
-    # all three invisible until --ServerApp.log_level=DEBUG (JupyterServerLauncher).
-    "$ADB" shell run-as "$APP" cat files/spaces/base/run/jupyter_server.log \
-      > "$ROOT/build/flow-logs/repeat-$run-server.log" 2>/dev/null || true
+    capture_run "$run" failed
   fi
 done
 
 echo
-echo "passed $passed · failed $failed of $RUNS"
+echo "passed $passed (of which $recovered recovered from a stall) · failed $failed of $RUNS"
 [ "$failed" -eq 0 ]

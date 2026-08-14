@@ -38,7 +38,7 @@ filesystem the kernel, the server and the app all share.
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 101 instrumented, 692 unit, 56 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 101 instrumented, 710 unit, 56 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
 undo, settings, raw cells, headings, multi-select, trust, export — and the server has no lifecycle.
@@ -70,9 +70,10 @@ A statement that "the reference does X" must name **which** reference.
 
 # P0 — the execution stall
 
-One defect, seven sightings across four distinct flows since 2026-08-07, every one passing on an
-immediate re-run of the same build. It is the only thing in the app that can hang forever with no
-error, and it invalidates any measurement taken above it.
+One defect, nine sightings across four distinct flows since 2026-08-07, every one passing on an
+immediate re-run of the same build. It **used** to be the only thing in the app that could hang
+forever with no error; since P0b it costs about 1.4 s and a replaced kernel. What remains is that
+it invalidates any measurement taken above it, and that its cause is unknown.
 
 ## What is established from the frames
 
@@ -116,15 +117,23 @@ Two consequences:
 `Control received:` for a second request, then `Nudge: shell info reply received`
 (`evidence/kernel-observability/shell-dispatch-logged/`).
 
-## How the next sighting is read
+## The eighth sighting answered it: the request never reached the kernel
 
-The kernel now logs `*** MESSAGE TYPE:<type>***` per shell dispatch, and the app's own requests
-carry a bare UUID `msg_id` where the server's carry `<session>_<pid>_<n>`. So:
+Read with both halves of the trail for the first time
+(`evidence/kernel-observability/eighth-sighting/`). Nine milliseconds after the kernel dispatched
+the server's shell nudge and replied to it, the app's `kernel_info_request` produced **no dispatch
+line at all** — and then three seconds in which neither process logged anything, ended by the app's
+restart. The same kernel handled a `shutdown_request` on **control** immediately afterwards, so the
+process was healthy; its shell channel had simply stopped delivering inbound.
 
-- **no dispatch line for the app's UUID** → the shell channel never delivered it, and the cause is
-  below the kernel's dispatch loop — which is what P0c tests.
-- **the line is there and no reply follows** → the kernel heard it and did not answer, and P0c is
-  the wrong experiment.
+So of P0's two candidate causes it is the first — *the request never reached the kernel* — and not
+*the kernel received it and never replied*. What that still does not say is **where** it was lost:
+the server logs no line per relayed websocket message, so the server's write and the kernel's read
+remain indistinguishable.
+
+**This sharpens P0c rather than replacing it.** Inbound shell delivery stopped while control and
+iopub, each on their own thread and loop, kept working — which is the shape ipykernel 7's
+`ShellChannelThread` would produce, and the A/B now has a specific prediction to falsify.
 
 ## Where the cause has to be
 
@@ -138,11 +147,15 @@ the older path.
 
 | # | Sub-step | Gate |
 |---|---|---|
-| **P0b** | **Recovery, independent of cause.** On `greetKernel` timeout, **restart the kernel and reconnect** instead of sending into a socket whose shell is dead. Every sighting passed on a fresh kernel, so this turns a permanent spinner into a ~3 s hiccup. Departure from the reference, recorded: JupyterLab gives up after one timeout and its own FIXME calls that wrong (`packages/services/src/kernel/default.ts:1589-1591`); the seventh sighting proved *retrying* is not the answer, so restarting is the adaptation. Bounded — one restart, then surface the failure. | Red test first: `ScriptedKernelSocketOpener` withholds `kernel_info_reply`; the gateway must restart and re-greet, and must **not** loop. Then `scripts/step5-completion-repeat-driver.sh` ×50 on the tablet. |
 | **P0c** | **The A/B that settles the cause.** A rootfs variant pinned to the last ipykernel 6.x release — no `ShellChannelThread`, no inproc pairs — same repeat driver, same run count. (JupyterLab still supports that line: `pyproject.toml:41` reads `ipykernel>=6.5.0,!=6.30.0`.) Disappearance is the diagnosis, and the fix is a pin plus an upstream issue; persistence exonerates ipykernel 7 and moves the search to zmq over `ipc://`. | `evidence/p0-stall/ab-ipykernel6/` with both run logs and pass/fail counts, and the statistics stated honestly: at ~1-in-20, 50 clean runs happen by chance about 8% of the time. |
 
-P0b ships regardless of what P0c finds — it is the user-visible fix. P0a shipped first, because
-without it P0c cannot be read.
+**P0a and P0b have shipped.** A stall is now recovered from rather than waited on: an unanswered
+greeting restarts the kernel and greets the replacement once, and if that is no better the cell
+fails instead of spinning (`docs/DECISIONS.md`). Measured over 50 tablet runs — 50 passed, 0
+failed, and **1 was a real stall recovered in 1.4 s**
+(`evidence/kernel-observability/recovery-fifty-runs/`).
+
+P0c is what remains, and it is now diagnosis rather than repair.
 
 ---
 

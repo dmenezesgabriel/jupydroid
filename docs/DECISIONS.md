@@ -149,6 +149,27 @@ and **one** kernel id, and the second POST takes 2 ms against the first's 854 ms
 (`evidence/step17-sessions/`). `interrupt` and `restart` stay on `api/kernels/<id>`, where
 JupyterLab leaves them too.
 
+### An unanswered greeting replaces the kernel; it is never asked twice
+
+`kernel_info_request` going unanswered means the shell channel is not carrying replies, and
+asking it again does not change that — measured, 2 stalls in 80 runs with 120 asks and no reply
+(`evidence/kernel-observability/seventh-sighting/`). Every sighting cleared on a fresh kernel, so
+the recovery is a **restart followed by one more greeting**, and if that is no better the cell
+**fails** rather than being handed to a channel known to be silent.
+
+Three consequences, each deliberate:
+
+- **The socket is not reopened with it.** JupyterLab's `restart()` follows the REST call with
+  `reconnect()` for "cases where kernel ports have changed" (`default.ts:547-563`), but
+  `jupyter_server` calls `km.restart_kernel(kernel_id)` with `newports` defaulting to False, and
+  its `on_kernel_restarted` only publishes a status. The endpoints do not move.
+- **This departs from the reference, which sends the pending messages anyway after the timeout.**
+  That failsafe is what produced the stall: a request enqueued against a channel carrying nothing,
+  waited on for ever with no error raised anywhere.
+- **Typing never triggers it.** `complete` waits on the same handshake, so recovery would
+  otherwise discard the variables of a kernel someone had merely opened a notebook onto. A
+  completion has an answer for "the kernel cannot say"; a cell does not.
+
 ### The kernel's working directory is the session's path
 
 Without it a cell's `open('data.csv','w')` raises `OSError: [Errno 30]` on a read-only filesystem.
@@ -318,6 +339,15 @@ P2j has to make rather than discover.
 ## Harness
 
 - **Never `kill -9` maestro.**
+- **A flow against a lock screen is not a red result, it is no result.** A 50-run sweep passed 31
+  and then failed 19 in a row with the app blameless: `stay_on_while_plugged_in` is 0 on the
+  tablet, the screen went off, and every run after that drove the lock screen — the failing steps'
+  screen-hierarchy captures contain clock digits and nothing else. `maestro_test` now sets
+  `svc power stayon usb` and refuses to run unless **both** `mWakefulness=Awake` and
+  `mDreamingLockscreen=false`. Two signals because they fail apart: a device woken by
+  `KEYCODE_WAKEUP` reports `Awake` while still behind its PIN, which is how the first repair of
+  this still lost two runs. A secure keyguard cannot be dismissed over adb, so the harness says so
+  and stops.
 - **Evidence must be captured on failure, not only on pass.** `run_flow` once copied screenshots
   and logcat only when the flow passed — `set -e` killed the driver at the failed assertion first,
   discarding the one capture that mattered.
