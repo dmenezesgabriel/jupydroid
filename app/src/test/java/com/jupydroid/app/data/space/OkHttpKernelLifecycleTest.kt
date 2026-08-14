@@ -15,10 +15,23 @@ import org.junit.Test
 class OkHttpKernelLifecycleTest {
   @get:Rule val serverRule = MockWebServerRule()
 
+  /**
+   * A kernel is started by creating a **session**, which is the only way JupyterLab starts one.
+   *
+   * `startSession()` POSTs `api/sessions` (`packages/services/src/session/restapi.ts`) and the
+   * document's `Context` is what supplies the model: `SessionContext({path, type, name, ...})`
+   * (`packages/docregistry/src/context.ts:82-90`). The kernel comes back *inside* that model -
+   * `{id, name, path, type, kernel: {id, name} | null}` (`session/session.ts:381-390`) - so the
+   * kernel id is read from `kernel.id` rather than from the top level, which is `POST /api/kernels`'
+   * shape and no longer what is being asked.
+   */
   @Test
-  fun start_asksTheServerForAKernelAndReturnsItsId() = runTest {
+  fun start_createsASessionAndReturnsItsKernelsId() = runTest {
     serverRule.server.enqueue(
-      MockResponse(code = 201, body = """{"id":"kernel-abc","name":"python3"}"""),
+      MockResponse(
+        code = 201,
+        body = """{"id":"session-1","path":"Analysis.ipynb","kernel":{"id":"kernel-abc","name":"python3"}}""",
+      ),
     )
 
     val kernelId = lifecycle().start("Analysis.ipynb")
@@ -26,14 +39,58 @@ class OkHttpKernelLifecycleTest {
     assertEquals("kernel-abc", kernelId)
     val request = takeRequest()
     assertEquals("POST", request.method)
-    assertEquals("/api/kernels", request.target)
+    assertEquals("/api/sessions", request.target)
     assertEquals("token secret-token", request.headers["Authorization"])
   }
 
-  /** Without a body the server picks a default kernel; we still have to send valid JSON. */
+  /**
+   * Reopening a document reattaches to the kernel it already has, and the **server** is what
+   * decides that - `SessionRootHandler.post` looks the path up before it creates anything:
+   *
+   *     exists = await ensure_async(sm.session_exists(path=path))
+   *     if exists:  s_model = await sm.get_session(path=path)
+   *     else:       s_model = await sm.create_session(path=path, ...)
+   *
+   * (`services/sessions/handlers.py`, read out of the server in our own rootfs), which is why
+   * `startSession`'s own docstring says it will "return an existing session if the session path
+   * already exists". So this needs no lookup of ours: it needs the kernel id to come from the
+   * response instead of being assumed new, and that is what is asserted here.
+   */
+  @Test
+  fun start_reattachesToTheKernelTheServerAlreadyHasForThatPath() = runTest {
+    val session = """{"id":"session-1","path":"Analysis.ipynb","kernel":{"id":"kernel-abc"}}"""
+    serverRule.server.enqueue(MockResponse(code = 201, body = session))
+    serverRule.server.enqueue(MockResponse(code = 201, body = session))
+    val lifecycle = lifecycle()
+
+    val first = lifecycle.start("Analysis.ipynb")
+    val second = lifecycle.start("Analysis.ipynb")
+
+    assertEquals(first, second)
+    assertEquals("kernel-abc", second)
+  }
+
+  /**
+   * `type` is the document's kind, and the rule is the reference's own one-liner:
+   * `type: ext === '.ipynb' ? 'notebook' : 'file'` (`packages/docregistry/src/context.ts:86`).
+   */
+  @Test
+  fun start_callsANotebookANotebookAndAnythingElseAFile() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
+    val lifecycle = lifecycle()
+
+    lifecycle.start("Analysis.ipynb")
+    lifecycle.start("scratch.py")
+
+    assertEquals("""{"path":"Analysis.ipynb","type":"notebook","name":"Analysis.ipynb"}""", takeRequest().body?.utf8())
+    assertEquals("""{"path":"scratch.py","type":"file","name":"scratch.py"}""", takeRequest().body?.utf8())
+  }
+
+  /** With no `kernel` in the body the server picks its default; we still have to send valid JSON. */
   @Test
   fun start_sendsAJsonBodySoTheServerAcceptsThePost() = runTest {
-    serverRule.server.enqueue(MockResponse(code = 201, body = """{"id":"k1"}"""))
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
 
     lifecycle().start("Analysis.ipynb")
 
@@ -58,29 +115,35 @@ class OkHttpKernelLifecycleTest {
    * `OSError: [Errno 30] Read-only file system`. X1a's promise that a notebook can `open()` a file
    * the user can see had never actually held for a relative path.
    *
-   * JupyterLab gets there by creating a *session* - `SessionContext({path: this._path, type:
-   * 'notebook', ...})` (`packages/docregistry/src/context.ts:82-90`) - and the session's path is
-   * handed to the same `start_kernel(path=...)`. `POST /api/kernels` takes the path directly
-   * (`services/kernels/handlers.py:56`), which reaches the identical server code without claiming
-   * to be the session work that Steps 17/18 own.
+   * The session is where JupyterLab puts that path - `SessionContext({path: this._path, type:
+   * 'notebook', ...})` (`packages/docregistry/src/context.ts:82-90`) - and `create_session` hands
+   * it to the same `start_kernel(path=...)`.
    */
   @Test
   fun start_asksForTheKernelAtTheNotebooksPathSoItHasAWorkingDirectory() = runTest {
-    serverRule.server.enqueue(MockResponse(code = 201, body = """{"id":"k1"}"""))
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
 
     lifecycle().start("reports/Analysis.ipynb")
 
-    assertEquals("""{"path":"reports/Analysis.ipynb"}""", takeRequest().body?.utf8())
+    assertEquals(
+      """{"path":"reports/Analysis.ipynb","type":"notebook","name":"Analysis.ipynb"}""",
+      takeRequest().body?.utf8(),
+    )
   }
 
-  /** The server turns the *document* path into the directory holding it, so this sends the path. */
+  /**
+   * The server turns the *document* path into the directory holding it, so this sends the path.
+   *
+   * `name` is the basename beside it, which is `PathExt.basename(localPath)` in the reference and
+   * is what the server's session list shows a document as.
+   */
   @Test
   fun start_sendsTheDocumentPathRatherThanItsDirectory() = runTest {
-    serverRule.server.enqueue(MockResponse(code = 201, body = """{"id":"k1"}"""))
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
 
     lifecycle().start("Analysis.ipynb")
 
-    assertEquals("""{"path":"Analysis.ipynb"}""", takeRequest().body?.utf8())
+    assertEquals("""{"path":"Analysis.ipynb","type":"notebook","name":"Analysis.ipynb"}""", takeRequest().body?.utf8())
   }
 
   @Test
@@ -96,10 +159,15 @@ class OkHttpKernelLifecycleTest {
     )
   }
 
-  /** A kernel with no id is not a kernel; returning "" would fail later and further away. */
+  /**
+   * A session with no kernel is not a kernel; returning "" would fail later and further away.
+   *
+   * `kernel` is nullable in the model (`session/session.ts:389`), so this is a shape the server is
+   * entitled to send, not a malformed response.
+   */
   @Test
-  fun start_failsWhenTheResponseCarriesNoKernelId() = runTest {
-    serverRule.server.enqueue(MockResponse(code = 201, body = """{"name":"python3"}"""))
+  fun start_failsWhenTheSessionCarriesNoKernel() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 201, body = """{"id":"session-1","kernel":null}"""))
 
     val failure = runCatching { lifecycle().start("Analysis.ipynb") }
 
@@ -162,5 +230,8 @@ class OkHttpKernelLifecycleTest {
 
   private companion object {
     const val TIMEOUT_SECONDS = 5L
+
+    /** A session model as the server sends one back, for the tests that assert on the request. */
+    const val KERNEL_SESSION = """{"id":"session-1","kernel":{"id":"k1","name":"python3"}}"""
   }
 }

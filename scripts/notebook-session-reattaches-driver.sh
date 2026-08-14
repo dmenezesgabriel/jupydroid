@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Seeds one notebook and runs the notebook-session-ends flow.
+# Seeds one notebook and runs the notebook-session-reattaches flow.
 #
 # Tablet only: the flow runs cells, and on the x86_64 emulator MainActivity falls back to
-# FakeKernelGateway, which holds no session and so cannot show one ending.
+# FakeKernelGateway, which holds no session and so cannot show one being reattached to.
 set -euo pipefail
 
-# TABLET ONLY (SM-X216B). The flow asserts `43`, a sum only a kernel computes. On the x86_64
+# TABLET ONLY (SM-X216B). The flow asserts `44`, a sum only a kernel computes. On the x86_64
 # emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's source back as
 # stdout, so the run proves nothing. scripts/run-all-flows.sh reads this marker and skips the flow
 # rather than failing it there.
@@ -25,6 +25,6 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 
 # DiskNotebookRepository derives the notebook id from the filename stem.
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/session-ends.ipynb" "Session Ends"
+seed_notebook "$ROOT/.maestro/fixtures/session-reattaches.ipynb" "Session Reattaches"
 
-maestro_test "$ROOT/.maestro/notebook-session-ends.yaml"
+maestro_test "$ROOT/.maestro/notebook-session-reattaches.yaml"

@@ -15,9 +15,12 @@ the *record* — what was decided, what was measured, what is done and what is n
 
 ## ▶ Picking this up? Start here
 
-**Next step: Steps 17/18 — sessions, and the server's lifecycle.** Start kernels through
-`POST /api/sessions` rather than `POST /api/kernels`, so reopening a notebook reattaches to its
-running kernel instead of starting a new one, and so the server has something to shut down.
+**Next step: Step 18 — the server's lifecycle.** `jupyter_server` is started on first use and
+nothing ever stops it (~143 MB RSS held while backgrounded). Step 17 landed the half beneath it:
+kernels start through `POST /api/sessions` now, so reopening a notebook reattaches to its running
+kernel, and a session is the thing a shutdown has to account for (`DELETE /api/sessions/<id>`).
+**When** to stop the server is the open question and has no answer in JupyterLab — a browser tab
+never owns the server's process — so it is decided against Android's lifecycle, not copied.
 
 Read **["Where we are, and what to do next (2026-08-13)"](#where-we-are-and-what-to-do-next-2026-08-13)**
 before anything else — it names what to read first, in what order, and which code changes. That
@@ -2701,31 +2704,49 @@ the wrong thing.
 > of how each step was decided, not a statement about today. If it disagrees with a step write-up,
 > this section is right and the write-up is history.
 
-### Start here: Steps 17/18 — sessions, and the server's lifecycle
+### Step 17 is done: kernels start through sessions
 
-**The next step is to start kernels through `POST /api/sessions` rather than `POST /api/kernels`,
-and to give `jupyter_server` a lifecycle.** Two long-standing open items that are the same seam,
-and X2h-3 has just moved the code right up against it.
+**`POST /api/sessions`, not `POST /api/kernels`.** `OkHttpKernelLifecycle.start` sends
+`{path, type, name}` - the reference's own model, where `type` is
+`ext === '.ipynb' ? 'notebook' : 'file'` and `name` is the basename
+(`packages/docregistry/src/context.ts:82-90`) - and reads the kernel id out of `kernel.id` in the
+session that comes back (`packages/services/src/session/session.ts:381-390`).
 
-**Why it is next, and why now.** X2h-3 had to give the kernel a working directory, and did it by
-sending the document's path to `POST /api/kernels` - which reaches the same `start_kernel(path=...)`
-the server uses, and is parity *for the cwd only*. JupyterLab does not start bare kernels at all: it
-creates a **session** (`SessionContext({path, type: 'notebook', name, kernelPreference})`,
-`packages/docregistry/src/context.ts:82-90`), and a session is what makes the rest work:
+**Reattaching needed no lookup of ours, and that is the finding worth keeping.** `startSession`'s
+docstring says it will "return an existing session if the session path already exists", and the
+server is where that happens:
 
-- **Reopening a notebook reattaches to its kernel.** `connect()` still `POST`s a new kernel every
-  time, so the namespace is lost on reopen where JupyterLab keeps it. The reference finds the
-  session *by path* - which is exactly the id we already carry since X1b. `notebook-session-ends`
-  pins today's behaviour, so it is the flow to rewrite when this lands.
-- **The server has no lifecycle** (Step 18). `BaseSpaceKernelGateway` starts `jupyter_server` on
-  first use and nothing ever stops it (~143 MB RSS held while backgrounded). Sessions are what a
-  shutdown has to account for.
+    exists = await ensure_async(sm.session_exists(path=path))
+    if exists:  s_model = await sm.get_session(path=path)
+    else:       s_model = await sm.create_session(path=path, ...)
 
-**Where to read first**, in this order: `packages/services/src/session/` (manager, restapi) and
-`packages/docregistry/src/context.ts` in JupyterLab; then
-`jupyter_server/services/sessions/sessionmanager.py` and `services/kernels/kernelmanager.py` in the
-rootfs on the device (`run-as com.jupydroid.app cat files/spaces/base/usr/lib/python3.12/...`).
-`OkHttpKernelLifecycle` and `RealKernelGateway.connect` are the code that changes.
+(`services/sessions/handlers.py`). So a client-side `listRunning()`-and-find would have been
+duplicated logic, not parity. One POST does it.
+
+**Measured on the device** (`evidence/step17-sessions/`): two visits to one notebook produce two
+client session ids and **one kernel id**, the two `POST /api/sessions` take 854 ms and then 2 ms -
+`create_session` against `get_session` - and the reopened notebook's second cell runs as `[3]`,
+continuing the kernel's own execution counter. `notebook-session-ends` was the flow that pinned the
+old behaviour and is now `notebook-session-reattaches`, asserting `44` from a cell that increments:
+a fresh kernel raises `NameError`, a stale saved output reads `43`, and only a reattached kernel
+says `44`.
+
+`interrupt` and `restart` stay on `api/kernels/<id>`, which is where JupyterLab leaves them too.
+`KernelSession.id` stays our own client id - JupyterLab's `clientId`, distinct from the server's
+session id, which nothing needs until Step 18's `DELETE`.
+
+### Start here: Step 18 — the server's lifecycle
+
+**`BaseSpaceKernelGateway` starts `jupyter_server` on first use and nothing ever stops it**
+(~143 MB RSS held while backgrounded). Sessions are what a shutdown accounts for now:
+`DELETE api/sessions/<id>` shuts the session's kernel down, and `shutdownSession`
+(`packages/services/src/session/restapi.ts`) has the status handling - 404 warn, 410 "the kernel was
+deleted but the session was not", 204 ok.
+
+**The open question is *when*, and the reference cannot answer it**: a browser tab never owns the
+server's process, so there is no JupyterLab behaviour to copy. On the last session closed? On
+`ON_STOP`? On a memory-trim callback? That is decided against Android's process lifecycle, on
+measurement, and it is the reason this is a step rather than a patch.
 
 **Also open, after that**, in rough priority order: **packaging** (debug APK is 116 MB, most of it
 the rootfs at 278 MB unpacked; asset pack versus first-run download is undecided); **LSP**, which
@@ -3198,7 +3219,7 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   regression. It is not even in the group below, because it runs no cell: the device rule this
   one needs is about the *keyboard*, which is a second reason a flow can be device-specific.
   Whatever runs the whole suite has to model both.
-- **`notebook-session-ends` is tablet-only, and only a comment says so.** It runs cells, so on
+- **`notebook-session-reattaches` is tablet-only, and only a comment says so.** It runs cells, so on
   the x86_64 emulator `MainActivity` falls back to `FakeKernelGateway` and the flow fails rather
   than skipping. The same is true of every other cell-running flow; the device rule lives in
   `CLAUDE.md` §2 and in each flow's header, and nothing enforces it. Whatever runs the whole
