@@ -13,6 +13,21 @@ the *record* — what was decided, what was measured, what is done and what is n
 
 ---
 
+## ▶ Picking this up? Start here
+
+**Next step: Steps 17/18 — sessions, and the server's lifecycle.** Start kernels through
+`POST /api/sessions` rather than `POST /api/kernels`, so reopening a notebook reattaches to its
+running kernel instead of starting a new one, and so the server has something to shut down.
+
+Read **["Where we are, and what to do next (2026-08-13)"](#where-we-are-and-what-to-do-next-2026-08-13)**
+before anything else — it names what to read first, in what order, and which code changes. That
+section is the only one kept current. **Everything else in this file is a record of how each step
+was decided, not a statement about today**; where a step write-up disagrees with it, that section
+is right and the write-up is history. Phases U and X are both done, whatever older paragraphs say
+is "next".
+
+---
+
 ## Product and platform decisions
 
 The layering itself — hexagonal, single `:app` module, manual DI, a pure-Kotlin domain — is
@@ -2476,6 +2491,26 @@ adb -s <device> uninstall dev.mobile.maestro
 broken while looking handled - check `pm list packages | grep maestro` afterwards rather than
 trusting the exit. Stop a run with `pkill -f run-all-flows` and let maestro exit on its own.
 
+### The server's own log, and why it is at DEBUG
+
+`jupyter_server` runs at `--ServerApp.log_level=DEBUG` and will stay there until the app is
+feature-complete. Read it with:
+
+```
+adb -s <serial> shell run-as com.jupydroid.app cat files/spaces/base/run/jupyter_server.log
+```
+
+**It is the half of every kernel investigation we could not see.** The execution stall cost six
+sightings partly for that reason: our own `kernel.*` lines could say "nothing came back" and never
+which of `Nudge: attempt N on kernel X`, `No such channel` or `Received message on closed websocket`
+the server was reporting at that moment - three mutually exclusive causes with three different
+fixes, and all three invisible at INFO.
+
+It costs nothing on screen. `JupyterServerLauncher` uses `redirectErrorStream(true)` and
+`redirectOutput(logFile())`, so it is one file, truncated at every server start, and it never
+reaches logcat. A driver capturing a failure should take **both** accounts of the same run - ours
+from logcat and the server's from that file - because either alone has been enough to mislead.
+
 ### `connectedAndroidTest` uninstalls the app, so it cannot precede a sweep
 
 Running `./gradlew :app:connectedDebugAndroidTest` and then a Maestro run on the **same device**
@@ -2660,7 +2695,69 @@ the wrong thing.
 
 ---
 
-## Where we are, and what to do next (2026-08-06)
+## Where we are, and what to do next (2026-08-13)
+
+> **Read this section first.** It is the one place kept current; everything below it is the record
+> of how each step was decided, not a statement about today. If it disagrees with a step write-up,
+> this section is right and the write-up is history.
+
+### Start here: Steps 17/18 — sessions, and the server's lifecycle
+
+**The next step is to start kernels through `POST /api/sessions` rather than `POST /api/kernels`,
+and to give `jupyter_server` a lifecycle.** Two long-standing open items that are the same seam,
+and X2h-3 has just moved the code right up against it.
+
+**Why it is next, and why now.** X2h-3 had to give the kernel a working directory, and did it by
+sending the document's path to `POST /api/kernels` - which reaches the same `start_kernel(path=...)`
+the server uses, and is parity *for the cwd only*. JupyterLab does not start bare kernels at all: it
+creates a **session** (`SessionContext({path, type: 'notebook', name, kernelPreference})`,
+`packages/docregistry/src/context.ts:82-90`), and a session is what makes the rest work:
+
+- **Reopening a notebook reattaches to its kernel.** `connect()` still `POST`s a new kernel every
+  time, so the namespace is lost on reopen where JupyterLab keeps it. The reference finds the
+  session *by path* - which is exactly the id we already carry since X1b. `notebook-session-ends`
+  pins today's behaviour, so it is the flow to rewrite when this lands.
+- **The server has no lifecycle** (Step 18). `BaseSpaceKernelGateway` starts `jupyter_server` on
+  first use and nothing ever stops it (~143 MB RSS held while backgrounded). Sessions are what a
+  shutdown has to account for.
+
+**Where to read first**, in this order: `packages/services/src/session/` (manager, restapi) and
+`packages/docregistry/src/context.ts` in JupyterLab; then
+`jupyter_server/services/sessions/sessionmanager.py` and `services/kernels/kernelmanager.py` in the
+rootfs on the device (`run-as com.jupydroid.app cat files/spaces/base/usr/lib/python3.12/...`).
+`OkHttpKernelLifecycle` and `RealKernelGateway.connect` are the code that changes.
+
+**Also open, after that**, in rough priority order: **packaging** (debug APK is 116 MB, most of it
+the rootfs at 278 MB unpacked; asset pack versus first-run download is undecided); **LSP**, which
+would supersede 5.5's completion rather than duplicate it; **Phase T**, a real shell in the rootfs,
+which supersedes Step 11's Console REPL; and the cheap chore of **29 drivers calling bare `adb`**
+rather than `$ADB`, which is why the suite only runs from a shell with `platform-tools` on PATH.
+
+**Do not start from the older text below without checking it.** The paragraphs that follow were
+written on 2026-08-06 and are kept because their *reasoning* is still the record; their "next" is
+not. Phases U and X have both closed since.
+
+### The state on 2026-08-13, in one place
+
+- **Phases U and X are done.** U closed the visual language; X put every document on one filesystem
+  (X1a/X1b), built the file browser (X2a-X2g), and X2h made the browser the screen the app opens
+  on, with Recents as a section of it.
+- **Recents is a history of what was opened**, not a scan of a directory - `RecentsManager`'s
+  behaviour, persisted outside the workspace and validated against it.
+- **The kernel has a working directory**, as of X2h-3. It never did before, so a cell's
+  `open('data.csv', 'w')` raised `OSError: [Errno 30]` and X1a's promise had never actually held.
+- **The browser re-reads the workspace on the reference's own poll**, so a file a cell writes
+  appears without anyone touching the screen.
+- **The execution stall is still open, and now has a seventh sighting.** The window is understood -
+  `jupyter_server` completes the websocket handshake before the nudge that establishes the zmq
+  subscriptions (`services/kernels/websocket.py`) - but retrying the greeting on the server's own
+  cadence was measured over 80 tablet runs and stalled twice, asking 120 times for a reply that
+  never came while iopub delivered. The client is back at reference parity. See "Known residual
+  risks" and `evidence/kernel-observability/seventh-sighting/`.
+- **Suite:** 51 Maestro flows across a tablet and a 320dp emulator, ~101 instrumented tests, and the
+  gradle + script gates. `scripts/run-flows-sharded.sh` runs the lot across both devices.
+
+### The record from 2026-08-06 (kept for its reasoning, not for its "next")
 
 **Working end to end on a Galaxy Tab A9+ (Android 16, arm64):** bundled Alpine/musl rootfs →
 interpreter exec'd from `nativeLibraryDir` → stock `jupyter_server` on loopback → kernel as a
@@ -2710,27 +2807,12 @@ its file), and a title could not be changed from the notebook itself. See "Defec
 above. The editor's ViewModel is scoped per back-stack entry now, which also means it is *cleared*
 for the first time — so leaving a notebook flushes its last edit and closes its kernel socket.
 
-**Next: Phase U (an IntelliJ visual language, built for touch)**, written up below. U1 — the
-palette — is done. **Step 11 (Console REPL) is superseded** by Phase T, which puts a real shell
-into the rootfs instead: a REPL would be a second way to talk to the kernel we already talk to,
-where a terminal is the thing the Space cannot currently do at all.
-
-**Also open, in rough priority order:**
-
-- **Reconnect to a notebook's running kernel on reopen.** Leaving a notebook now closes its socket,
-  which is the half of JupyterLab's behaviour we have; the half we do not is that `connect()`
-  always `POST`s a new kernel, where JupyterLab looks a session up by path and reattaches. So the
-  namespace is lost on reopen where JupyterLab keeps it (`notebook-session-ends.yaml` is that
-  behaviour, pinned). Belongs with Steps 17/18, where sessions and server lifecycle live.
-- **Adaptive layout for the tablet.** The app declares no `material3-adaptive` dependency and uses
-  no `WindowSizeClass` anywhere, so Recents and the editor are one pane at every width. On the
-  Tab A9+ they could sit side by side — `ListDetailPaneScaffold` is the canonical shape, and the
-  guidance is to branch on window size class, never on device type. It is a change to the whole
-  navigation graph, which is why it is an item rather than a patch.
-- **Packaging**: debug APK is 116 MB, most of it the rootfs (278 MB unpacked). Asset pack
-  versus first-run download is undecided.
-- **LSP** (see below) would supersede 5.5's completion rather than duplicate it.
-- **Server lifecycle** (Step 18): `jupyter_server` is started on first use and never stopped.
+**What this section said to do next was Phase U**, which is done, as is Phase X after it. The
+current direction is at the top of this section. Two of the items it listed have since closed and
+are recorded here so nobody re-opens them: **adaptive layout** landed as U7 (`TwoPaneSceneStrategy`,
+which pairs a surface with the document it opened rather than using `ListDetailPaneScaffold` - see
+U7 for why the pane scaffold could not be used), and **reconnecting to a running kernel** is now the
+next step rather than a background item.
 
 ### Which reference answers which question (settled, 2026-08-11)
 
@@ -2985,10 +3067,60 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   That is JupyterLab's own standing FIXME, sitting three lines below the one already quoted here:
   *"It may be preferable to retry kernelInfo rather than give up after one timeout"*
   (`packages/services/src/kernel/default.ts:1589-1591`). We copied the failsafe including its known
-  weakness. **The next thing to try** is therefore that retry - and before it, a log stage for the
-  greeting, because `greetKernel` currently emits none, so a capture cannot distinguish "the
-  greeting timed out" from "no greeting was sent" without inferring it from an absence. Inferring
-  from absence is what cost this investigation its third sighting.
+  weakness.
+
+  **The mechanism, finally read rather than inferred (2026-08-13).** It is in `jupyter_server`, and
+  it is not subtle once looked at. `services/kernels/websocket.py`:
+
+      async def open(self, kernel_id):
+          super().open()                   # the websocket handshake completes HERE
+          await self.connection.connect()  # the nudge happens AFTER
+
+  `super().open()` completes the handshake - the client is told "connected" - and only *then* does
+  the server await `connect()`, whose own docstring says callers "should `await` the returned Future
+  before relying on the connection being live". `on_message` is wired the whole time. So there is a
+  window in which a client is connected, can send, and whose request reaches a kernel whose zmq
+  subscriptions are not established. That is the stall, and it is why `enqueued: true` was never
+  evidence of anything.
+
+  **The server's own way out of that window is to keep asking.**
+  `ZMQChannelsWebsocketConnection.nudge()` (`services/kernels/connection/channels.py`) "keeps
+  retrying kernel_info_request until" it has both a shell reply and an iopub message, "ensuring that
+  zmq subscriptions are established" - every **0.5 s**, bounded by `kernel_info_timeout`, whose
+  default is **60 s** and whose help text calls it "how long the kernel can take before being
+  presumed dead" (`services/kernels/kernelmanager.py:152-162`). The three unexplained `status`
+  frames in the fourth, fifth and sixth sightings were replies to *those* nudges: their parents are
+  `<our session id>_<pid>_<n>`, minted by the server's `Session`, never by us.
+
+  **The retry that mechanism suggests was tried, and it is not the fix — the seventh sighting.**
+  `greetKernel` was put on the server's own cadence: ask again every 0.5 s, up to the server's 60 s
+  rather than JupyterLab's client-side 3 s. Measured on the tablet over 80 runs, it stalled twice
+  (`evidence/kernel-observability/seventh-sighting/`), and both trails say why asking again cannot
+  work:
+
+      kernel.greet.sent
+      kernel.frame.received  msgType:"status"  parent:"<sessionId>_13002_2"   (x3)
+      kernel.greet.timedout  asked:"120"
+
+  **120 asks over 60 s and not one `kernel_info_reply`**, while iopub *was* delivering - those three
+  `status` frames are replies to the server's own nudges. On a stalled connection iopub carries and
+  the shell channel carries nothing at all, so asking that channel again is asking a channel that is
+  not delivering replies. Reverted to the reference's shape (one ask, 3 s failsafe, matched on
+  parent `msg_id`); the 60 s only bought a stalled cell a minute in Queued ahead of a request it
+  lost anyway.
+
+  **`kernel.greet.sent` / `.answered` / `.timedout` now exist**, which is what made that sighting
+  readable at all: a stall used to be inferred from an *absence*, and an absence cannot tell "the
+  greeting was never sent" from "it was sent and ignored". Inferring from absence is what cost this
+  investigation its third sighting.
+
+  **What the eighth sighting needs, and does not yet have.** The server's own account. At
+  `--ServerApp.log_level=DEBUG` it distinguishes `Nudge: attempt N on kernel X`, `No such channel`
+  and `Received message on closed websocket` - three mutually exclusive causes with three different
+  fixes, all invisible at INFO. The flag is in `jupyterServerArgs` now and
+  `step5-completion-repeat-driver.sh` pulls `run/jupyter_server.log` on every failure, but **it has
+  not yet been built and run**: the APK behind the seventh sighting predates the flag. Next
+  recurrence, capture both halves before theorising about a fix.
 
   **On the repeat runs, and what they are worth.** `scripts/step5-completion-repeat-driver.sh`
   runs the flow N times, each a fresh launch with a fresh kernel - the state all four sightings

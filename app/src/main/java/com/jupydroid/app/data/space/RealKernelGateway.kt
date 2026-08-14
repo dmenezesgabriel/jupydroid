@@ -183,7 +183,7 @@ class RealKernelGateway(
       settle(connected, event)
       report(event, subscribers = events.subscriptionCount.value, accepted = events.tryEmit(event))
     }
-    return SessionSocket(socket, events, session.id, connected)
+    return SessionSocket(socket, events, session.id, connected, log)
   }
 
   /**
@@ -228,6 +228,7 @@ class RealKernelGateway(
     val events: MutableSharedFlow<KernelSocketEvent>,
     private val sessionId: String,
     private val connected: CompletableDeferred<Unit>,
+    private val log: SpaceLifecycleLog,
   ) {
     private val handshake = Mutex()
     private var greeted = false
@@ -254,20 +255,35 @@ class RealKernelGateway(
     }
 
     /**
-     * Asks, and gives up after [KERNEL_INFO_TIMEOUT] rather than waiting for ever.
+     * Asks once, and gives up after [KERNEL_INFO_TIMEOUT] rather than waiting for ever.
      *
      * The failsafe is the reference's too, and their standing note says why: "if sent while zmq
      * subscriptions are not established, kernelInfo may not resolve, so use a timeout to ensure we
      * don't hang forever". Without it this would trade a stall that recovers on retry for one that
      * never does.
+     *
+     * **Asking repeatedly was tried, and does not work.** The same note muses that "it may be
+     * preferable to retry kernelInfo rather than give up after one timeout"
+     * (`packages/services/src/kernel/default.ts:1589-1591`), so the greeting was put on
+     * `jupyter_server`'s own 0.5 s nudge cadence for up to the server's 60 s and measured on the
+     * tablet: **2 stalls in 80 runs**, both trails showing 120 asks and not one `kernel_info_reply`
+     * (`evidence/kernel-observability/seventh-sighting/`). What arrives during a stall is iopub
+     * traffic parented to the *server's* nudges while the shell channel delivers nothing at all, so
+     * asking that channel again is asking a channel that is not carrying replies. The 60 s only
+     * bought a cell a minute in Queued ahead of a request it lost anyway.
      */
     private suspend fun greetKernel() {
       val msgId = UUID.randomUUID().toString()
-      withTimeoutOrNull(KERNEL_INFO_TIMEOUT) {
+      log.reached(KernelLog.GREET_SENT, mapOf("sessionId" to sessionId))
+      val answered = withTimeoutOrNull(KERNEL_INFO_TIMEOUT) {
         events
           .onSubscription { socket.send(JupyterMessage.kernelInfoRequest(sessionId, msgId)) }
           .first { it is KernelSocketEvent.Received && JupyterFrame.ofType(it.frame, msgId, KERNEL_INFO_REPLY) != null }
       }
+      log.reached(
+        if (answered != null) KernelLog.GREET_ANSWERED else KernelLog.GREET_TIMED_OUT,
+        mapOf("sessionId" to sessionId),
+      )
     }
   }
 

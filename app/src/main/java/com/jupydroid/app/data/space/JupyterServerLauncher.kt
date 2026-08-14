@@ -133,4 +133,15 @@ internal fun jupyterServerArgs(rootDir: File, token: String): List<String> = lis
   "--KernelManager.transport=ipc",
   "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
   "--no-browser",
+  // DEBUG until the app is feature-complete, because the server's own account is the half of
+  // every kernel investigation we could not see. The execution stall cost six sightings partly
+  // for this reason: our log could say "nothing came back" and never which of `Nudge: attempt N`,
+  // `No such channel` or `Received message on closed websocket` the server was reporting at the
+  // time - three mutually exclusive causes with three different fixes.
+  //
+  // It costs nothing on screen: `redirectOutput` sends it to `run/jupyter_server.log`, truncated
+  // at every server start, so it is one run's worth of file and never touches logcat. Read it with
+  //   adb shell run-as com.jupydroid.app cat files/spaces/base/run/jupyter_server.log
+  // Drop it to INFO when the app is feature-complete, not before.
+  "--ServerApp.log_level=DEBUG",
 )

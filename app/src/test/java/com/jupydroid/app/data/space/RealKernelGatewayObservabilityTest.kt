@@ -79,6 +79,43 @@ class RealKernelGatewayObservabilityTest {
     assertEquals("kernel_info_reply", log.fieldsOf(KernelLog.FRAME_RECEIVED)["msgType"])
   }
 
+  /**
+   * The `kernel_info` handshake says what it did, because for six sightings it said nothing.
+   *
+   * Every stall up to then had to be read from an *absence* - no `kernel_info_reply` among the
+   * frames - which cannot tell "the greeting was never sent" from "it was sent and ignored". Those
+   * are different defects with different fixes, and the seventh sighting is what a trail that says
+   * which one buys: `greet.timedout` next to iopub frames parented to the server's own nudges,
+   * which is a shell channel that is not delivering rather than a greeting nobody sent.
+   */
+  @Test
+  fun theGreetingSaysWhetherItWasAnswered() = runTest {
+    val gateway = gateway()
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+
+    assertEquals(session.id, log.fieldsOf(KernelLog.GREET_SENT)["sessionId"])
+    assertEquals(session.id, log.fieldsOf(KernelLog.GREET_ANSWERED)["sessionId"])
+    assertEquals(0, log.countOf(KernelLog.GREET_TIMED_OUT))
+  }
+
+  /** And a kernel that never answers is reported as that, rather than as nothing at all. */
+  @Test
+  fun aGreetingThatIsNeverAnsweredIsReportedAsTimedOut() = runTest {
+    val opener = ScriptedKernelSocketOpener(
+      reply = { KernelFrames.successfulExecution(it) },
+      answerKernelInfo = false,
+    )
+    val gateway = RealKernelGateway(opener, FakeKernelLifecycle(), log)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+
+    assertEquals(session.id, log.fieldsOf(KernelLog.GREET_TIMED_OUT)["sessionId"])
+    assertEquals(0, log.countOf(KernelLog.GREET_ANSWERED))
+  }
+
   /** A socket that ends under a running cell is the other way this stalls, and it is loud. */
   @Test
   fun aSocketThatEndsIsReportedWithItsReason() = runTest {

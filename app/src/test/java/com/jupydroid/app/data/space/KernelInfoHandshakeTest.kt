@@ -92,6 +92,36 @@ class KernelInfoHandshakeTest {
     assertTrue("the failsafe never released the cell: $events", events.contains(KernelEvent.Idle))
   }
 
+  /**
+   * A greeting that goes unanswered is asked **once**, and then the failsafe releases the cell.
+   *
+   * This pins the reference's shape against the obvious-looking change that does not work.
+   * Retrying `kernel_info_request` on `jupyter_server`'s own 0.5 s nudge cadence was tried, put on
+   * a tablet, and measured: **2 stalls in 80 runs**, and both trails show the retry asking 120
+   * times over 60 s while not one `kernel_info_reply` ever came back
+   * (`evidence/kernel-observability/seventh-sighting/`). Asking a dead shell channel again is
+   * still asking a dead shell channel.
+   *
+   * So the client stays where the reference is: `_updateConnectionStatus` calls
+   * `requestKernelInfo()` once and arms a `DEFAULT_KERNEL_INFO_TIMEOUT` of 3000 ms
+   * (`packages/services/src/kernel/default.ts:1553-1595`). JupyterLab's FIXME does muse that a
+   * retry "may be preferable"; the measurement says it is not the fix, and a 60 s timeout only
+   * buys a cell 60 s in Queued before the request it will lose anyway.
+   */
+  @Test
+  fun anUnansweredGreetingIsAskedOnce() = runTest {
+    val opener = ScriptedKernelSocketOpener(
+      reply = { KernelFrames.successfulExecution(it) },
+      answerKernelInfo = false,
+    )
+    val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+
+    assertEquals(1, opener.sentMsgTypes.count { it == "kernel_info_request" })
+  }
+
   private companion object {
     val SPACE = Space(id = "base", name = "Base", kernels = emptyList())
   }

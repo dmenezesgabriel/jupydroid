@@ -38,6 +38,12 @@ for run in $(seq 1 "$RUNS"); do
     # The kernel's own account of the failure, which is the whole point of the logging.
     grep -oE '\{"stage":"kernel[^}]*\}' "$(newest_run_dir step5-completion)/logs/device-logcat.txt" \
       > "$ROOT/build/flow-logs/repeat-$run-kernel.jsonl" || true
+    # And the server's, which is the half no sighting has ever had. Ours can say "nothing came
+    # back" and never which of `Nudge: attempt N`, `No such channel` or `Received message on
+    # closed websocket` the server was reporting - three causes with three different fixes, and
+    # all three invisible until --ServerApp.log_level=DEBUG (JupyterServerLauncher).
+    "$ADB" shell run-as "$APP" cat files/spaces/base/run/jupyter_server.log \
+      > "$ROOT/build/flow-logs/repeat-$run-server.log" 2>/dev/null || true
   fi
 done
 

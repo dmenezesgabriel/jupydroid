@@ -40,4 +40,15 @@ internal object KernelLog {
   const val FRAME_DROPPED = "kernel.frame.dropped"
   const val EXECUTE_REQUEST = "kernel.execute.request"
   const val EXECUTE_COMPLETE = "kernel.execute.complete"
+
+  /**
+   * The `kernel_info` handshake, which had no line of its own until the sixth sighting.
+   *
+   * Every stall before that had to be read from an *absence* - no `kernel_info_reply` among the
+   * frames - which cannot tell "the greeting was never sent" from "it was sent and ignored". Those
+   * are different defects with different fixes, and these three stages say which.
+   */
+  const val GREET_SENT = "kernel.greet.sent"
+  const val GREET_ANSWERED = "kernel.greet.answered"
+  const val GREET_TIMED_OUT = "kernel.greet.timedout"
 }
