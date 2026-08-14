@@ -15,12 +15,15 @@ the *record* — what was decided, what was measured, what is done and what is n
 
 ## ▶ Picking this up? Start here
 
-**Next step: Step 18 — the server's lifecycle.** `jupyter_server` is started on first use and
-nothing ever stops it (~143 MB RSS held while backgrounded). Step 17 landed the half beneath it:
-kernels start through `POST /api/sessions` now, so reopening a notebook reattaches to its running
-kernel, and a session is the thing a shutdown has to account for (`DELETE /api/sessions/<id>`).
-**When** to stop the server is the open question and has no answer in JupyterLab — a browser tab
-never owns the server's process — so it is decided against Android's lifecycle, not copied.
+**Next step: Step 18 — the server's lifecycle. Start with 18a**, which is a JVM test and no device:
+`BaseSpaceKernelGateway` caches its gateway for ever and never asks `launcher.isRunning()`, so the
+first thing that stops `jupyter_server` leaves every later call talking to a dead port. Nothing may
+stop the server until that is fixed. Then 18b (the server's own idle shutdown, a flag in
+`jupyterServerArgs`) and 18c (stop it when the app goes away, which needs a `lifecycle-process`
+dependency the project does not have yet).
+
+Why it matters: measured on the tablet with the app backgrounded and untouched for half an hour,
+`jupyter_server` and a kernel were still holding **~130 MB** between them.
 
 Read **["Where we are, and what to do next (2026-08-13)"](#where-we-are-and-what-to-do-next-2026-08-13)**
 before anything else — it names what to read first, in what order, and which code changes. That
@@ -2735,18 +2738,94 @@ says `44`.
 `KernelSession.id` stays our own client id - JupyterLab's `clientId`, distinct from the server's
 session id, which nothing needs until Step 18's `DELETE`.
 
-### Start here: Step 18 — the server's lifecycle
+### Start here: Step 18 — the server's lifecycle, in three sub-steps
 
-**`BaseSpaceKernelGateway` starts `jupyter_server` on first use and nothing ever stops it**
-(~143 MB RSS held while backgrounded). Sessions are what a shutdown accounts for now:
-`DELETE api/sessions/<id>` shuts the session's kernel down, and `shutdownSession`
-(`packages/services/src/session/restapi.ts`) has the status handling - 404 warn, 410 "the kernel was
-deleted but the session was not", 204 ok.
+**`BaseSpaceKernelGateway` starts `jupyter_server` on first use and nothing ever stops it.**
+Measured on `SM-X216B` half an hour after the app was last touched, with it sitting in the
+background:
 
-**The open question is *when*, and the reference cannot answer it**: a browser tab never owns the
-server's process, so there is no JupyterLab behaviour to copy. On the last session closed? On
-`ON_STOP`? On a memory-trim callback? That is decided against Android's process lifecycle, on
-measurement, and it is the reason this is a step rather than a patch.
+```
+PID   PPID   RSS      NAME
+5471  1616   164100   com.jupydroid.app
+8169  5471    77156   libpython3.so     <- jupyter_server, a child of the app
+8642  8169    54796   libpython3.so     <- the kernel, a child of the server
+```
+
+**~130 MB of Python held by an app nobody is using**, and a live interpreter with it. (Earlier text
+here said ~143 MB; the figure moves with what has been run, so treat the shape as the claim and
+re-measure rather than quoting either number.)
+
+**Two findings settle most of the design, and both were measured rather than reasoned about.**
+
+1. **`SIGTERM` to the server is already the graceful path.** `ServerLauncher.stop()` exists and does
+   `process.destroy()`, which is SIGTERM, and `serverapp.py:2450` installs
+   `signal.signal(signal.SIGTERM, self._signal_stop)`, which runs `_cleanup()` and shuts the kernels
+   down. Confirmed on the device: `kill -TERM` on the server left **no** python process behind, so
+   there is no orphaned kernel to account for and no need for `POST /api/shutdown` (which exists -
+   `services/shutdown.py` - and does the same `_cleanup()` from the inside).
+2. **The server can stop itself, and that is the reference's own mechanism.**
+   `ServerApp.shutdown_no_activity_timeout` - "shut down the server after N seconds with no kernels
+   running and no activity... can be used together with culling idle kernels
+   (`MappingKernelManager.cull_idle_timeout`)... 0 (the default) disables this" - is a config flag
+   we already build a command line for. Activity is API calls, kernel activity and kernel shutdown
+   (`serverapp.py:543-560`). No Android code is involved at all.
+
+**So the question is not "how do we kill it" but "what may kill it, and when".** The
+straightforward answer - stop on `ON_STOP` - is wrong on its own: leaving the app for ten seconds
+while a cell computes would kill the computation. Hence the ordering below, which is forced rather
+than chosen.
+
+#### 18a — the gateway must survive a server that has stopped (do this first)
+
+`BaseSpaceKernelGateway.running()` caches `started: KernelGateway?` **for ever** and never consults
+`launcher.isRunning()`. Today that is harmless because nothing ever stops the server; the moment
+anything does - idle shutdown, the OS, 18b or 18c - every later call talks to a dead port and fails
+with no way back short of killing the app. **Nothing may stop the server until this exists.**
+
+TDD: a fake `ServerLauncher` that reports `isRunning() == false` after the first start, and
+`BaseSpaceKernelGateway` asked for a second kernel must start it again rather than hand back the
+stale gateway. That is a JVM test; no device needed.
+
+#### 18b — let the server stop itself when nothing is using it
+
+Add `--ServerApp.shutdown_no_activity_timeout` and `--MappingKernelManager.cull_idle_timeout` to
+`jupyterServerArgs`, asserted in `JupyterServerLauncher`'s existing args test. Minimum code, and it
+is the mechanism `jupyter_server` ships for exactly this.
+
+The values are the decision, and they are a *measurement*, not a preference: how long a Space takes
+to come back up (the first run installs and starts, which is why flows allow 120 s) against how long
+a person plausibly leaves a notebook open before returning to it. Note the help text's own caveat -
+"not precisely timed: it may shut down up to a minute later" - so a timeout is a floor, not a
+promise.
+
+#### 18c — stop it when the app itself goes away
+
+Only after 18a. `ServerLauncher.stop()` on a process-lifecycle signal, which needs
+`androidx.lifecycle:lifecycle-process` for `ProcessLifecycleOwner` - **not currently a dependency**;
+`lifecycle-runtime-ktx`, `-compose` and the ViewModel artifacts are declared, none of which gives
+process-wide `ON_STOP`. `Application.onTrimMemory` is the other candidate and is the one the OS
+actually uses to say it wants memory back.
+
+The rule this must not break: a cell that is running keeps running. Sessions are what makes that
+answerable now - the server knows which kernels are busy, and 18b's culling already encodes
+"idle" - so 18c is a backstop for the app going away, not a second idle policy.
+
+#### What is *not* in Step 18
+
+`DELETE api/sessions/<id>` (`shutdownSession`, `packages/services/src/session/restapi.ts`, with its
+404-warn / 410 / 204 handling) belongs to closing **one** document, not to the server's lifetime.
+Worth having eventually; it is not what makes the app hold 130 MB while backgrounded, and Step 18
+should not grow to include it.
+
+### On the two things called "Step 17"
+
+The locked list under "Space ordering" defines **Step 17 = the full Space system** (space-ids,
+create/remove, per-Space venvs + kernelspecs, package-manager choice, offline wheels, switching).
+What shipped in `47b398b` under that number is **sessions and reattach**, which is not that work.
+The Space system is still entirely unbuilt, and it is a phase rather than a step. "Step 18" has only
+ever meant the server's lifecycle, in this file and in "Known residual risks", so it keeps its
+number; the numbering is left alone rather than re-cut, because half the file's cross-references
+point at it.
 
 **Also open, after that**, in rough priority order: **packaging** (debug APK is 116 MB, most of it
 the rootfs at 278 MB unpacked; asset pack versus first-run download is undecided); **LSP**, which
@@ -3170,7 +3249,8 @@ the device did. Evidence: `evidence/step8.7/loose-ends-closed.txt`,
   of IntelliJ's own schemes and every one of them has its WCAG ratio pinned by
   `EditorPaletteTest`. See "Phase U / U1".
 - **The server has no lifecycle.** `BaseSpaceKernelGateway` starts `jupyter_server` on
-  first use and nothing ever stops it (~143 MB RSS held while backgrounded).
+  first use and nothing ever stops it (~130 MB RSS across the server and one kernel, measured
+  while backgrounded - `evidence/step18-lifecycle/`).
   `disconnect()` closes the socket only. Step 18 owns this. The old `SpaceProbe`
   that made it worse - starting a server on every launch - is gone as of 10.5.
 - **`dirty` is tracked and shown nowhere.** `EditorUiState.dirty` is set by every edit and by
