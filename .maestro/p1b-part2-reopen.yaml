@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# P1b part 2: after the server stopped itself, reopening the notebook must bring a
+# kernel back - a fresh server, a fresh session, a fresh answer. Runs only after the
+# driver has shown the process gone.
+# TABLET ONLY: same reason as part 1.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Lifecycle.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Lifecycle.ipynb"
+- assertVisible: "print(6 * 7)"
+- takeScreenshot: 01-reopened
+- tapOn:
+    text: "Run cell"
+    index: 0
+# 120 s: the server is cold after stopping itself, so this pays the full cold start.
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- takeScreenshot: 02-kernel-back

@@ -1,0 +1,31 @@
+appId: com.jupydroid.app
+---
+# P1b part 1: open the notebook, run a cell against the real kernel, then close the
+# notebook. The kernel and its session stay on the server - only the websocket closes -
+# so the idle-timeout machinery (cull_idle_timeout then shutdown_no_activity_timeout)
+# is exactly what has to tear it down, which the driver asserts after waiting.
+# TABLET ONLY: the cell must run on the arm64 tablet (FakeKernelGateway on the emulator
+# cannot produce "42").
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Lifecycle.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Lifecycle.ipynb"
+- assertVisible: "print(6 * 7)"
+- takeScreenshot: 01-notebook-open
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- takeScreenshot: 02-cell-ran
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Lifecycle.ipynb"
+- takeScreenshot: 03-closed-to-explorer

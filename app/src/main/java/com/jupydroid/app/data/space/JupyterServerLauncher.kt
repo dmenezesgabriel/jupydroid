@@ -132,6 +132,16 @@ internal fun jupyterServerArgs(rootDir: File, token: String): List<String> = lis
   // (evidence/step8.5/psutil-segfault.txt).
   "--KernelManager.transport=ipc",
   "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
+  // P1b: the server may stop itself. `shutdown_no_activity_timeout` fires only while **no
+  // kernels** exist (serverapp.py `shutdown_no_activity` returns early when `len(km) != 0`),
+  // and idle kernels are culled first by `MappingKernelManager.cull_idle_timeout`. Culling
+  // skips kernels with a connected websocket (`cull_connected` defaults False), so an open
+  // notebook keeps its kernel no matter how long it idles - and once every kernel is gone the
+  // server follows within ~a minute. A closed notebook's kernel survives at most ~6 min so the
+  // reattach window stays useful; the 60 s cull poll is what makes that measurable.
+  "--ServerApp.shutdown_no_activity_timeout=300",
+  "--MappingKernelManager.cull_idle_timeout=300",
+  "--MappingKernelManager.cull_interval=60",
   "--no-browser",
   // DEBUG until the app is feature-complete, because the server's own account is the half of
   // every kernel investigation we could not see. The execution stall cost six sightings partly
