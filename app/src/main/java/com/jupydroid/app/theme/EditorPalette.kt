@@ -35,6 +35,17 @@ data class EditorPalette(
   val cellBackground: Color,
   /** The selected cell's surface. `JUPYTER.SELECTION_BACKGROUND`. */
   val cellSelectionBackground: Color,
+  /**
+   * Behind a cell that is part of a marked *run* - JupyterLab's `--jp-notebook-multiselected-color`
+   * (`packages/notebook/style/base.css:141-143`).
+   *
+   * The one colour here that is JupyterLab's rather than IntelliJ's, because multi-select is a
+   * notebook idea and the `JUPYTER.*` keys that would answer it are in the closed plugin. Only
+   * drawn when the run holds more than one cell, which is the reference's rule too: the active
+   * cell is tinted only once `jp-mod-multiSelected` is on it, and that is added at `count > 1`
+   * (`packages/notebook/src/widget.ts:2763-2765`, `:146-148`).
+   */
+  val cellMultiSelected: Color,
   /** The left stripe of the cell holding the caret. `JUPYTER.CELL_STRIPE_SELECTED_COLOR`. */
   val stripeSelected: Color,
   /** The left stripe of any other cell. `JUPYTER.CELL_STRIPE_HOVERED_COLOR`. */

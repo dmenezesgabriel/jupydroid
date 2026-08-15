@@ -1,0 +1,111 @@
+appId: com.jupydroid.app
+---
+# P2c: marking a run of cells - `notebook:select-all`, `notebook:deselect-all` and the four
+# `notebook:extend-marked-cells-*`.
+#
+# Runs no cell, so the emulator is enough and this is evidence on both devices.
+#
+# **The count is the assertion, and it is doing more work than it looks.** The bar says how many
+# cells the next action will take, and that number is only right if all three of the anchor, the
+# head and the range between them are right - so `3 selected` after one tap on the third cell is
+# what proves the selection runs *from* the cell the menu was opened on rather than being a set of
+# whatever has been tapped.
+#
+# **One step ends the mode on purpose and it is not a bug.** Extending back onto the anchor drops
+# the selection outright rather than leaving that one cell marked - *"Collapse the selection if it
+# is only the active cell"*, `packages/notebook/src/widget.ts:2245-2249`. Step 6 reaches for the
+# top while the anchor is already the first cell, so the run collapses and the notebook's own bar
+# comes back. Anyone reading this flow should expect that, which is why it is called out here and
+# asserted rather than worked around.
+#
+# Seeded by scripts/p2c-selection-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Pick A Few.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Pick A Few.ipynb"
+- extendedWaitUntil:
+    visible: "alpha = 1"
+    timeout: 30000
+- assertVisible: "delta = 4"
+- takeScreenshot: 01-four-cells
+# The first cell's menu, so the anchor is a known cell rather than whichever one a tap landed on.
+# `Cell actions` matches the topmost cell's button, which is cell one.
+- tapOn: "Cell actions"
+- tapOn: "Cell menu Select cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+# Singular, because the reference pluralises its selection labels off the same count
+# (`packages/notebook-extension/src/index.ts:4287-4292`) and "1 cells" is the first thing anyone
+# would notice about a bar like this.
+- assertVisible: "1 cell selected"
+# The notebook's own bar is gone while the run is being marked: one surface acts on the selection.
+#
+# **Named by a control, not by the title**, and that is a finding rather than a preference. The
+# first version of this flow asserted "Pick A Few" - Maestro matches a whole node, the node reads
+# `Pick A Few.ipynb`, so it never matched and the `assertNotVisible` passed no matter what was on
+# screen. The title is also the wrong handle on a tablet, where the file list beside the document
+# shows the same name. `Back to notebooks` is on the notebook's bar and nowhere else.
+- assertNotVisible: "Back to notebooks"
+- takeScreenshot: 02-selection-started-on-the-first-cell
+# Three, not one: the run covers the anchor, the cell tapped, and everything between them. A
+# selection that were merely a set of tapped cells would say two here.
+- tapOn: "Select cell 3"
+- assertVisible: "3 selected"
+- takeScreenshot: 03-three-cells-marked-and-tinted
+# The four reaches are overflow rows, not buttons on the bar: with four arrows up there the count
+# wrapped to three lines at 360dp, reading `3 / select / ed`. Measured, not guessed - the
+# screenshot is in `evidence/p2c-multi-select/x86_64/` from the run before this.
+- tapOn: "Selected cell actions"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Cell menu Extend below"
+- assertVisible: "4 selected"
+- tapOn: "Selected cell actions"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Cell menu Extend above"
+- assertVisible: "3 selected"
+# `notebook:select-all`. The head lands on the last cell, which is this app's one departure from
+# the reference and the reason every later extend is defined - see CellRangeSelection.
+- tapOn: "Select all cells"
+- assertVisible: "4 selected"
+- takeScreenshot: 04-every-cell-marked
+- tapOn: "Selected cell actions"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Cell menu Extend to bottom"
+# The row that got here is gone: taking it would drop the anchor back onto the head and collapse
+# the run to one cell, which is a menu item that undoes what opened the menu.
+- assertNotVisible: "Cell menu Select cells"
+- takeScreenshot: 05-the-overflow-reaches-both-ends
+# The anchor is already the first cell after Select all, so reaching for the top lands the head on
+# it and the run collapses - the reference's own rule, quoted at the top of this flow. The proof
+# is the notebook bar's back arrow, which the selection bar does not have.
+- tapOn: "Cell menu Extend to top"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Back to notebooks"
+- assertNotVisible: "1 cell selected"
+- takeScreenshot: 06-reaching-onto-the-anchor-ends-the-run
+# Again, to leave by the control that is actually there for it.
+- tapOn: "Cell actions"
+- tapOn: "Cell menu Select cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Select cell 2"
+- assertVisible: "2 selected"
+- takeScreenshot: 07-two-cells-marked
+- tapOn: "Deselect all cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Back to notebooks"
+- assertNotVisible: "2 selected"
+# Every cell has its own menu button back, which is what says the notebook is out of the mode
+# rather than merely showing a different bar.
+- assertVisible: "Cell actions"
+- takeScreenshot: 08-back-to-the-notebook

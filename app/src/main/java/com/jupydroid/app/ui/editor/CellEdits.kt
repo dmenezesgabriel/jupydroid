@@ -123,6 +123,12 @@ internal fun EditorUiState.applying(
   /** Only [CellAction.Split] reads it; see [CellEditorText] for why it cannot come from the state. */
   editor: CellEditorText = CellEditorText.NONE,
 ): EditorUiState {
+  // Marking a run is the one menu item that is not an edit: it changes what the *next* action will
+  // mean, and touches no cell. Answered here rather than in [transformed] so it never reaches the
+  // undo machinery at all - `recording` would have declined it anyway, on the same rule that
+  // covers `Copy`, but "not a document change" is a fact about the action rather than something
+  // to rediscover from a diff each time.
+  if (action == CellAction.StartSelecting) return withSelectionStartedAt(cellId)
   // The document is brought up to the editor's text *before* the entry is recorded, so the entry
   // holds what the user can see rather than a copy up to one debounce old. Not an entry of its
   // own - typing is the other undo, and it has never had one.
@@ -144,6 +150,8 @@ private fun EditorUiState.transformed(
   // `withCellSplit` free of id generation like every other transform in the file.
   CellAction.Split -> withCellSplit(cellId, editor.caret, newIds = List(2) { newCellId() })
   is CellAction.Move -> withCellMoved(cellId, action.move)
+  // Answered by `applying` before it gets here, because it is not a document change at all.
+  CellAction.StartSelecting -> this
   CellAction.Copy -> withCellCopied(cellId)
   CellAction.Cut -> withCellCut(cellId, replacementId = newCellId())
   CellAction.Paste -> withClipboardPasted(cellId, newIds = clipboard.map { newCellId() })

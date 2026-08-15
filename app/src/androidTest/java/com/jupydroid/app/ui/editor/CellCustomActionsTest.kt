@@ -41,7 +41,7 @@ class CellCustomActionsTest {
     val labels = customActions().map { it.label }
 
     // The menu's own list, so the two can never drift apart - they are the same function.
-    assertEquals(cellActionItems(CODE_CELL, canPaste = false).map { it.first }, labels)
+    assertEquals(cellActionItems(CODE_CELL, canPaste = false, selecting = false).map { it.first }, labels)
   }
 
   @Test
@@ -85,7 +85,7 @@ class CellCustomActionsTest {
         Column(
           modifier = androidx.compose.ui.Modifier
             .testTag(CELL)
-            .cellCustomActions(cell = cell, canPaste = false, onAction = { taken += it }),
+            .cellCustomActions(cell = cell, canPaste = false, selecting = false, onAction = { taken += it }),
         ) {}
       }
     }

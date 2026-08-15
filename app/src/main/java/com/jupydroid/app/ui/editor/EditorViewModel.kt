@@ -78,6 +78,9 @@ class EditorViewModel(
   /** The cell menu and its undo history. Driven straight from the screen; see [NotebookCellEdits]. */
   val edits = NotebookCellEdits(_uiState, save)
 
+  /** Which cells the menu means. Nothing here is written, so it takes no save; see [NotebookCellSelection]. */
+  val selection = NotebookCellSelection(_uiState)
+
   init {
     viewModelScope.launch {
       _uiState.value =

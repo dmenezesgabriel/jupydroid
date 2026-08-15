@@ -6,6 +6,14 @@
 complexity:
   CyclomaticComplexMethod:
     allowedComplexity: 15
+    # A function whose whole body is one `when` over a sealed type is a dispatch table, not a
+    # branchy function: the compiler proves it exhaustive, every arm is one call, and its number
+    # grows with the vocabulary rather than with the logic. `CellEdits.transformed` is the case -
+    # fifteen cell actions, each mapped to one transform, and splitting it would cost the guarantee
+    # the file exists for ("the one place a CellAction becomes a transform"). This is detekt's own
+    # option for the shape, chosen over `ignoreSimpleWhenEntries` because it is the narrower of the
+    # two: a function with anything else in it is still counted in full.
+    ignoreSingleWhenExpression: true
   LargeClass:
     allowedLines: 500
   LongMethod:

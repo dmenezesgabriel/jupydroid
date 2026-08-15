@@ -31,13 +31,15 @@ import com.jupydroid.app.domain.model.Cell
 internal fun Modifier.cellCustomActions(
   cell: Cell,
   canPaste: Boolean,
+  /** Passed straight through: while a run is marked, offering to start one again is a lie. */
+  selecting: Boolean,
   onAction: (CellAction) -> Unit,
 ): Modifier {
-  // Remembered against what the list is made of: rebuilding fourteen CustomAccessibilityAction
+  // Remembered against what the list is made of: rebuilding fifteen CustomAccessibilityAction
   // objects on every recomposition of every cell would allocate on each keystroke, and a changed
   // identity makes TalkBack re-read the menu it is sitting in.
-  val actions = remember(cell.kind, cell.sourceHidden, cell.outputsHidden, canPaste, onAction) {
-    cellActionItems(cell, canPaste).map { (label, action) ->
+  val actions = remember(cell.kind, cell.sourceHidden, cell.outputsHidden, canPaste, selecting, onAction) {
+    cellActionItems(cell, canPaste, selecting).map { (label, action) ->
       CustomAccessibilityAction(label) {
         onAction(action)
         true

@@ -49,6 +49,20 @@ sealed interface CellAction {
    */
   data object Split : CellAction
 
+  /**
+   * Begins marking a run of cells at this one - the touch way into multi-select.
+   *
+   * The reference has no equivalent because it needs none: there, `Shift`+click extends a
+   * selection and there is nothing to *enter*. A long press is `BasicTextField`'s text selection
+   * and is not available to us (`docs/DECISIONS.md`), so the way in is a visible control, and the
+   * menu behind the `⋮` is where the cell already keeps every one of those.
+   *
+   * A [CellAction] although it edits nothing, because that is what carries it to all three
+   * surfaces - the dropdown, the sheet and the cell's accessibility context menu - without a
+   * fourth code path. [Copy] is the same shape and has been since U5a.
+   */
+  data object StartSelecting : CellAction
+
   data object Copy : CellAction
 
   data object Cut : CellAction

@@ -182,6 +182,24 @@ class CellEditsTest {
     assertEquals(state, state.withOutputsHiddenToggled("gone"))
   }
 
+  /**
+   * Selecting is not editing, so it goes through [applying] like every other menu item and comes
+   * out the far side with no undo entry - `changesNothingFrom` compares cells, outputs and counts,
+   * and this touches none of them. `Copy` has always been the same shape.
+   *
+   * It is on [CellAction] rather than beside it because that is what puts it on all three surfaces
+   * the menu is built for - the dropdown, the sheet, and the cell's TalkBack context menu.
+   */
+  @Test
+  fun startSelecting_marksTheCellAndIsNotSomethingToUndo() {
+    val state = stateOf("a", "b").applying(CellAction.StartSelecting, "b")
+
+    assertEquals(listOf("b"), state.selectedCellIds)
+    assertTrue(state.selecting)
+    assertEquals(emptyList<NotebookRevision>(), state.undoable)
+    assertFalse(state.dirty)
+  }
+
   @Test
   fun everyEditMarksTheNotebookDirty() {
     val state = stateOf("a", "b")

@@ -117,6 +117,20 @@ class EditorPaletteTest {
     }
   }
 
+  /**
+   * A marked cell has to be visibly marked, which it is not when the tint matches either surface
+   * it is drawn over - the page it sits on or the field inside it. Both are checked because the
+   * tint shows in the band *around* the field, exactly as `.jp-Cell.jp-mod-selected` does with the
+   * editor's own background sitting on top of it.
+   */
+  @Test
+  fun aMarkedCellIsTintedApartFromBothSurfaces() {
+    palettes.forEach { (name, palette) ->
+      assertNotEquals("$name mark must differ from the page", palette.editorBackground, palette.cellMultiSelected)
+      assertNotEquals("$name mark must differ from the cell", palette.cellBackground, palette.cellMultiSelected)
+    }
+  }
+
   @Test
   fun theTwoPalettesAreNotTheSamePalette() {
     assertNotEquals(DarkEditorPalette.editorBackground, LightEditorPalette.editorBackground)

@@ -37,6 +37,10 @@ val DarkEditorPalette: EditorPalette =
     cellBackground = Color(0xFF2B2D30),
     // Gray3.
     cellSelectionBackground = Color(0xFF393B40),
+    // JupyterLab's own dark value: `rgba(33, 150, 243, 0.24)`
+    // (`packages/theme-dark-extension/style/variables.css:298`). An alpha tint rather than a
+    // solid, because it is drawn *over* the page and has to read as a wash on it.
+    cellMultiSelected = Color(0x3D2196F3),
     // Blue6, the New UI accent.
     stripeSelected = Color(0xFF3574F0),
     // Gray5. One step above the `MATCHED_BRACE_ATTRIBUTES` grey, and the step is deliberate:
@@ -76,6 +80,9 @@ val LightEditorPalette: EditorPalette =
     cellBackground = Color(0xFFF7F8FA),
     // Gray12.
     cellSelectionBackground = Color(0xFFEBECF0),
+    // JupyterLab's own light value: `--md-blue-50`, `#e3f2fd`
+    // (`packages/theme-light-extension/style/variables.css:295`).
+    cellMultiSelected = Color(0xFFE3F2FD),
     // Blue4, the New UI accent.
     stripeSelected = Color(0xFF3574F0),
     // Gray8, matching the dark scheme's step up from the matched-brace grey.

@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.theme.editorPalette
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
@@ -86,6 +87,11 @@ fun EditorScreen(
   // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
   // reports the mode change, so there is one path out of edit mode rather than two.
   BackHandler(enabled = state.mode == CellMode.EDIT) { focusManager.clearFocus() }
+  // Back out of the marking mode before it backs out of the notebook, which is what a contextual
+  // bar's close does everywhere else on Android - and the reason it is a second handler rather
+  // than a branch in the one above is that the two states are exclusive: entering edit mode drops
+  // the selection (`widget.ts:1925`), so only one of these is ever enabled.
+  BackHandler(enabled = state.selecting) { viewModel.selection.deselectAll() }
   // The file behind this notebook was deleted, so there is nothing left to show: the reference
   // closes the widget from the manager (`deleteWidgets`), and this is the same close asked for by
   // the document, which is the only party that hears every delete.
@@ -103,10 +109,25 @@ fun EditorScreen(
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = {
-      // Dropped only on a window too short to afford it while a keyboard is up - see
-      // [editorTopBarVisible]. On a phone in landscape the alternative is a notebook with zero
-      // height, which is what this was.
-      if (isEditorTopBarVisible(state.mode)) {
+      // A marked run replaces the document's bar rather than adding to it: the notebook's title,
+      // its rename and its undo are about the document, and none of them is what the screen is
+      // for while cells are being picked. Material's contextual-bar rule, and the reference's
+      // too - its selection commands are never on the notebook's toolbar.
+      val head = state.cells.firstOrNull { it.id == state.selectedCellId }
+      if (state.selecting && head != null) {
+        SelectionTopBar(
+          selectedCount = state.selectedCellIds.size,
+          headCell = head,
+          canPaste = state.clipboard.isNotEmpty(),
+          onDeselectAll = viewModel.selection::deselectAll,
+          onSelectAll = viewModel.selection::selectAll,
+          onExtend = viewModel.selection::extend,
+          onCellAction = { action -> viewModel.edits.applyTo(head.id, action) },
+        )
+      } else if (isEditorTopBarVisible(state.mode)) {
+        // Dropped only on a window too short to afford it while a keyboard is up - see
+        // [editorTopBarVisible]. On a phone in landscape the alternative is a notebook with zero
+        // height, which is what this was.
         EditorTopBar(
           title = state.title,
           canUndo = state.undoable.isNotEmpty(),
@@ -148,6 +169,7 @@ fun EditorScreen(
       completionsAt = viewModel.kernel::completionsAt,
       onCellAction = viewModel.edits::applyTo,
       onCellFocusChanged = viewModel::cellFocusChanged,
+      onToggleSelected = viewModel.selection::extendTo,
       cellInput = cellInput,
       modifier = Modifier.padding(innerPadding),
     )
@@ -163,6 +185,7 @@ private fun EditorContent(
   completionsAt: suspend (String, Int) -> CompletionResult,
   onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
+  onToggleSelected: (String) -> Unit,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
@@ -172,12 +195,16 @@ private fun EditorContent(
     // No empty branch: a loaded notebook always has at least one cell, given one by
     // toEditorUiState if the file had none. A "No cells yet" message would advertise a state
     // that cannot happen, and used to be a dead end when it did.
-    else ->
+    else -> {
+      // Computed once for the whole list rather than per cell: `selectedCellIds` walks the cells
+      // to find both ends, and asking it inside the item lambda would make drawing the notebook
+      // quadratic in its length.
+      val marked = state.selectedCellIds.toSet()
       LazyColumn(modifier = modifier.fillMaxSize()) {
         // contentType as well as key: a code cell and a markdown cell compose to very different
         // trees, and telling the list so lets it reuse each kind against its own pool instead of
         // rebuilding whenever the two alternate.
-        items(state.cells, key = { it.id }, contentType = { it.kind }) { cell ->
+        itemsIndexed(state.cells, key = { _, cell -> cell.id }, contentType = { _, cell -> cell.kind }) { at, cell ->
           EditorCell(
             cell = cell,
             outputs = state.outputs[cell.id].orEmpty(),
@@ -186,6 +213,14 @@ private fun EditorContent(
             execution = state.executionOf(cell.id),
             canPaste = state.clipboard.isNotEmpty(),
             selected = state.selectedCellId == cell.id,
+            // Null unless a run is being marked, which is what keeps the tick and the `\u22ee` from
+            // ever being on screen together. The position is 1-based and is the screen reader's,
+            // not the eye's - see [CellMark].
+            mark = if (state.selecting) CellMark(cell.id in marked, position = at + 1) else null,
+            // The reference's rule, read literally: the tint is on the cell node and the active
+            // cell only joins it once the run holds more than one - `jp-mod-multiSelected` is
+            // added at `count > 1` (`packages/notebook/src/widget.ts:2763-2765`).
+            tinted = marked.size > 1 && cell.id in marked,
             mode = state.mode,
             onRun = { onRunCell(cell) },
             onStop = onStopCell,
@@ -193,10 +228,12 @@ private fun EditorContent(
             completionsAt = completionsAt,
             onCellAction = { action, editor -> onCellAction(cell.id, action, editor) },
             onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
+            onToggleSelected = { onToggleSelected(cell.id) },
             cellInput = cellInput,
           )
         }
       }
+    }
   }
 }
 
@@ -209,6 +246,8 @@ private fun EditorCell(
   execution: CellExecution?,
   canPaste: Boolean,
   selected: Boolean,
+  mark: CellMark?,
+  tinted: Boolean,
   mode: CellMode,
   onRun: () -> Unit,
   onStop: () -> Unit,
@@ -216,6 +255,7 @@ private fun EditorCell(
   completionsAt: suspend (String, Int) -> CompletionResult,
   onCellAction: (CellAction, CellEditorText) -> Unit,
   onFocusChanged: (Boolean) -> Unit,
+  onToggleSelected: () -> Unit,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
@@ -244,13 +284,21 @@ private fun EditorCell(
   // The whole cell carries its actions for a screen reader, not only the `⋮` that opens them.
   CellFrame(
     stripe = stripe,
-    modifier = modifier.cellCustomActions(cell = cell, canPaste = canPaste, onAction = act),
+    tint = if (tinted) editorPalette.cellMultiSelected else Color.Unspecified,
+    modifier = modifier.cellCustomActions(
+      cell = cell,
+      canPaste = canPaste,
+      selecting = mark != null,
+      onAction = act,
+    ),
   ) {
     CellHeader(
       cell = cell,
       executionCount = executionCount,
       execution = execution,
       canPaste = canPaste,
+      mark = mark,
+      onToggleSelected = onToggleSelected,
       onRun = if (markdown) ({ rendered.value = true }) else onRun,
       onStop = onStop,
       onCellAction = act,

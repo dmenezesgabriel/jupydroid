@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.dp
 
 /**
@@ -23,12 +25,22 @@ import androidx.compose.ui.unit.dp
  * [STRIPE_GAP] (`codeCellLeftLinePadding = 5`).
  *
  * ```
- * CellFrame(stripe = cellStripe(selected, mode, failed, palette)) { CellHeader(...); … }
+ * CellFrame(stripe = cellStripe(selected, mode, failed, palette), tint = Color.Unspecified) { … }
  * ```
  */
 @Composable
 internal fun CellFrame(
   stripe: CellStripe,
+  /**
+   * The wash over a cell that is one of a marked run, or `Color.Unspecified` for every other cell.
+   *
+   * Behind the whole frame rather than behind the source, which is where the reference puts it -
+   * `.jp-Cell.jp-mod-selected { background: … }` tints the cell node while the editor inside keeps
+   * its own background (`packages/notebook/style/base.css:141-143`). So the mark reads as a band
+   * around the field, the header and the outputs, which is the part of a cell that is always on
+   * screen whatever it holds.
+   */
+  tint: Color,
   modifier: Modifier = Modifier,
   content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -36,6 +48,7 @@ internal fun CellFrame(
     modifier = modifier
       .fillMaxWidth()
       .drawBehind {
+        if (tint.isSpecified) drawRect(color = tint)
         // Inset, not flush with the window: the stripe is a mark in a gutter, and a rect at x=0
         // would sit under a rounded corner or a gesture inset on the devices that have them.
         // Anchored on its left edge, so narrowing it in edit mode widens the gap instead of

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +42,9 @@ internal fun CellHeader(
   executionCount: Int?,
   execution: CellExecution?,
   canPaste: Boolean,
+  /** The tick this cell shows while a run is being marked, or null when none is - see [CellMark]. */
+  mark: CellMark?,
+  onToggleSelected: () -> Unit,
   onRun: () -> Unit,
   onStop: () -> Unit,
   onCellAction: (CellAction) -> Unit,
@@ -59,6 +63,17 @@ internal fun CellHeader(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier.fillMaxWidth().semantics { stateDescription = status.spokenState() },
   ) {
+    // Leading, where a Material selection list puts its tick, and before the prompt so the eye
+    // runs down one column of ticks rather than hunting them among four different labels.
+    if (mark != null) {
+      Checkbox(
+        checked = mark.checked,
+        onCheckedChange = { onToggleSelected() },
+        // On the Checkbox itself, so a screen reader reads which cell and whether it is in the
+        // run off one node - the same rule the undo buttons cost a flow to learn.
+        modifier = Modifier.semantics { contentDescription = mark.label },
+      )
+    }
     Text(
       text = executionLabel(cell.kind, status, executionCount),
       style = MaterialTheme.typography.labelSmall,
@@ -83,6 +98,9 @@ internal fun CellHeader(
       )
     }
     Spacer(modifier = Modifier.weight(1f))
+    // Gone while a run is marked: [SelectionTopBar] is what acts on the selection, and a second
+    // menu on one of its members would be two answers to "what does this apply to".
+    if (mark != null) return@Row
     // Visible, not just long-pressable. A thin strip that happens to react to a long press is
     // not something anyone finds; JupyterLab puts real buttons on the cell for the same
     // actions, and only hides them below 760px - which is every screen this app runs on.
