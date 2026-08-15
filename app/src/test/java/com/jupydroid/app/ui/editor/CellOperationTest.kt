@@ -103,6 +103,20 @@ class CellOperationTest {
     assertFalse(state.value.selecting)
   }
 
+  /**
+   * **A stale id is a no-op, which the operand rule nearly broke.** `CellEdits` has promised since
+   * 4b that a menu outliving the cell it was opened on does nothing, and the first version of
+   * [EditorUiState.applyingFrom] collapsed the run *before* discovering the cell was gone - leaving
+   * the old head selected and deleting **that** cell instead. Found by re-reading the diff rather
+   * than by a failure, which is why the case is written down here.
+   */
+  @Test
+  fun aMenuOnACellThatHasGoneDoesNothingAtAll() {
+    val run = markedRun("a", "b")
+
+    assertEquals(run, run.applyingFrom("gone", CellAction.Delete))
+  }
+
   @Test
   fun aMenuOnACellInsideTheRunActsOnTheWholeRun() = runTest {
     val state = MutableStateFlow(markedRun("a", "b"))

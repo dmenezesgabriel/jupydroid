@@ -35,12 +35,18 @@ import java.util.UUID
  * anywhere in a cell sets `activeCellIndex` and a press outside the selection deselects
  * (`packages/notebook/src/widget.ts:3160-3167`). Inside the run it changes nothing, so the whole
  * run is what the menu means.
+ *
+ * **A cell that has gone is a no-op**, which is [CellEdits]'s promise since 4b and which the
+ * operand rule nearly broke: collapsing the run before finding out the cell was missing left the
+ * old head selected, so the action landed on *that* cell instead. The guard is here rather than
+ * inside [withCellSelected], which cannot tell "this cell is gone" from "nothing was asked for".
  */
 internal fun EditorUiState.applyingFrom(
   cellId: String,
   action: CellAction,
   editor: CellEditorText = CellEditorText.NONE,
 ): EditorUiState {
+  if (cells.none { it.id == cellId }) return this
   val on = if (cellId in selectedCellIds) this else withSelectionCollapsed().withCellSelected(cellId)
   return on.applying(action, editor)
 }
