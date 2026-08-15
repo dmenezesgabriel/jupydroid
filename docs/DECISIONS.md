@@ -170,6 +170,38 @@ Three consequences, each deliberate:
   otherwise discard the variables of a kernel someone had merely opened a notebook onto. A
   completion has an answer for "the kernel cannot say"; a cell does not.
 
+### The app stops its own server, so the app repairs what that breaks
+
+Left alone, the app stops `jupyter_server` (P1c). Three things follow, and each is a constraint:
+
+- **A run is in flight from the moment it is asked for, not from its first frame.** Opening the
+  kernel *is* part of a run: on the tablet the Space install, the server start and the kernel start
+  are ~14 s before a cell's `execute_request` goes anywhere. A count that starts later says
+  "nothing is running" through the slowest part of a run, and the backstop killed a 30 s cell 16 s
+  into it on exactly that reading (`evidence/p1c-app-death-backstop/`). `ActiveCellRuns` is the one
+  place that counts, and `NotebookKernel` moves it around the whole of `execute`.
+- **The idle grace is *continuous* idleness.** Run All finishes one cell before starting the next,
+  so the count passes through zero between every pair; a grace that sampled once would fire there.
+- **A session that outlives its server is re-opened silently, never reported.** The app stopped
+  that server, so a dead kernel is not news to the user. `BaseSpaceKernelGateway` knows which
+  server issued which session and refuses a stale one (`StaleKernelSessionException`);
+  `NotebookKernelSession` opens a fresh one and runs the cell — **exactly one retry**, because a
+  second refusal is a real failure. Measured cost: 1-3 s of server + kernel start, ~7 s
+  tap-to-answer, against ~130 MB reclaimed (`evidence/step18-lifecycle/`).
+
+  **This departs from the reference.** JupyterLab reports a dead kernel — `SessionContext`
+  displays the kernel's error on `status === 'dead'`
+  (`packages/apputils/src/sessioncontext.tsx:1167`), and its `KernelConnection` asks the REST API
+  whether the kernel is really gone before saying so (`packages/services/src/kernel/default.ts`,
+  `getKernelModel` on socket close). Nothing there stops a server on the client's behalf, so
+  there a death is always news. We do not probe either: the gateway *knows* it replaced the
+  server, which is a fact rather than an inference from a 404.
+
+**The server dies with the app, so there is nothing to reap.** `am force-stop` with a server
+running leaves no `jupyter_server` process (`evidence/p1c-app-death-backstop/orphan-after-force-stop.txt`)
+— the server is a child of the app process. P1c is therefore about the app being *left*, not about
+it being killed, whatever `docs/PLAN.md` once called it.
+
 ### The kernel's working directory is the session's path
 
 Without it a cell's `open('data.csv','w')` raises `OSError: [Errno 30]` on a read-only filesystem.

@@ -33,15 +33,15 @@ filesystem the kernel, the server and the app all share.
 
 | Area | State |
 |---|---|
-| Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import |
+| Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import; the server stops when it is idle or the app is left, and comes back on the next run |
 | Notebook | cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 101 instrumented, 710 unit, 56 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 101 instrumented, 737 unit, 62 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
-undo, settings, raw cells, headings, multi-select, trust, export — and the server has no lifecycle.
+undo, settings, raw cells, headings, multi-select, trust, export.
 
 ---
 
@@ -193,30 +193,18 @@ recorded below so picking it up costs nothing.
 
 # P1 — lifecycle, and the infrastructure debt around it
 
-`BaseSpaceKernelGateway` starts `jupyter_server` on first use and nothing ever stops it. Measured
-on the tablet, backgrounded and untouched for half an hour: **~130 MB** across the server and one
-kernel, and a live interpreter with it (`evidence/step18-lifecycle/`). Treat the shape as the
-claim and re-measure rather than quoting the number.
+The server used to run until the app was killed - **~130 MB** across a server and one kernel, held
+by an app nobody was using (`evidence/step18-lifecycle/`). **P1a, P1b and P1c have shipped**, and
+between them that is closed: the gateway survives a stopped server, the server culls an idle kernel
+and stops itself after ~12 minutes of nothing, and an app that is left stops it after 30 s of
+continuous idleness - never under a running cell, and the next run brings a fresh one back in
+about 7 s. What each cost and what it forbids is `docs/DECISIONS.md` and
+`evidence/p1c-app-death-backstop/`.
 
-Two things are already true and shape the design:
-
-- **`SIGTERM` is already the graceful path.** `ServerLauncher.stop()` does `process.destroy()`;
-  `serverapp.py:2450` installs `signal.signal(signal.SIGTERM, self._signal_stop)`, which runs
-  `_cleanup()` and shuts the kernels down. Confirmed on device: `kill -TERM` left no python
-  process behind, so there is no orphan to account for and no need for `POST /api/shutdown`.
-- **The server can stop itself, and that is the reference's own mechanism.**
-  `ServerApp.shutdown_no_activity_timeout` (`serverapp.py:1969`, applied at `:2613` and `:2622`)
-  and `MappingKernelManager.cull_idle_timeout`
-  (`jupyter_server/services/kernels/kernelmanager.py:110`). No Android code is involved.
-
-So the question is not *how* to kill it but *what may*, and when. Stopping on `ON_STOP` alone is
-wrong: leaving the app for ten seconds while a cell computes would kill the computation.
+What is left of P1 is the per-document half of the same question, and two pieces of debt beside it.
 
 | # | Sub-step | Gate |
 |---|---|---|
-| **P1a** | **The gateway must survive a stopped server. First, and nothing may stop it before this.** `BaseSpaceKernelGateway.running()` caches `started: KernelGateway?` for ever and never consults `launcher.isRunning()`. The moment anything stops the server, every later call talks to a dead port with no way back short of killing the app. | JVM only: a fake `ServerLauncher` reporting `isRunning() == false` after the first start; a second `connect` must start a new server rather than hand back the stale gateway. |
-| **P1b** | **Let the server stop itself.** `--ServerApp.shutdown_no_activity_timeout` and `--MappingKernelManager.cull_idle_timeout` in `jupyterServerArgs`. The values are a measurement, not a preference: Space cold-start (flows allow 120 s) against how long a person leaves a notebook open. The help text's own caveat — "not precisely timed: it may shut down up to a minute later" — makes a timeout a floor, not a promise. | The existing args test; then a tablet run that idles past the timeout and shows the process gone, and a second that reopens and gets a kernel back. |
-| **P1c** | **Stop it when the app goes away.** `ServerLauncher.stop()` on a process-lifecycle signal. Needs `androidx.lifecycle:lifecycle-process` for `ProcessLifecycleOwner` — **not currently a dependency**: `app/build.gradle.kts:86,90,91,132` declare `lifecycle-runtime-ktx`, `-runtime-compose`, `-viewmodel-compose` and `-viewmodel-navigation3`, none of which gives process-wide `ON_STOP`. `Application.onTrimMemory` is the other candidate and is the one the OS actually uses to say it wants memory back. The rule this must not break: **a running cell keeps running.** P1b's culling is the idle policy; P1c is only the app-death backstop. | Tablet: background the app mid-run and show the cell completes; background it idle and show the server stops. |
 | **P1d** | **`DELETE /api/sessions/<id>` when a document closes.** `shutdownSession` in `packages/services/src/session/restapi.ts` (404 → `console.warn`, 410, else expect 204 — lines 65-75). Belongs to closing **one** document, not to the server's lifetime, which is why it is not folded into P1a. `KernelSession` carries our client id today; this needs the server's session id too. | Contract test on the lifecycle port; Maestro: close a notebook, assert the kernel is gone from `GET /api/sessions`. |
 | **P1e** | **Replace `TwoPaneSceneStrategy` with the library.** U7 hand-wrote it (`TwoPaneSceneStrategy.kt` + `TwoPaneScene.kt`, 165 lines) and said in as many words: *"If that artifact goes stable, this is the thing to delete."* **It has.** `androidx.compose.material3.adaptive:adaptive-navigation3` **1.3.0 is the published release version** (maven-metadata.xml), dated 2026-08-12, and it ships `ListDetailSceneStrategy` / `rememberListDetailSceneStrategy` and `SupportingPaneSceneStrategy` / `rememberSupportingPaneSceneStrategy` — scene strategies, which is exactly the shape our hand-written one is. **The cost has not gone away and must be measured, not assumed:** its POM still pins `adaptive-navigation` **strictly** at `[1.3.0]`, taking the adaptive family off the Compose BOM, and it wants `androidx.navigation3:navigation3-ui:1.0.0` where the project is on `nav3Core = "1.0.1"`. And the thing that actually mattered in U7 was that **both panes stay separate `NavEntry`s** — verify that of `ListDetailSceneStrategy` before deleting anything. Scheduled here rather than later because P2h wants a third pane. | The U7 evidence re-run unchanged: `u7-two-panes` on the tablet **and** `u7-one-pane` at 320dp, plus `notebook-switch` (which is what a shared `ViewModelStore` would break). If the library keeps entries separate, delete both files; if not, keep them and record why here. |
 | **P1f** | **Chore: 29 drivers call bare `adb` rather than `$ADB`.** `scripts/maestro-run.sh` already computes `$ADB` with a fallback and half the drivers use it. It surfaces as a flow that passes every step and then fails its own disk check with `adb: command not found`, which reads like a defect and is not. | `scripts/run-all-flows.sh` green from a shell **without** `platform-tools` on PATH. |

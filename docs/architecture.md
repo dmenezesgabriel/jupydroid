@@ -188,6 +188,13 @@ recording a recent, and flushing a notebook's last edit while its screen is bein
 then `viewModelScope` is already cancelled. An external scope belongs to something longer-lived
 than a screen, which is what a composition root is.
 
+**State that belongs to the app rather than to a screen or a port** also lives on the container,
+and there is exactly one shape of it. `ActiveCellRuns` (`domain/model/`) counts the runs in flight
+across every open notebook: `NotebookKernel` moves it, `IdleServerStopper` (`data/space/`,
+driven by `MainActivity` from `ProcessLifecycleOwner`) reads it before stopping the server. It is
+in `domain` because both `ui` and `di` touch it and `ui ↛ data` — a counter of the app's own runs
+is one of the app's own nouns, even though nothing serialises it.
+
 ## 5. Dependency rules — what is enforced, and what is only true
 
 `ArchitectureGuardTest` enforces the domain layer's purity, and only that. The other two rules
