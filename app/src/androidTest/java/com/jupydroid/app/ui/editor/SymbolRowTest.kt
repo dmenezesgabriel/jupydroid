@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -92,7 +93,7 @@ class SymbolRowTest {
         val input = remember { FocusedCellInput() }
         Column {
           CodeCellField(
-            source = "x",
+            state = rememberTextFieldState("x"),
             onSourceEdited = { edits += it },
             modifier = androidx.compose.ui.Modifier.testTag(FIELD),
             input = input,

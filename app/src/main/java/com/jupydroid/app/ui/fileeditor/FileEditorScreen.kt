@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.PythonTypingRules
@@ -79,7 +80,7 @@ fun FileEditorScreen(
         // height lays out every line, which is what keeps one gutter numbering the whole document
         // instead of a window onto it.
         CodeCellField(
-          source = state.text,
+          state = rememberTextFieldState(state.text),
           onSourceEdited = viewModel::edit,
           highlighter = state.syntax,
           typing = remember(state.name) { typingRulesFor(state.name) },

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -219,6 +220,11 @@ private fun EditorCell(
   // Markdown never reaches a kernel: for those cells Run means "render", which is what running
   // one means in Jupyter too.
   val rendered = rememberMarkdownRendered(cell.id)
+  // One text state per cell, owned here rather than inside the field: a cell has one source, and
+  // the caret in it is read by the cell's actions as well as by the field. Created whether or not
+  // a field is on screen, so collapsing a cell and expanding it keeps the caret and the typing
+  // history instead of re-seeding from the model.
+  val field = rememberTextFieldState(cell.source)
   val markdown = cell.kind == CellKind.MARKDOWN
   val stripe = cellStripe(
     selected = selected,
@@ -256,7 +262,7 @@ private fun EditorCell(
         )
       } else if (cell.kind == CellKind.CODE) {
         CodeCellField(
-          source = cell.source,
+          state = field,
           onSourceEdited = onSourceEdited,
           completionsAt = completionsAt,
           input = cellInput,

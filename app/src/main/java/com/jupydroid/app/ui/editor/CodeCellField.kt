@@ -8,7 +8,6 @@ import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -49,13 +48,20 @@ import kotlinx.coroutines.flow.drop
  * indent/bracket edits through [InputTransformation], and the [lineNumbers] gutter, which reads
  * the field's layout rather than the field reading it.
  *
+ * **[state] is the caller's**, which is Compose's own hoisting rule: the text and the caret have
+ * a second reader now - the cell's own actions, which need both to split a cell where the caret
+ * is - so the state belongs at the lowest ancestor that holds them. Held here it was unreachable
+ * from outside, and a field could neither be asked where its caret was nor told about a source it
+ * had not typed.
+ *
  * ```
- * CodeCellField(source = cell.source, onSourceEdited = { … })
+ * val state = rememberTextFieldState(cell.source)
+ * CodeCellField(state = state, onSourceEdited = { … })
  * ```
  */
 @Composable
 fun CodeCellField(
-  source: String,
+  state: TextFieldState,
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
   completionsAt: suspend (code: String, cursorOffset: Int) -> CompletionResult = NO_COMPLETIONS,
@@ -64,7 +70,6 @@ fun CodeCellField(
   /** Null where no symbol row is on screen, which is every test that drives a field alone. */
   input: FocusedCellInput? = null,
 ) {
-  val state = rememberTextFieldState(initialText = source)
   val styles = syntaxStyles()
   val matched = bracketMatchStyle()
   val interactions = remember { MutableInteractionSource() }
