@@ -22,45 +22,78 @@ fun EditorUiState.withCellInserted(afterCellId: String, kind: CellKind, newId: S
   return copy(cells = cells.toMutableList().apply { add(at + 1, Cell(newId, kind, "")) }, dirty = true)
 }
 
-fun EditorUiState.withCellMoved(cellId: String, move: CellMove): EditorUiState {
-  val from = cells.indexOfFirst { it.id == cellId }
-  val to = if (move == CellMove.UP) from - 1 else from + 1
-  if (from < 0 || to !in cells.indices) return this
-  return copy(
-    cells = cells.toMutableList().apply { add(to, removeAt(from)) },
-    dirty = true,
-  )
+/**
+ * Shifts a whole run of cells past one neighbour - `move` (`actions.tsx:586-610`).
+ *
+ * **A block, not each cell in turn.** The reference finds the first and last selected index and
+ * moves the span between them; walking the cells one at a time would step them over each other
+ * and come out reversed. One cell is the same computation with a span of one.
+ */
+fun EditorUiState.withCellsMoved(cellIds: List<String>, move: CellMove): EditorUiState {
+  val span = spanOf(cellIds)?.takeIf { steppedOver(it, move) in cells.indices } ?: return this
+  val moving = cells.subList(span.first, span.last + 1).toList()
+  val rest = cells.toMutableList().apply { subList(span.first, span.last + 1).clear() }
+  // The run lands where its first cell would be after the shift: one earlier going up, and one
+  // later going down, which is `toIndex = lastIndex` read against a list the run has left.
+  val at = if (move == CellMove.UP) span.first - 1 else span.first + 1
+  return copy(cells = rest.apply { addAll(at, moving) }, dirty = true)
+}
+
+/** The one cell the run steps over, which is off the end when the run is already against it. */
+private fun steppedOver(span: IntRange, move: CellMove): Int =
+  if (move == CellMove.UP) span.first - 1 else span.last + 1
+
+/**
+ * The contiguous span [cellIds] covers, or null when none of them is in the notebook.
+ *
+ * Indices rather than ids because every batch transform needs *where* the run is, and a selection
+ * is contiguous by construction ([CellRangeSelection]) - so first and last describe it completely,
+ * which is how the reference computes it too (`findIndex` of the first selected, then of the first
+ * unselected after it).
+ */
+internal fun EditorUiState.spanOf(cellIds: List<String>): IntRange? {
+  val wanted = cellIds.toSet()
+  val at = cells.indices.filter { cells[it].id in wanted }
+  return if (at.isEmpty()) null else at.first()..at.last()
 }
 
 /**
- * The copy keeps the original's outputs and execution count. That is JupyterLab's behaviour,
- * not an oversight: it duplicates the cell's nbformat JSON and clears only the id.
+ * Copies of a whole run, dropped in **after its last cell**.
+ *
+ * `notebook:duplicate-below` passes `'belowSelected'` rather than the `'below'` that `duplicate`
+ * itself defaults to (`packages/notebook-extension/src/index.ts:3675`), and the difference is what
+ * keeps the copies out of the middle of the run when the head is at its top.
+ *
+ * Each copy keeps the original's outputs and execution count. That is JupyterLab's behaviour, not
+ * an oversight: it duplicates the cell's nbformat JSON and clears only the id.
  */
-fun EditorUiState.withCellDuplicated(cellId: String, newId: String): EditorUiState {
-  val at = cells.indexOfFirst { it.id == cellId }
-  if (at < 0) return this
+fun EditorUiState.withCellsDuplicated(cellIds: List<String>, newIds: List<String>): EditorUiState {
+  val span = spanOf(cellIds) ?: return this
+  val copies = span.map { cells[it] }.mapIndexed { at, cell -> cell to newIds.getOrElse(at) { cell.id } }
   return copy(
-    cells = cells.toMutableList().apply { add(at + 1, cells[at].copy(id = newId)) },
-    outputs = outputs.carryOver(cellId, newId),
-    executionCounts = executionCounts.carryOver(cellId, newId),
+    cells = cells.toMutableList().apply { addAll(span.last + 1, copies.map { (cell, id) -> cell.copy(id = id) }) },
+    outputs = copies.fold(outputs) { carried, (cell, id) -> carried.carryOver(cell.id, id) },
+    executionCounts = copies.fold(executionCounts) { carried, (cell, id) -> carried.carryOver(cell.id, id) },
     dirty = true,
   )
 }
 
 /**
  * Deleting the last cell leaves an empty code one, so a notebook is never left with nothing to
- * type into - JupyterLab's `deleteCells` does the same.
+ * type into - JupyterLab's `deleteCells` does the same, and inserts the replacement *inside* the
+ * same transaction so that emptying a notebook stays one undo.
  */
-fun EditorUiState.withCellDeleted(cellId: String, replacementId: String): EditorUiState {
-  if (cells.none { it.id == cellId }) return this
-  val remaining = cells.filterNot { it.id == cellId }
+fun EditorUiState.withCellsDeleted(cellIds: List<String>, replacementId: String): EditorUiState {
+  val going = cellIds.toSet()
+  if (cells.none { it.id in going }) return this
+  val remaining = cells.filterNot { it.id in going }
   return copy(
     cells = remaining.ifEmpty { listOf(Cell(replacementId, CellKind.CODE, "")) },
-    outputs = outputs - cellId,
-    executionCounts = executionCounts - cellId,
+    outputs = outputs - going,
+    executionCounts = executionCounts - going,
     // The record goes with the cell. Left behind, a deleted cell that happened to be running
     // would keep `runningCellId` pointing at it and Run All disabled for ever.
-    executions = executions - cellId,
+    executions = executions - going,
     dirty = true,
   )
 }
@@ -69,20 +102,26 @@ fun EditorUiState.withCellDeleted(cellId: String, replacementId: String): Editor
  * Clears the execution count along with the outputs, which is what JupyterLab's `clearExecution`
  * does: `[7]` beside a cell with nothing under it claims a result that is no longer there.
  */
-fun EditorUiState.withOutputsCleared(cellId: String): EditorUiState {
-  if (cells.none { it.id == cellId }) return this
-  return copy(outputs = outputs - cellId, executionCounts = executionCounts - cellId, dirty = true)
+fun EditorUiState.withOutputsCleared(cellIds: List<String>): EditorUiState {
+  val clearing = cellIds.toSet()
+  if (cells.none { it.id in clearing }) return this
+  return copy(outputs = outputs - clearing, executionCounts = executionCounts - clearing, dirty = true)
 }
 
 /**
- * A toggle rather than a hide and a show, which is what a menu on one cell wants. JupyterLab
- * has both pairs *and* a `toggleOutput` for the same reason
- * (`packages/notebook/src/actions.tsx:1998`).
+ * Folds or unfolds the source of a whole run, to **one** state rather than each cell's opposite.
+ *
+ * JupyterLab has `hideCode` and `showCode` as separate commands over the selection
+ * (`packages/notebook/src/actions.tsx:1877-1910`), so a run always ends up uniform. Toggling each
+ * cell against its own state would invert a mixed run and leave it exactly as mixed - and the menu
+ * row that asked for it says one thing, so it has to do one thing. Which state is the caller's,
+ * read off the head cell, which is also what the row's label was written from.
  */
-fun EditorUiState.withSourceHiddenToggled(cellId: String): EditorUiState {
-  if (cells.none { it.id == cellId }) return this
+fun EditorUiState.withSourceHiddenSet(cellIds: List<String>, hidden: Boolean): EditorUiState {
+  val folding = cellIds.toSet()
+  if (cells.none { it.id in folding }) return this
   return copy(
-    cells = cells.map { if (it.id == cellId) it.copy(sourceHidden = !it.sourceHidden) else it },
+    cells = cells.map { if (it.id in folding) it.copy(sourceHidden = hidden) else it },
     dirty = true,
   )
 }
@@ -92,75 +131,14 @@ fun EditorUiState.withSourceHiddenToggled(cellId: String): EditorUiState {
  * [withOutputsCleared], and why both are in the menu. Independent of the source's collapse:
  * JupyterLab has a separate command for each and stores them under separate keys.
  */
-fun EditorUiState.withOutputsHiddenToggled(cellId: String): EditorUiState {
-  if (cells.none { it.id == cellId }) return this
+fun EditorUiState.withOutputsHiddenSet(cellIds: List<String>, hidden: Boolean): EditorUiState {
+  val folding = cellIds.toSet()
+  if (cells.none { it.id in folding }) return this
   return copy(
-    cells = cells.map { if (it.id == cellId) it.copy(outputsHidden = !it.outputsHidden) else it },
+    cells = cells.map { if (it.id in folding) it.copy(outputsHidden = hidden) else it },
     dirty = true,
   )
 }
 
 private fun <T> Map<String, T>.carryOver(from: String, to: String): Map<String, T> =
   get(from)?.let { this + (to to it) } ?: this
-
-/**
- * The one place a [CellAction] becomes a transform, so a fourteenth action cannot reach the menu
- * and stop there.
- *
- * Beside the transforms rather than inside the ViewModel: it is pure - state in, state out - and
- * the ViewModel was carrying it only because that is where the caller happened to live. detekt
- * asked for the split and detekt was right, as it was about `NotebookKernel`.
- *
- * **It is also the undoable unit**, which is why the recording is here and not at each call site.
- * JupyterLab's is one `sharedModel.transact { }` block - `deleteCells` inserts its replacement
- * cell *inside* the transaction "to make the deletion of a notebook's last cell undoable"
- * (`actions.tsx:3391`) - and this function is that boundary under another name. A fourteenth
- * action becomes undoable by existing; see [recording] for why no list of which ones count.
- */
-internal fun EditorUiState.applying(
-  action: CellAction,
-  cellId: String,
-  /** Only [CellAction.Split] reads it; see [CellEditorText] for why it cannot come from the state. */
-  editor: CellEditorText = CellEditorText.NONE,
-): EditorUiState {
-  // Marking a run is the one menu item that is not an edit: it changes what the *next* action will
-  // mean, and touches no cell. Answered here rather than in [transformed] so it never reaches the
-  // undo machinery at all - `recording` would have declined it anyway, on the same rule that
-  // covers `Copy`, but "not a document change" is a fact about the action rather than something
-  // to rediscover from a diff each time.
-  if (action == CellAction.StartSelecting) return withSelectionStartedAt(cellId)
-  // The document is brought up to the editor's text *before* the entry is recorded, so the entry
-  // holds what the user can see rather than a copy up to one debounce old. Not an entry of its
-  // own - typing is the other undo, and it has never had one.
-  val current = if (action == CellAction.Split) withSource(cellId, editor.source) else this
-  return current.transformed(action, cellId, editor).recording(before = current)
-}
-
-private fun EditorUiState.transformed(
-  action: CellAction,
-  cellId: String,
-  editor: CellEditorText,
-): EditorUiState = when (action) {
-  is CellAction.Insert -> withCellInserted(cellId, action.kind, newId = newCellId())
-  is CellAction.InsertAbove -> withCellInsertedAbove(cellId, action.kind, newId = newCellId())
-  is CellAction.ChangeKind -> withCellKindChanged(cellId, action.kind)
-  is CellAction.Merge -> withCellMerged(cellId, action.into, newId = newCellId())
-  // Two ids because a selection cuts into three pieces and a caret into two; the spare is unused,
-  // exactly as a cut code cell's is in `withClipboardPasted`. Minting them here keeps
-  // `withCellSplit` free of id generation like every other transform in the file.
-  CellAction.Split -> withCellSplit(cellId, editor.caret, newIds = List(2) { newCellId() })
-  is CellAction.Move -> withCellMoved(cellId, action.move)
-  // Answered by `applying` before it gets here, because it is not a document change at all.
-  CellAction.StartSelecting -> this
-  CellAction.Copy -> withCellCopied(cellId)
-  CellAction.Cut -> withCellCut(cellId, replacementId = newCellId())
-  CellAction.Paste -> withClipboardPasted(cellId, newIds = clipboard.map { newCellId() })
-  CellAction.Duplicate -> withCellDuplicated(cellId, newId = newCellId())
-  CellAction.Delete -> withCellDeleted(cellId, replacementId = newCellId())
-  CellAction.ClearOutputs -> withOutputsCleared(cellId)
-  CellAction.ToggleSourceHidden -> withSourceHiddenToggled(cellId)
-  CellAction.ToggleOutputsHidden -> withOutputsHiddenToggled(cellId)
-}
-
-/** Ids are minted here rather than inside the transforms, which keeps those testable. */
-internal fun newCellId(): String = UUID.randomUUID().toString()

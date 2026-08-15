@@ -56,7 +56,7 @@ class CellRestructureTest {
    */
   @Test
   fun changingTypeKeepsTheCellsIdAndSource() {
-    val changed = notebook.withCellKindChanged("c1", CellKind.MARKDOWN)
+    val changed = notebook.withCellsKindChanged(listOf("c1"), CellKind.MARKDOWN)
 
     assertEquals(listOf("c1", "c2", "m1"), changed.cells.map { it.id })
     assertEquals(CellKind.MARKDOWN, changed.cells.first().kind)
@@ -74,7 +74,7 @@ class CellRestructureTest {
       executionCounts = mapOf("c1" to 4),
     )
 
-    val changed = ran.withCellKindChanged("c1", CellKind.MARKDOWN)
+    val changed = ran.withCellsKindChanged(listOf("c1"), CellKind.MARKDOWN)
 
     assertNull(changed.outputs["c1"])
     assertNull(changed.executionCounts["c1"])
@@ -83,7 +83,7 @@ class CellRestructureTest {
   /** `if (child.model.type !== value)` - asking for the type it already has does nothing. */
   @Test
   fun changingTypeToTheOneItAlreadyHasChangesNothing() {
-    assertEquals(notebook, notebook.withCellKindChanged("c1", CellKind.CODE))
+    assertEquals(notebook, notebook.withCellsKindChanged(listOf("c1"), CellKind.CODE))
   }
 
   // --- merge ----------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class CellRestructureTest {
   /** `toMerge.join(addExtraLine ? '\n\n' : '\n')`, and `addExtraLine` defaults to true. */
   @Test
   fun mergingAboveJoinsTheSourcesWithABlankLineBetween() {
-    val merged = notebook.withCellMerged("c2", MergeInto.ABOVE, newId = "merged")
+    val merged = notebook.withCellsMerged(listOf("c2"), MergeInto.ABOVE, newId = "merged")
 
     assertEquals("first\n\nsecond", merged.cells.first().source)
     assertEquals(listOf("merged", "m1"), merged.cells.map { it.id })
@@ -99,7 +99,7 @@ class CellRestructureTest {
 
   @Test
   fun mergingBelowJoinsInReadingOrderToo() {
-    val merged = notebook.withCellMerged("c1", MergeInto.BELOW, newId = "merged")
+    val merged = notebook.withCellsMerged(listOf("c1"), MergeInto.BELOW, newId = "merged")
 
     assertEquals("first\n\nsecond", merged.cells.first().source)
   }
@@ -111,7 +111,7 @@ class CellRestructureTest {
    */
   @Test
   fun theCellYouInvokedItFromDecidesTheType() {
-    val intoMarkdown = notebook.withCellMerged("m1", MergeInto.ABOVE, newId = "merged")
+    val intoMarkdown = notebook.withCellsMerged(listOf("m1"), MergeInto.ABOVE, newId = "merged")
 
     assertEquals(CellKind.MARKDOWN, intoMarkdown.cells.last().kind)
     assertEquals("second\n\n# notes", intoMarkdown.cells.last().source)
@@ -125,7 +125,7 @@ class CellRestructureTest {
       executionCounts = mapOf("c1" to 4, "c2" to 5),
     )
 
-    val merged = ran.withCellMerged("c2", MergeInto.ABOVE, newId = "merged")
+    val merged = ran.withCellsMerged(listOf("c2"), MergeInto.ABOVE, newId = "merged")
 
     assertEquals(emptyMap<String, Any>(), merged.outputs)
     assertEquals(emptyMap<String, Any>(), merged.executionCounts)
@@ -134,15 +134,15 @@ class CellRestructureTest {
   /** *"Bail if it is the first cell."* / *"Bail if it is the last cell."* */
   @Test
   fun thereIsNothingToMergeIntoPastEitherEnd() {
-    assertEquals(notebook, notebook.withCellMerged("c1", MergeInto.ABOVE, newId = "merged"))
-    assertEquals(notebook, notebook.withCellMerged("m1", MergeInto.BELOW, newId = "merged"))
+    assertEquals(notebook, notebook.withCellsMerged(listOf("c1"), MergeInto.ABOVE, newId = "merged"))
+    assertEquals(notebook, notebook.withCellsMerged(listOf("m1"), MergeInto.BELOW, newId = "merged"))
   }
 
   // --- cut / copy / paste ---------------------------------------------------------------
 
   @Test
   fun copyingPutsTheCellOnTheClipboardAndLeavesItAlone() {
-    val copied = notebook.withCellCopied("c2")
+    val copied = notebook.withCellsCopied(listOf("c2"))
 
     assertEquals(listOf("c2"), copied.clipboard.map { it.id })
     assertEquals(listOf("c1", "c2", "m1"), copied.cells.map { it.id })
@@ -151,7 +151,7 @@ class CellRestructureTest {
   /** `copyOrCut(cut = true)` calls `deleteCells` after filling the clipboard. */
   @Test
   fun cuttingCopiesAndThenRemoves() {
-    val cut = notebook.withCellCut("c2", replacementId = "fresh")
+    val cut = notebook.withCellsCut(listOf("c2"), replacementId = "fresh")
 
     assertEquals(listOf("c2"), cut.clipboard.map { it.id })
     assertEquals(listOf("c1", "m1"), cut.cells.map { it.id })
@@ -159,7 +159,7 @@ class CellRestructureTest {
 
   @Test
   fun pastingPutsTheClipboardBelowTheTarget() {
-    val pasted = notebook.withCellCopied("c1").withClipboardPasted("m1", newIds = listOf("copy"))
+    val pasted = notebook.withCellsCopied(listOf("c1")).withClipboardPasted("m1", newIds = listOf("copy"))
 
     assertEquals(listOf("c1", "c2", "m1", "copy"), pasted.cells.map { it.id })
     assertEquals("first", pasted.cells.last().source)
@@ -172,7 +172,7 @@ class CellRestructureTest {
    */
   @Test
   fun aCutCodeCellKeepsItsIdentityWhenPastedBack() {
-    val pasted = notebook.withCellCut("c2", replacementId = "fresh")
+    val pasted = notebook.withCellsCut(listOf("c2"), replacementId = "fresh")
       .withClipboardPasted("c1", newIds = listOf("would-be-new"))
 
     assertEquals(listOf("c1", "c2", "m1"), pasted.cells.map { it.id })
@@ -181,7 +181,7 @@ class CellRestructureTest {
   /** A copied cell is a second cell, so it cannot keep the id the original still holds. */
   @Test
   fun aCopiedCellIsGivenANewIdentity() {
-    val pasted = notebook.withCellCopied("c2").withClipboardPasted("c1", newIds = listOf("copy"))
+    val pasted = notebook.withCellsCopied(listOf("c2")).withClipboardPasted("c1", newIds = listOf("copy"))
 
     assertEquals(listOf("c1", "copy", "c2", "m1"), pasted.cells.map { it.id })
   }
@@ -196,7 +196,7 @@ class CellRestructureTest {
   fun cuttingTheLastCellStillLeavesSomethingToTypeInto() {
     val single = EditorUiState(cells = listOf(Cell("only", CellKind.CODE, "x")), loaded = true)
 
-    val cut = single.withCellCut("only", replacementId = "fresh")
+    val cut = single.withCellsCut(listOf("only"), replacementId = "fresh")
 
     assertEquals(listOf("fresh"), cut.cells.map { it.id })
     assertEquals(listOf("only"), cut.clipboard.map { it.id })

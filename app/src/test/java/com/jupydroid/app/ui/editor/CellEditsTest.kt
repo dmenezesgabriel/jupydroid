@@ -37,16 +37,16 @@ class CellEditsTest {
   fun move_swapsWithTheNeighbourInEachDirection() {
     val state = stateOf("a", "b", "c")
 
-    assertEquals(listOf("a", "c", "b"), state.withCellMoved("c", CellMove.UP).cells.map { it.id })
-    assertEquals(listOf("b", "a", "c"), state.withCellMoved("a", CellMove.DOWN).cells.map { it.id })
+    assertEquals(listOf("a", "c", "b"), state.withCellsMoved(listOf("c"), CellMove.UP).cells.map { it.id })
+    assertEquals(listOf("b", "a", "c"), state.withCellsMoved(listOf("a"), CellMove.DOWN).cells.map { it.id })
   }
 
   @Test
   fun move_doesNothingAtEitherEnd() {
     val state = stateOf("a", "b")
 
-    assertEquals(state.cells, state.withCellMoved("a", CellMove.UP).cells)
-    assertEquals(state.cells, state.withCellMoved("b", CellMove.DOWN).cells)
+    assertEquals(state.cells, state.withCellsMoved(listOf("a"), CellMove.UP).cells)
+    assertEquals(state.cells, state.withCellsMoved(listOf("b"), CellMove.DOWN).cells)
   }
 
   /**
@@ -58,7 +58,7 @@ class CellEditsTest {
   fun duplicate_copiesTheResultsTooAndOnlyTheIdIsNew() {
     val state = stateOf("a").withOutputOn("a", "hello").withCount("a", 7)
 
-    val duplicated = state.withCellDuplicated("a", newId = "copy")
+    val duplicated = state.withCellsDuplicated(listOf("a"), newIds = listOf("copy"))
 
     assertEquals(listOf("a", "copy"), duplicated.cells.map { it.id })
     assertEquals(state.outputs["a"], duplicated.outputs["copy"])
@@ -69,7 +69,7 @@ class CellEditsTest {
   fun duplicate_keepsTheSourceAndKind() {
     val state = EditorUiState(cells = listOf(Cell("a", CellKind.MARKDOWN, "# title")), loaded = true)
 
-    val copy = state.withCellDuplicated("a", newId = "copy").cells[1]
+    val copy = state.withCellsDuplicated(listOf("a"), newIds = listOf("copy")).cells[1]
 
     assertEquals("# title", copy.source)
     assertEquals(CellKind.MARKDOWN, copy.kind)
@@ -79,7 +79,7 @@ class CellEditsTest {
   fun delete_removesTheCellAndTheResultsItLeftBehind() {
     val state = stateOf("a", "b").withOutputOn("a", "gone").withCount("a", 3)
 
-    val deleted = state.withCellDeleted("a", replacementId = "unused")
+    val deleted = state.withCellsDeleted(listOf("a"), replacementId = "unused")
 
     assertEquals(listOf("b"), deleted.cells.map { it.id })
     assertNull(deleted.outputs["a"])
@@ -92,7 +92,7 @@ class CellEditsTest {
    */
   @Test
   fun delete_leavesAnEmptyCodeCellRatherThanAnEmptyNotebook() {
-    val deleted = stateOf("only").withCellDeleted("only", replacementId = "fresh")
+    val deleted = stateOf("only").withCellsDeleted(listOf("only"), replacementId = "fresh")
 
     assertEquals(listOf("fresh"), deleted.cells.map { it.id })
     assertEquals(CellKind.CODE, deleted.cells.single().kind)
@@ -104,8 +104,8 @@ class CellEditsTest {
   fun delete_stopsTheNotebookLookingBusyWhenTheRunningCellGoes() {
     val state = stateOf("a", "b").startingRun("a", at = java.time.Instant.EPOCH)
 
-    assertNull(state.withCellDeleted("a", replacementId = "x").runningCellId)
-    assertEquals("a", state.withCellDeleted("b", replacementId = "x").runningCellId)
+    assertNull(state.withCellsDeleted(listOf("a"), replacementId = "x").runningCellId)
+    assertEquals("a", state.withCellsDeleted(listOf("b"), replacementId = "x").runningCellId)
   }
 
   /**
@@ -117,28 +117,31 @@ class CellEditsTest {
   fun clearOutputs_dropsTheExecutionCountWithThem() {
     val state = stateOf("a").withOutputOn("a", "old").withCount("a", 7)
 
-    val cleared = state.withOutputsCleared("a")
+    val cleared = state.withOutputsCleared(listOf("a"))
 
     assertTrue(cleared.outputs["a"].isNullOrEmpty())
     assertNull(cleared.executionCounts["a"])
   }
 
   /**
-   * A toggle rather than separate hide and show, which is what a one-cell menu wants -
-   * JupyterLab has both pairs and a `toggleOutput` for exactly the same reason
-   * (`packages/notebook/src/actions.tsx:1998`).
+   * **The toggle lives in [applying] now**, and the transform under it only ever *sets*.
+   *
+   * That is the reference's own split - `hideCode` and `showCode` are separate commands over the
+   * selection (`packages/notebook/src/actions.tsx:1877-1910`), and one menu row asking for both is
+   * ours. Toggling per cell would invert a mixed run and leave it exactly as mixed, so the row
+   * reads the head's state and sets every cell in the run to the other one.
    */
   @Test
   fun toggleSourceHidden_hidesAnExpandedCellAndShowsAHiddenOne() {
-    val hidden = stateOf("a", "b").withSourceHiddenToggled("a")
+    val hidden = stateOf("a", "b").applying(CellAction.ToggleSourceHidden, "a")
 
     assertTrue(hidden.cells.single { it.id == "a" }.sourceHidden)
-    assertFalse(hidden.withSourceHiddenToggled("a").cells.single { it.id == "a" }.sourceHidden)
+    assertFalse(hidden.applying(CellAction.ToggleSourceHidden, "a").cells.single { it.id == "a" }.sourceHidden)
   }
 
   @Test
   fun toggleSourceHidden_leavesEveryOtherCellAlone() {
-    val toggled = stateOf("a", "b").withSourceHiddenToggled("a")
+    val toggled = stateOf("a", "b").applying(CellAction.ToggleSourceHidden, "a")
 
     assertFalse(toggled.cells.single { it.id == "b" }.sourceHidden)
   }
@@ -148,17 +151,17 @@ class CellEditsTest {
   fun toggleSourceHidden_ignoresACellThatIsGone() {
     val state = stateOf("a")
 
-    assertEquals(state, state.withSourceHiddenToggled("gone"))
+    assertEquals(state, state.withSourceHiddenSet(listOf("gone"), hidden = true))
   }
 
   /** The two collapses are independent: JupyterLab has a command for each, not one for both. */
   @Test
   fun toggleOutputsHidden_hidesTheOutputsWithoutTouchingTheSource() {
-    val hidden = stateOf("a").withOutputsHiddenToggled("a")
+    val hidden = stateOf("a").applying(CellAction.ToggleOutputsHidden, "a")
 
     assertTrue(hidden.cells.single().outputsHidden)
     assertFalse(hidden.cells.single().sourceHidden)
-    assertFalse(hidden.withOutputsHiddenToggled("a").cells.single().outputsHidden)
+    assertFalse(hidden.applying(CellAction.ToggleOutputsHidden, "a").cells.single().outputsHidden)
   }
 
   /**
@@ -169,7 +172,7 @@ class CellEditsTest {
   fun toggleOutputsHidden_keepsTheOutputsAndTheExecutionCount() {
     val state = stateOf("a").withOutputOn("a", "kept").withCount("a", 7)
 
-    val hidden = state.withOutputsHiddenToggled("a")
+    val hidden = state.applying(CellAction.ToggleOutputsHidden, "a")
 
     assertEquals(state.outputs, hidden.outputs)
     assertEquals(7, hidden.executionCounts["a"])
@@ -179,7 +182,7 @@ class CellEditsTest {
   fun toggleOutputsHidden_ignoresACellThatIsGone() {
     val state = stateOf("a")
 
-    assertEquals(state, state.withOutputsHiddenToggled("gone"))
+    assertEquals(state, state.withOutputsHiddenSet(listOf("gone"), hidden = true))
   }
 
   /**
@@ -205,10 +208,10 @@ class CellEditsTest {
     val state = stateOf("a", "b")
 
     assertTrue(state.withCellInserted("a", CellKind.CODE, "n").dirty)
-    assertTrue(state.withCellMoved("a", CellMove.DOWN).dirty)
-    assertTrue(state.withCellDuplicated("a", "n").dirty)
-    assertTrue(state.withCellDeleted("a", "n").dirty)
-    assertTrue(state.withOutputsCleared("a").dirty)
+    assertTrue(state.withCellsMoved(listOf("a"), CellMove.DOWN).dirty)
+    assertTrue(state.withCellsDuplicated(listOf("a"), listOf("n")).dirty)
+    assertTrue(state.withCellsDeleted(listOf("a"), "n").dirty)
+    assertTrue(state.withOutputsCleared(listOf("a")).dirty)
   }
 
   /** A menu can outlive the cell it was opened on; none of these may throw on a stale id. */
@@ -217,10 +220,10 @@ class CellEditsTest {
     val state = stateOf("a", "b")
 
     assertEquals(state, state.withCellInserted("gone", CellKind.CODE, "n"))
-    assertEquals(state, state.withCellMoved("gone", CellMove.UP))
-    assertEquals(state, state.withCellDuplicated("gone", "n"))
-    assertEquals(state, state.withCellDeleted("gone", "n"))
-    assertEquals(state, state.withOutputsCleared("gone"))
+    assertEquals(state, state.withCellsMoved(listOf("gone"), CellMove.UP))
+    assertEquals(state, state.withCellsDuplicated(listOf("gone"), listOf("n")))
+    assertEquals(state, state.withCellsDeleted(listOf("gone"), "n"))
+    assertEquals(state, state.withOutputsCleared(listOf("gone")))
   }
 
   private fun stateOf(vararg ids: String) = EditorUiState(

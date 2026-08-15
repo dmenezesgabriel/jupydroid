@@ -99,7 +99,7 @@ class CellModeTest {
   fun deletingTheSelectedCellDropsTheSelection() {
     val selected = notebook.withCellSelected("c2").withMode(CellMode.EDIT)
 
-    val deleted = selected.withCellDeleted("c2", replacementId = "new").withSelectionClamped()
+    val deleted = selected.withCellsDeleted(listOf("c2"), replacementId = "new").withSelectionClamped()
 
     assertNull(deleted.selectedCellId)
     assertEquals("nothing selected means command mode", CellMode.COMMAND, deleted.mode)
