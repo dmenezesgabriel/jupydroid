@@ -296,6 +296,72 @@ notebook toolbar, and binds `Z` in command mode only
 (`notebook-extension/schema/tracker.json:31-35`, `:341-349`, `:572-648`). The icons are read out of
 `ui-components/style/icons/…/undo.svg`, whose path is Material's `AutoMirrored.Undo` verbatim.
 
+### A selection is a contiguous run, and it is what every cell command means
+
+Read out of `packages/notebook/src/widget.ts` rather than designed:
+`extendContiguousSelectionTo` is *"move the head of an existing contiguous selection"* (`:2216`),
+`getContiguousSelection()` **throws** on anything else (`:2325-2348`), and shift-click and
+shift-drag — the only two multi-select gestures there — both go through it (`:3181`, `:3290`).
+There is no ctrl-click and no discontiguous selection to model. So the whole feature is two ends:
+an anchor and a head, with the cells between them derived rather than stored.
+
+**And the operand of almost every cell command is that run, not the active cell.** Merge (`:367`),
+move (`:594`), cut/copy (`:3109`), paste (`:1611`), duplicate (`:1542`), clear outputs (`:1832`),
+change type (`:3232`), delete (`:3342`) and every collapse (`:1877`–`:2109`) iterate
+`isSelectedOrActive` in `actions.tsx`. `_updateSelectedCells` includes the active cell in that
+(`widget.ts:3736-3739`), which is what makes today's single-cell behaviour the **degenerate case**
+of the run rather than a second path beside it.
+
+Six rules follow, each a constraint:
+
+- **Extending back onto the anchor ends the selection outright** rather than leaving that one cell
+  marked — *"Collapse the selection if it is only the active cell"* → `deselectAll()`
+  (`widget.ts:2245-2249`). Material says the same about clearing the last item, so the reference
+  and the platform agree and nothing had to be adapted.
+- **Entering edit mode drops the run** — *"Edit mode deselects all cells"* (`setMode`,
+  `widget.ts:1925-1929`). One line there, and it is what lets a tap into a cell keep meaning "type
+  in this one" while a run is marked.
+- **Three operations keep the run and every other one clears it.** `move` (`:586-610`),
+  `clearOutputs` (`:1822-1840`) and the collapses (`:1877-2110`) are the only cell operations with
+  no `deselectAll()` in them, because after each the same cells are still there and still worth
+  acting on together. Undo is on the clearing side (`:1758`, `:1779`).
+- **Merge ignores its direction once more than one cell is marked**, because `mergeAbove` is
+  consulted only inside `if (toMerge.length === 1)` (`:390-425`).
+- **Duplicate lands after the *last* cell of the run, paste below the head.**
+  `notebook:duplicate-below` passes `'belowSelected'` (`notebook-extension/src/index.ts:3675`) and
+  `pasteBelow` passes `'below'` (`:3594`). The difference is what keeps copies out of the middle of
+  a run whose head is at its top.
+- **The collapses set rather than toggle.** `hideCode` and `showCode` are separate commands over
+  the selection (`:1877-1910`), so a run comes out uniform; toggling each cell against its own
+  state would invert a mixed run and leave it exactly as mixed.
+
+**One departure, and it keeps the reference's own invariant against a call site that breaks it.**
+`selectAll` marks every widget and leaves `activeCellIndex` alone (`actions.tsx:1376-1386`); with
+the active cell in the middle, the next `extendSelectionAbove` reaches `getContiguousSelection()`,
+which throws *"Active cell not at endpoint of selection"* (`widget.ts:2344-2348`) with nothing
+catching it. The same file states the rule that call site breaks — *"The head of a contiguous
+selection is always the active cell"* — so here the head goes on the last cell.
+
+**The touch adaptations, and each names what it departs from.** A long press is `BasicTextField`'s
+text selection and is not available, so the way in is a row in the cell menu; the way out is a
+contextual bar replacing the notebook's own, which is Material's rule and also the reference's
+split under another name — its selection commands live in the Edit menu and the notebook's context
+menu, never on the cell (`notebook-extension/src/index.ts:5267-5268`). The cell's `⋮` is hidden
+while that bar is up, so there is never a question of what a menu applies to. Two things were
+measured rather than chosen: **four reach arrows do not fit** — at 360dp a navigation icon plus
+four actions is 240dp of 360 and the count wrapped to three lines reading `3 / select / ed`, so all
+four `extend-marked-cells-*` are overflow rows — and **the tint is the reference's own**:
+`.jp-Cell.jp-mod-selected` is a cell *background* (`notebook/style/base.css:141-143`), `#e3f2fd`
+light and `rgba(33,150,243,.24)` dark, applied only once the run holds more than one cell, since
+`jp-mod-multiSelected` is added at `count > 1` (`widget.ts:2763-2765`).
+
+**Labels pluralise where the reference's `trans._n` does and nowhere else** — `Delete` /
+`Delete cells`, `Cut` / `Cut cells` (`index.ts:3480`, `:3733`) — while `Clear outputs` and
+`Collapse code` keep one form, as `'Clear Cell Output'` and `'Collapse Selected Code'` do (`:3365`,
+`:4741`). With a run marked the two directional merge rows become one, because both would do the
+same thing; the replacement is the reference's own third command, `notebook:merge-cells`, labelled
+*"Merge Selected Cells"* (`:3953`).
+
 ### Splitting is the one cell operation that reads the editor, and the one whose undo restores text
 
 `splitCell` (`actions.tsx:187-320`) contradicts the obvious answer twice, and both are load-bearing
@@ -554,6 +620,12 @@ P2j has to make rather than discover.
   established rather than where it is used.
 - **A caret is placed by driving it, not by tapping at it.** A tap lands where it lands. `←` clamps
   at offset 0, so twenty of them give a known origin and `→` counts from there.
+- **Maestro matches a whole node, so a prefix assertion is an assertion that cannot fail.**
+  `assertNotVisible: "Pick A Few"` was green against a node reading `Pick A Few.ipynb` and would
+  have stayed green with the bar on screen. **A document's title is also the wrong handle on a
+  tablet**, where the file list beside it shows the same name — so a flow that means "the
+  notebook's own bar is up" names a control that is only on it (`Back to notebooks`), never the
+  title. Both halves cost one red run to find and neither would have failed loudly.
 
 ---
 
