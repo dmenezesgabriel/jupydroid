@@ -1,5 +1,9 @@
 package com.jupydroid.app
 
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
+import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
+import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +56,7 @@ private fun rememberDocumentOpener(
   }
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun MainNavigation(
   appContainer: AppContainer,
@@ -82,6 +87,11 @@ fun MainNavigation(
     is FileEditor -> top.path
     else -> null
   }.takeIf { twoPane }
+  // The scene strategy measures the window for itself, so a caller that was *told* how many panes
+  // to draw has to be able to overrule it - otherwise `twoPane` would decide the row marking above
+  // and not the layout, and the two would disagree. Same boolean, both halves.
+  val measured = paneScaffoldDirective()
+  val directive = if (twoPane) measured else measured.forcedToOnePane()
 
   // The VIEW intent, which used to be Home's because Home was the first screen. It is an
   // app-level act rather than a screen's - nothing about it belongs to the browser - so it lives
@@ -114,13 +124,29 @@ fun MainNavigation(
       rememberSaveableStateHolderNavEntryDecorator(),
       rememberViewModelStoreNavEntryDecorator(),
     ),
-    // Both entries stay entries; this only decides whether they are drawn one at a time or
-    // beside each other. Declining a scene (a narrow window, or nothing open) falls through to
-    // NavDisplay's single-pane default. See TwoPaneSceneStrategy for why not the pane scaffold.
-    sceneStrategy = TwoPaneSceneStrategy(twoPane = twoPane),
+    // Both entries stay entries; this only decides whether they are drawn one at a time or beside
+    // each other. `ListDetailSceneStrategy` collects the matching entries into one scene and draws
+    // each one's own `Content()`, so every decorator stays where it was - which is the property
+    // U7's hand-written strategy existed for and the reason `NavigableListDetailPaneScaffold` is
+    // still not what this uses: the scaffold puts both panes inside *one* `NavEntry`.
+    //
+    // With one partition it declines the scene (`shouldHandleSinglePaneLayout` is false by
+    // default), and NavDisplay falls through to its single-pane default.
+    //
+    // **`PopLatest`, not the library's default, and it is not a preference.** With both panes
+    // expanded, `PopUntilScaffoldValueChange` looks for an earlier destination whose scaffold
+    // value differs and never finds one - the list alone still lays out as two panes - so
+    // `getPreviousDestinationIndex` returns -1, `previousEntries` comes back empty, and the scene
+    // pops *every* entry. Measured on the tablet: back from a notebook left the app for the home
+    // screen (`evidence/p1e-list-detail-scene/`). `PopLatest` pops exactly one, which is what
+    // `TwoPaneScene.previousEntries = entries.dropLast(1)` did.
+    sceneStrategy = rememberListDetailSceneStrategy(
+      backNavigationBehavior = BackNavigationBehavior.PopLatest,
+      directive = directive,
+    ),
     entryProvider =
       entryProvider {
-        entry<Explorer>(metadata = EXPLORER_PANE_METADATA) {
+        entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
           ExplorerScreen(
             workspaceRepository = appContainer.workspaceRepository,
             notebookRepository = appContainer.notebookRepository,
@@ -137,9 +163,7 @@ fun MainNavigation(
             onBack = null,
           )
         }
-        entry<FileEditor>(
-          metadata = mapOf(PANE_ROLE to PANE_ROLE_DOCUMENT, PANE_DOCUMENT_KIND to PANE_KIND_FILE),
-        ) { file ->
+        entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
           FileEditorScreen(
             path = file.path,
             workspaceRepository = appContainer.workspaceRepository,
@@ -147,9 +171,7 @@ fun MainNavigation(
             onBack = { backStack.removeLastOrNull() },
           )
         }
-        entry<Editor>(
-          metadata = mapOf(PANE_ROLE to PANE_ROLE_DOCUMENT, PANE_DOCUMENT_KIND to PANE_KIND_NOTEBOOK),
-        ) { editor ->
+        entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->
           EditorScreen(
             notebookId = editor.notebookId,
             notebookRepository = appContainer.notebookRepository,

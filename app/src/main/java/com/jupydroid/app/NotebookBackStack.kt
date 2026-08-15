@@ -18,8 +18,9 @@ import androidx.navigation3.runtime.NavKey
  *
  * A *different* notebook replaces the one open rather than stacking on it. That was unreachable
  * on a phone - the file surface is not on screen while an editor is - and so never wrong; two
- * panes make it reachable, and a stacked `[Explorer, Editor(a), Editor(b)]` would hand
- * [TwoPaneSceneStrategy] the last two entries and put a notebook where the surface belongs.
+ * panes make it reachable, and a stacked `[Explorer, Editor(a), Editor(b)]` would leave two
+ * entries claiming the detail pane, of which `ListDetailSceneStrategy` draws the **last** - so the
+ * one beneath would keep its ViewModel and its kernel alive with nothing on screen.
  * Replacing is also what disposes the outgoing entry, so `EditorViewModel.onCleared` runs and
  * closes its kernel socket.
  *
@@ -42,8 +43,8 @@ fun MutableList<NavKey>.openFile(filePath: String) {
  * One document, revealed or replaced - never two.
  *
  * Both document kinds swap each other, because the explorer opens both and a detail it cannot
- * swap would stack `[Explorer, FileEditor(a), Editor(b)]`, whose last two entries
- * [TwoPaneSceneStrategy] refuses to pair - one stray tap would collapse the two panes.
+ * swap would stack `[Explorer, FileEditor(a), Editor(b)]` - two entries for one pane, of which
+ * only the last is ever drawn.
  */
 private fun MutableList<NavKey>.chooseDetailThatFitsTheSurface(opened: () -> NavKey) {
   val document = opened()

@@ -202,6 +202,36 @@ running leaves no `jupyter_server` process (`evidence/p1c-app-death-backstop/orp
 — the server is a child of the app process. P1c is therefore about the app being *left*, not about
 it being killed, whatever `docs/PLAN.md` once called it.
 
+### A kernel is ended by a command, never by closing the document
+
+`DELETE api/sessions/<id>` exists and is reached from two menu items —
+`notebook:shutdown-kernel` and `notebook:close-and-shutdown`
+(`packages/notebook-extension/src/index.ts:184-186,3171-3213`). **Closing a notebook does not
+reach it.** `docs/PLAN.md` P1d once said it should, and the reference says otherwise twice: the
+`kernelShutdown` setting is *"Whether to shut down or not the kernel when closing a notebook"* with
+`"default": false` (`packages/notebook-extension/schema/tracker.json:741-745`), and
+`SessionContext.dispose()` shuts down only `if (this.kernelPreference.shutdownOnDispose)`
+(`sessioncontext.tsx:690`).
+
+That default is also what makes reattach reachable at all: leaving a notebook calls `disconnect`,
+the kernel lives on, and reopening finds it by path with its namespace intact
+("Kernels start through sessions", above). Both are measured on one build —
+`notebook-session-reattaches` prints 44 after a *leave*, and `p1d-part3` raises `NameError` after
+a *shutdown* (`evidence/p1d-shutdown-kernel/`).
+
+Three rules follow:
+
+- **Only 204 is success**, plus 404 read as "somebody got there first" and logged; 410 keeps the
+  server's own sentence about a kernel deleted before its session
+  (`services/session/restapi.ts:65-80`, `services/sessions/handlers.py:203-212`). A 200 is a
+  refusal.
+- **`KernelSession` carries three ids and they are not interchangeable**: ours (signs every
+  message), the kernel's (`interrupt`, `restart`), and the server's session id (`shutdown`).
+- **Shutting down must never start a server**, exactly as `disconnect` must not: a kernel whose
+  server P1c stopped is already gone.
+
+Whether closing *ever* shuts down is P6c's, where `kernelShutdown` becomes a setting.
+
 ### The kernel's working directory is the session's path
 
 Without it a cell's `open('data.csv','w')` raises `OSError: [Errno 30]` on a read-only filesystem.
@@ -287,31 +317,43 @@ addressing — see `docs/PLAN.md` P4d.
 
 ## Architecture and UI
 
-### `TwoPaneSceneStrategy` was hand-written, and its reason has now expired
+### The two-pane layout is `ListDetailSceneStrategy`, and it cost a toolchain
 
-U7 wrote `TwoPaneSceneStrategy.kt` + `TwoPaneScene.kt` (165 lines) because
+U7 hand-wrote `TwoPaneSceneStrategy.kt` + `TwoPaneScene.kt` (165 lines) because
 `NavigableListDetailPaneScaffold` puts both panes inside **one** `NavEntry`, which stops the editor
 being a navigation entry at all — and both nav3 decorators key on `NavEntry.contentKey`. That
 breaks ViewModel *identity* (`viewModel { }` resolves on class name, so notebook B is handed
 notebook A's ViewModel) **and** lifetime (`onCleared` never runs, so the kernel socket is never
-closed). The library answer was rejected for a second reason: `adaptive-navigation3` had no stable
-release.
+closed). It also said: *"If that artifact goes stable, this is the thing to delete."*
 
-**That second reason no longer holds.** `androidx.compose.material3.adaptive:adaptive-navigation3`
-**1.3.0 is the published release version** (maven-metadata.xml, dated 2026-08-12), and it ships
-`ListDetailSceneStrategy` / `rememberListDetailSceneStrategy` and `SupportingPaneSceneStrategy` /
-`rememberSupportingPaneSceneStrategy` — scene strategies, the same shape as ours. U7 said in as
-many words: *"If that artifact goes stable, this is the thing to delete."*
+**P1e deleted it.** `androidx.compose.material3.adaptive:adaptive-navigation3:1.3.0` is released,
+and `ListDetailSceneStrategy` keeps every entry an entry — `calculateScene` collects
+`scaffoldEntries: MutableList<NavEntry<T>>` and `ThreePaneScaffoldScene` renders each one's own
+`Content()`. So the scaffold is still not what this uses, and the reason has not changed; only who
+writes the scene has.
 
-**What has not changed, and must be checked rather than assumed:** its POM still pins
-`adaptive-navigation` **strictly** at `[1.3.0]`, taking the adaptive family off the Compose BOM,
-and it wants `androidx.navigation3:navigation3-ui:1.0.0` where the project is on
-`nav3Core = "1.0.1"`. And the property that actually mattered is that **both panes stay separate
-`NavEntry`s**. Scheduled as `docs/PLAN.md` **P1e**, gated on the U7 evidence re-run.
+Three things it cost, all measured (`evidence/p1e-list-detail-scene/`):
 
-Two panes at **840dp**, not 600dp: 360dp of list plus a divider leaves 239dp for the notebook in a
-600dp window, narrower than the phone the single-pane layout was designed for. A width rule, never
-a device one.
+- **compileSdk 37, AGP 9.1.1, Gradle 9.3.1.** `adaptive-*:1.3.0` refuses to be consumed below
+  compileSdk 37 and AGP 9.1.0 and says so in its AAR metadata; AGP 9.1.1 then requires Gradle
+  9.3.1. **`targetSdk` stays at 36** — compileSdk decides which APIs may be called, targetSdk
+  is what the exec model above depends on.
+- **The adaptive family left the Compose BOM.** Its POM requires `adaptive-navigation` strictly
+  `[1.3.0]`, so every `adaptive*` the BOM pinned at 1.2.0 resolves to 1.3.0.
+- **`BackNavigationBehavior.PopLatest` is mandatory, not a preference.** With both panes expanded
+  the default `PopUntilScaffoldValueChange` finds no earlier destination whose scaffold value
+  differs, returns `-1`, and the scene pops *every* entry — back from a notebook left the app for
+  the launcher, measured on the tablet.
+
+**This forbids** re-deriving pane pairing in this codebase: roles are declared with
+`ListDetailSceneStrategy.listPane()` / `.detailPane()`, and P2h's table of contents uses
+`extraPane()` rather than a third hand-written scene.
+
+Two panes at **840dp**, not 600dp: a 360dp list pane leaves 239dp for the notebook in a 600dp
+window, narrower than the phone the single-pane layout was designed for. A width rule, never a
+device one — and **the library's own default**, which was checked before the hand-written rule was
+deleted: `calculatePaneScaffoldDirective` gives Compact and Medium one horizontal partition and
+Expanded two, and Expanded starts at 840dp.
 
 ### Touch rules, and the two that cost something to learn
 

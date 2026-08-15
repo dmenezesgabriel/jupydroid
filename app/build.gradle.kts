@@ -10,7 +10,15 @@ plugins {
 
 android {
     namespace = "com.jupydroid.app"
-    compileSdk = 36
+    // 37 because `adaptive-*:1.3.0` refuses to be consumed below it (`checkDebugAarMetadata`:
+    // "requires libraries and applications that depend on it to compile against version 37 or
+    // later"), which is what P1e actually cost - the BOM drift was the smaller half.
+    //
+    // **`targetSdk` deliberately stays at 36**, and nothing here changes runtime behaviour.
+    // compileSdk says which APIs may be *called*; targetSdk is what opts the app into new
+    // behaviour, and 36 is the number the whole exec model is arranged around
+    // (`docs/DECISIONS.md`, "Exec model").
+    compileSdk = 37
     defaultConfig {
         applicationId = "com.jupydroid.app"
         minSdk = 32
@@ -97,9 +105,11 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    // Only `adaptive`, for currentWindowAdaptiveInfo(). The layout and navigation artifacts come
-    // with the pane scaffolds, which nothing uses yet.
     implementation(libs.androidx.compose.material3.adaptive)
+    // `ListDetailSceneStrategy`, which replaced the hand-written `TwoPaneSceneStrategy` in P1e.
+    // It pulls `adaptive-layout` and `adaptive-navigation` with it, and pins the whole family at
+    // 1.3.0 rather than the BOM's 1.2.0 - see the catalog entry for why that is the price.
+    implementation(libs.androidx.compose.material3.adaptive.navigation3)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.commonmark)

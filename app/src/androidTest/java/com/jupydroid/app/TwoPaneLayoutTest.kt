@@ -36,11 +36,14 @@ import org.junit.runner.RunWith
 /**
  * That two panes are two panes: both entries on screen at once, and each still its own entry.
  *
- * `TwoPaneSceneStrategyTest` argues which entries get paired; what it cannot answer is whether
- * both actually draw, and whether the editor beside the list is still the *right* notebook.
- * That second question is the one this file exists for - `NotebookNavigationTest` records what
- * it costs to get wrong (defect D1: `viewModel { }` keys on the class name, so an editor that
- * stops being its own navigation entry is handed the previous notebook's ViewModel, id and all).
+ * **This is the whole of P1e's gate that a test can hold.** Pairing used to be argued in
+ * `TwoPaneSceneStrategyTest`, over 165 lines of hand-written `SceneStrategy`; both are gone, and
+ * the rule belongs to `ListDetailSceneStrategy` now. What is still *ours* is everything below:
+ * that the explorer and the document it opened draw together, that back drops the document, and
+ * above all that the editor beside the list is the **right** notebook - `NotebookNavigationTest`
+ * records what that costs to get wrong (defect D1: `viewModel { }` keys on the class name, so an
+ * editor that stops being its own navigation entry is handed the previous notebook's ViewModel,
+ * id and all).
  *
  * `twoPane` is passed in, not measured. `currentWindowAdaptiveInfo()` reads the *activity's*
  * window, which a `DeviceConfigurationOverride` around a composable does not change, so *choosing*
@@ -48,13 +51,13 @@ import org.junit.runner.RunWith
  * the same reasoning `CellActionsTest` carries.
  *
  * The **size** is still forced, which is a different thing: `ForcedSize` does change the layout
- * constraints, and [TwoPaneScene] gives its list pane a fixed 360dp. On the 320dp emulator that
- * leaves the detail pane no width at all, so both wide cases failed there while passing on the
- * tablet - a suite that quietly meant "whatever device you happened to run it on". The window a
- * test needs is part of the test.
+ * constraints, and the list pane prefers 360dp (`PaneScaffoldDirective.defaultPanePreferredWidth`).
+ * On the 320dp emulator that leaves the detail pane no width at all, so both wide cases failed
+ * there while passing on the tablet - a suite that quietly meant "whatever device you happened to
+ * run it on". The window a test needs is part of the test.
  */
 @RunWith(AndroidJUnit4::class)
-class TwoPaneSceneTest {
+class TwoPaneLayoutTest {
   @get:Rule val compose = createComposeRule()
 
   @get:Rule val tempFolder = TemporaryFolder()
@@ -135,8 +138,8 @@ class TwoPaneSceneTest {
    * `calculateScene` declines a single entry, which is what stops an empty second pane appearing
    * beside it. This used to assert something stronger - that Recents was *not* drawn beside the
    * browser, the defect U7 opened with - and that shape is now unreachable: the explorer is the
-   * root, so there is no surface underneath it. `TwoPaneSceneStrategyTest.twoSurfacesNeverPair`
-   * still holds the rule.
+   * root, so there is no surface underneath it, and `ListDetailSceneStrategy` would decline the
+   * scene anyway - a scaffold value with one pane is not a scene it handles.
    */
   @Test
   fun aWideWindowWithNothingOpenDrawsTheBrowserAlone() {

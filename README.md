@@ -12,10 +12,11 @@ kernels start through `POST /api/sessions` and reattach, cells run and render th
 the app, the server and the kernel all share. There is a file browser, a Compose cell editor with
 syntax highlighting and kernel-backed completion, and a two-pane layout at ≥ 840dp.
 
-Not built yet: the Space system, a terminal, LSP, the debugger, the console, search and ToC —
-and the server has no lifecycle. See `docs/PLAN.md`.
+Not built yet: the Space system, a terminal, LSP, the debugger, the console, search and ToC.
+See `docs/PLAN.md`. The server's lifecycle *is* built: it stops itself when it is idle or the app
+is left, comes back on the next run, and a kernel can be ended on purpose from the kernel menu.
 
-Kotlin + Jetpack Compose, `com.jupydroid.app`, AGP 9, compileSdk 36, minSdk 32, targetSdk 36.
+Kotlin + Jetpack Compose, `com.jupydroid.app`, AGP 9, compileSdk 37, minSdk 32, targetSdk 36.
 The runtime is **arm64-only**; on x86_64 the app runs against a fake kernel for UI work.
 
 ## Documentation

@@ -54,7 +54,7 @@ to depend on**, which is checkable:
 | `html`, `import`, `markdown`, `syntax` | **document and language logic** — parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages*, not this app's domain; not `data/`, because they implement no port. JVM-testable, and every test for them is a plain unit test |
 | `richtext` | **mixed on purpose**: `RichBlock` is the model, `RichInlineString` renders it | the split is the point — the model is testable without Compose, and only the renderer imports it |
 | `theme` | Compose design tokens, the IntelliJ-derived palette | Compose throughout; `EditorPaletteTest` pins its contrast ratios |
-| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `TwoPaneScene*`, `NotebookBackStack`, the three `NavKey`s | the app shell and its navigation | see §4 |
+| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, the three `NavKey`s | the app shell and its navigation | see §4 |
 
 Measured, not asserted: `html` (0 of 3 files), `import` (0/1), `markdown` (0/1) and `syntax`
 (0/6) import `android.*`; `theme` imports it in 5 of 5; `richtext` in 1 of 2. That 1 is
@@ -147,19 +147,21 @@ editor and anything else to the plain one, and records the recent. That is the r
 split — a single `docmanager:open` where the path picks the factory, the notebook factory claims
 its extension, and the file editor is the default for the rest.
 
-**Two panes pair on metadata, never on position.** `TwoPaneSceneStrategy` puts a *surface* beside
-*a document that surface opens*, at ≥ 840dp. Which entry is which is declared when the entry
-providers are built (`PANE_ROLE`, `PANE_DOCUMENT_KIND`, `PANE_SURFACE_OPENS` — `Navigation.kt:123,141,151`)
-and read back by the strategy (`TwoPaneSceneStrategy.kt:67-70`), because `NavEntry` does not
-expose its key. "The last two entries" was the earlier rule and it is a montage, not a pairing:
-it put Recents beside the file browser, two surfaces neither of which opens the other. Below
-840dp the strategy declines and `NavDisplay` falls through to one pane.
+**Two panes pair on metadata, never on position.** `ListDetailSceneStrategy` puts the explorer in
+the list pane and whatever it opened in the detail, at ≥ 840dp. Which entry is which is declared
+when the entry providers are built — `ListDetailSceneStrategy.listPane()` on `Explorer`,
+`.detailPane()` on `Editor` and `FileEditor` — because `NavEntry` does not expose its key. "The
+last two entries" was the earliest rule and it is a montage, not a pairing: it put Recents beside
+the file browser, two surfaces neither of which opens the other.
 
-Why not `NavigableListDetailPaneScaffold` — and the trigger to revisit — is in
-`docs/DECISIONS.md`; the replacement is scheduled as `docs/PLAN.md` P1e.
+Both panes stay **separate `NavEntry`s**, which is why this is a scene strategy and not
+`NavigableListDetailPaneScaffold`; `docs/DECISIONS.md` has what that buys and what the swap cost.
+Two knobs are set rather than defaulted, and both are load-bearing: the directive is forced to one
+partition when the caller says one pane (the test seam), and `BackNavigationBehavior.PopLatest`
+pops one entry where the default popped every one of them.
 
 **Each document gets its own ViewModel *and* its own lifetime.** Two entry decorators, in this
-order (`Navigation.kt:113-116`):
+order (`Navigation.kt`, the `entryDecorators` argument):
 
 ```kotlin
 entryDecorators = listOf(

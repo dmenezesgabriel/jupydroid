@@ -33,12 +33,12 @@ filesystem the kernel, the server and the app all share.
 
 | Area | State |
 |---|---|
-| Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import; the server stops when it is idle or the app is left, and comes back on the next run |
+| Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import; the server stops when it is idle or the app is left, and comes back on the next run; a kernel can be ended on purpose from the kernel menu |
 | Notebook | cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
-| Shell | two panes ≥ 840dp, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 101 instrumented, 737 unit, 62 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
+| Tests | 109 instrumented, 745 unit, 68 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
 undo, settings, raw cells, headings, multi-select, trust, export.
@@ -206,13 +206,21 @@ The other twenty-eight hits were the `ADB="${ADB:-$(command -v adb …)}"` fallb
 fix rather than the offence. `check_driver_isolation.py` now refuses the call, so the counting
 does not have to be repeated.
 
-What is left of P1 is the per-document half of the same question, and one piece of debt beside
-it.
+**P1d and P1e have shipped too, and P1 is closed.** Both departed from what this file said, and
+both departures are `docs/DECISIONS.md` now rather than a line here:
 
-| # | Sub-step | Gate |
-|---|---|---|
-| **P1d** | **`DELETE /api/sessions/<id>` when a document closes.** `shutdownSession` in `packages/services/src/session/restapi.ts` (404 → `console.warn`, 410, else expect 204 — lines 65-75). Belongs to closing **one** document, not to the server's lifetime, which is why it is not folded into P1a. `KernelSession` carries our client id today; this needs the server's session id too. | Contract test on the lifecycle port; Maestro: close a notebook, assert the kernel is gone from `GET /api/sessions`. |
-| **P1e** | **Replace `TwoPaneSceneStrategy` with the library.** U7 hand-wrote it (`TwoPaneSceneStrategy.kt` + `TwoPaneScene.kt`, 165 lines) and said in as many words: *"If that artifact goes stable, this is the thing to delete."* **It has.** `androidx.compose.material3.adaptive:adaptive-navigation3` **1.3.0 is the published release version** (maven-metadata.xml), dated 2026-08-12, and it ships `ListDetailSceneStrategy` / `rememberListDetailSceneStrategy` and `SupportingPaneSceneStrategy` / `rememberSupportingPaneSceneStrategy` — scene strategies, which is exactly the shape our hand-written one is. **The cost has not gone away and must be measured, not assumed:** its POM still pins `adaptive-navigation` **strictly** at `[1.3.0]`, taking the adaptive family off the Compose BOM, and it wants `androidx.navigation3:navigation3-ui:1.0.0` where the project is on `nav3Core = "1.0.1"`. And the thing that actually mattered in U7 was that **both panes stay separate `NavEntry`s** — verify that of `ListDetailSceneStrategy` before deleting anything. Scheduled here rather than later because P2h wants a third pane. | The U7 evidence re-run unchanged: `u7-two-panes` on the tablet **and** `u7-one-pane` at 320dp, plus `notebook-switch` (which is what a shared `ViewModelStore` would break). If the library keeps entries separate, delete both files; if not, keep them and record why here. |
+- **P1d shipped the `DELETE` and not the trigger this plan named.** "When a document closes" is
+  wrong twice over — JupyterLab's `kernelShutdown` defaults to **false**, and shutting down on
+  close would have deleted Step 17's reattach, which is a shipped, evidenced feature. So the wire
+  is reached from `notebook:shutdown-kernel` and `notebook:close-and-shutdown` instead, and both
+  behaviours are green on one build: 44 after a leave, `NameError` after a shutdown
+  (`evidence/p1d-shutdown-kernel/`).
+- **P1e cost a toolchain, not just a BOM.** `adaptive-navigation3:1.3.0` refuses to be consumed
+  below **compileSdk 37 and AGP 9.1.0**, and AGP 9.1.1 wants **Gradle 9.3.1** — so all three moved
+  with it (`targetSdk` did not). `ListDetailSceneStrategy` does keep both panes as separate
+  `NavEntry`s, which is what the gate turned on, so both hand-written files are gone. Its default
+  `BackNavigationBehavior` had to be overridden: with two panes expanded it popped the whole back
+  stack and left the app (`evidence/p1e-list-detail-scene/`).
 
 ---
 
@@ -235,7 +243,7 @@ hide-cell-code, hide-cell-outputs.
 | **P2e** | **Raw cells** | `change-cell-to-raw`. The third `CellKind`: round-trips through nbformat, renders as plain text, never executes. Small, and it unblocks nbconvert round-trips in P2j. |
 | **P2f** | **Headings and heading collapse** | `change-cell-to-heading-1..6`, `insert-heading-{above,below}`, `toggle-heading-collapse`, `collapse-all-headings`, `expand-all-headings`. Heading collapse hides the cells **under** a heading — `setHeadingCollapse` (`actions.tsx:2348`) walks forward until it meets a heading of equal or higher level, so it is a document-structure feature, not a cell one, and it shares its model with P2h. **A collapsed heading then behaves as its whole section** everywhere else, which is the part that will bite if it is missed: `selectedCells` expands it so duplicating a collapsed heading duplicates the section; `addCells` inserts *after* its children rather than directly after it; and `deleteCells` takes the children with it. |
 | **P2g** | **View toggles** | `toggle-all-cell-line-numbers`, `enable/disable/toggle-output-scrolling`, `toggle-autoclosing-brackets`, `toggle-virtual-scrollbar` (engine in `packages/notebook/src/windowing.ts`). Several already have engines and no command; this is the surface, plus the persistence P6c provides. |
-| **P2h** | **Table of contents** | `toc:{show-panel,toggle-collapse,display-numbering,display-h1-numbering,display-outputs-numbering}`; the model is `packages/notebook/src/toc.ts`. **Adaptation:** a bottom sheet on a phone, a third pane at ≥ 840dp — a side panel is not reachable at 360dp. Depends on P1e. |
+| **P2h** | **Table of contents** | `toc:{show-panel,toggle-collapse,display-numbering,display-h1-numbering,display-outputs-numbering}`; the model is `packages/notebook/src/toc.ts`. **Adaptation:** a bottom sheet on a phone, a third pane at ≥ 840dp — a side panel is not reachable at 360dp. P1e paid for the third pane already: it is `ListDetailSceneStrategy.extraPane()`, not another hand-written scene. |
 | **P2i** | **Find and replace** | `documentsearch:{start,startWithReplace,highlightNext,highlightPrevious,end}`; the notebook's provider is `packages/notebook/src/searchprovider.ts` and it defines the ordering, including whether collapsed cells participate. Read it rather than iterating cells. |
 | **P2j** | **Trust and export** | `notebook:trust`, `notebook:export-to-format`. Export is `nbconvert`, already in the rootfs (`nbconvert==7.17.1`, with `mistune`, `bleach`, `pandocfilters`), and lands as a file in the workspace plus a share intent. **Trust is two halves and only one is the server's.** The client half is a *dialog* that warns and then sets `trusted: true` on each cell in the model (`actions.tsx` `trustNotebook`); the signing half is the server's — `ContentsManager.notary = sign.NotebookNotary` and `trust_notebook()` → `mark_cells(nb, True)` + `check_and_sign(nb, path)` (`services/contents/manager.py:116-120,694-706`, over `nbformat/sign.py`). **`check_and_sign` runs on save through the Contents API, which this app bypasses** by writing files directly — so a notebook we write is unsigned and would open untrusted. Decide that before building the dialog: route notebook *saves* through the Contents API, sign in the Space via `nbformat.sign`, or state that trust is inert here. Do **not** re-derive HMAC signing in Kotlin. |
 | **P2k** | **Execution history** | `access-previous-history-entry`, `access-next-history-entry`. Needs `history_request` on the shell channel — a protocol message the gateway does not send yet, so it is a `KernelGateway` addition, not just UI. |

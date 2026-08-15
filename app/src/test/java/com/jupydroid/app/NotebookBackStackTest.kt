@@ -89,8 +89,8 @@ class NotebookBackStackTest {
 
   /**
    * The two document kinds swap each other. The explorer can open both, and a detail it cannot
-   * swap would stack `[Explorer, FileEditor(a), Editor(b)]`, whose last two entries
-   * [TwoPaneSceneStrategy] refuses to pair - one stray tap would collapse the two panes.
+   * swap would stack `[Explorer, FileEditor(a), Editor(b)]` - two entries claiming one pane, of
+   * which only the last is ever drawn.
    */
   @Test
   fun openingANotebookReplacesAPlainFileAndViceVersa() {
