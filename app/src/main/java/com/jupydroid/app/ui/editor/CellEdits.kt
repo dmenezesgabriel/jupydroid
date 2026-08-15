@@ -110,8 +110,17 @@ private fun <T> Map<String, T>.carryOver(from: String, to: String): Map<String, 
  * Beside the transforms rather than inside the ViewModel: it is pure - state in, state out - and
  * the ViewModel was carrying it only because that is where the caller happened to live. detekt
  * asked for the split and detekt was right, as it was about `NotebookKernel`.
+ *
+ * **It is also the undoable unit**, which is why the recording is here and not at each call site.
+ * JupyterLab's is one `sharedModel.transact { }` block - `deleteCells` inserts its replacement
+ * cell *inside* the transaction "to make the deletion of a notebook's last cell undoable"
+ * (`actions.tsx:3391`) - and this function is that boundary under another name. A fourteenth
+ * action becomes undoable by existing; see [recording] for why no list of which ones count.
  */
-internal fun EditorUiState.applying(action: CellAction, cellId: String): EditorUiState = when (action) {
+internal fun EditorUiState.applying(action: CellAction, cellId: String): EditorUiState =
+  transformed(action, cellId).recording(before = this)
+
+private fun EditorUiState.transformed(action: CellAction, cellId: String): EditorUiState = when (action) {
   is CellAction.Insert -> withCellInserted(cellId, action.kind, newId = newCellId())
   is CellAction.InsertAbove -> withCellInsertedAbove(cellId, action.kind, newId = newCellId())
   is CellAction.ChangeKind -> withCellKindChanged(cellId, action.kind)

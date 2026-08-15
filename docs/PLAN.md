@@ -38,10 +38,10 @@ filesystem the kernel, the server and the app all share.
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 109 instrumented, 745 unit, 68 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 112 instrumented, 766 unit, 69 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
-undo, settings, raw cells, headings, multi-select, trust, export.
+settings, raw cells, headings, multi-select, trust, export.
 
 ---
 
@@ -232,12 +232,18 @@ read per command — three of them have already contradicted the obvious answer
 
 **Built today:** run, run-all, interrupt, restart, insert above/below, change type
 (code ↔ markdown), merge, move up/down, duplicate, delete, clear-outputs, cut/copy/paste,
-hide-cell-code, hide-cell-outputs.
+hide-cell-code, hide-cell-outputs, and undo/redo of every one of them.
+
+**P2a has shipped.** Undo and redo of cell operations are on the notebook's app bar, green on both
+devices from one build (`evidence/p2a-undo-cell-operation/`). What it settled — the two undos, the
+rule that a cell operation never restores text, and the one adaptation (Clear Outputs) — is
+`docs/DECISIONS.md` rather than a line here. It cost one refactor the plan did not name: detekt's
+`TooManyFunctions` again, and again the answer was the object that wanted to exist, so the cell
+menu and its history are `NotebookCellEdits` beside `NotebookKernel`.
 
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|
-| **P2a** | **Undo / redo of cell operations** | `notebook:undo-cell-action`, `notebook:redo-cell-action`. **Distinct from text undo** — this is structural (delete a cell, then get it back with its outputs and count). The reference's mechanism is a **Yjs undo manager** over the shared model — `(notebook.model.sharedModel as YNotebook).undoManager` (`actions.tsx:1704`) — so **one undoable step is one `sharedModel.transact { }` block**. That boundary is the whole design, and `deleteCells` shows why: it inserts the replacement cell *inside* the transaction "to make the deletion of a notebook's last cell undoable". We have no Yjs, so P2a owns its own stack — and `CellEdits.kt` already isolates every structural transform, which is the same boundary by another name. |
-| **P2b** | **Split and directional merge** | `notebook:split-cell-at-cursor`, `merge-cell-above`, `merge-cell-below`. `actions.tsx:187` `splitCell`, read rather than assumed, and it contradicts the obvious answer twice. It splits at **every** selection, not just the caret. And the **original cell becomes the *last* fragment**, not the first — "the last piece will remain in the original cell to preserve kernel connection" — so **outputs stay with the last fragment** and every new cell is created with `outputs: undefined`. It also strips leading/trailing newlines from each piece, and drops stale `execution` metadata when the cell is mid-run. |
+| **P2b** | **Split and directional merge** | `notebook:split-cell-at-cursor`, `merge-cell-above`, `merge-cell-below`. `actions.tsx:187` `splitCell`, read rather than assumed, and it contradicts the obvious answer twice. It splits at **every** selection, not just the caret. And the **original cell becomes the *last* fragment**, not the first — "the last piece will remain in the original cell to preserve kernel connection" — so **outputs stay with the last fragment** and every new cell is created with `outputs: undefined`. It also strips leading/trailing newlines from each piece, and drops stale `execution` metadata when the cell is mid-run. **P2a hands it one cost:** `CodeCellField` seeds `rememberTextFieldState(initialText = source)` **once** and never re-seeds, so nothing can currently push a source change into a field that is on screen. P2a needed no such push — no operation of its own rewrites a surviving cell's source. Split does, so the field-revision mechanism is P2b's to pay for, and it is named here rather than discovered. |
 | **P2c** | **Multi-select** | `select-all`, `deselect-all`, `extend-marked-cells-{above,below,top,bottom}`. The prerequisite for every batch command after it. **Touch adaptation:** a selection mode entered from the cell header — long-press is `BasicTextField`'s text selection and is not available, which is the same finding that produced the `⋮` button in 4b. |
 | **P2d** | **Ranged and compound runs** | `run-all-above`, `run-all-below`, `restart-run-all`, `restart-clear-output`, `restart-and-run-to-selected`. Pure orchestration over the existing gateway once P2c lands. `restart-clear-output` is why `KernelGateway.restart` deliberately does **not** clear outputs. |
 | **P2e** | **Raw cells** | `change-cell-to-raw`. The third `CellKind`: round-trips through nbformat, renders as plain text, never executes. Small, and it unblocks nbconvert round-trips in P2j. |

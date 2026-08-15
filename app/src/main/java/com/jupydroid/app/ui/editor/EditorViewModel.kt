@@ -18,11 +18,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * The document half of the editor: what the notebook *is*, and every change to it.
+ * The document half of the editor: what the notebook *is*, where it lives, and when it is written.
  *
- * What the notebook asks its kernel lives next door in [NotebookKernel] and is reached through
- * [kernel]. The split is detekt's doing and detekt was right - the two halves share only the
- * state flow, and running a cell has nothing to say about renaming a file.
+ * Two collaborators live next door and are reached through this, each split off on detekt's
+ * `TooManyFunctions` and each time detekt was right: [NotebookKernel] via [kernel] is what the
+ * notebook asks its kernel, and [NotebookCellEdits] via [edits] is what it does to its own cells.
+ * All three share only the state flow - running a cell has nothing to say about renaming a file,
+ * and neither has anything to say about loading one.
+ *
+ * Typing stays here, in [editCell], and that is not an oversight: text has its own history in
+ * Compose's `TextFieldState`, exactly as the reference keeps `notebook:undo` on the editor and
+ * `notebook:undo-cell-action` on the document. See [CellUndo].
  */
 class EditorViewModel(
   /**
@@ -68,6 +74,9 @@ class EditorViewModel(
   /** Run, interrupt and complete. Driven straight from the screen; see [NotebookKernel]. */
   val kernel =
     NotebookKernel(_uiState, kernelGateway, viewModelScope, activeCellRuns, persist = { persist() })
+
+  /** The cell menu and its undo history. Driven straight from the screen; see [NotebookCellEdits]. */
+  val edits = NotebookCellEdits(_uiState, save)
 
   init {
     viewModelScope.launch {
@@ -227,20 +236,6 @@ class EditorViewModel(
         else -> state
       }
     }
-  }
-
-  /**
-   * The cell-management half of the editor: everything the cell menu offers.
-   *
-   * Each one is a pure transform in [CellEdits] followed by the same debounced save an edit
-   * gets, so re-ordering a notebook survives leaving the screen exactly as typing does. Ids
-   * are minted here rather than inside the transforms, which keeps those testable.
-   */
-  fun applyToCell(cellId: String, action: CellAction) {
-    // Clamped after every transform, not only after Delete: it costs nothing, and a transform
-    // added later cannot forget to.
-    _uiState.update { it.applying(action, cellId).withSelectionClamped() }
-    save.schedule()
   }
 
 

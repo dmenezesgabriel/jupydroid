@@ -71,7 +71,41 @@ data class EditorUiState(
   /** JupyterLab's `activeCellIndex`, by id: the one cell every cell-scoped action means. */
   val selectedCellId: String? = null,
   val mode: CellMode = CellMode.COMMAND,
+  /**
+   * The cell operations that can be taken back, oldest first - see [CellUndo].
+   *
+   * Empty on a freshly opened notebook, which is the reference's lifetime as well:
+   * `Context.initialize()` clears the history once the model is loaded
+   * (`packages/docregistry/src/context.ts:257-263`). Neither stack is written to disk; a cell
+   * operation is a fact about this sitting, not about the file.
+   */
+  val undoable: List<NotebookRevision> = emptyList(),
+  /** What an undo took back, ready to be replayed. Cleared by the next operation. */
+  val redoable: List<NotebookRevision> = emptyList(),
 )
+
+/**
+ * The document as it was before one cell operation - the entries on [EditorUiState.undoable].
+ *
+ * Deliberately **not** an [EditorUiState]: the stacks live on the state, so a record holding the
+ * state would hold the stacks and every entry would carry every entry before it. Cells and outputs
+ * are immutable and shared by reference, so an entry costs the list and map spines and nothing
+ * else.
+ *
+ * Three fields and no more, because these are what a cell operation can change. The clipboard, the
+ * selection and the mode are not the document, and JupyterLab's undo does not restore them either -
+ * it `deselectAll()`s afterwards instead.
+ *
+ * Here rather than in [CellUndo] because it is a projection of this state, and the file it would
+ * otherwise sit in holds pure functions like every one of its neighbours.
+ */
+data class NotebookRevision(
+  val cells: List<Cell>,
+  val outputs: Map<String, List<CellOutput>>,
+  val executionCounts: Map<String, Int>,
+)
+
+internal fun EditorUiState.revision() = NotebookRevision(cells, outputs, executionCounts)
 
 /**
  * The state transitions an editor makes, as pure functions.

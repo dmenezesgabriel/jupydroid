@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -84,14 +85,56 @@ class EditorTopBarTest {
     compose.onNodeWithContentDescription("Run all cells").assertDoesNotExist()
   }
 
-  private val renamed = mutableListOf<String>()
+  // --- P2a: undo and redo of cell operations ---
 
-  private fun showTopBar() {
+  /**
+   * Both are on the bar even with nothing to take back, disabled rather than absent.
+   *
+   * A control that appears only once it would work is one nobody discovers, which is the lesson
+   * the cell menu cost three attempts (`docs/DECISIONS.md`). JupyterLab keeps both items in the
+   * Edit menu at all times and gates them with `isEnabled` (`notebook-extension/src/index.ts:4485`).
+   */
+  @Test
+  fun bothAreOnTheBarAndDisabledWithNothingToTakeBack() {
+    showTopBar(canUndo = false, canRedo = false)
+
+    compose.onNodeWithContentDescription("Undo cell operation").assertIsDisplayed().assertIsNotEnabled()
+    compose.onNodeWithContentDescription("Redo cell operation").assertIsDisplayed().assertIsNotEnabled()
+  }
+
+  @Test
+  fun undoBecomesPressableOnceThereIsSomethingToTakeBack() {
+    showTopBar(canUndo = true, canRedo = false)
+
+    compose.onNodeWithContentDescription("Undo cell operation").performClick()
+
+    assertEquals(1, undos)
+    compose.onNodeWithContentDescription("Redo cell operation").assertIsNotEnabled()
+  }
+
+  @Test
+  fun redoBecomesPressableOnceSomethingHasBeenTakenBack() {
+    showTopBar(canUndo = false, canRedo = true)
+
+    compose.onNodeWithContentDescription("Redo cell operation").performClick()
+
+    assertEquals(1, redos)
+  }
+
+  private val renamed = mutableListOf<String>()
+  private var undos = 0
+  private var redos = 0
+
+  private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false) {
     compose.setContent {
       JupyterDroidTheme {
         EditorTopBar(
           title = "Intro to NumPy",
+          canUndo = canUndo,
+          canRedo = canRedo,
           onRename = { renamed += it },
+          onUndo = { undos++ },
+          onRedo = { redos++ },
           onBack = {},
         )
       }

@@ -13,16 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -115,7 +108,11 @@ fun EditorScreen(
       if (isEditorTopBarVisible(state.mode)) {
         EditorTopBar(
           title = state.title,
+          canUndo = state.undoable.isNotEmpty(),
+          canRedo = state.redoable.isNotEmpty(),
           onRename = viewModel::renameNotebook,
+          onUndo = viewModel.edits::undo,
+          onRedo = viewModel.edits::redo,
           onBack = onBack,
         )
       }
@@ -148,7 +145,7 @@ fun EditorScreen(
       onStopCell = viewModel.kernel::stopRunningCell,
       onEditCell = viewModel::editCell,
       completionsAt = viewModel.kernel::completionsAt,
-      onCellAction = viewModel::applyToCell,
+      onCellAction = viewModel.edits::applyTo,
       onCellFocusChanged = viewModel::cellFocusChanged,
       cellInput = cellInput,
       modifier = Modifier.padding(innerPadding),

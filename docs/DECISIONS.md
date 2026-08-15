@@ -260,6 +260,48 @@ Read out of `packages/notebook/src/actions.tsx` and `packages/cells/src/model.ts
 
 Mime-bundle preference order is JupyterLab's `defaultRank`, not taste.
 
+### There are two undos, and a cell operation never restores text
+
+The reference declares four commands, not two: `notebook:undo-cell-action` / `redo-cell-action`
+reach `NotebookActions.undo/redo` and unwind the *document's* stack, while `notebook:undo` /
+`notebook:redo` reach `cell.editor?.undo()` and unwind the *editor's*
+(`packages/notebook-extension/src/index.ts:280-286`, `:4476-4547`). P2a built the first pair; the
+second is already ours, because Compose's `TextFieldState` carries its own history exactly as
+CodeMirror carries the reference's.
+
+**So an undo restores structure and keeps the source of every cell that is still there.** The
+record supplies a source only for the cells it is bringing back. Without that rule the sequence
+"delete a cell, type forty lines into another one, undo" loses the forty lines — a whole-document
+record cannot tell a cell it is *restoring* from one it would be *reverting*. Measured on both
+devices with `TYPED` standing in for the forty lines (`evidence/p2a-undo-cell-operation/`).
+
+**The undoable unit is one cell operation**, which is `CellEdits.applying()` — the same boundary as
+the reference's `sharedModel.transact { }`, and why `deleteCells` creates its replacement cell
+*inside* the transaction (`actions.tsx:3391`). Which operations count needs no list: an entry is
+recorded when the document actually changed, which is Yjs's own rule and covers `Copy` (clipboard
+only) and every stale-id no-op for free. The stack starts empty per opened document, as
+`Context.initialize()`'s `clearUndoHistory()` does (`packages/docregistry/src/context.ts:257-263`).
+
+**One adaptation, and it is Clear Outputs.** There, `clearExecution` deletes the `execution`
+metadata — tracked, so an entry exists — while the outputs themselves are not tracked at all
+(*"output changes are not tracked by the undo manager"*, `actions.tsx`, `Private.restoreExecution`),
+so `Z` restores nothing a user can see. That is Yjs scoping rather than a decision. Here the entry
+restores the outputs and the count with it, because on a phone "Clear outputs" is one row above
+"Delete" in a thirteen-row sheet, and a control that lights up and visibly does nothing teaches the
+user that the control lies.
+
+**Undo is a document action, so it lives on the app bar** — not on `NotebookBar`, which is what you
+ask the *kernel*. The reference files it under Edit and the notebook's own context menu, never the
+notebook toolbar, and binds `Z` in command mode only
+(`notebook-extension/schema/tracker.json:31-35`, `:341-349`, `:572-648`). The icons are read out of
+`ui-components/style/icons/…/undo.svg`, whose path is Material's `AutoMirrored.Undo` verbatim.
+
+**A control's name goes on the button, not on the icon inside it.** `enabled` lands on the
+`IconButton`'s accessibility node and a `contentDescription` on the `Icon` lands on a *child* of
+it, so naming the icon leaves the label and the state on two different nodes — measured, not
+reasoned: a flow asking for the disabled control found a node reporting `enabled=true` with a
+disabled parent one level up.
+
 ---
 
 ## Editor
