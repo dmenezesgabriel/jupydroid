@@ -156,6 +156,7 @@ fun MainNavigation(
             workspaceRepository = appContainer.workspaceRepository,
             kernelGateway = appContainer.kernelGateway,
             applicationScope = appContainer.applicationScope,
+            activeCellRuns = appContainer.activeCellRuns,
             onBack = { backStack.removeLastOrNull() },
             onNotebookMoved = { moved -> openNotebookId = moved },
           )

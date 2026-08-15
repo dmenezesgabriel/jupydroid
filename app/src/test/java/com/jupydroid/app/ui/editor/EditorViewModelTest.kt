@@ -4,6 +4,7 @@ import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
@@ -36,6 +37,7 @@ class EditorViewModelTest {
       workspaceRepository = FakeWorkspaceRepository(),
       kernelGateway = FakeKernelGateway(),
       applicationScope = this,
+      activeCellRuns = ActiveCellRuns(),
     )
     val collector = launch { viewModel.uiState.collect {} }
     advanceUntilIdle()
@@ -128,7 +130,8 @@ class EditorViewModelTest {
     val repository = FakeNotebookRepository()
     launch { repository.saveNotebook(Notebook("nb-1", "Data", "python3", listOf(codeCell))) }
     advanceUntilIdle()
-    val viewModel = EditorViewModel("nb-1", repository, FakeWorkspaceRepository(), FakeKernelGateway(), this)
+    val viewModel =
+      EditorViewModel("nb-1", repository, FakeWorkspaceRepository(), FakeKernelGateway(), this, ActiveCellRuns())
     advanceUntilIdle()
 
     viewModel.kernel.runCell(codeCell)

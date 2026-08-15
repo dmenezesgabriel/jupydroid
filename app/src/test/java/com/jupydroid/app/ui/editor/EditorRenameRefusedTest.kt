@@ -4,6 +4,7 @@ import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
@@ -56,6 +57,7 @@ class EditorRenameRefusedTest {
       workspaceRepository = FakeWorkspaceRepository(),
       kernelGateway = FakeKernelGateway(),
       applicationScope = CoroutineScope(UnconfinedTestDispatcher()),
+      activeCellRuns = ActiveCellRuns(),
     )
 
   /** Answers reads, and refuses every rename the way the disk repository refuses a bad name. */

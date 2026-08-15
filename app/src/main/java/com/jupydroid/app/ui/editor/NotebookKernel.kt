@@ -1,17 +1,21 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
-import com.jupydroid.app.domain.port.KernelSession
 import java.time.Clock
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -23,12 +27,14 @@ import kotlinx.coroutines.launch
  * 11 of 11), and the answer to that is to find the object that wants to exist rather than raise
  * the threshold; it is the same call that produced [NotebookSaveDebounce].
  *
- * It owns the [KernelSession], which is why completion lives here despite not being execution:
- * the session is the thing all three need, and splitting on "is it a run" would have put the
- * session in one object and a user of it in another.
+ * It owns the [NotebookKernelSession], which is why completion lives here despite not being
+ * execution: the session is the thing all three need, and splitting on "is it a run" would have
+ * put the session in one object and a user of it in another. The session's own half - which
+ * kernel, and getting another when that one's server has stopped - is next door, for the same
+ * reason this class exists.
  *
  * ```
- * val kernel = NotebookKernel(uiState, kernelGateway, viewModelScope, persist = ::persist)
+ * val kernel = NotebookKernel(uiState, kernelGateway, viewModelScope, runs, persist = ::persist)
  * kernel.runCell(cell)
  * kernel.close(applicationScope)   // on the way out
  * ```
@@ -37,12 +43,18 @@ class NotebookKernel(
   private val uiState: MutableStateFlow<EditorUiState>,
   private val kernelGateway: KernelGateway,
   private val scope: CoroutineScope,
+  /**
+   * A run is counted here for as long as it lasts, opening the kernel included - see
+   * [ActiveCellRuns] for why the kernel starting has to be part of it.
+   */
+  private val activeCellRuns: ActiveCellRuns,
   /** Writing belongs to the document half; this only says when there is something to write. */
   private val persist: suspend () -> Unit,
   /** Injected so a test can assert on a run's duration without waiting for one. */
   private val clock: Clock = Clock.systemUTC(),
 ) {
-  private var session: KernelSession? = null
+  /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
+  private val session = NotebookKernelSession(kernelGateway, BASE_SPACE) { uiState.value.notebookId }
 
   /** Set while an interrupt is in flight, so the stop is reported as cancelled and not as error. */
   private var interrupting: String? = null
@@ -86,7 +98,7 @@ class NotebookKernel(
     // report a KeyboardInterrupt through the ordinary output path. This is what tells the stop
     // apart from the user's own code raising.
     interrupting = running
-    scope.launch { session?.let { kernelGateway.interrupt(it) } }
+    scope.launch { session.opened?.let { kernelGateway.interrupt(it) } }
   }
 
   /**
@@ -101,7 +113,7 @@ class NotebookKernel(
    * one only to restart it would boot a runtime the user did not ask for.
    */
   fun restart(andRunAll: Boolean = false) {
-    val open = session ?: return
+    val open = session.opened ?: return
     scope.launch {
       kernelGateway.restart(open)
       // Whatever was in flight died with the process; anything finished is history and stays.
@@ -122,7 +134,7 @@ class NotebookKernel(
    */
   @Suppress("SwallowedException") // a kernel that cannot answer has nothing to say, which is not an error
   suspend fun completionsAt(code: String, cursorOffset: Int): CompletionResult {
-    val open = session ?: return CompletionResult.NONE
+    val open = session.opened ?: return CompletionResult.NONE
     return try {
       kernelGateway.complete(open, code, cursorOffset)
     } catch (e: IllegalStateException) {
@@ -138,15 +150,23 @@ class NotebookKernel(
    * false (`packages/apputils/src/sessioncontext.tsx:679-709`).
    */
   fun close(on: CoroutineScope) {
-    val open = session ?: return
-    session = null
+    val open = session.forget() ?: return
     on.launch { kernelGateway.disconnect(open) }
   }
 
-  /** Returns whether the cell finished without raising, which is what [runAll] gates on. */
-  private suspend fun execute(cell: Cell): Boolean {
+  /**
+   * Returns whether the cell finished without raising, which is what [runAll] gates on.
+   *
+   * The whole of it counts as a run in flight, **opening the kernel included**: on a cold app that
+   * is the Space installing, the server starting and the kernel starting, and P1c's backstop must
+   * not read "nothing is running" through the slowest part of a run
+   * (`evidence/p1c-app-death-backstop/`).
+   */
+  private suspend fun execute(cell: Cell): Boolean = activeCellRuns.whileRunning { run(cell) }
+
+  private suspend fun run(cell: Cell): Boolean {
     uiState.update { it.startingRun(cell.id, at = now()) }
-    kernelGateway.execute(openSession(), cell.id, cell.source)
+    eventsFor(cell)
       .catch { failure -> emit(kernelFailure(cell.id, failure)) }
       .collect { event -> uiState.update { state -> state.after(event) } }
 
@@ -162,20 +182,12 @@ class NotebookKernel(
     return !raised && !cancelled
   }
 
-  private fun now(): Instant = clock.instant()
+  /** The cell's events, on a session [NotebookKernelSession] re-opens if its server has gone. */
+  private fun eventsFor(cell: Cell): Flow<KernelEvent> = flow {
+    emitAll(session.reopeningIfStale { open -> kernelGateway.execute(open, cell.id, cell.source) })
+  }
 
-  /**
-   * The notebook's own path goes to the kernel, because that is what gives the kernel a working
-   * directory - so a cell writing `data.csv` writes it beside the notebook, which is the whole
-   * point of the workspace being the kernel's `HOME` (X1a).
-   *
-   * Read from the state rather than captured at construction: since X1b the id *is* the path and
-   * a rename moves it. The kernel keeps the directory it started in either way - a process's cwd
-   * is fixed once it is running - which is also what happens in the reference, where a rename
-   * retitles the session and leaves the running kernel where it was.
-   */
-  private suspend fun openSession(): KernelSession =
-    session ?: kernelGateway.connect(BASE_SPACE, uiState.value.notebookId).also { session = it }
+  private fun now(): Instant = clock.instant()
 
   private companion object {
     /** Step 17 introduces real Spaces; until then every notebook runs in the base one. */

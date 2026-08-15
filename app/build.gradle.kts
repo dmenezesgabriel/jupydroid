@@ -89,6 +89,9 @@ dependencies {
     // Arch Components
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // P1c: process-wide lifecycle events. Neither runtime-compose nor viewmodel-compose gives
+    // ON_STOP for the whole process; ProcessLifecycleOwner is the only one that does.
+    implementation(libs.androidx.lifecycle.process)
 
     // Compose
     implementation(libs.androidx.compose.ui)

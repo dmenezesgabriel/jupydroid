@@ -2,9 +2,11 @@ package com.jupydroid.app.data.space
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
+import com.jupydroid.app.domain.port.StaleKernelSessionException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -43,13 +45,43 @@ class BaseSpaceKernelGatewayTest {
    */
   @Test
   fun connect_startsAFreshServerWhenThePreviousOneIsNoLongerRunning() = runTest {
-    val launcher = RecordingServerLauncher(diesAfterStart = true)
+    val launcher = RecordingServerLauncher(diesAfterFirstStart = true)
     val gateway = gateway(launcher)
 
     gateway.connect(SPACE, "Analysis.ipynb")
     gateway.connect(SPACE, "Analysis.ipynb")
 
     assertEquals(2, launcher.startCount)
+  }
+
+  /**
+   * P1c: the other half of a server that stopped. P1a gets a fresh server; the sessions the
+   * *previous* one issued still point at kernels that no longer exist, and the fresh server
+   * answers the websocket upgrade with 404 - measured on the tablet, in
+   * `evidence/p1c-app-death-backstop/stale-session-404.txt`. The gateway knows which server
+   * issued what, so it says so rather than letting the caller find out from a protocol error.
+   */
+  @Test
+  fun execute_refusesASessionTheLiveServerNeverIssued() = runTest {
+    val gateway = gateway(RecordingServerLauncher(diesAfterFirstStart = true))
+    val stale = gateway.connect(SPACE, "Analysis.ipynb")
+
+    val failure = runCatching { gateway.execute(stale, "c1", "2 + 2").toList() }
+
+    assertTrue(
+      "expected a stale session to be refused, got ${failure.exceptionOrNull()}",
+      failure.exceptionOrNull() is StaleKernelSessionException,
+    )
+  }
+
+  @Test
+  fun connect_issuesASessionTheServerItStartedKnows() = runTest {
+    val gateway = gateway(RecordingServerLauncher(diesAfterFirstStart = true))
+    gateway.connect(SPACE, "Analysis.ipynb") // stranded when the first server dies
+
+    val fresh = gateway.connect(SPACE, "Analysis.ipynb")
+
+    assertEquals(listOf(KernelEvent.Idle), gateway.execute(fresh, "c1", "2 + 2").toList().takeLast(1))
   }
 
   /**
@@ -109,8 +141,8 @@ class BaseSpaceKernelGatewayTest {
 
   private inner class RecordingServerLauncher(
     private val failWith: Exception? = null,
-    /** Simulates the server process dying between connects. */
-    private val diesAfterStart: Boolean = false,
+    /** Simulates the first server process dying; the one started after it survives. */
+    private val diesAfterFirstStart: Boolean = false,
   ) : ServerLauncher {
     var startCount = 0
       private set
@@ -124,7 +156,7 @@ class BaseSpaceKernelGatewayTest {
 
     override suspend fun stop() = Unit
 
-    override fun isRunning(): Boolean = !diesAfterStart && startCount > 0
+    override fun isRunning(): Boolean = startCount > if (diesAfterFirstStart) 1 else 0
   }
 
   private companion object {

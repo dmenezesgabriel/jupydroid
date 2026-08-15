@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# P1c part 4: run again after the idle background stopped the server.
+#
+# `stopApp: false` for the reason part 2 gives, and here it is the harder case: the app process
+# survives holding a session whose server and kernel are gone. Running must bring a fresh server
+# and a fresh kernel back without the user restarting anything.
+#
+# The second cell, not the first: `42` is still on screen from the run that completed in the
+# background, so an answer nothing has produced yet is the only one that proves a kernel ran.
+# TABLET ONLY: `54` is a real kernel's answer.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Run cell"
+    index: 1
+# 120 s: the server is cold after stopping, so this pays the full cold start again.
+- extendedWaitUntil:
+    visible: "54"
+    timeout: 120000
+- takeScreenshot: 06-kernel-back-after-backstop

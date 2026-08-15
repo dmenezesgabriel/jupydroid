@@ -1,0 +1,31 @@
+appId: com.jupydroid.app
+---
+# P1c part 1: background the app while a cell is still running.
+#
+# The cell sleeps 30 s, so it is *in flight* when the Home press lands. The app-death
+# backstop must not touch the server while a cell runs: the cell completes in the
+# background, and part 2 reopens to find the answer.
+# TABLET ONLY: the cell must run against the real kernel on the arm64 tablet; the x86_64
+# emulator's FakeKernelGateway echoes the source and cannot produce "42".
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Backstop.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Backstop.ipynb"
+- assertVisible: ".*time\\.sleep\\(30\\).*"
+- takeScreenshot: 01-notebook-open
+- tapOn:
+    text: "Run cell"
+    index: 0
+# The star bracket is the cell's own "working" mark, shown from before the first frame
+# returns - so a Home press after it is provably mid-run, not mid-queue.
+- extendedWaitUntil:
+    visible: "\\[\\*\\]"
+    timeout: 60000
+- takeScreenshot: 02-run-in-flight
+- pressKey: Home
+- takeScreenshot: 03-backgrounded

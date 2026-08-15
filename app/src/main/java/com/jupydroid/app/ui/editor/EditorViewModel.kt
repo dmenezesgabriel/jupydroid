@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
@@ -50,6 +51,11 @@ class EditorViewModel(
    * (`ViewModel.jvm.kt:66-68`). Work launched on `viewModelScope` there would never run.
    */
   private val applicationScope: CoroutineScope,
+  /**
+   * Only written to, and only by [kernel]: it is the app's count of runs in flight, and what P1c's
+   * backstop reads before it stops the server under a backgrounded computation.
+   */
+  activeCellRuns: ActiveCellRuns,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -60,7 +66,8 @@ class EditorViewModel(
   private var notebookIsGone = false
 
   /** Run, interrupt and complete. Driven straight from the screen; see [NotebookKernel]. */
-  val kernel = NotebookKernel(_uiState, kernelGateway, viewModelScope, persist = { persist() })
+  val kernel =
+    NotebookKernel(_uiState, kernelGateway, viewModelScope, activeCellRuns, persist = { persist() })
 
   init {
     viewModelScope.launch {

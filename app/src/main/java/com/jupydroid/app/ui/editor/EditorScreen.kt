@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
@@ -59,6 +60,8 @@ fun EditorScreen(
   workspaceRepository: WorkspaceRepository,
   kernelGateway: KernelGateway,
   applicationScope: CoroutineScope,
+  /** The app's count of runs in flight, which P1c's backstop reads; see [ActiveCellRuns]. */
+  activeCellRuns: ActiveCellRuns,
   onBack: () -> Unit,
   /**
    * Reports where the notebook lives *now*, because a rename moves it.
@@ -71,7 +74,14 @@ fun EditorScreen(
   onNotebookMoved: (String) -> Unit = {},
   modifier: Modifier = Modifier,
   viewModel: EditorViewModel = viewModel {
-    EditorViewModel(notebookId, notebookRepository, workspaceRepository, kernelGateway, applicationScope)
+    EditorViewModel(
+      notebookId,
+      notebookRepository,
+      workspaceRepository,
+      kernelGateway,
+      applicationScope,
+      activeCellRuns,
+    )
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()

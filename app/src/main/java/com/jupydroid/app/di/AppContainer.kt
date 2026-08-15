@@ -4,11 +4,14 @@ import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.data.space.IdleServerStopper
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -41,5 +44,37 @@ class AppContainer(
    * longer-lived than the screen, which is what the composition root is.
    */
   val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-)
+) {
+  /**
+   * Every run the app has in flight, counted from the tap - one object, because the question
+   * "is anything running" is asked of the app and not of one notebook. Handed to every editor and
+   * read by [idleServerStopper].
+   */
+  val activeCellRuns = ActiveCellRuns()
+
+  /**
+   * P1c: stop the server when the app goes away - but only once nothing is still running.
+   * `MainActivity` drives it from `ProcessLifecycleOwner`'s ON_STOP/ON_START; the counter the
+   * stopper reads is moved by every run for the whole of its life, kernel start included, so a
+   * backgrounded computation keeps its server until it finishes.
+   */
+  val idleServerStopper = IdleServerStopper(
+    scope = applicationScope,
+    cellsInFlight = activeCellRuns.inFlight,
+    stopServer = { serverLauncher.stop() },
+    grace = IDLE_STOP_GRACE,
+  )
+
+  private companion object {
+    /**
+     * Half a minute of being left alone, then the server goes. Chosen on the measurement rather
+     * than on taste: bringing it back costs ~1-3 s of server + kernel start and ~7 s tap to
+     * answer on the tablet, against ~130 MB held by a server nobody is using
+     * (`evidence/p1c-app-death-backstop/README.md`, `evidence/step18-lifecycle/`). P1b's own
+     * timeouts already cover the app that is *open* and idle; this one is for the app that is
+     * left.
+     */
+    val IDLE_STOP_GRACE = 30.seconds
+  }
+}
 

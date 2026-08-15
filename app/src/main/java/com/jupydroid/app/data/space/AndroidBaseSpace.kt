@@ -50,12 +50,15 @@ fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher =
  * Null rather than a throwing gateway, so the caller decides: on an x86_64 emulator the
  * runtime cannot work at all (evidence/step8.3/musl-is-arm64-only.txt) and the UI is better
  * served by the fake than by a Run button that always fails.
+ *
+ * [launcher] is the caller's - P1c's backstop stops the same process this starts, so the caller
+ * builds one launcher and shares it between the two.
  */
-fun baseSpaceKernelGateway(context: Context): KernelGateway? {
+fun baseSpaceKernelGateway(context: Context, launcher: JupyterServerLauncher): KernelGateway? {
   if (runCatching { deviceAbi() }.isFailure) return null
   return BaseSpaceKernelGateway(
     installSpace = { baseSpaceInstaller(context).installIfNeeded() },
-    launcher = baseSpaceServerLauncher(context),
+    launcher = launcher,
     gatewayFor = { connection ->
       RealKernelGateway(
         opener = OkHttpKernelSocketOpener(connection),

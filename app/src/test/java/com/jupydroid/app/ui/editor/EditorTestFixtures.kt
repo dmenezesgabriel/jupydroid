@@ -3,15 +3,18 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +74,61 @@ internal class RecordingKernelGateway(
   }
 }
 
+/**
+ * A kernel that takes its time coming up, which on a device is the ordinary case: installing the
+ * Space, starting `jupyter_server` and starting the kernel is the slow part of a run, and the
+ * tablet measured fourteen seconds of it (`evidence/p1c-app-death-backstop/`).
+ */
+internal class SlowToConnectKernelGateway : KernelGateway by FakeKernelGateway() {
+  private val connectable = CompletableDeferred<Unit>()
+
+  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+    connectable.await()
+    return KernelSession(id = "slow-${space.id}", spaceId = space.id, kernelId = "kernel-1")
+  }
+
+  fun letItConnect() = connectable.complete(Unit)
+}
+
+/**
+ * A gateway that refuses the first [refusals] sessions handed back to it, the way
+ * `BaseSpaceKernelGateway` refuses one issued by a server that has since been stopped.
+ */
+internal class StaleSessionKernelGateway(
+  private val refusals: Int,
+  private val fake: FakeKernelGateway = FakeKernelGateway(),
+) : KernelGateway by fake {
+  var connectCount = 0
+    private set
+
+  private var refused = 0
+
+  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+    connectCount++
+    return KernelSession(id = "session-$connectCount", spaceId = space.id, kernelId = "kernel-$connectCount")
+  }
+
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {
+    if (refused < refusals) {
+      refused++
+      throw StaleKernelSessionException(session.id)
+    }
+    return fake.execute(session, cellId, code)
+  }
+}
+
+/** Remembers which document each session was opened for, which a rename changes. */
+internal class RecordingConnectKernelGateway(
+  private val fake: FakeKernelGateway = FakeKernelGateway(),
+) : KernelGateway by fake {
+  val paths = mutableListOf<String>()
+
+  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+    paths += documentPath
+    return fake.connect(space, documentPath)
+  }
+}
+
 /** Named fake for the failure path: connecting is fine, executing never works. */
 internal class UnreachableKernelGateway : KernelGateway by FakeKernelGateway() {
   override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> =
@@ -119,6 +177,8 @@ internal fun TestScope.loadedEditor(
   // The test scope stands in for the application scope, so work that outlives the ViewModel is
   // driven by advanceUntilIdle like everything else.
   applicationScope: CoroutineScope = this,
+  // Only the cases about P1c pass one; every other case ignores what it counts.
+  activeCellRuns: ActiveCellRuns = ActiveCellRuns(),
 ): EditorViewModel {
   launch {
     repository.saveNotebook(Notebook(notebookId, title, "python3", cells))
@@ -126,7 +186,7 @@ internal fun TestScope.loadedEditor(
   advanceUntilIdle()
   // No collector: uiState is a StateFlow, so .value is current without one - and a
   // collector that is never cancelled leaves runTest waiting on it.
-  val viewModel = EditorViewModel(notebookId, repository, workspace, gateway, applicationScope)
+  val viewModel = EditorViewModel(notebookId, repository, workspace, gateway, applicationScope, activeCellRuns)
   advanceUntilIdle()
   return viewModel
 }

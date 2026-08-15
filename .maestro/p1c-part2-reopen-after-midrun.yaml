@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# P1c part 2: come back to the app after the cell completed in the background.
+#
+# **`stopApp: false` is the test, not a detail.** Maestro's `launchApp` force-stops the app
+# first, and a force-stop takes the process, its `ProcessLifecycleOwner` and the pending stop
+# with it - so the flow would prove nothing and the driver's later "the server is gone" check
+# would pass vacuously. This resumes the process that was backgrounded, which is what a user
+# does. The driver asserts the pid did not change.
+#
+# The driver waited for the cell's answer to reach disk before running this, so the run
+# finished while the app was away and there is nothing left to wait for - and the resume lands
+# well inside the stopper's grace, where ON_START cancels the pending stop.
+# TABLET ONLY: `42` is a real kernel's answer (see part 1).
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 30000
+- takeScreenshot: 04-cell-completed-in-background
