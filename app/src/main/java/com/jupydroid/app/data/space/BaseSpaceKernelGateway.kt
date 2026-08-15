@@ -61,7 +61,14 @@ class BaseSpaceKernelGateway(
   override suspend fun disconnect(session: KernelSession) = running().disconnect(session)
 
   private suspend fun running(): KernelGateway = startLock.withLock {
-    started ?: startSpace().also { started = it }
+    // P1a: the cached gateway is only valid while the server it talks to is alive.
+    // Without this check a stopped server leaves every later call talking to a dead port.
+    val cached = started
+    if (cached != null && launcher.isRunning()) {
+      cached
+    } else {
+      startSpace().also { started = it }
+    }
   }
 
   /**

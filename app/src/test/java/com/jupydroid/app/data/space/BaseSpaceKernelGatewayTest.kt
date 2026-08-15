@@ -38,6 +38,21 @@ class BaseSpaceKernelGatewayTest {
   }
 
   /**
+   * P1a: a server that has stopped must not hand the caller a gateway that talks to a
+   * dead port. The next connect starts a fresh server instead of reusing the stale one.
+   */
+  @Test
+  fun connect_startsAFreshServerWhenThePreviousOneIsNoLongerRunning() = runTest {
+    val launcher = RecordingServerLauncher(diesAfterStart = true)
+    val gateway = gateway(launcher)
+
+    gateway.connect(SPACE, "Analysis.ipynb")
+    gateway.connect(SPACE, "Analysis.ipynb")
+
+    assertEquals(2, launcher.startCount)
+  }
+
+  /**
    * Two cells run at once would otherwise each see no server and each start one. The second
    * server would bind a different port and the first would be orphaned.
    */
@@ -92,7 +107,11 @@ class BaseSpaceKernelGatewayTest {
     log = recordingLog,
   )
 
-  private inner class RecordingServerLauncher(private val failWith: Exception? = null) : ServerLauncher {
+  private inner class RecordingServerLauncher(
+    private val failWith: Exception? = null,
+    /** Simulates the server process dying between connects. */
+    private val diesAfterStart: Boolean = false,
+  ) : ServerLauncher {
     var startCount = 0
       private set
 
@@ -105,7 +124,7 @@ class BaseSpaceKernelGatewayTest {
 
     override suspend fun stop() = Unit
 
-    override fun isRunning(): Boolean = startCount > 0
+    override fun isRunning(): Boolean = !diesAfterStart && startCount > 0
   }
 
   private companion object {
