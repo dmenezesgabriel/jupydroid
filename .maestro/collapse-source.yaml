@@ -27,6 +27,7 @@ appId: com.jupydroid.app
 - tapOn:
     text: "Cell actions"
     index: 0
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
 - tapOn: "Cell menu Collapse code"
 # `import math` on its own can only be the placeholder: Maestro matches the whole string, and
 # the field node would read "import math\nanswer = …". So this pair is the fold itself -
@@ -46,6 +47,7 @@ appId: com.jupydroid.app
 - tapOn:
     text: "Cell actions"
     index: 0
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
 - tapOn: "Cell menu Collapse code"
 - assertVisible: "import math"
 # The point of persisting it. stopApp is a real kill, so anything held only in the ViewModel

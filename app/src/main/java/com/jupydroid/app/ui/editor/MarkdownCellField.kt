@@ -60,7 +60,8 @@ fun MarkdownCellField(
   val numberStyle = markdownSourceStyle().copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle)
 
-  ReportEdits(state, onSourceEdited)
+  // No revisions of its own until a markdown cell can be split; see [trackCellSource].
+  trackCellSource(state, source, revision = 0, onSourceEdited = onSourceEdited)
   // This field only exists because someone tapped the rendered cell to edit it, so it takes the
   // caret on arrival. Without this the tap left an unfocused field and the next keystroke went
   // nowhere - a tap that opens an editor you must tap again is half a tap. Invisible to the

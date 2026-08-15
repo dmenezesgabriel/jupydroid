@@ -27,6 +27,7 @@ appId: com.jupydroid.app
 - tapOn:
     text: "Cell actions"
     index: 0
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
 - tapOn: "Cell menu Collapse outputs"
 # The placeholder by its own name, which no source text can collide with. Asserting its
 # *preview* text here was tempting and wrong: `alpha` is in the cell's source too, and the

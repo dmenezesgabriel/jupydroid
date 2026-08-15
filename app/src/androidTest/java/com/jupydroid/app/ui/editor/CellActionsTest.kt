@@ -95,7 +95,49 @@ class CellActionsTest {
     compose.onNodeWithContentDescription("Cell menu Paste below").assertDoesNotExist()
   }
 
+  /**
+   * Split is offered on a code cell and reports [CellAction.Split], which carries nothing: where
+   * to cut is the cell's own editor and arrives beside the action. Not offered on a markdown cell
+   * yet - the rendered half of one has no editor to read a caret from, which is the reference's
+   * own `isEnabled` (`!!activeCell?.editor`).
+   */
+  @Test
+  fun splitIsOfferedOnACodeCellAndNotOnAMarkdownOne() {
+    val chosen = mutableListOf<CellAction>()
+    compose.setContent {
+      CellActions(
+        expanded = true,
+        cell = CODE_CELL,
+        canPaste = false,
+        onDismiss = {},
+        onAction = { chosen += it },
+        presentation = CellActionPresentation.MENU,
+      )
+    }
+
+    compose.onNodeWithContentDescription("Cell menu Split cell").performScrollTo().performClick()
+
+    compose.runOnIdle { assertEquals(listOf(CellAction.Split), chosen) }
+  }
+
+  @Test
+  fun theSheetDoesNotOfferSplitOnAMarkdownCell() {
+    compose.setContent {
+      CellActions(
+        expanded = true,
+        cell = MARKDOWN_CELL,
+        canPaste = false,
+        onDismiss = {},
+        onAction = {},
+        presentation = CellActionPresentation.SHEET,
+      )
+    }
+
+    compose.onNodeWithContentDescription("Cell menu Split cell").assertDoesNotExist()
+  }
+
   private companion object {
     val CODE_CELL = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
+    val MARKDOWN_CELL = Cell(id = "m1", kind = CellKind.MARKDOWN, source = "# notes")
   }
 }

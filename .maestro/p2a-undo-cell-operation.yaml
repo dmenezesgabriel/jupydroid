@@ -45,15 +45,10 @@ appId: com.jupydroid.app
     text: "Cell actions"
     below:
       text: "kept = 1"
-# Scrolled to rather than tapped straight away: Delete is the last of thirteen rows, and on a
-# compact window the sheet shows eleven of them (measured - the twelfth was clipped mid-row at
-# y=616 of a 640dp screen). `scrollUntilVisible` returns at once where it is already on screen,
-# which is what lets one flow drive the sheet and the dropdown alike.
-- scrollUntilVisible:
-    element:
-      text: "Cell menu Delete"
-    direction: DOWN
-    timeout: 10000
+# Scrolled to rather than tapped straight away: Delete is the last row and it is below the fold on
+# both surfaces since P2b made the list fourteen long. Why that needs a subflow is written there.
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- assertVisible: "Cell menu Delete"
 - tapOn: "Cell menu Delete"
 - waitForAnimationToEnd:
     timeout: 5000

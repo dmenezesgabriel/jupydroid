@@ -48,14 +48,11 @@ appId: com.jupydroid.app
 - tapOn:
     text: "Cell actions"
     index: 0
-# Scrolled to first. Below 600dp the actions are a `ModalBottomSheet` and Delete is the last of
-# thirteen rows, so it starts below the fold - the sheet scrolls (U5b made it), but `tapOn` does
-# not. On the tablet dropdown every row is already visible and this settles immediately.
-- scrollUntilVisible:
-    element:
-      text: "Cell menu Delete"
-    direction: DOWN
-    timeout: 10000
+# Delete is the last of fourteen rows since P2b added Split cell, so it starts below the fold on
+# both surfaces. Why a plain `scrollUntilVisible` cannot reach it is written down once, in the
+# subflow.
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- assertVisible: "Cell menu Delete"
 - tapOn: "Cell menu Delete"
 - assertNotVisible: "first = 1"
 - takeScreenshot: 06-cell-deleted

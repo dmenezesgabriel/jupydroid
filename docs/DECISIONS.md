@@ -296,6 +296,51 @@ notebook toolbar, and binds `Z` in command mode only
 (`notebook-extension/schema/tracker.json:31-35`, `:341-349`, `:572-648`). The icons are read out of
 `ui-components/style/icons/…/undo.svg`, whose path is Material's `AutoMirrored.Undo` verbatim.
 
+### Splitting is the one cell operation that reads the editor, and the one whose undo restores text
+
+`splitCell` (`actions.tsx:187-320`) contradicts the obvious answer twice, and both are load-bearing
+here: **the original cell becomes the *last* fragment** — *"The last piece will remain in the
+original cell to preserve kernel connection"* — and **every new cell is created with
+`outputs: undefined`**, so the results and the execution count stay on that last fragment. Neither
+costs anything in this app: the original keeps its id, and `outputs`/`executionCounts`/`executions`
+are all keyed by id. Each fragment is stripped of its own leading and trailing **newlines only**
+(`/^\n+/`, `/\n+$/`) so a fragment cut from inside a block keeps its indentation, and a cell
+mid-run does not hand its `execution` metadata to fragments that never ran. Measured on both
+devices, and on disk: `code-1` — the fixture's id — comes back on the *second* cell, with the
+output and `execution_count: 7` (`evidence/p2b-split-cell/`).
+
+**One adaptation, and it is a narrowing.** The reference splits at *every* selection; a Compose
+`TextFieldState` carries one, so this is two fragments from a caret and three from a range, never
+more.
+
+Three consequences, each a constraint:
+
+- **A cell operation is not always a pure function of the document.** Split needs the caret, which
+  is not in the document at all, and the field's text, which may be *ahead* of it by up to one
+  150 ms debounce — the tap that opens the cell menu can beat the report. So `CellEditorText`
+  travels beside the action and `CellEdits.applying` brings the cell up to it before recording
+  anything. The reference reads its editor for the same reason (`editor.getSelections()` beside
+  `sharedModel.getSource()`). Getting this wrong is not theoretical: the undo record held the
+  stale text, and a test caught it.
+- **P2a's "a cell operation never restores text" gains exactly one exception, and it is not a
+  waiver.** The record now names the cells whose source *the operation itself* rewrote
+  (`NotebookRevision.rewrote`, computed from the before/after diff) and restores only those; every
+  other surviving cell keeps the source it has now. Without it, undoing a split would drop the new
+  fragment and leave the original holding only the half below the caret — the text above it
+  destroyed, with nothing left to undo. The diff is Yjs's own shape: a transaction records the
+  delta, not the document. P2i's find-and-replace inherits it.
+- **A field on screen has to be *told* its text was rewritten, never left to notice.** The same
+  diff bumps `EditorUiState.sourceRevisions`, and `trackCellSource` adopts on a bump. A comparison
+  cannot work: the model is routinely one debounce behind what was just typed, so a field that is
+  merely ahead looks exactly like one that is behind, and adopting on the difference eats
+  keystrokes. Both directions share one `LaunchedEffect` so a report held in the debounce cannot
+  land *after* a rewrite and undo it.
+
+**Split is offered unconditionally on a code cell**, which is the reference's `isEnabled`
+(`!!activeCell?.editor`): a cell whose caret was never placed splits at 0 and gets an empty cell
+above, and an undo takes it back. Not offered on markdown yet — a rendered markdown cell has no
+editor to read a caret from.
+
 **A control's name goes on the button, not on the icon inside it.** `enabled` lands on the
 `IconButton`'s accessibility node and a `contentDescription` on the `Icon` lands on a *child* of
 it, so naming the icon leaves the label and the state on two different nodes — measured, not
@@ -475,6 +520,27 @@ P2j has to make rather than discover.
   `getUnclippedBoundsInRoot` reports coordinates inside it. Anchoring is a screenshot gate.
 - **An index over a scrolling list does not address the cell it names.** `index: 1` counts the
   buttons *rendered*; a narrower window changes which those are.
+- **`scrollUntilVisible` swipes at the centre of the *screen*, not of the thing being scrolled.**
+  That is inside the phone's bottom sheet and **outside** the tablet's dropdown, where it scrolls
+  the notebook *behind* the menu and the menu dismisses itself — the failure capture showed the
+  notebook with no menu on it at all. It went unnoticed while thirteen rows fitted the tablet and
+  surfaced the moment P2b made it fourteen. A swipe at an explicit point inside both surfaces
+  (`90%, 60%`) is the fix, and it lives in one subflow rather than in each of the five flows
+  that need it.
+- **A swipe drags *from* its anchor, so the anchor has to be on the side it is heading away
+  from.** A leftward swipe started on the leftmost key moves nothing - which is how a
+  `while notVisible` loop span 950 times without scrolling the symbol row a pixel. Each step
+  names the key that is rightmost at that stage instead, and is skipped once the target is in
+  view.
+- **The soft keyboard is in the hierarchy, and it prints symbols too.** The tablet's keyboard
+  shows `=` and `]` as hints on its `r` and `y` keys, so a swipe anchored on `"="` matched the
+  *keyboard* rather than the symbol row - and a one-second drag across a keyboard is **glide
+  typing**. It wrote " ya tea" into a cell, and the failure surfaced three steps later as a
+  split in a place nothing on screen explained. Two lessons, and the second is the general one:
+  disambiguate an anchor against the keyboard, and assert a precondition where it is
+  established rather than where it is used.
+- **A caret is placed by driving it, not by tapping at it.** A tap lands where it lands. `←` clamps
+  at offset 0, so twenty of them give a known origin and `→` counts from there.
 
 ---
 

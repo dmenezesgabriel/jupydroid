@@ -117,14 +117,32 @@ private fun <T> Map<String, T>.carryOver(from: String, to: String): Map<String, 
  * (`actions.tsx:3391`) - and this function is that boundary under another name. A fourteenth
  * action becomes undoable by existing; see [recording] for why no list of which ones count.
  */
-internal fun EditorUiState.applying(action: CellAction, cellId: String): EditorUiState =
-  transformed(action, cellId).recording(before = this)
+internal fun EditorUiState.applying(
+  action: CellAction,
+  cellId: String,
+  /** Only [CellAction.Split] reads it; see [CellEditorText] for why it cannot come from the state. */
+  editor: CellEditorText = CellEditorText.NONE,
+): EditorUiState {
+  // The document is brought up to the editor's text *before* the entry is recorded, so the entry
+  // holds what the user can see rather than a copy up to one debounce old. Not an entry of its
+  // own - typing is the other undo, and it has never had one.
+  val current = if (action == CellAction.Split) withSource(cellId, editor.source) else this
+  return current.transformed(action, cellId, editor).recording(before = current)
+}
 
-private fun EditorUiState.transformed(action: CellAction, cellId: String): EditorUiState = when (action) {
+private fun EditorUiState.transformed(
+  action: CellAction,
+  cellId: String,
+  editor: CellEditorText,
+): EditorUiState = when (action) {
   is CellAction.Insert -> withCellInserted(cellId, action.kind, newId = newCellId())
   is CellAction.InsertAbove -> withCellInsertedAbove(cellId, action.kind, newId = newCellId())
   is CellAction.ChangeKind -> withCellKindChanged(cellId, action.kind)
   is CellAction.Merge -> withCellMerged(cellId, action.into, newId = newCellId())
+  // Two ids because a selection cuts into three pieces and a caret into two; the spare is unused,
+  // exactly as a cut code cell's is in `withClipboardPasted`. Minting them here keeps
+  // `withCellSplit` free of id generation like every other transform in the file.
+  CellAction.Split -> withCellSplit(cellId, editor.caret, newIds = List(2) { newCellId() })
   is CellAction.Move -> withCellMoved(cellId, action.move)
   CellAction.Copy -> withCellCopied(cellId)
   CellAction.Cut -> withCellCut(cellId, replacementId = newCellId())

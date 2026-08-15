@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.ui.text.TextRange
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
@@ -338,6 +339,27 @@ class EditorViewModelTest {
 
     assertTrue(viewModel.uiState.value.outputs["c1"].isNullOrEmpty())
     assertEquals(null, viewModel.uiState.value.executionCounts["c1"])
+  }
+
+  // --- P2b: splitting a cell ---
+
+  /**
+   * A split is an edit to the document like any other, so it reaches disk on the same debounce -
+   * and it reaches it holding the **editor's** text, which is what a caret that beat the 150ms
+   * report would otherwise have split against a stale copy.
+   */
+  @Test
+  fun split_cutsTheEditorsTextInTwoAndSavesBoth() = runTest {
+    val repository = FakeNotebookRepository()
+    val viewModel = loadedEditor(repository = repository)
+
+    viewModel.edits.applyTo("c1", CellAction.Split, CellEditorText("print(1)\nprint(2)", TextRange(9)))
+    advanceUntilIdle()
+
+    val saved = repository.readNotebook("nb-1").cells
+    assertEquals(listOf("print(1)", "print(2)"), saved.map { it.source })
+    // The original cell is the last fragment, so its id is the one that stayed.
+    assertEquals("c1", saved.last().id)
   }
 
   // --- P2a: taking a cell operation back ---

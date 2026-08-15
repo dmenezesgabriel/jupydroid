@@ -161,7 +161,7 @@ private fun EditorContent(
   onStopCell: () -> Unit,
   onEditCell: (String, String) -> Unit,
   completionsAt: suspend (String, Int) -> CompletionResult,
-  onCellAction: (String, CellAction) -> Unit,
+  onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
@@ -182,6 +182,7 @@ private fun EditorContent(
             cell = cell,
             outputs = state.outputs[cell.id].orEmpty(),
             executionCount = state.executionCounts[cell.id],
+            sourceRevision = state.sourceRevisions[cell.id] ?: 0,
             execution = state.executionOf(cell.id),
             canPaste = state.clipboard.isNotEmpty(),
             selected = state.selectedCellId == cell.id,
@@ -190,7 +191,7 @@ private fun EditorContent(
             onStop = onStopCell,
             onSourceEdited = { source -> onEditCell(cell.id, source) },
             completionsAt = completionsAt,
-            onCellAction = { action -> onCellAction(cell.id, action) },
+            onCellAction = { action, editor -> onCellAction(cell.id, action, editor) },
             onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
             cellInput = cellInput,
           )
@@ -204,6 +205,7 @@ private fun EditorCell(
   cell: Cell,
   outputs: List<CellOutput>,
   executionCount: Int?,
+  sourceRevision: Int,
   execution: CellExecution?,
   canPaste: Boolean,
   selected: Boolean,
@@ -212,7 +214,7 @@ private fun EditorCell(
   onStop: () -> Unit,
   onSourceEdited: (String) -> Unit,
   completionsAt: suspend (String, Int) -> CompletionResult,
-  onCellAction: (CellAction) -> Unit,
+  onCellAction: (CellAction, CellEditorText) -> Unit,
   onFocusChanged: (Boolean) -> Unit,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
@@ -225,6 +227,13 @@ private fun EditorCell(
   // a field is on screen, so collapsing a cell and expanding it keeps the caret and the typing
   // history instead of re-seeding from the model.
   val field = rememberTextFieldState(cell.source)
+  // Every action carries what this cell's field is holding, read when the action is chosen rather
+  // than when the menu was built. Only Split reads it, and it is the one action that is not a pure
+  // function of the document - see [CellEditorText]. Both surfaces dispatch through here, so the
+  // accessibility context menu gets it too.
+  val act: (CellAction) -> Unit = { action ->
+    onCellAction(action, CellEditorText(field.text.toString(), field.selection))
+  }
   val markdown = cell.kind == CellKind.MARKDOWN
   val stripe = cellStripe(
     selected = selected,
@@ -235,7 +244,7 @@ private fun EditorCell(
   // The whole cell carries its actions for a screen reader, not only the `⋮` that opens them.
   CellFrame(
     stripe = stripe,
-    modifier = modifier.cellCustomActions(cell = cell, canPaste = canPaste, onAction = onCellAction),
+    modifier = modifier.cellCustomActions(cell = cell, canPaste = canPaste, onAction = act),
   ) {
     CellHeader(
       cell = cell,
@@ -244,7 +253,7 @@ private fun EditorCell(
       canPaste = canPaste,
       onRun = if (markdown) ({ rendered.value = true }) else onRun,
       onStop = onStop,
-      onCellAction = onCellAction,
+      onCellAction = act,
     )
     Spacer(modifier = Modifier.height(4.dp))
     // Wrapped so the focus listener sits on the *input area* rather than the whole cell, which
@@ -258,11 +267,13 @@ private fun EditorCell(
         CollapsedCell(
           preview = firstNonEmptyLine(cell.source),
           description = COLLAPSED_SOURCE,
-          onExpand = { onCellAction(CellAction.ToggleSourceHidden) },
+          onExpand = { act(CellAction.ToggleSourceHidden) },
         )
       } else if (cell.kind == CellKind.CODE) {
         CodeCellField(
           state = field,
+          source = cell.source,
+          sourceRevision = sourceRevision,
           onSourceEdited = onSourceEdited,
           completionsAt = completionsAt,
           input = cellInput,
@@ -284,7 +295,7 @@ private fun EditorCell(
     CellOutputs(
       outputs = outputs,
       hidden = cell.outputsHidden,
-      onExpand = { onCellAction(CellAction.ToggleOutputsHidden) },
+      onExpand = { act(CellAction.ToggleOutputsHidden) },
     )
   }
 }

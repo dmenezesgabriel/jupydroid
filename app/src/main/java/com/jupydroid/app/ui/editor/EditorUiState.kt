@@ -82,6 +82,19 @@ data class EditorUiState(
   val undoable: List<NotebookRevision> = emptyList(),
   /** What an undo took back, ready to be replayed. Cleared by the next operation. */
   val redoable: List<NotebookRevision> = emptyList(),
+  /**
+   * How many times a cell operation has rewritten each cell's source - see [CellUndo].
+   *
+   * A cell's `TextFieldState` holds its own copy of the text and is the authority on it while it
+   * is on screen, so a rewrite from outside has to be announced. Comparing the two would not do:
+   * an edit reaches the model on a debounce, so a field that is merely ahead of the model looks
+   * exactly like one that is behind it, and re-seeding on that would revert whatever was typed
+   * while the report was in flight.
+   *
+   * A counter rather than a flag, because two rewrites in a row - split then undo - must each be
+   * a change the field notices. Not persisted: it describes a field in this sitting.
+   */
+  val sourceRevisions: Map<String, Int> = emptyMap(),
 )
 
 /**
@@ -103,9 +116,17 @@ data class NotebookRevision(
   val cells: List<Cell>,
   val outputs: Map<String, List<CellOutput>>,
   val executionCounts: Map<String, Int>,
+  /**
+   * The cells whose source the operation itself rewrote, while leaving them in the notebook.
+   *
+   * The one thing an undo may put back over a live cell's text, and empty for every operation
+   * that only moves cells around. See [CellUndo] for why the distinction is the whole design.
+   */
+  val rewrote: Set<String> = emptySet(),
 )
 
-internal fun EditorUiState.revision() = NotebookRevision(cells, outputs, executionCounts)
+internal fun EditorUiState.revision(rewrote: Set<String> = emptySet()) =
+  NotebookRevision(cells, outputs, executionCounts, rewrote)
 
 /**
  * The state transitions an editor makes, as pure functions.

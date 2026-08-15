@@ -8,7 +8,7 @@ import com.jupydroid.app.domain.model.CellKind
  *
  * Beside [CellEdits] and under the same rules - pure, new ids passed in, a stale id is a no-op.
  * Semantics come from JupyterLab's `NotebookActions`; `CellRestructureTest` cites the line for
- * each, and several are not the obvious answer.
+ * each, and several are not the obvious answer. Merge's inverse is next door in [CellSplit].
  */
 
 fun EditorUiState.withCellInsertedAbove(cellId: String, kind: CellKind, newId: String): EditorUiState {

@@ -15,9 +15,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -26,6 +28,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
@@ -64,6 +67,10 @@ fun CodeCellField(
   state: TextFieldState,
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
+  /** The notebook's copy, which [sourceRevision] decides whether to take. */
+  source: String = state.text.toString(),
+  /** See [trackCellSource]: bumped when a cell operation rewrote this cell's text. */
+  sourceRevision: Int = 0,
   completionsAt: suspend (code: String, cursorOffset: Int) -> CompletionResult = NO_COMPLETIONS,
   highlighter: SyntaxHighlighter = remember { PythonSyntax() },
   typing: InputTransformation = remember { PythonTypingRules() },
@@ -89,7 +96,7 @@ fun CodeCellField(
   // immediately re-offer against the very text it just produced.
   var settled by remember { mutableStateOf<String?>(null) }
 
-  ReportEdits(state, onSourceEdited)
+  trackCellSource(state, source, sourceRevision, onSourceEdited)
 
   // Hands the symbol row this field while the caret is in it. Detach is guarded by identity
   // inside FocusedCellInput, so a cell being left cannot unhook the one just entered.
@@ -153,17 +160,48 @@ private fun caretRect(layout: TextLayoutResult?, cursorOffset: Int, gutter: Dp):
 }
 
 /**
- * Debounced because a highlighter runs on every keystroke anyway; the ViewModel does not also
- * need to hear about each one. `drop(1)` skips the initial value, which would otherwise mark
- * an untouched notebook dirty the moment it opened.
+ * Keeps a field and the notebook in step, in **both** directions.
  *
- * Shared with [MarkdownCellField]: the two fields have nothing else in common, but when an edit
- * is worth telling the ViewModel about is a property of the notebook, not of the language.
+ * *Out:* an edit is reported debounced, because a highlighter runs on every keystroke anyway and
+ * the ViewModel does not also need to hear about each one. `drop(1)` skips the initial value,
+ * which would otherwise mark an untouched notebook dirty the moment it opened.
+ *
+ * *In:* when [revision] changes, a cell operation rewrote this cell's text under it - split, or
+ * the undo of one - and [source] is taken. **A counter and never a comparison:** the model is
+ * routinely one debounce behind whatever was just typed, so a field that is merely ahead looks
+ * exactly like one that is behind, and adopting on the difference would eat keystrokes.
+ *
+ * **Both directions share one effect, and that is the point rather than tidiness.** A report is
+ * held for 150ms before it is sent; a rewrite that arrived in that window would be followed by the
+ * *pre-rewrite* text landing on the notebook and undoing it. Restarting the effect cancels that
+ * pending report, and the `drop(1)` then swallows the adopted value instead of echoing it back.
+ *
+ * Shared with [MarkdownCellField], which has no revisions of its own yet: the two fields have
+ * nothing else in common, but when a field and a notebook disagree is a property of the notebook,
+ * not of the language.
  */
 @Composable
-internal fun ReportEdits(state: TextFieldState, onSourceEdited: (String) -> Unit) {
+internal fun trackCellSource(
+  state: TextFieldState,
+  source: String,
+  revision: Int,
+  onSourceEdited: (String) -> Unit,
+) {
   val report by rememberUpdatedState(onSourceEdited)
-  LaunchedEffect(state) {
+  // Seeded with the revision this field arrived on, so a cell scrolled back into view does not
+  // re-adopt - and so the first composition, where the state was seeded from `source` anyway,
+  // adopts nothing.
+  var adopted by rememberSaveable(state) { mutableIntStateOf(revision) }
+  LaunchedEffect(state, revision) {
+    if (revision != adopted) {
+      adopted = revision
+      // The caret to the start of what arrived: for a split that is the split point, since the
+      // surviving fragment begins exactly where the caret was.
+      state.edit {
+        replace(0, length, source)
+        selection = TextRange(0)
+      }
+    }
     snapshotFlow { state.text.toString() }
       .drop(1)
       .debounce(EDIT_REPORT_MILLIS)

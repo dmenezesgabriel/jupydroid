@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.ui.text.TextRange
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
@@ -226,6 +227,109 @@ class CellUndoTest {
     assertEquals("source of b", undone.cells.first { it.id == "b" }.source)
   }
 
+  /**
+   * **Split is the first operation that rewrites a cell that stays**, and it is why the rule above
+   * needed one exception rather than a waiver. Applied literally, an undo would take the new
+   * fragment away and leave the original holding only the half below the caret - the text above it
+   * destroyed, with nothing left to undo. So the record says which sources the operation *itself*
+   * rewrote and supplies those, which is what the reference's Yjs transaction does by recording
+   * the delta rather than the document.
+   */
+  @Test
+  fun split_isTakenBackWithTheTextItMovedIntoTheNewCell() {
+    val split = stateOf("a", "b").applying(CellAction.Split, "a", editing("one\ntwo", 4))
+    assertEquals(listOf("one", "two"), split.cells.take(2).map { it.source })
+
+    val undone = split.undoneCellOperation()
+
+    assertEquals(listOf("a", "b"), undone.cells.map { it.id })
+    assertEquals("one\ntwo", undone.cells.first().source)
+  }
+
+  /**
+   * The **editor's** text is what gets cut, and the model's copy is allowed to be behind it: an
+   * edit is reported on a 150ms debounce (`CodeCellField.EDIT_REPORT_MILLIS`), so the tap that
+   * opens the cell menu can beat it. `applying` brings the cell up to the editor first, which is
+   * also what puts the right text on the undo record - the case that caught this.
+   */
+  @Test
+  fun split_cutsWhatTheEditorHolds_notTheModelsCopyFromOneDebounceAgo() {
+    val split = stateOf("a").applying(CellAction.Split, "a", editing("typed\nahead", 6))
+
+    assertEquals(listOf("typed", "ahead"), split.cells.map { it.source })
+    assertEquals("typed\nahead", split.undoneCellOperation().cells.single().source)
+  }
+
+  /** P2a's rule survives the exception: only the cells the *operation* rewrote are restored. */
+  @Test
+  fun split_undo_stillKeepsTypingDoneInAnotherCellAfterwards() {
+    val typed = stateOf("a", "b")
+      .applying(CellAction.Split, "a", editing("one\ntwo", 4))
+      .withSource("b", "forty lines")
+
+    val undone = typed.undoneCellOperation()
+
+    assertEquals("forty lines", undone.cells.first { it.id == "b" }.source)
+    assertEquals("one\ntwo", undone.cells.first { it.id == "a" }.source)
+  }
+
+  @Test
+  fun split_redo_cutsItAgainAtTheSamePlace() {
+    val redone = stateOf("a")
+      .applying(CellAction.Split, "a", editing("one\ntwo", 4))
+      .undoneCellOperation()
+      .redoneCellOperation()
+
+    assertEquals(listOf("one", "two"), redone.cells.map { it.source })
+  }
+
+  // --- the field's revision -------------------------------------------------------------
+
+  /**
+   * A `TextFieldState` on screen holds its own copy of the text, so a cell operation that rewrites
+   * a surviving cell has to say so - the field cannot tell an external rewrite from the debounced
+   * echo of its own typing. The counter is bumped from the same before/after diff the record uses,
+   * so a later operation that rewrites a source gets this for nothing.
+   */
+  @Test
+  fun split_bumpsTheRevisionOfTheCellItRewroteAndNoOther() {
+    val split = stateOf("a", "b").applying(CellAction.Split, "a", editing("one\ntwo", 4))
+
+    assertEquals(1, split.sourceRevisions["a"])
+    assertNull(split.sourceRevisions["b"])
+  }
+
+  /** Undo rewrites it back, so the field has to be told a second time. */
+  @Test
+  fun undoingASplitBumpsTheRevisionAgain() {
+    val undone = stateOf("a")
+      .applying(CellAction.Split, "a", editing("one\ntwo", 4))
+      .undoneCellOperation()
+
+    assertEquals(2, undone.sourceRevisions["a"])
+  }
+
+  /**
+   * Typing must never bump one: the field *is* the source of that change, and re-seeding it from
+   * the model would revert whatever was typed during the 150ms the report was in flight.
+   */
+  @Test
+  fun typingBumpsNoRevision() {
+    val typed = stateOf("a").withSource("a", "typed")
+
+    assertTrue(typed.sourceRevisions.isEmpty())
+  }
+
+  /** An operation that moves cells around without rewriting one leaves every field alone. */
+  @Test
+  fun anOperationThatRewritesNoSourceBumpsNothing() {
+    val state = stateOf("a", "b")
+
+    assertTrue(state.applying(CellAction.Move(CellMove.UP), "b").sourceRevisions.isEmpty())
+    assertTrue(state.applying(CellAction.Delete, "b").sourceRevisions.isEmpty())
+    assertTrue(state.applying(CellAction.Duplicate, "a").sourceRevisions.isEmpty())
+  }
+
   /** A selection naming a cell the undo removed is worse than none - `withSelectionClamped`. */
   @Test
   fun undo_dropsASelectionTheRestoreLeftPointingAtNothing() {
@@ -261,4 +365,7 @@ class CellUndoTest {
 
   private fun EditorUiState.withCount(cellId: String, count: Int) =
     copy(executionCounts = executionCounts + (cellId to count))
+
+  /** What the cell's own field is holding, which is the only thing [CellAction.Split] reads. */
+  private fun editing(source: String, caret: Int) = CellEditorText(source, TextRange(caret))
 }

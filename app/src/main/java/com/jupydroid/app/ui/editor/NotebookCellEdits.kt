@@ -31,13 +31,16 @@ class NotebookCellEdits(
   private val save: NotebookSaveDebounce,
 ) {
   /**
-   * Everything the cell menu offers, through one entry point - so a fourteenth action cannot reach
+   * Everything the cell menu offers, through one entry point - so a fifteenth action cannot reach
    * the menu and stop there. Which ids are minted is [CellEdits.applying]'s business.
+   *
+   * [editor] is what the cell's own text field is holding, which only the composable that owns it
+   * can say - see [CellEditorText]. Every action but [CellAction.Split] ignores it.
    */
-  fun applyTo(cellId: String, action: CellAction) {
+  fun applyTo(cellId: String, action: CellAction, editor: CellEditorText = CellEditorText.NONE) {
     // Clamped after every transform, not only after Delete: it costs nothing, and a transform
     // added later cannot forget to.
-    uiState.update { it.applying(action, cellId).withSelectionClamped() }
+    uiState.update { it.applying(action, cellId, editor).withSelectionClamped() }
     save.schedule()
   }
 

@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# Brings the bottom of the cell menu into view, on either surface it is drawn on.
+#
+# **Not a flow.** No driver runs this; it is called with `runFlow` by the five flows that reach a
+# row near the end of the list, and it exists so the reasoning below is written once instead of
+# five times.
+#
+# **`scrollUntilVisible` cannot do this.** It swipes at the centre of the *screen*, which is inside
+# the phone's `ModalBottomSheet` and **outside** the tablet's `DropdownMenu` - where it scrolled the
+# notebook behind the menu and the menu dismissed itself, the failure capture showing no menu at
+# all. That was invisible while the list was thirteen rows and every one fitted the tablet; P2b's
+# `Split cell` made it fourteen and Delete went below the fold on both.
+#
+# `90%, 60%` is inside both: the dropdown hugs the right edge and the sheet spans the width.
+#
+# Four swipes rather than a loop, because both ends are safe. At the end of the list another swipe
+# does nothing, and UP is never the dismiss gesture DOWN is.
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: "90%, 60%"
+          end: "90%, 15%"
+          duration: 800
