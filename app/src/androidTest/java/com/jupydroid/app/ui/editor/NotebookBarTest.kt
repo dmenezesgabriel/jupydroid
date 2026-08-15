@@ -95,10 +95,14 @@ class NotebookBarTest {
       JupyterDroidTheme {
         NotebookBar(
           busy = busy,
+          notebookTitle = "Data",
           onRunAll = {},
           onInterrupt = {},
           onRestart = { restarts += "restart" },
           onRestartAndRunAll = { restarts += "restart-and-run-all" },
+          // The shutdown half is `NotebookBarShutdownTest`'s; this suite is about the restarts.
+          onShutdown = {},
+          onCloseAndShutdown = {},
         )
       }
     }

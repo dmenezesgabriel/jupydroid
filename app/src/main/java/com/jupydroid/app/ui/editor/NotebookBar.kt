@@ -1,13 +1,17 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,20 +36,31 @@ import androidx.compose.ui.Modifier
  * At the bottom rather than the top because it is reached with a thumb, and `imePadding` because
  * it would otherwise sit under the keyboard the moment a cell is being edited.
  *
+ * **Four buttons and a menu**, not six buttons. The two ways of ending a kernel are where the
+ * reference keeps them - the Kernel menu (`packages/mainmenu-extension/src/index.ts:690`,
+ * `kernelUsers.shutdownKernel`), never the notebook toolbar - and a fifth and sixth icon on a
+ * phone's bottom bar is where the thumb stops being able to tell them apart.
+ *
  * ```
- * NotebookBar(busy = state.runningCellId != null, kernel = viewModel.kernel)
+ * NotebookBar(busy = state.runningCellId != null, notebookTitle = state.title, …)
  * ```
  */
 @Composable
 internal fun NotebookBar(
   busy: Boolean,
+  /** Named in the close confirmation, the way the reference's dialog names the file it will close. */
+  notebookTitle: String,
   onRunAll: () -> Unit,
   onInterrupt: () -> Unit,
   onRestart: () -> Unit,
   onRestartAndRunAll: () -> Unit,
+  onShutdown: () -> Unit,
+  onCloseAndShutdown: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   var confirming by remember { mutableStateOf<RestartRequest?>(null) }
+  var closeConfirming by remember { mutableStateOf(false) }
+  var kernelMenuOpen by remember { mutableStateOf(false) }
 
   BottomAppBar(modifier = modifier.imePadding()) {
     // Disabled while a cell runs: a second Run All would queue every cell again behind the one
@@ -64,6 +79,26 @@ internal fun NotebookBar(
     IconButton(onClick = { confirming = RestartRequest.RESTART_AND_RUN_ALL }) {
       RestartAndRunAllIcon()
     }
+    // Boxed with its menu, which anchors to its parent layout node: left in the bar's own Row a
+    // DropdownMenu opens at the far left, a whole bar away from the button that was tapped. The
+    // same lesson `CellHeader` records.
+    Box {
+      IconButton(onClick = { kernelMenuOpen = true }) {
+        Icon(Icons.Filled.MoreVert, contentDescription = "Kernel actions")
+      }
+      KernelActions(
+        expanded = kernelMenuOpen,
+        onDismiss = { kernelMenuOpen = false },
+        onShutdown = {
+          kernelMenuOpen = false
+          onShutdown()
+        },
+        onCloseAndShutdown = {
+          kernelMenuOpen = false
+          closeConfirming = true
+        },
+      )
+    }
   }
 
   confirming?.let { request ->
@@ -76,6 +111,61 @@ internal fun NotebookBar(
       },
     )
   }
+
+  if (closeConfirming) {
+    CloseAndShutDownDialog(
+      notebookTitle = notebookTitle,
+      onDismiss = { closeConfirming = false },
+      onConfirm = {
+        closeConfirming = false
+        onCloseAndShutdown()
+      },
+    )
+  }
+}
+
+/**
+ * The two ways of ending a kernel, as menu items rather than buttons.
+ *
+ * Only shutdown is here. Interrupt and restart are on the bar because they are what a running
+ * notebook needs at a thumb's reach; ending the kernel is a decision, and the reference files it
+ * under a menu for the same reason.
+ */
+@Composable
+private fun KernelActions(
+  expanded: Boolean,
+  onDismiss: () -> Unit,
+  onShutdown: () -> Unit,
+  onCloseAndShutdown: () -> Unit,
+) {
+  DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+    // The reference's own labels, ellipsis included - it is what says the second one will ask.
+    DropdownMenuItem(text = { Text("Shut Down Kernel") }, onClick = onShutdown)
+    DropdownMenuItem(text = { Text("Close and Shut Down Notebook…") }, onClick = onCloseAndShutdown)
+  }
+}
+
+/**
+ * The confirmation, in the reference's own words: *"Shut down the notebook?"* over *"Are you sure
+ * you want to close %1?"* (`packages/notebook-extension/src/index.ts:3196-3205`).
+ *
+ * Only this half of the pair asks. `notebook:shutdown-kernel` executes on the spot, and the
+ * difference is not an oversight there: shutting the kernel down leaves the notebook on screen
+ * with its outputs, where closing takes it away as well.
+ */
+@Composable
+private fun CloseAndShutDownDialog(notebookTitle: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text("Shut down the notebook?") },
+    text = { Text("Are you sure you want to close \"$notebookTitle\"?") },
+    confirmButton = {
+      TextButton(onClick = onConfirm) {
+        Text("Shut Down", color = MaterialTheme.colorScheme.error)
+      }
+    },
+    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+  )
 }
 
 /**

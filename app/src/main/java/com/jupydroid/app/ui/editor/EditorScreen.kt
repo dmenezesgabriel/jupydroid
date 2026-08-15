@@ -129,10 +129,15 @@ fun EditorScreen(
       } else {
         NotebookBar(
           busy = state.runningCellId != null,
+          notebookTitle = state.title,
           onRunAll = viewModel.kernel::runAll,
           onInterrupt = viewModel.kernel::stopRunningCell,
           onRestart = { viewModel.kernel.restart() },
           onRestartAndRunAll = { viewModel.kernel.restart(andRunAll = true) },
+          onShutdown = { viewModel.kernel.shutdown() },
+          // The close is the shutdown's continuation rather than a second act, so it runs after
+          // the session has actually ended - `notebook:close-and-shutdown` awaits it too.
+          onCloseAndShutdown = { viewModel.kernel.shutdown(then = onBack) },
         )
       }
     },

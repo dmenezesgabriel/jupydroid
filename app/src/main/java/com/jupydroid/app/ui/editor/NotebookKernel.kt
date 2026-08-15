@@ -2,36 +2,32 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
-import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
-import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import java.time.Clock
-import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * The notebook's kernel, and everything the notebook asks it: run a cell, interrupt, complete.
+ * The notebook's handle on its kernel: run a cell, restart it, end it, ask it what it knows.
  *
  * Split out of `EditorViewModel` because those are one responsibility and the document - load,
  * edit, rename, reshape, save - is a different one. detekt said so first (`TooManyFunctions` at
  * 11 of 11), and the answer to that is to find the object that wants to exist rather than raise
  * the threshold; it is the same call that produced [NotebookSaveDebounce].
  *
+ * It said so again when [shutdown] arrived, and the seam the second time was *running cells* -
+ * a queue, a stop in flight and a clock, none of which the rest of this needs. That is
+ * [NotebookCellRuns], next door; what stays here is the session and what is done **to** the
+ * kernel. The three run methods are kept on this class rather than exposing the collaborator,
+ * because "the notebook's kernel" is the one handle every screen and test already holds.
+ *
  * It owns the [NotebookKernelSession], which is why completion lives here despite not being
- * execution: the session is the thing all three need, and splitting on "is it a run" would have
- * put the session in one object and a user of it in another. The session's own half - which
- * kernel, and getting another when that one's server has stopped - is next door, for the same
- * reason this class exists.
+ * execution: the session is the thing all of it needs, and splitting on "is it a run" alone would
+ * have put the session in one object and a user of it in another.
  *
  * ```
  * val kernel = NotebookKernel(uiState, kernelGateway, viewModelScope, runs, persist = ::persist)
@@ -56,50 +52,17 @@ class NotebookKernel(
   /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
   private val session = NotebookKernelSession(kernelGateway, BASE_SPACE) { uiState.value.notebookId }
 
-  /** Set while an interrupt is in flight, so the stop is reported as cancelled and not as error. */
-  private var interrupting: String? = null
+  private val runs =
+    NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, persist, clock)
 
-  /**
-   * Runs one cell and streams its output into the state as it arrives, so a long-running
-   * cell shows what it has printed rather than nothing until it finishes.
-   */
-  fun runCell(cell: Cell) {
-    scope.launch { execute(cell) }
-  }
+  /** @see NotebookCellRuns.runCell */
+  fun runCell(cell: Cell) = runs.runCell(cell)
 
-  /**
-   * Runs every code cell in order, stopping at the first that raises - which is what Jupyter
-   * does with a queued run. Carrying on would run later cells against state the failed one
-   * never produced, and their output would be wrong rather than merely absent.
-   */
-  fun runAll() {
-    scope.launch { runAllCells() }
-  }
+  /** @see NotebookCellRuns.runAll */
+  fun runAll() = runs.runAll()
 
-  private suspend fun runAllCells() {
-    val queue = uiState.value.cells.filter { it.kind == CellKind.CODE }
-    // Claimed up front so every waiting cell says so, rather than looking un-run until its turn
-    // comes. Anything still queued when one raises becomes SKIPPED.
-    uiState.update { it.queueingRun(queue.map(Cell::id)) }
-    for (cell in queue) {
-      if (!execute(cell)) break
-    }
-    uiState.update { it.skippingQueued() }
-  }
-
-  /**
-   * Interrupts the kernel, which is how a running cell is stopped: the cell itself has no
-   * handle on the kernel's work. Does nothing when nothing is running, since the kernel may
-   * be busy with somebody else's cell.
-   */
-  fun stopRunningCell() {
-    val running = uiState.value.runningCellId ?: return
-    // Remembered rather than applied now: the cell is still executing, and the kernel will
-    // report a KeyboardInterrupt through the ordinary output path. This is what tells the stop
-    // apart from the user's own code raising.
-    interrupting = running
-    scope.launch { session.opened?.let { kernelGateway.interrupt(it) } }
-  }
+  /** @see NotebookCellRuns.stopRunningCell */
+  fun stopRunningCell() = runs.stopRunningCell()
 
   /**
    * Restarts the kernel: a fresh interpreter, and every variable gone.
@@ -118,7 +81,35 @@ class NotebookKernel(
       kernelGateway.restart(open)
       // Whatever was in flight died with the process; anything finished is history and stays.
       uiState.update { it.abandoningRun() }
-      if (andRunAll) runAllCells()
+      if (andRunAll) runs.runAllCells()
+    }
+  }
+
+  /**
+   * Ends the session: the kernel process stops and every variable goes with it.
+   *
+   * **`notebook:shutdown-kernel`, and the deliberate opposite of [close].** Leaving a notebook
+   * closes the socket and leaves the kernel running, so reopening reattaches to it; this is the
+   * user saying that is not what they want. The reference guards it with nothing at all - it is
+   * the *close* variant that asks first (`notebook:close-and-shutdown`,
+   * `packages/notebook-extension/src/index.ts:3189-3213`) - so the dialog lives with that command
+   * and not here.
+   *
+   * [then] is what `close-and-shutdown` does afterwards, and it runs **after** the session has
+   * ended rather than beside it: the reference awaits its shutdown before disposing the widget.
+   * It runs even when there was no kernel, because the command is Close *and* shut down and the
+   * closing half is not conditional.
+   *
+   * Does nothing to the kernel when none was opened - connecting one in order to end it would
+   * boot a runtime the user never asked for, exactly as [restart] refuses to.
+   */
+  fun shutdown(then: () -> Unit = {}) {
+    val open = session.forget()
+    scope.launch {
+      open?.let { kernelGateway.shutdown(it) }
+      // Whatever was in flight died with the process, and nothing that has finished is a lie.
+      uiState.update { it.abandoningRun() }
+      then()
     }
   }
 
@@ -153,41 +144,6 @@ class NotebookKernel(
     val open = session.forget() ?: return
     on.launch { kernelGateway.disconnect(open) }
   }
-
-  /**
-   * Returns whether the cell finished without raising, which is what [runAll] gates on.
-   *
-   * The whole of it counts as a run in flight, **opening the kernel included**: on a cold app that
-   * is the Space installing, the server starting and the kernel starting, and P1c's backstop must
-   * not read "nothing is running" through the slowest part of a run
-   * (`evidence/p1c-app-death-backstop/`).
-   */
-  private suspend fun execute(cell: Cell): Boolean = activeCellRuns.whileRunning { run(cell) }
-
-  private suspend fun run(cell: Cell): Boolean {
-    uiState.update { it.startingRun(cell.id, at = now()) }
-    eventsFor(cell)
-      .catch { failure -> emit(kernelFailure(cell.id, failure)) }
-      .collect { event -> uiState.update { state -> state.after(event) } }
-
-    val raised = uiState.value.outputs[cell.id].orEmpty().any { it is CellOutput.Error }
-    val cancelled = interrupting == cell.id
-    interrupting = null
-    uiState.update {
-      if (cancelled) it.cancellingRun(cell.id, at = now()) else it.finishedRun(cell.id, at = now(), failed = raised)
-    }
-    persist()
-    // A cancelled cell stops the queue too: the user asked for the run to stop, not for the
-    // next cell to start.
-    return !raised && !cancelled
-  }
-
-  /** The cell's events, on a session [NotebookKernelSession] re-opens if its server has gone. */
-  private fun eventsFor(cell: Cell): Flow<KernelEvent> = flow {
-    emitAll(session.reopeningIfStale { open -> kernelGateway.execute(open, cell.id, cell.source) })
-  }
-
-  private fun now(): Instant = clock.instant()
 
   private companion object {
     /** Step 17 introduces real Spaces; until then every notebook runs in the base one. */

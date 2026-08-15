@@ -52,6 +52,12 @@ internal class RecordingKernelGateway(
   /** Sessions the editor closed on its way out; empty means it never opened one. */
   val disconnected = mutableListOf<KernelSession>()
 
+  /**
+   * Sessions the editor ended outright. Recorded apart from [disconnected] because the two are
+   * opposite claims about the kernel - one leaves it running, the other does not.
+   */
+  val shutDown = mutableListOf<KernelSession>()
+
   override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {
     executed += cellId
     executedSource += code
@@ -71,6 +77,10 @@ internal class RecordingKernelGateway(
 
   override suspend fun disconnect(session: KernelSession) {
     disconnected += session
+  }
+
+  override suspend fun shutdown(session: KernelSession) {
+    shutDown += session
   }
 }
 
