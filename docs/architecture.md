@@ -35,7 +35,7 @@ Dependencies point inward: `ui → domain`, `data → domain`, `domain → nothi
 │   space/  rootfs installer, jupyter_server launcher, kernel WebSocket │
 └───────────────────────────────────────────────────────────────────────┘
 ┌───────────────────────────────────────────────────────────────────────┐
-│ di — AppContainer: manual composition root, built once in MainActivity │
+│ di — AppContainer: manual composition root, one per *process*         │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -50,11 +50,11 @@ to depend on**, which is checkable:
 | `domain/{model,port}` | the app's own types and its ports | no `android.*`, no other layer — **guard-tested** |
 | `data/{disk,fake,space}` | adapters implementing ports | one file per adapter, named `<Mechanism><PortConcept>` |
 | `ui/{editor,explorer,fileeditor}` | screens and ViewModels | reads ports; never constructs an adapter |
-| `di` | `AppContainer`, the composition root | constructed once, in `MainActivity` |
+| `di` | `AppContainer`, the composition root | constructed once per process, in `JupydroidApplication` |
 | `html`, `import`, `markdown`, `syntax` | **document and language logic** — parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages*, not this app's domain; not `data/`, because they implement no port. JVM-testable, and every test for them is a plain unit test |
 | `richtext` | **mixed on purpose**: `RichBlock` is the model, `RichInlineString` renders it | the split is the point — the model is testable without Compose, and only the renderer imports it |
 | `theme` | Compose design tokens, the IntelliJ-derived palette | Compose throughout; `EditorPaletteTest` pins its contrast ratios |
-| root — `MainActivity`, `Navigation`, `TwoPaneScene*`, `NotebookBackStack`, the three `NavKey`s | the app shell and its navigation | see §4 |
+| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `TwoPaneScene*`, `NotebookBackStack`, the three `NavKey`s | the app shell and its navigation | see §4 |
 
 Measured, not asserted: `html` (0 of 3 files), `import` (0/1), `markdown` (0/1) and `syntax`
 (0/6) import `android.*`; `theme` imports it in 5 of 5; `richtext` in 1 of 2. That 1 is
@@ -188,10 +188,18 @@ recording a recent, and flushing a notebook's last edit while its screen is bein
 then `viewModelScope` is already cancelled. An external scope belongs to something longer-lived
 than a screen, which is what a composition root is.
 
+**The container is the process's, not the activity's.** `JupydroidApplication` owns it and
+`MainActivity` reads it. That is not a preference: the platform relaunches the activity on every
+rotation, and while the container hung off the activity each relaunch built a second one - and a
+second `ServerLauncher`, which reopening a notebook turned into a second `jupyter_server`
+(`evidence/p1g-one-container-per-process/`). `CompositionRootTest` recreates the activity and
+asserts the container survives.
+
 **State that belongs to the app rather than to a screen or a port** also lives on the container,
 and there is exactly one shape of it. `ActiveCellRuns` (`domain/model/`) counts the runs in flight
 across every open notebook: `NotebookKernel` moves it, `IdleServerStopper` (`data/space/`,
-driven by `MainActivity` from `ProcessLifecycleOwner`) reads it before stopping the server. It is
+driven by `JupydroidApplication` from `ProcessLifecycleOwner`) reads it before stopping the
+server. It is
 in `domain` because both `ui` and `di` touch it and `ui ↛ data` — a counter of the app's own runs
 is one of the app's own nouns, even though nothing serialises it.
 
@@ -206,7 +214,7 @@ hold today — checked by grep, zero hits each — with nothing keeping them tru
 | `domain` imports no `data`/`ui`/`di` | **enforced** — `ArchitectureGuardTest.domainLayer_doesNotImportOtherLayers` |
 | `ui` never imports `data` | true today, **unguarded** |
 | `data` never imports `ui` | true today, **unguarded** |
-| `AppContainer` is the only place that constructs implementations | true today, **unguarded** (`MainActivity` builds the container; nothing else builds an adapter) |
+| `AppContainer` is the only place that constructs implementations | true today, **unguarded** (`JupydroidApplication` builds the container; nothing else builds an adapter) |
 
 Extending the guard to the last three is a code change and is tracked as an open risk in
 `docs/PLAN.md`. It would go green immediately, which is the point of a regression gate.

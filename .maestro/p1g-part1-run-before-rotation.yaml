@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# P1g part 1: get a server running, so the rotation has something to duplicate.
+# TABLET ONLY: `54` is a real kernel's answer; the x86_64 emulator's FakeKernelGateway echoes
+# the cell's source and could never produce it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Rotation.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Rotation.ipynb"
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "54"
+    timeout: 120000
+- takeScreenshot: 01-one-server-before-the-rotation

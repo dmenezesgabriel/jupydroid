@@ -45,7 +45,9 @@
   - **UI** (`ui/<screen>/`): screens and ViewModels. Reads ports; never constructs an
     adapter.
   - **Composition root** (`di/AppContainer`): the only place that builds implementations,
-    constructed once in `MainActivity`. Work that must outlive a screen goes on its
+    constructed once per *process*, in `JupydroidApplication` - the activity is relaunched on
+    every rotation, and a container per activity was a `jupyter_server` per activity
+    (`evidence/p1g-one-container-per-process/`). Work that must outlive a screen goes on its
     `applicationScope`, never `viewModelScope`.
   - **Document and language logic** (`syntax/`, `markdown/`, `html/`, `import/`): parsers
     and formats. Not domain — they model documents and languages, not this app's domain —

@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# P1g part 2: after the driver rotated the device, MainActivity has been relaunched. Leave the
+# notebook and open it again, which is what builds a fresh editor - and used to reach a fresh
+# container, and so a second jupyter_server.
+#
+# `stopApp: false`: the point is one *surviving* process. And the second cell, because `54` is
+# already on screen from part 1 - only an answer nothing has produced yet proves a kernel ran.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Rotation.ipynb"
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: "56"
+    timeout: 120000
+- takeScreenshot: 02-still-one-server-after-the-rotation
