@@ -56,6 +56,15 @@ SEEDS = (
 # two drivers that were actually broken. Go through `maestro_test` or `run_flow`, which is one
 # copy of the decision instead of twenty-six.
 RUNS_MAESTRO_DIRECTLY = re.compile(r'"\$MAESTRO".*\btest\b')
+# `adb` as a command, rather than `"$ADB"`. The `command -v adb` inside the fallback definition
+# is the fix and not the offence, so it is excluded by name.
+#
+# It fails *after* every flow step has passed, in the driver's own disk check, and reads like a
+# defect in the app: `file-editor` went green step by step and then died on
+# `adb: command not found` in the sweep of 2026-08-14, from a shell with no platform-tools on
+# PATH. `$ADB` carries the fallback; bare `adb` carries nothing.
+CALLS_BARE_ADB = re.compile(r"(?:^|[|(;&`]|\$\()\s*adb\s")
+DEFINES_THE_FALLBACK = re.compile(r"command -v adb")
 
 
 def _statements(driver: pathlib.Path) -> list[str]:
@@ -82,6 +91,8 @@ def offences(scripts: pathlib.Path = SCRIPTS) -> list[str]:
         elif reset > seeded:
             found.append(f"{driver}: calls {RESET} after seeding; it has to run before, or it deletes the fixture")
         found += untargeted_maestro(driver, statements)
+    for driver in sorted(scripts.glob("*-driver.sh")):
+        found += bare_adb(driver, _statements(driver))
     return found
 
 
@@ -90,6 +101,19 @@ def untargeted_maestro(driver: pathlib.Path, statements: list[str]) -> list[str]
     if not any(RUNS_MAESTRO_DIRECTLY.search(line) for line in statements):
         return []
     return [f"{driver}: invokes maestro directly, so --device can go missing; use maestro_test or run_flow"]
+
+
+def bare_adb(driver: pathlib.Path, statements: list[str]) -> list[str]:
+    """A driver reaching for `adb` off PATH instead of the `$ADB` every driver already defines."""
+    offending = [
+        line
+        for line in statements
+        if CALLS_BARE_ADB.search(line) and not DEFINES_THE_FALLBACK.search(line)
+    ]
+    return [
+        f'{driver}: calls bare `adb`, which is not on every PATH; use "$ADB" - {line}'
+        for line in offending
+    ]
 
 
 def main() -> int:

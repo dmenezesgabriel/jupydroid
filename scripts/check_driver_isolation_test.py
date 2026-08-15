@@ -99,6 +99,26 @@ class DriverIsolationTest(unittest.TestCase):
         body = f'{RESETS}\n{SEEDS}\n"$MAESTRO" --device "$MAESTRO_DEVICE" test "$ROOT/x.yaml"'
         self.assertOffences(body, 1)
 
+    def test_a_driver_calling_bare_adb_is_reported(self) -> None:
+        """A green flow followed by `adb: command not found`.
+
+        `$ADB` carries the fallback to `$HOME/Android/Sdk/platform-tools/adb` for a shell that
+        does not have platform-tools on PATH; bare `adb` does not. It fails *after* every step
+        has passed, in the driver's own disk check, which reads like a defect in the app and is
+        not - `file-editor` did exactly this on the sweep of 2026-08-14.
+        """
+        found = self.assertOffences(
+            f'{RESETS}\n{SEEDS}\ntyped="$(adb shell run-as "$APP" cat x)"', 1
+        )
+        self.assertIn("$ADB", found[0])
+
+    def test_the_fallback_definition_is_not_a_call(self) -> None:
+        """Every driver defines `ADB` this way; the definition is the fix, not the offence."""
+        self.assertOffences(f'ADB="${{ADB:-$(command -v adb 2>/dev/null || true)}}"\n{RESETS}\n{SEEDS}', 0)
+
+    def test_the_helper_spelling_is_clean(self) -> None:
+        self.assertOffences(f'{RESETS}\n{SEEDS}\n"$ADB" shell run-as "$APP" cat x', 0)
+
     def test_the_real_drivers_are_clean(self) -> None:
         """The gate against the tree it ships with, which is what a commit is judged on."""
         self.assertEqual([], offences(pathlib.Path(__file__).resolve().parent))

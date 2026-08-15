@@ -201,13 +201,18 @@ continuous idleness - never under a running cell, and the next run brings a fres
 about 7 s. What each cost and what it forbids is `docs/DECISIONS.md` and
 `evidence/p1c-app-death-backstop/`.
 
-What is left of P1 is the per-document half of the same question, and two pieces of debt beside it.
+P1f is done too, and the plan had it wrong: **one** driver called bare `adb`, not twenty-nine.
+The other twenty-eight hits were the `ADB="${ADB:-$(command -v adb …)}"` fallback, which is the
+fix rather than the offence. `check_driver_isolation.py` now refuses the call, so the counting
+does not have to be repeated.
+
+What is left of P1 is the per-document half of the same question, and one piece of debt beside
+it.
 
 | # | Sub-step | Gate |
 |---|---|---|
 | **P1d** | **`DELETE /api/sessions/<id>` when a document closes.** `shutdownSession` in `packages/services/src/session/restapi.ts` (404 → `console.warn`, 410, else expect 204 — lines 65-75). Belongs to closing **one** document, not to the server's lifetime, which is why it is not folded into P1a. `KernelSession` carries our client id today; this needs the server's session id too. | Contract test on the lifecycle port; Maestro: close a notebook, assert the kernel is gone from `GET /api/sessions`. |
 | **P1e** | **Replace `TwoPaneSceneStrategy` with the library.** U7 hand-wrote it (`TwoPaneSceneStrategy.kt` + `TwoPaneScene.kt`, 165 lines) and said in as many words: *"If that artifact goes stable, this is the thing to delete."* **It has.** `androidx.compose.material3.adaptive:adaptive-navigation3` **1.3.0 is the published release version** (maven-metadata.xml), dated 2026-08-12, and it ships `ListDetailSceneStrategy` / `rememberListDetailSceneStrategy` and `SupportingPaneSceneStrategy` / `rememberSupportingPaneSceneStrategy` — scene strategies, which is exactly the shape our hand-written one is. **The cost has not gone away and must be measured, not assumed:** its POM still pins `adaptive-navigation` **strictly** at `[1.3.0]`, taking the adaptive family off the Compose BOM, and it wants `androidx.navigation3:navigation3-ui:1.0.0` where the project is on `nav3Core = "1.0.1"`. And the thing that actually mattered in U7 was that **both panes stay separate `NavEntry`s** — verify that of `ListDetailSceneStrategy` before deleting anything. Scheduled here rather than later because P2h wants a third pane. | The U7 evidence re-run unchanged: `u7-two-panes` on the tablet **and** `u7-one-pane` at 320dp, plus `notebook-switch` (which is what a shared `ViewModelStore` would break). If the library keeps entries separate, delete both files; if not, keep them and record why here. |
-| **P1f** | **Chore: 29 drivers call bare `adb` rather than `$ADB`.** `scripts/maestro-run.sh` already computes `$ADB` with a fallback and half the drivers use it. It surfaces as a flow that passes every step and then fails its own disk check with `adb: command not found`, which reads like a defect and is not. | `scripts/run-all-flows.sh` green from a shell **without** `platform-tools` on PATH. |
 
 ---
 

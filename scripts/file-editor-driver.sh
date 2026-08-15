@@ -19,7 +19,11 @@ run_flow "$ROOT/.maestro/file-editor.yaml" "$ROOT/evidence/x2c-file-editor"
 
 # The flow's assertions only prove the text is *on screen*; the debounced write must be proven on
 # disk, or a save path that renders but never persists would look green.
-typed="$(adb ${MAESTRO_DEVICE:+-s "$MAESTRO_DEVICE"} shell "run-as $APP cat '$NOTEBOOK_DIR/file_editor.py'" | tr -d '\r')"
+# `device_adb`, not a hand-rolled `-s`: one copy of the decision, and `$ADB` carries the fallback
+# for a shell without platform-tools on PATH - which is what made this line fail *after* every
+# step of the flow had passed (`build/flow-logs/file-editor.log`, sweep of 2026-08-14).
+mapfile -t adb < <(device_adb)
+typed="$("${adb[@]}" shell "run-as $APP cat '$NOTEBOOK_DIR/file_editor.py'" | tr -d '\r')"
 if ! grep -q "print('typed')" <<<"$typed"; then
   echo "the typed line is not on disk; file was:" >&2
   printf '%s\n' "$typed" >&2
