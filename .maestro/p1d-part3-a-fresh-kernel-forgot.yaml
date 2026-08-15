@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# P1d part 3: the notebook still runs, and the kernel it runs on is a different one.
+#
+# **NameError is the whole assertion.** The cell is `carried += 1`, and `carried` was 43 in the
+# kernel part 2 ended. Three outcomes are distinguishable here:
+#
+#   44        -> the same kernel is still there and the shutdown did nothing
+#   NameError -> a kernel that never saw the assignment, which is what a shutdown leaves
+#   nothing   -> the notebook cannot run at all any more, which would be its own defect
+#
+# Only the second is asserted, and it is the exact inverse of `notebook-session-reattaches`,
+# where the same increment after *leaving* the notebook must print 44. The two flows together are
+# what says these are different acts rather than one act with two names.
+#
+# `NameError` appears in no cell's source, so the emulator's `FakeKernelGateway` echo could not
+# produce it either.
+#
+# **`.*NameError.*` and not `NameError`**, for the reason `notebook-session-reattaches` records:
+# Maestro regex-matches the *whole* node string, and a traceback is one node. Measured here rather
+# than assumed - the first run of this flow failed with the error plainly on screen, reading
+# `---…---\nNameError   Traceback (most recent call last)\nCell In[1], line 1\n----> 1 carried +=
+# 1\n…\nNameError: name 'carried' is not defined`.
+# TABLET ONLY: see part 1.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Run cell"
+    index: 1
+# Generous: this starts a whole new kernel, and the server may have to be started with it.
+- extendedWaitUntil:
+    visible: ".*NameError.*"
+    timeout: 120000
+- takeScreenshot: 05-a-fresh-kernel-never-saw-it

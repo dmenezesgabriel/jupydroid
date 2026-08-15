@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# P1d part 4: `notebook:close-and-shutdown` - the one that asks first, and then takes the
+# notebook off the screen as well.
+#
+# Two assertions, and the order matters. The dialog must appear *before* anything happens, which
+# is why the confirm button is tapped as a separate step rather than the menu item being treated
+# as the command; and the browser's own crumb - "Workspace", which the editor never draws - is
+# what says the notebook really closed rather than the dialog merely having gone away.
+#
+# `stopApp: false` for the reason part 2 records: a force-stop would end the kernel by itself.
+# TABLET ONLY: see part 1.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Kernel actions"
+- tapOn: "Close and Shut Down Notebook…"
+- assertVisible: "Shut down the notebook?"
+- takeScreenshot: 06-close-asks-first
+- tapOn: "Shut Down"
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 30000
+- takeScreenshot: 07-closed-to-the-workspace
