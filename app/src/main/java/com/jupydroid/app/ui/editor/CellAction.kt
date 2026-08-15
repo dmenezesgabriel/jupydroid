@@ -10,6 +10,16 @@ enum class CellMove { UP, DOWN }
 enum class MergeInto { ABOVE, BELOW }
 
 /**
+ * How far [withSelectionExtended] moves the head of a selected run - the four
+ * `notebook:extend-marked-cells-*` commands, as one parameter.
+ *
+ * Beside [CellMove] and [MergeInto] because it is the same kind of thing: the vocabulary a command
+ * is named with, kept apart from both the surface that offers it and the transform that carries it
+ * out.
+ */
+enum class SelectionReach { ABOVE, BELOW, TOP, BOTTOM }
+
+/**
  * What the long-press menu can do to one cell.
  *
  * The menu's vocabulary, kept apart from both the menu that shows it and the [CellEdits] that

@@ -32,12 +32,18 @@ fun EditorUiState.withCellSelected(cellId: String): EditorUiState =
  * **Editing expands a collapsed cell** (`activeCell!.inputHidden = false`). Reachable here
  * because a cell can be collapsed from the menu and then asked to edit from the keyboard, and
  * without it the caret would land in something that is not on screen.
+ *
+ * **Editing also drops a selected run** - *"Edit mode deselects all cells"*, `setMode` at
+ * `packages/notebook/src/widget.ts:1925-1929`. One line there, and here it is what lets a tap into
+ * a cell keep meaning "type in this one" while a run is marked, instead of needing a gesture that
+ * says "leave selection mode first".
  */
 fun EditorUiState.withMode(next: CellMode): EditorUiState {
   val editing = selectedCellId?.takeIf { next == CellMode.EDIT }
     ?: return copy(mode = CellMode.COMMAND)
   return copy(
     mode = CellMode.EDIT,
+    anchorCellId = null,
     cells = cells.map { if (it.id == editing) it.copy(sourceHidden = false) else it },
   )
 }
@@ -48,9 +54,14 @@ fun EditorUiState.withMode(next: CellMode): EditorUiState {
  * The id-based equivalent of JupyterLab clamping `activeCellIndex` to the bounds of the cell
  * list. Applied after any transform that can remove a cell; a selection pointing at nothing is
  * worse than none, because it looks live and every action scoped to it quietly no-ops.
+ *
+ * **Both ends are clamped**, and the anchor for the same reason as the head: a run whose anchor
+ * has been deleted is a range that cannot be computed, so `selectedCellIds` would silently narrow
+ * to one cell while the bar above it still said three.
  */
 fun EditorUiState.withSelectionClamped(): EditorUiState {
+  val anchored = anchorCellId?.takeIf { anchor -> cells.any { it.id == anchor } }
   val alive = selectedCellId != null && cells.any { it.id == selectedCellId }
-  if (alive) return this
-  return copy(selectedCellId = null, mode = CellMode.COMMAND)
+  if (!alive) return copy(selectedCellId = null, anchorCellId = null, mode = CellMode.COMMAND)
+  return if (anchored == anchorCellId) this else copy(anchorCellId = anchored)
 }

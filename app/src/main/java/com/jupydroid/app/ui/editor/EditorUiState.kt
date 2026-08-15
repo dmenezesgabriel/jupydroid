@@ -68,8 +68,18 @@ data class EditorUiState(
   val clipboard: List<Cell> = emptyList(),
   /** Whether [clipboard] came from a cut, which decides if a pasted code cell keeps its id. */
   val clipboardWasCut: Boolean = false,
-  /** JupyterLab's `activeCellIndex`, by id: the one cell every cell-scoped action means. */
+  /** JupyterLab's `activeCellIndex`, by id: the head of the selection - see [CellRangeSelection]. */
   val selectedCellId: String? = null,
+  /**
+   * The other end of a selected run of cells, or null when only [selectedCellId] is selected.
+   *
+   * One nullable id carries the whole of multi-select, because JupyterLab's selection is
+   * contiguous - `extendContiguousSelectionTo` moves a head against a fixed anchor and
+   * `getContiguousSelection()` throws on anything else (`packages/notebook/src/widget.ts:2216`,
+   * `:2325-2348`). The cells in between are derived rather than stored, and "a run is being
+   * marked" is this being non-null rather than a second flag that could disagree with it.
+   */
+  val anchorCellId: String? = null,
   val mode: CellMode = CellMode.COMMAND,
   /**
    * The cell operations that can be taken back, oldest first - see [CellUndo].
