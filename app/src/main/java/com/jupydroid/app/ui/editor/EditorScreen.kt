@@ -217,6 +217,7 @@ private fun EditorContent(
             // ever being on screen together. The position is 1-based and is the screen reader's,
             // not the eye's - see [CellMark].
             mark = if (state.selecting) CellMark(cell.id in marked, position = at + 1) else null,
+            markedCount = marked.size,
             // The reference's rule, read literally: the tint is on the cell node and the active
             // cell only joins it once the run holds more than one - `jp-mod-multiSelected` is
             // added at `count > 1` (`packages/notebook/src/widget.ts:2763-2765`).
@@ -247,6 +248,7 @@ private fun EditorCell(
   canPaste: Boolean,
   selected: Boolean,
   mark: CellMark?,
+  markedCount: Int,
   tinted: Boolean,
   mode: CellMode,
   onRun: () -> Unit,
@@ -289,6 +291,8 @@ private fun EditorCell(
       cell = cell,
       canPaste = canPaste,
       selecting = mark != null,
+      // What *this* cell's menu will act on: the whole run when it is in it, itself when not.
+      count = if (mark?.checked == true) markedCount else 1,
       onAction = act,
     ),
   ) {

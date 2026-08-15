@@ -32,9 +32,19 @@ internal fun cellActionItems(
   canPaste: Boolean,
   /** Whether a run of cells is already marked, which is the one row that then makes no sense. */
   selecting: Boolean,
-): List<Pair<String, CellAction>> =
-  selectingItems(selecting) + addingItems() + shapingItems(cell) + clipboardItems(canPaste) +
-    foldingItems(cell) + removingItems()
+  /**
+   * How many cells the rows will act on, which decides how they read.
+   *
+   * The reference pluralises with `trans._n` and only where the count changes the noun -
+   * `'Delete Cell'`/`'Delete Cells'` (`packages/notebook-extension/src/index.ts:3733`) - while
+   * `'Clear Cell Output'` and `'Collapse Selected Code'` have one form each (`:3365`, `:4741`).
+   */
+  count: Int = 1,
+): List<Pair<String, CellAction>> {
+  val several = count > 1
+  return selectingItems(selecting) + addingItems() + shapingItems(cell, several) +
+    clipboardItems(canPaste, several) + foldingItems(cell) + removingItems(several)
+}
 
 /**
  * First, because it changes what every row below it will act on rather than doing something to
@@ -53,18 +63,14 @@ private fun addingItems(): List<Pair<String, CellAction>> = listOf(
   "Insert markdown below" to CellAction.Insert(CellKind.MARKDOWN),
 )
 
-private fun shapingItems(cell: Cell): List<Pair<String, CellAction>> = listOf(
-  "Move up" to CellAction.Move(CellMove.UP),
-  "Move down" to CellAction.Move(CellMove.DOWN),
-  "Duplicate" to CellAction.Duplicate,
-  // The type the cell is *not*, so the item reads as the change rather than as the state.
-  if (cell.kind == CellKind.CODE) {
-    CHANGE_TO_MARKDOWN to CellAction.ChangeKind(CellKind.MARKDOWN)
-  } else {
-    CHANGE_TO_CODE to CellAction.ChangeKind(CellKind.CODE)
-  },
-  "Merge with above" to CellAction.Merge(MergeInto.ABOVE),
-  "Merge with below" to CellAction.Merge(MergeInto.BELOW),
+private fun shapingItems(cell: Cell, several: Boolean): List<Pair<String, CellAction>> = listOf(
+  (if (several) "Move cells up" else "Move up") to CellAction.Move(CellMove.UP),
+  (if (several) "Move cells down" else "Move down") to CellAction.Move(CellMove.DOWN),
+  (if (several) "Duplicate cells" else "Duplicate") to CellAction.Duplicate,
+  // The type the cell is *not*, so the item reads as the change rather than as the state. The head
+  // cell decides which way round, and the whole run follows it.
+  changeKindItem(cell, several),
+) + mergeItems(several) + listOf(
   // Beside the merges, because split is their inverse and the three read as one group.
   //
   // **On every cell, and whether or not a caret was ever put in one.** Both are the reference's
@@ -76,9 +82,35 @@ private fun shapingItems(cell: Cell): List<Pair<String, CellAction>> = listOf(
   "Split cell" to CellAction.Split,
 )
 
-private fun clipboardItems(canPaste: Boolean): List<Pair<String, CellAction>> = buildList {
-  add("Cut" to CellAction.Cut)
-  add("Copy" to CellAction.Copy)
+private fun changeKindItem(cell: Cell, several: Boolean): Pair<String, CellAction> =
+  if (cell.kind == CellKind.CODE) {
+    (if (several) "Change cells to markdown" else CHANGE_TO_MARKDOWN) to CellAction.ChangeKind(CellKind.MARKDOWN)
+  } else {
+    (if (several) "Change cells to code" else CHANGE_TO_CODE) to CellAction.ChangeKind(CellKind.CODE)
+  }
+
+/**
+ * Two rows for one cell and **one** for a run, because the direction stops applying: `mergeCells`
+ * consults `mergeAbove` only inside `if (toMerge.length === 1)`
+ * (`packages/notebook/src/actions.tsx:390-425`), so both rows would do the same thing and one of
+ * them would be lying about which.
+ *
+ * The single row is not invented to cover that up - it is the reference's own third merge command,
+ * `notebook:merge-cells`, labelled *"Merge Selected Cells"*
+ * (`packages/notebook-extension/src/index.ts:3953`). Which [MergeInto] it carries is arbitrary and
+ * unread, exactly as `mergeAbove`'s default is there.
+ */
+private fun mergeItems(several: Boolean): List<Pair<String, CellAction>> = when {
+  several -> listOf(MERGE_SELECTED to CellAction.Merge(MergeInto.ABOVE))
+  else -> listOf(
+    "Merge with above" to CellAction.Merge(MergeInto.ABOVE),
+    "Merge with below" to CellAction.Merge(MergeInto.BELOW),
+  )
+}
+
+private fun clipboardItems(canPaste: Boolean, several: Boolean): List<Pair<String, CellAction>> = buildList {
+  add((if (several) "Cut cells" else "Cut") to CellAction.Cut)
+  add((if (several) "Copy cells" else "Copy") to CellAction.Copy)
   // Offered only when there is something to paste. An item that silently does nothing teaches
   // the user that the menu lies, which is worse than the item being absent.
   if (canPaste) add("Paste below" to CellAction.Paste)
@@ -90,14 +122,18 @@ private fun foldingItems(cell: Cell): List<Pair<String, CellAction>> = buildList
   add((if (cell.outputsHidden) EXPAND_OUTPUTS else COLLAPSE_OUTPUTS) to CellAction.ToggleOutputsHidden)
 }
 
-private fun removingItems(): List<Pair<String, CellAction>> = listOf(
+private fun removingItems(several: Boolean): List<Pair<String, CellAction>> = listOf(
   // Beside folding them, because the two read as a pair and are not: this one throws the
-  // outputs away, the one above only folds them.
+  // outputs away, the one above only folds them. One form whatever the count, as
+  // `'Clear Cell Output'` has there - its caption already says "for the selected cells".
   "Clear outputs" to CellAction.ClearOutputs,
-  "Delete" to CellAction.Delete,
+  (if (several) "Delete cells" else "Delete") to CellAction.Delete,
 )
 
 internal const val SELECT_CELLS = "Select cells"
+
+/** `notebook:merge-cells`, in this app's sentence case. */
+internal const val MERGE_SELECTED = "Merge selected cells"
 
 internal const val CHANGE_TO_MARKDOWN = "Change to markdown"
 internal const val CHANGE_TO_CODE = "Change to code"

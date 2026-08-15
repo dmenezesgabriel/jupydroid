@@ -109,8 +109,9 @@ fun SelectionTopBar(
         }
         CellActionSurface(
           expanded = menuOpen,
-          items = reachItems(onExtend) + cellActionItems(headCell, canPaste, selecting = true)
-            .map { (label, action) -> label to { onCellAction(action) } },
+          items = reachItems(onExtend) +
+            cellActionItems(headCell, canPaste, selecting = true, count = selectedCount)
+              .map { (label, action) -> label to { onCellAction(action) } },
           onDismiss = { menuOpen = false },
         )
       }

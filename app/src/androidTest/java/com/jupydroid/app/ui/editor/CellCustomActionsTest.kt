@@ -85,7 +85,7 @@ class CellCustomActionsTest {
         Column(
           modifier = androidx.compose.ui.Modifier
             .testTag(CELL)
-            .cellCustomActions(cell = cell, canPaste = false, selecting = false, onAction = { taken += it }),
+            .cellCustomActions(cell = cell, canPaste = false, selecting = false, count = 1, onAction = { taken += it }),
         ) {}
       }
     }

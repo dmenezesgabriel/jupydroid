@@ -33,13 +33,21 @@ internal fun Modifier.cellCustomActions(
   canPaste: Boolean,
   /** Passed straight through: while a run is marked, offering to start one again is a lie. */
   selecting: Boolean,
+  /**
+   * How many cells a row will act on, so this menu reads the same as the bar's does.
+   *
+   * A cell's context menu means the marked run when the cell is in it - the same rule
+   * [EditorUiState.applyingFrom] applies - so it has to say so, or TalkBack offers "Delete" on a
+   * cell and deletes three.
+   */
+  count: Int,
   onAction: (CellAction) -> Unit,
 ): Modifier {
   // Remembered against what the list is made of: rebuilding fifteen CustomAccessibilityAction
   // objects on every recomposition of every cell would allocate on each keystroke, and a changed
   // identity makes TalkBack re-read the menu it is sitting in.
-  val actions = remember(cell.kind, cell.sourceHidden, cell.outputsHidden, canPaste, selecting, onAction) {
-    cellActionItems(cell, canPaste, selecting).map { (label, action) ->
+  val actions = remember(cell.kind, cell.sourceHidden, cell.outputsHidden, canPaste, selecting, count, onAction) {
+    cellActionItems(cell, canPaste, selecting, count).map { (label, action) ->
       CustomAccessibilityAction(label) {
         onAction(action)
         true

@@ -25,7 +25,7 @@ class CellUndoTest {
   fun delete_comesBackWithItsOutputsAndCountWhereItWas() {
     val state = stateOf("a", "b", "c").withOutputOn("b", "hello").withCount("b", 7)
 
-    val undone = state.applying(CellAction.Delete, "b").undoneCellOperation()
+    val undone = state.applyingFrom("b", CellAction.Delete).undoneCellOperation()
 
     assertEquals(listOf("a", "b", "c"), undone.cells.map { it.id })
     assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "hello")), undone.outputs["b"])
@@ -41,7 +41,7 @@ class CellUndoTest {
   fun delete_ofTheLastCell_takesTheReplacementAwayAgain() {
     val state = stateOf("only")
 
-    val deleted = state.applying(CellAction.Delete, "only")
+    val deleted = state.applyingFrom("only", CellAction.Delete)
     assertEquals(1, deleted.cells.size)
     assertFalse(deleted.cells.single().id == "only")
 
@@ -52,8 +52,8 @@ class CellUndoTest {
   fun insert_andInsertAbove_areTakenBackToTheCellsThatWereThere() {
     val state = stateOf("a", "b")
 
-    val below = state.applying(CellAction.Insert(CellKind.CODE), "a")
-    val above = state.applying(CellAction.InsertAbove(CellKind.MARKDOWN), "a")
+    val below = state.applyingFrom("a", CellAction.Insert(CellKind.CODE))
+    val above = state.applyingFrom("a", CellAction.InsertAbove(CellKind.MARKDOWN))
 
     assertEquals(3, below.cells.size)
     assertEquals(listOf("a", "b"), below.undoneCellOperation().cells.map { it.id })
@@ -64,7 +64,7 @@ class CellUndoTest {
   fun duplicate_isTakenBackWithTheCopiedResults() {
     val state = stateOf("a").withOutputOn("a", "hello").withCount("a", 7)
 
-    val undone = state.applying(CellAction.Duplicate, "a").undoneCellOperation()
+    val undone = state.applyingFrom("a", CellAction.Duplicate).undoneCellOperation()
 
     assertEquals(listOf("a"), undone.cells.map { it.id })
     assertEquals(1, undone.outputs.size)
@@ -76,8 +76,8 @@ class CellUndoTest {
   fun move_returnsTheOrderInEitherDirection() {
     val state = stateOf("a", "b", "c")
 
-    val up = state.applying(CellAction.Move(CellMove.UP), "c")
-    val down = state.applying(CellAction.Move(CellMove.DOWN), "a")
+    val up = state.applyingFrom("c", CellAction.Move(CellMove.UP))
+    val down = state.applyingFrom("a", CellAction.Move(CellMove.DOWN))
 
     assertEquals(listOf("a", "b", "c"), up.undoneCellOperation().cells.map { it.id })
     assertEquals(listOf("a", "b", "c"), down.undoneCellOperation().cells.map { it.id })
@@ -91,7 +91,7 @@ class CellUndoTest {
   fun merge_bringsBackBothCellsWithTheirIdsAndOutputs() {
     val state = stateOf("a", "b").withOutputOn("a", "from a").withOutputOn("b", "from b")
 
-    val merged = state.applying(CellAction.Merge(MergeInto.BELOW), "a")
+    val merged = state.applyingFrom("a", CellAction.Merge(MergeInto.BELOW))
     assertEquals(1, merged.cells.size)
     assertTrue(merged.outputs.isEmpty())
 
@@ -110,7 +110,7 @@ class CellUndoTest {
   fun changeKind_restoresTheTypeAndTheOutputsItDropped() {
     val state = stateOf("a").withOutputOn("a", "hello").withCount("a", 7)
 
-    val undone = state.applying(CellAction.ChangeKind(CellKind.MARKDOWN), "a").undoneCellOperation()
+    val undone = state.applyingFrom("a", CellAction.ChangeKind(CellKind.MARKDOWN)).undoneCellOperation()
 
     assertEquals(CellKind.CODE, undone.cells.single().kind)
     assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "hello")), undone.outputs["a"])
@@ -121,11 +121,11 @@ class CellUndoTest {
   fun cut_thenPaste_areEachTakenBack() {
     val state = stateOf("a", "b")
 
-    val cut = state.applying(CellAction.Cut, "a")
+    val cut = state.applyingFrom("a", CellAction.Cut)
     assertEquals(listOf("b"), cut.cells.map { it.id })
     assertEquals(listOf("a", "b"), cut.undoneCellOperation().cells.map { it.id })
 
-    val pasted = cut.applying(CellAction.Paste, "b")
+    val pasted = cut.applyingFrom("b", CellAction.Paste)
     assertEquals(2, pasted.cells.size)
     assertEquals(listOf("b"), pasted.undoneCellOperation().cells.map { it.id })
   }
@@ -140,7 +140,7 @@ class CellUndoTest {
   fun clearOutputs_isTakenBackWithTheResultsItThrewAway() {
     val state = stateOf("a").withOutputOn("a", "hello").withCount("a", 7)
 
-    val undone = state.applying(CellAction.ClearOutputs, "a").undoneCellOperation()
+    val undone = state.applyingFrom("a", CellAction.ClearOutputs).undoneCellOperation()
 
     assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "hello")), undone.outputs["a"])
     assertEquals(7, undone.executionCounts["a"])
@@ -150,8 +150,8 @@ class CellUndoTest {
   fun collapsing_theSourceOrTheOutputs_isTakenBack() {
     val state = stateOf("a")
 
-    val source = state.applying(CellAction.ToggleSourceHidden, "a")
-    val outputs = state.applying(CellAction.ToggleOutputsHidden, "a")
+    val source = state.applyingFrom("a", CellAction.ToggleSourceHidden)
+    val outputs = state.applyingFrom("a", CellAction.ToggleOutputsHidden)
 
     assertTrue(source.cells.single().sourceHidden)
     assertFalse(source.undoneCellOperation().cells.single().sourceHidden)
@@ -165,7 +165,7 @@ class CellUndoTest {
    */
   @Test
   fun copy_recordsNothing_becauseItChangesNoCell() {
-    val copied = stateOf("a").applying(CellAction.Copy, "a")
+    val copied = stateOf("a").applyingFrom("a", CellAction.Copy)
 
     assertTrue(copied.undoable.isEmpty())
     assertEquals(copied.cells, copied.undoneCellOperation().cells)
@@ -176,15 +176,15 @@ class CellUndoTest {
   fun anActionOnACellThatIsGone_recordsNothing() {
     val state = stateOf("a")
 
-    assertTrue(state.applying(CellAction.Delete, "gone").undoable.isEmpty())
-    assertTrue(state.applying(CellAction.Move(CellMove.UP), "a").undoable.isEmpty())
+    assertTrue(state.applyingFrom("gone", CellAction.Delete).undoable.isEmpty())
+    assertTrue(state.applyingFrom("a", CellAction.Move(CellMove.UP)).undoable.isEmpty())
   }
 
   @Test
   fun redo_replaysWhatTheUndoTookBack() {
     val state = stateOf("a", "b")
 
-    val redone = state.applying(CellAction.Delete, "b").undoneCellOperation().redoneCellOperation()
+    val redone = state.applyingFrom("b", CellAction.Delete).undoneCellOperation().redoneCellOperation()
 
     assertEquals(listOf("a"), redone.cells.map { it.id })
     assertTrue(redone.redoable.isEmpty())
@@ -193,10 +193,10 @@ class CellUndoTest {
 
   @Test
   fun anOperationAfterAnUndo_clearsWhatCouldHaveBeenRedone() {
-    val undone = stateOf("a", "b").applying(CellAction.Delete, "b").undoneCellOperation()
+    val undone = stateOf("a", "b").applyingFrom("b", CellAction.Delete).undoneCellOperation()
     assertFalse(undone.redoable.isEmpty())
 
-    assertTrue(undone.applying(CellAction.Insert(CellKind.CODE), "a").redoable.isEmpty())
+    assertTrue(undone.applyingFrom("a", CellAction.Insert(CellKind.CODE)).redoable.isEmpty())
   }
 
   @Test
@@ -218,7 +218,7 @@ class CellUndoTest {
   @Test
   fun undo_neverRewritesTheSourceOfACellThatIsStillThere() {
     val typed = stateOf("a", "b")
-      .applying(CellAction.Delete, "b")
+      .applyingFrom("b", CellAction.Delete)
       .withSource("a", "forty lines")
 
     val undone = typed.undoneCellOperation()
@@ -237,7 +237,7 @@ class CellUndoTest {
    */
   @Test
   fun split_isTakenBackWithTheTextItMovedIntoTheNewCell() {
-    val split = stateOf("a", "b").applying(CellAction.Split, "a", editing("one\ntwo", 4))
+    val split = stateOf("a", "b").applyingFrom("a", CellAction.Split, editing("one\ntwo", 4))
     assertEquals(listOf("one", "two"), split.cells.take(2).map { it.source })
 
     val undone = split.undoneCellOperation()
@@ -254,7 +254,7 @@ class CellUndoTest {
    */
   @Test
   fun split_cutsWhatTheEditorHolds_notTheModelsCopyFromOneDebounceAgo() {
-    val split = stateOf("a").applying(CellAction.Split, "a", editing("typed\nahead", 6))
+    val split = stateOf("a").applyingFrom("a", CellAction.Split, editing("typed\nahead", 6))
 
     assertEquals(listOf("typed", "ahead"), split.cells.map { it.source })
     assertEquals("typed\nahead", split.undoneCellOperation().cells.single().source)
@@ -264,7 +264,7 @@ class CellUndoTest {
   @Test
   fun split_undo_stillKeepsTypingDoneInAnotherCellAfterwards() {
     val typed = stateOf("a", "b")
-      .applying(CellAction.Split, "a", editing("one\ntwo", 4))
+      .applyingFrom("a", CellAction.Split, editing("one\ntwo", 4))
       .withSource("b", "forty lines")
 
     val undone = typed.undoneCellOperation()
@@ -276,7 +276,7 @@ class CellUndoTest {
   @Test
   fun split_redo_cutsItAgainAtTheSamePlace() {
     val redone = stateOf("a")
-      .applying(CellAction.Split, "a", editing("one\ntwo", 4))
+      .applyingFrom("a", CellAction.Split, editing("one\ntwo", 4))
       .undoneCellOperation()
       .redoneCellOperation()
 
@@ -293,7 +293,7 @@ class CellUndoTest {
    */
   @Test
   fun split_bumpsTheRevisionOfTheCellItRewroteAndNoOther() {
-    val split = stateOf("a", "b").applying(CellAction.Split, "a", editing("one\ntwo", 4))
+    val split = stateOf("a", "b").applyingFrom("a", CellAction.Split, editing("one\ntwo", 4))
 
     assertEquals(1, split.sourceRevisions["a"])
     assertNull(split.sourceRevisions["b"])
@@ -303,7 +303,7 @@ class CellUndoTest {
   @Test
   fun undoingASplitBumpsTheRevisionAgain() {
     val undone = stateOf("a")
-      .applying(CellAction.Split, "a", editing("one\ntwo", 4))
+      .applyingFrom("a", CellAction.Split, editing("one\ntwo", 4))
       .undoneCellOperation()
 
     assertEquals(2, undone.sourceRevisions["a"])
@@ -325,15 +325,15 @@ class CellUndoTest {
   fun anOperationThatRewritesNoSourceBumpsNothing() {
     val state = stateOf("a", "b")
 
-    assertTrue(state.applying(CellAction.Move(CellMove.UP), "b").sourceRevisions.isEmpty())
-    assertTrue(state.applying(CellAction.Delete, "b").sourceRevisions.isEmpty())
-    assertTrue(state.applying(CellAction.Duplicate, "a").sourceRevisions.isEmpty())
+    assertTrue(state.applyingFrom("b", CellAction.Move(CellMove.UP)).sourceRevisions.isEmpty())
+    assertTrue(state.applyingFrom("b", CellAction.Delete).sourceRevisions.isEmpty())
+    assertTrue(state.applyingFrom("a", CellAction.Duplicate).sourceRevisions.isEmpty())
   }
 
   /** A selection naming a cell the undo removed is worse than none - `withSelectionClamped`. */
   @Test
   fun undo_dropsASelectionTheRestoreLeftPointingAtNothing() {
-    val inserted = stateOf("a").applying(CellAction.Insert(CellKind.CODE), "a")
+    val inserted = stateOf("a").applyingFrom("a", CellAction.Insert(CellKind.CODE))
     val selected = inserted.withCellSelected(inserted.cells.last().id).withMode(CellMode.EDIT)
 
     val undone = selected.undoneCellOperation()
@@ -346,9 +346,9 @@ class CellUndoTest {
   @Test
   fun eachOperationIsOneEntry() {
     val state = stateOf("a")
-      .applying(CellAction.Insert(CellKind.CODE), "a")
-      .applying(CellAction.Insert(CellKind.CODE), "a")
-      .applying(CellAction.Insert(CellKind.CODE), "a")
+      .applyingFrom("a", CellAction.Insert(CellKind.CODE))
+      .applyingFrom("a", CellAction.Insert(CellKind.CODE))
+      .applyingFrom("a", CellAction.Insert(CellKind.CODE))
 
     assertEquals(4, state.cells.size)
     assertEquals(3, state.undoable.size)

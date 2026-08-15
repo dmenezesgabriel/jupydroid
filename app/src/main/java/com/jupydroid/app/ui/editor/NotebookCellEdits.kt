@@ -40,7 +40,7 @@ class NotebookCellEdits(
   fun applyTo(cellId: String, action: CellAction, editor: CellEditorText = CellEditorText.NONE) {
     // Clamped after every transform, not only after Delete: it costs nothing, and a transform
     // added later cannot forget to.
-    uiState.update { it.applying(action, cellId, editor).withSelectionClamped() }
+    uiState.update { it.applyingFrom(cellId, action, editor).withSelectionClamped() }
     save.schedule()
   }
 

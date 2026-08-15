@@ -97,7 +97,9 @@ fun EditorUiState.redoneCellOperation(): EditorUiState {
  * Outputs and counts are restored as they are: nothing outside a cell operation writes an output
  * for a cell that is not running, and a run in flight re-emits into whatever is on screen.
  *
- * Ends clamped, which is the id-based form of the `deselectAll()` JupyterLab does after an undo.
+ * Ends collapsed and clamped, which is the `deselectAll()` JupyterLab does after an undo
+ * (`actions.tsx:1758`, `:1779`) plus the id-based form of clamping `activeCellIndex`. Without the
+ * collapse the bar above would go on counting cells the undo has just replaced.
  */
 private fun EditorUiState.restoredTo(revision: NotebookRevision): EditorUiState {
   val liveSources = cells.associate { it.id to it.source } - revision.rewrote
@@ -107,5 +109,5 @@ private fun EditorUiState.restoredTo(revision: NotebookRevision): EditorUiState 
     executionCounts = revision.executionCounts,
     sourceRevisions = sourceRevisions.bumping(revision.rewrote),
     dirty = true,
-  ).withSelectionClamped()
+  ).withSelectionCollapsed().withSelectionClamped()
 }

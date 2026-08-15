@@ -133,15 +133,15 @@ class CellEditsTest {
    */
   @Test
   fun toggleSourceHidden_hidesAnExpandedCellAndShowsAHiddenOne() {
-    val hidden = stateOf("a", "b").applying(CellAction.ToggleSourceHidden, "a")
+    val hidden = stateOf("a", "b").applyingFrom("a", CellAction.ToggleSourceHidden)
 
     assertTrue(hidden.cells.single { it.id == "a" }.sourceHidden)
-    assertFalse(hidden.applying(CellAction.ToggleSourceHidden, "a").cells.single { it.id == "a" }.sourceHidden)
+    assertFalse(hidden.applyingFrom("a", CellAction.ToggleSourceHidden).cells.single { it.id == "a" }.sourceHidden)
   }
 
   @Test
   fun toggleSourceHidden_leavesEveryOtherCellAlone() {
-    val toggled = stateOf("a", "b").applying(CellAction.ToggleSourceHidden, "a")
+    val toggled = stateOf("a", "b").applyingFrom("a", CellAction.ToggleSourceHidden)
 
     assertFalse(toggled.cells.single { it.id == "b" }.sourceHidden)
   }
@@ -157,11 +157,11 @@ class CellEditsTest {
   /** The two collapses are independent: JupyterLab has a command for each, not one for both. */
   @Test
   fun toggleOutputsHidden_hidesTheOutputsWithoutTouchingTheSource() {
-    val hidden = stateOf("a").applying(CellAction.ToggleOutputsHidden, "a")
+    val hidden = stateOf("a").applyingFrom("a", CellAction.ToggleOutputsHidden)
 
     assertTrue(hidden.cells.single().outputsHidden)
     assertFalse(hidden.cells.single().sourceHidden)
-    assertFalse(hidden.applying(CellAction.ToggleOutputsHidden, "a").cells.single().outputsHidden)
+    assertFalse(hidden.applyingFrom("a", CellAction.ToggleOutputsHidden).cells.single().outputsHidden)
   }
 
   /**
@@ -172,7 +172,7 @@ class CellEditsTest {
   fun toggleOutputsHidden_keepsTheOutputsAndTheExecutionCount() {
     val state = stateOf("a").withOutputOn("a", "kept").withCount("a", 7)
 
-    val hidden = state.applying(CellAction.ToggleOutputsHidden, "a")
+    val hidden = state.applyingFrom("a", CellAction.ToggleOutputsHidden)
 
     assertEquals(state.outputs, hidden.outputs)
     assertEquals(7, hidden.executionCounts["a"])
@@ -195,7 +195,7 @@ class CellEditsTest {
    */
   @Test
   fun startSelecting_marksTheCellAndIsNotSomethingToUndo() {
-    val state = stateOf("a", "b").applying(CellAction.StartSelecting, "b")
+    val state = stateOf("a", "b").applyingFrom("b", CellAction.StartSelecting)
 
     assertEquals(listOf("b"), state.selectedCellIds)
     assertTrue(state.selecting)

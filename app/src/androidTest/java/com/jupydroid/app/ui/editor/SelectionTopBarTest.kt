@@ -93,15 +93,35 @@ class SelectionTopBarTest {
     compose.onNodeWithContentDescription("Extend selection above").assertDoesNotExist()
   }
 
+  /**
+   * The rows say how many cells they will take, the way the reference's `trans._n` labels do
+   * (`packages/notebook-extension/src/index.ts:3733`) - a menu reading "Delete" over a bar reading
+   * "2 selected" is one of them lying.
+   */
   @Test
-  fun theOverflowCarriesTheCellActions() {
+  fun theOverflowCarriesTheCellActionsAndSaysHowManyItMeans() {
     val chosen = mutableListOf<CellAction>()
     compose.setContent { bar(selectedCount = 2, onCellAction = { chosen += it }) }
 
     compose.onNodeWithContentDescription(MENU).performClick()
-    compose.onNodeWithContentDescription("Cell menu Delete").performScrollTo().performClick()
+    compose.onNodeWithContentDescription("Cell menu Delete cells").performScrollTo().performClick()
 
     assertEquals(listOf<CellAction>(CellAction.Delete), chosen)
+  }
+
+  /**
+   * With a run marked, "Merge with above" and "Merge with below" would do the same thing - the
+   * direction is only consulted for a single cell (`actions.tsx:390-425`) - so the two rows become
+   * the reference's own third command, `notebook:merge-cells`.
+   */
+  @Test
+  fun theOverflowOffersOneMergeRatherThanTwoThatAgree() {
+    compose.setContent { bar(selectedCount = 2) }
+
+    compose.onNodeWithContentDescription(MENU).performClick()
+
+    compose.onNodeWithContentDescription("Cell menu $MERGE_SELECTED").performScrollTo().assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu Merge with above").assertDoesNotExist()
   }
 
   /**

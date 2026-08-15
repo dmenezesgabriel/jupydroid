@@ -27,25 +27,79 @@ import java.util.UUID
  * (`actions.tsx:3391`) - and this function is that boundary under another name. A fourteenth
  * action becomes undoable by existing; see [recording] for why no list of which ones count.
  */
-internal fun EditorUiState.applying(
-  action: CellAction,
+/**
+ * The same operation, asked for from a menu opened on [cellId].
+ *
+ * That cell decides the operand only when it is *outside* the marked run, in which case the run
+ * collapses onto it first - the reference draws the line in `_evtMouseDown`, where a press
+ * anywhere in a cell sets `activeCellIndex` and a press outside the selection deselects
+ * (`packages/notebook/src/widget.ts:3160-3167`). Inside the run it changes nothing, so the whole
+ * run is what the menu means.
+ */
+internal fun EditorUiState.applyingFrom(
   cellId: String,
-  /** Only [CellAction.Split] reads it; see [CellEditorText] for why it cannot come from the state. */
+  action: CellAction,
   editor: CellEditorText = CellEditorText.NONE,
 ): EditorUiState {
+  val on = if (cellId in selectedCellIds) this else withSelectionCollapsed().withCellSelected(cellId)
+  return on.applying(action, editor)
+}
+
+internal fun EditorUiState.applying(
+  action: CellAction,
+  /** Only [CellAction.Split] reads it; see [CellEditorText] for why it cannot come from the state. */
+  editor: CellEditorText = CellEditorText.NONE,
+): EditorUiState = when {
+  // Nothing is selected, so there is nothing a cell-scoped action could mean.
+  selectedCellId == null -> this
   // Marking a run is the one menu item that is not an edit: it changes what the *next* action will
   // mean, and touches no cell. Answered here rather than in [transformed] so it never reaches the
   // undo machinery at all - `recording` would have declined it anyway, on the same rule that
   // covers `Copy`, but "not a document change" is a fact about the action rather than something
   // to rediscover from a diff each time.
-  if (action == CellAction.StartSelecting) return withSelectionStartedAt(cellId)
+  action == CellAction.StartSelecting -> withSelectionStartedAt(selectedCellId)
+  else -> operated(action, head = selectedCellId, editor = editor)
+}
+
+private fun EditorUiState.operated(
+  action: CellAction,
+  head: String,
+  editor: CellEditorText,
+): EditorUiState {
   // The document is brought up to the editor's text *before* the entry is recorded, so the entry
   // holds what the user can see rather than a copy up to one debounce old. Not an entry of its
   // own - typing is the other undo, and it has never had one.
-  val current = if (action == CellAction.Split) withSource(cellId, editor.source) else this
-  return current.transformed(action, listOf(cellId), head = cellId, editor)
+  val current = if (action == CellAction.Split) withSource(head, editor.source) else this
+  return current.transformed(action, selectedCellIds, head, editor)
     .recording(before = current)
+    .let { if (action.keepsTheRun) it else it.withSelectionCollapsed() }
 }
+
+/**
+ * Whether the marked run survives this operation.
+ *
+ * **Three do and every other one does not**, and the division is read out of the reference rather
+ * than reasoned about: `move` (`packages/notebook/src/actions.tsx:586-610`), `clearOutputs`
+ * (`:1822-1840`) and the collapses (`:1877-2110`) are the only cell operations with no
+ * `deselectAll()` in them. After each of those the same cells are still there and still worth
+ * acting on together; after a delete, a merge or a change of type the run named cells that are
+ * gone or different.
+ *
+ * Exhaustive rather than an `else`, for the reason [transformed] is: a sixteenth action has to
+ * decide this, not inherit it.
+ */
+private val CellAction.keepsTheRun: Boolean
+  get() = when (this) {
+    is CellAction.Move, CellAction.ClearOutputs,
+    CellAction.ToggleSourceHidden, CellAction.ToggleOutputsHidden,
+    CellAction.StartSelecting,
+    -> true
+
+    is CellAction.Insert, is CellAction.InsertAbove, is CellAction.ChangeKind, is CellAction.Merge,
+    CellAction.Split, CellAction.Copy, CellAction.Cut, CellAction.Paste,
+    CellAction.Duplicate, CellAction.Delete,
+    -> false
+  }
 
 /**
  * [cellIds] is every cell the action applies to, in document order - JupyterLab's
