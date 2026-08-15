@@ -98,14 +98,7 @@ fun CodeCellField(
 
   trackCellSource(state, source, sourceRevision, onSourceEdited)
 
-  // Hands the symbol row this field while the caret is in it. Detach is guarded by identity
-  // inside FocusedCellInput, so a cell being left cannot unhook the one just entered.
-  if (input != null) {
-    DisposableEffect(state, focused.value) {
-      if (focused.value) input.attach(state)
-      onDispose { input.detach(state) }
-    }
-  }
+  input.attachWhileFocused(state, focused.value)
 
   Box {
     BasicTextField(

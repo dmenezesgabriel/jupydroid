@@ -20,7 +20,7 @@ appId: com.jupydroid.app
 #
 # **The caret is placed deterministically, which a tap cannot do.** A tap lands where it lands, so
 # the flow drives the caret from a known origin instead: the symbol row's `←` clamps at offset 0
-# (`FocusedCellInput.moveCaret` coerces), so thirty presses put it at the start whatever the tap
+# (`FocusedCellInput.moveCaret` coerces), so twenty presses put it at the start whatever the tap
 # did, and ten `→` then put it exactly at the `b` of `below` - `len("above = 1\n")`.
 #
 # Seeded by scripts/p2b-split-driver.sh; clearState would delete the fixture.
@@ -43,56 +43,7 @@ appId: com.jupydroid.app
 - tapOn: "(?s).*above = 1.*"
 - waitForAnimationToEnd:
     timeout: 5000
-# The symbol row scrolls, and at 320dp it shows `Tab : ( ) [ ]` and stops - the arrows are off the
-# right edge, where `tapOn` cannot reach them. `scrollUntilVisible` does not help: it swipes at the
-# centre of the *screen*, which is empty space below the cell, so the row never moves - measured,
-# with the before and after captures identical. A swipe anchored on a key of the row does move it,
-# the anchor has to be a key near the **right** edge: a leftward drag started at the left edge has
-# no room, which is why a swipe from `Tab` moved nothing at all.
-#
-# **Three guarded steps rather than a loop or a fixed count, and each guard earns its place.** A
-# swipe's distance is not reliable - two of them reached the arrows on one run and stopped a key
-# short on the next - so each step names the key that is rightmost at that stage and is skipped
-# once the arrows are in view. A `while` loop is what this replaced: anchored on the one key that
-# survives every scroll, the drag started at the left edge, moved nothing, and span 950 times.
-# And where the whole row already fits, swiping at all is actively harmful: the tablet's keyboard
-# prints `=` and `]` as hints on its `r` and `y` keys, so an anchored swipe matched the
-# **keyboard**, and a 1000ms drag across a keyboard is glide typing. It wrote " ya tea" into the
-# cell; the caret drive then counted against a longer string and the split cut in a place nothing
-# on screen explained. Read out of the hierarchy dump rather than guessed - two nodes are labelled
-# `=`, one at y543 in the symbol row and one at y767 on the keyboard.
-- runFlow:
-    when:
-      notVisible: "←"
-      visible: "\\]"
-    commands:
-      - swipe:
-          from:
-            text: "\\]"
-          direction: LEFT
-          duration: 1000
-- runFlow:
-    when:
-      notVisible: "←"
-      visible: "\""
-    commands:
-      - swipe:
-          from:
-            text: "\""
-          direction: LEFT
-          duration: 1000
-- runFlow:
-    when:
-      notVisible: "←"
-      visible: "="
-    commands:
-      - swipe:
-          from:
-            text: "="
-          direction: LEFT
-          duration: 1000
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow: reveal-the-symbol-row-arrows.yaml
 # Twenty is "more than the nineteen characters there are", so the caret is at 0 wherever the tap
 # left it; ten then puts it on the `b` of `below`, which is `len("above = 1\n")`.
 - repeat:

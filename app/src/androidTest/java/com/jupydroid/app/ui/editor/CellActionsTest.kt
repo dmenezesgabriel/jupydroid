@@ -96,13 +96,11 @@ class CellActionsTest {
   }
 
   /**
-   * Split is offered on a code cell and reports [CellAction.Split], which carries nothing: where
-   * to cut is the cell's own editor and arrives beside the action. Not offered on a markdown cell
-   * yet - the rendered half of one has no editor to read a caret from, which is the reference's
-   * own `isEnabled` (`!!activeCell?.editor`).
+   * Split reports [CellAction.Split], which carries nothing: where to cut is the cell's own editor
+   * and arrives beside the action.
    */
   @Test
-  fun splitIsOfferedOnACodeCellAndNotOnAMarkdownOne() {
+  fun splitIsOfferedOnACodeCell() {
     val chosen = mutableListOf<CellAction>()
     compose.setContent {
       CellActions(
@@ -120,8 +118,15 @@ class CellActionsTest {
     compose.runOnIdle { assertEquals(listOf(CellAction.Split), chosen) }
   }
 
+  /**
+   * **A markdown cell is offered it too**, which is the reference's `isEnabled`
+   * (`!!current.content.activeCell?.editor`): rendering swaps which widget is *displayed* -
+   * `renderInput` and `showEditor` toggle a class and call `inputArea.renderInput/showEditor`
+   * (`packages/cells/src/widget.ts:2489-2503`) - and `inputArea.editor` exists either way. So a
+   * rendered cell has a caret to split at, wherever it was last left.
+   */
   @Test
-  fun theSheetDoesNotOfferSplitOnAMarkdownCell() {
+  fun aMarkdownCellIsOfferedSplitToo() {
     compose.setContent {
       CellActions(
         expanded = true,
@@ -133,7 +138,7 @@ class CellActionsTest {
       )
     }
 
-    compose.onNodeWithContentDescription("Cell menu Split cell").assertDoesNotExist()
+    compose.onNodeWithContentDescription("Cell menu Split cell").performScrollTo().assertIsDisplayed()
   }
 
   private companion object {

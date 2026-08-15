@@ -284,10 +284,13 @@ private fun EditorCell(
         )
       } else {
         MarkdownCell(
+          state = field,
           source = cell.source,
+          sourceRevision = sourceRevision,
           rendered = rendered.value,
           onEditRequested = { rendered.value = false },
           onSourceEdited = onSourceEdited,
+          input = cellInput,
           modifier = Modifier.fillMaxWidth(),
         )
       }

@@ -1,0 +1,104 @@
+appId: com.jupydroid.app
+---
+# P2b, second half: `notebook:split-cell-at-cursor` on a **markdown** cell.
+#
+# Runs no cell, so the emulator is enough and this is evidence on both devices.
+#
+# **A markdown cell is offered Split for the same reason a code cell is**, and the reference is
+# where that comes from rather than a guess: `isEnabled` is `!!current.content.activeCell?.editor`,
+# and a markdown cell keeps its editor while it is rendered - `renderInput` and `showEditor` swap
+# only which widget is *displayed* (`packages/cells/src/widget.ts:2489-2503`).
+#
+# **What is being proved here that the code-cell flow could not.** The two fields now share one
+# text state per cell, because a cell has one source however it is being shown. Without that the
+# caret driven below would belong to a field the split cannot see, and the cut would land at 0.
+#
+# The fragments come back rendered, which is this app's resting state for markdown
+# (`MarkdownCell`) - so the assertion after the split is on the *rendered* heading `Above`, with
+# its hashes gone, rather than on the source.
+#
+# Seeded by scripts/p2b-split-markdown-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Cut The Prose.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cut The Prose.ipynb"
+# Rendered on arrival: the heading has lost its hashes, which is what rendering means.
+- extendedWaitUntil:
+    visible: "Above"
+    timeout: 30000
+- assertVisible: "Below line"
+- assertNotVisible: "# Above"
+- takeScreenshot: 01-rendered
+# A tap on the rendered cell opens its editor - A1c - and the source comes back with the hashes.
+- tapOn:
+    text: "Above"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "(?s).*# Above\nBelow line.*"
+- runFlow: reveal-the-symbol-row-arrows.yaml
+# Twenty is more than the seventeen characters there are, so the caret is at 0 wherever the editor
+# opened it; seven then puts it on the `B` of `Below`, which is `len("# Above\n")`.
+- repeat:
+    times: 20
+    commands:
+      - tapOn: "←"
+- repeat:
+    times: 8
+    commands:
+      - tapOn: "→"
+- takeScreenshot: 02-caret-at-the-start-of-the-second-line
+# The precondition, asserted where it is established: an IME that adds characters during the caret
+# drive would otherwise show up three steps later as a cut nobody could explain.
+- assertVisible: "(?s).*# Above\nBelow line.*"
+- tapOn: "Cell actions"
+- scrollUntilVisible:
+    element:
+      text: "Cell menu Split cell"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Cell menu Split cell"
+- waitForAnimationToEnd:
+    timeout: 5000
+# Two cells. The new one above holds the heading and is rendered, so it reads `Above`; the original
+# is the one that was being edited, so it still shows its source.
+- assertVisible: "Above"
+- assertVisible: "Below line"
+- assertNotVisible: "(?s).*# Above\nBelow line.*"
+# **The assertion that makes this flow worth running.** Without it the flow passed against a split
+# at the *end* of the text: everything moved into the new cell, the original was left empty, and
+# both `Above` and `Below line` were still on screen - in one rendered cell rather than two. An
+# empty markdown cell shows its placeholder, so its absence is what says the cut landed where the
+# caret was. It was the saved file that gave this away, not the screen.
+- assertNotVisible: "Write markdown…"
+- takeScreenshot: 03-split-into-two-markdown-cells
+- tapOn: "Undo cell operation"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "(?s).*# Above\nBelow line.*"
+- takeScreenshot: 04-undone-whole
+# A split is an edit like any other and goes to disk on the same debounce. The driver prints the
+# saved file afterwards, where the cell kinds are read rather than looked at.
+- tapOn: "Redo cell operation"
+- waitForAnimationToEnd:
+    timeout: 5000
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Cut The Prose.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cut The Prose.ipynb"
+- extendedWaitUntil:
+    visible: "Above"
+    timeout: 30000
+- assertVisible: "Below line"
+- assertNotVisible: "(?s).*# Above\nBelow line.*"
+- takeScreenshot: 05-saved-as-two-markdown-cells

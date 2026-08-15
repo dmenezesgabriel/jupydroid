@@ -5,7 +5,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,18 +39,27 @@ internal const val MARKDOWN_PLACEHOLDER = "Write markdown…"
  * It does get a line-number gutter, because [lineNumbers] counts lines rather than code, and a
  * line number is as useful for finding your place in prose as in Python.
  *
+ * **[state] is the caller's**, for the reason [CodeCellField]'s is: a cell has one source however
+ * it is being shown, so the cell owns the text and the caret and hands the same state to whichever
+ * field is drawing it. That is what lets a markdown cell be split, and it is why the caret survives
+ * a cell being rendered and opened again.
+ *
  * ```
- * MarkdownCellField(source = cell.source, onSourceEdited = { … })
+ * MarkdownCellField(state = state, source = cell.source, onSourceEdited = { … })
  * ```
  */
 @Composable
 fun MarkdownCellField(
-  source: String,
+  state: TextFieldState,
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
+  /** The notebook's copy, taken when [sourceRevision] says a cell operation rewrote it. */
+  source: String = state.text.toString(),
+  sourceRevision: Int = 0,
   highlighter: SyntaxHighlighter = remember { MarkdownSyntax() },
+  /** Null where no symbol row is on screen, which is every test that drives a field alone. */
+  input: FocusedCellInput? = null,
 ) {
-  val state = rememberTextFieldState(initialText = source)
   val styles = syntaxStyles()
   val caret = remember { FocusRequester() }
   val interactions = remember { MutableInteractionSource() }
@@ -60,8 +69,10 @@ fun MarkdownCellField(
   val numberStyle = markdownSourceStyle().copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle)
 
-  // No revisions of its own until a markdown cell can be split; see [trackCellSource].
-  trackCellSource(state, source, revision = 0, onSourceEdited = onSourceEdited)
+  trackCellSource(state, source, sourceRevision, onSourceEdited)
+  // The row is on screen in edit mode whatever the cell is, so a markdown cell has to be reachable
+  // from it. Without this it sat above the keyboard doing nothing.
+  input.attachWhileFocused(state, focused.value)
   // This field only exists because someone tapped the rendered cell to edit it, so it takes the
   // caret on arrival. Without this the tap left an unfocused field and the next keystroke went
   // nowhere - a tap that opens an editor you must tap again is half a tap. Invisible to the

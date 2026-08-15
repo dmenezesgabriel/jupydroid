@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,14 +33,24 @@ internal const val RENDERED_MARKDOWN = "Rendered markdown"
  */
 @Composable
 fun MarkdownCell(
+  state: TextFieldState,
   source: String,
   rendered: Boolean,
   onEditRequested: () -> Unit,
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
+  sourceRevision: Int = 0,
+  input: FocusedCellInput? = null,
 ) {
   if (!rendered) {
-    MarkdownCellField(source = source, onSourceEdited = onSourceEdited, modifier = modifier)
+    MarkdownCellField(
+      state = state,
+      source = source,
+      sourceRevision = sourceRevision,
+      onSourceEdited = onSourceEdited,
+      modifier = modifier,
+      input = input,
+    )
     return
   }
   val blocks = remember(source) { MarkdownDocument.parse(source) }

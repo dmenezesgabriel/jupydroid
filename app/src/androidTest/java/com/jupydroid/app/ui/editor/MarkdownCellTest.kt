@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -22,7 +23,7 @@ class MarkdownCellTest {
 
   @Test
   fun rendersTheMarkdownRatherThanItsSource() {
-    compose.setContent { MarkdownCell("## Results", rendered = true, {}, {}) }
+    compose.setContent { MarkdownCell(rememberTextFieldState("## Results"), "## Results", rendered = true, {}, {}) }
 
     // The heading's text without its hashes is the whole point of rendering.
     compose.onNodeWithText("Results").assertIsDisplayed()
@@ -32,7 +33,7 @@ class MarkdownCellTest {
   @Test
   fun tappingTheRenderedCellAsksForTheEditor() {
     var asked = false
-    compose.setContent { MarkdownCell("# Title", rendered = true, { asked = true }, {}) }
+    compose.setContent { MarkdownCell(rememberTextFieldState("# Title"), "# Title", rendered = true, { asked = true }, {}) }
 
     compose.onNodeWithContentDescription(RENDERED_MARKDOWN).performClick()
 
@@ -48,7 +49,7 @@ class MarkdownCellTest {
   fun openingTheEditorPutsTheCursorInIt() {
     var rendered by mutableStateOf(true)
     compose.setContent {
-      MarkdownCell("# Title", rendered, onEditRequested = { rendered = false }, onSourceEdited = {})
+      MarkdownCell(rememberTextFieldState("# Title"), "# Title", rendered, onEditRequested = { rendered = false }, onSourceEdited = {})
     }
 
     compose.onNodeWithContentDescription(RENDERED_MARKDOWN).performClick()
@@ -59,14 +60,14 @@ class MarkdownCellTest {
   /** Rendered empty markdown is nothing at all, which would be a row with no way into it. */
   @Test
   fun anEmptyCellStillOffersSomethingToTap() {
-    compose.setContent { MarkdownCell("", rendered = true, {}, {}) }
+    compose.setContent { MarkdownCell(rememberTextFieldState(""), "", rendered = true, {}, {}) }
 
     compose.onNodeWithText(MARKDOWN_PLACEHOLDER).assertIsDisplayed()
   }
 
   @Test
   fun editingShowsTheSourceAgain() {
-    compose.setContent { MarkdownCell("## Results", rendered = false, {}, {}) }
+    compose.setContent { MarkdownCell(rememberTextFieldState("## Results"), "## Results", rendered = false, {}, {}) }
 
     compose.onNodeWithText("## Results").assertIsDisplayed()
   }
@@ -80,7 +81,13 @@ class MarkdownCellTest {
     var source by mutableStateOf("start")
     var rendered by mutableStateOf(false)
     compose.setContent {
-      MarkdownCell(source, rendered, onEditRequested = { rendered = false }, onSourceEdited = { source = it })
+      MarkdownCell(
+        state = rememberTextFieldState("start"),
+        source = source,
+        rendered = rendered,
+        onEditRequested = { rendered = false },
+        onSourceEdited = { source = it },
+      )
     }
 
     compose.onNodeWithText("start").performTextInput(" and more")

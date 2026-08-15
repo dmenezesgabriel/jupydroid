@@ -160,22 +160,16 @@ private fun shapingItems(cell: Cell): List<Pair<String, CellAction>> = listOf(
   },
   "Merge with above" to CellAction.Merge(MergeInto.ABOVE),
   "Merge with below" to CellAction.Merge(MergeInto.BELOW),
-) + splitItem(cell)
-
-/**
- * Beside the merges, because split is their inverse and the three read as one group.
- *
- * **Code cells only, for now.** The reference offers it wherever there is an editor
- * (`isEnabled: !!current.content.activeCell?.editor`) and a markdown cell has one only while it is
- * un-rendered - which needs the same text state the code cell has, and that is the next sub-step
- * rather than this one.
- *
- * Offered whether or not the caret has ever been in the cell, which is also the reference's:
- * `editor.getSelections()` answers with the last cursor, and 0 for an editor nobody has touched.
- * Splitting there puts an empty cell above, and an undo takes it back.
- */
-private fun splitItem(cell: Cell): List<Pair<String, CellAction>> =
-  if (cell.kind == CellKind.CODE) listOf("Split cell" to CellAction.Split) else emptyList()
+  // Beside the merges, because split is their inverse and the three read as one group.
+  //
+  // **On every cell, and whether or not a caret was ever put in one.** Both are the reference's
+  // `isEnabled: !!current.content.activeCell?.editor`: a markdown cell keeps its editor while it
+  // is rendered - `renderInput`/`showEditor` swap only which widget is displayed
+  // (`packages/cells/src/widget.ts:2489-2503`) - and `editor.getSelections()` answers with the
+  // last cursor, or 0 for an editor nobody has touched. Splitting there puts an empty cell above,
+  // and an undo takes it back.
+  "Split cell" to CellAction.Split,
+)
 
 private fun clipboardItems(canPaste: Boolean): List<Pair<String, CellAction>> = buildList {
   add("Cut" to CellAction.Cut)

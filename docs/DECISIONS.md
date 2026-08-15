@@ -336,10 +336,17 @@ Three consequences, each a constraint:
   keystrokes. Both directions share one `LaunchedEffect` so a report held in the debounce cannot
   land *after* a rewrite and undo it.
 
-**Split is offered unconditionally on a code cell**, which is the reference's `isEnabled`
-(`!!activeCell?.editor`): a cell whose caret was never placed splits at 0 and gets an empty cell
-above, and an undo takes it back. Not offered on markdown yet — a rendered markdown cell has no
-editor to read a caret from.
+**Split is offered on every cell and whether or not a caret was ever put in one**, which is the
+reference's `isEnabled` (`!!activeCell?.editor`) read literally. A cell whose caret was never
+placed splits at 0 and gets an empty cell above, and an undo takes it back. **A markdown cell is
+included, rendered or not**: `renderInput` and `showEditor` swap only which widget is *displayed*
+(`packages/cells/src/widget.ts:2489-2503`), and `inputArea.editor` exists either way — so the
+first guess, that a rendered markdown cell has no editor to read a caret from, is wrong about the
+reference as well as unnecessary here.
+
+**So a cell owns one text state, not one per field.** A cell has one source however it is being
+shown, and both fields are handed the same `TextFieldState` — which is what makes a markdown cell
+splittable at all, and what keeps its caret across being rendered and opened again.
 
 **A control's name goes on the button, not on the icon inside it.** `enabled` lands on the
 `IconButton`'s accessibility node and a `contentDescription` on the `Icon` lands on a *child* of
@@ -455,6 +462,12 @@ Expanded two, and Expanded starts at 840dp.
   button and not a hidden gesture. It took three attempts to learn: a press on the cell produced
   Android's Select all / Autofill toolbar, and a press on the header worked but was
   undiscoverable. **Nothing on screen announcing an interaction is not an interaction.**
+- **A control that is on screen for a state it does not serve is a control that lies.** The symbol
+  row shows in edit mode whatever the cell is, and `MarkdownCellField` never registered itself with
+  `FocusedCellInput` — so in a markdown cell the row sat above the keyboard doing nothing at all.
+  It is the same failure the `⋮` button exists to avoid, one layer down, and it went unseen until a
+  flow tried to drive a caret with `←` there. Registering is one shared composable now
+  (`attachWhileFocused`) rather than a block each field could forget.
 - **Anything drawn above the soft keyboard needs `imePadding()` *and* `navigationBarsPadding()`** —
   the second for the moment between the keyboard closing and the layout catching up (`SymbolRow`).
 - **A behaviour that cannot be reached on a phone is adapted, never invented**, and the adaptation

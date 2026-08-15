@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -21,7 +22,7 @@ class MarkdownCellFieldTest {
 
   @Test
   fun showsTheSourceItWasGiven() {
-    compose.setContent { MarkdownCellField(source = "# heading", onSourceEdited = {}) }
+    compose.setContent { MarkdownCellField(state = rememberTextFieldState("# heading"), onSourceEdited = {}) }
 
     compose.onNodeWithText("# heading").assertIsDisplayed()
   }
@@ -29,7 +30,7 @@ class MarkdownCellFieldTest {
   /** The bug in one assertion: an empty markdown cell must never be an invisible row. */
   @Test
   fun showsAPlaceholderWhileEmptySoTheCellIsNeverInvisible() {
-    compose.setContent { MarkdownCellField(source = "", onSourceEdited = {}) }
+    compose.setContent { MarkdownCellField(state = rememberTextFieldState(""), onSourceEdited = {}) }
 
     compose.onNodeWithText(MARKDOWN_PLACEHOLDER).assertIsDisplayed()
   }
@@ -37,7 +38,7 @@ class MarkdownCellFieldTest {
   @Test
   fun acceptsTypingAndReportsWhatWasTyped() {
     var reported: String? = null
-    compose.setContent { MarkdownCellField(source = "", onSourceEdited = { reported = it }) }
+    compose.setContent { MarkdownCellField(state = rememberTextFieldState(""), onSourceEdited = { reported = it }) }
 
     compose.onNodeWithText(MARKDOWN_PLACEHOLDER).performClick()
     compose.onNodeWithText(MARKDOWN_PLACEHOLDER).performTextInput("## notes")
@@ -47,7 +48,7 @@ class MarkdownCellFieldTest {
 
   @Test
   fun dropsThePlaceholderOnceThereIsText() {
-    compose.setContent { MarkdownCellField(source = "written", onSourceEdited = {}) }
+    compose.setContent { MarkdownCellField(state = rememberTextFieldState("written"), onSourceEdited = {}) }
 
     compose.onNodeWithText(MARKDOWN_PLACEHOLDER).assertDoesNotExist()
   }

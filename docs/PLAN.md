@@ -38,7 +38,7 @@ filesystem the kernel, the server and the app all share.
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 118 instrumented, 786 unit, 70 Maestro flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 119 instrumented, 786 unit, 71 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
 settings, raw cells, headings, multi-select, trust, export.
@@ -249,8 +249,10 @@ three commits rather than one, and the split was decided before any code was wri
 state came out of `CodeCellField` first as a pure refactor with the existing tests as its gate,
 then the command, then markdown. What it settled - the two counter-intuitive rules, the one
 exception P2a's undo rule needed, and why a field must be *told* its text was rewritten rather than
-left to notice - is `docs/DECISIONS.md`. It also cost two harness findings that had been invisible
-while the cell menu was thirteen rows long, and those are recorded there too.
+left to notice - is `docs/DECISIONS.md`. It cost three harness findings that had been invisible
+while the cell menu was thirteen rows long, and one real defect the markdown half turned up: the
+symbol row was **inert in a markdown cell**, because that field never registered itself with
+`FocusedCellInput`. All four are recorded there.
 
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|

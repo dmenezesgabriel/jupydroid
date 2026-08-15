@@ -2,6 +2,8 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.insert
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -74,5 +76,26 @@ class FocusedCellInput {
   private companion object {
     val rules = PythonTypingRules()
     const val FOUR_SPACES = "    "
+  }
+}
+
+/**
+ * Registers [state] with the row for as long as the field holding it has the caret.
+ *
+ * Shared by both fields rather than written twice, and that is not tidiness: the markdown field
+ * went without it, so the row sat above the keyboard in a markdown cell doing **nothing** - the
+ * exact "a control that lights up and does not work" this codebase refuses elsewhere. It surfaced
+ * because P2b's markdown flow drives a caret with `←`, and the split then cut at the end of the
+ * text instead of where the flow had put it.
+ *
+ * Detach is guarded by identity inside [FocusedCellInput.detach], so a cell being left cannot
+ * unhook the one just entered.
+ */
+@Composable
+internal fun FocusedCellInput?.attachWhileFocused(state: TextFieldState, focused: Boolean) {
+  val input = this ?: return
+  DisposableEffect(input, state, focused) {
+    if (focused) input.attach(state)
+    onDispose { input.detach(state) }
   }
 }
