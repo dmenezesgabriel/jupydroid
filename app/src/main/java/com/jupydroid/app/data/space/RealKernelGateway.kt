@@ -53,12 +53,15 @@ class RealKernelGateway(
    * Starts a kernel and binds a session to it. The session id is ours and identifies this
    * client to the server; the kernel id is the server's.
    */
-  override suspend fun connect(space: Space, documentPath: String): KernelSession =
-    KernelSession(
+  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+    val started = lifecycle.start(documentPath)
+    return KernelSession(
       id = UUID.randomUUID().toString(),
       spaceId = space.id,
-      kernelId = lifecycle.start(documentPath),
+      kernelId = started.kernelId,
+      serverSessionId = started.serverSessionId,
     ).also { log.reached(KernelLog.SESSION_OPENED, mapOf("kernelId" to it.kernelId, "sessionId" to it.id)) }
+  }
 
   /**
    * Everything is filtered by our own `msg_id`: one socket now carries every cell's traffic,
@@ -136,6 +139,15 @@ class RealKernelGateway(
     socketsLock.withLock { sessionSockets.remove(session.id) }?.socket?.close()
   }
 
+  /**
+   * Ends the session, and the kernel with it. The socket is closed **first**: a `DELETE` that
+   * lands while we are still attached leaves a socket pointed at a process that has gone.
+   */
+  override suspend fun shutdown(session: KernelSession) {
+    disconnect(session)
+    lifecycle.shutdownSession(session.serverSessionId)
+  }
+
   /** Returns false once this execution is complete, which is what ends the flow. */
   private suspend fun FlowCollector<KernelEvent>.emitUntilComplete(
     event: KernelSocketEvent,
@@ -181,7 +193,7 @@ class RealKernelGateway(
       // from inside `open()`, before there is anything to hold it in - which is exactly what the
       // scripted opener does, and a fake that mimics reality is the point of having one.
       settle(connected, event)
-      report(event, subscribers = events.subscriptionCount.value, accepted = events.tryEmit(event))
+      report(log, event, subscribers = events.subscriptionCount.value, accepted = events.tryEmit(event))
     }
     return SessionSocket(
       socket,
@@ -191,34 +203,6 @@ class RealKernelGateway(
       restartKernel = { lifecycle.restart(session.kernelId) },
       log,
     )
-  }
-
-  /**
-   * Says what came off the socket *before* anything downstream can swallow it.
-   *
-   * `subscribers` is the field that matters. `MutableSharedFlow` with `replay = 0` drops what it
-   * emits to nobody and says nothing about it, so "the kernel never replied" and "the kernel
-   * replied between executions and it was discarded" are indistinguishable after the fact - and
-   * they are opposite defects. `accepted` catches the other loss, a full buffer.
-   */
-  private fun report(event: KernelSocketEvent, subscribers: Int, accepted: Boolean) {
-    val fields = mapOf("subscribers" to subscribers.toString())
-    when (event) {
-      is KernelSocketEvent.Opened -> log.reached(KernelLog.SOCKET_CONNECTED, fields)
-      is KernelSocketEvent.Ended -> {
-        val why = mapOf("reason" to event.reason, "failed" to event.failed.toString())
-        log.reached(KernelLog.SOCKET_ENDED, fields + why)
-      }
-      is KernelSocketEvent.Received -> {
-        val what = mapOf(
-          "msgType" to (JupyterFrame.msgTypeOf(event.frame) ?: "?"),
-          // Empty means the frame answers no request of ours - the kernel's own startup chatter.
-          "parent" to (JupyterFrame.parentMsgIdOf(event.frame) ?: ""),
-        )
-        log.reached(KernelLog.FRAME_RECEIVED, fields + what + mapOf("bytes" to event.frame.length.toString()))
-      }
-    }
-    if (!accepted) log.reached(KernelLog.FRAME_DROPPED, fields)
   }
 
   /**
@@ -356,6 +340,37 @@ class RealKernelGateway(
     val KERNEL_INFO_TIMEOUT = 3.seconds
     const val KERNEL_INFO_REPLY = "kernel_info_reply"
   }
+}
+
+/**
+ * Says what came off the socket *before* anything downstream can swallow it.
+ *
+ * `subscribers` is the field that matters. `MutableSharedFlow` with `replay = 0` drops what it
+ * emits to nobody and says nothing about it, so "the kernel never replied" and "the kernel
+ * replied between executions and it was discarded" are indistinguishable after the fact - and
+ * they are opposite defects. `accepted` catches the other loss, a full buffer.
+ *
+ * Beside [settle] rather than inside the gateway for the same reason that one is: it reads an
+ * event and a log and touches nothing the class holds.
+ */
+private fun report(log: SpaceLifecycleLog, event: KernelSocketEvent, subscribers: Int, accepted: Boolean) {
+  val fields = mapOf("subscribers" to subscribers.toString())
+  when (event) {
+    is KernelSocketEvent.Opened -> log.reached(KernelLog.SOCKET_CONNECTED, fields)
+    is KernelSocketEvent.Ended -> {
+      val why = mapOf("reason" to event.reason, "failed" to event.failed.toString())
+      log.reached(KernelLog.SOCKET_ENDED, fields + why)
+    }
+    is KernelSocketEvent.Received -> {
+      val what = mapOf(
+        "msgType" to (JupyterFrame.msgTypeOf(event.frame) ?: "?"),
+        // Empty means the frame answers no request of ours - the kernel's own startup chatter.
+        "parent" to (JupyterFrame.parentMsgIdOf(event.frame) ?: ""),
+      )
+      log.reached(KernelLog.FRAME_RECEIVED, fields + what + mapOf("bytes" to event.frame.length.toString()))
+    }
+  }
+  if (!accepted) log.reached(KernelLog.FRAME_DROPPED, fields)
 }
 
 /**

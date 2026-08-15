@@ -62,7 +62,9 @@ fun baseSpaceKernelGateway(context: Context, launcher: JupyterServerLauncher): K
     gatewayFor = { connection ->
       RealKernelGateway(
         opener = OkHttpKernelSocketOpener(connection),
-        lifecycle = OkHttpKernelLifecycle(connection),
+        // The lifecycle gets the same log: a shutdown that found the session already gone is the
+        // one thing it reports rather than raises, and on device that line is the only account of it.
+        lifecycle = OkHttpKernelLifecycle(connection, log = LogcatSpaceLifecycleLog),
         // The same tag the rest of the runtime reports under, so a stall is one filter to read:
         // `adb logcat -s JupydroidSpace`. Without this the execute path is silent, which is why
         // three sightings of the stall produced no diagnosis. See [KernelLog].

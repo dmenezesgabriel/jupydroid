@@ -121,7 +121,12 @@ class KernelGreetingRecoveryTest {
   fun aRestartTheServerRefusesFailsTheCell() = runTest {
     val refused = KernelLifecycleException("POST api/kernels/kernel-1/restart failed: HTTP 500")
     val gateway = RealKernelGateway(neverGreets(), FakeKernelLifecycle(failWith = refused))
-    val session = KernelSession(id = "session-1", spaceId = "base", kernelId = "kernel-1")
+    val session = KernelSession(
+      id = "session-1",
+      spaceId = "base",
+      kernelId = "kernel-1",
+      serverSessionId = "server-session-1",
+    )
 
     val failure = runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }.exceptionOrNull()
 

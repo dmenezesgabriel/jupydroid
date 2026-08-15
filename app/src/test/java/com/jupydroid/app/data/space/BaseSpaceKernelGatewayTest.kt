@@ -85,6 +85,25 @@ class BaseSpaceKernelGatewayTest {
   }
 
   /**
+   * P1d follows P1c's rule for [KernelGateway.disconnect] exactly: shutting a kernel down must
+   * not *start* a server to do it.
+   *
+   * The kernel died with the server the backstop stopped, so there is nothing left to shut down -
+   * and booting a whole runtime to say so would spend seven seconds and ~130 MB undoing the thing
+   * P1c did.
+   */
+  @Test
+  fun shutdown_startsNoServerForASessionTheStoppedOneIssued() = runTest {
+    val launcher = RecordingServerLauncher(diesAfterFirstStart = true)
+    val gateway = gateway(launcher)
+    val stale = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.shutdown(stale)
+
+    assertEquals(1, launcher.startCount)
+  }
+
+  /**
    * Two cells run at once would otherwise each see no server and each start one. The second
    * server would bind a different port and the first would be orphaned.
    */

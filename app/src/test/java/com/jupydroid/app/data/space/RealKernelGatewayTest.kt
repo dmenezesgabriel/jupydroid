@@ -115,6 +115,38 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     assertTrue("disconnect must close the socket", opener.closed)
   }
 
+  /**
+   * P1d: a shutdown is a disconnect **and** a `DELETE`, in that order.
+   *
+   * Both halves are asserted because either alone is a defect with a long fuse: the socket left
+   * open outlives the kernel it points at, and the session left behind is the ~55 MiB the command
+   * exists to reclaim.
+   */
+  @Test
+  fun shutdown_closesTheSocketAndDeletesTheServersSession() = runTest {
+    val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
+    val lifecycle = FakeKernelLifecycle()
+    val gateway = RealKernelGateway(opener, lifecycle)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+
+    gateway.shutdown(session)
+
+    assertTrue("shutdown must close the socket", opener.closed)
+    assertEquals(listOf(session.serverSessionId), lifecycle.shutDownSessions)
+  }
+
+  /** The session id the server filed, never our own - they address different things. */
+  @Test
+  fun connect_carriesTheServersSessionIdSoItCanBeShutDown() = runTest {
+    val lifecycle = FakeKernelLifecycle(serverSessionId = "server-session-9")
+    val gateway = RealKernelGateway(ScriptedKernelSocketOpener(reply = { emptyList() }), lifecycle)
+
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    assertEquals("server-session-9", session.serverSessionId)
+  }
+
   /** Two sessions are two kernels; sharing a socket between them would cross their traffic. */
   @Test
   fun execute_givesEachSessionItsOwnSocket() = runTest {

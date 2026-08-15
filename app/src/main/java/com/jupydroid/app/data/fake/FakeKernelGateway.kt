@@ -17,6 +17,9 @@ class FakeKernelGateway : KernelGateway {
       id = "fake-${space.id}",
       spaceId = space.id,
       kernelId = space.kernels.firstOrNull()?.id ?: "python3",
+      // A server session id shaped like the server's, so a caller that builds a URL from it
+      // builds a plausible one. There is no server here to file it with.
+      serverSessionId = "fake-session-${space.id}",
     )
 
   override suspend fun execute(
@@ -54,6 +57,13 @@ class FakeKernelGateway : KernelGateway {
   }
 
   override suspend fun disconnect(session: KernelSession) = Unit
+
+  /** Which sessions were shut down, so a test can tell "the command ran" from "it did nothing". */
+  val shutDownSessions = mutableListOf<KernelSession>()
+
+  override suspend fun shutdown(session: KernelSession) {
+    shutDownSessions += session
+  }
 
   private fun identifierStartBefore(code: String, cursorOffset: Int): Int {
     var start = cursorOffset.coerceIn(0, code.length)

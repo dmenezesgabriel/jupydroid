@@ -75,13 +75,24 @@ class BaseSpaceKernelGateway(
 
   /**
    * Closing a socket the server has already forgotten is not a failure - the session is gone
-   * either way, which is what the caller asked for - and it must not *start* a server to say so.
-   * Leaving a notebook after the backstop stopped one would otherwise boot a whole runtime for
-   * the sake of closing a websocket that no longer exists.
+   * either way, which is what the caller asked for.
    */
-  override suspend fun disconnect(session: KernelSession) {
+  override suspend fun disconnect(session: KernelSession) = endingIfStillLive(session) { it.disconnect(session) }
+
+  /** Ending the session outright, which takes the kernel with it: `notebook:shutdown-kernel`. */
+  override suspend fun shutdown(session: KernelSession) = endingIfStillLive(session) { it.shutdown(session) }
+
+  /**
+   * Runs [end] against the live gateway, and does nothing at all when this session is not one this
+   * gateway issued or the server that issued it has since stopped.
+   *
+   * **It must not *start* a server to end a session.** Leaving a notebook after the backstop
+   * stopped one would otherwise boot a whole runtime - seven seconds and ~130 MB - for the sake of
+   * closing a websocket that no longer exists, or deleting a session nothing is holding.
+   */
+  private suspend fun endingIfStillLive(session: KernelSession, end: suspend (KernelGateway) -> Unit) {
     if (!issuedSessions.remove(session.id) || !launcher.isRunning()) return
-    running().disconnect(session)
+    end(running())
   }
 
   /** The running gateway, for a session it actually knows; [StaleKernelSessionException] if not. */

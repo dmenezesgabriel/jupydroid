@@ -34,9 +34,12 @@ class OkHttpKernelLifecycleTest {
       ),
     )
 
-    val kernelId = lifecycle().start("Analysis.ipynb")
+    val started = lifecycle().start("Analysis.ipynb")
 
-    assertEquals("kernel-abc", kernelId)
+    assertEquals("kernel-abc", started.kernelId)
+    // The session's own id, not the kernel's: `DELETE api/sessions/<id>` addresses this one, and
+    // reading `kernel.id` for it would delete a session that does not exist (P1d).
+    assertEquals("session-1", started.serverSessionId)
     val request = takeRequest()
     assertEquals("POST", request.method)
     assertEquals("/api/sessions", request.target)
@@ -67,7 +70,7 @@ class OkHttpKernelLifecycleTest {
     val second = lifecycle.start("Analysis.ipynb")
 
     assertEquals(first, second)
-    assertEquals("kernel-abc", second)
+    assertEquals("kernel-abc", second.kernelId)
   }
 
   /**
@@ -174,6 +177,20 @@ class OkHttpKernelLifecycleTest {
     assertTrue("expected a failure, got $failure", failure.isFailure)
   }
 
+  /**
+   * A session with no id of its own cannot be shut down later, and an empty string would send
+   * `DELETE api/sessions/` - a different endpoint answering about something else. Failing at the
+   * response is failing where the malformed thing is.
+   */
+  @Test
+  fun start_failsWhenTheSessionCarriesNoIdOfItsOwn() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 201, body = """{"kernel":{"id":"kernel-abc"}}"""))
+
+    val failure = runCatching { lifecycle().start("Analysis.ipynb") }
+
+    assertTrue("expected a failure, got $failure", failure.isFailure)
+  }
+
   @Test
   fun interrupt_postsToTheKernelsInterruptEndpoint() = runTest {
     serverRule.server.enqueue(MockResponse(code = 204))
@@ -216,6 +233,74 @@ class OkHttpKernelLifecycleTest {
     val failure = runCatching { lifecycle().restart("kernel-gone") }
 
     assertTrue("expected a failure, got $failure", failure.isFailure)
+  }
+
+  // --- P1d: shutting a session down, which is what takes the kernel with it ---
+
+  /**
+   * `DELETE api/sessions/<id>`, addressed by the **session** id and not the kernel's.
+   *
+   * The endpoint is the reference's `shutdownSession`
+   * (`packages/services/src/session/restapi.ts:59-63`), and the server in our own rootfs answers
+   * it at `SessionHandler.delete` -> `sm.delete_session(session_id)`, which shuts the kernel down
+   * as part of removing the session (`services/sessions/handlers.py:203-212`).
+   */
+  @Test
+  fun shutdownSession_deletesTheSessionOnTheServer() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 204))
+
+    lifecycle().shutdownSession("session-1")
+
+    val request = takeRequest()
+    assertEquals("DELETE", request.method)
+    assertEquals("/api/sessions/session-1", request.target)
+    assertEquals("token secret-token", request.headers["Authorization"])
+  }
+
+  /**
+   * 404 is **not** a failure: the session is gone, which is what the caller asked for.
+   *
+   * The reference `console.warn`s and returns (`restapi.ts:65-70`), and the reason it can happen
+   * here is ours as well as theirs - `jupyter_server` culls an idle kernel on its own (P1b), so a
+   * notebook left open across the cull would ask to shut down a session the server has already
+   * forgotten.
+   */
+  @Test
+  fun shutdownSession_treatsAnAlreadyGoneSessionAsDone() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 404, body = """{"message":"Session not found"}"""))
+
+    lifecycle().shutdownSession("session-gone")
+  }
+
+  /**
+   * 410 is the one status that is worse than a plain error, so it keeps the server's own sentence:
+   * "the kernel was deleted but the session was not" (`restapi.ts:71-76`), which
+   * `SessionHandler.delete` raises as `HTTPError(410, "Kernel deleted before session")`.
+   */
+  @Test
+  fun shutdownSession_failsWhenTheKernelWentButTheSessionStayed() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 410, body = "Kernel deleted before session"))
+
+    val failure = runCatching { lifecycle().shutdownSession("session-1") }
+
+    val message = failure.exceptionOrNull()?.message.orEmpty()
+    assertTrue("expected a failure, got $failure", failure.isFailure)
+    assertTrue("the message must name the session, was '$message'", message.contains("session-1"))
+    assertTrue("the message must carry the status, was '$message'", message.contains("410"))
+  }
+
+  /**
+   * Anything that is not 404, 410 or 204 is an error - including a 200. The reference is explicit
+   * about the last one: `else if (response.status !== 204) { throw }` (`restapi.ts:77-80`), so a
+   * server answering 200 has not done what was asked and must not be read as success.
+   */
+  @Test
+  fun shutdownSession_refusesAnyStatusThatIsNotTheOneTheApiPromises() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 200, body = "{}"))
+
+    val failure = runCatching { lifecycle().shutdownSession("session-1") }
+
+    assertTrue("200 is not 204 and must not pass, got $failure", failure.isFailure)
   }
 
   private fun takeRequest() = serverRule.server.takeRequest(TIMEOUT_SECONDS, TimeUnit.SECONDS)!!

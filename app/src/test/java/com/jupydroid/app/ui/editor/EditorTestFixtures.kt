@@ -84,7 +84,12 @@ internal class SlowToConnectKernelGateway : KernelGateway by FakeKernelGateway()
 
   override suspend fun connect(space: Space, documentPath: String): KernelSession {
     connectable.await()
-    return KernelSession(id = "slow-${space.id}", spaceId = space.id, kernelId = "kernel-1")
+    return KernelSession(
+      id = "slow-${space.id}",
+      spaceId = space.id,
+      kernelId = "kernel-1",
+      serverSessionId = "server-session-1",
+    )
   }
 
   fun letItConnect() = connectable.complete(Unit)
@@ -105,7 +110,12 @@ internal class StaleSessionKernelGateway(
 
   override suspend fun connect(space: Space, documentPath: String): KernelSession {
     connectCount++
-    return KernelSession(id = "session-$connectCount", spaceId = space.id, kernelId = "kernel-$connectCount")
+    return KernelSession(
+      id = "session-$connectCount",
+      spaceId = space.id,
+      kernelId = "kernel-$connectCount",
+      serverSessionId = "server-session-$connectCount",
+    )
   }
 
   override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {

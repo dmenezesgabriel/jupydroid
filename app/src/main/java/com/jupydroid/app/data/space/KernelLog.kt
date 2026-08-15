@@ -60,4 +60,13 @@ internal object KernelLog {
    * leave "the app restarted my kernel" looking like the kernel died on its own.
    */
   const val GREET_RESTARTING = "kernel.greet.restarting"
+
+  /**
+   * A shutdown that found nothing to shut down: `DELETE api/sessions/<id>` answered 404.
+   *
+   * Not an error - the caller wanted the session gone and it is - but worth saying, because the
+   * two ways to reach it are worth telling apart afterwards: the server culled the kernel on its
+   * own (P1b), or the app is holding a session id from a server that has since been replaced.
+   */
+  const val SESSION_ALREADY_GONE = "kernel.session.alreadygone"
 }

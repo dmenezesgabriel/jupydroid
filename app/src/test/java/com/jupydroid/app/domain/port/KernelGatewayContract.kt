@@ -96,6 +96,33 @@ abstract class KernelGatewayContract {
   }
 
   /**
+   * The server's own session id, which is what `DELETE api/sessions/<id>` addresses.
+   *
+   * Asserted at the port rather than only on the real gateway because it is the *caller* that
+   * needs it: `shutdown` has nothing to send without it, and a fake that left it blank would let
+   * every shutdown test pass against an address the server would never accept.
+   */
+  @Test
+  fun connect_returnsTheServersOwnSessionIdAndNotOnlyOurs() = runTest {
+    val session = gateway().connect(SPACE, "Analysis.ipynb")
+
+    assertTrue("a session needs the id the server filed it under", session.serverSessionId.isNotBlank())
+  }
+
+  /**
+   * `notebook:shutdown-kernel`, and asserted here for the reason [restart_isAcceptedForALiveSession]
+   * is: it emits nothing and changes nothing observable, so an implementation that quietly did
+   * nothing would look identical to one that worked.
+   */
+  @Test
+  fun shutdown_isAcceptedForALiveSession() = runTest {
+    val gateway = gateway()
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.shutdown(session)
+  }
+
+  /**
    * Restart is offered by every implementation, and asserted here because it is the one kernel
    * action with no visible result of its own: nothing is emitted, no output changes, and a
    * gateway that silently did nothing would look identical to one that worked.

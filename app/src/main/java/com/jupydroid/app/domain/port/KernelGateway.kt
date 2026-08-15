@@ -22,11 +22,20 @@ data class CompletionResult(
   }
 }
 
-/** A live kernel that one notebook (or the Console REPL) is executing against. */
+/**
+ * A live kernel that one notebook (or the Console REPL) is executing against.
+ *
+ * **Three ids, and they are not interchangeable.** [id] is ours: it identifies this client on the
+ * wire and is what every message is signed with. [kernelId] is the server's handle on the process,
+ * which `interrupt` and `restart` address. [serverSessionId] is the server's handle on the
+ * *session* that owns that process, which is what `shutdown` addresses - `DELETE api/sessions/<id>`
+ * takes the kernel with it, and no other id will do.
+ */
 data class KernelSession(
   val id: String,
   val spaceId: String,
   val kernelId: String,
+  val serverSessionId: String,
 )
 
 /** Events streamed from [KernelGateway.execute]; the UI drives Running/Idle and outputs from these. */
@@ -74,4 +83,21 @@ interface KernelGateway {
   suspend fun complete(session: KernelSession, code: String, cursorOffset: Int): CompletionResult
 
   suspend fun disconnect(session: KernelSession)
+
+  /**
+   * Ends the session: the kernel process is stopped and its namespace is gone for good.
+   *
+   * **This is `notebook:shutdown-kernel`, and it is deliberately not what closing a document
+   * does.** JupyterLab shuts a kernel down on close only when the `kernelShutdown` setting says
+   * so, and that setting's default is **false**
+   * (`packages/notebook-extension/schema/tracker.json:741-745`;
+   * `SessionContext.dispose()` guards on `shutdownOnDispose`, `sessioncontext.tsx:690`). Leaving a
+   * notebook therefore calls [disconnect] - the socket closes and the kernel lives on, which is
+   * what lets a reopened notebook reattach to it with its variables intact.
+   *
+   * ```
+   * gateway.shutdown(session)   // the ⋮ menu's "Shut Down Kernel"
+   * ```
+   */
+  suspend fun shutdown(session: KernelSession)
 }

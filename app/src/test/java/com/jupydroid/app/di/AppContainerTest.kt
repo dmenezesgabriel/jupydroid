@@ -61,7 +61,7 @@ class AppContainerTest {
   @Test
   fun fakeKernelGateway_executeEmitsIdle() = runTest {
     val gateway = FakeKernelGateway()
-    val session = KernelSession(id = "s1", spaceId = "base", kernelId = "python3")
+    val session = KernelSession(id = "s1", spaceId = "base", kernelId = "python3", serverSessionId = "server-s1")
 
     val events = gateway.execute(session, cellId = "cell-1", code = "1 + 1").toList()
     assertTrue(events.last() is KernelEvent.Idle)
