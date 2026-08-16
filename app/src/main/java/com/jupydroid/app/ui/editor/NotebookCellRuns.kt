@@ -57,17 +57,32 @@ internal class NotebookCellRuns(
   }
 
   /**
-   * Runs every code cell in order, stopping at the first that raises - which is what Jupyter
-   * does with a queued run. Carrying on would run later cells against state the failed one
-   * never produced, and their output would be wrong rather than merely absent.
+   * Runs a range of the notebook in order - which cells a [RunRange] means is [cellsToRun]'s
+   * question, and this only works through them.
+   *
+   * ```
+   * runs.run(RunRange.ABOVE)   // everything before the head, and not the head
+   * ```
    */
-  fun runAll() {
-    scope.launch { runAllCells() }
+  fun run(range: RunRange) {
+    scope.launch { runCells(uiState.value.cellsToRun(range)) }
   }
 
-  /** Awaitable, which is what a restart-and-run-all needs after the process has been replaced. */
-  suspend fun runAllCells() {
-    val queue = uiState.value.cells.filter { it.kind == CellKind.CODE }
+  /**
+   * Runs the given cells in order, stopping at the first that raises - which is what Jupyter
+   * does with a queued run. Carrying on would run later cells against state the failed one
+   * never produced, and their output would be wrong rather than merely absent.
+   *
+   * Suspending rather than launching, which is what a restart-and-run-all needs after the process
+   * has been replaced.
+   *
+   * **Markdown is dropped here rather than by the caller.** `Private.runCells` is handed every
+   * widget and decides per cell what running one means (`packages/notebook/src/cellexecutor.ts`),
+   * so a range stays a fact about the document and this is the one place that knows what a kernel
+   * can be asked.
+   */
+  suspend fun runCells(cells: List<Cell>) {
+    val queue = cells.filter { it.kind == CellKind.CODE }
     // Claimed up front so every waiting cell says so, rather than looking un-run until its turn
     // comes. Anything still queued when one raises becomes SKIPPED.
     uiState.update { it.queueingRun(queue.map(Cell::id)) }

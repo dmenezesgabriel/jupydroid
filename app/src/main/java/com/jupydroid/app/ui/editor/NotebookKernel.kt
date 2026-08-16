@@ -58,8 +58,8 @@ class NotebookKernel(
   /** @see NotebookCellRuns.runCell */
   fun runCell(cell: Cell) = runs.runCell(cell)
 
-  /** @see NotebookCellRuns.runAll */
-  fun runAll() = runs.runAll()
+  /** @see NotebookCellRuns.run */
+  fun runAll() = runs.run(RunRange.ALL)
 
   /** @see NotebookCellRuns.stopRunningCell */
   fun stopRunningCell() = runs.stopRunningCell()
@@ -81,7 +81,7 @@ class NotebookKernel(
       kernelGateway.restart(open)
       // Whatever was in flight died with the process; anything finished is history and stays.
       uiState.update { it.abandoningRun() }
-      if (andRunAll) runs.runAllCells()
+      if (andRunAll) runs.runCells(uiState.value.cells)
     }
   }
 

@@ -1,0 +1,149 @@
+package com.jupydroid.app.ui.editor
+
+import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.CellKind
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+/**
+ * Which cells each run command means, against the reference that defines it.
+ *
+ * Every case names the file and line it comes from, as [CellRangeSelectionTest] does. The pair
+ * that a first guess gets wrong is [ABOVE] and [BELOW]: one excludes the head and the other
+ * includes it, and nothing about the two names says so.
+ */
+class CellRunRangeTest {
+  /**
+   * `runAll` passes `notebook.widgets` - every cell, markdown included
+   * (`packages/notebook/src/actions.tsx:940-968`). Which of them reaches a kernel is
+   * [NotebookCellRuns]'s question, not this one's.
+   */
+  @Test
+  fun all_isEveryCellWhateverIsSelected() {
+    val state = stateOf("a", "b", "c").withCellSelected("b")
+
+    assertEquals(listOf("a", "b", "c"), state.cellsToRun(RunRange.ALL).ids())
+  }
+
+  /**
+   * **And with nothing selected at all**, which is not what the reference does - `runAll` bails on
+   * a notebook with no `activeCell` (`actions.tsx:946`). Ours cannot: Run All is a button on the
+   * notebook's own bar and is reachable before any cell has been touched, and refusing there would
+   * be a control that lights up and does nothing. Evidenced since Step 4b
+   * (`.maestro/step4b-run-all-and-stop.yaml` taps it on a freshly opened notebook).
+   */
+  @Test
+  fun all_isEveryCellWithNothingSelected() {
+    assertEquals(listOf("a", "b"), stateOf("a", "b").cellsToRun(RunRange.ALL).ids())
+  }
+
+  /**
+   * `runAllAbove` slices `(0, activeCellIndex)` - **exclusive** of the head
+   * (`packages/notebook/src/actions.tsx:1005-1045`).
+   */
+  @Test
+  fun above_stopsShortOfTheHead() {
+    val state = stateOf("a", "b", "c", "d").withCellSelected("c")
+
+    assertEquals(listOf("a", "b"), state.cellsToRun(RunRange.ABOVE).ids())
+  }
+
+  /**
+   * `runAllAbove` returns early on `activeCellIndex < 1` (`actions.tsx:1011`), which is also why
+   * `notebook:run-all-above` is disabled at index 0 (`notebook-extension/src/index.ts:3082-3089`).
+   */
+  @Test
+  fun above_isEmptyOnTheFirstCell() {
+    val state = stateOf("a", "b").withCellSelected("a")
+
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.ABOVE).ids())
+  }
+
+  /**
+   * `runAllBelow` slices `(activeCellIndex)` - **inclusive** of the head, which is what its label
+   * says out loud: *"Run Selected Cell and All Below"* (`actions.tsx:1047-1090`, `index.ts:3098`).
+   */
+  @Test
+  fun below_startsAtTheHead() {
+    val state = stateOf("a", "b", "c", "d").withCellSelected("c")
+
+    assertEquals(listOf("c", "d"), state.cellsToRun(RunRange.BELOW).ids())
+  }
+
+  @Test
+  fun below_isTheHeadAloneOnTheLastCell() {
+    val state = stateOf("a", "b").withCellSelected("b")
+
+    assertEquals(listOf("b"), state.cellsToRun(RunRange.BELOW).ids())
+  }
+
+  /**
+   * `restart-and-run-to-selected` slices `(0, activeCellIndex + 1)` - **inclusive**, and so the
+   * one range that is neither of the two above (`notebook-extension/src/index.ts:3273`).
+   */
+  @Test
+  fun upToSelected_includesTheHead() {
+    val state = stateOf("a", "b", "c").withCellSelected("b")
+
+    assertEquals(listOf("a", "b"), state.cellsToRun(RunRange.UP_TO_SELECTED).ids())
+  }
+
+  @Test
+  fun upToSelected_isTheFirstCellAloneOnTheFirstCell() {
+    val state = stateOf("a", "b").withCellSelected("a")
+
+    assertEquals(listOf("a"), state.cellsToRun(RunRange.UP_TO_SELECTED).ids())
+  }
+
+  /**
+   * `Private.runSelected` filters `isSelectedOrActive` (`actions.tsx:3009-3040`), which is
+   * [selectedCellIds] - so a marked run of three is three cells and an unmarked notebook is the
+   * head alone, exactly as every cell command already behaves.
+   */
+  @Test
+  fun marked_isTheWholeRun() {
+    val state = stateOf("a", "b", "c", "d").withSelectionStartedAt("b").withSelectionExtendedTo("c")
+
+    assertEquals(listOf("b", "c"), state.cellsToRun(RunRange.MARKED).ids())
+  }
+
+  @Test
+  fun marked_isTheHeadAloneWithNothingMarked() {
+    val state = stateOf("a", "b", "c").withCellSelected("b")
+
+    assertEquals(listOf("b"), state.cellsToRun(RunRange.MARKED).ids())
+  }
+
+  /**
+   * No head, no range - and every one of the four head-relative ranges says so, rather than one
+   * of them quietly meaning "the whole notebook". The reference bails on a missing `activeCell` in
+   * all four (`actions.tsx:1008`, `:1053`, `index.ts:3269`).
+   */
+  @Test
+  fun everyHeadRelativeRange_isEmptyWithNoSelectedCell() {
+    val state = stateOf("a", "b")
+
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.ABOVE).ids())
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.BELOW).ids())
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.UP_TO_SELECTED).ids())
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.MARKED).ids())
+  }
+
+  /** A selected cell that has since gone is no head at all, which is [selectedCellIds]' rule too. */
+  @Test
+  fun everyHeadRelativeRange_isEmptyWhenTheSelectedCellIsGone() {
+    val state = stateOf("a", "b").copy(selectedCellId = "missing")
+
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.ABOVE).ids())
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.BELOW).ids())
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.UP_TO_SELECTED).ids())
+    assertEquals(emptyList<String>(), state.cellsToRun(RunRange.MARKED).ids())
+  }
+
+  private fun List<Cell>.ids() = map { it.id }
+
+  private fun stateOf(vararg ids: String) = EditorUiState(
+    cells = ids.map { Cell(it, CellKind.CODE, "source of $it") },
+    loaded = true,
+  )
+}

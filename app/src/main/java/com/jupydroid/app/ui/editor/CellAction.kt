@@ -20,6 +20,18 @@ enum class MergeInto { ABOVE, BELOW }
 enum class SelectionReach { ABOVE, BELOW, TOP, BOTTOM }
 
 /**
+ * Which cells a run command means - the five ranges [cellsToRun] resolves, as one parameter.
+ *
+ * Beside [SelectionReach] for the same reason it is beside [CellMove]: this is the vocabulary the
+ * run commands are named with, kept apart from the bar that offers them and the queue that works
+ * through them.
+ *
+ * [ABOVE] excludes the head and [BELOW] includes it. That asymmetry is the reference's, not a
+ * choice - see [cellsToRun], where each range carries the line it comes from.
+ */
+enum class RunRange { ALL, ABOVE, BELOW, UP_TO_SELECTED, MARKED }
+
+/**
  * What the long-press menu can do to one cell.
  *
  * The menu's vocabulary, kept apart from both the menu that shows it and the [CellEdits] that
