@@ -48,6 +48,10 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 # fixture to 2020 precisely so the row is stale, which pins it to the *bottom* of a list sorted
 # by recency, and at 64 notebooks a 20-second `scrollUntilVisible` no longer reaches it.
 reset_notebooks() {
+  # First thing any seeding driver does, so this is where the "is the app even here" check earns
+  # its keep: without it the three `run-as` calls below print `unknown package`, the seed lands
+  # nowhere, and the flow drives the launcher. See [require_installed_app].
+  require_installed_app || exit 1
   "$ADB" shell am force-stop "$APP"
   "$ADB" shell "run-as $APP sh -c 'cd \"$NOTEBOOK_DIR\" 2>/dev/null && rm -rf ./*' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$RECENTS_STORE\"' || true"
@@ -198,6 +202,29 @@ require_unlocked_device() {
   return 1
 }
 
+# The app has to be *installed*, or every flow drives whatever is on screen and calls it a failure.
+#
+# **The same class as the lock screen above, and it cost a whole sweep to see it.**
+# `./gradlew :app:connectedDebugAndroidTest` **uninstalls** the APK when it finishes, so a sweep
+# started straight afterwards found no app on that device: `run-as: unknown package` three times in
+# every driver, then a flow driving the launcher, and one shard reading `passed 0 · failed 28` with
+# the app blameless. Twenty-eight red results that were no result at all - which is exactly what
+# `require_unlocked_device` exists to stop, one cause along.
+#
+# Checked here rather than installed here on purpose: a harness that quietly installs would decide
+# *which build* is under test, and the whole point of a sweep is that it runs the build you built.
+require_installed_app() {
+  local adb
+  mapfile -t adb < <(device_adb)
+  "${adb[@]}" shell pm list packages "$APP" | grep -q "package:$APP" && return 0
+
+  echo "$APP is not installed on this device." >&2
+  echo "a flow run now would drive the launcher and report it as an app failure." >&2
+  echo "install the build you mean to test:  ./gradlew :app:installDebug" >&2
+  echo "note that ./gradlew :app:connectedDebugAndroidTest uninstalls it when it finishes." >&2
+  return 1
+}
+
 # Runs a flow on the device this driver seeded, and nowhere else.
 #
 # `adb` honours `ANDROID_SERIAL`; **maestro does not**. With two devices attached it picks one of
@@ -210,6 +237,7 @@ require_unlocked_device() {
 # also what makes this the one place [require_unlocked_device] has to be called from.
 maestro_test() {
   local flow="$1"
+  require_installed_app || return 1
   require_unlocked_device || return 1
   if [ -n "$MAESTRO_DEVICE" ]; then
     "$MAESTRO" --device "$MAESTRO_DEVICE" test "$flow"

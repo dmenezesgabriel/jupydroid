@@ -620,6 +620,14 @@ P2j has to make rather than discover.
   established rather than where it is used.
 - **A caret is placed by driving it, not by tapping at it.** A tap lands where it lands. `←` clamps
   at offset 0, so twenty of them give a known origin and `→` counts from there.
+- **A flow against a device with no app installed is not a red result either, and one sweep found
+  out the hard way.** `./gradlew :app:connectedDebugAndroidTest` **uninstalls** the APK when it
+  finishes, so a sweep started straight afterwards reported `passed 0 · failed 28` on that shard
+  with the app blameless — `run-as: unknown package` three times in every driver, then a flow
+  driving the launcher. `require_installed_app` refuses now, from `reset_notebooks` as well as from
+  `maestro_test`, because the first `run-as` happens before the flow does. It **checks and does not
+  install**: a harness that installed would be choosing which build is under test, and the point of
+  a sweep is that it runs the one you built.
 - **Maestro matches a whole node, so a prefix assertion is an assertion that cannot fail.**
   `assertNotVisible: "Pick A Few"` was green against a node reading `Pick A Few.ipynb` and would
   have stayed green with the bar on screen. **A document's title is also the wrong handle on a
