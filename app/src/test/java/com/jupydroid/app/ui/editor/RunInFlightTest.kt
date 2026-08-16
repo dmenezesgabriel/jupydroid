@@ -48,7 +48,7 @@ class RunInFlightTest {
       activeCellRuns = runs,
     )
 
-    editor.kernel.runAll()
+    editor.kernel.run(RunRange.ALL)
     advanceUntilIdle()
     assertEquals(1, runs.inFlight.value)
 

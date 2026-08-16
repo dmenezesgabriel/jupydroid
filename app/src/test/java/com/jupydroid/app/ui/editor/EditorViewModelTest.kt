@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -28,6 +29,28 @@ class EditorViewModelTest {
     assertEquals("Data", viewModel.uiState.value.title)
     assertEquals(listOf("print(1)"), viewModel.uiState.value.cells.map { it.source })
     assertTrue(viewModel.uiState.value.loaded)
+  }
+
+  /**
+   * **An opened notebook has an active cell, and it is the first.** `Notebook.activeCellIndex`
+   * starts at `-1` and its setter clamps to `Math.max(newValue, 0)` once there are widgets
+   * (`packages/notebook/src/widget.ts:1965-1974`), so the first `onCellInserted` of a load leaves
+   * it at 0 - which is why the reference draws its active-cell bar on cell one before anything is
+   * touched.
+   *
+   * Ours left it null until a field took focus, and the ranged runs are what made that visible:
+   * `run-all-above` and `run-all-below` are head-relative, so on a freshly opened notebook both
+   * rows were greyed with nothing to say why.
+   */
+  @Test
+  fun uiState_makesTheFirstCellActiveOnLoad() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell, secondCodeCell))
+
+    assertEquals("c1", viewModel.uiState.value.selectedCellId)
+    // Active, not *marked*: an anchor would put the selection bar up over a notebook nobody has
+    // touched. `deselectAll` leaves `activeCellIndex` alone for the same reason (`widget.ts:2196`).
+    assertFalse(viewModel.uiState.value.selecting)
+    assertEquals(CellMode.COMMAND, viewModel.uiState.value.mode)
   }
 
   @Test
@@ -232,7 +255,7 @@ class EditorViewModelTest {
     val gateway = RecordingKernelGateway()
     val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell, markdownCell, secondCodeCell))
 
-    viewModel.kernel.runAll()
+    viewModel.kernel.run(RunRange.ALL)
     advanceUntilIdle()
 
     assertEquals(listOf("c1", "c3"), gateway.executed)
@@ -247,7 +270,7 @@ class EditorViewModelTest {
     val gateway = RecordingKernelGateway(raiseOn = "c1")
     val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell, secondCodeCell))
 
-    viewModel.kernel.runAll()
+    viewModel.kernel.run(RunRange.ALL)
     advanceUntilIdle()
 
     assertEquals(listOf("c1"), gateway.executed)

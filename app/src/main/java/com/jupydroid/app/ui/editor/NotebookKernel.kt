@@ -58,8 +58,13 @@ class NotebookKernel(
   /** @see NotebookCellRuns.runCell */
   fun runCell(cell: Cell) = runs.runCell(cell)
 
-  /** @see NotebookCellRuns.run */
-  fun runAll() = runs.run(RunRange.ALL)
+  /**
+   * Runs a range of the notebook - `run-all-cells`, `run-all-above`, `run-all-below` and the
+   * marked run, which differ only in which cells they name.
+   *
+   * @see NotebookCellRuns.run
+   */
+  fun run(range: RunRange) = runs.run(range)
 
   /** @see NotebookCellRuns.stopRunningCell */
   fun stopRunningCell() = runs.stopRunningCell()

@@ -3,6 +3,8 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -138,6 +140,55 @@ class CellRunRangeTest {
     assertEquals(emptyList<String>(), state.cellsToRun(RunRange.BELOW).ids())
     assertEquals(emptyList<String>(), state.cellsToRun(RunRange.UP_TO_SELECTED).ids())
     assertEquals(emptyList<String>(), state.cellsToRun(RunRange.MARKED).ids())
+  }
+
+  /**
+   * `notebook:run-all-above` is disabled at index 0
+   * (`packages/notebook-extension/src/index.ts:3082-3089`), which is the same fact as its range
+   * being empty there - stated separately because the bar has to grey the row *before* anyone taps
+   * it.
+   */
+  @Test
+  fun runAllAbove_isOfferedOnlyBelowTheFirstCell() {
+    val cells = stateOf("a", "b", "c")
+
+    assertFalse(cells.withCellSelected("a").canRunAllAbove)
+    assertTrue(cells.withCellSelected("b").canRunAllAbove)
+    assertTrue(cells.withCellSelected("c").canRunAllAbove)
+  }
+
+  @Test
+  fun runAllAbove_isNotOfferedWithNothingSelected() {
+    assertFalse(stateOf("a", "b").canRunAllAbove)
+  }
+
+  /**
+   * `notebook:run-all-below` is disabled on the **last** cell (`index.ts:3113-3119`), even though
+   * the range there is non-empty - with nothing below it, *"Run Selected Cell and All Below"* is
+   * the cell's own Run button under a longer name.
+   */
+  @Test
+  fun runSelectedAndBelow_isNotOfferedOnTheLastCell() {
+    val cells = stateOf("a", "b", "c")
+
+    assertTrue(cells.withCellSelected("a").canRunSelectedAndBelow)
+    assertTrue(cells.withCellSelected("b").canRunSelectedAndBelow)
+    assertFalse(cells.withCellSelected("c").canRunSelectedAndBelow)
+  }
+
+  /**
+   * **And the one-cell notebook is the exception the reference spells out**: `widgets.length === 1`
+   * enables it regardless (`index.ts:3115-3116`). That cell is both the first and the last, so the
+   * rule above would otherwise refuse a notebook where the command is perfectly meaningful.
+   */
+  @Test
+  fun runSelectedAndBelow_isOfferedOnTheOnlyCellOfAOneCellNotebook() {
+    assertTrue(stateOf("a").withCellSelected("a").canRunSelectedAndBelow)
+  }
+
+  @Test
+  fun runSelectedAndBelow_isNotOfferedWithNothingSelected() {
+    assertFalse(stateOf("a", "b").canRunSelectedAndBelow)
   }
 
   private fun List<Cell>.ids() = map { it.id }

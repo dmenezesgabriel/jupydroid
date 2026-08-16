@@ -158,7 +158,12 @@ fun EditorScreen(
         NotebookBar(
           busy = state.runningCellId != null,
           notebookTitle = state.title,
-          onRunAll = viewModel.kernel::runAll,
+          onRunAll = { viewModel.kernel.run(RunRange.ALL) },
+          onRun = viewModel.kernel::run,
+          // Greyed rather than absent, so the menu's shape does not change under the thumb as the
+          // head moves - and each says why by being disabled exactly where the reference disables it.
+          canRunAllAbove = state.canRunAllAbove,
+          canRunSelectedAndBelow = state.canRunSelectedAndBelow,
           onInterrupt = viewModel.kernel::stopRunningCell,
           onRestart = { viewModel.kernel.restart() },
           onRestartAndRunAll = { viewModel.kernel.restart(andRunAll = true) },

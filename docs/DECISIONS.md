@@ -634,6 +634,18 @@ P2j has to make rather than discover.
   tablet**, where the file list beside it shows the same name — so a flow that means "the
   notebook's own bar is up" names a control that is only on it (`Back to notebooks`), never the
   title. Both halves cost one red run to find and neither would have failed loudly.
+- **A greyed `DropdownMenuItem` cannot be asserted greyed from a flow, and there is no fix in the
+  app for it.** Compose's *merged* semantics tree — what `createComposeRule` reads — folds the item
+  into one node carrying both its label and its disabled state, so `assertIsNotEnabled` on the
+  label works in an instrumented test. Android's **accessibility** tree — what Maestro reads —
+  keeps the state on a clickable node that carries no label, one level above the `TextView`, so
+  `assertVisible: {text: …, enabled: false}` matches the leaf and reports `enabled=true` over a row
+  that is visibly grey. Adding `Modifier.semantics { contentDescription = …; disabled() }` does not
+  help: the item applies the caller's modifier *below* its own `clickable`, so the named node lands
+  as a **child** and reports `enabled=true` too. All three were dumped from the device
+  (`evidence/p2d-2-ranged-runs/`). So the state is asserted where the tree carries it — an
+  instrumented test — and a flow proves the same fact by **behaviour**: a live row closes the menu,
+  a dead one leaves it open.
 
 ---
 

@@ -12,6 +12,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +57,10 @@ internal fun NotebookBar(
   onRestartAndRunAll: () -> Unit,
   onShutdown: () -> Unit,
   onCloseAndShutdown: () -> Unit,
+  /** The two ranged runs, and whether the head's position leaves either with anything to do. */
+  onRun: (RunRange) -> Unit = {},
+  canRunAllAbove: Boolean = false,
+  canRunSelectedAndBelow: Boolean = false,
   modifier: Modifier = Modifier,
 ) {
   var confirming by remember { mutableStateOf<RestartRequest?>(null) }
@@ -88,7 +93,13 @@ internal fun NotebookBar(
       }
       KernelActions(
         expanded = kernelMenuOpen,
+        canRunAllAbove = canRunAllAbove,
+        canRunSelectedAndBelow = canRunSelectedAndBelow,
         onDismiss = { kernelMenuOpen = false },
+        onRun = { range ->
+          kernelMenuOpen = false
+          onRun(range)
+        },
         onShutdown = {
           kernelMenuOpen = false
           onShutdown()
@@ -125,25 +136,62 @@ internal fun NotebookBar(
 }
 
 /**
- * The two ways of ending a kernel, as menu items rather than buttons.
+ * What is asked of the kernel but does not earn a button: the ranged runs, and the two ways of
+ * ending it.
  *
- * Only shutdown is here. Interrupt and restart are on the bar because they are what a running
- * notebook needs at a thumb's reach; ending the kernel is a decision, and the reference files it
- * under a menu for the same reason.
+ * Interrupt, restart and the two whole-notebook runs are on the bar because they are what a
+ * running notebook needs at a thumb's reach; everything here is either rarer or a decision, and
+ * the reference files those under menus for the same reason.
+ *
+ * **Two of the reference's menus, in one.** `run-all-above` and `run-all-below` live in its Run
+ * menu and the ends of a kernel in its Kernel menu
+ * (`packages/notebook-extension/schema/tracker.json:176-226`, `mainmenu-extension/src/index.ts:690`).
+ * A phone's bottom bar has room for one overflow, not two - a sixth 48dp target is where a thumb
+ * stops telling them apart - so the two menus become one list separated the way the reference's own
+ * schema separates its groups, with `"type": "separator"`.
  */
 @Composable
 private fun KernelActions(
   expanded: Boolean,
+  canRunAllAbove: Boolean,
+  canRunSelectedAndBelow: Boolean,
   onDismiss: () -> Unit,
+  onRun: (RunRange) -> Unit,
   onShutdown: () -> Unit,
   onCloseAndShutdown: () -> Unit,
 ) {
   DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-    // The reference's own labels, ellipsis included - it is what says the second one will ask.
+    // The reference's own labels throughout, ellipsis included - it is what says a row will ask.
+    //
+    // Greyed at a notebook end rather than hidden, so the menu's shape does not change under the
+    // thumb as the head moves. **A flow cannot see that greying**, and no amount of semantics here
+    // makes it: Compose's merged test tree carries the disabled state onto the label, and Android's
+    // accessibility tree - which is what Maestro reads - keeps it on a clickable node that has no
+    // label, one level above. Measured on device three ways (`evidence/p2d-2-ranged-runs/`). So the
+    // state is asserted by `NotebookBarRangedRunsTest` and the flow proves it by *behaviour*: a
+    // dead row leaves this menu open, because [onRun] is what closes it.
+    DropdownMenuItem(
+      text = { Text(RUN_ALL_ABOVE) },
+      enabled = canRunAllAbove,
+      onClick = { onRun(RunRange.ABOVE) },
+    )
+    DropdownMenuItem(
+      text = { Text(RUN_SELECTED_AND_BELOW) },
+      enabled = canRunSelectedAndBelow,
+      onClick = { onRun(RunRange.BELOW) },
+    )
+    HorizontalDivider()
     DropdownMenuItem(text = { Text("Shut Down Kernel") }, onClick = onShutdown)
     DropdownMenuItem(text = { Text("Close and Shut Down Notebook…") }, onClick = onCloseAndShutdown)
   }
 }
+
+/** `notebook:run-all-above`, in the reference's own words (`index.ts:3067`). */
+internal const val RUN_ALL_ABOVE = "Run All Above Selected Cell"
+
+/** `notebook:run-all-below` (`index.ts:3098`). Its label is what says the head is included. */
+internal const val RUN_SELECTED_AND_BELOW = "Run Selected Cell and All Below"
+
 
 /**
  * The confirmation, in the reference's own words: *"Shut down the notebook?"* over *"Are you sure

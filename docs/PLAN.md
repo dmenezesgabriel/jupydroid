@@ -451,6 +451,16 @@ Measured, not speculative. Anything closed moves to `docs/DECISIONS.md`.
   starts — a dependency the transformation does not otherwise have. Deliberately not paid for up
   front. Replacing a selection is likewise left alone rather than wrapped in the typed bracket:
   wrapping is a separate feature and half-doing it leaves an unmatched closer.
+- **There is no command-mode way to move the head, and P2d-2 is what made it matter.** Focus is
+  what selects a cell here (`EditorViewModel.cellFocusChanged`), so aiming a head-relative command —
+  `run-all-above`, `run-all-below`, `restart-and-run-to-selected`, and every heading command P2f
+  brings — means tapping into a cell, taking the keyboard, and dismissing it again. The reference
+  has both: `_evtMouseDown` sets `activeCellIndex` on a press anywhere in a cell and enters edit
+  mode only for a press *in the editor* (`widget.ts:3160-3167`). Ours has only the second half.
+  Deliberately not fixed inside P2d-2: the obvious repair — a gesture on `CellHeader`'s row — is
+  exactly what U5a removed, because a strip that claims every gesture leaves no room for the buttons
+  on it (`CellHeader.kt:54-61`). Measured, not speculative: `evidence/p2d-2-ranged-runs/`, where the
+  flow needs `hideKeyboard` + `back` between selecting a cell and reaching the bar.
 - **`dirty` is tracked and rendered nowhere.** `EditorUiState.dirty` is set by every edit and
   cleared by `persist()`, and no composable reads it. It is arguably right that it stays invisible —
   saving is automatic and debounced, so a "•" that appears for 500 ms after every keystroke is

@@ -172,15 +172,29 @@ fun EditorUiState.withSource(cellId: String, source: String): EditorUiState =
  * imported with no cells, and the last cell being deleted. It is not an edit - nothing was
  * typed - so the notebook is not dirty and is not written back, which would only bump its
  * timestamp and reorder Recents for having been opened.
+ *
+ * **And it has an active cell before anything is touched, which is the first.**
+ * `Notebook.activeCellIndex` starts at `-1` and its setter clamps to `Math.max(newValue, 0)` once
+ * there are widgets (`packages/notebook/src/widget.ts:1965-1974`), so a load leaves it at 0 - which
+ * is what puts the reference's active-cell bar on cell one of a notebook just opened. Ours left it
+ * null, and the head-relative run commands are what made that visible: with no head there is no
+ * range, so `run-all-above` and `run-all-below` were greyed with nothing to say why.
  */
-fun Notebook.toEditorUiState(defaultCellId: String) = EditorUiState(
-  notebookId = id,
-  title = notebookLeafOf(title),
-  cells = cells.ifEmpty { listOf(Cell(defaultCellId, CellKind.CODE, "")) },
-  loaded = true,
-  outputs = cells.filter { it.outputs.isNotEmpty() }.associate { it.id to it.outputs },
-  executionCounts = cells.mapNotNull { cell -> cell.executionCount?.let { cell.id to it } }.toMap(),
-)
+fun Notebook.toEditorUiState(defaultCellId: String): EditorUiState {
+  val opened = cells.ifEmpty { listOf(Cell(defaultCellId, CellKind.CODE, "")) }
+  return EditorUiState(
+    notebookId = id,
+    title = notebookLeafOf(title),
+    cells = opened,
+    // The head alone and no anchor: `deselectAll` leaves `activeCellIndex` where it is
+    // (`widget.ts:2196-2210`), so "active" and "marked" are different claims and only the first is
+    // made here - an anchor would put the selection bar up over a notebook nobody has touched.
+    selectedCellId = opened.first().id,
+    loaded = true,
+    outputs = cells.filter { it.outputs.isNotEmpty() }.associate { it.id to it.outputs },
+    executionCounts = cells.mapNotNull { cell -> cell.executionCount?.let { cell.id to it } }.toMap(),
+  )
+}
 
 /** Moves this run's results onto the cells, which is what gets persisted. */
 fun EditorUiState.withResultsOnCells(): List<Cell> =
