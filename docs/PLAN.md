@@ -237,14 +237,6 @@ delete, clear-outputs, clear-all-cell-outputs, cut/copy/paste, hide-cell-code, h
 select-all, deselect-all, extend-marked-cells-{above,below,top,bottom}, and undo/redo of every one
 of them — each acting on the marked run of cells rather than on one.
 
-**The `clearOutputs` unhide gap is closed** (P2d-4). It was carried here from P2c — `clearOutputs`
-*unhides* the outputs it clears (`packages/notebook/src/actions.tsx:1835`) and ours left the fold
-alone — and it was taken with the command that shares the rule, `notebook:clear-all-cell-outputs`,
-rather than on its own. Two more of `clearExecution`'s effects came with it, read out of
-`packages/cells/src/model.ts:706-714`: the run itself is dropped (`executionState = 'idle'` plus
-the deleted `execution` metadata, which is where our stripe and *"ran in"* live), and
-`NotebookRevision` grew a fourth field so an undo puts it back.
-
 **P2a has shipped.** Undo and redo of cell operations are on the notebook's app bar, green on both
 devices from one build (`evidence/p2a-undo-cell-operation/`). What it settled — the two undos, the
 rule that a cell operation never restores text, and the one adaptation (Clear Outputs) — is
@@ -279,11 +271,18 @@ overflow rows and only Select all and the overflow are on it. The findings are b
 and both in `docs/DECISIONS.md`: a Maestro assertion naming a prefix of a node cannot fail, and a
 document's title is the wrong handle on a tablet where the file list shows the same name.
 
-**P2d has shipped, in six sub-steps, and three of them cost more than the row above said.**
+**P2d has shipped, in six sub-steps, and it closed both gaps this section was carrying.**
 `run-all-above` / `run-all-below` / `restart-clear-output` / `restart-and-run-to-selected` and `run`
-over the marked run are all in, plus `clear-all-cell-outputs`, which the row never named and which
-`restart-clear-output` needs. What it settled is `docs/DECISIONS.md`; what it cost is worth naming
-here, because none of the three was visible from the plan:
+over the marked run are all in, plus `clear-all-cell-outputs`, which the plan never named and which
+`restart-clear-output` is built on. What it settled is `docs/DECISIONS.md`.
+
+The **`clearOutputs` unhide** gap went with the command that shares its rule rather than on its own,
+and reading `clearExecution` for it turned up two more effects (`packages/cells/src/model.ts:706-714`):
+the run is dropped as well as the outputs — `executionState = 'idle'` plus the deleted `execution`
+metadata, which is where our stripe and *"ran in"* live — so `NotebookRevision` grew a fourth field
+to put it back. The **markdown-render** gap is P2d-6.
+
+Three costs are worth naming here, because none was visible from the plan:
 
 - **A notebook had no active cell until something was tapped.** The two ranged runs are
   head-relative, so both were greyed on a freshly opened notebook with nothing to say why. The

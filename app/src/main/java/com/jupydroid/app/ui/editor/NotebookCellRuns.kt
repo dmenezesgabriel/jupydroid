@@ -49,8 +49,12 @@ internal class NotebookCellRuns(
   private var interrupting: String? = null
 
   /**
-   * Runs one cell and streams its output into the state as it arrives, so a long-running
-   * cell shows what it has printed rather than nothing until it finishes.
+   * Runs one cell - the cell header's own Run button.
+   *
+   * A run of one through [runCells] rather than a path of its own, so a markdown cell renders here
+   * exactly as it does inside a Run All and there is one place that decides what running each kind
+   * of cell means. A code cell still streams its output into the state as it arrives, so a
+   * long-running one shows what it has printed rather than nothing until it finishes.
    */
   fun runCell(cell: Cell) {
     scope.launch { runCells(listOf(cell)) }
