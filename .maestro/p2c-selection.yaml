@@ -51,11 +51,16 @@ appId: com.jupydroid.app
 # (`packages/notebook-extension/src/index.ts:4287-4292`) and "1 cells" is the first thing anyone
 # would notice about a bar like this.
 - assertVisible: "1 cell selected"
-# Command mode, so the symbol row is gone and the kernel bar is back under it. A row of Python
-# punctuation above a keyboard, over a screen whose top bar is asking which cells to act on, is
-# exactly the "a control on screen for a state it does not serve" this repo keeps finding.
+# Command mode, so the symbol row is gone. A row of Python punctuation above a keyboard, over a
+# screen whose top bar is asking which cells to act on, is exactly the "a control on screen for a
+# state it does not serve" this repo keeps finding.
 - assertNotVisible: "Tab"
-- assertVisible: "Run all cells"
+# **And the kernel bar is gone as well, which P2d-3 changed.** This read `assertVisible: "Run all
+# cells"` while the marked run had nothing to run it with - a stand-in for "the symbol row went",
+# not a claim worth making on its own. P2d-3 put a `PlayArrow` on the selection bar, and two bare
+# triangles on one 320dp screen meaning different things is one too many, so the notebook's bottom
+# bar now goes with its top one (`editorBottomBar`).
+- assertNotVisible: "Run all cells"
 # **And the soft keyboard went with it**, which is not the same claim and is the one that failed.
 # The mode is this app's focus, so setting it without dropping the caret left Android's keyboard up
 # over the selection bar - on a 320dp phone that hid every cell but the first two, and the run

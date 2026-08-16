@@ -191,6 +191,68 @@ class CellRunRangeTest {
     assertFalse(stateOf("a", "b").canRunSelectedAndBelow)
   }
 
+  /**
+   * **Every one of these four commands deselects**, and it is the same line in each:
+   * `runAll` (`actions.tsx:966`), `runAllAbove` (`:1032`), `runAllBelow` (`:1077`) and
+   * `runSelected` (`:3031`) all end on `notebook.deselectAll()`.
+   */
+  @Test
+  fun startingARun_dropsTheMarkedRun() {
+    val marked = stateOf("a", "b", "c").withSelectionStartedAt("a").withSelectionExtendedTo("b")
+
+    RunRange.entries.forEach { range ->
+      assertFalse("$range should deselect", marked.withRunStarted(range).selecting)
+    }
+  }
+
+  /**
+   * `runSelected` moves the head to the **last** selected cell before deselecting - it tracks
+   * `lastIndex` through the filter and assigns it (`actions.tsx:3020-3030`). So the caret ends up
+   * after the work rather than back at the top of it.
+   */
+  @Test
+  fun startingAMarkedRun_leavesTheHeadOnItsLastCell() {
+    val marked = stateOf("a", "b", "c", "d").withSelectionStartedAt("b").withSelectionExtendedTo("c")
+
+    assertEquals("c", marked.withRunStarted(RunRange.MARKED).selectedCellId)
+  }
+
+  /** `runAll` sets `activeCellIndex = lastIndex` (`actions.tsx:964`), which clamps to the last cell. */
+  @Test
+  fun startingARunOfEverything_leavesTheHeadOnTheLastCell() {
+    val state = stateOf("a", "b", "c").withCellSelected("a")
+
+    assertEquals("c", state.withRunStarted(RunRange.ALL).selectedCellId)
+  }
+
+  /** `runAllBelow` does the same (`actions.tsx:1075`), and the last cell it runs *is* the last cell. */
+  @Test
+  fun startingARunBelow_leavesTheHeadOnTheLastCell() {
+    val state = stateOf("a", "b", "c").withCellSelected("b")
+
+    assertEquals("c", state.withRunStarted(RunRange.BELOW).selectedCellId)
+  }
+
+  /**
+   * **And `run-all-above` is the exception**, in the reference's own words: *"The currently active
+   * cell will remain selected"* (`actions.tsx:999`). It deselects and moves nothing, so the head
+   * stays where the user put it rather than jumping to the cell above it.
+   */
+  @Test
+  fun startingARunAbove_leavesTheHeadWhereItWas() {
+    val state = stateOf("a", "b", "c").withCellSelected("b")
+
+    assertEquals("b", state.withRunStarted(RunRange.ABOVE).selectedCellId)
+  }
+
+  /** Nothing to run, nothing to move to - the head stays rather than being cleared. */
+  @Test
+  fun startingAnEmptyRun_leavesTheHeadWhereItWas() {
+    val state = stateOf("a", "b").withCellSelected("a")
+
+    assertEquals("a", state.withRunStarted(RunRange.ABOVE).selectedCellId)
+  }
+
   private fun List<Cell>.ids() = map { it.id }
 
   private fun stateOf(vararg ids: String) = EditorUiState(

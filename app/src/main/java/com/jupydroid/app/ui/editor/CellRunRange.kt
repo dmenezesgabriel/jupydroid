@@ -53,6 +53,28 @@ fun EditorUiState.cellsToRun(range: RunRange): List<Cell> {
 }
 
 /**
+ * What starting a run does to the selection - the two lines every one of these commands ends on.
+ *
+ * **Every one deselects**, and it is literally the same call in each: `runAll` (`actions.tsx:966`),
+ * `runAllAbove` (`:1032`), `runAllBelow` (`:1077`) and `runSelected` (`:3031`) all finish with
+ * `notebook.deselectAll()`. **And every one but [RunRange.ABOVE] leaves the head on the last cell
+ * it ran**, so the caret ends up after the work rather than back at the top of it; above is the
+ * exception in the reference's own words - *"The currently active cell will remain selected"*
+ * (`:999`).
+ *
+ * **This belongs to the command and not to the range**, which is why it is applied by
+ * [NotebookCellRuns.run] and not by [NotebookCellRuns.runCells]. The reference draws the same line:
+ * `restart-run-all` and `restart-and-run-to-selected` reach the *public* `NotebookActions.runCells`
+ * (`index.ts:3283`, `:3315`), which touches no selection at all - so the same cells run with a
+ * different effect on the caret depending on which command asked, and ours has the same two entry
+ * points for the same reason.
+ */
+fun EditorUiState.withRunStarted(range: RunRange): EditorUiState {
+  val last = if (range == RunRange.ABOVE) null else cellsToRun(range).lastOrNull()
+  return copy(selectedCellId = last?.id ?: selectedCellId, anchorCellId = null)
+}
+
+/**
  * `notebook:run-all-above`'s `isEnabled` (`packages/notebook-extension/src/index.ts:3082-3089`).
  *
  * The same fact as [RunRange.ABOVE] being empty, stated separately because the menu has to grey

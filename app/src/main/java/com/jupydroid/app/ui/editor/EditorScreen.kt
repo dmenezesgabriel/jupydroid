@@ -132,6 +132,9 @@ fun EditorScreen(
           onSelectAll = viewModel.selection::selectAll,
           onExtend = viewModel.selection::extend,
           onCellAction = { action -> viewModel.edits.applyTo(head.id, action) },
+          // The run itself lets the selection go as it starts, which is `runSelected`'s own last
+          // two lines - so this bar goes away and the notebook's comes back while the cells run.
+          onRunMarked = { viewModel.kernel.run(RunRange.MARKED) },
         )
       } else if (isEditorTopBarVisible(state.mode)) {
         // Dropped only on a window too short to afford it while a keyboard is up - see
@@ -149,13 +152,11 @@ fun EditorScreen(
       }
     },
     bottomBar = {
-      // One bar at a time, and which one is the mode's answer: typing wants the characters a
-      // touch keyboard lacks, and a notebook being read wants the kernel. Showing both would
-      // stack two bars over a keyboard that already owns half the screen.
-      if (state.mode == CellMode.EDIT) {
-        SymbolRow(input = cellInput)
-      } else {
-        NotebookBar(
+      // One bar at a time, or none - see [editorBottomBar] for the rule and what each is for.
+      when (editorBottomBar(state.selecting, state.mode)) {
+        EditorBottomBar.NONE -> Unit
+        EditorBottomBar.SYMBOLS -> SymbolRow(input = cellInput)
+        EditorBottomBar.KERNEL -> NotebookBar(
           busy = state.runningCellId != null,
           notebookTitle = state.title,
           onRunAll = { viewModel.kernel.run(RunRange.ALL) },

@@ -83,14 +83,33 @@ class SelectionTopBarTest {
     assertEquals(listOf(SelectionReach.TOP, SelectionReach.BELOW), reached)
   }
 
-  /** Two actions and a count, so a three-figure selection still has a bar to sit on. */
+  /** Three actions and a count, so a three-figure selection still has a bar to sit on. */
   @Test
-  fun theBarCarriesOnlyTheTwoControlsThatFit() {
+  fun theBarCarriesOnlyTheThreeControlsThatFit() {
     compose.setContent { bar(selectedCount = 2) }
 
+    compose.onNodeWithContentDescription(RUN_MARKED).assertIsDisplayed()
     compose.onNodeWithContentDescription("Select all cells").assertIsDisplayed()
     compose.onNodeWithContentDescription(MENU).assertIsDisplayed()
     compose.onNodeWithContentDescription("Extend selection above").assertDoesNotExist()
+  }
+
+  /**
+   * `notebook:run-cell` over the marked run - `Private.runSelected` filters `isSelectedOrActive`
+   * exactly as every cell command does (`packages/notebook/src/actions.tsx:3009-3040`).
+   *
+   * On the bar rather than in the overflow because it is the one thing a marked run is *for* that
+   * has no per-cell equivalent while the bar is up: the cell's own `⋮` is hidden, and its Run
+   * button still means that one cell.
+   */
+  @Test
+  fun runIsOnTheBarAndAsksForTheMarkedRun() {
+    var run = 0
+    compose.setContent { bar(selectedCount = 3, onRunMarked = { run++ }) }
+
+    compose.onNodeWithContentDescription(RUN_MARKED).performClick()
+
+    assertEquals(1, run)
   }
 
   /**
@@ -145,6 +164,7 @@ class SelectionTopBarTest {
     onSelectAll: () -> Unit = {},
     onExtend: (SelectionReach) -> Unit = {},
     onCellAction: (CellAction) -> Unit = {},
+    onRunMarked: () -> Unit = {},
   ) = SelectionTopBar(
     selectedCount = selectedCount,
     headCell = HEAD_CELL,
@@ -153,10 +173,12 @@ class SelectionTopBarTest {
     onSelectAll = onSelectAll,
     onExtend = onExtend,
     onCellAction = onCellAction,
+    onRunMarked = onRunMarked,
   )
 
   private companion object {
     const val MENU = "Selected cell actions"
+    const val RUN_MARKED = "Run selected cells"
     val HEAD_CELL = Cell("c1", CellKind.CODE, "x = 1")
   }
 }

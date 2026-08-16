@@ -57,15 +57,22 @@ internal class NotebookCellRuns(
   }
 
   /**
-   * Runs a range of the notebook in order - which cells a [RunRange] means is [cellsToRun]'s
-   * question, and this only works through them.
+   * Runs a range of the notebook in order, and lets go of the selection as it starts - which is
+   * what the four `run*` commands do and what [withRunStarted] carries.
+   *
+   * **The cells are claimed before the selection moves, not inside the coroutine.**
+   * [RunRange.MARKED] is derived from the selection, so deselecting first would leave nothing to
+   * run - and reading the range later would also mean running whatever the notebook looked like by
+   * then rather than what the user pointed at.
    *
    * ```
    * runs.run(RunRange.ABOVE)   // everything before the head, and not the head
    * ```
    */
   fun run(range: RunRange) {
-    scope.launch { runCells(uiState.value.cellsToRun(range)) }
+    val cells = uiState.value.cellsToRun(range)
+    uiState.update { it.withRunStarted(range) }
+    scope.launch { runCells(cells) }
   }
 
   /**

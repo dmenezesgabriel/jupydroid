@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -59,6 +60,8 @@ fun SelectionTopBar(
   onSelectAll: () -> Unit,
   onExtend: (SelectionReach) -> Unit,
   onCellAction: (CellAction) -> Unit,
+  /** `notebook:run-cell` over the whole run - see [RUN_MARKED_CELLS] for why it is on the bar. */
+  onRunMarked: () -> Unit = {},
 ) {
   var menuOpen by remember { mutableStateOf(false) }
   TopAppBar(
@@ -92,6 +95,16 @@ fun SelectionTopBar(
       }
     },
     actions = {
+      // First among the actions, because it is what the run was marked *for*. Every other row on
+      // this bar reshapes the notebook; this is the only one that asks the kernel anything, and it
+      // is the one command here with no per-cell equivalent while the bar is up - the cell's `⋮` is
+      // hidden and its own Run still means that one cell.
+      IconButton(
+        onClick = onRunMarked,
+        modifier = Modifier.semantics { contentDescription = RUN_MARKED_CELLS },
+      ) {
+        Icon(Icons.Filled.PlayArrow, contentDescription = null)
+      }
       IconButton(
         onClick = onSelectAll,
         modifier = Modifier.semantics { contentDescription = "Select all cells" },
@@ -146,3 +159,13 @@ internal fun selectionCountLabel(count: Int): String =
 
 /** Distinct from the cell header's "Cell actions" on purpose: the two act on different things. */
 internal const val SELECTED_CELL_ACTIONS = "Selected cell actions"
+
+/**
+ * Distinct from the cell header's "Run cell" for the same reason, and the difference is real: this
+ * runs the whole marked run, that one runs its own cell.
+ *
+ * **Three icons on this bar and not four**, which is what P2c measured: a navigation icon plus four
+ * actions is 240dp of 360 and wrapped the count to three lines. Three leaves 168dp for a count that
+ * needs about 70.
+ */
+internal const val RUN_MARKED_CELLS = "Run selected cells"
