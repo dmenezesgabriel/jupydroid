@@ -34,11 +34,11 @@ filesystem the kernel, the server and the app all share.
 | Area | State |
 |---|---|
 | Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import; the server stops when it is idle or the app is left, and comes back on the next run; a kernel can be ended on purpose from the kernel menu |
-| Notebook | cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse; a contiguous run of cells can be marked and every cell command acts on it; nbformat round-trip preserves unknown fields |
+| Notebook | cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 132 instrumented, 837 unit, 73 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 144 instrumented, 885 unit, 78 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
 settings, raw cells, headings, trust, export.
@@ -230,11 +230,12 @@ The command surface is the specification. Semantics come from `packages/notebook
 read per command — three of them have already contradicted the obvious answer
 (`docs/DECISIONS.md`), so none is assumed.
 
-**Built today:** run, run-all, interrupt, restart, insert above/below, change type
+**Built today:** run, run-all, run-all-above, run-all-below, interrupt, restart, restart-run-all,
+restart-clear-output, restart-and-run-to-selected, insert above/below, change type
 (code ↔ markdown), merge above/below, merge-cells, split at the cursor, move up/down, duplicate,
-delete, clear-outputs, cut/copy/paste, hide-cell-code, hide-cell-outputs, select-all, deselect-all,
-extend-marked-cells-{above,below,top,bottom}, and undo/redo of every one of them — each acting on
-the marked run of cells rather than on one.
+delete, clear-outputs, clear-all-cell-outputs, cut/copy/paste, hide-cell-code, hide-cell-outputs,
+select-all, deselect-all, extend-marked-cells-{above,below,top,bottom}, and undo/redo of every one
+of them — each acting on the marked run of cells rather than on one.
 
 **The `clearOutputs` unhide gap is closed** (P2d-4). It was carried here from P2c — `clearOutputs`
 *unhides* the outputs it clears (`packages/notebook/src/actions.tsx:1835`) and ours left the fold
@@ -278,9 +279,24 @@ overflow rows and only Select all and the overflow are on it. The findings are b
 and both in `docs/DECISIONS.md`: a Maestro assertion naming a prefix of a node cannot fail, and a
 document's title is the wrong handle on a tablet where the file list shows the same name.
 
+**P2d has shipped, in six sub-steps, and three of them cost more than the row above said.**
+`run-all-above` / `run-all-below` / `restart-clear-output` / `restart-and-run-to-selected` and `run`
+over the marked run are all in, plus `clear-all-cell-outputs`, which the row never named and which
+`restart-clear-output` needs. What it settled is `docs/DECISIONS.md`; what it cost is worth naming
+here, because none of the three was visible from the plan:
+
+- **A notebook had no active cell until something was tapped.** The two ranged runs are
+  head-relative, so both were greyed on a freshly opened notebook with nothing to say why. The
+  reference's `activeCellIndex` clamps to 0 on load (`widget.ts:1965-1974`); ours does now.
+- **Adding Run to the selection bar put two identical `PlayArrow` triangles on one screen.**
+  Introduced and fixed inside P2d-3: the kernel bar goes with the notebook's own bar while a run is
+  marked, which is P2c's "one surface acts on the run" followed through.
+- **Markdown rendered-ness had to leave the composable** before a range run could render it
+  (`cellexecutor.ts`, `case 'markdown'`), which is P2d-6 and closes the second gap this section
+  carried.
+
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|
-| **P2d** | **Ranged and compound runs** | `run-all-above`, `run-all-below`, `restart-run-all`, `restart-clear-output`, `restart-and-run-to-selected`, and `run` itself over the marked run - `NotebookActions.run` iterates `isSelectedOrActive` like every other cell command (`actions.tsx:3024`), and P2c deliberately left that alone so its flows could stay off the kernel and be evidenced on both devices. Pure orchestration over the existing gateway now that the selection is there. `restart-clear-output` is why `KernelGateway.restart` deliberately does **not** clear outputs. |
 | **P2e** | **Raw cells** | `change-cell-to-raw`. The third `CellKind`: round-trips through nbformat, renders as plain text, never executes. Small, and it unblocks nbconvert round-trips in P2j. |
 | **P2f** | **Headings and heading collapse** | `change-cell-to-heading-1..6`, `insert-heading-{above,below}`, `toggle-heading-collapse`, `collapse-all-headings`, `expand-all-headings`. Heading collapse hides the cells **under** a heading — `setHeadingCollapse` (`actions.tsx:2348`) walks forward until it meets a heading of equal or higher level, so it is a document-structure feature, not a cell one, and it shares its model with P2h. **A collapsed heading then behaves as its whole section** everywhere else, which is the part that will bite if it is missed: `selectedCells` expands it so duplicating a collapsed heading duplicates the section; `addCells` inserts *after* its children rather than directly after it; and `deleteCells` takes the children with it. |
 | **P2g** | **View toggles** | `toggle-all-cell-line-numbers`, `enable/disable/toggle-output-scrolling`, `toggle-autoclosing-brackets`, `toggle-virtual-scrollbar` (engine in `packages/notebook/src/windowing.ts`). Several already have engines and no command; this is the surface, plus the persistence P6c provides. |

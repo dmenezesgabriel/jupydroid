@@ -198,6 +198,7 @@ fun EditorScreen(
       onCellAction = viewModel.edits::applyTo,
       onCellFocusChanged = viewModel::cellFocusChanged,
       onToggleSelected = viewModel.selection::extendTo,
+      onMarkdownEditRequested = viewModel::markdownEditRequested,
       cellInput = cellInput,
       modifier = Modifier.padding(innerPadding),
     )
@@ -214,6 +215,7 @@ private fun EditorContent(
   onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
   onToggleSelected: (String) -> Unit,
+  onMarkdownEditRequested: (String) -> Unit,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
@@ -258,6 +260,10 @@ private fun EditorContent(
             onCellAction = { action, editor -> onCellAction(cell.id, action, editor) },
             onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
             onToggleSelected = { onToggleSelected(cell.id) },
+            // Rendered unless somebody opened this one - see [MarkdownEditing]. Read from the state
+            // rather than remembered in the cell, because a run has to be able to close the editor.
+            markdownRendered = state.isMarkdownRendered(cell.id),
+            onMarkdownEditRequested = { onMarkdownEditRequested(cell.id) },
             cellInput = cellInput,
           )
         }
@@ -286,12 +292,11 @@ private fun EditorCell(
   onCellAction: (CellAction, CellEditorText) -> Unit,
   onFocusChanged: (Boolean) -> Unit,
   onToggleSelected: () -> Unit,
+  markdownRendered: Boolean,
+  onMarkdownEditRequested: () -> Unit,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
-  // Markdown never reaches a kernel: for those cells Run means "render", which is what running
-  // one means in Jupyter too.
-  val rendered = rememberMarkdownRendered(cell.id)
   // One text state per cell, owned here rather than inside the field: a cell has one source, and
   // the caret in it is read by the cell's actions as well as by the field. Created whether or not
   // a field is on screen, so collapsing a cell and expanding it keeps the caret and the typing
@@ -304,7 +309,6 @@ private fun EditorCell(
   val act: (CellAction) -> Unit = { action ->
     onCellAction(action, CellEditorText(field.text.toString(), field.selection))
   }
-  val markdown = cell.kind == CellKind.MARKDOWN
   val stripe = cellStripe(
     selected = selected,
     mode = mode,
@@ -331,7 +335,9 @@ private fun EditorCell(
       canPaste = canPaste,
       mark = mark,
       onToggleSelected = onToggleSelected,
-      onRun = if (markdown) ({ rendered.value = true }) else onRun,
+      // One Run for both kinds now: `runCells` is what decides that a code cell reaches the kernel
+      // and a markdown cell renders, exactly as `Private.runCells` does.
+      onRun = onRun,
       onStop = onStop,
       onCellAction = act,
     )
@@ -367,8 +373,8 @@ private fun EditorCell(
           state = field,
           source = cell.source,
           sourceRevision = sourceRevision,
-          rendered = rendered.value,
-          onEditRequested = { rendered.value = false },
+          rendered = markdownRendered,
+          onEditRequested = onMarkdownEditRequested,
           onSourceEdited = onSourceEdited,
           input = cellInput,
           modifier = Modifier.fillMaxWidth(),

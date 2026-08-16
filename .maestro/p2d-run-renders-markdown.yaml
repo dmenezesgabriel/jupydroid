@@ -1,0 +1,73 @@
+appId: com.jupydroid.app
+---
+# P2d-6: a range run renders the markdown cells in it, and does not lose what was being typed.
+#
+# `Private.runCells` is handed every widget and decides per cell what running one means; for
+# markdown that is `rendered = true` and `inputHidden = false`
+# (`packages/notebook/src/cellexecutor.ts`, `case 'markdown'`). Ours filtered the queue down to code
+# cells, so a markdown cell open for editing stayed open through a Run All - a cell the command
+# claimed to have run, still showing its source.
+#
+# **Only a flow can make this claim**, and that is why it exists twice over: rendered-ness used to
+# live in `rememberSaveable` inside the composable, where no ViewModel test could see it, and the
+# keystroke half needs a real IME.
+#
+# Two claims:
+#
+#   1. **Run All renders the open markdown cell**, so `Rendered markdown` is back on screen.
+#   2. **With the text that was typed into it.** An edit reaches the model on a 150 ms debounce
+#      (`CodeCellField.EDIT_REPORT_MILLIS`) and the render disposes the field - so without the
+#      `DisposableEffect` flush on the way out, the last keystrokes would go with it. Typing and
+#      running immediately is exactly that race.
+#
+# TABLET ONLY (SM-X216B): the code cell has to reach a real kernel, or 72 never appears.
+#
+# Seeded by scripts/p2d-run-renders-markdown-driver.sh; clearState would delete the fixture.
+- launchApp
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Render On Run.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Render On Run.ipynb"
+# Rendered is the resting state, so the prose is what a freshly opened notebook shows.
+- extendedWaitUntil:
+    visible: "Rendered markdown"
+    timeout: 30000
+- takeScreenshot: 01-markdown-is-rendered-to-begin-with
+
+# Open it for editing, which is what a tap on the prose does.
+- tapOn: "Rendered markdown"
+- extendedWaitUntil:
+    visible: "(?s).*## Report.*"
+    timeout: 10000
+- assertNotVisible: "Rendered markdown"
+- inputText: " for August"
+- takeScreenshot: 02-open-for-editing-and-typed-into
+
+# Straight to Run All with the caret still in the cell and the edit still in flight. The kernel bar
+# is behind the symbol row while a cell is being edited, so drop the caret first - `hideKeyboard` is
+# a system BACK the IME takes, and the second reaches the notebook's own BackHandler.
+- hideKeyboard
+- back
+- extendedWaitUntil:
+    visible: "Run all cells"
+    timeout: 10000
+- tapOn: "Run all cells"
+# Generous: the first run of the session installs the Space if needed and starts jupyter_server.
+# 72 is the kernel's product of 8 and 9 - no echo of `print(8 * 9)` could produce it.
+- extendedWaitUntil:
+    visible: "72"
+    timeout: 120000
+# Claim 1: the run closed the editor.
+- assertVisible: "Rendered markdown"
+# Claim 2: and it kept what was typed. The heading reads as prose now, so this is the rendered
+# text rather than the source - `## Report for August` would be the source and never matches.
+- assertVisible: "Report for August"
+- takeScreenshot: 03-run-all-rendered-it-with-the-typing-intact

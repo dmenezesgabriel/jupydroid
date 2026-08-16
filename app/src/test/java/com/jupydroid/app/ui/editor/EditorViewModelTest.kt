@@ -265,6 +265,27 @@ class EditorViewModelTest {
    * Jupyter aborts the rest of a queued run once a cell raises, and so must this: carrying on
    * would run later cells against state the failed one never produced.
    */
+  /**
+   * **A range run renders the markdown cells in it rather than skipping them**, which is what
+   * `Private.runCells` does: it is handed every widget and decides per cell what running one means,
+   * and for markdown that is `rendered = true` (`packages/notebook/src/cellexecutor.ts`).
+   *
+   * Ours filtered the queue to code cells and left an open markdown editor open, because
+   * rendered-ness lived in the composable rather than in the state. It lives here now.
+   */
+  @Test
+  fun runAll_rendersTheMarkdownCellsItPassesAndExecutesOnlyTheCode() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell, markdownCell, secondCodeCell))
+    viewModel.markdownEditRequested(markdownCell.id)
+
+    viewModel.kernel.run(RunRange.ALL)
+    advanceUntilIdle()
+
+    assertTrue("running a markdown cell renders it", viewModel.uiState.value.isMarkdownRendered(markdownCell.id))
+    assertEquals("and never reaches the kernel", listOf("c1", "c3"), gateway.executed)
+  }
+
   @Test
   fun runAll_stopsAtTheFirstCellThatRaises() = runTest {
     val gateway = RecordingKernelGateway(raiseOn = "c1")

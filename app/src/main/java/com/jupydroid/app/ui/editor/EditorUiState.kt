@@ -105,6 +105,14 @@ data class EditorUiState(
    * a change the field notices. Not persisted: it describes a field in this sitting.
    */
   val sourceRevisions: Map<String, Int> = emptyMap(),
+  /**
+   * The markdown cells showing their source rather than their prose - see [MarkdownEditing].
+   *
+   * The cells being *edited* and not the ones being rendered, because rendered is the resting
+   * state: an empty set is then correct for every notebook ever opened. Not persisted; nbformat has
+   * nowhere to say a cell is being written, and the reference keeps it on the widget too.
+   */
+  val markdownBeingEdited: Set<String> = emptySet(),
 )
 
 /**

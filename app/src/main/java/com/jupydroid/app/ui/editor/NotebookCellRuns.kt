@@ -53,7 +53,7 @@ internal class NotebookCellRuns(
    * cell shows what it has printed rather than nothing until it finishes.
    */
   fun runCell(cell: Cell) {
-    scope.launch { execute(cell) }
+    scope.launch { runCells(listOf(cell)) }
   }
 
   /**
@@ -83,12 +83,13 @@ internal class NotebookCellRuns(
    * Suspending rather than launching, which is what a restart-and-run-all needs after the process
    * has been replaced.
    *
-   * **Markdown is dropped here rather than by the caller.** `Private.runCells` is handed every
+   * **Markdown is answered here rather than by the caller.** `Private.runCells` is handed every
    * widget and decides per cell what running one means (`packages/notebook/src/cellexecutor.ts`),
-   * so a range stays a fact about the document and this is the one place that knows what a kernel
-   * can be asked.
+   * so a range stays a fact about the document and this is the one place that knows what each kind
+   * of cell does when it is run.
    */
   suspend fun runCells(cells: List<Cell>) {
+    renderMarkdownIn(cells)
     val queue = cells.filter { it.kind == CellKind.CODE }
     // Claimed up front so every waiting cell says so, rather than looking un-run until its turn
     // comes. Anything still queued when one raises becomes SKIPPED.
@@ -97,6 +98,24 @@ internal class NotebookCellRuns(
       if (!execute(cell)) break
     }
     uiState.update { it.skippingQueued() }
+  }
+
+  /**
+   * Running a markdown cell renders it - the whole of what `cellexecutor.ts` does for that kind.
+   *
+   * Up front rather than in turn, because there is nothing to wait for: the reference launches
+   * every cell of a run together and only the code ones ever suspend.
+   *
+   * Saved only when the document actually changed, which is the fold coming off a hidden source -
+   * `withMarkdownRendered` returns the same state otherwise, so a Run All over untouched markdown
+   * does not rewrite the file for having been looked at.
+   */
+  private suspend fun renderMarkdownIn(cells: List<Cell>) {
+    val rendering = cells.filter { it.kind == CellKind.MARKDOWN }.map { it.id }
+    if (rendering.isEmpty()) return
+    val before = uiState.value.cells
+    uiState.update { it.withMarkdownRendered(rendering) }
+    if (uiState.value.cells != before) persist()
   }
 
   /**

@@ -120,6 +120,16 @@ class EditorViewModel(
   }
 
   /**
+   * A rendered markdown cell was tapped, so it shows its source - `showEditor()`.
+   *
+   * Here rather than in the cell because a *run* has to be able to close it again, and a flag only
+   * the composable could see left an open editor open through a Run All. See [MarkdownEditing].
+   */
+  fun markdownEditRequested(cellId: String) {
+    _uiState.update { it.withMarkdownEditorOpened(cellId) }
+  }
+
+  /**
    * Retitles the notebook, from the app bar.
    *
    * The dialog decides *whether* to rename - it reports nothing for a blank or unchanged title -

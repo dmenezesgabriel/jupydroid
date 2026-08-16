@@ -362,6 +362,57 @@ light and `rgba(33,150,243,.24)` dark, applied only once the run holds more than
 same thing; the replacement is the reference's own third command, `notebook:merge-cells`, labelled
 *"Merge Selected Cells"* (`:3953`).
 
+### A run has a range, and the range is not the only thing that separates the run commands
+
+Read out of `packages/notebook/src/actions.tsx` and `notebook-extension/src/index.ts`, and four of
+these contradict the obvious answer.
+
+- **`run-all-above` excludes the head and `run-all-below` includes it.** `slice(0, activeCellIndex)`
+  against `slice(activeCellIndex)` (`:1005-1090`). Nothing about the two names says so, and one cell
+  is the whole difference between them.
+- **Every `run*` command deselects, and every one but `above` moves the head to the last cell it
+  ran** (`:966`, `:1032`, `:1077`, `:3031`). Above is exempt in the reference's own words —
+  *"The currently active cell will remain selected"*.
+- **The compound restarts do neither**, because they are built on the *public*
+  `NotebookActions.runCells` rather than on a `run*` action (`index.ts:3283`, `:3315`). So the same
+  cells run with a different effect on the caret depending on which command asked, and that belongs
+  to the command rather than to the range — which is why `run(range)` applies it here and
+  `runCells(cells)` does not.
+- **`run-all-below` is refused on the last cell of a multi-cell notebook** even though its range is
+  non-empty, and **allowed on the only cell of a one-cell one** (`index.ts:3113-3119`). With nothing
+  below it, *"Run Selected Cell and All Below"* is the cell's own Run under a longer name.
+- **A restart's second half runs after the restart, and runs even when there was no kernel.** The
+  first is the difference between a result and a lie — cells executed first would answer from the
+  interpreter about to be destroyed. The second is `shutdown(then:)`'s rule: with nothing to replace
+  there is nothing to wait for.
+- **Running a markdown cell renders it** and unfolds its source (`cellexecutor.ts`,
+  `case 'markdown'`), which is why rendered-ness had to leave the composable: a range run has to be
+  able to close an open editor, and `rememberSaveable` state could not be reached from a run or seen
+  by a test.
+- **Clearing outputs throws away three things and unfolds a fourth.** `clearExecution` empties the
+  outputs, nulls the execution count, sets `executionState = 'idle'` and deletes the `execution`
+  metadata (`packages/cells/src/model.ts:706-714`), and the transaction around it sets
+  `outputHidden = false` (`actions.tsx:1835`, `:1864`). The last two are one thing here — a
+  `CellExecution` holds the stripe and the duration — so a cleared cell keeps neither, and
+  `NotebookRevision` carries `executions` so an undo puts them back.
+
+**A notebook has an active cell before anything is touched, and it is the first.**
+`activeCellIndex` starts at `-1` and its setter clamps to `Math.max(newValue, 0)` once there are
+widgets (`widget.ts:1965-1974`), so a load leaves it at 0. Ours left it null until a field took
+focus, and the head-relative commands are what made that visible: both greyed on a freshly opened
+notebook with nothing to say why.
+
+**The touch adaptations, and each names what it departs from.** The reference has a Run menu and a
+Kernel menu; a phone's bottom bar has room for one overflow, so the two become one list separated
+the way its own schema separates them (`"type": "separator"`). The marked run's Run is on the
+contextual bar, and the cell's own Run still means that one cell — two Run affordances with
+different operands, kept apart by never being on screen together: **the kernel bar goes while a run
+is marked**, which is P2c's "one surface acts on the run" followed through, and which
+`evidence/p2d-3-run-the-marked-run/` shows was necessary rather than tidy. Aiming a head-relative
+command still costs a trip through the keyboard, because focus is what selects a cell here; that is
+an open item in `docs/PLAN.md` rather than a decision, since the obvious repair is the gesture U5a
+deliberately removed.
+
 ### Splitting is the one cell operation that reads the editor, and the one whose undo restores text
 
 `splitCell` (`actions.tsx:187-320`) contradicts the obvious answer twice, and both are load-bearing
