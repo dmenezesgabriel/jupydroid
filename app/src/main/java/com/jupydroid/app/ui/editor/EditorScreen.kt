@@ -92,6 +92,15 @@ fun EditorScreen(
   // than a branch in the one above is that the two states are exclusive: entering edit mode drops
   // the selection (`widget.ts:1925`), so only one of these is ever enabled.
   BackHandler(enabled = state.selecting) { viewModel.selection.deselectAll() }
+  // Marking a run is a command-mode act (`notebook.mode = 'command'`, `actions.tsx:1326`), and in
+  // this app the mode *is* where the focus is - the back handler above changes it by dropping the
+  // caret rather than by setting a field, so that there is one path out of edit mode and not two.
+  // `withSelectionStartedAt` set the mode directly and so invented the second: the symbol row went
+  // and the kernel bar came back while the field still held the caret, which left **the soft
+  // keyboard up** over the selection bar with nothing to type into - and on a 320dp phone that hid
+  // every cell but the first two, so the run could not be extended at all. Caught by the flow, not
+  // by a test: no Compose test has an IME (`evidence/p2c-multi-select/`, the run before this).
+  LaunchedEffect(state.selecting) { if (state.selecting) focusManager.clearFocus() }
   // The file behind this notebook was deleted, so there is nothing left to show: the reference
   // closes the widget from the manager (`deleteWidgets`), and this is the same close asked for by
   // the document, which is the only party that hears every delete.

@@ -50,6 +50,19 @@ class CellTouchTargetTest {
     compose.onNodeWithContentDescription("Stop cell").assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 
+  /**
+   * The tick a marked run puts on every cell, which is what a thumb reaches for most in that mode
+   * - and the only control on the header that is not an `IconButton`.
+   */
+  @Test
+  fun theSelectionTickIsBigEnoughToHit() {
+    compose.setContent {
+      CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = MARK, {}, {}, {}, {})
+    }
+
+    compose.onNodeWithContentDescription("Select cell 1").assertIsAtLeastMinimumTouchTarget(compose.density)
+  }
+
   /** A markdown cell composes a different branch of the header, with its own Run button. */
   @Test
   fun aMarkdownCellsControlsAreBigEnoughToHit() {
@@ -60,6 +73,7 @@ class CellTouchTargetTest {
   }
 
   private companion object {
+    val MARK = CellMark(checked = false, position = 1)
     val CODE_CELL = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
     val MARKDOWN_CELL = Cell(id = "m1", kind = CellKind.MARKDOWN, source = "# hi")
   }

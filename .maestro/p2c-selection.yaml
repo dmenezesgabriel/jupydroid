@@ -33,6 +33,14 @@ appId: com.jupydroid.app
     timeout: 30000
 - assertVisible: "delta = 4"
 - takeScreenshot: 01-four-cells
+# Into a cell first, so the way in is proved from the state a user is most likely to be in: mid-typing
+# with the keyboard up. Entering edit mode is also what *drops* a run ("Edit mode deselects all
+# cells", `widget.ts:1925-1929`), so this is the one ordering that could have left the two modes on
+# screen together.
+- tapOn: "alpha = 1"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Tab"
 # The first cell's menu, so the anchor is a known cell rather than whichever one a tap landed on.
 # `Cell actions` matches the topmost cell's button, which is cell one.
 - tapOn: "Cell actions"
@@ -43,6 +51,18 @@ appId: com.jupydroid.app
 # (`packages/notebook-extension/src/index.ts:4287-4292`) and "1 cells" is the first thing anyone
 # would notice about a bar like this.
 - assertVisible: "1 cell selected"
+# Command mode, so the symbol row is gone and the kernel bar is back under it. A row of Python
+# punctuation above a keyboard, over a screen whose top bar is asking which cells to act on, is
+# exactly the "a control on screen for a state it does not serve" this repo keeps finding.
+- assertNotVisible: "Tab"
+- assertVisible: "Run all cells"
+# **And the soft keyboard went with it**, which is not the same claim and is the one that failed.
+# The mode is this app's focus, so setting it without dropping the caret left Android's keyboard up
+# over the selection bar - on a 320dp phone that hid every cell but the first two, and the run
+# could not be extended at all. `delta = 4` is the fourth cell: it is only on screen when the
+# keyboard is not. Asserted here, where the precondition is established, rather than three steps
+# later where it is used.
+- assertVisible: "delta = 4"
 # The notebook's own bar is gone while the run is being marked: one surface acts on the selection.
 #
 # **Named by a control, not by the title**, and that is a finding rather than a preference. The
@@ -92,7 +112,7 @@ appId: com.jupydroid.app
 - assertVisible: "Back to notebooks"
 - assertNotVisible: "1 cell selected"
 - takeScreenshot: 06-reaching-onto-the-anchor-ends-the-run
-# Again, to leave by the control that is actually there for it.
+# Two ways out, and both are asserted because both can leave more than they should.
 - tapOn: "Cell actions"
 - tapOn: "Cell menu Select cells"
 - waitForAnimationToEnd:
@@ -100,12 +120,28 @@ appId: com.jupydroid.app
 - tapOn: "Select cell 2"
 - assertVisible: "2 selected"
 - takeScreenshot: 07-two-cells-marked
-- tapOn: "Deselect all cells"
+# System back leaves the *mode*, not the notebook - the contextual bar's close under another name,
+# and the thing that would go wrong silently: with both panes expanded, back out of a notebook once
+# popped the whole stack and left the app (`evidence/p1e-list-detail-scene/`).
+- back
 - waitForAnimationToEnd:
     timeout: 5000
 - assertVisible: "Back to notebooks"
 - assertNotVisible: "2 selected"
+- assertVisible: "alpha = 1"
+- takeScreenshot: 08-back-leaves-the-mode-and-not-the-notebook
+# And once more by the control that is there for it.
+- tapOn: "Cell actions"
+- tapOn: "Cell menu Select cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "1 cell selected"
+- tapOn: "Deselect all cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Back to notebooks"
+- assertNotVisible: "1 cell selected"
 # Every cell has its own menu button back, which is what says the notebook is out of the mode
 # rather than merely showing a different bar.
 - assertVisible: "Cell actions"
-- takeScreenshot: 08-back-to-the-notebook
+- takeScreenshot: 09-back-to-the-notebook
