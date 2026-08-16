@@ -170,7 +170,17 @@ fun EditorScreen(
           onClearAllOutputs = viewModel.edits::clearAllOutputs,
           onInterrupt = viewModel.kernel::stopRunningCell,
           onRestart = { viewModel.kernel.restart() },
-          onRestartAndRunAll = { viewModel.kernel.restart(andRunAll = true) },
+          // Each of the three is the same restart with a different continuation, which is exactly
+          // how the reference composes them (`index.ts:3245-3345`).
+          onRestartAndRunAll = viewModel.kernel::restartAndRunAll,
+          // Composed here rather than on the kernel, and the asymmetry is the ownership: the two
+          // that run cells need the runner `NotebookKernel` keeps private, while this one's
+          // continuation is a document operation `NotebookCellEdits` owns.
+          onRestartAndClear = { viewModel.kernel.restart(then = { viewModel.edits.clearAllOutputs() }) },
+          onRestartAndRunTo = viewModel.kernel::restartAndRunTo,
+          // Greyed with nothing selected: `restart-and-run-to-selected` is `isEnabledAndSingleSelected`
+          // there, and with no head there is no "up to" to run.
+          canRestartAndRunTo = state.selectedCellId != null,
           onShutdown = { viewModel.kernel.shutdown() },
           // The close is the shutdown's continuation rather than a second act, so it runs after
           // the session has actually ended - `notebook:close-and-shutdown` awaits it too.

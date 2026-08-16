@@ -58,6 +58,9 @@ internal class RecordingKernelGateway(
    */
   val shutDown = mutableListOf<KernelSession>()
 
+  /** Sessions the editor replaced. Ordered against [executed], which is what a compound restart needs. */
+  val restarted = mutableListOf<KernelSession>()
+
   override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {
     executed += cellId
     executedSource += code
@@ -81,6 +84,10 @@ internal class RecordingKernelGateway(
 
   override suspend fun shutdown(session: KernelSession) {
     shutDown += session
+  }
+
+  override suspend fun restart(session: KernelSession) {
+    restarted += session
   }
 }
 

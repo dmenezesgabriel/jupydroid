@@ -63,6 +63,11 @@ internal fun NotebookBar(
   canRunSelectedAndBelow: Boolean = false,
   /** `notebook:clear-all-cell-outputs` - a document operation, not a kernel one. */
   onClearAllOutputs: () -> Unit = {},
+  /** `notebook:restart-clear-output`: the restart's continuation, after the user has agreed. */
+  onRestartAndClear: () -> Unit = {},
+  /** `notebook:restart-and-run-to-selected`, greyed with no head to run up to. */
+  onRestartAndRunTo: () -> Unit = {},
+  canRestartAndRunTo: Boolean = false,
   modifier: Modifier = Modifier,
 ) {
   var confirming by remember { mutableStateOf<RestartRequest?>(null) }
@@ -98,6 +103,11 @@ internal fun NotebookBar(
         canRunAllAbove = canRunAllAbove,
         canRunSelectedAndBelow = canRunSelectedAndBelow,
         onDismiss = { kernelMenuOpen = false },
+        canRestartAndRunTo = canRestartAndRunTo,
+        onConfirmRestart = { request ->
+          kernelMenuOpen = false
+          confirming = request
+        },
         onClearAllOutputs = {
           kernelMenuOpen = false
           onClearAllOutputs()
@@ -124,7 +134,12 @@ internal fun NotebookBar(
       onDismiss = { confirming = null },
       onConfirm = {
         confirming = null
-        if (request == RestartRequest.RESTART) onRestart() else onRestartAndRunAll()
+        when (request) {
+          RestartRequest.RESTART -> onRestart()
+          RestartRequest.RESTART_AND_RUN_ALL -> onRestartAndRunAll()
+          RestartRequest.RESTART_AND_CLEAR -> onRestartAndClear()
+          RestartRequest.RESTART_AND_RUN_TO_SELECTED -> onRestartAndRunTo()
+        }
       },
     )
   }
@@ -163,6 +178,8 @@ private fun KernelActions(
   canRunSelectedAndBelow: Boolean,
   onDismiss: () -> Unit,
   onRun: (RunRange) -> Unit,
+  onConfirmRestart: (RestartRequest) -> Unit,
+  canRestartAndRunTo: Boolean,
   onClearAllOutputs: () -> Unit,
   onShutdown: () -> Unit,
   onCloseAndShutdown: () -> Unit,
@@ -188,6 +205,19 @@ private fun KernelActions(
       onClick = { onRun(RunRange.BELOW) },
     )
     HorizontalDivider()
+    // The two compound restarts, in the group the reference files them under - its Kernel menu
+    // carries `restart-and-run-to-selected` (`schema/tracker.json:220-226`) and its palette the
+    // other. Both keep the reference's ellipsis, which is what says they will ask first.
+    DropdownMenuItem(
+      text = { Text(RESTART_AND_CLEAR) },
+      onClick = { onConfirmRestart(RestartRequest.RESTART_AND_CLEAR) },
+    )
+    DropdownMenuItem(
+      text = { Text(RESTART_AND_RUN_TO_SELECTED) },
+      enabled = canRestartAndRunTo,
+      onClick = { onConfirmRestart(RestartRequest.RESTART_AND_RUN_TO_SELECTED) },
+    )
+    HorizontalDivider()
     // Its own group: it throws results away rather than producing them, and it is the only row here
     // that asks the kernel nothing at all - `clearAllOutputs` is a model operation
     // (`actions.tsx:1851`). Grouped apart so a thumb reaching for Run All Above does not find it.
@@ -206,6 +236,12 @@ internal const val RUN_SELECTED_AND_BELOW = "Run Selected Cell and All Below"
 
 /** `notebook:clear-all-cell-outputs` (`index.ts:3347`). */
 internal const val CLEAR_ALL_OUTPUTS = "Clear Outputs of All Cells"
+
+/** `notebook:restart-clear-output` (`index.ts:3246`). */
+internal const val RESTART_AND_CLEAR = "Restart Kernel and Clear Outputs of All Cells…"
+
+/** `notebook:restart-and-run-to-selected` (`index.ts:3265`). */
+internal const val RESTART_AND_RUN_TO_SELECTED = "Restart Kernel and Run up to Selected Cell…"
 
 
 /**
@@ -247,8 +283,29 @@ private fun RestartAndRunAllIcon() {
   Icon(Icons.Filled.FastForward, contentDescription = "Restart kernel and run all cells")
 }
 
-/** Which of the two restarts is waiting on the user. */
-private enum class RestartRequest { RESTART, RESTART_AND_RUN_ALL }
+/**
+ * Which restart is waiting on the user.
+ *
+ * Four, because every command the reference builds on a restart asks the same question first -
+ * `await sessionDialogs.restart(…)` in each of `restart-run-all`, `restart-clear-output` and
+ * `restart-and-run-to-selected` (`packages/notebook-extension/src/index.ts:3245-3345`). One dialog
+ * with four titles rather than four dialogs, since the sentence under it is the same either way and
+ * it is the sentence that matters: every variable is going.
+ */
+internal enum class RestartRequest {
+  RESTART,
+  RESTART_AND_RUN_ALL,
+  RESTART_AND_CLEAR,
+  RESTART_AND_RUN_TO_SELECTED,
+}
+
+/** What the dialog asks, per request. The reference's own labels, minus their ellipsis. */
+private fun RestartRequest.question(): String = when (this) {
+  RestartRequest.RESTART -> "Restart kernel?"
+  RestartRequest.RESTART_AND_RUN_ALL -> "Restart and run all?"
+  RestartRequest.RESTART_AND_CLEAR -> "Restart and clear all outputs?"
+  RestartRequest.RESTART_AND_RUN_TO_SELECTED -> "Restart and run up to the selected cell?"
+}
 
 /**
  * The confirmation, because a restart is silent and irreversible: nothing on screen changes
@@ -260,7 +317,7 @@ private enum class RestartRequest { RESTART, RESTART_AND_RUN_ALL }
 private fun RestartDialog(request: RestartRequest, onDismiss: () -> Unit, onConfirm: () -> Unit) {
   AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text(if (request == RestartRequest.RESTART) "Restart kernel?" else "Restart and run all?") },
+    title = { Text(request.question()) },
     text = { Text("All variables will be lost.") },
     confirmButton = {
       TextButton(onClick = onConfirm) {

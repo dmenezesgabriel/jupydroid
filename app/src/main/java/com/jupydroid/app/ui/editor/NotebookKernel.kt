@@ -77,17 +77,57 @@ class NotebookKernel(
    * puts it behind a warn dialog reading *"All variables will be lost"*
    * (`packages/apputils/src/sessioncontext.tsx:1505-1520`).
    *
-   * Does nothing when no kernel has been opened: there is no process to replace, and connecting
-   * one only to restart it would boot a runtime the user did not ask for.
+   * Does nothing **to the kernel** when none has been opened: there is no process to replace, and
+   * connecting one only to restart it would boot a runtime the user did not ask for.
+   *
+   * [then] is what the three compound commands do afterwards - `restart-run-all`,
+   * `restart-clear-output` and `restart-and-run-to-selected` are each an awaited restart followed
+   * by one more thing (`packages/notebook-extension/src/index.ts:3245-3345`), which is why this
+   * takes a continuation rather than growing a flag per command.
+   *
+   * It runs **after** the kernel has been replaced, and for a run that is the difference between a
+   * result and a lie: cells executed first would answer from the interpreter the restart is about
+   * to destroy. And it runs even when there was no kernel, exactly as [shutdown]'s does - with
+   * nothing to replace there is nothing to wait for, and the second half of a command is not
+   * conditional on the first having had work to do.
    */
-  fun restart(andRunAll: Boolean = false) {
-    val open = session.opened ?: return
+  fun restart(then: suspend () -> Unit = {}) {
     scope.launch {
-      kernelGateway.restart(open)
-      // Whatever was in flight died with the process; anything finished is history and stays.
-      uiState.update { it.abandoningRun() }
-      if (andRunAll) runs.runCells(uiState.value.cells)
+      session.opened?.let { open ->
+        kernelGateway.restart(open)
+        // Whatever was in flight died with the process; anything finished is history and stays.
+        uiState.update { state -> state.abandoningRun() }
+      }
+      then()
     }
+  }
+
+  /**
+   * `notebook:restart-run-all` - a restart, then every cell.
+   *
+   * Through [NotebookCellRuns.runCells] rather than [run] for the reason [restartAndRunTo] gives:
+   * the reference composes this one out of the public `NotebookActions.runCells` (`index.ts:3315`),
+   * which leaves the selection alone, and not out of `runAll`, which deselects.
+   */
+  fun restartAndRunAll() {
+    val cells = uiState.value.cells
+    restart(then = { runs.runCells(cells) })
+  }
+
+  /**
+   * `notebook:restart-and-run-to-selected` - a restart, then the head and everything above it.
+   *
+   * Its range is [RunRange.UP_TO_SELECTED] and its runner is [NotebookCellRuns.runCells] rather
+   * than [run], which is not an implementation detail: the reference hands its slice to the
+   * **public** `NotebookActions.runCells` (`index.ts:3283`), and that one touches no selection - so
+   * unlike the four `run*` commands this leaves the head where it is.
+   *
+   * The cells are claimed before the restart rather than inside it, so the command runs what was on
+   * screen when it was asked for.
+   */
+  fun restartAndRunTo() {
+    val cells = uiState.value.cellsToRun(RunRange.UP_TO_SELECTED)
+    restart(then = { runs.runCells(cells) })
   }
 
   /**

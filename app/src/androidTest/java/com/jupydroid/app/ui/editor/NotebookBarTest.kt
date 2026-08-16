@@ -98,6 +98,59 @@ class NotebookBarTest {
     compose.runOnIdle { assertEquals(1, cleared) }
   }
 
+  /**
+   * **Every restart asks, including the two that arrived behind a menu.** The reference awaits
+   * `sessionDialogs.restart(…)` in all three compound commands
+   * (`packages/notebook-extension/src/index.ts:3245-3345`), so a row that fired on the tap would be
+   * the one action here with no visible result and no way back doing exactly that.
+   */
+  @Test
+  fun theCompoundRestartsAskBeforeTheyDoAnything() {
+    showBar(busy = false)
+
+    compose.onNodeWithContentDescription("Kernel actions").performClick()
+    compose.onNodeWithText(RESTART_AND_CLEAR).performClick()
+
+    compose.onNodeWithText("All variables will be lost.").assertIsDisplayed()
+    compose.runOnIdle { assertEquals("nothing may happen before the user agrees", emptyList<String>(), restarts) }
+  }
+
+  /** The four titles are what tell the four apart once the sentence under them is the same. */
+  @Test
+  fun eachRestartNamesItselfInTheDialog() {
+    showBar(busy = false)
+
+    compose.onNodeWithContentDescription("Kernel actions").performClick()
+    compose.onNodeWithText(RESTART_AND_RUN_TO_SELECTED).performClick()
+
+    compose.onNodeWithText("Restart and run up to the selected cell?").assertIsDisplayed()
+  }
+
+  @Test
+  fun confirmingACompoundRestartRunsItsOwnContinuation() {
+    showBar(busy = false)
+
+    compose.onNodeWithContentDescription("Kernel actions").performClick()
+    compose.onNodeWithText(RESTART_AND_CLEAR).performClick()
+    compose.onNodeWithText("Restart").performClick()
+
+    compose.runOnIdle { assertEquals(listOf("restart-and-clear"), restarts) }
+  }
+
+  /**
+   * `restart-and-run-to-selected` is `isEnabledAndSingleSelected` there, and with no head there is
+   * no "up to" to run.
+   */
+  @Test
+  fun restartAndRunToSelectedIsGreyedWithNoHead() {
+    showBar(busy = false, canRestartAndRunTo = false)
+
+    compose.onNodeWithContentDescription("Kernel actions").performClick()
+
+    compose.onNodeWithText(RESTART_AND_RUN_TO_SELECTED).assertIsNotEnabled()
+    compose.onNodeWithText(RESTART_AND_CLEAR).assertIsEnabled()
+  }
+
   @Test
   fun anIdleKernelOffersRunAllAndNotInterrupt() {
     showBar(busy = false)
@@ -106,7 +159,11 @@ class NotebookBarTest {
     compose.onNodeWithContentDescription("Interrupt kernel").assertIsNotEnabled()
   }
 
-  private fun showBar(busy: Boolean, onClearAllOutputs: () -> Unit = {}) {
+  private fun showBar(
+    busy: Boolean,
+    onClearAllOutputs: () -> Unit = {},
+    canRestartAndRunTo: Boolean = true,
+  ) {
     compose.setContent {
       JupyterDroidTheme {
         NotebookBar(
@@ -120,6 +177,9 @@ class NotebookBarTest {
           onShutdown = {},
           onCloseAndShutdown = {},
           onClearAllOutputs = onClearAllOutputs,
+          onRestartAndClear = { restarts += "restart-and-clear" },
+          onRestartAndRunTo = { restarts += "restart-and-run-to" },
+          canRestartAndRunTo = canRestartAndRunTo,
         )
       }
     }
