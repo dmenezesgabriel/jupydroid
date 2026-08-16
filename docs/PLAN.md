@@ -236,12 +236,13 @@ delete, clear-outputs, cut/copy/paste, hide-cell-code, hide-cell-outputs, select
 extend-marked-cells-{above,below,top,bottom}, and undo/redo of every one of them — each acting on
 the marked run of cells rather than on one.
 
-**One parity gap found by reading and deliberately not closed here.** `clearOutputs` also *unhides*
-the outputs it clears — `(child as CodeCell).outputHidden = false`
-(`packages/notebook/src/actions.tsx:1835`) — and ours leaves the fold alone, so clearing a
-collapsed cell's outputs leaves an empty collapsed placeholder. One line and a regression test,
-listed here rather than taken silently: it predates P2c and widening a step to fix what it merely
-walked past is how a step stops closing.
+**The `clearOutputs` unhide gap is closed** (P2d-4). It was carried here from P2c — `clearOutputs`
+*unhides* the outputs it clears (`packages/notebook/src/actions.tsx:1835`) and ours left the fold
+alone — and it was taken with the command that shares the rule, `notebook:clear-all-cell-outputs`,
+rather than on its own. Two more of `clearExecution`'s effects came with it, read out of
+`packages/cells/src/model.ts:706-714`: the run itself is dropped (`executionState = 'idle'` plus
+the deleted `execution` metadata, which is where our stripe and *"ran in"* live), and
+`NotebookRevision` grew a fourth field so an undo puts it back.
 
 **P2a has shipped.** Undo and redo of cell operations are on the notebook's app bar, green on both
 devices from one build (`evidence/p2a-undo-cell-operation/`). What it settled — the two undos, the

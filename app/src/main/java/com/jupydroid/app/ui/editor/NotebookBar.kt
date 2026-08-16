@@ -61,6 +61,8 @@ internal fun NotebookBar(
   onRun: (RunRange) -> Unit = {},
   canRunAllAbove: Boolean = false,
   canRunSelectedAndBelow: Boolean = false,
+  /** `notebook:clear-all-cell-outputs` - a document operation, not a kernel one. */
+  onClearAllOutputs: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   var confirming by remember { mutableStateOf<RestartRequest?>(null) }
@@ -96,6 +98,10 @@ internal fun NotebookBar(
         canRunAllAbove = canRunAllAbove,
         canRunSelectedAndBelow = canRunSelectedAndBelow,
         onDismiss = { kernelMenuOpen = false },
+        onClearAllOutputs = {
+          kernelMenuOpen = false
+          onClearAllOutputs()
+        },
         onRun = { range ->
           kernelMenuOpen = false
           onRun(range)
@@ -157,6 +163,7 @@ private fun KernelActions(
   canRunSelectedAndBelow: Boolean,
   onDismiss: () -> Unit,
   onRun: (RunRange) -> Unit,
+  onClearAllOutputs: () -> Unit,
   onShutdown: () -> Unit,
   onCloseAndShutdown: () -> Unit,
 ) {
@@ -181,6 +188,11 @@ private fun KernelActions(
       onClick = { onRun(RunRange.BELOW) },
     )
     HorizontalDivider()
+    // Its own group: it throws results away rather than producing them, and it is the only row here
+    // that asks the kernel nothing at all - `clearAllOutputs` is a model operation
+    // (`actions.tsx:1851`). Grouped apart so a thumb reaching for Run All Above does not find it.
+    DropdownMenuItem(text = { Text(CLEAR_ALL_OUTPUTS) }, onClick = onClearAllOutputs)
+    HorizontalDivider()
     DropdownMenuItem(text = { Text("Shut Down Kernel") }, onClick = onShutdown)
     DropdownMenuItem(text = { Text("Close and Shut Down Notebook…") }, onClick = onCloseAndShutdown)
   }
@@ -191,6 +203,9 @@ internal const val RUN_ALL_ABOVE = "Run All Above Selected Cell"
 
 /** `notebook:run-all-below` (`index.ts:3098`). Its label is what says the head is included. */
 internal const val RUN_SELECTED_AND_BELOW = "Run Selected Cell and All Below"
+
+/** `notebook:clear-all-cell-outputs` (`index.ts:3347`). */
+internal const val CLEAR_ALL_OUTPUTS = "Clear Outputs of All Cells"
 
 
 /**

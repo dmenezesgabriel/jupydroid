@@ -115,9 +115,15 @@ data class EditorUiState(
  * are immutable and shared by reference, so an entry costs the list and map spines and nothing
  * else.
  *
- * Three fields and no more, because these are what a cell operation can change. The clipboard, the
+ * Four fields and no more, because these are what a cell operation can change. The clipboard, the
  * selection and the mode are not the document, and JupyterLab's undo does not restore them either -
  * it `deselectAll()`s afterwards instead.
+ *
+ * **[executions] is the fourth and it arrived late**, which is the rule above being applied rather
+ * than an exception to it: `withOutputsCleared` drops a cell's run along with its outputs (as
+ * `clearExecution` sets `executionState = 'idle'`) and `withCellsDeleted` has always dropped it
+ * with the cell, so a record without it restored the output and the `[7]` over a cell with no
+ * duration and no stripe.
  *
  * Here rather than in [CellUndo] because it is a projection of this state, and the file it would
  * otherwise sit in holds pure functions like every one of its neighbours.
@@ -126,6 +132,7 @@ data class NotebookRevision(
   val cells: List<Cell>,
   val outputs: Map<String, List<CellOutput>>,
   val executionCounts: Map<String, Int>,
+  val executions: Map<String, CellExecution>,
   /**
    * The cells whose source the operation itself rewrote, while leaving them in the notebook.
    *
@@ -136,7 +143,7 @@ data class NotebookRevision(
 )
 
 internal fun EditorUiState.revision(rewrote: Set<String> = emptySet()) =
-  NotebookRevision(cells, outputs, executionCounts, rewrote)
+  NotebookRevision(cells, outputs, executionCounts, executions, rewrote)
 
 /**
  * The state transitions an editor makes, as pure functions.

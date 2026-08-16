@@ -124,6 +124,98 @@ class CellEditsTest {
   }
 
   /**
+   * **And it unfolds the outputs it throws away** - `clearOutputs` sets
+   * `(child as CodeCell).outputHidden = false` inside the same transaction as `clearExecution`
+   * (`packages/notebook/src/actions.tsx:1832-1836`).
+   *
+   * Named in `docs/PLAN.md` as a known gap and left open until there was a second command with the
+   * same rule to build. Without it, clearing a collapsed cell's outputs leaves an empty collapsed
+   * placeholder - a fold over nothing, with a control offering to expand it.
+   */
+  @Test
+  fun clearOutputs_unfoldsTheOutputsItThrewAway() {
+    val state = stateOf("a").withOutputOn("a", "old").withOutputsFolded("a")
+
+    val cleared = state.withOutputsCleared(listOf("a"))
+
+    assertFalse(cleared.cells.single { it.id == "a" }.outputsHidden)
+  }
+
+  /**
+   * `clearExecution` also sets `executionState = 'idle'` and deletes the `execution` metadata
+   * (`packages/cells/src/model.ts:706-714`), which is where the timing lives. Ours keeps both in
+   * one [CellExecution] record, so dropping the record is the same act: a cell with nothing under
+   * it must not still carry a red stripe saying it failed, or a label saying how long it took.
+   */
+  @Test
+  fun clearOutputs_dropsTheRunItRecorded() {
+    val state = stateOf("a", "b")
+      .finishedRun("a", at = java.time.Instant.EPOCH, failed = true)
+      .finishedRun("b", at = java.time.Instant.EPOCH, failed = true)
+
+    val cleared = state.withOutputsCleared(listOf("a"))
+
+    assertEquals(ExecutionStatus.NOT_STARTED, cleared.statusOf("a"))
+    assertEquals(ExecutionStatus.STOPPED_ERROR, cleared.statusOf("b"))
+  }
+
+  /**
+   * `notebook:clear-all-cell-outputs`, and the only difference from the one above is the operand:
+   * `clearAllOutputs` walks every cell instead of filtering on `isSelectedOrActive`
+   * (`actions.tsx:1851-1870`).
+   */
+  @Test
+  fun clearAllOutputs_clearsEveryCodeCellWhateverIsSelected() {
+    val state = stateOf("a", "b", "c")
+      .withOutputOn("a", "one").withCount("a", 1)
+      .withOutputOn("c", "three").withCount("c", 3)
+      .withCellSelected("b")
+
+    val cleared = state.withAllOutputsCleared()
+
+    assertTrue(cleared.outputs.isEmpty())
+    assertTrue(cleared.executionCounts.isEmpty())
+  }
+
+  @Test
+  fun clearAllOutputs_unfoldsEveryCellItCleared() {
+    val state = stateOf("a", "b").withOutputOn("a", "one").withOutputsFolded("a").withOutputsFolded("b")
+
+    val cleared = state.withAllOutputsCleared()
+
+    assertTrue(cleared.cells.none { it.outputsHidden })
+  }
+
+  /**
+   * **It touches the selection not at all**, which is the one thing `clearAllOutputs` and
+   * `clearOutputs` share with `move` and the collapses: they are the cell operations with no
+   * `deselectAll()` in them (`docs/DECISIONS.md`).
+   */
+  @Test
+  fun clearAllOutputs_leavesTheMarkedRunAlone() {
+    val marked = stateOf("a", "b", "c").withSelectionStartedAt("a").withSelectionExtendedTo("b")
+
+    val cleared = marked.withAllOutputsCleared()
+
+    assertTrue(cleared.selecting)
+    assertEquals(listOf("a", "b"), cleared.selectedCellIds)
+  }
+
+  /** A markdown cell has no outputs to clear and no fold of its own - `clearAllOutputs` skips it. */
+  @Test
+  fun clearAllOutputs_leavesMarkdownCellsAlone() {
+    val state = EditorUiState(
+      cells = listOf(Cell("a", CellKind.MARKDOWN, "# heading"), Cell("b", CellKind.CODE, "x")),
+      loaded = true,
+    ).withOutputOn("b", "one")
+
+    val cleared = state.withAllOutputsCleared()
+
+    assertEquals(state.cells.first(), cleared.cells.first())
+    assertTrue(cleared.outputs.isEmpty())
+  }
+
+  /**
    * **The toggle lives in [applying] now**, and the transform under it only ever *sets*.
    *
    * That is the reference's own split - `hideCode` and `showCode` are separate commands over the
@@ -236,4 +328,7 @@ class CellEditsTest {
 
   private fun EditorUiState.withCount(cellId: String, count: Int) =
     copy(executionCounts = executionCounts + (cellId to count))
+
+  private fun EditorUiState.withOutputsFolded(cellId: String) =
+    copy(cells = cells.map { if (it.id == cellId) it.copy(outputsHidden = true) else it })
 }

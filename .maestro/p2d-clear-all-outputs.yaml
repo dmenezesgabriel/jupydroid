@@ -1,0 +1,72 @@
+appId: com.jupydroid.app
+---
+# P2d-4: `notebook:clear-all-cell-outputs`, and the unfold that comes with it.
+#
+# Runs no cell, so the emulator is real evidence rather than a stand-in and this goes on both
+# devices. The outputs are seeded into the fixture, so nothing here needs a kernel to have produced
+# them - which is also what lets the *saved file* be the final assertion.
+#
+# Three claims:
+#
+#   1. **Every code cell, whatever is selected.** `clearAllOutputs` walks the model instead of
+#      filtering on `isSelectedOrActive` (`packages/notebook/src/actions.tsx:1851-1870`), so both
+#      results go and both `[n]` prompts with them.
+#   2. **It unfolds what it clears.** `(child as CodeCell).outputHidden = false` in the same
+#      transaction (`:1864`). The second cell is seeded `"collapsed": true`, so before the clear it
+#      shows a `Collapsed outputs` placeholder - and after it there must be no placeholder either,
+#      because a fold over nothing is a control offering to expand an absence. This is the gap
+#      `docs/PLAN.md` carried as known and open.
+#   3. **The markdown cell is untouched**, which is the `cell.type === 'code'` guard both loops
+#      carry.
+#
+# Then one undo brings all of it back, results and prompts together.
+#
+# Seeded by scripts/p2d-clear-all-outputs-driver.sh; clearState would delete the fixture.
+- launchApp
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Clear Them All.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Clear Them All.ipynb"
+- extendedWaitUntil:
+    visible: "first result"
+    timeout: 30000
+- assertVisible: "\\[3\\]"
+- assertVisible: "\\[9\\]"
+# The second cell's outputs are folded, so its result is behind a placeholder rather than on screen.
+- assertVisible: "Collapsed outputs"
+- assertVisible: "kept by clear all"
+- takeScreenshot: 01-two-results-one-of-them-folded
+
+- tapOn: "Kernel actions"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Clear Outputs of All Cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "first result"
+- assertNotVisible: "\\[3\\]"
+- assertNotVisible: "\\[9\\]"
+# The fold went with the outputs it was hiding - claim 2, and the whole reason this flow seeds a
+# collapsed cell at all.
+- assertNotVisible: "Collapsed outputs"
+- assertVisible: "kept by clear all"
+- takeScreenshot: 02-every-output-gone-and-nothing-left-folded
+
+# One entry, because `clearAllOutputs` is one operation - the same undoable unit every cell
+# operation is (`docs/DECISIONS.md`).
+- tapOn: "Undo cell operation"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "first result"
+- assertVisible: "\\[3\\]"
+- assertVisible: "\\[9\\]"
+- assertVisible: "Collapsed outputs"
+- takeScreenshot: 03-one-undo-brought-every-result-back

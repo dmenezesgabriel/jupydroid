@@ -82,6 +82,22 @@ class NotebookBarTest {
     compose.onNodeWithContentDescription("Interrupt kernel").assertIsEnabled()
   }
 
+  /**
+   * `notebook:clear-all-cell-outputs`, in the reference's own label (`index.ts:3347`). Never
+   * greyed - `isEnabled` there is only "is there a notebook" - so unlike the ranged runs beside it
+   * there is no state to assert, only that the row exists and fires once.
+   */
+  @Test
+  fun clearAllOutputsIsAnOverflowRowThatFiresOnce() {
+    var cleared = 0
+    showBar(busy = false, onClearAllOutputs = { cleared++ })
+
+    compose.onNodeWithContentDescription("Kernel actions").performClick()
+    compose.onNodeWithText(CLEAR_ALL_OUTPUTS).performClick()
+
+    compose.runOnIdle { assertEquals(1, cleared) }
+  }
+
   @Test
   fun anIdleKernelOffersRunAllAndNotInterrupt() {
     showBar(busy = false)
@@ -90,7 +106,7 @@ class NotebookBarTest {
     compose.onNodeWithContentDescription("Interrupt kernel").assertIsNotEnabled()
   }
 
-  private fun showBar(busy: Boolean) {
+  private fun showBar(busy: Boolean, onClearAllOutputs: () -> Unit = {}) {
     compose.setContent {
       JupyterDroidTheme {
         NotebookBar(
@@ -103,6 +119,7 @@ class NotebookBarTest {
           // The shutdown half is `NotebookBarShutdownTest`'s; this suite is about the restarts.
           onShutdown = {},
           onCloseAndShutdown = {},
+          onClearAllOutputs = onClearAllOutputs,
         )
       }
     }

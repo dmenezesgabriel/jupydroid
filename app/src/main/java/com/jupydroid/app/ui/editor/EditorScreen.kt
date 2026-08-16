@@ -165,6 +165,9 @@ fun EditorScreen(
           // head moves - and each says why by being disabled exactly where the reference disables it.
           canRunAllAbove = state.canRunAllAbove,
           canRunSelectedAndBelow = state.canRunSelectedAndBelow,
+          // On the kernel bar although it asks the kernel nothing, because it is where the
+          // reference files it too - the Kernel menu, beside the restart it composes with.
+          onClearAllOutputs = viewModel.edits::clearAllOutputs,
           onInterrupt = viewModel.kernel::stopRunningCell,
           onRestart = { viewModel.kernel.restart() },
           onRestartAndRunAll = { viewModel.kernel.restart(andRunAll = true) },

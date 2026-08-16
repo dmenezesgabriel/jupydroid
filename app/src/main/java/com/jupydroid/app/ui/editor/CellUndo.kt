@@ -24,7 +24,8 @@ package com.jupydroid.app.ui.editor
  * already had changes nothing either.
  */
 private fun EditorUiState.changesNothingFrom(before: EditorUiState): Boolean =
-  cells == before.cells && outputs == before.outputs && executionCounts == before.executionCounts
+  cells == before.cells && outputs == before.outputs && executionCounts == before.executionCounts &&
+    executions == before.executions
 
 /**
  * Records [before] as undoable, unless this state is the same document.
@@ -107,6 +108,9 @@ private fun EditorUiState.restoredTo(revision: NotebookRevision): EditorUiState 
     cells = revision.cells.map { cell -> liveSources[cell.id]?.let { cell.copy(source = it) } ?: cell },
     outputs = revision.outputs,
     executionCounts = revision.executionCounts,
+    // The run comes back with the results it produced: a restored output over a cell with no
+    // duration and no stripe is half a restoration - see [NotebookRevision].
+    executions = revision.executions,
     sourceRevisions = sourceRevisions.bumping(revision.rewrote),
     dirty = true,
   ).withSelectionCollapsed().withSelectionClamped()

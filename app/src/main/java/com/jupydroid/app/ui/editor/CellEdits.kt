@@ -99,43 +99,42 @@ fun EditorUiState.withCellsDeleted(cellIds: List<String>, replacementId: String)
 }
 
 /**
- * Clears the execution count along with the outputs, which is what JupyterLab's `clearExecution`
- * does: `[7]` beside a cell with nothing under it claims a result that is no longer there.
- */
-fun EditorUiState.withOutputsCleared(cellIds: List<String>): EditorUiState {
-  val clearing = cellIds.toSet()
-  if (cells.none { it.id in clearing }) return this
-  return copy(outputs = outputs - clearing, executionCounts = executionCounts - clearing, dirty = true)
-}
-
-/**
- * Folds or unfolds the source of a whole run, to **one** state rather than each cell's opposite.
+ * `notebook:clear-cell-output` over a run of cells - `clearOutputs` (`actions.tsx:1822-1840`).
  *
- * JupyterLab has `hideCode` and `showCode` as separate commands over the selection
- * (`packages/notebook/src/actions.tsx:1877-1910`), so a run always ends up uniform. Toggling each
- * cell against its own state would invert a mixed run and leave it exactly as mixed - and the menu
- * row that asked for it says one thing, so it has to do one thing. Which state is the caller's,
- * read off the head cell, which is also what the row's label was written from.
+ * Everything `clearExecution` throws away goes together, and that is three things rather than one
+ * (`packages/cells/src/model.ts:706-714`): the outputs, the **execution count** - `[7]` beside a
+ * cell with nothing under it claims a result that is no longer there - and the **run itself**,
+ * because `executionState = 'idle'` and the deleted `execution` metadata are where our
+ * [CellExecution] keeps the red stripe and the *"ran in 6.8 s"*.
+ *
+ * **And it unfolds them**, which the transaction does in the same breath:
+ * `(child as CodeCell).outputHidden = false` (`actions.tsx:1835`). Otherwise clearing a collapsed
+ * cell leaves a fold over nothing, offering to expand it.
  */
-fun EditorUiState.withSourceHiddenSet(cellIds: List<String>, hidden: Boolean): EditorUiState {
-  val folding = cellIds.toSet()
-  if (cells.none { it.id in folding }) return this
-  return copy(
-    cells = cells.map { if (it.id in folding) it.copy(sourceHidden = hidden) else it },
-    dirty = true,
-  )
-}
+fun EditorUiState.withOutputsCleared(cellIds: List<String>): EditorUiState =
+  clearingOutputsOf(cellIds.toSet())
 
 /**
- * Hides the outputs without discarding them - which is the whole difference from
- * [withOutputsCleared], and why both are in the menu. Independent of the source's collapse:
- * JupyterLab has a separate command for each and stores them under separate keys.
+ * `notebook:clear-all-cell-outputs` - `clearAllOutputs` (`actions.tsx:1851-1870`).
+ *
+ * The same transaction as [withOutputsCleared] with one difference, and it is only the operand:
+ * that one filters on `isSelectedOrActive` and this one walks every cell. **So it touches the
+ * selection not at all** - neither has a `deselectAll()` in it, which puts them with `move` and the
+ * collapses (`docs/DECISIONS.md`).
  */
-fun EditorUiState.withOutputsHiddenSet(cellIds: List<String>, hidden: Boolean): EditorUiState {
-  val folding = cellIds.toSet()
-  if (cells.none { it.id in folding }) return this
+fun EditorUiState.withAllOutputsCleared(): EditorUiState = clearingOutputsOf(cells.map { it.id }.toSet())
+
+/** Both commands' transaction, since the operand is all that separates them. */
+private fun EditorUiState.clearingOutputsOf(clearing: Set<String>): EditorUiState {
+  // Code cells only: both loops guard on `cell.type === 'code'`, and a markdown cell has neither
+  // an output to throw away nor a fold of its own to unpick.
+  val clearable = cells.filter { it.id in clearing && it.kind == CellKind.CODE }.map { it.id }.toSet()
+  if (clearable.isEmpty()) return this
   return copy(
-    cells = cells.map { if (it.id in folding) it.copy(outputsHidden = hidden) else it },
+    cells = cells.map { if (it.id in clearable) it.copy(outputsHidden = false) else it },
+    outputs = outputs - clearable,
+    executionCounts = executionCounts - clearable,
+    executions = executions - clearable,
     dirty = true,
   )
 }

@@ -146,6 +146,40 @@ class CellUndoTest {
     assertEquals(7, undone.executionCounts["a"])
   }
 
+  /**
+   * **And with the run that produced them**, which is what made [NotebookRevision] carry
+   * [EditorUiState.executions] at all.
+   *
+   * A record's three fields were *"what a cell operation can change"*, and once clearing outputs
+   * drops the run alongside them - `clearExecution` sets `executionState = 'idle'`
+   * (`packages/cells/src/model.ts:706-714`) - that stopped being true. Without this the undo put
+   * the output and the `[7]` back over a cell with no duration and no stripe: half a restoration,
+   * and the half nobody would notice until they were looking for a failure that had gone quiet.
+   */
+  @Test
+  fun clearOutputs_isTakenBackWithTheRunThatProducedThem() {
+    val state = stateOf("a").withOutputOn("a", "hello").withCount("a", 7)
+      .finishedRun("a", at = java.time.Instant.EPOCH, failed = true)
+
+    val undone = state.applyingFrom("a", CellAction.ClearOutputs).undoneCellOperation()
+
+    assertEquals(ExecutionStatus.STOPPED_ERROR, undone.statusOf("a"))
+  }
+
+  /**
+   * The same widening closes a gap that predates it: `withCellsDeleted` has always dropped the run
+   * with the cell, and an undo brought the cell and its output back with no stripe on it.
+   */
+  @Test
+  fun delete_isTakenBackWithTheRunTheCellHad() {
+    val state = stateOf("a", "b").withOutputOn("a", "hello")
+      .finishedRun("a", at = java.time.Instant.EPOCH, failed = true)
+
+    val undone = state.applyingFrom("a", CellAction.Delete).undoneCellOperation()
+
+    assertEquals(ExecutionStatus.STOPPED_ERROR, undone.statusOf("a"))
+  }
+
   @Test
   fun collapsing_theSourceOrTheOutputs_isTakenBack() {
     val state = stateOf("a")

@@ -45,6 +45,21 @@ class NotebookCellEdits(
   }
 
   /**
+   * `notebook:clear-all-cell-outputs` - every code cell, whatever is selected.
+   *
+   * Its own method rather than a [CellAction], because a [CellAction] is by definition something a
+   * *cell's* menu offers and this one has no cell: `clearAllOutputs` walks the model instead of
+   * filtering on `isSelectedOrActive` (`packages/notebook/src/actions.tsx:1851-1870`). Routing it
+   * through [applyTo] would have meant inventing a cell for it to be asked from.
+   *
+   * Undoable like the selection-scoped one, and by the same adaptation - see `docs/DECISIONS.md`.
+   */
+  fun clearAllOutputs() {
+    uiState.update { it.withAllOutputsCleared().recording(before = it) }
+    save.schedule()
+  }
+
+  /**
    * Takes back the last cell operation - `notebook:undo-cell-action`.
    *
    * Structural, never textual: [CellUndo] carries the rule that keeps the two undos apart, and it
