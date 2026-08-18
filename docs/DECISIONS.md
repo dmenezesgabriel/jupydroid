@@ -617,6 +617,39 @@ submenu is the worst shape there is to operate with TalkBack.
 and closed it in the same frame — the whole menu simply went away
 (`evidence/p2f-3-change-to-heading/`).
 
+### An inserted heading takes the section's level, and "below" means the end of the section
+
+`insertSameLevelHeading{Above,Below}` (`actions.tsx:1183-1231`), and the second half is the one a
+first guess gets wrong.
+
+- **The level is the section's, not the cell's.** `determineHeadingLevel` answers the head's own
+  level if it is a heading and its *parent heading's* if it is not (`:3576-3597`), falling back to 1
+  when there is no heading at or above it — which is every cell of a notebook that has none. So a
+  heading asked for from a code cell inside `## Part A` is an H2.
+- **`below` inserts at `findLowerEqualLevelHeadingBelow`** (`:3520-3550`) — the start of the next
+  *sibling* section — so the new heading **closes** the section it was asked from rather than cutting
+  it in half. Measured on disk: asked from the cell under `## Part A`, `## Part B` lands after that
+  cell and before `# Chapter two` (`evidence/p2f-4-insert-heading/`).
+- **It ends in edit mode**, `notebook.mode = 'edit'` (`:3645`), which here is the caret being asked
+  for. That is the opposite of every other insert and of `changeCellType`, and the reason is the
+  cell: an inserted heading holds nothing but its marker, so there is nothing to read and everything
+  to type.
+
+**One adaptation, and it is the label.** The reference's are *"Insert Heading Above/Below"*
+(`notebook-extension/src/index.ts:4120,4137`), but this menu already has *"Insert code below"* one
+row up, which puts a cell **after this one** — two rows both reading "below" would promise the same
+place and mean different ones. So the row names the section: *Insert heading after section*.
+
+### The three folds are a category, not three commands that happen to rhyme
+
+`CellAction.Fold` exists because detekt asked for `transformed` to be split three times and was
+pointing at the same seam each time. `hideCode`/`showCode`, the output collapses and
+`toggleCurrentHeadingCollapse` share both of the things the dispatch cares about: none has a
+`deselectAll()` in it (`actions.tsx:1877-2110`, `:2440-2455`), so all three keep the marked run, and
+each reads the **head's** own state and sets from it so a mixed run comes out uniform rather than
+inverted. It is also the category `CellFolds` already names in prose — *"a fold discards nothing"* —
+given a type so the two exhaustive `when`s over `CellAction` can say it once instead of three times.
+
 ### Adopting a rewritten source belongs to the cell; reporting an edit belongs to the field
 
 Both halves used to live in the field, and P2f-3 is what proved that wrong.

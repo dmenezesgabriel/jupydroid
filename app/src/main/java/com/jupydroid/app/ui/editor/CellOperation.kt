@@ -101,18 +101,18 @@ private fun EditorUiState.operated(
  */
 private val CellAction.keepsTheRun: Boolean
   get() = when (this) {
+    // Every fold, `toggleCurrentHeadingCollapse` included - none has a `deselectAll()` in it
+    // (`actions.tsx:1877-2110`, `:2440-2455`). Where the heading one *cannot* keep the run, because
+    // a mark would be left on a cell nothing draws, `withHeadingCollapsed` drops it itself rather
+    // than making this a fourth answer.
+    is CellAction.Fold,
     is CellAction.Move, CellAction.ClearOutputs,
-    CellAction.ToggleSourceHidden, CellAction.ToggleOutputsHidden,
-    // `toggleCurrentHeadingCollapse` has no `deselectAll()` either (`actions.tsx:2440-2455`) - and
-    // where it *cannot* keep the run, because a mark would be left on a cell nothing draws,
-    // `withHeadingCollapsed` drops it itself rather than making this a fourth answer.
-    CellAction.ToggleHeadingCollapse,
     // Neither of the two that edit nothing: one asks for a run, the other for a picker.
     CellAction.StartSelecting, CellAction.ChooseHeadingLevel,
     -> true
 
-    is CellAction.Insert, is CellAction.InsertAbove, is CellAction.ChangeKind, is CellAction.Merge,
-    is CellAction.ChangeToHeading,
+    is CellAction.Insert, is CellAction.InsertAbove, is CellAction.InsertHeading,
+    is CellAction.ChangeKind, is CellAction.Merge, is CellAction.ChangeToHeading,
     CellAction.Split, CellAction.Copy, CellAction.Cut, CellAction.Paste,
     CellAction.Duplicate, CellAction.Delete,
     -> false
@@ -135,6 +135,7 @@ private fun EditorUiState.transformed(
 ): EditorUiState = when (action) {
   is CellAction.Insert -> withCellInserted(head, action.kind, newId = newCellId())
   is CellAction.InsertAbove -> withCellInsertedAbove(head, action.kind, newId = newCellId())
+  is CellAction.InsertHeading -> withHeadingInserted(action.reach, newId = newCellId())
   is CellAction.ChangeKind -> withCellsKindChanged(cellIds, action.kind)
   is CellAction.ChangeToHeading -> withCellsHeadingLevel(cellIds, action.level)
   is CellAction.Merge -> withCellsMerged(cellIds, action.into, newId = newCellId())
@@ -152,17 +153,33 @@ private fun EditorUiState.transformed(
   CellAction.Duplicate -> withCellsDuplicated(cellIds, newIds = cellIds.map { newCellId() })
   CellAction.Delete -> withCellsDeleted(cellIds, replacementId = newCellId())
   CellAction.ClearOutputs -> withOutputsCleared(cellIds)
-  CellAction.ToggleSourceHidden -> withSourceHiddenSet(cellIds, hidden = !folded(head) { sourceHidden })
-  CellAction.ToggleOutputsHidden -> withOutputsHiddenSet(cellIds, hidden = !folded(head) { outputsHidden })
+  is CellAction.Fold -> folded(action, cellIds, head)
+}
+
+/**
+ * The three folds, which share a shape as well as a category: each reads the **head's** own state
+ * and sets from it, so a mixed run comes out uniform rather than inverted - `hideCode` and
+ * `showCode` are separate commands over the selection there (`actions.tsx:1877-1910`), never a
+ * toggle per cell.
+ *
+ * Split out of [transformed] on detekt's `LongMethod`, and it was pointing at the seam
+ * [CellAction.Fold] then made a type: three of the dispatch's branches were one idea.
+ */
+private fun EditorUiState.folded(
+  fold: CellAction.Fold,
+  cellIds: List<String>,
+  head: String,
+): EditorUiState = when (fold) {
+  CellAction.ToggleSourceHidden -> withSourceHiddenSet(cellIds, hidden = !headCell(head) { sourceHidden })
+  CellAction.ToggleOutputsHidden -> withOutputsHiddenSet(cellIds, hidden = !headCell(head) { outputsHidden })
   // The head and not [cellIds], which is the reference's own narrowing rather than a simplification:
   // `toggleCurrentHeadingCollapse` reads `notebook.activeCell` (`actions.tsx:2440-2455`), and a run
   // of headings collapsed at once would hide the very cells the rest of the run names.
-  CellAction.ToggleHeadingCollapse ->
-    withHeadingCollapsed(head, collapsed = !folded(head) { headingCollapsed })
+  CellAction.ToggleHeadingCollapse -> withHeadingCollapsed(head, collapsed = !headCell(head) { headingCollapsed })
 }
 
 /** Which way the head cell is folded, which is also what the menu row's label was written from. */
-private fun EditorUiState.folded(head: String, part: Cell.() -> Boolean): Boolean =
+private fun EditorUiState.headCell(head: String, part: Cell.() -> Boolean): Boolean =
   cells.firstOrNull { it.id == head }?.part() ?: false
 
 /** Ids are minted here rather than inside the transforms, which keeps those testable. */

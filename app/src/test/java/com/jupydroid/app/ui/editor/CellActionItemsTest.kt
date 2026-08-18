@@ -91,6 +91,27 @@ class CellActionItemsTest {
     assertEquals(labels.indexOf(CHANGE_TO_RAW) + 1, labels.indexOf(CHANGE_TO_HEADING))
   }
 
+  /**
+   * The two `insert-heading-*` rows are in the adding group, because that is what they do - they
+   * add a cell rather than convert this one.
+   *
+   * **And "below" is spelled differently on purpose.** `notebook:insert-cell-below` puts a cell
+   * after this one; `notebook:insert-heading-below` puts a heading at the end of the *section*
+   * (`packages/notebook/src/actions.tsx:1208-1231`), so two rows both reading "below" would promise
+   * the same place and mean different ones.
+   */
+  @Test
+  fun theTwoHeadingInsertsSitWithTheOtherInserts() {
+    val items = cellActionItems(Cell("c1", CellKind.CODE, "x = 1"), canPaste = false, selecting = false)
+    val labels = items.map { it.first }
+
+    assertEquals(CellAction.InsertHeading(SectionReach.ABOVE), items.single { it.first == INSERT_HEADING_ABOVE }.second)
+    assertEquals(CellAction.InsertHeading(SectionReach.BELOW), items.single { it.first == INSERT_HEADING_BELOW }.second)
+    assertEquals(labels.indexOf("Insert markdown below") + 1, labels.indexOf(INSERT_HEADING_ABOVE))
+    assertEquals(labels.indexOf(INSERT_HEADING_ABOVE) + 1, labels.indexOf(INSERT_HEADING_BELOW))
+    assertTrue("only one row may say \"below\" and mean the next cell", INSERT_HEADING_BELOW.endsWith("section"))
+  }
+
   /** One form whatever the count: the reference's six labels have no plural (`index.ts:4614-4740`). */
   @Test
   fun theHeadingRowReadsTheSameForARun() {

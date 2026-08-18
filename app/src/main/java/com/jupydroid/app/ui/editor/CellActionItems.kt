@@ -57,10 +57,23 @@ internal fun cellActionItems(
 private fun selectingItems(selecting: Boolean): List<Pair<String, CellAction>> =
   if (selecting) emptyList() else listOf(SELECT_CELLS to CellAction.StartSelecting)
 
+/**
+ * The two heading rows are in this group and not the change-type one, because that is what they do:
+ * they add a cell rather than convert this one.
+ *
+ * **"Below" is the odd one and its label says so.** `notebook:insert-cell-below` puts a cell after
+ * this one; `notebook:insert-heading-below` puts a heading at the end of the *section*
+ * (`packages/notebook/src/actions.tsx:1208-1231`), so a row reading "Insert heading below" beside
+ * "Insert code below" would promise the same place and mean a different one. The reference's own
+ * labels are *"Insert Heading Above/Below"* (`notebook-extension/src/index.ts:4120,4137`); these
+ * name the section instead, which is the adaptation and what it departs from.
+ */
 private fun addingItems(): List<Pair<String, CellAction>> = listOf(
   "Insert code above" to CellAction.InsertAbove(CellKind.CODE),
   "Insert code below" to CellAction.Insert(CellKind.CODE),
   "Insert markdown below" to CellAction.Insert(CellKind.MARKDOWN),
+  INSERT_HEADING_ABOVE to CellAction.InsertHeading(SectionReach.ABOVE),
+  INSERT_HEADING_BELOW to CellAction.InsertHeading(SectionReach.BELOW),
 )
 
 private fun shapingItems(cell: Cell, several: Boolean): List<Pair<String, CellAction>> = listOf(
@@ -173,6 +186,12 @@ internal fun headingLevelItems(): List<Pair<String, CellAction>> =
  * whatever the count, since the reference's own labels have no plural (`index.ts:4614-4740`).
  */
 internal const val CHANGE_TO_HEADING = "Change to heading…"
+
+/** `notebook:insert-heading-above` - beside this cell, at its section's level. */
+internal const val INSERT_HEADING_ABOVE = "Insert heading above"
+
+/** `notebook:insert-heading-below` - at the **end of the section**, which is why it is not "below". */
+internal const val INSERT_HEADING_BELOW = "Insert heading after section"
 
 internal const val CHANGE_TO_MARKDOWN = "Change to markdown"
 internal const val CHANGE_TO_CODE = "Change to code"

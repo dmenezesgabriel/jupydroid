@@ -84,6 +84,56 @@ fun EditorUiState.withHeadingCollapsed(cellId: String, collapsed: Boolean): Edit
 }
 
 /**
+ * `notebook:insert-heading-{above,below}` - a new heading beside the section the head is in.
+ *
+ * Three rules, all from `insertSameLevelHeading{Above,Below}` (`actions.tsx:1183-1231`), and the
+ * second is the one a first guess gets wrong:
+ *
+ * - **The level is the section's, not the cell's.** `determineHeadingLevel` answers the head's own
+ *   level if it is a heading and its parent heading's if it is not (`:3576-3597`), falling back to
+ *   1 when there is no heading at or above it at all.
+ * - **[SectionReach.BELOW] means the end of the section**, at `findLowerEqualLevelHeadingBelow`
+ *   (`:3520-3550`) - the start of the next sibling - so the new heading closes the section it was
+ *   asked from rather than cutting it in half. Only [SectionReach.ABOVE] is beside the cell.
+ * - **It ends in edit mode**, `notebook.mode = 'edit'` (`:3645`), which here is the caret being
+ *   asked for: the new cell holds nothing but its marker, so there is nothing to read and
+ *   everything to type.
+ */
+fun EditorUiState.withHeadingInserted(reach: SectionReach, newId: String): EditorUiState {
+  val head = cells.indexOfFirst { it.id == selectedCellId }
+  if (head < 0) return this
+  val level = sectionLevelAt(head)
+  val at = if (reach == SectionReach.ABOVE) head else endOfSectionAt(head, level)
+  val heading = Cell(newId, CellKind.MARKDOWN, "#".repeat(level) + " ")
+  return copy(
+    cells = cells.toMutableList().apply { add(at, heading) },
+    selectedCellId = newId,
+    anchorCellId = null,
+    // Open and holding the caret, which is the reference's `mode = 'edit'`: an empty heading is
+    // the one inserted cell there is nothing to look at in.
+    markdownBeingEdited = markdownBeingEdited + newId,
+    markdownTakingCaret = newId,
+    mode = CellMode.EDIT,
+    dirty = true,
+  )
+}
+
+/**
+ * `determineHeadingLevel`: the cell's own level, else its parent heading's, else 1
+ * (`actions.tsx:3576-3597`, and the `-1` fallbacks at `:1194` and `:1216`).
+ */
+private fun EditorUiState.sectionLevelAt(at: Int): Int =
+  cells[at].headingLevel
+    ?: cells.take(at).lastOrNull { it.headingLevel != null }?.headingLevel
+    ?: 1
+
+/** `findLowerEqualLevelHeadingBelow`, or the end of the notebook when there is no sibling. */
+private fun EditorUiState.endOfSectionAt(at: Int, level: Int): Int {
+  val below = cells.drop(at + 1).indexOfFirst { (it.headingLevel ?: NOT_A_BOUNDARY) <= level }
+  return if (below < 0) cells.size else at + 1 + below
+}
+
+/**
  * `notebook:collapse-all-headings` - every heading in the notebook, and nothing else.
  *
  * `collapseAllHeadings` filters on `getHeadingInfo(cell).isHeading` (`actions.tsx:2221-2232`), so

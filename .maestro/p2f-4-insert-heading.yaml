@@ -1,0 +1,65 @@
+appId: com.jupydroid.app
+---
+# P2f-4: a new heading takes the level of the section it is in, and "below" means the end of that
+# section rather than the next cell.
+#
+# `insertSameLevelHeadingBelow` inserts at `findLowerEqualLevelHeadingBelow`
+# (`packages/notebook/src/actions.tsx:1208-1231`) - the start of the next sibling - so a heading
+# asked for from inside `## Part A` lands after Part A's own cell and *before* `# Chapter two`,
+# never directly under the cell it was asked from. That is the rule a first guess gets wrong, and it
+# is what the ordering assertions below are for.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Insert Heading.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Insert Heading.ipynb"
+- extendedWaitUntil:
+    visible: "Chapter one"
+    timeout: 30000
+- takeScreenshot: 01-two-chapters-and-a-part
+# Asked from the code cell **inside** `## Part A`, which is index 3 - so the level comes from the
+# section rather than from the cell: `determineHeadingLevel` answers the parent heading's level for
+# a cell that is not a heading itself (`actions.tsx:3576-3597`).
+- tapOn:
+    text: "Cell actions"
+    index: 3
+- tapOn: "Cell menu Insert heading after section"
+- waitForAnimationToEnd:
+    timeout: 5000
+# `## ` and not `# `: the section it was asked from is an H2.
+- assertVisible: "(?s).*## .*"
+# It ends in edit mode - `notebook.mode = 'edit'` (`:3645`) - so the caret is in the new cell and the
+# symbol row is up. `Tab` is its first key, and it is the one thing on screen that says so.
+- assertVisible: "Tab"
+- takeScreenshot: 02-a-new-h2-open-for-typing
+- inputText: "Part B"
+- waitForAnimationToEnd:
+    timeout: 5000
+- hideKeyboard
+- back
+# Where it landed is the claim: after Part A's own cell and before Chapter two, because Chapter two
+# is the next heading of equal or lower level than the H2 it was asked from.
+- assertVisible: "(?s).*## Part B.*"
+- assertVisible: "Chapter two"
+- takeScreenshot: 03-it-closed-the-section-rather-than-cutting-it
+# Above, from the same cell, is the other half: beside the cell rather than at a section boundary.
+- tapOn:
+    text: "Cell actions"
+    index: 3
+- tapOn: "Cell menu Insert heading above"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Tab"
+- takeScreenshot: 04-and-above-lands-beside-the-cell
+# One entry on the undo stack, like every other cell operation - and the keyboard has to go with it,
+# since the cell it was typing into is gone.
+- hideKeyboard
+- back
+- tapOn: "Undo cell operation"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 05-undo-takes-the-inserted-heading-back

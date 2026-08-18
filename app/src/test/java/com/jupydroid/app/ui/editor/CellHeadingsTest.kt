@@ -148,6 +148,85 @@ class CellHeadingsTest {
     assertEquals(notebook, notebook.withHeadingCollapsed("gone", collapsed = true))
   }
 
+  // --- insert a heading (P2f-4) -----------------------------------------------------------
+
+  /**
+   * `insertSameLevelHeadingAbove` inserts at the active cell's own index (`actions.tsx:1183-1201`),
+   * so the new cell takes its place and pushes it down.
+   */
+  @Test
+  fun insertAboveLandsOnTheHeadsOwnIndex() {
+    val inserted = notebook.copy(selectedCellId = "h2").withHeadingInserted(SectionReach.ABOVE, "new")
+
+    assertEquals(listOf("h1", "a", "new", "h2", "b", "h1b", "c"), inserted.cells.map { it.id })
+  }
+
+  /**
+   * **Below means the end of the section, not the next cell.** `insertSameLevelHeadingBelow` inserts
+   * at `findLowerEqualLevelHeadingBelow` (`actions.tsx:1208-1231`) - the start of the next sibling
+   * section - which is the rule a first guess gets wrong.
+   */
+  @Test
+  fun insertBelowLandsAtTheEndOfTheSectionAndNotAfterTheCell() {
+    val inserted = notebook.copy(selectedCellId = "h1").withHeadingInserted(SectionReach.BELOW, "new")
+
+    assertEquals(listOf("h1", "a", "h2", "b", "new", "h1b", "c"), inserted.cells.map { it.id })
+  }
+
+  /** With no sibling below it, the section runs to the end and so does the insert. */
+  @Test
+  fun insertBelowInTheLastSectionLandsAtTheEndOfTheNotebook() {
+    val inserted = notebook.copy(selectedCellId = "h1b").withHeadingInserted(SectionReach.BELOW, "new")
+
+    assertEquals(listOf("h1", "a", "h2", "b", "h1b", "c", "new"), inserted.cells.map { it.id })
+  }
+
+  /**
+   * `determineHeadingLevel` answers the cell's **own** level if it is a heading, otherwise its
+   * parent heading's (`actions.tsx:3576-3597`) - so a code cell inside an H2 section gets an H2.
+   */
+  @Test
+  fun theNewHeadingTakesTheLevelOfTheSectionItIsIn() {
+    assertEquals("## ", insertedSourceAt("b", SectionReach.ABOVE))
+    assertEquals("# ", insertedSourceAt("h1", SectionReach.ABOVE))
+    assertEquals("## ", insertedSourceAt("h2", SectionReach.ABOVE))
+  }
+
+  /**
+   * `headingLevel == -1` - no heading at or above the cell - falls back to 1
+   * (`actions.tsx:1194`, `:1216`), which is also every cell of a notebook with no headings at all.
+   */
+  @Test
+  fun aCellWithNoHeadingAboveItGetsAnH1() {
+    val prose = EditorUiState(cells = listOf(code("a"), code("b")), loaded = true, selectedCellId = "b")
+
+    assertEquals("# ", prose.withHeadingInserted(SectionReach.ABOVE, "new").cells.single { it.id == "new" }.source)
+  }
+
+  /** The new cell is markdown and empty but for its marker, and takes the caret to type into. */
+  @Test
+  fun theNewHeadingIsAMarkdownCellOpenForTyping() {
+    val inserted = notebook.copy(selectedCellId = "h1").withHeadingInserted(SectionReach.ABOVE, "new")
+
+    val cell = inserted.cells.single { it.id == "new" }
+    assertEquals(CellKind.MARKDOWN, cell.kind)
+    assertTrue("new" in inserted.markdownBeingEdited)
+    assertEquals("new", inserted.markdownTakingCaret)
+    assertEquals("new", inserted.selectedCellId)
+  }
+
+  /** Nothing to insert relative to, so nothing happens - every transform's promise here. */
+  @Test
+  fun insertingWithNoHeadSelectedChangesNothing() {
+    val headless = notebook.copy(selectedCellId = null)
+
+    assertEquals(headless, headless.withHeadingInserted(SectionReach.ABOVE, "new"))
+  }
+
+  private fun insertedSourceAt(cellId: String, reach: SectionReach): String =
+    notebook.copy(selectedCellId = cellId).withHeadingInserted(reach, "new")
+      .cells.single { it.id == "new" }.source
+
   // --- change a cell to a heading (P2f-3) -------------------------------------------------
 
   /**

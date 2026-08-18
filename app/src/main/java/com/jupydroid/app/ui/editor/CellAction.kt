@@ -32,6 +32,20 @@ enum class SelectionReach { ABOVE, BELOW, TOP, BOTTOM }
 enum class RunRange { ALL, ABOVE, BELOW, UP_TO_SELECTED, MARKED }
 
 /**
+ * Which end of the current **section** a new heading goes at - `notebook:insert-heading-{above,below}`
+ * as one parameter.
+ *
+ * Beside [CellMove] and [SelectionReach] for their reason: the vocabulary a command is named with,
+ * kept apart from the surface that offers it and the transform that carries it out.
+ *
+ * [BELOW] is not "after this cell". `insertSameLevelHeadingBelow` inserts at
+ * `findLowerEqualLevelHeadingBelow` (`packages/notebook/src/actions.tsx:1208-1231`), which is the
+ * *next sibling section* - so the new heading closes the section it was asked from rather than
+ * cutting it in half. See [withHeadingInserted].
+ */
+enum class SectionReach { ABOVE, BELOW }
+
+/**
  * What the long-press menu can do to one cell.
  *
  * The menu's vocabulary, kept apart from both the menu that shows it and the [CellEdits] that
@@ -66,6 +80,16 @@ sealed interface CellAction {
    * no row to open them.
    */
   data object ChooseHeadingLevel : CellAction
+
+  /**
+   * `notebook:insert-heading-{above,below}` - a new heading at the same level as the section this
+   * cell is in.
+   *
+   * Apart from [Insert] and [InsertAbove], which put an *empty* cell of a chosen type next to this
+   * one: this one derives its level from the document's structure and lands at the end of a
+   * section rather than beside a cell. See [SectionReach] and [withHeadingInserted].
+   */
+  data class InsertHeading(val reach: SectionReach) : CellAction
 
   /** Fold this cell together with a neighbour. */
   data class Merge(val into: MergeInto) : CellAction
@@ -110,11 +134,21 @@ sealed interface CellAction {
 
   data object ClearOutputs : CellAction
 
+  /**
+   * The three that change only **what is drawn**, and nothing the notebook holds.
+   *
+   * A category this codebase already names - it is [CellFolds]'s whole docstring, *"a fold discards
+   * nothing"* - given a type so the two exhaustive `when`s over [CellAction] can say it once. They
+   * are also the three that read the head's own state and set the run to its opposite, which is why
+   * they dispatch together.
+   */
+  sealed interface Fold : CellAction
+
   /** Collapse or expand the cell's source. Code cells only, as in JupyterLab. */
-  data object ToggleSourceHidden : CellAction
+  data object ToggleSourceHidden : Fold
 
   /** Collapse or expand the cell's outputs. Hides them; [ClearOutputs] throws them away. */
-  data object ToggleOutputsHidden : CellAction
+  data object ToggleOutputsHidden : Fold
 
   /**
    * Collapse or expand the **section** this heading owns - `notebook:toggle-heading-collapse`.
@@ -124,7 +158,7 @@ sealed interface CellAction {
    * is the head's alone rather than the marked run's - `toggleCurrentHeadingCollapse` reads
    * `notebook.activeCell` and never the selection (`packages/notebook/src/actions.tsx:2440-2455`).
    */
-  data object ToggleHeadingCollapse : CellAction
+  data object ToggleHeadingCollapse : Fold
 }
 
 /**
