@@ -46,3 +46,17 @@ internal fun JsonObject.headingCollapsed(): Boolean =
   (this[HEADING_COLLAPSED_KEY] as? JsonPrimitive)?.booleanOrNull == true
 
 internal const val HEADING_COLLAPSED_KEY = "jp-MarkdownHeadingCollapsed"
+
+/**
+ * And a **fourth** key: `scrolled`, plain at the top of the metadata like `collapsed` beside it.
+ * Written only when true and *deleted* when false (`packages/cells/src/widget.ts:1511-1526`,
+ * `saveScrolledState`), the same rule as every key above.
+ *
+ * **`true` is the only value read as scrolled.** nbformat also allows the string `"auto"`, and
+ * JupyterLab does not implement it - `loadScrolledState` reads anything but `true` as unscrolled
+ * ("We don't have the notion of 'auto' scrolled, so we make it false", `widget.ts:1532-1537`).
+ * `booleanOrNull` already answers `null` for a string, which is why this reader needs no special
+ * case for it: `"auto"` and a missing key fall through to the same `false` the reference produces.
+ */
+internal fun JsonObject.outputsScrolled(): Boolean =
+  (this["scrolled"] as? JsonPrimitive)?.booleanOrNull == true

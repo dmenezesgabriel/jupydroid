@@ -89,6 +89,7 @@ private fun Cell.metadataJson(): JsonObject = buildJsonObject {
   jupyterNamespace()?.let { put("jupyter", it) }
   if (outputsHidden) put("collapsed", true)
   if (headingCollapsed) put(HEADING_COLLAPSED_KEY, true)
+  if (outputsScrolled) put("scrolled", true)
 }
 
 /**
@@ -121,7 +122,7 @@ private fun JsonObject.objectAt(key: String): JsonObject = this[key] as? JsonObj
 private val OWNED_CELL_KEYS =
   setOf("id", "cell_type", "source", "metadata", "outputs", "execution_count")
 
-private val OWNED_METADATA_KEYS = setOf("jupyter", "collapsed", HEADING_COLLAPSED_KEY)
+private val OWNED_METADATA_KEYS = setOf("jupyter", "collapsed", HEADING_COLLAPSED_KEY, "scrolled")
 
 private const val NBFORMAT_MAJOR = 4
 private const val NBFORMAT_MINOR = 5

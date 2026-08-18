@@ -53,6 +53,20 @@ data class Cell(
    * (`com.jupydroid.app.ui.editor.hiddenCellIds`).
    */
   val headingCollapsed: Boolean = false,
+  /**
+   * The output area is bounded and scrolls rather than growing with its content -
+   * `notebook:toggle-output-scrolling`. Code cells only, like the reference's own
+   * `outputsScrolled` (`packages/cells/src/widget.ts:1464-1474`).
+   *
+   * Persisted like the three collapse flags above and under a **fourth** key again,
+   * `metadata.scrolled` - written only when true and deleted when false
+   * (`widget.ts:1511-1526`, `saveScrolledState`). nbformat also allows the string `"auto"`
+   * there, which JupyterLab reads as unscrolled and says so in its own comment ("We don't have
+   * the notion of 'auto' scrolled, so we make it false", `widget.ts:1532-1537`); this app has no
+   * third state to distinguish it from `false` with, so it reads - and, on the next save,
+   * writes - the same way.
+   */
+  val outputsScrolled: Boolean = false,
   /** See [PreservedJson]. Copied by `copy`, so a duplicated cell keeps its neighbour's too. */
   val preserved: PreservedJson = JsonObject(emptyMap()),
 )

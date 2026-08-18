@@ -140,6 +140,7 @@ fun CellFile.toDomain(preserved: JsonObject? = null): Cell =
     sourceHidden = metadata.sourceHidden(),
     outputsHidden = metadata.outputsHidden(),
     headingCollapsed = metadata.headingCollapsed(),
+    outputsScrolled = metadata.outputsScrolled(),
     preserved = preserved ?: JsonObject(emptyMap()),
   )
 

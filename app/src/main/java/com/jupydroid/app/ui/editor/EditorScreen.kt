@@ -423,6 +423,7 @@ private fun EditorCell(
     CellOutputs(
       outputs = outputs,
       hidden = cell.outputsHidden,
+      scrolled = cell.outputsScrolled,
       onExpand = { act(CellAction.ToggleOutputsHidden) },
     )
     // Inside this cell's frame rather than between it and the next, because that is what it is

@@ -167,6 +167,61 @@ class CellCollapseTest {
     assertTrue(headingCell(headingCollapsed = true).rewritten().headingCollapsed)
   }
 
+  // --- the fourth key: a cell whose outputs are scrolled rather than hidden (P2g-2a) -----
+
+  @Test
+  fun toDomain_readsScrolledOutputs() {
+    val cell = cellOf("""{"cell_type":"code","source":"x","metadata":{"scrolled":true}}""")
+
+    assertTrue(cell.outputsScrolled)
+  }
+
+  @Test
+  fun toDomain_leavesACellWithNoScrolledKeyUnscrolled() {
+    val cell = cellOf("""{"cell_type":"code","source":"x","metadata":{}}""")
+
+    assertFalse(cell.outputsScrolled)
+  }
+
+  /**
+   * `'auto'` is a value nbformat allows and JupyterLab does not implement -
+   * `loadScrolledState` reads anything but `true` as unscrolled and says so in its own comment
+   * ("We don't have the notion of 'auto' scrolled, so we make it false", `widget.ts:1532-1537`).
+   * Reading it any other way here would disagree with the front end these notebooks are opened in.
+   */
+  @Test
+  fun toDomain_readsAutoAsUnscrolled() {
+    val cell = cellOf("""{"cell_type":"code","source":"x","metadata":{"scrolled":"auto"}}""")
+
+    assertFalse(cell.outputsScrolled)
+  }
+
+  @Test
+  fun toFile_writesScrolledOutputsAsTrue() {
+    val metadata = codeCell(outputsScrolled = true).metadataOf()
+
+    assertEquals("""{"scrolled":true}""", Json.encodeToString(JsonObject.serializer(), metadata))
+  }
+
+  /** Deleted rather than written false - the same rule every other collapse key follows. */
+  @Test
+  fun toFile_writesNoScrolledKeyForAnUnscrolledCell() {
+    assertEquals("{}", Json.encodeToString(JsonObject.serializer(), codeCell(outputsScrolled = false).metadataOf()))
+  }
+
+  /** A foreign `"auto"` does not survive a save: this app has no third state to preserve it in. */
+  @Test
+  fun toFile_dropsAForeignAutoOnAnUnscrolledCell() {
+    val cell = cellOf("""{"cell_type":"code","source":"x","metadata":{"scrolled":"auto"}}""")
+
+    assertEquals("{}", Json.encodeToString(JsonObject.serializer(), cell.metadataOf()))
+  }
+
+  @Test
+  fun roundTrip_keepsScrolledOutputs() {
+    assertTrue(codeCell(outputsScrolled = true).rewritten().outputsScrolled)
+  }
+
   private fun cellOf(json: String): Cell {
     val raw = Json.parseToJsonElement(json) as JsonObject
     return Json.decodeFromJsonElement(CellFile.serializer(), raw).toDomain(raw)
@@ -184,12 +239,17 @@ class CellCollapseTest {
   private fun notebookOf(cell: Cell): JsonObject =
     Notebook("nb", "Title", "python3", listOf(cell)).toFileJson()
 
-  private fun codeCell(sourceHidden: Boolean = false, outputsHidden: Boolean = false) = Cell(
+  private fun codeCell(
+    sourceHidden: Boolean = false,
+    outputsHidden: Boolean = false,
+    outputsScrolled: Boolean = false,
+  ) = Cell(
     id = "c1",
     kind = CellKind.CODE,
     source = "x = 1",
     sourceHidden = sourceHidden,
     outputsHidden = outputsHidden,
+    outputsScrolled = outputsScrolled,
   )
 
   private fun headingCell(headingCollapsed: Boolean) = Cell(
