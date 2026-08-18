@@ -1,0 +1,66 @@
+appId: com.jupydroid.app
+---
+# P2e-2: `notebook:change-cell-to-raw` (`packages/notebook-extension/src/index.ts:214`, labelled
+# *"Change to Raw Cell Type"* at `:3454`).
+#
+# The reference's `changeCellType` is one function over `nbformat.CellType`: it deletes the cell
+# and reinserts it with `id: raw.id`, and *"after change of type outputs are deleted"*
+# (`packages/notebook/src/actions.tsx:3259-3290`). So the identity survives and the results do not.
+#
+# **Dropping the results is a schema rule here, not a nicety.** The shipped
+# `nbformat/v4/nbformat.v4.schema.json` makes `raw_cell` `additionalProperties: false` over
+# id / cell_type / metadata / source / attachments, so a raw cell carrying `outputs` or
+# `execution_count` is a notebook `nbformat.validate` rejects. The driver reads the saved file back
+# to show neither key was written.
+#
+# TABLET ONLY (SM-X216B): the cell has to reach a real kernel first, or there is no `42` to watch
+# disappear - on the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes the
+# source and would leave this proving that an echo can be cleared.
+#
+# Seeded by scripts/p2e-change-to-raw-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Change To Raw.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Change To Raw.ipynb"
+- extendedWaitUntil:
+    visible: "(?s).*print\\(6 \\* 7\\).*"
+    timeout: 30000
+
+# A real result to lose. `42` is the kernel's product of 6 and 7 - no echo of `print(6 * 7)`
+# produces it.
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- assertVisible: "\\[1\\]"
+- takeScreenshot: 01-a-code-cell-that-has-run
+
+# Change it. Scrolled to rather than tapped blind: the menu is eighteen rows on a code cell and
+# this one sits ninth, so it is on screen on a tablet dropdown and below the fold on a phone sheet.
+- tapOn: "Cell actions"
+- scrollUntilVisible:
+    element:
+      text: "Cell menu Change to raw"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Cell menu Change to raw"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# It is a raw cell now: named rather than numbered, and with no Run control of its own.
+- extendedWaitUntil:
+    visible: "raw"
+    timeout: 10000
+- assertNotVisible: "Run cell"
+# And the results went with the type, which is the half that is not cosmetic.
+- assertNotVisible: "42"
+- assertNotVisible: "\\[1\\]"
+# The source did not: `changeCellType` reinserts it unchanged.
+# matches-source: deliberately - that the source survived the type change is the claim
+- assertVisible: "(?s).*print\\(6 \\* 7\\).*"
+- takeScreenshot: 02-changed-to-raw-and-the-result-went-with-the-type

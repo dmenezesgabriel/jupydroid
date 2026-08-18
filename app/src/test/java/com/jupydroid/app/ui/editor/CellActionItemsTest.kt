@@ -50,6 +50,38 @@ class CellActionItemsTest {
   }
 
   /**
+   * **Two rows, not one**: there are three cell types and the reference has a command for each -
+   * `notebook:change-cell-to-{code,markdown,raw}` (`packages/notebook-extension/src/index.ts:212-214`).
+   * A single "change type" row could only ever name one of the two a cell is not, so the other
+   * would be unreachable from the menu entirely.
+   */
+  @Test
+  fun everyCellOffersTheTwoTypesItIsNot() {
+    assertEquals(listOf(CHANGE_TO_MARKDOWN, CHANGE_TO_RAW), changeRowsFor(CellKind.CODE))
+    assertEquals(listOf(CHANGE_TO_CODE, CHANGE_TO_RAW), changeRowsFor(CellKind.MARKDOWN))
+    assertEquals(listOf(CHANGE_TO_CODE, CHANGE_TO_MARKDOWN), changeRowsFor(CellKind.RAW))
+  }
+
+  /** The rows carry the action, not only the words. */
+  @Test
+  fun theRawRowAsksForARawCell() {
+    val items = cellActionItems(Cell("c1", CellKind.CODE, "x = 1"), canPaste = false, selecting = false)
+
+    assertEquals(CellAction.ChangeKind(CellKind.RAW), items.single { it.first == CHANGE_TO_RAW }.second)
+  }
+
+  /** Pluralised the way every other type row is, and by the same rule. */
+  @Test
+  fun aRunChangesAllOfThemToRawToo() {
+    assertTrue(itemsFor(count = 3).contains("Change cells to raw"))
+  }
+
+  private fun changeRowsFor(kind: CellKind) =
+    cellActionItems(Cell("c1", kind, "x = 1"), canPaste = false, selecting = false)
+      .map { it.first }
+      .filter { it.startsWith("Change to") }
+
+  /**
    * **The two directional merges become one row, because the direction stops applying.**
    * `mergeCells` consults `mergeAbove` only inside `if (toMerge.length === 1)`
    * (`packages/notebook/src/actions.tsx:390-425`), so with a run both rows would do the same

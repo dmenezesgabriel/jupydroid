@@ -86,6 +86,39 @@ class CellRestructureTest {
     assertEquals(notebook, notebook.withCellsKindChanged(listOf("c1"), CellKind.CODE))
   }
 
+  /**
+   * `notebook:change-cell-to-raw` (`packages/notebook-extension/src/index.ts:214`). The same
+   * transaction as the markdown one, and it has to be: `changeCellType` is one function over
+   * `nbformat.CellType` and reinserts with `id: raw.id` whichever type was asked for.
+   *
+   * Dropping the results is not a nicety here - the shipped `nbformat/v4/nbformat.v4.schema.json`
+   * makes `raw_cell` `additionalProperties: false`, so a raw cell carrying `outputs` or
+   * `execution_count` is a notebook `nbformat.validate` rejects.
+   */
+  @Test
+  fun changingToRawKeepsTheIdAndDropsWhatARawCellMayNotHold() {
+    val ran = notebook.copy(
+      outputs = mapOf("c1" to listOf(CellOutput.Stream(StreamName.STDOUT, "old"))),
+      executionCounts = mapOf("c1" to 4),
+    )
+
+    val changed = ran.withCellsKindChanged(listOf("c1"), CellKind.RAW)
+
+    assertEquals(listOf("c1", "c2", "m1"), changed.cells.map { it.id })
+    assertEquals(CellKind.RAW, changed.cells.first().kind)
+    assertEquals("first", changed.cells.first().source)
+    assertNull(changed.outputs["c1"])
+    assertNull(changed.executionCounts["c1"])
+  }
+
+  /** And back again, which is the only way a raw cell ever becomes runnable. */
+  @Test
+  fun aRawCellCanBecomeCodeAgain() {
+    val raw = notebook.withCellsKindChanged(listOf("c1"), CellKind.RAW)
+
+    assertEquals(CellKind.CODE, raw.withCellsKindChanged(listOf("c1"), CellKind.CODE).cells.first().kind)
+  }
+
   // --- merge ----------------------------------------------------------------------------
 
   /** `toMerge.join(addExtraLine ? '\n\n' : '\n')`, and `addExtraLine` defaults to true. */

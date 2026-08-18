@@ -67,10 +67,7 @@ private fun shapingItems(cell: Cell, several: Boolean): List<Pair<String, CellAc
   (if (several) "Move cells up" else "Move up") to CellAction.Move(CellMove.UP),
   (if (several) "Move cells down" else "Move down") to CellAction.Move(CellMove.DOWN),
   (if (several) "Duplicate cells" else "Duplicate") to CellAction.Duplicate,
-  // The type the cell is *not*, so the item reads as the change rather than as the state. The head
-  // cell decides which way round, and the whole run follows it.
-  changeKindItem(cell, several),
-) + mergeItems(several) + listOf(
+) + changeKindItems(cell, several) + mergeItems(several) + listOf(
   // Beside the merges, because split is their inverse and the three read as one group.
   //
   // **On every cell, and whether or not a caret was ever put in one.** Both are the reference's
@@ -82,12 +79,30 @@ private fun shapingItems(cell: Cell, several: Boolean): List<Pair<String, CellAc
   "Split cell" to CellAction.Split,
 )
 
-private fun changeKindItem(cell: Cell, several: Boolean): Pair<String, CellAction> =
-  if (cell.kind == CellKind.CODE) {
-    (if (several) "Change cells to markdown" else CHANGE_TO_MARKDOWN) to CellAction.ChangeKind(CellKind.MARKDOWN)
-  } else {
-    (if (several) "Change cells to code" else CHANGE_TO_CODE) to CellAction.ChangeKind(CellKind.CODE)
-  }
+/**
+ * The two types the cell is **not**, so each row reads as the change rather than as the state.
+ * The head cell decides which two, and the whole run follows it.
+ *
+ * **Two rows and not one**, because there are three cell types and the reference has a command per
+ * type: `notebook:change-cell-to-{code,markdown,raw}` (`packages/notebook-extension/src/index.ts:212-214`).
+ * A single row could only name one of the two, and the other would be unreachable from the menu.
+ *
+ * In [CellKind]'s own order, so the pair a cell offers keeps its relative order whatever the cell
+ * is - the row for a given type does not move about as the head changes.
+ */
+private fun changeKindItems(cell: Cell, several: Boolean): List<Pair<String, CellAction>> =
+  CellKind.entries.filter { it != cell.kind }.map { kind -> changeKindItem(kind, several) }
+
+/**
+ * Exhaustive rather than derived from [CellKind.label], which is the header's `[ ]`/`markdown`
+ * notation and not menu copy - and exhaustive for [transformed]'s reason: a fourth cell type has
+ * to decide how it reads here, not inherit a spelling.
+ */
+private fun changeKindItem(kind: CellKind, several: Boolean): Pair<String, CellAction> = when (kind) {
+  CellKind.CODE -> if (several) "Change cells to code" else CHANGE_TO_CODE
+  CellKind.MARKDOWN -> if (several) "Change cells to markdown" else CHANGE_TO_MARKDOWN
+  CellKind.RAW -> if (several) "Change cells to raw" else CHANGE_TO_RAW
+} to CellAction.ChangeKind(kind)
 
 /**
  * Two rows for one cell and **one** for a run, because the direction stops applying: `mergeCells`
@@ -137,6 +152,7 @@ internal const val MERGE_SELECTED = "Merge selected cells"
 
 internal const val CHANGE_TO_MARKDOWN = "Change to markdown"
 internal const val CHANGE_TO_CODE = "Change to code"
+internal const val CHANGE_TO_RAW = "Change to raw"
 
 internal const val COLLAPSE_CODE = "Collapse code"
 internal const val EXPAND_CODE = "Expand code"
