@@ -196,16 +196,48 @@ class EditorTopBarTest {
     assertEquals(1, lineNumberToggles)
   }
 
+  // --- notebook:toggle-autoclosing-brackets, universal (P2g-3) ----------------------------
+
+  @Test
+  fun theViewMenuOffersToDisableBracketsWhileTheyAreOn() {
+    showTopBar(autoClosingBrackets = true)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(DISABLE_AUTO_CLOSING_BRACKETS).assertIsDisplayed()
+  }
+
+  @Test
+  fun theViewMenuOffersToEnableBracketsOnceTheyAreOff() {
+    showTopBar(autoClosingBrackets = false)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(ENABLE_AUTO_CLOSING_BRACKETS).assertIsDisplayed()
+  }
+
+  @Test
+  fun theBracketsRowAsksForTheToggle() {
+    showTopBar(autoClosingBrackets = true)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(DISABLE_AUTO_CLOSING_BRACKETS).performClick()
+
+    assertEquals(1, autoClosingBracketsToggles)
+  }
+
   private val renamed = mutableListOf<String>()
   private var undos = 0
   private var redos = 0
   private val headingsSetTo = mutableListOf<Boolean>()
   private var lineNumberToggles = 0
+  private var autoClosingBracketsToggles = 0
 
   private fun showTopBar(
     canUndo: Boolean = false,
     canRedo: Boolean = false,
     lineNumbersShown: Boolean = true,
+    autoClosingBrackets: Boolean = true,
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -220,9 +252,10 @@ class EditorTopBarTest {
           onSetAllHeadingsCollapsed = { headingsSetTo += it },
           lineNumbersShown = lineNumbersShown,
           onToggleLineNumbers = { lineNumberToggles++ },
+          autoClosingBrackets = autoClosingBrackets,
+          onToggleAutoClosingBrackets = { autoClosingBracketsToggles++ },
         )
       }
     }
   }
-
 }

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
@@ -72,6 +73,9 @@ class JupydroidApplication : Application() {
       recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
       kernelGateway = kernelGateway ?: FakeKernelGateway(),
       serverLauncher = serverLauncher,
+      // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
+      // state, not a Contents API file.
+      editorSettings = DiskEditorSettingsRepository(filesDir),
     )
   }
 }

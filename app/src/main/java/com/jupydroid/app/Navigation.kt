@@ -168,6 +168,7 @@ fun MainNavigation(
             path = file.path,
             workspaceRepository = appContainer.workspaceRepository,
             applicationScope = appContainer.applicationScope,
+            editorSettingsRepository = appContainer.editorSettings,
             onBack = { backStack.removeLastOrNull() },
           )
         }
@@ -179,6 +180,7 @@ fun MainNavigation(
             kernelGateway = appContainer.kernelGateway,
             applicationScope = appContainer.applicationScope,
             activeCellRuns = appContainer.activeCellRuns,
+            editorSettingsRepository = appContainer.editorSettings,
             onBack = { backStack.removeLastOrNull() },
             onNotebookMoved = { moved -> openNotebookId = moved },
           )

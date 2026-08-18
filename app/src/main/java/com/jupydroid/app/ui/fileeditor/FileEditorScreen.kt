@@ -26,6 +26,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.PythonTypingRules
@@ -50,12 +52,20 @@ fun FileEditorScreen(
   path: String,
   workspaceRepository: WorkspaceRepository,
   applicationScope: CoroutineScope,
+  /**
+   * `fileeditor:toggle-autoclosing-brackets-universal` - the same setting the notebook's cells
+   * read, and the toggle for it lives on the notebook's View menu since this screen has no top
+   * bar of its own to put a second one on.
+   */
+  editorSettingsRepository: EditorSettingsRepository,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: FileEditorViewModel =
     viewModel { FileEditorViewModel(path, workspaceRepository, applicationScope) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val editorSettings by editorSettingsRepository.observeSettings()
+    .collectAsStateWithLifecycle(EditorSettings())
 
   // Its file was deleted, so the screen goes with it - `deleteWidgets`, asked for by the document.
   LaunchedEffect(state.gone) { if (state.gone) onBack() }
@@ -83,7 +93,9 @@ fun FileEditorScreen(
           state = rememberTextFieldState(state.text),
           onSourceEdited = viewModel::edit,
           highlighter = state.syntax,
-          typing = remember(state.name) { typingRulesFor(state.name) },
+          typing = remember(state.name, editorSettings.autoClosingBrackets) {
+            typingRulesFor(state.name, editorSettings.autoClosingBrackets)
+          },
           modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         )
       }
@@ -96,10 +108,14 @@ fun FileEditorScreen(
  *
  * `PythonTypingRules` closes a pair as you open it, which is right in a `.py` or a `.json` and
  * wrong in prose - a `(` in a sentence is not the start of anything.
+ *
+ * [autoClosingBrackets] still reaches a bracketed file - `notebook:toggle-autoclosing-brackets`,
+ * universal - but never a prose one: indentation carries on either way, and there is nothing
+ * bracket-related in prose for the setting to have an opinion about.
  */
-private fun typingRulesFor(fileName: String): InputTransformation =
+private fun typingRulesFor(fileName: String, autoClosingBrackets: Boolean): InputTransformation =
   if (fileName.substringAfterLast('.', "").lowercase() in BRACKETED) {
-    PythonTypingRules()
+    PythonTypingRules(autoClosingBrackets)
   } else {
     InputTransformation { }
   }

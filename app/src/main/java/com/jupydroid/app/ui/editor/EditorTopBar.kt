@@ -76,6 +76,16 @@ fun EditorTopBar(
   lineNumbersShown: Boolean = true,
   /** `notebook:toggle-all-cell-line-numbers` - see [ViewMenu]. */
   onToggleLineNumbers: () -> Unit = {},
+  /** Whether a typed `(` closes itself - what the row beside it is named from. */
+  autoClosingBrackets: Boolean = true,
+  /**
+   * `fileeditor:toggle-autoclosing-brackets-universal` - the notebook, the console and the file
+   * editor together (`packages/fileeditor-extension/src/commands.ts:552-575`). One app-wide
+   * setting *is* the universal command here, since `PythonTypingRules` already serves both
+   * surfaces. **Adaptation:** the reference files this under Settings; this app has none until
+   * P6c, so it sits in View beside the other two toggles and moves once P6c lands.
+   */
+  onToggleAutoClosingBrackets: () -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -98,6 +108,8 @@ fun EditorTopBar(
         onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed,
         lineNumbersShown = lineNumbersShown,
         onToggleLineNumbers = onToggleLineNumbers,
+        autoClosingBrackets = autoClosingBrackets,
+        onToggleAutoClosingBrackets = onToggleAutoClosingBrackets,
       )
     },
   )
@@ -177,6 +189,8 @@ private fun ViewMenu(
   onSetAllHeadingsCollapsed: (Boolean) -> Unit,
   lineNumbersShown: Boolean,
   onToggleLineNumbers: () -> Unit,
+  autoClosingBrackets: Boolean,
+  onToggleAutoClosingBrackets: () -> Unit,
 ) {
   var open by remember { mutableStateOf(false) }
   Box {
@@ -205,6 +219,13 @@ private fun ViewMenu(
           onToggleLineNumbers()
         },
       )
+      DropdownMenuItem(
+        text = { Text(if (autoClosingBrackets) DISABLE_AUTO_CLOSING_BRACKETS else ENABLE_AUTO_CLOSING_BRACKETS) },
+        onClick = {
+          open = false
+          onToggleAutoClosingBrackets()
+        },
+      )
     }
   }
 }
@@ -229,6 +250,18 @@ internal const val SHOW_LINE_NUMBERS = "Show line numbers"
 
 /** The same command from the other side - see [SHOW_LINE_NUMBERS]. */
 internal const val HIDE_LINE_NUMBERS = "Hide line numbers"
+
+/**
+ * `fileeditor:toggle-autoclosing-brackets-universal`, as two labels for the reason
+ * [SHOW_LINE_NUMBERS] is: a flip-with-state label is one both the Compose and the accessibility
+ * tree can read, where a check mark is not. This app's own convention, not the reference's - see
+ * [EditorTopBar]'s `onToggleAutoClosingBrackets` for why the reference's own choice on this exact
+ * row (a fixed label) is not repeated here.
+ */
+internal const val ENABLE_AUTO_CLOSING_BRACKETS = "Enable auto-closing brackets"
+
+/** The same command from the other side - see [ENABLE_AUTO_CLOSING_BRACKETS]. */
+internal const val DISABLE_AUTO_CLOSING_BRACKETS = "Disable auto-closing brackets"
 
 @Composable
 private fun RenameableTitle(title: String, onClick: () -> Unit) {

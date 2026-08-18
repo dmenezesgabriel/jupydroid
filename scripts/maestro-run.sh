@@ -31,6 +31,12 @@ NOTEBOOK_DIR="files/spaces/base/home/jupydroid"
 # and this one re-seeds under the same name would still be listed.
 RECENTS_STORE="files/recent-documents.json"
 
+# The editor preferences (P2g-3) - `notebook:toggle-autoclosing-brackets` today - beside
+# RECENTS_STORE for the same reason: app state, cleared here so a flow that leaves the toggle off
+# does not leave every flow after it on the same device typing against a setting nobody chose for
+# them. `EditorSettingsRepository` reads its default the moment this file is gone.
+EDITOR_SETTINGS_STORE="files/editor-settings.json"
+
 # --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator and a
 # phone attached it picks one of its own accord and the fixture is on the other.
 MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
@@ -55,6 +61,7 @@ reset_notebooks() {
   "$ADB" shell am force-stop "$APP"
   "$ADB" shell "run-as $APP sh -c 'cd \"$NOTEBOOK_DIR\" 2>/dev/null && rm -rf ./*' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$RECENTS_STORE\"' || true"
+  "$ADB" shell "run-as $APP sh -c 'rm -f \"$EDITOR_SETTINGS_STORE\"' || true"
 }
 
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.

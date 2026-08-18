@@ -67,7 +67,9 @@ fun CodeCellField(
   modifier: Modifier = Modifier,
   completionsAt: suspend (code: String, cursorOffset: Int) -> CompletionResult = NO_COMPLETIONS,
   highlighter: SyntaxHighlighter = remember { PythonSyntax() },
-  typing: InputTransformation = remember { PythonTypingRules() },
+  /** `notebook:toggle-autoclosing-brackets`, universal - see [PythonTypingRules]. */
+  autoClosingBrackets: Boolean = true,
+  typing: InputTransformation = remember(autoClosingBrackets) { PythonTypingRules(autoClosingBrackets) },
   /** Null where no symbol row is on screen, which is every test that drives a field alone. */
   input: FocusedCellInput? = null,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */

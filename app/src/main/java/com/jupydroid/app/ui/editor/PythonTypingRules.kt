@@ -17,14 +17,21 @@ import androidx.compose.ui.text.TextRange
  * ```
  * BasicTextField(state = state, inputTransformation = PythonTypingRules())
  * ```
+ *
+ * @param autoClosingBrackets `notebook:toggle-autoclosing-brackets`, universal - gates
+ *   [closePair] and [stepOverPartner] only. [continueIndent] is a different CodeMirror setting
+ *   there (`packages/codemirror/src/extension.ts:637-644` vs the block-indent behaviour bound to
+ *   the language, never to this flag) and must not move with it: a cell that closes nothing must
+ *   still carry a block's indent onto the next line.
  */
 @OptIn(ExperimentalFoundationApi::class)
-class PythonTypingRules : InputTransformation {
+class PythonTypingRules(private val autoClosingBrackets: Boolean = true) : InputTransformation {
   override fun TextFieldBuffer.transformInput() {
     val at = soleTypedCharOffset() ?: return
     val typed = charAt(at)
     when {
       typed == '\n' -> continueIndent(at)
+      !autoClosingBrackets -> Unit
       typed == charAfter(at) && typed in PARTNER_OF.values -> stepOverPartner(at)
       typed in PARTNER_OF && opensAPair(at, typed) -> closePair(at, PARTNER_OF.getValue(typed))
     }

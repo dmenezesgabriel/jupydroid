@@ -40,12 +40,15 @@ import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.OverwriteFileDialog
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun EditorScreen(
@@ -57,6 +60,11 @@ fun EditorScreen(
   applicationScope: CoroutineScope,
   /** The app's count of runs in flight, which P1c's backstop reads; see [ActiveCellRuns]. */
   activeCellRuns: ActiveCellRuns,
+  /**
+   * `notebook:toggle-autoclosing-brackets`, universal - read here rather than through the
+   * ViewModel, because it is app state and not a fact about this document.
+   */
+  editorSettingsRepository: EditorSettingsRepository,
   onBack: () -> Unit,
   /**
    * Reports where the notebook lives *now*, because a rename moves it.
@@ -80,6 +88,8 @@ fun EditorScreen(
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val editorSettings by editorSettingsRepository.observeSettings()
+    .collectAsStateWithLifecycle(EditorSettings())
   val focusManager = LocalFocusManager.current
   val cellInput = remember { FocusedCellInput() }
   // Back in edit mode returns to command mode instead of leaving the notebook - the touch
@@ -151,6 +161,11 @@ fun EditorScreen(
           onSetAllHeadingsCollapsed = viewModel.edits::setAllHeadingsCollapsed,
           lineNumbersShown = state.lineNumbersShown,
           onToggleLineNumbers = viewModel::toggleLineNumbers,
+          autoClosingBrackets = editorSettings.autoClosingBrackets,
+          onToggleAutoClosingBrackets = {
+            val toggled = editorSettings.copy(autoClosingBrackets = !editorSettings.autoClosingBrackets)
+            applicationScope.launch { editorSettingsRepository.update(toggled) }
+          },
         )
       }
     },
@@ -203,6 +218,7 @@ fun EditorScreen(
       onToggleSelected = viewModel.selection::extendTo,
       onMarkdownEditRequested = viewModel::markdownEditRequested,
       cellInput = cellInput,
+      autoClosingBrackets = editorSettings.autoClosingBrackets,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -220,6 +236,8 @@ private fun EditorContent(
   onToggleSelected: (String) -> Unit,
   onMarkdownEditRequested: (String) -> Unit,
   cellInput: FocusedCellInput,
+  /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
+  autoClosingBrackets: Boolean,
   modifier: Modifier = Modifier,
 ) {
   when {
@@ -279,6 +297,7 @@ private fun EditorContent(
             // One flag for the whole notebook and all three cell types, which is what the command
             // is: `toggleAllLineNumbers` writes code, markdown and raw together.
             lineNumbersShown = state.lineNumbersShown,
+            autoClosingBrackets = autoClosingBrackets,
             cellInput = cellInput,
           )
         }
@@ -314,6 +333,8 @@ private fun EditorCell(
   hiddenBelow: Int,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean,
+  /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
+  autoClosingBrackets: Boolean,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
@@ -387,6 +408,7 @@ private fun EditorCell(
             completionsAt = completionsAt,
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
+            autoClosingBrackets = autoClosingBrackets,
             modifier = Modifier
               .fillMaxWidth()
               .background(editorPalette.cellBackground, MaterialTheme.shapes.small)

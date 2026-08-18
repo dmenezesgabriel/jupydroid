@@ -1,11 +1,13 @@
 package com.jupydroid.app.di
 
+import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
@@ -37,6 +39,12 @@ class AppContainer(
   val recentDocuments: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
   val kernelGateway: KernelGateway = FakeKernelGateway(),
   val serverLauncher: ServerLauncher = FakeServerLauncher(),
+  /**
+   * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown by P6c
+   * rather than replaced. Read by every notebook and file editor alike, which is what "universal"
+   * means (`fileeditor:toggle-autoclosing-brackets-universal`).
+   */
+  val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
   /**
    * For work that must finish after the screen that asked for it is gone - closing a notebook
    * flushes its last edit and closes its socket from here, because `viewModelScope` is already
