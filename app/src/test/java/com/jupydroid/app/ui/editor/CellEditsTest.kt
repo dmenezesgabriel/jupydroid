@@ -278,6 +278,35 @@ class CellEditsTest {
   }
 
   /**
+   * `notebook:toggle-output-scrolling`, through [applying] like the two collapses above it - but
+   * **the decision is all-of over the run, not the head's own state**
+   * (`isOutputScrollingEnabled`, `notebook-extension/src/index.ts:2780-2796`). A mixed run of two
+   * is "not all scrolled" whichever cell the menu was opened on, so the toggle turns every code
+   * cell in it *on* - opening the menu from the already-scrolled one changes nothing about that.
+   */
+  @Test
+  fun toggleOutputScrolling_turnsOnAMixedRunWhicheverCellTheMenuWasOpenedFrom() {
+    val state = stateOf("a", "b").withScrolled("a")
+
+    val toggled = state.applyingFrom("b", CellAction.ToggleOutputsScrolled)
+
+    assertEquals(listOf(true, true), toggled.cells.map { it.outputsScrolled })
+  }
+
+  /** Only once the whole run already agrees does the same command turn it back off. */
+  @Test
+  fun toggleOutputScrolling_turnsOffOnlyOnceTheWholeRunAgrees() {
+    val state = stateOf("a").withScrolled("a")
+
+    val toggled = state.applyingFrom("a", CellAction.ToggleOutputsScrolled)
+
+    assertFalse(toggled.cells.single().outputsScrolled)
+  }
+
+  private fun EditorUiState.withScrolled(cellId: String) =
+    copy(cells = cells.map { if (it.id == cellId) it.copy(outputsScrolled = true) else it })
+
+  /**
    * Selecting is not editing, so it goes through [applying] like every other menu item and comes
    * out the far side with no undo entry - `changesNothingFrom` compares cells, outputs and counts,
    * and this touches none of them. `Copy` has always been the same shape.

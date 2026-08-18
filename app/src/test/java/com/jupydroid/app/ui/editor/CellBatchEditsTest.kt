@@ -191,6 +191,55 @@ class CellBatchEditsTest {
     assertFalse(hidden.cells.any { it.sourceHidden })
   }
 
+  // --- notebook:enable/disable/toggle-output-scrolling (P2g-2b) -----------------------------
+
+  /**
+   * `isOutputScrollingEnabled` is **all-of**, not head-of: true only when every selected code
+   * cell is scrolled (`packages/notebook-extension/src/index.ts:2780-2796`). One of two not yet
+   * scrolled is what every other fold in this file leaves mixed and inverts from the head; this
+   * one turns every code cell in the run *on* instead, because the run as a whole was not "all
+   * scrolled" yet.
+   */
+  @Test
+  fun outputScrolling_turnsOnEveryCodeCellWhenTheRunIsNotAllScrolledYet() {
+    val state = stateOf("a", "b", "c").withScrolled("a")
+
+    val toggled = state.withOutputsScrolledSet(listOf("a", "b"), scrolled = true)
+
+    assertEquals(listOf(true, true, false), toggled.cells.map { it.outputsScrolled })
+  }
+
+  /** Only once every code cell in the run already agrees does the toggle turn them all off. */
+  @Test
+  fun outputScrolling_turnsOffOnlyWhenTheWholeRunAlreadyAgrees() {
+    val state = stateOf("a", "b").withScrolled("a").withScrolled("b")
+
+    val toggled = state.withOutputsScrolledSet(listOf("a", "b"), scrolled = false)
+
+    assertEquals(listOf(false, false), toggled.cells.map { it.outputsScrolled })
+  }
+
+  /**
+   * A markdown cell caught up in the run is left alone - the reference's own guard is
+   * `cell.model.type === 'code'` inside the loop that writes, not only inside the one that reads
+   * (`notebook/src/actions.tsx:2088-2092`).
+   */
+  @Test
+  fun outputScrolling_leavesAMarkdownCellInTheRunUntouched() {
+    val state = EditorUiState(
+      cells = listOf(
+        Cell("a", CellKind.CODE, "x = 1"),
+        Cell("b", CellKind.MARKDOWN, "# note"),
+      ),
+      loaded = true,
+    )
+
+    val toggled = state.withOutputsScrolledSet(listOf("a", "b"), scrolled = true)
+
+    assertTrue(toggled.cells[0].outputsScrolled)
+    assertFalse(toggled.cells[1].outputsScrolled)
+  }
+
   /** A menu can outlive the cells it was opened on; none of these may throw on ids that are gone. */
   @Test
   fun idsThatAreGoneChangeNothing() {
@@ -207,6 +256,7 @@ class CellBatchEditsTest {
     assertEquals(state, state.withOutputsCleared(gone))
     assertEquals(state, state.withSourceHiddenSet(gone, hidden = true))
     assertEquals(state, state.withOutputsHiddenSet(gone, hidden = true))
+    assertEquals(state, state.withOutputsScrolledSet(gone, scrolled = true))
   }
 
   private fun stateOf(vararg ids: String) = EditorUiState(
@@ -216,6 +266,9 @@ class CellBatchEditsTest {
 
   private fun EditorUiState.withOutputOn(cellId: String, text: String) =
     copy(outputs = outputs + (cellId to listOf(CellOutput.Stream(StreamName.STDOUT, text))))
+
+  private fun EditorUiState.withScrolled(cellId: String) =
+    copy(cells = cells.map { if (it.id == cellId) it.copy(outputsScrolled = true) else it })
 
   private fun EditorUiState.withCount(cellId: String, count: Int) =
     copy(executionCounts = executionCounts + (cellId to count))

@@ -164,4 +164,33 @@ class CellActionItemsTest {
       selecting = count > 1,
       count = count,
     ).map { it.first }
+
+  // --- notebook:enable/disable/toggle-output-scrolling (P2g-2b) -----------------------------
+
+  /**
+   * One fixed label whatever the state, which is the reference's own choice for this exact
+   * surface: `toggleOutputScrolling`'s label reads *"Enable Scrolling for Outputs"* whenever
+   * `args['isMenu']` is set, and only *"Toggle Scrolling for Outputs"* off a menu
+   * (`packages/notebook-extension/src/index.ts:4963-4967`) - `tracker.json:328-335` registers the
+   * notebook's context menu row with `args: {isMenu: true}`. So a tap on this row can *disable*
+   * scrolling on an already-scrolled cell even though the row still reads "Enable"; that is
+   * literal parity; it is not this app inventing a flip-with-state label the way the three folds
+   * beside it do.
+   */
+  @Test
+  fun aCodeCellOffersToEnableOutputScrolling() {
+    val cell = Cell("c1", CellKind.CODE, "x = 1", outputsScrolled = true)
+    val items = cellActionItems(cell, canPaste = false, selecting = false)
+
+    assertEquals(CellAction.ToggleOutputsScrolled, items.single { it.first == ENABLE_OUTPUT_SCROLLING }.second)
+  }
+
+  /** Code cells only, like the two collapses beside it - a markdown cell has no output at all. */
+  @Test
+  fun aMarkdownCellOffersNoOutputScrollingRow() {
+    val cell = Cell("c1", CellKind.MARKDOWN, "# h")
+    val labels = cellActionItems(cell, canPaste = false, selecting = false).map { it.first }
+
+    assertFalse(labels.contains(ENABLE_OUTPUT_SCROLLING))
+  }
 }

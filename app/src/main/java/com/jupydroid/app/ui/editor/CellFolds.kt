@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.CellKind
 
 /**
  * Folding a cell's halves away, as pure functions over [EditorUiState].
@@ -38,6 +39,33 @@ fun EditorUiState.withSourceHiddenSet(cellIds: List<String>, hidden: Boolean): E
  */
 fun EditorUiState.withOutputsHiddenSet(cellIds: List<String>, hidden: Boolean): EditorUiState =
   folding(cellIds) { it.copy(outputsHidden = hidden) }
+
+/**
+ * Bounds or unbounds a code cell's outputs - `notebook:enable/disable-output-scrolling`.
+ *
+ * **Code cells only, and silently so.** The reference's own write loop guards on
+ * `cell.model.type === 'code'` inside `enableOutputScrolling`/`disableOutputScrolling`
+ * (`packages/notebook/src/actions.tsx:2081-2114`), not only in the read that decides the toggle -
+ * a markdown cell caught up in a run because it sits between two marked code cells is left with
+ * no `outputsScrolled` of its own to set, so it has to be filtered here rather than trusted to the
+ * caller.
+ */
+fun EditorUiState.withOutputsScrolledSet(cellIds: List<String>, scrolled: Boolean): EditorUiState =
+  folding(toCodeCellIds(cellIds)) { it.copy(outputsScrolled = scrolled) }
+
+/**
+ * `isOutputScrollingEnabled` (`packages/notebook-extension/src/index.ts:2780-2796`) - true only
+ * when every selected **code** cell is already scrolled, and false when there are none. What
+ * `notebook:toggle-output-scrolling` inverts, and the one predicate among the folds that reads
+ * more than the head cell - see [CellAction.ToggleOutputsScrolled].
+ */
+internal fun EditorUiState.allMarkedCodeCellsScrolled(cellIds: List<String>): Boolean {
+  val codeCells = cells.filter { it.id in cellIds && it.kind == CellKind.CODE }
+  return codeCells.isNotEmpty() && codeCells.all { it.outputsScrolled }
+}
+
+private fun EditorUiState.toCodeCellIds(cellIds: List<String>): List<String> =
+  cells.filter { it.id in cellIds && it.kind == CellKind.CODE }.map { it.id }
 
 private fun EditorUiState.folding(
   cellIds: List<String>,

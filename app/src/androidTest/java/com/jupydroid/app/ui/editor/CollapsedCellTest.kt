@@ -60,6 +60,20 @@ class CollapsedCellTest {
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_OUTPUTS").performScrollTo().assertIsDisplayed()
   }
 
+  /**
+   * `notebook:enable/disable/toggle-output-scrolling` (P2g-2b), beside the other two collapses -
+   * and unlike them, the same row whatever the cell's own `outputsScrolled` is, which is the
+   * reference's own choice for this exact surface (`CellActionItems.foldingItems`).
+   */
+  @Test
+  fun theMenuOffersOutputScrollingOnACodeCellWhicheverWayItIsScrolled() {
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+
+    compose.onNodeWithContentDescription("Cell actions").performClick()
+
+    compose.onNodeWithContentDescription("Cell menu $ENABLE_OUTPUT_SCROLLING").performScrollTo().assertIsDisplayed()
+  }
+
   /** The label is the verb, so a folded cell offers the opposite one and only that one. */
   @Test
   fun theMenuOffersExpandOnceTheSourceIsCollapsed() {
@@ -95,6 +109,7 @@ class CollapsedCellTest {
 
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_CODE").assertDoesNotExist()
     compose.onNodeWithContentDescription("Cell menu $COLLAPSE_OUTPUTS").assertDoesNotExist()
+    compose.onNodeWithContentDescription("Cell menu $ENABLE_OUTPUT_SCROLLING").assertDoesNotExist()
     compose.onNodeWithContentDescription("Cell menu Delete").performScrollTo().assertIsDisplayed()
   }
 

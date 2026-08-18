@@ -149,6 +149,12 @@ private fun foldingItems(cell: Cell): List<Pair<String, CellAction>> = buildList
   if (cell.kind != CellKind.CODE) return@buildList
   add((if (cell.sourceHidden) EXPAND_CODE else COLLAPSE_CODE) to CellAction.ToggleSourceHidden)
   add((if (cell.outputsHidden) EXPAND_OUTPUTS else COLLAPSE_OUTPUTS) to CellAction.ToggleOutputsHidden)
+  // One fixed label whatever the state - the reference's own choice for this exact surface: its
+  // menu row is registered with `args: {isMenu: true}`, which forces "Enable Scrolling for
+  // Outputs" regardless of `isToggled` (`notebook-extension/src/index.ts:4963-4967`,
+  // `tracker.json:328-335`). A tap can still *disable* an already-scrolled run - that is literal
+  // parity with the reference's own row, not this app's usual flip-with-state label.
+  add(ENABLE_OUTPUT_SCROLLING to CellAction.ToggleOutputsScrolled)
 }
 
 private fun removingItems(several: Boolean): List<Pair<String, CellAction>> = listOf(
@@ -201,3 +207,6 @@ internal const val COLLAPSE_CODE = "Collapse code"
 internal const val EXPAND_CODE = "Expand code"
 internal const val COLLAPSE_OUTPUTS = "Collapse outputs"
 internal const val EXPAND_OUTPUTS = "Expand outputs"
+
+/** `notebook:toggle-output-scrolling` on its menu surface - see [foldingItems]. */
+internal const val ENABLE_OUTPUT_SCROLLING = "Enable output scrolling"

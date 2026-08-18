@@ -220,6 +220,9 @@ private fun EditorUiState.folded(
   // `toggleCurrentHeadingCollapse` reads `notebook.activeCell` (`actions.tsx:2440-2455`), and a run
   // of headings collapsed at once would hide the very cells the rest of the run names.
   CellAction.ToggleHeadingCollapse -> withHeadingCollapsed(head, collapsed = !headCell(head) { headingCollapsed })
+  // The one fold that reads the *run*, not the head - see [EditorUiState.allMarkedCodeCellsScrolled].
+  CellAction.ToggleOutputsScrolled ->
+    withOutputsScrolledSet(cellIds, scrolled = !allMarkedCodeCellsScrolled(cellIds))
 }
 
 /** Which way the head cell is folded, which is also what the menu row's label was written from. */

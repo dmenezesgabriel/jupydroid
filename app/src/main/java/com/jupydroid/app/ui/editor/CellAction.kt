@@ -159,6 +159,18 @@ sealed interface CellAction {
    * `notebook.activeCell` and never the selection (`packages/notebook/src/actions.tsx:2440-2455`).
    */
   data object ToggleHeadingCollapse : Fold
+
+  /**
+   * Bounds a code cell's outputs to a scrollable strip - `notebook:toggle-output-scrolling`. Code
+   * cells only, like the two collapses beside it.
+   *
+   * **Unlike every other [Fold], the state it sets is not the head's own.** `toggleOutputScrolling`
+   * reads `isOutputScrollingEnabled`, which is **all-of**: true only when every selected code cell
+   * is already scrolled (`packages/notebook-extension/src/index.ts:2780-2796,4963-4983`). A mixed
+   * run of two therefore turns *on*, whichever cell the menu was opened on - see
+   * [EditorUiState.allMarkedCodeCellsScrolled].
+   */
+  data object ToggleOutputsScrolled : Fold
 }
 
 /**
