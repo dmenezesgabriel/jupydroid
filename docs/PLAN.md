@@ -34,14 +34,14 @@ filesystem the kernel, the server and the app all share.
 | Area | State |
 |---|---|
 | Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import; the server stops when it is idle or the app is left, and comes back on the next run; a kernel can be ended on purpose from the kernel menu |
-| Notebook | cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
+| Notebook | all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 144 instrumented, 885 unit, 78 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 151 instrumented, 902 unit, 81 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
-settings, raw cells, headings, trust, export.
+settings, headings, trust, export.
 
 ---
 
@@ -232,7 +232,7 @@ read per command — three of them have already contradicted the obvious answer
 
 **Built today:** run, run-all, run-all-above, run-all-below, interrupt, restart, restart-run-all,
 restart-clear-output, restart-and-run-to-selected, insert above/below, change type
-(code ↔ markdown), merge above/below, merge-cells, split at the cursor, move up/down, duplicate,
+(code ↔ markdown ↔ raw), merge above/below, merge-cells, split at the cursor, move up/down, duplicate,
 delete, clear-outputs, clear-all-cell-outputs, cut/copy/paste, hide-cell-code, hide-cell-outputs,
 select-all, deselect-all, extend-marked-cells-{above,below,top,bottom}, and undo/redo of every one
 of them — each acting on the marked run of cells rather than on one.
@@ -294,9 +294,33 @@ Three costs are worth naming here, because none was visible from the plan:
   (`cellexecutor.ts`, `case 'markdown'`), which is P2d-6 and closes the second gap this section
   carried.
 
+**P2e has shipped, and "small" was right about the command and wrong about everything else.**
+`change-cell-to-raw` cost the two lines it looked like it would; what it actually bought was a
+notebook that **could not be opened at all** - `CellFile.toDomain` threw on `cell_type: "raw"` and
+the editor showed the exception as the whole screen, for a file JupyterLab opens without comment
+(`evidence/p2e-1-raw-cells/before/`). What raw settled - an editor with no second state, no Run
+control, and `outputs`/`execution_count` **forbidden** rather than merely absent - is
+`docs/DECISIONS.md`.
+
+Three costs the plan did not name, each recorded there rather than here:
+
+- **The change-type row had to become two.** "The type this cell is not" is a complete answer only
+  while there are two types. The reference has a command per type, so each cell offers both; a code
+  cell's menu is eighteen rows now.
+- **P2e-3 was a parity gap sitting inside the function P2e-2 edited.** A cell that becomes markdown
+  is left showing its source (`actions.tsx:3308-3312`), and that `if` is outside the type-changed
+  branch, so it reaches cells that were already markdown.
+- **And fixing it exposed one of ours.** `MarkdownCellField` took the caret for having been composed
+  at all, so a run changed to markdown put the soft keyboard up over a notebook nobody was typing
+  in. Both of the flow's assertions were green; the screenshot is what said otherwise. *Unrendered*
+  and *asked for* are separate state now.
+
+One harness defect went with them, and it had been silent since the ranged runs arrived: the gate on
+post-Run assertions held `"Run All"` while the bar reads **"Run all cells"**, so it had never fired
+on any of the seven flows that tap it.
+
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|
-| **P2e** | **Raw cells** | `change-cell-to-raw`. The third `CellKind`: round-trips through nbformat, renders as plain text, never executes. Small, and it unblocks nbconvert round-trips in P2j. |
 | **P2f** | **Headings and heading collapse** | `change-cell-to-heading-1..6`, `insert-heading-{above,below}`, `toggle-heading-collapse`, `collapse-all-headings`, `expand-all-headings`. Heading collapse hides the cells **under** a heading — `setHeadingCollapse` (`actions.tsx:2348`) walks forward until it meets a heading of equal or higher level, so it is a document-structure feature, not a cell one, and it shares its model with P2h. **A collapsed heading then behaves as its whole section** everywhere else, which is the part that will bite if it is missed: `selectedCells` expands it so duplicating a collapsed heading duplicates the section; `addCells` inserts *after* its children rather than directly after it; and `deleteCells` takes the children with it. |
 | **P2g** | **View toggles** | `toggle-all-cell-line-numbers`, `enable/disable/toggle-output-scrolling`, `toggle-autoclosing-brackets`, `toggle-virtual-scrollbar` (engine in `packages/notebook/src/windowing.ts`). Several already have engines and no command; this is the surface, plus the persistence P6c provides. |
 | **P2h** | **Table of contents** | `toc:{show-panel,toggle-collapse,display-numbering,display-h1-numbering,display-outputs-numbering}`; the model is `packages/notebook/src/toc.ts`. **Adaptation:** a bottom sheet on a phone, a third pane at ≥ 840dp — a side panel is not reachable at 360dp. P1e paid for the third pane already: it is `ListDetailSceneStrategy.extraPane()`, not another hand-written scene. |

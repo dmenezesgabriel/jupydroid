@@ -471,6 +471,70 @@ it, so naming the icon leaves the label and the state on two different nodes —
 reasoned: a flow asking for the disabled control found a node reporting `enabled=true` with a
 disabled parent one level up.
 
+### A raw cell is an editor and nothing else, and running one is not a thing that happens
+
+The third `cell_type` nbformat 4 defines, and until P2e a notebook holding one **could not be
+opened at all**: `CellFile.toDomain` threw and the editor showed the exception as the whole screen
+(`evidence/p2e-1-raw-cells/before/`). JupyterLab opens the same file without comment.
+
+**It has no second state.** `RawCell extends Cell<IRawCellModel>` with no renderer, no output area
+and no rendered/source toggle (`packages/cells/src/widget.ts:2671-2694`), and `RawCellModel` is the
+one cell model that sets **no** mimeType where `MarkdownCellModel` sets `text/x-ipythongfm`
+(`packages/cells/src/model.ts:550-578`). So `RawCellField` is plain text: no highlighting, no
+bracket matching, no completion, no typing rules — and no placeholder, because
+`jp-mod-emptyMarkdownPlaceholder` is markdown's alone (`packages/cells/style/widget.css:145`). It
+keeps the line-number gutter for `MarkdownCellField`'s reason rather than the reference's
+`raw: { lineNumbers: false }` (`packages/notebook/src/widget.ts:1349-1353`): the gutter counts
+lines, not code, and that departure was already made for prose.
+
+**Running one does nothing.** `runCell`'s switch answers `markdown` and `code` and falls to
+`default: break` (`packages/notebook/src/cellexecutor.ts:36-141`). A range run therefore passes
+over it with no change of any kind — not queued, not skipped, not failed — which `runCells` already
+did by construction, filtering `CODE` for the queue and `MARKDOWN` for rendering.
+
+**So a raw cell's header carries no Run control**, and that is an adaptation with no reference line
+to depart from: the reference has no per-cell Run at all — its cell toolbar is duplicate / move /
+insert / delete (`packages/cell-toolbar-extension/schema/plugin.json`) — while ours is a mobile
+adaptation. A Run button that lights up and does nothing is what `cellActionItems` already refuses
+to ship.
+
+**`outputs` and `execution_count` on a raw cell are forbidden, not merely absent.** The shipped
+`nbformat/v4/nbformat.v4.schema.json` makes `definitions.raw_cell` `additionalProperties: false`
+over `id`, `cell_type`, `metadata`, `source` and `attachments`, so writing either produces a
+notebook `nbformat.validate` rejects. The writer's existing `if (kind == CODE)` guard was already
+right; the schema is why it must stay.
+
+**And the change-type row had to become two.** "The type this cell is not" is a complete answer only
+while there are two types; with three, one row names one of the other two and the third is
+unreachable from the menu. The reference has a command per type —
+`notebook:change-cell-to-{code,markdown,raw}` (`packages/notebook-extension/src/index.ts:212-214`)
+— so each cell offers both. A code cell's menu is eighteen rows as a result.
+
+### Unrendered is not the same as asked for, and only a tap asks
+
+`changeCellType` ends with *"Fetch the new widget and unrender it"* —
+`(child as MarkdownCell).rendered = false` — and that `if` sits **outside** the
+`child.model.type !== value` branch (`packages/notebook/src/actions.tsx:3308-3312`), so it reaches
+every cell the command visited and not only the ones whose type changed. A mixed run changed to
+markdown opens the ones that already were. Ours rendered them at once, so converting a code cell
+hid the very text that had just been converted.
+
+**Fixing that exposed one of ours.** `MarkdownCellField` requested focus for having been composed at
+all — a complete answer while a tap on the rendered prose was the only way to compose one. With a
+second way in, a run changed to markdown composed several editors in one frame, each asking for the
+caret and one winning it: the soft keyboard up over a notebook nobody was typing in
+(`evidence/p2e-3-change-to-markdown/before/`). Both of the flow's assertions were green; the
+screenshot is what said otherwise.
+
+So the two facts are separate state. `markdownBeingEdited` is whether a cell is unrendered;
+`markdownTakingCaret` is whether its editor was **asked for**, set by `withMarkdownEditorOpened` —
+the tap — and by nothing else, and withdrawn when the cell renders again. One id and not a set,
+because only one field can hold the caret. That is the reference's mode: `changeCellType` ends on
+`notebook.deselectAll()` with no mode change, so the notebook stays in **command** mode.
+
+The flow asserts the symbol row's first key is *not* on screen afterwards, which is how "still in
+command mode" becomes a claim rather than something a screenshot happens to reveal.
+
 ---
 
 ## Editor
