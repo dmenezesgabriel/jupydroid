@@ -355,30 +355,46 @@ private fun EditorCell(
           description = COLLAPSED_SOURCE,
           onExpand = { act(CellAction.ToggleSourceHidden) },
         )
-      } else if (cell.kind == CellKind.CODE) {
-        CodeCellField(
-          state = field,
-          source = cell.source,
-          sourceRevision = sourceRevision,
-          onSourceEdited = onSourceEdited,
-          completionsAt = completionsAt,
-          input = cellInput,
-          modifier = Modifier
-            .fillMaxWidth()
-            .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
-            .padding(8.dp),
-        )
       } else {
-        MarkdownCell(
-          state = field,
-          source = cell.source,
-          sourceRevision = sourceRevision,
-          rendered = markdownRendered,
-          onEditRequested = onMarkdownEditRequested,
-          onSourceEdited = onSourceEdited,
-          input = cellInput,
-          modifier = Modifier.fillMaxWidth(),
-        )
+        when (cell.kind) {
+          CellKind.CODE -> CodeCellField(
+            state = field,
+            source = cell.source,
+            sourceRevision = sourceRevision,
+            onSourceEdited = onSourceEdited,
+            completionsAt = completionsAt,
+            input = cellInput,
+            modifier = Modifier
+              .fillMaxWidth()
+              .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
+              .padding(8.dp),
+          )
+
+          CellKind.MARKDOWN -> MarkdownCell(
+            state = field,
+            source = cell.source,
+            sourceRevision = sourceRevision,
+            rendered = markdownRendered,
+            onEditRequested = onMarkdownEditRequested,
+            onSourceEdited = onSourceEdited,
+            input = cellInput,
+            modifier = Modifier.fillMaxWidth(),
+          )
+
+          // The code cell's panel rather than the markdown editor's: the reference gives a raw
+          // cell no styling of its own, so it draws in the same input area a code cell does.
+          CellKind.RAW -> RawCellField(
+            state = field,
+            source = cell.source,
+            sourceRevision = sourceRevision,
+            onSourceEdited = onSourceEdited,
+            input = cellInput,
+            modifier = Modifier
+              .fillMaxWidth()
+              .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
+              .padding(8.dp),
+          )
+        }
       }
     }
     CellOutputs(

@@ -187,6 +187,13 @@ class DiskNotebookRepositoryTest {
     assertEquals(CellKind.CODE, notebook.cells.single().kind)
   }
 
+  /**
+   * **`raw` used to be this test's example of an unknown type**, and that is exactly what P2e
+   * fixed: a notebook holding one could not be opened at all, and `EditorViewModel` turned the
+   * throw into a full-screen error message. The example is a genuinely unrecognised type now -
+   * nbformat's `cell` union is `code | markdown | raw` and nothing else, so one of these does fail
+   * `nbformat.validate` and refusing it is still right.
+   */
   @Test
   fun readNotebook_unknownCellType_throwsMeaningfulError() = runTest {
     val repository = repository()
@@ -196,8 +203,20 @@ class DiskNotebookRepositoryTest {
       repository.readNotebook("odd.ipynb")
       fail("expected IllegalArgumentException")
     } catch (e: IllegalArgumentException) {
-      assertTrue(e.message.orEmpty().contains("raw"))
+      assertTrue(e.message.orEmpty().contains("sql"))
     }
+  }
+
+  /** The notebook that used to open as an error screen. */
+  @Test
+  fun readNotebook_readsARawCell() = runTest {
+    val repository = repository()
+    notebookFile("raw.ipynb").writeText(RAW_CELL_JSON)
+
+    val cell = repository.readNotebook("raw.ipynb").cells.single()
+
+    assertEquals(CellKind.RAW, cell.kind)
+    assertEquals("\\begin{equation}", cell.source)
   }
 
   /**
@@ -279,7 +298,24 @@ class DiskNotebookRepositoryTest {
     private val UNKNOWN_CELL_TYPE_JSON =
       """
       {
-        "cells": [{"cell_type": "raw", "source": "x"}],
+        "cells": [{"cell_type": "sql", "source": "x"}],
+        "metadata": {},
+        "nbformat": 4,
+        "nbformat_minor": 5
+      }
+      """.trimIndent()
+
+    private val RAW_CELL_JSON =
+      """
+      {
+        "cells": [
+          {
+            "id": "raw-1",
+            "cell_type": "raw",
+            "source": "\\begin{equation}",
+            "metadata": {"format": "text/latex"}
+          }
+        ],
         "metadata": {},
         "nbformat": 4,
         "nbformat_minor": 5

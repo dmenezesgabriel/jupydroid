@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -62,6 +63,23 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
     textDecoration = TextDecoration.Underline,
   ),
 )
+
+/**
+ * A cell's source in the editor's own monospace.
+ *
+ * The colour is the editor's `TEXT` foreground, so text the highlighter leaves alone is the colour
+ * IntelliJ leaves it - and so the palette's contrast assertions describe what is actually drawn.
+ * Explicit for the reason [markdownSourceStyle]'s is: a `BasicTextField` handed
+ * `Color.Unspecified` draws black rather than falling back to `LocalContentColor`.
+ *
+ * Shared by the two fields that draw code-shaped text - [CodeCellField] and [RawCellField]. A raw
+ * cell holds LaTeX, reST or an HTML fragment, which is closer to code than to prose, and the
+ * reference draws every cell type in its one editor font.
+ */
+@Composable
+@ReadOnlyComposable
+fun codeSourceStyle(): TextStyle =
+  LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, color = editorPalette.syntax.plain)
 
 /**
  * The markdown source as it is being written.

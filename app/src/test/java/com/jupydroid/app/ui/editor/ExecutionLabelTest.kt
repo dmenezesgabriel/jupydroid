@@ -58,6 +58,16 @@ class ExecutionLabelTest {
     assertEquals("markdown", executionLabel(CellKind.MARKDOWN, ExecutionStatus.NOT_STARTED, count = null))
   }
 
+  /**
+   * A raw cell reaches a kernel even less than markdown does: `runCell`'s switch has no case for
+   * it at all - `default: break` (`packages/notebook/src/cellexecutor.ts:140-141`) - so running one
+   * is a no-op. A bracket beside it would promise a count that can never arrive.
+   */
+  @Test
+  fun aRawCellIsNamedRatherThanNumbered() {
+    assertEquals("raw", executionLabel(CellKind.RAW, ExecutionStatus.NOT_STARTED, count = null))
+  }
+
   @Test
   fun subSecondRunsReadInTenths() {
     assertEquals("ran in 0.8 s", runDurationLabel(Duration.ofMillis(840)))

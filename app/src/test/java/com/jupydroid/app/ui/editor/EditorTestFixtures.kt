@@ -35,6 +35,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 internal val codeCell = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
 internal val markdownCell = Cell(id = "c2", kind = CellKind.MARKDOWN, source = "# heading")
 internal val secondCodeCell = Cell(id = "c3", kind = CellKind.CODE, source = "print(2)")
+internal val rawCell = Cell(id = "r1", kind = CellKind.RAW, source = "\\begin{equation}")
 
 /** Records what the editor asked of a kernel, and can make a cell raise on demand. */
 internal class RecordingKernelGateway(

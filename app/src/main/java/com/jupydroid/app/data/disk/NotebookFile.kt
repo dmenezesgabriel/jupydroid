@@ -137,10 +137,11 @@ fun CellFile.toDomain(preserved: JsonObject? = null): Cell =
       when (cellType) {
         "code" -> CellKind.CODE
         "markdown" -> CellKind.MARKDOWN
+        "raw" -> CellKind.RAW
         else ->
           throw IllegalArgumentException(
             "unknown cell_type '$cellType' in cell id '${id.ifBlank { "<missing>" }}'; " +
-              "expected 'code' or 'markdown'",
+              "expected 'code', 'markdown' or 'raw'",
           )
       },
     source = source,

@@ -64,15 +64,24 @@ private fun Notebook.kernelspecJson(): JsonObject = buildJsonObject {
 private fun Cell.toCellJson(): JsonObject = buildJsonObject {
   preserved.forEach { (key, value) -> if (key !in OWNED_CELL_KEYS) put(key, value) }
   put("id", id)
-  put("cell_type", if (kind == CellKind.CODE) "code" else "markdown")
+  put("cell_type", kind.cellType())
   put("source", source)
   put("metadata", metadataJson())
-  // nbformat requires both on a code cell and has neither on a markdown one, so neither is
-  // omitted for being empty and neither survives a cell changing kind.
+  // nbformat requires both on a code cell and **forbids** both on the other two: `markdown_cell`
+  // and `raw_cell` are each `additionalProperties: false` over a list that has neither (shipped
+  // rootfs, `nbformat/v4/nbformat.v4.schema.json`). So neither is omitted for being empty and
+  // neither survives a cell changing kind.
   if (kind == CellKind.CODE) {
     put("outputs", outputsJson())
     put("execution_count", executionCount?.let { JsonPrimitive(it) } ?: JsonNull)
   }
+}
+
+/** nbformat's own spelling of each kind - the value of `cell_type`. */
+private fun CellKind.cellType(): String = when (this) {
+  CellKind.CODE -> "code"
+  CellKind.MARKDOWN -> "markdown"
+  CellKind.RAW -> "raw"
 }
 
 private fun Cell.metadataJson(): JsonObject = buildJsonObject {

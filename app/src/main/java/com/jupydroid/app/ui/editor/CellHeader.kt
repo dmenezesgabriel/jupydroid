@@ -79,12 +79,16 @@ internal fun CellHeader(
       style = MaterialTheme.typography.labelSmall,
       color = MaterialTheme.colorScheme.primary,
     )
-    // Markdown gets Run as well - it renders the cell - but never a spinner or Stop, because
-    // nothing of it ever reaches a kernel.
-    if (cell.kind == CellKind.CODE) {
-      RunControl(status = status, onRun = onRun, onStop = onStop)
-    } else {
-      IconButton(onClick = onRun) { Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell") }
+    // Three kinds, three answers, and they are `runCell`'s own switch: code executes, markdown
+    // renders - so it gets Run but never a spinner or Stop, since nothing of it reaches a kernel -
+    // and raw falls through `default: break` (`packages/notebook/src/cellexecutor.ts:36-141`), so it
+    // gets no Run at all. A button that lights up and does nothing is what this app already
+    // refuses to ship in the menu next door.
+    when (cell.kind) {
+      CellKind.CODE -> RunControl(status = status, onRun = onRun, onStop = onStop)
+      CellKind.MARKDOWN ->
+        IconButton(onClick = onRun) { Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell") }
+      CellKind.RAW -> Unit
     }
     // How long the last one took, in the reference's own `EXECUTION_TIME_COLOR`. Absent while a
     // cell is running rather than counting up: a ticking label would recompose the header on

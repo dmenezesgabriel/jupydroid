@@ -67,6 +67,29 @@ class CellHeaderTest {
     compose.onNodeWithContentDescription("Cell menu Delete").performScrollTo().assertIsDisplayed()
   }
 
+  /**
+   * **A raw cell has no Run control at all**, which markdown does and code does.
+   * `runCell`'s switch answers `markdown` by rendering and `code` by executing, and falls to
+   * `default: break` for raw (`packages/notebook/src/cellexecutor.ts:36-141`), so a Run button
+   * here would be a control that lights up and does nothing - the thing this app already refuses
+   * to ship in `cellActionItems`. It keeps the `\u22ee`: every other cell operation still applies.
+   */
+  @Test
+  fun aRawCellHasNoRunControlButKeepsItsMenu() {
+    compose.setContent { CellHeader(RAW_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+
+    compose.onNodeWithContentDescription(RUN_BUTTON).assertDoesNotExist()
+    compose.onNodeWithContentDescription(MENU_BUTTON).assertIsDisplayed()
+  }
+
+  /** Markdown does get one - running it renders it, which is a real thing to do. */
+  @Test
+  fun aMarkdownCellDoesHaveARunControl() {
+    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+
+    compose.onNodeWithContentDescription(RUN_BUTTON).assertIsDisplayed()
+  }
+
   @Test
   fun choosingAnActionReportsItAndClosesTheMenu() {
     val chosen = mutableListOf<CellAction>()
@@ -127,8 +150,10 @@ class CellHeaderTest {
 
   private companion object {
     const val MENU_BUTTON = "Cell actions"
+    const val RUN_BUTTON = "Run cell"
     val MARK = CellMark(checked = true, position = 2)
     val CODE_CELL = Cell("c1", CellKind.CODE, "x = 1")
     val MARKDOWN_CELL = Cell("c2", CellKind.MARKDOWN, "# title")
+    val RAW_CELL = Cell("c3", CellKind.RAW, "\\begin{equation}")
   }
 }

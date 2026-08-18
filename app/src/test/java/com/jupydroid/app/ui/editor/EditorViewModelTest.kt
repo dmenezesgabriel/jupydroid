@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -284,6 +285,24 @@ class EditorViewModelTest {
 
     assertTrue("running a markdown cell renders it", viewModel.uiState.value.isMarkdownRendered(markdownCell.id))
     assertEquals("and never reaches the kernel", listOf("c1", "c3"), gateway.executed)
+  }
+
+  /**
+   * **A raw cell in a run is passed over entirely** - not queued, not rendered, not failed.
+   * `runCell`'s switch answers `markdown` and `code` and falls to `default: break`
+   * (`packages/notebook/src/cellexecutor.ts:36-141`), so a run containing one behaves exactly as a
+   * run without it and the cell keeps saying `raw`.
+   */
+  @Test
+  fun runAll_passesOverARawCellWithoutQueueingOrFailingIt() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell, rawCell, secondCodeCell))
+
+    viewModel.kernel.run(RunRange.ALL)
+    advanceUntilIdle()
+
+    assertEquals(listOf("c1", "c3"), gateway.executed)
+    assertNull("a raw cell is never even queued", viewModel.uiState.value.executionOf(rawCell.id))
   }
 
   @Test

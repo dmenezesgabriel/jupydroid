@@ -172,6 +172,45 @@ class NotebookRoundTripTest {
     assertEquals(null, saved["execution_count"])
   }
 
+  /**
+   * A raw cell is the third `cell_type` nbformat defines, and a notebook holding one used to be
+   * unopenable: `CellFile.toDomain` threw rather than reading it.
+   */
+  @Test
+  fun readsARawCell() {
+    assertEquals(CellKind.RAW, ORIGINAL.toNotebook().cells[2].kind)
+  }
+
+  @Test
+  fun writesARawCellBackAsRaw() {
+    assertEquals(json(""""raw""""), savedCells()[2]["cell_type"])
+  }
+
+  /**
+   * **The schema forbids them**, which is stronger than "a raw cell happens to have none":
+   * `definitions.raw_cell` is `additionalProperties: false` over `id`, `cell_type`, `metadata`,
+   * `source` and `attachments` (shipped rootfs,
+   * `usr/lib/python3.12/site-packages/nbformat/v4/nbformat.v4.schema.json`). A raw cell carrying
+   * `outputs` is not merely odd, it fails `nbformat.validate`.
+   */
+  @Test
+  fun writesNoOutputsOnARawCell() {
+    val saved = editedFirstCell { it.copy(kind = CellKind.RAW) }
+
+    assertEquals(null, saved["outputs"])
+    assertEquals(null, saved["execution_count"])
+  }
+
+  /** `format` is nbconvert's, `attachments` are a pasted image's - neither is ours to drop. */
+  @Test
+  fun keepsWhatARawCellCarried() {
+    val saved = savedCells()[2]
+
+    assertEquals(json(""""text/latex""""), saved.jsonObject("metadata")["format"])
+    assertEquals(json("""["nbconvert"]"""), saved.jsonObject("metadata")["tags"])
+    assertEquals(ORIGINAL.cells()[2]["attachments"], saved["attachments"])
+  }
+
   private fun editedFirstCell(edit: (Cell) -> Cell): JsonObject {
     val notebook = ORIGINAL.toNotebook()
     val cells = listOf(edit(notebook.cells.first())) + notebook.cells.drop(1)
@@ -212,6 +251,13 @@ class NotebookRoundTripTest {
             "source": "![shot](attachment:shot.png)",
             "metadata": {},
             "attachments": {"shot.png": {"image/png": "iVBORw0KGgo="}}
+          },
+          {
+            "id": "raw-1",
+            "cell_type": "raw",
+            "source": "\\begin{equation}\nE = mc^2\n\\end{equation}\n",
+            "metadata": {"format": "text/latex", "tags": ["nbconvert"]},
+            "attachments": {"fig.png": {"image/png": "iVBORw0KGgo="}}
           }
         ],
         "metadata": {

@@ -1,0 +1,60 @@
+appId: com.jupydroid.app
+---
+# P2e-1: a notebook holding a raw cell opens, shows it as plain text, and never runs it.
+#
+# **The headline claim is that the notebook opens at all.** Before this step `CellFile.toDomain`
+# threw on `cell_type: "raw"` and `EditorViewModel` turned the throw into a full-screen error
+# message, so a perfectly ordinary nbformat 4 notebook - one JupyterLab opens without comment -
+# was unreadable here. `evidence/p2e-1-raw-cells/before/` is that screen on the build before this.
+#
+# What the reference settles, and what each assertion is therefore for:
+#
+#   * `RawCell` is an editor and nothing else - no renderer, no output area, no rendered/source
+#     toggle (`packages/cells/src/widget.ts:2671-2694`) - so the LaTeX is on screen verbatim the
+#     moment the notebook opens, with nothing to tap first.
+#   * `runCell`'s switch answers `markdown` and `code` and falls to `default: break`
+#     (`packages/notebook/src/cellexecutor.ts:36-141`), so a Run All must pass over it entirely:
+#     no bracket, no spinner, no output, and the label still reading `raw` afterwards.
+#
+# **No kernel needed, so no device rule.** Every claim here is about this app's own filtering, and
+# the code cell's `[1]` is what proves the run really happened - `FakeKernelGateway` produces one
+# too, which is the point: the run must reach the code cell on any device and still not reach this.
+#
+# Seeded by scripts/p2e-raw-cell-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Raw Cells.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Raw Cells.ipynb"
+
+# Claims 1 and 2 in one wait: the raw cell's own source, drawn verbatim and unrendered. Only a
+# notebook that *parsed* can put it there - before this step `EditorViewModel` showed the read's
+# exception as the whole screen instead. The title would not do: on a tablet the file list beside
+# the editor shows the same name, so it matches whether or not the document opened
+# (`docs/DECISIONS.md`).
+#
+# `(?s).*…*` because Maestro matches a node's whole text and this field holds three lines.
+- extendedWaitUntil:
+    visible: "(?s).*E = mc\\^2.*"
+    timeout: 30000
+- assertVisible: "(?s).*\\\\begin\\{equation\\}.*"
+# Claim 3: it is named rather than numbered, because it can never carry a count.
+- assertVisible: "raw"
+- assertVisible: "\\[ \\]"
+- takeScreenshot: 01-a-notebook-with-a-raw-cell-opens
+
+# Claim 4: a run reaches the code cell and passes over the raw one.
+- tapOn: "Run all cells"
+- extendedWaitUntil:
+    visible: "\\[1\\]"
+    timeout: 120000
+# The raw cell is still named, so it was never drawn as a code cell...
+- assertVisible: "raw"
+# ...and no cell is left showing an un-run bracket, which is what a raw cell treated as code
+# would be: the notebook's one code cell now reads `[1]`.
+- assertNotVisible: "\\[ \\]"
+- takeScreenshot: 02-run-all-passed-over-it

@@ -11,11 +11,13 @@ import java.util.Locale
  * being told. It replaces a label that showed `[7]` or the word "code", under which a code cell
  * nobody had run and one waiting its turn were the same thing.
  *
- * Markdown is named rather than numbered: it never reaches a kernel, so a bracket would promise
- * a count that cannot arrive.
+ * **Anything that is not code is named rather than numbered**: neither markdown nor raw ever
+ * reaches a kernel - `runCell` renders the first and falls through to `default: break` for the
+ * second (`packages/notebook/src/cellexecutor.ts:36-141`) - so a bracket would promise a count that
+ * cannot arrive.
  */
 internal fun executionLabel(kind: CellKind, status: ExecutionStatus, count: Int?): String = when {
-  kind == CellKind.MARKDOWN -> kind.label()
+  kind != CellKind.CODE -> kind.label()
   status == ExecutionStatus.QUEUED || status == ExecutionStatus.RUNNING -> "[*]"
   // `[-]` is ours: Jupyter has no notation for skipped, because Jupyter's Run All does not stop
   // at a failure. Without it a skipped cell draws as `[ ]` and is indistinguishable from one
@@ -49,6 +51,7 @@ internal fun runDurationLabel(took: Duration?): String? {
 internal fun CellKind.label(): String = when (this) {
   CellKind.CODE -> "code"
   CellKind.MARKDOWN -> "markdown"
+  CellKind.RAW -> "raw"
 }
 
 private const val MILLIS_PER_SECOND = 1000L

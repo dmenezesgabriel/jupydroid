@@ -8,7 +8,6 @@ import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -29,7 +28,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import com.jupydroid.app.domain.port.CompletionResult
@@ -82,14 +80,8 @@ fun CodeCellField(
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-  val palette = editorPalette
-  val codeStyle = LocalTextStyle.current.copy(
-    fontFamily = FontFamily.Monospace,
-    // The editor's `TEXT` foreground, so text the highlighter leaves alone is the colour
-    // IntelliJ leaves it - and so the palette's contrast assertions describe what is drawn.
-    color = palette.syntax.plain,
-  )
-  val numberStyle = codeStyle.copy(color = palette.lineNumber)
+  val codeStyle = codeSourceStyle()
+  val numberStyle = codeStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle)
   val completions by rememberCellCompletions(state, focused, completionsAt)
   // The code a popup was already answered for, so accepting or dismissing one does not

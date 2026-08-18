@@ -3,7 +3,15 @@ package com.jupydroid.app.domain.model
 import java.time.Instant
 import kotlinx.serialization.json.JsonObject
 
-enum class CellKind { CODE, MARKDOWN }
+/**
+ * The three `cell_type`s nbformat 4 defines.
+ *
+ * [RAW] is the one that never reaches a kernel and never renders: `RawCell` is an editor and
+ * nothing else (`packages/cells/src/widget.ts:2671-2694`), and `runCell`'s switch falls through to
+ * `default: break` for it (`packages/notebook/src/cellexecutor.ts:140-141`). nbconvert is what it
+ * is for, which is why its metadata carries a `format`.
+ */
+enum class CellKind { CODE, MARKDOWN, RAW }
 
 /**
  * The nbformat object this was read from, kept verbatim so saving cannot destroy what the app
