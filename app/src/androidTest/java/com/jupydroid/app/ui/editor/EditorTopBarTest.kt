@@ -121,9 +121,47 @@ class EditorTopBarTest {
     assertEquals(1, redos)
   }
 
+  // --- the View menu (P2f-2) --------------------------------------------------------------
+
+  /**
+   * Its own overflow rather than [NotebookBar]'s, so what is asserted here is that there is a
+   * second way in at all - the question no JVM test answers.
+   */
+  @Test
+  fun theViewMenuOffersBothHeadingCommands() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(COLLAPSE_ALL_HEADINGS).assertIsDisplayed()
+    compose.onNodeWithText(EXPAND_ALL_HEADINGS).assertIsDisplayed()
+  }
+
+  @Test
+  fun collapseAllAsksForTheCollapse() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(COLLAPSE_ALL_HEADINGS).performClick()
+
+    assertEquals(listOf(true), headingsSetTo)
+  }
+
+  /** The opposite row carries the opposite argument, which is the whole of the pair's difference. */
+  @Test
+  fun expandAllAsksForTheExpand() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(EXPAND_ALL_HEADINGS).performClick()
+
+    assertEquals(listOf(false), headingsSetTo)
+  }
+
   private val renamed = mutableListOf<String>()
   private var undos = 0
   private var redos = 0
+  private val headingsSetTo = mutableListOf<Boolean>()
 
   private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false) {
     compose.setContent {
@@ -136,6 +174,7 @@ class EditorTopBarTest {
           onUndo = { undos++ },
           onRedo = { redos++ },
           onBack = {},
+          onSetAllHeadingsCollapsed = { headingsSetTo += it },
         )
       }
     }

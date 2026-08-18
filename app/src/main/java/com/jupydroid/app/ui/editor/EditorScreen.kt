@@ -148,6 +148,7 @@ fun EditorScreen(
           onUndo = viewModel.edits::undo,
           onRedo = viewModel.edits::redo,
           onBack = onBack,
+          onSetAllHeadingsCollapsed = viewModel.edits::setAllHeadingsCollapsed,
         )
       }
     },

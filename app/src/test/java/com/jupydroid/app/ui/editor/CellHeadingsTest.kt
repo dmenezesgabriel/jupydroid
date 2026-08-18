@@ -148,6 +148,73 @@ class CellHeadingsTest {
     assertEquals(notebook, notebook.withHeadingCollapsed("gone", collapsed = true))
   }
 
+  // --- collapse all / expand all (P2f-2) --------------------------------------------------
+
+  /**
+   * `collapseAllHeadings` sets every heading and nothing else - it filters on
+   * `getHeadingInfo(cell).isHeading` (`actions.tsx:2221-2232`), so the code cells between them are
+   * hidden by *being in a section* rather than by being touched.
+   */
+  @Test
+  fun collapseAllSetsEveryHeadingAndLeavesOnlyTheHeadingsOnScreen() {
+    val collapsed = notebook.withAllHeadingsCollapsed()
+
+    assertEquals(listOf("h1", "h2", "h1b"), collapsed.cells.filter { it.headingCollapsed }.map { it.id })
+    assertEquals(setOf("a", "h2", "b", "c"), collapsed.hiddenCellIds)
+  }
+
+  /**
+   * `notebook.activeCellIndex = 0` is the command's last line before its state is handled
+   * (`actions.tsx:2229`), and the first cell is the one cell no collapse can reach - nothing is
+   * above it to own it.
+   */
+  @Test
+  fun collapseAllPutsTheHeadOnTheFirstCell() {
+    val collapsed = notebook.copy(selectedCellId = "b", anchorCellId = "c").withAllHeadingsCollapsed()
+
+    assertEquals("h1", collapsed.selectedCellId)
+    assertNull(collapsed.anchorCellId)
+  }
+
+  @Test
+  fun expandAllClearsEveryHeadingSoNothingIsHidden() {
+    val expanded = notebook.withAllHeadingsCollapsed().withAllHeadingsExpanded()
+
+    assertEquals(emptySet<String>(), expanded.hiddenCellIds)
+    assertTrue(expanded.cells.none { it.headingCollapsed })
+  }
+
+  /**
+   * `expandAllHeadings` does **not** touch `activeCellIndex` - only its opposite does
+   * (`actions.tsx:2238-2246`), and it needs to: nothing it does can hide the head.
+   */
+  @Test
+  fun expandAllLeavesTheHeadWhereItIs() {
+    val marked = notebook.withAllHeadingsCollapsed().copy(selectedCellId = "h1b", anchorCellId = "h2")
+
+    val expanded = marked.withAllHeadingsExpanded()
+
+    assertEquals("h1b", expanded.selectedCellId)
+    assertEquals("h2", expanded.anchorCellId)
+  }
+
+  /**
+   * Returning **this** when nothing changed is load-bearing rather than an optimisation: a notebook
+   * with no headings would otherwise be marked dirty and rewritten for having been looked at, which
+   * is [withMarkdownRendered]'s reason as well as this one's.
+   */
+  @Test
+  fun neitherCommandDirtiesANotebookItChangesNothingIn() {
+    val prose = EditorUiState(cells = listOf(code("a"), md("p", "just prose")), loaded = true)
+
+    assertEquals(prose, prose.withAllHeadingsCollapsed())
+    assertEquals(prose, prose.withAllHeadingsExpanded())
+    assertEquals(
+      notebook.withAllHeadingsCollapsed(),
+      notebook.withAllHeadingsCollapsed().withAllHeadingsCollapsed(),
+    )
+  }
+
   // --- the marked run, which must not end up on a cell nothing draws ----------------------
 
   /**

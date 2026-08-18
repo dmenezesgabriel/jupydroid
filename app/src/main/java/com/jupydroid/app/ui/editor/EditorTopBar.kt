@@ -10,7 +10,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +70,8 @@ fun EditorTopBar(
   onUndo: () -> Unit,
   onRedo: () -> Unit,
   onBack: () -> Unit,
+  /** `notebook:collapse-all-headings` / `expand-all-headings` - see [ViewMenu]. */
+  onSetAllHeadingsCollapsed: (Boolean) -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -82,7 +88,10 @@ fun EditorTopBar(
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to notebooks")
       }
     },
-    actions = { UndoRedo(canUndo, canRedo, onUndo, onRedo) },
+    actions = {
+      UndoRedo(canUndo, canRedo, onUndo, onRedo)
+      ViewMenu(onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed)
+    },
   )
 
   if (renameOpen) {
@@ -136,6 +145,56 @@ private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onR
     Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = null)
   }
 }
+
+/**
+ * The document's **View** menu, which the two heading commands open and P2g's toggles will fill.
+ *
+ * **The reference surfaces neither of them in a menu at all** - `collapse-all-headings` and
+ * `expand-all-headings` are command-palette entries plus `Ctrl Shift Arrow` shortcuts
+ * (`packages/notebook-extension/src/index.ts:5279-5281`, `schema/tracker.json:562-570`) - so where
+ * they go here is an adaptation, and this is what it departs from. Its own overflow rather than
+ * [NotebookBar]'s, because that bar states what it is: what you ask the *kernel*. Folding a section
+ * away asks the kernel nothing, and the reference files it under View for the same reason.
+ *
+ * Boxed with its menu, which anchors to its parent layout node - the lesson [CellHeader] and
+ * [NotebookBar] each record.
+ *
+ * Neither row is ever disabled, which is the reference's own choice: unlike the undo pair beside
+ * it, neither command declares an `isEnabled` (`index.ts:5094-5121`). Collapsing a notebook with no
+ * headings changes nothing and says so by nothing changing, which is cheaper than a greyed row
+ * asking to be understood.
+ */
+@Composable
+private fun ViewMenu(onSetAllHeadingsCollapsed: (Boolean) -> Unit) {
+  var open by remember { mutableStateOf(false) }
+  Box {
+    IconButton(onClick = { open = true }) {
+      Icon(Icons.Filled.MoreVert, contentDescription = "View actions")
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+      DropdownMenuItem(
+        text = { Text(COLLAPSE_ALL_HEADINGS) },
+        onClick = {
+          open = false
+          onSetAllHeadingsCollapsed(true)
+        },
+      )
+      DropdownMenuItem(
+        text = { Text(EXPAND_ALL_HEADINGS) },
+        onClick = {
+          open = false
+          onSetAllHeadingsCollapsed(false)
+        },
+      )
+    }
+  }
+}
+
+/** `notebook:collapse-all-headings` (`packages/notebook-extension/src/index.ts:5096`). */
+internal const val COLLAPSE_ALL_HEADINGS = "Collapse All Headings"
+
+/** `notebook:expand-all-headings` (`:5111`). */
+internal const val EXPAND_ALL_HEADINGS = "Expand All Headings"
 
 @Composable
 private fun RenameableTitle(title: String, onClick: () -> Unit) {

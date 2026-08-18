@@ -60,6 +60,26 @@ class NotebookCellEdits(
   }
 
   /**
+   * `notebook:collapse-all-headings` and `notebook:expand-all-headings`, as one method with the
+   * direction as its argument.
+   *
+   * Beside [clearAllOutputs] and for its reason: a [CellAction] is by definition something a
+   * *cell's* menu offers, and these two have no cell - they walk the whole notebook the way
+   * `collapseAllHeadings` walks `notebook.widgets` (`packages/notebook/src/actions.tsx:2221-2246`).
+   * Routing them through [applyTo] would have meant inventing a cell to ask them from.
+   *
+   * One method rather than two because the pair differ in exactly one thing, which is what
+   * [CellHeadings] shows: the direction, and whether the head has to be brought back into view.
+   */
+  fun setAllHeadingsCollapsed(collapsed: Boolean) {
+    uiState.update {
+      val folded = if (collapsed) it.withAllHeadingsCollapsed() else it.withAllHeadingsExpanded()
+      folded.recording(before = it)
+    }
+    save.schedule()
+  }
+
+  /**
    * Takes back the last cell operation - `notebook:undo-cell-action`.
    *
    * Structural, never textual: [CellUndo] carries the rule that keeps the two undos apart, and it

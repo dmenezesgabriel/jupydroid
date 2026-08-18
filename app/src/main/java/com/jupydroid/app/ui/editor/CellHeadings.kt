@@ -84,6 +84,44 @@ fun EditorUiState.withHeadingCollapsed(cellId: String, collapsed: Boolean): Edit
 }
 
 /**
+ * `notebook:collapse-all-headings` - every heading in the notebook, and nothing else.
+ *
+ * `collapseAllHeadings` filters on `getHeadingInfo(cell).isHeading` (`actions.tsx:2221-2232`), so
+ * the cells between the headings are hidden by *being in a section* rather than by being touched.
+ * Its last line before handling state is `notebook.activeCellIndex = 0` (`:2229`), and the first
+ * cell is the one no collapse can reach: nothing is above it to own it. The run goes with the head
+ * for [withMarkedRunOutOfHiding]'s reason - an anchor deeper in the notebook would be a mark on a
+ * cell nothing draws.
+ */
+fun EditorUiState.withAllHeadingsCollapsed(): EditorUiState {
+  if (cells.none { it.headingLevel != null && !it.headingCollapsed }) return this
+  return copy(
+    cells = cells.map { if (it.headingLevel != null) it.copy(headingCollapsed = true) else it },
+    selectedCellId = cells.first().id,
+    anchorCellId = null,
+    dirty = true,
+  )
+}
+
+/**
+ * `notebook:expand-all-headings`, which is the same walk and **does not touch the head** -
+ * `expandAllHeadings` has no `activeCellIndex` line at all (`actions.tsx:2238-2246`), and needs
+ * none: nothing it does can hide a cell.
+ *
+ * Headings only, as there. A flag left on a cell whose source has since stopped being a heading is
+ * inert - [hiddenCellIds] reads the section, which is empty - and clearing it here would delete a
+ * key from a file this app did not put it in.
+ */
+fun EditorUiState.withAllHeadingsExpanded(): EditorUiState {
+  val collapsed = cells.filter { it.headingCollapsed && it.headingLevel != null }.map { it.id }.toSet()
+  if (collapsed.isEmpty()) return this
+  return copy(
+    cells = cells.map { if (it.id in collapsed) it.copy(headingCollapsed = false) else it },
+    dirty = true,
+  )
+}
+
+/**
  * Keeps both ends of the marked run on screen, by putting them on the heading that just swallowed
  * them.
  *

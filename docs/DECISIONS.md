@@ -568,6 +568,27 @@ reference names it by size instead — `trans._n('%1 cell hidden', '%1 cells hid
 over an `addIcon`, drawn only while the heading is collapsed **and** owns something
 (`widget.ts:2412-2455`).
 
+**Collapse All and Expand All are not each other's mirror, and the difference is one line.**
+`collapseAllHeadings` ends on `notebook.activeCellIndex = 0` and `expandAllHeadings` has no such
+line at all (`actions.tsx:2221-2246`) — because only one of them can hide the cell the head is on,
+and the first cell is the one cell no collapse can reach, with nothing above it to own it. Both walk
+`notebook.widgets` and set only the headings; the cells between go by *being in a section*, which is
+why a markdown cell above every heading survives a Collapse All
+(`evidence/p2f-2-collapse-all-headings/03-all-collapsed.png`).
+
+They live in a **View overflow on the notebook's own bar**, which is this app's third menu surface
+and the reason it exists: `NotebookBar` states what it is — what you ask the *kernel* — and folding a
+section away asks it nothing. The reference files both under View for that reason, though only in its
+command palette and as `Ctrl Shift Arrow` (`index.ts:5279-5281`, `schema/tracker.json:562-570`).
+P2g's four view toggles land there rather than needing a surface of their own. Neither row is ever
+disabled, which is the reference's choice too: unlike the undo pair beside them, neither command
+declares an `isEnabled` (`index.ts:5094-5121`).
+
+Each is **one entry on the undo stack**, so a Collapse All comes back whole rather than a heading at
+a time — the same `CellEdits.applying()` boundary every cell operation uses, reached through
+`NotebookCellEdits` rather than through a `CellAction`, because like `clearAllOutputs` neither has a
+cell to be asked from.
+
 ### Unrendered is not the same as asked for, and only a tap asks
 
 `changeCellType` ends with *"Fetch the new widget and unrender it"* —

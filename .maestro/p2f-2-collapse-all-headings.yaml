@@ -1,0 +1,64 @@
+appId: com.jupydroid.app
+---
+# P2f-2: Collapse All Headings folds every section at once, and Expand All brings them all back.
+#
+# `collapseAllHeadings` walks every widget and sets the ones that are headings
+# (`packages/notebook/src/actions.tsx:2221-2232`); the cells between them go because they are *in* a
+# section, not because they were touched. The fixture opens with a markdown cell that is **not** a
+# heading, on purpose: it is above every heading, so nothing can own it and it must survive - which
+# is the difference between "collapse the headings" and "hide everything but the headings".
+#
+# The notebook is called "Heading Sections" and not after the command: Maestro matches a whole node,
+# so a title reading "Collapse All Headings.ipynb" would not actually collide with the menu row -
+# but a flow whose tap target is one character from the document's own name is a flow nobody can
+# read (`docs/DECISIONS.md`, on titles as handles).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Heading Sections.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "Notes before any heading."
+    timeout: 30000
+- assertVisible: "Chapter one"
+- assertVisible: "one = 1"
+- takeScreenshot: 01-expanded
+- tapOn: "View actions"
+- assertVisible: "Collapse All Headings"
+- assertVisible: "Expand All Headings"
+- takeScreenshot: 02-the-view-menu
+- tapOn: "Collapse All Headings"
+# Both H1s' sections are folded and the H2's with them, so what is left is the prose above every
+# heading and the three headings themselves - which now all fit on one screen.
+- assertVisible: "Notes before any heading."
+- assertVisible: "Chapter one"
+- assertVisible: "Chapter two"
+- assertNotVisible: "one = 1"
+- assertNotVisible: "part = 2"
+- assertNotVisible: "two = 3"
+# Chapter one owns three cells - its own, Part A and Part A's - and Chapter two owns one. Part A's
+# own row is not on screen at all, because Part A is itself inside Chapter one's section.
+- assertVisible: "3 cells hidden"
+- assertVisible: "1 cell hidden"
+- assertNotVisible: "Part A"
+- takeScreenshot: 03-all-collapsed
+- tapOn: "View actions"
+- tapOn: "Expand All Headings"
+# The cells that were in a section are back, and **no** section is left claiming to hide anything -
+# which is the pair of claims that matters. `part = 2` is not among them: seven expanded cells do
+# not fit at 360dp, and asserting a cell below the fold would be asserting the window's height.
+- assertVisible: "one = 1"
+- assertVisible: "Part A"
+- assertNotVisible: "3 cells hidden"
+- assertNotVisible: "1 cell hidden"
+- takeScreenshot: 04-all-expanded
+# One entry on the undo stack each, like every other cell operation - so the collapse two steps up
+# comes back whole rather than a heading at a time.
+- tapOn: "Undo cell operation"
+- assertVisible: "3 cells hidden"
+- assertNotVisible: "one = 1"
+- takeScreenshot: 05-undo-brings-the-collapse-back
