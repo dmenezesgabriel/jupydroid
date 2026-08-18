@@ -158,12 +158,55 @@ class EditorTopBarTest {
     assertEquals(listOf(false), headingsSetTo)
   }
 
+  // --- the line-number gutter (P2g-1) -----------------------------------------------------
+
+  /**
+   * The row **names what tapping will do** rather than carrying a check beside a fixed label.
+   *
+   * That is this app's own rule - `COLLAPSE_CODE`/`EXPAND_CODE` in [cellActionItems] - and here it
+   * is load-bearing rather than tidy: a toggled `DropdownMenuItem`'s state lives on a node
+   * Android's accessibility tree gives no label to, so a Maestro flow cannot read it
+   * (`docs/DECISIONS.md`). A label that flips is a label both trees can see.
+   */
+  @Test
+  fun theViewMenuOffersToHideTheGutterWhileItIsShown() {
+    showTopBar(lineNumbersShown = true)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(HIDE_LINE_NUMBERS).assertIsDisplayed()
+  }
+
+  @Test
+  fun theViewMenuOffersToShowTheGutterOnceItIsHidden() {
+    showTopBar(lineNumbersShown = false)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(SHOW_LINE_NUMBERS).assertIsDisplayed()
+  }
+
+  @Test
+  fun theRowAsksForTheToggle() {
+    showTopBar(lineNumbersShown = true)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(HIDE_LINE_NUMBERS).performClick()
+
+    assertEquals(1, lineNumberToggles)
+  }
+
   private val renamed = mutableListOf<String>()
   private var undos = 0
   private var redos = 0
   private val headingsSetTo = mutableListOf<Boolean>()
+  private var lineNumberToggles = 0
 
-  private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false) {
+  private fun showTopBar(
+    canUndo: Boolean = false,
+    canRedo: Boolean = false,
+    lineNumbersShown: Boolean = true,
+  ) {
     compose.setContent {
       JupyterDroidTheme {
         EditorTopBar(
@@ -175,6 +218,8 @@ class EditorTopBarTest {
           onRedo = { redos++ },
           onBack = {},
           onSetAllHeadingsCollapsed = { headingsSetTo += it },
+          lineNumbersShown = lineNumbersShown,
+          onToggleLineNumbers = { lineNumberToggles++ },
         )
       }
     }

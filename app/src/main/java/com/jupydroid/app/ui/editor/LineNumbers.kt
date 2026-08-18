@@ -26,6 +26,11 @@ import androidx.compose.ui.unit.dp
  * BasicTextField(state = state, modifier = Modifier.lineNumbers(state.text, layout, style))
  * ```
  *
+ * **A [width] of zero is the gutter turned off** - `notebook:toggle-all-cell-line-numbers`. The
+ * width is the one authority on whether there are numbers, rather than a second flag beside it:
+ * the completion popup anchors against this same edge, so a field that drew no numbers while the
+ * popup still allowed for them is a disagreement this shape cannot have.
+ *
  * @param layout the field's latest [TextLayoutResult], or null before it has laid out once.
  * @param width from [gutterWidth]; passed in rather than computed here because the completion
  *   popup anchors against the same edge and the two must not disagree.
@@ -37,6 +42,7 @@ fun Modifier.lineNumbers(
   style: TextStyle,
   width: Dp,
 ): Modifier {
+  if (width <= 0.dp) return this
   val starts = logicalLineStarts(text)
   val measurer = rememberTextMeasurer()
   // Measured once per line count rather than per frame: a TextMeasurer's cache is small, and a
@@ -54,9 +60,17 @@ fun Modifier.lineNumbers(
   }.padding(start = width)
 }
 
-/** How far the code is pushed right to make room for the numbers. */
+/**
+ * How far the code is pushed right to make room for the numbers, or **zero** when [shown] is
+ * false - which is `notebook:toggle-all-cell-line-numbers` turned off.
+ *
+ * The command flips one boolean for all three cell types at once
+ * (`packages/notebook/src/actions.tsx:1792-1812`), so every field asks this the same way and the
+ * caller supplies the one flag.
+ */
 @Composable
-fun gutterWidth(text: CharSequence, style: TextStyle): Dp {
+fun gutterWidth(text: CharSequence, style: TextStyle, shown: Boolean = true): Dp {
+  if (!shown) return 0.dp
   val measurer = rememberTextMeasurer()
   val lineCount = logicalLineStarts(text).size
   val digits = remember(lineCount, style) {

@@ -54,13 +54,15 @@ fun RawCellField(
   modifier: Modifier = Modifier,
   /** Null where no symbol row is on screen, which is every test that drives a field alone. */
   input: FocusedCellInput? = null,
+  /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
+  lineNumbersShown: Boolean = true,
 ) {
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
   val sourceStyle = codeSourceStyle()
   val numberStyle = sourceStyle.copy(color = editorPalette.lineNumber)
-  val gutter = gutterWidth(state.text, numberStyle)
+  val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
 
   reportCellEdits(state, onSourceEdited)
   // The symbol row is on screen in edit mode whatever the cell is, so this field has to be

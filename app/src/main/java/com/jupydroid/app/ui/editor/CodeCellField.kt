@@ -70,6 +70,8 @@ fun CodeCellField(
   typing: InputTransformation = remember { PythonTypingRules() },
   /** Null where no symbol row is on screen, which is every test that drives a field alone. */
   input: FocusedCellInput? = null,
+  /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
+  lineNumbersShown: Boolean = true,
 ) {
   val styles = syntaxStyles()
   val matched = bracketMatchStyle()
@@ -78,7 +80,7 @@ fun CodeCellField(
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
   val codeStyle = codeSourceStyle()
   val numberStyle = codeStyle.copy(color = editorPalette.lineNumber)
-  val gutter = gutterWidth(state.text, numberStyle)
+  val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
   val completions by rememberCellCompletions(state, focused, completionsAt)
   // The code a popup was already answered for, so accepting or dismissing one does not
   // immediately re-offer against the very text it just produced.

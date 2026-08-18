@@ -45,6 +45,8 @@ fun MarkdownCell(
   input: FocusedCellInput? = null,
   /** Whether this cell's editor was asked for - see [EditorUiState.markdownTakingCaret]. */
   takesCaret: Boolean = false,
+  /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
+  lineNumbersShown: Boolean = true,
 ) {
   if (!rendered) {
     MarkdownCellField(
@@ -53,6 +55,7 @@ fun MarkdownCell(
       modifier = modifier,
       input = input,
       takesCaret = takesCaret,
+      lineNumbersShown = lineNumbersShown,
     )
     return
   }

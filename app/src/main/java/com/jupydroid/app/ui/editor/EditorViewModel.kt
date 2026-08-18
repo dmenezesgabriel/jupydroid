@@ -130,6 +130,22 @@ class EditorViewModel(
   }
 
   /**
+   * `notebook:toggle-all-cell-line-numbers`, from the notebook's View menu.
+   *
+   * Neither a cell edit nor a kernel act, so it is here rather than on [edits] or [kernel]: it
+   * changes how the document is drawn and nothing the document holds. No save is scheduled, which
+   * is the parity point - `toggleAllLineNumbers` writes `notebook.editorConfig` and never the
+   * model (`packages/notebook/src/actions.tsx:1792-1812`).
+   *
+   * ```
+   * viewModel.toggleLineNumbers()
+   * ```
+   */
+  fun toggleLineNumbers() {
+    _uiState.update { it.copy(lineNumbersShown = !it.lineNumbersShown) }
+  }
+
+  /**
    * Retitles the notebook, from the app bar.
    *
    * The dialog decides *whether* to rename - it reports nothing for a blank or unchanged title -

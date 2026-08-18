@@ -149,6 +149,8 @@ fun EditorScreen(
           onRedo = viewModel.edits::redo,
           onBack = onBack,
           onSetAllHeadingsCollapsed = viewModel.edits::setAllHeadingsCollapsed,
+          lineNumbersShown = state.lineNumbersShown,
+          onToggleLineNumbers = viewModel::toggleLineNumbers,
         )
       }
     },
@@ -274,6 +276,9 @@ private fun EditorContent(
             // Only ever non-zero on a collapsed heading, which is the reference's own condition for
             // drawing the row at all (`packages/cells/src/widget.ts:2424-2427`).
             hiddenBelow = if (cell.headingCollapsed) state.headingSectionOf(cell.id).size else 0,
+            // One flag for the whole notebook and all three cell types, which is what the command
+            // is: `toggleAllLineNumbers` writes code, markdown and raw together.
+            lineNumbersShown = state.lineNumbersShown,
             cellInput = cellInput,
           )
         }
@@ -307,6 +312,8 @@ private fun EditorCell(
   onMarkdownEditRequested: () -> Unit,
   /** How many cells this heading is hiding, or 0 when it is hiding none - see [HiddenCellsRow]. */
   hiddenBelow: Int,
+  /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
+  lineNumbersShown: Boolean,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
@@ -379,6 +386,7 @@ private fun EditorCell(
             onSourceEdited = onSourceEdited,
             completionsAt = completionsAt,
             input = cellInput,
+            lineNumbersShown = lineNumbersShown,
             modifier = Modifier
               .fillMaxWidth()
               .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
@@ -393,6 +401,7 @@ private fun EditorCell(
             onSourceEdited = onSourceEdited,
             input = cellInput,
             takesCaret = markdownTakesCaret,
+            lineNumbersShown = lineNumbersShown,
             modifier = Modifier.fillMaxWidth(),
           )
 
@@ -402,6 +411,7 @@ private fun EditorCell(
             state = field,
             onSourceEdited = onSourceEdited,
             input = cellInput,
+            lineNumbersShown = lineNumbersShown,
             modifier = Modifier
               .fillMaxWidth()
               .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
@@ -421,69 +431,6 @@ private fun EditorCell(
       HiddenCellsRow(count = hiddenBelow, onExpand = { act(CellAction.ToggleHeadingCollapse) })
     }
   }
-}
-
-/** What each output kind becomes on screen is [RenderedOutput]'s decision, not this one's. */
-@Composable
-private fun CellOutputs(outputs: List<CellOutput>, hidden: Boolean, onExpand: () -> Unit) {
-  val rendered = outputs.mapNotNull { it.render() }
-  // Nothing to fold when there is nothing to show, so an empty cell looks the same either way.
-  if (rendered.isEmpty()) return
-  Spacer(modifier = Modifier.height(4.dp))
-  if (hidden) {
-    CollapsedCell(rendered.collapsedPreview(), COLLAPSED_OUTPUTS, onExpand)
-    return
-  }
-  Column(modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Cell output" }) {
-    rendered.forEach { output ->
-      when (output) {
-        is RenderedOutput.Text -> OutputText(output)
-        is RenderedOutput.Image -> OutputImage(output)
-        // The same renderer a markdown cell uses: `text/html` parses to the same blocks.
-        is RenderedOutput.Document -> RichText(output.blocks, Modifier.fillMaxWidth())
-      }
-    }
-  }
-}
-
-@Composable
-private fun OutputText(output: RenderedOutput.Text) {
-  if (!output.isError) {
-    Text(
-      text = output.text,
-      style = MaterialTheme.typography.bodySmall,
-      fontFamily = FontFamily.Monospace,
-      color = MaterialTheme.colorScheme.onSurface,
-    )
-    return
-  }
-  // A traceback is long and needs to be findable at a glance, so it gets its own tinted
-  // block rather than only a colour that a monospace wall of text swallows.
-  Text(
-    text = output.text,
-    style = MaterialTheme.typography.bodySmall,
-    fontFamily = FontFamily.Monospace,
-    color = MaterialTheme.colorScheme.onErrorContainer,
-    modifier = Modifier
-      .fillMaxWidth()
-      .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.small)
-      .padding(8.dp),
-  )
-}
-
-@Composable
-private fun OutputImage(output: RenderedOutput.Image) {
-  // Decoded here rather than in RenderedOutput so that stays free of Android types and
-  // unit-testable; remembered by content so scrolling does not re-decode every frame.
-  val bitmap = remember(output) {
-    BitmapFactory.decodeByteArray(output.png, 0, output.png.size)?.asImageBitmap()
-  } ?: return
-  Image(
-    bitmap = bitmap,
-    contentDescription = "Cell image output",
-    modifier = Modifier.fillMaxWidth(),
-    contentScale = ContentScale.Fit,
-  )
 }
 
 @Composable

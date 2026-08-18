@@ -72,6 +72,10 @@ fun EditorTopBar(
   onBack: () -> Unit,
   /** `notebook:collapse-all-headings` / `expand-all-headings` - see [ViewMenu]. */
   onSetAllHeadingsCollapsed: (Boolean) -> Unit = {},
+  /** Whether the cells are drawing their gutters, which is what the View row is named from. */
+  lineNumbersShown: Boolean = true,
+  /** `notebook:toggle-all-cell-line-numbers` - see [ViewMenu]. */
+  onToggleLineNumbers: () -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -90,7 +94,11 @@ fun EditorTopBar(
     },
     actions = {
       UndoRedo(canUndo, canRedo, onUndo, onRedo)
-      ViewMenu(onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed)
+      ViewMenu(
+        onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed,
+        lineNumbersShown = lineNumbersShown,
+        onToggleLineNumbers = onToggleLineNumbers,
+      )
     },
   )
 
@@ -165,7 +173,11 @@ private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onR
  * asking to be understood.
  */
 @Composable
-private fun ViewMenu(onSetAllHeadingsCollapsed: (Boolean) -> Unit) {
+private fun ViewMenu(
+  onSetAllHeadingsCollapsed: (Boolean) -> Unit,
+  lineNumbersShown: Boolean,
+  onToggleLineNumbers: () -> Unit,
+) {
   var open by remember { mutableStateOf(false) }
   Box {
     IconButton(onClick = { open = true }) {
@@ -186,6 +198,13 @@ private fun ViewMenu(onSetAllHeadingsCollapsed: (Boolean) -> Unit) {
           onSetAllHeadingsCollapsed(false)
         },
       )
+      DropdownMenuItem(
+        text = { Text(if (lineNumbersShown) HIDE_LINE_NUMBERS else SHOW_LINE_NUMBERS) },
+        onClick = {
+          open = false
+          onToggleLineNumbers()
+        },
+      )
     }
   }
 }
@@ -195,6 +214,21 @@ internal const val COLLAPSE_ALL_HEADINGS = "Collapse All Headings"
 
 /** `notebook:expand-all-headings` (`:5111`). */
 internal const val EXPAND_ALL_HEADINGS = "Expand All Headings"
+
+/**
+ * `notebook:toggle-all-cell-line-numbers`, as **two** labels rather than one and a check mark.
+ *
+ * The reference has one label - *"Show Line Numbers"* (`index.ts:4406`) - and shows the state as a
+ * toggled menu item, because its View menu is a checkbox list. This app's menus are verb lists
+ * (`COLLAPSE_CODE`/`EXPAND_CODE` in [cellActionItems]), and here that convention is load-bearing:
+ * Android's accessibility tree keeps a `DropdownMenuItem`'s toggled state on a node that carries
+ * no label, so a check mark is a state no Maestro flow can read (`docs/DECISIONS.md`). A label
+ * that flips is one both trees can see.
+ */
+internal const val SHOW_LINE_NUMBERS = "Show line numbers"
+
+/** The same command from the other side - see [SHOW_LINE_NUMBERS]. */
+internal const val HIDE_LINE_NUMBERS = "Hide line numbers"
 
 @Composable
 private fun RenameableTitle(title: String, onClick: () -> Unit) {

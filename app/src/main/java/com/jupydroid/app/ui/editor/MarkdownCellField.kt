@@ -62,6 +62,8 @@ fun MarkdownCellField(
    * leaves the caret where it is.
    */
   takesCaret: Boolean = false,
+  /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
+  lineNumbersShown: Boolean = true,
 ) {
   val styles = syntaxStyles()
   val caret = remember { FocusRequester() }
@@ -70,7 +72,7 @@ fun MarkdownCellField(
   val empty by remember { derivedStateOf { state.text.isEmpty() } }
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
   val numberStyle = markdownSourceStyle().copy(color = editorPalette.lineNumber)
-  val gutter = gutterWidth(state.text, numberStyle)
+  val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
 
   reportCellEdits(state, onSourceEdited)
   // The row is on screen in edit mode whatever the cell is, so a markdown cell has to be reachable
