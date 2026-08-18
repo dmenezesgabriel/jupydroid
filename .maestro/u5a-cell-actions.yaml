@@ -34,9 +34,17 @@ appId: com.jupydroid.app
 - tapOn: "Cell menu Change to markdown"
 - waitForAnimationToEnd:
     timeout: 5000
-# It is markdown now, so it renders rather than showing a code panel.
-- assertVisible: "Rendered markdown"
-- takeScreenshot: 02-changed-to-markdown
+# It is markdown now - the header says so, where it used to say `[ ]`.
+#
+# **And it is showing its source rather than rendered prose**, which is where this assertion
+# changed at P2e-3. It read `assertVisible: "Rendered markdown"`, and that was the app's behaviour
+# and not the reference's: `changeCellType` ends by fetching the new widget and unrendering it
+# (`packages/notebook/src/actions.tsx:3308-3312`), so a cell you have just converted shows the text
+# you converted rather than hiding it behind prose. The flow was asserting the defect.
+- assertVisible: "markdown"
+- assertNotVisible: "Rendered markdown"
+- assertVisible: "(?s).*beta = 2.*"
+- takeScreenshot: 02-changed-to-markdown-and-left-open
 # Merge it back up into the first. The *first* cell is code, but the merge is invoked from the
 # second, and the cell you invoke it from decides the type - so the result is markdown.
 - tapOn:
@@ -51,6 +59,10 @@ appId: com.jupydroid.app
 # Asserted as three separate claims rather than one regex over both sources: the merged cell is
 # markdown and therefore *rendered*, so its two paragraphs are two Text nodes and no single node
 # contains both. A `(?s).*alpha.*beta.*` match looked right and could never have passed.
+#
+# **Rendered, even though the cell it was invoked from was open for editing** - a merge mints a new
+# id (`actions.tsx` inserts a model with no `id` field), and being-edited is keyed by id, so what
+# comes out is a cell nobody has opened. Which is why the assertions below survived P2e-3 unchanged.
 - assertVisible: "alpha = 1"
 - assertVisible: "beta = 2"
 # And no code cell is left: `[ ]` is the bracket only a code cell draws, and the first cell had
