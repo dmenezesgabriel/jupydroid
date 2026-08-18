@@ -22,6 +22,27 @@ import org.junit.runner.RunWith
 class MarkdownCellTest {
   @get:Rule val compose = createComposeRule()
 
+  /**
+   * `toc:display-numbering` puts the number **in the document**, which is what that command's own
+   * label promises - the reference writes it into the rendered heading itself
+   * (`packages/notebook/src/toc.ts:733-748`), not only into the panel.
+   */
+  @Test
+  fun aNumberedHeadingCarriesItsNumberInTheDocument() {
+    compose.setContent {
+      MarkdownCell(
+        rememberTextFieldState("## Results"),
+        "## Results",
+        rendered = true,
+        {},
+        {},
+        headingPrefix = "1.2. ",
+      )
+    }
+
+    compose.onNodeWithText("1.2. Results").assertIsDisplayed()
+  }
+
   @Test
   fun rendersTheMarkdownRatherThanItsSource() {
     compose.setContent { MarkdownCell(rememberTextFieldState("## Results"), "## Results", rendered = true, {}, {}) }

@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import com.jupydroid.app.markdown.MarkdownDocument
+import com.jupydroid.app.markdown.withHeadingNumbered
 
 /** Named so a flow can tell the rendered cell apart from the field that edits it. */
 internal const val RENDERED_MARKDOWN = "Rendered markdown"
@@ -47,6 +48,12 @@ fun MarkdownCell(
   takesCaret: Boolean = false,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /**
+   * `toc:display-numbering`'s answer for this cell's heading, or `""`. **In the document** and not
+   * only in the panel, which is what that command's own label promises - the reference writes it
+   * into the rendered heading too (`packages/notebook/src/toc.ts:733-748`).
+   */
+  headingPrefix: String = "",
 ) {
   if (!rendered) {
     MarkdownCellField(
@@ -59,7 +66,9 @@ fun MarkdownCell(
     )
     return
   }
-  val blocks = remember(source) { MarkdownDocument.parse(source) }
+  val blocks = remember(source, headingPrefix) {
+    MarkdownDocument.parse(source).withHeadingNumbered(headingPrefix)
+  }
   val openEditor = modifier
     .fillMaxWidth()
     .clickable(onClickLabel = "Edit markdown") { onEditRequested() }

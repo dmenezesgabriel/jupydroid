@@ -1,0 +1,72 @@
+appId: com.jupydroid.app
+---
+# P2h-5: `toc:display-numbering` and `toc:display-h1-numbering`.
+#
+# The claim the reference's own label makes is the one worth proving: *"Show heading number in the
+# **document**"* (`packages/toc-extension/src/index.ts:113`). The number goes on the notebook's
+# rendered heading as well as on the table of contents' row
+# (`packages/notebook/src/toc.ts:733-748`), so a flow that only checked the panel would pass over
+# the half the label promises.
+#
+# **WIDE WINDOW**: the pane is where both halves are on screen together, which is what makes the
+# "and the document too" assertion a single screenshot rather than two.
+#
+# Seeded by scripts/p2h-5-heading-numbers-driver.sh; the setting is app-wide and persisted, so this
+# flow puts it back at the end - `reset_notebooks` clears editor-settings.json for the same reason.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Heading Sections.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "Notes before any heading."
+    timeout: 30000
+- tapOn: "View actions"
+- tapOn: "Show table of contents"
+# Nothing is numbered until it is asked for - `numberHeaders` is false in the schema.
+- assertVisible: "Table of contents Chapter one"
+- assertNotVisible: "1. Chapter one"
+- takeScreenshot: 01-unnumbered
+- tapOn: "View actions"
+- tapOn: "Show heading numbers"
+# **Both halves.** The panel's row and the notebook's own rendered heading, on one screen.
+- assertVisible: "1. Chapter one"
+- assertVisible: "1.1. Part A"
+- takeScreenshot: 02-numbered-in-the-list-and-the-document
+# The first-level row appears only once there are numbers for it to change.
+- tapOn: "View actions"
+- assertVisible: "Skip top-level heading numbers"
+- tapOn: "Skip top-level heading numbers"
+# With the top level left out, an H1 has no number at all and its children count from one.
+- assertNotVisible: "1. Chapter one"
+- assertVisible: "1. Part A"
+- takeScreenshot: 03-top-level-left-out
+- tapOn: "View actions"
+- tapOn: "Number top-level headings"
+- assertVisible: "1.1. Part A"
+- takeScreenshot: 04-top-level-back
+# Persisted and app-wide, which is what makes it a setting rather than a view state: leave the
+# document first, because stopApp is a force-stop and would test the save debounce instead.
+- tapOn: "Back to notebooks"
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Heading Sections.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "1. Chapter one"
+    timeout: 30000
+- takeScreenshot: 05-still-numbered-after-a-restart
+# Put it back, so a later flow on this device is not typing against a setting nobody chose.
+- tapOn: "View actions"
+- tapOn: "Hide heading numbers"
+- assertNotVisible: "1. Chapter one"

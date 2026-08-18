@@ -56,6 +56,8 @@ fun TableOfContentsPane(
   onToggleCollapsed: (String) -> Unit = {},
   /** `toc:toggle-collapse`, which is Collapse All and Expand All under one control. */
   onToggleAllCollapsed: () -> Unit = {},
+  /** `toc:display-numbering` / `toc:display-h1-numbering` - see [tocPrefixes]. */
+  numbering: TocNumbering = TocNumbering(),
   modifier: Modifier = Modifier,
 ) {
   Row(modifier = modifier.fillMaxHeight()) {
@@ -72,7 +74,7 @@ fun TableOfContentsPane(
       HorizontalDivider()
       Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
         TableOfContentsRows(
-          rows = headings.tocRows(collapsed),
+          rows = headings.tocRows(collapsed, numbering),
           onChoose = onHeadingSelected,
           onToggleCollapsed = onToggleCollapsed,
         )

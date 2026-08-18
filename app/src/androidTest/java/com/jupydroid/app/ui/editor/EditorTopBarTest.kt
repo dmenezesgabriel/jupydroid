@@ -289,6 +289,51 @@ class EditorTopBarTest {
     compose.onNodeWithText(HIDE_TABLE_OF_CONTENTS).assertIsDisplayed()
   }
 
+  // --- toc:display-numbering / display-h1-numbering (P2h-5) --------------------------------
+
+  @Test
+  fun theViewMenuOffersToNumberTheHeadings() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(SHOW_HEADING_NUMBERS).performClick()
+
+    compose.runOnIdle { assertEquals(1, numberingToggles) }
+  }
+
+  @Test
+  fun withNumbersOnTheRowOffersToTakeThemAway() {
+    showTopBar(tocNumbering = TocNumbering(numberHeaders = true))
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(HIDE_HEADING_NUMBERS).assertIsDisplayed()
+  }
+
+  /**
+   * The first-level row is the reference's own `isEnabled` read through this app's rule for a
+   * control that would do nothing: with nothing numbered, both of its states look identical.
+   */
+  @Test
+  fun theTopLevelRowIsOfferedOnlyWhileSomethingIsNumbered() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(HIDE_TOP_LEVEL_NUMBER).assertDoesNotExist()
+    compose.onNodeWithText(SHOW_TOP_LEVEL_NUMBER).assertDoesNotExist()
+  }
+
+  @Test
+  fun theTopLevelRowFlipsWithItsOwnState() {
+    showTopBar(tocNumbering = TocNumbering(numberHeaders = true, numberingH1 = true))
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(HIDE_TOP_LEVEL_NUMBER).performClick()
+
+    compose.runOnIdle { assertEquals(1, numberingH1Toggles) }
+  }
+
   private val renamed = mutableListOf<String>()
   private var undos = 0
   private var redos = 0
@@ -297,6 +342,8 @@ class EditorTopBarTest {
   private var autoClosingBracketsToggles = 0
   private val tableOfContentsSelections = mutableListOf<String>()
   private var tableOfContentsPaneToggles = 0
+  private var numberingToggles = 0
+  private var numberingH1Toggles = 0
 
   private fun showTopBar(
     canUndo: Boolean = false,
@@ -306,6 +353,7 @@ class EditorTopBarTest {
     tableOfContentsHeadings: List<TocHeading> = emptyList(),
     tableOfContentsPresentation: TocPresentation = TocPresentation.OVERLAY,
     tableOfContentsPaneOpen: Boolean = false,
+    tocNumbering: TocNumbering = TocNumbering(),
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -327,6 +375,9 @@ class EditorTopBarTest {
           tableOfContentsPresentation = tableOfContentsPresentation,
           tableOfContentsPaneOpen = tableOfContentsPaneOpen,
           onToggleTableOfContentsPane = { tableOfContentsPaneToggles++ },
+          tocNumbering = tocNumbering,
+          onToggleTocNumbering = { numberingToggles++ },
+          onToggleTocNumberingH1 = { numberingH1Toggles++ },
         )
       }
     }

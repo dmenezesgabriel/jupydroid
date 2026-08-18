@@ -186,6 +186,15 @@ fun EditorScreen(
           tableOfContentsPresentation = tocPresentation,
           tableOfContentsPaneOpen = showTocPane,
           onToggleTableOfContentsPane = { tocPaneOpen = !tocPaneOpen },
+          tocNumbering = editorSettings.tocNumbering(),
+          onToggleTocNumbering = {
+            val flipped = editorSettings.copy(tocNumberHeaders = !editorSettings.tocNumberHeaders)
+            applicationScope.launch { editorSettingsRepository.update(flipped) }
+          },
+          onToggleTocNumberingH1 = {
+            val flipped = editorSettings.copy(tocNumberingH1 = !editorSettings.tocNumberingH1)
+            applicationScope.launch { editorSettingsRepository.update(flipped) }
+          },
         )
       }
     },
@@ -245,6 +254,7 @@ fun EditorScreen(
           onMarkdownEditRequested = viewModel::markdownEditRequested,
           cellInput = cellInput,
           autoClosingBrackets = editorSettings.autoClosingBrackets,
+          tocNumbering = editorSettings.tocNumbering(),
           listState = listState,
           modifier = Modifier.weight(1f),
         )
@@ -256,6 +266,7 @@ fun EditorScreen(
             collapsed = tocFolds.collapsed,
             onToggleCollapsed = tocFolds::toggle,
             onToggleAllCollapsed = { tocFolds.toggleAll(state.tableOfContentsHeadings) },
+            numbering = editorSettings.tocNumbering(),
           )
         }
       }
@@ -277,6 +288,8 @@ private fun EditorContent(
   cellInput: FocusedCellInput,
   /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
   autoClosingBrackets: Boolean,
+  /** `toc:display-numbering` / `toc:display-h1-numbering` - see [MarkdownCell]. */
+  tocNumbering: TocNumbering,
   /** Hoisted so P2h-2's click-to-jump can drive the same list a tap in the table of contents. */
   listState: LazyListState,
   modifier: Modifier = Modifier,
@@ -295,6 +308,12 @@ private fun EditorContent(
       // Walks the whole notebook, so it is computed once for the list rather than per item -
       // asking inside the item lambda would make drawing a notebook quadratic in its length.
       val onScreen = state.cellsOnScreen
+      // Numbered once for the whole notebook rather than per cell, for the reason the two above
+      // are: the numbers are the *document's* - one running counter over every heading - so asking
+      // inside the item lambda would be both wrong and quadratic.
+      val headingPrefixes = state.tableOfContentsHeadings.let { headings ->
+        headings.map { it.cellId }.zip(headings.tocPrefixes(tocNumbering)).toMap()
+      }
       LazyColumn(state = listState, modifier = modifier.fillMaxSize()) {
         // contentType as well as key: a code cell and a markdown cell compose to very different
         // trees, and telling the list so lets it reuse each kind against its own pool instead of
@@ -337,6 +356,7 @@ private fun EditorContent(
             // One flag for the whole notebook and all three cell types, which is what the command
             // is: `toggleAllLineNumbers` writes code, markdown and raw together.
             lineNumbersShown = state.lineNumbersShown,
+            headingPrefix = headingPrefixes[cell.id].orEmpty(),
             autoClosingBrackets = autoClosingBrackets,
             cellInput = cellInput,
           )

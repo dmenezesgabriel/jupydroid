@@ -887,6 +887,50 @@ and dismissed in one gesture; the pane is the only one that outlives a jump. So 
 takes a null `onToggleCollapsed` there and draws the spacer a disclosure would have occupied, which
 is what keeps both surfaces' rows lined up at the same rank.
 
+### Heading numbers go in the document, not only in the panel
+
+`toc:display-numbering`'s own label says so - *"Show heading number in the document"*
+(`packages/toc-extension/src/index.ts:113`) - and the reference means it literally: `addPrefix`
+writes the computed prefix into the **rendered heading's own node**
+(`packages/notebook/src/toc.ts:733-748`), so the number appears on the notebook's markdown cell as
+well as on the ToC row. A toggle that numbered the list alone would be a control whose label lies,
+which is why P2h-5 was split - the counter shipped first with no surface at all, and the two
+commands only once both renderings existed. Measured on one screen:
+`evidence/p2h-5-heading-numbers/02-numbered-in-the-list-and-the-document.png`.
+
+**The numbers are the document's, so they are computed over every heading at once.** `filterHeadings`
+threads one `levels` array through every cell (`packages/toc/src/utils/common.ts:29-60`), which is
+why `tocPrefixes` takes the whole list and why `EditorContent` computes the map once rather than per
+cell. Two consequences: a folded-away entry **still counts**, and the prefix a markdown cell draws
+is handed to it rather than derived from its own source.
+
+**Three of `getPrefix`'s rules contradict a first guess** (`common.ts:157-196`): descending a level
+opens a counter at 1 and **returning drops every deeper level** (`levels.splice(level)`); a skipped
+level is counted as `0` rather than closed up, so an H1 followed by an H3 reads `1.0.1.`; and with
+`numberingH1` off the top level leaves the string entirely (`levels.slice(1)`) while a heading with
+nothing open above it gets no prefix at all.
+
+**Two pieces of the reference are deliberately not carried, and a mutation test is what said so
+rather than judgement.** Its loop zeroing the levels between the last heading and this one is
+redundant here - `setLevel` pads with zeroes and `levels.size` is always the previous heading's
+level, so those slots never exist to hold anything else - and
+`level === highestLevel ? baseNumbering : 1` collapses to `1`, because `baseNumbering` is a schema
+setting with no command whose default is 1. Deleting either killed no test, which is what sent us
+looking; both are recorded in `TocNumbering.kt` so P6c can put the second one back with the setting.
+
+**`maximalDepth` is not implemented, and that is a decision rather than an omission.** The
+reference's default of 4 (`toc-extension/schema/registry.json:32-69`) means `filterHeadings` drops
+H5 and H6 from the ToC entirely. Here an entry is 1:1 with a cell, so dropping one would make that
+cell unreachable from the panel with nothing on screen to explain it - and with no settings surface
+until P6c the omission could not be undone. Revisit when there is somewhere to change it.
+
+**Both rows live on the View menu, where the reference puts them on the ToC panel's own toolbar**
+(`toc-extension/src/index.ts:260-306`). That is the only surface the two presentations share: a
+phone gets the overlay, which has no toolbar to hang a control from, and a 280dp pane header has no
+room for a fourth. **The first-level row is offered only while something is numbered**, which is
+that command's own `isEnabled` read through this app's rule - with numbering off, both of its states
+look identical on screen.
+
 ---
 
 ## Editor

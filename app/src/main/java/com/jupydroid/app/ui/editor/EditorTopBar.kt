@@ -96,6 +96,12 @@ fun EditorTopBar(
   tableOfContentsPaneOpen: Boolean = false,
   /** `toc:show-panel` in [TocPresentation.PANE], where the row is a toggle rather than a picker. */
   onToggleTableOfContentsPane: () -> Unit = {},
+  /** Whether headings carry their number - what the two numbering rows are named from. */
+  tocNumbering: TocNumbering = TocNumbering(),
+  /** `toc:display-numbering`. */
+  onToggleTocNumbering: () -> Unit = {},
+  /** `toc:display-h1-numbering`. */
+  onToggleTocNumberingH1: () -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -125,6 +131,9 @@ fun EditorTopBar(
         tableOfContentsPresentation = tableOfContentsPresentation,
         tableOfContentsPaneOpen = tableOfContentsPaneOpen,
         onToggleTableOfContentsPane = onToggleTableOfContentsPane,
+        tocNumbering = tocNumbering,
+        onToggleTocNumbering = onToggleTocNumbering,
+        onToggleTocNumberingH1 = onToggleTocNumberingH1,
       )
     },
   )
@@ -211,6 +220,9 @@ private fun ViewMenu(
   tableOfContentsPresentation: TocPresentation,
   tableOfContentsPaneOpen: Boolean,
   onToggleTableOfContentsPane: () -> Unit,
+  tocNumbering: TocNumbering,
+  onToggleTocNumbering: () -> Unit,
+  onToggleTocNumberingH1: () -> Unit,
 ) {
   var open by remember { mutableStateOf(false) }
   // Its own flag rather than reusing [open]: picking "Table of contents" replaces this menu with
@@ -261,6 +273,25 @@ private fun ViewMenu(
           if (paneMode) onToggleTableOfContentsPane() else tocOpen = true
         },
       )
+      DropdownMenuItem(
+        text = { Text(if (tocNumbering.numberHeaders) HIDE_HEADING_NUMBERS else SHOW_HEADING_NUMBERS) },
+        onClick = {
+          open = false
+          onToggleTocNumbering()
+        },
+      )
+      // Only while there are numbers for it to change, which is the reference's own `isEnabled`
+      // read through this app's rule for a control that would do nothing: it gates the row on the
+      // option being supported, and here "unsupported" is simply nothing being numbered.
+      if (tocNumbering.numberHeaders) {
+        DropdownMenuItem(
+          text = { Text(if (tocNumbering.numberingH1) HIDE_TOP_LEVEL_NUMBER else SHOW_TOP_LEVEL_NUMBER) },
+          onClick = {
+            open = false
+            onToggleTocNumberingH1()
+          },
+        )
+      }
     }
     // Same Box as "View actions", so [TableOfContentsPanel]'s own `DropdownMenu` anchors to the
     // button that opened it rather than to wherever this composable happens to sit in the screen.
@@ -271,6 +302,7 @@ private fun ViewMenu(
       headings = tableOfContentsHeadings,
       onHeadingSelected = onTableOfContentsHeadingSelected,
       onDismiss = { tocOpen = false },
+      numbering = tocNumbering,
     )
   }
 }
@@ -323,6 +355,33 @@ internal const val SHOW_TABLE_OF_CONTENTS = "Show table of contents"
  * one string.
  */
 internal const val HIDE_TABLE_OF_CONTENTS = "Hide table of contents"
+
+/**
+ * `toc:display-numbering`, whose own label is *"Show heading number in the document"*
+ * (`packages/toc-extension/src/index.ts:113`) - and "in the document" is the load-bearing half:
+ * the number goes on the notebook's rendered heading as well as on the panel's row
+ * (`packages/notebook/src/toc.ts:733-748`). Two labels rather than one and a check mark, for
+ * [SHOW_LINE_NUMBERS]'s reason.
+ *
+ * **Adaptation:** the reference puts this on the ToC panel's own toolbar (`:260-306`). Here it is
+ * on the View menu, because that is the only surface both presentations of the ToC share - a phone
+ * gets the overlay, which has no toolbar to hang it from, and a 280dp pane header has no room for
+ * a fourth control.
+ */
+internal const val SHOW_HEADING_NUMBERS = "Show heading numbers"
+
+/** The same command from the other side - see [SHOW_HEADING_NUMBERS]. */
+internal const val HIDE_HEADING_NUMBERS = "Hide heading numbers"
+
+/**
+ * `toc:display-h1-numbering`, *"Show first-level heading number"* (`index.ts:95`). Offered only
+ * while something is numbered, which is that command's own `isEnabled` read through this app's
+ * rule: with numbering off, both states of this row look identical on screen.
+ */
+internal const val SHOW_TOP_LEVEL_NUMBER = "Number top-level headings"
+
+/** The same command from the other side - see [SHOW_TOP_LEVEL_NUMBER]. */
+internal const val HIDE_TOP_LEVEL_NUMBER = "Skip top-level heading numbers"
 
 @Composable
 private fun RenameableTitle(title: String, onClick: () -> Unit) {

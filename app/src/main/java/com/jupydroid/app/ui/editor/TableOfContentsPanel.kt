@@ -56,6 +56,8 @@ fun TableOfContentsPanel(
   headings: List<TocHeading>,
   onHeadingSelected: (String) -> Unit,
   onDismiss: () -> Unit,
+  /** `toc:display-numbering` / `toc:display-h1-numbering` - see [tocPrefixes]. */
+  numbering: TocNumbering = TocNumbering(),
   presentation: CellActionPresentation = currentCellActionPresentation(),
 ) {
   if (!expanded) return
@@ -64,7 +66,7 @@ fun TableOfContentsPanel(
     onDismiss()
   }
   // Nothing is folded here - see [TableOfContentsRows] for why the overlay has no disclosures.
-  val rows = headings.tocRows(collapsed = emptySet())
+  val rows = headings.tocRows(collapsed = emptySet(), numbering = numbering)
   when (presentation) {
     CellActionPresentation.MENU -> TableOfContentsMenu(rows, onDismiss, choose)
     CellActionPresentation.SHEET -> TableOfContentsSheet(rows, onDismiss, choose)
@@ -118,7 +120,7 @@ internal fun TableOfContentsRows(
   }
   rows.forEach { row ->
     DropdownMenuItem(
-      text = { Text(row.heading.text) },
+      text = { Text(row.prefix + row.heading.text) },
       onClick = { onChoose(row.heading.cellId) },
       // The disclosure goes where the indent would have been, so a row that owns something and one
       // that does not still line up at the same rank.

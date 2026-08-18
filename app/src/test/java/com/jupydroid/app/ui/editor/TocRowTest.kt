@@ -93,6 +93,35 @@ class TocRowTest {
     )
   }
 
+  // --- the numbers on a row (P2h-5) --------------------------------------------------------
+
+  @Test
+  fun aRowCarriesItsNumberWhenNumberingIsOn() {
+    val rows = headings.tocRows(collapsed = emptySet(), numbering = TocNumbering(numberHeaders = true))
+
+    assertEquals(listOf("1. ", "1.1. ", "1.1.1. ", "1.2. ", "2. "), rows.map { it.prefix })
+  }
+
+  @Test
+  fun withNumberingOffARowCarriesNoNumber() {
+    assertEquals(List(5) { "" }, headings.tocRows(collapsed = emptySet()).map { it.prefix })
+  }
+
+  /**
+   * **Folding does not renumber.** The prefixes are the document's, computed over every heading,
+   * so what a fold hides still counts - which is also why the reference computes them in the model
+   * and folds in the view.
+   */
+  @Test
+  fun aFoldedAwayHeadingStillCounts() {
+    val numbering = TocNumbering(numberHeaders = true)
+
+    val rows = headings.tocRows(collapsed = setOf("h1"), numbering = numbering)
+
+    assertEquals(listOf("1. ", "2. "), rows.map { it.prefix })
+    assertEquals(listOf("h1", "h1b"), rows.map { it.heading.cellId })
+  }
+
   // --- toc:toggle-collapse -----------------------------------------------------------------
 
   /**

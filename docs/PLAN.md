@@ -369,14 +369,16 @@ for every flow run after it on the same device. `reset_notebooks` clears
 `editor-settings.json` now, beside `recent-documents.json`, on the same repeatability reasoning
 `check_driver_isolation.py` already enforces for notebooks.
 
-**P2h has shipped its first four sub-steps, and the third departed from what this file said.**
+**P2h has shipped its first five sub-steps, and the third departed from what this file said.**
 `toc:show-panel` is in, on two surfaces: a `TableOfContentsPane` beside the notebook where the
 **editor** is at least 840dp wide, and the `TableOfContentsPanel` menu-or-sheet everywhere else.
 Tapping a heading jumps the notebook to that cell; the pane stays open across the jump, which is
 the whole of what it buys over the overlay. `toc:toggle-collapse` is in too - an entry folds the
 subtree it owns, one control does the whole tree, and neither touches the notebook's own section
-folds. Evidence is `evidence/p2h-2-table-of-contents/` through
-`evidence/p2h-4-table-of-contents-folds/`.
+folds. `toc:display-numbering` and `toc:display-h1-numbering` are in as well, and they number the
+**notebook's own headings** as well as the panel's rows, which is what the reference's own label
+promises. Evidence is `evidence/p2h-2-table-of-contents/` through
+`evidence/p2h-5-heading-numbers/`.
 
 **The third pane this file promised does not exist, and reading the library is what settled it.**
 `ListDetailSceneStrategy.extraPane()` is a separate `NavEntry`, and every entry here owns its own
@@ -398,10 +400,14 @@ Three costs the plan did not name, each recorded there rather than here:
   from the same place: a control that cannot change anything is one this app does not draw. Collapse
   All marks only the entries that own something, and its control is absent entirely in a notebook
   with no nesting.
+- **P2h-5 was two commits, because its label made a promise the panel alone could not keep.**
+  `numberHeaders` numbers the notebook's rendered headings too, so the counter shipped first with no
+  surface and the toggles only once both renderings existed. Two pieces of the reference's own
+  arithmetic turned out to be unobservable here and were dropped on the evidence of a mutation test
+  rather than kept for symmetry; `maximalDepth` is deliberately still not implemented.
 
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|
-| **P2h-5** | **`toc:display-numbering` / `display-h1-numbering`** | The level-counter in `packages/toc/src/utils/common.ts:157-197` (`getPrefix`), with `numberHeaders` false, `numberingH1` true and `maximalDepth` 4 as the schema's defaults. Persisted app-wide, which is P2g's `EditorSettingsRepository` grown by two booleans rather than a second store — and `reset_notebooks` already clears that file. |
 | **P2h-6** | **`toc:display-outputs-numbering`** | Headings found in a **code cell's HTML/Markdown outputs** (`packages/cells/src/widget.ts:1312-1370`, `CodeCell.getHeadings`, over `getHTMLHeadings`). Last because it is the most expensive and the panel is complete without it; the tablet is its device, since producing such an output needs a real kernel. |
 | **P2i** | **Find and replace** | `documentsearch:{start,startWithReplace,highlightNext,highlightPrevious,end}`; the notebook's provider is `packages/notebook/src/searchprovider.ts` and it defines the ordering, including whether collapsed cells participate. Read it rather than iterating cells. |
 | **P2j** | **Trust and export** | `notebook:trust`, `notebook:export-to-format`. Export is `nbconvert`, already in the rootfs (`nbconvert==7.17.1`, with `mistune`, `bleach`, `pandocfilters`), and lands as a file in the workspace plus a share intent. **Trust is two halves and only one is the server's.** The client half is a *dialog* that warns and then sets `trusted: true` on each cell in the model (`actions.tsx` `trustNotebook`); the signing half is the server's — `ContentsManager.notary = sign.NotebookNotary` and `trust_notebook()` → `mark_cells(nb, True)` + `check_and_sign(nb, path)` (`services/contents/manager.py:116-120,694-706`, over `nbformat/sign.py`). **`check_and_sign` runs on save through the Contents API, which this app bypasses** by writing files directly — so a notebook we write is unsigned and would open untrusted. Decide that before building the dialog: route notebook *saves* through the Contents API, sign in the Space via `nbformat.sign`, or state that trust is inert here. Do **not** re-derive HMAC signing in Kotlin. |

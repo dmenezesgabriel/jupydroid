@@ -134,12 +134,25 @@ class TableOfContentsPaneTest {
     compose.onNodeWithContentDescription(EXPAND_ALL_TOC_ENTRIES).assertDoesNotExist()
   }
 
+  /** The row reads its number, and the entry it names is still how a flow addresses it. */
+  @Test
+  fun anEntryCarriesItsNumberWhenNumberingIsOn() {
+    show(headings, numbering = TocNumbering(numberHeaders = true))
+
+    compose.onNodeWithText("1.1. Part A").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Table of contents Part A").assertIsDisplayed()
+  }
+
   private val selected = mutableListOf<String>()
   private var closes = 0
   private val foldsToggled = mutableListOf<String>()
   private var allFoldsToggled = 0
 
-  private fun show(headings: List<TocHeading>, collapsed: Set<String> = emptySet()) {
+  private fun show(
+    headings: List<TocHeading>,
+    collapsed: Set<String> = emptySet(),
+    numbering: TocNumbering = TocNumbering(),
+  ) {
     compose.setContent {
       JupyterDroidTheme {
         TableOfContentsPane(
@@ -148,6 +161,7 @@ class TableOfContentsPaneTest {
           onHeadingSelected = { selected += it },
           onToggleCollapsed = { foldsToggled += it },
           onToggleAllCollapsed = { allFoldsToggled++ },
+          numbering = numbering,
           onClose = { closes++ },
         )
       }

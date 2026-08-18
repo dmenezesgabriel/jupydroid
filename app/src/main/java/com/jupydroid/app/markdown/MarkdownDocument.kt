@@ -61,8 +61,15 @@ object MarkdownDocument {
    * MarkdownDocument.heading("## Results")  // Heading(level = 2, "Results")
    * ```
    */
-  fun heading(source: String): RichBlock.Heading? =
-    parse(source).filterIsInstance<RichBlock.Heading>().reduceOrNull { lowest, next ->
+  fun heading(source: String): RichBlock.Heading? = heading(parse(source))
+
+  /**
+   * The same reduce over blocks that were parsed already, so a caller that has them does not parse
+   * twice - which is what [withHeadingNumbered] needs to put a number on the *same* heading this
+   * picked.
+   */
+  fun heading(blocks: List<RichBlock>): RichBlock.Heading? =
+    blocks.filterIsInstance<RichBlock.Heading>().reduceOrNull { lowest, next ->
       if (lowest.level <= next.level) lowest else next
     }
 

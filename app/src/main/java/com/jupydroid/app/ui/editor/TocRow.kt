@@ -8,7 +8,13 @@ package com.jupydroid.app.ui.editor
  * and draws a disclosure only where there are children (`packages/toc/src/tocitem.tsx`); these are
  * the two facts that decides, computed rather than stored.
  */
-data class TocRow(val heading: TocHeading, val ownsSection: Boolean, val collapsed: Boolean)
+data class TocRow(
+  val heading: TocHeading,
+  val ownsSection: Boolean,
+  val collapsed: Boolean,
+  /** `toc:display-numbering`'s answer for this entry, or `""` - see [tocPrefixes]. */
+  val prefix: String = "",
+)
 
 /**
  * The rows a table of contents shows, given which of its entries are folded.
@@ -27,7 +33,11 @@ data class TocRow(val heading: TocHeading, val ownsSection: Boolean, val collaps
  * headings.tocRows(collapsed = setOf("chapter-one"))  // the chapter, and nothing under it
  * ```
  */
-fun List<TocHeading>.tocRows(collapsed: Set<String>): List<TocRow> {
+fun List<TocHeading>.tocRows(collapsed: Set<String>, numbering: TocNumbering = TocNumbering()): List<TocRow> {
+  // Numbered over *every* heading and not only the drawn ones: the numbers are the document's, so
+  // what a fold hides still counts. The reference splits it the same way - the model numbers, the
+  // view folds.
+  val prefixes = tocPrefixes(numbering)
   val rows = mutableListOf<TocRow>()
   // The level a fold is hiding *below*, or null while nothing is being hidden. A stack is not
   // needed: a heading at or above this level ends the fold, and if it opens one of its own it
@@ -37,7 +47,7 @@ fun List<TocHeading>.tocRows(collapsed: Set<String>): List<TocRow> {
     if (hidingBelow != null && heading.level > hidingBelow) return@forEachIndexed
     hidingBelow = null
     val folded = heading.cellId in collapsed
-    rows += TocRow(heading, ownsSection = ownsSectionAt(at), collapsed = folded)
+    rows += TocRow(heading, ownsSectionAt(at), collapsed = folded, prefix = prefixes[at])
     if (folded) hidingBelow = heading.level
   }
   return rows

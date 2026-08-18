@@ -1,5 +1,7 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.EditorSettings
+
 /**
  * Whether a table of contents numbers its entries, and whether the top level joins in.
  *
@@ -11,6 +13,12 @@ package com.jupydroid.app.ui.editor
  * yet - see `docs/DECISIONS.md` for what each would change and why neither is invented early.
  */
 data class TocNumbering(val numberHeaders: Boolean = false, val numberingH1: Boolean = true)
+
+/**
+ * The same two settings as this screen reads them. Here rather than on [EditorSettings], because
+ * `domain` may not import `ui` - the guard-tested rule in `docs/architecture.md` §5.
+ */
+fun EditorSettings.tocNumbering() = TocNumbering(tocNumberHeaders, tocNumberingH1)
 
 /**
  * The numbering prefix for each heading, in order and one per heading - `""` where nothing is

@@ -56,6 +56,8 @@ internal fun EditorCell(
   hiddenBelow: Int,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean,
+  /** `toc:display-numbering`'s answer for this cell's heading, or `""` - see [MarkdownCell]. */
+  headingPrefix: String,
   /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
   autoClosingBrackets: Boolean,
   cellInput: FocusedCellInput,
@@ -142,6 +144,7 @@ internal fun EditorCell(
             state = field,
             source = cell.source,
             rendered = markdownRendered,
+            headingPrefix = headingPrefix,
             onEditRequested = onMarkdownEditRequested,
             onSourceEdited = onSourceEdited,
             input = cellInput,
