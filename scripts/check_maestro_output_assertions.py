@@ -44,7 +44,19 @@ import yaml
 
 FLOWS = pathlib.Path(".maestro")
 SCRIPTS = pathlib.Path("scripts")
-RUN_TAPS = ("Run cell", "Run All")
+# Every label in the app that starts cells running, because this gate is blind to any it does not
+# name. `"Run All"` never matched anything: the bar's row reads **"Run all cells"**, and neither of
+# the two shipped strings is a substring of it - so the seven flows that tap it were ungated, and a
+# `Run All` flow asserting its own source would have gone green. Measured rather than reasoned:
+# widening this leaves all 82 flows at zero offences, so it closes a hole and moves no goalposts.
+RUN_TAPS = (
+    "Run cell",
+    "Run all cells",
+    "Run selected cells",
+    "Run All Above Selected Cell",
+    "Run Selected Cell and All Below",
+    "Restart Kernel and Run",
+)
 OUTPUT_SCOPE = 'childOf: {text: "Cell output"}'
 # The one container every output kind lands in, and so the one the fake can always produce.
 GENERIC_OUTPUT_CONTAINER = "Cell output"

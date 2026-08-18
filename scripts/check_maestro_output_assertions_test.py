@@ -76,7 +76,7 @@ class MaestroGateTest(unittest.TestCase):
         helper without teaching the gate about it is exactly how that would have happened, and
         it did - `u4-execution-status` was unchecked until this case existed.
         """
-        offences = self.flow('- tapOn: "Run All"\n- assertVisible: "omega"\n', names_fixture="helper")
+        offences = self.flow('- tapOn: "Run all cells"\n- assertVisible: "omega"\n', names_fixture="helper")
 
         self.assertEqual(1, len(offences), offences)
 
@@ -90,7 +90,7 @@ class MaestroGateTest(unittest.TestCase):
         wrong reason. A path the gate matched but the filesystem does not have is a driver bug
         (usually an unexpanded shell variable), not an absence of fixture.
         """
-        offences = self.flow('- tapOn: "Run All"\n- assertVisible: "omega"\n', fixture=None, names_fixture="missing")
+        offences = self.flow('- tapOn: "Run all cells"\n- assertVisible: "omega"\n', fixture=None, names_fixture="missing")
         self.assertEqual(1, len(offences), offences)
         self.assertIn("not on disk", offences[0])
 
@@ -98,6 +98,20 @@ class MaestroGateTest(unittest.TestCase):
         found = self.flow('- tapOn: "Run cell"\n- assertVisible: "omega"\n')
         self.assertEqual(len(found), 1, found)
         self.assertIn("omega", found[0])
+
+    def test_flags_it_after_a_run_all_which_is_the_label_the_bar_actually_carries(self):
+        """`RUN_TAPS` held "Run All", which is not a substring of the bar's "Run all cells".
+
+        So the seven flows that tap it were outside this gate entirely - the ones most able to go
+        green while proving nothing, since a Run All is what a fake kernel echoes most of.
+        """
+        found = self.flow('- tapOn: "Run all cells"\n- assertVisible: "omega"\n')
+        self.assertEqual(len(found), 1, found)
+
+    def test_flags_it_after_each_of_the_other_run_commands(self):
+        for label in ("Run selected cells", "Run All Above Selected Cell", "Run Selected Cell and All Below"):
+            with self.subTest(label=label):
+                self.assertEqual(1, len(self.flow(f'- tapOn: "{label}"\n- assertVisible: "omega"\n')))
 
     def test_allows_the_same_assertion_before_a_run(self):
         self.assertEqual([], self.flow('- assertVisible: "omega"\n- tapOn: "Run cell"\n'))
@@ -119,7 +133,7 @@ class MaestroGateTest(unittest.TestCase):
         self.assertEqual(len(self.flow(steps)), 1)
 
     def test_ignores_a_run_all_flow_with_no_seeded_fixture(self):
-        self.assertEqual([], self.flow('- tapOn: "Run All"\n- assertVisible: "omega"\n', fixture=None))
+        self.assertEqual([], self.flow('- tapOn: "Run all cells"\n- assertVisible: "omega"\n', fixture=None))
 
     def test_ignores_a_selector_too_short_to_mean_anything(self):
         self.assertEqual([], self.flow('- tapOn: "Run cell"\n- assertVisible: "o"\n'))
