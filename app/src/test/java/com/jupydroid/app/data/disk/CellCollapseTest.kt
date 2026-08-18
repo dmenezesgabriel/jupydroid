@@ -125,6 +125,48 @@ class CellCollapseTest {
     assertTrue(read.outputsHidden)
   }
 
+  // --- the third key, which is a heading hiding its section (P2f) ------------------------
+
+  @Test
+  fun toDomain_readsACollapsedHeading() {
+    val cell = cellOf(
+      """{"cell_type":"markdown","source":"# H","metadata":{"jp-MarkdownHeadingCollapsed":true}}""",
+    )
+
+    assertTrue(cell.headingCollapsed)
+  }
+
+  /** At the top of the metadata, not inside `jupyter` - `MARKDOWN_HEADING_COLLAPSED` (`widget.ts:156`). */
+  @Test
+  fun toDomain_doesNotReadTheHeadingKeyFromInsideJupyter() {
+    val cell = cellOf(
+      """{"cell_type":"markdown","source":"# H","metadata":{"jupyter":{"jp-MarkdownHeadingCollapsed":true}}}""",
+    )
+
+    assertFalse(cell.headingCollapsed)
+  }
+
+  @Test
+  fun toFile_writesACollapsedHeadingAtTheTopOfTheMetadata() {
+    val metadata = headingCell(headingCollapsed = true).metadataOf()
+
+    assertEquals(
+      """{"jp-MarkdownHeadingCollapsed":true}""",
+      Json.encodeToString(JsonObject.serializer(), metadata),
+    )
+  }
+
+  /** Deleted rather than written false, as `headingCollapsed`'s setter does (`widget.ts:2263-2276`). */
+  @Test
+  fun toFile_writesNothingForAnExpandedHeading() {
+    assertEquals("{}", Json.encodeToString(JsonObject.serializer(), headingCell(headingCollapsed = false).metadataOf()))
+  }
+
+  @Test
+  fun roundTrip_keepsACollapsedHeading() {
+    assertTrue(headingCell(headingCollapsed = true).rewritten().headingCollapsed)
+  }
+
   private fun cellOf(json: String): Cell {
     val raw = Json.parseToJsonElement(json) as JsonObject
     return Json.decodeFromJsonElement(CellFile.serializer(), raw).toDomain(raw)
@@ -148,5 +190,12 @@ class CellCollapseTest {
     source = "x = 1",
     sourceHidden = sourceHidden,
     outputsHidden = outputsHidden,
+  )
+
+  private fun headingCell(headingCollapsed: Boolean) = Cell(
+    id = "h1",
+    kind = CellKind.MARKDOWN,
+    source = "# Chapter",
+    headingCollapsed = headingCollapsed,
   )
 }

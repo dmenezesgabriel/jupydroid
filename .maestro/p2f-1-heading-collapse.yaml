@@ -1,0 +1,104 @@
+appId: com.jupydroid.app
+---
+# P2f-1: a heading hides the section under it, and the fold survives the app being killed.
+#
+# A heading owns a **section**, not a cell: `setHeadingCollapse` walks forward from the heading
+# until it meets one of equal or higher level (`packages/notebook/src/actions.tsx:2374-2405`). So
+# collapsing `# Chapter one` takes the `## Part A` under it and everything below that, and stops at
+# `# Chapter two`.
+#
+# The fixture is six cells - two H1s with an H2 nested inside the first - because five of the six
+# assertions below need a *level* difference to mean anything.
+- launchApp
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Heading Collapse.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Collapse.ipynb"
+- extendedWaitUntil:
+    visible: "Chapter one"
+    timeout: 30000
+# The first four cells, which is what fits at 360dp - "Chapter two" and its cell are below the
+# fold, and that is not incidental: the collapse below is what brings them onto the screen, which
+# is a stronger claim than asserting they were already there.
+- assertVisible: "one = 1"
+- assertVisible: "Part A"
+- assertVisible: "part = 2"
+- takeScreenshot: 01-expanded
+# The H2 first, so the H1 below it has something already-collapsed inside it to preserve.
+# index 1 is the second heading in document order - h1, h2, h1b each carry a collapser, and the
+# fixture is short enough that all six cells are on screen at once, so the index is not addressing
+# a cell the list happened to render (`docs/DECISIONS.md`).
+- tapOn:
+    text: "Collapse heading"
+    index: 1
+# `maybeCreateOrUpdateExpandButton`'s own words - `trans._n('%1 cell hidden', …)`
+# (`packages/cells/src/widget.ts:2412-2455`). One, because Part A owns one cell.
+- assertVisible: "1 cell hidden"
+- assertNotVisible: "part = 2"
+- assertVisible: "Part A"
+- takeScreenshot: 02-part-a-collapsed
+# Now the H1. Its section is three cells - the code under it, the H2, and the H2's own cell - which
+# is the forward walk stopping at "Chapter two" rather than at the first heading it meets.
+- tapOn:
+    text: "Collapse heading"
+    index: 0
+- assertVisible: "3 cells hidden"
+- assertNotVisible: "Part A"
+- assertNotVisible: "one = 1"
+# Both were below the fold a moment ago, so this is the section closing and the notebook below it
+# coming up - and it is also where the walk *stopped*: "Chapter two" is a heading of equal level,
+# so it and its cell are outside the section rather than three more cells hidden.
+- assertVisible: "Chapter two"
+- assertVisible: "two = 3"
+- takeScreenshot: 03-chapter-one-collapsed
+# The row is the way back, as it is in the reference: `onclick: this.headingCollapsed = false`.
+- tapOn: "3 cells hidden"
+# **The rule this flow exists for.** Expanding the H1 brings Part A back and leaves Part A's own
+# cell hidden, because Part A is still collapsed on its own account - `setHeadingCollapse`'s
+# `localCollapsed` branch (`actions.tsx:2400-2420`). A first guess expands the whole subtree.
+- assertVisible: "Part A"
+- assertVisible: "one = 1"
+- assertNotVisible: "part = 2"
+- assertVisible: "1 cell hidden"
+- takeScreenshot: 04-sub-heading-stayed-collapsed
+# Collapsed again before the kill, on purpose: the driver dumps the saved file afterwards, and a
+# flow that ended expanded would pass every assertion above while proving nothing was written.
+- tapOn:
+    text: "Collapse heading"
+    index: 0
+- assertVisible: "3 cells hidden"
+# **Closed before it is killed, and the first version of this flow was not** - which cost a red run
+# and was worth it. Writes are debounced by 500 ms (`NotebookSaveDebounce`), and `stopApp` is a
+# `force-stop`: no `onCleared`, so no flush. The collapse two steps up had not reached disk, and the
+# dump proved it - `jp-MarkdownHeadingCollapsed` on Part A, which had a screenshot's worth of time,
+# and nothing on Chapter one. Leaving the notebook is what a user does and what runs the flush, so
+# the kill below tests what it is here to test rather than the length of a timer.
+- tapOn: "Back to notebooks"
+- waitForAnimationToEnd:
+    timeout: 5000
+# stopApp is a real kill, so anything held only in the ViewModel is gone by the relaunch. Only the
+# heading's own flag is persisted (`jp-MarkdownHeadingCollapsed`); which cells are hidden is
+# recomputed from it, which is what this half is really testing.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Heading Collapse.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Collapse.ipynb"
+- extendedWaitUntil:
+    visible: "3 cells hidden"
+    timeout: 30000
+- assertNotVisible: "Part A"
+- assertNotVisible: "one = 1"
+- assertVisible: "Chapter two"
+- takeScreenshot: 05-still-collapsed-after-restart

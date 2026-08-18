@@ -1,9 +1,12 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -148,6 +151,48 @@ class CellHeaderTest {
     assertEquals(1, toggled)
   }
 
+  // --- the heading collapser (P2f-1) -----------------------------------------------------
+
+  /**
+   * Whether there is something visible to press, which is what this suite exists for. The
+   * reference creates its collapser only for `level > 0` (`packages/cells/src/widget.ts:2387-2408`),
+   * so prose and code get none.
+   */
+  @Test
+  fun onlyAHeadingCarriesTheCollapser() {
+    compose.setContent {
+      Column {
+        CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+        CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+        CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+      }
+    }
+
+    compose.onAllNodesWithContentDescription(COLLAPSE_HEADING).assertCountEquals(1)
+  }
+
+  /** The label names what a tap will do, so it is the other word once the section is folded. */
+  @Test
+  fun aCollapsedHeadingOffersToExpandInstead() {
+    compose.setContent {
+      CellHeader(HEADING_CELL.copy(headingCollapsed = true), null, null, false, null, {}, {}, {}, {})
+    }
+
+    compose.onNodeWithContentDescription(EXPAND_HEADING).assertIsDisplayed()
+  }
+
+  @Test
+  fun tappingTheCollapserAsksForTheToggle() {
+    val asked = mutableListOf<CellAction>()
+    compose.setContent {
+      CellHeader(HEADING_CELL, null, null, false, null, {}, {}, {}) { asked += it }
+    }
+
+    compose.onNodeWithContentDescription(COLLAPSE_HEADING).performClick()
+
+    assertEquals(listOf(CellAction.ToggleHeadingCollapse), asked)
+  }
+
   private companion object {
     const val MENU_BUTTON = "Cell actions"
     const val RUN_BUTTON = "Run cell"
@@ -155,5 +200,7 @@ class CellHeaderTest {
     val CODE_CELL = Cell("c1", CellKind.CODE, "x = 1")
     val MARKDOWN_CELL = Cell("c2", CellKind.MARKDOWN, "# title")
     val RAW_CELL = Cell("c3", CellKind.RAW, "\\begin{equation}")
+    val HEADING_CELL = Cell("h1", CellKind.MARKDOWN, "## Results")
+    val PROSE_CELL = Cell("p1", CellKind.MARKDOWN, "just some prose")
   }
 }

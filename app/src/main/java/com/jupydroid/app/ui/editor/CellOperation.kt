@@ -98,6 +98,10 @@ private val CellAction.keepsTheRun: Boolean
   get() = when (this) {
     is CellAction.Move, CellAction.ClearOutputs,
     CellAction.ToggleSourceHidden, CellAction.ToggleOutputsHidden,
+    // `toggleCurrentHeadingCollapse` has no `deselectAll()` either (`actions.tsx:2440-2455`) - and
+    // where it *cannot* keep the run, because a mark would be left on a cell nothing draws,
+    // `withHeadingCollapsed` drops it itself rather than making this a fourth answer.
+    CellAction.ToggleHeadingCollapse,
     CellAction.StartSelecting,
     -> true
 
@@ -141,6 +145,11 @@ private fun EditorUiState.transformed(
   CellAction.ClearOutputs -> withOutputsCleared(cellIds)
   CellAction.ToggleSourceHidden -> withSourceHiddenSet(cellIds, hidden = !folded(head) { sourceHidden })
   CellAction.ToggleOutputsHidden -> withOutputsHiddenSet(cellIds, hidden = !folded(head) { outputsHidden })
+  // The head and not [cellIds], which is the reference's own narrowing rather than a simplification:
+  // `toggleCurrentHeadingCollapse` reads `notebook.activeCell` (`actions.tsx:2440-2455`), and a run
+  // of headings collapsed at once would hide the very cells the rest of the run names.
+  CellAction.ToggleHeadingCollapse ->
+    withHeadingCollapsed(head, collapsed = !folded(head) { headingCollapsed })
 }
 
 /** Which way the head cell is folded, which is also what the menu row's label was written from. */

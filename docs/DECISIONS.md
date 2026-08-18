@@ -510,6 +510,64 @@ unreachable from the menu. The reference has a command per type —
 `notebook:change-cell-to-{code,markdown,raw}` (`packages/notebook-extension/src/index.ts:212-214`)
 — so each cell offers both. A code cell's menu is eighteen rows as a result.
 
+### A heading owns a section, and what a collapsed one hides is derived rather than stored
+
+The third collapse, and the only one that is not about the cell it is asked of. `setHeadingCollapse`
+walks **forward** from a heading and stops at the first heading of equal or higher level
+(`packages/notebook/src/actions.tsx:2374-2405`), so a heading owns the cells between it and its next
+sibling — an H1's section swallows the H2 under it, and a code or raw cell can never end one because
+`getHeadingInfo` answers `headingLevel: 7` for anything that is not markdown (`:2481-2493`).
+
+**The level is parsed, never pattern-matched.** `MarkdownCell.headingInfo` takes the
+**lowest-numbered** heading anywhere in the cell — `headings.reduce((prev, curr) => prev.level <=
+curr.level ? prev : curr)` (`packages/cells/src/widget.ts:2213-2226`) — over headings obtained by
+rendering the source and reading back `<h1>`–`<h6>` (`packages/toc/src/utils/markdown.ts:78-114`).
+So a setext underline is a heading, a `#` inside a fence is not, and a cell opening on `###` and
+going on to `#` heads an H1 section. **Top level only**: `getHeadingTokens` inspects the type of each
+token `_marked.lexer` returns and never descends (`packages/markedparser-extension/src/index.ts:268-298`),
+so a heading inside a blockquote or a list item is not the cell's heading. Ours is
+`MarkdownDocument.headingLevel`, over the same commonmark AST the cell already renders from — which
+carries one narrowing this app already had: an HTML `<h1>` block is dropped rather than counted,
+because `MarkdownDocument` has never modelled HTML blocks at all.
+
+**Only the heading's own flag is persisted, and hidden-ness is a function of it.** `headingCollapsed`
+writes `jp-MarkdownHeadingCollapsed` at the *top* of the cell's metadata — a third key, not inside
+`jupyter` — and **deletes** it rather than writing false (`widget.ts:156`, `:2263-2276`). No cell ever
+records that it is hidden, and the reference says why in its own words:
+`_refreshCollapsedHeadingVisibility` is *"Recompute hidden cells from the current collapsed heading
+structure"* (`packages/notebook/src/widget.ts:916-940`), called after `moveCells` reorders (`:462`).
+Ours derives it instead of re-running it — the union of every collapsed heading's section — so every
+insert, delete, move and undo is correct without knowing the feature exists.
+
+The union is also what gives the reference's `localCollapsed` branch for free (`actions.tsx:2400-2420`):
+expanding an H1 over a still-collapsed H2 shows the H2 and leaves the H2's own children hidden,
+because that H2 is still in the union on its own account. Measured on screen, not reasoned about —
+`evidence/p2f-1-heading-collapse/04-sub-heading-stayed-collapsed.png`.
+
+**The operand is the head, not the marked run**, which is the reference's own narrowing:
+`toggleCurrentHeadingCollapse` reads `notebook.activeCell` and never the selection (`:2440-2455`).
+It keeps the run for the same reason the other collapses do — there is no `deselectAll()` in it —
+with one repair the reference never needs: a heading *inside* a marked run can swallow the head, and
+a head nothing draws is one the ranged runs would still compute their range from, so both ends move
+onto the heading. `expandParent` states the invariant that keeps (`:2288-2306`) and repairs it by
+expanding, which is the wrong half here: expanding is what the user did not ask for.
+
+**Two adaptations, and each names what it departs from.** The reference surfaces none of the eleven
+heading commands in a menu — command palette and keyboard only
+(`packages/notebook-extension/src/index.ts:5279-5340`, `schema/tracker.json:558-570`) — so every
+surface here is ours. The collapser is a chevron on the cell header where the reference appends a
+button to the *prompt node*, created only for `level > 0` (`widget.ts:2387-2408`), and it is
+`ChevronRight`/`ExpandMore` rather than `ExpandLess`/`ExpandMore` because a section is a tree node
+and the cell itself is exactly what stays on screen. It is **not** in the cell menu: the button is
+visible, named and in the accessibility tree already, and an eighteen-row sheet does not need a
+nineteenth row for a control that is one tap away.
+
+**A collapsed heading is not a collapsed cell**, so the placeholder is different too. `CollapsedCell`
+shows a line of what is folded so the cell stays identifiable; a section has no one line, and the
+reference names it by size instead — `trans._n('%1 cell hidden', '%1 cells hidden', numberChildNodes)`
+over an `addIcon`, drawn only while the heading is collapsed **and** owns something
+(`widget.ts:2412-2455`).
+
 ### Unrendered is not the same as asked for, and only a tap asks
 
 `changeCellType` ends with *"Fetch the new widget and unrender it"* —
@@ -743,6 +801,13 @@ P2j has to make rather than discover.
   `maestro_test`, because the first `run-as` happens before the flow does. It **checks and does not
   install**: a harness that installed would be choosing which build is under test, and the point of
   a sweep is that it runs the one you built.
+- **`stopApp` is a `force-stop`, so a flow that kills the app inside the save debounce tests the
+  timer rather than the feature.** Writes are held for 500 ms (`NotebookSaveDebounce`) and flushed
+  from `EditorViewModel.onCleared`, which a force-stop does not run — so the collapse a flow made two
+  steps before `stopApp` had never reached disk, and the dump proved it: the key on the heading that
+  had a screenshot's worth of time, nothing on the one that did not. The fix is not a longer wait but
+  the thing a user actually does — **leave the document before killing the app**. `collapse-source`
+  has had the same shape since Step 4b and has been passing on timing.
 - **Maestro matches a whole node, so a prefix assertion is an assertion that cannot fail.**
   `assertNotVisible: "Pick A Few"` was green against a node reading `Pick A Few.ipynb` and would
   have stayed green with the bar on screen. **A document's title is also the wrong handle on a

@@ -35,3 +35,14 @@ internal fun JsonObject.sourceHidden(): Boolean =
 
 internal fun JsonObject.outputsHidden(): Boolean =
   (this["collapsed"] as? JsonPrimitive)?.booleanOrNull == true
+
+/**
+ * And a **third** key, at the top of the metadata rather than inside `jupyter`:
+ * `jp-MarkdownHeadingCollapsed` (`packages/cells/src/widget.ts:156`). Written only when true and
+ * *deleted* when false, exactly as the pair above - `headingCollapsed`'s setter calls
+ * `deleteMetadata` on the way down (`:2263-2276`).
+ */
+internal fun JsonObject.headingCollapsed(): Boolean =
+  (this[HEADING_COLLAPSED_KEY] as? JsonPrimitive)?.booleanOrNull == true
+
+internal const val HEADING_COLLAPSED_KEY = "jp-MarkdownHeadingCollapsed"

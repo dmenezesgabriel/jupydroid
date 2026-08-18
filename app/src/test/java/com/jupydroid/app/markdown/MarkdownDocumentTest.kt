@@ -4,6 +4,7 @@ import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.RichInline
 import com.jupydroid.app.richtext.plainText
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -118,5 +119,52 @@ class MarkdownDocumentTest {
     val inlines = (MarkdownDocument.parse("one\ntwo").single() as RichBlock.Paragraph).inlines
 
     assertTrue("got $inlines", inlines.any { it is RichInline.SoftLineBreak })
+  }
+
+  // --- heading level, which is what a collapsible section is keyed on (P2f) -------------
+
+  /**
+   * `MarkdownCell.headingInfo` returns the **lowest-numbered** heading found in the cell -
+   * `headings.reduce((prev, curr) => prev.level <= curr.level ? prev : curr)`
+   * (`packages/cells/src/widget.ts:2213-2226`) - so a cell opening on `###` and continuing with
+   * `#` is an H1 section, not an H3 one.
+   */
+  @Test
+  fun headingLevelIsTheLowestNumberedHeadingInTheCell() {
+    assertEquals(2, MarkdownDocument.headingLevel("## Results"))
+    assertEquals(1, MarkdownDocument.headingLevel("### Detail\n\n# Chapter\n\n## Part"))
+    assertEquals(6, MarkdownDocument.headingLevel("###### Deepest"))
+  }
+
+  /** `{text: '', level: -1}` when the cell holds no heading at all - prose is not a section. */
+  @Test
+  fun proseHasNoHeadingLevel() {
+    assertNull(MarkdownDocument.headingLevel("just some prose\n\n- and a list"))
+    assertNull(MarkdownDocument.headingLevel(""))
+  }
+
+  /**
+   * Setext headings count, because the level is *parsed* rather than pattern-matched: JupyterLab
+   * renders the source and reads back `<h1>`-`<h6>` (`packages/toc/src/utils/markdown.ts:78-114`).
+   * A `#` a regex would find is not always a heading, and a heading does not always start with one.
+   */
+  @Test
+  fun readsSetextHeadingsAndIgnoresHashesThatAreNotOne() {
+    assertEquals(1, MarkdownDocument.headingLevel("Chapter\n======="))
+    assertEquals(2, MarkdownDocument.headingLevel("Section\n-------"))
+    assertNull(MarkdownDocument.headingLevel("```\n# not a heading, it is a comment\n```"))
+    assertNull(MarkdownDocument.headingLevel("a # in the middle of a line"))
+  }
+
+  /**
+   * Top-level only. `getHeadingTokens` iterates `_marked.lexer(content)` and looks at each token's
+   * own type (`packages/markedparser-extension/src/index.ts:268-298`), so a heading nested inside a
+   * blockquote or a list item is never a token in that list and never a section boundary.
+   */
+  @Test
+  fun aNestedHeadingIsNotTheCellsHeading() {
+    assertNull(MarkdownDocument.headingLevel("> # quoted"))
+    assertNull(MarkdownDocument.headingLevel("- # inside an item"))
+    assertEquals(2, MarkdownDocument.headingLevel("## Real\n\n> # quoted"))
   }
 }

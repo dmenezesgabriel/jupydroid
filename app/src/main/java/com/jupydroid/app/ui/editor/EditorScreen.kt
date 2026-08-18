@@ -230,11 +230,15 @@ private fun EditorContent(
       // to find both ends, and asking it inside the item lambda would make drawing the notebook
       // quadratic in its length.
       val marked = state.selectedCellIds.toSet()
+      // Both walk the whole notebook, so they are computed once for the list rather than per item -
+      // asking inside the item lambda would make drawing a notebook quadratic in its length.
+      val hidden = state.hiddenCellIds
+      val onScreen = state.cells.filterNot { it.id in hidden }
       LazyColumn(modifier = modifier.fillMaxSize()) {
         // contentType as well as key: a code cell and a markdown cell compose to very different
         // trees, and telling the list so lets it reuse each kind against its own pool instead of
         // rebuilding whenever the two alternate.
-        itemsIndexed(state.cells, key = { _, cell -> cell.id }, contentType = { _, cell -> cell.kind }) { at, cell ->
+        itemsIndexed(onScreen, key = { _, cell -> cell.id }, contentType = { _, cell -> cell.kind }) { at, cell ->
           EditorCell(
             cell = cell,
             outputs = state.outputs[cell.id].orEmpty(),
@@ -266,6 +270,9 @@ private fun EditorContent(
             // Only the cell a tap asked for - a command that unrenders leaves the caret alone.
             markdownTakesCaret = state.markdownTakingCaret == cell.id,
             onMarkdownEditRequested = { onMarkdownEditRequested(cell.id) },
+            // Only ever non-zero on a collapsed heading, which is the reference's own condition for
+            // drawing the row at all (`packages/cells/src/widget.ts:2424-2427`).
+            hiddenBelow = if (cell.headingCollapsed) state.headingSectionOf(cell.id).size else 0,
             cellInput = cellInput,
           )
         }
@@ -297,6 +304,8 @@ private fun EditorCell(
   markdownRendered: Boolean,
   markdownTakesCaret: Boolean,
   onMarkdownEditRequested: () -> Unit,
+  /** How many cells this heading is hiding, or 0 when it is hiding none - see [HiddenCellsRow]. */
+  hiddenBelow: Int,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
 ) {
@@ -406,6 +415,11 @@ private fun EditorCell(
       hidden = cell.outputsHidden,
       onExpand = { act(CellAction.ToggleOutputsHidden) },
     )
+    // Inside this cell's frame rather than between it and the next, because that is what it is
+    // about: the reference appends the button to the heading cell's own node (`widget.ts:2429`).
+    if (hiddenBelow > 0) {
+      HiddenCellsRow(count = hiddenBelow, onExpand = { act(CellAction.ToggleHeadingCollapse) })
+    }
   }
 }
 

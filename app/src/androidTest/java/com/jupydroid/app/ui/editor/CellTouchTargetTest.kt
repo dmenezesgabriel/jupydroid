@@ -72,9 +72,18 @@ class CellTouchTargetTest {
     compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 
+  /** The collapser is a fourth control on a header that already fits three at 360dp. */
+  @Test
+  fun theHeadingCollapserIsBigEnoughToHit() {
+    compose.setContent { CellHeader(HEADING_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+
+    compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertIsAtLeastMinimumTouchTarget(compose.density)
+  }
+
   private companion object {
     val MARK = CellMark(checked = false, position = 1)
     val CODE_CELL = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
     val MARKDOWN_CELL = Cell(id = "m1", kind = CellKind.MARKDOWN, source = "# hi")
+    val HEADING_CELL = Cell(id = "h1", kind = CellKind.MARKDOWN, source = "## Results")
   }
 }

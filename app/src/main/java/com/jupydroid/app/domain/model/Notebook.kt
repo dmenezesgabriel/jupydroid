@@ -43,6 +43,16 @@ data class Cell(
   val sourceHidden: Boolean = false,
   /** Collapsed outputs. Independent of [sourceHidden], and stored under a different key. */
   val outputsHidden: Boolean = false,
+  /**
+   * This heading is hiding the cells under it - the section it owns, not a half of itself.
+   *
+   * Persisted like the two above and under a third key again, `jp-MarkdownHeadingCollapsed`
+   * (`packages/cells/src/widget.ts:156`, `:2263-2276`). Meaningless on a cell that heads nothing,
+   * and the transforms refuse to set it there; which cells it *hides* is derived rather than
+   * stored, because the reference recomputes that itself
+   * (`com.jupydroid.app.ui.editor.hiddenCellIds`).
+   */
+  val headingCollapsed: Boolean = false,
   /** See [PreservedJson]. Copied by `copy`, so a duplicated cell keeps its neighbour's too. */
   val preserved: PreservedJson = JsonObject(emptyMap()),
 )

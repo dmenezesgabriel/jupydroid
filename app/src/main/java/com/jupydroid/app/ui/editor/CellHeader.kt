@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -74,6 +76,16 @@ internal fun CellHeader(
         modifier = Modifier.semantics { contentDescription = mark.label },
       )
     }
+    // Between the tick and the prompt, which is where the reference puts it: the collapser is
+    // appended to the cell's *prompt node* and created only for `level > 0`
+    // (`packages/cells/src/widget.ts:2387-2408`). Absent on every other cell rather than greyed -
+    // a control for a state the cell is not in is one this app already refuses to draw.
+    if (cell.headingLevel != null) {
+      HeadingCollapser(
+        collapsed = cell.headingCollapsed,
+        onToggle = { onCellAction(CellAction.ToggleHeadingCollapse) },
+      )
+    }
     Text(
       text = executionLabel(cell.kind, status, executionCount),
       style = MaterialTheme.typography.labelSmall,
@@ -124,6 +136,36 @@ internal fun CellHeader(
     }
   }
 }
+
+/**
+ * The chevron that folds a heading's section away.
+ *
+ * A tree node's disclosure rather than a card's expander, which is what the two icon pairs mean in
+ * Material: `ChevronRight` says "there is a level under this one, closed", `ExpandMore` says it is
+ * open. `ExpandLess`/`ExpandMore` would claim the cell itself folds, and the cell is exactly what
+ * stays on screen.
+ *
+ * **The name goes on the button, not on the icon inside it** - the rule a flow cost us in P2b:
+ * `contentDescription` on the `Icon` lands on a child node, so the label and the state would be
+ * one level apart. And it names what a tap will *do*, as every other control here does.
+ */
+@Composable
+private fun HeadingCollapser(collapsed: Boolean, onToggle: () -> Unit) {
+  IconButton(
+    onClick = onToggle,
+    modifier = Modifier.semantics { contentDescription = if (collapsed) EXPAND_HEADING else COLLAPSE_HEADING },
+  ) {
+    Icon(
+      imageVector = if (collapsed) Icons.Filled.ChevronRight else Icons.Filled.ExpandMore,
+      contentDescription = null,
+      tint = MaterialTheme.colorScheme.primary,
+    )
+  }
+}
+
+/** Named so a flow and a screen reader read the same word for the same control. */
+internal const val COLLAPSE_HEADING = "Collapse heading"
+internal const val EXPAND_HEADING = "Expand heading"
 
 @Composable
 private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () -> Unit) {

@@ -133,21 +133,30 @@ fun NotebookFile.toDomain(id: String, preserved: JsonObject = JsonObject(emptyMa
 fun CellFile.toDomain(preserved: JsonObject? = null): Cell =
   Cell(
     id = id.ifBlank { UUID.randomUUID().toString() },
-    kind =
-      when (cellType) {
-        "code" -> CellKind.CODE
-        "markdown" -> CellKind.MARKDOWN
-        "raw" -> CellKind.RAW
-        else ->
-          throw IllegalArgumentException(
-            "unknown cell_type '$cellType' in cell id '${id.ifBlank { "<missing>" }}'; " +
-              "expected 'code', 'markdown' or 'raw'",
-          )
-      },
+    kind = cellKind(),
     source = source,
     outputs = outputs.mapNotNull { it.toDomainOutput() },
     executionCount = executionCount,
     sourceHidden = metadata.sourceHidden(),
     outputsHidden = metadata.outputsHidden(),
+    headingCollapsed = metadata.headingCollapsed(),
     preserved = preserved ?: JsonObject(emptyMap()),
   )
+
+/**
+ * nbformat's `cell_type` as one of the three [CellKind]s, or a refusal naming what was found.
+ *
+ * Its own function because it is the one part of reading a cell that can fail, and the message has
+ * to carry the offending value: a notebook holding a fourth type is a file this app cannot open,
+ * and "unknown cell_type" without the value leaves nothing to act on.
+ */
+private fun CellFile.cellKind(): CellKind = when (cellType) {
+  "code" -> CellKind.CODE
+  "markdown" -> CellKind.MARKDOWN
+  "raw" -> CellKind.RAW
+  else ->
+    throw IllegalArgumentException(
+      "unknown cell_type '$cellType' in cell id '${id.ifBlank { "<missing>" }}'; " +
+        "expected 'code', 'markdown' or 'raw'",
+    )
+}

@@ -38,6 +38,28 @@ object MarkdownDocument {
 
   fun parse(source: String): List<RichBlock> = parser.parse(source).blocks()
 
+  /**
+   * The heading level this source is, or null when it holds no heading of its own.
+   *
+   * **The lowest number wins**, which is `MarkdownCell.headingInfo` read literally -
+   * `headings.reduce((prev, curr) => prev.level <= curr.level ? prev : curr)`
+   * (`packages/cells/src/widget.ts:2213-2226`) - so a cell opening on `###` and going on to `#`
+   * heads an H1 section rather than an H3 one.
+   *
+   * **Parsed, never pattern-matched.** JupyterLab renders the source and reads back `<h1>`-`<h6>`
+   * (`packages/toc/src/utils/markdown.ts:78-114`), so a `#` inside a fence is not a heading and a
+   * setext underline is one. **Top level only**, because `getHeadingTokens` looks at the type of
+   * each token `_marked.lexer` returns and never descends
+   * (`packages/markedparser-extension/src/index.ts:268-298`): a heading inside a blockquote or a
+   * list item is not the cell's heading.
+   *
+   * ```
+   * MarkdownDocument.headingLevel("## Results")  // 2
+   * ```
+   */
+  fun headingLevel(source: String): Int? =
+    parse(source).filterIsInstance<RichBlock.Heading>().minOfOrNull { it.level }
+
   private fun Node.blocks(): List<RichBlock> = children().mapNotNull { it.asBlock() }
 
   private fun Node.asBlock(): RichBlock? = when (this) {

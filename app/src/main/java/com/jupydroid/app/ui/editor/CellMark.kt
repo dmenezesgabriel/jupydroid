@@ -13,7 +13,9 @@ import androidx.compose.runtime.Immutable
  * **[position] is in here because a screen reader needs it.** JupyterLab has no such label - it
  * has a mouse, and shift-clicking the cell you are looking at needs no name - but "Select cell"
  * spoken four times over says nothing about which. It is 1-based and positional, which is
- * `activeCellIndex`'s own basis, so it moves with the cell rather than with its id.
+ * `activeCellIndex`'s own basis, so it moves with the cell rather than with its id. It counts the
+ * cells **on screen**, not the cells in the file: a collapsed heading's section is not drawn, and a
+ * number that counted it would send "Select cell 5" to the third tick anyone can reach.
  *
  * ```
  * CellHeader(cell = cell, mark = CellMark(checked = true, position = 2), …)

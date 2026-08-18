@@ -95,6 +95,16 @@ sealed interface CellAction {
 
   /** Collapse or expand the cell's outputs. Hides them; [ClearOutputs] throws them away. */
   data object ToggleOutputsHidden : CellAction
+
+  /**
+   * Collapse or expand the **section** this heading owns - `notebook:toggle-heading-collapse`.
+   *
+   * Beside the other two collapses and unlike them in the one way that matters: those hide a half
+   * of the cell they are asked about, this hides the cells *after* it (see [CellHeadings]). So it
+   * is the head's alone rather than the marked run's - `toggleCurrentHeadingCollapse` reads
+   * `notebook.activeCell` and never the selection (`packages/notebook/src/actions.tsx:2440-2455`).
+   */
+  data object ToggleHeadingCollapse : CellAction
 }
 
 /**
