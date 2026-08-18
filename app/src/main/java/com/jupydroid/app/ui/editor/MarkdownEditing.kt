@@ -21,9 +21,14 @@ package com.jupydroid.app.ui.editor
 /** Whether [cellId] is showing its prose rather than its source. Meaningless for a code cell. */
 fun EditorUiState.isMarkdownRendered(cellId: String): Boolean = cellId !in markdownBeingEdited
 
-/** Tapping the rendered prose opens the editor - `showEditor()`. */
+/**
+ * Tapping the rendered prose opens the editor - `showEditor()` - and asks for the caret.
+ *
+ * The caret is asked for **here and nowhere else**, which is what tells a tap apart from a command
+ * that happens to unrender the same cell. See [EditorUiState.markdownTakingCaret].
+ */
 fun EditorUiState.withMarkdownEditorOpened(cellId: String): EditorUiState =
-  copy(markdownBeingEdited = markdownBeingEdited + cellId)
+  copy(markdownBeingEdited = markdownBeingEdited + cellId, markdownTakingCaret = cellId)
 
 /**
  * What running a markdown cell means, for a whole run of them.
@@ -41,6 +46,9 @@ fun EditorUiState.withMarkdownRendered(cellIds: List<String>): EditorUiState {
   if (markdownBeingEdited.none { it in rendering } && stillFolded.isEmpty()) return this
   return copy(
     markdownBeingEdited = markdownBeingEdited - rendering,
+    // The request goes with the editor it was made for, so opening the cell again asks afresh
+    // rather than finding a request nobody withdrew.
+    markdownTakingCaret = markdownTakingCaret?.takeUnless { it in rendering },
     cells = cells.map { if (it.id in stillFolded) it.copy(sourceHidden = false) else it },
     dirty = dirty || stillFolded.isNotEmpty(),
   )

@@ -113,6 +113,22 @@ data class EditorUiState(
    * nowhere to say a cell is being written, and the reference keeps it on the widget too.
    */
   val markdownBeingEdited: Set<String> = emptySet(),
+  /**
+   * The markdown cell whose editor should take the caret, or null when none should.
+   *
+   * **Separate from [markdownBeingEdited] because *why* a cell was opened decides this, and the
+   * set cannot say why.** A tap on the prose asks to type in it; a command that unrenders does not
+   * - the reference ends `changeCellType` in command mode (`actions.tsx:3308-3314`).
+   *
+   * The field used to request focus for having been composed at all, which was a complete answer
+   * while a tap was the only way to open one. P2e-3 gave it a second way in, and
+   * `evidence/p2e-3-change-to-markdown/` is what that cost: two editors arriving in one frame,
+   * both asking, and the soft keyboard up over a notebook nobody was typing in.
+   *
+   * One id and not a set: only one field can hold the caret, so a second request replaces the
+   * first rather than joining it. Not persisted, like the set beside it.
+   */
+  val markdownTakingCaret: String? = null,
 )
 
 /**

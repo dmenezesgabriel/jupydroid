@@ -18,23 +18,41 @@ fun EditorUiState.withCellInsertedAbove(cellId: String, kind: CellKind, newId: S
 }
 
 /**
- * Turns a code cell into a markdown one or back.
+ * Turns a cell into one of the two types it is not - `changeCellType` (`actions.tsx:3221-3315`),
+ * which is one function over `nbformat.CellType` rather than three.
  *
- * **The id survives** - `changeCellType` reinserts with `id: raw.id` (`actions.tsx:3282`) - and
- * **the outputs do not**: *"After change of type outputs are deleted"*. A markdown cell cannot
- * hold outputs at all, and a code cell's results stop describing its source the moment the source
+ * **The id survives** - it reinserts with `id: raw.id` (`:3282`) - and **the outputs do not**:
+ * *"After change of type outputs are deleted"*. Neither markdown nor raw may hold outputs at all
+ * (the shipped `nbformat/v4/nbformat.v4.schema.json` makes both `additionalProperties: false`
+ * without them), and a code cell's results stop describing its source the moment the source
  * changes meaning.
+ *
+ * **And a cell that becomes markdown is left showing its source**, which is the function's last
+ * act: *"Fetch the new widget and unrender it"* (`:3308-3312`). That `if` sits **outside** the
+ * `child.model.type !== value` branch, so it reaches every cell the command visits and not only
+ * the ones whose type changed - a mixed run changed to markdown opens the cells that already were.
+ * Reachable here, because the head decides the menu while the run decides the operand.
  */
 fun EditorUiState.withCellsKindChanged(cellIds: List<String>, kind: CellKind): EditorUiState {
   val wanted = cellIds.toSet()
+  val visited = cells.filter { it.id in wanted }.map { it.id }
   val changing = cells.filter { it.id in wanted && it.kind != kind }.map { it.id }.toSet()
-  if (changing.isEmpty()) return this
+  // A cell leaving markdown comes off the list as well, or becoming markdown again would find it
+  // already open - the list is keyed by id and the id is what survives a change of type.
+  val editing =
+    if (kind == CellKind.MARKDOWN) markdownBeingEdited + visited else markdownBeingEdited - changing
+  // Both halves, because either alone can be the whole of what this does: a run that is already
+  // markdown still gets unrendered. Returning an equal-but-new state would mark the notebook dirty
+  // and rewrite the file, which is `withMarkdownRendered`'s reason as well as this one's.
+  if (changing.isEmpty() && editing == markdownBeingEdited) return this
   return copy(
     cells = cells.map { if (it.id in changing) it.copy(kind = kind) else it },
     outputs = outputs - changing,
     executionCounts = executionCounts - changing,
     executions = executions - changing,
-    dirty = true,
+    markdownBeingEdited = editing,
+    // Which cells are open is not written to disk, so an unrender on its own is not an edit.
+    dirty = dirty || changing.isNotEmpty(),
   )
 }
 

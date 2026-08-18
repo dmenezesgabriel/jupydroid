@@ -59,6 +59,12 @@ fun MarkdownCellField(
   highlighter: SyntaxHighlighter = remember { MarkdownSyntax() },
   /** Null where no symbol row is on screen, which is every test that drives a field alone. */
   input: FocusedCellInput? = null,
+  /**
+   * Whether this editor was asked for, rather than merely composed - see
+   * [EditorUiState.markdownTakingCaret]. Defaults to false, so a field that nobody asked for
+   * leaves the caret where it is.
+   */
+  takesCaret: Boolean = false,
 ) {
   val styles = syntaxStyles()
   val caret = remember { FocusRequester() }
@@ -73,11 +79,17 @@ fun MarkdownCellField(
   // The row is on screen in edit mode whatever the cell is, so a markdown cell has to be reachable
   // from it. Without this it sat above the keyboard doing nothing.
   input.attachWhileFocused(state, focused.value)
-  // This field only exists because someone tapped the rendered cell to edit it, so it takes the
-  // caret on arrival. Without this the tap left an unfocused field and the next keystroke went
-  // nowhere - a tap that opens an editor you must tap again is half a tap. Invisible to the
-  // Compose tests, whose `performTextInput` focuses the node itself; `a1-markdown` caught it.
-  LaunchedEffect(Unit) { caret.requestFocus() }
+  // A tap on the rendered cell takes the caret with it: without this the tap left an unfocused
+  // field and the next keystroke went nowhere - a tap that opens an editor you must tap again is
+  // half a tap. Invisible to the Compose tests, whose `performTextInput` focuses the node itself;
+  // `a1-markdown` caught it.
+  //
+  // **Conditional since P2e-3**, which gave this field a second way to appear. `changeCellType`
+  // unrenders every cell it visits (`actions.tsx:3308-3312`) and ends in command mode, so a run
+  // changed to markdown composed several of these at once - each asking for the caret, one of them
+  // winning it, and the soft keyboard up over a notebook nobody was typing in
+  // (`evidence/p2e-3-change-to-markdown/`).
+  LaunchedEffect(takesCaret) { if (takesCaret) caret.requestFocus() }
 
   BasicTextField(
     state = state,

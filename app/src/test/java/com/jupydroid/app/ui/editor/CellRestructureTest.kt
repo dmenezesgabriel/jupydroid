@@ -5,7 +5,9 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -117,6 +119,72 @@ class CellRestructureTest {
     val raw = notebook.withCellsKindChanged(listOf("c1"), CellKind.RAW)
 
     assertEquals(CellKind.CODE, raw.withCellsKindChanged(listOf("c1"), CellKind.CODE).cells.first().kind)
+  }
+
+  /**
+   * **A cell that becomes markdown is left showing its source**, which is `changeCellType`'s last
+   * act: *"Fetch the new widget and unrender it"* - `(child as MarkdownCell).rendered = false`
+   * (`packages/notebook/src/actions.tsx:3308-3312`).
+   *
+   * Ours rendered it at once, because rendered is the resting state here and nothing put the cell
+   * on [EditorUiState.markdownBeingEdited] - so converting a code cell hid the very text that had
+   * just been converted behind rendered prose, with a tap needed to get it back.
+   */
+  @Test
+  fun becomingMarkdownLeavesTheCellShowingItsSource() {
+    val changed = notebook.withCellsKindChanged(listOf("c1"), CellKind.MARKDOWN)
+
+    assertFalse(changed.isMarkdownRendered("c1"))
+  }
+
+  /**
+   * **Every cell the command visits, not only the ones whose type changed.** That `if` is outside
+   * the `child.model.type !== value` branch, so a mixed run changed to markdown unrenders the
+   * cells that were already markdown too - which is reachable here, since the head decides the
+   * menu and a run may hold both kinds.
+   */
+  @Test
+  fun becomingMarkdownUnrendersEvenTheCellsThatAlreadyWere() {
+    val changed = notebook.withCellsKindChanged(listOf("c1", "c2", "m1"), CellKind.MARKDOWN)
+
+    assertFalse(changed.isMarkdownRendered("m1"))
+  }
+
+  /**
+   * **And it does not ask for the caret**, which is the difference between a tap and a command.
+   * Measured rather than reasoned: with the field requesting focus for having been composed, a run
+   * changed to markdown put the soft keyboard up over a notebook nobody was typing in, and two
+   * editors raced for the caret (`evidence/p2e-3-change-to-markdown/`). The reference ends
+   * `changeCellType` in command mode.
+   */
+  @Test
+  fun becomingMarkdownDoesNotAskForTheCaret() {
+    val changed = notebook.withCellsKindChanged(listOf("c1", "c2"), CellKind.MARKDOWN)
+
+    assertNull(changed.markdownTakingCaret)
+  }
+
+  /** And a cell leaving markdown must not linger on the list, or coming back would find it open. */
+  @Test
+  fun leavingMarkdownTakesTheCellOffTheEditedList() {
+    val open = notebook.withMarkdownEditorOpened("m1")
+
+    val code = open.withCellsKindChanged(listOf("m1"), CellKind.CODE)
+
+    assertTrue(code.withCellsKindChanged(listOf("m1"), CellKind.MARKDOWN).markdownBeingEdited.contains("m1"))
+    assertFalse(code.markdownBeingEdited.contains("m1"))
+  }
+
+  /**
+   * The early return still has to hold where nothing at all would happen, because
+   * [EditorUiState.withMarkdownRendered]'s reason applies here too: a state that comes back merely
+   * equal-but-new marks the notebook dirty and rewrites the file.
+   */
+  @Test
+  fun askingForTheTypeACellAlreadyHasStillChangesNothingEvenForMarkdown() {
+    val allMarkdown = notebook.withCellsKindChanged(listOf("c1", "c2", "m1"), CellKind.MARKDOWN)
+
+    assertEquals(allMarkdown, allMarkdown.withCellsKindChanged(listOf("c1", "c2", "m1"), CellKind.MARKDOWN))
   }
 
   // --- merge ----------------------------------------------------------------------------

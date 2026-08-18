@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -44,17 +45,44 @@ class MarkdownCellTest {
    * Asking for the editor is not the same as being able to type in it. The tap used to leave an
    * unfocused field, so the next keystroke went nowhere - invisible to every test here, because
    * `performTextInput` focuses the node itself, and caught only by `a1-markdown` on the tablet.
+   *
+   * The tap flips both flags, which is what `withMarkdownEditorOpened` does: it opens the editor
+   * **and** asks for the caret, and only a tap does the second.
    */
   @Test
   fun openingTheEditorPutsTheCursorInIt() {
     var rendered by mutableStateOf(true)
+    var takesCaret by mutableStateOf(false)
     compose.setContent {
-      MarkdownCell(rememberTextFieldState("# Title"), "# Title", rendered, onEditRequested = { rendered = false }, onSourceEdited = {})
+      MarkdownCell(
+        rememberTextFieldState("# Title"),
+        "# Title",
+        rendered,
+        onEditRequested = { rendered = false; takesCaret = true },
+        onSourceEdited = {},
+        takesCaret = takesCaret,
+      )
     }
 
     compose.onNodeWithContentDescription(RENDERED_MARKDOWN).performClick()
 
     compose.onNodeWithText("# Title").assertIsFocused()
+  }
+
+  /**
+   * **And a cell unrendered by a command does not.** `changeCellType` unrenders every cell it
+   * visits and ends in command mode (`packages/notebook/src/actions.tsx:3308-3314`), so a run
+   * changed to markdown composes several of these at once - each one asking for the caret was the
+   * soft keyboard coming up over a notebook nobody was typing in
+   * (`evidence/p2e-3-change-to-markdown/`).
+   */
+  @Test
+  fun anEditorNobodyAskedForLeavesTheCaretAlone() {
+    compose.setContent {
+      MarkdownCell(rememberTextFieldState("# Title"), "# Title", rendered = false, {}, {})
+    }
+
+    compose.onNodeWithText("# Title").assertIsNotFocused()
   }
 
   /** Rendered empty markdown is nothing at all, which would be a row with no way into it. */

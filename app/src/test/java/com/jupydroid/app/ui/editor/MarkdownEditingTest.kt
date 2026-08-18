@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -69,6 +70,29 @@ class MarkdownEditingTest {
     val state = stateOf("md")
 
     assertEquals(state, state.withMarkdownRendered(listOf("md")))
+  }
+
+  /**
+   * **A tap asks for the caret; nothing else does.**
+   *
+   * The field used to request focus simply for having been composed, which was right while a tap
+   * was the only way to open one. P2e-3 gave it a second way in - a command that unrenders - and
+   * `evidence/p2e-3-change-to-markdown/` is what that looked like: two editors appearing in one
+   * frame, both asking, and the soft keyboard up over a notebook nobody was typing in. The
+   * reference leaves the notebook in command mode after `changeCellType` (`actions.tsx:3314`,
+   * `notebook.deselectAll()` and no mode change).
+   */
+  @Test
+  fun openingACellByTapIsWhatAsksForTheCaret() {
+    assertEquals("md", stateOf("md").withMarkdownEditorOpened("md").markdownTakingCaret)
+  }
+
+  /** Rendering it again takes the request back, so re-opening it later asks afresh. */
+  @Test
+  fun renderingTheCellWithdrawsTheRequest() {
+    val open = stateOf("md").withMarkdownEditorOpened("md")
+
+    assertNull(open.withMarkdownRendered(listOf("md")).markdownTakingCaret)
   }
 
   private fun stateOf(vararg ids: String) = EditorUiState(

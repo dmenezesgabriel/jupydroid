@@ -44,6 +44,8 @@ fun MarkdownCell(
   modifier: Modifier = Modifier,
   sourceRevision: Int = 0,
   input: FocusedCellInput? = null,
+  /** Whether this cell's editor was asked for - see [EditorUiState.markdownTakingCaret]. */
+  takesCaret: Boolean = false,
 ) {
   if (!rendered) {
     MarkdownCellField(
@@ -53,6 +55,7 @@ fun MarkdownCell(
       onSourceEdited = onSourceEdited,
       modifier = modifier,
       input = input,
+      takesCaret = takesCaret,
     )
     return
   }

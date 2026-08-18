@@ -263,6 +263,8 @@ private fun EditorContent(
             // Rendered unless somebody opened this one - see [MarkdownEditing]. Read from the state
             // rather than remembered in the cell, because a run has to be able to close the editor.
             markdownRendered = state.isMarkdownRendered(cell.id),
+            // Only the cell a tap asked for - a command that unrenders leaves the caret alone.
+            markdownTakesCaret = state.markdownTakingCaret == cell.id,
             onMarkdownEditRequested = { onMarkdownEditRequested(cell.id) },
             cellInput = cellInput,
           )
@@ -293,6 +295,7 @@ private fun EditorCell(
   onFocusChanged: (Boolean) -> Unit,
   onToggleSelected: () -> Unit,
   markdownRendered: Boolean,
+  markdownTakesCaret: Boolean,
   onMarkdownEditRequested: () -> Unit,
   cellInput: FocusedCellInput,
   modifier: Modifier = Modifier,
@@ -378,6 +381,7 @@ private fun EditorCell(
             onEditRequested = onMarkdownEditRequested,
             onSourceEdited = onSourceEdited,
             input = cellInput,
+            takesCaret = markdownTakesCaret,
             modifier = Modifier.fillMaxWidth(),
           )
 
