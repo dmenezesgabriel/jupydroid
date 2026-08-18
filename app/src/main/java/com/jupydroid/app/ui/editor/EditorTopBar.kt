@@ -88,8 +88,14 @@ fun EditorTopBar(
   onToggleAutoClosingBrackets: () -> Unit = {},
   /** `toc:show-panel`'s content - every heading in the notebook; see [ViewMenu]. */
   tableOfContentsHeadings: List<TocHeading> = emptyList(),
-  /** `toc:show-panel`'s pick - jumps the notebook to the chosen heading's cell. */
+  /** `toc:show-panel`'s pick, in [TocPresentation.OVERLAY] - jumps to the chosen heading's cell. */
   onTableOfContentsHeadingSelected: (String) -> Unit = {},
+  /** Whether the editor is drawing the list itself; see [tocPresentationFor]. */
+  tableOfContentsPresentation: TocPresentation = TocPresentation.OVERLAY,
+  /** Whether that pane is up, which is what the row is named from - see [ViewMenu]. */
+  tableOfContentsPaneOpen: Boolean = false,
+  /** `toc:show-panel` in [TocPresentation.PANE], where the row is a toggle rather than a picker. */
+  onToggleTableOfContentsPane: () -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -116,6 +122,9 @@ fun EditorTopBar(
         onToggleAutoClosingBrackets = onToggleAutoClosingBrackets,
         tableOfContentsHeadings = tableOfContentsHeadings,
         onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
+        tableOfContentsPresentation = tableOfContentsPresentation,
+        tableOfContentsPaneOpen = tableOfContentsPaneOpen,
+        onToggleTableOfContentsPane = onToggleTableOfContentsPane,
       )
     },
   )
@@ -199,6 +208,9 @@ private fun ViewMenu(
   onToggleAutoClosingBrackets: () -> Unit,
   tableOfContentsHeadings: List<TocHeading>,
   onTableOfContentsHeadingSelected: (String) -> Unit,
+  tableOfContentsPresentation: TocPresentation,
+  tableOfContentsPaneOpen: Boolean,
+  onToggleTableOfContentsPane: () -> Unit,
 ) {
   var open by remember { mutableStateOf(false) }
   // Its own flag rather than reusing [open]: picking "Table of contents" replaces this menu with
@@ -238,18 +250,24 @@ private fun ViewMenu(
           onToggleAutoClosingBrackets()
         },
       )
+      // One row, two jobs, and which one is the editor's own width: with a pane on screen the row
+      // toggles it and flips its label, and without one it opens the overlay and reads the same
+      // thing every time - there is no state to name, since the pick dismisses it.
+      val paneMode = tableOfContentsPresentation == TocPresentation.PANE
       DropdownMenuItem(
-        text = { Text(SHOW_TABLE_OF_CONTENTS) },
+        text = { Text(if (paneMode && tableOfContentsPaneOpen) HIDE_TABLE_OF_CONTENTS else SHOW_TABLE_OF_CONTENTS) },
         onClick = {
           open = false
-          tocOpen = true
+          if (paneMode) onToggleTableOfContentsPane() else tocOpen = true
         },
       )
     }
     // Same Box as "View actions", so [TableOfContentsPanel]'s own `DropdownMenu` anchors to the
     // button that opened it rather than to wherever this composable happens to sit in the screen.
+    // Never both surfaces at once: with the editor drawing the list, a copy over the top of it
+    // would be two answers to one question.
     TableOfContentsPanel(
-      expanded = tocOpen,
+      expanded = tocOpen && tableOfContentsPresentation == TocPresentation.OVERLAY,
       headings = tableOfContentsHeadings,
       onHeadingSelected = onTableOfContentsHeadingSelected,
       onDismiss = { tocOpen = false },
@@ -291,10 +309,20 @@ internal const val ENABLE_AUTO_CLOSING_BRACKETS = "Enable auto-closing brackets"
 internal const val DISABLE_AUTO_CLOSING_BRACKETS = "Disable auto-closing brackets"
 
 /**
- * `toc:show-panel` (`packages/toc-extension/src/index.ts:161-172`). One label rather than two -
- * unlike the toggles above it, opening the panel is not a state that flips.
+ * `toc:show-panel` (`packages/toc-extension/src/index.ts:161-172`), as two labels for the reason
+ * [SHOW_LINE_NUMBERS] is - and here only half the time. Where the editor draws
+ * [TableOfContentsPane] the row is a toggle and the label flips; where it opens
+ * [TableOfContentsPanel] the pick dismisses the surface, so there is no state to name and it reads
+ * "Show" every time.
  */
-internal const val SHOW_TABLE_OF_CONTENTS = "Table of contents"
+internal const val SHOW_TABLE_OF_CONTENTS = "Show table of contents"
+
+/**
+ * The same command from the other side - see [SHOW_TABLE_OF_CONTENTS]. Also the name on
+ * [TableOfContentsPane]'s own close button, so the menu, the pane and a Maestro flow all address
+ * one string.
+ */
+internal const val HIDE_TABLE_OF_CONTENTS = "Hide table of contents"
 
 @Composable
 private fun RenameableTitle(title: String, onClick: () -> Unit) {

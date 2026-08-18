@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# P2h-2: the table of contents panel opens from the View menu, lists every heading in document
+# P2h-2: the table of contents overlay opens from the View menu, lists every heading in document
 # order, jumps the notebook to whichever one is tapped, and shows a placeholder with none.
 #
-# No cell is run, so this flow says the same thing on either device and shards freely.
+# NARROW WINDOW: above 840dp of editor the same command draws a pane that stays open across a
+# pick, so the dismissal this flow asserts is the wrong question there rather than a failure -
+# `p2h-3-table-of-contents-pane` makes the same claims against that adaptation.
+#
+# No cell is run, so nothing here needs the tablet.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

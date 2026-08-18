@@ -786,9 +786,68 @@ does not have yet.
 **`notebook:toggle-virtual-scrollbar` (Show Minimap) is deferred past P2h, not scheduled here.**
 It is a cell-preview strip with a viewport indicator and click-to-jump
 (`packages/notebook/src/widget.ts:1546-1710`) that is not a touch target at 360dp, and P2h's table
-of contents both answers "jump around a long notebook" on a phone and already pays for the third
-pane (`ListDetailSceneStrategy.extraPane()`) a minimap would want. Re-costed once the ToC exists
-rather than built twice.
+of contents both answers "jump around a long notebook" on a phone and already pays for the side
+panel a minimap would want - `TableOfContentsPane`, which is a column in the editor's own scene
+rather than the `extraPane()` this once assumed (see below). Re-costed once the ToC exists rather
+than built twice.
+
+### The table of contents is a panel where there is room for one, and a menu where there is not
+
+Two presentations of one model, which is `CellActionPresentation`'s own split applied to a second
+picker rather than a new rule: `TableOfContentsPane` beside the notebook, `TableOfContentsPanel`
+over it. Where the reference has one answer - a sidebar tab, `shell.add(toc, 'left', { rank: 400 })`
+(`packages/toc-extension/src/index.ts:309`), with `toc:show-panel` doing nothing but activate it
+(`:161-172`) - this has two, because a 32px icon strip beside a ≥250px panel is a desktop canvas
+and JupyterLab has **never** adapted it narrow: an exhaustive grep of `packages/application/{src,style}`
+and `packages/ui-components/src` finds no media query, no width branch, and a `format: 'mobile'`
+property that is declared and never assigned. There is no narrow version of it to have parity with.
+
+**The width that decides is the *editor's*, never the window's**, and that is the rule rather than
+a detail of it. In the two-pane layout the explorer has already spent 360dp, so an 840dp *window*
+leaves the editor about 456dp - and a column carved out of that would leave the notebook narrower
+than the phone the single-pane layout was designed for. `tocPresentationFor` therefore takes the
+width its caller measured with `BoxWithConstraints`, at the expanded lower bound (840dp): the
+number this app already means by "wide enough to split in two" (`PaneDirective.kt`), applied one
+level down to the pane doing the splitting. It is also the first width branch in this app that a
+test can drive both sides of - `currentWindowAdaptiveInfo()` reads the activity's window, which
+nothing under a composable can force, while a layout constraint is just a constraint.
+
+**It is not `ListDetailSceneStrategy.extraPane()`, and that is a blocker rather than a preference.**
+`docs/PLAN.md` assumed the third pane; the library says an extra pane is a separate `NavEntry`, and
+every entry here owns its own `ViewModelStore` (`docs/architecture.md` §4, the decorator that fixed
+defect D1). So a ToC entry could reach neither this notebook's `EditorViewModel` for the headings
+nor its `LazyListState` to scroll - it would have forced per-document state up into a shared owner,
+which is a refactor the feature does not need. A column inside the editor's own scene shares both
+for free. The pane-count arithmetic was checked as well and is *not* what ruled it out: three
+partitions do arrive, but only at 1200dp+ (`calculatePaneScaffoldDirective`, Compact/Medium 1,
+Expanded 2, else 3), and at two partitions the extra pane displaces the **explorer** - so the file
+browser would vanish to show a ToC.
+
+**Hidden by default, which is the reference's own default**: the file browser is the sidebar panel
+that opens with the shell, not this one. Shown from the View menu, closed from either that row or
+the pane's own `×`, and the row flips its label the way `SHOW_LINE_NUMBERS` does - but only in pane
+mode, since an overlay is dismissed by the pick and has no state left to name.
+
+**A pick does not close the pane**, which is the whole of what a panel buys over a menu: jumping
+twice costs two taps rather than four, and the structure stays on screen while the document
+scrolls. The overlay keeps the opposite rule, `CellActionSurface`'s `choose`.
+
+**A heading nested inside an ancestor's collapsed section is a no-op tap**, stated at the call site
+rather than fixed: the ToC's own collapse state is independent of the notebook's in the reference
+too (`syncCollapseState` defaults false, `packages/toc-extension/schema/registry.json:32-69`), so a
+hidden cell simply has no index on screen to scroll to.
+
+**One harness lesson, and it cost two red runs.** A ToC row and the heading it names are the *same
+words*, so a flow that means "the notebook moved" cannot say so by naming a heading - the pane is
+still showing that text. The second attempt was ambiguous for a different reason: the tablet's
+window is tall enough to hold the cell under the first heading and the third heading at once, so
+that cell never left the screen either. Both halves are settled by the notebook's **last** cell,
+which is code and therefore the notebook's alone. This is the same rule this file already records
+about a document's title being the wrong handle beside a file list showing it, one layer along.
+
+**`NARROW WINDOW` joins `TABLET ONLY` and `WIDE WINDOW` as a driver rule**, and the ToC is the
+first feature to need it: a flow asserting the compact-width adaptation is not failing on a tablet,
+it is asking the wrong question there. The mirror of a rule the harness already had.
 
 ---
 
@@ -876,8 +935,12 @@ Three things it cost, all measured (`evidence/p1e-list-detail-scene/`):
   the launcher, measured on the tablet.
 
 **This forbids** re-deriving pane pairing in this codebase: roles are declared with
-`ListDetailSceneStrategy.listPane()` / `.detailPane()`, and P2h's table of contents uses
-`extraPane()` rather than a third hand-written scene.
+`ListDetailSceneStrategy.listPane()` / `.detailPane()`, never by position. **`extraPane()` is the
+third role and P2h did not take it**, which is worth stating here because this file used to say it
+would: an extra pane is another `NavEntry` with its own `ViewModelStore`, and a table of contents
+needs the notebook's - see "The table of contents is a panel where there is room for one". A pane
+that is *another destination* is what this role is for; a pane that is a second view of the one
+already open is a column inside its scene.
 
 Two panes at **840dp**, not 600dp: a 360dp list pane leaves 239dp for the notebook in a 600dp
 window, narrower than the phone the single-pane layout was designed for. A width rule, never a

@@ -369,9 +369,35 @@ for every flow run after it on the same device. `reset_notebooks` clears
 `editor-settings.json` now, beside `recent-documents.json`, on the same repeatability reasoning
 `check_driver_isolation.py` already enforces for notebooks.
 
+**P2h has shipped its first three sub-steps, and the third departed from what this file said.**
+`toc:show-panel` is in, on two surfaces: a `TableOfContentsPane` beside the notebook where the
+**editor** is at least 840dp wide, and the `TableOfContentsPanel` menu-or-sheet everywhere else.
+Tapping a heading jumps the notebook to that cell; the pane stays open across the jump, which is
+the whole of what it buys over the overlay. Evidence is `evidence/p2h-2-table-of-contents/` and
+`evidence/p2h-3-table-of-contents-pane/`.
+
+**The third pane this file promised does not exist, and reading the library is what settled it.**
+`ListDetailSceneStrategy.extraPane()` is a separate `NavEntry`, and every entry here owns its own
+`ViewModelStore` — so it could reach neither the notebook's `EditorViewModel` for the headings nor
+its `LazyListState` to scroll, and would have forced per-document state up into a shared owner. The
+pane is a column inside the editor's own scene instead. Two more things were measured rather than
+assumed and are `docs/DECISIONS.md` now: three partitions only arrive at 1200dp+ (and at two, an
+extra pane displaces the **explorer**), and the width that decides is the *editor's* rather than
+the window's — in two panes an 840dp window leaves the editor about 456dp.
+
+Two costs the plan did not name, both recorded there rather than here:
+
+- **A ToC row and the heading it names are the same words**, so a flow meaning "the notebook moved"
+  cannot say so by naming a heading — the pane is still showing that text. It cost two red runs,
+  and the notebook's *last* cell is what settles both halves of the claim.
+- **`NARROW WINDOW` is a new driver rule**, the mirror of `WIDE WINDOW`: a flow asserting the
+  compact-width adaptation is asking the wrong question on a tablet rather than failing there.
+
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|
-| **P2h** | **Table of contents** | `toc:{show-panel,toggle-collapse,display-numbering,display-h1-numbering,display-outputs-numbering}`; the model is `packages/notebook/src/toc.ts`. **Adaptation:** a bottom sheet on a phone, a third pane at ≥ 840dp — a side panel is not reachable at 360dp. P1e paid for the third pane already: it is `ListDetailSceneStrategy.extraPane()`, not another hand-written scene. |
+| **P2h-4** | **`toc:toggle-collapse`** | Collapse-all / expand-all over the ToC's **own** per-heading state, which is ephemeral and independent of the notebook's `jp-MarkdownHeadingCollapsed` — `syncCollapseState` defaults false (`packages/toc-extension/schema/registry.json:32-69`). The predicate and the icon flip are `someExpanded`'s (`toc-extension/src/index.ts:174-210`). |
+| **P2h-5** | **`toc:display-numbering` / `display-h1-numbering`** | The level-counter in `packages/toc/src/utils/common.ts:157-197` (`getPrefix`), with `numberHeaders` false, `numberingH1` true and `maximalDepth` 4 as the schema's defaults. Persisted app-wide, which is P2g's `EditorSettingsRepository` grown by two booleans rather than a second store — and `reset_notebooks` already clears that file. |
+| **P2h-6** | **`toc:display-outputs-numbering`** | Headings found in a **code cell's HTML/Markdown outputs** (`packages/cells/src/widget.ts:1312-1370`, `CodeCell.getHeadings`, over `getHTMLHeadings`). Last because it is the most expensive and the panel is complete without it; the tablet is its device, since producing such an output needs a real kernel. |
 | **P2i** | **Find and replace** | `documentsearch:{start,startWithReplace,highlightNext,highlightPrevious,end}`; the notebook's provider is `packages/notebook/src/searchprovider.ts` and it defines the ordering, including whether collapsed cells participate. Read it rather than iterating cells. |
 | **P2j** | **Trust and export** | `notebook:trust`, `notebook:export-to-format`. Export is `nbconvert`, already in the rootfs (`nbconvert==7.17.1`, with `mistune`, `bleach`, `pandocfilters`), and lands as a file in the workspace plus a share intent. **Trust is two halves and only one is the server's.** The client half is a *dialog* that warns and then sets `trusted: true` on each cell in the model (`actions.tsx` `trustNotebook`); the signing half is the server's — `ContentsManager.notary = sign.NotebookNotary` and `trust_notebook()` → `mark_cells(nb, True)` + `check_and_sign(nb, path)` (`services/contents/manager.py:116-120,694-706`, over `nbformat/sign.py`). **`check_and_sign` runs on save through the Contents API, which this app bypasses** by writing files directly — so a notebook we write is unsigned and would open untrusted. Decide that before building the dialog: route notebook *saves* through the Contents API, sign in the Space via `nbformat.sign`, or state that trust is inert here. Do **not** re-derive HMAC signing in Kotlin. |
 | **P2k** | **Execution history** | `access-previous-history-entry`, `access-next-history-entry`. Needs `history_request` on the shell channel — a protocol message the gateway does not send yet, so it is a `KernelGateway` addition, not just UI. |
@@ -380,9 +406,9 @@ for every flow run after it on the same device. `reset_notebooks` clears
 `export-to-format` matrix, and — moved here from P2g rather than built there —
 **`toggle-virtual-scrollbar`**. It is a cell-preview strip with a viewport indicator and
 click-to-jump, engine in `packages/notebook/src/windowing.ts` — not a touch target at 360dp, and
-P2h's table of contents both answers "jump around a long notebook" on a phone and already pays for
-the third pane (`ListDetailSceneStrategy.extraPane()`) a minimap would want. Re-costed once P2h
-exists rather than built twice. The rest is either a desktop-window idea with no phone reading, or
+P2h's table of contents both answers "jump around a long notebook" on a phone and has already paid
+for the side panel a minimap would want. Re-costed now that the ToC exists rather than built
+twice. The rest is either a desktop-window idea with no phone reading, or
 work that belongs after the Space system decides where files go.
 
 ---

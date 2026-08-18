@@ -1,15 +1,20 @@
 appId: com.jupydroid.app
 ---
-# P2h-2: the table of contents opens as a bottom sheet, and a tap on a heading moves the notebook
-# to the cell it heads - `EditorUiState.tableOfContentsHeadings`, in document order, read once and
+# P2h-2: the table of contents opens as an overlay, and a tap on a heading moves the notebook to
+# the cell it heads - `EditorUiState.tableOfContentsHeadings`, in document order, read once and
 # proven end to end here rather than only in the composable's own instrumented test.
+#
+# **NARROW WINDOW** (< 840dp), and it is the feature's own rule rather than a harness limitation:
+# an editor with room for a column gets `TableOfContentsPane` instead, which stays open across a
+# pick and so cannot satisfy the dismissal this flow asserts. `p2h-3-table-of-contents-pane`
+# is the same claims against that adaptation.
 #
 # Reuses p2f-2's fixture rather than a new one: three headings at three different depths already
 # exist there, and its own flow already establishes that its seven expanded cells do not fit one
 # screen - which is exactly what makes "the notebook actually moved" a claim worth making rather
 # than a scroll position that would have looked the same either way.
 #
-# No cell is run, so this flow says the same thing on either device and shards freely.
+# No cell is run, so nothing here needs the tablet.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
@@ -34,7 +39,7 @@ appId: com.jupydroid.app
 - assertNotVisible: "Chapter one"
 - takeScreenshot: 02-scrolled-away-from-chapter-one
 - tapOn: "View actions"
-- tapOn: "Table of contents"
+- tapOn: "Show table of contents"
 - assertVisible: "Table of contents Chapter one"
 - assertVisible: "Table of contents Part A"
 - assertVisible: "Table of contents Chapter two"
@@ -57,6 +62,6 @@ appId: com.jupydroid.app
     visible: "View actions"
     timeout: 30000
 - tapOn: "View actions"
-- tapOn: "Table of contents"
+- tapOn: "Show table of contents"
 - assertVisible: "No headings in this notebook"
 - takeScreenshot: 05-empty-notebook-placeholder

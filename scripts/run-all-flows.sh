@@ -65,6 +65,18 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
     continue
   fi
 
+  # The mirror of the rule above, and it earns its keep for the same reason: some flows assert a
+  # *compact*-width adaptation, and on a wide window the app deliberately does something else. The
+  # table of contents is the first - an editor with room draws it as a pane and a narrow one as a
+  # sheet (P2h-3) - so a flow asserting the sheet is not a failure on a tablet, it is the wrong
+  # question. 840dp is the editor-width boundary `tocPresentationFor` reads, and the window is the
+  # closest thing this script can measure.
+  if grep -q "NARROW WINDOW" "$driver" && [ "${WIDTH_DP:-0}" -ge 840 ]; then
+    printf 'SKIP  %-28s needs <840dp: it asserts the compact-width adaptation\n' "$name"
+    skip=$((skip + 1))
+    continue
+  fi
+
   if ANDROID_SERIAL="$DEVICE" "$driver" >"$LOGS/$name.log" 2>&1; then
     printf 'PASS  %s\n' "$name"
     pass=$((pass + 1))

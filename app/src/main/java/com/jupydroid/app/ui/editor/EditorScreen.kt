@@ -1,21 +1,16 @@
 package com.jupydroid.app.ui.editor
 
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,26 +18,19 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.jupydroid.app.theme.editorPalette
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
-import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.EditorSettingsRepository
@@ -130,9 +118,29 @@ fun EditorScreen(
       onDismiss = { viewModel.answerOverwrite(accepted = false) },
     )
   }
-  Scaffold(
-    modifier = modifier.fillMaxSize(),
-    topBar = {
+  // **The editor's own width, not the window's**, which is what decides where the table of
+  // contents goes ([tocPresentationFor]): in the two-pane layout the explorer has already spent
+  // 360dp of the window, so asking `currentWindowAdaptiveInfo()` would offer a pane to an editor
+  // with no room for one. It is also what makes both branches reachable from a test - a window
+  // cannot be forced under a composable, while a layout constraint can (`docs/DECISIONS.md`).
+  BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    val tocPresentation = tocPresentationFor(maxWidth.value.toInt())
+    // Saved rather than remembered: the pane survives a rotation, which is the one gesture most
+    // likely to bring it into range in the first place. Hidden by default, as the reference's own
+    // ToC tab is - the file browser is the sidebar panel that opens with the shell, not this.
+    var tocPaneOpen by rememberSaveable { mutableStateOf(false) }
+    val showTocPane = tocPaneOpen && tocPresentation == TocPresentation.PANE
+    val jumpToHeading: (String) -> Unit = { cellId ->
+      // A heading is never hidden by its own section (CellHeadings.kt), but one nested inside an
+      // ancestor's collapsed section is - and the reference does not solve that either: the ToC's
+      // own collapse state is independent of the notebook's by default (`syncCollapseState`), so a
+      // hidden target's index is simply absent here and the tap is a no-op rather than a crash.
+      val index = state.cellsOnScreen.indexOfFirst { it.id == cellId }
+      if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
+    }
+    Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      topBar = {
       // A marked run replaces the document's bar rather than adding to it: the notebook's title,
       // its rename and its undo are about the document, and none of them is what the screen is
       // for while cells are being picked. Material's contextual-bar rule, and the reference's
@@ -172,15 +180,10 @@ fun EditorScreen(
             applicationScope.launch { editorSettingsRepository.update(toggled) }
           },
           tableOfContentsHeadings = state.tableOfContentsHeadings,
-          onTableOfContentsHeadingSelected = { cellId ->
-            // A heading is never hidden by its own section (CellHeadings.kt), but one nested
-            // inside an ancestor's collapsed section is - and the reference does not solve that
-            // either: the ToC's own collapse state is independent of the notebook's by default
-            // (`syncCollapseState`), so a hidden target's index is simply absent here and the tap
-            // is a no-op rather than a crash.
-            val index = state.cellsOnScreen.indexOfFirst { it.id == cellId }
-            if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
-          },
+          onTableOfContentsHeadingSelected = jumpToHeading,
+          tableOfContentsPresentation = tocPresentation,
+          tableOfContentsPaneOpen = showTocPane,
+          onToggleTableOfContentsPane = { tocPaneOpen = !tocPaneOpen },
         )
       }
     },
@@ -221,22 +224,37 @@ fun EditorScreen(
         )
       }
     },
-  ) { innerPadding ->
-    EditorContent(
-      state = state,
-      onRunCell = viewModel.kernel::runCell,
-      onStopCell = viewModel.kernel::stopRunningCell,
-      onEditCell = viewModel::editCell,
-      completionsAt = viewModel.kernel::completionsAt,
-      onCellAction = viewModel.edits::applyTo,
-      onCellFocusChanged = viewModel::cellFocusChanged,
-      onToggleSelected = viewModel.selection::extendTo,
-      onMarkdownEditRequested = viewModel::markdownEditRequested,
-      cellInput = cellInput,
-      autoClosingBrackets = editorSettings.autoClosingBrackets,
-      listState = listState,
-      modifier = Modifier.padding(innerPadding),
-    )
+    ) { innerPadding ->
+      // The pane is a column *beside* the notebook rather than a scene of its own, and that is a
+      // constraint rather than a preference: `ListDetailSceneStrategy.extraPane()` - what
+      // `docs/PLAN.md` assumed - is a separate `NavEntry`, and every entry here owns its own
+      // `ViewModelStore` (`docs/architecture.md` §4), so it could reach neither this notebook's
+      // `EditorViewModel` for the headings nor its `listState` to scroll. See `docs/DECISIONS.md`.
+      Row(modifier = Modifier.padding(innerPadding)) {
+        EditorContent(
+          state = state,
+          onRunCell = viewModel.kernel::runCell,
+          onStopCell = viewModel.kernel::stopRunningCell,
+          onEditCell = viewModel::editCell,
+          completionsAt = viewModel.kernel::completionsAt,
+          onCellAction = viewModel.edits::applyTo,
+          onCellFocusChanged = viewModel::cellFocusChanged,
+          onToggleSelected = viewModel.selection::extendTo,
+          onMarkdownEditRequested = viewModel::markdownEditRequested,
+          cellInput = cellInput,
+          autoClosingBrackets = editorSettings.autoClosingBrackets,
+          listState = listState,
+          modifier = Modifier.weight(1f),
+        )
+        if (showTocPane) {
+          TableOfContentsPane(
+            headings = state.tableOfContentsHeadings,
+            onHeadingSelected = jumpToHeading,
+            onClose = { tocPaneOpen = false },
+          )
+        }
+      }
+    }
   }
 }
 
@@ -319,156 +337,6 @@ private fun EditorContent(
           )
         }
       }
-    }
-  }
-}
-
-@Composable
-private fun EditorCell(
-  cell: Cell,
-  outputs: List<CellOutput>,
-  executionCount: Int?,
-  sourceRevision: Int,
-  execution: CellExecution?,
-  canPaste: Boolean,
-  selected: Boolean,
-  mark: CellMark?,
-  markedCount: Int,
-  tinted: Boolean,
-  mode: CellMode,
-  onRun: () -> Unit,
-  onStop: () -> Unit,
-  onSourceEdited: (String) -> Unit,
-  completionsAt: suspend (String, Int) -> CompletionResult,
-  onCellAction: (CellAction, CellEditorText) -> Unit,
-  onFocusChanged: (Boolean) -> Unit,
-  onToggleSelected: () -> Unit,
-  markdownRendered: Boolean,
-  markdownTakesCaret: Boolean,
-  onMarkdownEditRequested: () -> Unit,
-  /** How many cells this heading is hiding, or 0 when it is hiding none - see [HiddenCellsRow]. */
-  hiddenBelow: Int,
-  /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
-  lineNumbersShown: Boolean,
-  /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
-  autoClosingBrackets: Boolean,
-  cellInput: FocusedCellInput,
-  modifier: Modifier = Modifier,
-) {
-  // One text state per cell, owned here rather than inside the field: a cell has one source, and
-  // the caret in it is read by the cell's actions as well as by the field. Created whether or not
-  // a field is on screen, so collapsing a cell and expanding it keeps the caret and the typing
-  // history instead of re-seeding from the model.
-  val field = rememberTextFieldState(cell.source)
-  // **Here and not in the field**, which is the seam [CellSourceTracking] records: a change of type
-  // composes a different field over this same state, and a counter seeded per field would start
-  // already up to date and adopt the rewrite that came with the change.
-  adoptRewrittenSource(field, cell.source, sourceRevision)
-  // Every action carries what this cell's field is holding, read when the action is chosen rather
-  // than when the menu was built. Only Split reads it, and it is the one action that is not a pure
-  // function of the document - see [CellEditorText]. Both surfaces dispatch through here, so the
-  // accessibility context menu gets it too.
-  val act: (CellAction) -> Unit = { action ->
-    onCellAction(action, CellEditorText(field.text.toString(), field.selection))
-  }
-  val stripe = cellStripe(
-    selected = selected,
-    mode = mode,
-    status = execution?.status ?: ExecutionStatus.NOT_STARTED,
-    palette = editorPalette,
-  )
-  // The whole cell carries its actions for a screen reader, not only the `⋮` that opens them.
-  CellFrame(
-    stripe = stripe,
-    tint = if (tinted) editorPalette.cellMultiSelected else Color.Unspecified,
-    modifier = modifier.cellCustomActions(
-      cell = cell,
-      canPaste = canPaste,
-      selecting = mark != null,
-      // What *this* cell's menu will act on: the whole run when it is in it, itself when not.
-      count = if (mark?.checked == true) markedCount else 1,
-      onAction = act,
-    ),
-  ) {
-    CellHeader(
-      cell = cell,
-      executionCount = executionCount,
-      execution = execution,
-      canPaste = canPaste,
-      mark = mark,
-      onToggleSelected = onToggleSelected,
-      // One Run for both kinds now: `runCells` is what decides that a code cell reaches the kernel
-      // and a markdown cell renders, exactly as `Private.runCells` does.
-      onRun = onRun,
-      onStop = onStop,
-      onCellAction = act,
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-    // Wrapped so the focus listener sits on the *input area* rather than the whole cell, which
-    // is the distinction JupyterLab draws in `_evtFocusIn`: focus anywhere in a cell selects it,
-    // but only focus inside the editor means edit mode. Put on the Column, the header's buttons
-    // would count as typing.
-    Box(modifier = onCellInputFocus(onFocusChanged)) {
-      if (cell.sourceHidden) {
-        // Collapsed beats every other source state: there is nothing to type into, and the tap
-        // that expands must not also land in a text field.
-        CollapsedCell(
-          preview = firstNonEmptyLine(cell.source),
-          description = COLLAPSED_SOURCE,
-          onExpand = { act(CellAction.ToggleSourceHidden) },
-        )
-      } else {
-        when (cell.kind) {
-          CellKind.CODE -> CodeCellField(
-            state = field,
-            onSourceEdited = onSourceEdited,
-            completionsAt = completionsAt,
-            input = cellInput,
-            lineNumbersShown = lineNumbersShown,
-            autoClosingBrackets = autoClosingBrackets,
-            modifier = Modifier
-              .fillMaxWidth()
-              .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
-              .padding(8.dp),
-          )
-
-          CellKind.MARKDOWN -> MarkdownCell(
-            state = field,
-            source = cell.source,
-            rendered = markdownRendered,
-            onEditRequested = onMarkdownEditRequested,
-            onSourceEdited = onSourceEdited,
-            input = cellInput,
-            takesCaret = markdownTakesCaret,
-            lineNumbersShown = lineNumbersShown,
-            modifier = Modifier.fillMaxWidth(),
-          )
-
-          // The code cell's panel rather than the markdown editor's: the reference gives a raw
-          // cell no styling of its own, so it draws in the same input area a code cell does.
-          CellKind.RAW -> RawCellField(
-            state = field,
-            onSourceEdited = onSourceEdited,
-            input = cellInput,
-            lineNumbersShown = lineNumbersShown,
-            modifier = Modifier
-              .fillMaxWidth()
-              .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
-              .padding(8.dp),
-          )
-        }
-      }
-    }
-    CellOutputs(
-      outputs = outputs,
-      hidden = cell.outputsHidden,
-      scrolled = cell.outputsScrolled,
-      onExpand = { act(CellAction.ToggleOutputsHidden) },
-    )
-    // Inside this cell's frame rather than between it and the next, because that is what it is
-    // about: the reference appends the button to the heading cell's own node (`widget.ts:2429`).
-    if (hiddenBelow > 0) {
-      HiddenCellsRow(count = hiddenBelow, onExpand = { act(CellAction.ToggleHeadingCollapse) })
     }
   }
 }

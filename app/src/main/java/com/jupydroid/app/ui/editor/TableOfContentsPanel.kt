@@ -26,9 +26,9 @@ import androidx.compose.ui.unit.dp
  * [CellActionPresentation] rather than inventing a second width rule for the same picker shape.
  *
  * `packages/toc-extension/src/index.ts:161-172` just activates the reference's own sidebar tab;
- * there is no sidebar here, and P2h-3 is what gives a wide screen its *own* placement - a
- * **persistent** third pane rather than this transient one. Every width gets this treatment until
- * then.
+ * there is no sidebar here, so this is the **narrow** adaptation of it - an editor with room for a
+ * column gets [TableOfContentsPane] instead, which is the reference's own persistent shape.
+ * [tocPresentationFor] is the rule, and it measures the editor rather than the window.
  *
  * The flat list is drawn indented by level rather than folded into a nested tree: the model stays
  * exactly [EditorUiState.tableOfContentsHeadings]'s own shape, and indentation is all a render
@@ -88,8 +88,12 @@ private fun TableOfContentsSheet(headings: List<TocHeading>, onDismiss: () -> Un
   }
 }
 
+/**
+ * The rows themselves, shared with [TableOfContentsPane] - the two surfaces differ in where they
+ * are drawn and whether a pick closes them, never in what a heading looks like or is called.
+ */
 @Composable
-private fun TableOfContentsRows(headings: List<TocHeading>, onChoose: (String) -> Unit) {
+internal fun TableOfContentsRows(headings: List<TocHeading>, onChoose: (String) -> Unit) {
   if (headings.isEmpty()) {
     EmptyTableOfContents()
     return

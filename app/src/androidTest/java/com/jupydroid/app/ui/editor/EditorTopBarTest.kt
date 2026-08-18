@@ -253,6 +253,42 @@ class EditorTopBarTest {
     assertEquals(listOf("h1"), tableOfContentsSelections)
   }
 
+  // --- the persistent pane (P2h-3) ---------------------------------------------------------
+
+  /**
+   * With a pane to show, the row asks for it rather than opening an overlay - the editor is
+   * drawing the list itself, so a second copy over the top of it would be two answers to one
+   * question.
+   */
+  @Test
+  fun inPaneModeTheRowAsksForThePaneAndOpensNoOverlay() {
+    showTopBar(
+      tableOfContentsHeadings = listOf(TocHeading("h1", 1, "Chapter one")),
+      tableOfContentsPresentation = TocPresentation.PANE,
+    )
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).performClick()
+
+    compose.runOnIdle { assertEquals(1, tableOfContentsPaneToggles) }
+    compose.onNodeWithContentDescription("Table of contents Chapter one").assertDoesNotExist()
+  }
+
+  /**
+   * **The label flips with the state**, which is this app's own convention for a toggle
+   * ([SHOW_LINE_NUMBERS]) and load-bearing for the same reason: Android's accessibility tree
+   * keeps a `DropdownMenuItem`'s toggled state on a node carrying no label, so a check mark is a
+   * state no Maestro flow can read.
+   */
+  @Test
+  fun theRowNamesTheOppositeOfWhatIsOnScreen() {
+    showTopBar(tableOfContentsPresentation = TocPresentation.PANE, tableOfContentsPaneOpen = true)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(HIDE_TABLE_OF_CONTENTS).assertIsDisplayed()
+  }
+
   private val renamed = mutableListOf<String>()
   private var undos = 0
   private var redos = 0
@@ -260,6 +296,7 @@ class EditorTopBarTest {
   private var lineNumberToggles = 0
   private var autoClosingBracketsToggles = 0
   private val tableOfContentsSelections = mutableListOf<String>()
+  private var tableOfContentsPaneToggles = 0
 
   private fun showTopBar(
     canUndo: Boolean = false,
@@ -267,6 +304,8 @@ class EditorTopBarTest {
     lineNumbersShown: Boolean = true,
     autoClosingBrackets: Boolean = true,
     tableOfContentsHeadings: List<TocHeading> = emptyList(),
+    tableOfContentsPresentation: TocPresentation = TocPresentation.OVERLAY,
+    tableOfContentsPaneOpen: Boolean = false,
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -285,6 +324,9 @@ class EditorTopBarTest {
           onToggleAutoClosingBrackets = { autoClosingBracketsToggles++ },
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },
+          tableOfContentsPresentation = tableOfContentsPresentation,
+          tableOfContentsPaneOpen = tableOfContentsPaneOpen,
+          onToggleTableOfContentsPane = { tableOfContentsPaneToggles++ },
         )
       }
     }

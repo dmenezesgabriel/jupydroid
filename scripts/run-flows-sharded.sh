@@ -9,8 +9,8 @@
 # *evenly and blindly*: a flow that runs a cell would land on the x86_64 emulator, where
 # MainActivity falls back to FakeKernelGateway and the fake answers from the cell's own source. The
 # split has to know the rules, and the rules live in the drivers - `TABLET ONLY` (an ABI rule) and
-# `WIDE WINDOW` (a width rule). So the partition is made here and each shard is an ordinary
-# `run-all-flows.sh` run.
+# `WIDE WINDOW` / `NARROW WINDOW` (width rules). So the partition is made here and each shard is an
+# ordinary `run-all-flows.sh` run.
 #
 # **Every driver goes to exactly one device.** That is what makes this safe rather than merely
 # fast: nine drivers write into a fixed `evidence/<step>/` directory, and two devices filling the
@@ -78,6 +78,10 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
   elif grep -q "WIDE WINDOW" "$driver"; then
     for device in "${DEVICES[@]}"; do
       [ "${WIDTH[$device]:-0}" -ge 600 ] && candidates+=("$device")
+    done
+  elif grep -q "NARROW WINDOW" "$driver"; then
+    for device in "${DEVICES[@]}"; do
+      [ "${WIDTH[$device]:-0}" -lt 840 ] && candidates+=("$device")
     done
   else
     free_flows+=("$name")
