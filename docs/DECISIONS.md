@@ -948,6 +948,36 @@ P2j has to make rather than discover.
   (`evidence/p2d-2-ranged-runs/`). So the state is asserted where the tree carries it — an
   instrumented test — and a flow proves the same fact by **behaviour**: a live row closes the menu,
   a dead one leaves it open.
+- **A multi-line `Text` is one node, so a flow cannot assert one line's position inside it.**
+  Whether "line 40" of a forty-line stream output is *visible* was meant to distinguish a bounded
+  output from an unbounded one (P2g-2a) — but `OutputText` renders the whole string as one `Text`,
+  so `assertVisible`/`assertNotVisible` for a substring of it can only report whether *that node*
+  is visible, and the node is, from its very first line. `assertNotVisible: "(?s).*line 40.*"`
+  failed against a screenshot showing only line 1 through line 20, for exactly this reason.
+  **Reachability of a cell below was tried next and rejected too**, once measured: Compose's
+  nested scroll (below) means the *total* distance to a cell after a bounded output is close to
+  the same as after an unbounded one, so `scrollUntilVisible` on the next cell lands at a similar
+  place either way and the screenshots at that point looked the same. What the flow asserts
+  instead is the one thing nested scroll actually changes — see the next entry.
+- **`Modifier.verticalScroll` bounds a composable's own layout size and does not clip its
+  drawing.** `ScrollNode.measure` reports a height coerced to the incoming constraint
+  (confirmed by an instrumented `getUnclippedBoundsInRoot` comparison, which is exactly right and
+  passed first try), but the oversized child is still *placed* and *drawn* past that boundary —
+  so a `Box(heightIn(max = …)) { Column(Modifier.verticalScroll(...)) { … } }` looked, on device,
+  identical whether bounded or not: the tail of the content was on screen either way, just past
+  where the box was meant to end. `Modifier.clipToBounds()` on the scrolling `Column` is what
+  makes the bound a visual one, not only a layout one.
+- **Nested scroll is real and free, and it is what a flow has to key on instead of a line count.**
+  A swipe with both ends inside a bounded output scrolls that output's own `verticalScroll`
+  first — the same `overflow-y: auto` behaviour a mouse wheel gets over the reference's output
+  area — so the cell's code stays on screen. The identical swipe over an unbounded output has no
+  inner scroll region to consume it, so it moves the whole cell. Confirmed by hand with
+  `uiautomator dump` and `adb shell input swipe` before it went into a flow: the same gesture at
+  the same coordinates left the code cell's source visible in one notebook and scrolled it away
+  in the other. `p2g-2a-scrolled-outputs.yaml` asserts only the positive half of that (the code
+  stays visible) — the negative half (the code is gone) is not, because a `LazyColumn` keeps a
+  couple of items composed just past the viewport and their semantics nodes can still report
+  visible there; two screenshots carry that half instead.
 
 ---
 
