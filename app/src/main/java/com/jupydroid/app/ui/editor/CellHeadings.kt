@@ -84,6 +84,18 @@ fun EditorUiState.withHeadingCollapsed(cellId: String, collapsed: Boolean): Edit
 }
 
 /**
+ * How many cells sit under [cellId] that nobody can see, and **0 for every cell that is not a
+ * collapsed heading**.
+ *
+ * The reference stores this as `MarkdownCell.numberChildNodes` and recomputes it inside
+ * `setHeadingCollapse` (`actions.tsx:2427-2429`); here it is the section, which is where that
+ * number came from. It is what `addCells` adds to a paste index (`:1590-1612`) so a pasted cell
+ * lands *after* a hidden section rather than inside one.
+ */
+internal fun EditorUiState.hiddenSectionSize(cellId: String): Int =
+  if (cells.any { it.id == cellId && it.headingCollapsed }) headingSectionOf(cellId).size else 0
+
+/**
  * `notebook:insert-heading-{above,below}` - a new heading beside the section the head is in.
  *
  * Three rules, all from `insertSameLevelHeading{Above,Below}` (`actions.tsx:1183-1231`), and the

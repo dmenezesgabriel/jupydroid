@@ -1,0 +1,58 @@
+appId: com.jupydroid.app
+---
+# P2f-5: a collapsed heading *is* its section, so deleting one takes the cells it is hiding.
+#
+# `deleteCells` marks a collapsed heading's children for deletion alongside it
+# (`packages/notebook/src/actions.tsx:3340-3365`), and `Private.selectedCells` does the same for
+# copy, cut and duplicate (`:3103-3130`). Nothing else does: change-type, merge, move, clear and
+# every collapse iterate `isSelectedOrActive` and stop there. The asymmetry is the point - those
+# four remove or reproduce the heading, so leaving its section behind would orphan cells under a
+# heading that has gone.
+#
+# **Deliberately driven with the section folded away.** The three cells that disappear are not on
+# screen when Delete is tapped, which is exactly the case a menu row acting on "this cell" gets
+# wrong.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Collapsed Section.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Collapsed Section.ipynb"
+- extendedWaitUntil:
+    visible: "Chapter one"
+    timeout: 30000
+- assertVisible: "one = 1"
+- takeScreenshot: 01-expanded
+- tapOn:
+    text: "Collapse heading"
+    index: 0
+- assertVisible: "3 cells hidden"
+- assertNotVisible: "one = 1"
+- takeScreenshot: 02-chapter-one-folded-away
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- tapOn: "Cell menu Delete"
+- waitForAnimationToEnd:
+    timeout: 5000
+# The heading and everything it was hiding, in one operation: Chapter two and its cell are all that
+# is left, and neither the H2 nor the two code cells under Chapter one survived.
+- assertNotVisible: "Chapter one"
+- assertNotVisible: "Part A"
+- assertNotVisible: "one = 1"
+- assertNotVisible: "part = 2"
+- assertVisible: "Chapter two"
+- assertVisible: "two = 3"
+- takeScreenshot: 03-the-whole-section-went-with-it
+# And one undo brings all four back, because it was one operation - the same `CellEdits.applying`
+# boundary every other cell command uses.
+- tapOn: "Undo cell operation"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Chapter one"
+- assertVisible: "3 cells hidden"
+- takeScreenshot: 04-one-undo-brings-the-section-back

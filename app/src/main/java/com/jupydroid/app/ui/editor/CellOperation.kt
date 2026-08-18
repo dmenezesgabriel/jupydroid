@@ -81,10 +81,54 @@ private fun EditorUiState.operated(
   // holds what the user can see rather than a copy up to one debounce old. Not an entry of its
   // own - typing is the other undo, and it has never had one.
   val current = if (action == CellAction.Split) withSource(head, editor.source) else this
-  return current.transformed(action, selectedCellIds, head, editor)
+  return current.transformed(action, operandOf(action), head, editor)
     .recording(before = current)
     .let { if (action.keepsTheRun) it else it.withSelectionCollapsed() }
 }
+
+/**
+ * Every cell [action] applies to, in document order - which for four of them is **more than is
+ * marked**: a collapsed heading stands for its whole section.
+ *
+ * `Private.selectedCells` adds a collapsed heading's children to what is copied, cut or duplicated
+ * (`actions.tsx:3103-3130`) and `deleteCells` marks them for deletion (`:3340-3365`). Nothing else
+ * does - `changeCellType`, `mergeCells`, `moveCells`, `clearOutputs` and every collapse iterate
+ * `isSelectedOrActive` and stop there - and the asymmetry is deliberate rather than an oversight
+ * there: those four *remove or reproduce* the heading, so leaving its section behind would orphan
+ * cells under a heading that has gone, while the rest leave the structure standing.
+ *
+ * A `LinkedHashSet` because a run may already hold the section it is being given, and the order is
+ * the document's either way: sections are contiguous and follow their heading, so inserting each
+ * one directly after its own heading is document order. That is `selectedCells`'s shape too - it
+ * walks the widgets and adds children as it meets them.
+ */
+internal fun EditorUiState.operandOf(action: CellAction): List<String> {
+  val marked = selectedCellIds
+  val collapsed = when {
+    action.takesWholeSections -> cells.filter { it.headingCollapsed }.map { it.id }.toSet()
+    else -> emptySet()
+  }
+  if (collapsed.none { it in marked }) return marked
+  return marked
+    .flatMapTo(LinkedHashSet()) { id -> if (id in collapsed) listOf(id) + headingSectionOf(id) else listOf(id) }
+    .toList()
+}
+
+/**
+ * The four that stand for a whole section, exhaustive for [keepsTheRun]'s reason: a nineteenth
+ * action has to decide this, not inherit it.
+ */
+private val CellAction.takesWholeSections: Boolean
+  get() = when (this) {
+    CellAction.Copy, CellAction.Cut, CellAction.Duplicate, CellAction.Delete,
+    -> true
+
+    is CellAction.Insert, is CellAction.InsertAbove, is CellAction.InsertHeading,
+    is CellAction.ChangeKind, is CellAction.ChangeToHeading, CellAction.ChooseHeadingLevel,
+    is CellAction.Merge, CellAction.Split, is CellAction.Move, CellAction.StartSelecting,
+    CellAction.Paste, CellAction.ClearOutputs, is CellAction.Fold,
+    -> false
+  }
 
 /**
  * Whether the marked run survives this operation.

@@ -189,6 +189,10 @@ private fun EditorUiState.cellsIn(cellIds: List<String>): List<Cell> {
  * its identity is what lets a running execution find it again. A *copied* cell cannot keep the id
  * the original still holds.
  *
+ * **And it lands after a collapsed heading's children rather than between them**, which is
+ * `addCells`'s own arithmetic (`actions.tsx:1590-1612`): a cell pasted into a folded section would
+ * be somewhere nobody can see.
+ *
  * [newIds] supplies one id per clipboard entry; the ones a cut code cell does not need are simply
  * unused, which keeps this function free of id generation like the rest of the file.
  */
@@ -199,5 +203,9 @@ fun EditorUiState.withClipboardPasted(cellId: String, newIds: List<String>): Edi
     val keepsIdentity = clipboardWasCut && cell.kind == CellKind.CODE
     if (keepsIdentity) cell else cell.copy(id = newIds.getOrElse(index) { cell.id })
   }
-  return copy(cells = cells.toMutableList().apply { addAll(at + 1, pasted) }, dirty = true)
+  // Past the children of a collapsed heading, not directly under it - `addCells`'s `'below'` branch
+  // adds `numberChildNodes` to the index (`actions.tsx:1590-1612`), because a paste that landed
+  // inside a folded section would vanish into cells nobody can see.
+  val below = at + 1 + hiddenSectionSize(cellId)
+  return copy(cells = cells.toMutableList().apply { addAll(below, pasted) }, dirty = true)
 }

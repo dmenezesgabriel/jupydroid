@@ -38,7 +38,7 @@ filesystem the kernel, the server and the app all share.
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 166 instrumented, 953 unit, 85 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 166 instrumented, 960 unit, 86 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
 settings, headings, trust, export.
@@ -319,10 +319,37 @@ One harness defect went with them, and it had been silent since the ranged runs 
 post-Run assertions held `"Run All"` while the bar reads **"Run all cells"**, so it had never fired
 on any of the seven flows that tap it.
 
+**P2f has shipped, in five sub-steps, and its central decision is one the reference makes about its
+own code.** All eleven commands are in - `toggle-heading-collapse`, `collapse-all-headings`,
+`expand-all-headings`, `change-cell-to-heading-1..6` and `insert-heading-{above,below}` - plus the
+four places a collapsed heading behaves as its whole section. What each settled is
+`docs/DECISIONS.md`; the evidence is `evidence/p2f-1-heading-collapse/` through
+`evidence/p2f-5-collapsed-section/`.
+
+**What is hidden is derived, never stored**, and that is `_refreshCollapsedHeadingVisibility`'s own
+description of itself - *"Recompute hidden cells from the current collapsed heading structure"*
+(`widget.ts:916-940`), called after `moveCells` reorders (`:462`). Deriving it instead of re-running
+it made every insert, delete, move and undo correct without any of them knowing the feature exists,
+and gave the `localCollapsed` rule for free.
+
+Four costs the plan did not name, each recorded in `docs/DECISIONS.md` rather than here:
+
+- **A menu row that opened a picker closed it in the same frame.** `CellActionSurface` dismisses
+  after *every* choice, so the second step opened and vanished. Found by the flow.
+- **A replaced field adopted nothing.** `change-cell-to-heading` is the first command that rewrites
+  a cell's source *and* changes its type, so a `CodeCellField` became a `MarkdownCellField` over one
+  `TextFieldState` and the adoption counter - seeded per field - started already up to date. The
+  model held `## title` and the editor showed the text from before. Adoption belongs to the cell now
+  and reporting to the field. **Both of the flow's earlier assertions were green; the screenshot is
+  what said otherwise**, for the second time in this project.
+- **`stopApp` is a force-stop, so a flow that kills the app inside the 500 ms save debounce tests
+  the timer rather than the feature.** The fix is what a user does: leave the document first.
+- **`CellAction.Fold` is a category detekt asked for three times.** The three collapses share both
+  things the dispatch cares about, and `CellFolds` had already named it in prose.
+
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|
-| **P2f** | **Headings and heading collapse** — **P2f-1 to P2f-4 have shipped** - every command this row names (`evidence/p2f-1-heading-collapse/`, `p2f-2-collapse-all-headings/`, `p2f-3-change-to-heading/`, `p2f-4-insert-heading/`; what they settled is `docs/DECISIONS.md`). Left: **P2f-5**, the four places a collapsed heading behaves as its whole section. | `change-cell-to-heading-1..6`, `insert-heading-{above,below}`, `toggle-heading-collapse`, `collapse-all-headings`, `expand-all-headings`. Heading collapse hides the cells **under** a heading — `setHeadingCollapse` (`actions.tsx:2348`) walks forward until it meets a heading of equal or higher level, so it is a document-structure feature, not a cell one, and it shares its model with P2h. **A collapsed heading then behaves as its whole section** everywhere else, which is the part that will bite if it is missed: `selectedCells` expands it so duplicating a collapsed heading duplicates the section; `addCells` inserts *after* its children rather than directly after it; and `deleteCells` takes the children with it. |
-| **P2g** | **View toggles** | `toggle-all-cell-line-numbers`, `enable/disable/toggle-output-scrolling`, `toggle-autoclosing-brackets`, `toggle-virtual-scrollbar` (engine in `packages/notebook/src/windowing.ts`). Several already have engines and no command; this is the surface, plus the persistence P6c provides. |
+| **P2g** | **View toggles** | `toggle-all-cell-line-numbers`, `enable/disable/toggle-output-scrolling`, `toggle-autoclosing-brackets`, `toggle-virtual-scrollbar` (engine in `packages/notebook/src/windowing.ts`). Several already have engines and no command; this is the surface, plus the persistence P6c provides. **The surface exists already**: P2f-2 put a View overflow on `EditorTopBar` for the two heading commands, which is where these land rather than needing a menu of their own. |
 | **P2h** | **Table of contents** | `toc:{show-panel,toggle-collapse,display-numbering,display-h1-numbering,display-outputs-numbering}`; the model is `packages/notebook/src/toc.ts`. **Adaptation:** a bottom sheet on a phone, a third pane at ≥ 840dp — a side panel is not reachable at 360dp. P1e paid for the third pane already: it is `ListDetailSceneStrategy.extraPane()`, not another hand-written scene. |
 | **P2i** | **Find and replace** | `documentsearch:{start,startWithReplace,highlightNext,highlightPrevious,end}`; the notebook's provider is `packages/notebook/src/searchprovider.ts` and it defines the ordering, including whether collapsed cells participate. Read it rather than iterating cells. |
 | **P2j** | **Trust and export** | `notebook:trust`, `notebook:export-to-format`. Export is `nbconvert`, already in the rootfs (`nbconvert==7.17.1`, with `mistune`, `bleach`, `pandocfilters`), and lands as a file in the workspace plus a share intent. **Trust is two halves and only one is the server's.** The client half is a *dialog* that warns and then sets `trusted: true` on each cell in the model (`actions.tsx` `trustNotebook`); the signing half is the server's — `ContentsManager.notary = sign.NotebookNotary` and `trust_notebook()` → `mark_cells(nb, True)` + `check_and_sign(nb, path)` (`services/contents/manager.py:116-120,694-706`, over `nbformat/sign.py`). **`check_and_sign` runs on save through the Contents API, which this app bypasses** by writing files directly — so a notebook we write is unsigned and would open untrusted. Decide that before building the dialog: route notebook *saves* through the Contents API, sign in the Space via `nbformat.sign`, or state that trust is inert here. Do **not** re-derive HMAC signing in Kotlin. |

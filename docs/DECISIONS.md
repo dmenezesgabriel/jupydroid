@@ -640,6 +640,28 @@ first guess gets wrong.
 row up, which puts a cell **after this one** — two rows both reading "below" would promise the same
 place and mean different ones. So the row names the section: *Insert heading after section*.
 
+### A collapsed heading is its whole section, for four commands and no others
+
+`Private.selectedCells` adds a collapsed heading's children to what is copied, cut or duplicated
+(`actions.tsx:3103-3130`) and `deleteCells` marks them for deletion (`:3340-3365`). **Nothing else
+does** — `changeCellType`, `mergeCells`, `moveCells`, `clearOutputs` and every collapse iterate
+`isSelectedOrActive` and stop there — and the asymmetry is deliberate rather than an oversight:
+those four *remove or reproduce* the heading, so leaving its section behind would orphan cells under
+a heading that has gone, while the rest leave the structure standing.
+
+**Paste is the fifth site and it is a position, not an operand.** `addCells`'s `'below'` and
+`'belowSelected'` branches add `numberChildNodes` to the index (`:1590-1612`), so a cell pasted
+under a collapsed heading lands *after* its children rather than somewhere nobody can see.
+
+**The sixth is inert here, and that is the model rather than an omission.** `Notebook.deselect`
+clears the selected flag on a collapsed heading's children (`widget.ts:2140-2160`); ours has no
+per-cell flag to clear — a selection is an anchor and a head with the cells between them derived
+(`docs/DECISIONS.md`, "A selection is a contiguous run") — so there is nothing that could be left
+marked.
+
+`numberChildNodes` is not stored either. The reference recomputes it inside `setHeadingCollapse`
+(`:2427-2429`); here it is the section's size, which is where that number came from.
+
 ### The three folds are a category, not three commands that happen to rhyme
 
 `CellAction.Fold` exists because detekt asked for `transformed` to be split three times and was

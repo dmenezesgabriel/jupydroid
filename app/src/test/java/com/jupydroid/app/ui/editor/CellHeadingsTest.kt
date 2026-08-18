@@ -397,6 +397,93 @@ class CellHeadingsTest {
     )
   }
 
+  // --- a collapsed heading behaves as its section (P2f-5) ---------------------------------
+
+  /**
+   * `Private.selectedCells` adds a collapsed heading's children to the operand
+   * (`actions.tsx:3103-3130`), so what is copied, cut, duplicated or deleted is the whole section -
+   * the cells nobody can see included, because that is what "this heading" means on screen.
+   */
+  @Test
+  fun theOperandOfADestructiveCommandTakesTheHiddenSectionWithIt() {
+    val collapsed = notebook.withHeadingCollapsed("h1", collapsed = true).copy(selectedCellId = "h1")
+
+    assertEquals(listOf("h1", "a", "h2", "b"), collapsed.operandOf(CellAction.Delete))
+    assertEquals(listOf("h1", "a", "h2", "b"), collapsed.operandOf(CellAction.Copy))
+    assertEquals(listOf("h1", "a", "h2", "b"), collapsed.operandOf(CellAction.Cut))
+    assertEquals(listOf("h1", "a", "h2", "b"), collapsed.operandOf(CellAction.Duplicate))
+  }
+
+  /**
+   * **And only those four.** `changeCellType`, `mergeCells`, `moveCells`, `clearOutputs` and every
+   * collapse iterate `isSelectedOrActive` with no expansion at all - the two functions that expand
+   * are `Private.selectedCells` and `deleteCells`, and nothing else calls either.
+   */
+  @Test
+  fun everyOtherCommandMeansTheHeadingAloneEvenCollapsed() {
+    val collapsed = notebook.withHeadingCollapsed("h1", collapsed = true).copy(selectedCellId = "h1")
+
+    assertEquals(listOf("h1"), collapsed.operandOf(CellAction.ChangeKind(CellKind.CODE)))
+    assertEquals(listOf("h1"), collapsed.operandOf(CellAction.Move(CellMove.DOWN)))
+    assertEquals(listOf("h1"), collapsed.operandOf(CellAction.ClearOutputs))
+    assertEquals(listOf("h1"), collapsed.operandOf(CellAction.ToggleHeadingCollapse))
+  }
+
+  /** An expanded heading owns nothing extra: the section is visible and selectable on its own. */
+  @Test
+  fun anExpandedHeadingIsJustACell() {
+    assertEquals(listOf("h1"), notebook.copy(selectedCellId = "h1").operandOf(CellAction.Delete))
+  }
+
+  /** A run already covering the section does not gain its cells twice, and stays in document order. */
+  @Test
+  fun aRunThatAlreadyHoldsTheSectionIsUnchanged() {
+    val collapsed = notebook
+      .withHeadingCollapsed("h2", collapsed = true)
+      .copy(anchorCellId = "h1", selectedCellId = "h1b")
+
+    assertEquals(listOf("h1", "a", "h2", "b", "h1b"), collapsed.operandOf(CellAction.Cut))
+  }
+
+  /** Deleting a collapsed heading takes the section with it - `deleteCells` (`actions.tsx:3340-3365`). */
+  @Test
+  fun deletingACollapsedHeadingDeletesItsSection() {
+    val collapsed = notebook.withHeadingCollapsed("h1", collapsed = true).copy(selectedCellId = "h1")
+
+    val deleted = collapsed.applying(CellAction.Delete)
+
+    assertEquals(listOf("h1b", "c"), deleted.cells.map { it.id })
+  }
+
+  /** And one undo brings the whole section back, because it was one operation. */
+  @Test
+  fun undoingThatDeleteBringsTheWholeSectionBack() {
+    val collapsed = notebook.withHeadingCollapsed("h1", collapsed = true).copy(selectedCellId = "h1")
+
+    val restored = collapsed.applying(CellAction.Delete).undoneCellOperation()
+
+    assertEquals(notebook.cells.map { it.id }, restored.cells.map { it.id })
+  }
+
+  /**
+   * **Paste lands after the children, not directly after the heading.** `addCells`'s `'below'`
+   * branch adds `numberChildNodes` to the index (`actions.tsx:1590-1612`), so a paste under a
+   * collapsed heading does not land inside a section nobody can see.
+   */
+  @Test
+  fun pasteBelowACollapsedHeadingLandsAfterItsSection() {
+    val collapsed = notebook
+      .withHeadingCollapsed("h1", collapsed = true)
+      .copy(selectedCellId = "h1", clipboard = listOf(Cell("clip", CellKind.CODE, "pasted")))
+
+    val pasted = collapsed.applying(CellAction.Paste)
+
+    // By source and not by id: a *copied* cell is given a fresh one, and only a cut code cell keeps
+    // the id it had (`actions.tsx:1666-1677`). Where it landed is the claim here.
+    assertEquals(4, pasted.cells.indexOfFirst { it.source == "pasted" })
+    assertEquals(notebook.cells.map { it.id }, pasted.cells.filterNot { it.source == "pasted" }.map { it.id })
+  }
+
   // --- the marked run, which must not end up on a cell nothing draws ----------------------
 
   /**
