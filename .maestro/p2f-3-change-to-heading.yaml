@@ -1,0 +1,69 @@
+appId: com.jupydroid.app
+---
+# P2f-3: a cell becomes a heading, and a heading is given a different level.
+#
+# `setMarkdownHeader` *is* `changeCellType(notebook, 'markdown', { headingLevel })`
+# (`packages/notebook/src/actions.tsx:2197-2214`), so this is the change of type plus one rewrite of
+# the first line - and it inherits P2e-3's two rules: the cell is left showing its source, and the
+# notebook stays in **command** mode.
+#
+# Six commands behind one row, because the cell menu is eighteen rows already. The picker replaces
+# the list rather than nesting inside it, so there is never a question of which surface a tap means.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Change To Heading.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Change To Heading.ipynb"
+- extendedWaitUntil:
+    visible: "(?s).*title = 'Results'.*"
+    timeout: 30000
+# The code cell has a saved output and a `[7]`, both of which a change of type discards - *"After
+# change of type outputs are deleted"* (`actions.tsx:3273-3275`).
+- assertVisible: "gamma"
+- takeScreenshot: 01-a-code-cell-with-a-result
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- tapOn: "Cell menu Change to heading…"
+# The list it came from is gone: a picker over a menu would leave two answers to "what does a tap
+# apply to", which is the same rule that hides a cell's `⋮` while a run is marked.
+- assertVisible: "Cell menu Heading 1"
+- assertNotVisible: "Cell menu Delete"
+- takeScreenshot: 02-the-level-picker
+- tapOn: "Cell menu Heading 2"
+- waitForAnimationToEnd:
+    timeout: 5000
+# The rewrite: `^#+\s*` or, failing that, `^\s*` replaced by the marker - so a cell with no header
+# gets one and keeps everything after it.
+- assertVisible: "(?s).*## title = 'Results'.*"
+# Left showing its source and holding no caret, which is P2e-3's pair of rules inherited whole: the
+# symbol row's first key is `Tab`, and it is not on screen because nobody is typing.
+- assertNotVisible: "Tab"
+# The output and the execution count went with the type, which is what makes this a change of type
+# rather than an edit of the first line.
+- assertNotVisible: "gamma"
+- takeScreenshot: 03-a-code-cell-became-an-h2
+# The second half: a cell that is **already** markdown takes the rewrite and no type change, which
+# is the reference's own `else if` branch (`:3300-3308`) and is how a heading is re-levelled.
+- tapOn:
+    text: "Cell actions"
+    index: 1
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- tapOn: "Cell menu Change to heading…"
+- tapOn: "Cell menu Heading 1"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "(?s).*# Already a heading.*"
+- assertNotVisible: "(?s).*###### Already a heading.*"
+- takeScreenshot: 04-an-h6-became-an-h1
+# One entry on the undo stack each, like every other cell operation - and this is the second command
+# after Split whose undo has to put a *surviving* cell's text back, which is the rule
+# `NotebookRevision.rewrote` exists for.
+- tapOn: "Undo cell operation"
+- assertVisible: "(?s).*###### Already a heading.*"
+- takeScreenshot: 05-undo-restores-the-source-it-rewrote

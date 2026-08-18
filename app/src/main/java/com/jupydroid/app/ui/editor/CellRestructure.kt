@@ -62,6 +62,42 @@ fun EditorUiState.withCellsKindChanged(cellIds: List<String>, kind: CellKind): E
 }
 
 /**
+ * `notebook:change-cell-to-heading-1..6` - the change of type, plus the source rewrite that makes
+ * it a heading.
+ *
+ * `setMarkdownHeader` is `changeCellType(notebook, 'markdown', { headingLevel })`
+ * (`actions.tsx:2197-2214`), so this is [withCellsKindChanged] with one more step rather than a
+ * second path beside it: the id survives, the outputs do not, and the cells are left showing their
+ * source. The step is `Private.setMarkdownHeader`, which replaces `^#+\s*` - or, failing that,
+ * `^\s*` - with the marker (`:3429-3438`). One anchored regex with two alternatives, so it strips
+ * a header the cell already had *or* the leading whitespace it did not, and touches nothing past
+ * the first line.
+ *
+ * **A cell that is already markdown takes the rewrite and no type change**, which is the reference's
+ * `else if (value === 'markdown' && headingLevel !== undefined)` branch (`:3300-3308`) and is how a
+ * heading is given a different level.
+ *
+ * [level] is clamped to the six markdown has (`:2208`): a seventh `#` renders as prose, so the
+ * clamp is the difference between a heading and a paragraph.
+ */
+fun EditorUiState.withCellsHeadingLevel(cellIds: List<String>, level: Int): EditorUiState {
+  val marker = "#".repeat(level.coerceIn(1, MARKDOWN_HEADING_LEVELS)) + " "
+  val wanted = cellIds.toSet()
+  val headed = withCellsKindChanged(cellIds, CellKind.MARKDOWN)
+  val rewritten = headed.cells.map {
+    if (it.id in wanted) it.copy(source = marker + it.source.replaceFirst(LEADING_HEADER, "")) else it
+  }
+  if (rewritten == headed.cells) return headed
+  return headed.copy(cells = rewritten, dirty = true)
+}
+
+/** What `Private.setMarkdownHeader` strips, in its own order - the header first, then the space. */
+private val LEADING_HEADER = Regex("^#+\\s*|^\\s*")
+
+/** Markdown has six, and `changeCellType` clamps to them (`actions.tsx:2208`). */
+internal const val MARKDOWN_HEADING_LEVELS = 6
+
+/**
  * Folds a run of cells into one where it was, reaching for a neighbour only when the run is a
  * single cell.
  *

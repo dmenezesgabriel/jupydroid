@@ -40,8 +40,25 @@ class CellCustomActionsTest {
 
     val labels = customActions().map { it.label }
 
-    // The menu's own list, so the two can never drift apart - they are the same function.
-    assertEquals(cellActionItems(CODE_CELL, canPaste = false, selecting = false).map { it.first }, labels)
+    // The menu's own list, so the two can never drift apart - they are the same function. **With
+    // one deliberate divergence**, and it is the reason this is spelled out rather than compared
+    // directly: the row that stands for the six heading levels is *expanded* here. A visual menu
+    // has eighteen rows already and a fold to run out of; this list has neither, and a submenu is
+    // the worst shape there is to operate with TalkBack. See [headingLevelItems].
+    val menu = cellActionItems(CODE_CELL, canPaste = false, selecting = false).map { it.first }
+    val expanded = menu.flatMap { if (it == CHANGE_TO_HEADING) headingLevelItems().map { l -> l.first } else listOf(it) }
+    assertEquals(expanded, labels)
+    assertTrue("the picker's own row must not be here", CHANGE_TO_HEADING !in labels)
+  }
+
+  /** Every level is invocable, not just announced - the second half of what the expansion is for. */
+  @Test
+  fun eachHeadingLevelIsWiredToItsOwnCommand() {
+    showCell(CODE_CELL)
+
+    customActions().first { it.label == "Heading 3" }.action()
+
+    assertEquals(listOf(CellAction.ChangeToHeading(3)), taken)
   }
 
   @Test

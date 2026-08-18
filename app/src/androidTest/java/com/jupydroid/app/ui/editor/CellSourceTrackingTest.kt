@@ -15,7 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * A field on screen adopting a source it did not type.
+ * A cell on screen adopting a source it did not type.
  *
  * Nothing needed this until `notebook:split-cell-at-cursor`: no cell operation rewrote a cell that
  * stayed in the notebook, so the field seeded itself once and was the only author of its text
@@ -27,11 +27,14 @@ import org.junit.runner.RunWith
  * ([EditorUiState.sourceRevisions]) and never a comparison, and the second case here is the one
  * that would silently eat keystrokes if that were got wrong.
  *
+ * **And the tracking belongs to the cell, not to the field over it**, which the last case here is
+ * the regression for - see [CellSourceTracking].
+ *
  * Instrumented rather than JVM because the question is what a composed `BasicTextField` holds,
  * which no unit test can answer.
  */
 @RunWith(AndroidJUnit4::class)
-class CodeCellFieldTest {
+class CellSourceTrackingTest {
   @get:Rule val compose = createComposeRule()
 
   private val state = TextFieldState("first\nsecond")
@@ -92,10 +95,46 @@ class CodeCellFieldTest {
     compose.waitForIdle()
   }
 
+  /**
+   * **The field over the state is replaced, and the adoption survives it** - which it did not
+   * until P2f-3. `change-cell-to-heading` is the first command that rewrites a cell's source *and*
+   * changes its type, so a [CodeCellField] became a [MarkdownCellField] over the same
+   * `TextFieldState` in the same frame the rewrite arrived. With the counter seeded inside the
+   * field, the new one started already up to date and adopted nothing: the model held `## title`
+   * and the editor showed the text from before (`evidence/p2f-3-change-to-heading/`).
+   *
+   * It is anchored on the state now, which is what [adoptRewrittenSource]'s call site expresses -
+   * the cell owns one text state however it is being shown, so the cell is what tracks it.
+   */
+  @Test
+  fun theAdoptionOutlivesTheFieldDrawnOverIt() {
+    var asMarkdown by mutableStateOf(false)
+    compose.setContent {
+      JupyterDroidTheme {
+        adoptRewrittenSource(state, source, revision)
+        if (asMarkdown) {
+          MarkdownCellField(state = state, onSourceEdited = {})
+        } else {
+          CodeCellField(state = state, onSourceEdited = {})
+        }
+      }
+    }
+
+    compose.runOnUiThread {
+      asMarkdown = true
+      source = "## first"
+      revision = 1
+    }
+    compose.waitForIdle()
+
+    compose.runOnIdle { assertEquals("## first", state.text.toString()) }
+  }
+
   private fun showField() {
     compose.setContent {
       JupyterDroidTheme {
-        CodeCellField(state = state, source = source, sourceRevision = revision, onSourceEdited = {})
+        adoptRewrittenSource(state, source, revision)
+        CodeCellField(state = state, onSourceEdited = {})
       }
     }
   }

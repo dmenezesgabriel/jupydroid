@@ -64,6 +64,11 @@ internal fun EditorUiState.applying(
   // covers `Copy`, but "not a document change" is a fact about the action rather than something
   // to rediscover from a diff each time.
   action == CellAction.StartSelecting -> withSelectionStartedAt(selectedCellId)
+  // Neither is this one, and it never gets this far: the surface that raised it opens the picker
+  // and dispatches the [CellAction.ChangeToHeading] the user then chose. Answered here rather than
+  // left to `transformed` so a row that reaches the ViewModel by some route cannot record an
+  // undo entry for having been tapped.
+  action == CellAction.ChooseHeadingLevel -> this
   else -> operated(action, head = selectedCellId, editor = editor)
 }
 
@@ -102,10 +107,12 @@ private val CellAction.keepsTheRun: Boolean
     // where it *cannot* keep the run, because a mark would be left on a cell nothing draws,
     // `withHeadingCollapsed` drops it itself rather than making this a fourth answer.
     CellAction.ToggleHeadingCollapse,
-    CellAction.StartSelecting,
+    // Neither of the two that edit nothing: one asks for a run, the other for a picker.
+    CellAction.StartSelecting, CellAction.ChooseHeadingLevel,
     -> true
 
     is CellAction.Insert, is CellAction.InsertAbove, is CellAction.ChangeKind, is CellAction.Merge,
+    is CellAction.ChangeToHeading,
     CellAction.Split, CellAction.Copy, CellAction.Cut, CellAction.Paste,
     CellAction.Duplicate, CellAction.Delete,
     -> false
@@ -129,14 +136,16 @@ private fun EditorUiState.transformed(
   is CellAction.Insert -> withCellInserted(head, action.kind, newId = newCellId())
   is CellAction.InsertAbove -> withCellInsertedAbove(head, action.kind, newId = newCellId())
   is CellAction.ChangeKind -> withCellsKindChanged(cellIds, action.kind)
+  is CellAction.ChangeToHeading -> withCellsHeadingLevel(cellIds, action.level)
   is CellAction.Merge -> withCellsMerged(cellIds, action.into, newId = newCellId())
   // Two ids because a selection cuts into three pieces and a caret into two; the spare is unused,
   // exactly as a cut code cell's is in `withClipboardPasted`. Minting them here keeps
   // `withCellSplit` free of id generation like every other transform in the file.
   CellAction.Split -> withCellSplit(head, editor.caret, newIds = List(2) { newCellId() })
   is CellAction.Move -> withCellsMoved(cellIds, action.move)
-  // Answered by `applying` before it gets here, because it is not a document change at all.
-  CellAction.StartSelecting -> this
+  // Both are answered by `applying` before they get here, neither being a document change at all.
+  // Kept as branches so the `when` stays exhaustive: a seventeenth action has to decide, not inherit.
+  CellAction.StartSelecting, CellAction.ChooseHeadingLevel -> this
   CellAction.Copy -> withCellsCopied(cellIds)
   CellAction.Cut -> withCellsCut(cellIds, replacementId = newCellId())
   CellAction.Paste -> withClipboardPasted(head, newIds = clipboard.map { newCellId() })

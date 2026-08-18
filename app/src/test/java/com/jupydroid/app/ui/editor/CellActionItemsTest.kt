@@ -76,10 +76,42 @@ class CellActionItemsTest {
     assertTrue(itemsFor(count = 3).contains("Change cells to raw"))
   }
 
+  /**
+   * The row that stands for the six heading levels sits with the two type rows, because it *is* a
+   * third one - `setMarkdownHeader` is `changeCellType(…, 'markdown', { headingLevel })`
+   * (`packages/notebook/src/actions.tsx:2197-2214`) - and it carries a request for the picker
+   * rather than an edit.
+   */
+  @Test
+  fun everyCellAlsoOffersTheHeadingLevels() {
+    val items = cellActionItems(Cell("c1", CellKind.CODE, "x = 1"), canPaste = false, selecting = false)
+    val labels = items.map { it.first }
+
+    assertEquals(CellAction.ChooseHeadingLevel, items.single { it.first == CHANGE_TO_HEADING }.second)
+    assertEquals(labels.indexOf(CHANGE_TO_RAW) + 1, labels.indexOf(CHANGE_TO_HEADING))
+  }
+
+  /** One form whatever the count: the reference's six labels have no plural (`index.ts:4614-4740`). */
+  @Test
+  fun theHeadingRowReadsTheSameForARun() {
+    assertTrue(itemsFor(count = 3).contains(CHANGE_TO_HEADING))
+  }
+
+  /** Six levels, named as the reference names them, each carrying its own level. */
+  @Test
+  fun thePickerOffersTheSixMarkdownHas() {
+    assertEquals(
+      listOf("Heading 1", "Heading 2", "Heading 3", "Heading 4", "Heading 5", "Heading 6"),
+      headingLevelItems().map { it.first },
+    )
+    assertEquals(CellAction.ChangeToHeading(4), headingLevelItems()[3].second)
+  }
+
+  /** The two *type* rows, which is what [everyCellOffersTheTwoTypesItIsNot] is about. */
   private fun changeRowsFor(kind: CellKind) =
     cellActionItems(Cell("c1", kind, "x = 1"), canPaste = false, selecting = false)
       .map { it.first }
-      .filter { it.startsWith("Change to") }
+      .filter { it.startsWith("Change to") && it != CHANGE_TO_HEADING }
 
   /**
    * **The two directional merges become one row, because the direction stops applying.**

@@ -42,7 +42,6 @@ fun MarkdownCell(
   onEditRequested: () -> Unit,
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
-  sourceRevision: Int = 0,
   input: FocusedCellInput? = null,
   /** Whether this cell's editor was asked for - see [EditorUiState.markdownTakingCaret]. */
   takesCaret: Boolean = false,
@@ -50,8 +49,6 @@ fun MarkdownCell(
   if (!rendered) {
     MarkdownCellField(
       state = state,
-      source = source,
-      sourceRevision = sourceRevision,
       onSourceEdited = onSourceEdited,
       modifier = modifier,
       input = input,

@@ -64,6 +64,9 @@ fun SelectionTopBar(
   onRunMarked: () -> Unit = {},
 ) {
   var menuOpen by remember { mutableStateOf(false) }
+  // The overflow's second step, exactly as [CellActions] has it - the run is what changes type, so
+  // the picker belongs to both surfaces or to neither, including why each dismisses when it does.
+  var pickingLevel by remember { mutableStateOf(false) }
   TopAppBar(
     // Tinted, so it reads as a mode the notebook is in rather than as the notebook's own bar with
     // different buttons on it. Material's own contextual-bar treatment.
@@ -121,11 +124,21 @@ fun SelectionTopBar(
           Icon(Icons.Filled.MoreVert, contentDescription = null)
         }
         CellActionSurface(
-          expanded = menuOpen,
+          expanded = menuOpen && !pickingLevel,
           items = reachItems(onExtend) +
             cellActionItems(headCell, canPaste, selecting = true, count = selectedCount)
-              .map { (label, action) -> label to { onCellAction(action) } },
-          onDismiss = { menuOpen = false },
+              .map { (label, action) ->
+                label to { if (action == CellAction.ChooseHeadingLevel) pickingLevel = true else onCellAction(action) }
+              },
+          onDismiss = { if (!pickingLevel) menuOpen = false },
+        )
+        HeadingLevelSurface(
+          expanded = menuOpen && pickingLevel,
+          onDismiss = {
+            pickingLevel = false
+            menuOpen = false
+          },
+          onAction = onCellAction,
         )
       }
     },

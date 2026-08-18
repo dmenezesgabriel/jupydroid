@@ -12,6 +12,10 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -39,11 +43,54 @@ fun CellActions(
   onDismiss: () -> Unit,
   onAction: (CellAction) -> Unit,
   presentation: CellActionPresentation = currentCellActionPresentation(),
+) {
+  var pickingLevel by remember { mutableStateOf(false) }
+  CellActionSurface(
+    expanded = expanded && !pickingLevel,
+    items = cellActionItems(cell, canPaste, selecting = false).map { (label, action) ->
+      label to { if (action == CellAction.ChooseHeadingLevel) pickingLevel = true else onAction(action) }
+    },
+    // **The picker taking over is not a dismissal**, and forgetting that cost a red flow:
+    // [CellActionSurface] dismisses after *every* choice, so the row that opens the second step
+    // opened it and closed it in the same frame - the whole menu simply went away
+    // (`evidence/p2f-3-change-to-heading/`).
+    onDismiss = { if (!pickingLevel) onDismiss() },
+    presentation = presentation,
+  )
+  HeadingLevelSurface(
+    expanded = expanded && pickingLevel,
+    // Leaving the picker leaves the menu: it is a detour from that list, not a state of the cell,
+    // so the step resets and the surface behind it does not come back.
+    onDismiss = {
+      pickingLevel = false
+      onDismiss()
+    },
+    onAction = onAction,
+    presentation = presentation,
+  )
+}
+
+/**
+ * The second step [CellAction.ChooseHeadingLevel] opens: H1 to H6, on the same surface the list
+ * came from.
+ *
+ * The reference offers the six as six palette entries and no row at all
+ * (`packages/notebook-extension/src/index.ts:5334-5339`); six rows in a menu that is eighteen long
+ * already - and that a shared subflow exists purely to scroll - is the shape this departs from. A
+ * second `CellActionSurface` rather than a nested menu, so the sheet-versus-dropdown rule, the row
+ * height and the `Cell menu …` naming are all the ones next door.
+ *
+ * Shared by the cell's own menu and [SelectionTopBar]'s overflow, which is why it is not private.
+ */
+@Composable
+internal fun HeadingLevelSurface(
+  expanded: Boolean,
+  onDismiss: () -> Unit,
+  onAction: (CellAction) -> Unit,
+  presentation: CellActionPresentation = currentCellActionPresentation(),
 ) = CellActionSurface(
   expanded = expanded,
-  items = cellActionItems(cell, canPaste, selecting = false).map { (label, action) ->
-    label to { onAction(action) }
-  },
+  items = headingLevelItems().map { (label, action) -> label to { onAction(action) } },
   onDismiss = onDismiss,
   presentation = presentation,
 )

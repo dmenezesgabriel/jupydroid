@@ -47,6 +47,26 @@ sealed interface CellAction {
   /** Code to markdown or back. Keeps the cell's id, drops its outputs. */
   data class ChangeKind(val kind: CellKind) : CellAction
 
+  /**
+   * `notebook:change-cell-to-heading-1..6` - the six commands as one parameter.
+   *
+   * A change of type *and* a rewrite of the source: `setMarkdownHeader` is
+   * `changeCellType(notebook, 'markdown', { headingLevel })`
+   * (`packages/notebook/src/actions.tsx:2197-2214`), so [ChangeKind]'s rules all apply and the
+   * first line is rewritten on top of them.
+   */
+  data class ChangeToHeading(val level: Int) : CellAction
+
+  /**
+   * Asks for the H1-H6 picker rather than changing anything - the row that stands for the six.
+   *
+   * A [CellAction] although it edits nothing, for [StartSelecting]'s reason: it is what carries the
+   * row to every surface without a second code path. Answered by the surface that raised it and
+   * never by [CellEdits], which is why the reference has no equivalent - six palette entries need
+   * no row to open them.
+   */
+  data object ChooseHeadingLevel : CellAction
+
   /** Fold this cell together with a neighbour. */
   data class Merge(val into: MergeInto) : CellAction
 

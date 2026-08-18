@@ -53,9 +53,6 @@ fun MarkdownCellField(
   state: TextFieldState,
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
-  /** The notebook's copy, taken when [sourceRevision] says a cell operation rewrote it. */
-  source: String = state.text.toString(),
-  sourceRevision: Int = 0,
   highlighter: SyntaxHighlighter = remember { MarkdownSyntax() },
   /** Null where no symbol row is on screen, which is every test that drives a field alone. */
   input: FocusedCellInput? = null,
@@ -75,7 +72,7 @@ fun MarkdownCellField(
   val numberStyle = markdownSourceStyle().copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle)
 
-  trackCellSource(state, source, sourceRevision, onSourceEdited)
+  reportCellEdits(state, onSourceEdited)
   // The row is on screen in edit mode whatever the cell is, so a markdown cell has to be reachable
   // from it. Without this it sat above the keyboard doing nothing.
   input.attachWhileFocused(state, focused.value)

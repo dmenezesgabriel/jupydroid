@@ -315,6 +315,10 @@ private fun EditorCell(
   // a field is on screen, so collapsing a cell and expanding it keeps the caret and the typing
   // history instead of re-seeding from the model.
   val field = rememberTextFieldState(cell.source)
+  // **Here and not in the field**, which is the seam [CellSourceTracking] records: a change of type
+  // composes a different field over this same state, and a counter seeded per field would start
+  // already up to date and adopt the rewrite that came with the change.
+  adoptRewrittenSource(field, cell.source, sourceRevision)
   // Every action carries what this cell's field is holding, read when the action is chosen rather
   // than when the menu was built. Only Split reads it, and it is the one action that is not a pure
   // function of the document - see [CellEditorText]. Both surfaces dispatch through here, so the
@@ -372,8 +376,6 @@ private fun EditorCell(
         when (cell.kind) {
           CellKind.CODE -> CodeCellField(
             state = field,
-            source = cell.source,
-            sourceRevision = sourceRevision,
             onSourceEdited = onSourceEdited,
             completionsAt = completionsAt,
             input = cellInput,
@@ -386,7 +388,6 @@ private fun EditorCell(
           CellKind.MARKDOWN -> MarkdownCell(
             state = field,
             source = cell.source,
-            sourceRevision = sourceRevision,
             rendered = markdownRendered,
             onEditRequested = onMarkdownEditRequested,
             onSourceEdited = onSourceEdited,
@@ -399,8 +400,6 @@ private fun EditorCell(
           // cell no styling of its own, so it draws in the same input area a code cell does.
           CellKind.RAW -> RawCellField(
             state = field,
-            source = cell.source,
-            sourceRevision = sourceRevision,
             onSourceEdited = onSourceEdited,
             input = cellInput,
             modifier = Modifier

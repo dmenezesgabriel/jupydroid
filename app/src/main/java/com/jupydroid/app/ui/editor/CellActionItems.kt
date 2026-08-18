@@ -67,7 +67,8 @@ private fun shapingItems(cell: Cell, several: Boolean): List<Pair<String, CellAc
   (if (several) "Move cells up" else "Move up") to CellAction.Move(CellMove.UP),
   (if (several) "Move cells down" else "Move down") to CellAction.Move(CellMove.DOWN),
   (if (several) "Duplicate cells" else "Duplicate") to CellAction.Duplicate,
-) + changeKindItems(cell, several) + mergeItems(several) + listOf(
+) + changeKindItems(cell, several) + listOf(CHANGE_TO_HEADING to CellAction.ChooseHeadingLevel) +
+  mergeItems(several) + listOf(
   // Beside the merges, because split is their inverse and the three read as one group.
   //
   // **On every cell, and whether or not a caret was ever put in one.** Both are the reference's
@@ -149,6 +150,29 @@ internal const val SELECT_CELLS = "Select cells"
 
 /** `notebook:merge-cells`, in this app's sentence case. */
 internal const val MERGE_SELECTED = "Merge selected cells"
+
+/**
+ * The six `notebook:change-cell-to-heading-1..6` commands, flattened.
+ *
+ * What a surface with no room problem shows in place of [CHANGE_TO_HEADING] and its picker: the
+ * cell menu is eighteen rows already, but a TalkBack context menu is a flat list with no width and
+ * no fold, and a submenu is the worst shape there is to operate with one.
+ *
+ * The reference has no row for any of them - all six are command-palette entries
+ * (`packages/notebook-extension/src/index.ts:5334-5339`) - so both shapes are adaptations, and this
+ * is the one that departs least.
+ */
+internal fun headingLevelItems(): List<Pair<String, CellAction>> =
+  (1..MARKDOWN_HEADING_LEVELS).map { level -> "Heading $level" to CellAction.ChangeToHeading(level) }
+
+/**
+ * One row for six commands, with the ellipsis that says it will ask.
+ *
+ * Beside the two change-type rows because it is the third of them - `setMarkdownHeader` *is*
+ * `changeCellType(…, 'markdown', { headingLevel })` (`actions.tsx:2197-2214`) - and one form
+ * whatever the count, since the reference's own labels have no plural (`index.ts:4614-4740`).
+ */
+internal const val CHANGE_TO_HEADING = "Change to heading…"
 
 internal const val CHANGE_TO_MARKDOWN = "Change to markdown"
 internal const val CHANGE_TO_CODE = "Change to code"

@@ -95,6 +95,47 @@ class CellActionsTest {
     compose.onNodeWithContentDescription("Cell menu Paste below").assertDoesNotExist()
   }
 
+  // --- the heading-level picker (P2f-3) ---------------------------------------------------
+
+  @Test
+  fun theMenuTurnsOneRowIntoTheSixLevels() {
+    assertPicksALevel(CellActionPresentation.MENU)
+  }
+
+  @Test
+  fun theSheetTurnsOneRowIntoTheSixLevels() {
+    assertPicksALevel(CellActionPresentation.SHEET)
+  }
+
+  /**
+   * The two-step in full: the row that stands for six opens the picker **in place of** the list,
+   * and the level chosen there is the action that leaves. Nothing is reported by the first tap -
+   * `ChooseHeadingLevel` is answered by this surface and never by the notebook.
+   */
+  private fun assertPicksALevel(presentation: CellActionPresentation) {
+    val chosen = mutableListOf<CellAction>()
+    compose.setContent {
+      CellActions(
+        expanded = true,
+        cell = CODE_CELL,
+        canPaste = false,
+        onDismiss = {},
+        onAction = { chosen += it },
+        presentation = presentation,
+      )
+    }
+
+    compose.onNodeWithContentDescription("Cell menu $CHANGE_TO_HEADING").performScrollTo().performClick()
+
+    compose.runOnIdle { assertEquals(emptyList<CellAction>(), chosen) }
+    // The list it came from is gone, so there is never a question of which surface a tap means.
+    compose.onNodeWithContentDescription("Cell menu Delete").assertDoesNotExist()
+    compose.onNodeWithContentDescription("Cell menu Heading 1").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Cell menu Heading 6").performScrollTo().performClick()
+
+    compose.runOnIdle { assertEquals(listOf(CellAction.ChangeToHeading(6)), chosen) }
+  }
+
   /**
    * Split reports [CellAction.Split], which carries nothing: where to cut is the cell's own editor
    * and arrives beside the action.

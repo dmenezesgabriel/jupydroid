@@ -47,12 +47,17 @@ internal fun Modifier.cellCustomActions(
   // objects on every recomposition of every cell would allocate on each keystroke, and a changed
   // identity makes TalkBack re-read the menu it is sitting in.
   val actions = remember(cell.kind, cell.sourceHidden, cell.outputsHidden, canPaste, selecting, count, onAction) {
-    cellActionItems(cell, canPaste, selecting, count).map { (label, action) ->
-      CustomAccessibilityAction(label) {
-        onAction(action)
-        true
+    cellActionItems(cell, canPaste, selecting, count)
+      // The one row that stands for six is expanded here rather than opening a picker: this menu
+      // has no width to run out of and no fold, and a submenu is the worst shape to operate with
+      // TalkBack. See [headingLevelItems].
+      .flatMap { if (it.second == CellAction.ChooseHeadingLevel) headingLevelItems() else listOf(it) }
+      .map { (label, action) ->
+        CustomAccessibilityAction(label) {
+          onAction(action)
+          true
+        }
       }
-    }
   }
   return this.semantics { customActions = actions }
 }

@@ -52,10 +52,6 @@ fun RawCellField(
   state: TextFieldState,
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
-  /** The notebook's copy, taken when [sourceRevision] says a cell operation rewrote it. */
-  source: String = state.text.toString(),
-  /** See [trackCellSource]: bumped when a cell operation rewrote this cell's text. */
-  sourceRevision: Int = 0,
   /** Null where no symbol row is on screen, which is every test that drives a field alone. */
   input: FocusedCellInput? = null,
 ) {
@@ -66,7 +62,7 @@ fun RawCellField(
   val numberStyle = sourceStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle)
 
-  trackCellSource(state, source, sourceRevision, onSourceEdited)
+  reportCellEdits(state, onSourceEdited)
   // The symbol row is on screen in edit mode whatever the cell is, so this field has to be
   // reachable from it - the omission that left it inert in a markdown cell through the whole of
   // P2b (`docs/DECISIONS.md`).

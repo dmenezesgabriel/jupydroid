@@ -148,6 +148,109 @@ class CellHeadingsTest {
     assertEquals(notebook, notebook.withHeadingCollapsed("gone", collapsed = true))
   }
 
+  // --- change a cell to a heading (P2f-3) -------------------------------------------------
+
+  /**
+   * `Private.setMarkdownHeader` replaces `^#+\s*` - or, failing that, `^\s*` - with
+   * `'#'.repeat(level) + ' '` (`actions.tsx:3429-3438`). One regex with two alternatives, so it
+   * strips a header the cell already had *or* the leading whitespace it did not.
+   */
+  @Test
+  fun aHeadingIsWrittenOntoTheFrontOfTheSource() {
+    assertEquals("## Results", markdownHeader("Results", 2))
+    assertEquals("# Results", markdownHeader("#### Results", 1))
+    assertEquals("### Results", markdownHeader("   Results", 3))
+    assertEquals("###### x", markdownHeader("# x", 6))
+  }
+
+  /** An empty cell becomes the marker and its space, which is what an inserted heading is too. */
+  @Test
+  fun anEmptySourceBecomesTheMarkerAlone() {
+    assertEquals("## ", markdownHeader("", 2))
+  }
+
+  /**
+   * The regex is anchored, so only the *first* line is rewritten - the rest of a cell survives
+   * being given a heading.
+   */
+  @Test
+  fun onlyTheFirstLineIsRewritten() {
+    assertEquals("# One\n\n## Two", markdownHeader("### One\n\n## Two", 1))
+  }
+
+  /**
+   * `setMarkdownHeader` is `changeCellType(notebook, 'markdown', { headingLevel })`
+   * (`actions.tsx:2197-2214`), so it is the type change and everything that goes with it - the id
+   * survives, the outputs do not, and the cell is left showing its source.
+   */
+  @Test
+  fun changingToAHeadingIsAChangeOfTypeAndRewritesTheSource() {
+    val changed = notebook.withCellsHeadingLevel(listOf("a"), level = 2)
+
+    val cell = changed.cells.single { it.id == "a" }
+    assertEquals(CellKind.MARKDOWN, cell.kind)
+    assertEquals("## print(1)", cell.source)
+    assertTrue("a" in changed.markdownBeingEdited)
+  }
+
+  /** The whole marked run, as `changeCellType` iterates `isSelectedOrActive`. */
+  @Test
+  fun aRunOfCellsAllBecomeHeadingsOfTheSameLevel() {
+    val changed = notebook.withCellsHeadingLevel(listOf("h2", "b"), level = 3)
+
+    assertEquals("### Part", changed.cells.single { it.id == "h2" }.source)
+    assertEquals("### print(1)", changed.cells.single { it.id == "b" }.source)
+  }
+
+  /**
+   * A cell that is **already markdown** takes the rewrite and no type change - the `else if` branch
+   * (`actions.tsx:3300-3308`). Re-levelling a heading is the whole point of that branch.
+   */
+  @Test
+  fun aHeadingCanBeGivenADifferentLevelWithoutChangingType() {
+    val changed = notebook.withCellsHeadingLevel(listOf("h1"), level = 4)
+
+    assertEquals("#### Chapter", changed.cells.single { it.id == "h1" }.source)
+    assertEquals(CellKind.MARKDOWN, changed.cells.single { it.id == "h1" }.kind)
+    assertEquals(4, changed.cells.single { it.id == "h1" }.headingLevel)
+  }
+
+  /**
+   * `level = Math.min(Math.max(level, 1), 6)` (`actions.tsx:2208`), and markdown has six levels -
+   * a seventh `#` renders as prose, so a clamp is the difference between a heading and a paragraph.
+   */
+  @Test
+  fun theLevelIsClampedToTheSixMarkdownHas() {
+    assertEquals("# x", markdownHeader("x", 0))
+    assertEquals("###### x", markdownHeader("x", 9))
+  }
+
+  /**
+   * A field on screen has to be *told* its text was rewritten, never left to notice - see [CellUndo].
+   * Through the operation rather than the transform, because that is where the before/after diff
+   * that bumps it lives, and this is the second command after Split to rewrite a surviving cell.
+   */
+  @Test
+  fun theRewriteIsAnnouncedToTheFieldHoldingTheText() {
+    val changed = notebook.copy(selectedCellId = "a").applying(CellAction.ChangeToHeading(2))
+
+    assertEquals(1, changed.sourceRevisions["a"])
+    assertEquals(setOf("a"), changed.undoable.single().rewrote)
+  }
+
+  /** Opening the picker is not an edit, so it records nothing and changes nothing. */
+  @Test
+  fun askingForTheLevelPickerIsNotAnOperation() {
+    val asked = notebook.copy(selectedCellId = "a").applying(CellAction.ChooseHeadingLevel)
+
+    assertEquals(notebook.copy(selectedCellId = "a"), asked)
+  }
+
+  private fun markdownHeader(source: String, level: Int): String =
+    EditorUiState(cells = listOf(md("x", source)), loaded = true)
+      .withCellsHeadingLevel(listOf("x"), level)
+      .cells.single().source
+
   // --- collapse all / expand all (P2f-2) --------------------------------------------------
 
   /**

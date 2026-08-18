@@ -589,6 +589,52 @@ a time — the same `CellEdits.applying()` boundary every cell operation uses, r
 `NotebookCellEdits` rather than through a `CellAction`, because like `clearAllOutputs` neither has a
 cell to be asked from.
 
+### A heading level is a change of type carrying a rewrite, and one row stands for six
+
+`notebook:change-cell-to-heading-1..6` are not six commands with six behaviours: `setMarkdownHeader`
+is `changeCellType(notebook, 'markdown', { headingLevel })` (`actions.tsx:2197-2214`), so every rule
+of a change of type applies — the id survives, the outputs and the execution count do not, and the
+cell is left showing its source in command mode. On top of that, one rewrite:
+`Private.setMarkdownHeader` replaces `^#+\s*` — or, failing that, `^\s*` — with the marker
+(`:3429-3438`). One anchored regex with two alternatives, so it strips a header the cell already had
+*or* the leading whitespace it did not, and touches nothing past the first line. **A cell that is
+already markdown takes the rewrite and no type change** (`:3300-3308`), which is how a heading is
+re-levelled. The level is clamped to six (`:2208`) because a seventh `#` renders as prose.
+
+**One menu row and a picker, and the two visual surfaces differ from the accessibility one on
+purpose.** The reference offers all six only in its command palette
+(`notebook-extension/src/index.ts:5334-5339`), so any row at all is an adaptation. The cell menu is
+eighteen rows already — long enough that a shared Maestro subflow exists purely to scroll it — so
+*Change to heading…* opens a second `CellActionSurface` holding H1–H6, which inherits the
+sheet-versus-dropdown rule, the row height and the `Cell menu …` naming rather than restating them.
+The picker **replaces** the list rather than nesting in it, so there is never a question of what a
+tap applies to — the same rule that hides a cell's `⋮` while a run is marked. The accessibility
+context menu expands the row into its six instead: it has no width to run out of and no fold, and a
+submenu is the worst shape there is to operate with TalkBack.
+
+**The picker taking over is not a dismissal**, and forgetting that cost a red flow.
+`CellActionSurface` dismisses after *every* choice, so the row that opens the second step opened it
+and closed it in the same frame — the whole menu simply went away
+(`evidence/p2f-3-change-to-heading/`).
+
+### Adopting a rewritten source belongs to the cell; reporting an edit belongs to the field
+
+Both halves used to live in the field, and P2f-3 is what proved that wrong.
+`change-cell-to-heading` is the first command that rewrites a cell's source **and** changes its
+type, so a `CodeCellField` became a `MarkdownCellField` over the same `TextFieldState` in the frame
+the rewrite arrived. The adoption counter is seeded with the revision it arrives on — correct while
+a new field always means a new state — so the replacement started already up to date and adopted
+nothing. The model held `## title`, the collapser said so, and the editor showed the text from
+before. **Both of the flow's earlier assertions were green; the screenshot is what said otherwise**,
+for the second time in this project.
+
+So `adoptRewrittenSource` is called where the `TextFieldState` is created and `reportCellEdits`
+stays in the field. That is the rule this file already carries — *"a cell owns one text state, not
+one per field"* — followed one layer down: the field over that state is composed, disposed and
+**replaced**, while the state and the notebook's disagreement with it outlive all three. Everything
+else about the mechanism is unchanged and still load-bearing: **a counter and never a comparison**,
+because the model is routinely one debounce behind whatever was just typed.
+
 ### Unrendered is not the same as asked for, and only a tap asks
 
 `changeCellType` ends with *"Fetch the new widget and unrender it"* —
