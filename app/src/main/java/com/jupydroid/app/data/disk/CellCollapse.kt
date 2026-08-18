@@ -3,9 +3,6 @@ package com.jupydroid.app.data.disk
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
 
 /**
  * Where a collapsed cell records that it is collapsed.
@@ -22,7 +19,8 @@ import kotlinx.serialization.json.putJsonObject
  * (`widget.ts:1452-1458`). Honouring the tidier-looking key would make us disagree with the
  * front end these notebooks are opened in.
  *
- * Both are written only when true, because that is what Jupyter writes: un-collapsing *deletes*
+ * Both are written only when true - by `NotebookJsonWriter`, which is where the writing has always
+ * happened - because that is what Jupyter writes: un-collapsing *deletes*
  * the key rather than setting it to `false`, and takes the `jupyter` object with it when nothing
  * else is left in it. A notebook we save must not be fuller than one Jupyter saves. An entirely
  * empty metadata object is then equal to `CellFile`'s default, which kotlinx omits - so an
@@ -37,8 +35,3 @@ internal fun JsonObject.sourceHidden(): Boolean =
 
 internal fun JsonObject.outputsHidden(): Boolean =
   (this["collapsed"] as? JsonPrimitive)?.booleanOrNull == true
-
-internal fun collapseMetadata(sourceHidden: Boolean, outputsHidden: Boolean): JsonObject = buildJsonObject {
-  if (sourceHidden) putJsonObject("jupyter") { put("source_hidden", true) }
-  if (outputsHidden) put("collapsed", true)
-}
