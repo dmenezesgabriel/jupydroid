@@ -144,6 +144,32 @@ class MarkdownDocumentTest {
   }
 
   /**
+   * [MarkdownDocument.heading] is the same reduce as [MarkdownDocument.headingLevel], kept as one
+   * function rather than two so the tie rule is not implemented twice - reused by P2h's table of
+   * contents, which needs the winning heading's text and not only its level.
+   */
+  @Test
+  fun headingIsTheLowestNumberedHeadingWithItsText() {
+    val heading = MarkdownDocument.heading("### Detail\n\n# Chapter\n\n## Part")
+
+    assertEquals(1, heading?.level)
+    assertEquals("Chapter", heading?.inlines?.plainText())
+  }
+
+  /** `prev.level <= curr.level ? prev : curr` keeps `prev` on a tie - the first occurrence wins. */
+  @Test
+  fun onATiedLevelTheFirstOccurrenceWins() {
+    val heading = MarkdownDocument.heading("## A\n\n## B")
+
+    assertEquals("A", heading?.inlines?.plainText())
+  }
+
+  @Test
+  fun proseHasNoHeading() {
+    assertNull(MarkdownDocument.heading("just some prose"))
+  }
+
+  /**
    * Setext headings count, because the level is *parsed* rather than pattern-matched: JupyterLab
    * renders the source and reads back `<h1>`-`<h6>` (`packages/toc/src/utils/markdown.ts:78-114`).
    * A `#` a regex would find is not always a heading, and a heading does not always start with one.

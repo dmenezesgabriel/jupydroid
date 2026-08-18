@@ -39,12 +39,12 @@ object MarkdownDocument {
   fun parse(source: String): List<RichBlock> = parser.parse(source).blocks()
 
   /**
-   * The heading level this source is, or null when it holds no heading of its own.
+   * The heading this source is, or null when it holds no heading of its own.
    *
    * **The lowest number wins**, which is `MarkdownCell.headingInfo` read literally -
    * `headings.reduce((prev, curr) => prev.level <= curr.level ? prev : curr)`
    * (`packages/cells/src/widget.ts:2213-2226`) - so a cell opening on `###` and going on to `#`
-   * heads an H1 section rather than an H3 one.
+   * heads an H1 section rather than an H3 one, and a tie keeps the first occurrence (`<=`).
    *
    * **Parsed, never pattern-matched.** JupyterLab renders the source and reads back `<h1>`-`<h6>`
    * (`packages/toc/src/utils/markdown.ts:78-114`), so a `#` inside a fence is not a heading and a
@@ -53,12 +53,27 @@ object MarkdownDocument {
    * (`packages/markedparser-extension/src/index.ts:268-298`): a heading inside a blockquote or a
    * list item is not the cell's heading.
    *
+   * Exposed as the whole block, not only its level, because P2h's table of contents needs the
+   * winning heading's text too - one reduce, read by both [headingLevel] and the ToC builder,
+   * rather than the tie rule implemented twice.
+   *
+   * ```
+   * MarkdownDocument.heading("## Results")  // Heading(level = 2, "Results")
+   * ```
+   */
+  fun heading(source: String): RichBlock.Heading? =
+    parse(source).filterIsInstance<RichBlock.Heading>().reduceOrNull { lowest, next ->
+      if (lowest.level <= next.level) lowest else next
+    }
+
+  /**
+   * The heading level this source is, or null when it holds no heading of its own.
+   *
    * ```
    * MarkdownDocument.headingLevel("## Results")  // 2
    * ```
    */
-  fun headingLevel(source: String): Int? =
-    parse(source).filterIsInstance<RichBlock.Heading>().minOfOrNull { it.level }
+  fun headingLevel(source: String): Int? = heading(source)?.level
 
   private fun Node.blocks(): List<RichBlock> = children().mapNotNull { it.asBlock() }
 

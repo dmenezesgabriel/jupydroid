@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.markdown.MarkdownDocument
+import com.jupydroid.app.richtext.plainText
 
 /**
  * A heading owns a **section** of the document, and a collapsed one hides it.
@@ -33,6 +34,32 @@ import com.jupydroid.app.markdown.MarkdownDocument
  */
 val Cell.headingLevel: Int?
   get() = if (kind == CellKind.MARKDOWN) MarkdownDocument.headingLevel(source) else null
+
+/**
+ * One entry in the table of contents: the cell it maps to, the heading's level and its text.
+ *
+ * `INotebookHeading` carries the same three, plus a `cellRef` to the widget in place of an id
+ * (`packages/notebook/src/toc.ts:60-80`). Flat rather than nested - the reference's own tree is
+ * built from a flat list at render time (`packages/toc/src/toctree.tsx:57-102`), the same rule
+ * [headingSectionOf] already states for this app.
+ */
+data class TocHeading(val cellId: String, val level: Int, val text: String)
+
+/**
+ * `NotebookToCModel.getHeadings()` (`packages/notebook/src/toc.ts:245-322`), narrowed to what this
+ * app already has: a cell collapses to at most one heading ([Cell.headingLevel]'s "lowest number
+ * wins"), so an entry is 1:1 with a markdown cell that has one. A code or raw cell, and a markdown
+ * cell with no heading, contribute nothing - the reference's own loop skips a cell that yields no
+ * headings too.
+ *
+ * Numbering (`numberHeaders`/`numberingH1`) and output headings (`includeOutput`) are later
+ * sub-steps; this is the flat list alone.
+ */
+val EditorUiState.tableOfContentsHeadings: List<TocHeading>
+  get() = cells.mapNotNull { cell ->
+    val heading = if (cell.kind == CellKind.MARKDOWN) MarkdownDocument.heading(cell.source) else null
+    heading?.let { TocHeading(cell.id, it.level, it.inlines.plainText()) }
+  }
 
 /**
  * The cells [cellId] owns: everything after it up to the next heading of **equal or higher** level.
