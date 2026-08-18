@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.markdown.MarkdownDocument
+import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.plainText
 
 /**
@@ -43,22 +44,57 @@ val Cell.headingLevel: Int?
  * built from a flat list at render time (`packages/toc/src/toctree.tsx:57-102`), the same rule
  * [headingSectionOf] already states for this app.
  */
-data class TocHeading(val cellId: String, val level: Int, val text: String)
+data class TocHeading(
+  /** The cell to jump to. Not unique: a code cell can print several headings. */
+  val cellId: String,
+  val level: Int,
+  val text: String,
+  /**
+   * What identifies this entry - to fold by, and to tell two headings of one cell apart. The cell's
+   * id for a heading written in a cell's source, and the cell plus where it was printed for one
+   * found in an output, which is `INotebookHeading.outputIndex`'s job there
+   * (`packages/notebook/src/toc.ts:60-80`).
+   */
+  val key: String = cellId,
+)
 
 /**
- * `NotebookToCModel.getHeadings()` (`packages/notebook/src/toc.ts:245-322`), narrowed to what this
- * app already has: a cell collapses to at most one heading ([Cell.headingLevel]'s "lowest number
- * wins"), so an entry is 1:1 with a markdown cell that has one. A code or raw cell, and a markdown
- * cell with no heading, contribute nothing - the reference's own loop skips a cell that yields no
- * headings too.
+ * `NotebookToCModel.getHeadings()` (`packages/notebook/src/toc.ts:245-322`): every cell in order,
+ * a markdown cell's own heading and - while [includeOutput] - the ones a code cell printed.
  *
- * Numbering (`numberHeaders`/`numberingH1`) and output headings (`includeOutput`) are later
- * sub-steps; this is the flat list alone.
+ * A markdown cell yields at most one, which is where this is narrower than the reference:
+ * [Cell.headingLevel]'s "lowest number wins" already collapses a cell to a single heading. An
+ * output can yield several, exactly as there.
  */
-val EditorUiState.tableOfContentsHeadings: List<TocHeading>
-  get() = cells.mapNotNull { cell ->
-    val heading = if (cell.kind == CellKind.MARKDOWN) MarkdownDocument.heading(cell.source) else null
-    heading?.let { TocHeading(cell.id, it.level, it.inlines.plainText()) }
+fun EditorUiState.tableOfContentsHeadings(includeOutput: Boolean = true): List<TocHeading> =
+  cells.flatMap { cell ->
+    when (cell.kind) {
+      CellKind.MARKDOWN -> listOfNotNull(
+        MarkdownDocument.heading(cell.source)?.let { TocHeading(cell.id, it.level, it.inlines.plainText()) },
+      )
+      CellKind.CODE -> if (includeOutput) outputHeadingsOf(cell.id) else emptyList()
+      // `runCell` never reaches a raw cell and nothing renders one, so it has neither half.
+      CellKind.RAW -> emptyList()
+    }
+  }
+
+/**
+ * The headings a code cell **printed** - `toc:display-outputs-numbering`'s half of the list.
+ *
+ * `CodeCell.getHeadings` walks the cell's outputs and reads the HTML or Markdown ones for
+ * `<h1>`-`<h6>` (`packages/cells/src/widget.ts:1312-1370`, over `getHTMLHeadings`). Ours reads
+ * whatever [CellOutput.render] made of the output instead, which narrows it to the mime types this
+ * app actually draws: an entry then always points at something that is on screen. `text/markdown`
+ * is not among them because nothing renders it here yet - an entry for prose shown as plain text
+ * would be a promise the output does not keep.
+ */
+private fun EditorUiState.outputHeadingsOf(cellId: String): List<TocHeading> =
+  outputs[cellId].orEmpty().flatMapIndexed { at, output ->
+    (output.render() as? RenderedOutput.Document)?.blocks.orEmpty()
+      .filterIsInstance<RichBlock.Heading>()
+      .mapIndexed { n, heading ->
+        TocHeading(cellId, heading.level, heading.inlines.plainText(), key = "$cellId#$at.$n")
+      }
   }
 
 /**

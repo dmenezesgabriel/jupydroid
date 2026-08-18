@@ -931,6 +931,44 @@ room for a fourth. **The first-level row is offered only while something is numb
 that command's own `isEnabled` read through this app's rule - with numbering off, both of its states
 look identical on screen.
 
+### A heading a cell printed is an entry, and it points at the cell rather than at the output
+
+`toc:display-outputs-numbering`. `CodeCell.getHeadings` walks a code cell's outputs and reads the
+HTML or Markdown ones for `<h1>`-`<h6>` (`packages/cells/src/widget.ts:1312-1370`, over
+`getHTMLHeadings`), and the schema has `includeOutput` **on** by default
+(`packages/toc-extension/schema/registry.json:32-69`) - so this app's default is on too.
+
+**It reads what the output renders as, not the mime bundle.** `CellOutput.render()` already picks
+the richest type this app can draw, so taking the headings out of its `RenderedOutput.Document` is
+what keeps an entry pointing at something actually on screen. That narrows the reference by one
+type: `text/markdown` is not read, because nothing renders it here yet and an entry for prose the
+output shows as plain text would be a promise it does not keep. It also comes free of the
+reference's `!syncCollapseState` guard (`packages/notebook/src/toc.ts:260-263`), since this app has
+no such setting to suppress it.
+
+**An entry needs an identity that is not its cell**, and this is the first thing to need one: a
+code cell can print several headings, so `TocHeading.key` is the cell's id for a heading written in
+a source and `"<cell>#<output>.<n>"` for one found in an output - which is `INotebookHeading`'s own
+`outputIndex` (`toc.ts:60-80`) under another name. Folds and Collapse All key on that; the jump
+still keys on `cellId`.
+
+**The jump lands on the cell, where the reference lands on the output element.** It scrolls to
+`heading.cellRef.node` and uses `outputIndex` to reach the right one inside it
+(`toc.ts:728-748`); this app scrolls a `LazyColumn` by item, and its item is the cell. On a phone
+the cell and its output are the same screenful, so the adaptation costs nothing worth building a
+second scroll mechanism for.
+
+**The number for a printed heading appears in the panel and not in the output**, which is the one
+place this departs from `addPrefix` and it is written down rather than left to be discovered. The
+entry counts - so the headings after it number correctly - but writing the prefix into the output
+would mean threading a per-heading number through the output renderer for a case that is rare, and
+`numberHeaders`'s document half is already covered where headings are actually written. Revisit if
+printed headings turn out to be common.
+
+**The flow needs no kernel, against what `docs/PLAN.md` assumed.** nbformat stores a cell's
+outputs, so the fixture carries the `text/html` this reads and the flow is `WIDE WINDOW` rather
+than `TABLET ONLY` - repeatable, and green on the first run.
+
 ---
 
 ## Editor

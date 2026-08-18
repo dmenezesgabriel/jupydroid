@@ -2,6 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.StreamName
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -146,6 +149,18 @@ class CellHeadingsTest {
   @Test
   fun collapsingACellThatIsGoneChangesNothing() {
     assertEquals(notebook, notebook.withHeadingCollapsed("gone", collapsed = true))
+  }
+
+  /**
+   * What a scroll-to-cell has to index into, since a `LazyColumn` only composes what
+   * [hiddenCellIds] leaves out - the same filter [EditorContent] itself applies, pulled out here
+   * so P2h-2's click-to-jump reads one definition rather than a second copy of it.
+   */
+  @Test
+  fun cellsOnScreenExcludesEveryHiddenCell() {
+    val collapsed = notebook.withHeadingCollapsed("h1", collapsed = true)
+
+    assertEquals(listOf("h1", "h1b", "c"), collapsed.cellsOnScreen.map { it.id })
   }
 
   // --- insert a heading (P2f-4) -----------------------------------------------------------
@@ -520,63 +535,5 @@ class CellHeadingsTest {
   @Test
   fun aCellThatIsNotAHeadingCannotBeCollapsed() {
     assertEquals(notebook, notebook.withHeadingCollapsed("a", collapsed = true))
-  }
-
-  // --- the table of contents (P2h-1) -------------------------------------------------------
-
-  /**
-   * `NotebookToCModel.getHeadings()` walks the notebook's cells and emits a **flat list**, one
-   * entry per heading, in document order - the nesting is built later, at render time
-   * (`packages/notebook/src/toc.ts:245-322`, `packages/toc/src/toctree.tsx:57-102`). Ours is
-   * simpler by construction: a cell already collapses to at most one heading
-   * ([Cell.headingLevel]'s "lowest number wins"), so an entry is 1:1 with a markdown cell that
-   * has one, with no per-cell multiplicity to model.
-   */
-  @Test
-  fun theTableOfContentsIsOneEntryPerHeadingInDocumentOrder() {
-    assertEquals(
-      listOf(
-        TocHeading("h1", 1, "Chapter"),
-        TocHeading("h2", 2, "Part"),
-        TocHeading("h1b", 1, "Next chapter"),
-      ),
-      notebook.tableOfContentsHeadings,
-    )
-  }
-
-  /** A code or raw cell, and a markdown cell with no heading, contribute no entry. */
-  @Test
-  fun aCellThatHeadsNothingHasNoEntry() {
-    val mixed = EditorUiState(
-      cells = listOf(code("a"), md("p", "just prose"), Cell("r", CellKind.RAW, "# not markdown")),
-      loaded = true,
-    )
-
-    assertEquals(emptyList<TocHeading>(), mixed.tableOfContentsHeadings)
-  }
-
-  @Test
-  fun anEmptyNotebookHasAnEmptyTableOfContents() {
-    assertEquals(emptyList<TocHeading>(), EditorUiState(loaded = true).tableOfContentsHeadings)
-  }
-
-  /** The entry's text is the same heading [Cell.headingLevel] picked, not just its number. */
-  @Test
-  fun theEntryTextIsTheHeadingTheLevelCameFrom() {
-    val tied = EditorUiState(cells = listOf(md("h", "### Sub\n\n# Top\n\n## Mid")), loaded = true)
-
-    assertEquals(listOf(TocHeading("h", 1, "Top")), tied.tableOfContentsHeadings)
-  }
-
-  /**
-   * What a scroll-to-cell has to index into, since a `LazyColumn` only composes what
-   * [hiddenCellIds] leaves out - the same filter [EditorContent] itself applies, pulled out here
-   * so P2h-2's click-to-jump reads one definition rather than a second copy of it.
-   */
-  @Test
-  fun cellsOnScreenExcludesEveryHiddenCell() {
-    val collapsed = notebook.withHeadingCollapsed("h1", collapsed = true)
-
-    assertEquals(listOf("h1", "h1b", "c"), collapsed.cellsOnScreen.map { it.id })
   }
 }

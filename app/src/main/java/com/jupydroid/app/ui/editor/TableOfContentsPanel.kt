@@ -150,7 +150,7 @@ private fun TocRowDisclosure(row: TocRow, onToggleCollapsed: ((String) -> Unit)?
     return
   }
   IconButton(
-    onClick = { onToggleCollapsed(row.heading.cellId) },
+    onClick = { onToggleCollapsed(row.heading.key) },
     modifier = indent.width(TOC_DISCLOSURE_WIDTH).semantics {
       contentDescription = if (row.collapsed) "Expand ${row.heading.text}" else "Collapse ${row.heading.text}"
     },

@@ -46,7 +46,7 @@ fun List<TocHeading>.tocRows(collapsed: Set<String>, numbering: TocNumbering = T
   forEachIndexed { at, heading ->
     if (hidingBelow != null && heading.level > hidingBelow) return@forEachIndexed
     hidingBelow = null
-    val folded = heading.cellId in collapsed
+    val folded = heading.key in collapsed
     rows += TocRow(heading, ownsSectionAt(at), collapsed = folded, prefix = prefixes[at])
     if (folded) hidingBelow = heading.level
   }
@@ -62,7 +62,7 @@ fun List<TocHeading>.tocRows(collapsed: Set<String>, numbering: TocNumbering = T
  * nesting - so the one control would collapse for ever and never expand.
  */
 fun List<TocHeading>.tocSectionOwners(): Set<String> =
-  filterIndexedTo(mutableListOf()) { at, _ -> ownsSectionAt(at) }.mapTo(mutableSetOf()) { it.cellId }
+  filterIndexedTo(mutableListOf()) { at, _ -> ownsSectionAt(at) }.mapTo(mutableSetOf()) { it.key }
 
 /**
  * `someExpanded` - whether the one command's next tap folds or unfolds, and what its label reads

@@ -102,6 +102,10 @@ fun EditorTopBar(
   onToggleTocNumbering: () -> Unit = {},
   /** `toc:display-h1-numbering`. */
   onToggleTocNumberingH1: () -> Unit = {},
+  /** Whether a code cell's printed headings are listed - what the row is named from. */
+  tocIncludeOutput: Boolean = true,
+  /** `toc:display-outputs-numbering`. */
+  onToggleTocIncludeOutput: () -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -134,6 +138,8 @@ fun EditorTopBar(
         tocNumbering = tocNumbering,
         onToggleTocNumbering = onToggleTocNumbering,
         onToggleTocNumberingH1 = onToggleTocNumberingH1,
+        tocIncludeOutput = tocIncludeOutput,
+        onToggleTocIncludeOutput = onToggleTocIncludeOutput,
       )
     },
   )
@@ -223,6 +229,8 @@ private fun ViewMenu(
   tocNumbering: TocNumbering,
   onToggleTocNumbering: () -> Unit,
   onToggleTocNumberingH1: () -> Unit,
+  tocIncludeOutput: Boolean,
+  onToggleTocIncludeOutput: () -> Unit,
 ) {
   var open by remember { mutableStateOf(false) }
   // Its own flag rather than reusing [open]: picking "Table of contents" replaces this menu with
@@ -292,6 +300,13 @@ private fun ViewMenu(
           },
         )
       }
+      DropdownMenuItem(
+        text = { Text(if (tocIncludeOutput) HIDE_OUTPUT_HEADINGS else SHOW_OUTPUT_HEADINGS) },
+        onClick = {
+          open = false
+          onToggleTocIncludeOutput()
+        },
+      )
     }
     // Same Box as "View actions", so [TableOfContentsPanel]'s own `DropdownMenu` anchors to the
     // button that opened it rather than to wherever this composable happens to sit in the screen.
@@ -382,6 +397,16 @@ internal const val SHOW_TOP_LEVEL_NUMBER = "Number top-level headings"
 
 /** The same command from the other side - see [SHOW_TOP_LEVEL_NUMBER]. */
 internal const val HIDE_TOP_LEVEL_NUMBER = "Skip top-level heading numbers"
+
+/**
+ * `toc:display-outputs-numbering`, *"Show output headings"* (`index.ts:139`) - whether a heading a
+ * code cell **printed** is listed beside the ones its neighbours wrote. Two labels rather than the
+ * reference's one, for [SHOW_LINE_NUMBERS]'s reason.
+ */
+internal const val SHOW_OUTPUT_HEADINGS = "Show output headings"
+
+/** The same command from the other side - see [SHOW_OUTPUT_HEADINGS]. */
+internal const val HIDE_OUTPUT_HEADINGS = "Hide output headings"
 
 @Composable
 private fun RenameableTitle(title: String, onClick: () -> Unit) {

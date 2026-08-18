@@ -334,6 +334,27 @@ class EditorTopBarTest {
     compose.runOnIdle { assertEquals(1, numberingH1Toggles) }
   }
 
+  // --- toc:display-outputs-numbering (P2h-6) ------------------------------------------------
+
+  @Test
+  fun theViewMenuOffersToLeaveOutWhatACellPrinted() {
+    showTopBar(tocIncludeOutput = true)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(HIDE_OUTPUT_HEADINGS).performClick()
+
+    compose.runOnIdle { assertEquals(1, includeOutputToggles) }
+  }
+
+  @Test
+  fun withThemLeftOutTheRowOffersToPutThemBack() {
+    showTopBar(tocIncludeOutput = false)
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(SHOW_OUTPUT_HEADINGS).assertIsDisplayed()
+  }
+
   private val renamed = mutableListOf<String>()
   private var undos = 0
   private var redos = 0
@@ -344,6 +365,7 @@ class EditorTopBarTest {
   private var tableOfContentsPaneToggles = 0
   private var numberingToggles = 0
   private var numberingH1Toggles = 0
+  private var includeOutputToggles = 0
 
   private fun showTopBar(
     canUndo: Boolean = false,
@@ -354,6 +376,7 @@ class EditorTopBarTest {
     tableOfContentsPresentation: TocPresentation = TocPresentation.OVERLAY,
     tableOfContentsPaneOpen: Boolean = false,
     tocNumbering: TocNumbering = TocNumbering(),
+    tocIncludeOutput: Boolean = true,
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -378,6 +401,8 @@ class EditorTopBarTest {
           tocNumbering = tocNumbering,
           onToggleTocNumbering = { numberingToggles++ },
           onToggleTocNumberingH1 = { numberingH1Toggles++ },
+          tocIncludeOutput = tocIncludeOutput,
+          onToggleTocIncludeOutput = { includeOutputToggles++ },
         )
       }
     }

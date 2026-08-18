@@ -131,6 +131,9 @@ fun EditorScreen(
     var tocPaneOpen by rememberSaveable { mutableStateOf(false) }
     // Remembered rather than saved, which is the reference's own lifetime for it - see [TocFolds].
     val tocFolds = remember { TocFolds() }
+    // One list for every surface that reads it - the panel, the numbers on the notebook's own
+    // headings, and the jump - so a heading cannot be numbered one way here and another there.
+    val tocHeadings = state.tableOfContentsHeadings(editorSettings.tocIncludeOutput)
     val showTocPane = tocPaneOpen && tocPresentation == TocPresentation.PANE
     val jumpToHeading: (String) -> Unit = { cellId ->
       // A heading is never hidden by its own section (CellHeadings.kt), but one nested inside an
@@ -181,7 +184,7 @@ fun EditorScreen(
             val toggled = editorSettings.copy(autoClosingBrackets = !editorSettings.autoClosingBrackets)
             applicationScope.launch { editorSettingsRepository.update(toggled) }
           },
-          tableOfContentsHeadings = state.tableOfContentsHeadings,
+          tableOfContentsHeadings = tocHeadings,
           onTableOfContentsHeadingSelected = jumpToHeading,
           tableOfContentsPresentation = tocPresentation,
           tableOfContentsPaneOpen = showTocPane,
@@ -193,6 +196,11 @@ fun EditorScreen(
           },
           onToggleTocNumberingH1 = {
             val flipped = editorSettings.copy(tocNumberingH1 = !editorSettings.tocNumberingH1)
+            applicationScope.launch { editorSettingsRepository.update(flipped) }
+          },
+          tocIncludeOutput = editorSettings.tocIncludeOutput,
+          onToggleTocIncludeOutput = {
+            val flipped = editorSettings.copy(tocIncludeOutput = !editorSettings.tocIncludeOutput)
             applicationScope.launch { editorSettingsRepository.update(flipped) }
           },
         )
@@ -255,17 +263,18 @@ fun EditorScreen(
           cellInput = cellInput,
           autoClosingBrackets = editorSettings.autoClosingBrackets,
           tocNumbering = editorSettings.tocNumbering(),
+          tocHeadings = tocHeadings,
           listState = listState,
           modifier = Modifier.weight(1f),
         )
         if (showTocPane) {
           TableOfContentsPane(
-            headings = state.tableOfContentsHeadings,
+            headings = tocHeadings,
             onHeadingSelected = jumpToHeading,
             onClose = { tocPaneOpen = false },
             collapsed = tocFolds.collapsed,
             onToggleCollapsed = tocFolds::toggle,
-            onToggleAllCollapsed = { tocFolds.toggleAll(state.tableOfContentsHeadings) },
+            onToggleAllCollapsed = { tocFolds.toggleAll(tocHeadings) },
             numbering = editorSettings.tocNumbering(),
           )
         }
@@ -290,6 +299,8 @@ private fun EditorContent(
   autoClosingBrackets: Boolean,
   /** `toc:display-numbering` / `toc:display-h1-numbering` - see [MarkdownCell]. */
   tocNumbering: TocNumbering,
+  /** Every heading in the notebook, numbered as one document - see [tableOfContentsHeadings]. */
+  tocHeadings: List<TocHeading>,
   /** Hoisted so P2h-2's click-to-jump can drive the same list a tap in the table of contents. */
   listState: LazyListState,
   modifier: Modifier = Modifier,
@@ -310,10 +321,9 @@ private fun EditorContent(
       val onScreen = state.cellsOnScreen
       // Numbered once for the whole notebook rather than per cell, for the reason the two above
       // are: the numbers are the *document's* - one running counter over every heading - so asking
-      // inside the item lambda would be both wrong and quadratic.
-      val headingPrefixes = state.tableOfContentsHeadings.let { headings ->
-        headings.map { it.cellId }.zip(headings.tocPrefixes(tocNumbering)).toMap()
-      }
+      // inside the item lambda would be both wrong and quadratic. Keyed by cell, so a heading a
+      // code cell printed is counted but leaves no prefix for a markdown cell to draw.
+      val headingPrefixes = tocHeadings.map { it.cellId }.zip(tocHeadings.tocPrefixes(tocNumbering)).toMap()
       LazyColumn(state = listState, modifier = modifier.fillMaxSize()) {
         // contentType as well as key: a code cell and a markdown cell compose to very different
         // trees, and telling the list so lets it reuse each kind against its own pool instead of

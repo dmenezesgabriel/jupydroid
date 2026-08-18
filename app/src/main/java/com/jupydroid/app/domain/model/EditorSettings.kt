@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - three fields today.
+ * The app-wide editor preferences P6c grows - four fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -33,5 +33,11 @@ data class EditorSettings(
   val autoClosingBrackets: Boolean = true,
   val tocNumberHeaders: Boolean = false,
   val tocNumberingH1: Boolean = true,
+  /**
+   * `toc:display-outputs-numbering` - whether the headings a code cell *printed* are listed
+   * alongside the ones its neighbours wrote. **True**, which is the schema's own default
+   * (`packages/toc-extension/schema/registry.json:32-69`).
+   */
+  val tocIncludeOutput: Boolean = true,
 )
 
