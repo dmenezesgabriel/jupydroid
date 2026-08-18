@@ -849,6 +849,44 @@ about a document's title being the wrong handle beside a file list showing it, o
 first feature to need it: a flow asserting the compact-width adaptation is not failing on a tablet,
 it is asking the wrong question there. The mirror of a rule the harness already had.
 
+### The table of contents folds its own tree, and that tree is derived rather than kept
+
+`toc:toggle-collapse`, plus the disclosure beside each entry that the command sets in bulk. The
+tree it folds is built **at draw time from the flat list** - `buildTree` takes as a heading's
+children the ones that follow it until an equal or lower level appears
+(`packages/toc/src/toctree.tsx:57-102`), which is `headingSectionOf`'s rule one rank along. Nothing
+records that a row is hidden, so adding, deleting or re-levelling a heading is correct here without
+knowing the feature exists - the same reason P2f derives `hiddenCellIds` instead of storing it.
+
+**It is not the notebook's fold, and that is the reference's own default.** `syncCollapseState` is
+false (`packages/toc-extension/schema/registry.json:32-69`), so an entry folded here hides rows in
+that list and leaves `jp-MarkdownHeadingCollapsed` alone - measured on screen rather than reasoned
+about: `evidence/p2h-4-table-of-contents-folds/02-folded-in-the-list-only.png` has *Part A* gone
+from the panel with its cell and `part = 2` still in the notebook beside it. Its lifetime is the
+reference's too: rebuilt on every `getHeadings()` and never persisted
+(`packages/notebook/src/toc.ts:274,293`), so `TocFolds` is remembered and not saved.
+
+**Collapse All is narrowed to the entries that own something**, where the reference marks every
+heading (`toggleCollapse({collapsed: true})`). A leaf's flag hides nothing either way, and keeping
+it would leave `someExpanded` permanently true in a notebook with no nesting - so the one control
+would fold for ever and never unfold. Same reasoning one step on: **the control is absent entirely
+where nothing nests**, rather than drawn and dead. The reference draws it unconditionally and can
+afford to; this app already refuses to ship a control that lights up and does nothing, which is why
+a raw cell has no Run and a non-heading cell no collapser.
+
+**One control for both halves, named for the half the next tap performs** - `someExpanded` is the
+reference's own predicate for exactly that (`packages/toc-extension/src/index.ts:174-210`), and a
+name that flips is what a Maestro flow can read where a toggled state is not. Its words are
+*"Collapse all entries"* / *"Expand all entries"* rather than the reference's *"Collapse All"*,
+because `COLLAPSE_ALL_HEADINGS` is one menu away and folds the **notebook's** sections: two
+controls a tap apart must not answer to one string.
+
+**The overlay has no disclosures at all**, and that is the adaptation rather than an omission. A
+fold whose lifetime is the composition is worth nothing on a surface that is opened, picked from
+and dismissed in one gesture; the pane is the only one that outlives a jump. So `TableOfContentsRows`
+takes a null `onToggleCollapsed` there and draws the spacer a disclosure would have occupied, which
+is what keeps both surfaces' rows lined up at the same rank.
+
 ---
 
 ## Editor

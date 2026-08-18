@@ -1,13 +1,20 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -30,9 +37,9 @@ import androidx.compose.ui.unit.dp
  * column gets [TableOfContentsPane] instead, which is the reference's own persistent shape.
  * [tocPresentationFor] is the rule, and it measures the editor rather than the window.
  *
- * The flat list is drawn indented by level rather than folded into a nested tree: the model stays
- * exactly [EditorUiState.tableOfContentsHeadings]'s own shape, and indentation is all a render
- * needs before collapse (`toc:toggle-collapse`, P2h-4) gives a reason to nest it.
+ * Every entry is drawn, indented by level and never folded: `toc:toggle-collapse` belongs to the
+ * pane, because a fold on a surface that is opened, picked from and gone would never survive to be
+ * looked at twice - see [TableOfContentsRows].
  *
  * Picking a row both jumps to it and closes the surface, in the one step [CellActionSurface]'s own
  * `choose` already establishes for a picker here - so a caller never has to remember the second
@@ -56,16 +63,18 @@ fun TableOfContentsPanel(
     onHeadingSelected(cellId)
     onDismiss()
   }
+  // Nothing is folded here - see [TableOfContentsRows] for why the overlay has no disclosures.
+  val rows = headings.tocRows(collapsed = emptySet())
   when (presentation) {
-    CellActionPresentation.MENU -> TableOfContentsMenu(headings, onDismiss, choose)
-    CellActionPresentation.SHEET -> TableOfContentsSheet(headings, onDismiss, choose)
+    CellActionPresentation.MENU -> TableOfContentsMenu(rows, onDismiss, choose)
+    CellActionPresentation.SHEET -> TableOfContentsSheet(rows, onDismiss, choose)
   }
 }
 
 @Composable
-private fun TableOfContentsMenu(headings: List<TocHeading>, onDismiss: () -> Unit, onChoose: (String) -> Unit) {
+private fun TableOfContentsMenu(rows: List<TocRow>, onDismiss: () -> Unit, onChoose: (String) -> Unit) {
   DropdownMenu(expanded = true, onDismissRequest = onDismiss) {
-    TableOfContentsRows(headings, onChoose)
+    TableOfContentsRows(rows, onChoose)
   }
 }
 
@@ -75,7 +84,7 @@ private fun TableOfContentsMenu(headings: List<TocHeading>, onDismiss: () -> Uni
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TableOfContentsSheet(headings: List<TocHeading>, onDismiss: () -> Unit, onChoose: (String) -> Unit) {
+private fun TableOfContentsSheet(rows: List<TocRow>, onDismiss: () -> Unit, onChoose: (String) -> Unit) {
   ModalBottomSheet(
     onDismissRequest = onDismiss,
     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -83,7 +92,7 @@ private fun TableOfContentsSheet(headings: List<TocHeading>, onDismiss: () -> Un
     Column(
       modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding(),
     ) {
-      TableOfContentsRows(headings, onChoose)
+      TableOfContentsRows(rows, onChoose)
     }
   }
 }
@@ -91,18 +100,63 @@ private fun TableOfContentsSheet(headings: List<TocHeading>, onDismiss: () -> Un
 /**
  * The rows themselves, shared with [TableOfContentsPane] - the two surfaces differ in where they
  * are drawn and whether a pick closes them, never in what a heading looks like or is called.
+ *
+ * [onToggleCollapsed] is null on the overlay and that is the adaptation rather than an omission:
+ * the reference's ToC collapse state is rebuilt on every refresh and never saved
+ * (`packages/notebook/src/toc.ts:274,293`), so on a surface that is opened, picked from and gone
+ * a fold would never survive to be looked at twice. The pane is the only one that outlives a jump.
  */
 @Composable
-internal fun TableOfContentsRows(headings: List<TocHeading>, onChoose: (String) -> Unit) {
-  if (headings.isEmpty()) {
+internal fun TableOfContentsRows(
+  rows: List<TocRow>,
+  onChoose: (String) -> Unit,
+  onToggleCollapsed: ((String) -> Unit)? = null,
+) {
+  if (rows.isEmpty()) {
     EmptyTableOfContents()
     return
   }
-  headings.forEach { heading ->
+  rows.forEach { row ->
     DropdownMenuItem(
-      text = { Text(heading.text, modifier = Modifier.padding(start = tocIndent(heading.level))) },
-      onClick = { onChoose(heading.cellId) },
-      modifier = Modifier.fillMaxWidth().semantics { contentDescription = tocRowDescription(heading) },
+      text = { Text(row.heading.text) },
+      onClick = { onChoose(row.heading.cellId) },
+      // The disclosure goes where the indent would have been, so a row that owns something and one
+      // that does not still line up at the same rank.
+      leadingIcon = { TocRowDisclosure(row, onToggleCollapsed) },
+      modifier = Modifier.fillMaxWidth().semantics { contentDescription = tocRowDescription(row.heading) },
+    )
+  }
+}
+
+/**
+ * The chevron that folds an entry's own subtree, drawn only where there is one - the reference's
+ * condition too (`packages/toc/src/tocitem.tsx`), and this app's rule for the cell header's
+ * collapser: a control for a state the row is not in is one it already refuses to draw.
+ *
+ * `ChevronRight`/`ExpandMore` rather than `ExpandLess`/`ExpandMore`, which is `CellHeader`'s
+ * reasoning one rank along: this is a tree node's disclosure and the row itself stays put.
+ *
+ * **Its own control inside the row, so a tap on it is not a pick.** The name goes on the button
+ * rather than on the icon for the reason P2b cost a flow - and names the entry, since a screen
+ * reader meets one of these per row.
+ */
+@Composable
+private fun TocRowDisclosure(row: TocRow, onToggleCollapsed: ((String) -> Unit)?) {
+  val indent = Modifier.padding(start = tocIndent(row.heading.level))
+  if (onToggleCollapsed == null || !row.ownsSection) {
+    Spacer(modifier = indent.width(TOC_DISCLOSURE_WIDTH))
+    return
+  }
+  IconButton(
+    onClick = { onToggleCollapsed(row.heading.cellId) },
+    modifier = indent.width(TOC_DISCLOSURE_WIDTH).semantics {
+      contentDescription = if (row.collapsed) "Expand ${row.heading.text}" else "Collapse ${row.heading.text}"
+    },
+  ) {
+    Icon(
+      imageVector = if (row.collapsed) Icons.Filled.ChevronRight else Icons.Filled.ExpandMore,
+      contentDescription = null,
+      tint = MaterialTheme.colorScheme.primary,
     )
   }
 }
@@ -126,3 +180,6 @@ private fun tocIndent(level: Int) = ((level - 1) * TOC_INDENT_STEP_DP).dp
 private fun tocRowDescription(heading: TocHeading) = "Table of contents ${heading.text}"
 
 private const val TOC_INDENT_STEP_DP = 16
+
+/** One disclosure's worth of room, kept by the rows that have none so every rank lines up. */
+private val TOC_DISCLOSURE_WIDTH = 32.dp

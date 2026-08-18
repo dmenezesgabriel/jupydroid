@@ -129,6 +129,8 @@ fun EditorScreen(
     // likely to bring it into range in the first place. Hidden by default, as the reference's own
     // ToC tab is - the file browser is the sidebar panel that opens with the shell, not this.
     var tocPaneOpen by rememberSaveable { mutableStateOf(false) }
+    // Remembered rather than saved, which is the reference's own lifetime for it - see [TocFolds].
+    val tocFolds = remember { TocFolds() }
     val showTocPane = tocPaneOpen && tocPresentation == TocPresentation.PANE
     val jumpToHeading: (String) -> Unit = { cellId ->
       // A heading is never hidden by its own section (CellHeadings.kt), but one nested inside an
@@ -251,6 +253,9 @@ fun EditorScreen(
             headings = state.tableOfContentsHeadings,
             onHeadingSelected = jumpToHeading,
             onClose = { tocPaneOpen = false },
+            collapsed = tocFolds.collapsed,
+            onToggleCollapsed = tocFolds::toggle,
+            onToggleAllCollapsed = { tocFolds.toggleAll(state.tableOfContentsHeadings) },
           )
         }
       }

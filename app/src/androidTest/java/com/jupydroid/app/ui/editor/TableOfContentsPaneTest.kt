@@ -66,15 +66,88 @@ class TableOfContentsPaneTest {
     compose.onNodeWithText("No headings in this notebook").assertIsDisplayed()
   }
 
+  // --- toc:toggle-collapse (P2h-4) ---------------------------------------------------------
+
+  /**
+   * The disclosure is drawn only where there is something under it, which is the reference's own
+   * condition (`packages/toc/src/tocitem.tsx`) and this app's rule for the cell header's chevron
+   * too: a control for a state the row is not in is one it already refuses to draw.
+   */
+  @Test
+  fun onlyAnEntryThatOwnsSomethingCarriesADisclosure() {
+    show(headings)
+
+    compose.onNodeWithContentDescription("Collapse Chapter one").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Collapse Part A").assertDoesNotExist()
+    compose.onNodeWithContentDescription("Collapse Chapter two").assertDoesNotExist()
+  }
+
+  @Test
+  fun theDisclosureFoldsTheEntryWithoutJumpingToIt() {
+    show(headings)
+
+    compose.onNodeWithContentDescription("Collapse Chapter one").performClick()
+
+    compose.runOnIdle {
+      assertEquals(listOf("h1"), foldsToggled)
+      // The chevron is its own control inside the row, so pressing it is not a pick.
+      assertEquals(emptyList<String>(), selected)
+    }
+  }
+
+  @Test
+  fun aFoldedEntryHidesWhatItOwnsAndOffersToUnfold() {
+    show(headings, collapsed = setOf("h1"))
+
+    compose.onNodeWithContentDescription("Table of contents Part A").assertDoesNotExist()
+    compose.onNodeWithContentDescription("Expand Chapter one").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Table of contents Chapter two").assertIsDisplayed()
+  }
+
+  /** One control, named for what the next tap does - `someExpanded`'s own label flip. */
+  @Test
+  fun theOneControlNamesWhichHalfOfTheCommandIsNext() {
+    show(headings)
+
+    compose.onNodeWithContentDescription(COLLAPSE_ALL_TOC_ENTRIES).performClick()
+
+    compose.runOnIdle { assertEquals(1, allFoldsToggled) }
+  }
+
+  @Test
+  fun withEverythingFoldedTheControlOffersToUnfoldItAll() {
+    show(headings, collapsed = setOf("h1"))
+
+    compose.onNodeWithContentDescription(EXPAND_ALL_TOC_ENTRIES).assertIsDisplayed()
+  }
+
+  /**
+   * Absent rather than dead where nothing nests, which is this app's rule for a control that
+   * would do nothing - the reference always draws it, and always drawing it here would put a
+   * button on screen that cannot change anything.
+   */
+  @Test
+  fun aFlatTableOfContentsCarriesNoFoldAllControl() {
+    show(listOf(TocHeading("a", 1, "One"), TocHeading("b", 1, "Two")))
+
+    compose.onNodeWithContentDescription(COLLAPSE_ALL_TOC_ENTRIES).assertDoesNotExist()
+    compose.onNodeWithContentDescription(EXPAND_ALL_TOC_ENTRIES).assertDoesNotExist()
+  }
+
   private val selected = mutableListOf<String>()
   private var closes = 0
+  private val foldsToggled = mutableListOf<String>()
+  private var allFoldsToggled = 0
 
-  private fun show(headings: List<TocHeading>) {
+  private fun show(headings: List<TocHeading>, collapsed: Set<String> = emptySet()) {
     compose.setContent {
       JupyterDroidTheme {
         TableOfContentsPane(
           headings = headings,
+          collapsed = collapsed,
           onHeadingSelected = { selected += it },
+          onToggleCollapsed = { foldsToggled += it },
+          onToggleAllCollapsed = { allFoldsToggled++ },
           onClose = { closes++ },
         )
       }

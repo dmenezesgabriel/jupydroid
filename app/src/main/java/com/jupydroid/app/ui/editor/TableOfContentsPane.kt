@@ -11,6 +11,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.UnfoldLess
+import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,28 +50,67 @@ fun TableOfContentsPane(
   headings: List<TocHeading>,
   onHeadingSelected: (String) -> Unit,
   onClose: () -> Unit,
+  /** Which entries are folded - the ToC's own state, never the notebook's; see [TocRow]. */
+  collapsed: Set<String> = emptySet(),
+  /** One entry's disclosure. */
+  onToggleCollapsed: (String) -> Unit = {},
+  /** `toc:toggle-collapse`, which is Collapse All and Expand All under one control. */
+  onToggleAllCollapsed: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   Row(modifier = modifier.fillMaxHeight()) {
     VerticalDivider()
     Column(modifier = Modifier.width(TOC_PANE_WIDTH)) {
-      TableOfContentsPaneHeader(onClose)
+      TableOfContentsPaneHeader(
+        // Absent where nothing nests, rather than drawn and dead: a notebook of H1s has no fold to
+        // make, and this app does not ship a control that lights up and does nothing. The
+        // reference draws it unconditionally, which it can afford - its toolbar is not this narrow.
+        someExpanded = headings.tocSomeExpanded(collapsed).takeIf { headings.tocSectionOwners().isNotEmpty() },
+        onToggleAllCollapsed = onToggleAllCollapsed,
+        onClose = onClose,
+      )
       HorizontalDivider()
       Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-        TableOfContentsRows(headings, onHeadingSelected)
+        TableOfContentsRows(
+          rows = headings.tocRows(collapsed),
+          onChoose = onHeadingSelected,
+          onToggleCollapsed = onToggleCollapsed,
+        )
       }
     }
   }
 }
 
+/**
+ * The pane's own toolbar, which is where the reference puts the same control - a collapse-all
+ * toggle beside the panel's other actions (`packages/toc-extension/src/index.ts:260-306`).
+ *
+ * [someExpanded] is null when there is nothing foldable at all, and the control is then absent.
+ */
 @Composable
-private fun TableOfContentsPaneHeader(onClose: () -> Unit) {
+private fun TableOfContentsPaneHeader(someExpanded: Boolean?, onToggleAllCollapsed: () -> Unit, onClose: () -> Unit) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
   ) {
     Text(text = "Table of contents", style = MaterialTheme.typography.titleSmall)
     Spacer(modifier = Modifier.weight(1f))
+    if (someExpanded != null) {
+      // One control for both halves of one command, named for the half the next tap performs -
+      // `someExpanded` is the reference's own predicate for exactly that (`index.ts:174-210`), and
+      // a name that flips is what a Maestro flow can read where a toggled state is not.
+      IconButton(
+        onClick = onToggleAllCollapsed,
+        modifier = Modifier.semantics {
+          contentDescription = if (someExpanded) COLLAPSE_ALL_TOC_ENTRIES else EXPAND_ALL_TOC_ENTRIES
+        },
+      ) {
+        Icon(
+          imageVector = if (someExpanded) Icons.Filled.UnfoldLess else Icons.Filled.UnfoldMore,
+          contentDescription = null,
+        )
+      }
+    }
     // The name goes on the button rather than on the icon inside it - the rule a flow cost this
     // project in P2b, and the same word the View menu's own row uses so a screen reader and a
     // Maestro flow address one string.
@@ -78,6 +119,16 @@ private fun TableOfContentsPaneHeader(onClose: () -> Unit) {
     }
   }
 }
+
+/**
+ * `toc:toggle-collapse`'s two names. Distinct from [COLLAPSE_ALL_HEADINGS] on purpose: that folds
+ * the **notebook's** sections and this folds the table of contents' own tree, and two controls a
+ * tap apart must not answer to one string.
+ */
+internal const val COLLAPSE_ALL_TOC_ENTRIES = "Collapse all entries"
+
+/** The same command from the other side - see [COLLAPSE_ALL_TOC_ENTRIES]. */
+internal const val EXPAND_ALL_TOC_ENTRIES = "Expand all entries"
 
 /**
  * Wide enough for a heading and its indent, narrow enough to leave the notebook the larger half at

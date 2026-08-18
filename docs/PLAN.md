@@ -369,12 +369,14 @@ for every flow run after it on the same device. `reset_notebooks` clears
 `editor-settings.json` now, beside `recent-documents.json`, on the same repeatability reasoning
 `check_driver_isolation.py` already enforces for notebooks.
 
-**P2h has shipped its first three sub-steps, and the third departed from what this file said.**
+**P2h has shipped its first four sub-steps, and the third departed from what this file said.**
 `toc:show-panel` is in, on two surfaces: a `TableOfContentsPane` beside the notebook where the
 **editor** is at least 840dp wide, and the `TableOfContentsPanel` menu-or-sheet everywhere else.
 Tapping a heading jumps the notebook to that cell; the pane stays open across the jump, which is
-the whole of what it buys over the overlay. Evidence is `evidence/p2h-2-table-of-contents/` and
-`evidence/p2h-3-table-of-contents-pane/`.
+the whole of what it buys over the overlay. `toc:toggle-collapse` is in too - an entry folds the
+subtree it owns, one control does the whole tree, and neither touches the notebook's own section
+folds. Evidence is `evidence/p2h-2-table-of-contents/` through
+`evidence/p2h-4-table-of-contents-folds/`.
 
 **The third pane this file promised does not exist, and reading the library is what settled it.**
 `ListDetailSceneStrategy.extraPane()` is a separate `NavEntry`, and every entry here owns its own
@@ -385,17 +387,20 @@ assumed and are `docs/DECISIONS.md` now: three partitions only arrive at 1200dp+
 extra pane displaces the **explorer**), and the width that decides is the *editor's* rather than
 the window's — in two panes an 840dp window leaves the editor about 456dp.
 
-Two costs the plan did not name, both recorded there rather than here:
+Three costs the plan did not name, each recorded there rather than here:
 
 - **A ToC row and the heading it names are the same words**, so a flow meaning "the notebook moved"
   cannot say so by naming a heading — the pane is still showing that text. It cost two red runs,
   and the notebook's *last* cell is what settles both halves of the claim.
 - **`NARROW WINDOW` is a new driver rule**, the mirror of `WIDE WINDOW`: a flow asserting the
   compact-width adaptation is asking the wrong question on a tablet rather than failing there.
+- **Two of P2h-4's rules are narrowings of the reference rather than copies of it**, and both come
+  from the same place: a control that cannot change anything is one this app does not draw. Collapse
+  All marks only the entries that own something, and its control is absent entirely in a notebook
+  with no nesting.
 
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|
-| **P2h-4** | **`toc:toggle-collapse`** | Collapse-all / expand-all over the ToC's **own** per-heading state, which is ephemeral and independent of the notebook's `jp-MarkdownHeadingCollapsed` — `syncCollapseState` defaults false (`packages/toc-extension/schema/registry.json:32-69`). The predicate and the icon flip are `someExpanded`'s (`toc-extension/src/index.ts:174-210`). |
 | **P2h-5** | **`toc:display-numbering` / `display-h1-numbering`** | The level-counter in `packages/toc/src/utils/common.ts:157-197` (`getPrefix`), with `numberHeaders` false, `numberingH1` true and `maximalDepth` 4 as the schema's defaults. Persisted app-wide, which is P2g's `EditorSettingsRepository` grown by two booleans rather than a second store — and `reset_notebooks` already clears that file. |
 | **P2h-6** | **`toc:display-outputs-numbering`** | Headings found in a **code cell's HTML/Markdown outputs** (`packages/cells/src/widget.ts:1312-1370`, `CodeCell.getHeadings`, over `getHTMLHeadings`). Last because it is the most expensive and the panel is complete without it; the tablet is its device, since producing such an output needs a real kernel. |
 | **P2i** | **Find and replace** | `documentsearch:{start,startWithReplace,highlightNext,highlightPrevious,end}`; the notebook's provider is `packages/notebook/src/searchprovider.ts` and it defines the ordering, including whether collapsed cells participate. Read it rather than iterating cells. |
