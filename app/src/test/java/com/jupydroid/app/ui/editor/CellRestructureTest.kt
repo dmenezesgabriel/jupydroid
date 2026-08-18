@@ -176,6 +176,24 @@ class CellRestructureTest {
   }
 
   /**
+   * **A request made by a tap does not survive the cell changing type**, which is the hole the
+   * first version of this rule left: tap a markdown cell to open it, change it to code, change it
+   * back, and the request nobody withdrew would take the caret - a command doing what only a tap
+   * may do, three taps after the tap.
+   */
+  @Test
+  fun changingTypeWithdrawsACaretRequestMadeForThatCell() {
+    val tapped = notebook.withMarkdownEditorOpened("m1")
+
+    val backAgain = tapped
+      .withCellsKindChanged(listOf("m1"), CellKind.CODE)
+      .withCellsKindChanged(listOf("m1"), CellKind.MARKDOWN)
+
+    assertFalse("it is open for editing", backAgain.isMarkdownRendered("m1"))
+    assertNull("but nobody asked to type in it", backAgain.markdownTakingCaret)
+  }
+
+  /**
    * The early return still has to hold where nothing at all would happen, because
    * [EditorUiState.withMarkdownRendered]'s reason applies here too: a state that comes back merely
    * equal-but-new marks the notebook dirty and rewrites the file.

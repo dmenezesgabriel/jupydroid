@@ -51,6 +51,11 @@ fun EditorUiState.withCellsKindChanged(cellIds: List<String>, kind: CellKind): E
     executionCounts = executionCounts - changing,
     executions = executions - changing,
     markdownBeingEdited = editing,
+    // A request goes with the cell it was made for: a tap asked to type in *that* markdown cell,
+    // and once its type has changed the request is about a cell that no longer exists in the sense
+    // the tap meant. Left standing it outlives the change - open a markdown cell, make it code,
+    // make it markdown again, and the command would take the caret three taps after the tap.
+    markdownTakingCaret = markdownTakingCaret?.takeUnless { it in changing },
     // Which cells are open is not written to disk, so an unrender on its own is not an edit.
     dirty = dirty || changing.isNotEmpty(),
   )
