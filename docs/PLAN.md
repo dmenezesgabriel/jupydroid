@@ -34,11 +34,11 @@ filesystem the kernel, the server and the app all share.
 | Area | State |
 |---|---|
 | Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import; the server stops when it is idle or the app is left, and comes back on the next run; a kernel can be ended on purpose from the kernel menu |
-| Notebook | all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, and of the **section under a heading**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
-| Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match, line numbers, kernel-backed completion, symbol row |
+| Notebook | all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
+| Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 166 instrumented, 960 unit, 86 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 178 instrumented, 985 unit, 90 Maestro flows (plus two `runFlow` subflows), `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, search, ToC,
 settings, headings, trust, export.
@@ -347,18 +347,43 @@ Four costs the plan did not name, each recorded in `docs/DECISIONS.md` rather th
 - **`CellAction.Fold` is a category detekt asked for three times.** The three collapses share both
   things the dispatch cares about, and `CellFolds` had already named it in prose.
 
+**P2g has shipped, in four sub-steps, and two of them are defaults kept against the reference
+rather than inherited from it.** `toggle-all-cell-line-numbers`, `enable/disable/toggle-output-scrolling`
+and `toggle-autoclosing-brackets-universal` are all in; `toggle-virtual-scrollbar` (Show Minimap)
+moved to the deferred list below, its own sub-step. What each settled — the gutter shown by
+default against the reference's `lineNumbers: false`, `'auto'` read as unscrolled, the all-of
+operand `toggle-output-scrolling` reads where every other fold reads the head, and
+auto-closing brackets on by default and universal across a cell and the plain file editor because
+both already share `PythonTypingRules` — is `docs/DECISIONS.md`. The evidence is
+`evidence/p2g-1-line-numbers/` through `evidence/p2g-3-autoclosing-brackets/`.
+
+**The auto-closing-brackets toggle is the app's first persisted, app-wide setting**, and it forced
+the one piece of infrastructure this phase actually added: `EditorSettingsRepository`, disk-backed
+like `RecentDocumentsRepository` beside it, with `AppContainer` defaulting to a fake like every
+other port. P6c grows it rather than replacing it.
+
+One cost the plan did not name: **a persisted setting is state no flow's `reset_notebooks` had
+ever had to clear**, because every reset before it emptied *documents* — the workspace, the
+recents list — and this is scoped to the *app*. A flow that left the toggle off would leave it off
+for every flow run after it on the same device. `reset_notebooks` clears
+`editor-settings.json` now, beside `recent-documents.json`, on the same repeatability reasoning
+`check_driver_isolation.py` already enforces for notebooks.
+
 | # | Sub-step | Commands, and what the reference settles |
 |---|---|---|
-| **P2g** | **View toggles** | `toggle-all-cell-line-numbers`, `enable/disable/toggle-output-scrolling`, `toggle-autoclosing-brackets`, `toggle-virtual-scrollbar` (engine in `packages/notebook/src/windowing.ts`). Several already have engines and no command; this is the surface, plus the persistence P6c provides. **The surface exists already**: P2f-2 put a View overflow on `EditorTopBar` for the two heading commands, which is where these land rather than needing a menu of their own. |
 | **P2h** | **Table of contents** | `toc:{show-panel,toggle-collapse,display-numbering,display-h1-numbering,display-outputs-numbering}`; the model is `packages/notebook/src/toc.ts`. **Adaptation:** a bottom sheet on a phone, a third pane at ≥ 840dp — a side panel is not reachable at 360dp. P1e paid for the third pane already: it is `ListDetailSceneStrategy.extraPane()`, not another hand-written scene. |
 | **P2i** | **Find and replace** | `documentsearch:{start,startWithReplace,highlightNext,highlightPrevious,end}`; the notebook's provider is `packages/notebook/src/searchprovider.ts` and it defines the ordering, including whether collapsed cells participate. Read it rather than iterating cells. |
 | **P2j** | **Trust and export** | `notebook:trust`, `notebook:export-to-format`. Export is `nbconvert`, already in the rootfs (`nbconvert==7.17.1`, with `mistune`, `bleach`, `pandocfilters`), and lands as a file in the workspace plus a share intent. **Trust is two halves and only one is the server's.** The client half is a *dialog* that warns and then sets `trusted: true` on each cell in the model (`actions.tsx` `trustNotebook`); the signing half is the server's — `ContentsManager.notary = sign.NotebookNotary` and `trust_notebook()` → `mark_cells(nb, True)` + `check_and_sign(nb, path)` (`services/contents/manager.py:116-120,694-706`, over `nbformat/sign.py`). **`check_and_sign` runs on save through the Contents API, which this app bypasses** by writing files directly — so a notebook we write is unsigned and would open untrusted. Decide that before building the dialog: route notebook *saves* through the Contents API, sign in the Space via `nbformat.sign`, or state that trust is inert here. Do **not** re-derive HMAC signing in Kotlin. |
 | **P2k** | **Execution history** | `access-previous-history-entry`, `access-next-history-entry`. Needs `history_request` on the shell channel — a protocol message the gateway does not send yet, so it is a `KernelGateway` addition, not just UI. |
 
-**Deliberately out of this phase:** `create-output-view`, `set-side-by-side-ratio`, the windowing
-engine behind `toggle-virtual-scrollbar`, and the full `export-to-format` matrix. Each is either a
-desktop-window idea with no phone reading, or work that belongs after the Space system decides
-where files go.
+**Deliberately out of this phase:** `create-output-view`, `set-side-by-side-ratio`, the full
+`export-to-format` matrix, and — moved here from P2g rather than built there —
+**`toggle-virtual-scrollbar`**. It is a cell-preview strip with a viewport indicator and
+click-to-jump, engine in `packages/notebook/src/windowing.ts` — not a touch target at 360dp, and
+P2h's table of contents both answers "jump around a long notebook" on a phone and already pays for
+the third pane (`ListDetailSceneStrategy.extraPane()`) a minimap would want. Re-costed once P2h
+exists rather than built twice. The rest is either a desktop-window idea with no phone reading, or
+work that belongs after the Space system decides where files go.
 
 ---
 

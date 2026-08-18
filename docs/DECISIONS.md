@@ -715,6 +715,81 @@ because only one field can hold the caret. That is the reference's mode: `change
 The flow asserts the symbol row's first key is *not* on screen afterwards, which is how "still in
 command mode" becomes a claim rather than something a screenshot happens to reveal.
 
+### P2g — view toggles, and two defaults kept against the reference on purpose
+
+Three commands, four sub-steps: `notebook:toggle-all-cell-line-numbers`,
+`notebook:enable/disable/toggle-output-scrolling`, and
+`fileeditor:toggle-autoclosing-brackets-universal`. Each settles a default the reference makes one
+way and this app makes the other, and both departures are deliberate rather than inherited.
+
+**The line-number gutter defaults to shown, against `lineNumbers: false`**
+(`packages/notebook/src/widget.ts:1336-1355`, `notebook-extension/schema/tracker.json:704,752,767`).
+This app has drawn the gutter on every cell since Step 5; a phone shows a fraction of a cell at
+once and a traceback names a line, so the departure keeps every screenshot since Step 5 - and
+`step5-line-numbers` itself - meaning what it always meant. The command turns it *off*, which is
+the reference's own polarity, just starting from the other side of it. One boolean for all three
+cell types, read off `toggleAllLineNumbers`'s own conjunction (`actions.tsx:1792-1812`), never
+persisted - the command writes `notebook.editorConfig`, which belongs to the widget.
+
+**`metadata.scrolled` reads `'auto'` as false**, because JupyterLab does not implement it either -
+`loadScrolledState`'s own comment is *"We don't have the notion of 'auto' scrolled, so we make it
+false"* (`packages/cells/src/widget.ts:1532-1537`). Written only when true and deleted when false,
+the same rule `CellCollapse.kt` already carries for `collapsed`, `jupyter.source_hidden` and
+`jp-MarkdownHeadingCollapsed` - a fourth key at the same shape rather than a special case.
+
+**`notebook:toggle-output-scrolling`'s operand is all-of over the marked run, not head-of.**
+Every other `Fold` — collapsing a cell's source, its outputs, a heading's section — reads the
+*head* cell's own state and sets the whole run to its opposite. This one is different because the
+reference is: `isOutputScrollingEnabled` is true only when **every** selected code cell is already
+scrolled (`notebook-extension/src/index.ts:2780-2796`), so a mixed run of two turns *on* rather
+than inverting per cell. `EditorUiState.allMarkedCodeCellsScrolled` carries that predicate apart
+from the toggle it feeds, and it is the one fold whose write also filters to code cells at the
+transform itself (`withOutputsScrolledSet`) rather than trusting the operand it is handed - the
+reference's own write loop repeats the `cell.model.type === 'code'` guard inside
+`enableOutputScrolling`/`disableOutputScrolling` rather than relying on the read that decided to
+call them (`actions.tsx:2081-2114`).
+
+**Its menu row carries one fixed label, "Enable output scrolling", whatever the state - literal
+parity, not this app's usual flip-with-state wording.** The reference's own context-menu
+registration for this exact command pins `args: {isMenu: true}`, which forces the label to
+*"Enable Scrolling for Outputs"* regardless of `isToggled`
+(`notebook-extension/src/index.ts:4963-4967`, `schema/tracker.json:328-335`) - so a tap on it can
+disable an already-scrolled run even though it still reads "Enable". That is the reference's own
+choice for *this* surface, and it is why the auto-closing-brackets row two paragraphs down does
+not copy it: there is no reference row on the surface that row occupies to have parity with.
+
+**`resize: vertical` on a scrolled output is not built.** A drag handle is not a touch idiom, and
+there is no pointer to hover it into view with first. Recorded rather than silently dropped.
+
+**Auto-closing brackets defaults to on, against `default: false`**
+(`packages/codemirror/src/extension.ts:636-644`) - on a soft keyboard, `(` and `)` are two trips
+through the symbol row rather than one. `PythonTypingRules` takes it as a constructor flag gating
+`closePair` and `stepOverPartner` only; `continueIndent` is a different CodeMirror setting there
+and must not move with it - a cell that closes nothing must still carry a block's indent onto the
+next line.
+
+**One app-wide setting is the universal command, not a simplification of it.** The reference's
+`notebook:toggle-autoclosing-brackets` and `fileeditor:toggle-autoclosing-brackets-universal` are
+two commands because CodeMirror configures a notebook cell, a console and a file editor
+separately there; this app has always run one `PythonTypingRules` under both a code cell and the
+plain file editor, so one `EditorSettingsRepository` boolean *is* what "universal" means here -
+gating it once reaches every surface the reference flips together.
+
+**Its row flips label with state, unlike output-scrolling's fixed one, because there is no
+reference row on this surface to have parity with.** The reference files the universal command
+under Settings, which this app does not have until P6c; until then it sits on `EditorTopBar`'s
+View menu beside the other two toggles, in this app's own convention
+(`ENABLE_AUTO_CLOSING_BRACKETS`/`DISABLE_AUTO_CLOSING_BRACKETS`, matching
+`SHOW_LINE_NUMBERS`/`HIDE_LINE_NUMBERS`) rather than borrowing a fixed label from a menu this app
+does not have yet.
+
+**`notebook:toggle-virtual-scrollbar` (Show Minimap) is deferred past P2h, not scheduled here.**
+It is a cell-preview strip with a viewport indicator and click-to-jump
+(`packages/notebook/src/widget.ts:1546-1710`) that is not a touch target at 360dp, and P2h's table
+of contents both answers "jump around a long notebook" on a phone and already pays for the third
+pane (`ListDetailSceneStrategy.extraPane()`) a minimap would want. Re-costed once the ToC exists
+rather than built twice.
+
 ---
 
 ## Editor
@@ -978,6 +1053,14 @@ P2j has to make rather than discover.
   stays visible) — the negative half (the code is gone) is not, because a `LazyColumn` keeps a
   couple of items composed just past the viewport and their semantics nodes can still report
   visible there; two screenshots carry that half instead.
+- **A persisted app-wide setting is a new class of state `reset_notebooks` did not clear, and
+  P2g-3 is the first feature to write one.** Every reset before it emptied the workspace and the
+  recents list — both scoped to *documents*. `EditorSettingsRepository`'s file is scoped to the
+  *app*, so a flow that leaves auto-closing brackets off would leave it off for every flow run
+  after it on the same device, with nothing in either flow naming the other as a cause.
+  `reset_notebooks` now removes `editor-settings.json` alongside `recent-documents.json`, on the
+  same reasoning `check_driver_isolation.py` already enforces for notebooks: a suite is only
+  repeatable if what one run leaves behind cannot change what the next one proves.
 
 ---
 
