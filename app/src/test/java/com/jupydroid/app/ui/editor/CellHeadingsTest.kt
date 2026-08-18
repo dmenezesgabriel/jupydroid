@@ -567,4 +567,16 @@ class CellHeadingsTest {
 
     assertEquals(listOf(TocHeading("h", 1, "Top")), tied.tableOfContentsHeadings)
   }
+
+  /**
+   * What a scroll-to-cell has to index into, since a `LazyColumn` only composes what
+   * [hiddenCellIds] leaves out - the same filter [EditorContent] itself applies, pulled out here
+   * so P2h-2's click-to-jump reads one definition rather than a second copy of it.
+   */
+  @Test
+  fun cellsOnScreenExcludesEveryHiddenCell() {
+    val collapsed = notebook.withHeadingCollapsed("h1", collapsed = true)
+
+    assertEquals(listOf("h1", "h1b", "c"), collapsed.cellsOnScreen.map { it.id })
+  }
 }

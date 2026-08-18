@@ -90,6 +90,15 @@ val EditorUiState.hiddenCellIds: Set<String>
   get() = cells.filter { it.headingCollapsed }.flatMapTo(mutableSetOf()) { headingSectionOf(it.id) }
 
 /**
+ * The cells a `LazyColumn` actually composes, in draw order - every cell but the hidden ones.
+ *
+ * [EditorContent] applies this same filter to build its list; pulled out here so a scroll-to-cell
+ * index (P2h-2's click-to-jump) reads one definition instead of a second copy of it.
+ */
+val EditorUiState.cellsOnScreen: List<Cell>
+  get() = cells.filterNot { it.id in hiddenCellIds }
+
+/**
  * `notebook:toggle-heading-collapse`, as a set rather than a toggle - which is [CellFolds]'s rule
  * and for the same reason: the caller reads the head's state so a menu row that says one thing does
  * one thing.

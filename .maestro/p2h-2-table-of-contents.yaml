@@ -1,0 +1,62 @@
+appId: com.jupydroid.app
+---
+# P2h-2: the table of contents opens as a bottom sheet, and a tap on a heading moves the notebook
+# to the cell it heads - `EditorUiState.tableOfContentsHeadings`, in document order, read once and
+# proven end to end here rather than only in the composable's own instrumented test.
+#
+# Reuses p2f-2's fixture rather than a new one: three headings at three different depths already
+# exist there, and its own flow already establishes that its seven expanded cells do not fit one
+# screen - which is exactly what makes "the notebook actually moved" a claim worth making rather
+# than a scroll position that would have looked the same either way.
+#
+# No cell is run, so this flow says the same thing on either device and shards freely.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Heading Sections.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "Notes before any heading."
+    timeout: 30000
+- assertVisible: "Chapter one"
+- takeScreenshot: 01-notebook-open-at-the-top
+# Away from the top, so jumping back is a real movement and not a no-op the screenshot could not
+# tell apart from doing nothing.
+- scrollUntilVisible:
+    element:
+      text: "Chapter two"
+    direction: DOWN
+    timeout: 10000
+- assertNotVisible: "Chapter one"
+- takeScreenshot: 02-scrolled-away-from-chapter-one
+- tapOn: "View actions"
+- tapOn: "Table of contents"
+- assertVisible: "Table of contents Chapter one"
+- assertVisible: "Table of contents Part A"
+- assertVisible: "Table of contents Chapter two"
+- takeScreenshot: 03-the-panel
+- tapOn: "Table of contents Chapter one"
+# The sheet is gone - picking a row both jumps and dismisses in one step - and the notebook is
+# back at the heading that was tapped.
+- assertNotVisible: "Table of contents Chapter one"
+- assertVisible: "Chapter one"
+- takeScreenshot: 04-jumped-back-to-chapter-one
+# The empty case, on a notebook with no headings at all.
+- tapOn: "Back to notebooks"
+- scrollUntilVisible:
+    element:
+      text: "Empty Notebook.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Empty Notebook.ipynb"
+- extendedWaitUntil:
+    visible: "View actions"
+    timeout: 30000
+- tapOn: "View actions"
+- tapOn: "Table of contents"
+- assertVisible: "No headings in this notebook"
+- takeScreenshot: 05-empty-notebook-placeholder

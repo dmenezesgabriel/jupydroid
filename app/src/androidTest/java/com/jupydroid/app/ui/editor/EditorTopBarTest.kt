@@ -226,18 +226,47 @@ class EditorTopBarTest {
     assertEquals(1, autoClosingBracketsToggles)
   }
 
+  // --- the table of contents (P2h-2) -------------------------------------------------------
+
+  @Test
+  fun theViewMenuOffersTheTableOfContents() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+
+    compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).assertIsDisplayed()
+  }
+
+  /**
+   * The row opens [TableOfContentsPanel] rather than firing a callback directly - a picker inside
+   * the picker, the same two-step [CellActions]' own heading-level surface already establishes -
+   * and picking a heading there is what reports the cell.
+   */
+  @Test
+  fun theRowOpensThePanelAndAPickReportsTheCell() {
+    showTopBar(tableOfContentsHeadings = listOf(TocHeading("h1", 1, "Chapter one")))
+
+    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).performClick()
+    compose.onNodeWithContentDescription("Table of contents Chapter one").performClick()
+
+    assertEquals(listOf("h1"), tableOfContentsSelections)
+  }
+
   private val renamed = mutableListOf<String>()
   private var undos = 0
   private var redos = 0
   private val headingsSetTo = mutableListOf<Boolean>()
   private var lineNumberToggles = 0
   private var autoClosingBracketsToggles = 0
+  private val tableOfContentsSelections = mutableListOf<String>()
 
   private fun showTopBar(
     canUndo: Boolean = false,
     canRedo: Boolean = false,
     lineNumbersShown: Boolean = true,
     autoClosingBrackets: Boolean = true,
+    tableOfContentsHeadings: List<TocHeading> = emptyList(),
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -254,6 +283,8 @@ class EditorTopBarTest {
           onToggleLineNumbers = { lineNumberToggles++ },
           autoClosingBrackets = autoClosingBrackets,
           onToggleAutoClosingBrackets = { autoClosingBracketsToggles++ },
+          tableOfContentsHeadings = tableOfContentsHeadings,
+          onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },
         )
       }
     }

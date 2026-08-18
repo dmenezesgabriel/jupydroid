@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -22,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.theme.editorPalette
@@ -92,6 +95,8 @@ fun EditorScreen(
     .collectAsStateWithLifecycle(EditorSettings())
   val focusManager = LocalFocusManager.current
   val cellInput = remember { FocusedCellInput() }
+  val listState = rememberLazyListState()
+  val scope = rememberCoroutineScope()
   // Back in edit mode returns to command mode instead of leaving the notebook - the touch
   // analogue of `Escape`, which is what both references bind it to. Dropping focus is what
   // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
@@ -166,6 +171,16 @@ fun EditorScreen(
             val toggled = editorSettings.copy(autoClosingBrackets = !editorSettings.autoClosingBrackets)
             applicationScope.launch { editorSettingsRepository.update(toggled) }
           },
+          tableOfContentsHeadings = state.tableOfContentsHeadings,
+          onTableOfContentsHeadingSelected = { cellId ->
+            // A heading is never hidden by its own section (CellHeadings.kt), but one nested
+            // inside an ancestor's collapsed section is - and the reference does not solve that
+            // either: the ToC's own collapse state is independent of the notebook's by default
+            // (`syncCollapseState`), so a hidden target's index is simply absent here and the tap
+            // is a no-op rather than a crash.
+            val index = state.cellsOnScreen.indexOfFirst { it.id == cellId }
+            if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
+          },
         )
       }
     },
@@ -219,6 +234,7 @@ fun EditorScreen(
       onMarkdownEditRequested = viewModel::markdownEditRequested,
       cellInput = cellInput,
       autoClosingBrackets = editorSettings.autoClosingBrackets,
+      listState = listState,
       modifier = Modifier.padding(innerPadding),
     )
   }
@@ -238,6 +254,8 @@ private fun EditorContent(
   cellInput: FocusedCellInput,
   /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
   autoClosingBrackets: Boolean,
+  /** Hoisted so P2h-2's click-to-jump can drive the same list a tap in the table of contents. */
+  listState: LazyListState,
   modifier: Modifier = Modifier,
 ) {
   when {
@@ -251,11 +269,10 @@ private fun EditorContent(
       // to find both ends, and asking it inside the item lambda would make drawing the notebook
       // quadratic in its length.
       val marked = state.selectedCellIds.toSet()
-      // Both walk the whole notebook, so they are computed once for the list rather than per item -
+      // Walks the whole notebook, so it is computed once for the list rather than per item -
       // asking inside the item lambda would make drawing a notebook quadratic in its length.
-      val hidden = state.hiddenCellIds
-      val onScreen = state.cells.filterNot { it.id in hidden }
-      LazyColumn(modifier = modifier.fillMaxSize()) {
+      val onScreen = state.cellsOnScreen
+      LazyColumn(state = listState, modifier = modifier.fillMaxSize()) {
         // contentType as well as key: a code cell and a markdown cell compose to very different
         // trees, and telling the list so lets it reuse each kind against its own pool instead of
         // rebuilding whenever the two alternate.

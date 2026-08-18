@@ -86,6 +86,10 @@ fun EditorTopBar(
    * P6c, so it sits in View beside the other two toggles and moves once P6c lands.
    */
   onToggleAutoClosingBrackets: () -> Unit = {},
+  /** `toc:show-panel`'s content - every heading in the notebook; see [ViewMenu]. */
+  tableOfContentsHeadings: List<TocHeading> = emptyList(),
+  /** `toc:show-panel`'s pick - jumps the notebook to the chosen heading's cell. */
+  onTableOfContentsHeadingSelected: (String) -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -110,6 +114,8 @@ fun EditorTopBar(
         onToggleLineNumbers = onToggleLineNumbers,
         autoClosingBrackets = autoClosingBrackets,
         onToggleAutoClosingBrackets = onToggleAutoClosingBrackets,
+        tableOfContentsHeadings = tableOfContentsHeadings,
+        onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
       )
     },
   )
@@ -191,8 +197,14 @@ private fun ViewMenu(
   onToggleLineNumbers: () -> Unit,
   autoClosingBrackets: Boolean,
   onToggleAutoClosingBrackets: () -> Unit,
+  tableOfContentsHeadings: List<TocHeading>,
+  onTableOfContentsHeadingSelected: (String) -> Unit,
 ) {
   var open by remember { mutableStateOf(false) }
+  // Its own flag rather than reusing [open]: picking "Table of contents" replaces this menu with
+  // [TableOfContentsPanel] rather than closing it outright, the same two-step [CellActions]' own
+  // heading-level picker already establishes.
+  var tocOpen by remember { mutableStateOf(false) }
   Box {
     IconButton(onClick = { open = true }) {
       Icon(Icons.Filled.MoreVert, contentDescription = "View actions")
@@ -226,7 +238,22 @@ private fun ViewMenu(
           onToggleAutoClosingBrackets()
         },
       )
+      DropdownMenuItem(
+        text = { Text(SHOW_TABLE_OF_CONTENTS) },
+        onClick = {
+          open = false
+          tocOpen = true
+        },
+      )
     }
+    // Same Box as "View actions", so [TableOfContentsPanel]'s own `DropdownMenu` anchors to the
+    // button that opened it rather than to wherever this composable happens to sit in the screen.
+    TableOfContentsPanel(
+      expanded = tocOpen,
+      headings = tableOfContentsHeadings,
+      onHeadingSelected = onTableOfContentsHeadingSelected,
+      onDismiss = { tocOpen = false },
+    )
   }
 }
 
@@ -262,6 +289,12 @@ internal const val ENABLE_AUTO_CLOSING_BRACKETS = "Enable auto-closing brackets"
 
 /** The same command from the other side - see [ENABLE_AUTO_CLOSING_BRACKETS]. */
 internal const val DISABLE_AUTO_CLOSING_BRACKETS = "Disable auto-closing brackets"
+
+/**
+ * `toc:show-panel` (`packages/toc-extension/src/index.ts:161-172`). One label rather than two -
+ * unlike the toggles above it, opening the panel is not a state that flips.
+ */
+internal const val SHOW_TABLE_OF_CONTENTS = "Table of contents"
 
 @Composable
 private fun RenameableTitle(title: String, onClick: () -> Unit) {
