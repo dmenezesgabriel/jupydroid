@@ -2,9 +2,9 @@ appId: com.jupydroid.app
 ---
 # Brings the bottom of the cell menu into view, on either surface it is drawn on.
 #
-# **Not a flow.** No driver runs this; it is called with `runFlow` by the five flows that reach a
+# **Not a flow.** No driver runs this; it is called with `runFlow` by the six flows that reach a
 # row near the end of the list, and it exists so the reasoning below is written once instead of
-# five times.
+# six times.
 #
 # **`scrollUntilVisible` cannot do this.** It swipes at the centre of the *screen*, which is inside
 # the phone's `ModalBottomSheet` and **outside** the tablet's `DropdownMenu` - where it scrolled the

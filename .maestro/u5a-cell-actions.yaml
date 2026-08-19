@@ -51,6 +51,12 @@ appId: com.jupydroid.app
     text: "Cell actions"
     below:
       text: "alpha = 1"
+# **Scrolled to, not tapped straight at.** This flow carries no device rule, so the shard runner
+# can place it on either device - and on a 320dp sheet `Merge with above` sits below the fold where
+# on the tablet's dropdown it does not. It passed for as long as the balance happened to send it to
+# the tablet, and P2h's five new flows changed that balance rather than the app. The subflow is the
+# one the other five reach deep rows with; see its own header for why `scrollUntilVisible` is not.
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
 - tapOn: "Cell menu Merge with above"
 - waitForAnimationToEnd:
     timeout: 5000
