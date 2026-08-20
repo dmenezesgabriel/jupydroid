@@ -87,7 +87,7 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | `NotebookRepository` | read/write one notebook | `DiskNotebookRepository` over nbformat JSON |
 | `WorkspaceRepository` | list/read/write/rename/delete in the shared tree, and a change stream | `DiskWorkspaceRepository` |
 | `RecentDocumentsRepository` | what was opened, persisted outside the workspace | `DiskRecentDocumentsRepository` |
-| `KernelGateway` | connect/execute/interrupt/restart/complete against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
+| `KernelGateway` | connect/execute/interrupt/restart/complete/history against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
 | `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
 | `EditorSettingsRepository` | the app-wide editor preferences | `DiskEditorSettingsRepository` |
 | `NotebookExporter` | list nbconvert's formats, convert one notebook | `OkHttpNotebookExporter` over the server's nbconvert endpoints, behind `BaseSpaceNotebookExporter` |
