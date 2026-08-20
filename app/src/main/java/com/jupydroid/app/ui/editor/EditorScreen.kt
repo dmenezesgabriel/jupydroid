@@ -164,10 +164,16 @@ fun EditorScreen(
     }
     val jumpToHeading: (String) -> Unit = { cellId ->
       // A heading is never hidden by its own section (CellHeadings.kt), but one nested inside an
-      // ancestor's collapsed section is - and the reference does not solve that either: the ToC's
-      // own collapse state is independent of the notebook's by default (`syncCollapseState`), so a
-      // hidden target's index is simply absent here and the tap is a no-op rather than a crash.
-      val index = state.cellsOnScreen.indexOfFirst { it.id == cellId }
+      // ancestor's collapsed section is - and **the reference reveals it**, which P2h recorded the
+      // other way round. `expandParent` is wired to every active-cell change
+      // (`packages/notebook-extension/src/index.ts:2871-2873`), so a jump there lands on a cell
+      // whose section has just been opened; here the entry was listed and the tap did nothing.
+      viewModel.edits.revealCell(cellId)
+      // Against the revealed document rather than the one on screen: the transform is pure and the
+      // state update has not reached this composition yet, so the index has to be asked of what the
+      // notebook is about to be. It answers `this` when nothing was hidden, so the ordinary jump is
+      // the same computation it always was.
+      val index = state.withCellRevealed(cellId).cellsOnScreen.indexOfFirst { it.id == cellId }
       if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
     }
     Scaffold(

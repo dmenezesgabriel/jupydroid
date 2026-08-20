@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# P2i-4b: a table-of-contents entry for a heading inside a collapsed section takes you there, and
+# the section gives way.
+#
+# **This is a correction, not a new feature.** P2h shipped the jump with a hidden target as a
+# deliberate no-op, on the grounds that the reference does not solve it either. It does:
+# `expandParent` is wired to every active-cell change
+# (`packages/notebook-extension/src/index.ts:2871-2873`, over `actions.tsx:2288-2306`), so a jump
+# there lands on a cell whose section has just been opened. P2i-4 built the helper for the find
+# bar's arrows; this is the same helper on the other surface that jumps.
+#
+# Width-agnostic on purpose: the row is addressed the same way whether the editor drew
+# `TableOfContentsPane` or `TableOfContentsPanel`, and what is asserted - the hidden cell is on
+# screen now - is true of both. So no `WIDE WINDOW` / `NARROW WINDOW` rule, unlike p2h-2 and p2h-3.
+#
+# No cell is run, so nothing here needs the tablet.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Folded Contents.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Folded Contents.ipynb"
+- extendedWaitUntil:
+    visible: "Chapter one"
+    timeout: 30000
+# The premise: Chapter one is collapsed, so everything it owns is off screen - including the
+# heading the table of contents is about to offer.
+- assertNotVisible: "Part A"
+- assertNotVisible: "part_a = 1"
+- assertVisible: "Chapter two"
+- takeScreenshot: 01-a-section-folded-over-its-own-heading
+- tapOn: "View actions"
+- tapOn: "Show table of contents"
+# Listed even though it is hidden - `getHeadings` walks the model, not what is drawn.
+- assertVisible: "Table of contents Part A"
+- takeScreenshot: 02-the-hidden-heading-is-still-listed
+- tapOn: "Table of contents Part A"
+# The jump landed, which means the section that was hiding it was opened to let it.
+- assertVisible: "Part A"
+- assertVisible: "part_a = 1"
+# And it is still **prose**, not an editor showing `## Part A`. The reference forces command mode
+# before a table-of-contents jump for exactly this - *"to avoid entering Markdown cell in edit
+# mode"* (`packages/notebook/src/toc.ts:681-684`) - and one helper shared with the find bar's
+# arrows, which unrender on purpose, put the source on screen instead. Green against every other
+# assertion here; the screenshot is what caught it.
+- assertNotVisible: "## Part A"
+- takeScreenshot: 03-the-section-gave-way-to-the-jump
+# And the expansion is a persisted flag, so it outlives the screen - leaving the document is what
+# flushes the save debounce (`stopApp` is a force-stop, `docs/DECISIONS.md`).
+- tapOn: "Back to notebooks"
+- tapOn: "Folded Contents.ipynb"
+- extendedWaitUntil:
+    visible: "part_a = 1"
+    timeout: 30000
+- takeScreenshot: 04-still-expanded-after-reopening

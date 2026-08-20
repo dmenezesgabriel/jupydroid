@@ -80,6 +80,33 @@ class NotebookCellEdits(
   }
 
   /**
+   * Brings [cellId] out of whatever is hiding it, for a surface that is about to jump to it.
+   *
+   * `expandParent` on `activeCellChanged` (`packages/notebook-extension/src/index.ts:2871-2873`),
+   * which is the reference's own answer for *"the case that a cell becomes active that is within a
+   * collapsed heading"*. Here rather than beside the find bar because both surfaces that jump need
+   * it - the arrows and the table of contents - and it changes the same two collapse flags
+   * [setAllHeadingsCollapsed] above it does.
+   *
+   * **Not undoable, and that is the difference from every other method here.** The collapses this
+   * undoes are a side effect of going somewhere, not an operation somebody asked for; a Ctrl-Z
+   * that re-hid the cell you had just been sent to would be the reference's `expandParent` running
+   * backwards. So it takes no `recording`, only the save the persisted flags need - and only when
+   * something actually changed, or jumping around a notebook would rewrite it.
+   *
+   * ```
+   * edits.revealCell("c7")   // its section expanded, ready to be scrolled to
+   * ```
+   */
+  fun revealCell(cellId: String) {
+    val before = uiState.value
+    val after = before.withCellRevealed(cellId)
+    if (after === before) return
+    uiState.value = after
+    if (after.cells !== before.cells) save.schedule()
+  }
+
+  /**
    * Takes back the last cell operation - `notebook:undo-cell-action`.
    *
    * Structural, never textual: [CellUndo] carries the rule that keeps the two undos apart, and it

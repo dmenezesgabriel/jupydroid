@@ -86,7 +86,7 @@ fun EditorUiState.withSearchStepped(reverse: Boolean): EditorUiState {
   return if (landed == null) {
     copy(search = searching.copy(current = null))
   } else {
-    withCellRevealed(landed.cellId)
+    withMatchRevealed(landed.cellId)
       .copy(search = searching.copy(current = moved), selectedCellId = landed.cellId, anchorCellId = null)
   }
 }

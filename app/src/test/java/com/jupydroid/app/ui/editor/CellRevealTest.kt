@@ -10,14 +10,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * `activateNewMatch` (`packages/notebook/src/searchprovider.ts:604-650`) plus the two reveals it
- * gets for free from setting `activeCellIndex`.
+ * The two strengths of reveal, and the line between them.
  *
- * Three different collapses can be hiding a cell here, and the reference undoes all three:
- * `inputHidden` in `activateNewMatch` itself; a rendered markdown cell in
- * `MarkdownCellSearchProvider` (`packages/cells/src/searchprovider.ts:380-410`); and a collapsed
- * parent heading through `NotebookActions.expandParent`, which is wired to `activeCellChanged`
- * (`packages/notebook-extension/src/index.ts:2871-2873`).
+ * `expandParent` on `activeCellChanged` is what *any* jump gets
+ * (`packages/notebook-extension/src/index.ts:2871-2873`); the collapsed source and the rendered
+ * prose are undone only by landing on a **match** (`packages/notebook/src/searchprovider.ts:630-634`
+ * and `packages/cells/src/searchprovider.ts:380-410`).
+ *
+ * The reference is emphatic about the line: a table-of-contents jump forces command mode first,
+ * *"to avoid entering Markdown cell in edit mode"* (`packages/notebook/src/toc.ts:681-684`).
  */
 class CellRevealTest {
   private fun code(id: String, source: String = "x = 1", sourceHidden: Boolean = false) =
@@ -47,10 +48,33 @@ class CellRevealTest {
     assertSame(state, state.withCellRevealed("gone"))
   }
 
-  /** `if (activeCell.inputHidden) activeCell.inputHidden = false`. */
+  /**
+   * **An ordinary reveal leaves prose rendered**, which is the whole of the line between the two:
+   * a jump from the table of contents is somebody asking to *read* a heading, and the reference
+   * forces command mode first to make sure it stays that way (`toc.ts:681-684`). One helper for
+   * both put `## Part A` on screen as an editor, green against every assertion
+   * (`evidence/p2i-4b-toc-reveals/`).
+   */
   @Test
-  fun aCollapsedSourceIsOpened() {
+  fun anOrdinaryRevealLeavesProseAsProse() {
+    val revealed = notebook(heading("h", "# Chapter", collapsed = true), heading("m", "## Part"))
+      .withCellRevealed("m")
+
+    assertEquals(emptySet<String>(), revealed.markdownBeingEdited)
+  }
+
+  /** And leaves a collapsed source collapsed, for the same reason - that is `activateNewMatch`'s. */
+  @Test
+  fun anOrdinaryRevealLeavesACollapsedSourceCollapsed() {
     val revealed = notebook(code("a", sourceHidden = true)).withCellRevealed("a")
+
+    assertTrue(revealed.cells.single().sourceHidden)
+  }
+
+  /** `if (activeCell.inputHidden) activeCell.inputHidden = false` - a match, and only a match. */
+  @Test
+  fun landingOnAMatchOpensACollapsedSource() {
+    val revealed = notebook(code("a", sourceHidden = true)).withMatchRevealed("a")
 
     assertFalse(revealed.cells.single().sourceHidden)
     assertTrue("a persisted flag changed, so the notebook has to be written", revealed.dirty)
@@ -61,8 +85,8 @@ class CellRevealTest {
    * found it in - `_unrenderedByHighlight`.
    */
   @Test
-  fun aRenderedMarkdownCellIsOpenedToItsSource() {
-    val revealed = notebook(heading("m", "# Motion")).withCellRevealed("m")
+  fun landingOnAMatchOpensProseToItsSource() {
+    val revealed = notebook(heading("m", "# Motion")).withMatchRevealed("m")
 
     assertEquals(setOf("m"), revealed.markdownBeingEdited)
   }
@@ -74,13 +98,28 @@ class CellRevealTest {
    */
   @Test
   fun openingProseDoesNotAskForTheKeyboard() {
-    assertNull(notebook(heading("m", "# Motion")).withCellRevealed("m").markdownTakingCaret)
+    assertNull(notebook(heading("m", "# Motion")).withMatchRevealed("m").markdownTakingCaret)
   }
 
   /** Unrendering is not persisted, so it alone must not mark the document dirty. */
   @Test
   fun openingProseAloneDoesNotDirtyTheNotebook() {
-    assertFalse(notebook(heading("m", "# Motion")).withCellRevealed("m").dirty)
+    assertFalse(notebook(heading("m", "# Motion")).withMatchRevealed("m").dirty)
+  }
+
+  /** A match keeps the parent-expanding half too - it is [withCellRevealed] plus two, not instead. */
+  @Test
+  fun landingOnAMatchAlsoExpandsWhatIsAboveIt() {
+    val state = notebook(
+      heading("h", "# Chapter", collapsed = true),
+      Cell("m", CellKind.MARKDOWN, "some *prose*", sourceHidden = true),
+    )
+
+    val revealed = state.withMatchRevealed("m")
+
+    assertEquals(listOf("h", "m"), revealed.cellsOnScreen.map { it.id })
+    assertFalse(revealed.cells.single { it.id == "m" }.sourceHidden)
+    assertEquals(setOf("m"), revealed.markdownBeingEdited)
   }
 
   /** `expandParent`: the nearest parent heading, uncollapsed. */
@@ -132,18 +171,4 @@ class CellRevealTest {
     assertEquals(listOf("h1", "under", "h2"), revealed.cellsOnScreen.map { it.id })
   }
 
-  /** All three at once, since nothing says a hidden cell has only one thing hiding it. */
-  @Test
-  fun theThreeCollapsesComeOffTogether() {
-    val state = notebook(
-      heading("h", "# Chapter", collapsed = true),
-      Cell("m", CellKind.MARKDOWN, "some *prose*", sourceHidden = true),
-    )
-
-    val revealed = state.withCellRevealed("m")
-
-    assertEquals(listOf("h", "m"), revealed.cellsOnScreen.map { it.id })
-    assertFalse(revealed.cells.single { it.id == "m" }.sourceHidden)
-    assertEquals(setOf("m"), revealed.markdownBeingEdited)
-  }
 }

@@ -1099,19 +1099,26 @@ the cell list **zero height** (`evidence/u6-ime-layout/640dp/`).
 Maestro matches whole nodes - so two controls meaning the same thing must not be spelled the same
 way, or the assertion is answered by the icon that just came back.
 
-### Reaching a match reveals it, through all three collapses
+### Reaching a cell reveals it - in two strengths, and the line between them is the reference's
 
-`activateNewMatch` undoes one of them itself - `if (activeCell.inputHidden) activeCell.inputHidden
-= false` (`packages/notebook/src/searchprovider.ts:630-634`) - and gets the other two from setting
-`activeCellIndex`: `MarkdownCellSearchProvider` unrenders a rendered cell
-(`packages/cells/src/searchprovider.ts:380-410`), and the notebook extension wires
-`activeCellChanged` to `NotebookActions.expandParent`
-(`packages/notebook-extension/src/index.ts:2871-2873`), which walks up to the collapsed parent
-heading and uncollapses it (`actions.tsx:2288-2306`).
+**Any** jump expands the collapsed heading above its target: `activeCellChanged` is wired to
+`NotebookActions.expandParent` (`packages/notebook-extension/src/index.ts:2871-2873`, over
+`actions.tsx:2288-2306`). **Landing on a search match** adds two more, and both exist only to put
+the matched characters where they can be seen: `if (activeCell.inputHidden) activeCell.inputHidden
+= false` (`packages/notebook/src/searchprovider.ts:630-634`), and `cell.rendered = false` for a
+markdown cell (`packages/cells/src/searchprovider.ts:380-410`).
 
-**That last citation corrects a reading recorded in P2h.** The table of contents' jump treats a
+**The first citation corrects a reading recorded in P2h.** The table of contents' jump treated a
 hidden heading as unreachable *on the grounds that the reference does not solve it either*. It
-does. Fixed with the same helper, in its own commit.
+does.
+
+**And the second is why one helper for both was wrong**, which cost a green flow to find. Shipped
+as a single `withCellRevealed`, a table-of-contents jump unrendered the heading it landed on and
+put `## Part A` on screen as an editor where somebody had asked to read a heading. The reference is
+emphatic about exactly this and says so in a comment: a ToC jump forces command mode first,
+*"to avoid entering Markdown cell in edit mode if the document was in edit mode"*
+(`packages/notebook/src/toc.ts:681-684`). Every assertion in the flow was green; the screenshot is
+what said otherwise, for the fourth time in this project.
 
 Two rules the reveal has to keep, both of which a test pins:
 
