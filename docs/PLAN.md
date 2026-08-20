@@ -34,14 +34,17 @@ filesystem the kernel, the server and the app all share.
 | Area | State |
 |---|---|
 | Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import; the server stops when it is idle or the app is left, and comes back on the next run; a kernel can be ended on purpose from the kernel menu |
-| Notebook | **find and replace** across the document, with the reference's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
+| Notebook | **kernel history** walked into the cell being edited; **find and replace** across the document, with the reference's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 244 instrumented, 1204 unit, 93 Maestro drivers over 107 flows - 88 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 252 instrumented, 1249 unit, 95 Maestro drivers over 109 flows - 90 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` across both devices, gradle + script gates |
 
-**Not built at all:** the Space system, a terminal, LSP, the debugger, the console, settings,
-trust, export.
+**Not built at all:** the Space system, a terminal, LSP, the debugger, the console, and a
+**settings screen** - the five persisted editor settings live in the notebook's View menu until P6c
+gives them one. Two entries this line used to carry are gone rather than outstanding: **export**
+shipped in P2j, and **trust** is a decision rather than a gap (`docs/DECISIONS.md` names the
+trigger that would make it real).
 
 ---
 
@@ -505,9 +508,45 @@ Six costs the plan did not name, each recorded in `docs/DECISIONS.md` rather tha
   says, and `content` exits 0 when it is denied. The refusal is the assertion now, and whether a
   recipient can read the bytes is an instrumented test.
 
-| # | Sub-step | What settles it |
-|---|---|---|
-| **P2k** | **Execution history** | `access-previous-history-entry`, `access-next-history-entry`. Needs `history_request` on the shell channel — a protocol message the gateway does not send yet, so it is a `KernelGateway` addition, not just UI. |
+**P2k has shipped, in four sub-steps, and with it P2 is closed.** Both
+`access-*-history-entry` commands are in, on two keys the symbol row grows once the setting is on -
+`Hist ↑` and `Hist ↓`, right after `Tab`. `history_request` on the shell channel is the
+`KernelGateway` addition this row predicted, and the shipped kernel answers it out of IPython's own
+sqlite input history (`ipykernel/kernelbase.py:947-965` -> `ipkernel.py:612-645` ->
+`history_manager.get_tail`, which flushes its cache before it queries). What each settled is
+`docs/DECISIONS.md`; the evidence is `evidence/p2k-3-kernel-history-setting/` and
+`evidence/p2k-4-kernel-history/`.
+
+**The surface follows from the binding rather than from taste.** `Alt ArrowUp`/`Alt ArrowDown`
+under a `.jp-Notebook.jp-mod-editMode` selector (`schema/tracker.json:452-462`), and `SymbolRow` is
+the only thing on screen exactly when that selector would match - so it is the row and not the cell
+menu, which is eighteen deep and reachable in command mode besides.
+
+Six costs the plan did not name, each recorded in `docs/DECISIONS.md` rather than here:
+
+- **`accessKernelHistory` is the first `EditorSettings` field that *keeps* a reference default.**
+  The two beside it were each bought with a reason a phone supplies; nothing about a touch screen
+  makes a cell's text safer to overwrite. The adaptation is *where* - View, until P6c has a
+  Settings screen.
+- **The reference's empty-entry guard is a JavaScript falsiness accident, not a decision.**
+  `!content` reads as a null guard in its own neighbouring comment; transcribed it would mean
+  walking back out of an empty cell with no way forward into it again.
+- **`fetchBatch` re-seats the cursor one entry older than the oldest it had**, so a caller that
+  steps again after it walks past an entry - shipped that way for exactly one test run.
+- **detekt found the seam twice, and both times it was real.** `complete` and `executionHistory`
+  are one round trip written twice, which is `SessionSocket.askOnce` now; and `EditorScreen`'s
+  branches produced `EditorBottomBars`, the mirror `EditorTopBars`' own docstring predicted.
+- **One defect introduced and fixed inside the step, and the screenshot is what said so** - for the
+  third time in this project. Appended after `←`/`→`, both keys fell off the right edge of the
+  editor pane on the tablet, so a feature reached by repeated taps cost a swipe before each one.
+- **`reset_notebooks` cannot reach a dotfile**, and the kernel's history is `.ipython/…/history.sqlite`.
+  Cleared in P2k-4's own driver rather than in the shared helper, because no other flow cares what
+  that file holds.
+
+**Named and not scheduled: the `search` and `range` history requests.** `hist_access_type` has three
+values (`packages/services/src/kernel/messages.ts:984-1030`) and this app sends only `tail`, which
+is the only one the two commands use. `search` is what an inline-completion history provider would
+want (`packages/completer/src/default/inlinehistoryprovider.ts`), and that is a P5/P6 question.
 
 **Named and not scheduled: `metadata.language_info` is never written.** A real Jupyter fills it in
 on save from the kernel's `kernel_info_reply`; this app writes `kernelspec` alone.

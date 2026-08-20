@@ -1462,6 +1462,110 @@ thrown `FileUriExposedException` since targetSdk 24 and the workspace is private
 and a provider rooted one level up could hand the rootfs, the recents file, the editor settings or
 **the server's token** to any app the user picked.
 
+### Kernel history is the kernel's, and the filtered list is not the history
+
+`notebook:access-previous-history-entry` / `access-next-history-entry`. The wire is
+`history_request` on the shell channel, `{output: false, raw: true, hist_access_type: 'tail', n}`
+(`packages/notebook/src/history.ts:402-409`), a batch of **10** grown by 10 on each exhaustion
+(`:99`, `:248`). The shipped kernel answers it out of IPython's sqlite input history:
+`ipykernel/kernelbase.py:947-965` -> `ipkernel.py:612-645` -> `history_manager.get_tail`, which
+calls `writeout_cache()` before it queries (`IPython/core/history.py:916-975`), so a cell run a
+moment ago is already in the reply, and orders the **current** session's rows last.
+
+So this is not a log of the notebook. It reaches cells that have been deleted and sittings the
+document was never open for, which is the whole of what it buys over scrolling for the cell that
+ran something.
+
+**`setFilter` is three rules, and each changes what a tap does** (`:355-368`): a run of the same
+input counts once; the text **already in the cell is removed**; and that same text is pushed on as
+the last entry, which is what makes walking forward off the end restore what was being typed
+rather than leave the cell holding somebody's old code. The first rule is why a repeat survives
+only when something came between it - `last` moves only when an entry is kept.
+
+**A longer tail does not move the cursor by the length difference.** `cursorOffset` (`:253-264`)
+counts the entries that arrived *newer* than the ones already walked, because the kernel may have
+run more cells between the two asks. Mutation-checked rather than reasoned: returning 0 from
+`shiftAgainst` fails one test and only one. `fetchBatch` also re-seats the cursor **one entry older
+than the oldest it had** - that is the `+1` in its own arithmetic - so the caller must not step
+again after it, which is a bug this shipped with for one test run.
+
+The reply's `session` number is read into `_kernelSession` there and consulted by nothing; it is
+not transcribed.
+
+**The round trip is shared with completion.** `complete` and `executionHistory` are the same shape -
+mint a `msg_id`, wait for the socket, send, take the first frame a total reader recognises - so
+`RealKernelGateway.SessionSocket.askOnce` is that, and it settles `mayRestartTheKernel = false`
+rather than taking it from two callers who must not get it wrong. It is the **read-only half** of
+the socket: a cell is worth replacing a silent kernel for, asking what a word completes to or what
+was run an hour ago is not.
+
+### Kernel history access is off by default — the first reference default this app keeps
+
+`accessKernelHistory` is `false` (`packages/notebook-extension/schema/tracker.json:873-878`,
+`packages/notebook/src/widget.ts:1488`), both actions return on their first line without it
+(`actions.tsx:2616`, `:2634`), and the reference's own user guide makes it an instruction: *"To use
+this feature, enable kernel history access in the notebook settings"*
+(`docs/source/user/notebook.md:191`).
+
+`EditorSettings`' two other departures were each bought with a reason a phone supplies - brackets
+that close themselves save a trip through the symbol row, a gutter names the line a traceback
+blames on a screen showing a fraction of a cell. **Nothing about a touch screen makes a cell's text
+safer to overwrite**, so this one is left where the reference put it. The adaptation is *where*:
+the reference files it under Settings, this app has none until P6c, so the row sits in View beside
+the other persisted toggles and moves with them.
+
+**The store is a diff, not a record.** `editor-settings.json` holds `{"accessKernelHistory":true}`
+and nothing else, because kotlinx.serialization omits a property equal to its default. Reading back
+fills the rest in, which is the same mechanism `EditorSettings`' docstring relies on for a field
+added later - so a driver must not assert on a setting the flow did not touch, and the round trip
+belongs to `EditorSettingsRepositoryContract`.
+
+### The history keys go on the symbol row, and their place on it was measured
+
+The reference binds these to `Alt ArrowUp` / `Alt ArrowDown` under a
+`.jp-Notebook.jp-mod-editMode` selector (`schema/tracker.json:452-462`). There is no Alt key here,
+and `SymbolRow` is the only thing on screen exactly when that selector would match - so it is the
+surface, not the cell menu, which is eighteen rows deep and reachable in command mode too.
+
+**Absent, not disabled, while the setting is off** - the rule this app applies to every control
+that could do nothing.
+
+**Labelled `Hist ↑` / `Hist ↓` rather than `↑` / `↓`.** Beside `←` and `→`, which move the caret one
+character, a lone arrow reads as moving it one *line*. The word is what separates walking the
+document from walking the kernel's history; the `contentDescription` carries the reference's own
+command label.
+
+**They sit after `Tab`, and that is a measurement.** Appended after `←`/`→` they fell off the right
+edge of the editor pane on the tablet - `Hist ↓` entirely - and the flow failed with the key not
+found. The row scrolls, so nothing was broken; but two keys somebody turned a setting on to reach
+cost a swipe before every tap, which is this row's own frequency ordering read backwards
+(`evidence/p2k-4-kernel-history/`).
+
+### A history walk belongs to the cell it started in, and to the text it wrote
+
+Two rules, one narrowing and one departure, both about when a walk ends.
+
+**Typing ends it; the write the walk itself made does not.** `onTextChange` -> `reset()` guarded by
+`_setByHistory` (`history.ts:313-319`). Here it is a *value* rather than a flag, because
+`CodeCellField` reports an edit on a 150 ms debounce and the report can land after the next tap has
+been made - comparing the text stays true whenever it arrives.
+
+**Leaving the cell ends it — a narrowing.** The reference binds its editor once and keeps
+`_hasSession` across a cell change (`:160-170`), so walking forward to the end there writes the
+first cell's placeholder into whichever cell has the caret now. The placeholder belongs to a cell.
+
+**An empty entry is applied — a departure.** `updateEditor` returns on `!content` (`:217`), and the
+comment beside `back()` says what that guard is for: *"This shouldn't ever be undefined as setFilter
+will always be run first"* (`:187`). It catches `''` only because the empty string is falsy in
+JavaScript. Transcribed literally it would mean walking back out of an **empty** cell and never
+being able to walk forward into it again - the commonest way into this feature, with no way back.
+`NotebookHistoryCursor.current` is non-null by construction, so there is no null left to guard.
+
+**Tapping past the oldest entry asks the kernel again**, every time, and that is kept rather than
+optimised: `fetchBatch` runs on every overshoot there (`:182-184`), and a kernel that had nothing
+more a moment ago may have run something since. Remembering otherwise would be inventing state the
+reference does not keep - asserted in a test so a later reader does not "fix" it.
+
 ---
 
 ## Harness
@@ -1614,6 +1718,13 @@ and a provider rooted one level up could hand the rootfs, the recents file, the 
   `reset_notebooks` now removes `editor-settings.json` alongside `recent-documents.json`, on the
   same reasoning `check_driver_isolation.py` already enforces for notebooks: a suite is only
   repeatable if what one run leaves behind cannot change what the next one proves.
+- **`reset_notebooks` cannot reach a dotfile, and the kernel keeps its history in one.** IPython's
+  input history is `files/spaces/base/home/jupydroid/.ipython/profile_default/history.sqlite`, and
+  `rm -rf ./*` does not match dotfiles - so `.cache`, `.ipython`, `.jupyter` and `.local` all
+  survive every reset, carrying entries from every previous run of every flow. Cleared in
+  `p2k-4-kernel-history-driver.sh` rather than in `reset_notebooks`, because it is that flow's
+  concern alone: `get_tail` orders the current session's rows last, so every other flow is
+  indifferent to what the file holds. Green twice back to back with the clear in place.
 
 ---
 
