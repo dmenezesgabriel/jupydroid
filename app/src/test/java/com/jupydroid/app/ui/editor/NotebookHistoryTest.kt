@@ -4,7 +4,9 @@ import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.StaleKernelSessionException
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -182,6 +184,61 @@ class NotebookHistoryTest {
     assertEquals("typed", previous(placeholder = "typed"))
   }
 
+  /**
+   * P1c stops the server while the app lives on, so a session the notebook still holds can outlive
+   * the process that knew about it. A history key must then do **nothing** rather than crash or
+   * start a runtime: `StaleKernelSessionException` is an `IllegalStateException` precisely so a
+   * caller with nothing to say about it keeps working (its own docstring says so), and
+   * reconnecting here would boot a server to answer a keystroke.
+   */
+  @Test
+  fun previous_isSilentWhenTheServerBehindTheSessionHasStopped() = runTest {
+    historyOver(listOf("x = 1"))
+    gateway.stale = true
+
+    assertNull(previous())
+  }
+
+  /**
+   * And a failure **mid-walk** ends the walk rather than leaving it half open, which is the only
+   * path that needs the reset - a walk that never opened has nothing to drop.
+   *
+   * Asserted on the tail lengths asked for, because that is what separates the two behaviours: a
+   * kept cursor would go on asking for ever-longer tails of a kernel that is gone (10, 20, 30),
+   * where an ended one starts again from the first batch.
+   */
+  @Test
+  fun aFailureMidWalkEndsTheWalkRatherThanLeavingItHalfOpen() = runTest {
+    historyOver(listOf("only"))
+    previous()
+    gateway.stale = true
+    previous()
+
+    gateway.stale = false
+    previous()
+
+    assertEquals(listOf(10, 20, 10), gateway.batches)
+  }
+
+  /**
+   * Two taps before the first answer comes back must still walk two entries.
+   *
+   * Not hypothetical and not about the fake: `executionHistory` is a websocket round trip, so it
+   * suspends, and walking back several entries by tapping quickly is *the* way this feature is
+   * used. Without serialisation both taps see no walk in progress, both open one, and the second
+   * overwrites the first - so two taps move one entry and the second is silently lost.
+   */
+  @Test
+  fun twoTapsBeforeTheFirstAnswerStillWalkTwoEntries() = runTest {
+    historyOver(listOf("x = 1", "x + 1"))
+
+    history.recallPrevious("") { inCell = it }
+    history.recallPrevious("") { inCell = it }
+    advanceUntilIdle()
+
+    assertEquals("x = 1", inCell)
+  }
+
   // --- the doubles -------------------------------------------------------------------------
 
   private suspend fun TestScope.historyOver(entries: List<String>, withAnOpenKernel: Boolean = true) {
@@ -205,12 +262,22 @@ class NotebookHistoryTest {
     return inCell
   }
 
-  /** Answers a fixed history and records the tail lengths it was asked for. */
-  private class ScriptedHistoryGateway(private val recorded: List<String>) : KernelGateway by FakeKernelGateway() {
+  /** Answers a fixed history, records the tail lengths it was asked for, and can refuse. */
+  private class ScriptedHistoryGateway(
+    private val recorded: List<String>,
+    /** Whether the server behind this session has stopped, as P1c's backstop can make it. */
+    var stale: Boolean = false,
+  ) : KernelGateway by FakeKernelGateway() {
     val batches = mutableListOf<Int>()
 
     override suspend fun executionHistory(session: KernelSession, entries: Int): List<String> {
+      // Recorded before the refusal, not after: what was *asked for* is what says whether a failed
+      // walk was ended or kept, and an ask that throws still says which.
       batches += entries
+      // The real one is a websocket round trip and suspends; a double that answered without ever
+      // suspending would hide every ordering question this class has.
+      yield()
+      if (stale) throw StaleKernelSessionException(session.id)
       return recorded.takeLast(entries)
     }
   }

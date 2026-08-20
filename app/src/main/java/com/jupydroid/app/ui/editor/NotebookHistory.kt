@@ -3,6 +3,8 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.domain.port.KernelGateway
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * The cell being edited, walking through what the kernel has run -
@@ -43,6 +45,21 @@ class NotebookHistory(
    * has been made; comparing the text is what stays true whenever it lands.
    */
   private var wrote: String? = null
+
+  /**
+   * One walk at a time, because a tap is not instant.
+   *
+   * `executionHistory` is a websocket round trip and suspends, and walking back several entries by
+   * tapping quickly is *the* way this feature is used. Without this both taps see no walk in
+   * progress, both open one, and the second overwrites the first - two taps moving one entry, with
+   * the second silently lost. Measured rather than feared: the test fails without it.
+   *
+   * **The reference does not serialise**, and this is a departure rather than a transcription: its
+   * `back()` is equally `async` (`history.ts:179-189`). It gets away with it because its editor
+   * reports synchronously and its history arrives over a connection already open; neither is true
+   * here.
+   */
+  private val walking = Mutex()
 
   /**
    * Puts the previous entry in the cell - one step older per tap, oldest last.
@@ -102,13 +119,15 @@ class NotebookHistory(
   @Suppress("SwallowedException") // a kernel that cannot say what it ran has nothing to offer, which is not an error
   private fun walk(placeholder: String, into: (String) -> Unit, step: suspend (NotebookHistoryCursor) -> Unit) {
     scope.launch {
-      try {
-        val at = openedCursor(placeholder) ?: return@launch
-        step(at)
-        wrote = at.current
-        into(at.current)
-      } catch (unreachable: IllegalStateException) {
-        reset()
+      walking.withLock {
+        try {
+          val at = openedCursor(placeholder) ?: return@withLock
+          step(at)
+          wrote = at.current
+          into(at.current)
+        } catch (unreachable: IllegalStateException) {
+          reset()
+        }
       }
     }
   }
