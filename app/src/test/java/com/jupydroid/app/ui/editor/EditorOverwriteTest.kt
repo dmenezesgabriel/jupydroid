@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.ActiveCellRuns
@@ -97,6 +98,7 @@ class EditorOverwriteTest {
       notebookRepository = repository,
       workspaceRepository = FakeWorkspaceRepository(),
       kernelGateway = FakeKernelGateway(),
+      notebookExporter = FakeNotebookExporter(),
       applicationScope = CoroutineScope(UnconfinedTestDispatcher()),
       activeCellRuns = ActiveCellRuns(),
     )

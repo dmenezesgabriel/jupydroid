@@ -178,6 +178,7 @@ fun MainNavigation(
             notebookRepository = appContainer.notebookRepository,
             workspaceRepository = appContainer.workspaceRepository,
             kernelGateway = appContainer.kernelGateway,
+            notebookExporter = appContainer.notebookExporter,
             applicationScope = appContainer.applicationScope,
             activeCellRuns = appContainer.activeCellRuns,
             editorSettingsRepository = appContainer.editorSettings,

@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.ActiveCellRuns
@@ -13,6 +14,7 @@ import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -198,6 +200,9 @@ internal fun TestScope.loadedEditor(
   cells: List<Cell> = listOf(codeCell),
   repository: NotebookRepository = FakeNotebookRepository(),
   workspace: WorkspaceRepository = FakeWorkspaceRepository(),
+  // The six formats the shipped rootfs converts, which is what the fake offers by default - so a
+  // case about the export picker sees the same rows a device does.
+  exporter: NotebookExporter = FakeNotebookExporter(),
   // The path the notebook lives at, which is its id since X1b. Overridden by the cases about
   // folders; "nb-1"/"Data" is kept as the default so the cases that predate them read unchanged.
   notebookId: String = "nb-1",
@@ -214,7 +219,8 @@ internal fun TestScope.loadedEditor(
   advanceUntilIdle()
   // No collector: uiState is a StateFlow, so .value is current without one - and a
   // collector that is never cancelled leaves runTest waiting on it.
-  val viewModel = EditorViewModel(notebookId, repository, workspace, gateway, applicationScope, activeCellRuns)
+  val viewModel =
+    EditorViewModel(notebookId, repository, workspace, gateway, exporter, applicationScope, activeCellRuns)
   advanceUntilIdle()
   return viewModel
 }

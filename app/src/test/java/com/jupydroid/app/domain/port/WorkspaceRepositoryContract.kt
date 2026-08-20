@@ -5,6 +5,7 @@ import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -153,6 +154,41 @@ abstract class WorkspaceRepositoryContract {
 
     assertEquals("new", repository.readText("fresh.txt"))
     assertTrue("fresh.txt" in repository.list("").map { it.name })
+  }
+
+  /**
+   * An nbconvert export is not always text: a notebook with an image output converted to
+   * `markdown` comes back as a **zip** (`evidence/p2j-2-export-formats/`), and a zip written
+   * through a `String` is a corrupt zip.
+   */
+  @Test
+  fun bytesAreWrittenAndReadBackWithoutGoingThroughAString() = runTest {
+    val repository = repository()
+
+    repository.writeBytes("report.zip", ZIP_HEADER)
+
+    assertTrue("report.zip" in repository.list("").map { it.name })
+    assertArrayEquals(ZIP_HEADER, repository.readBytes("report.zip"))
+  }
+
+  /** The same rule [writingReplacesTheWholeFile] states, for the byte form. */
+  @Test
+  fun writingBytesReplacesTheWholeFile() = runTest {
+    given("notes.txt")
+    val repository = repository()
+
+    repository.writeBytes("notes.txt", ZIP_HEADER)
+
+    assertArrayEquals(ZIP_HEADER, repository.readBytes("notes.txt"))
+  }
+
+  @Test
+  fun writingBytesOutsideTheRootIsRefused() = runTest {
+    given("notes.txt")
+
+    val escaped = runCatching { repository().writeBytes("../escaped.zip", ZIP_HEADER) }
+
+    assertTrue("expected a refusal, got $escaped", escaped.isFailure)
   }
 
   @Test
@@ -458,5 +494,8 @@ abstract class WorkspaceRepositoryContract {
   private companion object {
     /** Generous on purpose: this asserts "the file's own mtime", not a stopwatch. */
     val RECENT: Duration = Duration.ofMinutes(1)
+
+    /** `PK\x03\x04` and a NUL - four bytes no text encoding round-trips unchanged. */
+    val ZIP_HEADER = byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x00)
   }
 }

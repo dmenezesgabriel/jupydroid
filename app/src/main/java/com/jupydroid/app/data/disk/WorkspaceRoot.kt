@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.incrementedFileName
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -63,4 +64,17 @@ internal class WorkspaceRoot(private val rootDir: File) {
   /** A name joined onto the directory holding it, with the root spelled as the empty string. */
   fun pathIn(directory: String, name: String): String =
     if (directory.isEmpty()) name else "$directory/$name"
+
+  /**
+   * The first name in the server's series that [directory] does not already hold.
+   *
+   * Here rather than on the repository because it is addressing rather than content - the same
+   * line this class already draws - and because `incrementedFileName` is the *domain's* rule for
+   * the series; all this adds is the question "is that name taken here".
+   */
+  fun freeNameIn(directory: String, wanted: String, insert: String = ""): String {
+    val parent = fileAt(directory)
+    require(parent.isDirectory) { "no directory at '$directory' in the workspace" }
+    return incrementedFileName(wanted, insert) { File(parent, it).exists() }
+  }
 }

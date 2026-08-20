@@ -67,9 +67,23 @@ class DiskWorkspaceRepository(
     file.writeText(text)
   }
 
+  override suspend fun readBytes(path: String): ByteArray = withContext(ioDispatcher) {
+    val file = root.fileAt(path)
+    require(file.isFile) { "no file at '$path' in the workspace" }
+    file.readBytes()
+  }
+
+  override suspend fun writeBytes(path: String, bytes: ByteArray): Unit = withContext(ioDispatcher) {
+    // The same order [writeText] uses: `resolve` refuses an escape before anything is written, so
+    // a bad path never reaches the filesystem.
+    val file = root.fileAt(path)
+    require(!file.isDirectory) { "'$path' is a directory in the workspace, not a file" }
+    file.writeBytes(bytes)
+  }
+
   override suspend fun createFile(directory: String, extension: String): String =
     withContext(ioDispatcher) {
-      val name = freeNameIn(directory, "$UNTITLED_FILE.$extension")
+      val name = root.freeNameIn(directory, "$UNTITLED_FILE.$extension")
       root.fileAt(root.pathIn(directory, name)).createNewFile()
       root.pathIn(directory, name)
     }
@@ -77,7 +91,7 @@ class DiskWorkspaceRepository(
   override suspend fun createFolder(directory: String): String = withContext(ioDispatcher) {
     // The space is the server's `insert` for a directory and for nothing else, so the second one
     // is `Untitled Folder 1` while a second file is `untitled1.txt`.
-    val name = freeNameIn(directory, UNTITLED_FOLDER, insert = " ")
+    val name = root.freeNameIn(directory, UNTITLED_FOLDER, insert = " ")
     root.fileAt(root.pathIn(directory, name)).mkdir()
     root.pathIn(directory, name)
   }
@@ -133,31 +147,28 @@ class DiskWorkspaceRepository(
     _changes.emit(WorkspaceChange.Deleted(path))
   }
 
-  /** The first name in the server's series that this directory does not already hold. */
-  private fun freeNameIn(directory: String, wanted: String, insert: String = ""): String {
-    val parent = root.fileAt(directory)
-    require(parent.isDirectory) { "no directory at '$directory' in the workspace" }
-    return incrementedFileName(wanted, insert) { File(parent, it).exists() }
-  }
-
-  /**
-   * A symlink is described by what it points at, which is how a rootfs has to be read.
-   *
-   * `File.isDirectory` follows the link already; a broken one is neither a directory nor a
-   * readable file and is listed as a file, so a dangling link shows in the browser instead of
-   * making the whole directory unopenable.
-   */
-  private fun entryFor(file: File, parentPath: String): WorkspaceEntry =
-    WorkspaceEntry(
-      name = file.name,
-      path = if (parentPath.isEmpty()) file.name else "$parentPath/${file.name}",
-      kind = if (file.isDirectory) WorkspaceEntryKind.DIRECTORY else WorkspaceEntryKind.FILE,
-      // The file's own mtime, which is what `last_modified` is (`filemanager.py:285`). A broken
-      // symlink answers 0 here rather than throwing, and reads as the epoch - which is honest:
-      // there is nothing behind it to have a time.
-      updatedAt = Instant.ofEpochMilli(file.lastModified()),
-    )
 }
+
+/**
+ * A symlink is described by what it points at, which is how a rootfs has to be read.
+ *
+ * `File.isDirectory` follows the link already; a broken one is neither a directory nor a
+ * readable file and is listed as a file, so a dangling link shows in the browser instead of
+ * making the whole directory unopenable.
+ *
+ * A top-level function rather than a member: it turns a `File` into a domain type and asks the
+ * repository for nothing, and detekt counting it against the class was what said so.
+ */
+private fun entryFor(file: File, parentPath: String): WorkspaceEntry =
+  WorkspaceEntry(
+    name = file.name,
+    path = if (parentPath.isEmpty()) file.name else "$parentPath/${file.name}",
+    kind = if (file.isDirectory) WorkspaceEntryKind.DIRECTORY else WorkspaceEntryKind.FILE,
+    // The file's own mtime, which is what `last_modified` is (`filemanager.py:285`). A broken
+    // symlink answers 0 here rather than throwing, and reads as the epoch - which is honest:
+    // there is nothing behind it to have a time.
+    updatedAt = Instant.ofEpochMilli(file.lastModified()),
+  )
 
 /** `untitled`, lowercase - the server's `untitled_file`, which is not its `Untitled` notebook. */
 private const val UNTITLED_FILE = "untitled"

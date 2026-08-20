@@ -21,18 +21,28 @@ class FakeWorkspaceRepository(
   private val entriesByPath: Map<String, List<WorkspaceEntry>> = emptyMap(),
   textByPath: Map<String, String> = emptyMap(),
 ) : WorkspaceRepository {
-  private val text = textByPath.toMutableMap()
+  /**
+   * One store, because the disk this stands in for has one file per path. Two maps - a text one
+   * and a byte one - let a caller write through one and read nothing back through the other.
+   */
+  private val files = textByPath.mapValuesTo(mutableMapOf()) { it.value.toByteArray() }
 
   /** Nothing moves here, so nothing is ever announced. */
   override val changes: Flow<WorkspaceChange> = emptyFlow()
 
   override suspend fun list(path: String): List<WorkspaceEntry> = entriesByPath[path].orEmpty()
 
-  override suspend fun readText(path: String): String =
-    requireNotNull(text[path]) { "no file at '$path' in the workspace" }
+  override suspend fun readText(path: String): String = readBytes(path).decodeToString()
 
   override suspend fun writeText(path: String, text: String) {
-    this.text[path] = text
+    files[path] = text.toByteArray()
+  }
+
+  override suspend fun readBytes(path: String): ByteArray =
+    requireNotNull(files[path]) { "no file at '$path' in the workspace" }
+
+  override suspend fun writeBytes(path: String, bytes: ByteArray) {
+    files[path] = bytes
   }
 
   override suspend fun createFile(directory: String, extension: String): String =

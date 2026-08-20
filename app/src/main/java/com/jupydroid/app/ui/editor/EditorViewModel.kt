@@ -9,6 +9,7 @@ import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.FileNameTakenException
+import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,14 +44,24 @@ class EditorViewModel(
   private var notebookId: String,
   private val notebookRepository: NotebookRepository,
   /**
-   * Not for reading or writing this notebook - only to hear where it went.
+   * The tree the notebook sits in, for two things and neither of them this notebook's own bytes -
+   * those go through [notebookRepository].
    *
-   * A rename can come from the file browser sitting beside the document on a tablet, and the
-   * reference's open document learns of it from the contents layer rather than from that browser
-   * (`Context._onFileChanged`, `docregistry/src/context.ts:93`).
+   * **To hear where the file went.** A rename can come from the file browser sitting beside the
+   * document on a tablet, and the reference's open document learns of it from the contents layer
+   * rather than from that browser (`Context._onFileChanged`, `docregistry/src/context.ts:93`).
+   *
+   * **And to put an export beside it** (P2j), which is a file the notebook is not - see
+   * [NotebookExport].
    */
-  workspaceRepository: WorkspaceRepository,
+  private val workspaceRepository: WorkspaceRepository,
   kernelGateway: KernelGateway,
+  /**
+   * `notebook:export-to-format`. Not a kernel act: nbconvert reads the *file*, so a notebook with
+   * no kernel exports perfectly well - which is why it is a port of its own and not a call on
+   * [kernelGateway].
+   */
+  notebookExporter: NotebookExporter,
   /**
    * Outlives this ViewModel, because [onCleared] runs *after* `viewModelScope` has been
    * cancelled - `ViewModel.clear()` closes the closeables and only then calls `onCleared`
@@ -86,6 +97,20 @@ class EditorViewModel(
 
   /** The other half of that bar - the only part of searching that rewrites cells. See [NotebookReplace]. */
   val replace = NotebookReplace(_uiState, save)
+
+  /**
+   * `notebook:export-to-format`. Writes a file *beside* the notebook rather than to it, so it
+   * takes the workspace and not the save; see [NotebookExport].
+   */
+  val export = NotebookExport(
+    uiState = _uiState,
+    exporter = notebookExporter,
+    workspace = workspaceRepository,
+    scope = viewModelScope,
+    // Asked for rather than captured: a rename moves the file while this object lives on.
+    notebookId = { notebookId },
+    persist = { persist() },
+  )
 
   init {
     viewModelScope.launch {

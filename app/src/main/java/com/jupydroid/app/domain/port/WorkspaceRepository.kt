@@ -64,6 +64,25 @@ interface WorkspaceRepository {
   suspend fun writeText(path: String, text: String)
 
   /**
+   * The whole file at [path] as bytes, for content this app did not author as text.
+   *
+   * Beside [readText] rather than under it: `Contents.IModel` types content by the file's own
+   * format - `'text'` or `'base64'` - and reading a binary file as a string is how a zip becomes a
+   * corrupt zip (`ContentsManager.get(format=...)`, `filemanager.py`).
+   */
+  suspend fun readBytes(path: String): ByteArray
+
+  /**
+   * Replaces the file at [path] with [bytes], creating it when it is not there.
+   *
+   * The byte form of [writeText], and P2j is why it exists: an nbconvert export of a notebook
+   * with an image output comes back as a **zip** (`evidence/p2j-2-export-formats/`), and the
+   * shape depends on the format *and* on the notebook, so nothing that writes an export may
+   * assume text.
+   */
+  suspend fun writeBytes(path: String, bytes: ByteArray)
+
+  /**
    * Creates an empty file in [directory] and answers with its path.
    *
    * `newUntitled({path, type: "file", ext})`, whose name the *server* supplies: `untitled` plus

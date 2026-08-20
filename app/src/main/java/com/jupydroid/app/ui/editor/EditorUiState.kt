@@ -58,6 +58,8 @@ data class EditorUiState(
   val executions: Map<String, CellExecution> = emptyMap(),
   /** Edited since the last write. Cleared by the save, not by the edit. */
   val dirty: Boolean = false,
+  /** `notebook:export-to-format` - what the picker is doing; see [NotebookExport]. */
+  val export: ExportState = ExportState(),
   /**
    * Cells taken by cut or copy, waiting to be pasted.
    *

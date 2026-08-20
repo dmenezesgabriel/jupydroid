@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.ui.text.TextRange
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.ActiveCellRuns
@@ -61,6 +62,7 @@ class EditorViewModelTest {
       notebookRepository = FakeNotebookRepository(),
       workspaceRepository = FakeWorkspaceRepository(),
       kernelGateway = FakeKernelGateway(),
+      notebookExporter = FakeNotebookExporter(),
       applicationScope = this,
       activeCellRuns = ActiveCellRuns(),
     )
@@ -153,11 +155,7 @@ class EditorViewModelTest {
   @Test
   fun runCell_savesItsOutputSoItSurvivesReopening() = runTest {
     val repository = FakeNotebookRepository()
-    launch { repository.saveNotebook(Notebook("nb-1", "Data", "python3", listOf(codeCell))) }
-    advanceUntilIdle()
-    val viewModel =
-      EditorViewModel("nb-1", repository, FakeWorkspaceRepository(), FakeKernelGateway(), this, ActiveCellRuns())
-    advanceUntilIdle()
+    val viewModel = loadedEditor(repository = repository)
 
     viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()

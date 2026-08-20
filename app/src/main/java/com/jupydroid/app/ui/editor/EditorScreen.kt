@@ -36,6 +36,7 @@ import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.OverwriteFileDialog
@@ -49,6 +50,8 @@ fun EditorScreen(
   /** Only listened to: a rename made in the browser beside this document moves it. */
   workspaceRepository: WorkspaceRepository,
   kernelGateway: KernelGateway,
+  /** `notebook:export-to-format` - see [NotebookExport]. Not a kernel act. */
+  notebookExporter: NotebookExporter,
   applicationScope: CoroutineScope,
   /** The app's count of runs in flight, which P1c's backstop reads; see [ActiveCellRuns]. */
   activeCellRuns: ActiveCellRuns,
@@ -74,6 +77,7 @@ fun EditorScreen(
       notebookRepository,
       workspaceRepository,
       kernelGateway,
+      notebookExporter,
       applicationScope,
       activeCellRuns,
     )
