@@ -133,6 +133,13 @@ internal fun NotebookActionsMenu(
           onSettingsChanged(settings.copy(autoClosingBrackets = !settings.autoClosingBrackets))
         },
       )
+      DropdownMenuItem(
+        text = { Text(if (settings.accessKernelHistory) DISABLE_KERNEL_HISTORY else ENABLE_KERNEL_HISTORY) },
+        onClick = {
+          open = false
+          onSettingsChanged(settings.copy(accessKernelHistory = !settings.accessKernelHistory))
+        },
+      )
       // One row, two jobs, and which one is the editor's own width: with a pane on screen the row
       // toggles it and flips its label, and without one it opens the overlay and reads the same
       // thing every time - there is no state to name, since the pick dismisses it.
@@ -282,6 +289,20 @@ internal const val ENABLE_AUTO_CLOSING_BRACKETS = "Enable auto-closing brackets"
 
 /** The same command from the other side - see [ENABLE_AUTO_CLOSING_BRACKETS]. */
 internal const val DISABLE_AUTO_CLOSING_BRACKETS = "Disable auto-closing brackets"
+
+/**
+ * `accessKernelHistory` - the setting the two `notebook:access-*-history-entry` commands are gated
+ * on, and with them the pair of keys [SymbolRow] draws.
+ *
+ * **Adaptation, and it is where rather than whether.** The reference puts this in Settings and
+ * says so in its own user guide (`docs/source/user/notebook.md:191`); this app has no settings
+ * screen until P6c, so it sits in View beside the other persisted toggles and moves with them.
+ * Two labels rather than one and a check mark, for [SHOW_LINE_NUMBERS]'s reason.
+ */
+internal const val ENABLE_KERNEL_HISTORY = "Enable kernel history access"
+
+/** The same setting from the other side - see [ENABLE_KERNEL_HISTORY]. */
+internal const val DISABLE_KERNEL_HISTORY = "Disable kernel history access"
 
 /**
  * `toc:show-panel` (`packages/toc-extension/src/index.ts:161-172`), as two labels for the reason

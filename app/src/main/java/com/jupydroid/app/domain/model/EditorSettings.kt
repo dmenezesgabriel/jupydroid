@@ -39,5 +39,22 @@ data class EditorSettings(
    * (`packages/toc-extension/schema/registry.json:32-69`).
    */
   val tocIncludeOutput: Boolean = true,
+  /**
+   * `accessKernelHistory` - whether a cell being edited can step through what the kernel has run.
+   *
+   * **False, and this is the first field here that keeps the reference's default rather than
+   * departing from it** (`packages/notebook-extension/schema/tracker.json:873-878`,
+   * `packages/notebook/src/widget.ts:1488`). It is opt-in there by instruction as well as by
+   * value - *"To use this feature, enable kernel history access in the notebook settings"*
+   * (`docs/source/user/notebook.md:191`) - and both `accessPreviousHistory` and
+   * `accessNextHistory` return on their first line without it
+   * (`packages/notebook/src/actions.tsx:2616`, `:2634`).
+   *
+   * The two departures beside it were bought with a reason a phone supplies: brackets that close
+   * themselves save a trip through the symbol row, and a gutter names the line a traceback blames
+   * on a screen that shows a fraction of a cell. Nothing about a touch screen makes a cell's text
+   * safer to overwrite, so this one is left where the reference put it.
+   */
+  val accessKernelHistory: Boolean = false,
 )
 

@@ -227,6 +227,40 @@ class EditorTopBarTest {
     assertEquals(listOf(EditorSettings(autoClosingBrackets = false)), settingsWritten)
   }
 
+  // --- notebook:access-*-history-entry, the setting that gates them (P2k-3) ---------------
+
+  /**
+   * Off until asked for, so the row offers to turn it **on** - the reference's own default and its
+   * own instruction to the user (`docs/source/user/notebook.md:191`).
+   */
+  @Test
+  fun theNotebookMenuOffersToTurnKernelHistoryOnWhileItIsOff() {
+    showTopBar(settings = EditorSettings(accessKernelHistory = false))
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+
+    compose.onNodeWithText(ENABLE_KERNEL_HISTORY).assertIsDisplayed()
+  }
+
+  @Test
+  fun theNotebookMenuOffersToTurnKernelHistoryOffOnceItIsOn() {
+    showTopBar(settings = EditorSettings(accessKernelHistory = true))
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+
+    compose.onNodeWithText(DISABLE_KERNEL_HISTORY).assertIsDisplayed()
+  }
+
+  @Test
+  fun theKernelHistoryRowFlipsThatFieldAndNoOther() {
+    showTopBar(settings = EditorSettings(accessKernelHistory = false))
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(ENABLE_KERNEL_HISTORY).performClick()
+
+    compose.runOnIdle { assertEquals(listOf(EditorSettings(accessKernelHistory = true)), settingsWritten) }
+  }
+
   // --- the table of contents (P2h-2) -------------------------------------------------------
 
   @Test

@@ -28,6 +28,30 @@ abstract class EditorSettingsRepositoryContract {
     assertTrue(repository().observeSettings().first().autoClosingBrackets)
   }
 
+  /**
+   * `accessKernelHistory` is **off** until asked for, which is the reference's own default
+   * (`packages/notebook-extension/schema/tracker.json:873-878`,
+   * `packages/notebook/src/widget.ts:1488`) and its own documented instruction: *"To use this
+   * feature, enable kernel history access in the notebook settings"*
+   * (`docs/source/user/notebook.md:191`).
+   *
+   * The first field here that keeps a reference default rather than departing from it - see
+   * `docs/DECISIONS.md` for why the two beside it do not.
+   */
+  @Test
+  fun defaultsToKernelHistoryAccessOff() = runTest {
+    assertFalse(repository().observeSettings().first().accessKernelHistory)
+  }
+
+  @Test
+  fun remembersEveryFieldOfAnUpdateAndNotOnlyTheFirst() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(accessKernelHistory = true))
+
+    assertTrue(repository.observeSettings().first().accessKernelHistory)
+  }
+
   @Test
   fun remembersAnUpdate() = runTest {
     val repository = repository()
