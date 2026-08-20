@@ -40,7 +40,7 @@ fun JupyterDroidTheme(
   CompositionLocalProvider(LocalEditorPalette provides palette) {
     MaterialTheme(
       colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-      typography = Typography,
+      typography = JupydroidTypography,
       content = content,
     )
   }
