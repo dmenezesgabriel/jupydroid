@@ -128,10 +128,10 @@ class EditorTopBarTest {
    * second way in at all - the question no JVM test answers.
    */
   @Test
-  fun theViewMenuOffersBothHeadingCommands() {
+  fun theNotebookMenuOffersBothHeadingCommands() {
     showTopBar()
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(COLLAPSE_ALL_HEADINGS).assertIsDisplayed()
     compose.onNodeWithText(EXPAND_ALL_HEADINGS).assertIsDisplayed()
@@ -141,7 +141,7 @@ class EditorTopBarTest {
   fun collapseAllAsksForTheCollapse() {
     showTopBar()
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(COLLAPSE_ALL_HEADINGS).performClick()
 
     assertEquals(listOf(true), headingsSetTo)
@@ -152,7 +152,7 @@ class EditorTopBarTest {
   fun expandAllAsksForTheExpand() {
     showTopBar()
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(EXPAND_ALL_HEADINGS).performClick()
 
     assertEquals(listOf(false), headingsSetTo)
@@ -169,19 +169,19 @@ class EditorTopBarTest {
    * (`docs/DECISIONS.md`). A label that flips is a label both trees can see.
    */
   @Test
-  fun theViewMenuOffersToHideTheGutterWhileItIsShown() {
+  fun theNotebookMenuOffersToHideTheGutterWhileItIsShown() {
     showTopBar(lineNumbersShown = true)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(HIDE_LINE_NUMBERS).assertIsDisplayed()
   }
 
   @Test
-  fun theViewMenuOffersToShowTheGutterOnceItIsHidden() {
+  fun theNotebookMenuOffersToShowTheGutterOnceItIsHidden() {
     showTopBar(lineNumbersShown = false)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(SHOW_LINE_NUMBERS).assertIsDisplayed()
   }
@@ -190,7 +190,7 @@ class EditorTopBarTest {
   fun theRowAsksForTheToggle() {
     showTopBar(lineNumbersShown = true)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(HIDE_LINE_NUMBERS).performClick()
 
     assertEquals(1, lineNumberToggles)
@@ -199,19 +199,19 @@ class EditorTopBarTest {
   // --- notebook:toggle-autoclosing-brackets, universal (P2g-3) ----------------------------
 
   @Test
-  fun theViewMenuOffersToDisableBracketsWhileTheyAreOn() {
+  fun theNotebookMenuOffersToDisableBracketsWhileTheyAreOn() {
     showTopBar(autoClosingBrackets = true)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(DISABLE_AUTO_CLOSING_BRACKETS).assertIsDisplayed()
   }
 
   @Test
-  fun theViewMenuOffersToEnableBracketsOnceTheyAreOff() {
+  fun theNotebookMenuOffersToEnableBracketsOnceTheyAreOff() {
     showTopBar(autoClosingBrackets = false)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(ENABLE_AUTO_CLOSING_BRACKETS).assertIsDisplayed()
   }
@@ -220,7 +220,7 @@ class EditorTopBarTest {
   fun theBracketsRowAsksForTheToggle() {
     showTopBar(autoClosingBrackets = true)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(DISABLE_AUTO_CLOSING_BRACKETS).performClick()
 
     assertEquals(1, autoClosingBracketsToggles)
@@ -229,10 +229,10 @@ class EditorTopBarTest {
   // --- the table of contents (P2h-2) -------------------------------------------------------
 
   @Test
-  fun theViewMenuOffersTheTableOfContents() {
+  fun theNotebookMenuOffersTheTableOfContents() {
     showTopBar()
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).assertIsDisplayed()
   }
@@ -246,7 +246,7 @@ class EditorTopBarTest {
   fun theRowOpensThePanelAndAPickReportsTheCell() {
     showTopBar(tableOfContentsHeadings = listOf(TocHeading("h1", 1, "Chapter one")))
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).performClick()
     compose.onNodeWithContentDescription("Table of contents Chapter one").performClick()
 
@@ -267,7 +267,7 @@ class EditorTopBarTest {
       tableOfContentsPresentation = TocPresentation.PANE,
     )
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).performClick()
 
     compose.runOnIdle { assertEquals(1, tableOfContentsPaneToggles) }
@@ -284,7 +284,7 @@ class EditorTopBarTest {
   fun theRowNamesTheOppositeOfWhatIsOnScreen() {
     showTopBar(tableOfContentsPresentation = TocPresentation.PANE, tableOfContentsPaneOpen = true)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(HIDE_TABLE_OF_CONTENTS).assertIsDisplayed()
   }
@@ -292,10 +292,10 @@ class EditorTopBarTest {
   // --- toc:display-numbering / display-h1-numbering (P2h-5) --------------------------------
 
   @Test
-  fun theViewMenuOffersToNumberTheHeadings() {
+  fun theNotebookMenuOffersToNumberTheHeadings() {
     showTopBar()
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(SHOW_HEADING_NUMBERS).performClick()
 
     compose.runOnIdle { assertEquals(1, numberingToggles) }
@@ -305,7 +305,7 @@ class EditorTopBarTest {
   fun withNumbersOnTheRowOffersToTakeThemAway() {
     showTopBar(tocNumbering = TocNumbering(numberHeaders = true))
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(HIDE_HEADING_NUMBERS).assertIsDisplayed()
   }
@@ -318,7 +318,7 @@ class EditorTopBarTest {
   fun theTopLevelRowIsOfferedOnlyWhileSomethingIsNumbered() {
     showTopBar()
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(HIDE_TOP_LEVEL_NUMBER).assertDoesNotExist()
     compose.onNodeWithText(SHOW_TOP_LEVEL_NUMBER).assertDoesNotExist()
@@ -328,7 +328,7 @@ class EditorTopBarTest {
   fun theTopLevelRowFlipsWithItsOwnState() {
     showTopBar(tocNumbering = TocNumbering(numberHeaders = true, numberingH1 = true))
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(HIDE_TOP_LEVEL_NUMBER).performClick()
 
     compose.runOnIdle { assertEquals(1, numberingH1Toggles) }
@@ -337,10 +337,10 @@ class EditorTopBarTest {
   // --- toc:display-outputs-numbering (P2h-6) ------------------------------------------------
 
   @Test
-  fun theViewMenuOffersToLeaveOutWhatACellPrinted() {
+  fun theNotebookMenuOffersToLeaveOutWhatACellPrinted() {
     showTopBar(tocIncludeOutput = true)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(HIDE_OUTPUT_HEADINGS).performClick()
 
     compose.runOnIdle { assertEquals(1, includeOutputToggles) }
@@ -350,7 +350,7 @@ class EditorTopBarTest {
   fun withThemLeftOutTheRowOffersToPutThemBack() {
     showTopBar(tocIncludeOutput = false)
 
-    compose.onNodeWithContentDescription("View actions").performClick()
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(SHOW_OUTPUT_HEADINGS).assertIsDisplayed()
   }

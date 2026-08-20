@@ -25,27 +25,27 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Notes before any heading."
     timeout: 30000
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Show table of contents"
 # Nothing is numbered until it is asked for - `numberHeaders` is false in the schema.
 - assertVisible: "Table of contents Chapter one"
 - assertNotVisible: "1. Chapter one"
 - takeScreenshot: 01-unnumbered
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Show heading numbers"
 # **Both halves.** The panel's row and the notebook's own rendered heading, on one screen.
 - assertVisible: "1. Chapter one"
 - assertVisible: "1.1. Part A"
 - takeScreenshot: 02-numbered-in-the-list-and-the-document
 # The first-level row appears only once there are numbers for it to change.
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - assertVisible: "Skip top-level heading numbers"
 - tapOn: "Skip top-level heading numbers"
 # With the top level left out, an H1 has no number at all and its children count from one.
 - assertNotVisible: "1. Chapter one"
 - assertVisible: "1. Part A"
 - takeScreenshot: 03-top-level-left-out
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Number top-level headings"
 - assertVisible: "1.1. Part A"
 - takeScreenshot: 04-top-level-back
@@ -67,6 +67,6 @@ appId: com.jupydroid.app
     timeout: 30000
 - takeScreenshot: 05-still-numbered-after-a-restart
 # Put it back, so a later flow on this device is not typing against a setting nobody chose.
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Hide heading numbers"
 - assertNotVisible: "1. Chapter one"

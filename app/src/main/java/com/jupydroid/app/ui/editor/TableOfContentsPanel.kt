@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
  * `choose` already establishes for a picker here - so a caller never has to remember the second
  * half itself.
  *
- * Called unconditionally by [ViewMenu], inside the same `Box` its own button anchors from -
+ * Called unconditionally by [NotebookActionsMenu], inside the same `Box` its own button anchors from -
  * [expanded] is what decides whether anything renders, exactly as [CellActionSurface] itself
  * works, so a `DropdownMenu` here anchors to that button rather than to wherever this composable
  * would otherwise sit on the screen.

@@ -24,7 +24,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Written heading"
     timeout: 30000
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Show table of contents"
 # On by default, so the printed heading is listed between the two written ones.
 - assertVisible: "Table of contents Written heading"
@@ -35,7 +35,7 @@ appId: com.jupydroid.app
 - tapOn: "Table of contents Printed heading"
 - assertVisible: "from the kernel"
 - takeScreenshot: 02-jumped-to-the-cell-that-printed-it
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - assertVisible: "Hide output headings"
 - tapOn: "Hide output headings"
 # Gone from the list, and **still in the notebook** - this hides an entry, never an output.
@@ -44,7 +44,7 @@ appId: com.jupydroid.app
 - assertVisible: "from the kernel"
 - takeScreenshot: 03-listed-no-longer-but-still-printed
 # Put it back, so a later flow on this device is not reading a setting nobody chose.
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Show output headings"
 - assertVisible: "Table of contents Printed heading"
 - takeScreenshot: 04-listed-again

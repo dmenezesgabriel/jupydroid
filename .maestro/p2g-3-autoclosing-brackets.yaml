@@ -30,7 +30,7 @@ appId: com.jupydroid.app
 # `default: false` recorded in docs/DECISIONS.md.
 - assertVisible: "value = \\(\\)"
 - takeScreenshot: 02-typing-a-paren-closes-it
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - assertVisible: "Disable auto-closing brackets"
 - tapOn: "Disable auto-closing brackets"
 - waitForAnimationToEnd:
@@ -41,7 +41,7 @@ appId: com.jupydroid.app
 - assertVisible: "value = \\(\\)\\("
 - assertNotVisible: "value = \\(\\)\\(\\)"
 - takeScreenshot: 03-off-the-typed-paren-stays-alone
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - assertVisible: "Enable auto-closing brackets"
 - takeScreenshot: 04-the-view-menu-now-offers-to-enable
 # Dismiss rather than re-tap the button: it opened the menu and is now behind it, so the popup is
@@ -62,7 +62,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "(?s).*value = .*"
     timeout: 30000
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 # Still off after the app died and came back - the whole point of the port, not session state.
 - assertVisible: "Enable auto-closing brackets"
 - takeScreenshot: 05-still-off-after-the-app-died

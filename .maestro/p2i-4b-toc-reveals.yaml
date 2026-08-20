@@ -33,7 +33,7 @@ appId: com.jupydroid.app
 - assertNotVisible: "part_a = 1"
 - assertVisible: "Chapter two"
 - takeScreenshot: 01-a-section-folded-over-its-own-heading
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Show table of contents"
 # Listed even though it is hidden - `getHeadings` walks the model, not what is drawn.
 - assertVisible: "Table of contents Part A"

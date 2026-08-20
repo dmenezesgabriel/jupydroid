@@ -24,7 +24,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Notes before any heading."
     timeout: 30000
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Show table of contents"
 - assertVisible: "Table of contents Chapter one"
 - assertVisible: "Table of contents Part A"

@@ -33,7 +33,7 @@ appId: com.jupydroid.app
 # Both gutters are on, which is this app's resting state and a departure from the reference's own
 # default (`lineNumbers: false`, `packages/notebook/src/widget.ts:1336-1355`). See docs/DECISIONS.md.
 - takeScreenshot: 01-gutters-on-code-and-raw
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 # The row names the *change*, so this is also the assertion that the gutter is currently shown.
 - assertVisible: "Hide line numbers"
 - assertNotVisible: "Show line numbers"
@@ -45,7 +45,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 03-gutters-off
 # One command for all cell types, so re-opening the menu must report the notebook's single state
 # rather than the cell that happens to be active.
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - assertVisible: "Show line numbers"
 - assertNotVisible: "Hide line numbers"
 - takeScreenshot: 04-the-view-menu-offers-to-show

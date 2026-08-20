@@ -27,7 +27,7 @@ appId: com.jupydroid.app
 - assertVisible: "Chapter one"
 - assertVisible: "one = 1"
 - takeScreenshot: 01-expanded
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - assertVisible: "Collapse All Headings"
 - assertVisible: "Expand All Headings"
 - takeScreenshot: 02-the-view-menu
@@ -46,7 +46,7 @@ appId: com.jupydroid.app
 - assertVisible: "1 cell hidden"
 - assertNotVisible: "Part A"
 - takeScreenshot: 03-all-collapsed
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Expand All Headings"
 # The cells that were in a section are back, and **no** section is left claiming to hide anything -
 # which is the pair of claims that matters. `part = 2` is not among them: seven expanded cells do

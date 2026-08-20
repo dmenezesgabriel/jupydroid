@@ -38,7 +38,7 @@ appId: com.jupydroid.app
     timeout: 10000
 - assertNotVisible: "Chapter one"
 - takeScreenshot: 02-scrolled-away-from-chapter-one
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Show table of contents"
 - assertVisible: "Table of contents Chapter one"
 - assertVisible: "Table of contents Part A"
@@ -59,9 +59,9 @@ appId: com.jupydroid.app
     timeout: 20000
 - tapOn: "Empty Notebook.ipynb"
 - extendedWaitUntil:
-    visible: "View actions"
+    visible: "Notebook actions"
     timeout: 30000
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - tapOn: "Show table of contents"
 - assertVisible: "No headings in this notebook"
 - takeScreenshot: 05-empty-notebook-placeholder

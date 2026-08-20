@@ -31,7 +31,7 @@ appId: com.jupydroid.app
 # that opens with the shell, not this one.
 - assertNotVisible: "Table of contents Chapter one"
 - takeScreenshot: 01-no-pane-until-it-is-asked-for
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - assertVisible: "Show table of contents"
 - tapOn: "Show table of contents"
 - assertVisible: "Table of contents Chapter one"
@@ -64,6 +64,6 @@ appId: com.jupydroid.app
 - tapOn: "Hide table of contents"
 - assertNotVisible: "Table of contents Chapter one"
 - takeScreenshot: 05-closed-from-the-pane
-- tapOn: "View actions"
+- tapOn: "Notebook actions"
 - assertVisible: "Show table of contents"
 - takeScreenshot: 06-the-row-reads-show-again
