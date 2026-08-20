@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.ui.assertReservesMinimumTouchTarget
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -48,6 +49,26 @@ class CollapsedCellTest {
     compose.setContent { CollapsedCell("", COLLAPSED_OUTPUTS, onExpand = {}) }
 
     compose.onNodeWithContentDescription(COLLAPSED_OUTPUTS).assertIsDisplayed()
+  }
+
+  /**
+   * P2l-4: the placeholder is a bare `clickable`, so its own padding and the one line inside decide
+   * the row - 8 + 16 + 8 = **32dp**, measured on device at `evidence/p2l-2-spacing/README.md`.
+   * Both descriptions, because a collapsed output previews as nothing and so is the shorter of the
+   * two.
+   */
+  @Test
+  fun eitherKindOfPlaceholderReservesEnoughSpaceToHit() {
+    compose.setContent { CollapsedCell("import numpy as np", COLLAPSED_SOURCE, onExpand = {}) }
+
+    compose.onNodeWithContentDescription(COLLAPSED_SOURCE).assertReservesMinimumTouchTarget()
+  }
+
+  @Test
+  fun anEmptyPlaceholderReservesEnoughSpaceToHit() {
+    compose.setContent { CollapsedCell("", COLLAPSED_OUTPUTS, onExpand = {}) }
+
+    compose.onNodeWithContentDescription(COLLAPSED_OUTPUTS).assertReservesMinimumTouchTarget()
   }
 
   @Test

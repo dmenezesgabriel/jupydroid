@@ -5,7 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
+import com.jupydroid.app.ui.assertReservesMinimumTouchTarget
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -14,9 +14,9 @@ import org.junit.runner.RunWith
 /**
  * What a collapsed heading shows in place of its section.
  *
- * Instrumented rather than JVM for [CellTouchTargetTest]'s reason: it is built from a bare
- * `clickable` rather than an `IconButton`, so nothing gives it Material's minimum for free and a
- * whole row of it could be 24dp tall with only this to notice.
+ * Instrumented rather than JVM because the question is a height: it is built from a bare
+ * `clickable` rather than an `IconButton`, so nothing reserves Material's minimum for it and the
+ * icon inside decides the row - 8 + 24 + 8 = 40dp, which is what this shipped as.
  */
 @RunWith(AndroidJUnit4::class)
 class HiddenCellsRowTest {
@@ -48,11 +48,15 @@ class HiddenCellsRowTest {
     assertEquals(1, expanded)
   }
 
+  /**
+   * P2l-4. This test existed and passed while the row was 40dp tall, because it asked with
+   * `touchBoundsInRoot` - which pads any clickable out to 48dp before answering. The reservation
+   * is what a neighbour can take away; see `assertReservesMinimumTouchTarget`.
+   */
   @Test
-  fun theWholeRowIsBigEnoughToHit() {
+  fun theWholeRowReservesEnoughSpaceToHit() {
     compose.setContent { HiddenCellsRow(count = 2, onExpand = {}) }
 
-    compose.onNodeWithContentDescription("2 cells hidden")
-      .assertIsAtLeastMinimumTouchTarget(compose.density)
+    compose.onNodeWithContentDescription("2 cells hidden").assertReservesMinimumTouchTarget()
   }
 }

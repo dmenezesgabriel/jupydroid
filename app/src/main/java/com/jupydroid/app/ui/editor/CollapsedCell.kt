@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,7 +15,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
 
 /** Named so a flow can tell a folded cell from the field or the outputs it replaced. */
@@ -30,6 +30,20 @@ internal const val COLLAPSED_OUTPUTS = "Collapsed outputs"
  * (`packages/cells/src/widget.ts:626-632`, `packages/cells/src/placeholder.ts:72-105`). The
  * line is what makes a folded cell identifiable at all; a bare "collapsed" row would turn a
  * folded notebook into a list of identical stubs.
+ *
+ * **`minimumInteractiveComponentSize` is the adaptation, and it is the one thing here the
+ * reference does not supply.** `.jp-Placeholder-content` is `padding: 4px 6px`
+ * (`packages/cells/style/placeholder.css:26-34`), which is a mouse target; this row measured
+ * **288x32dp** on device (`evidence/p2l-4-touch-targets/before/`), 16dp under Material's minimum.
+ * Compose expands the *hit area* of any clickable out to 48dp on its own, which is why the
+ * suite's own touch-target assertion was green against it - but that expansion loses to a
+ * neighbour's direct hit
+ * (`NodeCoordinator.outOfBoundsHit`), and this row sits in a `LazyColumn` between a cell header and
+ * an editor, both of which take direct hits. Material draws the same distinction in
+ * `minimumInteractiveComponentSize`'s own KDoc: *"This modifier is not needed for touch target
+ * expansion to happen. It only affects layout, to make sure there is adequate space for touch
+ * target expansion."* So the space is reserved rather than borrowed, with Material's own modifier
+ * rather than a height this app picked - the same one `IconButton` applies to itself.
  */
 @Composable
 fun CollapsedCell(preview: String, description: String, onExpand: () -> Unit, modifier: Modifier = Modifier) {
@@ -39,6 +53,9 @@ fun CollapsedCell(preview: String, description: String, onExpand: () -> Unit, mo
       .fillMaxWidth()
       .clickable(onClickLabel = "Expand") { onExpand() }
       .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+      // Inside the background and the ripple, so both draw at the reserved height rather than
+      // leaving a transparent band above and below a 32dp pill - see the KDoc.
+      .minimumInteractiveComponentSize()
       .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
       .semantics { contentDescription = description },
   ) {

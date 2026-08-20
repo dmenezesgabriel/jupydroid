@@ -1,28 +1,69 @@
 package com.jupydroid.app.ui
 
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import org.junit.Assert.assertTrue
 
 /** Material's minimum interactive size, the same value `minimumInteractiveComponentSize` uses. */
 private val MINIMUM_TARGET = 48.dp
 
 /**
+ * Asserts a control **reserves** at least 48dp of layout, which is the thing that can regress.
+ *
+ * **Reserved space, not expanded bounds, and the difference is the whole point.** Compose expands
+ * the *hit area* of any clickable node to 48dp on its own - so a 32dp row is hittable over 48dp
+ * right up until a neighbour claims those pixels, and then it is not. `NodeCoordinator`'s own
+ * account of the collision (`outOfBoundsHit`): *"hit in this node's … minimum touch target bounds
+ * overlaps with a direct hit in the other node. The node with direct hit will get the event."*
+ * A folded cell sits in a `LazyColumn` between an editor and a header, both of which take direct
+ * hits, so the slop is exactly the part that cannot be relied on. Material says the same in
+ * `minimumInteractiveComponentSize`'s own KDoc: *"This modifier is not needed for touch target
+ * expansion to happen. It only affects layout, to make sure there is adequate space for touch
+ * target expansion."*
+ *
+ * **Only for a control that is its own layout node** - a bare `clickable`, or one carrying
+ * `minimumInteractiveComponentSize()`. On an `IconButton` or a `TextButton` this reads 40dp against
+ * a control that is perfectly correct: the merged semantics node is the `clickable` *inside*
+ * `.size(IconButtonDefaults.smallContainerSize())`, and the 48dp reservation is the
+ * `minimumInteractiveComponentSize()` node outside it, which carries no semantics of its own
+ * (`material3/IconButton.kt`, `IconButtonImpl`). That is the failure this file's other assertion
+ * was written to get around - see [assertIsAtLeastMinimumTouchTarget].
+ *
+ * ```
+ * compose.onNodeWithContentDescription(COLLAPSED_SOURCE).assertReservesMinimumTouchTarget()
+ * ```
+ */
+internal fun SemanticsNodeInteraction.assertReservesMinimumTouchTarget() {
+  val bounds = getUnclippedBoundsInRoot()
+  assertTrue(
+    "reserves ${bounds.width} x ${bounds.height}, below the $MINIMUM_TARGET minimum",
+    bounds.width >= MINIMUM_TARGET && bounds.height >= MINIMUM_TARGET,
+  )
+}
+
+/**
  * Asserts a control accepts a press over at least 48dp.
  *
- * **`touchBoundsInRoot`, not the layout bounds, and the difference is the whole point.**
- * An `IconButton` lays out at 40dp - `IconButtonTokens.StateLayerSize`, the size of the ripple -
- * and `Modifier.minimumInteractiveComponentSize()` widens the area that *accepts a pointer* to
- * 48dp without changing what is drawn. So `getUnclippedBoundsInRoot` (and with it
- * `assertWidthIsAtLeast`) reports 40dp for a button that is perfectly hittable, and asserting on
- * it would demand a visibly oversized control to satisfy a rule about fingers. Asked the first
- * way, `CellTouchTargetTest` failed at 40dp against buttons that were already correct - and so did
- * `NotebookBarShutdownTest`, which is why this moved out of that suite and into a file of its own.
+ * **It cannot fail, and that is not what this file used to say.** `touchBoundsInRoot` is the
+ * *expanded* rectangle: `SemanticsNode.touchBoundsInRoot` takes the expanded path for any node
+ * carrying an `OnClick` action (`node/SemanticsModifierNode.kt`, `useMinimumTouchTarget`), and
+ * `NodeCoordinator.touchBoundsInRoot` pads the measured bounds out by
+ * `calculateMinimumTouchTargetPadding` - `maxOf(0f, (48dp - measured) / 2)`. So this computes
+ * `max(measured, 48dp) >= 48dp` and passes on anything clickable, at any size.
  *
- * What it is worth keeping for is the thing that *could* break: a control built from a bare
- * `clickable` instead of an `IconButton`, or one that opts out of the minimum, would have a real
- * 24dp target and nothing but this to notice.
+ * The previous docstring claimed the opposite - that a bare `clickable` *"would have a real 24dp
+ * target and nothing but this to notice"*. It was wrong, and it was steering the plan:
+ * `HiddenCellsRowTest` shipped green against a 40dp row on the strength of it, and P2l-4 was
+ * written expecting this assertion to go red. What notices that case is
+ * [assertReservesMinimumTouchTarget].
+ *
+ * What survives is a weaker claim worth one line: the node is clickable, and so it does get the
+ * expansion. Kept on the `IconButton`s and `TextButton`s that already reserve their 48dp - where
+ * the stronger assertion cannot be asked, for the reason above.
  *
  * ```
  * compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget(compose.density)

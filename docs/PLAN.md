@@ -38,7 +38,7 @@ filesystem the kernel, the server and the app all share.
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, Material's own type scale, per-notebook ViewModel scoping |
-| Tests | 252 instrumented, 1258 unit, 97 Maestro drivers over 111 flows - 92 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
+| Tests | 254 instrumented, 1258 unit, 98 Maestro drivers over 112 flows - 93 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, and a
 **settings screen** - the five persisted editor settings live in the notebook's View menu until P6c
@@ -625,7 +625,7 @@ side panel (P2o). What follows from each is `docs/DECISIONS.md`.
 |---|---|---|
 | **P2l-1** | *(shipped)* Material's type scale, stated rather than hand-built. | — |
 | **P2l-2** | *(shipped)* `theme/Spacing.kt` on the 4dp grid, the 63 literals migrated onto it, and the gate that keeps it the only place a gap is spelled out. | — |
-| **P2l-4** | **The two bare `clickable` rows are under the touch minimum.** `CollapsedCell` measures **288x32dp** on device - 16dp short - and `HiddenCellsRow` is the same shape. Found by P2l-2, which moved both 28dp to 32dp without closing it. This is the exact case `CellTouchTargetTest`'s docstring names as what it is worth keeping for, and it covers only the cell header. | An instrumented test over both rows, red first; `assertIsAtLeastMinimumTouchTarget` already exists and is shared with the bars' suites. |
+| **P2l-4** | *(shipped)* The two bare `clickable` rows reserve Material's 48dp rather than borrowing it from their neighbours. | — |
 | **P2l-3** | **One size for code.** Measured: the cell's source states none at all (`codeSourceStyle` reads `LocalTextStyle`), outputs and inline code are `bodySmall`, the completion popup `bodyMedium`, the symbol row `bodyLarge` - four sizes for one thing, where the reference has `--jp-code-font-size` and `--jp-code-line-height` (`variables.css:196-197`). | JVM test over the scale; a screenshot of a cell, its output and its completions in one frame. |
 | **P2m-1** | The collapser: transparent at rest, brand blue when active. `stripeResting` leaves `EditorPalette`. **`docs/DECISIONS.md` "Every cell gets one" is rewritten in the same commit** - it argues the opposite today, and a decision record that contradicts the code is worse than none. | `CellStripeTest` red-first; `CellTouchTargetTest` re-run; `u3-cell-chrome` re-driven on the tablet and the screenshots **looked at**. |
 | **P2m-2** | The editor box: 1px always, brand blue plus elevation in edit mode, one shared modifier across the three fields rather than three copies. | `EditorPaletteTest` extended with the contrast assertion it already pins for every other pair; an instrumented test that the border follows the mode. |
@@ -682,6 +682,30 @@ Three costs the plan did not name:
 - **It found a defect it did not fix, which is P2l-4 above.** `CollapsedCell` is a bare `clickable`
   measuring 288x32dp, and this step moved it 28dp to 32dp without closing the 16dp gap. Filed
   rather than folded in: it needs its own failing test and its own evidence.
+
+**P2l-4 has shipped, and the gate this file gave it could not have failed.** `CollapsedCell`
+measured **288x32dp** and `HiddenCellsRow` **288x40dp**; both reserve 48dp now, via
+`minimumInteractiveComponentSize()` - Material's own, the modifier `IconButton` applies to itself.
+What it settled is `docs/DECISIONS.md`; the evidence is `evidence/p2l-4-touch-targets/`.
+
+Three costs the plan did not name:
+
+- **The assertion this row was written around cannot fail.** `assertIsAtLeastMinimumTouchTarget`
+  reads `touchBoundsInRoot`, which Compose pads out to 48dp for *any* clickable node
+  (`NodeCoordinator.calculateMinimumTouchTargetPadding`) - so it computes `max(measured, 48) >= 48`.
+  `HiddenCellsRowTest` had shipped green against a 40dp row on the strength of it, and its
+  docstring asserted the opposite. **P2l-3 is written against the same assumptions and should be
+  re-read before it is picked up**: a size, like a gap, is only pinned by a test that measures the
+  layout.
+- **`dev36` is not a phone, and the width is the only part of that anyone chose.** 320dp is
+  deliberate; density 160 is an AVD default, and at 1px per dp every screenshot in `evidence/` has
+  the wrong proportions. P2l-4 captured a fourth frame at 411dp/420dpi beside the usual three.
+  Whether the suite's standard emulator moves is not decided here - it would re-key 92 flows and
+  the sharder's time balance.
+- **One defect introduced and fixed inside the step, and again the measurement is what said so.**
+  The driver read the density with `sed -n 1p`, which takes `Physical density` and ignores the
+  `Override density` printed after it, so the phone run reported 126dp rows as 126dp - a number
+  that clears 48 and would have been read as a pass.
 
 ---
 

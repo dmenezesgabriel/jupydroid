@@ -1648,7 +1648,54 @@ general lesson.
 
 ---
 
+### A touch target is reserved space, not expanded bounds
+
+Compose expands the *hit area* of any clickable node out to 48dp at the input layer:
+`SemanticsNode.touchBoundsInRoot` takes the expanded path whenever the node carries an `OnClick`
+action, and `NodeCoordinator` pads the measured bounds by `calculateMinimumTouchTargetPadding` -
+`maxOf(0f, (48dp - measured) / 2)`. So an assertion asking `touchBoundsInRoot` computes
+`max(measured, 48dp) >= 48dp` and **cannot fail**. `assertIsAtLeastMinimumTouchTarget` had been
+asking exactly that since P2b, and its docstring claimed the opposite - that a bare `clickable`
+*"would have a real 24dp target and nothing but this to notice"*. `HiddenCellsRowTest` shipped
+green against a 40dp row on the strength of it, and P2l-4 was planned around a gate that could not
+go red.
+
+The expansion is real but **conditional**, which is why the reservation is the thing that matters.
+`NodeCoordinator.outOfBoundsHit`: *"hit in this node's … minimum touch target bounds overlaps with
+a direct hit in the other node. The node with direct hit will get the event."* A folded cell sits
+in a `LazyColumn` between a cell header and an editor; both take direct hits, so the borrowed half
+is the half that is missing when a thumb lands near the edge. Material says the same of its own
+modifier: *"This modifier is not needed for touch target expansion to happen. It only affects
+layout, to make sure there is adequate space for touch target expansion."*
+
+**This forbids** measuring a touch minimum with `touchBoundsInRoot`, and building a tap target
+from a bare `clickable` without `minimumInteractiveComponentSize()`. The measurement is
+`assertReservesMinimumTouchTarget`, over the layout bound - and it is **only** for a control that
+is its own layout node. On an `IconButton` or a `TextButton` it reads 40dp against a control that
+is correct, because the merged semantics node is the `clickable` *inside*
+`.size(IconButtonDefaults.smallContainerSize())` while the 48dp reservation is the
+`minimumInteractiveComponentSize()` node outside it, which carries no semantics
+(`material3/IconButton.kt`, `IconButtonImpl`). Those keep the weaker assertion, which still says
+the node is clickable and so does get the expansion.
+
+Measured on four geometries (`evidence/p2l-4-touch-targets/`): 32dp and 40dp before, 48dp after,
+at densities 160, 240 and 420.
+
 ## Harness
+
+### The emulator the suite runs on is 320dp wide **and** density 160, and only the first is deliberate
+
+`dev36` is 320x640px at `hw.lcd.density = 160`. The width is a decision - `docs/PLAN.md` uses
+320dp as the narrowest window the app must survive, and it is what settled the notebook bar's
+sixth target. The **density** is an AVD default nobody chose, and it means every screenshot in
+`evidence/` is drawn at 1px per dp: a frame no user will ever see, and one where a 48dp control
+takes 15% of the width against 11.7% on a 411dp phone. It has not misled a *measurement* - dp is
+dp, and P2l-4 read the same 48dp at 160, 240 and 420 - but it does mean "look at the screenshots"
+has been looking at the wrong proportions.
+
+**Not resolved here.** Moving the standard emulator would re-key 92 flows and the sharder's
+measured time balance. P2l-4 captured `phone/` at 411dp/420dpi alongside the standard `after/` to
+show the difference, via `wm size` / `wm density` overrides that are reset afterwards.
 
 - **Never `kill -9` maestro.**
 - **A flow against a lock screen is not a red result, it is no result.** A 50-run sweep passed 31
