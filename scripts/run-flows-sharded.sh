@@ -17,10 +17,15 @@
 # same directory at once would interleave two runs' screenshots. It also keeps `newest_run_dir`
 # honest, since it keys on the flow name and no flow runs twice.
 #
-# Constrained flows are placed first, then the free ones go to whichever device is carrying the
-# least - not round-robin. Round-robin looked fair and was not: the tablet is the only device that
-# can run the thirteen kernel flows, so dealing the rest evenly gave it 27 against the emulator's
-# 13, and the emulator sat idle for half the run.
+# **The partition is by time, not by flow count**, and `scripts/shard_flows.py` is where that
+# decision and its measurement live. Counting flows looked fair and was not: the tablet is the only
+# device that can run the kernel flows, is slower per flow besides, and an even 45/45 split left it
+# working for 57 minutes while the emulator finished in 38 and idled for a third of the sweep.
+#
+# **More devices make it shorter, and no code change is needed for that** - boot a second emulator
+# and the free flows spread over it. What cannot be spread is the tablet's own share: the
+# `TABLET ONLY` flows need arm64 and the `WIDE WINDOW` ones need >= 600dp, so those are the floor
+# until a second wide arm64 device is attached.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -46,70 +51,56 @@ for device in "${DEVICES[@]}"; do
   echo "device ${device} (${ABI[$device]}, ${WIDTH[$device]}dp)"
 done
 
-# Assigns one driver to the first device that can run it, or to the next in turn when any will do.
-declare -A ASSIGNED LOAD
-for device in "${DEVICES[@]}"; do LOAD[$device]=0; done
+# What each flow may run on. The rules themselves are read by `driver_declares` and nowhere else,
+# which is `driver-rules.sh`'s whole point; this only narrows the attached devices by them.
+eligible() { # eligible <driver-file>
+  local driver="$1" keep=() device
+  local candidates=("${DEVICES[@]}")
 
-place() { # place <device> <name>
-  ASSIGNED[$1]="${ASSIGNED[$1]:-} $2"
-  LOAD[$1]=$(( ${LOAD[$1]} + 1 ))
+  if driver_declares "$driver" "TABLET ONLY"; then
+    for device in "${candidates[@]}"; do
+      [ "${ABI[$device]}" = "arm64-v8a" ] && keep+=("$device")
+    done
+    candidates=("${keep[@]+"${keep[@]}"}"); keep=()
+  fi
+  if driver_declares "$driver" "WIDE WINDOW"; then
+    for device in "${candidates[@]+"${candidates[@]}"}"; do
+      [ "${WIDTH[$device]:-0}" -ge 600 ] && keep+=("$device")
+    done
+    candidates=("${keep[@]+"${keep[@]}"}"); keep=()
+  fi
+  if driver_declares "$driver" "NARROW WINDOW"; then
+    for device in "${candidates[@]+"${candidates[@]}"}"; do
+      [ "${WIDTH[$device]:-0}" -lt 840 ] && keep+=("$device")
+    done
+    candidates=("${keep[@]+"${keep[@]}"}")
+  fi
+  printf '%s' "${candidates[*]+${candidates[*]}}"
 }
 
-least_loaded() { # least_loaded <candidate...>
-  local best="" best_load=-1 device
-  for device in "$@"; do
-    if [ "$best_load" -lt 0 ] || [ "${LOAD[$device]}" -lt "$best_load" ]; then
-      best="$device"; best_load="${LOAD[$device]}"
-    fi
-  done
-  echo "$best"
-}
-
-free_flows=()
-skipped=0
-# First pass: a flow with a rule goes where the rule allows, and nowhere else.
+# Every driver and what may run it, one line each, for the planner.
+plan_input=""
 for driver in "$ROOT"/scripts/*-driver.sh; do
   name="$(basename "$driver" -driver.sh)"
   driver_declares "$driver" "NOT A SUITE FLOW" && continue
+  plan_input+="$name"$'\t'"$(eligible "$driver")"$'\n'
+done
 
-  # Every rule the driver declares, not the first one that matches: `x2h-browser-notices-what-a-
-  # cell-wrote` needs an arm64 device **and** a wide one, and an if/elif chain would place it by
-  # the first and let `run-all-flows.sh` skip it for the second. A flow skipped for a rule the
-  # sharder ignored is reported `skipped`, never `failed`.
-  ruled=0
-  candidates=("${DEVICES[@]}")
-  if driver_declares "$driver" "TABLET ONLY"; then
-    ruled=1
-    candidates=($(printf '%s\n' "${candidates[@]}" | while read -r d; do
-      [ -n "$d" ] && [ "${ABI[$d]}" = "arm64-v8a" ] && echo "$d"; done))
-  fi
-  if driver_declares "$driver" "WIDE WINDOW"; then
-    ruled=1
-    candidates=($(printf '%s\n' "${candidates[@]}" | while read -r d; do
-      [ -n "$d" ] && [ "${WIDTH[$d]:-0}" -ge 600 ] && echo "$d"; done))
-  fi
-  if driver_declares "$driver" "NARROW WINDOW"; then
-    ruled=1
-    candidates=($(printf '%s\n' "${candidates[@]}" | while read -r d; do
-      [ -n "$d" ] && [ "${WIDTH[$d]:-0}" -lt 840 ] && echo "$d"; done))
-  fi
-  if [ "$ruled" -eq 0 ]; then
-    free_flows+=("$name")
-    continue
-  fi
-
-  if [ "${#candidates[@]}" -eq 0 ]; then
+# **Balanced by time, not by flow count**, which is the whole reason this is not an inline loop
+# any more: the tablet is the only device that can run the kernel flows *and* is slower per flow,
+# so equal counts left it running for 57 minutes while the emulator finished in 38 and idled.
+# See scripts/shard_flows.py, which carries the measurement and is tested.
+declare -A ASSIGNED
+skipped=0
+while IFS=$'\t' read -r device name; do
+  [ -n "$name" ] || continue
+  if [ "$device" = "-" ]; then
     printf 'SKIP  %-28s no attached device satisfies its rule\n' "$name"
     skipped=$((skipped + 1))
     continue
   fi
-  place "$(least_loaded "${candidates[@]}")" "$name"
-done
-
-# Second pass: everything else goes where there is least work, so the shards end together.
-for name in "${free_flows[@]}"; do
-  place "$(least_loaded "${DEVICES[@]}")" "$name"
-done
+  ASSIGNED[$device]="${ASSIGNED[$device]:-} $name"
+done < <(printf '%s' "$plan_input" | python3 "$ROOT/scripts/shard_flows.py" "$ROOT/build/flow-timings")
 
 # One ordinary sweep per device, in parallel.
 pids=()

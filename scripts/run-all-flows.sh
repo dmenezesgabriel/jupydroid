@@ -21,9 +21,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 LOGS="$ROOT/build/flow-logs"
+# What each flow cost on this device, so the next sharded sweep can balance by time rather than by
+# flow count - see scripts/shard_flows.py, which is where that mattered and why.
+TIMINGS="$ROOT/build/flow-timings"
 # shellcheck source=scripts/driver-rules.sh
 . "$ROOT/scripts/driver-rules.sh"
-mkdir -p "$LOGS"
+mkdir -p "$LOGS" "$TIMINGS"
 
 DEVICE="${ANDROID_SERIAL:-$("$ADB" devices | awk 'NR==2 {print $1}')}"
 [ -n "$DEVICE" ] || { echo "no device; plug one in or set ANDROID_SERIAL"; exit 1; }
@@ -79,9 +82,15 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
     continue
   fi
 
+  started=$SECONDS
   if ANDROID_SERIAL="$DEVICE" "$driver" >"$LOGS/$name.log" 2>&1; then
     printf 'PASS  %s\n' "$name"
     pass=$((pass + 1))
+    # Passes only. A failure's duration is not this flow's cost - it is however long the failing
+    # step's timeout happened to be, or how quickly the driver gave up - and costing next week's
+    # schedule from it would be balancing against an anomaly. An unmeasured flow falls back to the
+    # device's median, which is a better guess than either.
+    printf '%s\t%s\n' "$name" "$((SECONDS - started))" >>"$TIMINGS/$DEVICE.tsv"
   else
     printf 'FAIL  %-28s %s\n' "$name" "$LOGS/$name.log"
     fail=$((fail + 1))
