@@ -48,8 +48,10 @@ class NotebookExportTest {
     export.pickerOpened()
 
     assertEquals(emptyList<OfferedExportFormat>(), state.value.export.offered)
-    val report = state.value.export.report.orEmpty()
-    assertTrue("expected the failure to be reported, got '$report'", report.contains("not running"))
+    val report = state.value.export.report
+    assertTrue("expected a refusal, got $report", report is ExportReport.Refused)
+    val reason = (report as ExportReport.Refused).reason
+    assertTrue("expected the server's own words, got '$reason'", reason.contains("not running"))
   }
 
   /**
@@ -71,7 +73,7 @@ class NotebookExportTest {
 
     export.exportAs("html")
 
-    assertEquals("Exported to reports/Analysis.html", state.value.export.report)
+    assertEquals(ExportReport.Written("reports/Analysis.html", "text/html"), state.value.export.report)
     assertTrue("Analysis.html should be beside the notebook", "reports/Analysis.html" in workspace.paths())
   }
 
@@ -98,6 +100,20 @@ class NotebookExportTest {
     assertArrayEquals(zip.bytes, workspace.readBytes("Analysis.zip"))
   }
 
+  /**
+   * The media type comes through with the path, because a share needs it and it cannot be
+   * re-derived: a markdown export of a notebook with an image is `application/zip`.
+   */
+  @Test
+  fun exportAs_carriesTheServersMediaTypeIntoTheReport() = runTest {
+    val zip = ExportedDocument("Analysis.zip", "application/zip", byteArrayOf(0x50, 0x4B))
+    val export = export(exporter = FakeNotebookExporter(converted = mapOf("markdown" to zip)))
+
+    export.exportAs("markdown")
+
+    assertEquals(ExportReport.Written("Analysis.zip", "application/zip"), state.value.export.report)
+  }
+
   /** The server's name, never one derived here: `slides` is `<stem>.slides.html`, two dots. */
   @Test
   fun exportAs_writesUnderTheNameTheServerChose() = runTest {
@@ -120,7 +136,7 @@ class NotebookExportTest {
     export.exportAs("html")
 
     assertEquals(listOf("Analysis.html"), workspace.paths())
-    assertEquals("Exported to Analysis.html", state.value.export.report)
+    assertEquals(ExportReport.Written("Analysis.html", "text/html"), state.value.export.report)
   }
 
   @Test
@@ -130,7 +146,7 @@ class NotebookExportTest {
 
     export.exportAs("markdown")
 
-    assertEquals("cannot export to 'markdown': $pandoc", state.value.export.report)
+    assertEquals(ExportReport.Refused("cannot export to 'markdown': $pandoc"), state.value.export.report)
     assertEquals(emptyList<String>(), workspace.paths())
   }
 

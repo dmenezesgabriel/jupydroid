@@ -2,7 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -33,20 +35,49 @@ internal fun ExportProgressBar(state: ExportState, modifier: Modifier = Modifier
 }
 
 /**
- * What the export came to, shown once.
+ * What the export came to, shown once - and, when it worked, the one thing left to do with it.
  *
  * A snackbar rather than a dialog, because neither outcome needs a decision: the file is written
  * or the server said why it could not be. [onShown] is what stops a rotation showing it twice -
  * the report is an event, and `LaunchedEffect` re-runs on recomposition with a new key.
+ *
+ * **The action is on the report rather than in a menu**, because the moment a file is written is
+ * the moment somebody wants to send it, and a Share buried in the notebook's overflow would be a
+ * second place to look for something that has just happened. Only a [ExportReport.Written] carries
+ * one; there is nothing to share about a refusal.
+ *
+ * `SnackbarDuration.Long` because a snackbar with an action has to outlast the reading of it -
+ * the default four seconds is for a message nobody has to act on.
  */
 @Composable
-internal fun ExportReportSnackbar(report: String?, host: SnackbarHostState, onShown: () -> Unit) {
+internal fun ExportReportSnackbar(
+  report: ExportReport?,
+  host: SnackbarHostState,
+  onShare: (ExportReport.Written) -> Unit,
+  onShown: () -> Unit,
+) {
   LaunchedEffect(report) {
     if (report == null) return@LaunchedEffect
-    host.showSnackbar(report)
+    val written = report as? ExportReport.Written
+    val outcome = host.showSnackbar(
+      message = exportReportMessage(report),
+      actionLabel = written?.let { SHARE_EXPORT },
+      duration = SnackbarDuration.Long,
+    )
+    if (written != null && outcome == SnackbarResult.ActionPerformed) onShare(written)
     onShown()
   }
 }
+
+/** What the snackbar says, named apart so a test and the bar agree on one string. */
+internal fun exportReportMessage(report: ExportReport): String = when (report) {
+  is ExportReport.Written -> "Exported to ${report.path}"
+  // The server's own sentence, which is the only thing that says *why*.
+  is ExportReport.Refused -> report.reason
+}
+
+/** The reference has no such control - its export is a browser download. See the snackbar above. */
+internal const val SHARE_EXPORT = "Share"
 
 /** Named apart so the bar and a test agree on one string. */
 internal fun exportingLabel(format: String): String = "Exporting to $format"

@@ -55,6 +55,22 @@
                     android:mimeType="*/*" />
             </intent-filter>
         </activity>
+
+        <!--
+          P2j-5: an exported file leaves the app through a `content://` URI, never a `file://`
+          one - passing a file URI out has thrown `FileUriExposedException` since Android 7, and
+          the workspace is private storage no other app could read anyway. The provider grants a
+          one-shot read to whichever app the user picks from the chooser.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.exports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/exported_documents" />
+        </provider>
     </application>
 
 </manifest>

@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.port.ExportedDocument
 import com.jupydroid.app.domain.port.NotebookExportException
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -19,9 +20,28 @@ data class ExportState(
   val loadingFormats: Boolean = false,
   /** The format being converted, or null when nothing is. Names the row so the label can too. */
   val converting: String? = null,
-  /** One line for the user, shown once and then dismissed - see [reportSeen]. */
-  val report: String? = null,
+  /** What the last export came to, shown once and then dismissed - see [reportSeen]. */
+  val report: ExportReport? = null,
 )
+
+/**
+ * How an export ended, as a type rather than as a line of text.
+ *
+ * Because only one of the two outcomes can be *shared*, and a `String` plus a nullable path would
+ * be two fields that have to agree. The wording lives with the surface that shows it
+ * ([ExportReportSnackbar]); what is here is which of the two happened and the facts each carries.
+ */
+sealed interface ExportReport {
+  /**
+   * [path] is relative to the workspace, which is what everything else here speaks, and
+   * [mediaType] is the server's own - both are what a share needs and neither can be re-derived
+   * from the format (see [ExportedDocument]).
+   */
+  data class Written(val path: String, val mediaType: String) : ExportReport
+
+  /** [reason] is the server's own sentence wherever there is one. */
+  data class Refused(val reason: String) : ExportReport
+}
 
 /**
  * `notebook:export-to-format`, and the two things this app does with the result that the reference
@@ -76,7 +96,7 @@ class NotebookExport(
           export = it.export.copy(
             loadingFormats = false,
             offered = offered.getOrDefault(emptyList()),
-            report = offered.exceptionOrNull()?.let(::readable),
+            report = offered.exceptionOrNull()?.let(::refusal),
           ),
         )
       }
@@ -102,15 +122,10 @@ class NotebookExport(
         val exported = exporter.export(notebookId(), format)
         val path = besideNotebook(notebookId(), exported.fileName)
         workspace.writeBytes(path, exported.bytes)
-        path
+        ExportReport.Written(path, exported.mediaType)
       }
       uiState.update {
-        it.copy(
-          export = it.export.copy(
-            converting = null,
-            report = written.fold({ path -> "Exported to $path" }, ::readable),
-          ),
-        )
+        it.copy(export = it.export.copy(converting = null, report = written.getOrElse(::refusal)))
       }
     }
   }
@@ -122,10 +137,12 @@ class NotebookExport(
    * The server's own sentence where there is one, since it is the only thing that says *why* -
    * *"Pandoc wasn't found."* is actionable and "export failed" is not.
    */
-  private fun readable(failure: Throwable): String = when (failure) {
-    is NotebookExportException -> failure.message.orEmpty()
-    else -> "Could not export: ${failure.message ?: failure::class.simpleName}"
-  }
+  private fun refusal(failure: Throwable): ExportReport.Refused = ExportReport.Refused(
+    when (failure) {
+      is NotebookExportException -> failure.message.orEmpty()
+      else -> "Could not export: ${failure.message ?: failure::class.simpleName}"
+    },
+  )
 }
 
 /**

@@ -1,6 +1,7 @@
 package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
@@ -8,6 +9,7 @@ import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
@@ -48,6 +50,11 @@ class AppContainer(
    * Space draws the same menu and only the conversion is missing.
    */
   val notebookExporter: NotebookExporter = FakeNotebookExporter(),
+  /**
+   * How an exported file leaves the app, which the reference has no equivalent of - it exports by
+   * browser download. See [DocumentSharer].
+   */
+  val documentSharer: DocumentSharer = FakeDocumentSharer(),
   val serverLauncher: ServerLauncher = FakeServerLauncher(),
   /**
    * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown by P6c

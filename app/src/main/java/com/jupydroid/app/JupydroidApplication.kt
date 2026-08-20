@@ -11,6 +11,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
+import com.jupydroid.app.data.intent.IntentDocumentSharer
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
 import com.jupydroid.app.data.space.baseSpaceNotebookExporter
@@ -74,6 +75,10 @@ class JupydroidApplication : Application() {
       recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
       kernelGateway = kernelGateway ?: FakeKernelGateway(),
       notebookExporter = notebookExporter ?: FakeNotebookExporter(),
+      // Always real, unlike the two above: sharing needs no Space, so it works on a device that
+      // cannot run one - there is nothing to export there, but a file put in the workspace by any
+      // other means can still be sent.
+      documentSharer = IntentDocumentSharer(this, workspace),
       serverLauncher = serverLauncher,
       // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
       // state, not a Contents API file.

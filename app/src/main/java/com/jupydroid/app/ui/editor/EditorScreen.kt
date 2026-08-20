@@ -37,6 +37,7 @@ import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
@@ -55,6 +56,8 @@ fun EditorScreen(
   kernelGateway: KernelGateway,
   /** `notebook:export-to-format` - see [NotebookExport]. Not a kernel act. */
   notebookExporter: NotebookExporter,
+  /** Where an exported file goes next, from the report that says it was written. */
+  documentSharer: DocumentSharer,
   applicationScope: CoroutineScope,
   /** The app's count of runs in flight, which P1c's backstop reads; see [ActiveCellRuns]. */
   activeCellRuns: ActiveCellRuns,
@@ -292,7 +295,12 @@ fun EditorScreen(
     }
     // Outside the Scaffold's slots because it draws nothing: it posts to [exportReports], which
     // the `snackbarHost` slot above is showing. See [ExportStatus].
-    ExportReportSnackbar(state.export.report, exportReports, viewModel.export::reportSeen)
+    ExportReportSnackbar(
+      report = state.export.report,
+      host = exportReports,
+      onShare = { written -> documentSharer.share(written.path, written.mediaType) },
+      onShown = viewModel.export::reportSeen,
+    )
   }
 }
 
