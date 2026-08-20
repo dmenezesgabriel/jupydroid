@@ -65,6 +65,33 @@ class FocusedCellInput {
     state.edit { insert(selection.start, FOUR_SPACES) }
   }
 
+  /**
+   * What the focused field holds, or null when no cell has the caret.
+   *
+   * The **field's** copy and not the notebook's, which is [CellEditorText]'s reason: an edit
+   * reaches the model on a 150 ms debounce, so the model can be behind what is on screen. A
+   * history session takes this as its placeholder, and a stale one would filter the wrong text out
+   * of the list and restore the wrong text at the end of the walk.
+   */
+  val focusedText: String? get() = target?.text?.toString()
+
+  /**
+   * Replaces the whole text and puts the caret at the end of its first line - `updateEditor`
+   * (`packages/notebook/src/history.ts:213-232`), which is what a recalled history entry does to
+   * the cell being edited.
+   *
+   * Apart from [type], and deliberately: this does **not** run [PythonTypingRules]. The rules are
+   * there so a key on the row does what the same key on the keyboard does; an entry arriving whole
+   * was typed once already, and re-applying them would close a bracket that is already closed.
+   */
+  fun replaceAll(text: String) {
+    val state = target ?: return
+    state.edit {
+      replace(0, length, text)
+      selection = TextRange(endOfFirstLine(text))
+    }
+  }
+
   /** Steps the caret along the text, stopping at either end - a caret outside the text throws. */
   fun moveCaret(by: Int) {
     val state = target ?: return

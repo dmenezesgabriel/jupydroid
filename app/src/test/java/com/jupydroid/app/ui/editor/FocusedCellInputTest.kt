@@ -4,6 +4,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.text.TextRange
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -27,6 +28,73 @@ class FocusedCellInputTest {
     assertFalse(input.isAttached)
 
     input.type(":")
+  }
+
+  // --- what a history entry does to the field (P2k-4) ---------------------------------------
+
+  /** `updateEditor` replaces the whole source (`packages/notebook/src/history.ts:224`). */
+  @Test
+  fun replaceAll_putsTheWholeEntryInTheField() {
+    val state = attached("half typ")
+
+    input.replaceAll("x + 1")
+
+    assertEquals("x + 1", state.text.toString())
+  }
+
+  /**
+   * The caret lands at the end of the entry's **first** line (`history.ts:225-230`), not after its
+   * last - a multi-line entry is recalled to have its head edited, and a caret parked below a
+   * whole block is nowhere near it. See [endOfFirstLine].
+   */
+  @Test
+  fun replaceAll_leavesTheCaretAtTheEndOfTheFirstLine() {
+    val state = attached("")
+
+    input.replaceAll("def f():\n    pass")
+
+    assertEquals(TextRange(END_OF_SIGNATURE), state.selection)
+  }
+
+  @Test
+  fun replaceAll_leavesTheCaretAtTheEndOfAOneLineEntry() {
+    val state = attached("")
+
+    input.replaceAll("x + 1")
+
+    assertEquals(TextRange("x + 1".length), state.selection)
+  }
+
+  /**
+   * An empty entry empties the field, which is how walking forward out of a cell that started
+   * empty gets back to where it began - see [NotebookHistoryTest] for why that departs from the
+   * reference.
+   */
+  @Test
+  fun replaceAll_withEmptyTextEmptiesTheField() {
+    val state = attached("x + 1")
+
+    input.replaceAll("")
+
+    assertEquals("", state.text.toString())
+  }
+
+  @Test
+  fun replaceAll_withNoCellFocusedDoesNothing() {
+    input.replaceAll("x + 1")
+  }
+
+  /** What a history session takes as its placeholder: the text the field holds, not the model's. */
+  @Test
+  fun focusedText_isWhatTheAttachedFieldHolds() {
+    attached("half typ")
+
+    assertEquals("half typ", input.focusedText)
+  }
+
+  @Test
+  fun focusedText_isNullWithNoCellFocused() {
+    assertNull(input.focusedText)
   }
 
   @Test
@@ -125,4 +193,9 @@ class FocusedCellInputTest {
 
   private fun attached(text: String, caret: Int = text.length): TextFieldState =
     TextFieldState(text, TextRange(caret)).also(input::attach)
+
+  private companion object {
+    /** `def f():` is eight characters, which is where the first line ends. */
+    const val END_OF_SIGNATURE = 8
+  }
 }

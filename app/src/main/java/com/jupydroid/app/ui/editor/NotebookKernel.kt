@@ -55,6 +55,17 @@ class NotebookKernel(
   private val runs =
     NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, persist, clock)
 
+  /**
+   * `notebook:access-previous-history-entry` / `access-next-history-entry` - what the kernel has
+   * run, walked from the cell being edited. See [NotebookHistory].
+   *
+   * **Exposed where [runs] is hidden**, and the difference is what each is: the three run methods
+   * are the same idea as the session this class owns, so they read as its own. A walk through the
+   * kernel's history has a cursor, a batch size and a rule about what ends it, none of which the
+   * rest of the kernel wants - and three more methods here is a class about two things.
+   */
+  val history = NotebookHistory(session, kernelGateway, scope)
+
   /** @see NotebookCellRuns.runCell */
   fun runCell(cell: Cell) = runs.runCell(cell)
 

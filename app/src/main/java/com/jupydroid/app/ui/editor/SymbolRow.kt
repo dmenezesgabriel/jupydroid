@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 
 /**
@@ -29,12 +31,31 @@ import androidx.compose.ui.text.font.FontFamily
  * `imePadding` puts it on top of the keyboard; `navigationBarsPadding` keeps it clear of the
  * gesture bar in the moment between the keyboard closing and the mode changing.
  *
+ * **It is also this app's edit-mode key surface**, which is what earns the history pair a place on
+ * it. `notebook:access-previous-history-entry` and its sibling are bound to `Alt ArrowUp` and
+ * `Alt ArrowDown` under a `.jp-Notebook.jp-mod-editMode` selector
+ * (`packages/notebook-extension/schema/tracker.json:452-462`); there is no Alt key here, and this
+ * row is the only thing on screen exactly when that selector would match. They sit right after
+ * `Tab`, at the near end - see the comment on their placement, which is a measurement.
+ *
  * ```
  * if (state.mode == CellMode.EDIT) SymbolRow(input = focusedCellInput)
  * ```
  */
 @Composable
-internal fun SymbolRow(input: FocusedCellInput, modifier: Modifier = Modifier) {
+internal fun SymbolRow(
+  input: FocusedCellInput,
+  modifier: Modifier = Modifier,
+  /**
+   * `accessKernelHistory` - off by default, as the reference ships it. The two keys are **absent**
+   * rather than disabled: both actions return on their first line without the setting
+   * (`packages/notebook/src/actions.tsx:2616`, `:2634`), so a key drawn here would be one that
+   * lights up and does nothing.
+   */
+  accessKernelHistory: Boolean = false,
+  onRecallPreviousEntry: () -> Unit = {},
+  onRecallNextEntry: () -> Unit = {},
+) {
   Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxWidth()) {
     Row(
       modifier = Modifier
@@ -47,6 +68,16 @@ internal fun SymbolRow(input: FocusedCellInput, modifier: Modifier = Modifier) {
         .navigationBarsPadding(),
     ) {
       SymbolKey(label = "Tab", onClick = input::indent)
+      // Second and third rather than last, and that is a measurement rather than a preference:
+      // at the end of the row both were off the right edge of the editor pane on the tablet, the
+      // second one entirely (`evidence/p2k-4-kernel-history/04-…`, before this). The row scrolls,
+      // so nothing was broken - but these are two keys somebody turned a setting on to reach, and
+      // putting them where every tap costs a swipe first is the row's frequency ordering read
+      // backwards. Nobody who leaves the setting off pays for the position.
+      if (accessKernelHistory) {
+        SymbolKey(label = RECALL_PREVIOUS_KEY, describedAs = RECALL_PREVIOUS_ENTRY, onClick = onRecallPreviousEntry)
+        SymbolKey(label = RECALL_NEXT_KEY, describedAs = RECALL_NEXT_ENTRY, onClick = onRecallNextEntry)
+      }
       TYPED_KEYS.forEach { key -> SymbolKey(label = key, onClick = { input.type(key) }) }
       SymbolKey(label = "←", onClick = { input.moveCaret(-1) })
       SymbolKey(label = "→", onClick = { input.moveCaret(1) })
@@ -57,13 +88,40 @@ internal fun SymbolRow(input: FocusedCellInput, modifier: Modifier = Modifier) {
 /**
  * A `TextButton` rather than a hand-rolled box: it carries Material's 48dp minimum touch target,
  * which is the one thing every key here has to have.
+ *
+ * [describedAs] is for the keys whose glyph is not the whole story. A typing key needs none - `:`
+ * announces itself by being the character it inserts - but `Hist ↑` is an abbreviation, and both a
+ * screen reader and a Maestro flow read the description rather than the label when there is one.
  */
 @Composable
-private fun SymbolKey(label: String, onClick: () -> Unit) {
-  TextButton(onClick = onClick) {
+private fun SymbolKey(label: String, onClick: () -> Unit, describedAs: String? = null) {
+  TextButton(
+    onClick = onClick,
+    modifier = if (describedAs == null) Modifier else Modifier.semantics { contentDescription = describedAs },
+  ) {
     Text(text = label, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyLarge)
   }
 }
+
+/**
+ * The two history keys' labels.
+ *
+ * **Not a bare `↑`/`↓`**, which is the shape that would have fitted the row and lied: beside `←`
+ * and `→`, which move the caret one character, a lone arrow reads as moving it one *line*. The
+ * word is what separates walking the document from walking the kernel's history.
+ */
+private const val RECALL_PREVIOUS_KEY = "Hist ↑"
+private const val RECALL_NEXT_KEY = "Hist ↓"
+
+/**
+ * `notebook:access-previous-history-entry`, under the reference's own label - *"Access Previous
+ * Kernel History Entry"* (`packages/notebook-extension/src/index.ts:5179`) - in this app's
+ * sentence case, without the verb a command palette needs and a key does not.
+ */
+internal const val RECALL_PREVIOUS_ENTRY = "Previous kernel history entry"
+
+/** `notebook:access-next-history-entry` (`:5194`) - see [RECALL_PREVIOUS_ENTRY]. */
+internal const val RECALL_NEXT_ENTRY = "Next kernel history entry"
 
 /**
  * Ordered by how often Python reaches for them, not by where a keyboard hides them: the colon

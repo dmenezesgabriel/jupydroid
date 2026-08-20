@@ -4,13 +4,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -29,6 +32,9 @@ class SymbolRowTest {
   @get:Rule val compose = createComposeRule()
 
   private val edits = mutableListOf<String>()
+
+  /** Which history key was tapped, so the row's two callbacks cannot be crossed. */
+  private val recalled = mutableListOf<String>()
 
   @Test
   fun aKeyTypesIntoTheCellThatHasTheCaret() {
@@ -117,7 +123,58 @@ class SymbolRowTest {
     assertTyped("x#")
   }
 
-  private fun showFieldAndRow() {
+  // --- notebook:access-*-history-entry (P2k-4) ----------------------------------------------
+
+  /**
+   * **Absent, not disabled**, while `accessKernelHistory` is off - this app's own rule that a
+   * control which can do nothing is not drawn, and the reference's too: both actions return on
+   * their first line without the setting (`packages/notebook/src/actions.tsx:2616`, `:2634`), so
+   * a key here would be one that lights up and lies.
+   */
+  @Test
+  fun theHistoryKeysAreAbsentWhileKernelHistoryAccessIsOff() {
+    showFieldAndRow(accessKernelHistory = false)
+
+    compose.onNodeWithContentDescription(RECALL_PREVIOUS).assertDoesNotExist()
+    compose.onNodeWithContentDescription(RECALL_NEXT).assertDoesNotExist()
+  }
+
+  @Test
+  fun theHistoryKeysAreOnTheRowOnceKernelHistoryAccessIsOn() {
+    showFieldAndRow(accessKernelHistory = true)
+
+    compose.onNodeWithContentDescription(RECALL_PREVIOUS).performScrollTo().assertIsDisplayed()
+    compose.onNodeWithContentDescription(RECALL_NEXT).performScrollTo().assertIsDisplayed()
+  }
+
+  @Test
+  fun theBackKeyAsksForThePreviousEntry() {
+    showFieldAndRow(accessKernelHistory = true)
+
+    compose.onNodeWithContentDescription(RECALL_PREVIOUS).performScrollTo().performClick()
+
+    compose.runOnIdle { assertEquals(listOf("previous"), recalled) }
+  }
+
+  @Test
+  fun theForwardKeyAsksForTheNextEntry() {
+    showFieldAndRow(accessKernelHistory = true)
+
+    compose.onNodeWithContentDescription(RECALL_NEXT).performScrollTo().performClick()
+
+    compose.runOnIdle { assertEquals(listOf("next"), recalled) }
+  }
+
+  /** Every key on this row is a thumb target, the history pair included. */
+  @Test
+  fun theHistoryKeysAreBigEnoughToTap() {
+    showFieldAndRow(accessKernelHistory = true)
+
+    compose.onNodeWithContentDescription(RECALL_PREVIOUS).performScrollTo().assertIsAtLeastMinimumTouchTarget(compose.density)
+    compose.onNodeWithContentDescription(RECALL_NEXT).performScrollTo().assertIsAtLeastMinimumTouchTarget(compose.density)
+  }
+
+  private fun showFieldAndRow(accessKernelHistory: Boolean = false) {
     compose.setContent {
       JupyterDroidTheme {
         val input = remember { FocusedCellInput() }
@@ -128,7 +185,12 @@ class SymbolRowTest {
             modifier = androidx.compose.ui.Modifier.testTag(FIELD),
             input = input,
           )
-          SymbolRow(input = input)
+          SymbolRow(
+            input = input,
+            accessKernelHistory = accessKernelHistory,
+            onRecallPreviousEntry = { recalled += "previous" },
+            onRecallNextEntry = { recalled += "next" },
+          )
         }
       }
     }
@@ -136,6 +198,10 @@ class SymbolRowTest {
 
   private companion object {
     const val FIELD = "cell-field"
+
+    /** The reference's own command labels, in this app's sentence case - see [SymbolRow]. */
+    const val RECALL_PREVIOUS = "Previous kernel history entry"
+    const val RECALL_NEXT = "Next kernel history entry"
     const val REPORT_TIMEOUT_MS = 2_000L
     const val DEBOUNCE_GRACE_MS = 500L
   }

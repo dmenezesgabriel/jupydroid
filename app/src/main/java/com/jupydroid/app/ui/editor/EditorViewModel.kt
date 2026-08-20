@@ -146,6 +146,11 @@ class EditorViewModel(
    * screen is going away and the debounce will not get its chance.
    */
   fun editCell(cellId: String, source: String) {
+    // `onTextChange` -> `reset()` (`packages/notebook/src/history.ts:313-319`): typing ends a walk
+    // through the kernel's history, so the next tap starts one against the cell as it is now. It
+    // ignores the edit the walk itself caused, which is why it is told the source rather than that
+    // *an* edit happened.
+    kernel.history.sourceReported(source)
     // Re-found after the edit, not before: *"startQuery is also used as 'restartQuery' after each
     // text change"* (`packages/notebook/src/searchprovider.ts:391-395`). A no-op while the find
     // bar is closed, which is almost always.
@@ -292,6 +297,10 @@ class EditorViewModel(
    * is typing in a different one.
    */
   fun cellFocusChanged(cellId: String, focused: Boolean) {
+    // A history walk belongs to the cell it started in - see [NotebookHistory.reset], which is a
+    // narrowing of the reference rather than a copy of it. Reset on *either* edge: the cell being
+    // left is done with its walk, and the cell being entered must not inherit one.
+    kernel.history.reset()
     _uiState.update { state ->
       when {
         focused -> state.withCellSelected(cellId).withMode(CellMode.EDIT)
