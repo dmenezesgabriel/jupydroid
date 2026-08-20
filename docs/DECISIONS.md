@@ -1566,6 +1566,16 @@ optimised: `fetchBatch` runs on every overshoot there (`:182-184`), and a kernel
 more a moment ago may have run something since. Remembering otherwise would be inventing state the
 reference does not keep - asserted in a test so a later reader does not "fix" it.
 
+**One walk at a time, where the reference serialises nothing.** `executionHistory` is a websocket
+round trip and suspends, and tapping back several entries quickly is how this feature is used -
+without a lock both taps see no walk in progress, both open one, and the second overwrites the
+first, so two taps move one entry. The reference's `back()` is equally `async` (`:179-189`) and
+gets away with it because its editor reports synchronously and its history arrives over a
+connection already open; neither is true here. Measured rather than feared: the test double
+`yield()`s before answering, because the real gateway does, and the test fails without the lock.
+**A double that never suspends hides every ordering question a class like this has**, which is the
+general lesson.
+
 ---
 
 ## Harness
