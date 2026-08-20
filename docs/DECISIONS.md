@@ -1179,6 +1179,40 @@ beside a replacement. The reference puts both on the box (`searchview.tsx:245-25
 the bar has no room for a seventh target at 320dp, which is the same arithmetic that put the three
 query options behind the overflow.
 
+### The `output` filter searches what it can also show, and stops there
+
+`getFilters` declares two, both **off** by default (`packages/notebook/src/searchprovider.ts:228-256`):
+`output` (*"Search Cell Outputs"*, `supportReplace: false`) and `selection`
+(*"Search in %1 Selected Cells"*). Both are built; the first is narrower than the reference's and
+says so in its own label.
+
+The reference searches its **rendered DOM**, so a DataFrame's cells are searchable there. Here an
+output becomes one of three things (`RenderedOutput`), and only `Text` is a string: `Document` is
+`RichBlock`s and `Image` is bytes. So this searches stream, stderr, a traceback and `text/plain`,
+and leaves `text/html` and tables alone. **An uncounted match is better than a counted one nobody
+can see** - the same rule that made a match in rendered prose late rather than silent, and the same
+rule that put a collapsed *output* area in `withMatchRevealed` even though `activateNewMatch` never
+looks at one.
+
+**`supportReplace: false` is one rule here rather than a disabled control plus a guard.** The
+reference disables the filter while the replace options are shown and says why in the filter's own
+text (*"not available when replace options are shown"*); `SearchState.outputsSearched` is
+`searchOutputs && !replaceShown`, so with the row open there are no output hits at all and a
+replace cannot stand on one. The toggle is remembered, so closing the row brings them back.
+
+**A hit carries where it is, not just which cell.** `SearchHit.outputAt` is null for the source and
+otherwise the index of the *rendered* output - the reference's own split, where a code cell holds
+one `CellSearchProvider` for its editor and a `GenericSearchProvider` per output widget
+(`packages/cells/src/searchprovider.ts:63-100`). The two are not interchangeable: only a source
+match can be replaced, only a source match is drawn by a text field, and an output match is drawn
+by an `AnnotatedString` instead, because an output is drawn and never typed into.
+
+**The `selection` filter is reachable, and checking that was the point.** Marking a run replaces
+the notebook's bar, so the Find action is unreachable *from* a marked run - but a cell's own `⋮`
+still offers "Select cells" while the find bar is up, and search wins the bar over marking, so the
+run can be started underneath it. The row is offered only while something is marked, this app's
+rule for a control whose two states would look identical.
+
 ### ANSI handling today is a stripper, not an emulator
 
 `RenderedOutput.kt:96-102` regex-replaces SGR escapes out of tracebacks

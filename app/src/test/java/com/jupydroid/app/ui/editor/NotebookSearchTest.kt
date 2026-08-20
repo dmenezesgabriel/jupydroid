@@ -2,6 +2,8 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.StreamName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -281,6 +283,102 @@ class NotebookSearchTest {
       .withCurrentMatchReplaced()
 
     assertEquals("DOG", replaced.sourceOf("a"))
+  }
+
+  // ---- the two filters, P2i-7 ----
+
+  private fun notebookPrinting(cell: Cell, printed: String) = EditorUiState(
+    cells = listOf(cell),
+    selectedCellId = cell.id,
+    loaded = true,
+    outputs = mapOf(cell.id to listOf(CellOutput.Stream(StreamName.STDOUT, printed))),
+  )
+
+  /** `output` is **false** by default there too (`packages/notebook/src/searchprovider.ts:229-243`). */
+  @Test
+  fun outputsAreNotSearchedUntilTheyAreAskedFor() {
+    val searching = notebookPrinting(code("a", "x = 1"), "the cat sat")
+      .withSearchOpened()
+      .withSearchQuery(SearchQuery("cat"))
+
+    assertEquals("-/-", searching.searchCounter())
+  }
+
+  @Test
+  fun theOutputFilterFindsWhatACellPrinted() {
+    val searching = notebookPrinting(code("a", "print('cat')"), "the cat sat")
+      .withSearchOpened()
+      .withSearchQuery(SearchQuery("cat"))
+      .withSearchOutputs(true)
+
+    assertEquals("1/2", searching.searchCounter())
+    // The source first, then the output - the order the reference aggregates them in.
+    assertEquals(listOf(null, 0), searching.search?.hits?.map { it.outputAt })
+  }
+
+  /** A hit in an output is not in the field, so the field must not be handed it. */
+  @Test
+  fun anOutputHitIsDrawnByTheOutputAndNotByTheField() {
+    val searching = notebookPrinting(code("a", "x = 1"), "the cat sat")
+      .withSearchOpened()
+      .withSearchQuery(SearchQuery("cat"))
+      .withSearchOutputs(true)
+
+    assertEquals(CellSearchHighlight.NONE, searching.searchHighlightOf("a"))
+    assertEquals(listOf(4..6), searching.outputSearchHighlightsOf("a").single().matches)
+  }
+
+  /**
+   * `supportReplace: false`, and the reference's own filter text - *"not available when replace
+   * options are shown"* (`:233-236`). One rule rather than a guard in each replace: with the row
+   * open there are no output hits, so a replace cannot stand on one.
+   */
+  @Test
+  fun outputsAreNotSearchedWhileAReplacementIsBeingWritten() {
+    val searching = notebookPrinting(code("a", "x = 1"), "the cat sat")
+      .withSearchOpened()
+      .withSearchOutputs(true)
+      .withSearchQuery(SearchQuery("cat"))
+    assertEquals("1/1", searching.searchCounter())
+
+    assertEquals("-/-", searching.withReplaceShown(true).withSearchRecomputed().searchCounter())
+  }
+
+  /** And the toggle is remembered, so hiding the row again brings the outputs back. */
+  @Test
+  fun theOutputFilterSurvivesTheReplaceRowOpeningAndClosing() {
+    val searching = notebookPrinting(code("a", "x = 1"), "the cat sat")
+      .withSearchOpened()
+      .withSearchOutputs(true)
+      .withSearchQuery(SearchQuery("cat"))
+      .withReplaceShown(true)
+      .withSearchRecomputed()
+      .withReplaceShown(false)
+      .withSearchRecomputed()
+
+    assertEquals("1/1", searching.searchCounter())
+  }
+
+  /** `setIsActive(!filters.selection || isSelectedOrActive(cell))` (`:369-374`). */
+  @Test
+  fun theSelectionFilterSearchesOnlyTheMarkedRun() {
+    val marked = notebook.copy(selectedCellId = "a", anchorCellId = "a")
+      .withSearchOpened()
+      .withSearchQuery(SearchQuery("cat"))
+    assertEquals("1/3", marked.searchCounter())
+
+    assertEquals("1/1", marked.withSearchInSelection(true).searchCounter())
+  }
+
+  /** Off, it is the whole notebook again - the filter narrows, it does not re-anchor. */
+  @Test
+  fun turningTheSelectionFilterOffSearchesTheWholeNotebookAgain() {
+    val marked = notebook.copy(selectedCellId = "a", anchorCellId = "a")
+      .withSearchOpened()
+      .withSearchQuery(SearchQuery("cat"))
+      .withSearchInSelection(true)
+
+    assertEquals("1/3", marked.withSearchInSelection(false).searchCounter())
   }
 
   /** Each cell is handed only its own matches, and only it can hold the current one. */

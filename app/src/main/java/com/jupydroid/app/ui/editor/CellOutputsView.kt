@@ -43,6 +43,8 @@ internal fun CellOutputs(
   hidden: Boolean,
   /** `notebook:toggle-output-scrolling` - see [scrolledOutputsHeight]. */
   scrolled: Boolean,
+  /** One entry per rendered output, or empty - see [outputSearchHighlightsOf]. */
+  search: List<CellSearchHighlight>,
   onExpand: () -> Unit,
 ) {
   val rendered = outputs.mapNotNull { it.render() }
@@ -52,8 +54,8 @@ internal fun CellOutputs(
   when {
     // Collapsed beats scrolled: there is no height to bound when nothing is drawn.
     hidden -> CollapsedCell(rendered.collapsedPreview(), COLLAPSED_OUTPUTS, onExpand)
-    scrolled -> ScrolledOutputs(rendered)
-    else -> OutputColumn(rendered, modifier = Modifier.fillMaxWidth())
+    scrolled -> ScrolledOutputs(rendered, search)
+    else -> OutputColumn(rendered, search, modifier = Modifier.fillMaxWidth())
   }
 }
 
@@ -72,10 +74,11 @@ internal fun CellOutputs(
  * pointer to hover it into view with. Recorded as a departure in `docs/DECISIONS.md`.
  */
 @Composable
-private fun ScrolledOutputs(rendered: List<RenderedOutput>) {
+private fun ScrolledOutputs(rendered: List<RenderedOutput>, search: List<CellSearchHighlight>) {
   Box(modifier = Modifier.fillMaxWidth().heightIn(max = scrolledOutputsHeight())) {
     OutputColumn(
       rendered,
+      search,
       // verticalScroll bounds the Column's own *layout* size but draws the overflow past it
       // rather than cropping it - clipToBounds is what makes the bound a visual one too, and
       // without it the tail of a tall output is still on screen, just past what a user would
@@ -107,11 +110,15 @@ private fun scrolledOutputsHeight(): Dp {
 }
 
 @Composable
-private fun OutputColumn(rendered: List<RenderedOutput>, modifier: Modifier = Modifier) {
+private fun OutputColumn(
+  rendered: List<RenderedOutput>,
+  search: List<CellSearchHighlight>,
+  modifier: Modifier = Modifier,
+) {
   Column(modifier = modifier.semantics { contentDescription = "Cell output" }) {
-    rendered.forEach { output ->
+    rendered.forEachIndexed { at, output ->
       when (output) {
-        is RenderedOutput.Text -> OutputText(output)
+        is RenderedOutput.Text -> OutputText(output, search.getOrElse(at) { CellSearchHighlight.NONE })
         is RenderedOutput.Image -> OutputImage(output)
         // The same renderer a markdown cell uses: `text/html` parses to the same blocks.
         is RenderedOutput.Document -> RichText(output.blocks, Modifier.fillMaxWidth())
@@ -121,10 +128,13 @@ private fun OutputColumn(rendered: List<RenderedOutput>, modifier: Modifier = Mo
 }
 
 @Composable
-private fun OutputText(output: RenderedOutput.Text) {
+private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight) {
+  // An `AnnotatedString` rather than a second transformation: an output is drawn, never typed
+  // into, so there is no `TextFieldBuffer` here and nothing to keep in step with a caret.
+  val text = output.text.withSearchMatches(search, searchMatchStyles())
   if (!output.isError) {
     Text(
-      text = output.text,
+      text = text,
       style = MaterialTheme.typography.bodySmall,
       fontFamily = FontFamily.Monospace,
       color = MaterialTheme.colorScheme.onSurface,
@@ -134,7 +144,7 @@ private fun OutputText(output: RenderedOutput.Text) {
   // A traceback is long and needs to be findable at a glance, so it gets its own tinted
   // block rather than only a colour that a monospace wall of text swallows.
   Text(
-    text = output.text,
+    text = text,
     style = MaterialTheme.typography.bodySmall,
     fontFamily = FontFamily.Monospace,
     color = MaterialTheme.colorScheme.onErrorContainer,

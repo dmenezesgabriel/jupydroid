@@ -64,6 +64,8 @@ import androidx.compose.ui.unit.dp
 fun FindTopBar(
   /** The whole search, read the way [EditorCell] reads a `Cell` - see [SearchState]. */
   search: SearchState,
+  /** How many cells a marked run holds, or 0 when none is marked - names the `selection` filter. */
+  markedCells: Int = 0,
   /** `${current + 1}/${total}` or `-/-` - see [searchCounterText]. */
   counter: String,
   onQueryChanged: (SearchQuery) -> Unit,
@@ -80,6 +82,10 @@ fun FindTopBar(
   onReplace: () -> Unit = {},
   /** `Replace All` - every match in the notebook, as one undoable operation. */
   onReplaceAll: () -> Unit = {},
+  /** The `output` filter. */
+  onToggleSearchOutputs: () -> Unit = {},
+  /** The `selection` filter. */
+  onToggleSearchInSelection: () -> Unit = {},
 ) {
   val box = remember { FocusRequester() }
   // Nothing found is nothing to step through - `-/-` is the counter's own way of saying it.
@@ -140,9 +146,12 @@ fun FindTopBar(
         }
         SearchOptionsMenu(
           search = search,
+          markedCells = markedCells,
           onQueryChanged = onQueryChanged,
           onToggleReplaceShown = onToggleReplaceShown,
           onTogglePreserveCase = onTogglePreserveCase,
+          onToggleSearchOutputs = onToggleSearchOutputs,
+          onToggleSearchInSelection = onToggleSearchInSelection,
         )
       },
     )
@@ -218,9 +227,12 @@ private fun ReplaceRow(
 @Composable
 private fun SearchOptionsMenu(
   search: SearchState,
+  markedCells: Int,
   onQueryChanged: (SearchQuery) -> Unit,
   onToggleReplaceShown: () -> Unit,
   onTogglePreserveCase: () -> Unit,
+  onToggleSearchOutputs: () -> Unit,
+  onToggleSearchInSelection: () -> Unit,
 ) {
   val query = search.query
   var open by remember { mutableStateOf(false) }
@@ -242,6 +254,23 @@ private fun SearchOptionsMenu(
       SearchOptionRow(if (query.useRegex) SEARCH_PLAIN_TEXT else USE_REGULAR_EXPRESSION) {
         open = false
         onQueryChanged(query.copy(useRegex = !query.useRegex))
+      }
+      // The `output` filter, and **not offered while the replace row is open** - the reference
+      // declares it `supportReplace: false` and says so in the filter's own text, *"not available
+      // when replace options are shown"* (`packages/notebook/src/searchprovider.ts:233-236`).
+      if (!search.replaceShown) {
+        SearchOptionRow(if (search.searchOutputs) SEARCH_SOURCE_ONLY else SEARCH_CELL_OUTPUTS) {
+          open = false
+          onToggleSearchOutputs()
+        }
+      }
+      // The `selection` filter, offered only while there *is* a marked run - this app's rule for a
+      // control whose two states would look identical, and the reference's own count in its label.
+      if (markedCells > 0) {
+        SearchOptionRow(if (search.searchSelection) SEARCH_WHOLE_NOTEBOOK else searchInSelection(markedCells)) {
+          open = false
+          onToggleSearchInSelection()
+        }
       }
       SearchOptionRow(if (search.replaceShown) HIDE_REPLACE else SHOW_REPLACE) {
         open = false
@@ -386,6 +415,28 @@ internal const val PRESERVE_CASE = "Preserve case"
 
 /** The same option from the other side - see [PRESERVE_CASE]. */
 internal const val REPLACE_VERBATIM = "Replace verbatim"
+
+/**
+ * The `output` filter - *"Search Cell Outputs"* (`packages/notebook/src/searchprovider.ts:230`).
+ *
+ * **Narrower than the reference's**, and stated in the label rather than hidden: this searches the
+ * outputs it can also *show* a match in - stream, stderr, a traceback and `text/plain` - where the
+ * reference walks its rendered DOM and so reaches a table's text too. See `docs/DECISIONS.md`.
+ */
+internal const val SEARCH_CELL_OUTPUTS = "Search cell outputs"
+
+/** The same filter from the other side - see [SEARCH_CELL_OUTPUTS]. */
+internal const val SEARCH_SOURCE_ONLY = "Search cell source only"
+
+/**
+ * The `selection` filter - the reference pluralises its own label off the count,
+ * *"Search in %1 Selected Cell(s)"* (`searchprovider.ts:246-256`), and so does this.
+ */
+internal fun searchInSelection(cells: Int) =
+  if (cells == 1) "Search in 1 selected cell" else "Search in $cells selected cells"
+
+/** The same filter from the other side - see [searchInSelection]. */
+internal const val SEARCH_WHOLE_NOTEBOOK = "Search the whole notebook"
 
 /** See [NEXT_MATCH]: one node carries both the name and the enabled state. */
 private fun named(what: String) = Modifier.semantics { contentDescription = what }

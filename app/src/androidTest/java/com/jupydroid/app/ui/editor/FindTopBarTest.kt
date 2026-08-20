@@ -220,6 +220,50 @@ class FindTopBarTest {
     compose.onNodeWithText(HIDE_REPLACE).assertIsDisplayed()
   }
 
+  /** `output` - *"Search Cell Outputs"*, and not offered while a replacement is being written. */
+  @Test
+  fun theOutputFilterIsBehindTheOverflowAndGoesWhenReplaceArrives() {
+    compose.setContent { bar() }
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+    compose.onNodeWithText(SEARCH_CELL_OUTPUTS).assertIsDisplayed()
+  }
+
+  @Test
+  fun theOutputFilterIsNotOfferedBesideAReplacement() {
+    compose.setContent { bar(replaceShown = true) }
+
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+
+    compose.onNodeWithText(SEARCH_CELL_OUTPUTS).assertDoesNotExist()
+  }
+
+  /** `selection` - offered only once there is a run to narrow to, and named from its count. */
+  @Test
+  fun theSelectionFilterIsOfferedOnlyWhileCellsAreMarked() {
+    compose.setContent { bar() }
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+    compose.onNodeWithText(searchInSelection(1)).assertDoesNotExist()
+  }
+
+  @Test
+  fun theSelectionFilterCountsTheMarkedCells() {
+    compose.setContent { bar(markedCells = 3) }
+
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+
+    compose.onNodeWithText(searchInSelection(3)).assertIsDisplayed()
+  }
+
+  /** *"Search in %1 Selected Cell"* - the reference pluralises off the count and so does this. */
+  @Test
+  fun oneMarkedCellIsSingular() {
+    compose.setContent { bar(markedCells = 1) }
+
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+
+    compose.onNodeWithText("Search in 1 selected cell").assertIsDisplayed()
+  }
+
   @androidx.compose.runtime.Composable
   private fun bar(
     query: SearchQuery = SearchQuery(""),
@@ -228,6 +272,7 @@ class FindTopBarTest {
     replaceShown: Boolean = false,
     replaceText: String = "",
     preserveCase: Boolean = false,
+    markedCells: Int = 0,
     onQueryChanged: (SearchQuery) -> Unit = {},
     onPrevious: () -> Unit = {},
     onNext: () -> Unit = {},
@@ -246,6 +291,7 @@ class FindTopBarTest {
       preserveCase = preserveCase,
     ),
     counter = counter,
+    markedCells = markedCells,
     onQueryChanged = onQueryChanged,
     onPrevious = onPrevious,
     onNext = onNext,

@@ -378,6 +378,7 @@ private fun EditorContent(
             // Per cell rather than sliced once for the list, unlike the numbers above: a cell's
             // matches depend only on that cell - see [searchHighlightOf].
             search = state.searchHighlightOf(cell.id),
+            outputSearch = state.outputSearchHighlightsOf(cell.id),
             autoClosingBrackets = autoClosingBrackets,
             cellInput = cellInput,
           )

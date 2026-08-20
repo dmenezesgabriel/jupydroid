@@ -58,8 +58,13 @@ internal fun EditorCell(
   lineNumbersShown: Boolean,
   /** `toc:display-numbering`'s answer for this cell's heading, or `""` - see [MarkdownCell]. */
   headingPrefix: String,
-  /** What the find bar found in this cell - see [CellSearchHighlight]. */
+  /** What the find bar found in this cell's **source** - see [CellSearchHighlight]. */
   search: CellSearchHighlight,
+  /**
+   * What it found in this cell's outputs, one entry per *rendered* output and in their order -
+   * empty while the `output` filter is off, which is its default.
+   */
+  outputSearch: List<CellSearchHighlight>,
   /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
   autoClosingBrackets: Boolean,
   cellInput: FocusedCellInput,
@@ -177,6 +182,7 @@ internal fun EditorCell(
       outputs = outputs,
       hidden = cell.outputsHidden,
       scrolled = cell.outputsScrolled,
+      search = outputSearch,
       onExpand = { act(CellAction.ToggleOutputsHidden) },
     )
     // Inside this cell's frame rather than between it and the next, because that is what it is

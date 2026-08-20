@@ -51,6 +51,10 @@ internal fun EditorTopBars(
       onTogglePreserveCase = viewModel.replace::togglePreserveCase,
       onReplace = viewModel.replace::current,
       onReplaceAll = viewModel.replace::all,
+      // Zero unless a run is marked, which a cell's own menu can still start while this bar is up.
+      markedCells = if (state.selecting) state.selectedCellIds.size else 0,
+      onToggleSearchOutputs = viewModel.search::toggleOutputs,
+      onToggleSearchInSelection = viewModel.search::toggleInSelection,
     )
 
     state.selecting && head != null -> SelectionTopBar(

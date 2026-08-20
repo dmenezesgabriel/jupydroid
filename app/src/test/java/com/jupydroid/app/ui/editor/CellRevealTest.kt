@@ -29,6 +29,9 @@ class CellRevealTest {
 
   private fun notebook(vararg cells: Cell) = EditorUiState(cells = cells.toList(), loaded = true)
 
+  /** A match in the cell's source, which is what every case here but the output one is about. */
+  private fun inSourceOf(cellId: String) = SearchHit(cellId, 0..0)
+
   /**
    * **Returns `this` when there was nothing to reveal**, which is load-bearing rather than an
    * optimisation: stepping through matches in an ordinary notebook would otherwise mark it dirty
@@ -74,7 +77,7 @@ class CellRevealTest {
   /** `if (activeCell.inputHidden) activeCell.inputHidden = false` - a match, and only a match. */
   @Test
   fun landingOnAMatchOpensACollapsedSource() {
-    val revealed = notebook(code("a", sourceHidden = true)).withMatchRevealed("a")
+    val revealed = notebook(code("a", sourceHidden = true)).withMatchRevealed(inSourceOf("a"))
 
     assertFalse(revealed.cells.single().sourceHidden)
     assertTrue("a persisted flag changed, so the notebook has to be written", revealed.dirty)
@@ -86,7 +89,7 @@ class CellRevealTest {
    */
   @Test
   fun landingOnAMatchOpensProseToItsSource() {
-    val revealed = notebook(heading("m", "# Motion")).withMatchRevealed("m")
+    val revealed = notebook(heading("m", "# Motion")).withMatchRevealed(inSourceOf("m"))
 
     assertEquals(setOf("m"), revealed.markdownBeingEdited)
   }
@@ -98,13 +101,32 @@ class CellRevealTest {
    */
   @Test
   fun openingProseDoesNotAskForTheKeyboard() {
-    assertNull(notebook(heading("m", "# Motion")).withMatchRevealed("m").markdownTakingCaret)
+    assertNull(notebook(heading("m", "# Motion")).withMatchRevealed(inSourceOf("m")).markdownTakingCaret)
   }
 
   /** Unrendering is not persisted, so it alone must not mark the document dirty. */
   @Test
   fun openingProseAloneDoesNotDirtyTheNotebook() {
-    assertFalse(notebook(heading("m", "# Motion")).withMatchRevealed("m").dirty)
+    assertFalse(notebook(heading("m", "# Motion")).withMatchRevealed(inSourceOf("m")).dirty)
+  }
+
+  /**
+   * **A match in an *output* opens the output area, not the source** - opening the source would be
+   * revealing the wrong half of the cell, and the prose stays rendered for the same reason. No
+   * equivalent in the reference: `activateNewMatch` never looks at `outputHidden`. It is here
+   * because a counted match nobody can see is what this app's search refuses.
+   */
+  @Test
+  fun landingOnAMatchInAnOutputOpensTheOutputAndLeavesTheSourceAlone() {
+    val state = notebook(
+      Cell("a", CellKind.CODE, "print(1)", sourceHidden = true, outputsHidden = true),
+    )
+
+    val revealed = state.withMatchRevealed(SearchHit("a", 0..0, outputAt = 0))
+
+    val cell = revealed.cells.single()
+    assertFalse("the output area gave way", cell.outputsHidden)
+    assertTrue("the collapsed source is not what was hiding the match", cell.sourceHidden)
   }
 
   /** A match keeps the parent-expanding half too - it is [withCellRevealed] plus two, not instead. */
@@ -115,7 +137,7 @@ class CellRevealTest {
       Cell("m", CellKind.MARKDOWN, "some *prose*", sourceHidden = true),
     )
 
-    val revealed = state.withMatchRevealed("m")
+    val revealed = state.withMatchRevealed(inSourceOf("m"))
 
     assertEquals(listOf("h", "m"), revealed.cellsOnScreen.map { it.id })
     assertFalse(revealed.cells.single { it.id == "m" }.sourceHidden)

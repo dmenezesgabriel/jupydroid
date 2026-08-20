@@ -14,8 +14,16 @@ package com.jupydroid.app.ui.editor
  * a search *is*, and that is what the screen asks of it.
  */
 
-/** One match: the cell it is in, and the span of that cell's source it covers. */
-data class SearchHit(val cellId: String, val range: IntRange)
+/**
+ * One match: the cell it is in, the span it covers, and which text of that cell it is in.
+ *
+ * [outputAt] is null for the cell's **source** and otherwise the index of the rendered output it
+ * was found in - the reference's own split, where a code cell holds one `CellSearchProvider` for
+ * its editor and a `GenericSearchProvider` per output widget
+ * (`packages/cells/src/searchprovider.ts:63-100`). The two are not interchangeable: only a source
+ * match can be replaced, and only a source match is drawn by a text field.
+ */
+data class SearchHit(val cellId: String, val range: IntRange, val outputAt: Int? = null)
 
 /**
  * Every match in the notebook, in document order.
@@ -33,10 +41,52 @@ data class SearchHit(val cellId: String, val range: IntRange)
  * state.searchHits(regex)   // [SearchHit("c1", 0..2), SearchHit("c3", 7..9)]
  * ```
  */
-fun EditorUiState.searchHits(regex: Regex): List<SearchHit> =
-  cells.flatMap { cell ->
-    regex.findAll(cell.source).map { SearchHit(cell.id, it.range) }
+fun EditorUiState.searchHits(
+  regex: Regex,
+  /** `output` - *"Search Cell Outputs"*, **false** by default there too (`:228-243`). */
+  includeOutputs: Boolean = false,
+  /** `selection` - *"Search in %1 Selected Cells"*, also false by default (`:244-256`). */
+  onlySelected: Boolean = false,
+): List<SearchHit> {
+  // `setIsActive(!filters.selection || isSelectedOrActive(cell))` (`:369-374`): the filter narrows
+  // which cells are *searched*, and every cell is still walked so the order cannot change.
+  val marked = if (onlySelected) selectedCellIds.toSet() else null
+  return cells.flatMap { cell ->
+    if (marked != null && cell.id !in marked) {
+      emptyList()
+    } else {
+      regex.findAll(cell.source).map { SearchHit(cell.id, it.range) }.toList() +
+        if (includeOutputs) outputHitsOf(cell.id, regex) else emptyList()
+    }
   }
+}
+
+/**
+ * The matches in one cell's **outputs**, after its source - which is the order the reference
+ * aggregates them in too (`super.matchesCount + outputsProvider.reduce(…)`,
+ * `packages/cells/src/searchprovider.ts:88-100`).
+ *
+ * **Only what [RenderedOutput.Text] draws**: stream, stderr, a traceback and `text/plain`. The
+ * reference searches its *rendered DOM*, so a table's text is searchable there; here markup and
+ * tables become `RichBlock`s rather than one string, and a match counted in one could not be shown.
+ * See `docs/DECISIONS.md` - an uncounted match is better than a counted one nobody can see.
+ *
+ * Indexed against the **rendered** list rather than the raw outputs, because that is what
+ * [CellOutputs] draws and so what a highlight has to line up with.
+ */
+private fun EditorUiState.outputHitsOf(cellId: String, regex: Regex): List<SearchHit> =
+  renderedOutputsOf(cellId).flatMapIndexed { at, output ->
+    (output as? RenderedOutput.Text)?.let { text ->
+      regex.findAll(text.text).map { SearchHit(cellId, it.range, outputAt = at) }.toList()
+    }.orEmpty()
+  }
+
+/**
+ * What [CellOutputs] will draw for this cell, in its order - one derivation, so a hit's index and
+ * the composable's index cannot disagree.
+ */
+internal fun EditorUiState.renderedOutputsOf(cellId: String): List<RenderedOutput> =
+  outputs[cellId].orEmpty().mapNotNull { it.render() }
 
 /**
  * Where a freshly typed query lands: the first hit at or after the selected cell, wrapping.

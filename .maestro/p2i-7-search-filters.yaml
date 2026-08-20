@@ -1,0 +1,66 @@
+appId: com.jupydroid.app
+---
+# P2i-7: the two filters `getFilters` declares - `output` ("Search Cell Outputs") and `selection`
+# ("Search in %1 Selected Cells"), both **off** by default as they are there
+# (`packages/notebook/src/searchprovider.ts:228-256`).
+#
+# **The fixture needs no kernel**, which is the same reading that made P2h-6 device-free: nbformat
+# stores a cell's outputs, so `the cat sat on the mat` is on disk and the flow is about a filter
+# rather than about an ABI.
+#
+# The counter carries every claim, because it is the one thing that distinguishes "not searched"
+# from "searched and not found":
+#
+# - `cat` finds 1 by default - the source's `print('the cat sat on the mat')`, and not the identical
+#   word the cell printed;
+# - Search cell outputs makes it 2;
+# - marking one cell and searching only it narrows it again.
+#
+# **This app's `output` filter is narrower than the reference's**: it searches what
+# `RenderedOutput.Text` draws - stream, stderr, a traceback and `text/plain` - where the reference
+# walks its rendered DOM and so reaches a table's text too. A match it cannot also *show* is one it
+# does not count (`docs/DECISIONS.md`).
+#
+# No cell is run, so nothing here needs the tablet.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Printed Matches.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Printed Matches.ipynb"
+- extendedWaitUntil:
+    visible: "the cat sat on the mat"
+    timeout: 30000
+- tapOn: "Find in notebook"
+- inputText: "cat"
+# One: the source. The output holds the same word and is not searched, which is the default.
+- assertVisible: "Matches 1/1"
+- takeScreenshot: 01-the-output-is-not-searched-by-default
+- tapOn: "Search options"
+- tapOn: "Search cell outputs"
+- assertVisible: "Matches 1/2"
+- takeScreenshot: 02-and-now-it-is-lit-where-it-was-printed
+# The label flips, which is the only way the state is readable at all.
+- tapOn: "Search options"
+- assertVisible: "Search cell source only"
+- tapOn: "Search cell source only"
+- assertVisible: "Matches 1/1"
+# The `selection` filter, and it is offered only once there is a run to narrow to - which a cell's
+# own menu can still start while this bar is up.
+- tapOn: "Search options"
+- assertNotVisible: "Search in 1 selected cell"
+# `back` rather than a second tap on the same button: an open `DropdownMenu` puts a scrim over the
+# control that opened it, so the button is there and cannot be pressed.
+- back
+- tapOn: "Cell actions"
+- tapOn: "Select cells"
+- tapOn: "Search options"
+- tapOn: "Search in 1 selected cell"
+- assertVisible: "Matches 1/1"
+- takeScreenshot: 03-narrowed-to-the-marked-run
+- tapOn: "Search options"
+- assertVisible: "Search the whole notebook"
+- takeScreenshot: 04-the-filter-names-itself-from-the-other-side

@@ -24,7 +24,24 @@ data class SearchState(
   val replaceText: String = "",
   /** `preserveCase` - see [replacementFor]. Off, as `_preserveCase = false` is. */
   val preserveCase: Boolean = false,
-)
+  /**
+   * The `output` filter - *"Search Cell Outputs"*, **off** as the reference's default is
+   * (`packages/notebook/src/searchprovider.ts:229-243`).
+   */
+  val searchOutputs: Boolean = false,
+  /** The `selection` filter - *"Search in %1 Selected Cells"*, also off by default (`:244-256`). */
+  val searchSelection: Boolean = false,
+) {
+  /**
+   * Whether outputs are actually searched, which is not the same as the toggle being on.
+   *
+   * The reference declares the filter `supportReplace: false` and disables it while the replace
+   * options are shown, saying so in the filter's own text: *"not available when replace options
+   * are shown"* (`:233-236`). One rule here rather than a disabled control plus a guard in each
+   * replace: with the row open there are no output hits, so a replace cannot stand on one.
+   */
+  val outputsSearched: Boolean get() = searchOutputs && !replaceShown
+}
 
 /**
  * `documentsearch:start`. Re-opening an open bar keeps what is in it, because the icon is a way in
@@ -51,7 +68,11 @@ fun EditorUiState.withSearchClosed(): EditorUiState = if (search == null) this e
 fun EditorUiState.withSearchQuery(query: SearchQuery): EditorUiState {
   if (search == null) return this
   val compiled = query.compile()
-  val hits = if (compiled is CompiledQuery.Matching) searchHits(compiled.regex) else emptyList()
+  val hits = if (compiled is CompiledQuery.Matching) {
+    searchHits(compiled.regex, search.outputsSearched, search.searchSelection)
+  } else {
+    emptyList()
+  }
   // `copy` of the search rather than a fresh one: `_updateSearch` rebuilds the *query*, and the
   // replacement text and its options are the view's, untouched by it (`searchmodel.ts:334-352`).
   return copy(
@@ -94,7 +115,7 @@ fun EditorUiState.withSearchStepped(reverse: Boolean): EditorUiState {
   return if (landed == null) {
     copy(search = searching.copy(current = null))
   } else {
-    withMatchRevealed(landed.cellId)
+    withMatchRevealed(landed)
       .copy(search = searching.copy(current = moved), selectedCellId = landed.cellId, anchorCellId = null)
   }
 }
@@ -103,37 +124,17 @@ fun EditorUiState.withSearchStepped(reverse: Boolean): EditorUiState {
 private fun SearchState.stepped(reverse: Boolean): Int? =
   if (reverse) previousHit(current, hits.size) else nextHit(current, hits.size)
 
+/** The `output` filter - see [SearchState.outputsSearched] for when it actually applies. */
+fun EditorUiState.withSearchOutputs(on: Boolean): EditorUiState =
+  search?.let { copy(search = it.copy(searchOutputs = on)).withSearchRecomputed() } ?: this
+
+/** The `selection` filter - the marked run rather than the whole notebook. */
+fun EditorUiState.withSearchInSelection(on: Boolean): EditorUiState =
+  search?.let { copy(search = it.copy(searchSelection = on)).withSearchRecomputed() } ?: this
+
 /** What the bar reads between its arrows - see [searchCounterText]. */
 fun EditorUiState.searchCounter(): String =
   search?.let { searchCounterText(it.current, it.hits.size) } ?: searchCounterText(null, 0)
-
-/**
- * The matches in one cell, and whether the current one is among them - what a field draws.
- *
- * Computed per cell rather than sliced once for the list, unlike the heading numbers beside it:
- * a heading's number depends on every heading before it, where a cell's matches depend only on
- * that cell, so there is nothing to thread and nothing quadratic to avoid.
- */
-fun EditorUiState.searchHighlightOf(cellId: String): CellSearchHighlight {
-  val searching = search ?: return CellSearchHighlight.NONE
-  val mine = searching.hits.filter { it.cellId == cellId }
-  return if (mine.isEmpty()) {
-    // Its own answer rather than an empty list, so a cell with no matches compares equal to every
-    // other cell with none and stays skippable through recomposition.
-    CellSearchHighlight.NONE
-  } else {
-    CellSearchHighlight(
-      matches = mine.map { it.range },
-      current = searching.currentHit()?.takeIf { it.cellId == cellId }?.range,
-    )
-  }
-}
-
-/** The hit the arrows are on, or null when they are on none. */
-private fun SearchState.currentHit(): SearchHit? = current?.let { hits.getOrNull(it) }
-
-/** Which cell the arrows are standing in, for the screen to scroll to. */
-val SearchState.currentHitCellId: String? get() = currentHit()?.cellId
 
 /**
  * The find bar, driven straight from the screen - the collaborator beside [NotebookCellSelection].
@@ -167,6 +168,12 @@ class NotebookSearch(
 
   /** `documentsearch:highlightPrevious`. */
   fun previous() = step(reverse = true)
+
+  /** The `output` filter - see [SearchState.outputsSearched]. */
+  fun toggleOutputs() = uiState.update { it.withSearchOutputs(it.search?.searchOutputs != true) }
+
+  /** The `selection` filter - the marked run rather than the whole notebook. */
+  fun toggleInSelection() = uiState.update { it.withSearchInSelection(it.search?.searchSelection != true) }
 
   /** `documentsearch:end`. */
   fun end() = uiState.update { it.withSearchClosed() }

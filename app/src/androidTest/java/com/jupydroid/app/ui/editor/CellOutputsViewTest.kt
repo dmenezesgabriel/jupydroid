@@ -33,7 +33,7 @@ class CellOutputsViewTest {
     var scrolled by mutableStateOf(false)
     compose.setContent {
       JupyterDroidTheme {
-        CellOutputs(outputs = listOf(tallStream()), hidden = false, scrolled = scrolled, onExpand = {})
+        CellOutputs(outputs = listOf(tallStream()), hidden = false, scrolled = scrolled, search = emptyList(), onExpand = {})
       }
     }
 
@@ -54,7 +54,7 @@ class CellOutputsViewTest {
   fun aHiddenCellStaysCollapsedEvenWhenScrolled() {
     compose.setContent {
       JupyterDroidTheme {
-        CellOutputs(outputs = listOf(tallStream()), hidden = true, scrolled = true, onExpand = {})
+        CellOutputs(outputs = listOf(tallStream()), hidden = true, scrolled = true, search = emptyList(), onExpand = {})
       }
     }
 

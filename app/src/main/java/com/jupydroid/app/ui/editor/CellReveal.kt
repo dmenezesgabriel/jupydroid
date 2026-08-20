@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 
 /**
@@ -11,7 +12,11 @@ import com.jupydroid.app.domain.model.CellKind
  *   `actions.tsx:2288-2306`), which walks up to the collapsed parent heading and uncollapses it.
  *   Nothing else. A jump from the table of contents gets this one.
  * - **[withMatchRevealed] is what landing on a search match does**, and it adds the two the search
- *   provider adds: `if (activeCell.inputHidden) activeCell.inputHidden = false`
+ *   provider adds - plus, by symmetry, the collapsed *output* area a match in an output would be
+ *   behind. That last has no equivalent in the reference: `activateNewMatch` never looks at
+ *   `outputHidden`. It is here because a counted match nobody can see is the one thing this
+ *   app's search refuses - which is also why the `output` filter is narrower than the
+ *   reference's: `if (activeCell.inputHidden) activeCell.inputHidden = false`
  *   (`packages/notebook/src/searchprovider.ts:630-634`), and `cell.rendered = false` for a markdown
  *   cell (`packages/cells/src/searchprovider.ts:380-410`, `_unrenderedByHighlight`). Both exist to
  *   put the match where it can be seen, which only a search needs.
@@ -73,21 +78,44 @@ fun EditorUiState.withCellRevealed(cellId: String): EditorUiState {
  * state.withMatchRevealed("c7")   // its section open, its source open, its prose unrendered
  * ```
  */
-fun EditorUiState.withMatchRevealed(cellId: String): EditorUiState {
-  val cell = cells.firstOrNull { it.id == cellId } ?: return this
-  val unrender = cell.kind == CellKind.MARKDOWN && cellId !in markdownBeingEdited
-  val expanded = withCellRevealed(cellId)
-  return if (!cell.sourceHidden && !unrender) {
-    expanded
-  } else {
-    expanded.copy(
-      cells = expanded.cells.map { if (it.id == cellId) it.copy(sourceHidden = false) else it },
-      // Opened, and **not** asked to take the caret: a command that unrenders is not a tap asking
-      // to type in it, which is the distinction P2e-3 cost a soft keyboard over an untouched
-      // notebook to learn (`EditorUiState.markdownTakingCaret`).
-      markdownBeingEdited = if (unrender) markdownBeingEdited + cellId else markdownBeingEdited,
-      // Which markdown cells are open is not the document's; `sourceHidden` is.
-      dirty = expanded.dirty || cell.sourceHidden,
-    )
-  }
+fun EditorUiState.withMatchRevealed(hit: SearchHit): EditorUiState {
+  val cell = cells.firstOrNull { it.id == hit.cellId } ?: return this
+  val folds = cell.foldsOver(hit, markdownBeingEdited)
+  val expanded = withCellRevealed(cell.id)
+  return if (folds.none) expanded else expanded.opening(cell.id, folds)
 }
+
+/** Which of the three things a landing has to undo are actually in the way of *this* match. */
+private data class MatchFolds(val source: Boolean, val outputs: Boolean, val prose: Boolean) {
+  val none: Boolean get() = !source && !outputs && !prose
+}
+
+/**
+ * A match in an output is not in the cell's source, so opening the *source* would be revealing the
+ * wrong half - the output area is what has to give way instead, and the prose stays rendered.
+ */
+private fun Cell.foldsOver(hit: SearchHit, beingEdited: Set<String>): MatchFolds {
+  val inOutput = hit.outputAt != null
+  return MatchFolds(
+    source = !inOutput && sourceHidden,
+    outputs = inOutput && outputsHidden,
+    prose = !inOutput && kind == CellKind.MARKDOWN && id !in beingEdited,
+  )
+}
+
+private fun EditorUiState.opening(cellId: String, folds: MatchFolds): EditorUiState = copy(
+  cells = cells.map {
+    when {
+      it.id != cellId -> it
+      folds.source -> it.copy(sourceHidden = false)
+      folds.outputs -> it.copy(outputsHidden = false)
+      else -> it
+    }
+  },
+  // Opened, and **not** asked to take the caret: a command that unrenders is not a tap asking to
+  // type in it, which is the distinction P2e-3 cost a soft keyboard over an untouched notebook to
+  // learn (`EditorUiState.markdownTakingCaret`).
+  markdownBeingEdited = if (folds.prose) markdownBeingEdited + cellId else markdownBeingEdited,
+  // Which markdown cells are open is not the document's; both collapse flags are.
+  dirty = dirty || folds.source || folds.outputs,
+)
