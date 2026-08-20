@@ -29,3 +29,19 @@ class ExportReportMessageTest {
     assertEquals("cannot export to 'rst': nbconvert failed: Pandoc wasn't found.", exportReportMessage(refused))
   }
 }
+
+/**
+ * The progress bar's name, which is the only text an indeterminate bar has - what a screen reader
+ * says and what a flow waits for.
+ */
+class ExportingLabelTest {
+  @Test
+  fun namesTheFormatBeingConverted() {
+    assertEquals("Exporting to html", exportingLabel("html"))
+  }
+
+  @Test
+  fun namesWhicheverFormatItIs() {
+    assertEquals("Exporting to slides", exportingLabel("slides"))
+  }
+}

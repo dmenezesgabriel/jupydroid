@@ -48,7 +48,7 @@ to depend on**, which is checkable:
 | Package | What it is | Placement rule |
 |---|---|---|
 | `domain/{model,port}` | the app's own types and its ports | no `android.*`, no other layer — **guard-tested** |
-| `data/{disk,fake,space}` | adapters implementing ports | one file per adapter, named `<Mechanism><PortConcept>` |
+| `data/{disk,fake,intent,space}` | adapters implementing ports | one file per adapter, named `<Mechanism><PortConcept>` |
 | `ui/{editor,explorer,fileeditor}` | screens and ViewModels | reads ports; never constructs an adapter |
 | `di` | `AppContainer`, the composition root | constructed once per process, in `JupydroidApplication` |
 | `html`, `import`, `markdown`, `syntax` | **document and language logic** — parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages*, not this app's domain; not `data/`, because they implement no port. JVM-testable, and every test for them is a plain unit test |
@@ -89,10 +89,19 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | `RecentDocumentsRepository` | what was opened, persisted outside the workspace | `DiskRecentDocumentsRepository` |
 | `KernelGateway` | connect/execute/interrupt/restart/complete against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
 | `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
+| `EditorSettingsRepository` | the app-wide editor preferences | `DiskEditorSettingsRepository` |
+| `NotebookExporter` | list nbconvert's formats, convert one notebook | `OkHttpNotebookExporter` over the server's nbconvert endpoints, behind `BaseSpaceNotebookExporter` |
+| `DocumentSharer` | offer a workspace file to another app | `IntentDocumentSharer` → `FileProvider` + `ACTION_SEND` |
 
 Each port also has a `Fake…` in `data/fake/`, which is what `AppContainer`'s defaults are —
 tests get one for free, and an x86_64 device (where no Space can run) keeps the fake kernel so
 the UI still works.
+
+**Two clients of the Space's server, and one object that starts it.** `BaseSpaceServer` owns the
+lazy install-and-start, and `PerRunningServer` gives each client one instance per server -
+`BaseSpaceKernelGateway` and `BaseSpaceNotebookExporter` today, a terminal and a language server
+later. This is not layering for its own sake: `JupyterServerLauncher.start` begins with `stop()`,
+so a second starter would kill the kernel's server (`docs/DECISIONS.md`).
 
 `Space` is a **first-class domain type** (`files/spaces/<id>/`), not a string. Named after
 SageMaker Studio rather than "environment", which would collide with the Python environments

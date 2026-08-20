@@ -27,6 +27,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 LOGS="$ROOT/build/flow-logs"
+# shellcheck source=scripts/driver-rules.sh
+. "$ROOT/scripts/driver-rules.sh"
 mkdir -p "$LOGS"
 
 DEVICES=("$@")
@@ -68,22 +70,30 @@ skipped=0
 # First pass: a flow with a rule goes where the rule allows, and nowhere else.
 for driver in "$ROOT"/scripts/*-driver.sh; do
   name="$(basename "$driver" -driver.sh)"
-  grep -q "NOT A SUITE FLOW" "$driver" && continue
+  driver_declares "$driver" "NOT A SUITE FLOW" && continue
 
-  candidates=()
-  if grep -q "TABLET ONLY" "$driver"; then
-    for device in "${DEVICES[@]}"; do
-      [ "${ABI[$device]}" = "arm64-v8a" ] && candidates+=("$device")
-    done
-  elif grep -q "WIDE WINDOW" "$driver"; then
-    for device in "${DEVICES[@]}"; do
-      [ "${WIDTH[$device]:-0}" -ge 600 ] && candidates+=("$device")
-    done
-  elif grep -q "NARROW WINDOW" "$driver"; then
-    for device in "${DEVICES[@]}"; do
-      [ "${WIDTH[$device]:-0}" -lt 840 ] && candidates+=("$device")
-    done
-  else
+  # Every rule the driver declares, not the first one that matches: `x2h-browser-notices-what-a-
+  # cell-wrote` needs an arm64 device **and** a wide one, and an if/elif chain would place it by
+  # the first and let `run-all-flows.sh` skip it for the second. A flow skipped for a rule the
+  # sharder ignored is reported `skipped`, never `failed`.
+  ruled=0
+  candidates=("${DEVICES[@]}")
+  if driver_declares "$driver" "TABLET ONLY"; then
+    ruled=1
+    candidates=($(printf '%s\n' "${candidates[@]}" | while read -r d; do
+      [ -n "$d" ] && [ "${ABI[$d]}" = "arm64-v8a" ] && echo "$d"; done))
+  fi
+  if driver_declares "$driver" "WIDE WINDOW"; then
+    ruled=1
+    candidates=($(printf '%s\n' "${candidates[@]}" | while read -r d; do
+      [ -n "$d" ] && [ "${WIDTH[$d]:-0}" -ge 600 ] && echo "$d"; done))
+  fi
+  if driver_declares "$driver" "NARROW WINDOW"; then
+    ruled=1
+    candidates=($(printf '%s\n' "${candidates[@]}" | while read -r d; do
+      [ -n "$d" ] && [ "${WIDTH[$d]:-0}" -lt 840 ] && echo "$d"; done))
+  fi
+  if [ "$ruled" -eq 0 ]; then
     free_flows+=("$name")
     continue
   fi

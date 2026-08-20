@@ -1381,6 +1381,87 @@ saves are debounced at 500 ms (`NotebookSaveDebounce`) and the server is stopped
 idleness (`AppContainer.IDLE_STOP_GRACE`), so every keystroke's write would depend on a runtime
 that takes seconds to come back.
 
+### One object owns the Space's server, because starting one stops the last
+
+`JupyterServerLauncher.start` begins with `stop()` (`JupyterServerLauncher.kt:50-51`). So a second
+lazy starter beside `BaseSpaceKernelGateway` - an export, and later a terminal or a language server
+- would kill the kernel's server the first time it was used, and strand the session running on it.
+
+`BaseSpaceServer` is the one that starts it and `PerRunningServer` is the rule every client of it
+needs: one instance while the server lives, a fresh one when a replacement takes over. **A client
+learns it was replaced inside its own `build`**, which is what keeps `BaseSpaceKernelGateway`'s
+"nothing the old server issued carries over" from drifting apart from "a new gateway exists".
+
+The generation counter rather than the connection is what identifies a server, and that is a
+measurement: the launcher mints its token once per *launcher*, and the OS may hand back the same
+ephemeral port, so two `ServerConnection`s can compare equal across a restart.
+
+### An export is named by the server, and its shape depends on the notebook
+
+`GET /nbconvert/<format>/<path>?download=true` answers with three things and **none of them may be
+derived from the format** (`evidence/p2j-2-export-formats/`):
+
+- the `Content-Disposition` is RFC 5987 - `filename*=utf-8''name.html` - and never a plain
+  `filename=`, on every one of the six formats that converted;
+- exporting a notebook **with an image output** to `markdown` returns a **zip** named `<stem>.zip`,
+  because that exporter writes each image beside the document and `respond_zip` then packs both
+  (`jupyter_server/nbconvert/handlers.py:38-65`). The same notebook to `html` is not a zip, since
+  that exporter inlines images as data URIs;
+- so `ExportedDocument` carries the file name, the media type and the bytes, and
+  `WorkspaceRepository` grew `writeBytes` beside `writeText` - a zip written through a `String` is
+  a corrupt zip.
+
+### The export menu offers what was measured, not what the server lists
+
+`GET /api/nbconvert` names every exporter that *constructs* - `get_export_names` keeps one if
+`e.enabled` (`nbconvert/exporters/base.py`) - and constructing is not converting. On the shipped
+rootfs **fourteen are listed and six convert**: `asciidoc`, `latex`, `pdf` and `rst` route every
+markdown cell through `convert_pandoc` and there is no pandoc; `webpdf` wants playwright and
+`qtpdf`/`qtpng` want PyQtWebEngine.
+
+The reference offers all of them and lets a conversion fail. **A row that can only fail is a
+control that lies**, so this app draws the intersection of what the Space lists with what it has a
+label and a measurement for - four rows. A Space that loses an exporter loses its row; one that
+gains pandoc gains nothing until the list says so.
+
+**And "Executable Script" is served by `python`, not by `script`.** `ScriptExporter` reads
+`nb.metadata.language_info` to pick a language exporter and its extension
+(`nbconvert/exporters/script.py:52-60`), and this app writes `kernelspec` alone - so on the device
+`script` answered `text/plain`, named `.txt`, holding the cell sources concatenated with none of
+`python`'s `# In[1]` structure. The reference excludes `python` only because its own `script`
+already dispatches to it. **Writing `language_info` is the fidelity fix**, it is not built, and it
+is the trigger that would let `script` be offered as itself.
+
+### The format list is fetched when the picker opens, and not before
+
+The Space is started on demand, so a menu that fetched the list on every open of the notebook's
+overflow would boot a runtime - seconds - to populate itself. The reference caches on the first
+notebook because its server is always up (`packages/notebook-extension/src/index.ts:855-890`).
+
+That leaves this app with a state the reference has no name for, and it is a **row of text** rather
+than a spinner: Android's accessibility tree carries a `DropdownMenuItem`'s label, so a
+`CircularProgressIndicator` in a menu is a control no flow can read - the same reading that made
+every toggle in this app two labels rather than one and a check mark.
+
+### An export lands beside the notebook, and replaces what was there
+
+The reference hands the bytes to the browser - `window.open(url, download=true)` - and where they
+go is the browser's business. An Android app has no such place, so the artifact goes into the
+workspace beside the document, where the explorer already lists it and a cell can already `open()`
+it.
+
+**An existing file of that name is replaced**, which is `jupyter nbconvert`'s own behaviour on the
+command line and the only one that does not litter: a fourth `Analysis2.html` beside three others
+answers nobody's question. The report names the file, so the replacement is never silent.
+
+### A file leaves the app through a grant, never through a path
+
+`IntentDocumentSharer` shares a `content://` URI from a `FileProvider` rooted at
+`spaces/base/home/jupydroid` - the workspace, and nothing else under `files/`. A `file://` URI has
+thrown `FileUriExposedException` since targetSdk 24 and the workspace is private storage besides;
+and a provider rooted one level up could hand the rootfs, the recents file, the editor settings or
+**the server's token** to any app the user picked.
+
 ---
 
 ## Harness
@@ -1448,6 +1529,41 @@ that takes seconds to come back.
   tablet**, where the file list beside it shows the same name — so a flow that means "the
   notebook's own bar is up" names a control that is only on it (`Back to notebooks`), never the
   title. Both halves cost one red run to find and neither would have failed loudly.
+- **`childOf: {text: "Cell output"}` scopes nothing on a screen with more than one output.**
+  Maestro resolves the scope against the *first* container, so a notebook carrying a PNG and a
+  table besides the cell being run failed an assertion its own hierarchy capture proved was on
+  screen. `u4-execution-status` already recorded this; P2j-2 hit it again from the other side.
+  Where the value is in no cell's source the flow needs no scope, and the output gate agrees.
+- **An output below the fold is not a failed run.** With the runnable cell last, its output landed
+  under the kernel bar and an unscoped assertion failed too - against a screenshot whose own
+  *"ran in 6.2 s"* said the cell had run. The fixture puts that cell **first** now. Third time in
+  this project that the screenshot is what said otherwise.
+- **A driver check that cannot fail is worse than no check, and `adb shell content` gives two ways
+  to write one.** `content read` against an `exported="false"` provider is denied for the shell
+  user *whatever the configuration says* - so a check asserting it succeeds measures nothing, and
+  the refusal is the assertion instead (no bytes, and `not exported from UID` in the error). And
+  `content` **exits 0 when it is denied**: it catches the SecurityException, prints it on stderr
+  and returns success, so `|| fail` never fires. Read what a command wrote, not what it returned.
+  Both in `evidence/p2j-5-share-export/`.
+- **A grep for source code in an exported document will not find it.** Pygments wraps every token
+  in its own `<span>`, so `print(3 ** 5)` appears nowhere in the markup as one string and
+  `grep '3 \*\* 5'` fails against a perfectly good export. Strip the tags and read the document as
+  text, which is what a reader sees.
+- **A device rule counts only where it is *declared*, and the sharder and the runner read it in one
+  place.** A bare `grep -q "WIDE WINDOW"` also matched prose *about* the rule:
+  `p2j-4-export-menu` declares NARROW WINDOW on one line and calls itself "the mirror of `WIDE
+  WINDOW`" three lines later, so it was placed on the 1280dp tablet and skipped there. **The sweep
+  read `failed 0` with a flow that had never run** - which is the whole failure class this harness
+  exists to prevent, arriving as a `skipped` rather than as a red. `scripts/driver-rules.sh` is
+  now the one reading (`^#\s*<RULE>`), sourced by both scripts so they cannot disagree, and the
+  rules **intersect** rather than shadow each other - `x2h-browser-notices-what-a-cell-wrote` needs
+  an arm64 device *and* a wide one, and an if/elif chain placed it by the first and let the runner
+  skip it for the second. Two drivers had to declare properly before the tightening was safe: that
+  one's WIDE WINDOW and `p1c`'s NOT A SUITE FLOW were both only ever matched mid-sentence.
+- **`./gradlew :app:installDebug` says *"Installed on 1 device"* rather than failing when a device
+  has dropped off USB.** It is not an error, and the sweep that follows drives whatever build was
+  there before. `adb kill-server && adb start-server` is the recovery, already recorded for
+  `evidence/u-flow-sweep/`.
 - **A greyed `DropdownMenuItem` cannot be asserted greyed from a flow, and there is no fix in the
   app for it.** Compose's *merged* semantics tree — what `createComposeRule` reads — folds the item
   into one node carrying both its label and its disabled state, so `assertIsNotEnabled` on the

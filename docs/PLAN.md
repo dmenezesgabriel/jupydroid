@@ -36,9 +36,9 @@ filesystem the kernel, the server and the app all share.
 | Runtime | rootfs installs, server starts, kernels start and **reattach**; numpy/scipy import; the server stops when it is idle or the app is left, and comes back on the next run; a kernel can be ended on purpose from the kernel menu |
 | Notebook | **find and replace** across the document, with the reference's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
-| Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
+| Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 230 instrumented, 1122 unit, 89 Maestro drivers over 103 flows - 84 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 244 instrumented, 1204 unit, 93 Maestro drivers over 107 flows - 88 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, settings,
 trust, export.
@@ -461,13 +461,62 @@ Eight costs the plan did not name, each recorded in `docs/DECISIONS.md` rather t
   `SearchHit` carries *where* it is now, since only a source match can be replaced or drawn by a
   field.
 
+**P2j has shipped, in six sub-steps, and its first decision was to build half of it.**
+`notebook:export-to-format` is in - a row in the notebook's overflow, a picker of the formats this
+device can actually convert, the file beside the notebook and a share sheet from the report that
+says it was written. `notebook:trust` is **not** built, and that is a decision rather than a gap:
+trust gates exactly three renderers in the reference and this app draws none of them, so the
+command would gate nothing. What each settled is `docs/DECISIONS.md`, which also names the trigger
+that would make trust real; the evidence is `evidence/p2j-2-export-formats/` through
+`evidence/p2j-5-share-export/`.
+
+**The format list was measured before any of it was written, and it is why the menu has four rows
+rather than eleven.** `GET /api/nbconvert` named fourteen exporters on the tablet and **six**
+converted: `asciidoc`, `latex`, `pdf` and `rst` route every markdown cell through `convert_pandoc`
+and there is no pandoc in the rootfs, `webpdf` wants playwright, `qtpdf`/`qtpng` want PyQtWebEngine.
+The reference offers all of them and lets a conversion fail; a row that can only fail is a control
+that lies.
+
+Six costs the plan did not name, each recorded in `docs/DECISIONS.md` rather than here:
+
+- **A second client of the Space would have killed the kernel's server.**
+  `JupyterServerLauncher.start` begins with `stop()`, so the lazy start had to be extracted into
+  one `BaseSpaceServer` that every client asks before an exporter could exist at all. Five device
+  gates were re-run on the refactor (`evidence/p2j-3-space-server/`), because its whole risk is in
+  behaviours no unit test reaches.
+- **Nothing about an export may be derived from the format.** A `markdown` export of a notebook
+  with an image comes back as a **zip**, the `Content-Disposition` is RFC 5987 rather than a plain
+  filename, and `WorkspaceRepository` grew `writeBytes` because a zip written through a `String` is
+  a corrupt zip.
+- **`script` is not a Python file for a notebook this app wrote.** `ScriptExporter` reads
+  `metadata.language_info` and this app writes `kernelspec` alone, so it answered `.txt` with the
+  sources concatenated. *"Executable Script"* is served by `python` instead, and **writing
+  `language_info` is the fidelity fix** - not built, and the trigger that would let `script` be
+  offered as itself.
+- **`EditorTopBar.kt` was 438 lines against a 500-line gate**, and the button said *"View
+  actions"* over a menu about to hold an export. Both went first, as their own commit: the overflow
+  is `NotebookActionsMenu.kt` now, and folding the reference's File menu into its View menu is the
+  same adaptation `NotebookBar` already makes for Run + Kernel.
+- **A menu cannot show a spinner that a flow can read.** Android's accessibility tree carries a
+  `DropdownMenuItem`'s label and nothing else, so *"Finding export formats…"* is a row of text -
+  the same reading that made every toggle in this app two labels rather than one and a check mark.
+- **Two driver checks that could not fail, both in the share step.** `adb shell content read`
+  against an `exported="false"` provider is denied for the shell user whatever the configuration
+  says, and `content` exits 0 when it is denied. The refusal is the assertion now, and whether a
+  recipient can read the bytes is an instrumented test.
+
 | # | Sub-step | What settles it |
 |---|---|---|
-| **P2j** | **Export** | `notebook:export-to-format`, over `nbconvert==7.17.1` in the rootfs and the two handlers `jupyter_server` registers by default (`serverapp.py:197-199`). `GET /api/nbconvert` lists the exporters, `GET /nbconvert/<format>/<path>?download=true` converts one; the artifact lands as a file in the workspace and then, as its own sub-step, in a share sheet. **Which formats are offered is measured, not read off the list** - `get_export_names` only checks that an exporter *constructs*, and `asciidoc`, `latex`, `rst` and `pdf` all call `convert_pandoc` on every markdown cell against a rootfs with no pandoc in it. |
-| **P2j — trust** | **`notebook:trust` is not built** | *Decided, on the measurement.* Trust gates exactly three renderers in the reference and this app draws none of them, so the command would gate nothing. What was measured, and the trigger that would make it real, is `docs/DECISIONS.md`. |
 | **P2k** | **Execution history** | `access-previous-history-entry`, `access-next-history-entry`. Needs `history_request` on the shell channel — a protocol message the gateway does not send yet, so it is a `KernelGateway` addition, not just UI. |
 
-**Deliberately out of this phase:** `create-output-view`, `set-side-by-side-ratio`, the full
+**Named and not scheduled: `metadata.language_info` is never written.** A real Jupyter fills it in
+on save from the kernel's `kernel_info_reply`; this app writes `kernelspec` alone.
+`Notebook.PreservedJson` keeps a foreign notebook's copy and `NotebookRoundTripTest` proves it, but
+nothing produces one. It is a nbformat-fidelity gap rather than an export one, it is what makes
+`script` answer `.txt` here (`docs/DECISIONS.md`), and whoever closes it can offer *"Executable
+Script"* as `script` rather than as `python`.
+
+**Deliberately out of this phase:** `create-output-view`, `set-side-by-side-ratio`, the rest of the
 `export-to-format` matrix, and — moved here from P2g rather than built there —
 **`toggle-virtual-scrollbar`**. It is a cell-preview strip with a viewport indicator and
 click-to-jump, engine in `packages/notebook/src/windowing.ts` — not a touch target at 360dp, and

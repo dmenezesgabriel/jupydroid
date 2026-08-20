@@ -2,10 +2,14 @@
 # X2h: the browser re-reads the directory it is showing, so a file a *cell* wrote appears without
 # anyone touching the screen. This is X1a's promise finally observable from the UI.
 #
-# TABLET ONLY, for both reasons at once. It runs a cell, so on the x86_64 emulator
-# `FakeKernelGateway` would echo the cell's own source back and no file would ever be written; and
-# it needs a WIDE WINDOW (>= 840dp), because the browser has to be *beside* the notebook for the
-# appearing row to be watchable while the cell runs.
+# Two rules at once, and each is declared on its own line because that is what selects one - see
+# scripts/driver-rules.sh.
+#
+# TABLET ONLY (SM-X216B): it runs a cell, so on the x86_64 emulator `FakeKernelGateway` would echo
+# the cell's own source back and no file would ever be written.
+#
+# WIDE WINDOW (>= 840dp): the browser has to be *beside* the notebook for the appearing row to be
+# watchable while the cell runs.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

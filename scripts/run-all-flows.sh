@@ -21,6 +21,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 LOGS="$ROOT/build/flow-logs"
+# shellcheck source=scripts/driver-rules.sh
+. "$ROOT/scripts/driver-rules.sh"
 mkdir -p "$LOGS"
 
 DEVICE="${ANDROID_SERIAL:-$("$ADB" devices | awk 'NR==2 {print $1}')}"
@@ -51,15 +53,15 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
 
   # A driver can be a tool rather than a check - `step5-completion-repeat` runs one flow twenty
   # times to measure a rare defect. Running it here would add twenty launches to every sweep.
-  if grep -q "NOT A SUITE FLOW" "$driver"; then continue; fi
+  if driver_declares "$driver" "NOT A SUITE FLOW"; then continue; fi
 
-  if grep -q "TABLET ONLY" "$driver" && [ "$ABI" != "arm64-v8a" ]; then
+  if driver_declares "$driver" "TABLET ONLY" && [ "$ABI" != "arm64-v8a" ]; then
     printf 'SKIP  %-28s needs arm64: it runs a cell, and the fake would answer\n' "$name"
     skip=$((skip + 1))
     continue
   fi
 
-  if grep -q "WIDE WINDOW" "$driver" && [ "${WIDTH_DP:-0}" -lt 600 ]; then
+  if driver_declares "$driver" "WIDE WINDOW" && [ "${WIDTH_DP:-0}" -lt 600 ]; then
     printf 'SKIP  %-28s needs >=600dp: it taps a text field and reads the caret\n' "$name"
     skip=$((skip + 1))
     continue
@@ -71,7 +73,7 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
   # sheet (P2h-3) - so a flow asserting the sheet is not a failure on a tablet, it is the wrong
   # question. 840dp is the editor-width boundary `tocPresentationFor` reads, and the window is the
   # closest thing this script can measure.
-  if grep -q "NARROW WINDOW" "$driver" && [ "${WIDTH_DP:-0}" -ge 840 ]; then
+  if driver_declares "$driver" "NARROW WINDOW" && [ "${WIDTH_DP:-0}" -ge 840 ]; then
     printf 'SKIP  %-28s needs <840dp: it asserts the compact-width adaptation\n' "$name"
     skip=$((skip + 1))
     continue

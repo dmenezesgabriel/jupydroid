@@ -25,7 +25,9 @@ set -euo pipefail
 # TABLET ONLY (SM-X216B). The flows assert `42` and `54`, which only a real kernel produces - on
 # the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's source
 # back as stdout. And the whole point is a process dying and coming back, which the fake does not
-# model. NOT A SUITE FLOW: the waits are ~2 minutes of wall time and are the gate itself.
+# model.
+#
+# NOT A SUITE FLOW: the waits are ~2 minutes of wall time and are the gate itself.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/p1c-backstop.ipynb"
