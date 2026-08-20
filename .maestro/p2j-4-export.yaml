@@ -1,0 +1,64 @@
+appId: com.jupydroid.app
+---
+# P2j-4: `notebook:export-to-format`, end to end - the picker, the conversion, and the file.
+#
+# **The picker is the slow step and that is by design.** Nothing asks the Space anything until this
+# row is chosen, because the Space is started on demand and a menu that booted a runtime to
+# populate itself would cost seconds on every tap of the overflow. So the first wait here is long:
+# it covers installing the Space and starting `jupyter_server`, not just the HTTP call.
+#
+# TABLET ONLY: on the x86_64 emulator there is no rootfs, `AppContainer` falls back to
+# `FakeNotebookExporter`, and the file that appears is a stub rather than a conversion.
+# `p2j-4-export-menu` is that device's flow and asserts only what the fake can honestly answer.
+#
+# Driven by scripts/p2j-4-export-driver.sh, which reads the exported file back off the device -
+# the screen can only show that *a* file appeared, and the driver is what says it is HTML
+# nbconvert wrote.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "p2j-4-export.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "p2j-4-export.ipynb"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-notebook-open
+- tapOn:
+    text: "Notebook actions"
+- tapOn:
+    text: "Save and Export Notebook As…"
+- takeScreenshot: 02-asking-the-space
+# Generous: this is where the Space is installed and jupyter_server started.
+- extendedWaitUntil:
+    visible: "HTML"
+    timeout: 180000
+- takeScreenshot: 03-the-formats-that-convert
+# The four the tablet measured, and none of the ten that cannot: a row that can only fail is a
+# control that lies (`evidence/p2j-2-export-formats/`).
+- assertVisible: "Markdown"
+- assertVisible: "Executable Script"
+- assertVisible: "Reveal.js Slides"
+- assertNotVisible: "PDF"
+- assertNotVisible: "LaTeX"
+- assertNotVisible: "ReStructured Text"
+- tapOn:
+    text: "HTML"
+# The snackbar names the file it wrote, so an overwrite is never silent.
+- extendedWaitUntil:
+    visible: "Exported to p2j-4-export.html"
+    timeout: 120000
+- takeScreenshot: 04-exported
+- tapOn:
+    text: "Back to notebooks"
+- waitForAnimationToEnd:
+    timeout: 5000
+# The workspace is one tree, so an export lands where the explorer already looks.
+- scrollUntilVisible:
+    element:
+      text: "p2j-4-export.html"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 05-beside-the-notebook

@@ -381,6 +381,92 @@ class EditorTopBarTest {
     assertEquals(1, finds)
   }
 
+  // --- P2j: notebook:export-to-format ---
+
+  @Test
+  fun theNotebookMenuOffersToExport() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+
+    compose.onNodeWithText(EXPORT_NOTEBOOK).assertIsDisplayed()
+  }
+
+  /**
+   * The Space is started on demand, so nothing is asked of it until the picker is opened - a menu
+   * that booted a runtime to populate itself would cost seconds on a tap.
+   */
+  @Test
+  fun openingTheMenuAsksTheSpaceNothing() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+
+    assertEquals(0, exportPickerOpens)
+  }
+
+  @Test
+  fun choosingExportAsksTheSpaceWhatItCanConvertTo() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(EXPORT_NOTEBOOK).performClick()
+
+    assertEquals(1, exportPickerOpens)
+  }
+
+  /**
+   * Four rows, and every one of them was measured converting on the tablet
+   * (`evidence/p2j-2-export-formats/`) - see [OFFERED_EXPORT_FORMATS].
+   */
+  @Test
+  fun theExportPickerOffersTheFormatsThisDeviceCanConvert() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(EXPORT_NOTEBOOK).performClick()
+
+    listOf("HTML", "Markdown", "Executable Script", "Reveal.js Slides")
+      .forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+  }
+
+  @Test
+  fun pickingAFormatReportsTheIdRatherThanTheLabel() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(EXPORT_NOTEBOOK).performClick()
+    compose.onNodeWithText("Executable Script").performClick()
+
+    // `python`, not `script`: ScriptExporter needs metadata.language_info and this app writes none.
+    assertEquals(listOf("python"), exportedAs)
+  }
+
+  /** The picker is the one menu here that can be empty while it is still finding out. */
+  @Test
+  fun theExportPickerSaysItIsAskingWhileTheSpaceComesUp() {
+    showTopBar(exportState = ExportState(loadingFormats = true))
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(EXPORT_NOTEBOOK).performClick()
+
+    compose.onNodeWithText(LOADING_EXPORT_FORMATS).assertIsDisplayed()
+  }
+
+  /** A Space that offers nothing says so, rather than opening an empty menu. */
+  @Test
+  fun theExportPickerSaysSoWhenTheSpaceOffersNothing() {
+    showTopBar(exportState = ExportState(offered = emptyList()))
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(EXPORT_NOTEBOOK).performClick()
+
+    compose.onNodeWithText(NO_EXPORT_FORMATS).assertIsDisplayed()
+  }
+
+  private var exportPickerOpens = 0
+  private val exportedAs = mutableListOf<String>()
+
   private fun showTopBar(
     canUndo: Boolean = false,
     canRedo: Boolean = false,
@@ -391,6 +477,7 @@ class EditorTopBarTest {
     tableOfContentsPaneOpen: Boolean = false,
     tocNumbering: TocNumbering = TocNumbering(),
     tocIncludeOutput: Boolean = true,
+    exportState: ExportState = ExportState(offered = OFFERED_EXPORT_FORMATS),
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -418,6 +505,9 @@ class EditorTopBarTest {
           onToggleTocNumberingH1 = { numberingH1Toggles++ },
           tocIncludeOutput = tocIncludeOutput,
           onToggleTocIncludeOutput = { includeOutputToggles++ },
+          exportState = exportState,
+          onExportPickerOpened = { exportPickerOpens++ },
+          onExportAs = { exportedAs += it },
         )
       }
     }

@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -44,6 +45,12 @@ import androidx.compose.runtime.setValue
  */
 @Composable
 internal fun NotebookActionsMenu(
+  /** `notebook:export-to-format` - what the picker is doing; see [NotebookExport]. */
+  exportState: ExportState,
+  /** Ask the Space what it can convert to. Called when the picker opens, never before. */
+  onExportPickerOpened: () -> Unit,
+  onExportPickerDismissed: () -> Unit,
+  onExportAs: (String) -> Unit,
   onSetAllHeadingsCollapsed: (Boolean) -> Unit,
   lineNumbersShown: Boolean,
   onToggleLineNumbers: () -> Unit,
@@ -65,11 +72,28 @@ internal fun NotebookActionsMenu(
   // [TableOfContentsPanel] rather than closing it outright, the same two-step [CellActions]' own
   // heading-level picker already establishes.
   var tocOpen by remember { mutableStateOf(false) }
+  // The export picker, on its own flag for [tocOpen]'s reason: picking a format is a second step,
+  // and `CellActionSurface` already cost a commit to learn that a row which opens something must
+  // not also dismiss the surface it opened.
+  var exportOpen by remember { mutableStateOf(false) }
   Box {
     IconButton(onClick = { open = true }) {
       Icon(Icons.Filled.MoreVert, contentDescription = "Notebook actions")
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+      // The reference's File menu, at the top of the one overflow this bar has - and first,
+      // because it is the only row here that changes anything outside the document.
+      DropdownMenuItem(
+        text = { Text(EXPORT_NOTEBOOK) },
+        onClick = {
+          open = false
+          exportOpen = true
+          onExportPickerOpened()
+        },
+      )
+      // The seam between the reference's two menus, drawn the way its own schema draws one:
+      // `"type": "separator"`.
+      HorizontalDivider()
       DropdownMenuItem(
         text = { Text(COLLAPSE_ALL_HEADINGS) },
         onClick = {
@@ -147,8 +171,73 @@ internal fun NotebookActionsMenu(
       onDismiss = { tocOpen = false },
       numbering = tocNumbering,
     )
+    // In the same Box for the same reason, so it anchors to the button that was tapped.
+    ExportPicker(
+      expanded = exportOpen,
+      state = exportState,
+      onDismiss = {
+        exportOpen = false
+        onExportPickerDismissed()
+      },
+      onPick = { format ->
+        exportOpen = false
+        onExportAs(format)
+      },
+    )
   }
 }
+
+/**
+ * The formats to export to, as the second step of one row.
+ *
+ * **The reference has this as a submenu of File** and builds it from a list it fetched when the
+ * first notebook opened (`packages/notebook-extension/src/index.ts:855-890`). Ours fetches when
+ * this opens, because the Space is started on demand - so this is the one menu in the app that can
+ * be empty while it is still finding out, and [LOADING_EXPORT_FORMATS] is that state rather than a
+ * spinner: Android's accessibility tree carries a `DropdownMenuItem`'s *label*, and a
+ * `CircularProgressIndicator` in a menu is a control no flow can read.
+ *
+ * A Space that offers nothing says so in a row rather than opening an empty menu, which is what
+ * the reference's own guidance dialog does - *"Notebook exports are unavailable"* (`:938`).
+ */
+@Composable
+private fun ExportPicker(
+  expanded: Boolean,
+  state: ExportState,
+  onDismiss: () -> Unit,
+  onPick: (String) -> Unit,
+) {
+  DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+    when {
+      state.loadingFormats -> DropdownMenuItem(
+        text = { Text(LOADING_EXPORT_FORMATS) },
+        enabled = false,
+        onClick = {},
+      )
+      state.offered.isEmpty() -> DropdownMenuItem(
+        text = { Text(NO_EXPORT_FORMATS) },
+        enabled = false,
+        onClick = {},
+      )
+      else -> state.offered.forEach { format ->
+        DropdownMenuItem(text = { Text(format.label) }, onClick = { onPick(format.id) })
+      }
+    }
+  }
+}
+
+/**
+ * `notebook:export-to-format`, under the label the reference's own menu gives the submenu it
+ * opens - *"Save and Export Notebook As"* (`packages/notebook-extension/schema/export.json:16`),
+ * with this app's ellipsis, which is what says a row will ask rather than act.
+ */
+internal const val EXPORT_NOTEBOOK = "Save and Export Notebook As…"
+
+/** The Space is being asked, which the reference never has to say - see [ExportPicker]. */
+internal const val LOADING_EXPORT_FORMATS = "Finding export formats…"
+
+/** The reference's own wording for a deployment that can export nothing (`index.ts:938`). */
+internal const val NO_EXPORT_FORMATS = "No export formats are available"
 
 /** `notebook:collapse-all-headings` (`packages/notebook-extension/src/index.ts:5096`). */
 internal const val COLLAPSE_ALL_HEADINGS = "Collapse All Headings"

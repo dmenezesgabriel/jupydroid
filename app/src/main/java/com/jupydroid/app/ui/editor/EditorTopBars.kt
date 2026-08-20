@@ -134,5 +134,9 @@ private fun DocumentTopBar(
       onSettingsChanged(editorSettings.copy(tocIncludeOutput = !editorSettings.tocIncludeOutput))
     },
     onFind = viewModel.search::start,
+    exportState = state.export,
+    onExportPickerOpened = viewModel.export::pickerOpened,
+    onExportPickerDismissed = viewModel.export::pickerDismissed,
+    onExportAs = viewModel.export::exportAs,
   )
 }

@@ -1,0 +1,47 @@
+appId: com.jupydroid.app
+---
+# P2j-4, the half that is a layout question: does the export row fit, and does its picker?
+#
+# **NARROW WINDOW** (<840dp). The label is the reference's own - *"Save and Export Notebook As…"* -
+# and it is the longest row in this menu by some way; *"Reveal.js Slides"* is the longest in the
+# picker. Whether either fits is decided at 320dp and nowhere else, which is the same reason
+# `p2i-5-search-options` keeps the emulator's capture rather than the tablet's.
+#
+# **What this flow does not claim.** On x86_64 there is no rootfs, so `AppContainer` falls back to
+# `FakeNotebookExporter` and the file at the end is its stub rather than a conversion. That the
+# bytes are nbconvert's is `p2j-4-export`'s claim, on the tablet, checked by reading the file back.
+# What is honest here is the menu, the picker's rows and the report - none of which needs a Space.
+#
+# Driven by scripts/p2j-4-export-menu-driver.sh.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "p2j-4-export.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "p2j-4-export.ipynb"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Notebook actions"
+- takeScreenshot: 01-the-notebook-menu
+# The File row above the View toggles, with the divider between them.
+- assertVisible: "Save and Export Notebook As…"
+- assertVisible: "Show table of contents"
+- tapOn:
+    text: "Save and Export Notebook As…"
+- extendedWaitUntil:
+    visible: "Reveal.js Slides"
+    timeout: 20000
+- takeScreenshot: 02-the-picker-at-320dp
+- assertVisible: "HTML"
+- assertVisible: "Markdown"
+- assertVisible: "Executable Script"
+- tapOn:
+    text: "Markdown"
+- extendedWaitUntil:
+    visible: "Exported to p2j-4-export.md"
+    timeout: 30000
+- takeScreenshot: 03-the-report

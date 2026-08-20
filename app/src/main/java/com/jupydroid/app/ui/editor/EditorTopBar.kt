@@ -109,6 +109,12 @@ fun EditorTopBar(
   onToggleTocIncludeOutput: () -> Unit = {},
   /** `documentsearch:start` - see [FindTopBar], which is what it puts up. */
   onFind: () -> Unit = {},
+  /** `notebook:export-to-format` - what its picker is doing; see [NotebookActionsMenu]. */
+  exportState: ExportState = ExportState(),
+  /** Asks the Space what it can convert to, and only when the picker is opened. */
+  onExportPickerOpened: () -> Unit = {},
+  onExportPickerDismissed: () -> Unit = {},
+  onExportAs: (String) -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -135,6 +141,10 @@ fun EditorTopBar(
         Icon(Icons.Filled.Search, contentDescription = null)
       }
       NotebookActionsMenu(
+        exportState = exportState,
+        onExportPickerOpened = onExportPickerOpened,
+        onExportPickerDismissed = onExportPickerDismissed,
+        onExportAs = onExportAs,
         onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed,
         lineNumbersShown = lineNumbersShown,
         onToggleLineNumbers = onToggleLineNumbers,

@@ -13,6 +13,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.activity.compose.BackHandler
@@ -90,6 +93,9 @@ fun EditorScreen(
   val cellInput = remember { FocusedCellInput() }
   val listState = rememberLazyListState()
   val scope = rememberCoroutineScope()
+  // Remembered here rather than inside the Scaffold's slot, because [ExportReportSnackbar] posts
+  // to it from outside that slot.
+  val exportReports = remember { SnackbarHostState() }
   // Back in edit mode returns to command mode instead of leaving the notebook - the touch
   // analogue of `Escape`, which is what both references bind it to. Dropping focus is what
   // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
@@ -191,19 +197,25 @@ fun EditorScreen(
       // being under the keys (`evidence/p2i-4-next-previous/`, two runs before this).
       modifier = Modifier.fillMaxSize().then(if (state.search != null) Modifier.imePadding() else Modifier),
       topBar = {
-        EditorTopBars(
-          state = state,
-          viewModel = viewModel,
-          editorSettings = editorSettings,
-          onSettingsChanged = { changed -> applicationScope.launch { editorSettingsRepository.update(changed) } },
-          tocHeadings = tocHeadings,
-          tocPresentation = tocPresentation,
-          tocPaneOpen = showTocPane,
-          onToggleTocPane = { tocPaneOpen = !tocPaneOpen },
-          onHeadingSelected = jumpToHeading,
-          onBack = onBack,
-        )
+        Column {
+          EditorTopBars(
+            state = state,
+            viewModel = viewModel,
+            editorSettings = editorSettings,
+            onSettingsChanged = { changed -> applicationScope.launch { editorSettingsRepository.update(changed) } },
+            tocHeadings = tocHeadings,
+            tocPresentation = tocPresentation,
+            tocPaneOpen = showTocPane,
+            onToggleTocPane = { tocPaneOpen = !tocPaneOpen },
+            onHeadingSelected = jumpToHeading,
+            onBack = onBack,
+          )
+          // Under whichever bar is up rather than over the notebook: it says the *document* is
+          // busy, and covering the document to say so would be the wrong trade. See [ExportStatus].
+          ExportProgressBar(state.export)
+        }
       },
+      snackbarHost = { SnackbarHost(exportReports) },
     bottomBar = {
       // One bar at a time, or none - see [editorBottomBar] for the rule and what each is for.
       when (editorBottomBar(state.selecting, state.mode, state.search != null)) {
@@ -278,6 +290,9 @@ fun EditorScreen(
         }
       }
     }
+    // Outside the Scaffold's slots because it draws nothing: it posts to [exportReports], which
+    // the `snackbarHost` slot above is showing. See [ExportStatus].
+    ExportReportSnackbar(state.export.report, exportReports, viewModel.export::reportSeen)
   }
 }
 
