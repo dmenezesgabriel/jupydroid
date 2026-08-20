@@ -25,8 +25,11 @@ class PythonSyntax : SyntaxHighlighter {
       // INDENT and DEDENT are synthetic and zero-width, carrying inverted ranges like
       // [33..32]; emitting those would make negative-length spans.
       val end = token.stopIndex + 1
-      if (kind == null || token.startIndex < 0 || end <= token.startIndex) null
-      else SyntaxSpan(token.startIndex, minOf(end, source.length), kind)
+      if (kind == null || token.startIndex < 0 || end <= token.startIndex) {
+        null
+      } else {
+        SyntaxSpan(token.startIndex, minOf(end, source.length), kind)
+      }
     }
   }
 
@@ -64,9 +67,13 @@ class PythonSyntax : SyntaxHighlighter {
      */
     val STRINGS = setOf(
       PythonLexer.STRING,
-      PythonLexer.FSTRING_START, PythonLexer.FSTRING_MIDDLE, PythonLexer.FSTRING_END,
+      PythonLexer.FSTRING_START,
+      PythonLexer.FSTRING_MIDDLE,
+      PythonLexer.FSTRING_END,
       // t-strings: PEP 750 template literals, which this grammar already knows about.
-      PythonLexer.TSTRING_START, PythonLexer.TSTRING_MIDDLE, PythonLexer.TSTRING_END,
+      PythonLexer.TSTRING_START,
+      PythonLexer.TSTRING_MIDDLE,
+      PythonLexer.TSTRING_END,
     )
 
     /** What makes the name after it a definition rather than a reference. */

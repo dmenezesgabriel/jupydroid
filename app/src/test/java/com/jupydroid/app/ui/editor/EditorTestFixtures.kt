@@ -148,9 +148,8 @@ internal class StaleSessionKernelGateway(
 }
 
 /** Remembers which document each session was opened for, which a rename changes. */
-internal class RecordingConnectKernelGateway(
-  private val fake: FakeKernelGateway = FakeKernelGateway(),
-) : KernelGateway by fake {
+internal class RecordingConnectKernelGateway(private val fake: FakeKernelGateway = FakeKernelGateway()) :
+  KernelGateway by fake {
   val paths = mutableListOf<String>()
 
   override suspend fun connect(space: Space, documentPath: String): KernelSession {
@@ -166,9 +165,8 @@ internal class UnreachableKernelGateway : KernelGateway by FakeKernelGateway() {
 }
 
 /** Counts writes, so the debounce can be asserted rather than assumed. */
-internal class RecordingNotebookRepository(
-  private val delegate: FakeNotebookRepository = FakeNotebookRepository(),
-) : NotebookRepository by delegate {
+internal class RecordingNotebookRepository(private val delegate: FakeNotebookRepository = FakeNotebookRepository()) :
+  NotebookRepository by delegate {
   var saveCount = 0
     private set
 

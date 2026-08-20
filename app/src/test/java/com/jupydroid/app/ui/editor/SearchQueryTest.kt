@@ -89,8 +89,10 @@ class SearchQueryTest {
    */
   @Test
   fun anAnchoredPatternThatStillMatchesSomethingIsKept() {
-    assertTrue("${SearchQuery("^a", useRegex = true).compile()}",
-      SearchQuery("^a", useRegex = true).compile() is CompiledQuery.Matching)
+    assertTrue(
+      "${SearchQuery("^a", useRegex = true).compile()}",
+      SearchQuery("^a", useRegex = true).compile() is CompiledQuery.Matching,
+    )
   }
 
   /**

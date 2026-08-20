@@ -1,9 +1,9 @@
 @file:Suppress("SwallowedException")
+
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
-import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import java.io.File
 
 /** The file the settings live in, inside [stateDir] - beside [RECENTS_FILE_NAME], not merged with it. */
 internal const val EDITOR_SETTINGS_FILE_NAME = "editor-settings.json"
@@ -44,14 +45,13 @@ class DiskEditorSettingsRepository(
    * A store that cannot be parsed reads as the default. This runs before the first screen draws,
    * the same guard [DiskRecentDocumentsRepository.loadValidated] carries for the same reason.
    */
-  private fun loadValidated(): EditorSettings =
-    try {
-      json.decodeFromString(EditorSettings.serializer(), storeFile().readText())
-    } catch (failure: SerializationException) {
-      EditorSettings()
-    } catch (failure: java.io.IOException) {
-      EditorSettings()
-    }
+  private fun loadValidated(): EditorSettings = try {
+    json.decodeFromString(EditorSettings.serializer(), storeFile().readText())
+  } catch (failure: SerializationException) {
+    EditorSettings()
+  } catch (failure: java.io.IOException) {
+    EditorSettings()
+  }
 
   private fun storeFile() = File(stateDir, EDITOR_SETTINGS_FILE_NAME)
 }

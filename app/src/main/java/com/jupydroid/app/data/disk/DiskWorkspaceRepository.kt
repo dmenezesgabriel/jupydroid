@@ -5,21 +5,18 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.model.inWorkspaceOrder
-import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.model.isValidFileName
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceRepository
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.LinkOption
-import java.time.Instant
-import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.time.Instant
+import java.util.UUID
 
 /**
  * The workspace as it is on disk, under [rootDir].
@@ -32,10 +29,8 @@ import kotlinx.coroutines.withContext
  * DiskWorkspaceRepository(notebookWorkspace(context)).list("reports")
  * ```
  */
-class DiskWorkspaceRepository(
-  rootDir: File,
-  private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-) : WorkspaceRepository {
+class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO) :
+  WorkspaceRepository {
   private val root = WorkspaceRoot(rootDir)
 
   // No replay and no buffer, so `emit` suspends until every open document has taken the change -
@@ -81,12 +76,11 @@ class DiskWorkspaceRepository(
     file.writeBytes(bytes)
   }
 
-  override suspend fun createFile(directory: String, extension: String): String =
-    withContext(ioDispatcher) {
-      val name = root.freeNameIn(directory, "$UNTITLED_FILE.$extension")
-      root.fileAt(root.pathIn(directory, name)).createNewFile()
-      root.pathIn(directory, name)
-    }
+  override suspend fun createFile(directory: String, extension: String): String = withContext(ioDispatcher) {
+    val name = root.freeNameIn(directory, "$UNTITLED_FILE.$extension")
+    root.fileAt(root.pathIn(directory, name)).createNewFile()
+    root.pathIn(directory, name)
+  }
 
   override suspend fun createFolder(directory: String): String = withContext(ioDispatcher) {
     // The space is the server's `insert` for a directory and for nothing else, so the second one
@@ -146,7 +140,6 @@ class DiskWorkspaceRepository(
     check(target.delete()) { "could not delete '$path' from the workspace" }
     _changes.emit(WorkspaceChange.Deleted(path))
   }
-
 }
 
 /**
@@ -159,16 +152,15 @@ class DiskWorkspaceRepository(
  * A top-level function rather than a member: it turns a `File` into a domain type and asks the
  * repository for nothing, and detekt counting it against the class was what said so.
  */
-private fun entryFor(file: File, parentPath: String): WorkspaceEntry =
-  WorkspaceEntry(
-    name = file.name,
-    path = if (parentPath.isEmpty()) file.name else "$parentPath/${file.name}",
-    kind = if (file.isDirectory) WorkspaceEntryKind.DIRECTORY else WorkspaceEntryKind.FILE,
-    // The file's own mtime, which is what `last_modified` is (`filemanager.py:285`). A broken
-    // symlink answers 0 here rather than throwing, and reads as the epoch - which is honest:
-    // there is nothing behind it to have a time.
-    updatedAt = Instant.ofEpochMilli(file.lastModified()),
-  )
+private fun entryFor(file: File, parentPath: String): WorkspaceEntry = WorkspaceEntry(
+  name = file.name,
+  path = if (parentPath.isEmpty()) file.name else "$parentPath/${file.name}",
+  kind = if (file.isDirectory) WorkspaceEntryKind.DIRECTORY else WorkspaceEntryKind.FILE,
+  // The file's own mtime, which is what `last_modified` is (`filemanager.py:285`). A broken
+  // symlink answers 0 here rather than throwing, and reads as the epoch - which is honest:
+  // there is nothing behind it to have a time.
+  updatedAt = Instant.ofEpochMilli(file.lastModified()),
+)
 
 /** `untitled`, lowercase - the server's `untitled_file`, which is not its `Untitled` notebook. */
 private const val UNTITLED_FILE = "untitled"

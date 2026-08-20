@@ -1,9 +1,9 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /** What a finished Space process left behind. */
 data class ProcessOutcome(val exitCode: Int, val output: String) {
@@ -32,8 +32,7 @@ class PythonRunner(
     ProcessOutcome(exitCode = process.waitFor(), output = output.trim())
   }
 
-  private fun processBuilder(args: Array<out String>): ProcessBuilder =
-    runtime.processBuilder(args.toList())
-      .directory(workingDir)
-      .redirectErrorStream(true) // one ordered stream: a traceback belongs with the output
+  private fun processBuilder(args: Array<out String>): ProcessBuilder = runtime.processBuilder(args.toList())
+    .directory(workingDir)
+    .redirectErrorStream(true) // one ordered stream: a traceback belongs with the output
 }

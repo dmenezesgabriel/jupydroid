@@ -1,12 +1,12 @@
 package com.jupydroid.app.data.disk
 
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 /**
  * Moving every notebook into the workspace the kernel can see, exactly once.
@@ -170,8 +170,7 @@ class NotebookWorkspaceMigrationTest {
     assertEquals(setOf("uuid-c.ipynb"), to.list()?.toSet())
   }
 
-  private fun titled(title: String) =
-    """{"nbformat":4,"cells":[],"metadata":{"jupydroid":{"title":"$title"}}}"""
+  private fun titled(title: String) = """{"nbformat":4,"cells":[],"metadata":{"jupydroid":{"title":"$title"}}}"""
 
   private fun notebook(name: String, body: String = "{}") {
     from.mkdirs()

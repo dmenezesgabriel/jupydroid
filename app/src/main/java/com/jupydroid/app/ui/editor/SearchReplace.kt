@@ -18,12 +18,7 @@ package com.jupydroid.app.ui.editor
  * replacementFor("CAT", "dog", SearchQuery("cat"), preserveCase = true)   // "DOG"
  * ```
  */
-internal fun replacementFor(
-  matched: String,
-  replaceText: String,
-  query: SearchQuery,
-  preserveCase: Boolean,
-): String {
+internal fun replacementFor(matched: String, replaceText: String, query: SearchQuery, preserveCase: Boolean): String {
   val substituted = if (query.useRegex) matched.substituted(replaceText, query) else replaceText
   return if (preserveCase) substituted.inTheCaseOf(matched) else substituted
 }
@@ -57,5 +52,4 @@ private fun String.inTheCaseOf(matched: String): String = when {
 }
 
 /** `toSentenceCase` - the first character up and everything after it down. */
-private fun String.sentenceCase(): String =
-  if (isEmpty()) this else first().uppercase() + drop(1).lowercase()
+private fun String.sentenceCase(): String = if (isEmpty()) this else first().uppercase() + drop(1).lowercase()

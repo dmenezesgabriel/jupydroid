@@ -51,8 +51,7 @@ data class SearchState(
  * (`packages/notebook/src/searchprovider.ts:287-291`), which on a touch device with nothing
  * selected is the empty string the reference also gets.
  */
-fun EditorUiState.withSearchOpened(): EditorUiState =
-  if (search != null) this else copy(search = SearchState())
+fun EditorUiState.withSearchOpened(): EditorUiState = if (search != null) this else copy(search = SearchState())
 
 /** `documentsearch:end` - `endQuery()`, and the view goes with it. */
 fun EditorUiState.withSearchClosed(): EditorUiState = if (search == null) this else copy(search = null)
@@ -92,8 +91,7 @@ fun EditorUiState.withSearchQuery(query: SearchQuery): EditorUiState {
  * its own comment (`searchprovider.ts:391-395`), and without it the highlights would name
  * characters that have since moved.
  */
-fun EditorUiState.withSearchRecomputed(): EditorUiState =
-  search?.let { withSearchQuery(it.query) } ?: this
+fun EditorUiState.withSearchRecomputed(): EditorUiState = search?.let { withSearchQuery(it.query) } ?: this
 
 /**
  * `highlightNext` / `highlightPrevious` - one match on, wrapping, and the new one revealed.

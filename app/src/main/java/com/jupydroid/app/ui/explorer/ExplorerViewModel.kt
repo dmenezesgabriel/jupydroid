@@ -246,7 +246,6 @@ class ExplorerViewModel(
     }
   }
 
-
   /**
    * Moves [from] to [name] and re-lists, or says why it did not happen.
    *

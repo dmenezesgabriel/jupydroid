@@ -6,7 +6,6 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -42,9 +41,8 @@ object KernelOutputs {
    * an execution is complete - see [isReplyFor] for why one is not enough. Matching another
    * request's idle would truncate our output; matching none would run the cell forever.
    */
-  fun isIdleFor(frame: String, requestMsgId: String): Boolean =
-    JupyterFrame.ofType(frame, requestMsgId, "status")
-      ?.content()?.get("execution_state")?.jsonPrimitive?.content == "idle"
+  fun isIdleFor(frame: String, requestMsgId: String): Boolean = JupyterFrame.ofType(frame, requestMsgId, "status")
+    ?.content()?.get("execution_state")?.jsonPrimitive?.content == "idle"
 
   /**
    * Whether this frame is the shell `execute_reply` to our request - the other completion

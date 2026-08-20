@@ -3,11 +3,11 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.model.isValidFileName
-import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 
 /**
  * Moves notebooks out of the app's private folder and into the workspace the kernel can see.
@@ -58,10 +58,9 @@ class NotebookWorkspaceMigration(
     return moved
   }
 
-  private fun notebooksToMove(): List<File> =
-    (legacyDir.listFiles() ?: emptyArray())
-      .filter { it.isFile && it.name.endsWith(NOTEBOOK_SUFFIX) }
-      .sortedBy { it.name }
+  private fun notebooksToMove(): List<File> = (legacyDir.listFiles() ?: emptyArray())
+    .filter { it.isFile && it.name.endsWith(NOTEBOOK_SUFFIX) }
+    .sortedBy { it.name }
 
   private fun move(file: File): Boolean {
     workspaceDir.mkdirs()
@@ -83,9 +82,8 @@ class NotebookWorkspaceMigration(
     return title?.takeIf(::isValidFileName)?.let { "$it$NOTEBOOK_SUFFIX" } ?: file.name
   }
 
-  private fun titleIn(text: String): String? =
-    (Json.parseToJsonElement(text) as? JsonObject)
-      ?.get("metadata")?.jsonObject?.get("jupydroid")?.jsonObject?.get("title")?.jsonPrimitive?.content
+  private fun titleIn(text: String): String? = (Json.parseToJsonElement(text) as? JsonObject)
+    ?.get("metadata")?.jsonObject?.get("jupydroid")?.jsonObject?.get("title")?.jsonPrimitive?.content
 
   /**
    * The incoming name, or that name with a counter, never a name already taken.

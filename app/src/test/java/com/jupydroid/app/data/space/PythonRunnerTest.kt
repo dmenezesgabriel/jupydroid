@@ -1,10 +1,10 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Runs against the host's `/bin/sh` standing in for the Space interpreter: this class

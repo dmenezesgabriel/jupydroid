@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,14 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.editorPalette
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.editorPalette
 
 /**
  * One cell of the notebook: its header, its editor and its outputs.

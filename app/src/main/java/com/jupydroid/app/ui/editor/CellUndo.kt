@@ -23,9 +23,10 @@ package com.jupydroid.app.ui.editor
  * its cell went away is a no-op throughout [CellEdits], and toggling a flag to the value it
  * already had changes nothing either.
  */
-private fun EditorUiState.changesNothingFrom(before: EditorUiState): Boolean =
-  cells == before.cells && outputs == before.outputs && executionCounts == before.executionCounts &&
-    executions == before.executions
+private fun EditorUiState.changesNothingFrom(before: EditorUiState): Boolean = cells == before.cells &&
+  outputs == before.outputs &&
+  executionCounts == before.executionCounts &&
+  executions == before.executions
 
 /**
  * Records [before] as undoable, unless this state is the same document.

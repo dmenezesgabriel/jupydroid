@@ -1,14 +1,14 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
-import java.io.InputStream
-import java.nio.file.Files
-import java.util.zip.GZIPInputStream
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import java.io.File
+import java.io.InputStream
+import java.nio.file.Files
+import java.util.zip.GZIPInputStream
 
 /** Opens the rootfs archive: an APK asset on device, a byte array in tests. */
 fun interface ArchiveSource {

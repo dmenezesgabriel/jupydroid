@@ -1,8 +1,8 @@
 package com.jupydroid.app.data.space
 
-import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.mimeBundleOf
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
@@ -161,5 +161,4 @@ class KernelOutputsTest {
     {"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"status"},
      "content":{"execution_state":"$state"}}
   """.trimIndent()
-
 }

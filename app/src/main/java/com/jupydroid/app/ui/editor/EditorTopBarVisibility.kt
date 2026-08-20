@@ -26,9 +26,8 @@ internal fun editorTopBarVisible(heightDp: Int, mode: CellMode): Boolean =
 
 /** What the current window says, for callers with no reason to care how it is measured. */
 @Composable
-internal fun isEditorTopBarVisible(mode: CellMode): Boolean =
-  mode != CellMode.EDIT ||
-    currentWindowAdaptiveInfo().windowSizeClass.isHeightAtLeastBreakpoint(MEDIUM_HEIGHT_DP)
+internal fun isEditorTopBarVisible(mode: CellMode): Boolean = mode != CellMode.EDIT ||
+  currentWindowAdaptiveInfo().windowSizeClass.isHeightAtLeastBreakpoint(MEDIUM_HEIGHT_DP)
 
 /** `WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND`, restated so the pure rule needs no android. */
 internal const val MEDIUM_HEIGHT_DP = WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND

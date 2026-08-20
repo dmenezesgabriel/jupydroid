@@ -72,11 +72,7 @@ internal fun EditorUiState.applying(
   else -> operated(action, head = selectedCellId, editor = editor)
 }
 
-private fun EditorUiState.operated(
-  action: CellAction,
-  head: String,
-  editor: CellEditorText,
-): EditorUiState {
+private fun EditorUiState.operated(action: CellAction, head: String, editor: CellEditorText): EditorUiState {
   // The document is brought up to the editor's text *before* the entry is recorded, so the entry
   // holds what the user can see rather than a copy up to one debounce old. Not an entry of its
   // own - typing is the other undo, and it has never had one.
@@ -209,21 +205,18 @@ private fun EditorUiState.transformed(
  * Split out of [transformed] on detekt's `LongMethod`, and it was pointing at the seam
  * [CellAction.Fold] then made a type: three of the dispatch's branches were one idea.
  */
-private fun EditorUiState.folded(
-  fold: CellAction.Fold,
-  cellIds: List<String>,
-  head: String,
-): EditorUiState = when (fold) {
-  CellAction.ToggleSourceHidden -> withSourceHiddenSet(cellIds, hidden = !headCell(head) { sourceHidden })
-  CellAction.ToggleOutputsHidden -> withOutputsHiddenSet(cellIds, hidden = !headCell(head) { outputsHidden })
-  // The head and not [cellIds], which is the reference's own narrowing rather than a simplification:
-  // `toggleCurrentHeadingCollapse` reads `notebook.activeCell` (`actions.tsx:2440-2455`), and a run
-  // of headings collapsed at once would hide the very cells the rest of the run names.
-  CellAction.ToggleHeadingCollapse -> withHeadingCollapsed(head, collapsed = !headCell(head) { headingCollapsed })
-  // The one fold that reads the *run*, not the head - see [EditorUiState.allMarkedCodeCellsScrolled].
-  CellAction.ToggleOutputsScrolled ->
-    withOutputsScrolledSet(cellIds, scrolled = !allMarkedCodeCellsScrolled(cellIds))
-}
+private fun EditorUiState.folded(fold: CellAction.Fold, cellIds: List<String>, head: String): EditorUiState =
+  when (fold) {
+    CellAction.ToggleSourceHidden -> withSourceHiddenSet(cellIds, hidden = !headCell(head) { sourceHidden })
+    CellAction.ToggleOutputsHidden -> withOutputsHiddenSet(cellIds, hidden = !headCell(head) { outputsHidden })
+    // The head and not [cellIds], which is the reference's own narrowing rather than a simplification:
+    // `toggleCurrentHeadingCollapse` reads `notebook.activeCell` (`actions.tsx:2440-2455`), and a run
+    // of headings collapsed at once would hide the very cells the rest of the run names.
+    CellAction.ToggleHeadingCollapse -> withHeadingCollapsed(head, collapsed = !headCell(head) { headingCollapsed })
+    // The one fold that reads the *run*, not the head - see [EditorUiState.allMarkedCodeCellsScrolled].
+    CellAction.ToggleOutputsScrolled ->
+      withOutputsScrolledSet(cellIds, scrolled = !allMarkedCodeCellsScrolled(cellIds))
+  }
 
 /** Which way the head cell is folded, which is also what the menu row's label was written from. */
 private fun EditorUiState.headCell(head: String, part: Cell.() -> Boolean): Boolean =

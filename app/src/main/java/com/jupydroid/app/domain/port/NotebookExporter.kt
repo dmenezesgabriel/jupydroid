@@ -24,11 +24,10 @@ data class ExportFormat(val name: String, val outputMimeType: String)
 data class ExportedDocument(val fileName: String, val mediaType: String, val bytes: ByteArray) {
   // ByteArray identity would make two identical exports unequal, which is not what a test of an
   // export means - the same reading `RenderedOutput.Image` already made.
-  override fun equals(other: Any?): Boolean =
-    other is ExportedDocument &&
-      fileName == other.fileName &&
-      mediaType == other.mediaType &&
-      bytes.contentEquals(other.bytes)
+  override fun equals(other: Any?): Boolean = other is ExportedDocument &&
+    fileName == other.fileName &&
+    mediaType == other.mediaType &&
+    bytes.contentEquals(other.bytes)
 
   override fun hashCode(): Int = 31 * (31 * fileName.hashCode() + mediaType.hashCode()) + bytes.contentHashCode()
 }

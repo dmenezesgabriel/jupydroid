@@ -36,7 +36,9 @@ class CellTouchTargetTest {
 
   @Test
   fun theRunAndMenuButtonsAreBigEnoughToHit() {
-    compose.setContent { CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+    }
 
     compose.onNodeWithContentDescription("Run cell").assertIsAtLeastMinimumTouchTarget(compose.density)
     compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget(compose.density)
@@ -45,7 +47,16 @@ class CellTouchTargetTest {
   /** Stop replaces Run mid-execution, so it is a separate composition and a separate risk. */
   @Test
   fun theStopButtonIsBigEnoughToHit() {
-    compose.setContent { CellHeader(CODE_CELL, executionCount = null, execution = CellExecution(ExecutionStatus.RUNNING), canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(
+        CODE_CELL, executionCount = null,
+        execution = CellExecution(
+          ExecutionStatus.RUNNING,
+        ),
+        canPaste = false, mark = null, {
+        }, {}, {}, {},
+      )
+    }
 
     compose.onNodeWithContentDescription("Stop cell").assertIsAtLeastMinimumTouchTarget(compose.density)
   }
@@ -66,7 +77,9 @@ class CellTouchTargetTest {
   /** A markdown cell composes a different branch of the header, with its own Run button. */
   @Test
   fun aMarkdownCellsControlsAreBigEnoughToHit() {
-    compose.setContent { CellHeader(MARKDOWN_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(MARKDOWN_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+    }
 
     compose.onNodeWithContentDescription("Run cell").assertIsAtLeastMinimumTouchTarget(compose.density)
     compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget(compose.density)
@@ -75,7 +88,9 @@ class CellTouchTargetTest {
   /** The collapser is a fourth control on a header that already fits three at 360dp. */
   @Test
   fun theHeadingCollapserIsBigEnoughToHit() {
-    compose.setContent { CellHeader(HEADING_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(HEADING_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+    }
 
     compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertIsAtLeastMinimumTouchTarget(compose.density)
   }

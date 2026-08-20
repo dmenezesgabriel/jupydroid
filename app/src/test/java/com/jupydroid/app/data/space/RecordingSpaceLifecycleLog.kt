@@ -30,8 +30,7 @@ class RecordingSpaceLifecycleLog : SpaceLifecycleLog {
   }
 
   /** The fields of the first report of [stage], or empty when it was never reached. */
-  fun fieldsOf(stage: String): Map<String, String> =
-    entries.firstOrNull { it.first == stage }?.second.orEmpty()
+  fun fieldsOf(stage: String): Map<String, String> = entries.firstOrNull { it.first == stage }?.second.orEmpty()
 
   fun countOf(stage: String): Int = entries.count { it.first == stage }
 }

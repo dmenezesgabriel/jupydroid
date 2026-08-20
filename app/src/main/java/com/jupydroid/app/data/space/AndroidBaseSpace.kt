@@ -12,21 +12,19 @@ import java.io.File
  * Kept apart from the installer so the installer stays a plain JVM class that unit
  * tests can drive against a temp folder, with no Context in sight.
  */
-fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpaceInstaller =
-  BaseSpaceInstaller(
-    archive = { context.assets.open("spaces/base/rootfs-${abi.androidAbi}.tgz") },
-    baseDir = baseSpaceDir(context),
-    nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libloader.so"),
-    nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
-    loaderLinkPath = abi.loaderLinkPath,
-  )
+fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpaceInstaller = BaseSpaceInstaller(
+  archive = { context.assets.open("spaces/base/rootfs-${abi.androidAbi}.tgz") },
+  baseDir = baseSpaceDir(context),
+  nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libloader.so"),
+  nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
+  loaderLinkPath = abi.loaderLinkPath,
+)
 
 /** Command line and environment for the installed base Space's interpreter. */
-fun baseSpaceRuntime(context: Context): SpaceRuntime =
-  SpaceRuntime(
-    baseDir = baseSpaceDir(context),
-    nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
-  )
+fun baseSpaceRuntime(context: Context): SpaceRuntime = SpaceRuntime(
+  baseDir = baseSpaceDir(context),
+  nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
+)
 
 fun baseSpaceDir(context: Context): File = File(context.filesDir, "spaces/base")
 
@@ -38,12 +36,11 @@ fun baseSpaceDir(context: Context): File = File(context.filesDir, "spaces/base")
 fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir(context))
 
 /** Runs jupyter_server out of the installed base Space, on loopback. */
-fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher =
-  JupyterServerLauncher(
-    runtime = baseSpaceRuntime(context),
-    runtimeDir = File(baseSpaceDir(context), "run"),
-    rootDir = notebookWorkspace(context),
-  )
+fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServerLauncher(
+  runtime = baseSpaceRuntime(context),
+  runtimeDir = File(baseSpaceDir(context), "run"),
+  rootDir = notebookWorkspace(context),
+)
 
 /**
  * The base Space's server, brought up on first use - or null where no Space can run.
@@ -70,23 +67,22 @@ fun baseSpaceNotebookExporter(server: BaseSpaceServer): NotebookExporter =
   BaseSpaceNotebookExporter(server) { OkHttpNotebookExporter(it) }
 
 /** The gateway backed by a real kernel in [server]'s Space. */
-fun baseSpaceKernelGateway(server: BaseSpaceServer): KernelGateway =
-  BaseSpaceKernelGateway(
-    server = server,
-    gatewayFor = { connection ->
-      RealKernelGateway(
-        opener = OkHttpKernelSocketOpener(connection),
-        // The lifecycle gets the same log: a shutdown that found the session already gone is the
-        // one thing it reports rather than raises, and on device that line is the only account of it.
-        lifecycle = OkHttpKernelLifecycle(connection, log = LogcatSpaceLifecycleLog),
-        // The same tag the rest of the runtime reports under, so a stall is one filter to read:
-        // `adb logcat -s JupydroidSpace`. Without this the execute path is silent, which is why
-        // three sightings of the stall produced no diagnosis. See [KernelLog].
-        log = LogcatSpaceLifecycleLog,
-      )
-    },
-    log = LogcatSpaceLifecycleLog,
-  )
+fun baseSpaceKernelGateway(server: BaseSpaceServer): KernelGateway = BaseSpaceKernelGateway(
+  server = server,
+  gatewayFor = { connection ->
+    RealKernelGateway(
+      opener = OkHttpKernelSocketOpener(connection),
+      // The lifecycle gets the same log: a shutdown that found the session already gone is the
+      // one thing it reports rather than raises, and on device that line is the only account of it.
+      lifecycle = OkHttpKernelLifecycle(connection, log = LogcatSpaceLifecycleLog),
+      // The same tag the rest of the runtime reports under, so a stall is one filter to read:
+      // `adb logcat -s JupydroidSpace`. Without this the execute path is silent, which is why
+      // three sightings of the stall produced no diagnosis. See [KernelLog].
+      log = LogcatSpaceLifecycleLog,
+    )
+  },
+  log = LogcatSpaceLifecycleLog,
+)
 
 /**
  * The rootfs must match the ABI Android picked for the APK's native libraries, which

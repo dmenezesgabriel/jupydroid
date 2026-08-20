@@ -14,10 +14,7 @@ package com.jupydroid.app.domain.model
  * browser's `openPath` and only a document to `docmanager:open`
  * (`packages/mainmenu-extension/src/recents.ts`).
  */
-data class RecentDocument(
-  val path: String,
-  val kind: WorkspaceEntryKind,
-)
+data class RecentDocument(val path: String, val kind: WorkspaceEntryKind)
 
 /**
  * How many are remembered: `maxNumberRecents`, whose reference default is 10
@@ -75,8 +72,7 @@ fun recentsForOpening(path: String): List<RecentDocument> {
  * recents.inRecentsOrder()
  * ```
  */
-fun List<RecentDocument>.inRecentsOrder(): List<RecentDocument> =
-  sortedBy { it.kind != WorkspaceEntryKind.DIRECTORY }
+fun List<RecentDocument>.inRecentsOrder(): List<RecentDocument> = sortedBy { it.kind != WorkspaceEntryKind.DIRECTORY }
 
 /**
  * What the recents section shows while [directory] is being browsed: everything at the root, and

@@ -14,9 +14,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
-import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -138,5 +138,6 @@ private fun DrawScope.drawHeaderRule(color: Color) {
 }
 
 private val CELL_PADDING = Spacing.sm
+
 /** A hairline under a table's header row - `--jp-border-width`, which the reference sets to 1px. */
 private val HEADER_RULE_WIDTH = 1.dp

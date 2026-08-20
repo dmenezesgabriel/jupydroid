@@ -25,11 +25,7 @@ sealed interface RichBlock {
   data class BlockQuote(val children: List<RichBlock>) : RichBlock
 
   /** Each item is its own list of blocks, because an item may hold a paragraph and a nested list. */
-  data class ListBlock(
-    val ordered: Boolean,
-    val startFrom: Int,
-    val items: List<List<RichBlock>>,
-  ) : RichBlock
+  data class ListBlock(val ordered: Boolean, val startFrom: Int, val items: List<List<RichBlock>>) : RichBlock
 
   data object ThematicBreak : RichBlock
 

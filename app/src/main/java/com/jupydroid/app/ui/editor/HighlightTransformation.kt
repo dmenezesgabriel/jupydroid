@@ -4,7 +4,6 @@ import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.syntax.SyntaxKind

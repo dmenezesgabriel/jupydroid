@@ -53,8 +53,7 @@ class PythonTypingRules(private val autoClosingBrackets: Boolean = true) : Input
   }
 
   /** The character the typed one was pushed in front of, or null at the end of the cell. */
-  private fun TextFieldBuffer.charAfter(at: Int): Char? =
-    if (at + 1 < length) charAt(at + 1) else null
+  private fun TextFieldBuffer.charAfter(at: Int): Char? = if (at + 1 < length) charAt(at + 1) else null
 
   private fun TextFieldBuffer.continueIndent(at: Int) {
     val broken = asCharSequence().substring(lineStartBefore(at), at)

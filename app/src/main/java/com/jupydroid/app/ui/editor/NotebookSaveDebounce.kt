@@ -20,10 +20,7 @@ import kotlinx.coroutines.launch
  * if (save.cancelPending()) persist()   // on the way out
  * ```
  */
-class NotebookSaveDebounce(
-  private val scope: CoroutineScope,
-  private val write: suspend () -> Unit,
-) {
+class NotebookSaveDebounce(private val scope: CoroutineScope, private val write: suspend () -> Unit) {
   private var pending: Job? = null
 
   /** Restarts the clock, so a burst of typing costs one write rather than one per character. */

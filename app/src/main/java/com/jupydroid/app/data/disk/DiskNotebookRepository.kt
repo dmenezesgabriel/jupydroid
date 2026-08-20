@@ -1,24 +1,22 @@
 @file:Suppress("SwallowedException")
+
 package com.jupydroid.app.data.disk
 
-import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
+import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.model.isValidFileName
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
-import java.io.File
-import java.util.UUID
-import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import java.io.File
+import java.util.UUID
 
 /**
  * Notebook persistence over nbformat 4 JSON files, addressed by path from [rootDir].
@@ -50,13 +48,12 @@ class DiskNotebookRepository(
    * this exact name - by jupyter_server's own `increment_filename`, so `Untitled.ipynb`,
    * `Untitled1.ipynb`, with the counter on the stem.
    */
-  override suspend fun createNotebook(title: String, kernelId: String): Notebook =
-    withContext(ioDispatcher) {
-      val free = incrementedFileName("${title.trim()}$NOTEBOOK_SUFFIX") { fileFor(it).exists() }
-      val notebook = Notebook(id = free, title = free, kernelId = kernelId, cells = emptyList())
-      writeFile(notebook)
-      notebook
-    }
+  override suspend fun createNotebook(title: String, kernelId: String): Notebook = withContext(ioDispatcher) {
+    val free = incrementedFileName("${title.trim()}$NOTEBOOK_SUFFIX") { fileFor(it).exists() }
+    val notebook = Notebook(id = free, title = free, kernelId = kernelId, cells = emptyList())
+    writeFile(notebook)
+    notebook
+  }
 
   /**
    * Moves the file, because the name *is* the file - `Context._rename` calls
@@ -129,5 +126,4 @@ class DiskNotebookRepository(
 
   /** The id is already the path - there is no suffix to add and none to strip. */
   private fun fileFor(id: String): File = File(rootDir, id)
-
 }

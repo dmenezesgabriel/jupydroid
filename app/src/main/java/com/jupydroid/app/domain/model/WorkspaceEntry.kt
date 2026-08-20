@@ -24,12 +24,7 @@ enum class WorkspaceEntryKind {
  *   a history rather than a list of notebooks: every write moves it, so an edit, a run and a
  *   rename all count without anything having to remember to say so.
  */
-data class WorkspaceEntry(
-  val name: String,
-  val path: String,
-  val kind: WorkspaceEntryKind,
-  val updatedAt: Instant,
-)
+data class WorkspaceEntry(val name: String, val path: String, val kind: WorkspaceEntryKind, val updatedAt: Instant)
 
 /**
  * The directory holding [path], with the root spelled as the empty string.

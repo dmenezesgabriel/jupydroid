@@ -67,10 +67,7 @@ internal fun EditorUiState.allMarkedCodeCellsScrolled(cellIds: List<String>): Bo
 private fun EditorUiState.toCodeCellIds(cellIds: List<String>): List<String> =
   cells.filter { it.id in cellIds && it.kind == CellKind.CODE }.map { it.id }
 
-private fun EditorUiState.folding(
-  cellIds: List<String>,
-  fold: (Cell) -> Cell,
-): EditorUiState {
+private fun EditorUiState.folding(cellIds: List<String>, fold: (Cell) -> Cell): EditorUiState {
   val folding = cellIds.toSet()
   if (cells.none { it.id in folding }) return this
   return copy(cells = cells.map { if (it.id in folding) fold(it) else it }, dirty = true)

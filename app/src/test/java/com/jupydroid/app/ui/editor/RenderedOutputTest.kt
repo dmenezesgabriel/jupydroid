@@ -1,9 +1,9 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.html.PANDAS_DATAFRAME_HTML
+import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.plainText
 import org.junit.Assert.assertEquals

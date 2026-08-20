@@ -14,9 +14,7 @@ import org.junit.runner.Description
  * (stateIn sharing, etc.) run eagerly under runTest.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule(
-  private val testDispatcher: TestDispatcher = UnconfinedTestDispatcher(),
-) : TestWatcher() {
+class MainDispatcherRule(private val testDispatcher: TestDispatcher = UnconfinedTestDispatcher()) : TestWatcher() {
   override fun starting(description: Description) {
     Dispatchers.setMain(testDispatcher)
   }

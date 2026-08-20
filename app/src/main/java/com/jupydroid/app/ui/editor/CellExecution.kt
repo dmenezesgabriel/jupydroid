@@ -49,11 +49,7 @@ enum class ExecutionStatus {
  * reference carries them (`ExecutionStarted(startTime)` / `ExecutionStopped(endTime)`).
  */
 @Immutable
-data class CellExecution(
-  val status: ExecutionStatus,
-  val startedAt: Instant? = null,
-  val endedAt: Instant? = null,
-) {
+data class CellExecution(val status: ExecutionStatus, val startedAt: Instant? = null, val endedAt: Instant? = null) {
   /** How long the run took, once it has finished. Null while it is still going. */
   val took: Duration?
     get() = if (startedAt != null && endedAt != null) Duration.between(startedAt, endedAt) else null

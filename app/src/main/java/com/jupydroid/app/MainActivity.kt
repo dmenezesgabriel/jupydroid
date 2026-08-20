@@ -54,9 +54,8 @@ class MainActivity : ComponentActivity() {
     return name.takeIf { it.endsWith(".ipynb", ignoreCase = true) }?.let(::importTitleFrom)
   }
 
-  private fun displayNameOf(uri: Uri): String? =
-    contentResolver
-      .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-      ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
-      ?: uri.lastPathSegment
+  private fun displayNameOf(uri: Uri): String? = contentResolver
+    .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+    ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+    ?: uri.lastPathSegment
 }

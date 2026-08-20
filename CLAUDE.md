@@ -174,7 +174,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 
 | Tool | Role | Config |
 |---|---|---|
-| ktlint | formatter + check | `.editorconfig` (`org.jlleitschuh.gradle.ktlint`) |
+| ktlint | formatter + check | `.editorconfig` (`org.jlleitschuh.gradle.ktlint` **14.x**; 12.x registers no source-set task under AGP 9) |
 | detekt | static analysis | `config/detekt/detekt.yml` |
 | Android Lint | Android-specific checks | AGP built-in (`:app:lintDebug`) |
 | pre-commit | commit gate | `.pre-commit-config.yaml` |
@@ -182,8 +182,18 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
 
 Local verification command (same as the commit gate):
-`JAVA_HOME=<jdk> ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest assembleDebug`
-and `python3 -m unittest discover -s scripts -p '*_test.py'`
+```sh
+JAVA_HOME=<jdk> ./gradlew \
+  ktlintCheck ktlintMainSourceSetCheck ktlintTestDebugSourceSetCheck ktlintAndroidTestDebugSourceSetCheck \
+  detekt lintDebug testDebugUnitTest assembleDebug
+```
+
+**The source sets are named on purpose.** `ktlintCheck` alone is an aggregate over whatever tasks
+the plugin registered, and for months it registered none for Kotlin - so it checked the `.kts`
+build scripts and reported success (`docs/DECISIONS.md`). Named, a plugin that stops seeing a
+source set fails with "Task not found" instead of passing quietly.
+
+And `python3 -m unittest discover -s scripts -p '*_test.py'`
 
 Notes:
 - `JAVA_HOME` must point at a JDK (the Gradle hooks run inside the current

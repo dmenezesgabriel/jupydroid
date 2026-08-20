@@ -1,9 +1,9 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * The server and the app have to mean the same directory by "the notebooks".

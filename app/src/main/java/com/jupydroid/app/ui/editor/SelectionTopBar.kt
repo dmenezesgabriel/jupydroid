@@ -167,8 +167,7 @@ private fun reachItems(onExtend: (SelectionReach) -> Unit): List<Pair<String, ()
  * (`packages/notebook-extension/src/index.ts:4287-4292`). The singular spells "cell" out and the
  * plural does not, so the count is what the eye lands on once there is more than one.
  */
-internal fun selectionCountLabel(count: Int): String =
-  if (count == 1) "1 cell selected" else "$count selected"
+internal fun selectionCountLabel(count: Int): String = if (count == 1) "1 cell selected" else "$count selected"
 
 /** Distinct from the cell header's "Cell actions" on purpose: the two act on different things. */
 internal const val SELECTED_CELL_ACTIONS = "Selected cell actions"

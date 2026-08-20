@@ -1,7 +1,6 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.port.ServerConnection
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -10,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 /** Driven against a real loopback server, for the same reason the socket opener is. */
 class OkHttpKernelLifecycleTest {

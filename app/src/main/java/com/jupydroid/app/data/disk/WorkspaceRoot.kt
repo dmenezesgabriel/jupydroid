@@ -62,8 +62,7 @@ internal class WorkspaceRoot(private val rootDir: File) {
   fun isLink(file: File): Boolean = Files.isSymbolicLink(file.toPath())
 
   /** A name joined onto the directory holding it, with the root spelled as the empty string. */
-  fun pathIn(directory: String, name: String): String =
-    if (directory.isEmpty()) name else "$directory/$name"
+  fun pathIn(directory: String, name: String): String = if (directory.isEmpty()) name else "$directory/$name"
 
   /**
    * The first name in the server's series that [directory] does not already hold.

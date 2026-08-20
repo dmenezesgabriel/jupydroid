@@ -61,8 +61,7 @@ object HtmlDocument {
     }
   }
 
-  private fun Element.items(): List<List<RichBlock>> =
-    children().filter { it.tagName() == "li" }.map { it.blocks() }
+  private fun Element.items(): List<List<RichBlock>> = children().filter { it.tagName() == "li" }.map { it.blocks() }
 
   private fun Element.startFrom(): Int = attr("start").toIntOrNull() ?: 1
 

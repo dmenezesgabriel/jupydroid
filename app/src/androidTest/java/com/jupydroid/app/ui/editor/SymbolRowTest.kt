@@ -170,8 +170,12 @@ class SymbolRowTest {
   fun theHistoryKeysAreBigEnoughToTap() {
     showFieldAndRow(accessKernelHistory = true)
 
-    compose.onNodeWithContentDescription(RECALL_PREVIOUS).performScrollTo().assertIsAtLeastMinimumTouchTarget(compose.density)
-    compose.onNodeWithContentDescription(RECALL_NEXT).performScrollTo().assertIsAtLeastMinimumTouchTarget(compose.density)
+    compose.onNodeWithContentDescription(
+      RECALL_PREVIOUS,
+    ).performScrollTo().assertIsAtLeastMinimumTouchTarget(compose.density)
+    compose.onNodeWithContentDescription(
+      RECALL_NEXT,
+    ).performScrollTo().assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 
   private fun showFieldAndRow(accessKernelHistory: Boolean = false) {

@@ -35,7 +35,11 @@ private fun MutableList<SyntaxSpan>.addString(source: String, start: Int): Int {
   var at = start + 1
   while (at < source.length) {
     // A backslash consumes whatever follows it, so `\"` stays inside the string.
-    if (source[at] == '\\') at++ else if (source[at] == '"') break
+    if (source[at] == '\\') {
+      at++
+    } else if (source[at] == '"') {
+      break
+    }
     at++
   }
   val end = minOf(at + 1, source.length)

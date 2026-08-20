@@ -98,7 +98,9 @@ class CollapsedCellTest {
   /** The label is the verb, so a folded cell offers the opposite one and only that one. */
   @Test
   fun theMenuOffersExpandOnceTheSourceIsCollapsed() {
-    compose.setContent { CellHeader(CODE_CELL.copy(sourceHidden = true), null, null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(CODE_CELL.copy(sourceHidden = true), null, null, canPaste = false, mark = null, {}, {}, {}, {})
+    }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
@@ -109,7 +111,9 @@ class CollapsedCellTest {
   /** The two are independent: folding the source must not relabel the outputs' item. */
   @Test
   fun theTwoCollapsesAreLabelledIndependently() {
-    compose.setContent { CellHeader(CODE_CELL.copy(outputsHidden = true), null, null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(CODE_CELL.copy(outputsHidden = true), null, null, canPaste = false, mark = null, {}, {}, {}, {})
+    }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
@@ -124,7 +128,9 @@ class CollapsedCellTest {
    */
   @Test
   fun theMenuOffersNeitherCollapseOnAMarkdownCell() {
-    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+    }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 

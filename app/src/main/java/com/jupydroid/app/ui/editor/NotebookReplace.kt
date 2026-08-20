@@ -136,10 +136,7 @@ private fun EditorUiState.withSearchRefoundFrom(cellId: String, offset: Int): Ed
  * replace.current()      // the match the arrows are on
  * ```
  */
-class NotebookReplace(
-  private val uiState: MutableStateFlow<EditorUiState>,
-  private val save: NotebookSaveDebounce,
-) {
+class NotebookReplace(private val uiState: MutableStateFlow<EditorUiState>, private val save: NotebookSaveDebounce) {
   /** `documentsearch:startWithReplace`, and its other half - reads the state, like every flip row. */
   fun toggleShown() = uiState.update { it.withReplaceShown(it.search?.replaceShown != true) }
 

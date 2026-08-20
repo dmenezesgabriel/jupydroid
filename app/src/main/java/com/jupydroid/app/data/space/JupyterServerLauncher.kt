@@ -3,16 +3,16 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
-import java.io.File
-import java.security.SecureRandom
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import java.io.File
+import java.security.SecureRandom
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Runs stock `jupyter_server` out of a Space, on loopback.
@@ -76,16 +76,16 @@ class JupyterServerLauncher(
    */
   fun exitCode(): Int? = process?.takeIf { !it.isAlive }?.exitValue()
 
-  private suspend fun awaitConnection(): ServerConnection? =
-    withTimeoutOrNull(startTimeout) {
-      while (true) {
-        val runtimeFile = withContext(ioDispatcher) { JupyterRuntimeFile.read(runtimeDir) }
-        if (runtimeFile != null) return@withTimeoutOrNull runtimeFile.toConnection()
-        if (process?.isAlive != true) return@withTimeoutOrNull null
-        delay(POLL_INTERVAL)
-      }
-      @Suppress("UNREACHABLE_CODE") null
+  private suspend fun awaitConnection(): ServerConnection? = withTimeoutOrNull(startTimeout) {
+    while (true) {
+      val runtimeFile = withContext(ioDispatcher) { JupyterRuntimeFile.read(runtimeDir) }
+      if (runtimeFile != null) return@withTimeoutOrNull runtimeFile.toConnection()
+      if (process?.isAlive != true) return@withTimeoutOrNull null
+      delay(POLL_INTERVAL)
     }
+    @Suppress("UNREACHABLE_CODE")
+    null
+  }
 
   private suspend fun failStart(started: Process): Nothing {
     stop()
@@ -110,7 +110,6 @@ class JupyterServerLauncher(
     const val LOG_EXCERPT = 2000
   }
 }
-
 
 /**
  * The server's command line, as a value rather than a side effect of starting one.

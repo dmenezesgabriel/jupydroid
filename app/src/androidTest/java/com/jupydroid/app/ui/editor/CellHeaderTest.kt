@@ -4,11 +4,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
@@ -63,7 +63,9 @@ class CellHeaderTest {
    */
   @Test
   fun aMarkdownCellHasTheMenuButtonToo() {
-    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+    }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
 
@@ -88,7 +90,9 @@ class CellHeaderTest {
   /** Markdown does get one - running it renders it, which is a real thing to do. */
   @Test
   fun aMarkdownCellDoesHaveARunControl() {
-    compose.setContent { CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent {
+      CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+    }
 
     compose.onNodeWithContentDescription(RUN_BUTTON).assertIsDisplayed()
   }
@@ -96,7 +100,12 @@ class CellHeaderTest {
   @Test
   fun choosingAnActionReportsItAndClosesTheMenu() {
     val chosen = mutableListOf<CellAction>()
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, { chosen += it }) }
+    compose.setContent {
+      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {
+        chosen +=
+          it
+      })
+    }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
     compose.onNodeWithContentDescription("Cell menu Move down").performClick()

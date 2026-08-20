@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -42,19 +41,17 @@ import kotlinx.coroutines.launch
  * the tap that caused it is the last thing that screen does.
  */
 @Composable
-private fun rememberDocumentOpener(
-  backStack: MutableList<NavKey>,
-  appContainer: AppContainer,
-): (String) -> Unit = remember(backStack, appContainer) {
-  { path ->
-    if (path.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
-      backStack.openNotebook(path)
-    } else {
-      backStack.openFile(path)
+private fun rememberDocumentOpener(backStack: MutableList<NavKey>, appContainer: AppContainer): (String) -> Unit =
+  remember(backStack, appContainer) {
+    { path ->
+      if (path.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
+        backStack.openNotebook(path)
+      } else {
+        backStack.openFile(path)
+      }
+      appContainer.applicationScope.launch { appContainer.recentDocuments.recordOpening(path) }
     }
-    appContainer.applicationScope.launch { appContainer.recentDocuments.recordOpening(path) }
   }
-}
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -145,48 +142,48 @@ fun MainNavigation(
       directive = directive,
     ),
     entryProvider =
-      entryProvider {
-        entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
-          ExplorerScreen(
-            workspaceRepository = appContainer.workspaceRepository,
-            notebookRepository = appContainer.notebookRepository,
-            recentDocuments = appContainer.recentDocuments,
-            // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
-            // so there is nothing to translate. It briefly was not, and the suffix went on twice:
-            // `Nested.ipynb.ipynb` opened nothing.
-            onOpenFile = { file -> openDocument(file.path) },
-            onOpenRecent = openDocument,
-            openDocumentPath = openDocumentPath,
-            // No arrow at all: this is the first screen now, so there is nowhere to go back *to*.
-            // Back still climbs the workspace while there is a parent - `filebrowser:go-up` - and
-            // at the root it leaves the app, which is what nothing swallowing it means.
-            onBack = null,
-          )
-        }
-        entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
-          FileEditorScreen(
-            path = file.path,
-            workspaceRepository = appContainer.workspaceRepository,
-            applicationScope = appContainer.applicationScope,
-            editorSettingsRepository = appContainer.editorSettings,
-            onBack = { backStack.removeLastOrNull() },
-          )
-        }
-        entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->
-          EditorScreen(
-            notebookId = editor.notebookId,
-            notebookRepository = appContainer.notebookRepository,
-            workspaceRepository = appContainer.workspaceRepository,
-            kernelGateway = appContainer.kernelGateway,
-            notebookExporter = appContainer.notebookExporter,
-            documentSharer = appContainer.documentSharer,
-            applicationScope = appContainer.applicationScope,
-            activeCellRuns = appContainer.activeCellRuns,
-            editorSettingsRepository = appContainer.editorSettings,
-            onBack = { backStack.removeLastOrNull() },
-            onNotebookMoved = { moved -> openNotebookId = moved },
-          )
-        }
-      },
+    entryProvider {
+      entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
+        ExplorerScreen(
+          workspaceRepository = appContainer.workspaceRepository,
+          notebookRepository = appContainer.notebookRepository,
+          recentDocuments = appContainer.recentDocuments,
+          // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
+          // so there is nothing to translate. It briefly was not, and the suffix went on twice:
+          // `Nested.ipynb.ipynb` opened nothing.
+          onOpenFile = { file -> openDocument(file.path) },
+          onOpenRecent = openDocument,
+          openDocumentPath = openDocumentPath,
+          // No arrow at all: this is the first screen now, so there is nowhere to go back *to*.
+          // Back still climbs the workspace while there is a parent - `filebrowser:go-up` - and
+          // at the root it leaves the app, which is what nothing swallowing it means.
+          onBack = null,
+        )
+      }
+      entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
+        FileEditorScreen(
+          path = file.path,
+          workspaceRepository = appContainer.workspaceRepository,
+          applicationScope = appContainer.applicationScope,
+          editorSettingsRepository = appContainer.editorSettings,
+          onBack = { backStack.removeLastOrNull() },
+        )
+      }
+      entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->
+        EditorScreen(
+          notebookId = editor.notebookId,
+          notebookRepository = appContainer.notebookRepository,
+          workspaceRepository = appContainer.workspaceRepository,
+          kernelGateway = appContainer.kernelGateway,
+          notebookExporter = appContainer.notebookExporter,
+          documentSharer = appContainer.documentSharer,
+          applicationScope = appContainer.applicationScope,
+          activeCellRuns = appContainer.activeCellRuns,
+          editorSettingsRepository = appContainer.editorSettings,
+          onBack = { backStack.removeLastOrNull() },
+          onNotebookMoved = { moved -> openNotebookId = moved },
+        )
+      }
+    },
   )
 }

@@ -3,7 +3,6 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.EditorSettingsRepositoryContract
-import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
@@ -11,6 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 /** The disk store owes the port's contract, plus what only a real filesystem can be asked. */
 class DiskEditorSettingsRepositoryTest : EditorSettingsRepositoryContract() {

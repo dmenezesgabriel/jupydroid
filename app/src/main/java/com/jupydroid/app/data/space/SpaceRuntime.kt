@@ -19,10 +19,7 @@ import java.io.File
  * SpaceRuntime(baseDir, nativeInterpreter).command("-m", "jupyter_server")
  * ```
  */
-class SpaceRuntime(
-  private val baseDir: File,
-  private val nativeInterpreter: File,
-) {
+class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: File) {
   fun command(vararg args: String): List<String> = listOf(nativeInterpreter.path) + args
 
   fun environment(): Map<String, String> = mapOf(

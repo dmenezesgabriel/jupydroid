@@ -38,18 +38,15 @@ private fun pairAt(source: String, at: Int, literal: BooleanArray): BracketPair?
  * Walks [scan] counting depth, so a partner is only the one at the same nesting level. Starts on
  * the bracket itself, which is what takes the count from 0 to 1.
  */
-private fun partnerOf(
-  source: String,
-  scan: IntProgression,
-  same: Char,
-  partner: Char,
-  literal: BooleanArray,
-): Int? {
+private fun partnerOf(source: String, scan: IntProgression, same: Char, partner: Char, literal: BooleanArray): Int? {
   var depth = 0
   for (i in scan) {
     if (literal[i]) continue
-    if (source[i] == same) depth++
-    else if (source[i] == partner && --depth == 0) return i
+    if (source[i] == same) {
+      depth++
+    } else if (source[i] == partner && --depth == 0) {
+      return i
+    }
   }
   return null
 }

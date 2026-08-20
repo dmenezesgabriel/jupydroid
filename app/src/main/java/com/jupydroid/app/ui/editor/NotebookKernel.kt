@@ -5,11 +5,11 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
-import java.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Clock
 
 /**
  * The notebook's handle on its kernel: run a cell, restart it, end it, ask it what it knows.

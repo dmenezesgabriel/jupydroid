@@ -38,11 +38,10 @@ data class CellSearchHighlight(
  * Dropped rather than clamped: half a match highlighted is a wrong answer drawn confidently, where
  * a missing one is corrected 150 ms later by the query re-running against the new source.
  */
-internal fun CellSearchHighlight.within(length: Int): CellSearchHighlight =
-  CellSearchHighlight(
-    matches = matches.filter { it.fitsIn(length) },
-    current = current?.takeIf { it.fitsIn(length) },
-  )
+internal fun CellSearchHighlight.within(length: Int): CellSearchHighlight = CellSearchHighlight(
+  matches = matches.filter { it.fitsIn(length) },
+  current = current?.takeIf { it.fitsIn(length) },
+)
 
 private fun IntRange.fitsIn(length: Int): Boolean = first >= 0 && first <= last && last < length
 

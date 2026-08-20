@@ -21,9 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,7 +52,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.parentDirectory
@@ -66,10 +63,10 @@ import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.relativeTime
+import kotlinx.coroutines.delay
 import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.delay
 
 /**
  * The workspace, one directory at a time.
@@ -365,8 +362,14 @@ private fun EntryRow(
   // not reachable by a screen reader at all, which U5e already paid to learn on the cell actions.
   val actions = remember(entry.path, onRename, onDelete) {
     listOf(
-      CustomAccessibilityAction("Rename") { onRename(); true },
-      CustomAccessibilityAction("Delete") { onDelete(); true },
+      CustomAccessibilityAction("Rename") {
+        onRename()
+        true
+      },
+      CustomAccessibilityAction("Delete") {
+        onDelete()
+        true
+      },
     )
   }
   Row(
@@ -375,7 +378,10 @@ private fun EntryRow(
       // One accessible item rather than an icon and two Texts, so a row reads as
       // "Nested.ipynb, just now, selected" instead of making TalkBack walk three nodes - and so
       // `selected` is found on the node the name is on.
-      .semantics(mergeDescendants = true) { selected = isOpen; customActions = actions }
+      .semantics(mergeDescendants = true) {
+        selected = isOpen
+        customActions = actions
+      }
       .background(if (isOpen) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
       // Long press for the row's own actions, which is the touch equivalent of the reference's
       // right-click context menu (`filebrowser-extension`) and of Winlator's per-row menu - and is
@@ -444,7 +450,6 @@ private fun ExplorerError(message: String) {
  * what it was beside rather than what it is, and `Modifier.size(SEPARATOR)` read as a spacer.
  */
 private val CRUMB_SEPARATOR_SIZE = 16.dp
-
 
 /**
  * How often the listing is re-read: `DEFAULT_REFRESH_INTERVAL`, which the reference sets to 10 s

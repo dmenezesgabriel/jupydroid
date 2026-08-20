@@ -14,9 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * FakeEditorSettingsRepository(EditorSettings(autoClosingBrackets = false))
  * ```
  */
-class FakeEditorSettingsRepository(
-  initial: EditorSettings = EditorSettings(),
-) : EditorSettingsRepository {
+class FakeEditorSettingsRepository(initial: EditorSettings = EditorSettings()) : EditorSettingsRepository {
   private val settings = MutableStateFlow(initial)
 
   override fun observeSettings(): Flow<EditorSettings> = settings

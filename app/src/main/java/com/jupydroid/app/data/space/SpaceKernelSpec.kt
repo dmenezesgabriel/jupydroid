@@ -1,9 +1,9 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * Points the Space's `python3` kernelspec at an interpreter that can actually be run.
@@ -56,15 +56,12 @@ object SpaceKernelSpec {
    * per-install path segments, so after an app update a baked argv points at a
    * directory that no longer exists.
    */
-  suspend fun install(
-    baseDir: File,
-    interpreter: File,
-    ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-  ) = withContext(ioDispatcher) {
-    val kernelJson = File(baseDir, KERNEL_PATH)
-    kernelJson.parentFile?.mkdirs()
-    kernelJson.writeText(kernelSpecJson(interpreter))
-  }
+  suspend fun install(baseDir: File, interpreter: File, ioDispatcher: CoroutineDispatcher = Dispatchers.IO) =
+    withContext(ioDispatcher) {
+      val kernelJson = File(baseDir, KERNEL_PATH)
+      kernelJson.parentFile?.mkdirs()
+      kernelJson.writeText(kernelSpecJson(interpreter))
+    }
 
   private fun kernelSpecJson(interpreter: File): String =
     """

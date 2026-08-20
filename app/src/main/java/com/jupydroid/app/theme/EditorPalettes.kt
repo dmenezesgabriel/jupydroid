@@ -65,19 +65,19 @@ val DarkEditorPalette: EditorPalette =
     currentSearchMatch = Color(0xFFFFE100),
     currentSearchMatchText = Color(0xFF000000),
     syntax =
-      SyntaxPalette(
-        plain = Color(0xFFBCBEC4),
-        keyword = Color(0xFFCF8E6D),
-        string = Color(0xFF6AAB73),
-        number = Color(0xFF2AACB8),
-        comment = Color(0xFF7A7E85),
-        function = Color(0xFF56A8F5),
-        heading = Color(0xFFC77DBB),
-        // `MARKDOWN_LINK_TEXT` is overridden in the dark scheme, so it is used in preference to
-        // the `HYPERLINK_ATTRIBUTES` it inherits from - and it is the more legible of the two
-        // (5.47:1 against the cell background, where #548AF7 measures 4.18:1).
-        link = Color(0xFF56A8F5),
-      ),
+    SyntaxPalette(
+      plain = Color(0xFFBCBEC4),
+      keyword = Color(0xFFCF8E6D),
+      string = Color(0xFF6AAB73),
+      number = Color(0xFF2AACB8),
+      comment = Color(0xFF7A7E85),
+      function = Color(0xFF56A8F5),
+      heading = Color(0xFFC77DBB),
+      // `MARKDOWN_LINK_TEXT` is overridden in the dark scheme, so it is used in preference to
+      // the `HYPERLINK_ATTRIBUTES` it inherits from - and it is the more legible of the two
+      // (5.47:1 against the cell background, where #548AF7 measures 4.18:1).
+      link = Color(0xFF56A8F5),
+    ),
   )
 
 val LightEditorPalette: EditorPalette =
@@ -114,15 +114,15 @@ val LightEditorPalette: EditorPalette =
     currentSearchMatch = Color(0xFFF5C800),
     currentSearchMatchText = Color(0xFF000000),
     syntax =
-      SyntaxPalette(
-        plain = Color(0xFF080808),
-        keyword = Color(0xFF0033B3),
-        string = Color(0xFF067D17),
-        number = Color(0xFF1750EB),
-        comment = Color(0xFF8C8C8C),
-        function = Color(0xFF00627A),
-        heading = Color(0xFF871094),
-        // The light scheme has no markdown override, so this is `HYPERLINK_ATTRIBUTES`.
-        link = Color(0xFF0006DC),
-      ),
+    SyntaxPalette(
+      plain = Color(0xFF080808),
+      keyword = Color(0xFF0033B3),
+      string = Color(0xFF067D17),
+      number = Color(0xFF1750EB),
+      comment = Color(0xFF8C8C8C),
+      function = Color(0xFF00627A),
+      heading = Color(0xFF871094),
+      // The light scheme has no markdown override, so this is `HYPERLINK_ATTRIBUTES`.
+      link = Color(0xFF0006DC),
+    ),
   )

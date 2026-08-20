@@ -4,9 +4,8 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
-import java.time.Instant
-import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
+import java.time.Instant
 
 /**
  * In-memory [NotebookRepository] feeding the UI until the disk impl lands (Step 3).

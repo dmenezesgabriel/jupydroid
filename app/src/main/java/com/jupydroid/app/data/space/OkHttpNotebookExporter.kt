@@ -8,8 +8,6 @@ import com.jupydroid.app.domain.port.ServerConnection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaDuration
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -17,6 +15,8 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 /**
  * `notebook:export-to-format` over the two endpoints `jupyter_server` registers for nbconvert
@@ -86,13 +86,12 @@ class OkHttpNotebookExporter(
    * kept - which is what the reference's `URLExt.encodeParts` does and what a notebook in a
    * subfolder needs. `download=true` is what asks for the `Content-Disposition` at all.
    */
-  private fun exportUrl(documentPath: String, format: String): HttpUrl =
-    connection.baseUrl.toHttpUrl().newBuilder()
-      .addPathSegment(EXPORT_PATH)
-      .addPathSegment(format)
-      .addPathSegments(documentPath.trim('/'))
-      .addQueryParameter("download", "true")
-      .build()
+  private fun exportUrl(documentPath: String, format: String): HttpUrl = connection.baseUrl.toHttpUrl().newBuilder()
+    .addPathSegment(EXPORT_PATH)
+    .addPathSegment(format)
+    .addPathSegments(documentPath.trim('/'))
+    .addQueryParameter("download", "true")
+    .build()
 
   private suspend fun get(url: HttpUrl): NbConvertAnswer = withContext(ioDispatcher) {
     val request = Request.Builder()
@@ -139,12 +138,11 @@ private data class NbConvertAnswer(
 ) {
   fun text(): String = bytes.toString(Charsets.UTF_8)
 
-  override fun equals(other: Any?): Boolean =
-    other is NbConvertAnswer &&
-      code == other.code &&
-      bytes.contentEquals(other.bytes) &&
-      contentType == other.contentType &&
-      contentDisposition == other.contentDisposition
+  override fun equals(other: Any?): Boolean = other is NbConvertAnswer &&
+    code == other.code &&
+    bytes.contentEquals(other.bytes) &&
+    contentType == other.contentType &&
+    contentDisposition == other.contentDisposition
 
   override fun hashCode(): Int = 31 * (31 * code + bytes.contentHashCode()) + contentType.hashCode()
 }

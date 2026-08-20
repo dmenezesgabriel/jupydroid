@@ -15,5 +15,4 @@ package com.jupydroid.app.domain.port
  * val taken = if (failure is FileNameTakenException) name else null
  * ```
  */
-class FileNameTakenException(name: String) :
-  IllegalStateException("'$name' already exists in that folder")
+class FileNameTakenException(name: String) : IllegalStateException("'$name' already exists in that folder")

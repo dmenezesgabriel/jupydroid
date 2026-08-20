@@ -1,7 +1,7 @@
 package com.jupydroid.app.di
 
-import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeDocumentSharer
+import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
@@ -17,10 +17,10 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.WorkspaceRepository
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Manual composition root (single :app module). Constructed once in MainActivity and passed
@@ -102,4 +102,3 @@ class AppContainer(
     val IDLE_STOP_GRACE = 30.seconds
   }
 }
-

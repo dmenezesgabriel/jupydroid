@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
-import java.util.UUID
 
 /**
  * Managing a notebook's cells, as pure functions over [EditorUiState].
@@ -111,8 +110,7 @@ fun EditorUiState.withCellsDeleted(cellIds: List<String>, replacementId: String)
  * `(child as CodeCell).outputHidden = false` (`actions.tsx:1835`). Otherwise clearing a collapsed
  * cell leaves a fold over nothing, offering to expand it.
  */
-fun EditorUiState.withOutputsCleared(cellIds: List<String>): EditorUiState =
-  clearingOutputsOf(cellIds.toSet())
+fun EditorUiState.withOutputsCleared(cellIds: List<String>): EditorUiState = clearingOutputsOf(cellIds.toSet())
 
 /**
  * `notebook:clear-all-cell-outputs` - `clearAllOutputs` (`actions.tsx:1851-1870`).

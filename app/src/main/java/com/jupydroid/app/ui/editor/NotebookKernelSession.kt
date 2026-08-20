@@ -39,8 +39,7 @@ class NotebookKernelSession(
    * is what happens in the reference too, where a rename retitles the session and leaves the
    * running kernel where it was.
    */
-  suspend fun open(): KernelSession =
-    opened ?: kernelGateway.connect(space, documentPath()).also { opened = it }
+  suspend fun open(): KernelSession = opened ?: kernelGateway.connect(space, documentPath()).also { opened = it }
 
   /**
    * Runs [use] against the open session, opening a fresh one and trying once more if the session

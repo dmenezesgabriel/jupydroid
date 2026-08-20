@@ -38,8 +38,7 @@ private fun Element.markedInlines(): List<RichInline> = when (tagName()) {
  * `<style>` and `<script>` hold text that is not content: pandas wraps every DataFrame in a
  * `<style scoped>` block, and a walk that treats unknown elements as text puts its CSS on screen.
  */
-internal fun Node.isIgnored(): Boolean =
-  this is Comment || (this is Element && tagName() in IGNORED_TAGS)
+internal fun Node.isIgnored(): Boolean = this is Comment || (this is Element && tagName() in IGNORED_TAGS)
 
 /**
  * HTML collapses runs of whitespace and drops it at a block's edges, so `<p>\n  hi\n</p>`

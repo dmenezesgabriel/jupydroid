@@ -101,8 +101,7 @@ class MimeBundleTest {
     return ((output.toFileOutput() as JsonObject)["data"] as JsonObject)
   }
 
-  private fun splitFor(mime: String, value: JsonElement): JsonElement =
-    write(mime to value).getValue(mime)
+  private fun splitFor(mime: String, value: JsonElement): JsonElement = write(mime to value).getValue(mime)
 
   private fun json(text: String): JsonElement = Json.parseToJsonElement(text)
 }

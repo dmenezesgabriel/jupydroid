@@ -1,12 +1,12 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -55,7 +55,9 @@ class MarkdownCellTest {
   @Test
   fun tappingTheRenderedCellAsksForTheEditor() {
     var asked = false
-    compose.setContent { MarkdownCell(rememberTextFieldState("# Title"), "# Title", rendered = true, { asked = true }, {}) }
+    compose.setContent {
+      MarkdownCell(rememberTextFieldState("# Title"), "# Title", rendered = true, { asked = true }, {})
+    }
 
     compose.onNodeWithContentDescription(RENDERED_MARKDOWN).performClick()
 
@@ -79,7 +81,10 @@ class MarkdownCellTest {
         rememberTextFieldState("# Title"),
         "# Title",
         rendered,
-        onEditRequested = { rendered = false; takesCaret = true },
+        onEditRequested = {
+          rendered = false
+          takesCaret = true
+        },
         onSourceEdited = {},
         takesCaret = takesCaret,
       )

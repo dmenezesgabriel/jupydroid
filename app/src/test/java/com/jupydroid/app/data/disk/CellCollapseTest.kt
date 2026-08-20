@@ -236,8 +236,7 @@ class CellCollapseTest {
     (notebookOf(this)["cells"] as JsonArray).single().jsonObject.toString(),
   )
 
-  private fun notebookOf(cell: Cell): JsonObject =
-    Notebook("nb", "Title", "python3", listOf(cell)).toFileJson()
+  private fun notebookOf(cell: Cell): JsonObject = Notebook("nb", "Title", "python3", listOf(cell)).toFileJson()
 
   private fun codeCell(
     sourceHidden: Boolean = false,

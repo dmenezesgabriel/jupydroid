@@ -105,8 +105,7 @@ class NotebookNavigationTest {
    * The row in the workspace listing, told from its twin in the Recents section by the icon each
    * one carries - "File" against "Recent file", which is also what a screen reader hears.
    */
-  private fun listingRow(title: String) =
-    compose.onNode(hasText(title) and hasContentDescription("File"))
+  private fun listingRow(title: String) = compose.onNode(hasText(title) and hasContentDescription("File"))
 
   private fun startAppWithTwoNotebooks() {
     val repository = DiskNotebookRepository(tempFolder.root)

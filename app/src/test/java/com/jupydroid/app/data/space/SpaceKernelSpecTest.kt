@@ -1,6 +1,5 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -11,6 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 class SpaceKernelSpecTest {
   @get:Rule val tempFolder = TemporaryFolder()
@@ -98,10 +98,8 @@ class SpaceKernelSpecTest {
     assertTrue(argv.toString(), argv.contains("--log-level=DEBUG"))
   }
 
-  private fun argv(baseDir: File): List<String> =
-    Json.parseToJsonElement(kernelJson(baseDir).readText())
-      .jsonObject.getValue("argv").jsonArray.map { it.jsonPrimitive.content }
+  private fun argv(baseDir: File): List<String> = Json.parseToJsonElement(kernelJson(baseDir).readText())
+    .jsonObject.getValue("argv").jsonArray.map { it.jsonPrimitive.content }
 
-  private fun kernelJson(baseDir: File) =
-    File(baseDir, "usr/share/jupyter/kernels/python3/kernel.json")
+  private fun kernelJson(baseDir: File) = File(baseDir, "usr/share/jupyter/kernels/python3/kernel.json")
 }

@@ -1,8 +1,8 @@
 package com.jupydroid.app.data.space
 
 import android.util.Log
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Where the Space runtime says what it did.
@@ -46,10 +46,11 @@ interface SpaceLifecycleLog {
  * the serializer rather than by hand because a `reason` here routinely carries quotes and
  * newlines - a close frame's text is whatever the server said.
  */
-internal fun spaceLogLine(stage: String, fields: Map<String, String> = emptyMap()): String =
-  JsonObject(linkedMapOf<String, JsonPrimitive>("stage" to JsonPrimitive(stage)).apply {
+internal fun spaceLogLine(stage: String, fields: Map<String, String> = emptyMap()): String = JsonObject(
+  linkedMapOf<String, JsonPrimitive>("stage" to JsonPrimitive(stage)).apply {
     fields.forEach { (key, value) -> put(key, JsonPrimitive(value)) }
-  }).toString()
+  },
+).toString()
 
 /** Logcat, under one tag so the whole runtime can be followed with a single filter. */
 object LogcatSpaceLifecycleLog : SpaceLifecycleLog {

@@ -24,7 +24,9 @@ class RichTableTest {
 
   @Test
   fun drawsEveryCellOfTheTable() {
-    compose.setContent { RichTable(tableOf("<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>")) }
+    compose.setContent {
+      RichTable(tableOf("<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>"))
+    }
 
     listOf("a", "b", "1", "2").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
   }

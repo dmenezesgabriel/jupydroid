@@ -58,21 +58,15 @@ class BaseSpaceKernelGateway(
       log.reached("kernel ${it.kernelId} ready for space ${space.id}")
     }
 
-  override suspend fun execute(
-    session: KernelSession,
-    cellId: String,
-    code: String,
-  ): Flow<KernelEvent> = known(session).execute(session, cellId, code)
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> =
+    known(session).execute(session, cellId, code)
 
   override suspend fun interrupt(session: KernelSession) = known(session).interrupt(session)
 
   override suspend fun restart(session: KernelSession) = known(session).restart(session)
 
-  override suspend fun complete(
-    session: KernelSession,
-    code: String,
-    cursorOffset: Int,
-  ): CompletionResult = known(session).complete(session, code, cursorOffset)
+  override suspend fun complete(session: KernelSession, code: String, cursorOffset: Int): CompletionResult =
+    known(session).complete(session, code, cursorOffset)
 
   override suspend fun executionHistory(session: KernelSession, entries: Int): List<String> =
     known(session).executionHistory(session, entries)

@@ -82,16 +82,16 @@ private fun shapingItems(cell: Cell, several: Boolean): List<Pair<String, CellAc
   (if (several) "Duplicate cells" else "Duplicate") to CellAction.Duplicate,
 ) + changeKindItems(cell, several) + listOf(CHANGE_TO_HEADING to CellAction.ChooseHeadingLevel) +
   mergeItems(several) + listOf(
-  // Beside the merges, because split is their inverse and the three read as one group.
-  //
-  // **On every cell, and whether or not a caret was ever put in one.** Both are the reference's
-  // `isEnabled: !!current.content.activeCell?.editor`: a markdown cell keeps its editor while it
-  // is rendered - `renderInput`/`showEditor` swap only which widget is displayed
-  // (`packages/cells/src/widget.ts:2489-2503`) - and `editor.getSelections()` answers with the
-  // last cursor, or 0 for an editor nobody has touched. Splitting there puts an empty cell above,
-  // and an undo takes it back.
-  "Split cell" to CellAction.Split,
-)
+    // Beside the merges, because split is their inverse and the three read as one group.
+    //
+    // **On every cell, and whether or not a caret was ever put in one.** Both are the reference's
+    // `isEnabled: !!current.content.activeCell?.editor`: a markdown cell keeps its editor while it
+    // is rendered - `renderInput`/`showEditor` swap only which widget is displayed
+    // (`packages/cells/src/widget.ts:2489-2503`) - and `editor.getSelections()` answers with the
+    // last cursor, or 0 for an editor nobody has touched. Splitting there puts an empty cell above,
+    // and an undo takes it back.
+    "Split cell" to CellAction.Split,
+  )
 
 /**
  * The two types the cell is **not**, so each row reads as the change rather than as the state.

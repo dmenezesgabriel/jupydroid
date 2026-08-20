@@ -18,15 +18,13 @@ internal fun Element.asTable(): List<RichBlock> {
 }
 
 /** `<tr>` may sit directly under the table or inside a `thead`/`tbody`/`tfoot`; both are usual. */
-private fun Element.tableRows(): List<Element> =
-  children()
-    .flatMap { if (it.tagName() in ROW_GROUP_TAGS) it.children() else listOf(it) }
-    .filter { it.tagName() == "tr" }
+private fun Element.tableRows(): List<Element> = children()
+  .flatMap { if (it.tagName() in ROW_GROUP_TAGS) it.children() else listOf(it) }
+  .filter { it.tagName() == "tr" }
 
-private fun Element.cells(): List<TableCell> =
-  children()
-    .filter { it.tagName() in CELL_TAGS }
-    .map { TableCell(it.childInlines(), isHeader = it.tagName() == "th") }
+private fun Element.cells(): List<TableCell> = children()
+  .filter { it.tagName() in CELL_TAGS }
+  .map { TableCell(it.childInlines(), isHeader = it.tagName() == "th") }
 
 /**
  * A grid is only a grid if every row is the same length. Ragged rows come from hand-written

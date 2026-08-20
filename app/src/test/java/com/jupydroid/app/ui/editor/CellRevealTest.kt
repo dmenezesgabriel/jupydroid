@@ -192,5 +192,4 @@ class CellRevealTest {
     assertTrue(revealed.cells.single { it.id == "h2" }.headingCollapsed)
     assertEquals(listOf("h1", "under", "h2"), revealed.cellsOnScreen.map { it.id })
   }
-
 }

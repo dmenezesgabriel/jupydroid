@@ -66,17 +66,16 @@ data class TocHeading(
  * [Cell.headingLevel]'s "lowest number wins" already collapses a cell to a single heading. An
  * output can yield several, exactly as there.
  */
-fun EditorUiState.tableOfContentsHeadings(includeOutput: Boolean = true): List<TocHeading> =
-  cells.flatMap { cell ->
-    when (cell.kind) {
-      CellKind.MARKDOWN -> listOfNotNull(
-        MarkdownDocument.heading(cell.source)?.let { TocHeading(cell.id, it.level, it.inlines.plainText()) },
-      )
-      CellKind.CODE -> if (includeOutput) outputHeadingsOf(cell.id) else emptyList()
-      // `runCell` never reaches a raw cell and nothing renders one, so it has neither half.
-      CellKind.RAW -> emptyList()
-    }
+fun EditorUiState.tableOfContentsHeadings(includeOutput: Boolean = true): List<TocHeading> = cells.flatMap { cell ->
+  when (cell.kind) {
+    CellKind.MARKDOWN -> listOfNotNull(
+      MarkdownDocument.heading(cell.source)?.let { TocHeading(cell.id, it.level, it.inlines.plainText()) },
+    )
+    CellKind.CODE -> if (includeOutput) outputHeadingsOf(cell.id) else emptyList()
+    // `runCell` never reaches a raw cell and nothing renders one, so it has neither half.
+    CellKind.RAW -> emptyList()
   }
+}
 
 /**
  * The headings a code cell **printed** - `toc:display-outputs-numbering`'s half of the list.
@@ -206,10 +205,9 @@ fun EditorUiState.withHeadingInserted(reach: SectionReach, newId: String): Edito
  * `determineHeadingLevel`: the cell's own level, else its parent heading's, else 1
  * (`actions.tsx:3576-3597`, and the `-1` fallbacks at `:1194` and `:1216`).
  */
-private fun EditorUiState.sectionLevelAt(at: Int): Int =
-  cells[at].headingLevel
-    ?: cells.take(at).lastOrNull { it.headingLevel != null }?.headingLevel
-    ?: 1
+private fun EditorUiState.sectionLevelAt(at: Int): Int = cells[at].headingLevel
+  ?: cells.take(at).lastOrNull { it.headingLevel != null }?.headingLevel
+  ?: 1
 
 /** `findLowerEqualLevelHeadingBelow`, or the end of the notebook when there is no sibling. */
 private fun EditorUiState.endOfSectionAt(at: Int, level: Int): Int {

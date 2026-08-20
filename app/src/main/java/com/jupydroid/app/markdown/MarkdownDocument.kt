@@ -99,8 +99,7 @@ object MarkdownDocument {
   }
 
   /** Each item is its own block list: an item may hold a paragraph and then a nested list. */
-  private fun Node.items(): List<List<RichBlock>> =
-    children().filterIsInstance<ListItem>().map { it.blocks() }
+  private fun Node.items(): List<List<RichBlock>> = children().filterIsInstance<ListItem>().map { it.blocks() }
 
   private fun Node.inlines(): List<RichInline> = children().mapNotNull { it.asInline() }
 

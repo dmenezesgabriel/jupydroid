@@ -35,7 +35,16 @@ class CellOutputsViewTest {
     var scrolled by mutableStateOf(false)
     compose.setContent {
       JupyterDroidTheme {
-        CellOutputs(outputs = listOf(tallStream()), hidden = false, scrolled = scrolled, search = emptyList(), onExpand = {})
+        CellOutputs(
+          outputs = listOf(
+            tallStream(),
+          ),
+          hidden = false,
+          scrolled = scrolled,
+          search = emptyList(),
+          onExpand = {
+          },
+        )
       }
     }
 
@@ -81,7 +90,11 @@ class CellOutputsViewTest {
     }
 
     val expected = with(compose.density) { CodeText.lineHeight.toDp() }
-    assertEquals(expected.value, compose.onNodeWithContentDescription("Cell output").getUnclippedBoundsInRoot().height.value, 0.5f)
+    assertEquals(
+      expected.value,
+      compose.onNodeWithContentDescription("Cell output").getUnclippedBoundsInRoot().height.value,
+      0.5f,
+    )
   }
 
   private fun oneLine() = CellOutput.Stream(name = StreamName.STDOUT, text = "one line")

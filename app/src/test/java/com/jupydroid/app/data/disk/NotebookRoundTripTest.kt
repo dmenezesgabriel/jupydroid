@@ -278,10 +278,9 @@ class NotebookRoundTripTest {
 
     fun json(text: String): JsonElement = Json.parseToJsonElement(text)
 
-    fun JsonObject.toNotebook() =
-      Json { ignoreUnknownKeys = true }
-        .decodeFromJsonElement(NotebookFile.serializer(), this)
-        .toDomain(id = "nb", preserved = this)
+    fun JsonObject.toNotebook() = Json { ignoreUnknownKeys = true }
+      .decodeFromJsonElement(NotebookFile.serializer(), this)
+      .toDomain(id = "nb", preserved = this)
 
     fun savedCells(): List<JsonObject> = SAVED.array("cells").map { it as JsonObject }
 
@@ -289,7 +288,6 @@ class NotebookRoundTripTest {
 
     fun JsonObject.jsonObject(key: String): JsonObject = this[key] as JsonObject
 
-    fun JsonObject.array(key: String): List<JsonElement> =
-      (this[key] as kotlinx.serialization.json.JsonArray).toList()
+    fun JsonObject.array(key: String): List<JsonElement> = (this[key] as kotlinx.serialization.json.JsonArray).toList()
   }
 }

@@ -1,12 +1,12 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 class SpaceRuntimeTest {
   @get:Rule val tempFolder = TemporaryFolder()
@@ -92,11 +92,10 @@ class SpaceRuntimeTest {
     assertFalse(SpaceRuntime(empty, interpreter).environment().containsKey("LD_PRELOAD"))
   }
 
-  private fun spaceWithHandler(): File =
-    tempFolder.newFolder("space-with-handler").apply {
-      File(this, "lib").mkdirs()
-      File(this, "lib/libsigsys_report.so").writeText("ELF")
-    }
+  private fun spaceWithHandler(): File = tempFolder.newFolder("space-with-handler").apply {
+    File(this, "lib").mkdirs()
+    File(this, "lib/libsigsys_report.so").writeText("ELF")
+  }
 
   /** Android's own PATH would leak toybox into the Space; the rootfs supplies its own. */
   @Test

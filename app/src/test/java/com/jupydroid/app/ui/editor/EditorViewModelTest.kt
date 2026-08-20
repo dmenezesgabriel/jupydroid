@@ -9,7 +9,6 @@ import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
-import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle

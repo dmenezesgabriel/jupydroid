@@ -7,14 +7,14 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
-import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.FileNameTakenException
+import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -309,7 +309,6 @@ class EditorViewModel(
       }
     }
   }
-
 
   private suspend fun persist() {
     if (notebookIsGone) return

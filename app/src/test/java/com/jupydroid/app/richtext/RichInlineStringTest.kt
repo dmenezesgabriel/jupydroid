@@ -84,6 +84,5 @@ class RichInlineStringTest {
     assertEquals("one\ntwo", MarkdownDocument.parse("one  \ntwo").paragraphInlines().toAnnotatedString(styles).text)
   }
 
-  private fun List<RichBlock>.paragraphInlines(): List<RichInline> =
-    (single() as RichBlock.Paragraph).inlines
+  private fun List<RichBlock>.paragraphInlines(): List<RichInline> = (single() as RichBlock.Paragraph).inlines
 }

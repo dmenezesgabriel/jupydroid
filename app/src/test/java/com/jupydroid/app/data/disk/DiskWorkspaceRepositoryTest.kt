@@ -3,15 +3,15 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceRepositoryContract
-import java.io.File
-import java.nio.file.Files
-import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
+import java.nio.file.Files
+import java.time.Instant
 
 /** The disk workspace owes the port's contract, plus what only a real filesystem can be asked. */
 class DiskWorkspaceRepositoryTest : WorkspaceRepositoryContract() {

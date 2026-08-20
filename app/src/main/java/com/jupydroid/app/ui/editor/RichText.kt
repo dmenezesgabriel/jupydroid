@@ -129,12 +129,14 @@ private const val HEADING_3 = 3
 
 private val BLOCK_GAP = Spacing.sm
 private val QUOTE_INDENT = Spacing.md
+
 /**
  * The bar down the left of a block quote. Wider than a hairline because it is the only thing
  * marking the quote - there is no background behind one - and thinner than a cell stripe so the
  * two do not read as the same kind of mark.
  */
 private val QUOTE_RULE_WIDTH = 3.dp
+
 /**
  * The column a list marker is drawn in, fixed so that every item's text starts at the same x
  * whatever its marker is - `1.` and `10.` are different widths and a ragged left edge is what a

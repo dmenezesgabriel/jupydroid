@@ -1,6 +1,5 @@
 package com.jupydroid.app.domain.model
 
-import java.time.Instant
 import kotlinx.serialization.json.JsonObject
 
 /**

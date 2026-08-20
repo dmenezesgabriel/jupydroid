@@ -5,9 +5,9 @@ import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.html.HtmlDocument
 import com.jupydroid.app.richtext.RichBlock
-import java.util.Base64
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
+import java.util.Base64
 
 /** What the editor can actually draw for one output. */
 sealed interface RenderedOutput {
@@ -43,10 +43,9 @@ fun CellOutput.render(): RenderedOutput? = when (this) {
  * The traceback if there is one, since it carries the line that failed; otherwise the name
  * and value, which are all a bare exception has.
  */
-private fun CellOutput.Error.readable(): String =
-  traceback.takeIf { it.isNotEmpty() }
-    ?.joinToString("\n") { it.withoutAnsiColours() }
-    ?: "$name: $value"
+private fun CellOutput.Error.readable(): String = traceback.takeIf { it.isNotEmpty() }
+  ?.joinToString("\n") { it.withoutAnsiColours() }
+  ?: "$name: $value"
 
 /**
  * The best form the bundle offers, richest first, then the mime types themselves as a last
@@ -88,9 +87,8 @@ private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when 
  * invalid characters, so it happily "decodes" text that is not base64 at all, and the
  * fallback would never fire. nbformat wraps its base64 across lines, hence the stripping.
  */
-private fun String.decodedPng(): ByteArray? =
-  filterNot { it.isWhitespace() }
-    .let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
+private fun String.decodedPng(): ByteArray? = filterNot { it.isWhitespace() }
+  .let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
 
 /**
  * Removes the SGR escapes a kernel colours its tracebacks with. Both the real `ESC [ … m`

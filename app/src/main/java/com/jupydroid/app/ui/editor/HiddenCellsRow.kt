@@ -8,8 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,5 +59,4 @@ internal fun HiddenCellsRow(count: Int, onExpand: () -> Unit, modifier: Modifier
 }
 
 /** `trans._n('%1 cell hidden', '%1 cells hidden', …)` in this app's sentence case. */
-internal fun hiddenCellsLabel(count: Int): String =
-  if (count == 1) "1 cell hidden" else "$count cells hidden"
+internal fun hiddenCellsLabel(count: Int): String = if (count == 1) "1 cell hidden" else "$count cells hidden"

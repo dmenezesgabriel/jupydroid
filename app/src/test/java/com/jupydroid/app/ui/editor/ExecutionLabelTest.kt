@@ -1,10 +1,10 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.CellKind
-import java.time.Duration
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.Duration
 
 /**
  * What a cell says about its own run: the bracket beside it, and how long it took.

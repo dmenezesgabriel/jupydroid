@@ -5,7 +5,6 @@ import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.syntax.JsonSyntax
 import com.jupydroid.app.syntax.PythonSyntax
-import java.io.File
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -14,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 /**
  * A file that is not a notebook, in one editor.
@@ -175,8 +175,6 @@ class FileEditorViewModelTest {
     assertEquals(emptyList<String>(), temp.root.list()?.toList())
   }
 
-  private fun kotlinx.coroutines.test.TestScope.editorFor(
-    file: Pair<String, String>,
-    open: String = file.first,
-  ) = FileEditorViewModel(open, FakeWorkspaceRepository(textByPath = mapOf(file)), this)
+  private fun kotlinx.coroutines.test.TestScope.editorFor(file: Pair<String, String>, open: String = file.first) =
+    FileEditorViewModel(open, FakeWorkspaceRepository(textByPath = mapOf(file)), this)
 }

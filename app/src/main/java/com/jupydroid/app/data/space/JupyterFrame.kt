@@ -24,17 +24,15 @@ internal object JupyterFrame {
   private val json = Json { ignoreUnknownKeys = true }
 
   /** The decoded frame, but only when it is a reply to the request we are waiting on. */
-  fun ours(frame: String, requestMsgId: String): JsonObject? =
-    decode(frame)?.takeIf {
-      it["parent_header"]?.jsonObject?.get("msg_id")?.jsonPrimitive?.content == requestMsgId
-    }
+  fun ours(frame: String, requestMsgId: String): JsonObject? = decode(frame)?.takeIf {
+    it["parent_header"]?.jsonObject?.get("msg_id")?.jsonPrimitive?.content == requestMsgId
+  }
 
   /** [ours], narrowed to a single message type. */
   fun ofType(frame: String, requestMsgId: String, msgType: String): JsonObject? =
     ours(frame, requestMsgId)?.takeIf { it.msgType() == msgType }
 
-  fun JsonObject.msgType(): String? =
-    get("header")?.jsonObject?.get("msg_type")?.jsonPrimitive?.content
+  fun JsonObject.msgType(): String? = get("header")?.jsonObject?.get("msg_type")?.jsonPrimitive?.content
 
   /**
    * The message type of any frame, ours or not, for the log.

@@ -219,12 +219,7 @@ internal fun NotebookActionsMenu(
  * the reference's own guidance dialog does - *"Notebook exports are unavailable"* (`:938`).
  */
 @Composable
-private fun ExportPicker(
-  expanded: Boolean,
-  state: ExportState,
-  onDismiss: () -> Unit,
-  onPick: (String) -> Unit,
-) {
+private fun ExportPicker(expanded: Boolean, state: ExportState, onDismiss: () -> Unit, onPick: (String) -> Unit) {
   DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
     when {
       state.loadingFormats -> DropdownMenuItem(

@@ -46,7 +46,15 @@ class CellCustomActionsTest {
     // has eighteen rows already and a fold to run out of; this list has neither, and a submenu is
     // the worst shape there is to operate with TalkBack. See [headingLevelItems].
     val menu = cellActionItems(CODE_CELL, canPaste = false, selecting = false).map { it.first }
-    val expanded = menu.flatMap { if (it == CHANGE_TO_HEADING) headingLevelItems().map { l -> l.first } else listOf(it) }
+    val expanded = menu.flatMap {
+      if (it ==
+        CHANGE_TO_HEADING
+      ) {
+        headingLevelItems().map { l -> l.first }
+      } else {
+        listOf(it)
+      }
+    }
     assertEquals(expanded, labels)
     assertTrue("the picker's own row must not be here", CHANGE_TO_HEADING !in labels)
   }

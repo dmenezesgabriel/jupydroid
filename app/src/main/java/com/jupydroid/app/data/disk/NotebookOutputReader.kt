@@ -51,8 +51,7 @@ private fun JsonObject.toError(): CellOutput? {
 }
 
 /** nbformat's `_rejoin_mimebundle`; see [rejoinedBundle] for why a JSON mime is exempt. */
-private fun JsonObject.mimeBundle(): MimeBundle =
-  (get("data") as? JsonObject)?.rejoinedBundle().orEmpty()
+private fun JsonObject.mimeBundle(): MimeBundle = (get("data") as? JsonObject)?.rejoinedBundle().orEmpty()
 
 /** Jupyter writes long text as an array of lines and short text as a string; accept both. */
 private fun JsonElement?.joinedText(): String = when (this) {

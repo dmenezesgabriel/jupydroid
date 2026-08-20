@@ -157,13 +157,12 @@ class CellActionItemsTest {
     assertEquals(listOf("Merge with above", "Merge with below"), labels.filter { it.startsWith("Merge") })
   }
 
-  private fun itemsFor(count: Int) =
-    cellActionItems(
-      Cell("c1", CellKind.CODE, "x = 1"),
-      canPaste = false,
-      selecting = count > 1,
-      count = count,
-    ).map { it.first }
+  private fun itemsFor(count: Int) = cellActionItems(
+    Cell("c1", CellKind.CODE, "x = 1"),
+    canPaste = false,
+    selecting = count > 1,
+    count = count,
+  ).map { it.first }
 
   // --- notebook:enable/disable/toggle-output-scrolling (P2g-2b) -----------------------------
 

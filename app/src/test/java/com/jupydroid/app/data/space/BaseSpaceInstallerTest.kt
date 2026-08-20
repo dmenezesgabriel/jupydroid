@@ -1,9 +1,5 @@
 package com.jupydroid.app.data.space
 
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.nio.file.Files
-import java.util.zip.GZIPOutputStream
 import kotlinx.coroutines.test.runTest
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
@@ -13,6 +9,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.nio.file.Files
+import java.util.zip.GZIPOutputStream
 
 class BaseSpaceInstallerTest {
   @get:Rule val tempFolder = TemporaryFolder()

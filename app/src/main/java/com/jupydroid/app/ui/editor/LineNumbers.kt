@@ -9,8 +9,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
@@ -37,12 +37,7 @@ import com.jupydroid.app.theme.Spacing
  *   popup anchors against the same edge and the two must not disagree.
  */
 @Composable
-fun Modifier.lineNumbers(
-  text: CharSequence,
-  layout: TextLayoutResult?,
-  style: TextStyle,
-  width: Dp,
-): Modifier {
+fun Modifier.lineNumbers(text: CharSequence, layout: TextLayoutResult?, style: TextStyle, width: Dp): Modifier {
   if (width <= 0.dp) return this
   val starts = logicalLineStarts(text)
   val measurer = rememberTextMeasurer()

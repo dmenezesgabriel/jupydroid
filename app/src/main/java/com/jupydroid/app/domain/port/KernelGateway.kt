@@ -12,11 +12,7 @@ import kotlinx.coroutines.flow.Flow
  * without the range a caller has to guess how much of the line to drop - which is how a
  * completion turns into `np.np.arange`.
  */
-data class CompletionResult(
-  val matches: List<String>,
-  val replacedStart: Int,
-  val replacedEnd: Int,
-) {
+data class CompletionResult(val matches: List<String>, val replacedStart: Int, val replacedEnd: Int) {
   companion object {
     val NONE = CompletionResult(emptyList(), 0, 0)
   }
@@ -31,12 +27,7 @@ data class CompletionResult(
  * *session* that owns that process, which is what `shutdown` addresses - `DELETE api/sessions/<id>`
  * takes the kernel with it, and no other id will do.
  */
-data class KernelSession(
-  val id: String,
-  val spaceId: String,
-  val kernelId: String,
-  val serverSessionId: String,
-)
+data class KernelSession(val id: String, val spaceId: String, val kernelId: String, val serverSessionId: String)
 
 /** Events streamed from [KernelGateway.execute]; the UI drives Running/Idle and outputs from these. */
 sealed interface KernelEvent {

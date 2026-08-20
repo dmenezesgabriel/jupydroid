@@ -1,8 +1,12 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,16 +24,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.union
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.theme.Spacing
@@ -93,12 +92,7 @@ private fun queryFor(state: TextFieldState): CompletionQuery? {
  * ```
  */
 @Composable
-fun CompletionPopup(
-  completions: CellCompletions,
-  caret: IntRect,
-  onPick: (String) -> Unit,
-  onDismiss: () -> Unit,
-) {
+fun CompletionPopup(completions: CellCompletions, caret: IntRect, onPick: (String) -> Unit, onDismiss: () -> Unit) {
   // The keyboard's height, plus whatever the navigation bar takes. `windowSize` does not shrink
   // for the IME under edge-to-edge, so the provider has to be told.
   val bottomInset = WindowInsets.ime.union(WindowInsets.navigationBars).getBottom(LocalDensity.current)
@@ -150,11 +144,13 @@ fun applyCompletion(state: TextFieldState, completions: CellCompletions, match: 
 
 /** Long enough that a burst of typing is one request, short enough to feel like an answer. */
 private const val SETTLE_MILLIS = 250L
+
 /**
  * Wide enough for a fully-qualified name and no wider: a popup that grows with its longest match
  * would cover the cell it is completing, which is the one thing the reader needs to see.
  */
 private val MAX_WIDTH = 280.dp
+
 /**
  * About six rows at [CodeText]'s size. The list scrolls past that rather than
  * growing, so the popup's footprint does not depend on how many matches the kernel found.

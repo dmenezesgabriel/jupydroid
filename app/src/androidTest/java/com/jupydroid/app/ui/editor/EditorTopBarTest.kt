@@ -400,6 +400,7 @@ class EditorTopBarTest {
   private var lineNumberToggles = 0
   private val tableOfContentsSelections = mutableListOf<String>()
   private var tableOfContentsPaneToggles = 0
+
   /** What the View menu asked to persist - one list for every toggle, as the menu now writes them. */
   private val settingsWritten = mutableListOf<EditorSettings>()
 

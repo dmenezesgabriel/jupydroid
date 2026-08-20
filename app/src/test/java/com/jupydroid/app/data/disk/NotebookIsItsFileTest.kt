@@ -1,7 +1,6 @@
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.port.FileNameTakenException
-import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -9,6 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 /**
  * The notebook's name **is** its file, which is JupyterLab's model and the point of Phase X.

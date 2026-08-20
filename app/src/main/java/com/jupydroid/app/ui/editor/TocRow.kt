@@ -68,8 +68,7 @@ fun List<TocHeading>.tocSectionOwners(): Set<String> =
  * `someExpanded` - whether the one command's next tap folds or unfolds, and what its label reads
  * from (`packages/toc-extension/src/index.ts:174-210`).
  */
-fun List<TocHeading>.tocSomeExpanded(collapsed: Set<String>): Boolean =
-  tocSectionOwners().any { it !in collapsed }
+fun List<TocHeading>.tocSomeExpanded(collapsed: Set<String>): Boolean = tocSectionOwners().any { it !in collapsed }
 
 /** Whether the heading at [at] is followed by a deeper one, which is what it would fold away. */
 private fun List<TocHeading>.ownsSectionAt(at: Int): Boolean =

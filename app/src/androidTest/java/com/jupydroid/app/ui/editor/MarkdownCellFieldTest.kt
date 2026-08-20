@@ -1,7 +1,7 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick

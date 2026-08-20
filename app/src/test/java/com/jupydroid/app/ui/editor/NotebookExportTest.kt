@@ -7,8 +7,8 @@ import com.jupydroid.app.domain.port.NotebookExportException
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -220,8 +220,7 @@ class NotebookExportTest {
   }
 
   private class ExporterThatCannotBeReached : NotebookExporter {
-    override suspend fun formats() =
-      throw NotebookExportException(null, "the Space is not running")
+    override suspend fun formats() = throw NotebookExportException(null, "the Space is not running")
 
     override suspend fun export(documentPath: String, format: String) =
       throw NotebookExportException(format, "the Space is not running")

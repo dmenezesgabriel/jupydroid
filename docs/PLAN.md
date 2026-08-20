@@ -723,9 +723,9 @@ Three things it cost that this file did not name:
   resolved to Compose's `DefaultFontSize = 14.sp` (`ui-text`, `SpanStyle.kt:48`) because
   `LocalTextStyle`'s Material default is `TextStyle.Default`. Landing the scale on 14sp is
   therefore "everything else joins the source", not a size picked by eye.
-- **`ktlintCheck` has never checked a single `.kt` file in this repository** - found while removing
-  three imports this step made unused, which the gate did not notice. See `docs/DECISIONS.md`; it
-  is the next thing to fix and is not folded in here.
+- **`ktlintCheck` had never checked a single `.kt` file in this repository** - found while removing
+  three imports this step made unused, which the gate did not notice. Fixed in the commit after
+  this one; what it cost is `docs/DECISIONS.md`.
 
 ---
 

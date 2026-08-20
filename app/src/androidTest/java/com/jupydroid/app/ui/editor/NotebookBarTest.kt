@@ -159,11 +159,7 @@ class NotebookBarTest {
     compose.onNodeWithContentDescription("Interrupt kernel").assertIsNotEnabled()
   }
 
-  private fun showBar(
-    busy: Boolean,
-    onClearAllOutputs: () -> Unit = {},
-    canRestartAndRunTo: Boolean = true,
-  ) {
+  private fun showBar(busy: Boolean, onClearAllOutputs: () -> Unit = {}, canRestartAndRunTo: Boolean = true) {
     compose.setContent {
       JupyterDroidTheme {
         NotebookBar(

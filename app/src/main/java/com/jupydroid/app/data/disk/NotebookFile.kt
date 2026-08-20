@@ -3,9 +3,6 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
-import java.io.File
-import java.time.Instant
-import java.util.UUID
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -21,6 +18,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
+import java.util.UUID
 
 /**
  * nbformat 4 JSON shape for one notebook file. The one app-only field, the title,
@@ -36,16 +35,10 @@ data class NotebookFile(
 )
 
 @Serializable
-data class NotebookFileMetadata(
-  val kernelspec: KernelSpecMeta? = null,
-  val jupydroid: JupyterDroidMeta? = null,
-)
+data class NotebookFileMetadata(val kernelspec: KernelSpecMeta? = null, val jupydroid: JupyterDroidMeta? = null)
 
 @Serializable
-data class KernelSpecMeta(
-  val name: String,
-  @SerialName("display_name") val displayName: String,
-)
+data class KernelSpecMeta(val name: String, @SerialName("display_name") val displayName: String)
 
 /**
  * Only the title. There was an `updated_at` here until 2026-08-07, and it was the bug: nothing
@@ -130,19 +123,18 @@ fun NotebookFile.toDomain(id: String, preserved: JsonObject = JsonObject(emptyMa
   )
 }
 
-fun CellFile.toDomain(preserved: JsonObject? = null): Cell =
-  Cell(
-    id = id.ifBlank { UUID.randomUUID().toString() },
-    kind = cellKind(),
-    source = source,
-    outputs = outputs.mapNotNull { it.toDomainOutput() },
-    executionCount = executionCount,
-    sourceHidden = metadata.sourceHidden(),
-    outputsHidden = metadata.outputsHidden(),
-    headingCollapsed = metadata.headingCollapsed(),
-    outputsScrolled = metadata.outputsScrolled(),
-    preserved = preserved ?: JsonObject(emptyMap()),
-  )
+fun CellFile.toDomain(preserved: JsonObject? = null): Cell = Cell(
+  id = id.ifBlank { UUID.randomUUID().toString() },
+  kind = cellKind(),
+  source = source,
+  outputs = outputs.mapNotNull { it.toDomainOutput() },
+  executionCount = executionCount,
+  sourceHidden = metadata.sourceHidden(),
+  outputsHidden = metadata.outputsHidden(),
+  headingCollapsed = metadata.headingCollapsed(),
+  outputsScrolled = metadata.outputsScrolled(),
+  preserved = preserved ?: JsonObject(emptyMap()),
+)
 
 /**
  * nbformat's `cell_type` as one of the three [CellKind]s, or a refusal naming what was found.

@@ -1,8 +1,8 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable

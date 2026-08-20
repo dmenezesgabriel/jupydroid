@@ -57,4 +57,3 @@ data class EditorSettings(
    */
   val accessKernelHistory: Boolean = false,
 )
-

@@ -1,8 +1,8 @@
 package com.jupydroid.app.ui.explorer
 
-import kotlin.time.Duration.Companion.seconds
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * How often the browser re-reads the directory it is showing.

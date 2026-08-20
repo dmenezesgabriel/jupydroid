@@ -32,10 +32,7 @@ val LocalEditorPalette = staticCompositionLocalOf { DarkEditorPalette }
  * ```
  */
 @Composable
-fun JupyterDroidTheme(
-  darkTheme: Boolean = isSystemInDarkTheme(),
-  content: @Composable () -> Unit,
-) {
+fun JupyterDroidTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
   val palette = if (darkTheme) DarkEditorPalette else LightEditorPalette
   CompositionLocalProvider(LocalEditorPalette provides palette) {
     MaterialTheme(
@@ -48,7 +45,8 @@ fun JupyterDroidTheme(
 
 /** The palette in scope, for call sites that read one token and would rather not name the local. */
 val editorPalette: EditorPalette
-  @Composable @ReadOnlyComposable get() = LocalEditorPalette.current
+  @Composable @ReadOnlyComposable
+  get() = LocalEditorPalette.current
 
 /**
  * The Material roles, mapped onto the same ramp the editor tokens come from, so app chrome

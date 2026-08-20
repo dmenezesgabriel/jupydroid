@@ -82,11 +82,7 @@ class ScriptedKernelSocketOpener(
     events?.invoke(KernelSocketEvent.Ended(reason = reason, failed = true))
   }
 
-  override fun open(
-    kernelId: String,
-    sessionId: String,
-    onEvent: (KernelSocketEvent) -> Unit,
-  ): KernelSocket {
+  override fun open(kernelId: String, sessionId: String, onEvent: (KernelSocketEvent) -> Unit): KernelSocket {
     openedKernelId = kernelId
     openedSessionId = sessionId
     openCount++
@@ -167,14 +163,15 @@ object KernelFrames {
    */
   fun historyReply(parent: String, inputs: List<String>) =
     """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"history_reply"},
-       "content":{"status":"ok","history":[${inputs.mapIndexed { line, input -> """[1,$line,"$input"]""" }.joinToString()}]}}"""
+       "content":{"status":"ok","history":[${inputs.mapIndexed { line, input ->
+      """[1,$line,"$input"]"""
+    }.joinToString()}]}}"""
 
   fun kernelInfoReply(parent: String) =
     """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"kernel_info_reply"},
        "content":{"status":"ok","protocol_version":"5.3"}}"""
 
-  fun idle(parent: String) =
-    """{"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"status"},
+  fun idle(parent: String) = """{"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"status"},
        "content":{"execution_state":"idle"}}"""
 
   /** A complete, successful execution: input, output, then both completion signals. */

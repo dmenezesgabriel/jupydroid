@@ -1,18 +1,17 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.port.ServerConnection
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.junit4.MockWebServerRule
-import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 
 /**
  * Driven against a real loopback WebSocket rather than a mocked OkHttp, because the whole

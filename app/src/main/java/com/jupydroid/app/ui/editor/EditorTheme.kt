@@ -106,12 +106,11 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
  */
 @Composable
 @ReadOnlyComposable
-fun codeTextStyle(): TextStyle =
-  LocalTextStyle.current.copy(
-    fontFamily = FontFamily.Monospace,
-    fontSize = CodeText.size,
-    lineHeight = CodeText.lineHeight,
-  )
+fun codeTextStyle(): TextStyle = LocalTextStyle.current.copy(
+  fontFamily = FontFamily.Monospace,
+  fontSize = CodeText.size,
+  lineHeight = CodeText.lineHeight,
+)
 
 /**
  * A cell's source, which is [codeTextStyle] in the editor's own foreground colour.
@@ -138,5 +137,4 @@ fun codeSourceStyle(): TextStyle = codeTextStyle().copy(color = editorPalette.sy
  */
 @Composable
 @ReadOnlyComposable
-fun markdownSourceStyle(): TextStyle =
-  MaterialTheme.typography.bodyMedium.copy(color = editorPalette.syntax.plain)
+fun markdownSourceStyle(): TextStyle = MaterialTheme.typography.bodyMedium.copy(color = editorPalette.syntax.plain)

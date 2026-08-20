@@ -1,19 +1,20 @@
 @file:Suppress("SwallowedException")
+
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.withMostRecent
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
-import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import java.io.File
 
 /** The file the list lives in, inside [stateDir] - never inside the workspace. */
 internal const val RECENTS_FILE_NAME = "recent-documents.json"
@@ -85,29 +86,27 @@ class DiskRecentDocumentsRepository(
    * A store that cannot be parsed reads as empty. This runs before the first screen draws, and the
    * reference's own `_loadRecents` catches its failure and carries on for the same reason.
    */
-  private fun loadValidated(): List<RecentDocument> =
-    try {
-      json.decodeFromString<StoredRecents>(storeFile().readText())
-        .documents
-        .map { it.toDomain() }
-        .filter { stillThere(it) }
-    } catch (failure: SerializationException) {
-      emptyList()
-    } catch (failure: java.io.IOException) {
-      emptyList()
-    }
+  private fun loadValidated(): List<RecentDocument> = try {
+    json.decodeFromString<StoredRecents>(storeFile().readText())
+      .documents
+      .map { it.toDomain() }
+      .filter { stillThere(it) }
+  } catch (failure: SerializationException) {
+    emptyList()
+  } catch (failure: java.io.IOException) {
+    emptyList()
+  }
 
   /** `isPresent`, not `exists`: a dangling symlink is still something the browser lists. */
   private fun stillThere(document: RecentDocument): Boolean =
     isInsideTheWorkspace(document) && workspace.isPresent(workspace.fileAt(document.path))
 
-  private fun isInsideTheWorkspace(document: RecentDocument): Boolean =
-    try {
-      workspace.fileAt(document.path)
-      true
-    } catch (refused: IllegalArgumentException) {
-      false
-    }
+  private fun isInsideTheWorkspace(document: RecentDocument): Boolean = try {
+    workspace.fileAt(document.path)
+    true
+  } catch (refused: IllegalArgumentException) {
+    false
+  }
 
   private fun storeFile(): File = File(stateDir, RECENTS_FILE_NAME)
 }

@@ -22,10 +22,8 @@ import com.jupydroid.app.domain.port.ServerConnection
  * BaseSpaceNotebookExporter(baseSpaceServer(context, launcher)!!) { OkHttpNotebookExporter(it) }
  * ```
  */
-class BaseSpaceNotebookExporter(
-  server: BaseSpaceServer,
-  exporterFor: (ServerConnection) -> NotebookExporter,
-) : NotebookExporter {
+class BaseSpaceNotebookExporter(server: BaseSpaceServer, exporterFor: (ServerConnection) -> NotebookExporter) :
+  NotebookExporter {
   private val live = PerRunningServer(server, exporterFor)
 
   override suspend fun formats(): List<ExportFormat> = live.get().formats()

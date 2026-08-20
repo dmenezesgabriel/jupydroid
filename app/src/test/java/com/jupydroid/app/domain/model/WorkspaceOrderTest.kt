@@ -1,8 +1,8 @@
 package com.jupydroid.app.domain.model
 
-import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.Instant
 
 /**
  * The order a directory is listed in, which is JupyterLab's and not ours.

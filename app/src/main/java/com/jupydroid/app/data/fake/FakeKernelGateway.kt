@@ -12,30 +12,24 @@ import kotlinx.coroutines.flow.flow
 
 /** Stub [KernelGateway] echoing the code back; replaced by the real one in Step 10. */
 class FakeKernelGateway : KernelGateway {
-  override suspend fun connect(space: Space, documentPath: String): KernelSession =
-    KernelSession(
-      id = "fake-${space.id}",
-      spaceId = space.id,
-      kernelId = space.kernels.firstOrNull()?.id ?: "python3",
-      // A server session id shaped like the server's, so a caller that builds a URL from it
-      // builds a plausible one. There is no server here to file it with.
-      serverSessionId = "fake-session-${space.id}",
-    )
+  override suspend fun connect(space: Space, documentPath: String): KernelSession = KernelSession(
+    id = "fake-${space.id}",
+    spaceId = space.id,
+    kernelId = space.kernels.firstOrNull()?.id ?: "python3",
+    // A server session id shaped like the server's, so a caller that builds a URL from it
+    // builds a plausible one. There is no server here to file it with.
+    serverSessionId = "fake-session-${space.id}",
+  )
 
-  override suspend fun execute(
-    session: KernelSession,
-    cellId: String,
-    code: String,
-  ): Flow<KernelEvent> =
-    flow {
-      // Recorded from inside the flow rather than from `execute`, because that is when the cell
-      // actually runs: this one is cold, so a second collection is a second execution, and a real
-      // kernel records once per `execute_request` it receives.
-      executed += code
-      emit(KernelEvent.ExecutionCount(cellId, 1))
-      emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, code)))
-      emit(KernelEvent.Idle)
-    }
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
+    // Recorded from inside the flow rather than from `execute`, because that is when the cell
+    // actually runs: this one is cold, so a second collection is a second execution, and a real
+    // kernel records once per `execute_request` it receives.
+    executed += code
+    emit(KernelEvent.ExecutionCount(cellId, 1))
+    emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, code)))
+    emit(KernelEvent.Idle)
+  }
 
   override suspend fun interrupt(session: KernelSession) = Unit
 
@@ -46,11 +40,7 @@ class FakeKernelGateway : KernelGateway {
    * Answers from a handful of builtins rather than from nothing, because this is what the
    * editor's completion popup is built and tested against until a Space is running.
    */
-  override suspend fun complete(
-    session: KernelSession,
-    code: String,
-    cursorOffset: Int,
-  ): CompletionResult {
+  override suspend fun complete(session: KernelSession, code: String, cursorOffset: Int): CompletionResult {
     val start = identifierStartBefore(code, cursorOffset)
     val prefix = code.substring(start, cursorOffset)
     return CompletionResult(
@@ -71,8 +61,7 @@ class FakeKernelGateway : KernelGateway {
    */
   private val executed = mutableListOf<String>()
 
-  override suspend fun executionHistory(session: KernelSession, entries: Int): List<String> =
-    executed.takeLast(entries)
+  override suspend fun executionHistory(session: KernelSession, entries: Int): List<String> = executed.takeLast(entries)
 
   override suspend fun disconnect(session: KernelSession) = Unit
 

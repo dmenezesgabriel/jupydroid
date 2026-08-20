@@ -31,16 +31,15 @@ object JupyterMessage {
     shellRequest("kernel_info_request", sessionId, msgId, buildJsonObject { })
 
   /** [cursorOffset] becomes `cursor_pos`, which the protocol counts in characters, not bytes. */
-  fun completeRequest(code: String, cursorOffset: Int, sessionId: String, msgId: String): String =
-    shellRequest(
-      "complete_request",
-      sessionId,
-      msgId,
-      buildJsonObject {
-        put("code", code)
-        put("cursor_pos", cursorOffset)
-      },
-    )
+  fun completeRequest(code: String, cursorOffset: Int, sessionId: String, msgId: String): String = shellRequest(
+    "complete_request",
+    sessionId,
+    msgId,
+    buildJsonObject {
+      put("code", code)
+      put("cursor_pos", cursorOffset)
+    },
+  )
 
   /**
    * The tail of the kernel's input history - the reference's own request, transcribed
@@ -52,28 +51,26 @@ object JupyterMessage {
    * `history_manager.get_tail`, and `output: true` changes the shape of every entry from a string
    * to an `[input, output]` pair (`ipykernel/ipkernel.py:612-645` in the shipped rootfs).
    */
-  fun historyRequest(entries: Int, sessionId: String, msgId: String): String =
-    shellRequest(
-      "history_request",
-      sessionId,
-      msgId,
-      buildJsonObject {
-        put("output", false)
-        put("raw", true)
-        put("hist_access_type", "tail")
-        put("n", entries)
-      },
-    )
-
-  private fun shellRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) =
+  fun historyRequest(entries: Int, sessionId: String, msgId: String): String = shellRequest(
+    "history_request",
+    sessionId,
+    msgId,
     buildJsonObject {
-      put("channel", "shell")
-      put("header", header(msgType, msgId, sessionId))
-      put("parent_header", buildJsonObject { })
-      put("metadata", buildJsonObject { })
-      put("content", content)
-      put("buffers", buildJsonArray { })
-    }.toString()
+      put("output", false)
+      put("raw", true)
+      put("hist_access_type", "tail")
+      put("n", entries)
+    },
+  )
+
+  private fun shellRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) = buildJsonObject {
+    put("channel", "shell")
+    put("header", header(msgType, msgId, sessionId))
+    put("parent_header", buildJsonObject { })
+    put("metadata", buildJsonObject { })
+    put("content", content)
+    put("buffers", buildJsonArray { })
+  }.toString()
 
   private fun header(msgType: String, msgId: String, sessionId: String) = buildJsonObject {
     put("msg_id", msgId)

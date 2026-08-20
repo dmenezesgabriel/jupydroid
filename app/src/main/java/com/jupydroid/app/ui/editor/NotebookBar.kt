@@ -243,7 +243,6 @@ internal const val RESTART_AND_CLEAR = "Restart Kernel and Clear Outputs of All 
 /** `notebook:restart-and-run-to-selected` (`index.ts:3265`). */
 internal const val RESTART_AND_RUN_TO_SELECTED = "Restart Kernel and Run up to Selected Cell…"
 
-
 /**
  * The confirmation, in the reference's own words: *"Shut down the notebook?"* over *"Are you sure
  * you want to close %1?"* (`packages/notebook-extension/src/index.ts:3196-3205`).

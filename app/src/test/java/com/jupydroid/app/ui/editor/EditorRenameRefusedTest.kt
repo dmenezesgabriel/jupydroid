@@ -51,16 +51,15 @@ class EditorRenameRefusedTest {
     assertEquals("still editable", viewModel.uiState.value.cells.single().source)
   }
 
-  private fun editorOn(repository: NotebookRepository) =
-    EditorViewModel(
-      notebookId = "Draft",
-      notebookRepository = repository,
-      workspaceRepository = FakeWorkspaceRepository(),
-      kernelGateway = FakeKernelGateway(),
-      notebookExporter = FakeNotebookExporter(),
-      applicationScope = CoroutineScope(UnconfinedTestDispatcher()),
-      activeCellRuns = ActiveCellRuns(),
-    )
+  private fun editorOn(repository: NotebookRepository) = EditorViewModel(
+    notebookId = "Draft",
+    notebookRepository = repository,
+    workspaceRepository = FakeWorkspaceRepository(),
+    kernelGateway = FakeKernelGateway(),
+    notebookExporter = FakeNotebookExporter(),
+    applicationScope = CoroutineScope(UnconfinedTestDispatcher()),
+    activeCellRuns = ActiveCellRuns(),
+  )
 
   /** Answers reads, and refuses every rename the way the disk repository refuses a bad name. */
   private class RefusingRepository : NotebookRepository by FakeNotebookRepository() {

@@ -82,10 +82,7 @@ class CompletionPopupPositionTest {
     assertEquals(window.width - 280, at.x)
   }
 
-  private fun position(
-    popup: IntSize,
-    keyboard: Int,
-    caret: IntRect = this.caret,
-  ): IntOffset = CompletionPopupPosition(caret = caret, bottomInset = keyboard)
-    .calculatePosition(anchor, window, LayoutDirection.Ltr, popup)
+  private fun position(popup: IntSize, keyboard: Int, caret: IntRect = this.caret): IntOffset =
+    CompletionPopupPosition(caret = caret, bottomInset = keyboard)
+      .calculatePosition(anchor, window, LayoutDirection.Ltr, popup)
 }

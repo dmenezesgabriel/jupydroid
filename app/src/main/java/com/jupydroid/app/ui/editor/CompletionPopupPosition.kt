@@ -22,10 +22,8 @@ import androidx.compose.ui.window.PopupPositionProvider
  *   the navigation bar takes. Passed in because `windowSize` does not shrink for the IME under
  *   edge-to-edge; the window stays full height and the keyboard sits on top of it.
  */
-internal class CompletionPopupPosition(
-  private val caret: IntRect,
-  private val bottomInset: Int,
-) : PopupPositionProvider {
+internal class CompletionPopupPosition(private val caret: IntRect, private val bottomInset: Int) :
+  PopupPositionProvider {
   override fun calculatePosition(
     anchorBounds: IntRect,
     windowSize: IntSize,

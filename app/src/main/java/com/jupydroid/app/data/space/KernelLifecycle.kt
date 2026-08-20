@@ -1,7 +1,6 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.port.ServerConnection
-import java.io.IOException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,6 +13,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import java.io.IOException
 
 /**
  * The kernel-lifecycle calls jupyter_server exposes over REST, as opposed to the traffic

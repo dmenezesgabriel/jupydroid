@@ -1,16 +1,15 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
-import androidx.compose.ui.test.DeviceConfigurationOverride
-import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpSize
@@ -26,12 +25,12 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.theme.JupyterDroidTheme
-import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import java.time.Instant
 
 /**
  * That two panes are two panes: both entries on screen at once, and each still its own entry.
@@ -233,8 +232,7 @@ class TwoPaneLayoutTest {
   }
 
   /** Expanded enough for 360dp of list and a readable notebook, or a phone that fits neither. */
-  private fun windowFor(twoPane: Boolean) =
-    if (twoPane) DpSize(900.dp, 800.dp) else DpSize(360.dp, 720.dp)
+  private fun windowFor(twoPane: Boolean) = if (twoPane) DpSize(900.dp, 800.dp) else DpSize(360.dp, 720.dp)
 
   private fun notebook(name: String, source: String) =
     Notebook(name, name, "python3", listOf(Cell("$name-c1", CellKind.CODE, source)))

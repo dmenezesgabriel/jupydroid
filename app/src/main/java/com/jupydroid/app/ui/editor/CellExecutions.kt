@@ -19,8 +19,7 @@ val EditorUiState.runningCellId: String?
 fun EditorUiState.executionOf(cellId: String): CellExecution? = executions[cellId]
 
 /** Never null, so callers do not have to spell out what "no record" means every time. */
-fun EditorUiState.statusOf(cellId: String): ExecutionStatus =
-  executions[cellId]?.status ?: ExecutionStatus.NOT_STARTED
+fun EditorUiState.statusOf(cellId: String): ExecutionStatus = executions[cellId]?.status ?: ExecutionStatus.NOT_STARTED
 
 /**
  * Claims every cell a Run All is about to work through, before any of them starts.

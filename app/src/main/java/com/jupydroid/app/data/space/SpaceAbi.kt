@@ -19,18 +19,14 @@ package com.jupydroid.app.data.space
  * promise a runtime that cannot exist. The app still installs on x86_64 emulators for
  * UI work; [of] is what tells it there is no Space to run.
  */
-enum class SpaceAbi(
-  val androidAbi: String,
-  val loaderLinkPath: String,
-) {
+enum class SpaceAbi(val androidAbi: String, val loaderLinkPath: String) {
   ARM64("arm64-v8a", "lib/ld-musl-aarch64.so.1"),
   ;
 
   companion object {
-    fun of(androidAbi: String): SpaceAbi =
-      entries.firstOrNull { it.androidAbi == androidAbi }
-        ?: throw IllegalArgumentException(
-          "no rootfs is built for ABI '$androidAbi'; expected one of ${entries.map { it.androidAbi }}",
-        )
+    fun of(androidAbi: String): SpaceAbi = entries.firstOrNull { it.androidAbi == androidAbi }
+      ?: throw IllegalArgumentException(
+        "no rootfs is built for ABI '$androidAbi'; expected one of ${entries.map { it.androidAbi }}",
+      )
   }
 }

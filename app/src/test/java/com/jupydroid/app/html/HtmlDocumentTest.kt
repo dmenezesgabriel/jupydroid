@@ -54,7 +54,7 @@ class HtmlDocumentTest {
 
   /** A `<pre>` keeps its newlines, which is the only reason it is not a paragraph. */
   @Test
-  fun readsAPreformattedBlockWithItsLineBreaks()  {
+  fun readsAPreformattedBlockWithItsLineBreaks() {
     val block = HtmlDocument.parse("<pre>x = 1\ny = 2</pre>").single() as RichBlock.CodeBlock
 
     assertEquals("x = 1\ny = 2", block.code)

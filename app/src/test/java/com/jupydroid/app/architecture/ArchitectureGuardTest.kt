@@ -1,8 +1,8 @@
 package com.jupydroid.app.architecture
 
-import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /** Enforces the Working Agreement (CLAUDE.md, "Architecture"): the domain layer is pure Kotlin. */
 class ArchitectureGuardTest {
@@ -36,18 +36,16 @@ class ArchitectureGuardTest {
     assertTrue("domain must not import other layers: $offenders", offenders.isEmpty())
   }
 
-  private fun ktSourcesUnder(root: File): List<File> =
-    if (root.exists()) {
-      root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
-    } else {
-      emptyList()
-    }
+  private fun ktSourcesUnder(root: File): List<File> = if (root.exists()) {
+    root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+  } else {
+    emptyList()
+  }
 
-  private fun androidImports(sources: List<File>): List<String> =
-    sources.flatMap { source ->
-      source.readLines()
-        .map { it.trim() }
-        .filter { it.startsWith("import android.") }
-        .map { "${source.name}: $it" }
-    }
+  private fun androidImports(sources: List<File>): List<String> = sources.flatMap { source ->
+    source.readLines()
+      .map { it.trim() }
+      .filter { it.startsWith("import android.") }
+      .map { "${source.name}: $it" }
+  }
 }

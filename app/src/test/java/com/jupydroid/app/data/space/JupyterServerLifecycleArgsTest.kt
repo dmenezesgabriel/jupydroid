@@ -1,8 +1,8 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * The server is allowed to stop itself, so an app that sits idle stops leaking

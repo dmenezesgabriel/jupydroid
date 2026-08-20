@@ -1,10 +1,11 @@
 package com.jupydroid.app.ui.explorer
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -13,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
@@ -23,13 +23,13 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import java.io.File
 
 /**
  * The explorer on a device: rows that can be read and tapped, and a breadcrumb that gets back.
@@ -404,8 +404,7 @@ class ExplorerScreenTest {
    * That is the reference's doing rather than ours: `DirListing.delete` titles the dialog with the
    * action name and labels the accept button with it too (`listing.ts:483-495`).
    */
-  private fun confirmDelete() =
-    compose.onAllNodesWithText("Delete").filterToOne(hasClickAction()).performClick()
+  private fun confirmDelete() = compose.onAllNodesWithText("Delete").filterToOne(hasClickAction()).performClick()
 
   private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {
     compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()

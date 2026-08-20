@@ -22,11 +22,8 @@ class OkHttpKernelSocketOpener(
   private val connection: ServerConnection,
   private val client: OkHttpClient = OkHttpClient(),
 ) : KernelSocketOpener {
-  override fun open(
-    kernelId: String,
-    sessionId: String,
-    onEvent: (KernelSocketEvent) -> Unit,
-  ): KernelSocket = OkHttpKernelSocket(client.newWebSocket(request(kernelId, sessionId), listener(onEvent)))
+  override fun open(kernelId: String, sessionId: String, onEvent: (KernelSocketEvent) -> Unit): KernelSocket =
+    OkHttpKernelSocket(client.newWebSocket(request(kernelId, sessionId), listener(onEvent)))
 
   private fun listener(onEvent: (KernelSocketEvent) -> Unit) = object : WebSocketListener() {
     override fun onOpen(webSocket: WebSocket, response: Response) = onEvent(KernelSocketEvent.Opened)
@@ -35,23 +32,21 @@ class OkHttpKernelSocketOpener(
 
     // The HTTP status matters: a refused upgrade is a 404 for a kernel that is gone, and
     // reporting that as a bare close leaves a stuck cell with nothing to debug.
-    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) =
-      onEvent(
-        KernelSocketEvent.Ended(
-          reason = "${t::class.simpleName}: ${t.message} (http ${response?.code})",
-          failed = true,
-        ),
-      )
+    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) = onEvent(
+      KernelSocketEvent.Ended(
+        reason = "${t::class.simpleName}: ${t.message} (http ${response?.code})",
+        failed = true,
+      ),
+    )
 
     override fun onClosed(webSocket: WebSocket, code: Int, reason: String) =
       onEvent(KernelSocketEvent.Ended(reason = "closed: $code $reason", failed = false))
   }
 
-  private fun request(kernelId: String, sessionId: String): Request =
-    Request.Builder()
-      .url("${connection.baseUrl}api/kernels/$kernelId/channels?session_id=$sessionId")
-      .header("Authorization", "token ${connection.token}")
-      .build()
+  private fun request(kernelId: String, sessionId: String): Request = Request.Builder()
+    .url("${connection.baseUrl}api/kernels/$kernelId/channels?session_id=$sessionId")
+    .header("Authorization", "token ${connection.token}")
+    .build()
 
   private class OkHttpKernelSocket(private val socket: WebSocket) : KernelSocket {
     override fun send(frame: String): Boolean = socket.send(frame)

@@ -33,8 +33,7 @@ import kotlinx.serialization.json.booleanOrNull
 internal fun JsonObject.sourceHidden(): Boolean =
   ((this["jupyter"] as? JsonObject)?.get("source_hidden") as? JsonPrimitive)?.booleanOrNull == true
 
-internal fun JsonObject.outputsHidden(): Boolean =
-  (this["collapsed"] as? JsonPrimitive)?.booleanOrNull == true
+internal fun JsonObject.outputsHidden(): Boolean = (this["collapsed"] as? JsonPrimitive)?.booleanOrNull == true
 
 /**
  * And a **third** key, at the top of the metadata rather than inside `jupyter`:
@@ -58,5 +57,4 @@ internal const val HEADING_COLLAPSED_KEY = "jp-MarkdownHeadingCollapsed"
  * `booleanOrNull` already answers `null` for a string, which is why this reader needs no special
  * case for it: `"auto"` and a missing key fall through to the same `false` the reference produces.
  */
-internal fun JsonObject.outputsScrolled(): Boolean =
-  (this["scrolled"] as? JsonPrimitive)?.booleanOrNull == true
+internal fun JsonObject.outputsScrolled(): Boolean = (this["scrolled"] as? JsonPrimitive)?.booleanOrNull == true

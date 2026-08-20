@@ -3,11 +3,8 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
-import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.model.Notebook
-import java.io.File
-import java.time.Instant
-import kotlinx.coroutines.flow.first
+import com.jupydroid.app.domain.model.StreamName
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -19,6 +16,7 @@ import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 class DiskNotebookRepositoryTest {
   @get:Rule val tempFolder = TemporaryFolder()
@@ -66,10 +64,10 @@ class DiskNotebookRepositoryTest {
         title = "nb-1.ipynb",
         kernelId = "python3",
         cells =
-          listOf(
-            Cell(id = "c1", kind = CellKind.CODE, source = "print(1)"),
-            Cell(id = "c2", kind = CellKind.MARKDOWN, source = "# Title"),
-          ),
+        listOf(
+          Cell(id = "c1", kind = CellKind.CODE, source = "print(1)"),
+          Cell(id = "c2", kind = CellKind.MARKDOWN, source = "# Title"),
+        ),
       )
 
     repository.saveNotebook(notebook)
@@ -255,8 +253,7 @@ class DiskNotebookRepositoryTest {
     assertEquals("legacy.ipynb", read.title)
   }
 
-  private fun notebook(id: String): Notebook =
-    Notebook(id = id, title = id, kernelId = "python3", cells = emptyList())
+  private fun notebook(id: String): Notebook = Notebook(id = id, title = id, kernelId = "python3", cells = emptyList())
 
   companion object {
     /** As this app wrote them until 2026-08-07: the stored timestamp is stale by construction. */

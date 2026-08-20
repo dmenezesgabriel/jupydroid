@@ -3,7 +3,6 @@ package com.jupydroid.app
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -15,7 +14,6 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
-import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -23,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import java.io.File
 
 /**
  * The explorer is reachable, and what it opens is the notebook it names.
@@ -117,8 +116,7 @@ class ExplorerNavigationTest {
     assertEquals(setOf("reports/Nested.ipynb", "reports"), runBlocking { recordedPaths() })
   }
 
-  private suspend fun recordedPaths(): Set<String> =
-    recentDocuments.observeRecents().first().map { it.path }.toSet()
+  private suspend fun recordedPaths(): Set<String> = recentDocuments.observeRecents().first().map { it.path }.toSet()
 
   private fun startAppWithANotebookInAFolder() {
     File(temp.root, "reports").mkdirs()

@@ -18,9 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * FakeRecentDocumentsRepository(listOf(RecentDocument("notes.ipynb", WorkspaceEntryKind.FILE)))
  * ```
  */
-class FakeRecentDocumentsRepository(
-  initial: List<RecentDocument> = emptyList(),
-) : RecentDocumentsRepository {
+class FakeRecentDocumentsRepository(initial: List<RecentDocument> = emptyList()) : RecentDocumentsRepository {
   private val recents = MutableStateFlow(initial)
 
   override fun observeRecents(): Flow<List<RecentDocument>> = recents

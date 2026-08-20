@@ -1,10 +1,10 @@
 package com.jupydroid.app.data.space
 
-import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelGatewayContract
+import com.jupydroid.app.mimeBundleOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -409,8 +409,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
    * execution, and the history reply is invisible to both - the same indifference a real kernel's
    * shared channel demands.
    */
-  private fun everyReplyKind(parent: String): List<String> =
-    KernelFrames.successfulExecution(parent) +
-      KernelFrames.completeReply(parent, listOf("print"), 0, 3) +
-      KernelFrames.historyReply(parent, listOf("2 + 2"))
+  private fun everyReplyKind(parent: String): List<String> = KernelFrames.successfulExecution(parent) +
+    KernelFrames.completeReply(parent, listOf("print"), 0, 3) +
+    KernelFrames.historyReply(parent, listOf("2 + 2"))
 }

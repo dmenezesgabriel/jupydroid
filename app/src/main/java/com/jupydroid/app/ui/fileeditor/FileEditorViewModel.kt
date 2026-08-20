@@ -2,8 +2,8 @@ package com.jupydroid.app.ui.fileeditor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.WorkspaceChange
+import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.syntax.SyntaxHighlighter

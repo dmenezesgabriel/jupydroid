@@ -5,7 +5,6 @@ import com.jupydroid.app.domain.port.NotebookExportException
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookExporterContract
 import com.jupydroid.app.domain.port.ServerConnection
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
@@ -15,6 +14,7 @@ import okio.Buffer
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 /**
  * The contract, driven against a real loopback server scripted to answer the way the tablet's did.

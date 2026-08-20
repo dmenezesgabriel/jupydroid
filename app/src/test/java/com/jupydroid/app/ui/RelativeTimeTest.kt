@@ -1,9 +1,9 @@
 package com.jupydroid.app.ui
 
-import java.time.Instant
-import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.Instant
+import java.time.ZoneId
 
 class RelativeTimeTest {
   private val now = Instant.parse("2026-08-03T12:00:00Z")

@@ -5,7 +5,6 @@ import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
-import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -19,6 +18,7 @@ import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
 /** A kernel socket ended before the execution did. */
@@ -73,11 +73,7 @@ class RealKernelGateway(
    * with no replay drops what it emits while nobody is listening - sending first would race
    * the kernel's first frames against our own subscription.
    */
-  override suspend fun execute(
-    session: KernelSession,
-    cellId: String,
-    code: String,
-  ): Flow<KernelEvent> {
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {
     val sessionSocket = socketFor(session)
 
     // Request id and completion state are built per collection, not once per call: the flow
@@ -113,14 +109,11 @@ class RealKernelGateway(
    */
   override suspend fun restart(session: KernelSession) = lifecycle.restart(session.kernelId)
 
-  override suspend fun complete(
-    session: KernelSession,
-    code: String,
-    cursorOffset: Int,
-  ): CompletionResult = socketFor(session).askOnce(
-    request = { msgId -> JupyterMessage.completeRequest(code, cursorOffset, session.id, msgId) },
-    readReply = KernelCompletions::of,
-  )
+  override suspend fun complete(session: KernelSession, code: String, cursorOffset: Int): CompletionResult =
+    socketFor(session).askOnce(
+      request = { msgId -> JupyterMessage.completeRequest(code, cursorOffset, session.id, msgId) },
+      readReply = KernelCompletions::of,
+    )
 
   override suspend fun executionHistory(session: KernelSession, entries: Int): List<String> =
     socketFor(session).askOnce(

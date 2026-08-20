@@ -2,11 +2,10 @@ package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
-import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

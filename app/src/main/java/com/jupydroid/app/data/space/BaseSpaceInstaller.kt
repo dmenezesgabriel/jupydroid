@@ -1,10 +1,10 @@
 package com.jupydroid.app.data.space
 
-import java.io.File
-import java.nio.file.Files
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.nio.file.Files
 
 /** Outcome of [BaseSpaceInstaller.installIfNeeded]. */
 data class InstalledSpace(

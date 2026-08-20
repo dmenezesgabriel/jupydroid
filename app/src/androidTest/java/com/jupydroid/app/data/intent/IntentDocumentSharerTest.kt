@@ -3,12 +3,12 @@ package com.jupydroid.app.data.intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.data.space.notebookWorkspace
-import java.io.File
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 /**
  * Everything that can go wrong with sharing goes wrong in the framework's configuration - an
@@ -51,7 +51,12 @@ class IntentDocumentSharerTest {
 
     val uri = sharer.uriFor("p2j-5-reports/deep.html")
 
-    assertEquals("<html>deep</html>", context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() })
+    assertEquals(
+      "<html>deep</html>",
+      context.contentResolver.openInputStream(uri)?.use {
+        it.readBytes().decodeToString()
+      },
+    )
     assertEquals(exported.name, uri.lastPathSegment?.substringAfterLast('/'))
   }
 
@@ -74,10 +79,9 @@ class IntentDocumentSharerTest {
     assertTrue("expected a refusal, got $refused", refused.exceptionOrNull() is IllegalArgumentException)
   }
 
-  private fun workspaceFile(path: String, content: String): File =
-    File(workspace, path).also {
-      it.parentFile?.mkdirs()
-      it.writeText(content)
-      written += it
-    }
+  private fun workspaceFile(path: String, content: String): File = File(workspace, path).also {
+    it.parentFile?.mkdirs()
+    it.writeText(content)
+    written += it
+  }
 }

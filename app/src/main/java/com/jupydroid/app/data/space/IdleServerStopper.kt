@@ -1,12 +1,12 @@
 package com.jupydroid.app.data.space
 
-import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration
 
 /**
  * P1c's decision half: when the app is left, the server should stop - but a backgrounded

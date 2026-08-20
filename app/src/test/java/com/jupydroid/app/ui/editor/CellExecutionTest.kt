@@ -2,10 +2,10 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
-import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.Instant
 
 /**
  * What a cell's execution looks like from the outside, as a state machine.
@@ -153,9 +153,8 @@ class CellExecutionTest {
     assertEquals(ExecutionStatus.STOPPED_OK, restarted.statusOf("c1"))
   }
 
-  private fun streamOutput() =
-    com.jupydroid.app.domain.model.CellOutput.Stream(
-      name = com.jupydroid.app.domain.model.StreamName.STDOUT,
-      text = "old",
-    )
+  private fun streamOutput() = com.jupydroid.app.domain.model.CellOutput.Stream(
+    name = com.jupydroid.app.domain.model.StreamName.STDOUT,
+    text = "old",
+  )
 }

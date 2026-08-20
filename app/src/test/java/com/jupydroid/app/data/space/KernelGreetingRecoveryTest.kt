@@ -3,13 +3,13 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A greeting that goes unanswered means the shell channel is dead, so replace the kernel.

@@ -1716,27 +1716,41 @@ at densities 160, 240 and 420.
 
 ## Harness
 
-### `ktlintCheck` has never checked a `.kt` file, and the pre-commit hook has been reporting it as passing
+### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
 
 Found in P2l-3a, by removing three imports the step had made unused and noticing the gate had not
-asked for them. `./gradlew :app:tasks --all` lists **only** `runKtlintCheckOverKotlinScripts` and
-`ktlintKotlinScriptCheck`: the plugin registered no per-source-set task at all, so `ktlintCheck`
-resolves to the `.kts` build scripts and nothing else. Probed directly - an unused import *and* an
-out-of-order one added to `theme/CodeText.kt` produced `BUILD SUCCESSFUL in 715ms` with the source
-set never visited.
+asked for them. `./gradlew :app:tasks --all` listed **only** `runKtlintCheckOverKotlinScripts` and
+`ktlintKotlinScriptCheck`: no per-source-set task existed, so `ktlintCheck` - an aggregate over
+whatever the plugin registered - resolved to the `.kts` build scripts and nothing else. Probed
+directly: an unused import *and* an out-of-order one in `theme/CodeText.kt` produced
+`BUILD SUCCESSFUL in 715ms`.
 
-`org.jlleitschuh.gradle.ktlint` 12.2.0 discovers source sets through the Kotlin/Android plugin, and
-this project is on AGP 9; there is no baseline file and no `ktlint_*` disable in `.editorconfig`, so
-the rules are not switched off - they are never run. The consequences seen so far are small because
-the code has been formatted by hand: two unused `dp` imports left by P2l-2 and found by P2l-4, three
-unused `FontFamily` imports in P2l-3a, and **20 lines over the declared 120-character limit**, all
-of them in test sources.
+**The cause is one line that is not in `app/build.gradle.kts`.** `ktlint-gradle` 12.2.0 attaches its
+Android applier to the plugin id `org.jetbrains.kotlin.android`; AGP 9 ships Kotlin support built
+in, so nothing applies that id, and the applier never ran. Nothing was misconfigured and nothing
+logged - the plugin was waiting for a plugin that no longer needs to exist. `ktlint-gradle` 14.2.0
+registers `ktlintMainSourceSetCheck` and its siblings against AGP 9's own source sets.
 
-**This forbids** citing `ktlintCheck` as evidence that Kotlin sources are formatted, in `CLAUDE.md`
-or in any commit message, until the source-set tasks exist and are seen to fail on a planted
-violation. It is the same failure mode as `check_ui_dimensions.py` run from `scripts/` - a gate
-that matches nothing reports clean - and the same answer applies: whatever fixes it needs a planted
-violation as its own test.
+**Turning it on reported 11,939 offences, and 9,864 of them were this file being wrong rather than
+the code.** `.editorconfig` had claimed `indent_size = 4` for `.kt` since Step 1 while every `.kt`
+file in the repository is 2-space - a claim nothing had ever checked. Three settings now describe
+the style the code was actually written in, and each earns its line there: 2-space for `.kt` and 4
+for `.kts`; `ktlint_code_style = intellij_idea`, because ktlint's own default breaks any signature
+of two or more parameters across lines whatever its width, which added 108 lines to one test file
+and pushed five over the 500-line gate; and `no-consecutive-comments` disabled, because a
+file-header KDoc is this project's convention in 19 files.
+
+What survived was **1,600 real offences**, `ktlintFormat`'s to fix: **185 unused imports**, import
+ordering, and wrapping. Net **-172 lines** across 175 files. One could not be auto-corrected and
+was a genuine defect - `RenameFileDialogTest.kt` held a class called `RenameNotebookDialogTest`,
+left behind when the composable under it was renamed.
+
+**This forbids** relying on an aggregate task to prove a gate ran. The commit hook names
+`ktlintMainSourceSetCheck`, `ktlintTestDebugSourceSetCheck` and
+`ktlintAndroidTestDebugSourceSetCheck` explicitly, so a plugin that stops seeing a source set fails
+with *"Task not found"* rather than passing quietly - and the same reasoning applies to any future
+gate whose task list is discovered rather than declared. Verified by planting an unused import in
+each of the three source sets and watching all three tasks fail.
 
 ### The emulator the suite runs on is 320dp wide **and** density 160, and only the first is deliberate
 

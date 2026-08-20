@@ -2,13 +2,13 @@ package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
-import java.time.Duration
-import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Duration
+import java.time.Instant
 
 /**
  * What every [WorkspaceRepository] must do, whoever implements it.

@@ -35,8 +35,7 @@ internal object NbConvertResponse {
    * The charset belongs to the transfer and not to the file: it is what an Android share intent
    * and a file's type are matched on, and `text/html; charset=utf-8` matches neither.
    */
-  fun mediaType(contentType: String?): String? =
-    contentType?.substringBefore(';')?.trim()?.takeIf { it.isNotEmpty() }
+  fun mediaType(contentType: String?): String? = contentType?.substringBefore(';')?.trim()?.takeIf { it.isNotEmpty() }
 
   /**
    * nbconvert's own sentence out of the page tornado wrapped it in.
@@ -63,9 +62,8 @@ internal object NbConvertResponse {
     PLAIN.find(header)?.groupValues?.get(1)?.trim('"')?.takeIf { it.isNotEmpty() }
 
   /** The five named entities tornado's escaping produces, since only those can appear. */
-  private fun String.unescapedHtml(): String =
-    replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
-      .replace("&#39;", "'").replace("&amp;", "&")
+  private fun String.unescapedHtml(): String = replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
+    .replace("&#39;", "'").replace("&amp;", "&")
 
   private val EXTENDED = Regex("""filename\*\s*=\s*([^;]+)""", RegexOption.IGNORE_CASE)
   private val PLAIN = Regex("""filename\s*=\s*("[^"]*"|[^;]+)""", RegexOption.IGNORE_CASE)
