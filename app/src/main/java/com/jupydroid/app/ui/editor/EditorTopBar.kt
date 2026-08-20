@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.RenameFileDialog
 
 /** Small enough to read as part of the title rather than as a button beside it. */
@@ -208,7 +209,7 @@ private fun RenameableTitle(title: String, onClick: () -> Unit) {
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    Spacer(modifier = Modifier.width(8.dp))
+    Spacer(modifier = Modifier.width(Spacing.sm))
     Icon(
       imageVector = Icons.Filled.Edit,
       // The whole row is one target, so the icon does not announce itself separately - naming

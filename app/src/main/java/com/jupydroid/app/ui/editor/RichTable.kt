@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.TableCell
 import com.jupydroid.app.richtext.toAnnotatedString
+import com.jupydroid.app.theme.Spacing
 
 /**
  * Draws a table the way Jupyter draws one, read off its stylesheet rather than invented:
@@ -136,5 +137,6 @@ private fun DrawScope.drawHeaderRule(color: Color) {
   drawLine(color, Offset(0f, y), Offset(size.width, y), width)
 }
 
-private val CELL_PADDING = 8.dp
+private val CELL_PADDING = Spacing.sm
+/** A hairline under a table's header row - `--jp-border-width`, which the reference sets to 1px. */
 private val HEADER_RULE_WIDTH = 1.dp

@@ -38,7 +38,7 @@ filesystem the kernel, the server and the app all share.
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, Material's own type scale, per-notebook ViewModel scoping |
-| Tests | 252 instrumented, 1254 unit, 96 Maestro drivers over 110 flows - 91 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
+| Tests | 252 instrumented, 1258 unit, 97 Maestro drivers over 111 flows - 92 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, and a
 **settings screen** - the five persisted editor settings live in the notebook's View menu until P6c
@@ -624,7 +624,8 @@ side panel (P2o). What follows from each is `docs/DECISIONS.md`.
 | # | Sub-step | Gate |
 |---|---|---|
 | **P2l-1** | *(shipped)* Material's type scale, stated rather than hand-built. | — |
-| **P2l-2** | `theme/Spacing.kt` on the 4dp grid, and the 63 literals migrated onto it. A value that is a *size* rather than a gap, or a number copied from a reference, states itself where it is used. | `scripts/check_ui_dimensions.py` + `_test.py`, wired into `.pre-commit-config.yaml`, so the next inline literal fails a commit. |
+| **P2l-2** | *(shipped)* `theme/Spacing.kt` on the 4dp grid, the 63 literals migrated onto it, and the gate that keeps it the only place a gap is spelled out. | — |
+| **P2l-4** | **The two bare `clickable` rows are under the touch minimum.** `CollapsedCell` measures **288x32dp** on device - 16dp short - and `HiddenCellsRow` is the same shape. Found by P2l-2, which moved both 28dp to 32dp without closing it. This is the exact case `CellTouchTargetTest`'s docstring names as what it is worth keeping for, and it covers only the cell header. | An instrumented test over both rows, red first; `assertIsAtLeastMinimumTouchTarget` already exists and is shared with the bars' suites. |
 | **P2l-3** | **One size for code.** Measured: the cell's source states none at all (`codeSourceStyle` reads `LocalTextStyle`), outputs and inline code are `bodySmall`, the completion popup `bodyMedium`, the symbol row `bodyLarge` - four sizes for one thing, where the reference has `--jp-code-font-size` and `--jp-code-line-height` (`variables.css:196-197`). | JVM test over the scale; a screenshot of a cell, its output and its completions in one frame. |
 | **P2m-1** | The collapser: transparent at rest, brand blue when active. `stripeResting` leaves `EditorPalette`. **`docs/DECISIONS.md` "Every cell gets one" is rewritten in the same commit** - it argues the opposite today, and a decision record that contradicts the code is worse than none. | `CellStripeTest` red-first; `CellTouchTargetTest` re-run; `u3-cell-chrome` re-driven on the tablet and the screenshots **looked at**. |
 | **P2m-2** | The editor box: 1px always, brand blue plus elevation in edit mode, one shared modifier across the three fields rather than three copies. | `EditorPaletteTest` extended with the contrast assertion it already pins for every other pair; an instrumented test that the border follows the mode. |
@@ -662,6 +663,25 @@ Two things it cost that this file did not name:
   there to catch an accumulating per-line drift and is **pixel-identical** across the pair, because
   the code field states its own line height. That is the measurement that says P2l-3 is a separate
   sub-step rather than something P2l-1 half-did.
+
+**P2l-2 has shipped, and the arithmetic decided two heights the eye would have got wrong.** 63
+literals became 20, every survivor carrying the citation that earns it, and
+`scripts/check_ui_dimensions.py` keeps `theme/Spacing.kt` the only place a gap is spelled out.
+What it settled is `docs/DECISIONS.md`; the evidence is `evidence/p2l-2-spacing/`.
+
+Three costs the plan did not name:
+
+- **An off-grid value is not automatically rounded down.** The explorer's `14.dp` rows became
+  `Spacing.lg` and measure **72dp**, `ListItemDefaults`' own two-line height. The breadcrumb
+  carried the same 14dp and was therefore **exactly 48dp** - Material's floor - so rounding it to
+  `Spacing.md` would have put a control *under* the minimum at 44dp. Measured on device from
+  `uiautomator dump`, the emulator being at density 160 so 1px is 1dp.
+- **The gate could not fail, and only its own test caught that.** `rglob` over a directory that is
+  not there yields nothing, so run from `scripts/` it reported a clean tree while 53 offences sat
+  in it. It raises now, and one of its tests runs it over this repository.
+- **It found a defect it did not fix, which is P2l-4 above.** `CollapsedCell` is a bare `clickable`
+  measuring 288x32dp, and this step moved it 28dp to 32dp without closing the 16dp gap. Filed
+  rather than folded in: it needs its own failing test and its own evidence.
 
 ---
 

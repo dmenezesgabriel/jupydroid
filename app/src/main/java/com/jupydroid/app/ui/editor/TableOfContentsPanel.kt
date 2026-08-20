@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.Spacing
 
 /**
  * `toc:show-panel`, on whichever surface the window has room for - [CellActionSurface]'s own rule
@@ -168,7 +169,7 @@ private fun EmptyTableOfContents() {
   Text(
     text = "No headings in this notebook",
     style = MaterialTheme.typography.bodyMedium,
-    modifier = Modifier.padding(16.dp),
+    modifier = Modifier.padding(Spacing.lg),
   )
 }
 

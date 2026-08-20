@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -118,7 +119,7 @@ internal fun EditorCell(
       onStop = onStop,
       onCellAction = act,
     )
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.height(Spacing.xs))
     // Wrapped so the focus listener sits on the *input area* rather than the whole cell, which
     // is the distinction JupyterLab draws in `_evtFocusIn`: focus anywhere in a cell selects it,
     // but only focus inside the editor means edit mode. Put on the Column, the header's buttons
@@ -145,7 +146,7 @@ internal fun EditorCell(
             modifier = Modifier
               .fillMaxWidth()
               .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
-              .padding(8.dp),
+              .padding(Spacing.sm),
           )
 
           CellKind.MARKDOWN -> MarkdownCell(
@@ -173,7 +174,7 @@ internal fun EditorCell(
             modifier = Modifier
               .fillMaxWidth()
               .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
-              .padding(8.dp),
+              .padding(Spacing.sm),
           )
         }
       }

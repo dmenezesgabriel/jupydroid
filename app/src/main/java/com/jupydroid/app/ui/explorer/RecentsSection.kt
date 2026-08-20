@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.theme.Spacing
 
 /**
  * What was opened, above the directory being browsed.
@@ -73,7 +74,7 @@ internal fun itemsAboveTheListing(recents: Int): Int = if (recents == 0) 0 else 
 @Composable
 private fun RecentsHeading(onClear: () -> Unit) {
   Row(
-    modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
+    modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(
@@ -112,7 +113,7 @@ private fun RecentRow(document: RecentDocument, onOpen: () -> Unit) {
     modifier = Modifier
       .fillMaxWidth()
       .clickable(onClick = onOpen)
-      .padding(horizontal = 16.dp, vertical = 14.dp),
+      .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Icon(
@@ -125,7 +126,7 @@ private fun RecentRow(document: RecentDocument, onOpen: () -> Unit) {
       style = MaterialTheme.typography.bodyLarge,
       maxLines = 1,
       overflow = TextOverflow.StartEllipsis,
-      modifier = Modifier.padding(start = 16.dp),
+      modifier = Modifier.padding(start = Spacing.lg),
     )
   }
 }

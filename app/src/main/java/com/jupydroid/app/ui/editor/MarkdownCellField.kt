@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.syntax.MarkdownSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
+import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
 /** What an empty markdown cell says, so it is never a row with nothing in it. */
@@ -102,7 +103,7 @@ fun MarkdownCellField(
     // here rather than around MarkdownCell.
     modifier = modifier
       .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-      .padding(8.dp)
+      .padding(Spacing.sm)
       .focusRequester(caret)
       .lineNumbers(state.text, layout, numberStyle, gutter),
     onTextLayout = { getResult -> layout = getResult() },

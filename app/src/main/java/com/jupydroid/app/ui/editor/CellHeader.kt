@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
 /**
@@ -110,7 +111,7 @@ internal fun CellHeader(
         text = took,
         style = MaterialTheme.typography.labelSmall,
         color = editorPalette.executionTime,
-        modifier = Modifier.padding(start = 8.dp),
+        modifier = Modifier.padding(start = Spacing.sm),
       )
     }
     Spacer(modifier = Modifier.weight(1f))
@@ -191,8 +192,8 @@ private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () ->
   // Spinner *and* Stop: the spinner says the kernel is working, the button is the only way to
   // take it back, since the cell has no handle on the kernel's work.
   CircularProgressIndicator(
-    modifier = Modifier.padding(start = 8.dp).size(16.dp).semantics { contentDescription = "Running" },
-    strokeWidth = 2.dp,
+    modifier = Modifier.padding(start = Spacing.sm).size(SPINNER_SIZE).semantics { contentDescription = "Running" },
+    strokeWidth = SPINNER_STROKE,
   )
   IconButton(onClick = onStop) {
     // The real glyph now that material-icons-extended is a dependency (X2a). It was a drawn Box
@@ -205,3 +206,12 @@ private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () ->
     )
   }
 }
+
+/**
+ * The spinner beside a running cell. Deliberately smaller than the 24dp icons around it: it is a
+ * status, not a control, and one that reads as a button invites a press that does nothing.
+ */
+private val SPINNER_SIZE = 16.dp
+
+/** `CircularProgressIndicator`'s own default is 4dp, which at [SPINNER_SIZE] is a disc. */
+private val SPINNER_STROKE = 2.dp

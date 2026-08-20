@@ -61,6 +61,7 @@ import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
@@ -273,13 +274,13 @@ private fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> U
         Icon(
           Icons.AutoMirrored.Filled.KeyboardArrowRight,
           contentDescription = null,
-          modifier = Modifier.size(SEPARATOR),
+          modifier = Modifier.size(CRUMB_SEPARATOR_SIZE),
         )
       }
       Text(
         text = label,
         style = MaterialTheme.typography.labelLarge,
-        modifier = Modifier.clickable { onGoTo(path) }.padding(horizontal = 12.dp, vertical = 14.dp),
+        modifier = Modifier.clickable { onGoTo(path) }.padding(horizontal = Spacing.md, vertical = Spacing.lg),
       )
     }
   }
@@ -380,7 +381,7 @@ private fun EntryRow(
       // right-click context menu (`filebrowser-extension`) and of Winlator's per-row menu - and is
       // already what a notebook row on Home opens.
       .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
-      .padding(horizontal = 16.dp, vertical = 14.dp),
+      .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Icon(
@@ -395,7 +396,7 @@ private fun EntryRow(
     // `last_modified` a column of its own, and a 320dp phone has no second column to give it -
     // the reference itself narrows the format as the space shrinks (`listing.ts:1061-1073`), and
     // this is the end of that scale.
-    Column(modifier = Modifier.padding(start = 16.dp)) {
+    Column(modifier = Modifier.padding(start = Spacing.lg)) {
       Text(
         text = entry.name,
         style = MaterialTheme.typography.bodyLarge,
@@ -434,11 +435,15 @@ private fun ExplorerError(message: String) {
     text = message,
     style = MaterialTheme.typography.bodyMedium,
     color = MaterialTheme.colorScheme.error,
-    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
   )
 }
 
-private val SEPARATOR = 16.dp
+/**
+ * The chevron between two breadcrumbs. A size and not a gap, and named as one: `SEPARATOR` said
+ * what it was beside rather than what it is, and `Modifier.size(SEPARATOR)` read as a spacer.
+ */
+private val CRUMB_SEPARATOR_SIZE = 16.dp
 
 
 /**

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.theme.Spacing
 
 /**
  * What a cell's outputs draw as - split out of [EditorScreen] on the file-length gate
@@ -50,7 +51,7 @@ internal fun CellOutputs(
   val rendered = outputs.mapNotNull { it.render() }
   // Nothing to fold when there is nothing to show, so an empty cell looks the same either way.
   if (rendered.isEmpty()) return
-  Spacer(modifier = Modifier.height(4.dp))
+  Spacer(modifier = Modifier.height(Spacing.xs))
   when {
     // Collapsed beats scrolled: there is no height to bound when nothing is drawn.
     hidden -> CollapsedCell(rendered.collapsedPreview(), COLLAPSED_OUTPUTS, onExpand)
@@ -151,7 +152,7 @@ private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight)
     modifier = Modifier
       .fillMaxWidth()
       .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.small)
-      .padding(8.dp),
+      .padding(Spacing.sm),
   )
 }
 
@@ -173,4 +174,8 @@ private fun OutputImage(output: RenderedOutput.Image) {
 /** 24 line heights - the reference's `max-height: 24em` on `.jp-mod-outputsScrolled`. */
 private const val SCROLLED_OUTPUT_LINES = 24
 
+/**
+ * The gradient at the foot of a bounded output strip, which is what says the strip scrolls.
+ * A height rather than a gap: it is the length the fade takes to reach the surface colour.
+ */
 private val SCROLL_FADE_HEIGHT = 12.dp

@@ -17,6 +17,12 @@ repos:
         language: system
         files: '^\.maestro/.*\.(yaml|ipynb)$'
         pass_filenames: false
+      - id: ui-dimensions
+        name: a gap has a name, and the name is in one place
+        entry: scripts/check_ui_dimensions.py
+        language: system
+        files: '^app/src/main/java/com/jupydroid/app/ui/.*\.kt$'
+        pass_filenames: false
       - id: driver-isolation
         name: every flow starts from the Home list it seeded
         entry: scripts/check_driver_isolation.py

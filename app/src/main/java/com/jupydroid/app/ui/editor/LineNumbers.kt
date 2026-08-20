@@ -13,6 +13,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.Spacing
 
 /**
  * Draws a line number beside every logical line of the text this modifier decorates, and
@@ -95,4 +96,4 @@ fun logicalLineStarts(text: CharSequence): List<Int> {
 fun gutterDigits(lineCount: Int): Int = maxOf(MIN_DIGITS, lineCount.toString().length)
 
 private const val MIN_DIGITS = 2
-private val NUMBER_GAP = 8.dp
+private val NUMBER_GAP = Spacing.sm

@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.Spacing
 
 /**
  * The bar that stands in for [EditorTopBar] while the notebook is being searched -
@@ -132,7 +133,7 @@ fun FindTopBar(
           text = counter,
           style = MaterialTheme.typography.labelLarge,
           modifier = Modifier
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = Spacing.sm)
             .semantics { contentDescription = "$MATCH_COUNT $counter" },
         )
         // Greyed rather than absent while there is nothing to step through, which is the rule this
@@ -184,7 +185,7 @@ private fun ReplaceRow(
 ) {
   Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
     Row(
-      modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, bottom = 8.dp),
+      modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs, bottom = Spacing.sm),
       verticalAlignment = Alignment.CenterVertically,
     ) {
       BasicTextField(

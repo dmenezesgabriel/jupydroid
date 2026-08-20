@@ -15,6 +15,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.Spacing
 
 /** Named so a flow can tell a folded cell from the field or the outputs it replaced. */
 internal const val COLLAPSED_SOURCE = "Collapsed code"
@@ -38,7 +39,7 @@ fun CollapsedCell(preview: String, description: String, onExpand: () -> Unit, mo
       .fillMaxWidth()
       .clickable(onClickLabel = "Expand") { onExpand() }
       .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-      .padding(horizontal = 8.dp, vertical = 6.dp)
+      .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
       .semantics { contentDescription = description },
   ) {
     Text(
@@ -54,7 +55,7 @@ fun CollapsedCell(preview: String, description: String, onExpand: () -> Unit, mo
       text = "…",
       style = MaterialTheme.typography.bodySmall,
       color = MaterialTheme.colorScheme.primary,
-      modifier = Modifier.padding(start = 8.dp),
+      modifier = Modifier.padding(start = Spacing.sm),
     )
   }
 }

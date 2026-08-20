@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.Spacing
 
 /**
  * One cell's chrome: the stripe down its left edge, and the space around it.
@@ -76,8 +77,8 @@ private val STRIPE_GAP = 5.dp
 /** The command-mode stripe, which is the wider of the two. */
 private val MAX_STRIPE_WIDTH = 4.dp
 
-private val SIDE_PADDING = 16.dp
-private val TOP_PADDING = 8.dp
+private val SIDE_PADDING = Spacing.lg
+private val TOP_PADDING = Spacing.sm
 
 /** Positions the stripe so the widest it gets still clears [STRIPE_GAP] before the content. */
 private val STRIPE_LEFT = SIDE_PADDING - STRIPE_GAP - MAX_STRIPE_WIDTH

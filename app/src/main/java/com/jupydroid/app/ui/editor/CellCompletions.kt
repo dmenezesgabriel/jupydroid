@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.window.Popup
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.theme.Spacing
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -109,7 +110,7 @@ fun CompletionPopup(
     Surface(
       shape = MaterialTheme.shapes.small,
       color = MaterialTheme.colorScheme.surfaceContainerHigh,
-      tonalElevation = 3.dp,
+      tonalElevation = POPUP_ELEVATION,
       modifier = Modifier.semantics { contentDescription = "Completions" },
     ) {
       LazyColumn(modifier = Modifier.widthIn(max = MAX_WIDTH).heightIn(max = MAX_HEIGHT)) {
@@ -121,7 +122,7 @@ fun CompletionPopup(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
               .clickable { onPick(match) }
-              .padding(horizontal = 12.dp, vertical = 8.dp)
+              .padding(horizontal = Spacing.md, vertical = Spacing.sm)
               // Named, not left as bare text: a soft keyboard offers its own suggestions with
               // the very same words, and a test that matched "print" matched the IME's.
               .semantics { contentDescription = "Completion $match" },
@@ -151,5 +152,19 @@ fun applyCompletion(state: TextFieldState, completions: CellCompletions, match: 
 
 /** Long enough that a burst of typing is one request, short enough to feel like an answer. */
 private const val SETTLE_MILLIS = 250L
+/**
+ * Wide enough for a fully-qualified name and no wider: a popup that grows with its longest match
+ * would cover the cell it is completing, which is the one thing the reader needs to see.
+ */
 private val MAX_WIDTH = 280.dp
+/**
+ * About six rows at [MaterialTheme.typography.bodyMedium]. The list scrolls past that rather than
+ * growing, so the popup's footprint does not depend on how many matches the kernel found.
+ */
 private val MAX_HEIGHT = 220.dp
+
+/**
+ * `ElevationTokens.Level2`, restated because `Surface` takes a `Dp` and not a token. The popup
+ * sits over a cell that already has a background, so it needs a tonal step to separate from it.
+ */
+private val POPUP_ELEVATION = 3.dp

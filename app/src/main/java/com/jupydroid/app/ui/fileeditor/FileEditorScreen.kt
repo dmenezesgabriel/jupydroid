@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.PythonTypingRules
 import kotlinx.coroutines.CoroutineScope
@@ -129,6 +130,6 @@ private fun FileEditorError(message: String) {
     text = message,
     style = MaterialTheme.typography.bodyMedium,
     color = MaterialTheme.colorScheme.error,
-    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
   )
 }

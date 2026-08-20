@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.Spacing
 
 /**
  * What a collapsed heading shows in place of the section it is hiding: how many cells went, and a
@@ -38,7 +39,7 @@ internal fun HiddenCellsRow(count: Int, onExpand: () -> Unit, modifier: Modifier
     modifier = modifier
       .fillMaxWidth()
       .clickable(onClickLabel = "Expand") { onExpand() }
-      .padding(vertical = 6.dp)
+      .padding(vertical = Spacing.sm)
       .semantics { contentDescription = label },
   ) {
     Icon(
@@ -50,7 +51,7 @@ internal fun HiddenCellsRow(count: Int, onExpand: () -> Unit, modifier: Modifier
       text = label,
       style = MaterialTheme.typography.labelMedium,
       color = MaterialTheme.colorScheme.primary,
-      modifier = Modifier.padding(start = 8.dp),
+      modifier = Modifier.padding(start = Spacing.sm),
     )
   }
 }

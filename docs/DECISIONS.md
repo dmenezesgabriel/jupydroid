@@ -1289,6 +1289,41 @@ Expanded two, and Expanded starts at 840dp.
 - **A behaviour that cannot be reached on a phone is adapted, never invented**, and the adaptation
   is written down beside what it departs from.
 
+### A gap has a name, and `theme/Spacing.kt` is where the name is
+
+**Measured before the rule existed**, which is what makes it a rule rather than a preference: 63
+`.dp` literals across 20 files in 16 distinct values, **13 of them off Material's 4dp grid** -
+`14.dp` three times in the explorer and its recents, and one each of `6`, `3`, `2`, `5`, `18`,
+`1`. No single one of those was wrong. What was wrong is that a gap had no name, so the next one
+was chosen by eye against whatever a neighbouring file happened to use.
+
+**The rule is about the point of use, not about the number.** A literal buried in a modifier chain
+is a decision nobody can find, compare or change. `scripts/check_ui_dimensions.py` refuses one, and
+accepts two things instead: a value taken from `Spacing`, or a named `val` whose KDoc says where
+the number came from. `0.dp` is exempt - it is a sentinel, not a spacing decision.
+
+**Not every dimension is a gap, and forcing one onto the scale would rebuild the problem.**
+`CellStripe`'s 4dp and 2dp are `DefaultNotebookEditorAppearanceSizes`, `CellFrame`'s 5dp is
+`codeCellLeftLinePadding`, `POPUP_ELEVATION` is `ElevationTokens.Level2`, `MARKER_WIDTH` is a
+column that exists so list text starts at one x. Twenty literals survive on those terms, each
+carrying its citation - which is what `CellFrame` and `CellStripe` were already paying before the
+gate asked anyone else to.
+
+**Two heights were decided by arithmetic and then measured on device** (`evidence/p2l-2-spacing/`,
+emulator at density 160 so 1px = 1dp, read from `uiautomator dump` rather than counted in pixels):
+
+- The explorer's two-line row was 68dp and is **72dp**, which is `ListItemDefaults`' own two-line
+  height rather than a number this app picked.
+- The breadcrumb crumb was **exactly 48dp**, Material's floor. `Spacing.md` would have made it
+  **44dp**, under it - so the crumb takes `lg` like the rows. **An off-grid value is not
+  automatically rounded down**; where a control is on the touch minimum, the grid step that keeps
+  it above wins.
+
+**A gate that cannot fail is worse than no gate**, and this one could for as long as it took to
+run its own test from the wrong directory: `rglob` over a directory that is not there yields
+nothing, so it reported a clean tree. It raises `FileNotFoundError` now, and its test suite
+includes one case that runs it over this repository.
+
 ### Material's type scale is taken whole, where its colour scheme is not
 
 **The asymmetry is the decision, and each half has a reason.**

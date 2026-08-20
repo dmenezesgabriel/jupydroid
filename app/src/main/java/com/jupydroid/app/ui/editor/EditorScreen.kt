@@ -43,6 +43,7 @@ import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.OverwriteFileDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -389,7 +390,7 @@ private fun EditorContent(
 
 @Composable
 private fun ErrorMessage(message: String, modifier: Modifier = Modifier) {
-  Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+  Box(modifier = modifier.fillMaxSize().padding(Spacing.lg), contentAlignment = Alignment.Center) {
     Text(
       text = message,
       color = MaterialTheme.colorScheme.error,

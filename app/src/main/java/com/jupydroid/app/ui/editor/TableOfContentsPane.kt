@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.Spacing
 
 /**
  * `toc:show-panel` where the editor has room to keep it open - a column beside the notebook rather
@@ -93,7 +94,7 @@ fun TableOfContentsPane(
 private fun TableOfContentsPaneHeader(someExpanded: Boolean?, onToggleAllCollapsed: () -> Unit, onClose: () -> Unit) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
-    modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
+    modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg),
   ) {
     Text(text = "Table of contents", style = MaterialTheme.typography.titleSmall)
     Spacer(modifier = Modifier.weight(1f))
