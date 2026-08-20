@@ -1,0 +1,65 @@
+appId: com.jupydroid.app
+---
+# P2i-5: Match Case, Match Whole Word and Use Regular Expression - the three toggles the reference
+# puts on its search box (`packages/documentsearch/src/searchview.tsx:185-210`), here behind the
+# bar's overflow because the bar already carries five targets at 360dp.
+#
+# **The count is the assertion, and the fixture is built so each option changes it by exactly one.**
+# Three cells - `Cat = 1`, `cat = 2`, `category = 3`:
+#
+# - plain `cat` finds 3, because the flags are `gim` by default (`searchmodel.ts:398-406`);
+# - Match case drops `Cat` -> 2;
+# - Match whole word drops `category` as well -> 1;
+# - and a regular expression is a different question again: `c.t` finds nothing as literal text and
+#   three as a pattern, which is `parseQuery`'s escaping half.
+#
+# The labels flip rather than carrying a check mark, because Android's accessibility tree keeps a
+# menu item's toggled state on a node with no label - so a check is a state no flow can read
+# (`docs/DECISIONS.md`). That is also what lets this flow assert the option is *on*.
+#
+# No cell is run, so nothing here needs the tablet.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Search Options.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Search Options.ipynb"
+- extendedWaitUntil:
+    visible: "category = 3"
+    timeout: 30000
+- tapOn: "Find in notebook"
+- inputText: "cat"
+- assertVisible: "Matches 1/3"
+- takeScreenshot: 01-case-insensitive-by-default
+# Match case: `Cat = 1` stops matching.
+- tapOn: "Search options"
+- tapOn: "Match case"
+- assertVisible: "Matches 1/2"
+- takeScreenshot: 02-match-case-drops-the-capital
+# The label now reads the other way round, which is the only way the state is readable at all.
+- tapOn: "Search options"
+- assertVisible: "Ignore case"
+- tapOn: "Ignore case"
+- assertVisible: "Matches 1/3"
+# Match whole word: `category` stops matching, and so does nothing else.
+- tapOn: "Search options"
+- tapOn: "Match whole word"
+- assertVisible: "Matches 1/2"
+- takeScreenshot: 03-whole-word-drops-the-longer-one
+- tapOn: "Search options"
+- tapOn: "Match anywhere"
+- assertVisible: "Matches 1/3"
+# A regular expression is a different question: `c.t` is three characters as text and a pattern
+# as a regex.
+- tapOn: "Close search"
+- tapOn: "Find in notebook"
+- inputText: "c.t"
+- assertVisible: "Matches -/-"
+- takeScreenshot: 04-a-dot-is-a-dot-in-plain-text
+- tapOn: "Search options"
+- tapOn: "Use regular expression"
+- assertVisible: "Matches 1/3"
+- takeScreenshot: 05-and-any-character-as-a-pattern

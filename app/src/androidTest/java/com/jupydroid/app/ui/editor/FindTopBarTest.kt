@@ -118,6 +118,46 @@ class FindTopBarTest {
     compose.onNodeWithContentDescription(PREVIOUS_MATCH).assertIsEnabled()
   }
 
+  /**
+   * `documentsearch:` Match Case, Match Whole Word and Use Regular Expression, behind the overflow
+   * for [SelectionTopBar]'s reason - the bar already carries five targets at 360dp.
+   */
+  @Test
+  fun theThreeQueryOptionsAreBehindTheOverflow() {
+    compose.setContent { bar() }
+
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+
+    compose.onNodeWithText(MATCH_CASE).assertIsDisplayed()
+    compose.onNodeWithText(MATCH_WHOLE_WORD).assertIsDisplayed()
+    compose.onNodeWithText(USE_REGULAR_EXPRESSION).assertIsDisplayed()
+  }
+
+  /** The label flips with the state, which is how a Maestro flow can read it at all. */
+  @Test
+  fun eachOptionReadsTheOtherWayRoundOnceItIsOn() {
+    compose.setContent {
+      bar(query = SearchQuery("cat", caseSensitive = true, wholeWords = true, useRegex = true))
+    }
+
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+
+    compose.onNodeWithText(IGNORE_CASE).assertIsDisplayed()
+    compose.onNodeWithText(MATCH_ANYWHERE).assertIsDisplayed()
+    compose.onNodeWithText(SEARCH_PLAIN_TEXT).assertIsDisplayed()
+  }
+
+  @Test
+  fun pickingAnOptionReportsTheQueryItAsksFor() {
+    var asked: SearchQuery? = null
+    compose.setContent { bar(query = SearchQuery("cat"), onQueryChanged = { asked = it }) }
+
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+    compose.onNodeWithText(MATCH_CASE).performClick()
+
+    assertEquals(SearchQuery("cat", caseSensitive = true), asked)
+  }
+
   @androidx.compose.runtime.Composable
   private fun bar(
     query: SearchQuery = SearchQuery(""),

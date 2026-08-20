@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
@@ -9,6 +10,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,7 +23,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -115,8 +122,53 @@ fun FindTopBar(
       IconButton(onClick = onNext, enabled = steppable, modifier = named(NEXT_MATCH)) {
         Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
       }
+      SearchOptionsMenu(query = query, onQueryChanged = onQueryChanged)
     },
   )
+}
+
+/**
+ * The three things the reference puts on the box as toggle buttons - Match Case, Match Whole Word
+ * and Use Regular Expression (`packages/documentsearch/src/searchview.tsx:185-210`).
+ *
+ * **In an overflow rather than on the bar**, which is the arithmetic [SelectionTopBar] already did
+ * once and lost: the bar already carries a close, a box, a counter and two arrows, and three more
+ * targets at 360dp leaves the box no room to show what was typed into it. They are also the half of
+ * the search surface somebody changes once and then leaves alone, which is what an overflow is for.
+ *
+ * Flip labels rather than check marks, this app's convention throughout its menus - Android's
+ * accessibility tree keeps a `DropdownMenuItem`'s toggled state on a node that carries no label,
+ * so a check mark is a state no Maestro flow can read (`docs/DECISIONS.md`).
+ */
+@Composable
+private fun SearchOptionsMenu(query: SearchQuery, onQueryChanged: (SearchQuery) -> Unit) {
+  var open by remember { mutableStateOf(false) }
+  // Boxed with its menu, which anchors to its parent layout node - the lesson [CellHeader],
+  // [NotebookBar] and [EditorTopBar] each record.
+  Box {
+    IconButton(onClick = { open = true }, modifier = named(SEARCH_OPTIONS)) {
+      Icon(Icons.Filled.MoreVert, contentDescription = null)
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+      SearchOptionRow(if (query.caseSensitive) IGNORE_CASE else MATCH_CASE) {
+        open = false
+        onQueryChanged(query.copy(caseSensitive = !query.caseSensitive))
+      }
+      SearchOptionRow(if (query.wholeWords) MATCH_ANYWHERE else MATCH_WHOLE_WORD) {
+        open = false
+        onQueryChanged(query.copy(wholeWords = !query.wholeWords))
+      }
+      SearchOptionRow(if (query.useRegex) SEARCH_PLAIN_TEXT else USE_REGULAR_EXPRESSION) {
+        open = false
+        onQueryChanged(query.copy(useRegex = !query.useRegex))
+      }
+    }
+  }
+}
+
+@Composable
+private fun SearchOptionRow(label: String, onPick: () -> Unit) {
+  DropdownMenuItem(text = { Text(label) }, onClick = onPick)
 }
 
 /**
@@ -184,6 +236,33 @@ internal const val NEXT_MATCH = "Next match"
 
 /** `documentsearch:highlightPrevious` - *"Previous Match"* (`searchview.tsx:305`). */
 internal const val PREVIOUS_MATCH = "Previous match"
+
+/** The overflow the three query options live behind - see [SearchOptionsMenu]. */
+internal const val SEARCH_OPTIONS = "Search options"
+
+/**
+ * *"Match Case"* (`searchview.tsx:189`), as two labels rather than one and a check mark - the
+ * convention `SHOW_LINE_NUMBERS` records, and for the same measured reason.
+ */
+internal const val MATCH_CASE = "Match case"
+
+/** The same option from the other side - the flags are `gim` rather than `gm`. */
+internal const val IGNORE_CASE = "Ignore case"
+
+/** *"Match Whole Word"* (`searchview.tsx:197`) - the query wrapped in `\b`. */
+internal const val MATCH_WHOLE_WORD = "Match whole word"
+
+/** The same option from the other side - see [MATCH_WHOLE_WORD]. */
+internal const val MATCH_ANYWHERE = "Match anywhere"
+
+/**
+ * *"Use Regular Expression"* (`searchview.tsx:205`) - whether the box holds a pattern or the
+ * characters it is made of. Off is the escaping half of `parseQuery`; see [SearchQuery].
+ */
+internal const val USE_REGULAR_EXPRESSION = "Use regular expression"
+
+/** The same option from the other side - see [USE_REGULAR_EXPRESSION]. */
+internal const val SEARCH_PLAIN_TEXT = "Search for plain text"
 
 /** See [NEXT_MATCH]: one node carries both the name and the enabled state. */
 private fun named(what: String) = Modifier.semantics { contentDescription = what }
