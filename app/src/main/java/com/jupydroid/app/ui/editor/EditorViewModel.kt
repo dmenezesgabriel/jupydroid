@@ -81,6 +81,9 @@ class EditorViewModel(
   /** Which cells the menu means. Nothing here is written, so it takes no save; see [NotebookCellSelection]. */
   val selection = NotebookCellSelection(_uiState)
 
+  /** The find bar. Writes nothing either, so it takes no save; see [NotebookSearch]. */
+  val search = NotebookSearch(_uiState)
+
   init {
     viewModelScope.launch {
       _uiState.value =
@@ -115,7 +118,10 @@ class EditorViewModel(
    * screen is going away and the debounce will not get its chance.
    */
   fun editCell(cellId: String, source: String) {
-    _uiState.update { it.withSource(cellId, source) }
+    // Re-found after the edit, not before: *"startQuery is also used as 'restartQuery' after each
+    // text change"* (`packages/notebook/src/searchprovider.ts:391-395`). A no-op while the find
+    // bar is closed, which is almost always.
+    _uiState.update { it.withSource(cellId, source).withSearchRecomputed() }
     save.schedule()
   }
 

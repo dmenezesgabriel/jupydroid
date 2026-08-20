@@ -42,6 +42,26 @@ fun bracketMatchStyle(): SpanStyle = SpanStyle(
 )
 
 /**
+ * How the find bar's matches are drawn - the ones it found, and the one it is standing on.
+ *
+ * Both carry a foreground as well as a background, which is JupyterLab's structure rather than
+ * IntelliJ's and is measured rather than chosen - see
+ * [com.jupydroid.app.theme.EditorPalette.searchMatchText].
+ */
+@Composable
+@ReadOnlyComposable
+fun searchMatchStyles(): SearchMatchStyles = SearchMatchStyles(
+  match = SpanStyle(background = editorPalette.searchMatch, color = editorPalette.searchMatchText),
+  current = SpanStyle(
+    background = editorPalette.currentSearchMatch,
+    color = editorPalette.currentSearchMatchText,
+    // The one the arrows are on is also the one being read, and a weight reads at a glance where a
+    // hue alone has to be compared against its neighbours.
+    fontWeight = FontWeight.Bold,
+  ),
+)
+
+/**
  * How each inline mark in rendered prose is drawn.
  *
  * Emphasis is weight and slant with no colour, the way IntelliJ declares `MARKDOWN_BOLD` and

@@ -1016,6 +1016,89 @@ a custom `Layout`. The same applies to `text/html` outputs — parsed with jsoup
 **Audit A1c:** a rendered markdown cell renders by default and a tap opens the editor **with the
 caret placed**. The first version opened an editor with no caret, which no JVM test could see.
 
+### A search query is a regular expression, and Java's `^` is not JavaScript's
+
+`Private.parseQuery` (`packages/documentsearch/src/searchmodel.ts:398-427`) turns all four of the
+search box's inputs into one `RegExp`, so **every search is a regex** and "Use Regular Expression"
+only decides whether the user wrote it or the app did. The escape set is kept character for
+character rather than swapped for Kotlin's `Regex.escape`, which wraps in `\Q…\E` and has a seam
+on an input containing `\E`.
+
+The last of its rules - *"if the empty string is hit, the search logic will freeze the browser
+tab"* - **cannot be transcribed literally**, and measuring is what said so:
+`Pattern.compile("^", MULTILINE).matcher("").find()` is `false` on this machine's JDK, where
+`new RegExp('^', 'gim').test('')` is `true`. Read as written, a bare `^` would slip past the guard
+and report a zero-width hit at every line start. The probe drops `MULTILINE` and the searching
+regex keeps it, which is what makes the two agree; `$` and every unanchored pattern already did.
+
+### Typing a query finds and counts; only the arrows move the notebook
+
+`startQuery` ends with `highlightNext(true, { from: 'selection-start', scroll: false, select: false })`
+(`packages/notebook/src/searchprovider.ts:389-401`), and `activateNewMatch`'s **first line** is
+`if (!shouldScroll) return` (`:604-610`). So a new query sets the current match and does nothing
+else - no scroll, no active-cell change, no unhiding. `highlightNext()` from the arrows passes no
+options, defaults `scroll` to true, and gets the whole reveal.
+
+That is the seam P2i-3 and P2i-4 are split on, and it is the reference's own rather than a
+convenience: a search box that scrolled the document on every keystroke would move the notebook
+out from under whoever was typing.
+
+Two consequences worth stating: **every cell is searched, hidden or collapsed** - `startQuery`
+builds a provider per widget with no visibility filter at all (`:352-386`) - and the query is
+re-run after every edit, which the reference names in its own comment (*"`startQuery` is also used
+as 'restartQuery' after each text change"*, `:391-395`).
+
+### A match is drawn with its own foreground, and that is measured rather than copied
+
+IntelliJ's `SEARCH_RESULT_ATTRIBUTES` declares `FOREGROUND` empty and leaves the code its own
+syntax colours. Transcribed literally, its dark green puts `DEFAULT_KEYWORD` at **3.16:1** on this
+app's dark palette - under the 4.5:1 floor `EditorPaletteTest` holds every other piece of source
+to - and every background dark enough to fix that measures **1.08:1** against the cell, which is
+not visibly a highlight at all.
+
+JupyterLab is out of the same squeeze the same way: `.cm-searchMatch` sets `color` as well as
+`background-color` (`packages/codemirror/src/theme.ts:106-115`), losing the syntax colour inside a
+match on purpose. So this app takes **IntelliJ's backgrounds and JupyterLab's structure**, and the
+foreground is whichever of black or white clears the floor - asserted, not chosen.
+
+The **current** match is JupyterLab's `--jp-search-selected-match-background-color` and Compose is
+why: IntelliJ marks it with no background at all, a rounded box outlined in `CARET_COLOR`
+(`EditorLivePreviewPresentation.kt:27-29`), and a `SpanStyle` carries a background, a weight and a
+decoration but not a border. It is the second colour in `EditorPalette` that is JupyterLab's, for
+the same kind of reason as `cellMultiSelected`.
+
+### A match in rendered prose is counted and not lit
+
+`MarkdownCellSearchProvider` searches a markdown cell twice - its editor, and the **rendered** DOM
+through a `GenericSearchProvider` over `cell.renderer` (`packages/cells/src/searchprovider.ts:330-345`).
+This app searches the source only, because rendered prose here is `RichText` blocks rather than a
+text field and threading spans through them is the work the output filter was already scoped away
+from.
+
+The count therefore includes a match nothing on screen shows, until the cell is unrendered - which
+a tap does, and which reaching the match does too (`_unrenderedByHighlight`, `:380-410`). Stated
+rather than hidden by keeping such matches out of the count: a search that silently skipped rendered
+cells would be wrong about the document, where this is merely late.
+
+### The find bar takes the notebook's bar, and the notebook's bottom bar goes with it
+
+The reference anchors a floating panel at the top-right of the document carrying a find box, three
+option toggles, a counter, two arrows, a filter button and a close - nine controls in one row
+(`packages/documentsearch/src/searchview.tsx:640-760`). At 360dp that is the arithmetic
+`SelectionTopBar` already did once and lost, so searching takes the bar, exactly as marking a run
+does.
+
+**And the bottom bar goes**, which is not symmetry but a measured repeat of the U6 defect. The find
+box holds the caret while the notebook is in *command* mode - a state nothing before P2i could
+reach - so the kernel bar would be on screen under a soft keyboard. On a 320dp-tall landscape phone
+that stacks a find bar, a kernel bar and the IME, and `Scaffold` resolves the overflow by handing
+the cell list **zero height** (`evidence/u6-ime-layout/640dp/`).
+
+**One command, two strings, and that is a harness rule.** The action on the notebook's bar is
+"Find in notebook" and the box is "Find". A flow closing the bar asserts the box is gone, and
+Maestro matches whole nodes - so two controls meaning the same thing must not be spelled the same
+way, or the assertion is answered by the icon that just came back.
+
 ### ANSI handling today is a stripper, not an emulator
 
 `RenderedOutput.kt:96-102` regex-replaces SGR escapes out of tracebacks

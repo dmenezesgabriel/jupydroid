@@ -411,7 +411,36 @@ Five costs the plan did not name, each recorded there rather than here:
   ABI one. It also forced the first entry identity that is not a cell id, since one code cell can
   print several headings.
 
-| **P2i** | **Find and replace** | `documentsearch:{start,startWithReplace,highlightNext,highlightPrevious,end}`; the notebook's provider is `packages/notebook/src/searchprovider.ts` and it defines the ordering, including whether collapsed cells participate. Read it rather than iterating cells. |
+**P2i is in progress, and reading `searchprovider.ts` re-cut it before any code was written.**
+`documentsearch:start` and `documentsearch:end` are in, over a query model and a hit list that
+shipped first with no surface (P2i-1, P2i-2) - the shape P2h-5a/P2h-5b already used. What each
+settled is `docs/DECISIONS.md`; the evidence is `evidence/p2i-3-find/`.
+
+The re-cut is the one worth naming here: **typing a query finds and counts, and only the arrows
+move the notebook.** `startQuery` passes `scroll: false` and `activateNewMatch` returns on its first
+line when it sees that (`:389-401`, `:604-610`), so the reveal - scroll, unhide, unrender, expand a
+collapsed parent - belongs entirely to `highlightNext` / `highlightPrevious`. That is P2i-4's seam
+rather than a convenience: a box that scrolled the document on every keystroke would move the
+notebook out from under whoever was typing.
+
+Three costs so far, each recorded in `docs/DECISIONS.md` rather than here:
+
+- **The reference's own empty-match guard cannot be transcribed.** Java's multiline `^` refuses the
+  empty subject where JavaScript's accepts it, so `ret.test('')` read literally would let a bare `^`
+  through and report a zero-width hit at every line start.
+- **IntelliJ's search background fails this app's own contrast floor**, at 3.16:1 under
+  `DEFAULT_KEYWORD` on dark - and every background dark enough to fix it measures 1.08:1 against the
+  cell. A match states its own foreground now, which is what JupyterLab does.
+- **U6's defect came back through a door nothing before could open.** The find box holds the caret
+  while the notebook is in *command* mode, so the kernel bar would sit under a soft keyboard;
+  `editorBottomBar` drops it, the way it already drops it for a marked run.
+
+| # | Sub-step | State |
+|---|---|---|
+| **P2i-4** | `highlightNext` / `highlightPrevious` - the arrows, wrapping, and the reveal `activateNewMatch` does: scroll to the cell, clear `inputHidden`, unrender a rendered markdown cell, and expand a collapsed parent heading. That last is **parity, not an adaptation**: `activeCellChanged` is wired to `NotebookActions.expandParent` (`packages/notebook-extension/src/index.ts:2871-2873`). It also fixes a live gap - the ToC's jump is a no-op on a hidden heading, justified by a reading of the reference that citation contradicts. | next |
+| **P2i-5** | Match case, whole word, use regular expression, and the `_parsingError` reading. | |
+| **P2i-6** | `documentsearch:startWithReplace` - the replace row, Replace / Replace All, `preserveCase`, `$1` substitution under the regex option. | |
+| **P2i-7** | The two filters: **Search cell outputs**, scoped to `RenderedOutput.Text` (stream, stderr, traceback, `text/plain`), and **Search in selected cells**. `text/html` and tables are out - the reference walks its rendered DOM and this app has no analogue in `RichText`/`RichTable`; recorded as a departure. | |
 | **P2j** | **Trust and export** | `notebook:trust`, `notebook:export-to-format`. Export is `nbconvert`, already in the rootfs (`nbconvert==7.17.1`, with `mistune`, `bleach`, `pandocfilters`), and lands as a file in the workspace plus a share intent. **Trust is two halves and only one is the server's.** The client half is a *dialog* that warns and then sets `trusted: true` on each cell in the model (`actions.tsx` `trustNotebook`); the signing half is the server's — `ContentsManager.notary = sign.NotebookNotary` and `trust_notebook()` → `mark_cells(nb, True)` + `check_and_sign(nb, path)` (`services/contents/manager.py:116-120,694-706`, over `nbformat/sign.py`). **`check_and_sign` runs on save through the Contents API, which this app bypasses** by writing files directly — so a notebook we write is unsigned and would open untrusted. Decide that before building the dialog: route notebook *saves* through the Contents API, sign in the Space via `nbformat.sign`, or state that trust is inert here. Do **not** re-derive HMAC signing in Kotlin. |
 | **P2k** | **Execution history** | `access-previous-history-entry`, `access-next-history-entry`. Needs `history_request` on the shell channel — a protocol message the gateway does not send yet, so it is a `KernelGateway` addition, not just UI. |
 

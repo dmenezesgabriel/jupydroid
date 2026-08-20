@@ -95,6 +95,11 @@ fun EditorScreen(
   // than a branch in the one above is that the two states are exclusive: entering edit mode drops
   // the selection (`widget.ts:1925`), so only one of these is ever enabled.
   BackHandler(enabled = state.selecting) { viewModel.selection.deselectAll() }
+  // And out of the find bar before it backs out of the notebook, which is the same contextual-bar
+  // rule the one above states. Its own handler rather than a branch, because the three states are
+  // exclusive: searching is asked for from the document's bar, which is not up while a run is
+  // marked, and the find box taking the caret is not a cell being edited.
+  BackHandler(enabled = state.search != null) { viewModel.search.end() }
   // Marking a run is a command-mode act (`notebook.mode = 'command'`, `actions.tsx:1326`), and in
   // this app the mode *is* where the focus is - the back handler above changes it by dropping the
   // caret rather than by setting a field, so that there is one path out of edit mode and not two.
@@ -151,7 +156,16 @@ fun EditorScreen(
       // for while cells are being picked. Material's contextual-bar rule, and the reference's
       // too - its selection commands are never on the notebook's toolbar.
       val head = state.cells.firstOrNull { it.id == state.selectedCellId }
-      if (state.selecting && head != null) {
+      val searching = state.search
+      if (searching != null) {
+        FindTopBar(
+          query = searching.query,
+          counter = state.searchCounter(),
+          parseError = searching.parseError,
+          onQueryChanged = viewModel.search::queryChanged,
+          onClose = viewModel.search::end,
+        )
+      } else if (state.selecting && head != null) {
         SelectionTopBar(
           selectedCount = state.selectedCellIds.size,
           headCell = head,
@@ -203,12 +217,13 @@ fun EditorScreen(
             val flipped = editorSettings.copy(tocIncludeOutput = !editorSettings.tocIncludeOutput)
             applicationScope.launch { editorSettingsRepository.update(flipped) }
           },
+          onFind = viewModel.search::start,
         )
       }
     },
     bottomBar = {
       // One bar at a time, or none - see [editorBottomBar] for the rule and what each is for.
-      when (editorBottomBar(state.selecting, state.mode)) {
+      when (editorBottomBar(state.selecting, state.mode, state.search != null)) {
         EditorBottomBar.NONE -> Unit
         EditorBottomBar.SYMBOLS -> SymbolRow(input = cellInput)
         EditorBottomBar.KERNEL -> NotebookBar(
@@ -367,6 +382,9 @@ private fun EditorContent(
             // is: `toggleAllLineNumbers` writes code, markdown and raw together.
             lineNumbersShown = state.lineNumbersShown,
             headingPrefix = headingPrefixes[cell.id].orEmpty(),
+            // Per cell rather than sliced once for the list, unlike the numbers above: a cell's
+            // matches depend only on that cell - see [searchHighlightOf].
+            search = state.searchHighlightOf(cell.id),
             autoClosingBrackets = autoClosingBrackets,
             cellInput = cellInput,
           )

@@ -54,10 +54,17 @@ fun MarkdownCell(
    * into the rendered heading too (`packages/notebook/src/toc.ts:733-748`).
    */
   headingPrefix: String = "",
+  /**
+   * What the find bar found in this cell - see [CellSearchHighlight]. Reaches the editor only:
+   * a match in rendered prose is not lit, and `MarkdownCellSearchProvider` says why it need not
+   * be - reaching one unrenders the cell (`packages/cells/src/searchprovider.ts:380-410`).
+   */
+  search: CellSearchHighlight = CellSearchHighlight.NONE,
 ) {
   if (!rendered) {
     MarkdownCellField(
       state = state,
+      search = search,
       onSourceEdited = onSourceEdited,
       modifier = modifier,
       input = input,

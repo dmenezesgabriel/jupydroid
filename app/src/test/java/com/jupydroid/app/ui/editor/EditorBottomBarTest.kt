@@ -12,7 +12,7 @@ import org.junit.Test
 class EditorBottomBarTest {
   @Test
   fun aNotebookBeingReadKeepsTheKernelBar() {
-    assertEquals(EditorBottomBar.KERNEL, editorBottomBar(selecting = false, mode = CellMode.COMMAND))
+    assertEquals(EditorBottomBar.KERNEL, editorBottomBar(selecting = false, mode = CellMode.COMMAND, searching = false))
   }
 
   /**
@@ -21,7 +21,7 @@ class EditorBottomBarTest {
    */
   @Test
   fun aCellBeingTypedIntoGetsTheSymbolRow() {
-    assertEquals(EditorBottomBar.SYMBOLS, editorBottomBar(selecting = false, mode = CellMode.EDIT))
+    assertEquals(EditorBottomBar.SYMBOLS, editorBottomBar(selecting = false, mode = CellMode.EDIT, searching = false))
   }
 
   /**
@@ -34,7 +34,22 @@ class EditorBottomBarTest {
    */
   @Test
   fun aMarkedRunGetsNeitherBar() {
-    assertEquals(EditorBottomBar.NONE, editorBottomBar(selecting = true, mode = CellMode.COMMAND))
+    assertEquals(EditorBottomBar.NONE, editorBottomBar(selecting = true, mode = CellMode.COMMAND, searching = false))
+  }
+
+  /**
+   * **And a notebook being searched gets neither, which is the one state before P2i nothing could
+   * reach: the caret is in the find box, so the notebook is in *command* mode with the soft
+   * keyboard up.** Left as KERNEL, a 320dp-tall landscape phone stacks a find bar, a kernel bar and
+   * the keyboard, and `Scaffold` hands the cell list zero height - the U6 defect, which no test
+   * without an IME can see and which is why this rule is asserted rather than looked at.
+   */
+  @Test
+  fun aNotebookBeingSearchedGetsNeitherBar() {
+    assertEquals(
+      EditorBottomBar.NONE,
+      editorBottomBar(selecting = false, mode = CellMode.COMMAND, searching = true),
+    )
   }
 
   /**
@@ -44,6 +59,6 @@ class EditorBottomBarTest {
    */
   @Test
   fun markingBeatsEditingIfTheTwoEverDisagree() {
-    assertEquals(EditorBottomBar.NONE, editorBottomBar(selecting = true, mode = CellMode.EDIT))
+    assertEquals(EditorBottomBar.NONE, editorBottomBar(selecting = true, mode = CellMode.EDIT, searching = false))
   }
 }

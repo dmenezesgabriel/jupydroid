@@ -147,6 +147,11 @@ data class EditorUiState(
    * fraction of a cell and a traceback names a line; the departure is `docs/DECISIONS.md`.
    */
   val lineNumbersShown: Boolean = true,
+  /**
+   * The find bar and what it found, or null while it is closed - `documentsearch:start` and
+   * `documentsearch:end`. See [SearchState].
+   */
+  val search: SearchState? = null,
 )
 
 /**

@@ -74,6 +74,8 @@ fun CodeCellField(
   input: FocusedCellInput? = null,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /** What the find bar found in this cell - see [CellSearchHighlight]. */
+  search: CellSearchHighlight = CellSearchHighlight.NONE,
 ) {
   val styles = syntaxStyles()
   val matched = bracketMatchStyle()
@@ -84,6 +86,8 @@ fun CodeCellField(
   val numberStyle = codeStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
   val completions by rememberCellCompletions(state, focused, completionsAt)
+  val searchStyles = searchMatchStyles()
+  val searching = rememberUpdatedState(search)
   // The code a popup was already answered for, so accepting or dismissing one does not
   // immediately re-offer against the very text it just produced.
   var settled by remember { mutableStateOf<String?>(null) }
@@ -103,8 +107,10 @@ fun CodeCellField(
       interactionSource = interactions,
       cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
       inputTransformation = typing,
-      outputTransformation = remember(highlighter, styles, matched) {
-        HighlightTransformation(highlighter, styles, focused, matched)
+      // The highlight is read through a `State` rather than closed over, so a search moving does
+      // not rebuild the transformation - see [HighlightTransformation].
+      outputTransformation = remember(highlighter, styles, matched, searchStyles) {
+        HighlightTransformation(highlighter, styles, focused, matched, searching, searchStyles)
       },
     )
     val offered = completions?.takeIf { it.query.code != settled }

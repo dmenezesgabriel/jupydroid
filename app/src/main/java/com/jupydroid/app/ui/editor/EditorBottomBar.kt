@@ -8,7 +8,7 @@ enum class EditorBottomBar {
   /** [SymbolRow]: the characters a touch keyboard lacks, which is what a cell being typed wants. */
   SYMBOLS,
 
-  /** Nothing, because [SelectionTopBar] is what acts on a marked run. */
+  /** Nothing, because the contextual bar at the top is what the notebook is being used for. */
   NONE,
 }
 
@@ -25,14 +25,22 @@ enum class EditorBottomBar {
  * why the cell's `⋮` is hidden while that bar is up. Nothing the kernel bar offers is what somebody
  * picking cells is doing, and every one of them is a tap on `✕` away.
  *
+ * **A notebook being searched gets neither either, for the same two reasons and one measured
+ * one.** [FindTopBar] is what a search acts through, nothing the kernel bar offers is what
+ * somebody looking for a word is doing - and the find box holds the caret while the notebook is
+ * in *command* mode, which is a state nothing before P2i could reach. Without this branch a
+ * 320dp-tall landscape phone stacks a find bar, a kernel bar and the soft keyboard over the cell
+ * list and `Scaffold` resolves the overflow by giving it zero height, which is the U6 defect
+ * exactly (`evidence/u6-ime-layout/640dp/`, and [editorTopBarVisible] for its other half).
+ *
  * ```
- * when (editorBottomBar(state.selecting, state.mode)) { … }
+ * when (editorBottomBar(state.selecting, state.mode, state.search != null)) { … }
  * ```
  */
-internal fun editorBottomBar(selecting: Boolean, mode: CellMode): EditorBottomBar = when {
+internal fun editorBottomBar(selecting: Boolean, mode: CellMode, searching: Boolean): EditorBottomBar = when {
   // First, so the one state that cannot arise - entering edit mode deselects (`widget.ts:1925`) -
   // still has a defined answer rather than depending on which branch is written above the other.
-  selecting -> EditorBottomBar.NONE
+  selecting || searching -> EditorBottomBar.NONE
   mode == CellMode.EDIT -> EditorBottomBar.SYMBOLS
   else -> EditorBottomBar.KERNEL
 }

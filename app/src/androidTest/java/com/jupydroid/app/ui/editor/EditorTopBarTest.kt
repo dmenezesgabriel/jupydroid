@@ -356,6 +356,7 @@ class EditorTopBarTest {
   }
 
   private val renamed = mutableListOf<String>()
+  private var finds = 0
   private var undos = 0
   private var redos = 0
   private val headingsSetTo = mutableListOf<Boolean>()
@@ -366,6 +367,19 @@ class EditorTopBarTest {
   private var numberingToggles = 0
   private var numberingH1Toggles = 0
   private var includeOutputToggles = 0
+
+  /**
+   * `documentsearch:start`, and it is on the bar rather than in the View menu - so it is asserted
+   * where a thumb finds it, one tap in.
+   */
+  @Test
+  fun findIsOneTapFromTheNotebooksOwnBar() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription(FIND_ACTION).performClick()
+
+    assertEquals(1, finds)
+  }
 
   private fun showTopBar(
     canUndo: Boolean = false,
@@ -397,6 +411,7 @@ class EditorTopBarTest {
           onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },
           tableOfContentsPresentation = tableOfContentsPresentation,
           tableOfContentsPaneOpen = tableOfContentsPaneOpen,
+          onFind = { finds++ },
           onToggleTableOfContentsPane = { tableOfContentsPaneToggles++ },
           tocNumbering = tocNumbering,
           onToggleTocNumbering = { numberingToggles++ },

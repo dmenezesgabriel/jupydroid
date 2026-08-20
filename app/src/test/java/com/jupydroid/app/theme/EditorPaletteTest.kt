@@ -131,6 +131,61 @@ class EditorPaletteTest {
     }
   }
 
+  /**
+   * A search that lights every hit the same colour cannot say which one the arrows are standing
+   * on, and a hit drawn in the cell's own background is not lit at all. Both halves, because the
+   * two colours come from two different references and nothing else keeps them apart.
+   */
+  @Test
+  fun aFoundMatchAndTheCurrentOneAreTellableApartAndFromTheCell() {
+    palettes.forEach { (name, palette) ->
+      assertNotEquals("$name match must differ from the cell", palette.cellBackground, palette.searchMatch)
+      assertNotEquals(
+        "$name current match must differ from the others",
+        palette.searchMatch,
+        palette.currentSearchMatch,
+      )
+    }
+  }
+
+  /**
+   * The current match states its own foreground precisely so it can be read; asserted at the same
+   * 4.5:1 the syntax colours are held to, since a match is body text like the code around it.
+   */
+  @Test
+  fun theCurrentMatchIsReadableOnItsOwnBackground() {
+    palettes.forEach { (name, palette) ->
+      val ratio = contrastRatio(palette.currentSearchMatchText, palette.currentSearchMatch)
+      assertTrue(
+        "$name current match is ${"%.2f".format(ratio)}:1, below $BODY_TEXT_FLOOR:1",
+        ratio >= BODY_TEXT_FLOOR,
+      )
+    }
+  }
+
+  /**
+   * Both matches state their own foreground, so both are held to the same 4.5:1 the code around
+   * them is - a match is body text, and the one you are standing on is the text you most need to
+   * read. This is also what replaced the obvious assertion: holding the *syntax* colours to their
+   * floor over the match background failed at 3.16:1 on dark, and every background that fixed it
+   * measured 1.08:1 against the cell. Stating the foreground is how both references get out of it.
+   */
+  @Test
+  fun bothKindsOfMatchAreReadableOnTheirOwnBackground() {
+    palettes.forEach { (name, palette) ->
+      mapOf(
+        "found" to (palette.searchMatchText to palette.searchMatch),
+        "current" to (palette.currentSearchMatchText to palette.currentSearchMatch),
+      ).forEach { (which, pair) ->
+        val ratio = contrastRatio(pair.first, pair.second)
+        assertTrue(
+          "$name $which match is ${"%.2f".format(ratio)}:1, below $BODY_TEXT_FLOOR:1",
+          ratio >= BODY_TEXT_FLOOR,
+        )
+      }
+    }
+  }
+
   @Test
   fun theTwoPalettesAreNotTheSamePalette() {
     assertNotEquals(DarkEditorPalette.editorBackground, LightEditorPalette.editorBackground)

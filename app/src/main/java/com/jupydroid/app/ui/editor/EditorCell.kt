@@ -58,6 +58,8 @@ internal fun EditorCell(
   lineNumbersShown: Boolean,
   /** `toc:display-numbering`'s answer for this cell's heading, or `""` - see [MarkdownCell]. */
   headingPrefix: String,
+  /** What the find bar found in this cell - see [CellSearchHighlight]. */
+  search: CellSearchHighlight,
   /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
   autoClosingBrackets: Boolean,
   cellInput: FocusedCellInput,
@@ -133,6 +135,7 @@ internal fun EditorCell(
             completionsAt = completionsAt,
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
+            search = search,
             autoClosingBrackets = autoClosingBrackets,
             modifier = Modifier
               .fillMaxWidth()
@@ -150,6 +153,7 @@ internal fun EditorCell(
             input = cellInput,
             takesCaret = markdownTakesCaret,
             lineNumbersShown = lineNumbersShown,
+            search = search,
             modifier = Modifier.fillMaxWidth(),
           )
 
@@ -160,6 +164,7 @@ internal fun EditorCell(
             onSourceEdited = onSourceEdited,
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
+            search = search,
             modifier = Modifier
               .fillMaxWidth()
               .background(editorPalette.cellBackground, MaterialTheme.shapes.small)

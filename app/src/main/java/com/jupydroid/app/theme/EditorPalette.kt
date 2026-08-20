@@ -63,6 +63,42 @@ data class EditorPalette(
   val executionTime: Color,
   /** Behind the bracket pair the caret is touching. `MATCHED_BRACE_ATTRIBUTES` background. */
   val matchedBracket: Color,
+  /**
+   * Behind a match the find bar found but is not standing on, with [searchMatchText] over it.
+   *
+   * IntelliJ's `SEARCH_RESULT_ATTRIBUTES` background
+   * (`DefaultColorSchemesManager.xml:688` light, `expUI_darkScheme.xml:734` dark).
+   */
+  val searchMatch: Color,
+  /**
+   * The text of a found match - stated rather than left to the syntax colour underneath, and that
+   * is JupyterLab's structure rather than IntelliJ's.
+   *
+   * **Measured, and the measurement is why.** IntelliJ's key declares `FOREGROUND` empty, leaving
+   * the code its own colours - but on this app's dark palette its own green puts `DEFAULT_KEYWORD`
+   * at **3.16:1**, under the 4.5:1 floor `EditorPaletteTest` holds every other piece of source to,
+   * and every background dark enough to fix that measures 1.08:1 against the cell and so is not
+   * visibly a highlight at all. JupyterLab resolves the same squeeze the same way: `.cm-searchMatch`
+   * sets `color` as well as `background-color` (`packages/codemirror/src/theme.ts:106-109`), losing
+   * the syntax colour inside a match on purpose. The value is whichever of black or white clears
+   * the floor on [searchMatch]; the test is what says which.
+   */
+  val searchMatchText: Color,
+  /**
+   * Behind the one match the find bar is standing on, with [currentSearchMatchText] over it.
+   *
+   * **JupyterLab's value rather than IntelliJ's, and Compose is why.** IntelliJ marks the current
+   * match with no background at all - a rounded box outlined in `CARET_COLOR`
+   * (`EditorLivePreviewPresentation.kt:27-29`) - and a `SpanStyle` can carry a background, a
+   * weight and a decoration but not a border, so the outline is not expressible where these are
+   * applied. So this one comes from `--jp-search-selected-match-background-color`
+   * (`packages/theme-{light,dark}-extension/style/variables.css:413,416`), which answers the same
+   * question by contrast instead - the second colour here that is JupyterLab's, and for the same
+   * kind of reason as [cellMultiSelected].
+   */
+  val currentSearchMatch: Color,
+  /** The text of the current match - `--jp-search-selected-match-color`, black in both themes. */
+  val currentSearchMatchText: Color,
   val syntax: SyntaxPalette,
 )
 

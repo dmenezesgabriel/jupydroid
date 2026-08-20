@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -106,6 +107,8 @@ fun EditorTopBar(
   tocIncludeOutput: Boolean = true,
   /** `toc:display-outputs-numbering`. */
   onToggleTocIncludeOutput: () -> Unit = {},
+  /** `documentsearch:start` - see [FindTopBar], which is what it puts up. */
+  onFind: () -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -124,6 +127,13 @@ fun EditorTopBar(
     },
     actions = {
       UndoRedo(canUndo, canRedo, onUndo, onRedo)
+      // On the bar rather than in the View menu, and that is what it is: searching is neither a
+      // view toggle nor something asked of the kernel, and both Material and the reference put it
+      // where a thumb can reach it in one tap - `documentsearch:start` is `Ctrl F` there, the
+      // shortest binding in the app.
+      IconButton(onClick = onFind, modifier = Modifier.semantics { contentDescription = FIND_ACTION }) {
+        Icon(Icons.Filled.Search, contentDescription = null)
+      }
       ViewMenu(
         onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed,
         lineNumbersShown = lineNumbersShown,

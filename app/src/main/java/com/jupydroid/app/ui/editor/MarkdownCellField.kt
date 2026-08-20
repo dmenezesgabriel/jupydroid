@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -64,6 +65,8 @@ fun MarkdownCellField(
   takesCaret: Boolean = false,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /** What the find bar found in this cell - see [CellSearchHighlight]. */
+  search: CellSearchHighlight = CellSearchHighlight.NONE,
 ) {
   val styles = syntaxStyles()
   val caret = remember { FocusRequester() }
@@ -73,6 +76,8 @@ fun MarkdownCellField(
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
   val numberStyle = markdownSourceStyle().copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
+  val searchStyles = searchMatchStyles()
+  val searching = rememberUpdatedState(search)
 
   reportCellEdits(state, onSourceEdited)
   // The row is on screen in edit mode whatever the cell is, so a markdown cell has to be reachable
@@ -105,8 +110,8 @@ fun MarkdownCellField(
     interactionSource = interactions,
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
     // No bracket matching: a parenthesis in prose is punctuation, not structure.
-    outputTransformation = remember(highlighter, styles) {
-      HighlightTransformation(highlighter, styles, focused)
+    outputTransformation = remember(highlighter, styles, searchStyles) {
+      HighlightTransformation(highlighter, styles, focused, null, searching, searchStyles)
     },
     decorator = { field ->
       // Dimmed and italic, the way JupyterLab marks an empty markdown cell

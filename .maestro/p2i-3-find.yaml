@@ -1,0 +1,63 @@
+appId: com.jupydroid.app
+---
+# P2i-3: `documentsearch:start` and `documentsearch:end` - the find bar takes the notebook's own
+# bar, counts every match in the document, lights them where they are, and gives the bar back.
+#
+# The fixture is built so the count itself carries three claims no screenshot could:
+#
+# - **All three cell kinds are searched.** `startQuery` builds a provider per widget with no filter
+#   on type (`packages/notebook/src/searchprovider.ts:352-386`), and `CellSearchProvider` wraps a
+#   raw cell's editor like any other (`packages/cells/src/searchprovider.ts:30-58`). Two matches in
+#   the first code cell, one in the markdown source, one in the raw cell - and the fifth is:
+# - **Case is ignored by default** - the flags are `gim` unless Match Case is on
+#   (`packages/documentsearch/src/searchmodel.ts:398-406`), so `Velocity = 0` is the fifth match.
+# - **It lands beside the selected cell, and does not move the notebook.** `startQuery` ends with
+#   `highlightNext(true, { from: 'selection-start', scroll: false })` (`:389-401`) - so with cell
+#   one active the count reads 1/5 and nothing scrolls. The arrows are P2i-4.
+#
+# The screenshot is what carries the colours: the current match amber, the other four on the
+# palette's found-match background. A match in the *rendered* markdown cell is counted and not
+# lit - our departure, because rendered prose is `RichText` rather than a text field, and it is
+# reached by unrendering the cell (`docs/DECISIONS.md`).
+#
+# No cell is run, so nothing here needs the tablet.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Find And Replace.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Find And Replace.ipynb"
+# A whole node, which is what Maestro matches: a cell's field is one node holding all of its
+# source, so `velocity = 3` names half of `velocity = 3\nprint(velocity)` and can never be seen.
+# The single-line cell is the anchor instead (`docs/DECISIONS.md`).
+- extendedWaitUntil:
+    visible: "Velocity = 0"
+    timeout: 30000
+- takeScreenshot: 01-notebook-before-any-search
+# The notebook's own bar is up, and the search action is on it rather than buried in View.
+- assertVisible: "Find in notebook"
+- tapOn: "Find in notebook"
+# The bar has been replaced: the box is up, the notebook's own controls are not.
+- assertVisible: "Find"
+- assertNotVisible: "Back to notebooks"
+# Nothing typed, nothing found - `-/-` (`packages/documentsearch/src/searchview.tsx:345-351`).
+- assertVisible: "Matches -/-"
+- takeScreenshot: 02-the-find-bar-with-nothing-typed
+- inputText: "velocity"
+- assertVisible: "Matches 1/5"
+- takeScreenshot: 03-five-matches-across-code-markdown-and-raw
+# `inputText` appends, so the query becomes `velocityzzz` - a query that matches nothing goes back
+# to `-/-` rather than keeping the last count, which is `_updateSearch` calling `endQuery()`
+# whenever the compiled query is falsy (`packages/documentsearch/src/searchmodel.ts:334-352`).
+- inputText: "zzz"
+- assertVisible: "Matches -/-"
+- takeScreenshot: 04-a-query-that-matches-nothing
+# `documentsearch:end` - the bar goes and the notebook's own comes back.
+- tapOn: "Close search"
+- assertNotVisible: "Find"
+- assertVisible: "Back to notebooks"
+- assertVisible: "Velocity = 0"
+- takeScreenshot: 05-the-notebooks-own-bar-is-back

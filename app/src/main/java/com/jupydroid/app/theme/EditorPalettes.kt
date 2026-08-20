@@ -56,6 +56,14 @@ val DarkEditorPalette: EditorPalette =
     // scheme's `DEFAULT_LINE_COMMENT` is the matching value here.
     executionTime = Color(0xFF7A7E85),
     matchedBracket = Color(0xFF43454A),
+    // `SEARCH_RESULT_ATTRIBUTES` background, `expUI_darkScheme.xml:734`, with the foreground
+    // JupyterLab's `.cm-searchMatch` would state - see [EditorPalette.searchMatchText].
+    searchMatch = Color(0xFF2D543F),
+    searchMatchText = Color(0xFFFFFFFF),
+    // `--jp-search-selected-match-background-color`, `rgb(255, 225, 0)`
+    // (`packages/theme-dark-extension/style/variables.css:416`).
+    currentSearchMatch = Color(0xFFFFE100),
+    currentSearchMatchText = Color(0xFF000000),
     syntax =
       SyntaxPalette(
         plain = Color(0xFFBCBEC4),
@@ -96,6 +104,15 @@ val LightEditorPalette: EditorPalette =
     // Gray6.
     executionTime = Color(0xFF6C707E),
     matchedBracket = Color(0xFF93D9D9),
+    // `SEARCH_RESULT_ATTRIBUTES` background. The expUI light scheme does not override this key, so
+    // it resolves to the default light scheme's own value
+    // (`platform/platform-resources/src/DefaultColorSchemesManager.xml:688`).
+    searchMatch = Color(0xFFCCCCFF),
+    searchMatchText = Color(0xFF000000),
+    // `--jp-search-selected-match-background-color`, `rgb(245, 200, 0)`
+    // (`packages/theme-light-extension/style/variables.css:413`).
+    currentSearchMatch = Color(0xFFF5C800),
+    currentSearchMatchText = Color(0xFF000000),
     syntax =
       SyntaxPalette(
         plain = Color(0xFF080808),

@@ -25,5 +25,11 @@ fun syntaxForFile(fileName: String): SyntaxHighlighter =
     else -> PlainText
   }
 
-/** No spans at all, which renders the file in the editor's ordinary foreground colour. */
-private val PlainText = SyntaxHighlighter { emptyList() }
+/**
+ * No spans at all, which renders the text in the editor's ordinary foreground colour.
+ *
+ * Shared with [com.jupydroid.app.ui.editor.RawCellField], which is the other place this app has
+ * text and no language: `RawCellModel` is the one cell model that sets no mimeType
+ * (`packages/cells/src/model.ts:550-578`).
+ */
+val PlainText = SyntaxHighlighter { emptyList() }

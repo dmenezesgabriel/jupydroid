@@ -9,10 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextLayoutResult
+import com.jupydroid.app.syntax.PlainText
 import com.jupydroid.app.theme.editorPalette
 
 /**
@@ -56,6 +58,8 @@ fun RawCellField(
   input: FocusedCellInput? = null,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /** What the find bar found in this cell - see [CellSearchHighlight]. */
+  search: CellSearchHighlight = CellSearchHighlight.NONE,
 ) {
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
@@ -63,6 +67,8 @@ fun RawCellField(
   val sourceStyle = codeSourceStyle()
   val numberStyle = sourceStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
+  val searchStyles = searchMatchStyles()
+  val searching = rememberUpdatedState(search)
 
   reportCellEdits(state, onSourceEdited)
   // The symbol row is on screen in edit mode whatever the cell is, so this field has to be
@@ -77,5 +83,13 @@ fun RawCellField(
     textStyle = sourceStyle,
     interactionSource = interactions,
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+    // The one transformation a raw cell has, and it colours nothing: [PlainText] emits no spans,
+    // so this draws the find bar's matches and leaves every other character alone. A raw cell is
+    // searched like any other - `CellSearchProvider` wraps every cell's editor
+    // (`packages/cells/src/searchprovider.ts:30-58`) - and it is the one cell type with no
+    // language to highlight (`RawCellModel` sets no mimeType at all).
+    outputTransformation = remember(searchStyles) {
+      HighlightTransformation(PlainText, emptyMap(), focused, null, searching, searchStyles)
+    },
   )
 }
