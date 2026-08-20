@@ -1321,8 +1321,65 @@ Re-deriving HMAC notebook signing in Kotlin would be re-implementing a security 
 **Writing directly has one known consequence, and it is not free.** `ContentsManager` signs a
 notebook on save — `check_and_sign` over `nbformat.sign.NotebookNotary`
 (`services/contents/manager.py:116-120,694-706`) — so a notebook this app writes is **unsigned**
-and would open untrusted. That is inert today because nothing renders trust, and it is a decision
-P2j has to make rather than discover.
+and would open untrusted. What follows from that is the entry below.
+
+### `notebook:trust` is inert here, and this names what would make it real
+
+**Decided in P2j on the measurement rather than on the parity list.** The command is not built,
+and the reason is that there is nothing on this device for it to gate.
+
+**Trust gates exactly three renderers in JupyterLab**, and the list is closed rather than
+representative:
+
+| Mime type | Untrusted behaviour | Where |
+|---|---|---|
+| `image/svg+xml` | refuses to draw: *"Cannot display an untrusted SVG"* | `packages/rendermime/src/renderers.ts:450-453`, `factories.ts:58` `safe: false` |
+| `text/javascript`, `application/javascript` | no renderer is chosen at all | `factories.ts:88-89`, `safe: false` |
+| `text/html` | sanitized, and its `<script>` tags are not eval'd | `renderers.ts:44-58` |
+
+Everything else its registry ships — `text/plain`, `image/png`, `text/markdown`, `text/latex`,
+`application/vnd.jupyter.std{out,err}` — is `safe: true` and renders identically either way
+(`factories.ts:12-79`). The choice is made once, in `preferredMimeType(bundle, trusted ? 'any' :
+'ensure')` (`packages/outputarea/src/widget.ts:649,772`).
+
+**This app renders none of the three, and each half of that was checked rather than assumed:**
+
+- `HtmlInlines.kt:62` drops `script` and `style` *before the model is built*, so no markup this
+  app parses can carry code. It is there for a rendering reason — pandas wraps every DataFrame in
+  a `<style scoped>` block — and the safety is a consequence, which is exactly why this entry
+  exists: nothing is currently holding that line on purpose.
+- `RANKED_MIME_TYPES` (`RenderedOutput.kt:68`) is `text/html`, `image/png`, `text/plain` and
+  nothing else. There is no SVG renderer and no JavaScript renderer to be unsafe.
+- **There is no WebView anywhere.** The three matches for the word in `app/src/main` are comments
+  saying so (`RichText.kt:26`, `HtmlDocument.kt:11`, `MarkdownDocument.kt:30`).
+- `RichInline.Link` is annotated with its destination (`RichInlineString.kt:57`) and **nothing in
+  `app/src/main` consumes `RICH_LINK_TAG`** — only its own test does. A link in an output is
+  styled and inert; it opens nothing.
+
+So a trust dialog here would change what every existing notebook's `text/html` and table outputs
+show — a shipped, evidenced feature — in exchange for guarding a hazard that does not exist. That
+is the control-that-lies failure pointed the other way.
+
+**The trigger, stated so nobody has to re-derive this.** Whoever adds the first **SVG renderer,
+JavaScript renderer, WebView, or clickable link** owns `notebook:trust` with it, and all of it:
+
+- the per-cell state, derived by nbformat's own rule rather than a new one — `_check_cell`
+  distrusts a cell only when a `display_data` or `execute_result` output carries keys outside
+  `{output_type, execution_count, metadata}`, and a cell with only `stream` or `error` output is
+  always trusted (`nbformat/sign.py:505-536`);
+- the warning dialog, which is what the reference's `trust()` is almost entirely made of, and
+  which does nothing when every cell is trusted already (`packages/notebook/src/actions.tsx:2504-2565`);
+- `metadata.trusted = true` written into each code cell on accept, then a save — the reference's
+  own two steps (`actions.tsx:2558-2562`, `notebook-extension/src/index.ts:3223-3236`). That
+  persists here despite the unsigned file, because `_check_cell` **pops** the field and honours it
+  (`sign.py:517`);
+- and the gate itself: an untrusted output falls back to the safe mime type, never to a blank.
+
+**Still forbidden either way:** re-deriving HMAC signing in Kotlin, and routing notebook *saves*
+through the Contents API to get signing for free. The second is not a shortcut but a regression —
+saves are debounced at 500 ms (`NotebookSaveDebounce`) and the server is stopped after 30 s of
+idleness (`AppContainer.IDLE_STOP_GRACE`), so every keystroke's write would depend on a runtime
+that takes seconds to come back.
 
 ---
 
