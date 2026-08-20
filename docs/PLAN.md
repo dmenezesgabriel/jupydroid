@@ -38,7 +38,7 @@ filesystem the kernel, the server and the app all share.
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, Material's own type scale, per-notebook ViewModel scoping |
-| Tests | 255 instrumented, 1261 unit, 99 Maestro drivers over 113 flows - 94 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
+| Tests | 256 instrumented, 1261 unit, 100 Maestro drivers over 114 flows - 95 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, and a
 **settings screen** - the five persisted editor settings live in the notebook's View menu until P6c
@@ -627,7 +627,7 @@ side panel (P2o). What follows from each is `docs/DECISIONS.md`.
 | **P2l-2** | *(shipped)* `theme/Spacing.kt` on the 4dp grid, the 63 literals migrated onto it, and the gate that keeps it the only place a gap is spelled out. | — |
 | **P2l-4** | *(shipped)* The two bare `clickable` rows reserve Material's 48dp rather than borrowing it from their neighbours. | — |
 | **P2l-3a** | *(shipped)* **One size for code.** Measured: the cell's source states none at all (`codeSourceStyle` reads `LocalTextStyle`, so it resolves to Compose's `DefaultFontSize = 14.sp` with the font's own line height), outputs and the folded-cell placeholder are `bodySmall`, the completion popup `bodyMedium` - where the reference has one `--jp-code-font-size` and one `--jp-code-line-height` (`variables.css:196-197`) read by the editor, the input area, `.jp-RenderedText pre` and **both** completer selectors (`codemirror/base.css:8`, `inputarea.css:37`, `rendermime/base.css:28`, `completer/base.css:75,118`). `theme/CodeText.kt` at **14sp/18sp**, and the four surfaces that take it. | JVM over the scale; instrumented that an output line measures the code line height; a screenshot of a cell, its output and its completions in one frame. |
-| **P2l-3b** | **Rendered markdown's code is a different rule, and that is why this is two commits.** `.jp-RenderedHTMLCommon pre, code` takes the code family and the code line height but **`font-size: inherit`** (`rendermime/base.css:405-417`) - the prose size, not the code size. Ours draws both at `bodySmall`. Plus the gate that keeps `CodeText` the only place a code size is spelled out. | Instrumented: a fenced block in a markdown cell measures the prose size, not the code size. The gate red before, clean after. |
+| **P2l-3b** | *(shipped)* **Rendered markdown's code is a different rule, and that is why this is two commits.** `.jp-RenderedHTMLCommon pre, code` takes the code family and the code line height but **`font-size: inherit`** (`rendermime/base.css:405-417`) - the prose size, not the code size. Ours draws both at `bodySmall`. Plus the gate that keeps `CodeText` the only place a code size is spelled out. | Instrumented: a fenced block in a markdown cell measures the prose size, not the code size. The gate red before, clean after. |
 | **P2m-1** | The collapser: transparent at rest, brand blue when active. `stripeResting` leaves `EditorPalette`. **`docs/DECISIONS.md` "Every cell gets one" is rewritten in the same commit** - it argues the opposite today, and a decision record that contradicts the code is worse than none. | `CellStripeTest` red-first; `CellTouchTargetTest` re-run; `u3-cell-chrome` re-driven on the tablet and the screenshots **looked at**. |
 | **P2m-2** | The editor box: 1px always, brand blue plus elevation in edit mode, one shared modifier across the three fields rather than three copies. | `EditorPaletteTest` extended with the contrast assertion it already pins for every other pair; an instrumented test that the border follows the mode. |
 | **P2n** | The cell gutter becomes two fixed-width slots, so the execution label's x does not depend on which optional controls a cell carries. | Instrumented: the label's x is equal across a plain code cell, a heading cell and a cell in a marked run - the three that differ today. |
@@ -726,6 +726,23 @@ Three things it cost that this file did not name:
 - **`ktlintCheck` had never checked a single `.kt` file in this repository** - found while removing
   three imports this step made unused, which the gate did not notice. Fixed in the commit after
   this one; what it cost is `docs/DECISIONS.md`.
+
+**P2l-3b has shipped, and with it P2l is closed.** `richTextCodeStyle()` is *derived* from
+`richTextProseStyle()`, so "inherit" is structural rather than a number that happens to match:
+prose is `bodyMedium` at 14sp and `CodeText.size` is 14sp, and only the derivation says which rule
+is meant. `FontFamily.Monospace` now has one home, `ui/editor/EditorTheme.kt`, kept there by
+`scripts/check_monospace_home.py`. What it settled is `docs/DECISIONS.md`; the evidence is
+`evidence/p2l-3b-rendered-code/`.
+
+Two costs the plan did not name:
+
+- **The gate is about where the font may be named, not about the size.** A size is easy to grep for
+  and keep in step; a *new surface* reaching for `FontFamily.Monospace` directly is how four sizes
+  happened, one reasonable commit at a time. The symbol row's exception therefore lives beside the
+  rule as `symbolKeyStyle()` rather than as an exemption the gate has to know about.
+- **The pair is captured at 411dp/420dpi, not on `dev36`.** A type-size judgement made at 1px per
+  dp is made on proportions no reader sees, which `docs/DECISIONS.md` has said since P2l-4 and this
+  is the first flow to act on.
 
 ---
 

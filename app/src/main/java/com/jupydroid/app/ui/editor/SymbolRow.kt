@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 
 /**
  * The row of characters a Python keyboard does not have, above the soft keyboard.
@@ -99,7 +98,7 @@ private fun SymbolKey(label: String, onClick: () -> Unit, describedAs: String? =
     onClick = onClick,
     modifier = if (describedAs == null) Modifier else Modifier.semantics { contentDescription = describedAs },
   ) {
-    Text(text = label, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyLarge)
+    Text(text = label, style = symbolKeyStyle())
   }
 }
 

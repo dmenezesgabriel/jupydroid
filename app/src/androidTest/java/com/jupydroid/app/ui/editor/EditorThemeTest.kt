@@ -4,8 +4,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.syntax.SyntaxKind
+import com.jupydroid.app.theme.CodeText
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -28,6 +30,34 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class EditorThemeTest {
   @get:Rule val compose = createComposeRule()
+
+  /**
+   * P2l-3b: code inside *rendered* markdown is the reference's second rule, not its first.
+   *
+   * `.jp-RenderedHTMLCommon pre, code` takes the code family and the code line height but
+   * **`font-size: inherit`** - the prose size (`packages/rendermime/style/base.css:407-417`,
+   * which wins over `:24-29`'s `--jp-code-font-size` by being later at equal specificity).
+   *
+   * **Asserted against the prose role rather than against a number**, because 14sp is the prose
+   * size *and* [CodeText.size] today: a test naming the number would pass whichever rule was
+   * implemented, and the whole point of this step is which one it is. Comparing to
+   * `bodyMedium` fails the moment prose moves and code does not follow it.
+   */
+  @Test
+  fun renderedMarkdownCodeInheritsTheProseSizeAndTakesTheCodeLineHeight() {
+    lateinit var code: TextStyle
+    lateinit var prose: TextStyle
+    compose.setContent {
+      JupyterDroidTheme {
+        code = richTextCodeStyle()
+        prose = richTextProseStyle()
+      }
+    }
+
+    assertEquals("the size is inherited from prose", prose.fontSize, code.fontSize)
+    assertEquals("the line height is the code one", CodeText.lineHeight, code.lineHeight)
+    assertEquals(FontFamily.Monospace, code.fontFamily)
+  }
 
   @Test
   fun theMarkdownSourceColourFollowsTheTheme() {

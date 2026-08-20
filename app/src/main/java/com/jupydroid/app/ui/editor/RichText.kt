@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.toAnnotatedString
@@ -49,7 +48,7 @@ private fun RichBlockText(block: RichBlock) {
   when (block) {
     is RichBlock.Heading -> Text(block.inlines.toAnnotatedString(styles), style = headingStyle(block.level))
     is RichBlock.Paragraph ->
-      Text(block.inlines.toAnnotatedString(styles), style = MaterialTheme.typography.bodyMedium)
+      Text(block.inlines.toAnnotatedString(styles), style = richTextProseStyle())
     is RichBlock.CodeBlock -> CodeBlockText(block)
     is RichBlock.BlockQuote -> BlockQuoteText(block)
     is RichBlock.ListBlock -> ListBlockText(block)
@@ -63,7 +62,7 @@ private fun RichBlockText(block: RichBlock) {
 private fun CodeBlockText(block: RichBlock.CodeBlock) {
   Text(
     text = block.code.trimEnd('\n'),
-    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+    style = richTextCodeStyle(),
     color = MaterialTheme.colorScheme.onSurfaceVariant,
     modifier = Modifier
       .fillMaxWidth()
@@ -102,7 +101,7 @@ private fun ListBlockText(block: RichBlock.ListBlock) {
       Row {
         Text(
           text = if (block.ordered) "${block.startFrom + index}." else "•",
-          style = MaterialTheme.typography.bodyMedium,
+          style = richTextProseStyle(),
           color = MaterialTheme.colorScheme.onSurfaceVariant,
           modifier = Modifier.width(MARKER_WIDTH),
         )

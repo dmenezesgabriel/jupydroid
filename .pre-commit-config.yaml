@@ -43,6 +43,12 @@ repos:
       # (`docs/DECISIONS.md`). Named explicitly, a plugin that stops seeing a source set fails with
       # "Task not found" instead of passing quietly. `ktlintCheck` stays first so the scripts are
       # still covered.
+      - id: monospace-home
+        name: what code looks like has one home
+        entry: python3 scripts/check_monospace_home.py
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: ktlint-check
         name: ktlint format check
         entry: scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestDebugSourceSetCheck ktlintAndroidTestDebugSourceSetCheck

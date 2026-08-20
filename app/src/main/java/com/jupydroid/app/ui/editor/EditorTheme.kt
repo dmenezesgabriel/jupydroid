@@ -113,6 +113,53 @@ fun codeTextStyle(): TextStyle = LocalTextStyle.current.copy(
 )
 
 /**
+ * The prose of *rendered* markdown and rendered `text/html`, which is what code inside them
+ * inherits its size from - see [richTextCodeStyle].
+ *
+ * Named rather than repeated: `RichText` draws a paragraph, a list item and a code block, and
+ * before this the first two said `bodyMedium` in two places while the third said something else
+ * entirely. One name is what makes "inherit" structural instead of a coincidence.
+ */
+@Composable
+@ReadOnlyComposable
+fun richTextProseStyle(): TextStyle = MaterialTheme.typography.bodyMedium
+
+/**
+ * Code inside rendered markdown, which is the reference's **second** rule and not the one
+ * [codeTextStyle] implements.
+ *
+ * `.jp-RenderedHTMLCommon pre, code` takes `var(--jp-code-font-family)` and
+ * `var(--jp-code-line-height)` but **`font-size: inherit`** - the prose size
+ * (`packages/rendermime/style/base.css:407-417`). It wins over `:24-29`, which sets
+ * `--jp-code-font-size` for the same `.jp-RenderedHTMLCommon pre`, by being later at equal
+ * specificity; `.jp-RenderedText pre` in that earlier rule is stream output, which is *not*
+ * rendered markdown and does take the code size.
+ *
+ * So a fenced block reads at the size of the prose around it and only its *shape* is code. The two
+ * sizes happen to coincide today - prose is `bodyMedium` at 14sp and [CodeText.size] is 14sp - and
+ * that is exactly why this is derived from [richTextProseStyle] rather than written as 14sp: the
+ * rule has to survive prose moving.
+ */
+@Composable
+@ReadOnlyComposable
+fun richTextCodeStyle(): TextStyle =
+  richTextProseStyle().copy(fontFamily = FontFamily.Monospace, lineHeight = CodeText.lineHeight)
+
+/**
+ * The symbol row's keys, which are monospace and deliberately **not** code.
+ *
+ * Here so that `FontFamily.Monospace` has one home and a reader asking "what does code look like"
+ * finds the exception beside the rule - `scripts/check_monospace_home.py` keeps it that way. The
+ * keys are monospace for the shape of `->` and `Tab`, not because they are source being read;
+ * JupyterLab has no symbol row to copy, it being a phone adaptation; and they are captions on
+ * touch targets, where [CodeText]'s 14sp would make the surface most used one-handed harder to
+ * read for nothing gained.
+ */
+@Composable
+@ReadOnlyComposable
+fun symbolKeyStyle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace)
+
+/**
  * A cell's source, which is [codeTextStyle] in the editor's own foreground colour.
  *
  * The colour is the editor's `TEXT` foreground, so text the highlighter leaves alone is the colour

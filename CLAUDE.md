@@ -180,6 +180,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | pre-commit | commit gate | `.pre-commit-config.yaml` |
 | file-length gate | ≤500 lines/file | `scripts/check-file-line-length.sh` |
 | maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
+| monospace-home gate | what code looks like has one home | `scripts/check_monospace_home.py` (+ `_test.py`) |
 
 Local verification command (same as the commit gate):
 ```sh

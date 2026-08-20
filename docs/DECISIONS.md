@@ -1677,9 +1677,22 @@ used one-handed harder to read for nothing gained. Stated here so it is not re-d
 oversight.
 
 **Not rendered markdown's code either, and that is the reference's own rule rather than ours.**
-`.jp-RenderedHTMLCommon pre, code` takes the code *family* and the code *line-height* but
-**`font-size: inherit`** (`rendermime/base.css:405-417`) - the prose size. Ours draws both at
-`bodySmall` today, which is wrong in a third way; that is P2l-3b.
+`packages/rendermime/style/base.css` names `.jp-RenderedHTMLCommon pre` twice - `:24-29` gives it
+`--jp-code-font-size`, `:407-417` gives it the code family, the code line height and
+**`font-size: inherit`** - and the two selectors tie on specificity, so the later one wins: inside
+rendered markdown, code inherits the *prose* size. The earlier rule still governs
+`.jp-RenderedText pre`, which is stream output and is not rendered markdown. P2l-3b implements the
+second rule as `richTextCodeStyle()`, **derived** from `richTextProseStyle()` rather than written
+as a number, because prose is `bodyMedium` at 14sp and [CodeText.size] is 14sp - the two rules
+agree today, and only the derivation says which one is meant.
+
+**This also forbids naming `FontFamily.Monospace` outside `ui/editor/EditorTheme.kt`**, which is
+where all three styles are built - `codeTextStyle`, `richTextCodeStyle` and `symbolKeyStyle` - and
+where the symbol row's exception is therefore stated beside the rule.
+`scripts/check_monospace_home.py` enforces it. The rule is about where the font may be *named*
+rather than about the size: a size is easy to grep for and keep in step, while a new surface
+reaching for the font directly is how four sizes happened in the first place, one reasonable commit
+at a time.
 
 ### A touch target is reserved space, not expanded bounds
 
