@@ -38,7 +38,7 @@ filesystem the kernel, the server and the app all share.
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 230 instrumented, 1122 unit, 84 Maestro drivers over 103 flows, `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Tests | 230 instrumented, 1122 unit, 89 Maestro drivers over 103 flows - 84 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, settings,
 trust, export.
@@ -411,10 +411,12 @@ Five costs the plan did not name, each recorded there rather than here:
   ABI one. It also forced the first entry identity that is not a cell id, since one code cell can
   print several headings.
 
-**P2i is in progress, and reading `searchprovider.ts` re-cut it before any code was written.**
-`documentsearch:start` and `documentsearch:end` are in, over a query model and a hit list that
-shipped first with no surface (P2i-1, P2i-2) - the shape P2h-5a/P2h-5b already used. What each
-settled is `docs/DECISIONS.md`; the evidence is `evidence/p2i-3-find/`.
+**P2i has shipped, in eight sub-steps, and reading `searchprovider.ts` re-cut it before any code
+was written.** All six of the reference's `documentsearch:*` commands are in - `start`,
+`startWithReplace`, `highlightNext`, `highlightPrevious`, `end` and `toggleSearchInSelection` -
+over a query model and a hit list that shipped first with no surface (P2i-1, P2i-2), which is the
+shape P2h-5a/P2h-5b already used. What each settled is `docs/DECISIONS.md`; the evidence is
+`evidence/p2i-3-find/` through `evidence/p2i-7-search-filters/`.
 
 The re-cut is the one worth naming here: **typing a query finds and counts, and only the arrows
 move the notebook.** `startQuery` passes `scroll: false` and `activateNewMatch` returns on its first
@@ -423,7 +425,7 @@ collapsed parent - belongs entirely to `highlightNext` / `highlightPrevious`. Th
 rather than a convenience: a box that scrolled the document on every keystroke would move the
 notebook out from under whoever was typing.
 
-Three costs so far, each recorded in `docs/DECISIONS.md` rather than here:
+Eight costs the plan did not name, each recorded in `docs/DECISIONS.md` rather than here:
 
 - **The reference's own empty-match guard cannot be transcribed.** Java's multiline `^` refuses the
   empty subject where JavaScript's accepts it, so `ret.test('')` read literally would let a bare `^`
@@ -434,14 +436,33 @@ Three costs so far, each recorded in `docs/DECISIONS.md` rather than here:
 - **U6's defect came back through a door nothing before could open.** The find box holds the caret
   while the notebook is in *command* mode, so the kernel bar would sit under a soft keyboard;
   `editorBottomBar` drops it, the way it already drops it for a marked run.
+- **The cell list had no `imePadding`** once P2i-3 took the bottom bar away, so the notebook was
+  drawing behind the keyboard and `visibleItemsInfo` was answering about a viewport nobody could
+  see. With it, **`inViewport` alone is still not the reference's guard** - `activateNewMatch`
+  follows it with `revealPosition`.
+- **A jump to a heading and a jump to a match are two helpers, not one.** P2i-4b corrected P2h's
+  reading: an ordinary jump expands sections and nothing else, where landing on a *match* also
+  opens a collapsed source and unrenders prose. The reference draws that line in a comment - a ToC
+  jump forces command mode *"to avoid entering Markdown cell in edit mode"*
+  (`packages/notebook/src/toc.ts:681-684`) - and one helper for both was green against every
+  assertion while putting `## Part A` on screen as an editor.
+- **The three query options are behind the bar's overflow rather than on it.** The reference puts
+  them on the box as toggle buttons (`searchview.tsx:185-210`), which with a close, a counter and
+  two arrows is more than 320dp holds. Green first run on the **emulator at 320dp**, which is the
+  width that decides where they go, so that is the evidence kept.
+- **detekt split the collaborator in two and the reference agrees.** `ISearchProvider` declares
+  finding and replacing as two groups and only one of them writes, so `NotebookSearch` /
+  `NotebookReplace` is its shape rather than a concession. Undo came free with it - `recording`
+  derives the rewritten cells from the diff, which is the rule Split wrote and this file named
+  this step as the next user of.
+- **`supportReplace: false` is one rule rather than a disabled control.** Both filters are off by
+  default as the reference's are; `output` is narrower here - what `RenderedOutput.Text` draws, so
+  `text/html` and tables are out - and with the replace row open there are no output hits at all.
+  `SearchHit` carries *where* it is now, since only a source match can be replaced or drawn by a
+  field.
 
-| # | Sub-step | State |
+| # | Sub-step | What settles it |
 |---|---|---|
-| **P2i-4** | *Shipped.* The arrows, wrapping, and `activateNewMatch`'s reveal - all three collapses give way, and `expandParent` on `activeCellChanged` is why that is parity rather than invention. It cost two findings the plan did not name: **the cell list had no `imePadding`** once P2i-3 took the bottom bar away, so the notebook was drawing behind the keyboard and `visibleItemsInfo` was answering about a viewport nobody could see; and **`inViewport` alone is not the reference's guard**, since `activateNewMatch` follows it with `revealPosition`. | done |
-| **P2i-4b** | *Shipped.* The ToC's jump reveals a hidden heading, correcting P2h's reading. It also split the helper in two: **an ordinary jump expands sections and nothing else**, where landing on a *match* also opens a collapsed source and unrenders prose. The reference draws that line in a comment - a ToC jump forces command mode *"to avoid entering Markdown cell in edit mode"* (`packages/notebook/src/toc.ts:681-684`) - and one helper for both was green against every assertion while putting `## Part A` on screen as an editor. | done |
-| **P2i-5** | *Shipped.* The three query options, behind the bar's overflow rather than on it - the reference puts them on the box as toggle buttons (`searchview.tsx:185-210`), which with a close, a counter and two arrows is more than 320dp holds. Green first run on the **emulator at 320dp**, which is the width that decides where they go, so that is the evidence kept. | done |
-| **P2i-6** | *Shipped.* The replace row, Replace / Replace All, `preserveCase` and `$1` substitution. Undo came free - `recording` derives the rewritten cells from the diff, which is the rule Split wrote and this file named this step as the next user of. detekt split the collaborator in two (`NotebookSearch` / `NotebookReplace`), and the reference agrees: `ISearchProvider` declares finding and replacing as two groups, and only one of them writes. | done |
-| **P2i-7** | *Shipped.* Both filters, off by default as the reference's are. `output` is narrower - what `RenderedOutput.Text` draws, so `text/html` and tables are out - and `supportReplace: false` is one rule rather than a disabled control: with the replace row open there are no output hits at all. `SearchHit` carries *where* it is now, since only a source match can be replaced or drawn by a field. | done |
 | **P2j** | **Trust and export** | `notebook:trust`, `notebook:export-to-format`. Export is `nbconvert`, already in the rootfs (`nbconvert==7.17.1`, with `mistune`, `bleach`, `pandocfilters`), and lands as a file in the workspace plus a share intent. **Trust is two halves and only one is the server's.** The client half is a *dialog* that warns and then sets `trusted: true` on each cell in the model (`actions.tsx` `trustNotebook`); the signing half is the server's — `ContentsManager.notary = sign.NotebookNotary` and `trust_notebook()` → `mark_cells(nb, True)` + `check_and_sign(nb, path)` (`services/contents/manager.py:116-120,694-706`, over `nbformat/sign.py`). **`check_and_sign` runs on save through the Contents API, which this app bypasses** by writing files directly — so a notebook we write is unsigned and would open untrusted. Decide that before building the dialog: route notebook *saves* through the Contents API, sign in the Space via `nbformat.sign`, or state that trust is inert here. Do **not** re-derive HMAC signing in Kotlin. |
 | **P2k** | **Execution history** | `access-previous-history-entry`, `access-next-history-entry`. Needs `history_request` on the shell channel — a protocol message the gateway does not send yet, so it is a `KernelGateway` addition, not just UI. |
 
