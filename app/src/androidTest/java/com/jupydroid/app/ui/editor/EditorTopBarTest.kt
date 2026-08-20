@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
@@ -200,7 +201,7 @@ class EditorTopBarTest {
 
   @Test
   fun theNotebookMenuOffersToDisableBracketsWhileTheyAreOn() {
-    showTopBar(autoClosingBrackets = true)
+    showTopBar(settings = EditorSettings(autoClosingBrackets = true))
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
 
@@ -209,7 +210,7 @@ class EditorTopBarTest {
 
   @Test
   fun theNotebookMenuOffersToEnableBracketsOnceTheyAreOff() {
-    showTopBar(autoClosingBrackets = false)
+    showTopBar(settings = EditorSettings(autoClosingBrackets = false))
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
 
@@ -218,12 +219,12 @@ class EditorTopBarTest {
 
   @Test
   fun theBracketsRowAsksForTheToggle() {
-    showTopBar(autoClosingBrackets = true)
+    showTopBar(settings = EditorSettings(autoClosingBrackets = true))
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(DISABLE_AUTO_CLOSING_BRACKETS).performClick()
 
-    assertEquals(1, autoClosingBracketsToggles)
+    assertEquals(listOf(EditorSettings(autoClosingBrackets = false)), settingsWritten)
   }
 
   // --- the table of contents (P2h-2) -------------------------------------------------------
@@ -298,12 +299,12 @@ class EditorTopBarTest {
     compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(SHOW_HEADING_NUMBERS).performClick()
 
-    compose.runOnIdle { assertEquals(1, numberingToggles) }
+    compose.runOnIdle { assertEquals(listOf(EditorSettings(tocNumberHeaders = true)), settingsWritten) }
   }
 
   @Test
   fun withNumbersOnTheRowOffersToTakeThemAway() {
-    showTopBar(tocNumbering = TocNumbering(numberHeaders = true))
+    showTopBar(settings = EditorSettings(tocNumberHeaders = true))
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
 
@@ -326,29 +327,31 @@ class EditorTopBarTest {
 
   @Test
   fun theTopLevelRowFlipsWithItsOwnState() {
-    showTopBar(tocNumbering = TocNumbering(numberHeaders = true, numberingH1 = true))
+    showTopBar(settings = EditorSettings(tocNumberHeaders = true, tocNumberingH1 = true))
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(HIDE_TOP_LEVEL_NUMBER).performClick()
 
-    compose.runOnIdle { assertEquals(1, numberingH1Toggles) }
+    compose.runOnIdle {
+      assertEquals(listOf(EditorSettings(tocNumberHeaders = true, tocNumberingH1 = false)), settingsWritten)
+    }
   }
 
   // --- toc:display-outputs-numbering (P2h-6) ------------------------------------------------
 
   @Test
   fun theNotebookMenuOffersToLeaveOutWhatACellPrinted() {
-    showTopBar(tocIncludeOutput = true)
+    showTopBar(settings = EditorSettings(tocIncludeOutput = true))
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(HIDE_OUTPUT_HEADINGS).performClick()
 
-    compose.runOnIdle { assertEquals(1, includeOutputToggles) }
+    compose.runOnIdle { assertEquals(listOf(EditorSettings(tocIncludeOutput = false)), settingsWritten) }
   }
 
   @Test
   fun withThemLeftOutTheRowOffersToPutThemBack() {
-    showTopBar(tocIncludeOutput = false)
+    showTopBar(settings = EditorSettings(tocIncludeOutput = false))
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
 
@@ -361,12 +364,10 @@ class EditorTopBarTest {
   private var redos = 0
   private val headingsSetTo = mutableListOf<Boolean>()
   private var lineNumberToggles = 0
-  private var autoClosingBracketsToggles = 0
   private val tableOfContentsSelections = mutableListOf<String>()
   private var tableOfContentsPaneToggles = 0
-  private var numberingToggles = 0
-  private var numberingH1Toggles = 0
-  private var includeOutputToggles = 0
+  /** What the View menu asked to persist - one list for every toggle, as the menu now writes them. */
+  private val settingsWritten = mutableListOf<EditorSettings>()
 
   /**
    * `documentsearch:start`, and it is on the bar rather than in the View menu - so it is asserted
@@ -471,12 +472,10 @@ class EditorTopBarTest {
     canUndo: Boolean = false,
     canRedo: Boolean = false,
     lineNumbersShown: Boolean = true,
-    autoClosingBrackets: Boolean = true,
+    settings: EditorSettings = EditorSettings(),
     tableOfContentsHeadings: List<TocHeading> = emptyList(),
     tableOfContentsPresentation: TocPresentation = TocPresentation.OVERLAY,
     tableOfContentsPaneOpen: Boolean = false,
-    tocNumbering: TocNumbering = TocNumbering(),
-    tocIncludeOutput: Boolean = true,
     exportState: ExportState = ExportState(offered = OFFERED_EXPORT_FORMATS),
   ) {
     compose.setContent {
@@ -492,19 +491,14 @@ class EditorTopBarTest {
           onSetAllHeadingsCollapsed = { headingsSetTo += it },
           lineNumbersShown = lineNumbersShown,
           onToggleLineNumbers = { lineNumberToggles++ },
-          autoClosingBrackets = autoClosingBrackets,
-          onToggleAutoClosingBrackets = { autoClosingBracketsToggles++ },
+          settings = settings,
+          onSettingsChanged = { settingsWritten += it },
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },
           tableOfContentsPresentation = tableOfContentsPresentation,
           tableOfContentsPaneOpen = tableOfContentsPaneOpen,
           onFind = { finds++ },
           onToggleTableOfContentsPane = { tableOfContentsPaneToggles++ },
-          tocNumbering = tocNumbering,
-          onToggleTocNumbering = { numberingToggles++ },
-          onToggleTocNumberingH1 = { numberingH1Toggles++ },
-          tocIncludeOutput = tocIncludeOutput,
-          onToggleTocIncludeOutput = { includeOutputToggles++ },
           exportState = exportState,
           onExportPickerOpened = { exportPickerOpens++ },
           onExportAs = { exportedAs += it },

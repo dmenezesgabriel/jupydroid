@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jupydroid.app.domain.model.EditorSettings
 
 /**
  * The notebook's overflow: everything the reference files under **View**, and - from P2j - under
@@ -52,21 +53,29 @@ internal fun NotebookActionsMenu(
   onExportPickerDismissed: () -> Unit,
   onExportAs: (String) -> Unit,
   onSetAllHeadingsCollapsed: (Boolean) -> Unit,
+  /**
+   * Per **notebook** and per sitting, which is why it is not in [settings]: the reference writes
+   * `notebook.editorConfig`, which belongs to the widget - see [EditorUiState.lineNumbersShown].
+   */
   lineNumbersShown: Boolean,
   onToggleLineNumbers: () -> Unit,
-  autoClosingBrackets: Boolean,
-  onToggleAutoClosingBrackets: () -> Unit,
+  /**
+   * The persisted, app-wide preferences every other toggle here reads and writes.
+   *
+   * Whole rather than one boolean and one callback per row, which is what this was: four settings
+   * cost eight parameters at each of three layers, and each row's own
+   * `onSettingsChanged(settings.copy(x = !settings.x))` had to be written a layer away from the row
+   * that knew which field it meant. A fifth setting now costs a row and nothing else.
+   */
+  settings: EditorSettings,
+  onSettingsChanged: (EditorSettings) -> Unit,
   tableOfContentsHeadings: List<TocHeading>,
   onTableOfContentsHeadingSelected: (String) -> Unit,
   tableOfContentsPresentation: TocPresentation,
   tableOfContentsPaneOpen: Boolean,
   onToggleTableOfContentsPane: () -> Unit,
-  tocNumbering: TocNumbering,
-  onToggleTocNumbering: () -> Unit,
-  onToggleTocNumberingH1: () -> Unit,
-  tocIncludeOutput: Boolean,
-  onToggleTocIncludeOutput: () -> Unit,
 ) {
+  val tocNumbering = settings.tocNumbering()
   var open by remember { mutableStateOf(false) }
   // Its own flag rather than reusing [open]: picking "Table of contents" replaces this menu with
   // [TableOfContentsPanel] rather than closing it outright, the same two-step [CellActions]' own
@@ -116,10 +125,12 @@ internal fun NotebookActionsMenu(
         },
       )
       DropdownMenuItem(
-        text = { Text(if (autoClosingBrackets) DISABLE_AUTO_CLOSING_BRACKETS else ENABLE_AUTO_CLOSING_BRACKETS) },
+        text = {
+          Text(if (settings.autoClosingBrackets) DISABLE_AUTO_CLOSING_BRACKETS else ENABLE_AUTO_CLOSING_BRACKETS)
+        },
         onClick = {
           open = false
-          onToggleAutoClosingBrackets()
+          onSettingsChanged(settings.copy(autoClosingBrackets = !settings.autoClosingBrackets))
         },
       )
       // One row, two jobs, and which one is the editor's own width: with a pane on screen the row
@@ -137,7 +148,7 @@ internal fun NotebookActionsMenu(
         text = { Text(if (tocNumbering.numberHeaders) HIDE_HEADING_NUMBERS else SHOW_HEADING_NUMBERS) },
         onClick = {
           open = false
-          onToggleTocNumbering()
+          onSettingsChanged(settings.copy(tocNumberHeaders = !settings.tocNumberHeaders))
         },
       )
       // Only while there are numbers for it to change, which is the reference's own `isEnabled`
@@ -148,15 +159,15 @@ internal fun NotebookActionsMenu(
           text = { Text(if (tocNumbering.numberingH1) HIDE_TOP_LEVEL_NUMBER else SHOW_TOP_LEVEL_NUMBER) },
           onClick = {
             open = false
-            onToggleTocNumberingH1()
+            onSettingsChanged(settings.copy(tocNumberingH1 = !settings.tocNumberingH1))
           },
         )
       }
       DropdownMenuItem(
-        text = { Text(if (tocIncludeOutput) HIDE_OUTPUT_HEADINGS else SHOW_OUTPUT_HEADINGS) },
+        text = { Text(if (settings.tocIncludeOutput) HIDE_OUTPUT_HEADINGS else SHOW_OUTPUT_HEADINGS) },
         onClick = {
           open = false
-          onToggleTocIncludeOutput()
+          onSettingsChanged(settings.copy(tocIncludeOutput = !settings.tocIncludeOutput))
         },
       )
     }

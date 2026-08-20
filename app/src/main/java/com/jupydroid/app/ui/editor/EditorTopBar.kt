@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.ui.RenameFileDialog
 
 /** Small enough to read as part of the title rather than as a button beside it. */
@@ -77,16 +78,15 @@ fun EditorTopBar(
   lineNumbersShown: Boolean = true,
   /** `notebook:toggle-all-cell-line-numbers` - see [NotebookActionsMenu]. */
   onToggleLineNumbers: () -> Unit = {},
-  /** Whether a typed `(` closes itself - what the row beside it is named from. */
-  autoClosingBrackets: Boolean = true,
   /**
-   * `fileeditor:toggle-autoclosing-brackets-universal` - the notebook, the console and the file
-   * editor together (`packages/fileeditor-extension/src/commands.ts:552-575`). One app-wide
-   * setting *is* the universal command here, since `PythonTypingRules` already serves both
-   * surfaces. **Adaptation:** the reference files this under Settings; this app has none until
-   * P6c, so it sits in View beside the other two toggles and moves once P6c lands.
+   * The persisted, app-wide preferences the View menu's toggles read and write - see
+   * [NotebookActionsMenu], which owns which row means which field.
+   *
+   * **Adaptation:** the reference files every one of these under Settings; this app has none until
+   * P6c, so they sit in View and move once P6c lands.
    */
-  onToggleAutoClosingBrackets: () -> Unit = {},
+  settings: EditorSettings = EditorSettings(),
+  onSettingsChanged: (EditorSettings) -> Unit = {},
   /** `toc:show-panel`'s content - every heading in the notebook; see [NotebookActionsMenu]. */
   tableOfContentsHeadings: List<TocHeading> = emptyList(),
   /** `toc:show-panel`'s pick, in [TocPresentation.OVERLAY] - jumps to the chosen heading's cell. */
@@ -97,16 +97,6 @@ fun EditorTopBar(
   tableOfContentsPaneOpen: Boolean = false,
   /** `toc:show-panel` in [TocPresentation.PANE], where the row is a toggle rather than a picker. */
   onToggleTableOfContentsPane: () -> Unit = {},
-  /** Whether headings carry their number - what the two numbering rows are named from. */
-  tocNumbering: TocNumbering = TocNumbering(),
-  /** `toc:display-numbering`. */
-  onToggleTocNumbering: () -> Unit = {},
-  /** `toc:display-h1-numbering`. */
-  onToggleTocNumberingH1: () -> Unit = {},
-  /** Whether a code cell's printed headings are listed - what the row is named from. */
-  tocIncludeOutput: Boolean = true,
-  /** `toc:display-outputs-numbering`. */
-  onToggleTocIncludeOutput: () -> Unit = {},
   /** `documentsearch:start` - see [FindTopBar], which is what it puts up. */
   onFind: () -> Unit = {},
   /** `notebook:export-to-format` - what its picker is doing; see [NotebookActionsMenu]. */
@@ -148,18 +138,13 @@ fun EditorTopBar(
         onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed,
         lineNumbersShown = lineNumbersShown,
         onToggleLineNumbers = onToggleLineNumbers,
-        autoClosingBrackets = autoClosingBrackets,
-        onToggleAutoClosingBrackets = onToggleAutoClosingBrackets,
+        settings = settings,
+        onSettingsChanged = onSettingsChanged,
         tableOfContentsHeadings = tableOfContentsHeadings,
         onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
         tableOfContentsPresentation = tableOfContentsPresentation,
         tableOfContentsPaneOpen = tableOfContentsPaneOpen,
         onToggleTableOfContentsPane = onToggleTableOfContentsPane,
-        tocNumbering = tocNumbering,
-        onToggleTocNumbering = onToggleTocNumbering,
-        onToggleTocNumberingH1 = onToggleTocNumberingH1,
-        tocIncludeOutput = tocIncludeOutput,
-        onToggleTocIncludeOutput = onToggleTocIncludeOutput,
       )
     },
   )

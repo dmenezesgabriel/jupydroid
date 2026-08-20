@@ -27,7 +27,7 @@ internal fun EditorTopBars(
   state: EditorUiState,
   viewModel: EditorViewModel,
   editorSettings: EditorSettings,
-  /** One callback for all four View-menu toggles, so this needs no scope and no repository. */
+  /** One callback for every View-menu toggle, so this needs no scope and no repository. */
   onSettingsChanged: (EditorSettings) -> Unit,
   tocHeadings: List<TocHeading>,
   tocPresentation: TocPresentation,
@@ -113,26 +113,13 @@ private fun DocumentTopBar(
     onSetAllHeadingsCollapsed = viewModel.edits::setAllHeadingsCollapsed,
     lineNumbersShown = state.lineNumbersShown,
     onToggleLineNumbers = viewModel::toggleLineNumbers,
-    autoClosingBrackets = editorSettings.autoClosingBrackets,
-    onToggleAutoClosingBrackets = {
-      onSettingsChanged(editorSettings.copy(autoClosingBrackets = !editorSettings.autoClosingBrackets))
-    },
+    settings = editorSettings,
+    onSettingsChanged = onSettingsChanged,
     tableOfContentsHeadings = tocHeadings,
     onTableOfContentsHeadingSelected = onHeadingSelected,
     tableOfContentsPresentation = tocPresentation,
     tableOfContentsPaneOpen = tocPaneOpen,
     onToggleTableOfContentsPane = onToggleTocPane,
-    tocNumbering = editorSettings.tocNumbering(),
-    onToggleTocNumbering = {
-      onSettingsChanged(editorSettings.copy(tocNumberHeaders = !editorSettings.tocNumberHeaders))
-    },
-    onToggleTocNumberingH1 = {
-      onSettingsChanged(editorSettings.copy(tocNumberingH1 = !editorSettings.tocNumberingH1))
-    },
-    tocIncludeOutput = editorSettings.tocIncludeOutput,
-    onToggleTocIncludeOutput = {
-      onSettingsChanged(editorSettings.copy(tocIncludeOutput = !editorSettings.tocIncludeOutput))
-    },
     onFind = viewModel.search::start,
     exportState = state.export,
     onExportPickerOpened = viewModel.export::pickerOpened,
