@@ -1289,6 +1289,41 @@ Expanded two, and Expanded starts at 840dp.
 - **A behaviour that cannot be reached on a phone is adapted, never invented**, and the adaptation
   is written down beside what it departs from.
 
+### Material's type scale is taken whole, where its colour scheme is not
+
+**The asymmetry is the decision, and each half has a reason.**
+
+`DarkColorScheme` states every reachable role because whatever is left out keeps
+`darkColorScheme()`'s default, and those defaults are the Material baseline **purple** - a colour
+from a different design system than the editor's. `JupydroidTypography` states nothing, because
+Material's default type scale *is* the design system: fifteen roles with measured sizes, line
+heights and tracking (`TypeScaleTokens`). Re-typing those numbers here would be a copy that can
+drift from the library rather than a decision.
+
+**What this forbids is a hand-built `TextStyle` for a Material role**, and that is not a style
+preference. Material derives every role from `DefaultTextStyle`, which carries
+`platformStyle = defaultPlatformTextStyle()` - `includeFontPadding = false` on Android - and
+`lineHeightStyle = DefaultLineHeightStyle` (`TypographyTokens.kt:272-276`). A bare `TextStyle`
+carries neither, so a role rebuilt by hand lays out differently from every role beside it while
+appearing to name the same numbers.
+
+The app shipped that way from Step 1 to P2l-1. `theme/Type.kt` was the Android Studio template:
+one `bodyLarge` at 16sp/24sp/0.5sp, which are exactly the three values Material already supplies
+for it. So it changed nothing it appeared to change, and stripped the vertical metrics from the
+one role `MaterialTheme` also provides as the ambient `LocalTextStyle` (`MaterialTheme.kt:107`) -
+the default for every `Text` no container has styled, and for the cell source through
+`codeSourceStyle()`.
+
+**Measured, not eyeballed** (`evidence/p2l-1-typography/`): a before/after pair from the same
+driver, emulator and fixture. In the explorer's row the file name moved y154-169 to y156-171 and
+the gap to its `just now` subtitle went 5px to 8px, the name no longer pushed up by the font's
+legacy ascent padding. The ten-line code cell in the fixture is **pixel-identical**, because the
+code field states its own line height - so this repairs a role, not the editor.
+
+A real departure stays allowed. It goes in `theme/Typography.kt` with its reason and into
+`TypographyTest`, which enumerates the fifteen roles the way `ColorSchemeTest` enumerates the
+colour ones, so the next hand-built role fails a test rather than waiting to be seen.
+
 ### The breakpoints, so 840dp is not a magic number
 
 `WindowSizeClass` (official): compact `< 600dp`, medium `600–840`, expanded `840–1200`, large

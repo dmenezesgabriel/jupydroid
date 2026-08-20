@@ -37,8 +37,8 @@ filesystem the kernel, the server and the app all share.
 | Notebook | **kernel history** walked into the cell being edited; **find and replace** across the document, with the reference's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
-| Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, per-notebook ViewModel scoping |
-| Tests | 252 instrumented, 1249 unit, 95 Maestro drivers over 109 flows - 90 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` across both devices, gradle + script gates |
+| Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, Material's own type scale, per-notebook ViewModel scoping |
+| Tests | 252 instrumented, 1254 unit, 96 Maestro drivers over 110 flows - 91 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
 
 **Not built at all:** the Space system, a terminal, LSP, the debugger, the console, and a
 **settings screen** - the five persisted editor settings live in the notebook's View menu until P6c
@@ -508,7 +508,7 @@ Six costs the plan did not name, each recorded in `docs/DECISIONS.md` rather tha
   says, and `content` exits 0 when it is denied. The refusal is the assertion now, and whether a
   recipient can read the bytes is an instrumented test.
 
-**P2k has shipped, in four sub-steps, and with it P2 is closed.** Both
+**P2k has shipped, in four sub-steps, and with it P2's command surface is closed** - the presentation is P2l-P2p below. Both
 `access-*-history-entry` commands are in, on two keys the symbol row grows once the setting is on -
 `Hist ↑` and `Hist ↓`, right after `Tab`. `history_request` on the shell channel is the
 `KernelGateway` addition this row predicted, and the shipped kernel answers it out of IPython's own
@@ -563,6 +563,105 @@ P2h's table of contents both answers "jump around a long notebook" on a phone an
 for the side panel a minimap would want. Re-costed now that the ToC exists rather than built
 twice. The rest is either a desktop-window idea with no phone reading, or
 work that belongs after the Space system decides where files go.
+
+---
+
+# P2l–P2p — presentation
+
+P2 closed the **command surface**; this phase closes the **presentation**. The distinction is
+real and it is what makes this a phase rather than a tidy-up: every row below was measured against
+the shipped build before it was written, and two of them are defects the whole suite is green
+against today - a ragged cell gutter and four different sizes for code.
+
+Two of the four decisions here were taken by the reader of this file rather than derived, and are
+recorded as such: **full JupyterLab parity for cell chrome** (P2m) and **the mediator** for the
+side panel (P2o). What follows from each is `docs/DECISIONS.md`.
+
+## What was measured
+
+- **There is a colour system and no dimension or type system.** Colour states every reachable
+  Material role and `ColorSchemeTest` enumerates them; against that, `theme/Type.kt` was the
+  Android Studio template and nothing named a gap at all - 63 `.dp` literals across 20 files in 16
+  distinct values, **13 of them off Material's 4dp grid** (`14.dp` three times in the explorer and
+  its recents, plus `6`, `3`, `2`, `5`, `18`, `1`). And **9 `.sp` literals, every one of them
+  inside `Type.kt`**, six in a commented-out block - so nothing else in the app named a size, it
+  inherited one.
+- **The cell took IntelliJ's gutter and JupyterLab's nothing-else.** `cellStripe` draws a resting
+  mark the reference does not have - `.jp-Collapser` is `background: transparent` until
+  `.jp-mod-active` (`packages/cells/style/collapser.css:6-15`,
+  `packages/notebook/style/base.css:108-110`) - and no cell here has the border the reference
+  always has: `.jp-InputArea-editor` carries `1px solid var(--jp-cell-editor-border-color)`
+  unconditionally and takes the brand colour plus a box-shadow in edit mode
+  (`packages/cells/style/inputarea.css:18-26`, `base.css:160-164`).
+- **The cell gutter is ragged, and committed evidence shows it.** `CellHeader` adds the selection
+  checkbox and the heading collapser as ordinary `Row` children before the execution label, each
+  present only for some cells, so the label's x depends on which controls a cell happens to carry.
+  Two markdown headers start at different x in `evidence/p2h-3-table-of-contents-pane/02-the-pane.png`.
+  The reference makes both fixed columns and never reflows - `flex: 0 0` on `.jp-Collapser` and
+  `.jp-InputPrompt` (`inputarea.css:29-31`).
+- **The reference has one side area; this app has two half-answers.** Its left sidebar holds File
+  Browser (rank 100), Sessions (200), Command Palette (300), **Table of Contents (400)** and
+  Extension Manager (1000) - `filebrowser-extension/src/index.ts:676`,
+  `running-extension/src/index.ts:121`, `apputils-extension/src/palette.ts:115`,
+  `toc-extension/src/index.ts:309`, `extensionmanager-extension/src/index.ts:78`. Ours puts the
+  ToC on the **right of the notebook** and the explorer in a pane with no panel chrome. The
+  Launcher is not a sidebar panel there - `shell.add(main, 'main', …)`
+  (`launcher-extension/src/index.ts:118`) - so P6d and this rail do not collide.
+- **The rail/bar switch is the reference's own, not only Material's.**
+  `ILabShell.ActivityBarPosition = 'side' | 'top' | 'bottom'` (`packages/application/src/shell.ts:172`),
+  user-settable from `application-extension/schema/shell.json:68`, with `SideBarHandler.position`
+  reparenting the bar and flipping its orientation (`shell.ts:2263-2290`); 32px vertical, 28px
+  horizontal (`packages/application/style/sidepanel.css:11-14`). Compose agrees and is more precise
+  than "small versus medium": `NavigationSuiteScaffold` shows a bar when the width **or the
+  height** is compact, and a rail otherwise.
+- **The medium window is the least-served class, and it is a real orientation of the real device.**
+  Widths this project drives, from committed `device.txt` files: tablet **1280×800dp**, emulator
+  **320×640dp**, and tablet portrait **800×1280dp**. Two panes start at 840dp, so the tablet in
+  portrait gets the phone layout.
+
+## The sub-steps
+
+| # | Sub-step | Gate |
+|---|---|---|
+| **P2l-1** | *(shipped)* Material's type scale, stated rather than hand-built. | — |
+| **P2l-2** | `theme/Spacing.kt` on the 4dp grid, and the 63 literals migrated onto it. A value that is a *size* rather than a gap, or a number copied from a reference, states itself where it is used. | `scripts/check_ui_dimensions.py` + `_test.py`, wired into `.pre-commit-config.yaml`, so the next inline literal fails a commit. |
+| **P2l-3** | **One size for code.** Measured: the cell's source states none at all (`codeSourceStyle` reads `LocalTextStyle`), outputs and inline code are `bodySmall`, the completion popup `bodyMedium`, the symbol row `bodyLarge` - four sizes for one thing, where the reference has `--jp-code-font-size` and `--jp-code-line-height` (`variables.css:196-197`). | JVM test over the scale; a screenshot of a cell, its output and its completions in one frame. |
+| **P2m-1** | The collapser: transparent at rest, brand blue when active. `stripeResting` leaves `EditorPalette`. **`docs/DECISIONS.md` "Every cell gets one" is rewritten in the same commit** - it argues the opposite today, and a decision record that contradicts the code is worse than none. | `CellStripeTest` red-first; `CellTouchTargetTest` re-run; `u3-cell-chrome` re-driven on the tablet and the screenshots **looked at**. |
+| **P2m-2** | The editor box: 1px always, brand blue plus elevation in edit mode, one shared modifier across the three fields rather than three copies. | `EditorPaletteTest` extended with the contrast assertion it already pins for every other pair; an instrumented test that the border follows the mode. |
+| **P2n** | The cell gutter becomes two fixed-width slots, so the execution label's x does not depend on which optional controls a cell carries. | Instrumented: the label's x is equal across a plain code cell, a heading cell and a cell in a marked run - the three that differ today. |
+| **P2o-1** | The mediator: which panel is selected, and the open notebook's headings and jump lambda, published by the editor and read by the panel. **No duplicated derivation** - `EditorViewModel` stays the one place headings, folds and numbering are computed. | JVM, including the lifetime: the panel empties when the notebook closes, so a ToC cannot outlive its document. |
+| **P2o-2** | The rail on medium and expanded: `NavigationRail` at the left edge of the list pane, panels Files and Table of contents in the reference's rank order. `tocPresentationFor` is superseded - the rule becomes "is there a side pane", not "is the editor 840dp". | Tablet at 1280dp: switch to ToC, jump to a heading, the panel stays and the notebook moves. |
+| **P2o-3** | **The two-pane threshold, re-derived rather than kept.** An 80dp rail (`NavigationRailCollapsedTokens.NarrowContainerWidth`) changes the arithmetic 840dp came from, and 800dp portrait is a real device in a real orientation. Measure before changing the constant; if it says 840dp stays, that is the outcome and it is recorded. | A measurement at 320 / 800 / 1280dp into `evidence/`, whichever way it lands. |
+| **P2o-4** | The bar on compact, the same two panels. The in-notebook bottom-sheet ToC stays: the reference has both a sidebar tab and `toc:show-panel` for one widget. | Emulator at **320dp**, which is the width that decides; both entry points in one flow. |
+| **P2p** | The suite re-captured on the shipped build, both devices, one build. | `run-flows-sharded.sh`, evidence committed, **every screenshot looked at** - three defects in this project's history were green against every assertion and wrong in the picture. |
+
+**Named risk, and it is why P2o-4 is last.** On compact the app's root is the explorer, so the bar
+is only on screen when no notebook is open - the ToC entry is then reachable only after leaving the
+document, which is worse than the bottom sheet beside it. If the 320dp flow shows that, the answer
+is a modal navigation drawer over the document, the reference's own narrow-window shape, and it is
+costed here rather than discovered late.
+
+**Deliberately not in this phase:** `dirty` rendered as the reference's `•`
+(`base.css:114-121`) stays a P6c question rather than being smuggled in with the presentation
+work, and it is named here so nobody re-derives that the reference does draw it.
+
+**P2l-1 has shipped, and what it repaired was invisible by construction.** `theme/Type.kt` was the
+Android Studio template and had been since Step 1: one `bodyLarge` at 16sp/24sp/0.5sp, which are
+the three numbers Material already supplies for that role. So it changed nothing it appeared to
+change - and stripped `includeFontPadding = false` and `DefaultLineHeightStyle` from the only role
+`MaterialTheme` also provides as the ambient `LocalTextStyle`. What it settled is
+`docs/DECISIONS.md`; the evidence is `evidence/p2l-1-typography/`.
+
+Two things it cost that this file did not name:
+
+- **A metric needs a pair, not a screenshot.** The driver takes `before`/`after` and is run twice,
+  once on a build carrying the template. Nothing about one frame could have shown the difference,
+  and the difference is real: the explorer row's file name moved 2px and the gap to its subtitle
+  went from 5px to 8px.
+- **The ten-line code cell in the fixture proved a negative, which is why it is kept.** It was put
+  there to catch an accumulating per-line drift and is **pixel-identical** across the pair, because
+  the code field states its own line height. That is the measurement that says P2l-3 is a separate
+  sub-step rather than something P2l-1 half-did.
 
 ---
 
