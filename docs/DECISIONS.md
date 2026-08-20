@@ -1648,6 +1648,39 @@ general lesson.
 
 ---
 
+### Code is drawn at one size, and it is 14sp rather than the reference's 13px
+
+Four surfaces drew code and each drew it differently: the cell's source stated **no size at all**
+(`codeSourceStyle` read `LocalTextStyle`, whose Material default is `TextStyle.Default`, so
+`fontSize` resolved to Compose's `DefaultFontSize = 14.sp` and the line height to the font's own),
+outputs and the folded-cell placeholder were `bodySmall` (12sp/16sp), and the completion popup
+`bodyMedium` (14sp/20sp). JupyterLab has one `--jp-code-font-size` and one `--jp-code-line-height`
+(`variables.css:196-197`) read by the editor, the input area, `.jp-RenderedText pre` and **both**
+completer selectors (`codemirror/base.css:8`, `inputarea.css:37`, `rendermime/base.css:28`,
+`completer/base.css:75,118`).
+
+**The ratio is transcribed; the size is adapted.** 13px is a CSS pixel on a desktop, and `sp` is
+neither a pixel nor fixed - it scales with the reader's own font setting - so the number does not
+transfer, only the decision to have one. 14sp is `TypeScaleTokens.BodyMediumSize` and is what the
+source already resolved to, so what changed is everything else joining it rather than the
+most-read surface moving. The line height is then derived - 14 x 1.3077 = 18.3 -> 18sp - and
+`CodeTextTest` re-derives it, so changing one without the other fails a test.
+
+**This forbids** a code surface stating its own size: `theme/CodeText.kt` holds the numbers and
+`codeTextStyle()` hands out the style. It also forbids reading `--jp-code-font-size` as covering
+*all* monospace - see the two exceptions below.
+
+**Not the symbol row**, which stays `bodyLarge` at 16sp. Its keys are monospace for the shape of
+`->` and `Tab`, not because they are source being read; the reference has no such row, it being a
+phone adaptation; and they are captions on touch targets, where 14sp would make the surface most
+used one-handed harder to read for nothing gained. Stated here so it is not re-derived as an
+oversight.
+
+**Not rendered markdown's code either, and that is the reference's own rule rather than ours.**
+`.jp-RenderedHTMLCommon pre, code` takes the code *family* and the code *line-height* but
+**`font-size: inherit`** (`rendermime/base.css:405-417`) - the prose size. Ours draws both at
+`bodySmall` today, which is wrong in a third way; that is P2l-3b.
+
 ### A touch target is reserved space, not expanded bounds
 
 Compose expands the *hit area* of any clickable node out to 48dp at the input layer:
@@ -1682,6 +1715,28 @@ Measured on four geometries (`evidence/p2l-4-touch-targets/`): 32dp and 40dp bef
 at densities 160, 240 and 420.
 
 ## Harness
+
+### `ktlintCheck` has never checked a `.kt` file, and the pre-commit hook has been reporting it as passing
+
+Found in P2l-3a, by removing three imports the step had made unused and noticing the gate had not
+asked for them. `./gradlew :app:tasks --all` lists **only** `runKtlintCheckOverKotlinScripts` and
+`ktlintKotlinScriptCheck`: the plugin registered no per-source-set task at all, so `ktlintCheck`
+resolves to the `.kts` build scripts and nothing else. Probed directly - an unused import *and* an
+out-of-order one added to `theme/CodeText.kt` produced `BUILD SUCCESSFUL in 715ms` with the source
+set never visited.
+
+`org.jlleitschuh.gradle.ktlint` 12.2.0 discovers source sets through the Kotlin/Android plugin, and
+this project is on AGP 9; there is no baseline file and no `ktlint_*` disable in `.editorconfig`, so
+the rules are not switched off - they are never run. The consequences seen so far are small because
+the code has been formatted by hand: two unused `dp` imports left by P2l-2 and found by P2l-4, three
+unused `FontFamily` imports in P2l-3a, and **20 lines over the declared 120-character limit**, all
+of them in test sources.
+
+**This forbids** citing `ktlintCheck` as evidence that Kotlin sources are formatted, in `CLAUDE.md`
+or in any commit message, until the source-set tasks exist and are seen to fail on a planted
+violation. It is the same failure mode as `check_ui_dimensions.py` run from `scripts/` - a gate
+that matches nothing reports clean - and the same answer applies: whatever fixes it needs a planted
+violation as its own test.
 
 ### The emulator the suite runs on is 320dp wide **and** density 160, and only the first is deliberate
 

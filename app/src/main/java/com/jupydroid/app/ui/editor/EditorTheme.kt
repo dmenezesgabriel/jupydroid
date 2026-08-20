@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import com.jupydroid.app.richtext.RichInlineStyles
 import com.jupydroid.app.syntax.SyntaxKind
+import com.jupydroid.app.theme.CodeText
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.theme.styles
 
@@ -85,7 +86,35 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
 )
 
 /**
- * A cell's source in the editor's own monospace.
+ * How code is drawn, wherever it is drawn: the editor's monospace at [CodeText]'s one size and
+ * line height.
+ *
+ * **Every surface takes it from here, because the reference has one variable for all of them.**
+ * `--jp-code-font-size` and `--jp-code-line-height` are read by the editor, the input area,
+ * rendered text output and both completer selectors (`codemirror/base.css:8`,
+ * `inputarea.css:37`, `rendermime/base.css:28`, `completer/base.css:75,118`); this app had four
+ * different sizes across the same surfaces, one of which was no size at all. What each was, and
+ * why 14sp rather than the reference's 13px, is [CodeText].
+ *
+ * Built on `LocalTextStyle.current` rather than a Material role: the body roles carry tracking
+ * (`bodySmall` 0.4sp), and letter-spacing on a monospace column is the one thing that stops it
+ * lining up.
+ *
+ * ```
+ * Text(text = output.text, style = codeTextStyle(), color = MaterialTheme.colorScheme.onSurface)
+ * ```
+ */
+@Composable
+@ReadOnlyComposable
+fun codeTextStyle(): TextStyle =
+  LocalTextStyle.current.copy(
+    fontFamily = FontFamily.Monospace,
+    fontSize = CodeText.size,
+    lineHeight = CodeText.lineHeight,
+  )
+
+/**
+ * A cell's source, which is [codeTextStyle] in the editor's own foreground colour.
  *
  * The colour is the editor's `TEXT` foreground, so text the highlighter leaves alone is the colour
  * IntelliJ leaves it - and so the palette's contrast assertions describe what is actually drawn.
@@ -98,8 +127,7 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
  */
 @Composable
 @ReadOnlyComposable
-fun codeSourceStyle(): TextStyle =
-  LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, color = editorPalette.syntax.plain)
+fun codeSourceStyle(): TextStyle = codeTextStyle().copy(color = editorPalette.syntax.plain)
 
 /**
  * The markdown source as it is being written.

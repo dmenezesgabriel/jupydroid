@@ -13,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.app.theme.Spacing
 
@@ -61,8 +60,7 @@ fun CollapsedCell(preview: String, description: String, onExpand: () -> Unit, mo
   ) {
     Text(
       text = preview,
-      style = MaterialTheme.typography.bodySmall,
-      fontFamily = FontFamily.Monospace,
+      style = codeTextStyle(),
       color = MaterialTheme.colorScheme.onSurfaceVariant,
       maxLines = 1,
       overflow = TextOverflow.Ellipsis,
@@ -70,7 +68,9 @@ fun CollapsedCell(preview: String, description: String, onExpand: () -> Unit, mo
     )
     Text(
       text = "…",
-      style = MaterialTheme.typography.bodySmall,
+      // The same style as the line beside it: the two sit on one baseline, and the reference's
+      // own ellipsis is an icon in the same row rather than a smaller piece of text.
+      style = codeTextStyle(),
       color = MaterialTheme.colorScheme.primary,
       modifier = Modifier.padding(start = Spacing.sm),
     )

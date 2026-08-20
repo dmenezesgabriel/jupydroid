@@ -26,7 +26,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -67,7 +66,7 @@ internal fun CellOutputs(
  * **`24em` is 24 line heights of the output's own font**, which is what `em` means - so the bound
  * follows the user's font size instead of freezing a `dp` that would either clip a larger font mid
  * character or leave room to spare on a smaller one. Measured the way [LineNumbers] measures a
- * digit, rather than converting `bodySmall.lineHeight` from `sp`: this app has no existing
+ * digit, rather than converting [CodeText.lineHeight] from `sp`: this app has no existing
  * `TextUnit`-to-`Dp` conversion, and a `TextMeasurer` is already how a text metric becomes a
  * `Dp` here.
  *
@@ -105,7 +104,7 @@ private fun ScrolledOutputs(rendered: List<RenderedOutput>, search: List<CellSea
 @Composable
 private fun scrolledOutputsHeight(): Dp {
   val measurer = rememberTextMeasurer()
-  val style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+  val style = codeTextStyle()
   val lineHeightPx = remember(style) { measurer.measure("0", style).size.height }
   return with(LocalDensity.current) { (lineHeightPx * SCROLLED_OUTPUT_LINES).toDp() }
 }
@@ -136,8 +135,7 @@ private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight)
   if (!output.isError) {
     Text(
       text = text,
-      style = MaterialTheme.typography.bodySmall,
-      fontFamily = FontFamily.Monospace,
+      style = codeTextStyle(),
       color = MaterialTheme.colorScheme.onSurface,
     )
     return
@@ -146,8 +144,7 @@ private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight)
   // block rather than only a colour that a monospace wall of text swallows.
   Text(
     text = text,
-    style = MaterialTheme.typography.bodySmall,
-    fontFamily = FontFamily.Monospace,
+    style = codeTextStyle(),
     color = MaterialTheme.colorScheme.onErrorContainer,
     modifier = Modifier
       .fillMaxWidth()

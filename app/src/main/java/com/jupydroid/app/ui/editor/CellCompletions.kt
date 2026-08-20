@@ -22,7 +22,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.WindowInsets
@@ -117,8 +116,7 @@ fun CompletionPopup(
         items(completions.result.matches, key = { it }) { match ->
           Text(
             text = match,
-            style = MaterialTheme.typography.bodyMedium,
-            fontFamily = FontFamily.Monospace,
+            style = codeTextStyle(),
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
               .clickable { onPick(match) }
@@ -158,7 +156,7 @@ private const val SETTLE_MILLIS = 250L
  */
 private val MAX_WIDTH = 280.dp
 /**
- * About six rows at [MaterialTheme.typography.bodyMedium]. The list scrolls past that rather than
+ * About six rows at [CodeText]'s size. The list scrolls past that rather than
  * growing, so the popup's footprint does not depend on how many matches the kernel found.
  */
 private val MAX_HEIGHT = 220.dp

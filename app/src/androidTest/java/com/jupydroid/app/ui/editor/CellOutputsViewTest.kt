@@ -11,7 +11,9 @@ import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.theme.CodeText
 import com.jupydroid.app.theme.JupyterDroidTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -60,6 +62,29 @@ class CellOutputsViewTest {
 
     compose.onNodeWithContentDescription(COLLAPSED_OUTPUTS).assertIsDisplayed()
   }
+
+  /**
+   * P2l-3a: an output is code, so it is drawn at the one size code is drawn at.
+   *
+   * **Derived from `CodeText`, not a `dp` this file spells out** - the rule this suite already
+   * states for the scrolled bound. What makes it exact rather than font metrics is that the line
+   * height is *stated*: Material's `DefaultLineHeightStyle` is `trim = None`, so a single line
+   * lays out to exactly `lineHeight`. It measured `bodySmall`'s 16sp before this step, against a
+   * cell source resolving to 14sp with the font's own line height.
+   */
+  @Test
+  fun oneOutputLineIsAsTallAsTheCodeLineHeight() {
+    compose.setContent {
+      JupyterDroidTheme {
+        CellOutputs(outputs = listOf(oneLine()), hidden = false, scrolled = false, search = emptyList(), onExpand = {})
+      }
+    }
+
+    val expected = with(compose.density) { CodeText.lineHeight.toDp() }
+    assertEquals(expected.value, compose.onNodeWithContentDescription("Cell output").getUnclippedBoundsInRoot().height.value, 0.5f)
+  }
+
+  private fun oneLine() = CellOutput.Stream(name = StreamName.STDOUT, text = "one line")
 
   /** Fifty lines is comfortably past 24 - the reference's `max-height: 24em` - on any font size. */
   private fun tallStream() = CellOutput.Stream(
