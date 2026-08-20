@@ -437,7 +437,8 @@ Three costs so far, each recorded in `docs/DECISIONS.md` rather than here:
 
 | # | Sub-step | State |
 |---|---|---|
-| **P2i-4** | `highlightNext` / `highlightPrevious` - the arrows, wrapping, and the reveal `activateNewMatch` does: scroll to the cell, clear `inputHidden`, unrender a rendered markdown cell, and expand a collapsed parent heading. That last is **parity, not an adaptation**: `activeCellChanged` is wired to `NotebookActions.expandParent` (`packages/notebook-extension/src/index.ts:2871-2873`). It also fixes a live gap - the ToC's jump is a no-op on a hidden heading, justified by a reading of the reference that citation contradicts. | next |
+| **P2i-4** | *Shipped.* The arrows, wrapping, and `activateNewMatch`'s reveal - all three collapses give way, and `expandParent` on `activeCellChanged` is why that is parity rather than invention. It cost two findings the plan did not name: **the cell list had no `imePadding`** once P2i-3 took the bottom bar away, so the notebook was drawing behind the keyboard and `visibleItemsInfo` was answering about a viewport nobody could see; and **`inViewport` alone is not the reference's guard**, since `activateNewMatch` follows it with `revealPosition`. | done |
+| **P2i-4b** | The ToC's jump reveals a hidden heading too, with P2i-4's helper - the correction to a reading recorded in P2h. | next |
 | **P2i-5** | Match case, whole word, use regular expression, and the `_parsingError` reading. | |
 | **P2i-6** | `documentsearch:startWithReplace` - the replace row, Replace / Replace All, `preserveCase`, `$1` substitution under the regex option. | |
 | **P2i-7** | The two filters: **Search cell outputs**, scoped to `RenderedOutput.Text` (stream, stderr, traceback, `text/plain`), and **Search in selected cells**. `text/html` and tables are out - the reference walks its rendered DOM and this app has no analogue in `RichText`/`RichTable`; recorded as a departure. | |

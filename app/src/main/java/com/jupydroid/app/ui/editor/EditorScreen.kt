@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -140,6 +141,27 @@ fun EditorScreen(
     // headings, and the jump - so a heading cannot be numbered one way here and another there.
     val tocHeadings = state.tableOfContentsHeadings(editorSettings.tocIncludeOutput)
     val showTocPane = tocPaneOpen && tocPresentation == TocPresentation.PANE
+    // `activateNewMatch`'s `scrollToItem` (`packages/notebook/src/searchprovider.ts:625-630`),
+    // keyed on the hit rather than on the cell: two matches in one cell are two steps, and a
+    // notebook that only moved when the *cell* changed would look stuck on the second of them.
+    // The reveal has already happened in the state, so the index is read after it and the cell is
+    // on screen to scroll to.
+    LaunchedEffect(state.search?.current, state.search?.hits) {
+      val landed = state.search?.currentHitCellId ?: return@LaunchedEffect
+      val index = state.cellsOnScreen.indexOfFirst { it.id == landed }
+      // **Only when the cell is not already fully on screen**, which is `activateNewMatch`'s two
+      // steps read together: `if (!activeCell.inViewport) scrollToItem(…)` and then
+      // `editor.revealPosition(…)` (`:625-641`). The first alone is not the rule and measuring is
+      // what said so - `inViewport` is true of a cell showing five pixels above the soft keyboard,
+      // so a match the arrows had just been asked for stayed cut in half at the bottom edge
+      // (`evidence/p2i-4-next-previous/`, the run before this). The second step is what makes the
+      // *match* readable rather than merely present, and with a cell-sized list item the equivalent
+      // is asking for the whole cell.
+      //
+      // Still conditional, because the other half of the reference's guard matters too: stepping
+      // between two matches already in front of the reader must not yank the notebook.
+      if (index >= 0 && !listState.isFullyVisible(index)) listState.animateScrollToItem(index)
+    }
     val jumpToHeading: (String) -> Unit = { cellId ->
       // A heading is never hidden by its own section (CellHeadings.kt), but one nested inside an
       // ancestor's collapsed section is - and the reference does not solve that either: the ToC's
@@ -149,78 +171,29 @@ fun EditorScreen(
       if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
     }
     Scaffold(
-      modifier = Modifier.fillMaxSize(),
+      // **The notebook consumes the keyboard's inset while the find bar is up, and nothing else
+      // does.** Every other surface that can be on screen under an IME carries its own
+      // `imePadding` - [SymbolRow] in edit mode, [NotebookBar] in command mode - so the cell list
+      // has never had to. Searching is the first state with a soft keyboard and *no bottom bar*
+      // (see [editorBottomBar]), and without this the `LazyColumn` lays out to the full window and
+      // draws its lower half behind the keyboard: measured at `viewport=0..987` on the tablet with
+      // the IME up, which made a match the arrows had just been sent to report as visible while
+      // being under the keys (`evidence/p2i-4-next-previous/`, two runs before this).
+      modifier = Modifier.fillMaxSize().then(if (state.search != null) Modifier.imePadding() else Modifier),
       topBar = {
-      // A marked run replaces the document's bar rather than adding to it: the notebook's title,
-      // its rename and its undo are about the document, and none of them is what the screen is
-      // for while cells are being picked. Material's contextual-bar rule, and the reference's
-      // too - its selection commands are never on the notebook's toolbar.
-      val head = state.cells.firstOrNull { it.id == state.selectedCellId }
-      val searching = state.search
-      if (searching != null) {
-        FindTopBar(
-          query = searching.query,
-          counter = state.searchCounter(),
-          parseError = searching.parseError,
-          onQueryChanged = viewModel.search::queryChanged,
-          onClose = viewModel.search::end,
-        )
-      } else if (state.selecting && head != null) {
-        SelectionTopBar(
-          selectedCount = state.selectedCellIds.size,
-          headCell = head,
-          canPaste = state.clipboard.isNotEmpty(),
-          onDeselectAll = viewModel.selection::deselectAll,
-          onSelectAll = viewModel.selection::selectAll,
-          onExtend = viewModel.selection::extend,
-          onCellAction = { action -> viewModel.edits.applyTo(head.id, action) },
-          // The run itself lets the selection go as it starts, which is `runSelected`'s own last
-          // two lines - so this bar goes away and the notebook's comes back while the cells run.
-          onRunMarked = { viewModel.kernel.run(RunRange.MARKED) },
-        )
-      } else if (isEditorTopBarVisible(state.mode)) {
-        // Dropped only on a window too short to afford it while a keyboard is up - see
-        // [editorTopBarVisible]. On a phone in landscape the alternative is a notebook with zero
-        // height, which is what this was.
-        EditorTopBar(
-          title = state.title,
-          canUndo = state.undoable.isNotEmpty(),
-          canRedo = state.redoable.isNotEmpty(),
-          onRename = viewModel::renameNotebook,
-          onUndo = viewModel.edits::undo,
-          onRedo = viewModel.edits::redo,
+        EditorTopBars(
+          state = state,
+          viewModel = viewModel,
+          editorSettings = editorSettings,
+          onSettingsChanged = { changed -> applicationScope.launch { editorSettingsRepository.update(changed) } },
+          tocHeadings = tocHeadings,
+          tocPresentation = tocPresentation,
+          tocPaneOpen = showTocPane,
+          onToggleTocPane = { tocPaneOpen = !tocPaneOpen },
+          onHeadingSelected = jumpToHeading,
           onBack = onBack,
-          onSetAllHeadingsCollapsed = viewModel.edits::setAllHeadingsCollapsed,
-          lineNumbersShown = state.lineNumbersShown,
-          onToggleLineNumbers = viewModel::toggleLineNumbers,
-          autoClosingBrackets = editorSettings.autoClosingBrackets,
-          onToggleAutoClosingBrackets = {
-            val toggled = editorSettings.copy(autoClosingBrackets = !editorSettings.autoClosingBrackets)
-            applicationScope.launch { editorSettingsRepository.update(toggled) }
-          },
-          tableOfContentsHeadings = tocHeadings,
-          onTableOfContentsHeadingSelected = jumpToHeading,
-          tableOfContentsPresentation = tocPresentation,
-          tableOfContentsPaneOpen = showTocPane,
-          onToggleTableOfContentsPane = { tocPaneOpen = !tocPaneOpen },
-          tocNumbering = editorSettings.tocNumbering(),
-          onToggleTocNumbering = {
-            val flipped = editorSettings.copy(tocNumberHeaders = !editorSettings.tocNumberHeaders)
-            applicationScope.launch { editorSettingsRepository.update(flipped) }
-          },
-          onToggleTocNumberingH1 = {
-            val flipped = editorSettings.copy(tocNumberingH1 = !editorSettings.tocNumberingH1)
-            applicationScope.launch { editorSettingsRepository.update(flipped) }
-          },
-          tocIncludeOutput = editorSettings.tocIncludeOutput,
-          onToggleTocIncludeOutput = {
-            val flipped = editorSettings.copy(tocIncludeOutput = !editorSettings.tocIncludeOutput)
-            applicationScope.launch { editorSettingsRepository.update(flipped) }
-          },
-          onFind = viewModel.search::start,
         )
-      }
-    },
+      },
     bottomBar = {
       // One bar at a time, or none - see [editorBottomBar] for the rule and what each is for.
       when (editorBottomBar(state.selecting, state.mode, state.search != null)) {
@@ -296,6 +269,20 @@ fun EditorScreen(
       }
     }
   }
+}
+
+/**
+ * Whether item [index] is on screen **in its entirety** - see the scroll above for why partly is
+ * not enough.
+ *
+ * An item taller than the viewport is never fully visible, and scrolling it to the top is the right
+ * answer for that too; there is no loop, because the effect that asks is keyed on the match rather
+ * than on the scroll.
+ */
+private fun LazyListState.isFullyVisible(index: Int): Boolean {
+  val item = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return false
+  return item.offset >= layoutInfo.viewportStartOffset &&
+    item.offset + item.size <= layoutInfo.viewportEndOffset
 }
 
 @Composable

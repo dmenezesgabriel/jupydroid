@@ -7,6 +7,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,9 +56,15 @@ fun FindTopBar(
   /** `_parsingError`, or null - shown under the box rather than swallowed. */
   parseError: String?,
   onQueryChanged: (SearchQuery) -> Unit,
+  /** `documentsearch:highlightPrevious`. */
+  onPrevious: () -> Unit,
+  /** `documentsearch:highlightNext`. */
+  onNext: () -> Unit,
   onClose: () -> Unit,
 ) {
   val box = remember { FocusRequester() }
+  // Nothing found is nothing to step through - `-/-` is the counter's own way of saying it.
+  val steppable = counter != searchCounterText(current = null, total = 0)
   // The box takes the caret when the bar arrives, which is what the reference's `autoFocus` on the
   // find input does (`searchview.tsx:170-180`). A find bar that had to be tapped before it could
   // be typed into would waste the one gesture that opened it.
@@ -98,6 +106,15 @@ fun FindTopBar(
           .padding(horizontal = 8.dp)
           .semantics { contentDescription = "$MATCH_COUNT $counter" },
       )
+      // Greyed rather than absent while there is nothing to step through, which is the rule this
+      // app already applies to every command whose two states would look identical - and here it
+      // also keeps the bar's shape from changing under a thumb as the query is typed.
+      IconButton(onClick = onPrevious, enabled = steppable, modifier = named(PREVIOUS_MATCH)) {
+        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null)
+      }
+      IconButton(onClick = onNext, enabled = steppable, modifier = named(NEXT_MATCH)) {
+        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
+      }
     },
   )
 }
@@ -154,5 +171,21 @@ internal const val CLOSE_SEARCH = "Close search"
 
 /** Prefixes the counter so `1/3` is something a screen reader can say. */
 internal const val MATCH_COUNT = "Matches"
+
+/**
+ * `documentsearch:highlightNext`, the reference's own *"Next Match"* (`searchview.tsx:320`).
+ *
+ * The name goes on the `IconButton` and not on the `Icon` inside it, which is the same call
+ * [EditorTopBar]'s undo pair makes and for the same measured reason: Android's accessibility tree
+ * keeps `enabled` on the button, so a label on the icon lands on a child reporting `enabled=true`
+ * under a disabled parent, and a flow asking for the greyed control cannot find it.
+ */
+internal const val NEXT_MATCH = "Next match"
+
+/** `documentsearch:highlightPrevious` - *"Previous Match"* (`searchview.tsx:305`). */
+internal const val PREVIOUS_MATCH = "Previous match"
+
+/** See [NEXT_MATCH]: one node carries both the name and the enabled state. */
+private fun named(what: String) = Modifier.semantics { contentDescription = what }
 
 private const val PLACEHOLDER_ALPHA = 0.6f

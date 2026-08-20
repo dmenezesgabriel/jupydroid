@@ -107,6 +107,71 @@ class NotebookSearchTest {
     assertEquals(notebook, notebook.withSearchRecomputed())
   }
 
+  /** `highlightNext()` - one forward, and the counter follows it. */
+  @Test
+  fun theArrowsStepThroughTheMatches() {
+    val searching = notebook.withSearchOpened().withSearchQuery(SearchQuery("cat"))
+
+    assertEquals("2/3", searching.withSearchStepped(reverse = false).searchCounter())
+    assertEquals("3/3", searching.withSearchStepped(false).withSearchStepped(false).searchCounter())
+  }
+
+  /** `loop = true` is `highlightNext()`'s own default, so the last match is followed by the first. */
+  @Test
+  fun steppingWrapsInBothDirections() {
+    val searching = notebook.withSearchOpened().withSearchQuery(SearchQuery("cat"))
+    val last = searching.withSearchStepped(false).withSearchStepped(false)
+
+    assertEquals("1/3", last.withSearchStepped(reverse = false).searchCounter())
+    assertEquals("3/3", searching.withSearchStepped(reverse = true).searchCounter())
+  }
+
+  /** Nothing found is nothing to step to, rather than an index nothing backs. */
+  @Test
+  fun steppingWithNothingFoundStaysNowhere() {
+    val empty = notebook.withSearchOpened()
+
+    assertEquals("-/-", empty.withSearchStepped(reverse = false).searchCounter())
+  }
+
+  @Test
+  fun steppingWithNoSearchOpenChangesNothing() {
+    assertEquals(notebook, notebook.withSearchStepped(reverse = false))
+  }
+
+  /**
+   * `activateNewMatch` reveals the cell it lands on, and here the head moves with it - the
+   * reference sets `activeCellIndex`, which is what fires `expandParent` in the first place.
+   */
+  @Test
+  fun steppingOntoAHiddenMatchRevealsItAndSelectsIt() {
+    val folded = EditorUiState(
+      cells = listOf(
+        code("a", "cat"),
+        Cell("h", CellKind.MARKDOWN, "# Section", headingCollapsed = true),
+        code("under", "cat"),
+      ),
+      selectedCellId = "a",
+      loaded = true,
+    )
+    val searching = folded.withSearchOpened().withSearchQuery(SearchQuery("cat"))
+    assertEquals("1/2", searching.searchCounter())
+
+    val stepped = searching.withSearchStepped(reverse = false)
+
+    assertEquals("2/2", stepped.searchCounter())
+    assertEquals(listOf("a", "h", "under"), stepped.cellsOnScreen.map { it.id })
+    assertEquals("under", stepped.selectedCellId)
+  }
+
+  /** A step onto a cell nothing was hiding leaves the document exactly as it was. */
+  @Test
+  fun steppingThroughAnOrdinaryNotebookNeverDirtiesIt() {
+    val searching = notebook.withSearchOpened().withSearchQuery(SearchQuery("cat"))
+
+    assertEquals(false, searching.withSearchStepped(false).dirty)
+  }
+
   /** Each cell is handed only its own matches, and only it can hold the current one. */
   @Test
   fun aCellIsHandedItsOwnMatchesAndWhetherTheCurrentIsAmongThem() {

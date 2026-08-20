@@ -82,7 +82,7 @@ class EditorViewModel(
   val selection = NotebookCellSelection(_uiState)
 
   /** The find bar. Writes nothing either, so it takes no save; see [NotebookSearch]. */
-  val search = NotebookSearch(_uiState)
+  val search = NotebookSearch(_uiState, save)
 
   init {
     viewModelScope.launch {

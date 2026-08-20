@@ -66,6 +66,35 @@ fun EditorUiState.withSearchQuery(query: SearchQuery): EditorUiState {
 fun EditorUiState.withSearchRecomputed(): EditorUiState =
   search?.let { withSearchQuery(it.query) } ?: this
 
+/**
+ * `highlightNext` / `highlightPrevious` - one match on, wrapping, and the new one revealed.
+ *
+ * **This is where the reveal lives and typing a query is where it does not.** `startQuery` passes
+ * `scroll: false` and `activateNewMatch` returns on that before doing anything
+ * (`packages/notebook/src/searchprovider.ts:389-401`, `:604-610`); the arrows pass no options, so
+ * `scroll` defaults to true and the whole of `activateNewMatch` runs.
+ *
+ * The head moves onto the match's cell, which is `activeCellIndex = _currentProviderIndex` there -
+ * and is what fires `expandParent` in the reference, so it is the cause of the reveal rather than
+ * a side effect of it. The anchor goes, because a marked run that survived a jump across the
+ * notebook would be a run nobody chose.
+ */
+fun EditorUiState.withSearchStepped(reverse: Boolean): EditorUiState {
+  val searching = search ?: return this
+  val moved = searching.stepped(reverse)
+  val landed = moved?.let { searching.hits[it] }
+  return if (landed == null) {
+    copy(search = searching.copy(current = null))
+  } else {
+    withCellRevealed(landed.cellId)
+      .copy(search = searching.copy(current = moved), selectedCellId = landed.cellId, anchorCellId = null)
+  }
+}
+
+/** Which hit the step lands on, or null when there is nothing to step to. */
+private fun SearchState.stepped(reverse: Boolean): Int? =
+  if (reverse) previousHit(current, hits.size) else nextHit(current, hits.size)
+
 /** What the bar reads between its arrows - see [searchCounterText]. */
 fun EditorUiState.searchCounter(): String =
   search?.let { searchCounterText(it.current, it.hits.size) } ?: searchCounterText(null, 0)
@@ -95,6 +124,9 @@ fun EditorUiState.searchHighlightOf(cellId: String): CellSearchHighlight {
 /** The hit the arrows are on, or null when they are on none. */
 private fun SearchState.currentHit(): SearchHit? = current?.let { hits.getOrNull(it) }
 
+/** Which cell the arrows are standing in, for the screen to scroll to. */
+val SearchState.currentHitCellId: String? get() = currentHit()?.cellId
+
 /**
  * The find bar, driven straight from the screen - the collaborator beside [NotebookCellSelection].
  *
@@ -107,13 +139,42 @@ private fun SearchState.currentHit(): SearchHit? = current?.let { hits.getOrNull
  * search.queryChanged(SearchQuery("cat"))
  * ```
  */
-class NotebookSearch(private val uiState: MutableStateFlow<EditorUiState>) {
+class NotebookSearch(
+  private val uiState: MutableStateFlow<EditorUiState>,
+  /**
+   * Only ever asked to write by [step]: two of the three collapses a landing undoes are persisted
+   * (`Cell.headingCollapsed`, `Cell.sourceHidden`), so reaching a hidden match changes the document
+   * even though searching does not.
+   */
+  private val save: NotebookSaveDebounce,
+) {
   /** `documentsearch:start`. */
   fun start() = uiState.update { it.withSearchOpened() }
 
   /** The box was typed into. */
   fun queryChanged(query: SearchQuery) = uiState.update { it.withSearchQuery(query) }
 
+  /** `documentsearch:highlightNext`. */
+  fun next() = step(reverse = false)
+
+  /** `documentsearch:highlightPrevious`. */
+  fun previous() = step(reverse = true)
+
   /** `documentsearch:end`. */
   fun end() = uiState.update { it.withSearchClosed() }
+
+  /**
+   * Steps, and writes only if the step actually changed the document.
+   *
+   * Two of the three collapses a landing can undo are persisted, so a step onto a hidden match has
+   * to reach disk - and a step onto an ordinary one must not, or reading through a notebook's
+   * matches would rewrite the file and reorder Recents for having been looked at. The cell list is
+   * the whole of what persists here, so its identity is the exact question.
+   */
+  private fun step(reverse: Boolean) {
+    val before = uiState.value
+    val after = before.withSearchStepped(reverse)
+    uiState.value = after
+    if (after.cells !== before.cells) save.schedule()
+  }
 }

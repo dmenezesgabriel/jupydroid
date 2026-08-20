@@ -1099,6 +1099,46 @@ the cell list **zero height** (`evidence/u6-ime-layout/640dp/`).
 Maestro matches whole nodes - so two controls meaning the same thing must not be spelled the same
 way, or the assertion is answered by the icon that just came back.
 
+### Reaching a match reveals it, through all three collapses
+
+`activateNewMatch` undoes one of them itself - `if (activeCell.inputHidden) activeCell.inputHidden
+= false` (`packages/notebook/src/searchprovider.ts:630-634`) - and gets the other two from setting
+`activeCellIndex`: `MarkdownCellSearchProvider` unrenders a rendered cell
+(`packages/cells/src/searchprovider.ts:380-410`), and the notebook extension wires
+`activeCellChanged` to `NotebookActions.expandParent`
+(`packages/notebook-extension/src/index.ts:2871-2873`), which walks up to the collapsed parent
+heading and uncollapses it (`actions.tsx:2288-2306`).
+
+**That last citation corrects a reading recorded in P2h.** The table of contents' jump treats a
+hidden heading as unreachable *on the grounds that the reference does not solve it either*. It
+does. Fixed with the same helper, in its own commit.
+
+Two rules the reveal has to keep, both of which a test pins:
+
+- **It returns the state unchanged when nothing was hiding the cell.** Two of the three flags are
+  persisted, so stepping through an ordinary notebook's matches would otherwise mark it dirty and
+  rewrite the file for having been read - the rule `withMarkdownRendered` already states.
+- **Unrendering does not take the caret.** A command that unrenders is not a tap asking to type in
+  the cell; conflating them is what put a soft keyboard over an untouched notebook in P2e-3.
+
+### A `LazyColumn` needs the IME inset when nothing else is taking it
+
+Every surface this app can have on screen under a soft keyboard carries its own `imePadding` -
+`SymbolRow` in edit mode, `NotebookBar` in command mode - so the cell list has never had to.
+**Searching is the first state with a keyboard and no bottom bar at all**, and without the inset
+the list lays out to the whole window and draws its lower half behind the keys.
+
+Measured rather than noticed: with the IME up the list reported `viewport = 0..987` on the tablet,
+so `visibleItemsInfo` called a cell *visible* while it was under the keyboard - and the arrows
+declined to scroll to a match nobody could see, correctly by their own rule and wrongly by any
+other. Three flow runs went green through it; the screenshot is what said otherwise, for the third
+time in this project.
+
+**And `inViewport` alone is not the reference's rule either.** `activateNewMatch` scrolls when the
+cell is out of view *and then* calls `editor.revealPosition(...)` (`:625-641`) - two steps, and the
+second is what makes the match readable rather than merely present. With a cell-sized list item the
+equivalent is asking for the whole cell, so the guard is *fully* visible rather than visible.
+
 ### ANSI handling today is a stripper, not an emulator
 
 `RenderedOutput.kt:96-102` regex-replaces SGR escapes out of tracebacks

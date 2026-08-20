@@ -1,0 +1,65 @@
+appId: com.jupydroid.app
+---
+# P2i-4: `documentsearch:highlightNext` and `highlightPrevious` - the arrows step through what the
+# bar found, wrap at both ends, and **reveal** whatever is hiding the match they land on.
+#
+# The fixture is two matches with a collapsed heading between them, which is what makes the second
+# claim testable at all: `hidden_velocity = 9` sits inside a collapsed section, so it is not on
+# screen when the search starts - the flow asserts that first, so "it appeared" is a movement and
+# not a cell that was there all along.
+#
+# Revealing it is **parity, not an adaptation**. `activateNewMatch` sets `activeCellIndex`
+# (`packages/notebook/src/searchprovider.ts:611-618`), and the notebook extension wires
+# `activeCellChanged` to `NotebookActions.expandParent`
+# (`packages/notebook-extension/src/index.ts:2871-2873`), which walks up to the collapsed parent
+# and uncollapses it (`actions.tsx:2288-2306`).
+#
+# The wrap is `loop = true`, which is `highlightNext()`'s own default (`:314-322`).
+#
+# No cell is run, so nothing here needs the tablet.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Folded Matches.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Folded Matches.ipynb"
+- extendedWaitUntil:
+    visible: "velocity = 3"
+    timeout: 30000
+# The premise both later assertions rest on: the second match is inside a collapsed section, so
+# the notebook is not showing it.
+- assertVisible: "Folded section"
+- assertNotVisible: "hidden_velocity = 9"
+- takeScreenshot: 01-a-match-folded-away
+- tapOn: "Find in notebook"
+- inputText: "velocity"
+# Two matches, and the search landed on the first without moving the notebook - `startQuery`
+# passes `scroll: false` (`:389-401`), so the folded section is still folded.
+- assertVisible: "Matches 1/2"
+- assertNotVisible: "hidden_velocity = 9"
+- takeScreenshot: 02-two-matches-found-and-nothing-moved
+# Next: the second match is inside the collapsed section, so reaching it expands the section.
+- tapOn: "Next match"
+- assertVisible: "Matches 2/2"
+- assertVisible: "hidden_velocity = 9"
+- takeScreenshot: 03-the-section-gave-way-to-the-match
+# Past the end, back to the first - `loop = true`.
+- tapOn: "Next match"
+- assertVisible: "Matches 1/2"
+- takeScreenshot: 04-wrapped-back-to-the-first
+# And the other way, past the beginning to the last.
+- tapOn: "Previous match"
+- assertVisible: "Matches 2/2"
+- takeScreenshot: 05-wrapped-backwards-to-the-last
+# The expansion is a persisted flag, so it outlives the search and the screen - leaving the
+# document is what flushes the debounce (`stopApp` is a force-stop, `docs/DECISIONS.md`).
+- tapOn: "Close search"
+- tapOn: "Back to notebooks"
+- tapOn: "Folded Matches.ipynb"
+- extendedWaitUntil:
+    visible: "hidden_velocity = 9"
+    timeout: 30000
+- takeScreenshot: 06-still-expanded-after-reopening

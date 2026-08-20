@@ -1,6 +1,8 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -81,18 +83,57 @@ class FindTopBarTest {
     assertEquals(true, closed)
   }
 
+  /** `documentsearch:highlightNext` / `highlightPrevious`. */
+  @Test
+  fun stepsForwardAndBackThroughWhatItFound() {
+    var nexts = 0
+    var previouses = 0
+    compose.setContent { bar(counter = "2/7", onNext = { nexts++ }, onPrevious = { previouses++ }) }
+
+    compose.onNodeWithContentDescription(NEXT_MATCH).performClick()
+    compose.onNodeWithContentDescription(PREVIOUS_MATCH).performClick()
+
+    assertEquals(1, nexts)
+    assertEquals(1, previouses)
+  }
+
+  /**
+   * Greyed rather than absent with nothing found, so the bar does not change shape under a thumb
+   * as the query is typed. Asserted here rather than in a flow because the accessibility tree keeps
+   * `enabled` on a node a Maestro assertion cannot read (`docs/DECISIONS.md`).
+   */
+  @Test
+  fun theArrowsAreDeadWhileThereIsNothingToStepThrough() {
+    compose.setContent { bar(counter = "-/-") }
+
+    compose.onNodeWithContentDescription(NEXT_MATCH).assertIsNotEnabled()
+    compose.onNodeWithContentDescription(PREVIOUS_MATCH).assertIsNotEnabled()
+  }
+
+  @Test
+  fun theArrowsComeAliveOnceSomethingIsFound() {
+    compose.setContent { bar(counter = "1/2") }
+
+    compose.onNodeWithContentDescription(NEXT_MATCH).assertIsEnabled()
+    compose.onNodeWithContentDescription(PREVIOUS_MATCH).assertIsEnabled()
+  }
+
   @androidx.compose.runtime.Composable
   private fun bar(
     query: SearchQuery = SearchQuery(""),
     counter: String = "-/-",
     parseError: String? = null,
     onQueryChanged: (SearchQuery) -> Unit = {},
+    onPrevious: () -> Unit = {},
+    onNext: () -> Unit = {},
     onClose: () -> Unit = {},
   ) = FindTopBar(
     query = query,
     counter = counter,
     parseError = parseError,
     onQueryChanged = onQueryChanged,
+    onPrevious = onPrevious,
+    onNext = onNext,
     onClose = onClose,
   )
 }
