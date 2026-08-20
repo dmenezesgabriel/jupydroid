@@ -1146,6 +1146,39 @@ cell is out of view *and then* calls `editor.revealPosition(...)` (`:625-641`) -
 second is what makes the match readable rather than merely present. With a cell-sized list item the
 equivalent is asking for the whole cell, so the guard is *fully* visible rather than visible.
 
+### A replacement is two steps, and Kotlin throws where JavaScript does not
+
+Both of the reference's call sites build it the same way
+(`packages/codemirror/src/searchprovider.ts:344-352`, `:412-422`): substitute first when the query
+is a regular expression - `match.text.replace(query, newText)`, so `$1` works - then apply
+`preserveCase` to *whatever that produced*, not to what was typed. The third arm of `preserveCase`
+is the one a guess gets wrong: sentence case lowercases the rest of the word
+(`first.toUpperCase() + suffix.join('').toLowerCase()`), so `Cat` → `dOG` gives `Dog`.
+
+**Kotlin's `Regex.replace` raises on a group reference that does not exist; JavaScript's
+`String.prototype.replace` leaves `$9` as the characters it is.** A replacement being typed names a
+group that is not there yet for most of the time it is being typed, so this falls back to the
+literal text. Same shape as the `^` divergence in the query, and the same reasoning as
+`CompiledQuery.Invalid`: half-typed input is the ordinary case here, not the exceptional one.
+
+**A replace is undoable, and it cost nothing to be.** `docs/DECISIONS.md` wrote the `rewrote` rule
+for Split and named find-and-replace as its next user; `recording` derives the rewritten cells from
+the before/after diff and bumps `sourceRevisions` with them, so the cell's field is told its text
+changed underneath it without replace knowing that mechanism exists. **Replace All is one undo**,
+not one per cell, which is `CellEdits.applying`'s own boundary and the reference's
+`sharedModel.transact { }`.
+
+**Where the cursor goes after a replace is forward, and it has to be said explicitly.**
+`replaceCurrentMatch` walks the regenerated matches for `position >= positionAfterReplacement`
+(`:360-380`). Landing by *cell* alone - which is what a new query does - would send a replacement
+in the second of two matches in one cell back to the first, which is backwards. `firstHitAtOrAfter`
+is the offset-aware sibling of `firstHitFrom` for exactly that.
+
+**`startWithReplace` is a menu row rather than a chevron**, and `preserveCase` is offered only
+beside a replacement. The reference puts both on the box (`searchview.tsx:245-255`, `:694-699`);
+the bar has no room for a seventh target at 320dp, which is the same arithmetic that put the three
+query options behind the overflow.
+
 ### ANSI handling today is a stripper, not an emulator
 
 `RenderedOutput.kt:96-102` regex-replaces SGR escapes out of tracebacks

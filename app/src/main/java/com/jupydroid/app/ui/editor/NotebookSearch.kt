@@ -18,6 +18,12 @@ data class SearchState(
   val current: Int? = null,
   /** `_parsingError`: the pattern did not compile, and the box says so rather than throwing. */
   val parseError: String? = null,
+  /** `documentsearch:startWithReplace` - whether the replace row is on the bar. */
+  val replaceShown: Boolean = false,
+  /** `SearchDocumentModel.replaceText` - what a replace writes. */
+  val replaceText: String = "",
+  /** `preserveCase` - see [replacementFor]. Off, as `_preserveCase = false` is. */
+  val preserveCase: Boolean = false,
 )
 
 /**
@@ -46,8 +52,10 @@ fun EditorUiState.withSearchQuery(query: SearchQuery): EditorUiState {
   if (search == null) return this
   val compiled = query.compile()
   val hits = if (compiled is CompiledQuery.Matching) searchHits(compiled.regex) else emptyList()
+  // `copy` of the search rather than a fresh one: `_updateSearch` rebuilds the *query*, and the
+  // replacement text and its options are the view's, untouched by it (`searchmodel.ts:334-352`).
   return copy(
-    search = SearchState(
+    search = search.copy(
       query = query,
       hits = hits,
       current = hits.firstHitFrom(this),

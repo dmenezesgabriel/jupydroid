@@ -2,6 +2,8 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -18,7 +20,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -27,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -57,17 +62,24 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FindTopBar(
-  query: SearchQuery,
+  /** The whole search, read the way [EditorCell] reads a `Cell` - see [SearchState]. */
+  search: SearchState,
   /** `${current + 1}/${total}` or `-/-` - see [searchCounterText]. */
   counter: String,
-  /** `_parsingError`, or null - shown under the box rather than swallowed. */
-  parseError: String?,
   onQueryChanged: (SearchQuery) -> Unit,
   /** `documentsearch:highlightPrevious`. */
   onPrevious: () -> Unit,
   /** `documentsearch:highlightNext`. */
   onNext: () -> Unit,
   onClose: () -> Unit,
+  /** `documentsearch:startWithReplace`, and its other half - see [SearchState.replaceShown]. */
+  onToggleReplaceShown: () -> Unit = {},
+  onReplaceTextChanged: (String) -> Unit = {},
+  onTogglePreserveCase: () -> Unit = {},
+  /** `Replace` - the match the arrows are on. */
+  onReplace: () -> Unit = {},
+  /** `Replace All` - every match in the notebook, as one undoable operation. */
+  onReplaceAll: () -> Unit = {},
 ) {
   val box = remember { FocusRequester() }
   // Nothing found is nothing to step through - `-/-` is the counter's own way of saying it.
@@ -76,55 +88,118 @@ fun FindTopBar(
   // find input does (`searchview.tsx:170-180`). A find bar that had to be tapped before it could
   // be typed into would waste the one gesture that opened it.
   LaunchedEffect(Unit) { box.requestFocus() }
-  TopAppBar(
-    // Tinted like [SelectionTopBar], so this reads as a mode rather than as the notebook's own bar
-    // with different buttons on it.
-    colors = TopAppBarDefaults.topAppBarColors(
-      containerColor = MaterialTheme.colorScheme.secondaryContainer,
-      titleContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-      navigationIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-      actionIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    ),
-    navigationIcon = {
-      IconButton(onClick = onClose, modifier = Modifier.semantics { contentDescription = CLOSE_SEARCH }) {
-        Icon(Icons.Filled.Close, contentDescription = null)
-      }
-    },
-    title = {
-      Column {
-        FindBox(query = query, onQueryChanged = onQueryChanged, focusRequester = box)
-        // Under the box, where the reference puts it too (`REGEX_ERROR_CLASS`, `searchview.tsx:669`).
-        if (parseError != null) {
-          Text(
-            text = parseError,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-          )
+  // A `Column` rather than the bar alone, because `TopAppBar` is one 64dp row and the replace half
+  // is a second one. The reference stacks them too - its overlay grows a row when the chevron is
+  // opened (`searchview.tsx:690-700`), and the row it grows carries the same three controls.
+  Column {
+    TopAppBar(
+      // Tinted like [SelectionTopBar], so this reads as a mode rather than as the notebook's own bar
+      // with different buttons on it.
+      colors = TopAppBarDefaults.topAppBarColors(
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        titleContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        navigationIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        actionIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+      ),
+      navigationIcon = {
+        IconButton(onClick = onClose, modifier = named(CLOSE_SEARCH)) {
+          Icon(Icons.Filled.Close, contentDescription = null)
         }
-      }
-    },
-    actions = {
-      // Named as well as read, because "1/3" alone tells a screen reader nothing about what is
-      // being counted - and it is what a Maestro flow addresses.
-      Text(
-        text = counter,
-        style = MaterialTheme.typography.labelLarge,
-        modifier = Modifier
-          .padding(horizontal = 8.dp)
-          .semantics { contentDescription = "$MATCH_COUNT $counter" },
+      },
+      title = {
+        Column {
+          FindBox(query = search.query, onQueryChanged = onQueryChanged, focusRequester = box)
+          // Under the box, where the reference puts it too (`REGEX_ERROR_CLASS`, `searchview.tsx:669`).
+          search.parseError?.let { error ->
+            Text(
+              text = error,
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.error,
+            )
+          }
+        }
+      },
+      actions = {
+        // Named as well as read, because "1/3" alone tells a screen reader nothing about what is
+        // being counted - and it is what a Maestro flow addresses.
+        Text(
+          text = counter,
+          style = MaterialTheme.typography.labelLarge,
+          modifier = Modifier
+            .padding(horizontal = 8.dp)
+            .semantics { contentDescription = "$MATCH_COUNT $counter" },
+        )
+        // Greyed rather than absent while there is nothing to step through, which is the rule this
+        // app already applies to every command whose two states would look identical - and here it
+        // also keeps the bar's shape from changing under a thumb as the query is typed.
+        IconButton(onClick = onPrevious, enabled = steppable, modifier = named(PREVIOUS_MATCH)) {
+          Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null)
+        }
+        IconButton(onClick = onNext, enabled = steppable, modifier = named(NEXT_MATCH)) {
+          Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
+        }
+        SearchOptionsMenu(
+          search = search,
+          onQueryChanged = onQueryChanged,
+          onToggleReplaceShown = onToggleReplaceShown,
+          onTogglePreserveCase = onTogglePreserveCase,
+        )
+      },
+    )
+    if (search.replaceShown) {
+      ReplaceRow(
+        replaceText = search.replaceText,
+        canReplace = steppable,
+        onReplaceTextChanged = onReplaceTextChanged,
+        onReplace = onReplace,
+        onReplaceAll = onReplaceAll,
       )
-      // Greyed rather than absent while there is nothing to step through, which is the rule this
-      // app already applies to every command whose two states would look identical - and here it
-      // also keeps the bar's shape from changing under a thumb as the query is typed.
-      IconButton(onClick = onPrevious, enabled = steppable, modifier = named(PREVIOUS_MATCH)) {
-        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null)
-      }
-      IconButton(onClick = onNext, enabled = steppable, modifier = named(NEXT_MATCH)) {
-        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
-      }
-      SearchOptionsMenu(query = query, onQueryChanged = onQueryChanged)
-    },
-  )
+    }
+  }
+}
+
+/**
+ * The second row `documentsearch:startWithReplace` opens - a box and the two buttons the reference
+ * puts beside it, *"Replace"* and *"Replace All"* (`searchview.tsx:237-272`).
+ *
+ * Both are dead while nothing is found, for the arrows' reason: a control whose two states look
+ * identical is one this app does not draw live.
+ */
+@Composable
+private fun ReplaceRow(
+  replaceText: String,
+  canReplace: Boolean,
+  onReplaceTextChanged: (String) -> Unit,
+  onReplace: () -> Unit,
+  onReplaceAll: () -> Unit,
+) {
+  Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, bottom = 8.dp),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      BasicTextField(
+        value = replaceText,
+        onValueChange = onReplaceTextChanged,
+        singleLine = true,
+        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSecondaryContainer),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSecondaryContainer),
+        modifier = Modifier.weight(1f).semantics { contentDescription = REPLACE_BOX },
+        decorationBox = { field ->
+          if (replaceText.isEmpty()) {
+            Text(
+              text = REPLACE_BOX,
+              style = LocalTextStyle.current,
+              color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = PLACEHOLDER_ALPHA),
+            )
+          }
+          field()
+        },
+      )
+      TextButton(onClick = onReplace, enabled = canReplace) { Text(REPLACE_ONE) }
+      TextButton(onClick = onReplaceAll, enabled = canReplace) { Text(REPLACE_ALL) }
+    }
+  }
 }
 
 /**
@@ -141,7 +216,13 @@ fun FindTopBar(
  * so a check mark is a state no Maestro flow can read (`docs/DECISIONS.md`).
  */
 @Composable
-private fun SearchOptionsMenu(query: SearchQuery, onQueryChanged: (SearchQuery) -> Unit) {
+private fun SearchOptionsMenu(
+  search: SearchState,
+  onQueryChanged: (SearchQuery) -> Unit,
+  onToggleReplaceShown: () -> Unit,
+  onTogglePreserveCase: () -> Unit,
+) {
+  val query = search.query
   var open by remember { mutableStateOf(false) }
   // Boxed with its menu, which anchors to its parent layout node - the lesson [CellHeader],
   // [NotebookBar] and [EditorTopBar] each record.
@@ -161,6 +242,19 @@ private fun SearchOptionsMenu(query: SearchQuery, onQueryChanged: (SearchQuery) 
       SearchOptionRow(if (query.useRegex) SEARCH_PLAIN_TEXT else USE_REGULAR_EXPRESSION) {
         open = false
         onQueryChanged(query.copy(useRegex = !query.useRegex))
+      }
+      SearchOptionRow(if (search.replaceShown) HIDE_REPLACE else SHOW_REPLACE) {
+        open = false
+        onToggleReplaceShown()
+      }
+      // Only while there is a replacement for it to change, which is this app's rule for a control
+      // whose two states look identical - and the reference's own placement, since it lives inside
+      // the replace row there (`searchview.tsx:245-255`).
+      if (search.replaceShown) {
+        SearchOptionRow(if (search.preserveCase) REPLACE_VERBATIM else PRESERVE_CASE) {
+          open = false
+          onTogglePreserveCase()
+        }
       }
     }
   }
@@ -263,6 +357,35 @@ internal const val USE_REGULAR_EXPRESSION = "Use regular expression"
 
 /** The same option from the other side - see [USE_REGULAR_EXPRESSION]. */
 internal const val SEARCH_PLAIN_TEXT = "Search for plain text"
+
+/**
+ * `documentsearch:startWithReplace`, whose own control is a chevron beside the box - *"Show
+ * Replace"* / *"Hide Replace"* (`searchview.tsx:694-699`). The reference's two labels, kept.
+ *
+ * **Adaptation:** it is a menu row rather than a chevron, because the bar has no room for a
+ * seventh target at 320dp - the same arithmetic that put the three query options behind the
+ * overflow. So `startWithReplace` is this bar opened and one more tap, rather than a command of
+ * its own.
+ */
+internal const val SHOW_REPLACE = "Show replace"
+
+/** The same control from the other side - see [SHOW_REPLACE]. */
+internal const val HIDE_REPLACE = "Hide replace"
+
+/** The replacement box - the reference's own placeholder and title, *"Replace"* (`searchview.tsx:237-241`). */
+internal const val REPLACE_BOX = "Replace with"
+
+/** *"Replace"* - the one match the arrows are standing on (`searchview.tsx:263`). */
+internal const val REPLACE_ONE = "Replace"
+
+/** *"Replace All"* (`searchview.tsx:271`). */
+internal const val REPLACE_ALL = "Replace all"
+
+/** *"Preserve Case"* (`searchview.tsx:249`) - see [replacementFor] for what it does. */
+internal const val PRESERVE_CASE = "Preserve case"
+
+/** The same option from the other side - see [PRESERVE_CASE]. */
+internal const val REPLACE_VERBATIM = "Replace verbatim"
 
 /** See [NEXT_MATCH]: one node carries both the name and the enabled state. */
 private fun named(what: String) = Modifier.semantics { contentDescription = what }

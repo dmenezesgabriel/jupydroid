@@ -172,6 +172,117 @@ class NotebookSearchTest {
     assertEquals(false, searching.withSearchStepped(false).dirty)
   }
 
+  // ---- replace, P2i-6 ----
+
+  private fun searchingFor(text: String, replaceWith: String, vararg cells: Cell) =
+    EditorUiState(cells = cells.toList(), selectedCellId = cells.first().id, loaded = true)
+      .withSearchOpened()
+      .withReplaceText(replaceWith)
+      .withSearchQuery(SearchQuery(text))
+
+  private fun EditorUiState.sourceOf(id: String) = cells.single { it.id == id }.source
+
+  @Test
+  fun replacingTheCurrentMatchRewritesOnlyThatMatch() {
+    val replaced = searchingFor("cat", "dog", code("a", "cat and cat")).withCurrentMatchReplaced()
+
+    assertEquals("dog and cat", replaced.sourceOf("a"))
+  }
+
+  /**
+   * `for (matchIdx …) if (allMatches[matchIdx].position >= positionAfterReplacement)` - the cursor
+   * goes **forward** from where the replacement ended, so replacing the first of two leaves the
+   * second standing (`packages/codemirror/src/searchprovider.ts:360-380`).
+   */
+  @Test
+  fun theCursorMovesForwardPastTheReplacement() {
+    val replaced = searchingFor("cat", "dog", code("a", "cat and cat")).withCurrentMatchReplaced()
+
+    assertEquals("1/1", replaced.searchCounter())
+    assertEquals(8, replaced.search?.hits?.single()?.range?.first)
+  }
+
+  /** And replacing the **second** does not send the cursor back to the first - it loops instead. */
+  @Test
+  fun replacingTheLastMatchLoopsRatherThanGoingBackwards() {
+    val replaced = searchingFor("cat", "dog", code("a", "cat and cat"))
+      .withSearchStepped(reverse = false)
+      .withCurrentMatchReplaced()
+
+    assertEquals("cat and dog", replaced.sourceOf("a"))
+    assertEquals(0, replaced.search?.hits?.single()?.range?.first)
+  }
+
+  /** A replace is a cell operation, so `Z` takes it back - see [CellUndo]'s `rewrote` rule. */
+  @Test
+  fun aReplaceIsUndoableAndPutsTheTextBack() {
+    val replaced = searchingFor("cat", "dog", code("a", "cat and cat")).withCurrentMatchReplaced()
+
+    assertEquals("cat and cat", replaced.undoneCellOperation().sourceOf("a"))
+  }
+
+  /** And the cell's field is told, or it would carry on showing the text from before. */
+  @Test
+  fun aReplaceTellsTheFieldItsTextWasRewritten() {
+    val before = searchingFor("cat", "dog", code("a", "cat and cat"))
+    val replaced = before.withCurrentMatchReplaced()
+
+    assertEquals(
+      (before.sourceRevisions["a"] ?: 0) + 1,
+      replaced.sourceRevisions["a"],
+    )
+  }
+
+  @Test
+  fun replaceAllRewritesEveryMatchInEveryCell() {
+    val replaced = searchingFor("cat", "dog", code("a", "cat cat"), code("b", "a cat"))
+      .withAllMatchesReplaced()
+
+    assertEquals("dog dog", replaced.sourceOf("a"))
+    assertEquals("a dog", replaced.sourceOf("b"))
+    assertEquals("-/-", replaced.searchCounter())
+  }
+
+  /** One command is one undoable operation, which is `CellEdits.applying`'s own boundary. */
+  @Test
+  fun replaceAllIsOneUndoNotOnePerCell() {
+    val replaced = searchingFor("cat", "dog", code("a", "cat cat"), code("b", "a cat"))
+      .withAllMatchesReplaced()
+
+    val undone = replaced.undoneCellOperation()
+    assertEquals("cat cat", undone.sourceOf("a"))
+    assertEquals("a cat", undone.sourceOf("b"))
+  }
+
+  @Test
+  fun replacingWithNothingFoundChangesNothing() {
+    val searching = searchingFor("zzz", "dog", code("a", "cat"))
+
+    assertEquals(searching, searching.withCurrentMatchReplaced())
+    assertEquals(searching, searching.withAllMatchesReplaced())
+  }
+
+  /** `preserveCase` is the view's, so re-running the query must not reset it. */
+  @Test
+  fun theReplacementHalfSurvivesANewQuery() {
+    val searching = searchingFor("cat", "dog", code("a", "cat"))
+      .withPreserveCase(true)
+      .withReplaceShown(true)
+      .withSearchQuery(SearchQuery("ca"))
+
+    assertEquals("dog", searching.search?.replaceText)
+    assertEquals(true, searching.search?.preserveCase)
+    assertEquals(true, searching.search?.replaceShown)
+  }
+
+  @Test
+  fun preserveCaseReachesTheReplacement() {
+    val replaced = searchingFor("cat", "dog", code("a", "CAT")).withPreserveCase(true)
+      .withCurrentMatchReplaced()
+
+    assertEquals("DOG", replaced.sourceOf("a"))
+  }
+
   /** Each cell is handed only its own matches, and only it can hold the current one. */
   @Test
   fun aCellIsHandedItsOwnMatchesAndWhetherTheCurrentIsAmongThem() {

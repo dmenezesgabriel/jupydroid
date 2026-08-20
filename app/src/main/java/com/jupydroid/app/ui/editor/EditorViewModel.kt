@@ -81,8 +81,11 @@ class EditorViewModel(
   /** Which cells the menu means. Nothing here is written, so it takes no save; see [NotebookCellSelection]. */
   val selection = NotebookCellSelection(_uiState)
 
-  /** The find bar. Writes nothing either, so it takes no save; see [NotebookSearch]. */
+  /** The find bar. Writes only when a match is reached out of hiding; see [NotebookSearch]. */
   val search = NotebookSearch(_uiState, save)
+
+  /** The other half of that bar - the only part of searching that rewrites cells. See [NotebookReplace]. */
+  val replace = NotebookReplace(_uiState, save)
 
   init {
     viewModelScope.launch {

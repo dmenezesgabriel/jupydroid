@@ -158,22 +158,102 @@ class FindTopBarTest {
     assertEquals(SearchQuery("cat", caseSensitive = true), asked)
   }
 
+  /** `documentsearch:startWithReplace` - the row is absent until it is asked for. */
+  @Test
+  fun theReplaceRowIsNotThereUntilItIsAskedFor() {
+    compose.setContent { bar() }
+
+    compose.onNodeWithContentDescription(REPLACE_BOX).assertDoesNotExist()
+
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+    compose.onNodeWithText(SHOW_REPLACE).assertIsDisplayed()
+  }
+
+  @Test
+  fun theReplaceRowCarriesABoxAndBothButtons() {
+    compose.setContent { bar(replaceShown = true, counter = "1/3") }
+
+    compose.onNodeWithContentDescription(REPLACE_BOX).assertIsDisplayed()
+    compose.onNodeWithText(REPLACE_ONE).assertIsEnabled()
+    compose.onNodeWithText(REPLACE_ALL).assertIsEnabled()
+  }
+
+  /** Dead while nothing is found, for the arrows' reason - two states that would look identical. */
+  @Test
+  fun neitherReplaceButtonIsLiveWithNothingFound() {
+    compose.setContent { bar(replaceShown = true, counter = "-/-") }
+
+    compose.onNodeWithText(REPLACE_ONE).assertIsNotEnabled()
+    compose.onNodeWithText(REPLACE_ALL).assertIsNotEnabled()
+  }
+
+  @Test
+  fun bothReplaceButtonsReportWhatWasAskedFor() {
+    var replaced = 0
+    var replacedAll = 0
+    compose.setContent {
+      bar(replaceShown = true, counter = "1/3", onReplace = { replaced++ }, onReplaceAll = { replacedAll++ })
+    }
+
+    compose.onNodeWithText(REPLACE_ONE).performClick()
+    compose.onNodeWithText(REPLACE_ALL).performClick()
+
+    assertEquals(1, replaced)
+    assertEquals(1, replacedAll)
+  }
+
+  /** `preserveCase` is offered only while there is a replacement for it to change. */
+  @Test
+  fun preserveCaseIsOfferedOnlyBesideAReplacement() {
+    compose.setContent { bar() }
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+    compose.onNodeWithText(PRESERVE_CASE).assertDoesNotExist()
+  }
+
+  @Test
+  fun preserveCaseAppearsOnceTheReplaceRowIs() {
+    compose.setContent { bar(replaceShown = true) }
+
+    compose.onNodeWithContentDescription(SEARCH_OPTIONS).performClick()
+
+    compose.onNodeWithText(PRESERVE_CASE).assertIsDisplayed()
+    compose.onNodeWithText(HIDE_REPLACE).assertIsDisplayed()
+  }
+
   @androidx.compose.runtime.Composable
   private fun bar(
     query: SearchQuery = SearchQuery(""),
     counter: String = "-/-",
     parseError: String? = null,
+    replaceShown: Boolean = false,
+    replaceText: String = "",
+    preserveCase: Boolean = false,
     onQueryChanged: (SearchQuery) -> Unit = {},
     onPrevious: () -> Unit = {},
     onNext: () -> Unit = {},
     onClose: () -> Unit = {},
+    onToggleReplaceShown: () -> Unit = {},
+    onReplaceTextChanged: (String) -> Unit = {},
+    onTogglePreserveCase: () -> Unit = {},
+    onReplace: () -> Unit = {},
+    onReplaceAll: () -> Unit = {},
   ) = FindTopBar(
-    query = query,
+    search = SearchState(
+      query = query,
+      parseError = parseError,
+      replaceShown = replaceShown,
+      replaceText = replaceText,
+      preserveCase = preserveCase,
+    ),
     counter = counter,
-    parseError = parseError,
     onQueryChanged = onQueryChanged,
     onPrevious = onPrevious,
     onNext = onNext,
     onClose = onClose,
+    onToggleReplaceShown = onToggleReplaceShown,
+    onReplaceTextChanged = onReplaceTextChanged,
+    onTogglePreserveCase = onTogglePreserveCase,
+    onReplace = onReplace,
+    onReplaceAll = onReplaceAll,
   )
 }

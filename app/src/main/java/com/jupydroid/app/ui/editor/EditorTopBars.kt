@@ -40,13 +40,17 @@ internal fun EditorTopBars(
   val searching = state.search
   when {
     searching != null -> FindTopBar(
-      query = searching.query,
+      search = searching,
       counter = state.searchCounter(),
-      parseError = searching.parseError,
       onQueryChanged = viewModel.search::queryChanged,
       onPrevious = viewModel.search::previous,
       onNext = viewModel.search::next,
       onClose = viewModel.search::end,
+      onToggleReplaceShown = viewModel.replace::toggleShown,
+      onReplaceTextChanged = viewModel.replace::textChanged,
+      onTogglePreserveCase = viewModel.replace::togglePreserveCase,
+      onReplace = viewModel.replace::current,
+      onReplaceAll = viewModel.replace::all,
     )
 
     state.selecting && head != null -> SelectionTopBar(

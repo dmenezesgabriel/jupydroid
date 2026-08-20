@@ -1,0 +1,84 @@
+appId: com.jupydroid.app
+---
+# P2i-6: `documentsearch:startWithReplace` - Replace, Replace All and Preserve Case.
+#
+# The fixture is three single-line cells, `cat = 1`, `CAT = 2`, `cat = 3`, which makes each claim
+# readable straight off the cell rather than out of a counter:
+#
+# - **Replace** rewrites only the match the arrows are standing on, and the cursor then moves
+#   FORWARD past it (`packages/codemirror/src/searchprovider.ts:360-380`), so the second Replace
+#   lands on the next cell rather than back where it started.
+# - **Preserve Case** makes `CAT` become `DOG` where the same replacement writes `dog` elsewhere
+#   (`packages/documentsearch/src/searchprovider.ts:176-198`).
+# - **Replace All** takes the rest in one go, and the counter falls to `-/-` on its own because
+#   the query is re-run and finds nothing.
+# - And it is ONE undo, not one per cell: `notebook:undo-cell-action` puts every cell back, which
+#   is `CellEdits.applying`'s boundary (`docs/DECISIONS.md`).
+#
+# The replacement is written through the same `sourceRevisions` bump a split uses, so what the
+# flow reads off a cell is the field having adopted text it did not type.
+#
+# No cell is run, so nothing here needs the tablet.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Replace Me.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Replace Me.ipynb"
+- extendedWaitUntil:
+    visible: "cat = 3"
+    timeout: 30000
+- tapOn: "Find in notebook"
+- inputText: "cat"
+- assertVisible: "Matches 1/3"
+# `documentsearch:startWithReplace` - the row is a tap away rather than a second bar action.
+- tapOn: "Search options"
+- tapOn: "Show replace"
+- assertVisible: "Replace with"
+- takeScreenshot: 01-the-replace-row
+- tapOn: "Replace with"
+- inputText: "dog"
+- takeScreenshot: 02-a-replacement-typed
+# One match, the one the arrows are on. The other two are untouched, and the COUNTER is what says
+# so rather than a third `assertVisible`: with the replace row and the soft keyboard both up, the
+# third cell is below the fold, and "not visible" would be true of a cell that had been rewritten
+# and of one that had not. Two matches left is a claim only the second can satisfy.
+- tapOn: "Replace"
+- assertVisible: "dog = 1"
+- assertVisible: "CAT = 2"
+- assertVisible: "Matches 1/2"
+- takeScreenshot: 03-only-the-match-it-was-standing-on
+# Preserve case: the cursor moved forward onto `CAT`, so this one shouts back.
+- tapOn: "Search options"
+- tapOn: "Preserve case"
+- tapOn: "Replace"
+- assertVisible: "DOG = 2"
+- assertVisible: "Matches 1/1"
+- takeScreenshot: 04-preserve-case-shouted-back
+# Replace all takes what is left, and the counter falls to `-/-` because the query is re-run and
+# finds nothing - no special case for it anywhere.
+- tapOn: "Replace all"
+- assertVisible: "Matches -/-"
+- takeScreenshot: 05-replace-all-took-the-rest
+# The bar goes, and with it the keyboard - which is what puts the third cell back on screen for
+# the two assertions that need to read it.
+- tapOn: "Close search"
+- assertVisible: "dog = 3"
+- takeScreenshot: 06-what-replace-all-wrote
+# One command is one undo, so this takes back the whole of the Replace All and nothing before it.
+- tapOn: "Undo cell operation"
+- assertVisible: "cat = 3"
+- assertVisible: "dog = 1"
+- assertVisible: "DOG = 2"
+- takeScreenshot: 07-one-undo-took-back-one-command
+# And it reaches disk - leaving the document is what flushes the debounce.
+- tapOn: "Back to notebooks"
+- tapOn: "Replace Me.ipynb"
+- extendedWaitUntil:
+    visible: "dog = 1"
+    timeout: 30000
+- assertVisible: "DOG = 2"
+- takeScreenshot: 08-the-replacements-survived-reopening

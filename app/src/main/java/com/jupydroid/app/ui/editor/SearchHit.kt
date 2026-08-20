@@ -58,6 +58,29 @@ fun List<SearchHit>.firstHitFrom(state: EditorUiState): Int? {
 }
 
 /**
+ * The first hit at or after a position in the document, wrapping - where a replacement leaves the
+ * cursor.
+ *
+ * `replaceCurrentMatch` walks the regenerated match list for
+ * `allMatches[matchIdx].position >= positionAfterReplacement` and falls through to the next cell
+ * when it finds none (`packages/codemirror/src/searchprovider.ts:356-386`, and the notebook's
+ * `highlightNext(loop, { from: 'previous-match' })` above it). Both halves are one predicate here,
+ * because the hits are already one list in document order.
+ *
+ * **Offset-aware, and [firstHitFrom] is not.** Landing by cell alone would send a replacement in
+ * the *second* of two matches in one cell back to the first, which is backwards.
+ */
+fun List<SearchHit>.firstHitAtOrAfter(state: EditorUiState, cellId: String, offset: Int): Int? {
+  if (isEmpty()) return null
+  val position = state.cells.withIndex().associate { (at, cell) -> cell.id to at }
+  val from = position[cellId] ?: 0
+  return indexOfFirst { hit ->
+    val at = position[hit.cellId] ?: 0
+    at > from || (at == from && hit.range.first >= offset)
+  }.takeIf { it >= 0 } ?: 0
+}
+
+/**
  * `highlightNext()` - one forward, wrapping, which is `loop = true`'s
  * `(index + length) % length` in `_stepNext` (`searchprovider.ts:660-706`).
  *
