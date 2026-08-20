@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import android.content.Context
 import android.os.Build
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.NotebookExporter
 import java.io.File
 
 /**
@@ -45,20 +46,33 @@ fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher =
   )
 
 /**
- * The gateway backed by a real kernel in the bundled Space, or null where no Space can run.
+ * The base Space's server, brought up on first use - or null where no Space can run.
  *
- * Null rather than a throwing gateway, so the caller decides: on an x86_64 emulator the
- * runtime cannot work at all (evidence/step8.3/musl-is-arm64-only.txt) and the UI is better
- * served by the fake than by a Run button that always fails.
+ * Null rather than a throwing object, so the caller decides: on an x86_64 emulator the runtime
+ * cannot work at all (evidence/step8.3/musl-is-arm64-only.txt) and the UI is better served by the
+ * fakes than by controls that always fail.
  *
- * [launcher] is the caller's - P1c's backstop stops the same process this starts, so the caller
- * builds one launcher and shares it between the two.
+ * **One per process, and shared by every client of the Space**, because
+ * `JupyterServerLauncher.start` begins with `stop()` - see [BaseSpaceServer]. [launcher] is the
+ * caller's for the same reason from the other side: P1c's backstop stops the process this starts.
  */
-fun baseSpaceKernelGateway(context: Context, launcher: JupyterServerLauncher): KernelGateway? {
+fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpaceServer? {
   if (runCatching { deviceAbi() }.isFailure) return null
-  return BaseSpaceKernelGateway(
+  return BaseSpaceServer(
     installSpace = { baseSpaceInstaller(context).installIfNeeded() },
     launcher = launcher,
+    log = LogcatSpaceLifecycleLog,
+  )
+}
+
+/** The exporter backed by the nbconvert endpoints of [server]'s `jupyter_server`. */
+fun baseSpaceNotebookExporter(server: BaseSpaceServer): NotebookExporter =
+  BaseSpaceNotebookExporter(server) { OkHttpNotebookExporter(it) }
+
+/** The gateway backed by a real kernel in [server]'s Space. */
+fun baseSpaceKernelGateway(server: BaseSpaceServer): KernelGateway =
+  BaseSpaceKernelGateway(
+    server = server,
     gatewayFor = { connection ->
       RealKernelGateway(
         opener = OkHttpKernelSocketOpener(connection),
@@ -73,7 +87,6 @@ fun baseSpaceKernelGateway(context: Context, launcher: JupyterServerLauncher): K
     },
     log = LogcatSpaceLifecycleLog,
   )
-}
 
 /**
  * The rootfs must match the ABI Android picked for the APK's native libraries, which

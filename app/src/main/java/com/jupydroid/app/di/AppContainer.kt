@@ -2,6 +2,7 @@ package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
@@ -9,6 +10,7 @@ import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.ServerLauncher
@@ -38,6 +40,14 @@ class AppContainer(
    */
   val recentDocuments: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
   val kernelGateway: KernelGateway = FakeKernelGateway(),
+  /**
+   * `notebook:export-to-format`, over the Space's own nbconvert - a **server-side algorithm**,
+   * which this app may not re-implement (`docs/DECISIONS.md`).
+   *
+   * Its fake offers the six formats the shipped rootfs actually converts, so a device with no
+   * Space draws the same menu and only the conversion is missing.
+   */
+  val notebookExporter: NotebookExporter = FakeNotebookExporter(),
   val serverLauncher: ServerLauncher = FakeServerLauncher(),
   /**
    * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown by P6c

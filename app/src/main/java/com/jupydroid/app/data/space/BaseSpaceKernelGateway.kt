@@ -6,36 +6,29 @@ import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.ServerConnection
-import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
- * Brings a Space up on first use, then gets out of the way.
+ * The kernel gateway for the base Space's server, and the bookkeeping that a server which can be
+ * replaced under it forces.
  *
- * `jupyter_server` takes seconds to start and cannot be waited on while an app is being
- * constructed, so this exists to defer that: the Space is installed and the server started
- * the first time anyone actually wants a kernel, and every call after that goes straight to
- * the real gateway.
+ * Starting the server is [BaseSpaceServer]'s job and building the gateway per server is
+ * [PerRunningServer]'s; what is left here - and it is the whole reason this class still exists -
+ * is that a *session* outlives neither.
  *
  * ```
  * BaseSpaceKernelGateway(
- *   installSpace = { baseSpaceInstaller(context).installIfNeeded() },
- *   launcher = baseSpaceServerLauncher(context),
+ *   server = baseSpaceServer(context, baseSpaceServerLauncher(context))!!,
  *   gatewayFor = { RealKernelGateway(OkHttpKernelSocketOpener(it), OkHttpKernelLifecycle(it)) },
  * )
  * ```
  */
 class BaseSpaceKernelGateway(
-  private val installSpace: suspend () -> Unit,
-  private val launcher: ServerLauncher,
-  private val gatewayFor: (ServerConnection) -> KernelGateway,
+  server: BaseSpaceServer,
+  gatewayFor: (ServerConnection) -> KernelGateway,
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) : KernelGateway {
-  private var started: KernelGateway? = null
-
   /**
    * The sessions the *currently running* server issued, cleared whenever a new one is started.
    *
@@ -47,12 +40,20 @@ class BaseSpaceKernelGateway(
    */
   private val issuedSessions = mutableSetOf<String>()
 
-  // Two cells run at once would otherwise each find no server and each start one; the second
-  // would bind a different port and the first would be orphaned.
-  private val startLock = Mutex()
+  // Clearing inside `build` rather than beside it: `PerRunningServer` calls it exactly once per
+  // server, so "a new gateway was built" and "nothing the old server issued carries over" cannot
+  // drift apart.
+  private val live = PerRunningServer(server) { connection ->
+    issuedSessions.clear()
+    gatewayFor(connection)
+  }
 
+  /**
+   * Starts a kernel and binds a session to it. The session id is ours and identifies this
+   * client to the server; the kernel id is the server's.
+   */
   override suspend fun connect(space: Space, documentPath: String): KernelSession =
-    running().connect(space, documentPath).also {
+    live.get().connect(space, documentPath).also {
       issuedSessions += it.id
       log.reached("kernel ${it.kernelId} ready for space ${space.id}")
     }
@@ -61,17 +62,17 @@ class BaseSpaceKernelGateway(
     session: KernelSession,
     cellId: String,
     code: String,
-  ): Flow<KernelEvent> = live(session).execute(session, cellId, code)
+  ): Flow<KernelEvent> = known(session).execute(session, cellId, code)
 
-  override suspend fun interrupt(session: KernelSession) = live(session).interrupt(session)
+  override suspend fun interrupt(session: KernelSession) = known(session).interrupt(session)
 
-  override suspend fun restart(session: KernelSession) = live(session).restart(session)
+  override suspend fun restart(session: KernelSession) = known(session).restart(session)
 
   override suspend fun complete(
     session: KernelSession,
     code: String,
     cursorOffset: Int,
-  ): CompletionResult = live(session).complete(session, code, cursorOffset)
+  ): CompletionResult = known(session).complete(session, code, cursorOffset)
 
   /**
    * Closing a socket the server has already forgotten is not a failure - the session is gone
@@ -91,46 +92,14 @@ class BaseSpaceKernelGateway(
    * closing a websocket that no longer exists, or deleting a session nothing is holding.
    */
   private suspend fun endingIfStillLive(session: KernelSession, end: suspend (KernelGateway) -> Unit) {
-    if (!issuedSessions.remove(session.id) || !launcher.isRunning()) return
-    end(running())
+    if (!issuedSessions.remove(session.id)) return
+    live.liveOrNull()?.let { end(it) }
   }
 
   /** The running gateway, for a session it actually knows; [StaleKernelSessionException] if not. */
-  private suspend fun live(session: KernelSession): KernelGateway {
-    val gateway = running()
+  private suspend fun known(session: KernelSession): KernelGateway {
+    val gateway = live.get()
     if (session.id !in issuedSessions) throw StaleKernelSessionException(session.id)
     return gateway
-  }
-
-  private suspend fun running(): KernelGateway = startLock.withLock {
-    // P1a: the cached gateway is only valid while the server it talks to is alive.
-    // Without this check a stopped server leaves every later call talking to a dead port.
-    val cached = started
-    if (cached != null && launcher.isRunning()) {
-      cached
-    } else {
-      // Whatever the previous server issued died with it, so nothing carries over.
-      issuedSessions.clear()
-      startSpace().also { started = it }
-    }
-  }
-
-  /**
-   * Each stage is logged as it is reached, so a runtime that fails on a device says where.
-   * The alternative is what the first real-kernel run looked like: a cell that never
-   * produced output, nothing in logcat, and the server log dug out through `run-as`.
-   */
-  private suspend fun startSpace(): KernelGateway = runCatching {
-    log.reached("installing base Space")
-    installSpace()
-    log.reached("starting jupyter_server")
-    val connection = launcher.start(BASE_SPACE)
-    log.reached("jupyter_server listening on ${connection.baseUrl}")
-    gatewayFor(connection)
-  }.onFailure { log.failed("base Space failed to come up", it) }.getOrThrow()
-
-  private companion object {
-    /** Step 17 introduces real Spaces; until then there is exactly one and it is this. */
-    val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
   }
 }

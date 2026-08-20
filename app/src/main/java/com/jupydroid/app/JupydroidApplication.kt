@@ -10,8 +10,11 @@ import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
+import com.jupydroid.app.data.space.baseSpaceNotebookExporter
+import com.jupydroid.app.data.space.baseSpaceServer
 import com.jupydroid.app.data.space.baseSpaceServerLauncher
 import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.di.AppContainer
@@ -55,15 +58,13 @@ class JupydroidApplication : Application() {
     // The launcher is built once and shared: the gateway starts it and P1c's backstop stops it,
     // and two launchers would be two processes pretending to be one.
     val serverLauncher = baseSpaceServerLauncher(this)
-    val kernelGateway = baseSpaceKernelGateway(this, serverLauncher)
+    // One server object for the whole process, shared by every client of the Space - see
+    // [BaseSpaceServer]. Null on a device where no Space can run at all.
+    val space = baseSpaceServer(this, serverLauncher)
+    val kernelGateway = space?.let(::baseSpaceKernelGateway)
+    val notebookExporter = space?.let(::baseSpaceNotebookExporter)
     val workspace = notebookWorkspace(this)
-    // Before the repository reads, never after: `DiskNotebookRepository` scans its root in `init`,
-    // so a migration running second would leave the explorer empty until the next launch.
-    NotebookWorkspaceMigration(
-      legacyDir = File(filesDir, "notebooks"),
-      workspaceDir = workspace,
-      stampFile = File(baseSpaceDir(this), ".jupydroid/notebooks-migrated"),
-    ).runOnce()
+    migrateNotebooksOnce(workspace)
     return AppContainer(
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
@@ -72,10 +73,23 @@ class JupydroidApplication : Application() {
       // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
       recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
       kernelGateway = kernelGateway ?: FakeKernelGateway(),
+      notebookExporter = notebookExporter ?: FakeNotebookExporter(),
       serverLauncher = serverLauncher,
       // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
       // state, not a Contents API file.
       editorSettings = DiskEditorSettingsRepository(filesDir),
     )
+  }
+
+  /**
+   * Before the repository reads, never after: `DiskNotebookRepository` scans its root in `init`,
+   * so a migration running second would leave the explorer empty until the next launch.
+   */
+  private fun migrateNotebooksOnce(workspace: File) {
+    NotebookWorkspaceMigration(
+      legacyDir = File(filesDir, "notebooks"),
+      workspaceDir = workspace,
+      stampFile = File(baseSpaceDir(this), ".jupydroid/notebooks-migrated"),
+    ).runOnce()
   }
 }
