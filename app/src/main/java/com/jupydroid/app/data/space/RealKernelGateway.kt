@@ -36,8 +36,10 @@ class KernelChannelException(reason: String) : IllegalStateException(reason)
  * server counts connections against a kernel, and a socket per cell means a WebSocket
  * handshake on every run. [disconnect] is what closes it.
  *
- * [complete] stays unimplemented until Step 5's editor calls it, rather than shipping code
- * nothing exercises.
+ * That socket carries three kinds of traffic, and only one of them may replace the kernel behind
+ * it. [execute] streams a cell's frames and recovers a silent kernel by restarting it; [complete]
+ * and [executionHistory] are one-shot asks that take the first reply and never restart anything -
+ * see `SessionSocket.askOnce`, which is that half.
  */
 class RealKernelGateway(
   private val opener: KernelSocketOpener,
@@ -111,28 +113,20 @@ class RealKernelGateway(
    */
   override suspend fun restart(session: KernelSession) = lifecycle.restart(session.kernelId)
 
-  /**
-   * Sends one `complete_request` and returns the first reply that answers it.
-   *
-   * There is no timeout, and that is deliberate: the shell channel is serial, so a request sent
-   * while a cell runs waits behind it, and the answer to a stale request is to cancel this
-   * coroutine - which the caller does by typing again - not to invent a deadline for the kernel.
-   */
   override suspend fun complete(
     session: KernelSession,
     code: String,
     cursorOffset: Int,
-  ): CompletionResult {
-    val sessionSocket = socketFor(session)
-    val requestMsgId = UUID.randomUUID().toString()
-    return sessionSocket.events
-      .onSubscription {
-        sessionSocket.awaitReady(mayRestartTheKernel = false)
-        sessionSocket.socket.send(JupyterMessage.completeRequest(code, cursorOffset, session.id, requestMsgId))
-      }
-      .mapNotNull { event -> completionOrFail(event, requestMsgId) }
-      .first()
-  }
+  ): CompletionResult = socketFor(session).askOnce(
+    request = { msgId -> JupyterMessage.completeRequest(code, cursorOffset, session.id, msgId) },
+    readReply = KernelCompletions::of,
+  )
+
+  override suspend fun executionHistory(session: KernelSession, entries: Int): List<String> =
+    socketFor(session).askOnce(
+      request = { msgId -> JupyterMessage.historyRequest(entries, session.id, msgId) },
+      readReply = KernelHistoryEntries::of,
+    )
 
   /** Closes the session's socket. The kernel keeps running; this only ends our connection. */
   override suspend fun disconnect(session: KernelSession) {
@@ -168,13 +162,6 @@ class RealKernelGateway(
       log.reached(KernelLog.EXECUTE_COMPLETE, mapOf("cellId" to cellId, "msgId" to requestMsgId))
     }
     return !complete
-  }
-
-  /** Null until the reply arrives; a socket that ends first fails rather than answering nothing. */
-  private fun completionOrFail(event: KernelSocketEvent, requestMsgId: String): CompletionResult? {
-    if (event is KernelSocketEvent.Ended) throw KernelChannelException(event.reason)
-    if (event !is KernelSocketEvent.Received) return null
-    return KernelCompletions.of(event.frame, requestMsgId)
   }
 
   private suspend fun socketFor(session: KernelSession): SessionSocket = socketsLock.withLock {
@@ -249,6 +236,42 @@ class RealKernelGateway(
         if (greeted) return
         greeted = greetOrRecover(mayRestartTheKernel)
       }
+    }
+
+    /**
+     * Sends one request and returns the first reply that answers it.
+     *
+     * The two questions this app asks the shell channel besides running a cell - what completes the
+     * word under the cursor, and what has been run before - are the same round trip: mint a
+     * `msg_id`, wait for the socket, send, and take the first frame [readReply] recognises as an
+     * answer to it. [readReply] is total and returns null for everything else, because a shared
+     * kernel's channel carries another notebook's traffic and this one's own chatter.
+     *
+     * **There is no timeout, and that is deliberate:** the shell channel is serial, so a request
+     * sent while a cell runs waits behind it, and the answer to a stale request is to cancel this
+     * coroutine - which the caller does by typing again - not to invent a deadline for the kernel.
+     *
+     * **And it never restarts the kernel**, which is why [awaitReady]'s flag is settled here rather
+     * than passed in: this is the read-only half of the socket. A cell is worth replacing a silent
+     * kernel for; asking what a word completes to, or what was run an hour ago, is not - both have
+     * an answer for "the kernel cannot say", and restarting would discard the variables of a kernel
+     * the user had merely opened onto.
+     */
+    suspend fun <T> askOnce(request: (msgId: String) -> String, readReply: (frame: String, msgId: String) -> T?): T {
+      val requestMsgId = UUID.randomUUID().toString()
+      return events
+        .onSubscription {
+          awaitReady(mayRestartTheKernel = false)
+          socket.send(request(requestMsgId))
+        }
+        .mapNotNull { event ->
+          // A socket that ends before the reply fails the ask rather than answering nothing, for
+          // the reason a dying execution fails its cell: silence and "there is no answer" are
+          // different claims and only one of them is true.
+          if (event is KernelSocketEvent.Ended) throw KernelChannelException(event.reason)
+          (event as? KernelSocketEvent.Received)?.let { readReply(it.frame, requestMsgId) }
+        }
+        .first()
     }
 
     /**

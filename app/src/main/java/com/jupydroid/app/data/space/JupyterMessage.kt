@@ -42,6 +42,29 @@ object JupyterMessage {
       },
     )
 
+  /**
+   * The tail of the kernel's input history - the reference's own request, transcribed
+   * (`packages/notebook/src/history.ts:402-409`).
+   *
+   * `raw` is the input as it was typed rather than after IPython's transformations, and `output`
+   * is false because the app pastes a previous *input* into a cell and has no use for what it
+   * printed. The two are not cosmetic: the shipped kernel passes both straight to
+   * `history_manager.get_tail`, and `output: true` changes the shape of every entry from a string
+   * to an `[input, output]` pair (`ipykernel/ipkernel.py:612-645` in the shipped rootfs).
+   */
+  fun historyRequest(entries: Int, sessionId: String, msgId: String): String =
+    shellRequest(
+      "history_request",
+      sessionId,
+      msgId,
+      buildJsonObject {
+        put("output", false)
+        put("raw", true)
+        put("hist_access_type", "tail")
+        put("n", entries)
+      },
+    )
+
   private fun shellRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) =
     buildJsonObject {
       put("channel", "shell")

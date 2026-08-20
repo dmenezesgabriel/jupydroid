@@ -58,6 +58,15 @@ class ScriptedKernelSocketOpener(
   /** The `msg_type` of everything sent, in order, so the handshake's place in it can be asserted. */
   val sentMsgTypes = mutableListOf<String>()
 
+  /**
+   * Every frame sent, verbatim.
+   *
+   * Beside [sentMsgTypes] rather than replacing it: a request's *content* is part of the protocol
+   * too - `history_request` is only the right question when it carries `hist_access_type`, `raw`
+   * and `output` - and a type alone cannot say so.
+   */
+  val sent = mutableListOf<String>()
+
   private var opened = false
   private var events: ((KernelSocketEvent) -> Unit)? = null
   private var kernelInfoAsks = 0
@@ -102,6 +111,7 @@ class ScriptedKernelSocketOpener(
       val requestMsgId = header["msg_id"]!!.jsonPrimitive.content
       val msgType = header["msg_type"]!!.jsonPrimitive.content
       sentMsgTypes += msgType
+      sent += frame
       answer(msgType, requestMsgId)
       return true
     }
@@ -146,6 +156,18 @@ object KernelFrames {
     """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"complete_reply"},
        "content":{"status":"ok","matches":[${matches.joinToString { "\"$it\"" }}],
        "cursor_start":$cursorStart,"cursor_end":$cursorEnd}}"""
+
+  /**
+   * A `history_reply`, whose entries are `[session, line, input]` triples
+   * (`packages/services/src/kernel/messages.ts:1035`).
+   *
+   * The line numbers are this frame's own invention, because nothing reads them: with
+   * `output: false` the app takes the third element and no other
+   * (`packages/notebook/src/history.ts:361-365`).
+   */
+  fun historyReply(parent: String, inputs: List<String>) =
+    """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"history_reply"},
+       "content":{"status":"ok","history":[${inputs.mapIndexed { line, input -> """[1,$line,"$input"]""" }.joinToString()}]}}"""
 
   fun kernelInfoReply(parent: String) =
     """{"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"kernel_info_reply"},

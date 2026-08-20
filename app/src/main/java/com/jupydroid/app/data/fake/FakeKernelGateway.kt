@@ -28,6 +28,10 @@ class FakeKernelGateway : KernelGateway {
     code: String,
   ): Flow<KernelEvent> =
     flow {
+      // Recorded from inside the flow rather than from `execute`, because that is when the cell
+      // actually runs: this one is cold, so a second collection is a second execution, and a real
+      // kernel records once per `execute_request` it receives.
+      executed += code
       emit(KernelEvent.ExecutionCount(cellId, 1))
       emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, code)))
       emit(KernelEvent.Idle)
@@ -55,6 +59,20 @@ class FakeKernelGateway : KernelGateway {
       replacedEnd = cursorOffset,
     )
   }
+
+  /**
+   * What this gateway has been asked to run, oldest first - its honest answer to the same
+   * question a real kernel answers out of IPython's sqlite history.
+   *
+   * Narrower than the real one in the way that matters and cannot be helped: a real kernel
+   * remembers sittings this process was never running for, so a device with no Space shows fewer
+   * entries rather than none. What both agree on is the rule the two history commands are built
+   * on - what was executed can be stepped back to.
+   */
+  private val executed = mutableListOf<String>()
+
+  override suspend fun executionHistory(session: KernelSession, entries: Int): List<String> =
+    executed.takeLast(entries)
 
   override suspend fun disconnect(session: KernelSession) = Unit
 

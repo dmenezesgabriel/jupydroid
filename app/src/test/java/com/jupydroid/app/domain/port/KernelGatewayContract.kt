@@ -86,6 +86,27 @@ abstract class KernelGatewayContract {
     assertTrue("range must not start before the code, got $result", result.replacedStart >= 0)
   }
 
+  /**
+   * `history_request` on the shell channel - what the two `access-*-history-entry` commands step
+   * through (`packages/notebook/src/history.ts:339-348`).
+   *
+   * Structural like the rest of this file. *Which* inputs a kernel remembers is its own business -
+   * a real one answers out of IPython's sqlite history and so remembers sittings this test never
+   * ran - but a gateway that answered nothing after executing would leave both commands with
+   * nothing to step through, and the fake and the real one would differ in the one way that
+   * decides whether the feature works at all.
+   */
+  @Test
+  fun executionHistory_holdsWhatThisSessionExecuted() = runTest {
+    val gateway = gateway()
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+
+    val history = gateway.executionHistory(session, entries = 10)
+
+    assertTrue("history must hold the code just executed, got $history", "2 + 2" in history)
+  }
+
   @Test
   fun connect_returnsASessionBoundToTheSpace() = runTest {
     val session = gateway().connect(SPACE, "Analysis.ipynb")

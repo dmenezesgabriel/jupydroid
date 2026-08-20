@@ -14,7 +14,7 @@ import org.junit.Test
 /** The real gateway owes the same contract as the fake, plus the protocol's own rules. */
 class RealKernelGatewayTest : KernelGatewayContract() {
   override fun gateway(): KernelGateway = RealKernelGateway(
-    ScriptedKernelSocketOpener(reply = { executionThenCompletion(it) }),
+    ScriptedKernelSocketOpener(reply = { everyReplyKind(it) }),
     FakeKernelLifecycle(),
   )
 
@@ -241,7 +241,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   @Test
   fun complete_ignoresTheExecutionTrafficItArrivesAmong() = runTest {
     val gateway = RealKernelGateway(
-      ScriptedKernelSocketOpener(reply = { executionThenCompletion(it) }),
+      ScriptedKernelSocketOpener(reply = { everyReplyKind(it) }),
       FakeKernelLifecycle(),
     )
 
@@ -267,7 +267,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
 
   @Test
   fun complete_reusesTheSessionSocketRatherThanOpeningAnother() = runTest {
-    val opener = ScriptedKernelSocketOpener(reply = { executionThenCompletion(it) })
+    val opener = ScriptedKernelSocketOpener(reply = { everyReplyKind(it) })
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
@@ -275,6 +275,89 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     gateway.complete(session, "pri", cursorOffset = 3)
 
     assertEquals(1, opener.openCount)
+  }
+
+  // --- P2k-1: execution history over the same socket ---
+
+  @Test
+  fun executionHistory_readsTheInputsOutOfTheReply() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(reply = { listOf(KernelFrames.historyReply(it, listOf("x = 1", "x + 1"))) }),
+      FakeKernelLifecycle(),
+    )
+
+    val history = gateway.executionHistory(gateway.connect(SPACE, "Analysis.ipynb"), entries = 10)
+
+    assertEquals(listOf("x = 1", "x + 1"), history)
+  }
+
+  /**
+   * The reference's request, transcribed: the **tail** of the raw inputs, without their outputs
+   * (`packages/notebook/src/history.ts:402-409`).
+   *
+   * Asserted on the frame rather than on the answer, because the shipped kernel branches on all
+   * three: `raw` and `output` are passed straight to `get_tail`, and any `hist_access_type` other
+   * than the three it knows returns an empty list rather than an error
+   * (`ipykernel/ipkernel.py:612-645` in the shipped rootfs).
+   */
+  @Test
+  fun executionHistory_asksForTheTailOfTheRawInputsWithoutTheirOutputs() = runTest {
+    val opener = ScriptedKernelSocketOpener(reply = { listOf(KernelFrames.historyReply(it, listOf("x = 1"))) })
+    val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
+
+    gateway.executionHistory(gateway.connect(SPACE, "Analysis.ipynb"), entries = 20)
+
+    val request = opener.sent.single { """"msg_type":"history_request"""" in it }
+    assertTrue("must ask for the tail, got $request", """"hist_access_type":"tail"""" in request)
+    assertTrue("must ask for raw inputs, got $request", """"raw":true""" in request)
+    assertTrue("must not ask for outputs, got $request", """"output":false""" in request)
+    assertTrue("must carry the batch size, got $request", """"n":20""" in request)
+  }
+
+  /** The shell channel is shared, so a reply to another client must not be taken as ours. */
+  @Test
+  fun executionHistory_waitsPastAReplyToSomebodyElsesRequest() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(
+        reply = { ours ->
+          listOf(
+            KernelFrames.historyReply("someone-else", listOf("not ours")),
+            KernelFrames.historyReply(ours, listOf("ours")),
+          )
+        },
+      ),
+      FakeKernelLifecycle(),
+    )
+
+    val history = gateway.executionHistory(gateway.connect(SPACE, "Analysis.ipynb"), entries = 10)
+
+    assertEquals(listOf("ours"), history)
+  }
+
+  /** A kernel that has run nothing has an empty history, which is an answer rather than a failure. */
+  @Test
+  fun executionHistory_isEmptyForAKernelThatHasRunNothing() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(reply = { listOf(KernelFrames.historyReply(it, emptyList())) }),
+      FakeKernelLifecycle(),
+    )
+
+    assertEquals(emptyList<String>(), gateway.executionHistory(gateway.connect(SPACE, "Analysis.ipynb"), 10))
+  }
+
+  @Test
+  fun executionHistory_failsWhenTheSocketEndsBeforeTheReply() = runTest {
+    val gateway = RealKernelGateway(
+      ScriptedKernelSocketOpener(
+        reply = { emptyList() },
+        endAfter = KernelSocketEvent.Ended("connection reset", failed = true),
+      ),
+      FakeKernelLifecycle(),
+    )
+
+    val failure = runCatching { gateway.executionHistory(gateway.connect(SPACE, "Analysis.ipynb"), 10) }
+
+    assertTrue("expected the request to fail, got $failure", failure.isFailure)
   }
 
   // --- Step 10.4a: kernel lifecycle over REST ---
@@ -321,10 +404,13 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   }
 
   /**
-   * Answers both request kinds from one script. The gateway filters by `msg_type`, so the
-   * execution frames are invisible to a completion and the reply is invisible to an execution -
-   * the same indifference a real kernel's shared channel demands.
+   * Answers all three request kinds from one script. The gateway filters by `msg_type`, so the
+   * execution frames are invisible to a completion, the completion reply is invisible to an
+   * execution, and the history reply is invisible to both - the same indifference a real kernel's
+   * shared channel demands.
    */
-  private fun executionThenCompletion(parent: String): List<String> =
-    KernelFrames.successfulExecution(parent) + KernelFrames.completeReply(parent, listOf("print"), 0, 3)
+  private fun everyReplyKind(parent: String): List<String> =
+    KernelFrames.successfulExecution(parent) +
+      KernelFrames.completeReply(parent, listOf("print"), 0, 3) +
+      KernelFrames.historyReply(parent, listOf("2 + 2"))
 }

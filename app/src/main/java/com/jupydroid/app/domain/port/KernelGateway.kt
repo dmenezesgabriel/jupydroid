@@ -82,6 +82,26 @@ interface KernelGateway {
    */
   suspend fun complete(session: KernelSession, code: String, cursorOffset: Int): CompletionResult
 
+  /**
+   * The last [entries] inputs this kernel has run, oldest first.
+   *
+   * What `notebook:access-previous-history-entry` and `notebook:access-next-history-entry` step
+   * through. It is the **kernel's** history and not the notebook's: IPython records every
+   * `execute_request` sent with `store_history`, so it spans cells that have since been deleted
+   * and sittings this notebook was never open for - which is the whole of what the feature buys
+   * over scrolling for the cell that ran something.
+   *
+   * [entries] is a tail length rather than a page: the reference asks for ten and asks again for
+   * twenty when ten were not enough, rather than paging from a cursor
+   * (`packages/notebook/src/history.ts:99`, `:248`). Duplicates and filtering belong to the
+   * caller; this is the wire's answer, unedited.
+   *
+   * ```
+   * gateway.executionHistory(session, entries = 10)   // ["x = 1", "x + 1"]
+   * ```
+   */
+  suspend fun executionHistory(session: KernelSession, entries: Int): List<String>
+
   suspend fun disconnect(session: KernelSession)
 
   /**

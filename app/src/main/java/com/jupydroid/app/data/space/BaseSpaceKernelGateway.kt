@@ -74,6 +74,9 @@ class BaseSpaceKernelGateway(
     cursorOffset: Int,
   ): CompletionResult = known(session).complete(session, code, cursorOffset)
 
+  override suspend fun executionHistory(session: KernelSession, entries: Int): List<String> =
+    known(session).executionHistory(session, entries)
+
   /**
    * Closing a socket the server has already forgotten is not a failure - the session is gone
    * either way, which is what the caller asked for.
