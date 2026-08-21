@@ -37,7 +37,7 @@ filesystem the kernel, the server and the app all share.
 | Notebook | **kernel history** walked into the cell being edited; **find and replace** across the document, with the reference's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
-| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. **Still open in this phase: P2m-P2p** - the cell's collapser and editor box, the gutter's fixed slots, and the side panel's rail |
+| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. The collapser is transparent at rest and brand blue on the active cell, which is the reference's rule and not this app's old one. **Still open in this phase: P2m-2 to P2p** - the cell's editor box, the gutter's fixed slots, and the side panel's rail |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, Material's own type scale, per-notebook ViewModel scoping |
 | Tests | 256 instrumented, 1261 unit, 100 Maestro drivers over 114 flows - 95 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
 
@@ -629,7 +629,7 @@ side panel (P2o). What follows from each is `docs/DECISIONS.md`.
 | **P2l-4** | *(shipped)* The two bare `clickable` rows reserve Material's 48dp rather than borrowing it from their neighbours. | — |
 | **P2l-3a** | *(shipped)* **One size for code.** Measured: the cell's source states none at all (`codeSourceStyle` reads `LocalTextStyle`, so it resolves to Compose's `DefaultFontSize = 14.sp` with the font's own line height), outputs and the folded-cell placeholder are `bodySmall`, the completion popup `bodyMedium` - where the reference has one `--jp-code-font-size` and one `--jp-code-line-height` (`variables.css:196-197`) read by the editor, the input area, `.jp-RenderedText pre` and **both** completer selectors (`codemirror/base.css:8`, `inputarea.css:37`, `rendermime/base.css:28`, `completer/base.css:75,118`). `theme/CodeText.kt` at **14sp/18sp**, and the four surfaces that take it. | JVM over the scale; instrumented that an output line measures the code line height; a screenshot of a cell, its output and its completions in one frame. |
 | **P2l-3b** | *(shipped)* **Rendered markdown's code is a different rule, and that is why this is two commits.** `.jp-RenderedHTMLCommon pre, code` takes the code family and the code line height but **`font-size: inherit`** (`rendermime/base.css:405-417`) - the prose size, not the code size. Ours draws both at `bodySmall`. Plus the gate that keeps `CodeText` the only place a code size is spelled out. | Instrumented: a fenced block in a markdown cell measures the prose size, not the code size. The gate red before, clean after. |
-| **P2m-1** | The collapser: transparent at rest, brand blue when active. `stripeResting` leaves `EditorPalette`. **`docs/DECISIONS.md` "Every cell gets one" is rewritten in the same commit** - it argues the opposite today, and a decision record that contradicts the code is worse than none. | `CellStripeTest` red-first; `CellTouchTargetTest` re-run; `u3-cell-chrome` re-driven on the tablet and the screenshots **looked at**. |
+| **P2m-1** | *(shipped)* The collapser: transparent at rest, brand blue when active. `stripeResting` left `EditorPalette`, and the position it reversed is argued in `docs/DECISIONS.md` rather than deleted. | — |
 | **P2m-2** | The editor box: 1px always, brand blue plus elevation in edit mode, one shared modifier across the three fields rather than three copies. | `EditorPaletteTest` extended with the contrast assertion it already pins for every other pair; an instrumented test that the border follows the mode. |
 | **P2n** | The cell gutter becomes two fixed-width slots, so the execution label's x does not depend on which optional controls a cell carries. | Instrumented: the label's x is equal across a plain code cell, a heading cell and a cell in a marked run - the three that differ today. |
 | **P2o-1** | The mediator: which panel is selected, and the open notebook's headings and jump lambda, published by the editor and read by the panel. **No duplicated derivation** - `EditorViewModel` stays the one place headings, folds and numbering are computed. | JVM, including the lifetime: the panel empties when the notebook closes, so a ToC cannot outlive its document. |
@@ -744,6 +744,31 @@ Two costs the plan did not name:
 - **The pair is captured at 411dp/420dpi, not on `dev36`.** A type-size judgement made at 1px per
   dp is made on proportions no reader sees, which `docs/DECISIONS.md` has said since P2l-4 and this
   is the first flow to act on.
+
+**P2m-1 has shipped, and it is the first row in this phase that deletes a decision rather than a
+number.** `.jp-Collapser` is transparent until `.jp-mod-active`, so a cell at rest carries no mark
+at all; `stripeResting` left `EditorPalette`, `CellFrame` guards the draw the way it already guarded
+`tint`, and the widths stay IntelliJ's - a hybrid, named as one. What it settled is
+`docs/DECISIONS.md`; the evidence is `evidence/u3-cell-chrome/`.
+
+Three costs the plan did not name:
+
+- **The stale caption was in the fixture too, and it is rendered in all four frames.** The plan
+  named the flow's `01-resting-stripes` comment. The markdown cell *inside*
+  `.maestro/fixtures/u3-cell-chrome.ipynb` also asserted the old behaviour in prose - so the
+  screenshot that proves the step would have carried a sentence contradicting it, in the largest
+  type on screen. No assertion in the flow reads its own fixture's prose; only opening the picture
+  does.
+- **The colour this row deleted was the one palette value with no floor on it.** `EditorPaletteTest`
+  pins a contrast ratio for every pair that carries information and asserted nothing about
+  `stripeResting` - the suite had already implied it was decoration before the reference said so.
+  That is the check to run on the next colour this app adds by eye: if no test can say what it must
+  clear, ask what it is for.
+- **The device rule can make a step un-closable, and it did.** The tablet left the USB bus
+  mid-step. The emulator could confirm the resting frames, but not `04`: the last screenshot needs a
+  real traceback, and `FakeKernelGateway` echoes the source back as stdout - the cell would have
+  "succeeded" and the error stripe would never have been drawn. The plan's verification section said
+  both devices were attached; attached at planning time is not attached at gate time.
 
 ---
 

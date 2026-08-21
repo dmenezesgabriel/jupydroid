@@ -7,7 +7,7 @@ appId: com.jupydroid.app
 # and the error stripe would never appear.
 #
 # The stripe's colour and width are judged from the screenshots; a flow cannot read a pixel.
-# What it drives is the three states worth seeing: resting, selected, and failed.
+# What it drives is the three states worth seeing: at rest (nothing drawn), active, and failed.
 #
 # Seeded by scripts/u3-cell-chrome-driver.sh; clearState would delete the fixture.
 - launchApp
@@ -22,9 +22,12 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Rendered markdown"
     timeout: 30000
-# Nothing selected yet: every stripe is at rest, and the markdown cell has one despite having
-# no panel behind it - which is the thing this step is for.
-- takeScreenshot: 01-resting-stripes
+# A notebook opens with its first cell active - `selectedCellId = opened.first().id`, the
+# reference's `activeCellIndex = 0` - so exactly one stripe is drawn: the markdown cell's, in the
+# accent colour. The two code cells below carry nothing, which is the thing this step is for
+# (`.jp-Collapser` is transparent until `.jp-mod-active`). This label used to say the opposite and
+# the screenshot always disagreed with it; see `docs/DECISIONS.md` P2m-1.
+- takeScreenshot: 01-only-the-active-cell-is-marked
 # Selecting the code cell: its stripe takes the accent colour and, because focus lands in the
 # editor, narrows to the edit width.
 - tapOn: '.*chrome ok.*'

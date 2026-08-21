@@ -54,11 +54,18 @@ internal fun CellFrame(
         // would sit under a rounded corner or a gesture inset on the devices that have them.
         // Anchored on its left edge, so narrowing it in edit mode widens the gap instead of
         // moving the line - the content never shifts either way.
-        drawRect(
-          color = stripe.color,
-          topLeft = Offset(STRIPE_LEFT.toPx(), 0f),
-          size = Size(stripe.width.toPx(), size.height),
-        )
+        //
+        // Skipped when there is nothing to draw, which since P2m is every cell that is neither
+        // active nor failed - the same guard [tint] takes above, rather than a transparent rect
+        // blended over the page once per cell per frame. The gutter's *width* is reserved by
+        // [STRIPE_LEFT] whatever is drawn in it.
+        if (stripe.color != Color.Transparent) {
+          drawRect(
+            color = stripe.color,
+            topLeft = Offset(STRIPE_LEFT.toPx(), 0f),
+            size = Size(stripe.width.toPx(), size.height),
+          )
+        }
       }
       // Equal side padding, with the stripe living inside the left margin rather than pushing
       // the content in. A 9dp left inset against a 16dp right one read as a mistake on device.

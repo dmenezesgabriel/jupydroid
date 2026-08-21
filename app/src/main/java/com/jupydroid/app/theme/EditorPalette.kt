@@ -48,8 +48,6 @@ data class EditorPalette(
   val cellMultiSelected: Color,
   /** The left stripe of the cell holding the caret. `JUPYTER.CELL_STRIPE_SELECTED_COLOR`. */
   val stripeSelected: Color,
-  /** The left stripe of any other cell. `JUPYTER.CELL_STRIPE_HOVERED_COLOR`. */
-  val stripeResting: Color,
   /** The stripe of a cell whose last run raised. Has no IntelliJ key: the plugin tints the run
    *  gutter icon instead, which needs a pointer to be seen at all. */
   val stripeError: Color,

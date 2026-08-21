@@ -1727,6 +1727,58 @@ the node is clickable and so does get the expansion.
 Measured on four geometries (`evidence/p2l-4-touch-targets/`): 32dp and 40dp before, 48dp after,
 at densities 160, 240 and 420.
 
+### A cell at rest carries no mark, and this reverses what the code argued (P2m-1)
+
+**What was there, and the argument for it.** `cellStripe` painted `stripeResting` - Gray5 dark,
+Gray8 light - down the left of every cell that was neither active nor failed, and both
+`CellStripe.kt` and `CellStripeTest` argued for it in the same words: *"**Every cell gets one**,
+not only the selected one and not only code cells"*, on the grounds that IntelliJ draws a
+*"vertical gray line for markdown cells in the gutter"* (`markerRenderers/README.txt`) and that on
+touch it does more work than on a desktop - no hover, so it is the only thing always on screen
+saying where one cell ends and the next begins.
+
+**What the reference actually says, read rather than recalled.** Three rules, and they agree:
+
+- `.jp-Collapser { background: transparent; }` (`packages/cells/style/collapser.css:6-15`)
+- `.jp-Cell.jp-mod-active .jp-Collapser { background: var(--jp-brand-color1); }`
+  (`packages/notebook/style/base.css:108-110`) - the **active** cell alone
+- `.jp-Cell { background: transparent; border: none; }` (`packages/cells/style/widget.css:18-24`)
+
+So JupyterLab answers *"where does this cell end"* with the **input area's own border**, which it
+draws unconditionally - `1px solid var(--jp-cell-editor-border-color)`
+(`packages/cells/style/inputarea.css:18-26`), going to the brand colour plus
+`--jp-cell-editor-box-shadow` in edit mode (`base.css:160-164`). This app had it exactly backwards
+in both halves: a gutter mark the reference does not draw, and no border where the reference always
+has one. **The touch argument was answered by the wrong control**, not wrong on its own terms - and
+the border is the better answer for it, because it bounds the whole editable region rather than
+marking one edge of it.
+
+**This forbids** re-adding a resting stripe, and it makes P2m-2 load-bearing rather than cosmetic:
+between the two commits a rendered markdown cell has no chrome at all, and that is the reference's
+end state as well as the intermediate one - a rendered cell has no editor box in either app.
+
+**Two things survive the reversal, both named so they are not read as leftovers:**
+
+- **The widths stay IntelliJ's while the colour rule becomes JupyterLab's.** 4dp command and 2dp
+  edit are `DefaultNotebookEditorAppearanceSizes`; the reference's collapser is 8px
+  (`--jp-cell-collapser-width`) because it is a **button** - `.jp-Collapser` collapses the cell on
+  click, and it has hover and active rules to prove it. Ours is a marker nobody taps, so it is
+  sized as a marker and exempt from the 48dp minimum every button beside it takes. That hybrid is
+  deliberate; it is recorded here so the next reader does not "fix" one half of it.
+- **The error stripe is this app's own and it stays.** JupyterLab has no per-cell failure mark and
+  IntelliJ tints a gutter icon that only appears on hover, which is no use on a touch screen. It is
+  now the **only** non-active mark on screen, which is the job its docstring always claimed -
+  findable while scrolling - and could not do while every resting cell carried a grey line too.
+
+**One measurement corrected in passing, and the screenshot is what said so.**
+`.maestro/u3-cell-chrome.yaml` labelled its first frame *"Nothing selected yet: every stripe is at
+rest"*. The committed screenshot shows the markdown cell blue and the two code cells grey:
+`EditorUiState.kt` opens a notebook with `selectedCellId = opened.first().id`, matching the
+reference's `activeCellIndex = 0`. The comment had been false since the flow was written and was
+invisible while every cell had a stripe of some colour; P2m-1 makes that frame one blue line and
+nothing else, so the label is corrected with the behaviour rather than after it.
+
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
