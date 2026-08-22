@@ -153,5 +153,23 @@ internal fun cellTypeDescription(kind: CellKind) = "$CELL_TYPE_ACTION ${cellType
 /** One row of [CellTypePicker], named for the tree as well as the eye - [cellMenuDescription]'s rule. */
 internal fun cellTypePickDescription(kind: CellKind) = "$CELL_TYPE_ACTION picker ${cellTypeLabel(kind)}"
 
+/**
+ * The same control as a **menu row**, for the width whose bar cannot carry [CellTypeControl].
+ *
+ * A `ReactiveToolbar` moves an item that does not fit into its popup opener rather than dropping it
+ * (`packages/ui-components/src/components/toolbar.tsx:570-700`); this is that row, and
+ * [CellTypePicker] is what it opens, so the two homes share one list of types.
+ *
+ * **The value is in the label**, which is the same rule the trigger follows and what makes this a
+ * row that *shows* the type rather than only offering to change it - see [cellTypeDescription]. The
+ * colon is what separates a control's name from its value, as the reference's select separates them
+ * by being a box with a value in it.
+ *
+ * Spelled apart from [cellTypeDescription] and [cellTypePickDescription]: a Maestro selector is a
+ * regex matched against the whole node, so `Cell type: Markdown` cannot be reached by a flow asking
+ * for either of the others.
+ */
+internal fun cellTypeRowLabel(kind: CellKind) = "$CELL_TYPE_ACTION: ${cellTypeLabel(kind)}"
+
 /** The reference's own `aria-label` for this control (`default-toolbar.tsx:394`). */
 internal const val CELL_TYPE_ACTION = "Cell type"

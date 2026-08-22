@@ -9,7 +9,7 @@
 # *evenly and blindly*: a flow that runs a cell would land on the x86_64 emulator, where
 # MainActivity falls back to FakeKernelGateway and the fake answers from the cell's own source. The
 # split has to know the rules, and the rules live in the drivers - `TABLET ONLY` (an ABI rule) and
-# `WIDE WINDOW` / `NARROW WINDOW` (width rules). So the partition is made here and each shard is an
+# `WIDE WINDOW` / `COMPACT WINDOW` / `NARROW WINDOW` (width rules). So the partition is made here and each shard is an
 # ordinary `run-all-flows.sh` run.
 #
 # **Every driver goes to exactly one device.** That is what makes this safe rather than merely
@@ -66,6 +66,13 @@ eligible() { # eligible <driver-file>
   if driver_declares "$driver" "WIDE WINDOW"; then
     for device in "${candidates[@]+"${candidates[@]}"}"; do
       [ "${WIDTH[$device]:-0}" -ge 600 ] && keep+=("$device")
+    done
+    candidates=("${keep[@]+"${keep[@]}"}"); keep=()
+  fi
+  # The complement of WIDE WINDOW, and distinct from NARROW WINDOW's 840dp - see run-all-flows.sh.
+  if driver_declares "$driver" "COMPACT WINDOW"; then
+    for device in "${candidates[@]+"${candidates[@]}"}"; do
+      [ "${WIDTH[$device]:-0}" -lt 600 ] && keep+=("$device")
     done
     candidates=("${keep[@]+"${keep[@]}"}"); keep=()
   fi

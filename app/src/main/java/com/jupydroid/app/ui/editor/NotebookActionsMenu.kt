@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.EditorSettings
 
 /**
@@ -35,6 +36,15 @@ import com.jupydroid.app.domain.model.EditorSettings
  * rather than on [NotebookBar], because that bar states what it is: what you ask the *kernel*.
  * Folding a section away asks the kernel nothing, and the reference files it under View for the
  * same reason.
+ *
+ * **And since P2r-2 it is a third thing: the toolbar's own popup opener.** JupyterLab's notebook
+ * toolbar is a `ReactiveToolbar`, which *moves* an item too wide for the row into a popup rather
+ * than dropping it (`packages/apputils/src/mainareawidget.ts:51`,
+ * `packages/ui-components/src/components/toolbar.tsx:570-700`). Measured, the cell-type control
+ * does not fit at 320dp, so at that width it arrives here - [cellTypeInMenu]. That does not widen
+ * this menu into a junk drawer: what it holds is still "the reference's File and View menus, plus
+ * whatever the reference's own toolbar could not fit", and the row is first and divided off so it
+ * reads as the second thing rather than as more View.
  *
  * Boxed with its menu, which anchors to its parent layout node - the lesson [CellHeader] and
  * [NotebookBar] each record.
@@ -73,6 +83,15 @@ internal fun NotebookActionsMenu(
   onTableOfContentsHeadingSelected: (String) -> Unit,
   /** `toc:show-panel` where the shell has a side area - see [EditorTopBar]. Null where it has none. */
   onShowTableOfContentsPanel: (() -> Unit)?,
+  /**
+   * The active cell's type, where the bar has no room to name it itself - see [cellTypeOnBar].
+   *
+   * Null where the bar carries it, and null where there is no active cell: a `ReactiveToolbar`
+   * moves an item into its popup, it does not copy it there.
+   */
+  cellTypeInMenu: CellKind? = null,
+  /** `notebook:change-cell-to-{code,markdown,raw}`, from the row above. */
+  onChangeCellKind: (CellKind) -> Unit = {},
 ) {
   val tocNumbering = settings.tocNumbering()
   var open by remember { mutableStateOf(false) }
@@ -84,11 +103,26 @@ internal fun NotebookActionsMenu(
   // and `CellActionSurface` already cost a commit to learn that a row which opens something must
   // not also dismiss the surface it opened.
   var exportOpen by remember { mutableStateOf(false) }
+  // Its own flag for [tocOpen]'s reason: the row opens [CellTypePicker] rather than acting, and a
+  // row that opens something must not also dismiss the surface it opened.
+  var cellTypeOpen by remember { mutableStateOf(false) }
   Box {
     IconButton(onClick = { open = true }) {
       Icon(Icons.Filled.MoreVert, contentDescription = "Notebook actions")
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+      // Above the reference's two menus and divided off, because it did not come from either: it is
+      // the toolbar's own item, arriving here only because the row could not hold it.
+      cellTypeInMenu?.let { kind ->
+        DropdownMenuItem(
+          text = { Text(cellTypeRowLabel(kind)) },
+          onClick = {
+            open = false
+            cellTypeOpen = true
+          },
+        )
+        HorizontalDivider()
+      }
       // The reference's File menu, at the top of the one overflow this bar has - and first,
       // because it is the only row here that changes anything outside the document.
       DropdownMenuItem(
@@ -200,6 +234,15 @@ internal fun NotebookActionsMenu(
       onPick = { format ->
         exportOpen = false
         onExportAs(format)
+      },
+    )
+    // The same picker the bar's own control opens, so there is one list of types and not two.
+    CellTypePicker(
+      expanded = cellTypeOpen,
+      onDismiss = { cellTypeOpen = false },
+      onPick = { kind ->
+        cellTypeOpen = false
+        onChangeCellKind(kind)
       },
     )
   }

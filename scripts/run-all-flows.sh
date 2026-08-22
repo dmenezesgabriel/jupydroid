@@ -70,6 +70,16 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
     continue
   fi
 
+  # The exact complement of the rule above, for a boundary that is not 840dp. P2r measured that the
+  # notebook's action row cannot carry the cell-type control below the *medium* class, so its
+  # narrow-half flow asserts something that is false on the tablet in portrait at 800dp - a window
+  # `NARROW WINDOW` below would happily place it on.
+  if driver_declares "$driver" "COMPACT WINDOW" && [ "${WIDTH_DP:-0}" -ge 600 ]; then
+    printf 'SKIP  %-28s needs <600dp: it asserts what a bar with no room does\n' "$name"
+    skip=$((skip + 1))
+    continue
+  fi
+
   # The mirror of the rule above, and it earns its keep for the same reason: some flows assert a
   # *compact*-width adaptation, and on a wide window the app deliberately does something else. The
   # table of contents is the first - an editor with room draws it as a pane and a narrow one as a

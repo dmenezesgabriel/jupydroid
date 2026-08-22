@@ -2255,6 +2255,37 @@ The reference has no such split: `.cm-editor` takes `--jp-code-font-family`
 `docs/PLAN.md` rather than folded in - it needs its own failing test and its own evidence, which is
 how P2l-2 handed `CollapsedCell` to P2l-4.
 
+### The overflow is the toolbar's popup opener, and `COMPACT WINDOW` is the rule that says where (P2r-2)
+
+P2r-1 measured that the notebook's action row has **72dp** free at 320dp against a **73.3dp** label,
+so the bar cannot carry the cell-type control on a phone. What happens then is not a choice: a
+`ReactiveToolbar` *moves* an item too wide for the row into a popup opener
+(`packages/apputils/src/mainareawidget.ts:51`,
+`packages/ui-components/src/components/toolbar.tsx:570-700`), and this app's popup opener is
+`NotebookActionsMenu` - the one overflow a phone's bar has room for, which that file has argued
+since U5c.
+
+**It widens what that menu is, and the widening is stated rather than absorbed.** The menu was "the
+reference's File and View menus"; it is now that *plus what the reference's own toolbar could not
+fit*. The row is first and divided off so it reads as the second thing rather than as more View -
+and it is `cellTypeInMenu`, a nullable that is null when the bar has the control, because a
+`ReactiveToolbar` moves an item and does not copy it.
+
+**The row carries the value, like the trigger does.** `Cell type: Markdown`, not `Cell type…` -
+`cellTypeRowLabel`. A flow addresses it by that string, and none of the three strings this control
+uses contains another, because a Maestro selector is a regex matched against the **whole** node.
+That last fact cost two runs: `E = mc^2` found nothing first because `^` anchors, and then because
+the raw cell's field holds three lines and the selector had no `.*`.
+
+**The harness had no rule for this width, and `NARROW WINDOW` would have been wrong.** `WIDE WINDOW`
+means `>= 600dp` to `run-all-flows.sh` and `run-flows-sharded.sh`; `NARROW WINDOW` means `< 840dp`,
+a boundary that came from the pane threshold. Declaring the latter would place this flow on the
+tablet in portrait at **800dp** - a window where the bar *does* carry the control, so the flow's
+first assertion is false there and it would fail for being asked the wrong question. `COMPACT
+WINDOW` (`< 600dp`) is the exact complement of `WIDE WINDOW`, added to both scripts in one commit
+because `driver-rules.sh` exists precisely so the runner and the sharder cannot disagree about a
+rule.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary

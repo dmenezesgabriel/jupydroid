@@ -226,6 +226,67 @@ class CellTypeControlTest {
     compose.onNodeWithContentDescription(cellTypeDescription(WIDEST_LABEL)).assertDoesNotExist()
   }
 
+  /**
+   * **Where the bar has no room, the row is in the overflow** - which is what a `ReactiveToolbar`
+   * does with an item that does not fit: it *moves* it into the popup opener
+   * (`packages/ui-components/src/components/toolbar.tsx:570-700`), and this app's popup opener is
+   * [NotebookActionsMenu].
+   *
+   * Drives [EditorTopBar] rather than the menu alone, which is [NotebookActionsMenuTest]'s rule and
+   * the point of it here: what is in question is that the row is *reachable*, and a test composing
+   * the menu directly would still pass with the button that opens it gone.
+   */
+  @Test
+  fun theOverflowCarriesItWhereTheBarHasNoRoom() {
+    showTopBar(cellTypeOnBar = false)
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+
+    compose.onNodeWithText(cellTypeRowLabel(WIDEST_LABEL)).assertIsDisplayed()
+  }
+
+  /** Moved, not duplicated - the row goes where the bar cannot carry the control, and only there. */
+  @Test
+  fun theOverflowLeavesItAloneWhereTheBarHasRoom() {
+    showTopBar(cellTypeOnBar = true)
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+
+    compose.onNodeWithText(cellTypeRowLabel(WIDEST_LABEL)).assertDoesNotExist()
+  }
+
+  /** The same picker the bar's control opens, so there is one list of types and not two. */
+  @Test
+  fun theOverflowRowOpensThePickerAndReportsAChoice() {
+    var picked: CellKind? = null
+    showTopBar(cellTypeOnBar = false, onChangeCellKind = { picked = it })
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(cellTypeRowLabel(WIDEST_LABEL)).performClick()
+    compose.onNodeWithContentDescription(cellTypePickDescription(CellKind.RAW)).performClick()
+
+    assertEquals(CellKind.RAW, picked)
+  }
+
+  private fun showTopBar(cellTypeOnBar: Boolean, onChangeCellKind: (CellKind) -> Unit = {}) {
+    compose.setContent {
+      JupyterDroidTheme {
+        EditorTopBar(
+          title = "Intro to NumPy",
+          canUndo = true,
+          canRedo = true,
+          onRename = {},
+          onUndo = {},
+          onRedo = {},
+          onBack = {},
+          activeCellKind = WIDEST_LABEL,
+          onChangeCellKind = onChangeCellKind,
+          cellTypeOnBar = cellTypeOnBar,
+        )
+      }
+    }
+  }
+
   private companion object {
     /** [cellTypeOnBar]'s own boundary, which is the width the rule has to be right about. */
     val NARROWEST_WITH_ROOM = DpSize(600.dp, 800.dp)

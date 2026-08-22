@@ -216,6 +216,9 @@ fun EditorTopBar(
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
           onShowTableOfContentsPanel = onShowTableOfContentsPanel,
+          // Moved, not copied: null once the bar above carries the control itself.
+          cellTypeInMenu = activeCellKind?.takeUnless { cellTypeOnBar },
+          onChangeCellKind = onChangeCellKind,
         )
       },
     )
