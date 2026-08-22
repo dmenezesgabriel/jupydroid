@@ -114,6 +114,9 @@ class EditorPaletteTest {
     "entity.name.function" to function,
     "markup.heading" to heading,
     "string.other.link" to link,
+    "markup.inline.raw" to codeSpan,
+    "markup.quote" to blockQuote,
+    "punctuation.definition.list.begin.markdown" to listMarker,
   )
 
   /**
@@ -270,6 +273,45 @@ class EditorPaletteTest {
   }
 
   /**
+   * **Inline code, a block quote and a list marker each have a colour of their own.**
+   *
+   * They used to fold onto `string` and `keyword`, and the fold was IntelliJ's rather than an
+   * economy of ours - `MarkdownHighlighterColors.java:24-41` maps `MARKDOWN_CODE_SPAN` and
+   * `MARKDOWN_BLOCK_QUOTE` both onto `DEFAULT_STRING` and list markers onto `DEFAULT_KEYWORD`.
+   * The VS Code re-base retired that citation and the reference it moved to has a rule for each:
+   * `markup.inline.raw`, `markup.quote` and `punctuation.definition.list.begin.markdown`.
+   *
+   * Asserted as *not the folded value* rather than as a hex, because the hexes are already pinned
+   * by [everySyntaxColourIsTheReferenceValue] - what this catches is the fold coming back.
+   */
+  @Test
+  fun inlineCodeAndQuoteAndMarkerAreNotFoldedOntoStringAndKeyword() {
+    palettes.forEach { (name, palette) ->
+      val styles = palette.syntax.styles()
+      val folds = mapOf(
+        SyntaxKind.CODE to ("string" to palette.syntax.string),
+        SyntaxKind.QUOTE to ("string" to palette.syntax.string),
+        SyntaxKind.MARKER to ("keyword" to palette.syntax.keyword),
+      )
+      val refolded = folds.filter { (kind, onto) -> styles.getValue(kind).color == onto.second }
+        .map { (kind, onto) -> "$kind folded onto ${onto.first}" }
+      assertEquals("$name kinds that fell back onto the general palette", emptyList<String>(), refolded)
+    }
+  }
+
+  /**
+   * The three are distinct from each other too, since a markdown cell shows all three at once -
+   * which the `u1-palette` fixture is built to put in one frame.
+   */
+  @Test
+  fun theMarkdownOnlyKindsAreMutuallyDistinct() {
+    palettes.forEach { (name, palette) ->
+      val colours = MARKDOWN_KINDS.map { palette.syntax.styles().getValue(it).color }
+      assertEquals("$name has duplicate markdown syntax colours", colours.size, colours.toSet().size)
+    }
+  }
+
+  /**
    * **A link takes the string colour, and the underline is the whole of what tells them apart.**
    *
    * That is the reference's structure rather than an economy of ours. VS Code paints a link's
@@ -309,6 +351,9 @@ class EditorPaletteTest {
       "entity.name.function" to Color(0xFFD2A8FF),
       "markup.heading" to Color(0xFF79C0FF),
       "string.other.link" to Color(0xFFA5D6FF),
+      "markup.inline.raw" to Color(0xFF79C0FF),
+      "markup.quote" to Color(0xFF7EE787),
+      "punctuation.definition.list.begin.markdown" to Color(0xFFFFA657),
     )
 
     /** `2026-light.json`, resolved. `constant.numeric` is the value that measures 4.42:1. */
@@ -321,10 +366,16 @@ class EditorPaletteTest {
       "entity.name.function" to Color(0xFF8250DF),
       "markup.heading" to Color(0xFF0550AE),
       "string.other.link" to Color(0xFF0A3069),
+      "markup.inline.raw" to Color(0xFF0550AE),
+      "markup.quote" to Color(0xFF116329),
+      "punctuation.definition.list.begin.markdown" to Color(0xFF953800),
     )
 
     /** WCAG 2.1 1.4.11, the floor for a component's state rather than for text. */
     const val NON_TEXT_FLOOR = 3.0
+
+    /** The kinds only a markdown cell emits and that carry a colour of their own. */
+    val MARKDOWN_KINDS = listOf(SyntaxKind.CODE, SyntaxKind.QUOTE, SyntaxKind.MARKER)
 
     val PYTHON_KINDS = listOf(
       SyntaxKind.KEYWORD,

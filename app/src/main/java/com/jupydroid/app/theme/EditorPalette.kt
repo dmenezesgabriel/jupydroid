@@ -164,22 +164,37 @@ data class SyntaxPalette(
    * `markup.underline`, a rule that sets `fontStyle` and no colour, so [styles] underlines it.
    */
   val link: Color,
+  /**
+   * `markup.inline.raw`.
+   *
+   * The lexer folds fenced and indented blocks onto the same [SyntaxKind.CODE] as an inline span,
+   * where VS Code has no `markup.fenced_code` rule at all and colours a block by its embedded
+   * grammar. That is a lexer granularity gap, not a palette one; this is the closest value the
+   * reference offers for the kind as emitted.
+   */
+  val codeSpan: Color,
+  /** `markup.quote` */
+  val blockQuote: Color,
+  /** `punctuation.definition.list.begin.markdown` - the bullet or number, not the item's text. */
+  val listMarker: Color,
 )
 
 /**
  * The span each [SyntaxKind] is drawn with.
  *
- * A `SpanStyle` rather than a `Color`, because two of the twelve carry no colour at all:
- * IntelliJ declares `MARKDOWN_BOLD` and `MARKDOWN_ITALIC` with **no base attributes**
- * (`MarkdownHighlighterColors.java:20-23`), so emphasis is weight and slant and nothing else.
- * Giving them a colour to round the map out would invent a decision the reference declined to
- * make.
+ * A `SpanStyle` rather than a `Color`, because two of the twelve carry no colour at all.
+ * [SyntaxKind.STRONG] and [SyntaxKind.EMPHASIS] are weight and slant and nothing else - VS Code
+ * *does* give `markup.bold` and `markup.italic` a foreground, but it measures **1.21:1** dark and
+ * **1.03:1** light against [SyntaxPalette.plain], so the colour carries no information and
+ * emitting it would be a span that changes nothing anyone can see.
  *
- * The markdown kinds fold onto the general ones exactly as IntelliJ folds them - code and quote
- * onto `DEFAULT_STRING`, list markers onto `DEFAULT_KEYWORD`, headings onto `DEFAULT_CONSTANT`
- * (same file, lines 24-41). One map serves both languages because a highlighter only ever emits
- * its own kinds: Python never asks for [SyntaxKind.HEADING], markdown never for
- * [SyntaxKind.KEYWORD].
+ * **Every markdown kind has a rule of its own, and that is what changed at P2u-2b.** They used to
+ * fold onto the general kinds the way IntelliJ folds them - code and quote onto `DEFAULT_STRING`,
+ * markers onto `DEFAULT_KEYWORD` (`MarkdownHighlighterColors.java:24-41`). The re-base retired
+ * that citation, and the reference it moved to states each one separately.
+ *
+ * One map serves both languages because a highlighter only ever emits its own kinds: Python never
+ * asks for [SyntaxKind.HEADING], markdown never for [SyntaxKind.KEYWORD].
  *
  * [SyntaxKind.PLAIN] is absent on purpose - unstyled text already draws in the field's colour,
  * so a span for it would change nothing.
@@ -193,8 +208,8 @@ fun SyntaxPalette.styles(): Map<SyntaxKind, SpanStyle> = mapOf(
   SyntaxKind.HEADING to SpanStyle(color = heading, fontWeight = FontWeight.Bold),
   SyntaxKind.STRONG to SpanStyle(fontWeight = FontWeight.Bold),
   SyntaxKind.EMPHASIS to SpanStyle(fontStyle = FontStyle.Italic),
-  SyntaxKind.CODE to SpanStyle(color = string),
-  SyntaxKind.QUOTE to SpanStyle(color = string),
-  SyntaxKind.MARKER to SpanStyle(color = keyword),
+  SyntaxKind.CODE to SpanStyle(color = codeSpan),
+  SyntaxKind.QUOTE to SpanStyle(color = blockQuote),
+  SyntaxKind.MARKER to SpanStyle(color = listMarker),
   SyntaxKind.LINK to SpanStyle(color = link, textDecoration = TextDecoration.Underline),
 )

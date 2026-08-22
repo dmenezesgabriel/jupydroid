@@ -78,6 +78,9 @@ val DarkEditorPalette: EditorPalette =
       // `string.other.link`, which is `string`'s value here. The underline is what tells them
       // apart, and that is the reference's structure - see [SyntaxPalette.link].
       link = Color(0xFFA5D6FF),
+      codeSpan = Color(0xFF79C0FF),
+      blockQuote = Color(0xFF7EE787),
+      listMarker = Color(0xFFFFA657),
     ),
   )
 
@@ -131,5 +134,10 @@ val LightEditorPalette: EditorPalette =
       heading = Color(0xFF0550AE),
       // `string.other.link`, which is `string`'s value here - see [SyntaxPalette.link].
       link = Color(0xFF0A3069),
+      // `markup.inline.raw`, which is `markup.heading`'s value in this theme. Both are the
+      // reference's own, and nothing here is owed a distinction the reference does not draw.
+      codeSpan = Color(0xFF0550AE),
+      blockQuote = Color(0xFF116329),
+      listMarker = Color(0xFF953800),
     ),
   )
