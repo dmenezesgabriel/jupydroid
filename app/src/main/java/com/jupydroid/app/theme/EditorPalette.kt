@@ -34,27 +34,37 @@ data class EditorPalette(
    *  read as a cell. IntelliJ's `JUPYTER.CODE_CELL_BACKGROUND`. */
   val cellBackground: Color,
   /**
-   * Behind inline `` `code` `` in **rendered** prose - `textPreformat.background`.
+   * Behind `` `code` `` in **rendered** prose, inline or fenced - `textPreformat.background`.
    *
    * **It was called `cellSelectionBackground` and described as "the selected cell's surface", and
-   * nothing had drawn a selected cell with it for a long time.** Its one reader is
-   * `richInlineStyles()`. Renamed for what it does, and sourced from what the reference uses for
-   * the same job: a notebook's markdown preview is a webview, and `webviewThemeMapping.ts:20-21`
-   * maps its `theme-code-foreground` / `theme-code-background` onto the `textPreformat` pair.
-   */
-  val inlineCodeBackground: Color,
-  /** Inline `` `code` `` in rendered prose - `textPreformat.foreground`, the other half of the pair. */
-  val inlineCodeForeground: Color,
-  /**
-   * Behind a cell that is part of a marked *run* - JupyterLab's `--jp-notebook-multiselected-color`
-   * (`packages/notebook/style/base.css:141-143`).
+   * nothing had drawn a selected cell with it for a long time** (P2u-3d). It covers a fenced block
+   * as well as an inline span, which is why it is not called `inlineCode…`: the reference's rule is
+   * on `code`, and `pre code` resets only its padding.
    *
-   * The one colour here that is JupyterLab's rather than IntelliJ's, because multi-select is a
-   * notebook idea and the `JUPYTER.*` keys that would answer it are in the closed plugin. Only
-   * drawn when the run holds more than one cell, which is the reference's rule too: the active
-   * cell is tinted only once `jp-mod-multiSelected` is on it, and that is added at `count > 1`
-   * (`packages/notebook/src/widget.ts:2763-2765`, `:146-148`).
+   * **The citation is the webview's base stylesheet**, `contrib/webview/browser/pre/index.html:145-155`,
+   * which is what actually themes a rendered markdown cell. `webviewThemeMapping.ts` exports the
+   * same ids under `theme-code-*` names, but nothing in the tree consumes those - they are a
+   * compatibility surface for third-party renderers, and P2u-3d cited them by mistake.
    */
+  val preformatBackground: Color,
+  /** `` `code` `` in rendered prose - `textPreformat.foreground`, the other half of the pair. */
+  val preformatForeground: Color,
+  /**
+   * Behind a **rendered** block quote - `textBlockQuote.background`.
+   *
+   * New in P2u-3f, and the reason the rule beside it can be as faint as it is: the reference marks
+   * a quote with a wash *and* a 5px rule (`blockquote { background; border-color }` in the webview
+   * base, `border-left-width: 5px` in the notebook's own renderer). This app drew the rule only, so
+   * it needed a rule strong enough to carry the whole job.
+   */
+  val blockQuoteBackground: Color,
+  /**
+   * The rule down the left of a rendered block quote - `textBlockQuote.border`.
+   *
+   * **Faint on purpose, and measured**: 1.08:1 against [blockQuoteBackground] dark. It replaced
+   * `colorScheme.outline` at 3.76:1, which was this app carrying a two-part signal on one part.
+   */
+  val blockQuoteBorder: Color,
   val cellMultiSelected: Color,
   /**
    * The line around a cell's editor, drawn whether or not the cell is active - the reference's

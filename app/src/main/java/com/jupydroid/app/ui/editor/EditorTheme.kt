@@ -74,9 +74,9 @@ fun searchMatchStyles(): SearchMatchStyles = SearchMatchStyles(
  *
  * Emphasis is weight and slant with no colour, which both references agree on. Code and links do
  * **not** take the source palette's values, and that is the correction P2u-3d made: a rendered
- * markdown cell is a webview in the reference, and `webviewThemeMapping.ts:8-27` is the table that
- * says what themes it - `theme-code-foreground` / `theme-code-background` onto the `textPreformat`
- * pair, and `theme-link` onto `textLink.foreground`, which is `MaterialTheme`'s `primary` here.
+ * markdown cell is a webview in the reference, and the webview's base stylesheet is what themes it
+ * (`contrib/webview/browser/pre/index.html:125-155`): `code` takes the `textPreformat` pair and
+ * `a` takes `textLink.foreground`, which is `MaterialTheme`'s `primary` here.
  *
  * Rendered prose and the source behind it therefore *disagree* on purpose. A link is
  * `string.other.link` in the source, where it is a string like any other, and the accent in the
@@ -89,8 +89,8 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
   strong = SpanStyle(fontWeight = FontWeight.Bold),
   code = SpanStyle(
     fontFamily = FontFamily.Monospace,
-    color = editorPalette.inlineCodeForeground,
-    background = editorPalette.inlineCodeBackground,
+    color = editorPalette.preformatForeground,
+    background = editorPalette.preformatBackground,
   ),
   link = SpanStyle(
     color = MaterialTheme.colorScheme.primary,

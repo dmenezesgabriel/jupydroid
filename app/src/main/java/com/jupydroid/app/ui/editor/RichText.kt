@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.toAnnotatedString
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.editorPalette
 
 /**
  * Draws a parsed document as Compose, with no WebView and no HTML anywhere in the path.
@@ -52,7 +54,7 @@ private fun RichBlockText(block: RichBlock) {
     is RichBlock.CodeBlock -> CodeBlockText(block)
     is RichBlock.BlockQuote -> BlockQuoteText(block)
     is RichBlock.ListBlock -> ListBlockText(block)
-    RichBlock.ThematicBreak -> HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    RichBlock.ThematicBreak -> HorizontalDivider(color = LocalContentColor.current)
     is RichBlock.Table -> RichTable(block)
   }
 }
@@ -63,10 +65,10 @@ private fun CodeBlockText(block: RichBlock.CodeBlock) {
   Text(
     text = block.code.trimEnd('\n'),
     style = richTextCodeStyle(),
-    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    color = editorPalette.preformatForeground,
     modifier = Modifier
       .fillMaxWidth()
-      .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+      .background(editorPalette.preformatBackground, MaterialTheme.shapes.small)
       .padding(Spacing.sm)
       .horizontalScroll(rememberScrollState()),
   )
@@ -79,10 +81,12 @@ private fun CodeBlockText(block: RichBlock.CodeBlock) {
  */
 @Composable
 private fun BlockQuoteText(block: RichBlock.BlockQuote) {
-  val rule = MaterialTheme.colorScheme.outline
+  val rule = editorPalette.blockQuoteBorder
+  val wash = editorPalette.blockQuoteBackground
   Column(
     modifier = Modifier
       .fillMaxWidth()
+      .background(wash)
       .drawBehind {
         val x = QUOTE_RULE_WIDTH.toPx() / 2
         drawLine(rule, Offset(x, 0f), Offset(x, size.height), QUOTE_RULE_WIDTH.toPx())
@@ -102,7 +106,6 @@ private fun ListBlockText(block: RichBlock.ListBlock) {
         Text(
           text = if (block.ordered) "${block.startFrom + index}." else "•",
           style = richTextProseStyle(),
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
           modifier = Modifier.width(MARKER_WIDTH),
         )
         Column(verticalArrangement = Arrangement.spacedBy(BLOCK_GAP)) {

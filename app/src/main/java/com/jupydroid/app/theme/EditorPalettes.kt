@@ -41,10 +41,12 @@ val DarkEditorPalette: EditorPalette =
     // `notebook.cellEditorBackground` -> `sideBar.background`. A cell is one step *up* from the
     // page in dark, which is the direction the IntelliJ ramp had too.
     cellBackground = Color(0xFF191A1B),
-    // `textPreformat.background` / `.foreground`, which is what the notebook's own markdown
-    // webview takes for code (`webviewThemeMapping.ts:20-21`).
-    inlineCodeBackground = Color(0xFF262626),
-    inlineCodeForeground = Color(0xFF8C8C8C),
+    // `textPreformat.*` and `textBlockQuote.*`, from the webview base stylesheet that themes a
+    // rendered markdown cell (`contrib/webview/browser/pre/index.html:145-160`).
+    preformatBackground = Color(0xFF262626),
+    preformatForeground = Color(0xFF8C8C8C),
+    blockQuoteBackground = Color(0xFF242526),
+    blockQuoteBorder = Color(0xFF2A2B2C),
     // `notebook.selectedCellBackground`, which 2026 Dark leaves unset ->
     // `list.inactiveSelectionBackground`. Opaque here where light's is a wash, and that is the
     // reference's own asymmetry rather than a transcription slip.
@@ -97,9 +99,11 @@ val LightEditorPalette: EditorPalette =
     // `notebook.cellEditorBackground` -> `sideBar.background`. A cell is one step *down* from the
     // page in light, the mirror of dark.
     cellBackground = Color(0xFFFAFAFD),
-    // `textPreformat.background` / `.foreground` - see the dark palette's note.
-    inlineCodeBackground = Color(0xFFECECEC),
-    inlineCodeForeground = Color(0xFF606060),
+    // `textPreformat.*` and `textBlockQuote.*` - see the dark palette's note.
+    preformatBackground = Color(0xFFECECEC),
+    preformatForeground = Color(0xFF606060),
+    blockQuoteBackground = Color(0xFFEAEAEA),
+    blockQuoteBorder = Color(0xFFF0F1F2),
     // `notebook.selectedCellBackground`, which 2026 Light **does** set, and sets translucent:
     // `#C8DDF150`. VS Code writes `#RRGGBBAA` and Compose writes `0xAARRGGBB`, so the alpha
     // swaps ends - transcribed in the reference's own order this would be a near-black at 79%.
