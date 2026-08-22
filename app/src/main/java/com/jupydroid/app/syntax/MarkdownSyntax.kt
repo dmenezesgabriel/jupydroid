@@ -48,6 +48,10 @@ class MarkdownSyntax : SyntaxHighlighter {
     is Emphasis -> SyntaxKind.EMPHASIS
     is Code, is FencedCodeBlock, is IndentedCodeBlock -> SyntaxKind.CODE
     is Link -> SyntaxKind.LINK
+    // The whole block, not the chevron. The reference's blockquote rule is `begin`/`end` over the
+    // entire block scoped `markup.quote.markdown`, with `>` only a capture inside it
+    // (`extensions/markdown-basics/syntaxes/markdown.tmLanguage.json`, `/repository/blockquote`).
+    is BlockQuote -> SyntaxKind.QUOTE
     else -> null
   }
 
@@ -60,15 +64,16 @@ class MarkdownSyntax : SyntaxHighlighter {
   }
 
   /**
-   * The `-` or `>` the parser swallowed. Only the leading run of markup is marked, so the text
-   * after it keeps whatever the nodes inside it say.
+   * The `-` or `1.` the parser swallowed, and only that - the item's text keeps whatever the nodes
+   * inside it say.
+   *
+   * A list is the one place the reference marks the bullet alone:
+   * `punctuation.definition.list.begin.markdown` scopes the marker, and nothing scopes the text
+   * after it. A **quote** used to come through here too and no longer does - it covers its whole
+   * block, which is [Node.kind]'s job.
    */
   private fun markerOf(node: Node, source: String): SyntaxSpan? {
-    val kind = when (node) {
-      is ListItem -> SyntaxKind.MARKER
-      is BlockQuote -> SyntaxKind.QUOTE
-      else -> null
-    }
+    val kind = if (node is ListItem) SyntaxKind.MARKER else null
     val start = node.sourceSpans.firstOrNull()?.inputIndex
     if (kind == null || start == null) return null
     return source.indexOfFirst(start) { it.isWhitespace() }

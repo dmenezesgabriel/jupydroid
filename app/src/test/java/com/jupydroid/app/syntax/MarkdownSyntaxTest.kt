@@ -50,6 +50,47 @@ class MarkdownSyntaxTest {
     assertEquals(SyntaxKind.MARKER, kindAt(syntax.spansOf("- an item"), 0))
   }
 
+  /**
+   * **A quote is quoted for its whole length**, which is what the reference's grammar says: the
+   * blockquote rule is `begin`/`end` over the entire block and scopes it `markup.quote.markdown`,
+   * with the `>` a separate capture (`extensions/markdown-basics/syntaxes/markdown.tmLanguage.json`,
+   * `/repository/blockquote`).
+   *
+   * Ours marked the `>` alone until P2u-2c. It was invisible while [SyntaxKind.QUOTE] drew in the
+   * string colour - a quote body that looked plain looked like prose, which it is - and P2u-2b
+   * gave it a colour of its own, at which point one green chevron above plain text was obviously
+   * not what VS Code draws.
+   */
+  @Test
+  fun marksTheWholeOfAQuoteRatherThanItsChevron() {
+    val source = "> quoted words"
+
+    assertEquals(SyntaxKind.QUOTE, kindAt(syntax.spansOf(source), source.indexOf("words")))
+  }
+
+  /** The rule is `begin`/`end` over the block, so a quote's later lines are inside it too. */
+  @Test
+  fun marksEveryLineOfAMultiLineQuote() {
+    val source = "> first line\n> second line\n"
+
+    val spans = syntax.spansOf(source)
+
+    assertEquals(SyntaxKind.QUOTE, kindAt(spans, source.indexOf("first")))
+    assertEquals(SyntaxKind.QUOTE, kindAt(spans, source.indexOf("second")))
+  }
+
+  /**
+   * **A list marker is the bullet and nothing else**, and that half must not move with the quote.
+   * The reference scopes only the bullet - `punctuation.definition.list.begin.markdown` - and
+   * leaves the item's text to whatever is inside it, which is what this app already did.
+   */
+  @Test
+  fun leavesAListItemsTextOutsideItsMarker() {
+    val source = "- an item"
+
+    assertEquals(SyntaxKind.PLAIN, kindAt(syntax.spansOf(source), source.indexOf("an item")))
+  }
+
   @Test
   fun leavesPlainProseUnmarked() {
     assertTrue("prose needs no spans", syntax.spansOf("just some words").isEmpty())
