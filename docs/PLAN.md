@@ -37,7 +37,7 @@ filesystem the kernel, the server and the app all share.
 | Notebook | **kernel history** walked into the cell being edited; **find and replace** across the document, with the reference's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
-| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. Cell chrome is the reference's: the collapser transparent at rest and brand blue on the active cell, the editor boxed by a 1dp border that turns brand blue for the cell being typed into. A cell's prompt is the reference's - `[7]:` on code and **nothing at all** on markdown or raw, so every header's leading mark sits at one x. The document's name has a row of its own above its actions, where the reference's single-document mode puts it; the heading caret sits beside the heading it folds, where the reference draws it. **Still open in this phase: P2o, P2r and P2p** - the side panel's rail, and the cell-type control the reference keeps in its toolbar |
+| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. Cell chrome is the reference's: the collapser transparent at rest and brand blue on the active cell, the editor boxed by a 1dp border that turns brand blue for the cell being typed into. A cell's prompt is the reference's - `[7]:` on code and **nothing at all** on markdown or raw, so every header's leading mark sits at one x. The document's name has a row of its own above its actions, where the reference's single-document mode puts it; the heading caret sits beside the heading it folds, where the reference draws it. The open document publishes its headings for a side panel that cannot reach its ViewModel, which is the seam the rail needs. **Still open in this phase: P2o-2 to P2o-4, P2r and P2p** - the rail itself, and the cell-type control the reference keeps in its toolbar |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, Material's own type scale, per-notebook ViewModel scoping |
 | Tests | 256 instrumented, 1261 unit, 100 Maestro drivers over 114 flows - 95 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
 
@@ -634,7 +634,7 @@ side panel (P2o). What follows from each is `docs/DECISIONS.md`.
 | **P2m-1** | *(shipped)* The collapser: transparent at rest, brand blue when active. `stripeResting` left `EditorPalette`, and the position it reversed is argued in `docs/DECISIONS.md` rather than deleted. | — |
 | **P2m-2** | *(shipped)* The editor box: 1dp always, brand blue in edit mode, one shared modifier across the three fields rather than three copies. No elevation - the reference's shadow is *inset*, and why that matters is `docs/DECISIONS.md`. | — |
 | **P2n** | *(shipped, and not as written)* **The prompt is the reference's, and a non-code cell has none.** The row asked for two fixed-width gutter slots on the strength of `flex: 0 0` at `inputarea.css:29-31`; that is the desktop rule, overridden at `width <= 760px` by `flex: 0 0 auto; text-align: left` (`:76-88`), which is this app's layout at every width. What was actually ragged was this app's invented `markdown`/`raw` label being pushed by the heading collapser. Removed - `_setPrompt`'s one caller is `CodeCell._updatePrompt` (`widget.ts:1693-1700`) - plus the reference's trailing colon (`inputarea.ts:283-290`). | Instrumented at 320dp: every code prompt at one x, the collapser leading its own header, and the `⋮` still on screen. Measured on both devices: `RAGGED by 48dp` → `aligned`. |
-| **P2o-1** | The mediator: which panel is selected, and the open notebook's headings and jump lambda, published by the editor and read by the panel. **No duplicated derivation** - `EditorViewModel` stays the one place headings, folds and numbering are computed. | JVM, including the lifetime: the panel empties when the notebook closes, so a ToC cannot outlive its document. |
+| **P2o-1** | *(shipped)* The mediator: which panel is selected, and the open notebook's headings and jump lambda, published by the editor and read by the panel. **No duplicated derivation** - `EditorViewModel` stays the one place headings, folds and numbering are computed. **The reference is a settable, nullable model** - `TableOfContentsPanel.model` (`packages/toc/src/panel.ts:41-60`), assigned from `labShell.currentChanged` and disposed with the widget (`toc-extension/src/index.ts:316,341-343,353`) - so `OpenDocumentOutline` is that property rather than an invention. | JVM over both types; instrumented that a real editor entry publishes and that **disposing it empties the holder** - checked against a build with the teardown removed before it was believed. |
 | **P2o-2** | The rail on medium and expanded: `NavigationRail` at the left edge of the list pane, panels Files and Table of contents in the reference's rank order. `tocPresentationFor` is superseded - the rule becomes "is there a side pane", not "is the editor 840dp". | Tablet at 1280dp: switch to ToC, jump to a heading, the panel stays and the notebook moves. |
 | **P2o-3** | **The two-pane threshold, re-derived rather than kept.** An 80dp rail (`NavigationRailCollapsedTokens.NarrowContainerWidth`) changes the arithmetic 840dp came from, and 800dp portrait is a real device in a real orientation. Measure before changing the constant; if it says 840dp stays, that is the outcome and it is recorded. | A measurement at 320 / 800 / 1280dp into `evidence/`, whichever way it lands. |
 | **P2o-4** | The bar on compact, the same two panels. The in-notebook bottom-sheet ToC stays: the reference has both a sidebar tab and `toc:show-panel` for one widget. | Emulator at **320dp**, which is the width that decides; both entry points in one flow. |
@@ -803,6 +803,30 @@ Three costs the plan did not name:
   Fixed in its own commit before this one - it measures a line of code now - and the lesson is
   P2l-4's again in a new form: **`dev36`'s defaults are not a device**, and a suite only ever run
   there is a suite run at one font scale.
+
+**P2o-1 has shipped, and the mediator it asked for turned out to be a property the reference
+already has.** `TableOfContentsPanel.model` is settable and nullable, assigned from outside by an
+extension listening to `labShell.currentChanged` (`packages/toc/src/panel.ts:41-60`,
+`packages/toc-extension/src/index.ts:316,353`). `OpenDocumentOutline` is that property and
+`DocumentOutline` is the model reduced to what a panel draws with; `EditorScreen` publishes the
+heading list it already computes for its own cells, so nothing is derived twice. What it settled is
+`docs/DECISIONS.md`; the evidence is `evidence/p2o-1-side-panel-mediator/`.
+
+Three things it cost that this file did not name:
+
+- **Half of the row is not a mediator at all.** "Which panel is selected" has exactly one rule that
+  is not Compose's own - picking the panel already showing *collapses* the area
+  (`packages/application/src/shell.ts:2383-2394`) - and `SidePanel?` round-trips through
+  `rememberSaveable` unaided. So it is a pure function and an enum, not a holder, and the holder
+  this row named covers only the outline.
+- **The holder is remembered by the composition, not owned by `AppContainer`,** which departs from
+  where every other piece of app-level state here lives. The lifetime is the argument: the
+  container outlives the activity by design (P1g), and a process-scoped holder would survive a
+  rotation still carrying a jump closed over a disposed composition's `LazyListState`.
+- **The lifetime assertion was checked against a build with the teardown removed.** It failed there
+  - `expected null, but was: <DocumentOutline@...>` - which is the only reason it is believed.
+  Three assertions in this project's history could not fail, and a test whose subject is a teardown
+  is exactly that shape.
 
 ---
 

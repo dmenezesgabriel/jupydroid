@@ -20,12 +20,14 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,6 +36,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jupydroid.app.DocumentOutline
+import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.EditorSettings
@@ -68,6 +72,12 @@ fun EditorScreen(
    * ViewModel, because it is app state and not a fact about this document.
    */
   editorSettingsRepository: EditorSettingsRepository,
+  /**
+   * Where this document publishes its structure for the shell's side panel - see
+   * [OpenDocumentOutline]. Not a table of contents drawn here; the one place the headings are
+   * derived, offered to the pane that cannot reach this entry's `EditorViewModel`.
+   */
+  outline: OpenDocumentOutline,
   onBack: () -> Unit,
   /**
    * Reports where the notebook lives *now*, because a rename moves it.
@@ -191,6 +201,22 @@ fun EditorScreen(
       val index = state.withCellRevealed(cellId).cellsOnScreen.indexOfFirst { it.id == cellId }
       if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
     }
+    // The document hands its structure to the shell's side panel, and takes it back when it closes:
+    // `toc.model = model` assigned from `labShell.currentChanged`, with the model disposed on
+    // `widget.disposed` (`packages/toc-extension/src/index.ts:316,341-343,353`). The panel is a
+    // different `NavEntry` and cannot reach this one's `EditorViewModel`, which is why anything
+    // crosses at all - and why nothing is derived twice: this publishes what the notebook already
+    // draws from.
+    //
+    // `rememberUpdatedState` keeps the published lambda stable while still calling the current
+    // [jumpToHeading], which closes over this composition's `listState` and is rebuilt every frame.
+    val jump by rememberUpdatedState(jumpToHeading)
+    LaunchedEffect(outline, state.title, tocHeadings, editorSettings) {
+      outline.publish(DocumentOutline(state.title, tocHeadings, editorSettings.tocNumbering()) { jump(it) })
+    }
+    // Its own effect rather than an `onDispose` on the one above, which would clear and republish
+    // on every keystroke in a heading. This runs once, when the editor entry goes.
+    DisposableEffect(outline) { onDispose { outline.clear() } }
     // The title's row is not free on a phone, so it is not permanent either - see
     // [titleCollapseFraction]. Derived from the list the cells are drawn from rather than from a
     // `nestedScroll` connection, so there is one answer to "where is the document" and not two.

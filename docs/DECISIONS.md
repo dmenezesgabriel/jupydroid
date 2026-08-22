@@ -1998,6 +1998,63 @@ touch has neither a right-click nor a keyboard, which `CellHeaderTest` has argue
   full-size target. It overlaps the neighbouring cells' rows, where direct hits win
   (`NodeCoordinator.outOfBoundsHit`), which is the rule P2l-4 established.
 
+### The side panel reads a model the document publishes, because it cannot reach it (P2o-1)
+
+The shell's side panel lives in the **list pane** and a notebook's headings are derived in the
+**detail pane's** `EditorViewModel`. Every `NavEntry` owns its own `ViewModelStore`
+(`docs/architecture.md` §4), so the panel can reach neither that ViewModel nor the editor's
+`LazyListState` - the same wall that ruled out `ListDetailSceneStrategy.extraPane()` for P2h.
+
+**The reference has the same seam and the same answer, and it is a settable, nullable model.**
+`TableOfContentsPanel.model: TableOfContents.Model | null` is assigned from outside
+(`packages/toc/src/panel.ts:41-60`), by an extension listening to `labShell.currentChanged`:
+`toc.model = model` (`packages/toc-extension/src/index.ts:316,353`). `OpenDocumentOutline` is that
+property, and `DocumentOutline` is that model reduced to what a panel actually draws with - the
+title the header takes (`panel.ts:77-80`), the headings, the numbering, and the jump.
+
+**Nothing is derived twice, which is the constraint the whole sub-step was written around.**
+`EditorScreen` publishes the list it already computes for its own cells (`tableOfContentsHeadings`),
+so `EditorViewModel` stays the one place headings, folds and numbering are worked out. A panel that
+re-read the notebook would be a second answer to "what is in this document", and the two would
+disagree the moment a cell was edited.
+
+**A table of contents cannot outlive its document.** The reference disposes the model with the
+widget - `widget.disposed.connect(() => { model?.dispose(); })` (`index.ts:341-343`) - and ours
+clears instead, which is the same observable outcome without leaving a dead object on the panel.
+The reference's own `onConnect` returns early when there is no current widget (`index.ts:331-334`),
+so its panel keeps a *disposed* model where ours keeps `null`; stated as a departure because it is
+one, and because `null` is what makes "is anything open" a single check for the placeholder P2o-2
+draws.
+
+**Remembered by `MainNavigation`, not owned by `AppContainer`,** and the lifetime is the whole
+argument. Every other piece of app-level state here is on the container (`ActiveCellRuns`), but a
+process-scoped holder survives the activity relaunch that a rotation is - still carrying a `jumpTo`
+closed over a disposed composition's `LazyListState`. It is remembered by the composition that owns
+both panes, and it is passed in rather than built inside, so a test can read what a real editor
+entry published.
+
+**Two effects, not one.** The publish is keyed on what it publishes and the clear is a
+`DisposableEffect` of its own, because folding the clear into the publish's `onDispose` would empty
+and refill the panel on every keystroke inside a heading.
+
+**Named as a *document*'s outline rather than a notebook's**, because the reference's own
+placeholder is *"The table of contents shows headings in notebooks and supported files"*
+(`panel.ts:32-36`) and P5e feeds `.py` document symbols into the same panel.
+
+**Picking the panel already showing collapses the area**, which is `SidePanel?.chosen`'s only rule
+and the reference's own: `collapse()` sets `this._sideBar.currentTitle = null` and, in `'side'`
+mode, *"only deselects the active tab, leaving the activity bar visible"*
+(`packages/application/src/shell.ts:2383-2394`) - what `application:toggle-left-area` drives
+(`packages/application-extension/src/index.tsx:514-534`). A pure function rather than a holder:
+`SidePanel?` round-trips through `rememberSaveable` unaided, so the state needs no `Saver` and the
+one rule that is not Compose's own gets a JVM test.
+
+**One cost the plan did not name.** The lifetime assertion was checked against a build with the
+`DisposableEffect` removed before it was believed - `expected null, but was:
+<com.jupydroid.app.DocumentOutline@...>`. This project has shipped three assertions that could not
+fail (`HiddenCellsRowTest`'s touch target, the dimension gate's `rglob`, `ktlintCheck` itself), and
+a test whose subject is a teardown is exactly the shape that passes for the wrong reason.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary

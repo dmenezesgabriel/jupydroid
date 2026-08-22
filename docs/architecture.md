@@ -194,6 +194,15 @@ edit and closes the kernel socket. Nothing closed a socket before this existed.
 decorators key on `NavEntry.contentKey`, so two entries for one path would share a single
 `ViewModelStore` and a single `SaveableStateHolder` slot — a double tap is enough to cause it.
 
+**One thing crosses between the panes, and it is a published model.** The shell's side panel is in
+the list pane and a notebook's headings are derived in the detail pane's `EditorViewModel`, which
+the panel cannot reach — so `EditorScreen` publishes a `DocumentOutline` into an
+`OpenDocumentOutline` that `MainNavigation` remembers, and clears it when the entry is disposed.
+That is JupyterLab's own arrangement, `TableOfContentsPanel.model` assigned from
+`labShell.currentChanged`. It is **remembered rather than on the container** because the container
+outlives the activity and the published jump closes over a composition's `LazyListState`;
+`docs/DECISIONS.md` has the rest.
+
 **Work that outlives the screen** goes on `AppContainer.applicationScope`, not `viewModelScope`:
 recording a recent, and flushing a notebook's last edit while its screen is being disposed. By
 then `viewModelScope` is already cancelled. An external scope belongs to something longer-lived

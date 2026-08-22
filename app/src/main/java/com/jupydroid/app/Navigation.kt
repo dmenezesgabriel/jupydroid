@@ -64,6 +64,14 @@ fun MainNavigation(
   // `DeviceConfigurationOverride` around a composable does not change - so a test that tried to
   // force a width would drive one branch twice while appearing to cover both.
   twoPane: Boolean = isWindowWideEnoughForTwoPanes(),
+  /**
+   * Where the open document publishes its structure for the shell's side panel to draw.
+   *
+   * Remembered here rather than owned by [AppContainer], and the lifetime is the argument: a
+   * process-scoped holder would survive a rotation still carrying a jump closed over a disposed
+   * composition's `LazyListState`. Passed in so a test can read what a real editor entry published.
+   */
+  outline: OpenDocumentOutline = remember { OpenDocumentOutline() },
 ) {
   // The explorer is what the app opens on. Recents was a scan of one directory and is now a
   // section of this screen, so there is no second surface left to start from - which is also the
@@ -180,6 +188,7 @@ fun MainNavigation(
           applicationScope = appContainer.applicationScope,
           activeCellRuns = appContainer.activeCellRuns,
           editorSettingsRepository = appContainer.editorSettings,
+          outline = outline,
           onBack = { backStack.removeLastOrNull() },
           onNotebookMoved = { moved -> openNotebookId = moved },
         )
