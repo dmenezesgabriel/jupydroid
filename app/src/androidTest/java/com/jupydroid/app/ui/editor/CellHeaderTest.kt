@@ -3,7 +3,6 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.ForcedSize
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -168,48 +167,6 @@ class CellHeaderTest {
     assertEquals(1, toggled)
   }
 
-  // --- the heading collapser (P2f-1) -----------------------------------------------------
-
-  /**
-   * Whether there is something visible to press, which is what this suite exists for. The
-   * reference creates its collapser only for `level > 0` (`packages/cells/src/widget.ts:2387-2408`),
-   * so prose and code get none.
-   */
-  @Test
-  fun onlyAHeadingCarriesTheCollapser() {
-    compose.setContent {
-      Column {
-        CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
-        CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
-        CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
-      }
-    }
-
-    compose.onAllNodesWithContentDescription(COLLAPSE_HEADING).assertCountEquals(1)
-  }
-
-  /** The label names what a tap will do, so it is the other word once the section is folded. */
-  @Test
-  fun aCollapsedHeadingOffersToExpandInstead() {
-    compose.setContent {
-      CellHeader(HEADING_CELL.copy(headingCollapsed = true), null, null, false, null, {}, {}, {}, {})
-    }
-
-    compose.onNodeWithContentDescription(EXPAND_HEADING).assertIsDisplayed()
-  }
-
-  @Test
-  fun tappingTheCollapserAsksForTheToggle() {
-    val asked = mutableListOf<CellAction>()
-    compose.setContent {
-      CellHeader(HEADING_CELL, null, null, false, null, {}, {}, {}) { asked += it }
-    }
-
-    compose.onNodeWithContentDescription(COLLAPSE_HEADING).performClick()
-
-    assertEquals(listOf(CellAction.ToggleHeadingCollapse), asked)
-  }
-
   // --- the prompt, and what may precede it (P2n) --------------------------------------
 
   /**
@@ -241,18 +198,12 @@ class CellHeaderTest {
   }
 
   /**
-   * The collapser leads its own header rather than pushing what follows. In the reference it costs
-   * no width at all; here it takes the leading position a markdown cell's prompt has vacated,
-   * which is the same place on screen - directly above the heading it folds.
-   *
-   * **Measured against a neighbour rather than against zero, and the first draft of this test is
-   * why.** `IconButton` centres its 40dp content inside Material's 48dp minimum, so its semantics
-   * node starts 4dp in and `assertEquals(0.dp, …)` failed on a header with nothing in front of the
-   * collapser at all. A prose cell's Run control is the same shape in the same position, so the
-   * two agreeing is the claim - anything inserted ahead of the collapser separates them.
+   * **A heading cell's header is a markdown cell's header, with nothing extra on it.** The caret
+   * left this strip in P2n-3 for the heading it folds, so the two are now the same row of
+   * controls - which is the parity the reference has by having no per-cell strip at all.
    */
   @Test
-  fun aHeadingsCollapserLeadsItsHeader() {
+  fun aHeadingsHeaderCarriesNothingAProseHeaderDoesNot() {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
         Column {
@@ -262,8 +213,9 @@ class CellHeaderTest {
       }
     }
 
-    val leadingEdge = compose.onAllNodesWithContentDescription(RUN_BUTTON)[0].getUnclippedBoundsInRoot().left
-    assertEquals(leadingEdge, compose.onNodeWithContentDescription(COLLAPSE_HEADING).getUnclippedBoundsInRoot().left)
+    compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertDoesNotExist()
+    val prose = compose.onAllNodesWithContentDescription(RUN_BUTTON)[0].getUnclippedBoundsInRoot().left
+    assertEquals(prose, compose.onAllNodesWithContentDescription(RUN_BUTTON)[1].getUnclippedBoundsInRoot().left)
   }
 
   /**

@@ -113,9 +113,16 @@ private fun ListBlockText(block: RichBlock.ListBlock) {
   }
 }
 
-/** Markdown allows six levels; past the third they differ by weight rather than by size. */
+/**
+ * Markdown allows six levels; past the third they differ by weight rather than by size.
+ *
+ * **Internal because the caret beside a heading has to centre on the same line this lays out.**
+ * The reference does the same thing with six `[data-heading-level]` rules that each restate that
+ * level's font size (`packages/cells/style/widget.css:184-213`), with a comment saying they must
+ * stay identical to `packages/rendermime/style/base.css`. One `when` is that, kept honest.
+ */
 @Composable
-private fun headingStyle(level: Int): TextStyle = when (level) {
+internal fun headingStyle(level: Int): TextStyle = when (level) {
   HEADING_1 -> MaterialTheme.typography.headlineSmall
   HEADING_2 -> MaterialTheme.typography.titleLarge
   HEADING_3 -> MaterialTheme.typography.titleMedium

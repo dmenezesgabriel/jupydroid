@@ -1,19 +1,31 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -500,6 +512,69 @@ class EditorTopBarTest {
     compose.onNodeWithText(NO_EXPORT_FORMATS).assertIsDisplayed()
   }
 
+  // --- the title's own row (P2q) ---------------------------------------------------------
+
+  /**
+   * **The title is on a row of its own, above the actions.** That is the reference's arrangement
+   * in single-document mode - the mode that shows one document at a time, which is this app's
+   * shape: `#jp-title-panel` is a strip holding nothing but the document's name
+   * (`packages/application/style/titlepanel.css:10-37`), inserted above the document's own toolbar
+   * by `LabShell.mode`'s setter (`packages/application/src/shell.ts:690-705`).
+   *
+   * Asserted as a geometry rather than as a hierarchy: what the reader sees is that the name does
+   * not share a line with the buttons, and a node's bounds are what say so.
+   */
+  @Test
+  fun theTitleSitsAboveTheActions() {
+    showTopBar()
+
+    val title = compose.onNodeWithText("Intro to NumPy").getUnclippedBoundsInRoot()
+    val undo = compose.onNodeWithContentDescription("Undo cell operation").getUnclippedBoundsInRoot()
+    assertTrue("title $title overlaps the actions at $undo", title.bottom <= undo.top)
+  }
+
+  /**
+   * **The whole file name is on screen at 320dp**, which is the width this app is driven at and
+   * the one that decides. It was not: sharing the bar with undo, redo, search and the `⋮` left the
+   * name about 64dp and it truncated to `Gutt…` - `evidence/p2n-gutter/before/` and `after/`, both
+   * of them, since the bar was not what those flows were about.
+   *
+   * Measured against the same string drawn with nothing competing for the row, because Compose's
+   * semantics carry the full text whether or not it fits: `onNodeWithText` finds a truncated title
+   * exactly as it finds a whole one, so only the width can tell them apart.
+   */
+  @Test
+  fun theWholeFileNameFitsAtTheNarrowestWidth() {
+    compose.setContent {
+      JupyterDroidTheme {
+        DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
+          Column {
+            EditorTopBar(
+              title = LONG_NAME,
+              canUndo = true,
+              canRedo = true,
+              onRename = {},
+              onUndo = {},
+              onRedo = {},
+              onBack = {},
+            )
+            Text(
+              text = LONG_NAME,
+              style = MaterialTheme.typography.titleMedium,
+              modifier = Modifier.testTag(UNCONSTRAINED_TITLE),
+            )
+          }
+        }
+      }
+    }
+
+    val drawn = compose.onAllNodesWithText(LONG_NAME)[0].getUnclippedBoundsInRoot()
+    val unconstrained = compose.onNodeWithTag(UNCONSTRAINED_TITLE).getUnclippedBoundsInRoot()
+    val shown = drawn.right - drawn.left
+    val wanted = unconstrained.right - unconstrained.left
+    assertTrue("the title draws $shown of the $wanted it wants", shown >= wanted)
+  }
+
   private var exportPickerOpens = 0
   private val exportedAs = mutableListOf<String>()
 
@@ -540,5 +615,16 @@ class EditorTopBarTest {
         )
       }
     }
+  }
+
+  private companion object {
+    /** The emulator's own window, and the narrowest this app is driven at. */
+    val COMPACT = DpSize(320.dp, 640.dp)
+
+    /** A real notebook name, long enough that a shared bar has to cut it. */
+    const val LONG_NAME = "Heading Sections.ipynb"
+
+    /** The same string with a whole row to itself, which is the width the title wants. */
+    const val UNCONSTRAINED_TITLE = "unconstrained-title"
   }
 }

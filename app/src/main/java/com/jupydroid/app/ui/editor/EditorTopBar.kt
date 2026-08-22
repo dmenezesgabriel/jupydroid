@@ -1,10 +1,16 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
@@ -15,8 +21,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +45,22 @@ import com.jupydroid.app.ui.RenameFileDialog
 private val TITLE_EDIT_ICON_SIZE = 18.dp
 
 /**
- * The notebook's app bar: back and the title.
+ * The notebook's app bar: the document's name on a row of its own, and its actions below.
+ *
+ * **Two rows, because the reference has two.** In single-document mode - the mode that shows one
+ * document at a time, which is this app's shape - `LabShell.mode`'s setter shows a title panel
+ * above the document (`packages/application/src/shell.ts:690-705`), and that panel holds the
+ * document's name and nothing else: `#jp-title-panel` is a strip whose only child is an `<input>`
+ * carrying the title (`packages/application/style/titlepanel.css:10-37`). The toolbar sits below
+ * it. Sharing one row was measured and it does not fit: at 320dp the title drew **64dp of the
+ * 175dp** `Heading Sections.ipynb` needs, and truncated to `Heading…` - the number is
+ * `EditorTopBarTest.theWholeFileNameFitsAtTheNarrowestWidth`'s own failure message before this.
+ *
+ * **The height is Material's own for this arrangement, not a stack that happens to add up.** A
+ * 48dp title row over a 64dp action row is 112dp, which is `MediumTopAppBar`'s container height -
+ * Material's two-row bar, with the same split. What differs is the order and the size: Material
+ * puts the title *below* the actions at `headlineSmall`, the reference puts it above and smaller,
+ * and it is the reference this app follows.
  *
  * Run All lives on [NotebookBar] now, not here. It is a kernel action like interrupt and restart,
  * it belongs beside them rather than alone at the far corner of the screen, and the bottom of a
@@ -104,46 +128,62 @@ fun EditorTopBar(
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
-  TopAppBar(
-    title = { RenameableTitle(title = title, onClick = { renameOpen = true }) },
-    navigationIcon = {
-      IconButton(onClick = onBack) {
-        // Named for where it goes, not for the gesture. "Back" is also the system navigation
-        // bar's button, and a `uiautomator` dump has both - so five Maestro flows meaning this
-        // arrow have been tapping the system one and passing anyway, because before the modal
-        // back of U2 the two did the same thing. They stopped agreeing, which is how it was
-        // found (`evidence/u-flow-sweep/`). A destination-naming label is also what TalkBack
-        // wants: "Back" leaves a screen reader to guess back to what.
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to notebooks")
-      }
-    },
-    actions = {
-      UndoRedo(canUndo, canRedo, onUndo, onRedo)
-      // On the bar rather than in the View menu, and that is what it is: searching is neither a
-      // view toggle nor something asked of the kernel, and both Material and the reference put it
-      // where a thumb can reach it in one tap - `documentsearch:start` is `Ctrl F` there, the
-      // shortest binding in the app.
-      IconButton(onClick = onFind, modifier = Modifier.semantics { contentDescription = FIND_ACTION }) {
-        Icon(Icons.Filled.Search, contentDescription = null)
-      }
-      NotebookActionsMenu(
-        exportState = exportState,
-        onExportPickerOpened = onExportPickerOpened,
-        onExportPickerDismissed = onExportPickerDismissed,
-        onExportAs = onExportAs,
-        onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed,
-        lineNumbersShown = lineNumbersShown,
-        onToggleLineNumbers = onToggleLineNumbers,
-        settings = settings,
-        onSettingsChanged = onSettingsChanged,
-        tableOfContentsHeadings = tableOfContentsHeadings,
-        onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
-        tableOfContentsPresentation = tableOfContentsPresentation,
-        tableOfContentsPaneOpen = tableOfContentsPaneOpen,
-        onToggleTableOfContentsPane = onToggleTableOfContentsPane,
-      )
-    },
-  )
+  // **The insets are the Column's, and the bar below it is told to take none.** `TopAppBar`
+  // consumes `TopAppBarDefaults.windowInsets` itself; left to do so under a strip that is now
+  // above it, it padded the *second* row down by the status bar's height while the first row was
+  // drawn underneath the clock. Caught by looking at the screenshot and by nothing else - no
+  // assertion in this suite sees a system inset, because the test environment has none.
+  Column(
+    modifier = Modifier
+      .background(TopAppBarDefaults.topAppBarColors().containerColor)
+      .windowInsetsPadding(TopAppBarDefaults.windowInsets),
+  ) {
+    NotebookTitleStrip(title = title, onClick = { renameOpen = true })
+    TopAppBar(
+      // Empty on purpose: the name is on its own row above, and an empty slot is how a `TopAppBar`
+      // is told the space between the navigation icon and the actions is not its to fill.
+      title = {},
+      // Already taken by the Column that holds both rows, just above.
+      windowInsets = WindowInsets(0, 0, 0, 0),
+      navigationIcon = {
+        IconButton(onClick = onBack) {
+          // Named for where it goes, not for the gesture. "Back" is also the system navigation
+          // bar's button, and a `uiautomator` dump has both - so five Maestro flows meaning this
+          // arrow have been tapping the system one and passing anyway, because before the modal
+          // back of U2 the two did the same thing. They stopped agreeing, which is how it was
+          // found (`evidence/u-flow-sweep/`). A destination-naming label is also what TalkBack
+          // wants: "Back" leaves a screen reader to guess back to what.
+          Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to notebooks")
+        }
+      },
+      actions = {
+        UndoRedo(canUndo, canRedo, onUndo, onRedo)
+        // On the bar rather than in the View menu, and that is what it is: searching is neither a
+        // view toggle nor something asked of the kernel, and both Material and the reference put it
+        // where a thumb can reach it in one tap - `documentsearch:start` is `Ctrl F` there, the
+        // shortest binding in the app.
+        IconButton(onClick = onFind, modifier = Modifier.semantics { contentDescription = FIND_ACTION }) {
+          Icon(Icons.Filled.Search, contentDescription = null)
+        }
+        NotebookActionsMenu(
+          exportState = exportState,
+          onExportPickerOpened = onExportPickerOpened,
+          onExportPickerDismissed = onExportPickerDismissed,
+          onExportAs = onExportAs,
+          onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed,
+          lineNumbersShown = lineNumbersShown,
+          onToggleLineNumbers = onToggleLineNumbers,
+          settings = settings,
+          onSettingsChanged = onSettingsChanged,
+          tableOfContentsHeadings = tableOfContentsHeadings,
+          onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
+          tableOfContentsPresentation = tableOfContentsPresentation,
+          tableOfContentsPaneOpen = tableOfContentsPaneOpen,
+          onToggleTableOfContentsPane = onToggleTableOfContentsPane,
+        )
+      },
+    )
+  }
 
   if (renameOpen) {
     RenameFileDialog(
@@ -197,13 +237,46 @@ private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onR
   }
 }
 
+/**
+ * The document's name, on a row of its own, and the whole row is the rename target.
+ *
+ * **The reference's own shape, with two departures named.** `#jp-title-panel-title input` fills
+ * the strip - `width: 100%`, transparent, borderless - so in JupyterLab the title *is* the field
+ * and clicking anywhere on it starts the rename
+ * (`packages/application/style/titlepanel.css:17-37`, `shell.ts` `TitleHandler`). Here the tap
+ * opens [RenameFileDialog] instead of editing in place: a soft keyboard over an inline field at
+ * the top of the screen leaves nothing to see what is being renamed, and the dialog is what every
+ * other rename in this app already uses (`ui/RenameFileDialog.kt`).
+ *
+ * **The size is a Material role, not the reference's pixels.** The reference asks for
+ * `calc(--jp-ui-font-size1 * 18 / 13)` = 18px against a 13px base, 1.38x. `titleMedium` is 16sp
+ * against Material's 14sp body, and it is the role Material gives a title in a compact container -
+ * stating a role rather than computing a size is what P2l-1 settled. What it costs is the weight:
+ * the reference says `font-weight: normal` and `titleMedium` is 500.
+ *
+ * The height is Material's interactive minimum rather than the reference's 28px strip, because
+ * unlike an `<input>` reached with a mouse this is a touch target.
+ */
 @Composable
-private fun RenameableTitle(title: String, onClick: () -> Unit) {
+private fun NotebookTitleStrip(title: String, onClick: () -> Unit) {
   Row(
-    modifier = Modifier.clickable(onClickLabel = "Rename notebook", onClick = onClick),
+    modifier = Modifier
+      .fillMaxWidth()
+      .clickable(onClickLabel = "Rename notebook", onClick = onClick)
+      .minimumInteractiveComponentSize()
+      // The reference's own inset is `margin-left: 8px`; Material's horizontal margin for a bar's
+      // content is 16dp, and the row below this one is drawn by `TopAppBar` on that margin - so
+      // taking the reference's would step the two rows in and out by 8dp against each other.
+      .padding(horizontal = Spacing.lg),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(
+      text = title,
+      style = MaterialTheme.typography.titleMedium,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis,
+      modifier = Modifier.weight(1f, fill = false),
+    )
     Spacer(modifier = Modifier.width(Spacing.sm))
     Icon(
       imageVector = Icons.Filled.Edit,

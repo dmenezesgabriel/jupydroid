@@ -25,11 +25,15 @@ appId: com.jupydroid.app
 # The app bar title, which is the rename target - and on a wide window the *only* one of two.
 # U7 puts the notebook list beside the editor, so the open notebook's name is on screen twice,
 # once as a list row and once in the app bar. Plain `tapOn` took the row, which merely re-opened
-# the notebook it was already showing, and the dialog never came. `rightOf` the back arrow is
-# what tells them apart: the list pane is to its left.
+# the notebook it was already showing, and the dialog never came.
+#
+# **`above` the back arrow, where this used to say `rightOf`.** P2q gave the title a row of its own
+# over the action row, which is what JupyterLab's single-document mode does
+# (`packages/application/src/shell.ts:690-705`), so the name is no longer beside the arrow at all.
+# It is above it, and the list pane's rows are not: they start below the bar on every width.
 - tapOn:
     text: "Rename Me Here.ipynb"
-    rightOf:
+    above:
       text: "Back to notebooks"
 - assertVisible: "Rename notebook"
 - takeScreenshot: 02-dialog-from-the-title

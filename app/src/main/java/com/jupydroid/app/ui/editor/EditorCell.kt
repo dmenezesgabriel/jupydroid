@@ -147,6 +147,9 @@ internal fun EditorCell(
             state = field,
             source = cell.source,
             rendered = markdownRendered,
+            // Null on anything that is not a heading, which is the reference's `level > 0` guard.
+            fold = cell.headingLevel?.let { HeadingFold(it, cell.headingCollapsed) },
+            onToggleHeadingCollapse = { act(CellAction.ToggleHeadingCollapse) },
             headingPrefix = headingPrefix,
             editing = editing,
             onEditRequested = onMarkdownEditRequested,

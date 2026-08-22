@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -7,12 +8,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -152,5 +158,186 @@ class MarkdownCellTest {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+
+    /**
+     * A device's non-linear font scaling moves a laid-out line off its style's declared height:
+     * measured at about 7% in P2m-2 (19.2dp declared against 20.67dp drawn), which on the tallest
+     * heading here is under 2dp. The defect this guards against was 10dp.
+     */
+    const val TOLERANCE_DP = 2.0f
+
+    /** Markdown's own six, which is what `headingStyle` branches over. */
+    const val HEADING_LEVELS = 6
+  }
+
+  // --- the heading collapser, beside the heading it folds ---------------------------------
+
+  /**
+   * **The caret is a disclosure triangle on the heading, not chrome above it.** JupyterLab appends
+   * it to the cell's *prompt node* (`packages/cells/src/widget.ts:2386-2408`) and pins it there at
+   * `position: absolute; right: 0; top: 0; bottom: 0` (`packages/cells/style/widget.css:154-168`) -
+   * the right edge of the 64px prompt column, which is immediately left of the content. Six
+   * per-level rules then set `background-position-y: calc(0.3 * <that level's font size>)` so the
+   * 25px caret stays on the heading's **first line** as the heading shrinks: for `h1` at 29px in a
+   * ~43px line box that puts the icon's centre at 21.2px against a line centre of 21.5px.
+   *
+   * It used to sit in this app's own header strip, a row above the heading and beside the Run
+   * control, with nothing connecting it to what it folds
+   * (`evidence/p2f-1-heading-collapse/01-expanded.png`, before this).
+   *
+   * IntelliJ is empty for this question and it was checked: everything under `notebooks/` that
+   * collapses collapses *outputs* (`CollapsingComponent`,
+   * `NotebookOutputCollapseAllInSelectedCellsAction`); markdown heading folding lives in its
+   * closed-source Jupyter plugin.
+   */
+  @Test
+  fun theCollapserSitsBesideTheHeadingRatherThanAboveIt() {
+    compose.setContent {
+      MarkdownCell(
+        rememberTextFieldState("## Results"),
+        "## Results",
+        rendered = true,
+        {},
+        {},
+        fold = HeadingFold(level = 2, collapsed = false),
+      )
+    }
+
+    val caret = compose.onNodeWithContentDescription(COLLAPSE_HEADING).getUnclippedBoundsInRoot()
+    val heading = compose.onNodeWithText("Results").getUnclippedBoundsInRoot()
+    assertTrue("caret at $caret is not left of the heading at $heading", caret.right <= heading.left)
+    assertTrue(
+      "caret at $caret shares no line with the heading at $heading",
+      caret.top < heading.bottom && heading.top < caret.bottom,
+    )
+  }
+
+  /**
+   * **Centred on the heading's line, which is what the reference's six per-level rules buy.** Each
+   * sets `background-position-y: calc(0.3 * <that level's font size>)` for a 25px caret
+   * (`packages/cells/style/widget.css:184-213`), landing `h1`'s icon centre at 21.2px against a
+   * line centre of 21.5px.
+   *
+   * Top-aligned inside its own 48dp button ours sat **10dp low** - measured on device at 316
+   * against 306 - which is the kind of miss that looks like nothing in a code review and like a
+   * mistake on screen. Every level, because the whole point is that it tracks the size.
+   */
+  @Test
+  fun theCaretIsCentredOnTheHeadingsLine() {
+    // All six in one composition: `setContent` may be called once per rule, so a loop around it
+    // throws rather than testing the next level.
+    compose.setContent {
+      Column {
+        (1..HEADING_LEVELS).forEach { level ->
+          MarkdownCell(
+            rememberTextFieldState("${"#".repeat(level)} Level $level"),
+            "${"#".repeat(level)} Level $level",
+            rendered = true,
+            {},
+            {},
+            fold = HeadingFold(level = level, collapsed = false),
+          )
+        }
+      }
+    }
+
+    (1..HEADING_LEVELS).forEach { level ->
+      val caret = compose.onAllNodesWithContentDescription(COLLAPSE_HEADING)[level - 1]
+        .getUnclippedBoundsInRoot()
+      val heading = compose.onNodeWithText("Level $level").getUnclippedBoundsInRoot()
+      assertEquals(
+        "level $level",
+        ((heading.top + heading.bottom) / 2).value,
+        ((caret.top + caret.bottom) / 2).value,
+        TOLERANCE_DP,
+      )
+    }
+  }
+
+  /**
+   * **The caret keeps a full-size press even where its line is smaller than one.** Centring it on
+   * the heading's line means its box is that line's height - 20sp at level 6 against `titleSmall` -
+   * and the fix for that is the button overflowing the box rather than being shrunk by it. Level 6
+   * is the one that would break: this test moved here from `CellTouchTargetTest` when the caret
+   * left the header, and it is the reason the box does not clip.
+   */
+  @Test
+  fun theCaretKeepsItsPressAtTheSmallestHeading() {
+    compose.setContent {
+      MarkdownCell(
+        rememberTextFieldState("###### Deep"),
+        "###### Deep",
+        rendered = true,
+        {},
+        {},
+        fold = HeadingFold(level = HEADING_LEVELS, collapsed = false),
+      )
+    }
+
+    compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertIsAtLeastMinimumTouchTarget(compose.density)
+  }
+
+  /** Unrendered too: the reference's prompt node - and so its caret - is there in both states. */
+  @Test
+  fun theCollapserIsBesideTheSourceWhileTheHeadingIsBeingWritten() {
+    compose.setContent {
+      MarkdownCell(
+        rememberTextFieldState("## Results"),
+        "## Results",
+        rendered = false,
+        {},
+        {},
+        fold = HeadingFold(level = 2, collapsed = false),
+      )
+    }
+
+    compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertIsDisplayed()
+  }
+
+  /** A cell that is not a heading has no caret at all - `level > 0` is the reference's own guard. */
+  @Test
+  fun proseCarriesNoCollapser() {
+    compose.setContent {
+      MarkdownCell(rememberTextFieldState("just prose"), "just prose", rendered = true, {}, {})
+    }
+
+    compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertDoesNotExist()
+  }
+
+  /** The label names what a tap will do, so it is the other word once the section is folded. */
+  @Test
+  fun aFoldedHeadingOffersToExpandInstead() {
+    compose.setContent {
+      MarkdownCell(
+        rememberTextFieldState("## Results"),
+        "## Results",
+        rendered = true,
+        {},
+        {},
+        fold = HeadingFold(level = 2, collapsed = true),
+      )
+    }
+
+    compose.onNodeWithContentDescription(EXPAND_HEADING).assertIsDisplayed()
+  }
+
+  @Test
+  fun tappingTheCollapserAsksForTheToggle() {
+    var toggles = 0
+    compose.setContent {
+      MarkdownCell(
+        rememberTextFieldState("## Results"),
+        "## Results",
+        rendered = true,
+        {},
+        {},
+        fold = HeadingFold(level = 2, collapsed = false),
+        onToggleHeadingCollapse = { toggles++ },
+      )
+    }
+
+    compose.onNodeWithContentDescription(COLLAPSE_HEADING).performClick()
+
+    assertEquals(1, toggles)
   }
 }

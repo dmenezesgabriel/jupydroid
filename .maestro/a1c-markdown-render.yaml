@@ -49,9 +49,15 @@ appId: com.jupydroid.app
     direction: UP
     timeout: 10000
 # Run renders it again, which is what running a markdown cell means in Jupyter.
+# **`above` the heading, where this said `rightOf` the collapser.** P2n-3 moved the caret out of the
+# header strip to beside the heading it folds - which is where the reference draws it
+# (`packages/cells/src/widget.ts:2386-2408`) - so no control in the strip is right of it any more.
+# The strip is still above the body, so this cell's Run is the one above its own caret; the code
+# cell's is below it. `Analysis` would not do as the anchor: the cell is unrendered here, so its
+# node carries the whole source and a full-text match on the heading alone finds nothing.
 - tapOn:
     text: "Run cell"
-    rightOf:
+    above:
       text: "Collapse heading"
 - extendedWaitUntil:
     visible: "Rendered markdown"

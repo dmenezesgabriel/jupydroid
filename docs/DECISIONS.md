@@ -1890,6 +1890,91 @@ in here.
   that has become markdown is one that has lost its bracket - asserted `below` the neighbouring
   code cell's source, since that cell keeps its own.
 
+### The document's name has a row of its own (P2q)
+
+Sharing the app bar with undo, redo, search and the `⋮`, the title had **64dp of the 175dp**
+`Heading Sections.ipynb` needs at 320dp - measured, as
+`EditorTopBarTest.theWholeFileNameFitsAtTheNarrowestWidth`'s failure message before the change -
+and truncated to `Gutt…` in every phone screenshot this repository holds.
+
+**The reference separates the two, and this app is in the mode where it does.** `LabShell.mode`'s
+setter shows a title panel above the document when the mode is `single-document`
+(`packages/application/src/shell.ts:690-705`), and `#jp-title-panel` holds the document's name and
+nothing else - an `<input>` at `width: 100%`, transparent and borderless, in a strip whose
+`min-height` is 28px (`packages/application/style/titlepanel.css:10-37`). The document's own
+toolbar sits below it. One document at a time is this app's only shape, so this is its arrangement
+rather than a choice between two.
+
+**And the reference's toolbar carries none of what was crowding ours**: `save`, `insert`, cut,
+copy, paste, `run`, `interrupt`, `restart`, `restart-and-run`, `cellType`, `kernelName`,
+`executionProgress` (`packages/notebook-extension/schema/panel.json`). Undo, redo and search are
+Edit-menu commands there. Demoting ours to the `⋮` was the cheaper answer in height and is
+**declined**: the title row is what the reference actually draws, and P2a's own evidence is that a
+control nobody can see is a control nobody uses.
+
+**Four things measured rather than assumed:**
+
+| | |
+|---|---|
+| Total height | 48dp title row + 64dp action row = **112dp**, which is `MediumTopAppBar`'s container height - Material's own two-row bar, same split. Not a stack that happens to add up. |
+| Title size | `titleMedium` (16sp). The reference asks for `calc(--jp-ui-font-size1 * 18 / 13)` = 18px on a 13px base; stating a Material role rather than computing a size is what P2l-1 settled. **Costs the weight**: the reference says `font-weight: normal`, `titleMedium` is 500. |
+| Strip height | Material's interactive minimum, not the reference's 28px: unlike an `<input>` reached with a mouse, the whole strip is a touch target. |
+| Inset | On the `Column`, and `TopAppBar` is passed `WindowInsets(0)`. |
+
+**That last row is a defect the screenshot caught and no test could.** `TopAppBar` consumes
+`TopAppBarDefaults.windowInsets` itself. Left to do so under a strip now above it, it padded the
+*second* row down by the status bar's height while the *first* row drew underneath the clock. Every
+assertion in the suite was green: the test environment has no system insets, so nothing
+instrumented can see it. It is the third defect in this project's history that was green against
+every assertion and wrong in the picture, and the frame is in `evidence/p2n-gutter/` history.
+
+**Left open, and named so nobody re-derives it.** The explorer pane's own header draws "Files" far
+larger than a notebook's title now sits beside it on a tablet. Whether the two headers should agree
+is a question about the *shell*, not about this bar, and it belongs with P2o's rail.
+
+### The heading caret belongs to the heading, not to a strip above it (P2n-3)
+
+`CellHeader` drew the chevron as one of its own controls, a row above the heading and beside the
+Run button, with nothing on screen connecting it to what it folds
+(`evidence/p2f-1-heading-collapse/01-expanded.png`, before this). The reference does not have it
+there. `maybeCreateCollapseButton` appends the caret to the cell's **prompt node**
+(`packages/cells/src/widget.ts:2386-2408`) and pins it at `position: absolute; right: 0; top: 0;
+bottom: 0` (`packages/cells/style/widget.css:154-168`) - the right edge of the 64px prompt column,
+which is immediately left of the content. It is a disclosure triangle on the heading.
+
+It is beside the **source** as well as beside the rendered heading, because the prompt node is
+there in both states: `InputArea` builds it once in its constructor and `renderInput` hides only
+the *editor* (`packages/cells/src/inputarea.ts:53-56,111-119`).
+
+**The vertical placement is derived, and by eye it was 10dp wrong.** The reference spends six rules
+on it - one per level, each setting `background-position-y: calc(0.3 * <that level's font size>)`
+for a 25px caret (`widget.css:184-213`) - which for `h1` at 29px in a ~43px line box puts the icon
+centre at 21.2px against a line centre of 21.5px. Top-aligned inside its own 48dp button, ours sat
+at **316 against the heading's 306**, measured from a `uiautomator` dump. A box exactly one heading
+line tall, reading the same `headingStyle(level)` the heading is drawn in, lands it at 306 - and
+tracks the level the way the reference's six rules do. `MarkdownCellTest` pins all six.
+
+**IntelliJ is empty for this, and it was checked so nobody searches it again.** Everything under
+`notebooks/` that collapses collapses *outputs* - `CollapsingComponent`,
+`NotebookOutputCollapseAllInSelectedCellsAction`. Markdown heading folding lives in its
+closed-source Jupyter plugin, the same gap that made `EXECUTION_TIME_COLOR`'s placement unreadable.
+
+**What follows for the header strip, which is the other half of the ask.** With the caret gone, a
+heading cell's strip is a markdown cell's strip: Run and `⋮`, nothing else. That is as close to the
+reference as this app gets - JupyterLab has no per-cell strip at all, its cell actions being a
+right-click context menu and its Run being a toolbar command - and the two controls stay because
+touch has neither a right-click nor a keyboard, which `CellHeaderTest` has argued since Step 4b.
+
+**Two costs, both named:**
+
+- **A heading's text is indented by the caret and a prose cell's is not.** The reference indents
+  *everything* by the prompt column so the two align; at 320dp that column is 15% of the width and
+  the reference itself abandons it below 760px (`inputarea.css:76-88`). So the caret pushes only
+  the heading, which is what a disclosure triangle does everywhere else.
+- **The caret's 48dp press area overflows its one-line box** by design, so a short heading keeps a
+  full-size target. It overlaps the neighbouring cells' rows, where direct hits win
+  (`NodeCoordinator.outOfBoundsHit`), which is the rule P2l-4 established.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary

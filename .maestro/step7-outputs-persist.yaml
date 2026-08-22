@@ -40,5 +40,8 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "42"
     timeout: 20000
-- assertVisible: "[1]"
+# **Escaped, and that is a fix rather than a rename.** Maestro matches a node's whole text as a
+# regex, so the unescaped `[1]` was a character class matching a node reading exactly `1` - a line
+# number in the gutter, not the prompt. It has been asserting the wrong node since it was written.
+- assertVisible: "\\[1\\]:"
 - takeScreenshot: 02-output-survived-restart

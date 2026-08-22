@@ -1,12 +1,14 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -66,6 +68,53 @@ fun MarkdownCell(
    * be - reaching one unrenders the cell (`packages/cells/src/searchprovider.ts:380-410`).
    */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
+  /** This cell's heading and whether it is folded, or null when it is not one - see [HeadingFold]. */
+  fold: HeadingFold? = null,
+  /** `notebook:toggle-heading-collapse`, asked for by the caret beside the heading. */
+  onToggleHeadingCollapse: () -> Unit = {},
+) {
+  if (fold == null) {
+    MarkdownCellBody(
+      state, source, rendered, onEditRequested, onSourceEdited, modifier,
+      input, takesCaret, editing, lineNumbersShown, headingPrefix, search,
+    )
+    return
+  }
+  // The caret leads the cell's body, which is where the reference draws it: appended to the prompt
+  // node and pinned to its right edge, immediately left of the content
+  // (`packages/cells/src/widget.ts:2386-2408`, `packages/cells/style/widget.css:154-168`). Beside
+  // the source as well as beside the rendered heading, because the prompt node is there in both
+  // states - `InputArea` builds it once and only hides the *editor* when it renders
+  // (`packages/cells/src/inputarea.ts:53-56,111-119`).
+  Row(modifier = modifier, verticalAlignment = Alignment.Top) {
+    HeadingCollapser(fold = fold, onToggle = onToggleHeadingCollapse)
+    MarkdownCellBody(
+      state, source, rendered, onEditRequested, onSourceEdited, Modifier.weight(1f),
+      input, takesCaret, editing, lineNumbersShown, headingPrefix, search,
+    )
+  }
+}
+
+/**
+ * A markdown cell without its gutter: the rendered prose, or the field that writes it.
+ *
+ * Split out so [MarkdownCell] can put the same body beside a heading's caret or on its own,
+ * without the two branches each carrying a copy of the rendered/editing decision.
+ */
+@Composable
+private fun MarkdownCellBody(
+  state: TextFieldState,
+  source: String,
+  rendered: Boolean,
+  onEditRequested: () -> Unit,
+  onSourceEdited: (String) -> Unit,
+  modifier: Modifier,
+  input: FocusedCellInput?,
+  takesCaret: Boolean,
+  editing: Boolean,
+  lineNumbersShown: Boolean,
+  headingPrefix: String,
+  search: CellSearchHighlight,
 ) {
   if (!rendered) {
     MarkdownCellField(
