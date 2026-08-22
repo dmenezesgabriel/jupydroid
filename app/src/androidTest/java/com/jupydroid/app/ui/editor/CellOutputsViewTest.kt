@@ -1,17 +1,21 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
-import com.jupydroid.app.theme.CodeText
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -75,23 +79,37 @@ class CellOutputsViewTest {
   /**
    * P2l-3a: an output is code, so it is drawn at the one size code is drawn at.
    *
-   * **Derived from `CodeText`, not a `dp` this file spells out** - the rule this suite already
-   * states for the scrolled bound. What makes it exact rather than font metrics is that the line
-   * height is *stated*: Material's `DefaultLineHeightStyle` is `trim = None`, so a single line
-   * lays out to exactly `lineHeight`. It measured `bodySmall`'s 16sp before this step, against a
-   * cell source resolving to 14sp with the font's own line height.
+   * **Measured against a line of code, not against `CodeText.lineHeight.toDp()`**, and the
+   * difference is a device rather than a preference. This asserted the conversion until the tablet
+   * ran it: at `fontScale = 1.1` Android 14's *non-linear* font scaling makes `18.sp.toDp()` come
+   * out at **19.2dp**, while a line of that very style lays out to **20.67dp** - so the assertion
+   * failed on a build whose output and source were pixel-identical at 20.67dp each. It had been
+   * green only because `dev36` sits at `fontScale = 1.0`, where a conversion and a layout happen
+   * to agree.
+   *
+   * A conversion is not the claim. The claim is that an output line and a source line are the same
+   * height, and comparing the two is both what it says and the only form of it that survives the
+   * reader's font setting - which is the whole reason [CodeText] is in `sp`.
    */
   @Test
-  fun oneOutputLineIsAsTallAsTheCodeLineHeight() {
+  fun oneOutputLineIsAsTallAsALineOfCode() {
     compose.setContent {
       JupyterDroidTheme {
-        CellOutputs(outputs = listOf(oneLine()), hidden = false, scrolled = false, search = emptyList(), onExpand = {})
+        Box {
+          CellOutputs(
+            outputs = listOf(oneLine()),
+            hidden = false,
+            scrolled = false,
+            search = emptyList(),
+            onExpand = {},
+          )
+          Text(text = "one line", style = codeTextStyle(), modifier = Modifier.testTag(CODE_LINE))
+        }
       }
     }
 
-    val expected = with(compose.density) { CodeText.lineHeight.toDp() }
     assertEquals(
-      expected.value,
+      compose.onNodeWithTag(CODE_LINE).getUnclippedBoundsInRoot().height.value,
       compose.onNodeWithContentDescription("Cell output").getUnclippedBoundsInRoot().height.value,
       0.5f,
     )
@@ -107,5 +125,8 @@ class CellOutputsViewTest {
 
   private companion object {
     const val FIFTY = 50
+
+    /** The reference line this test compares an output against - see the test's own docstring. */
+    const val CODE_LINE = "one-line-of-code"
   }
 }
