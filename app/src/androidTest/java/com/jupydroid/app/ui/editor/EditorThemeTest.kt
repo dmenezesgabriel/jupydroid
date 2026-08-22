@@ -59,19 +59,54 @@ class EditorThemeTest {
     assertEquals(FontFamily.Monospace, code.fontFamily)
   }
 
+  /**
+   * A4's regression, now covering **every** cell type rather than markdown alone.
+   *
+   * It used to name `markdownSourceStyle`, which P2s deleted: a markdown cell's source is drawn in
+   * the same style a code and a raw cell's is, so there is one function left to guard and one
+   * place the colour can go missing from.
+   */
   @Test
-  fun theMarkdownSourceColourFollowsTheTheme() {
+  fun theCellSourceColourFollowsTheTheme() {
     lateinit var dark: TextStyle
     lateinit var light: TextStyle
     // Both in one composition: a test rule accepts setContent exactly once.
     compose.setContent {
-      JupyterDroidTheme(darkTheme = true) { dark = markdownSourceStyle() }
-      JupyterDroidTheme(darkTheme = false) { light = markdownSourceStyle() }
+      JupyterDroidTheme(darkTheme = true) { dark = codeSourceStyle() }
+      JupyterDroidTheme(darkTheme = false) { light = codeSourceStyle() }
     }
 
     assertNotEquals("dark theme source must have a colour", Color.Unspecified, dark.color)
     assertNotEquals("light theme source must have a colour", Color.Unspecified, light.color)
     assertNotEquals("the same colour in both themes is the bug", dark.color, light.color)
+  }
+
+  /**
+   * P2s, at the level of the style rather than the field: source is code, rendered prose is prose.
+   *
+   * [MarkdownCellFieldTest.aMarkdownSourceLaysOutLikeARawCellsSource] measures the layout the two
+   * fields actually produce; this pins the rule they produce it from, and pins the pair that is
+   * easy to confuse - `codeSourceStyle` takes the **code** size, `richTextCodeStyle` inherits the
+   * **prose** size (P2l-3b). The two happen to coincide at 14sp today, which is exactly why the
+   * line height is what this asserts on.
+   */
+  @Test
+  fun aCellsSourceTakesTheCodeLineHeightWhereRenderedCodeTakesTheProseSize() {
+    lateinit var source: TextStyle
+    lateinit var renderedCode: TextStyle
+    lateinit var prose: TextStyle
+    compose.setContent {
+      JupyterDroidTheme {
+        source = codeSourceStyle()
+        renderedCode = richTextCodeStyle()
+        prose = richTextProseStyle()
+      }
+    }
+
+    assertEquals(FontFamily.Monospace, source.fontFamily)
+    assertEquals("a source line is the code line height", CodeText.lineHeight, source.lineHeight)
+    assertEquals("a source line is the code size", CodeText.size, source.fontSize)
+    assertEquals("rendered code is still the prose size", prose.fontSize, renderedCode.fontSize)
   }
 
   /**

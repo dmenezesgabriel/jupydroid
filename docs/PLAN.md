@@ -685,7 +685,30 @@ one commit because `driver-rules.sh` exists so the two cannot disagree.
 
 | # | Sub-step | Gate |
 |---|---|---|
-| **P2s** | *(filed by P2r-1, not started)* **A markdown cell's source takes the code font.** Every cell type's editor is one font in the reference; this app draws markdown's in `bodyMedium`. Check the *size* rule at the same time - P2l-3b settled that **rendered** markdown's code inherits the prose size, which is a different rule about a different surface and must not be confused with this one. | Instrumented that a markdown cell's source measures the code family, against a raw cell's; screenshots either side on both devices. |
+| **P2s** | *(shipped)* **A markdown cell's source takes the code font.** Every cell type's editor is one font in the reference; this app draws markdown's in `bodyMedium`. Check the *size* rule at the same time - P2l-3b settled that **rendered** markdown's code inherits the prose size, which is a different rule about a different surface and must not be confused with this one. | Instrumented that a markdown cell's source measures the code family, against a raw cell's; screenshots either side on both devices. |
+
+**P2s has shipped, and the emulator hid a defect in its own flow.** What it settled is
+`docs/DECISIONS.md`; the evidence is `evidence/p2s-markdown-source-font/`.
+
+Three costs this file did not name:
+
+- **A markdown cell's source is `codeSourceStyle` now, not a second style that matches it.**
+  `markdownSourceStyle` is deleted rather than redefined: one editor font means one function, and a
+  second name that happened to return the same thing is what let the two drift in the first place.
+  P2t's new reference agrees with the old one here - VS Code builds a markup cell's editor over
+  `getBaseCellEditorOptions(language)` with no font override (`markupCell.ts:66,331`), and its one
+  markdown font setting is a `computeWebviewOptions()` value for the **rendered** preview
+  (`notebookOptions.ts:748-772`).
+- **The flow was green on the emulator and wrong on the tablet, for a reason no assertion carried.**
+  Opening the editor takes the caret, so the soft keyboard covered the cell being compared against;
+  `dev36` has a hardware keyboard and never showed one. Fixed with `hideKeyboard`, which is what
+  `a5-markdown-editor.yaml` already did for the same reason. And `wm size 1080x2400` on an
+  auto-rotated tablet is `2400x1080` - a two-pane landscape shell - so the driver locks portrait the
+  way `p1g-one-container-driver.sh` does.
+- **A one-second `assembleDebug` looks exactly like a stale APK.** The `before` build returned from
+  the build cache, so it was checked for the deleted symbol before either half was captured:
+  `classes4.dex` carries `markdownSourceStyle` before and no dex carries it after. A `before` frame
+  taken from an `after` APK would have been green, identical and worthless.
 
 **Named risk, and it is why P2o-4 is last.** On compact the app's root is the explorer, so the bar
 is only on screen when no notebook is open - the ToC entry is then reachable only after leaving the

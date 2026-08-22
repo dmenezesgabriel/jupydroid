@@ -1084,6 +1084,61 @@ Syntax colours used to come from `colorScheme` roles — so `NUMBER` sat close t
 the value ultimately came from the user's wallpaper, which nothing could assert. Colours now come
 from IntelliJ's own schemes with every WCAG ratio pinned by `EditorPaletteTest`.
 
+### One editor font, whatever the cell holds — source is code, rendered prose is not
+
+A markdown cell's **source** is drawn in `codeSourceStyle`, the same style a code and a raw cell's
+source is drawn in. `markdownSourceStyle` is deleted rather than redefined: one editor font means
+one function, and a second name returning "the same thing" is what let the two drift.
+
+Both references agree, and each was read rather than assumed:
+
+- **VS Code** builds a markup cell's editor as a plain `CodeEditorWidget` over
+  `getBaseCellEditorOptions(viewCell.language)` — a code cell's own options — with no font override
+  in the file (`view/cellParts/markupCell.ts:66,331`; `grep -c RunToolbar` there is 0 for the same
+  structural reason). Its one markdown-specific font setting, `markupFontFamily`, is a
+  `computeWebviewOptions()` value (`notebookOptions.ts:748-772`) and styles the **rendered preview**.
+- **JupyterLab**'s `.cm-editor` takes `--jp-code-font-family`
+  (`packages/codemirror/style/base.css:5-9`) with no per-cell-type override.
+
+**This is not P2l-3b and must not be collapsed into it.** That entry settled that code inside
+*rendered* markdown inherits the **prose** size (`rendermime/style/base.css:407-417`). Different
+surface, opposite direction: source is code that looks like code, rendered prose is prose that
+happens to contain code. `EditorThemeTest` pins both in one test so the pair cannot drift apart.
+
+### An emulator with a hardware keyboard cannot prove a phone's layout
+
+P2s's flow was green on `dev36` and failed on the tablet, and the assertion was not what was wrong:
+opening a markdown cell's editor takes the caret, the soft keyboard comes up, and it covered the
+cell the frame was comparing against. `dev36` has a hardware keyboard, so nothing ever came up
+there. Any flow that opens an editor and then looks at what is *below* it must put the keyboard
+away — `hideKeyboard`, which `a5-markdown-editor.yaml` already did for this reason.
+
+**And `wm size` is not a geometry on its own.** It sets the *natural* orientation's resolution, so
+`1080x2400` on an auto-rotated tablet came out `2400x1080` — a landscape two-pane shell with the
+notebook in a narrow column, which is not the layout being measured and not what the emulator drew.
+A driver that overrides the window must also lock rotation, the way `p1g-one-container-driver.sh`
+does, and restore it on exit.
+
+### A one-second `assembleDebug` looks exactly like a stale APK
+
+Gradle's build cache returns a previously-compiled variant in about a second, which is
+indistinguishable from "nothing was rebuilt" in the log. For a **before/after** pair that
+difference is the whole evidence: a `before` frame captured from an `after` APK is green,
+identical to its neighbour, and worthless.
+
+So a paired capture verifies the artefact before it captures anything. P2s checked the symbol its
+change deletes:
+
+```sh
+for f in $(unzip -l app-debug.apk | grep -o 'classes[0-9]*\.dex'); do
+  unzip -p app-debug.apk $f | strings | grep -c markdownSourceStyle
+done
+```
+
+`classes4.dex` carried three occurrences in the `before` build and no dex carried any in the
+`after` one. The check is cheap, and it is the only thing standing between a cached build and a
+fabricated pair.
+
 ### Markdown renders natively — no WebView, no HTML
 
 commonmark-java AST → recursive composables, following JetBrains Jewel

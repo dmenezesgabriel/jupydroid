@@ -74,7 +74,7 @@ fun MarkdownCellField(
   val focused = interactions.collectIsFocusedAsState()
   val empty by remember { derivedStateOf { state.text.isEmpty() } }
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-  val numberStyle = markdownSourceStyle().copy(color = editorPalette.lineNumber)
+  val numberStyle = codeSourceStyle().copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
   val searchStyles = searchMatchStyles()
   val searching = rememberUpdatedState(search)
@@ -109,7 +109,7 @@ fun MarkdownCellField(
       .focusRequester(caret)
       .lineNumbers(state.text, layout, numberStyle, gutter),
     onTextLayout = { getResult -> layout = getResult() },
-    textStyle = markdownSourceStyle(),
+    textStyle = codeSourceStyle(),
     interactionSource = interactions,
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
     // No bracket matching: a parenthesis in prose is punctuation, not structure.

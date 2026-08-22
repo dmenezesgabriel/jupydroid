@@ -160,28 +160,32 @@ fun richTextCodeStyle(): TextStyle =
 fun symbolKeyStyle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace)
 
 /**
- * A cell's source, which is [codeTextStyle] in the editor's own foreground colour.
+ * **Any** cell's source, which is [codeTextStyle] in the editor's own foreground colour.
  *
  * The colour is the editor's `TEXT` foreground, so text the highlighter leaves alone is the colour
  * IntelliJ leaves it - and so the palette's contrast assertions describe what is actually drawn.
- * Explicit for the reason [markdownSourceStyle]'s is: a `BasicTextField` handed
- * `Color.Unspecified` draws black rather than falling back to `LocalContentColor`.
+ * It is explicit rather than inherited, and that is a regression rather than a preference: a
+ * `BasicTextField` handed `Color.Unspecified` draws black rather than falling back to
+ * `LocalContentColor` the way `Text` does, which made a markdown cell's source black in both
+ * themes - fine on light, nearly invisible on dark (audit A4, `EditorThemeTest`).
  *
- * Shared by the two fields that draw code-shaped text - [CodeCellField] and [RawCellField]. A raw
- * cell holds LaTeX, reST or an HTML fragment, which is closer to code than to prose, and the
- * reference draws every cell type in its one editor font.
+ * **All three fields, since P2s** - [CodeCellField], [RawCellField] and [MarkdownCellField]. A
+ * markdown cell drew its source in `bodyMedium` until then, which is prose, and both references
+ * say the editor is one font whatever the cell holds:
+ *
+ * - VS Code builds a markup cell's editor as a plain `CodeEditorWidget` over
+ *   `getBaseCellEditorOptions(language)` - a code cell's own options - with no font override in
+ *   the file (`view/cellParts/markupCell.ts:66,331`). Its one markdown-specific font setting,
+ *   `markupFontFamily`, is returned from `computeWebviewOptions()`
+ *   (`notebookOptions.ts:748-772`) and styles the **rendered** preview.
+ * - JupyterLab's `.cm-editor` takes `--jp-code-font-family`
+ *   (`packages/codemirror/style/base.css:5-9`) with no per-cell-type override.
+ *
+ * **Not to be confused with [richTextCodeStyle]**, which is the opposite direction about the
+ * opposite surface: code inside *rendered* markdown inherits the **prose** size. Source is code
+ * that looks like code; rendered prose is prose that happens to contain code. P2l-3b settled the
+ * second and P2s the first.
  */
 @Composable
 @ReadOnlyComposable
 fun codeSourceStyle(): TextStyle = codeTextStyle().copy(color = editorPalette.syntax.plain)
-
-/**
- * The markdown source as it is being written.
- *
- * The colour is explicit and that is the point: a `BasicTextField` handed `Color.Unspecified`
- * draws black rather than falling back to `LocalContentColor` the way `Text` does, so leaving
- * it off made the source black in both themes - fine on light, nearly invisible on dark.
- */
-@Composable
-@ReadOnlyComposable
-fun markdownSourceStyle(): TextStyle = MaterialTheme.typography.bodyMedium.copy(color = editorPalette.syntax.plain)
