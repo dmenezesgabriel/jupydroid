@@ -39,16 +39,20 @@ appId: com.jupydroid.app
 # counted the Run buttons *rendered*, and at 320dp the markdown header is above the fold while
 # the code cell below it is not - so index 0 was the code cell's Run and the flow ran the wrong
 # cell entirely, then failed looking for a render that was never asked for.
+# Anchored on the heading's collapser, not on a kind label. The label was this app's own - the
+# reference gives markdown no prompt at all (`packages/cells/src/widget.ts:1693-1700`) - and the
+# collapser is the better anchor anyway: it is `# Analysis`'s own control, so it names *this* cell
+# rather than every markdown cell on screen.
 - scrollUntilVisible:
     element:
-      text: "markdown"
+      text: "Collapse heading"
     direction: UP
     timeout: 10000
 # Run renders it again, which is what running a markdown cell means in Jupyter.
 - tapOn:
     text: "Run cell"
     rightOf:
-      text: "markdown"
+      text: "Collapse heading"
 - extendedWaitUntil:
     visible: "Rendered markdown"
     timeout: 10000

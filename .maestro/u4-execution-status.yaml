@@ -24,13 +24,13 @@ appId: com.jupydroid.app
     visible: ".*never reached.*"
     timeout: 30000
 # Nothing has run: every code cell shows the empty bracket rather than the word "code".
-- assertVisible: "\\[ \\]"
+- assertVisible: "\\[ \\]:"
 - takeScreenshot: 01-nothing-run-yet
 - tapOn: "Run all cells"
 # Caught while the first cell is still sleeping: the star is the queued/running mark, and the
 # cells below it are queued behind this one rather than looking untouched.
 - extendedWaitUntil:
-    visible: "\\[\\*\\]"
+    visible: "\\[\\*\\]:"
     timeout: 60000
 - takeScreenshot: 02-queued-and-running
 # The interpreter's traceback banner, and deliberately *not* scoped with `childOf`.
@@ -49,5 +49,5 @@ appId: com.jupydroid.app
 # And the third cell, which the failure stopped the queue before reaching, says *skipped* rather
 # than drawing the empty bracket of a cell nobody ran. The whole point of tracking the state is
 # that it reaches the screen.
-- assertVisible: "\\[-\\]"
+- assertVisible: "\\[-\\]:"
 - takeScreenshot: 03-finished-failed-and-skipped

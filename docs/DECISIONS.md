@@ -1837,6 +1837,59 @@ of this moved the gutter, which is P2n's subject; `CellEditorBoxTest` asserts th
 pre-P2m-2 shape rather than against a number.
 
 
+### The prompt is the reference's, and a non-code cell has none (P2n)
+
+`CellHeader` drew the words **"markdown"** and **"raw"** where the reference draws nothing, and
+`[7]` where it draws `[7]:`. Both were read out of the reference rather than remembered:
+
+- `InputPrompt`'s setter is `this.node.textContent = \`[${'$'}{value || ' '}]:\``
+  (`packages/cells/src/inputarea.ts:283-290`). The trailing colon is part of the notation, and
+  `[ ]:` is what an unrun cell shows because the empty string falls through `||` to a space.
+- `_setPrompt` has **exactly one caller**, `CodeCell._updatePrompt`
+  (`packages/cells/src/widget.ts:1693-1700`). `MarkdownCell` and `RawCell` never call it, so their
+  prompt node is drawn and left textless.
+
+**The invented word cost more than a word.** It was the only thing in front of a heading cell's
+collapser, so the collapser pushed it: two markdown cells in one frame started 48dp apart, measured
+on device at `evidence/p2n-gutter/before/gutter.txt` (`RAGGED by 48dp`) and visible since P2h in
+`evidence/p2h-3-table-of-contents-pane/02-the-pane.png`. With the word gone the collapser takes the
+leading position instead, which is where the reference draws it anyway - `maybeCreateCollapseButton`
+appends it to the *prompt node* at `position: absolute; right: 0`
+(`packages/cells/src/widget.ts:2386-2408`, `packages/cells/style/widget.css:154-168`), directly
+beside the heading. Every header's leading mark is now at one x: `aligned` in
+`evidence/p2n-gutter/after/gutter.txt` and `after-tablet/`, on both devices.
+
+**A reserved gutter was tried first and is refused.** The plan's row asked for two fixed-width
+slots, citing `flex: 0 0` on `.jp-Collapser` and `.jp-InputPrompt`
+(`packages/cells/style/inputarea.css:29-31`). That is the **desktop** rule. At `width <= 760px` the
+reference overrides it - `flex: 0 0 auto; text-align: left` (`:76-88`) - and this app's header has
+been that column layout at every width since Step 4. So a reserved column is something neither
+reference draws at the widths this app runs at; built, it indented every header 48dp and detached
+the prompt from the editor it labels (the frame is in this repository's history, not in
+`evidence/`). Two 48dp slots also left about 10dp of headroom at 320dp once a cell showed its
+duration, which `CellHeaderTest.theMenuButtonStaysOnScreenAt320dp` now pins.
+
+**What it costs, and it is named rather than hidden.** A markdown or raw cell's header now holds
+only its Run control and its `⋮`, so nothing on screen says what kind it is. That is the
+reference's own position, and the reference answers it elsewhere: the notebook toolbar carries a
+`cellType` item at rank 40 (`packages/notebook-extension/schema/panel.json`) showing and changing
+the active cell's type. This app has no such control, and adding one is filed rather than smuggled
+in here.
+
+**Three things this moved that the plan did not name:**
+
+- **28 prompt assertions across 13 flows needed the colon**, and `assertNotVisible` was the risk:
+  `\[ \]` no longer matches `[ ]:`, so an un-updated negative assertion would have gone on
+  passing while asserting nothing.
+- **Three flows anchored a tap on the invented word.** `a1c`, `a4` and `a5` all seed
+  `a1c-markdown-render.ipynb`, whose markdown cell is `# Analysis` - a heading. Its collapser is a
+  *better* anchor than the word was: it names that one cell rather than every markdown cell on
+  screen.
+- **Two flows proved a cell's kind by reading the word.** They read it off the cell's own shape
+  now: a raw cell is the one kind with no Run control at all (`cellexecutor.ts:36-141`), and a cell
+  that has become markdown is one that has lost its bracket - asserted `below` the neighbouring
+  code cell's source, since that cell keeps its own.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary

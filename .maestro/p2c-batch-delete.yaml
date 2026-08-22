@@ -36,7 +36,7 @@ appId: com.jupydroid.app
 - assertVisible: "delta = 4"
 # The fixture's saved result, which the undo has to bring back with the cell.
 - assertVisible: "batch output"
-- assertVisible: "\\[7\\]"
+- assertVisible: "\\[7\\]:"
 - takeScreenshot: 01-four-cells-one-with-a-result
 - tapOn: "Cell actions"
 - tapOn: "Cell menu Select cells"
@@ -73,5 +73,5 @@ appId: com.jupydroid.app
 # The output and the count came back with the cell that had them, which is what says the entry
 # carried the results and not only the sources.
 - assertVisible: "batch output"
-- assertVisible: "\\[7\\]"
+- assertVisible: "\\[7\\]:"
 - takeScreenshot: 04-one-undo-brought-all-three-back

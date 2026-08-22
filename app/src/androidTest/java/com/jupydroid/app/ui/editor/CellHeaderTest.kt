@@ -1,21 +1,29 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.Instant
 
 /**
  * The first instrumented test in the project, and it earns its keep: the thing under test is an
@@ -202,9 +210,130 @@ class CellHeaderTest {
     assertEquals(listOf(CellAction.ToggleHeadingCollapse), asked)
   }
 
+  // --- the prompt, and what may precede it (P2n) --------------------------------------
+
+  /**
+   * **Nothing is ever in front of a code cell's prompt**, so every bracket in a document starts at
+   * the same x. That is the reference's arrangement reached by removing rather than reserving: its
+   * prompt is the first child of the input area (`packages/cells/src/inputarea.ts:53-56`), and the
+   * one thing that could precede it - the heading collapser - is not a sibling at all but an
+   * absolutely positioned child *of the prompt* (`packages/cells/src/widget.ts:2386-2408`,
+   * `packages/cells/style/widget.css:154-168`).
+   *
+   * Measured ragged before this: two markdown labels 48dp apart in one frame
+   * (`evidence/p2n-gutter/before/gutter.txt`).
+   */
+  @Test
+  fun everyCodePromptInOneFrameStartsAtTheSameX() {
+    compose.setContent {
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
+        Column {
+          CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+          CellHeader(CODE_CELL, 1, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+          CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+          CellHeader(CODE_CELL, 12, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+        }
+      }
+    }
+
+    assertEquals(0.dp, compose.onNodeWithText("[1]:").getUnclippedBoundsInRoot().left)
+    assertEquals(0.dp, compose.onNodeWithText("[12]:").getUnclippedBoundsInRoot().left)
+  }
+
+  /**
+   * The collapser leads its own header rather than pushing what follows. In the reference it costs
+   * no width at all; here it takes the leading position a markdown cell's prompt has vacated,
+   * which is the same place on screen - directly above the heading it folds.
+   *
+   * **Measured against a neighbour rather than against zero, and the first draft of this test is
+   * why.** `IconButton` centres its 40dp content inside Material's 48dp minimum, so its semantics
+   * node starts 4dp in and `assertEquals(0.dp, …)` failed on a header with nothing in front of the
+   * collapser at all. A prose cell's Run control is the same shape in the same position, so the
+   * two agreeing is the claim - anything inserted ahead of the collapser separates them.
+   */
+  @Test
+  fun aHeadingsCollapserLeadsItsHeader() {
+    compose.setContent {
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
+        Column {
+          CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+          CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+        }
+      }
+    }
+
+    val leadingEdge = compose.onAllNodesWithContentDescription(RUN_BUTTON)[0].getUnclippedBoundsInRoot().left
+    assertEquals(leadingEdge, compose.onNodeWithContentDescription(COLLAPSE_HEADING).getUnclippedBoundsInRoot().left)
+  }
+
+  /**
+   * The words this app invented, gone. `MarkdownCell` and `RawCell` never call `_setPrompt`, whose
+   * only caller is `CodeCell._updatePrompt` (`packages/cells/src/widget.ts:1693-1700`), so the
+   * reference draws their prompt node empty.
+   */
+  @Test
+  fun neitherMarkdownNorRawCarriesAPrompt() {
+    compose.setContent {
+      Column {
+        CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+        CellHeader(RAW_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+      }
+    }
+
+    compose.onNodeWithText("markdown").assertDoesNotExist()
+    compose.onNodeWithText("raw").assertDoesNotExist()
+  }
+
+  /** A marked run puts one tick on every cell, so the prompts stay in line with each other. */
+  @Test
+  fun aMarkedRunKeepsEveryPromptInLine() {
+    compose.setContent {
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
+        Column {
+          CellHeader(CODE_CELL, 1, null, false, CellMark(checked = false, position = 1), {}, {}, {}, {})
+          CellHeader(HEADING_CELL, null, null, false, CellMark(checked = true, position = 2), {}, {}, {}, {})
+          CellHeader(CODE_CELL, 12, null, false, CellMark(checked = false, position = 3), {}, {}, {}, {})
+        }
+      }
+    }
+
+    val first = compose.onNodeWithText("[1]:").getUnclippedBoundsInRoot().left
+    assertEquals(first, compose.onNodeWithText("[12]:").getUnclippedBoundsInRoot().left)
+  }
+
+  /**
+   * **A header has to fit at 320dp**, which is the width this app is driven at and the one that
+   * decides. The worst case is a code cell that has finished: prompt, Run, the duration label and
+   * the `⋮`. This is the assertion that keeps anything added to the strip honest - the version of
+   * P2n that reserved two 48dp gutter slots left about 10dp of headroom here and would have gone
+   * over as soon as `fontScale` rose, which on the tablet it already has (1.1).
+   */
+  @Test
+  fun theMenuButtonStaysOnScreenAt320dp() {
+    compose.setContent {
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
+        CellHeader(CODE_CELL, 1, RAN_FOR_EIGHT_SECONDS, canPaste = false, mark = null, {}, {}, {}, {})
+      }
+    }
+
+    val right = compose.onNodeWithContentDescription(MENU_BUTTON).getUnclippedBoundsInRoot().right
+    assertTrue("the menu button ends at $right, past the ${COMPACT.width} window", right <= COMPACT.width)
+    compose.onNodeWithText("ran in 8.0 s").assertIsDisplayed()
+  }
+
   private companion object {
     const val MENU_BUTTON = "Cell actions"
     const val RUN_BUTTON = "Run cell"
+
+    /** The emulator's own window, and the narrowest this app is driven at. */
+    val COMPACT = DpSize(320.dp, 640.dp)
+
+    /** A finished run, so the header carries the duration label that competes with the gutter. */
+    val RAN_FOR_EIGHT_SECONDS = CellExecution(
+      ExecutionStatus.STOPPED_OK,
+      startedAt = Instant.parse("2026-08-21T12:00:00Z"),
+      endedAt = Instant.parse("2026-08-21T12:00:08Z"),
+    )
     val MARK = CellMark(checked = true, position = 2)
     val CODE_CELL = Cell("c1", CellKind.CODE, "x = 1")
     val MARKDOWN_CELL = Cell("c2", CellKind.MARKDOWN, "# title")

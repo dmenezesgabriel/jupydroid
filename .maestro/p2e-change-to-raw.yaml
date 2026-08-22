@@ -37,7 +37,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "42"
     timeout: 120000
-- assertVisible: "\\[1\\]"
+- assertVisible: "\\[1\\]:"
 - takeScreenshot: 01-a-code-cell-that-has-run
 
 # Change it. Scrolled to rather than tapped blind: the menu is eighteen rows on a code cell and
@@ -52,14 +52,19 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 
-# It is a raw cell now: named rather than numbered, and with no Run control of its own.
+# It is a raw cell now, and the absence of a Run control is what says so. `runCell`'s switch
+# answers `markdown` and `code` and falls to `default: break` for raw
+# (`packages/notebook/src/cellexecutor.ts:36-141`), so raw is the one kind this app draws no Run
+# on - and the fixture holds exactly one cell, so no other cell's control can satisfy this.
+#
+# It used to wait on the word `raw`, which was this app's own: the reference gives a raw cell no
+# prompt at all, `_setPrompt` having one caller in `CodeCell` (`packages/cells/src/widget.ts:1693`).
 - extendedWaitUntil:
-    visible: "raw"
+    notVisible: "Run cell"
     timeout: 10000
-- assertNotVisible: "Run cell"
 # And the results went with the type, which is the half that is not cosmetic.
 - assertNotVisible: "42"
-- assertNotVisible: "\\[1\\]"
+- assertNotVisible: "\\[1\\]:"
 # The source did not: `changeCellType` reinserts it unchanged.
 # matches-source: deliberately - that the source survived the type change is the claim
 - assertVisible: "(?s).*print\\(6 \\* 7\\).*"

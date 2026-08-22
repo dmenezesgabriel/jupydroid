@@ -16,12 +16,20 @@ appId: com.jupydroid.app
     timeout: 20000
 - takeScreenshot: 01-home-with-seeded-notebook
 - tapOn: "Two Cells.ipynb"
-# `[ ]` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
-# bracket, where `[ ]` is "never run". Markdown keeps its name - it never reaches a kernel, so a
-# bracket would promise a count that cannot arrive.
-- assertVisible: "\\[ \\]"
+# `[ ]:` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
+# bracket, where `[ ]:` is "never run" and the trailing colon is the reference's
+# (`packages/cells/src/inputarea.ts:283-290`).
+#
+# **And the markdown cell below it carries no prompt at all**, which is the reference's own
+# arrangement rather than an omission: `_setPrompt` has a single caller, `CodeCell._updatePrompt`
+# (`packages/cells/src/widget.ts:1693-1700`). Asserted `below` the code cell's source so it is
+# that cell being spoken about and not the document as a whole - the code cell above keeps its own.
+- assertVisible: "\\[ \\]:"
 - assertVisible: "answer = 42"
-- assertVisible: "markdown"
+- assertNotVisible:
+    text: "\\[ \\]:"
+    below:
+      text: "answer = 42"
 - assertVisible: "Markdown cell here"
 - takeScreenshot: 02-editor-cells
 - tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too

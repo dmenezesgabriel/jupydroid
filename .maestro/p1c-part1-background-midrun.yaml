@@ -24,7 +24,7 @@ appId: com.jupydroid.app
 # The star bracket is the cell's own "working" mark, shown from before the first frame
 # returns - so a Home press after it is provably mid-run, not mid-queue.
 - extendedWaitUntil:
-    visible: "\\[\\*\\]"
+    visible: "\\[\\*\\]:"
     timeout: 60000
 - takeScreenshot: 02-run-in-flight
 - pressKey: Home

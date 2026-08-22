@@ -34,14 +34,21 @@ appId: com.jupydroid.app
 - tapOn: "Cell menu Change to markdown"
 - waitForAnimationToEnd:
     timeout: 5000
-# It is markdown now - the header says so, where it used to say `[ ]`.
+# It is markdown now, and losing its prompt is what says so: a code cell draws `[ ]:` and the
+# reference draws nothing on markdown, `_setPrompt` having one caller in `CodeCell`
+# (`packages/cells/src/widget.ts:1693-1700`). Asserted `below` the *first* cell's source, because
+# that cell is still code and still carries its own bracket - a document-wide assertion would be
+# satisfied by the wrong one.
 #
 # **And it is showing its source rather than rendered prose**, which is where this assertion
 # changed at P2e-3. It read `assertVisible: "Rendered markdown"`, and that was the app's behaviour
 # and not the reference's: `changeCellType` ends by fetching the new widget and unrendering it
 # (`packages/notebook/src/actions.tsx:3308-3312`), so a cell you have just converted shows the text
 # you converted rather than hiding it behind prose. The flow was asserting the defect.
-- assertVisible: "markdown"
+- assertNotVisible:
+    text: "\\[ \\]:"
+    below:
+      text: "alpha = 1"
 - assertNotVisible: "Rendered markdown"
 - assertVisible: "(?s).*beta = 2.*"
 - takeScreenshot: 02-changed-to-markdown-and-left-open
@@ -73,5 +80,5 @@ appId: com.jupydroid.app
 - assertVisible: "beta = 2"
 # And no code cell is left: `[ ]` is the bracket only a code cell draws, and the first cell had
 # one until the merge folded it into the markdown one.
-- assertNotVisible: "\\[ \\]"
+- assertNotVisible: "\\[ \\]:"
 - takeScreenshot: 03-merged-into-one-cell

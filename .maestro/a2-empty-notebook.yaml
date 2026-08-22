@@ -19,7 +19,7 @@ appId: com.jupydroid.app
 # `[ ]` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
 # bracket, where `[ ]` is "never run".
 - extendedWaitUntil:
-    visible: "\\[ \\]"
+    visible: "\\[ \\]:"
     timeout: 30000
 - assertNotVisible: "No cells yet"
 - takeScreenshot: 01-empty-notebook-has-a-cell
@@ -59,7 +59,7 @@ appId: com.jupydroid.app
 # `[ ]` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
 # bracket, where `[ ]` is "never run".
 - extendedWaitUntil:
-    visible: "\\[ \\]"
+    visible: "\\[ \\]:"
     timeout: 30000
 - assertNotVisible: "No cells yet"
 - takeScreenshot: 03-created-notebook-has-a-cell

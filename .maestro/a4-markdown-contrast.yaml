@@ -27,9 +27,13 @@ appId: com.jupydroid.app
 # has scrolled past its first lines. This flow's evidence is a screenshot of the source text's
 # colour, and half a keyboard is not that - so put it away and come back to the top of the cell.
 - hideKeyboard
+# Anchored on the heading's collapser, not on a kind label. The label was this app's own - the
+# reference gives markdown no prompt at all (`packages/cells/src/widget.ts:1693-1700`) - and the
+# collapser is the better anchor anyway: it is `# Analysis`'s own control, so it names *this* cell
+# rather than every markdown cell on screen.
 - scrollUntilVisible:
     element:
-      text: "markdown"
+      text: "Collapse heading"
     direction: UP
     timeout: 10000
 - takeScreenshot: markdown-edit-mode

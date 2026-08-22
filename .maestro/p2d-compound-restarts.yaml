@@ -53,7 +53,7 @@ appId: com.jupydroid.app
 - tapOn: "Run all cells"
 # Generous: the first run of the session installs the Space if needed and starts jupyter_server.
 - extendedWaitUntil:
-    visible: "\\[4\\]"
+    visible: "\\[4\\]:"
     timeout: 120000
 - assertVisible: "42"
 - assertVisible: "121"

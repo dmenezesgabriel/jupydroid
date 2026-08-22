@@ -38,8 +38,8 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "first result"
     timeout: 30000
-- assertVisible: "\\[3\\]"
-- assertVisible: "\\[9\\]"
+- assertVisible: "\\[3\\]:"
+- assertVisible: "\\[9\\]:"
 # The second cell's outputs are folded, so its result is behind a placeholder rather than on screen.
 - assertVisible: "Collapsed outputs"
 - assertVisible: "kept by clear all"
@@ -52,8 +52,8 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - assertNotVisible: "first result"
-- assertNotVisible: "\\[3\\]"
-- assertNotVisible: "\\[9\\]"
+- assertNotVisible: "\\[3\\]:"
+- assertNotVisible: "\\[9\\]:"
 # The fold went with the outputs it was hiding - claim 2, and the whole reason this flow seeds a
 # collapsed cell at all.
 - assertNotVisible: "Collapsed outputs"
@@ -66,7 +66,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - assertVisible: "first result"
-- assertVisible: "\\[3\\]"
-- assertVisible: "\\[9\\]"
+- assertVisible: "\\[3\\]:"
+- assertVisible: "\\[9\\]:"
 - assertVisible: "Collapsed outputs"
 - takeScreenshot: 03-one-undo-brought-every-result-back

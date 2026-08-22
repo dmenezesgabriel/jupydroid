@@ -42,19 +42,23 @@ appId: com.jupydroid.app
     visible: "(?s).*E = mc\\^2.*"
     timeout: 30000
 - assertVisible: "(?s).*\\\\begin\\{equation\\}.*"
-# Claim 3: it is named rather than numbered, because it can never carry a count.
-- assertVisible: "raw"
-- assertVisible: "\\[ \\]"
+# Claim 3: it carries no prompt at all, because it can never carry a count. The fixture holds one
+# code cell, one raw cell and one markdown cell, and the reference gives a prompt to the first
+# only - `_setPrompt`'s single caller is `CodeCell._updatePrompt`
+# (`packages/cells/src/widget.ts:1693-1700`). So exactly one bracket is on screen, and a second
+# would mean the raw cell had been drawn as code.
+- assertVisible: "\\[ \\]:"
+- assertNotVisible: "\\[1\\]:"
 - takeScreenshot: 01-a-notebook-with-a-raw-cell-opens
 
 # Claim 4: a run reaches the code cell and passes over the raw one.
 - tapOn: "Run all cells"
 - extendedWaitUntil:
-    visible: "\\[1\\]"
+    visible: "\\[1\\]:"
     timeout: 120000
-# The raw cell is still named, so it was never drawn as a code cell...
-- assertVisible: "raw"
-# ...and no cell is left showing an un-run bracket, which is what a raw cell treated as code
-# would be: the notebook's one code cell now reads `[1]`.
-- assertNotVisible: "\\[ \\]"
+# ...and the run reached exactly one cell. No un-run bracket is left - which is what a raw cell
+# treated as code would be - and no second count was handed out, which is what it would be had the
+# run passed through it.
+- assertNotVisible: "\\[ \\]:"
+- assertNotVisible: "\\[2\\]:"
 - takeScreenshot: 02-run-all-passed-over-it

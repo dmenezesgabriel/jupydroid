@@ -37,7 +37,7 @@ appId: com.jupydroid.app
     visible: "(?s).*above = 1\nbelow = 2.*"
     timeout: 30000
 - assertVisible: "split output"
-- assertVisible: "\\[7\\]"
+- assertVisible: "\\[7\\]:"
 - takeScreenshot: 01-one-cell-with-its-output
 # Into the cell, which brings up the keyboard and the symbol row with it.
 - tapOn: "(?s).*above = 1.*"
@@ -84,12 +84,12 @@ appId: com.jupydroid.app
     below:
       text: "above = 1"
 - assertVisible:
-    text: "\\[7\\]"
+    text: "\\[7\\]:"
     below:
       text: "above = 1"
 # And the new cell above has never run.
 - assertVisible:
-    text: "\\[ \\]"
+    text: "\\[ \\]:"
     above:
       text: "above = 1"
 - takeScreenshot: 03-split-with-the-output-below
@@ -100,7 +100,7 @@ appId: com.jupydroid.app
     timeout: 5000
 - assertVisible: "(?s).*above = 1\nbelow = 2.*"
 - assertVisible: "split output"
-- assertVisible: "\\[7\\]"
+- assertVisible: "\\[7\\]:"
 - takeScreenshot: 04-undone-whole
 - tapOn: "Redo cell operation"
 - waitForAnimationToEnd:

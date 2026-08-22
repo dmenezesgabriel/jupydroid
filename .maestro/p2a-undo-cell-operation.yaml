@@ -80,7 +80,7 @@ appId: com.jupydroid.app
 - assertVisible: "undone = 2"
 # The whole cell came back, not just its source: the saved output and the count it ran under.
 - assertVisible: "undone output"
-- assertVisible: "\\[7\\]"
+- assertVisible: "\\[7\\]:"
 # And the typing done after the delete is still there. This is the assertion the design exists for.
 - assertVisible: ".*TYPED.*"
 - takeScreenshot: 04-undone-with-its-output-and-the-typing-kept

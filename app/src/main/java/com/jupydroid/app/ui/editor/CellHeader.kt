@@ -86,11 +86,18 @@ internal fun CellHeader(
         onToggle = { onCellAction(CellAction.ToggleHeadingCollapse) },
       )
     }
-    Text(
-      text = executionLabel(cell.kind, status, executionCount),
-      style = MaterialTheme.typography.labelSmall,
-      color = MaterialTheme.colorScheme.primary,
-    )
+    // Nothing at all on a markdown or raw cell, which is the reference's own arrangement:
+    // `_setPrompt`'s only caller is `CodeCell._updatePrompt`
+    // (`packages/cells/src/widget.ts:1693-1700`), so their prompt node is drawn and left textless.
+    // Composed away rather than drawn empty - an empty `Text` still measures its line height and
+    // still sits between the collapser and the Run control.
+    executionLabel(cell.kind, status, executionCount)?.let { prompt ->
+      Text(
+        text = prompt,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.primary,
+      )
+    }
     // Three kinds, three answers, and they are `runCell`'s own switch: code executes, markdown
     // renders - so it gets Run but never a spinner or Stop, since nothing of it reaches a kernel -
     // and raw falls through `default: break` (`packages/notebook/src/cellexecutor.ts:36-141`), so it
