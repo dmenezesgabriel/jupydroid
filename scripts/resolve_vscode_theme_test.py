@@ -7,7 +7,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from resolve_vscode_theme import contrast_ratio, resolve, scope_foreground, strip_jsonc
+from resolve_vscode_theme import (
+    AA_FLOOR,
+    SYNTAX_SCOPES,
+    contrast_ratio,
+    resolve,
+    role_foreground,
+    scope_foreground,
+    strip_jsonc,
+)
 
 
 def _theme_dir(files: dict[str, str]) -> Path:
@@ -114,6 +122,71 @@ class ScopeForegroundTest(unittest.TestCase):
 
     def test_an_unknown_scope_is_none(self) -> None:
         self.assertIsNone(scope_foreground(self.OVERRIDDEN, "entity.name.function"))
+
+
+class SyntaxScopeTest(unittest.TestCase):
+    """The scope map is transcribed into `theme/EditorPalettes.kt`, so what it resolves is pinned.
+
+    Read off the resolved 2026 themes at `f3fa55c39d3`. A rule that stopped claiming its scope
+    would otherwise fall through to the next candidate - or to None - and the palette would drift
+    off the reference the next time someone re-ran this tool to check a value.
+    """
+
+    def setUp(self) -> None:
+        themes = (Path(__file__).parent.parent
+                  / "reference/research_repos/vscode/extensions/theme-defaults/themes")
+        if not themes.is_dir():
+            self.skipTest("reference/ is gitignored; the clone is not present")
+        self.dark = resolve(themes / "2026-dark.json")
+        self.light = resolve(themes / "2026-light.json")
+
+    def test_every_role_resolves_in_both_themes(self) -> None:
+        for role in ("plain", *SYNTAX_SCOPES):
+            for name, theme in (("dark", self.dark), ("light", self.light)):
+                with self.subTest(role=role, theme=name):
+                    self.assertIsNotNone(role_foreground(theme, role))
+
+    def test_the_two_unclaimed_scopes_fall_through_to_the_next_candidate(self) -> None:
+        """`heading` and `link` are the only roles whose first-choice scope no rule claims.
+
+        Their fall-through is load-bearing: it is why `link` ends up on `string.other.link` and
+        shares `string`'s value, which `EditorPaletteTest` asserts from the other side.
+        """
+        for theme in (self.dark, self.light):
+            self.assertIsNone(scope_foreground(theme, "entity.name.section"))
+            self.assertIsNone(scope_foreground(theme, "markup.underline.link"))
+            self.assertEqual(scope_foreground(theme, "markup.heading"),
+                             role_foreground(theme, "heading"))
+            self.assertEqual(scope_foreground(theme, "string.other.link"),
+                             role_foreground(theme, "link"))
+
+    def test_a_link_takes_the_string_colour(self) -> None:
+        """The reference's own doing, and the reason the app underlines a link instead."""
+        for theme in (self.dark, self.light):
+            self.assertEqual(role_foreground(theme, "string"), role_foreground(theme, "link"))
+
+    def test_light_number_is_the_one_role_under_the_floor_on_the_cell_surface(self) -> None:
+        """The measurement that `theme/EditorPalettes.kt` records rather than corrects.
+
+        `notebook.cellEditorBackground` resolves to `sideBar.background`, not to the page, and on
+        that surface 2026 Light's `constant.numeric` is under WCAG AA. It is kept, because parity
+        with the reference outranks the floor - `docs/DECISIONS.md`, "Parity with the 2026 themes
+        outranks the contrast floor". Pinned here so the *scope* of the shortfall stays one role:
+        if a second role ever drops under, this fails and the decision gets re-taken deliberately.
+        """
+        cell = self.light["colors"]["sideBar.background"]
+        under = [role for role in ("plain", *SYNTAX_SCOPES)
+                 if contrast_ratio(role_foreground(self.light, role), cell) < AA_FLOOR
+                 and role != "comment"]
+        self.assertEqual(["number"], under)
+        self.assertAlmostEqual(4.42, contrast_ratio("#098658", cell), places=2)
+
+    def test_no_dark_role_is_under_the_floor_on_the_cell_surface(self) -> None:
+        """Dark's shortfall count is zero, so the entry above is about light and nothing else."""
+        cell = self.dark["colors"]["sideBar.background"]
+        under = [role for role in ("plain", *SYNTAX_SCOPES)
+                 if contrast_ratio(role_foreground(self.dark, role), cell) < AA_FLOOR]
+        self.assertEqual([], under)
 
 
 class ContrastRatioTest(unittest.TestCase):

@@ -7,13 +7,21 @@
 # palette from one that had quietly collapsed onto the wallpaper's colours. Audit A4 was
 # exactly that failure - black source that read fine on light and was invisible on dark.
 #
-# Emulator or tablet: this flow runs no cell, so it needs no Space runtime.
+# Emulator or tablet: this flow runs no cell, so it needs no Space runtime. Run it on both, and
+# give the second one a sub-directory:
+#
+#   ANDROID_SERIAL=emulator-5554  scripts/u1-palette-driver.sh
+#   ANDROID_SERIAL=TABLET_SERIAL    scripts/u1-palette-driver.sh tablet
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/u1-palette.ipynb"
 FLOW="$ROOT/.maestro/u1-palette.yaml"
-EVIDENCE="$ROOT/evidence/u1-tokens"
+# An optional sub-directory, so a second device does not overwrite the first device's frames -
+# which is what happened the first time P2u-2 ran this on the tablet after the emulator. With no
+# argument the frames land where U1 first put them; `u1-palette-driver.sh tablet` writes
+# evidence/u1-tokens/tablet/{dark,light}. Same shape as p2u-1-chrome-driver.sh.
+EVIDENCE="$ROOT/evidence/u1-tokens${1:+/$1}"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too

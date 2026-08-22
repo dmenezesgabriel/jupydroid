@@ -1,6 +1,7 @@
 package com.jupydroid.app.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextDecoration
 import com.jupydroid.app.syntax.SyntaxKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -8,13 +9,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The palettes, held to what a phone needs rather than to what a desktop got away with.
+ * The palettes, held to the reference they were transcribed from and to what a phone needs.
  *
- * This is the regression test for the contrast defect recorded in `docs/DECISIONS.md`: syntax colours
- * used to be `MaterialTheme.colorScheme` roles, so `NUMBER` landed on `secondary` and sat almost
- * on top of the body text in dark. Deriving colour from a role can never be asserted, because the
- * role is whatever the wallpaper made it - which is why the fix is a palette and why the palette
- * gets a contrast floor.
+ * This began as the regression test for the contrast defect recorded in `docs/DECISIONS.md`:
+ * syntax colours used to be `MaterialTheme.colorScheme` roles, so `NUMBER` landed on `secondary`
+ * and sat almost on top of the body text in dark. Deriving colour from a role can never be
+ * asserted, because the role is whatever the wallpaper made it - which is why the fix was a
+ * palette of stated constants, and that half has not changed.
+ *
+ * **What the constants are held to did change, at P2u-2.** The syntax colours are VS Code's and
+ * are pinned by *equality* to the resolved 2026 themes; the contrast floor that used to gate them
+ * is gone, because parity and the floor disagree on one value and parity won
+ * (`docs/DECISIONS.md`, "Parity with the 2026 themes outranks the contrast floor"). Everything
+ * this app chose for itself - the two search-match foregrounds, the active editor border - is
+ * still held to its WCAG floor below, and P2u-3 brings the surfaces onto the same footing.
  */
 class EditorPaletteTest {
   private val palettes = mapOf("dark" to DarkEditorPalette, "light" to LightEditorPalette)
@@ -69,28 +77,44 @@ class EditorPaletteTest {
   }
 
   /**
-   * WCAG 2.1 AA is 4.5:1 for body text, and code in a cell is body text.
+   * **Every syntax colour is the 2026 theme's own value, and equality is the gate.**
    *
-   * [SyntaxKind.COMMENT] is held to 3:1 instead, and that is a decision rather than an oversight:
-   * a comment is meant to recede, IntelliJ's own value sits there in both schemes
-   * (`#7A7E85` dark, `#8C8C8C` light - measured 3.39:1 and 3.16:1), and dragging it up to 4.5
-   * would make comments shout as loudly as the code they annotate.
+   * This replaced a WCAG AA floor over the same values, and the swap is a decision rather than a
+   * regression: with VS Code as the presentation reference, *parity* is what the palette owes, and
+   * the floor and parity disagree in exactly one place - light's `number` `#098658`, which the
+   * reference itself draws at **4.42:1** on the cell surface. `docs/DECISIONS.md`, "Parity with
+   * the 2026 themes outranks the contrast floor", carries what that trades away.
+   *
+   * Equality is the stronger assertion of the two for everything else. A ratio lets a value be
+   * swapped for any other legible colour; this lets it be swapped for nothing at all, which is
+   * what *a value may not be nudged "to match VS Code more closely" without re-measuring* asks
+   * for. The keys are the scopes, so a failure names the command that reproduces it:
+   *
+   * ```sh
+   * python3 scripts/resolve_vscode_theme.py \
+   *   reference/research_repos/vscode/extensions/theme-defaults/themes/2026-dark.json --role number
+   * ```
+   *
+   * The app's *own* foregrounds are still held to AA - see the two search-match tests below. Those
+   * are values this app chose, not values it transcribed, and nothing about parity excuses them.
    */
   @Test
-  fun everyColouredKindClearsItsContrastFloor() {
-    palettes.forEach { (name, palette) ->
-      palette.syntax.styles().forEach { (kind, style) ->
-        val colour = style.color
-        if (colour == Color.Unspecified) return@forEach
-        val floor = if (kind == SyntaxKind.COMMENT) COMMENT_FLOOR else BODY_TEXT_FLOOR
-        val ratio = contrastRatio(colour, palette.cellBackground)
-        assertTrue(
-          "$name $kind is ${"%.2f".format(ratio)}:1 on the cell background, below $floor:1",
-          ratio >= floor,
-        )
-      }
-    }
+  fun everySyntaxColourIsTheReferenceValue() {
+    assertEquals("dark is not 2026 Dark", DARK_2026, DarkEditorPalette.syntax.byScope())
+    assertEquals("light is not 2026 Light", LIGHT_2026, LightEditorPalette.syntax.byScope())
   }
+
+  /** Each value against the VS Code scope it was read from, so a failure says which rule moved. */
+  private fun SyntaxPalette.byScope(): Map<String, Color> = mapOf(
+    "editor.foreground" to plain,
+    "keyword.control" to keyword,
+    "string" to string,
+    "constant.numeric" to number,
+    "comment" to comment,
+    "entity.name.function" to function,
+    "markup.heading" to heading,
+    "string.other.link" to link,
+  )
 
   /**
    * Emphasis carries no colour in IntelliJ - `MARKDOWN_BOLD` and `MARKDOWN_ITALIC` are declared
@@ -245,6 +269,27 @@ class EditorPaletteTest {
     }
   }
 
+  /**
+   * **A link takes the string colour, and the underline is the whole of what tells them apart.**
+   *
+   * That is the reference's structure rather than an economy of ours. VS Code paints a link's
+   * title with `string.other.link`, which resolves to the same value as `string` in both 2026
+   * themes - `#a5d6ff` dark, `#0a3069` light - and puts the signal in `markup.underline`, whose
+   * rule sets `fontStyle` and no colour at all.
+   *
+   * Asserted as a pair because either half alone is a defect: the shared colour with the
+   * decoration dropped makes a link indistinguishable from a string, and giving the link a colour
+   * of its own would depart from the reference to solve a problem the reference does not have.
+   */
+  @Test
+  fun aLinkTakesTheStringColourAndIsToldApartByItsUnderline() {
+    palettes.forEach { (name, palette) ->
+      val link = palette.syntax.styles().getValue(SyntaxKind.LINK)
+      assertEquals("$name link must take the string colour", palette.syntax.string, link.color)
+      assertEquals("$name link must be underlined", TextDecoration.Underline, link.textDecoration)
+    }
+  }
+
   @Test
   fun theTwoPalettesAreNotTheSamePalette() {
     assertNotEquals(DarkEditorPalette.editorBackground, LightEditorPalette.editorBackground)
@@ -253,7 +298,30 @@ class EditorPaletteTest {
 
   private companion object {
     const val BODY_TEXT_FLOOR = 4.5
-    const val COMMENT_FLOOR = 3.0
+
+    /** `2026-dark.json`, resolved through its four-deep `include` chain. */
+    val DARK_2026 = mapOf(
+      "editor.foreground" to Color(0xFFBBBEBF),
+      "keyword.control" to Color(0xFFC586C0),
+      "string" to Color(0xFFA5D6FF),
+      "constant.numeric" to Color(0xFFB5CEA8),
+      "comment" to Color(0xFF8B949E),
+      "entity.name.function" to Color(0xFFD2A8FF),
+      "markup.heading" to Color(0xFF79C0FF),
+      "string.other.link" to Color(0xFFA5D6FF),
+    )
+
+    /** `2026-light.json`, resolved. `constant.numeric` is the value that measures 4.42:1. */
+    val LIGHT_2026 = mapOf(
+      "editor.foreground" to Color(0xFF202020),
+      "keyword.control" to Color(0xFFAF00DB),
+      "string" to Color(0xFF0A3069),
+      "constant.numeric" to Color(0xFF098658),
+      "comment" to Color(0xFF6E7781),
+      "entity.name.function" to Color(0xFF8250DF),
+      "markup.heading" to Color(0xFF0550AE),
+      "string.other.link" to Color(0xFF0A3069),
+    )
 
     /** WCAG 2.1 1.4.11, the floor for a component's state rather than for text. */
     const val NON_TEXT_FLOOR = 3.0

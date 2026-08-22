@@ -122,6 +122,16 @@ def scope_foreground(theme: dict[str, Any], scope: str) -> str | None:
     A rule setting only `fontStyle` does not claim the scope - it must not shadow the colour below
     it.
 
+    **This matches an *exact* scope, where VS Code descends a trie**, and that difference is
+    checked rather than assumed. VS Code sorts rules lexicographically with declaration index as
+    the tiebreak, inserts each into a trie by dot segment, and returns the deepest node it can
+    reach (`src/vs/editor/common/languages/supports/tokenization.ts:106-151`, `:361-382`) - so
+    specificity wins and last-rule-wins applies only between equal scopes, which is the half
+    modelled here. The two agree wherever a rule names the scope outright, which is every entry of
+    [SYNTAX_SCOPES] but `entity.name.section` and `markup.underline.link`; both are unclaimed and
+    fall through, which is what [role_foreground] wants of them. A trie for eleven roles would be
+    machinery for a case this tool does not have.
+
     ```
     scope_foreground(resolve(Path("2026-dark.json")), "comment")   # '#8b949e'
     ```

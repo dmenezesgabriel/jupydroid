@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Seeds a notebook that actually has cells, then runs the Step 5.5 theme and Mod-Enter flow.
+#
+#   ANDROID_SERIAL=emulator-5554  scripts/step5-theme-driver.sh
+#   ANDROID_SERIAL=TABLET_SERIAL    scripts/step5-theme-driver.sh tablet
 # A notebook created from the FAB has no cells (DiskNotebookRepository.createNotebook),
 # so it would only ever prove the "No cells yet" branch. The seeded file lands in the
 # app's own storage via run-as (the debug build is debuggable; no root needed), and
@@ -26,7 +29,11 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 reset_notebooks
 seed_notebook "$FIXTURE" "Themed Cell"
 
-maestro_test "$ROOT/.maestro/step5-theme-and-run.yaml"
+# `run_flow` rather than `maestro_test`, so the frames land in evidence/ and get committed.
+# This driver predates the helper and left its artefacts in ~/.maestro/tests/<timestamp>/, which
+# is why evidence/step5.5/ still held Step 5's originals while every re-run since went nowhere.
+# The optional sub-directory is the same shape u1-palette-driver.sh takes, for the same reason.
+run_flow "$ROOT/.maestro/step5-theme-and-run.yaml" "$ROOT/evidence/step5.5${1:+/$1}"
 
 # Mod-Enter is deliberately NOT driven here. Maestro has no modifier chord, and
 # `adb shell input keycombination KEYCODE_CTRL_LEFT KEYCODE_ENTER` does not carry the

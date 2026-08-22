@@ -5,29 +5,32 @@ import androidx.compose.ui.graphics.Color
 /**
  * The app's two editor palettes, dark and light.
  *
- * Every value is transcribed from a real IDE colour scheme rather than eyeballed from a
- * screenshot, so the syntax colours are ones that have been read by a lot of people for a long
- * time. The sources, for anyone checking a value:
+ * **Two references meet in this file, and which one answers is per value.** The syntax colours
+ * are VS Code's, transcribed from the **resolved** `2026-dark.json` / `2026-light.json` read out
+ * of `reference/research_repos/vscode` at `f3fa55c39d3`. Everything above `syntax` - the
+ * surfaces, the stripes, the search and bracket highlights - is still IntelliJ's until P2u-3
+ * re-sources it onto VS Code's `notebook.*` colour ids. `theme/Theme.kt` states the same split
+ * from the chrome's side.
  *
- * - `platform/platform-resources/src/themes/expUI/expUI_darkScheme.xml`
- * - `platform/platform-resources/src/themes/expUI/expUI_lightScheme.xml`
- * - `platform/platform-resources/src/themes/expUI/expUI_{dark,light}.theme.json` for the surfaces
+ * **Resolved is the whole trap.** `2026-dark.json` is the outermost file of a four-deep `include`
+ * chain and overrides most of what it inherits; reading any single file gives the wrong colour
+ * (`docs/DECISIONS.md`, "The default VS Code theme is 2026 Dark / 2026 Light, not Dark Modern").
+ * Every syntax value below is reproducible per role:
  *
- * all under `reference/research_repos/`, which is gitignored - so these constants, and the
- * citations beside them, are the durable record.
+ * ```sh
+ * python3 scripts/resolve_vscode_theme.py \
+ *   reference/research_repos/vscode/extensions/theme-defaults/themes/2026-dark.json --role keyword
+ * ```
  *
- * Two traps in reading those files, both hit while extracting these values:
+ * **Parity is the rule, and it outranks the contrast floor.** Every syntax value below is the
+ * 2026 theme's, verbatim, including the one that measures under WCAG AA: light's `number` at
+ * **4.42:1** on the cell surface. `EditorPaletteTest` therefore pins these values *by equality*
+ * rather than by ratio - a colour that drifts off the reference fails, and a colour the reference
+ * itself draws faintly does not. `docs/DECISIONS.md`, "Parity with the 2026 themes outranks the
+ * contrast floor", carries what that trades away and what still holds.
  *
- * 1. **Hex is stored without leading zeros.** `value="33b3"` is `#0033B3` and `value="67d17"` is
- *    `#067D17`. Taken literally they parse as short, wrong colours.
- * 2. **Attribute keys inherit.** The markdown categories mostly have no colour of their own and
- *    resolve through `MarkdownHighlighterColors.java` to the general keys - which is why
- *    [SyntaxPalette] has no markdown fields.
- *
- * The notebook-specific `JUPYTER.*` keys are **not** in that tree (they ship with a closed
- * plugin), so the four cell surfaces are the only values not copied outright: they come from the
- * same grey ramp as the rest of the IDE chrome, which is where those defaults are derived from
- * anyway.
+ * The IntelliJ schemes these syntax colours replaced, for anyone reading back through `git log`,
+ * were `platform/platform-resources/src/themes/expUI/expUI_{dark,light}Scheme.xml`.
  */
 val DarkEditorPalette: EditorPalette =
   EditorPalette(
@@ -65,17 +68,16 @@ val DarkEditorPalette: EditorPalette =
     currentSearchMatchText = Color(0xFF000000),
     syntax =
     SyntaxPalette(
-      plain = Color(0xFFBCBEC4),
-      keyword = Color(0xFFCF8E6D),
-      string = Color(0xFF6AAB73),
-      number = Color(0xFF2AACB8),
-      comment = Color(0xFF7A7E85),
-      function = Color(0xFF56A8F5),
-      heading = Color(0xFFC77DBB),
-      // `MARKDOWN_LINK_TEXT` is overridden in the dark scheme, so it is used in preference to
-      // the `HYPERLINK_ATTRIBUTES` it inherits from - and it is the more legible of the two
-      // (5.47:1 against the cell background, where #548AF7 measures 4.18:1).
-      link = Color(0xFF56A8F5),
+      plain = Color(0xFFBBBEBF),
+      keyword = Color(0xFFC586C0),
+      string = Color(0xFFA5D6FF),
+      number = Color(0xFFB5CEA8),
+      comment = Color(0xFF8B949E),
+      function = Color(0xFFD2A8FF),
+      heading = Color(0xFF79C0FF),
+      // `string.other.link`, which is `string`'s value here. The underline is what tells them
+      // apart, and that is the reference's structure - see [SyntaxPalette.link].
+      link = Color(0xFFA5D6FF),
     ),
   )
 
@@ -114,14 +116,20 @@ val LightEditorPalette: EditorPalette =
     currentSearchMatchText = Color(0xFF000000),
     syntax =
     SyntaxPalette(
-      plain = Color(0xFF080808),
-      keyword = Color(0xFF0033B3),
-      string = Color(0xFF067D17),
-      number = Color(0xFF1750EB),
-      comment = Color(0xFF8C8C8C),
-      function = Color(0xFF00627A),
-      heading = Color(0xFF871094),
-      // The light scheme has no markdown override, so this is `HYPERLINK_ATTRIBUTES`.
-      link = Color(0xFF0006DC),
+      plain = Color(0xFF202020),
+      keyword = Color(0xFFAF00DB),
+      string = Color(0xFF0A3069),
+      // **Under AA, and kept anyway - the one value in this file that is.** On the cell surface
+      // `notebook.cellEditorBackground` resolves to this measures **4.42:1**, against a 4.5:1
+      // floor. It is what VS Code itself renders: 2026 Light never restates `constant.numeric`,
+      // so it keeps `light_vs.json`'s value from three files down. Parity is the rule here and
+      // the shortfall is recorded rather than corrected - `docs/DECISIONS.md`, "Parity with the
+      // 2026 themes outranks the contrast floor".
+      number = Color(0xFF098658),
+      comment = Color(0xFF6E7781),
+      function = Color(0xFF8250DF),
+      heading = Color(0xFF0550AE),
+      // `string.other.link`, which is `string`'s value here - see [SyntaxPalette.link].
+      link = Color(0xFF0A3069),
     ),
   )

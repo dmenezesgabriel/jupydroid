@@ -121,28 +121,48 @@ data class EditorPalette(
 /**
  * What each colourable category of source is painted with.
  *
- * Every field names the IntelliJ attribute key it was read from, so a value can be traced back
- * rather than argued about.
+ * Every field names the **VS Code scope** it was read from, resolved through the theme's
+ * `include` chain, so a value can be checked against its origin instead of argued about:
+ *
+ * ```sh
+ * python3 scripts/resolve_vscode_theme.py \
+ *   reference/research_repos/vscode/extensions/theme-defaults/themes/2026-light.json --role number
+ * ```
+ *
+ * A *scope* rather than a colour id, because a token colour is not a workbench colour. VS Code
+ * matches a token by longest dotted prefix, with the last rule of equal length winning
+ * (`src/vs/editor/common/languages/supports/tokenization.ts:106-151`) - so `constant.numeric`
+ * beats `constant`, and the file that states it last beats the one it includes.
  */
 @Immutable
 data class SyntaxPalette(
-  /** `TEXT` foreground - the colour unstyled source already has. Never emitted as a span; it is
-   *  here so the palette can be asserted against it. */
+  /**
+   * `editor.foreground` - the colour unstyled source already has, and the one role here that no
+   * token rule claims.
+   *
+   * Never emitted as a span, because a span painting text the colour it already had does nothing.
+   * It is a field so the palette can be asserted against it - both for distinctness and, since
+   * most of a cell is drawn in it, for contrast.
+   */
   val plain: Color,
-  /** `DEFAULT_KEYWORD` */
+  /** `keyword.control`. Not `keyword`, which VS Code reserves for the redder operator family. */
   val keyword: Color,
-  /** `DEFAULT_STRING` */
+  /** `string` */
   val string: Color,
-  /** `DEFAULT_NUMBER` */
+  /** `constant.numeric` */
   val number: Color,
-  /** `DEFAULT_LINE_COMMENT` */
+  /** `comment` */
   val comment: Color,
-  /** `DEFAULT_FUNCTION_DECLARATION` */
+  /** `entity.name.function` */
   val function: Color,
-  /** `DEFAULT_CONSTANT`, which is what `MARKDOWN_HEADER_LEVEL_1..6` inherit from. */
+  /** `markup.heading`, whose rule also sets `bold` - which is why [styles] bolds it. */
   val heading: Color,
-  /** `MARKDOWN_LINK_TEXT`, falling back to `HYPERLINK_ATTRIBUTES` where the scheme has no
-   *  markdown override. */
+  /**
+   * `string.other.link`, which resolves to the same value as [string] in both themes.
+   *
+   * That is the reference's own doing and not a gap here: VS Code carries a link's signal in
+   * `markup.underline`, a rule that sets `fontStyle` and no colour, so [styles] underlines it.
+   */
   val link: Color,
 )
 

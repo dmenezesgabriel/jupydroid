@@ -1051,38 +1051,106 @@ cd reference/research_repos/vscode/extensions/theme-defaults/themes
 python3 ../../../../../../scripts/resolve_vscode_theme.py 2026-dark.json --color editor.background
 ```
 
-### The 4.5:1 contrast floor survives the palette swap, measured against the resolved themes
+### The palette swap must be measured against the **cell**, not the page
 
-`EditorPaletteTest` holds every syntax colour to WCAG AA 4.5:1, and that floor is the reason the
-palette is pinned at all. It was measured against the **resolved** 2026 themes before P2u was
-planned, so the swap is known to be affordable rather than hoped to be:
+**This entry was written against the wrong surface, and P2u-2 corrected it by measuring.** It
+originally claimed the 4.5:1 floor survived the swap intact; it does not, and the entry below
+records what replaced it.
+The original table measured every role against `editor.background` - `#FFFFFF` in light - which is
+the page a *file* editor draws on. The app draws code on a **cell**, and VS Code's
+`notebook.cellEditorBackground` resolves through its registered default to `sideBar.background`
+(`src/vs/workbench/contrib/notebook/browser/notebookEditorWidget.ts:3339-3344`), which is `#FAFAFD`
+light and `#191A1B` dark. The difference is small and it decided a value:
 
-| Role | 2026 Dark on `#121314` | 2026 Light on `#FFFFFF` |
+| Role | 2026 Dark on `#191A1B` | 2026 Light on `#FAFAFD` |
 |---|---|---|
-| plain | `#BBBEBF` 9.95:1 | `#202020` 16.29:1 |
-| keyword | `#C586C0` 6.68:1 | `#AF00DB` 5.46:1 |
-| string | `#a5d6ff` 12.10:1 | `#0a3069` 12.81:1 |
-| number | `#b5cea8` 10.95:1 | `#098658` **4.60:1** |
-| comment | `#8b949e` 6.05:1 | `#6e7781` **4.55:1** |
-| function | `#d2a8ff` 9.55:1 | `#8250df` 5.05:1 |
-| heading | `#79c0ff` 9.56:1 | `#0550ae` 7.59:1 |
+| plain | `#BBBEBF` 9.32:1 | `#202020` 15.64:1 |
+| keyword | `#C586C0` 6.26:1 | `#AF00DB` 5.24:1 |
+| string | `#a5d6ff` 11.34:1 | `#0a3069` 12.29:1 |
+| number | `#b5cea8` 10.26:1 | `#098658` **4.42:1 — under** |
+| comment | `#8b949e` 5.67:1 | `#6e7781` 4.36:1 (floor 3.0) |
+| function | `#d2a8ff` 8.95:1 | `#8250df` 4.84:1 |
+| heading | `#79c0ff` 8.96:1 | `#0550ae` 7.29:1 |
+| link | `#a5d6ff` 11.34:1 | `#0a3069` 12.29:1 |
 
-Every role clears it. **Light's margin is thin** — `comment` at 4.55:1 and `number` at 4.60:1 — so
-the test is a live gate here, not a formality: it must be re-run per ramp value, and a value may
-not be nudged "to match VS Code more closely" without re-measuring.
+Light's `number` is the **only** role that fails, and it fails on the IntelliJ cell surface the
+tree carried before P2u-3 as well (4.33:1 on `#F7F8FA`), so it is not an artefact of which
+sub-step lands first. `resolve_vscode_theme_test.py` asserts that "only" rather than leaving it as
+a claim in prose. The value is **kept** - see the entry below for why, and for what replaced the
+floor as this palette's gate.
 
-The table above is this tool's own output, and reproducing it is one command per theme:
+The table is this tool's own output, one command per theme:
 
 ```sh
 python3 scripts/resolve_vscode_theme.py \
-  reference/research_repos/vscode/extensions/theme-defaults/themes/2026-light.json
+  reference/research_repos/vscode/extensions/theme-defaults/themes/2026-light.json \
+  --against sideBar.background
 ```
 
-### The palette is read out of IntelliJ, and its contrast is pinned
+### Parity with the 2026 themes outranks the contrast floor
+
+Light's `constant.numeric` is `#098658`, and on the cell surface it measures **4.42:1** - under
+WCAG AA 4.5:1. It is kept exactly as the reference draws it.
+
+**The floor used to gate this and no longer does, and that is a decision, not a lapse.** With VS
+Code as the presentation reference, what the syntax palette owes is parity: the app should draw a
+notebook the way VS Code draws one, including where VS Code is imperfect. Correcting a value here
+would mean the app's Python numbers are a colour that appears in no VS Code theme, which is a
+worse answer to "which reference did this come from" than a recorded 4.42:1.
+
+`EditorPaletteTest` therefore pins the eight syntax values **by equality** to the resolved themes
+instead of by ratio. That is the stronger assertion for the other seven: a ratio permits any other
+legible colour, equality permits nothing, which is what *a value may not be nudged "to match VS
+Code more closely" without re-measuring* actually asks for.
+
+**What the shortfall is bounded to, and how that stays true.** One role, one theme.
+`resolve_vscode_theme_test.py` asserts that light's under-floor list is exactly `["number"]` and
+that dark's is empty, so a second role slipping under fails a test rather than passing unnoticed,
+and the decision gets re-taken on purpose.
+
+**What is still held to AA**, because parity does not reach it: every colour this app chose for
+itself rather than transcribed. The two search-match foregrounds are stated precisely so a match
+can be read (`searchMatchText`, `currentSearchMatchText`), and the active editor border is held to
+1.4.11's 3:1. Those are ours; nothing about the reference excuses them.
+
+**Two alternatives were measured before this was settled**, and both are recorded because they are
+what a reader will think of first:
+
+- *`hc_light.json`'s `#096d48`* - the same green darkened by VS Code's own high-contrast theme,
+  hue moving 0.6° in OKLCH, measuring 6.00:1. Rejected: it is a value from a theme the app is not
+  transcribing, so it buys AA at the cost of the parity that is the point of the phase.
+- *2026 Light's own `constant` rule* `#0550ae` (7.29:1). Rejected twice over: light numbers would
+  read blue where VS Code shows green, and dark would have to follow onto `#79c0ff`, which is
+  dark's `heading`.
+
+The measurement is reproducible per role:
+
+```sh
+python3 scripts/resolve_vscode_theme.py \
+  reference/research_repos/vscode/extensions/theme-defaults/themes/2026-light.json \
+  --against sideBar.background
+```
+
+### A link takes the string colour, and the underline is the whole signal
+
+`string.other.link` resolves to `string`'s own value in both 2026 themes - `#a5d6ff` dark,
+`#0a3069` light - and VS Code carries the difference in `markup.underline`, a rule that sets
+`fontStyle` and no colour at all. The app already underlined links, so nothing changed in
+`styles()`; what changed is that the underline went from decoration to **load-bearing**, and
+`EditorPaletteTest.aLinkTakesTheStringColourAndIsToldApartByItsUnderline` asserts both halves so
+neither can be "tidied" away. The obvious tidy - giving the link a colour of its own - would depart
+from the reference to solve a problem the reference does not have.
+
+### The palette states its colours; it does not derive them from a Material role
 
 Syntax colours used to come from `colorScheme` roles — so `NUMBER` sat close to the body text and
-the value ultimately came from the user's wallpaper, which nothing could assert. Colours now come
-from IntelliJ's own schemes with every WCAG ratio pinned by `EditorPaletteTest`.
+the value ultimately came from the user's wallpaper, which nothing could assert. They are stated
+constants now, with every WCAG ratio pinned by `EditorPaletteTest`.
+
+**What is pinned outlived where it was read from.** This entry was written when the source was
+IntelliJ's `expUI_{dark,light}Scheme.xml`; since P2u-2 the syntax half is VS Code's resolved 2026
+themes, and P2u-3 moves the surfaces. The decision that survives every re-source is the one in the
+heading: a colour a role could supply is a colour no test can hold.
 
 ### One editor font, whatever the cell holds — source is code, rendered prose is not
 
