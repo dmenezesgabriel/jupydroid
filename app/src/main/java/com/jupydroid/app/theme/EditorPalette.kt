@@ -86,41 +86,26 @@ data class EditorPalette(
   /** Behind the bracket pair the caret is touching. `MATCHED_BRACE_ATTRIBUTES` background. */
   val matchedBracket: Color,
   /**
-   * Behind a match the find bar found but is not standing on, with [searchMatchText] over it.
+   * Behind a match the find bar found but is not standing on -
+   * `editor.findMatchHighlightBackground`.
    *
-   * IntelliJ's `SEARCH_RESULT_ATTRIBUTES` background
-   * (`DefaultColorSchemesManager.xml:688` light, `expUI_darkScheme.xml:734` dark).
+   * **Translucent, and that is the mechanism rather than a detail.** The reference states no
+   * foreground for a match at all - `editor.findMatchHighlightForeground` is registered `null` -
+   * so the syntax colour underneath has to survive the wash. Its own registration says as much:
+   * *"must not be opaque so as not to hide underlying decorations"*
+   * (`platform/theme/common/colors/editorColors.ts:156-158`).
    */
   val searchMatch: Color,
   /**
-   * The text of a found match - stated rather than left to the syntax colour underneath, and that
-   * is JupyterLab's structure rather than IntelliJ's.
+   * Behind the one match the find bar is standing on - `editor.findMatchBackground`.
    *
-   * **Measured, and the measurement is why.** IntelliJ's key declares `FOREGROUND` empty, leaving
-   * the code its own colours - but on this app's dark palette its own green puts `DEFAULT_KEYWORD`
-   * at **3.16:1**, under the 4.5:1 floor `EditorPaletteTest` holds every other piece of source to,
-   * and every background dark enough to fix that measures 1.08:1 against the cell and so is not
-   * visibly a highlight at all. JupyterLab resolves the same squeeze the same way: `.cm-searchMatch`
-   * sets `color` as well as `background-color` (`packages/codemirror/src/theme.ts:106-109`), losing
-   * the syntax colour inside a match on purpose. The value is whichever of black or white clears
-   * the floor on [searchMatch]; the test is what says which.
-   */
-  val searchMatchText: Color,
-  /**
-   * Behind the one match the find bar is standing on, with [currentSearchMatchText] over it.
-   *
-   * **JupyterLab's value rather than IntelliJ's, and Compose is why.** IntelliJ marks the current
-   * match with no background at all - a rounded box outlined in `CARET_COLOR`
-   * (`EditorLivePreviewPresentation.kt:27-29`) - and a `SpanStyle` can carry a background, a
-   * weight and a decoration but not a border, so the outline is not expressible where these are
-   * applied. So this one comes from `--jp-search-selected-match-background-color`
-   * (`packages/theme-{light,dark}-extension/style/variables.css:413,416`), which answers the same
-   * question by contrast instead - the second colour here that is JupyterLab's, and for the same
-   * kind of reason as [cellMultiSelected].
+   * **The reference separates this from [searchMatch] by alpha alone**, and barely: `#27678290`
+   * against `#27678280` composites to `#214555` against `#20414F` on the dark cell, which is
+   * **1.06:1** apart. No border id is set in either 2026 theme, so there is nothing else carrying
+   * the difference. `docs/DECISIONS.md` records what is left doing that work - the find bar's own
+   * counter and its arrows, which this app has and which VS Code's find widget also has.
    */
   val currentSearchMatch: Color,
-  /** The text of the current match - `--jp-search-selected-match-color`, black in both themes. */
-  val currentSearchMatchText: Color,
   val syntax: SyntaxPalette,
 )
 

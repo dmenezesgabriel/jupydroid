@@ -131,6 +131,9 @@ class EditorPaletteTest {
     "descriptionForeground" to executionTime,
     "textPreformat.background" to inlineCodeBackground,
     "textPreformat.foreground" to inlineCodeForeground,
+    "editorBracketMatch.background" to matchedBracket,
+    "editor.findMatchHighlightBackground" to searchMatch,
+    "editor.findMatchBackground" to currentSearchMatch,
   )
 
   /** Each value against the VS Code scope it was read from, so a failure says which rule moved. */
@@ -205,40 +208,31 @@ class EditorPaletteTest {
   }
 
   /**
-   * The current match states its own foreground precisely so it can be read; asserted at the same
-   * 4.5:1 the syntax colours are held to, since a match is body text like the code around it.
+   * **A match is a wash over the code, not a fill under a restated foreground.**
+   *
+   * This is the assertion that replaced two, and the swap is the whole of P2u-3e. The app used to
+   * paint an opaque background and state the text colour on top, because `EditorPalette`'s two
+   * `*Text` fields existed - JupyterLab's answer, which the app took after measuring that
+   * IntelliJ's left `DEFAULT_KEYWORD` at 3.16:1 inside a match.
+   *
+   * VS Code answers the same question the other way and does not state a foreground at all:
+   * `editor.findMatchForeground` and `editor.findMatchHighlightForeground` are both registered
+   * `null` (`platform/theme/common/colors/editorColors.ts:152,160`), and every match background is
+   * translucent so the syntax colour underneath survives - the registration for
+   * `findMatchHighlight` says so outright, *"must not be opaque so as not to hide underlying
+   * decorations"*. Translucency is therefore load-bearing: opaque values here would hide the code
+   * and there is no foreground left to rescue it.
    */
   @Test
-  fun theCurrentMatchIsReadableOnItsOwnBackground() {
+  fun bothKindsOfMatchAreAWashRatherThanAFill() {
     palettes.forEach { (name, palette) ->
-      val ratio = contrastRatio(palette.currentSearchMatchText, palette.currentSearchMatch)
-      assertTrue(
-        "$name current match is ${"%.2f".format(ratio)}:1, below $BODY_TEXT_FLOOR:1",
-        ratio >= BODY_TEXT_FLOOR,
-      )
-    }
-  }
-
-  /**
-   * Both matches state their own foreground, so both are held to the same 4.5:1 the code around
-   * them is - a match is body text, and the one you are standing on is the text you most need to
-   * read. This is also what replaced the obvious assertion: holding the *syntax* colours to their
-   * floor over the match background failed at 3.16:1 on dark, and every background that fixed it
-   * measured 1.08:1 against the cell. Stating the foreground is how both references get out of it.
-   */
-  @Test
-  fun bothKindsOfMatchAreReadableOnTheirOwnBackground() {
-    palettes.forEach { (name, palette) ->
-      mapOf(
-        "found" to (palette.searchMatchText to palette.searchMatch),
-        "current" to (palette.currentSearchMatchText to palette.currentSearchMatch),
-      ).forEach { (which, pair) ->
-        val ratio = contrastRatio(pair.first, pair.second)
-        assertTrue(
-          "$name $which match is ${"%.2f".format(ratio)}:1, below $BODY_TEXT_FLOOR:1",
-          ratio >= BODY_TEXT_FLOOR,
-        )
-      }
+      mapOf("found" to palette.searchMatch, "current" to palette.currentSearchMatch)
+        .forEach { (which, wash) ->
+          assertTrue(
+            "$name $which match is opaque at alpha ${wash.alpha}; it would hide the code under it",
+            wash.alpha < 1f,
+          )
+        }
     }
   }
 
@@ -395,6 +389,9 @@ class EditorPaletteTest {
       "descriptionForeground" to Color(0xFF8C8C8C),
       "textPreformat.background" to Color(0xFF262626),
       "textPreformat.foreground" to Color(0xFF8C8C8C),
+      "editorBracketMatch.background" to Color(0x553994BC),
+      "editor.findMatchHighlightBackground" to Color(0x80276782),
+      "editor.findMatchBackground" to Color(0x90276782),
     )
 
     /**
@@ -415,6 +412,9 @@ class EditorPaletteTest {
       "descriptionForeground" to Color(0xFF606060),
       "textPreformat.background" to Color(0xFFECECEC),
       "textPreformat.foreground" to Color(0xFF606060),
+      "editorBracketMatch.background" to Color(0x400069CC),
+      "editor.findMatchHighlightBackground" to Color(0x1A0069CC),
+      "editor.findMatchBackground" to Color(0x400069CC),
     )
 
     /** `2026-dark.json`, resolved through its four-deep `include` chain. */

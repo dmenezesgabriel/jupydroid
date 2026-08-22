@@ -65,15 +65,12 @@ val DarkEditorPalette: EditorPalette =
     // (`media/notebook.css` gives `.cell-statusbar-container` no `color` rule), so it inherits the
     // secondary-text role, which is the id `ColorRamp` already calls `onSurfaceVariant`.
     executionTime = Color(0xFF8C8C8C),
-    matchedBracket = Color(0xFF43454A),
-    // `SEARCH_RESULT_ATTRIBUTES` background, `expUI_darkScheme.xml:734`, with the foreground
-    // JupyterLab's `.cm-searchMatch` would state - see [EditorPalette.searchMatchText].
-    searchMatch = Color(0xFF2D543F),
-    searchMatchText = Color(0xFFFFFFFF),
-    // `--jp-search-selected-match-background-color`, `rgb(255, 225, 0)`
-    // (`packages/theme-dark-extension/style/variables.css:416`).
-    currentSearchMatch = Color(0xFFFFE100),
-    currentSearchMatchText = Color(0xFF000000),
+    // `editorBracketMatch.background`. All three below are washes, not fills.
+    matchedBracket = Color(0x553994BC),
+    // `editor.findMatchHighlightBackground` and `editor.findMatchBackground`. Alpha `80` against
+    // `90` is the whole of what separates them - see [EditorPalette.currentSearchMatch].
+    searchMatch = Color(0x80276782),
+    currentSearchMatch = Color(0x90276782),
     syntax =
     SyntaxPalette(
       plain = Color(0xFFBBBEBF),
@@ -117,16 +114,11 @@ val LightEditorPalette: EditorPalette =
     lineNumber = Color(0xFF606060),
     // `descriptionForeground` - see the dark palette's note.
     executionTime = Color(0xFF606060),
-    matchedBracket = Color(0xFF93D9D9),
-    // `SEARCH_RESULT_ATTRIBUTES` background. The expUI light scheme does not override this key, so
-    // it resolves to the default light scheme's own value
-    // (`platform/platform-resources/src/DefaultColorSchemesManager.xml:688`).
-    searchMatch = Color(0xFFCCCCFF),
-    searchMatchText = Color(0xFF000000),
-    // `--jp-search-selected-match-background-color`, `rgb(245, 200, 0)`
-    // (`packages/theme-light-extension/style/variables.css:413`).
-    currentSearchMatch = Color(0xFFF5C800),
-    currentSearchMatchText = Color(0xFF000000),
+    // `editorBracketMatch.background`, which light shares with `editor.findMatchBackground`.
+    matchedBracket = Color(0x400069CC),
+    // `editor.findMatchHighlightBackground` and `editor.findMatchBackground`.
+    searchMatch = Color(0x1A0069CC),
+    currentSearchMatch = Color(0x400069CC),
     syntax =
     SyntaxPalette(
       plain = Color(0xFF202020),

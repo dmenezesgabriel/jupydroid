@@ -18,4 +18,5 @@ reset_notebooks
 # source, one in a raw cell, and one differing only in case.
 seed_notebook "$ROOT/.maestro/fixtures/p2i-3-find.ipynb" "Find And Replace"
 
-run_flow "$ROOT/.maestro/p2i-3-find.yaml" "$ROOT/evidence/p2i-3-find"
+# The optional sub-directory keeps a second device from overwriting the first's frames.
+run_flow "$ROOT/.maestro/p2i-3-find.yaml" "$ROOT/evidence/p2i-3-find${1:+/$1}"

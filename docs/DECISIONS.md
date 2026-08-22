@@ -1131,6 +1131,34 @@ python3 scripts/resolve_vscode_theme.py \
   --against sideBar.background
 ```
 
+### A search match is a wash over the code, and the bold on the current one is ours
+
+VS Code states **no foreground** for a match. `editor.findMatchForeground` and
+`editor.findMatchHighlightForeground` are both registered `null`
+(`platform/theme/common/colors/editorColors.ts:152,160`), and the backgrounds are translucent so
+the syntax colour underneath survives - the registration for `findMatchHighlight` says so in
+words, *"must not be opaque so as not to hide underlying decorations"*.
+
+This app did the opposite until P2u-3e: an opaque fill with the text colour restated on top, which
+is JupyterLab's structure and was taken after measuring that IntelliJ's approach left
+`DEFAULT_KEYWORD` at 3.16:1 inside a match. Parity replaces it, and `searchMatchText` and
+`currentSearchMatchText` are **deleted** rather than left unread - there is no foreground to state.
+`bothKindsOfMatchAreAWashRatherThanAFill` asserts the alpha, because translucency is now
+load-bearing: an opaque value here hides the code and nothing is left to rescue it.
+
+**What that costs, measured.** The reference separates the current match from the others by alpha
+alone - `#27678290` against `#27678280` - which composites on the dark cell to `#214555` against
+`#20414F`, **1.06:1** apart. Light is `#BBD6F1` against `#E1EBF8`, 1.25:1. Neither theme sets
+`editor.findMatchBorder` or `editor.findMatchHighlightBorder`, so nothing else carries it. At arm's
+length on a phone, the current match is not visually distinguishable from the rest by colour.
+
+**Two things carry it instead, and one of them is a departure.** The find bar's counter and arrows
+are the reference's own answer - VS Code's find widget has both, and so does `FindTopBar`. The
+other is the **bold weight** on the current match, which is this app's and predates P2u-3e: *a
+weight reads at a glance where a hue alone has to be compared against its neighbours.* It was a
+nicety when the current match was also bright yellow; with parity it is most of the signal. Kept,
+and recorded here as an adaptation rather than left to read as something the reference does.
+
 ### A link takes the string colour, and the underline is the whole signal
 
 `string.other.link` resolves to `string`'s own value in both 2026 themes - `#a5d6ff` dark,

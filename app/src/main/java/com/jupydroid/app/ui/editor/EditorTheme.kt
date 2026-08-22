@@ -45,17 +45,24 @@ fun bracketMatchStyle(): SpanStyle = SpanStyle(
 /**
  * How the find bar's matches are drawn - the ones it found, and the one it is standing on.
  *
- * Both carry a foreground as well as a background, which is JupyterLab's structure rather than
- * IntelliJ's and is measured rather than chosen - see
- * [com.jupydroid.app.theme.EditorPalette.searchMatchText].
+ * **Neither states a foreground, since P2u-3e.** Both used to, which was JupyterLab's structure;
+ * VS Code registers `editor.findMatchForeground` and `editor.findMatchHighlightForeground` as
+ * `null` and makes the backgrounds translucent instead, so the syntax colour under a match shows
+ * through rather than being replaced.
+ *
+ * **The bold on the current match is this app's, and it now carries the difference.** Measured,
+ * the reference separates current from found by alpha alone - `#214555` against `#20414F` once
+ * composited on the dark cell, **1.06:1** apart, with no border id set in either theme. On a
+ * phone, at a glance, that is not a signal. The weight was here before P2u-3e for its own reason
+ * and is kept for a stronger one; `docs/DECISIONS.md` records it as a departure rather than
+ * letting it read as parity.
  */
 @Composable
 @ReadOnlyComposable
 fun searchMatchStyles(): SearchMatchStyles = SearchMatchStyles(
-  match = SpanStyle(background = editorPalette.searchMatch, color = editorPalette.searchMatchText),
+  match = SpanStyle(background = editorPalette.searchMatch),
   current = SpanStyle(
     background = editorPalette.currentSearchMatch,
-    color = editorPalette.currentSearchMatchText,
     // The one the arrows are on is also the one being read, and a weight reads at a glance where a
     // hue alone has to be compared against its neighbours.
     fontWeight = FontWeight.Bold,
