@@ -1042,7 +1042,12 @@ Two measurements decided things this file would otherwise have guessed, and both
 | **P2u-2b** | *(shipped)* The markdown fold, which the re-base left without a citation: `styles()` folded `CODE` and `QUOTE` onto `string` and `MARKER` onto `keyword` on the strength of IntelliJ's `MarkdownHighlighterColors.java:24-41`, where VS Code has a rule for each - `markup.inline.raw`, `markup.quote`, `punctuation.definition.list.begin.markdown`. `STRONG` and `EMPHASIS` stay colourless, now because VS Code's own `markup.bold` / `markup.italic` foreground measures **1.21:1** and **1.03:1** against `plain`. **It found the quote's span extent is wrong, which is P2u-2c.** | JVM that the three no longer fall back and are mutually distinct; the parity pin extended to eleven scopes. `u1-palette` on both devices, all three sampled off the tablet PNG. |
 | **P2u-2c** | *(shipped)* **A quote is green for its whole length, not just its `>`.** `MarkdownSyntax.markerOf` marked only the leading run of markup for both `ListItem` and `BlockQuote` - right for a list, since VS Code's `punctuation.definition.list.begin.markdown` is the bullet alone, and wrong for a quote: `markup.quote.markdown` is a **begin/end rule over the whole blockquote** with `>` a separate capture (`extensions/markdown-basics/syntaxes/markdown.tmLanguage.json`, `/repository/blockquote`). `BlockQuote` moves to `Node.kind()`, where every other block already gets its full range. Invisible until P2u-2b gave the quote a colour that is not the string colour. | JVM over the extent, including a two-line quote, plus the assertion that a list item's text stays **outside** its marker so the halves cannot be conflated again. Measured on the PNG: the quote's colour goes from **6 px to 733 px** on the tablet and **0 to 127** on the emulator. |
 
-| **P2u-3** | The remaining `EditorPalette` tokens onto VS Code's notebook colour ids, **resolved through their registered defaults** where 2026 leaves them unset - `notebook.focusedCellBorder` and `notebook.focusedEditorBorder` both fall through to `focusBorder` (`notebookEditorWidget.ts:3260,3313`). | `EditorPaletteTest` green; `u3-cell-chrome` and `p2i-3-find` re-captured. |
+| **P2u-3a** | *(shipped)* **Two fields nothing drew.** `caretRow` and `outputForeground` were declared, valued in both palettes and cited to a `JUPYTER.*` key, and read by no composable at all - so P2u-3 would have looked up, measured and transcribed a VS Code colour for two surfaces that do not exist. Deleted, and `scripts/check_palette_consumers.py` is what stops the next one: `ColorRamp` has carried *"a position with no consumer is not here"* in prose since P2u-1 and `EditorPalette` had no gate for it. | The gate red on exactly those two before, green after; its own tests including a run over this repository. No frame changes, so no re-capture - nothing drew these. |
+| **P2u-3b** | The surfaces: `editorBackground`, `cellBackground`, `cellMultiSelected`. **`editorBackground` moves `res/values{,-night}/colors.xml` with it** - the window is painted before there is a composition, and `AppWindowTest` is the test that keeps the two copies honest. | `AppWindowTest` on both devices - a cold launch in each theme, which is the only thing that catches the flash. `u3-cell-chrome` re-captured. |
+| **P2u-3c** | The lines and the secondary text: `cellEditorBorder`, `stripeSelected`, `stripeError`, `lineNumber`, `executionTime`. | `EditorPaletteTest`'s boundary and active-border assertions re-measured; `u3-cell-chrome` and `u4-execution-status` re-captured. |
+| **P2u-3d** | **Rendered markdown's inline code, which is not a cell selection.** `cellSelectionBackground` is named and documented as *"the selected cell's surface"* and its only reader is `richInlineStyles().code.background` - nothing draws a selected cell with it. Renamed for what it does and sourced from `textPreformat.background` / `.foreground`, VS Code's ids for code inside prose. | JVM over the rename; `a1c-markdown-render` re-captured. |
+| **P2u-3e** | **The highlights, and the two foregrounds VS Code does not state.** `matchedBracket`, `searchMatch` and `currentSearchMatch` are translucent in the reference; `editor.findMatchForeground` and `editor.findMatchHighlightForeground` are both registered `null`, so VS Code lets the syntax colour show *through* the wash where this app restates the foreground over an opaque fill. `searchMatchText` and `currentSearchMatchText` go with the fill. | JVM that a match composites over the cell rather than replacing it; `p2i-3-find` re-captured, the match read in the picture in both themes. |
+
 | **P2v-1** | **The run gutter.** A fixed column left of the editor holding Run / Stop / spinner, top-aligned with the editor's first line. 48dp, for the reason above. Run and Stop leave `CellHeader`. | JVM over its states; instrumented that the Run control's bounds are left of the editor's and share its top y, at 320dp and 1280dp. |
 | **P2v-2** | **The execution count at the gutter's foot**, `[N]` and `[ ]`. Code cells only. Drawn in the code font at the reference's *proportion* (10px against its 13px editor) rather than at its pixel size, since `CodeText` is 14sp here. | Instrumented that the label sits below the Run control and shares the editor's bottom y; that a never-run code cell reads `[ ]`; that markdown and raw have none. `p2n-gutter` re-run. |
 | **P2v-3** | **The markdown heading cell's gutter**: chevron rendered, play unrendered, one position. The chevron is VS Code's; **the play icon is an adaptation** - VS Code renders a markup cell on blur or Escape, and a touch screen has neither - recorded beside what it departs from. Retires P2n-3's caret position. | Instrumented at all six levels: rendered ⇒ chevron, source ⇒ play, both at the editor's top y. `p2f-1-heading-collapse` re-captured. |
@@ -1056,6 +1061,36 @@ Two measurements decided things this file would otherwise have guessed, and both
 | **P2x-5** | **Replace across files**, with a confirmation before a destructive replace-all. | A flow that replaces across a notebook and a `.py` in one action, both files read back. |
 | **P2y** | **The phone's bottom navigation**, which **reverses P2o-4**. Two destinations, Files and Search; the table of contents stays the bottom sheet. Two is **off Material's own 3-5**, and that is recorded rather than glossed. P2o-4's cost measurement is re-run rather than quoted. | Instrumented present below 600dp and absent at and above it; a flow at 320dp reaching Search from **inside an open notebook**, which is P2o-4's named risk and must be checked in the picture. `p2o-4-one-pane-side-panels` re-run. |
 | **P2z** | The suite re-captured on the shipped build, both devices, one build - absorbing **P2p**. | `run-flows-sharded.sh`, evidence committed, **every screenshot looked at**. |
+
+## What P2u-3 is transcribing, measured before it starts
+
+Every id below is resolved: the theme's own value where it sets one, otherwise the chain of
+`registerColor` defaults, which is where most of the notebook ids land - **2026 Dark sets no
+`notebook.*` colour at all** and 2026 Light sets only two.
+
+| Field | VS Code id | Resolution | Dark | Light |
+|---|---|---|---|---|
+| `editorBackground` | `notebook.editorBackground` | → `editorPane.background` → `editor.background` | `#121314` | `#FFFFFF` |
+| `cellBackground` | `notebook.cellEditorBackground` | → `sideBar.background` | `#191A1B` | `#FAFAFD` |
+| `cellMultiSelected` | `notebook.selectedCellBackground` | dark → `list.inactiveSelectionBackground`; light set | `#2C2D2E` | `#C8DDF150` |
+| `cellEditorBorder` | `notebook.cellBorderColor` | dark → `transparent(listInactiveSelectionBackground, 1)`; light set | `#2C2D2E` | `#E5E5E5` |
+| `stripeSelected` | `notebook.focusedCellBorder`, `notebook.focusedEditorBorder` | both → `focusBorder` | `#3994BCB3` | `#0069CCFF` |
+| `stripeError` | `notebookStatusErrorIcon.foreground` | → `errorForeground` | `#F48771` | `#AD0707` |
+| `lineNumber` | `editorLineNumber.foreground` | set | `#858889` | `#606060` |
+| `executionTime` | `descriptionForeground` | set - the cell status bar states no colour of its own and inherits | `#8C8C8C` | `#606060` |
+| inline code bg / fg | `textPreformat.background` / `.foreground` | set | `#262626` / `#8C8C8C` | `#ECECEC` / `#606060` |
+| `matchedBracket` | `editorBracketMatch.background` | set | `#3994BC55` | `#0069CC40` |
+| `searchMatch` | `editor.findMatchHighlightBackground` | set | `#27678280` | `#0069CC1A` |
+| `currentSearchMatch` | `editor.findMatchBackground` | set | `#27678290` | `#0069CC40` |
+| `searchMatchText`, `currentSearchMatchText` | `editor.findMatchForeground`, `editor.findMatchHighlightForeground` | **both registered `null`** | — | — |
+
+**Three things in that table are findings rather than transcription**, and each is why its
+sub-step exists: the two fields nothing draws (P2u-3a), the field whose name says "selected cell"
+and whose one reader is rendered markdown's inline code (P2u-3d), and the two foregrounds the
+reference declines to state at all - VS Code keeps a match readable by making the wash
+**translucent** over the code, where this app makes it opaque and restates the text on top
+(P2u-3e). **Alpha is load-bearing** in six of these values and this app's palette has been opaque
+throughout, so P2u-3e is the one that changes how a colour is applied rather than only which.
 
 **Two script gates will need extending, and that is part of the work rather than a surprise:**
 `check_ui_dimensions.py` sees the new gutter constant, and `check_monospace_home.py` sees the

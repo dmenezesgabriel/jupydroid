@@ -69,12 +69,8 @@ data class EditorPalette(
   /** The stripe of a cell whose last run raised. Has no IntelliJ key: the plugin tints the run
    *  gutter icon instead, which needs a pointer to be seen at all. */
   val stripeError: Color,
-  /** The line the caret is on. `JUPYTER.CARET_ROW_COLOR`. */
-  val caretRow: Color,
   /** The gutter's line numbers. `LINE_NUMBERS_COLOR`. */
   val lineNumber: Color,
-  /** Cell output text. `JUPYTER.CELL_OUTPUT_COLOR`. */
-  val outputForeground: Color,
   /** The "ran in 1.2 s" label. `JUPYTER.EXECUTION_TIME_COLOR`. */
   val executionTime: Color,
   /** Behind the bracket pair the caret is touching. `MATCHED_BRACE_ATTRIBUTES` background. */

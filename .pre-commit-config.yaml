@@ -49,6 +49,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: palette-consumers
+        name: a palette states colours something draws
+        entry: python3 scripts/check_palette_consumers.py
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: ktlint-check
         name: ktlint format check
         entry: scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestDebugSourceSetCheck ktlintAndroidTestDebugSourceSetCheck

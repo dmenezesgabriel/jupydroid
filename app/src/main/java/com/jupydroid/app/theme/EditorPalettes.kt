@@ -51,9 +51,7 @@ val DarkEditorPalette: EditorPalette =
     stripeSelected = Color(0xFF3574F0),
     // Red4.
     stripeError = Color(0xFF7A4343),
-    caretRow = Color(0xFF26282E),
     lineNumber = Color(0xFF4B5059),
-    outputForeground = Color(0xFFBCBEC4),
     // Gray7 in the light ramp is the same grey IntelliJ uses for de-emphasised labels; the dark
     // scheme's `DEFAULT_LINE_COMMENT` is the matching value here.
     executionTime = Color(0xFF7A7E85),
@@ -101,10 +99,7 @@ val LightEditorPalette: EditorPalette =
     stripeSelected = Color(0xFF3574F0),
     // Red4.
     stripeError = Color(0xFFDB3B4B),
-    // Blue13.
-    caretRow = Color(0xFFF5F8FE),
     lineNumber = Color(0xFFAEB3C2),
-    outputForeground = Color(0xFF080808),
     // Gray6.
     executionTime = Color(0xFF6C707E),
     matchedBracket = Color(0xFF93D9D9),
