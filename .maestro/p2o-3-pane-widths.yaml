@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# P2o-3: opens a notebook and stops, so the driver can dump the hierarchy of the state the two-pane
+# split is actually about - the shell showing a panel and a document at once, where it has room for
+# both, and one of them where it does not.
+#
+# It asserts nothing about the layout, on purpose: the layout is what is being measured. Its driver
+# is where that is declared, since `driver_declares` reads the driver and not the flow.
+#
+# No device rule: it is run at every width, and the driver names the evidence from the width it
+# measured rather than from the device.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Heading Sections.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "Notes before any heading."
+    timeout: 30000
+- takeScreenshot: 01-the-shell-at-this-width

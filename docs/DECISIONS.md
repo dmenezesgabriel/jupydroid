@@ -2122,6 +2122,38 @@ on a 320dp phone a rail would spend a quarter of the screen on chrome, and the n
 still opens the overlay there, which is the narrow adaptation this app has had since P2h. The bar
 on compact is P2o-4.
 
+### 840dp stays, and the rail is what settles it (P2o-3)
+
+`docs/PLAN.md` asked for the two-pane threshold to be re-derived against the activity bar rather
+than kept on faith, and said the outcome was to be recorded whichever way it landed. Measured on
+device at three widths (`evidence/p2o-3-two-pane-threshold/`, `scripts/read_pane_widths.py`):
+
+| Window | Columns |
+|---|---|
+| 1280dp | rail **80.0dp**, divider **1.3dp**, list pane **360.0dp**, spacer **24.0dp**, document **814.7dp** |
+| 800dp | one column, 800.0dp |
+| 320dp | one column, 320.0dp |
+
+Everything left of the document is fixed, so the document absorbs any change in window width. In a
+**800dp** window two panes would leave it **334.7dp** - narrower than the 360dp the single-pane
+layout was designed for, which is the floor this threshold has always been argued from. So the
+tablet in portrait keeps one pane, and 840dp stays.
+
+**The rail did change the arithmetic, in the direction that keeps the number.** An 840dp window
+used to leave the document 478.7dp; it now leaves **374.7dp**. The bar and the spacer between the
+panes cost 104dp, which is almost exactly the headroom that would have allowed lowering the
+threshold. 840dp is now 14.7dp above the floor rather than 118dp above it - worth knowing before
+anything else is put to the left of the document.
+
+**And the measurement found a rule this app had conflated.** The rail is drawn when there are
+**two panes**; Material draws a `NavigationSuiteScaffold` rail from the *medium* window class
+(600dp) upward, and JupyterLab's activity bar is not a function of pane count at all. So an 800dp
+tablet in portrait has no activity bar and reaches the table of contents only through the
+notebook's overlay. That is the same question P2o-4 exists for, arriving at a second width: the
+problem is not "the compact window" but **every window the shell draws as one pane**, where the
+`Explorer` entry hosting the side panels is not composed while a notebook is open. P2o-4 is costed
+against both widths rather than against 320dp alone.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
