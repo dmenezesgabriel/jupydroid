@@ -48,17 +48,22 @@ val DarkEditorPalette: EditorPalette =
     // `list.inactiveSelectionBackground`. Opaque here where light's is a wash, and that is the
     // reference's own asymmetry rather than a transcription slip.
     cellMultiSelected = Color(0xFF2C2D2E),
-    // Gray5 - IntelliJ's `Component.borderColor`. The same ramp step P2m-1 removed from the
-    // gutter, which is the point: the reference draws cell bounds on the box and not beside it.
-    cellEditorBorder = Color(0xFF4E5157),
-    // Blue6, the New UI accent.
-    stripeSelected = Color(0xFF3574F0),
-    // Red4.
-    stripeError = Color(0xFF7A4343),
-    lineNumber = Color(0xFF4B5059),
-    // Gray7 in the light ramp is the same grey IntelliJ uses for de-emphasised labels; the dark
-    // scheme's `DEFAULT_LINE_COMMENT` is the matching value here.
-    executionTime = Color(0xFF7A7E85),
+    // `notebook.cellBorderColor`, unset in 2026 Dark -> `transparent(listInactiveSelectionBackground, 1)`,
+    // which is `list.inactiveSelectionBackground` at full opacity - the same value `cellMultiSelected`
+    // resolves to. Two ids, one colour, and that is the reference's own doing.
+    cellEditorBorder = Color(0xFF2C2D2E),
+    // `notebook.focusedCellBorder` and `notebook.focusedEditorBorder`, both unset -> `focusBorder`.
+    // One field for both because the reference resolves both to one id, which is the same reason
+    // this field held one value under JupyterLab. **Translucent**: 70% over whatever it outlines.
+    stripeSelected = Color(0xB33994BC),
+    // `notebookStatusErrorIcon.foreground` -> `errorForeground`.
+    stripeError = Color(0xFFF48771),
+    // `editorLineNumber.foreground`.
+    lineNumber = Color(0xFF858889),
+    // `descriptionForeground`. The cell status bar states no colour of its own in the reference
+    // (`media/notebook.css` gives `.cell-statusbar-container` no `color` rule), so it inherits the
+    // secondary-text role, which is the id `ColorRamp` already calls `onSurfaceVariant`.
+    executionTime = Color(0xFF8C8C8C),
     matchedBracket = Color(0xFF43454A),
     // `SEARCH_RESULT_ATTRIBUTES` background, `expUI_darkScheme.xml:734`, with the foreground
     // JupyterLab's `.cm-searchMatch` would state - see [EditorPalette.searchMatchText].
@@ -100,15 +105,16 @@ val LightEditorPalette: EditorPalette =
     // `#C8DDF150`. VS Code writes `#RRGGBBAA` and Compose writes `0xAARRGGBB`, so the alpha
     // swaps ends - transcribed in the reference's own order this would be a near-black at 79%.
     cellMultiSelected = Color(0x50C8DDF1),
-    // Gray9 - IntelliJ's `Component.borderColor`.
-    cellEditorBorder = Color(0xFFC9CCD6),
-    // Blue4, the New UI accent.
-    stripeSelected = Color(0xFF3574F0),
-    // Red4.
-    stripeError = Color(0xFFDB3B4B),
-    lineNumber = Color(0xFFAEB3C2),
-    // Gray6.
-    executionTime = Color(0xFF6C707E),
+    // `notebook.cellBorderColor`, which 2026 Light **does** set.
+    cellEditorBorder = Color(0xFFE5E5E5),
+    // `focusBorder`, and opaque here where dark's carries 70% - see the dark palette's note.
+    stripeSelected = Color(0xFF0069CC),
+    // `notebookStatusErrorIcon.foreground` -> `errorForeground`.
+    stripeError = Color(0xFFAD0707),
+    // `editorLineNumber.foreground`.
+    lineNumber = Color(0xFF606060),
+    // `descriptionForeground` - see the dark palette's note.
+    executionTime = Color(0xFF606060),
     matchedBracket = Color(0xFF93D9D9),
     // `SEARCH_RESULT_ATTRIBUTES` background. The expUI light scheme does not override this key, so
     // it resolves to the default light scheme's own value

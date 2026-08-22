@@ -115,15 +115,20 @@ class EditorPaletteTest {
    * The map grows one sub-step at a time. A field not in it yet is one P2u-3 has not reached.
    */
   @Test
-  fun everySurfaceIsTheReferenceValue() {
-    assertEquals("dark surfaces", DARK_SURFACES, DarkEditorPalette.surfacesByColourId())
-    assertEquals("light surfaces", LIGHT_SURFACES, LightEditorPalette.surfacesByColourId())
+  fun everyChromeTokenIsTheReferenceValue() {
+    assertEquals("dark chrome", DARK_CHROME, DarkEditorPalette.chromeByColourId())
+    assertEquals("light chrome", LIGHT_CHROME, LightEditorPalette.chromeByColourId())
   }
 
-  private fun EditorPalette.surfacesByColourId(): Map<String, Color> = mapOf(
+  private fun EditorPalette.chromeByColourId(): Map<String, Color> = mapOf(
     "notebook.editorBackground" to editorBackground,
     "notebook.cellEditorBackground" to cellBackground,
     "notebook.selectedCellBackground" to cellMultiSelected,
+    "notebook.cellBorderColor" to cellEditorBorder,
+    "focusBorder" to stripeSelected,
+    "notebookStatusErrorIcon.foreground" to stripeError,
+    "editorLineNumber.foreground" to lineNumber,
+    "descriptionForeground" to executionTime,
   )
 
   /** Each value against the VS Code scope it was read from, so a failure says which rule moved. */
@@ -277,18 +282,27 @@ class EditorPaletteTest {
   }
 
   /**
-   * **The state indicator is held to 3:1, and it is the one that clears it.** In edit mode the
-   * active cell's editor takes `--jp-cell-editor-active-border-color`
-   * (`packages/notebook/style/base.css:160-164`), which is `--jp-brand-color1` - the same variable
-   * the active collapser takes, which is why this app reads it from one field rather than two that
-   * could drift. Measured 3.23:1 dark and 4.03:1 light against the field it outlines.
+   * **The state indicator is held to 3:1, measured on what is actually painted.**
+   *
+   * In edit mode the active cell's editor takes `notebook.focusedEditorBorder` and the active
+   * cell's frame `notebook.focusedCellBorder`; both are unset in the 2026 themes and both resolve
+   * to `focusBorder`, which is why this app reads them from one field rather than two that could
+   * drift.
+   *
+   * **The ratio is taken after compositing, and that is not a refinement.** Dark's `focusBorder`
+   * is `#3994BCB3` - 70% opaque - so the hex in the palette is a colour no pixel ever is. Measured
+   * raw it reads 5.09:1; painted over the cell it is `#2F708C` and **3.17:1**. Both clear the
+   * floor, so nothing here changed because of the number - it changed because a test that measures
+   * an uncomposited value would keep passing after the alpha was lowered to something that does
+   * not, and P2u-3 is the step that put alpha in this palette at all.
    */
   @Test
   fun theActiveBorderClearsTheNonTextContrastFloor() {
     palettes.forEach { (name, palette) ->
-      val ratio = contrastRatio(palette.stripeSelected, palette.cellBackground)
+      val painted = palette.stripeSelected.compositeOver(palette.cellBackground)
+      val ratio = contrastRatio(painted, palette.cellBackground)
       assertTrue(
-        "$name active border is ${"%.2f".format(ratio)}:1 on the field, below $NON_TEXT_FLOOR:1",
+        "$name active border paints as $painted, ${"%.2f".format(ratio)}:1, below $NON_TEXT_FLOOR:1",
         ratio >= NON_TEXT_FLOOR,
       )
     }
@@ -368,10 +382,15 @@ class EditorPaletteTest {
      * `notebook.cellEditorBackground` -> `sideBar.background`;
      * `notebook.selectedCellBackground` -> `list.inactiveSelectionBackground`, dark setting none.
      */
-    val DARK_SURFACES = mapOf(
+    val DARK_CHROME = mapOf(
       "notebook.editorBackground" to Color(0xFF121314),
       "notebook.cellEditorBackground" to Color(0xFF191A1B),
       "notebook.selectedCellBackground" to Color(0xFF2C2D2E),
+      "notebook.cellBorderColor" to Color(0xFF2C2D2E),
+      "focusBorder" to Color(0xB33994BC),
+      "notebookStatusErrorIcon.foreground" to Color(0xFFF48771),
+      "editorLineNumber.foreground" to Color(0xFF858889),
+      "descriptionForeground" to Color(0xFF8C8C8C),
     )
 
     /**
@@ -381,10 +400,15 @@ class EditorPaletteTest {
      * last there reads first here. Transcribing it in the reference's own order would give a
      * near-black at 79% opacity instead of a pale blue at 31%.
      */
-    val LIGHT_SURFACES = mapOf(
+    val LIGHT_CHROME = mapOf(
       "notebook.editorBackground" to Color(0xFFFFFFFF),
       "notebook.cellEditorBackground" to Color(0xFFFAFAFD),
       "notebook.selectedCellBackground" to Color(0x50C8DDF1),
+      "notebook.cellBorderColor" to Color(0xFFE5E5E5),
+      "focusBorder" to Color(0xFF0069CC),
+      "notebookStatusErrorIcon.foreground" to Color(0xFFAD0707),
+      "editorLineNumber.foreground" to Color(0xFF606060),
+      "descriptionForeground" to Color(0xFF606060),
     )
 
     /** `2026-dark.json`, resolved through its four-deep `include` chain. */
@@ -442,6 +466,17 @@ class EditorPaletteTest {
 internal fun contrastRatio(a: Color, b: Color): Double {
   val (high, low) = listOf(relativeLuminance(a), relativeLuminance(b)).sortedDescending()
   return (high + 0.05) / (low + 0.05)
+}
+
+/**
+ * [this] painted over [background] at its own alpha - the colour a pixel actually takes.
+ *
+ * Test-only, beside [contrastRatio] and for the same reason: the app does not composite at
+ * runtime, Compose does. What has to be true is a fact about the constants.
+ */
+internal fun Color.compositeOver(background: Color): Color {
+  val over = { channel: Float, under: Float -> channel * alpha + under * (1 - alpha) }
+  return Color(over(red, background.red), over(green, background.green), over(blue, background.blue))
 }
 
 private fun relativeLuminance(color: Color): Double =
