@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.runtime.Composable
+import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.EditorSettings
 
 /**
@@ -77,6 +78,9 @@ internal fun EditorTopBars(
     isEditorTopBarVisible(state.mode) -> DocumentTopBar(
       state = state,
       viewModel = viewModel,
+      // The head cell is already resolved above for [SelectionTopBar]; the document's bar names
+      // its *type*, which is the reference's `cellType` item - see [CellTypeControl].
+      head = head,
       editorSettings = editorSettings,
       onSettingsChanged = onSettingsChanged,
       tocHeadings = tocHeadings,
@@ -93,6 +97,8 @@ internal fun EditorTopBars(
 private fun DocumentTopBar(
   state: EditorUiState,
   viewModel: EditorViewModel,
+  /** The selection's head, whose type the bar names. Null on a notebook with no active cell. */
+  head: Cell?,
   editorSettings: EditorSettings,
   onSettingsChanged: (EditorSettings) -> Unit,
   tocHeadings: List<TocHeading>,
@@ -110,6 +116,9 @@ private fun DocumentTopBar(
     onUndo = viewModel.edits::undo,
     onRedo = viewModel.edits::redo,
     onBack = onBack,
+    activeCellKind = head?.kind,
+    onChangeCellKind = { kind -> head?.let { viewModel.edits.applyTo(it.id, CellAction.ChangeKind(kind)) } },
+    cellTypeOnBar = isCellTypeOnBar(),
     onSetAllHeadingsCollapsed = viewModel.edits::setAllHeadingsCollapsed,
     lineNumbersShown = state.lineNumbersShown,
     onToggleLineNumbers = viewModel::toggleLineNumbers,

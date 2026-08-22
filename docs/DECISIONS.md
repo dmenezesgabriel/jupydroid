@@ -2195,6 +2195,66 @@ device between 600 and 840dp and those two flows would be placed on it and **fai
 is the failure mode `driver-rules.sh` exists to prefer. A `TWO PANES` rule would fix it and is not
 built, because there is no device to exercise it.
 
+### The bar names the active cell's type, and the reference's `-` is not modelled (P2r-1)
+
+P2n removed this app's invented `markdown` and `raw` prompt words, on the reading that
+`_setPrompt`'s only caller is `CodeCell._updatePrompt` (`packages/cells/src/widget.ts:1693-1700`) -
+a non-code cell has no prompt in the reference. That was right and it left a hole: **nothing named
+the active cell's type at all**. The reference's own answer is not the prompt but the `cellType`
+item on the notebook toolbar at rank 40 (`packages/notebook-extension/schema/panel.json`), an
+`HTMLSelect` whose value is `notebook.activeCell.model.type`
+(`packages/notebook/src/default-toolbar.tsx:332-397`). It is deliberately not a *cell* toolbar item
+there - that toolbar's six entries are duplicate, move, insert and delete
+(`packages/cell-toolbar-extension/schema/plugin.json`).
+
+**The reference's `-` option is declined, and that is a reading of this app rather than a
+simplification of the reference.** `-` is what the select shows when a cell in the *selection* has a
+different type. Here `EditorTopBars` swaps in `SelectionTopBar` the moment `anchorCellId` is
+non-null, so whenever this control is on screen `selectedCellIds` is exactly one cell
+(`CellRangeSelection.kt`). A `-` branch would be unreachable by any test. The marked-run case is not
+lost: the reference's own commands are on the other bar's overflow already
+(*"Change cells to markdown"*, `cellActionItems`).
+
+**Where it goes was measured, not chosen.** Free width in the action row between the navigation icon
+and the first action, off `evidence/p2o-3-two-pane-threshold/<w>/hierarchy.xml`: **72dp at 320dp**,
+**552dp at 800dp**, ~567dp at 1280dp. Instrumented on both devices, the widest label the control can
+draw - "Markdown" at `labelLarge` - wants **73.3dp**, *before* its caret and the button's padding.
+So the phone cannot have it and both of the tablet's orientations can with room to spare, and
+`cellTypeOnBar` states the medium boundary the two neighbouring rules already state
+(`cellActionPresentationFor`, `editorTopBarVisible`). What happens at 320dp is P2r-2: a
+`ReactiveToolbar` *moves* an item that does not fit into its popup opener
+(`packages/ui-components/src/components/toolbar.tsx:570-700`), and this app's popup opener is
+`NotebookActionsMenu`.
+
+**It sits in `TopAppBar`'s title slot**, which is that free space, and that is also rank order: the
+reference lays its toolbar out left to right and `cellType` at 40 is well before the `spacer` at
+100. The document's *name* is not there - P2q gave it the row above, which is the reference's
+single-document mode (`application/style/titlepanel.css:10-37`).
+
+**Two things the screenshot decided that no assertion would have.** A `TextButton` draws its label
+in the brand colour by default, which made the control the only coloured thing in the row - and this
+app spends brand blue on exactly two things, the active cell's collapser (P2m-1) and the editor
+being typed into (P2m-2). Neutral now, which is also the reference's: its select is drawn in
+`--jp-ui-font-color0` like the rest of its toolbar. And a `TextButton`'s own minimum is **40dp**, so
+Material's 48dp target is asked for rather than inherited - measured with `touchBoundsInRoot`, since
+`minimumInteractiveComponentSize` expands what accepts a press while the ripple stays the
+component's size, the distinction `CellTouchTargetTest` was written to record.
+
+**The state is in the control's *name*, not only in its text.** A Compose `contentDescription`
+replaces the text under it on Android, so a fixed *"Cell type"* would leave TalkBack and every flow
+unable to read which type is showing. `cellTypeDescription` folds the value in - `Cell type Markdown`
+- which is the rule `SHOW_LINE_NUMBERS` already states for menu rows, applied to a control. Its
+picker's rows are `Cell type picker Markdown`, spelled so neither string contains the other:
+`cellMenuDescription` records that collision between "Cell actions" and "Cell menu Delete".
+
+**A finding it did not fix.** Comparing frames 03 and 04 of `evidence/p2r-cell-type-on-the-bar/`,
+the same three lines are drawn in the code font as a raw cell and in the **prose** font once the
+cell is markdown - `markdownSourceStyle` is `bodyMedium` where `codeSourceStyle` is the code family.
+The reference has no such split: `.cm-editor` takes `--jp-code-font-family`
+(`packages/codemirror/style/base.css:5-9`) and no cell-type stylesheet overrides it. Filed in
+`docs/PLAN.md` rather than folded in - it needs its own failing test and its own evidence, which is
+how P2l-2 handed `CollapsedCell` to P2l-4.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary

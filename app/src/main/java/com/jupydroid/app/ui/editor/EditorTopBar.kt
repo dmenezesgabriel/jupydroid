@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.RenameFileDialog
@@ -75,6 +76,13 @@ private val TITLE_EDIT_ICON_SIZE = 18.dp
  * announcing it is undiscoverable, which is the lesson the cell menu cost three attempts to
  * learn.
  *
+ * **The active cell's type is here because the reference's toolbar carries it** - `cellType` at
+ * rank 40 (`packages/notebook-extension/schema/panel.json`) - and it is on *this* bar rather than
+ * [NotebookBar] for that bar's own stated reason: it is what you ask the kernel, and what a cell
+ * is asks the kernel nothing. Where the row has no width for it, it moves to the overflow the way
+ * a `ReactiveToolbar` moves an item into its popup opener; see [CellTypeControl] and
+ * [cellTypeOnBar].
+ *
  * **Undo and redo are here and not on [NotebookBar]**, which is the split that bar states about
  * itself: it is what you ask the *kernel*. Taking back a cell operation is neither a kernel action
  * nor a cell one - it is the document's - and the reference files it under Edit and the notebook's
@@ -94,6 +102,21 @@ fun EditorTopBar(
   onUndo: () -> Unit,
   onRedo: () -> Unit,
   onBack: () -> Unit,
+  /**
+   * What the active cell is, for the control that names it - see [CellTypeControl]. Null on a
+   * notebook with no active cell, which draws nothing rather than a control about nothing.
+   */
+  activeCellKind: CellKind? = null,
+  /** `notebook:change-cell-to-{code,markdown,raw}`, from the control above. */
+  onChangeCellKind: (CellKind) -> Unit = {},
+  /**
+   * Whether this bar has the room to carry [activeCellKind] itself - [cellTypeOnBar].
+   *
+   * Passed in rather than read here, because `currentWindowAdaptiveInfo()` measures the
+   * *activity's* window and so does not follow a test's `ForcedSize` (`Navigation.kt`,
+   * `PaneDirective.kt`) - the same seam [EditorScreen] already crosses for the side area.
+   */
+  cellTypeOnBar: Boolean = false,
   /** `notebook:collapse-all-headings` / `expand-all-headings` - see [NotebookActionsMenu]. */
   onSetAllHeadingsCollapsed: (Boolean) -> Unit = {},
   /** Whether the cells are drawing their gutters, which is what the View row is named from. */
@@ -147,9 +170,17 @@ fun EditorTopBar(
   ) {
     NotebookTitleStrip(title = title, onClick = { renameOpen = true }, collapse = titleCollapse)
     TopAppBar(
-      // Empty on purpose: the name is on its own row above, and an empty slot is how a `TopAppBar`
-      // is told the space between the navigation icon and the actions is not its to fill.
-      title = {},
+      // The document's *name* is not here - it has the row above, which is what the reference's
+      // single-document mode does (`application/style/titlepanel.css:10-37`). What this slot holds
+      // is the space between the navigation icon and the actions, measured at **72dp at 320dp and
+      // 552dp at 800dp** (`evidence/p2o-3-two-pane-threshold/`), and the reference lays its toolbar
+      // out left to right by rank - so `cellType` at 40 belongs here, well before the spacer at
+      // 100. Empty again where there is no room for it; see [cellTypeOnBar].
+      title = {
+        if (cellTypeOnBar && activeCellKind != null) {
+          CellTypeControl(kind = activeCellKind, onPick = onChangeCellKind)
+        }
+      },
       // Already taken by the Column that holds both rows, just above.
       windowInsets = WindowInsets(0, 0, 0, 0),
       navigationIcon = {
