@@ -998,6 +998,86 @@ highlighting costs **+10.5 MB** and no renderer — about **139 MB saved**, on t
 everything else held constant. Compose owns IME composing regions, autocorrect, gesture typing,
 selection handles and the magnifier; we own only the language layer. `evidence/step5.2/tablet/`.
 
+### The presentation reference is VS Code; the behaviour reference stays JupyterLab
+
+`docs/PLAN.md` opens with *"Parity is not a matter of taste"* and names JupyterLab's command ids
+as the specification. That still holds — for **behaviour**. What it decided by default rather than
+by argument is **presentation**, and since P2t that is VS Code's:
+`reference/research_repos/vscode` at `f3fa55c39d3df2923b46a3d76cf6baf0afa1db33`, beside
+`vscode-jupyter` at `f01d80ca0aa0dfdfa1d2e10a08943e12b776d155`.
+
+**What this reopens:** the palette, the cell's chrome, the notebook's top, and the shape of the
+side panels. Those are re-derived from VS Code, and where an entry below was decided from
+JupyterLab's CSS its *citation* is superseded even where its *outcome* survives.
+
+**What it does not reopen, and nobody may re-litigate on presentation grounds:** the command
+surface (the `notebook:*` ids and their semantics), `nbformat` and its round-trip, the kernel wire
+protocol, and every P2a–P2k behaviour decision in this file. A control may move; what it does when
+pressed is still JupyterLab's answer.
+
+**vscode-jupyter is authoritative for less than its name suggests, and it was checked rather than
+assumed.** The notebook UI is core VS Code; the extension contributes kernel selection, status and
+its own commands. `src/` is `kernels`, `notebooks`, `standalone`, `webviews`, and
+
+```sh
+grep -rl 'run-button-container\|execution-count-label\|cellRunGutter' src/   # no output
+```
+
+So a question about cell chrome is answered in `vscode/src/vs/workbench/contrib/notebook/`, never
+here.
+
+### The default VS Code theme is 2026 Dark / 2026 Light, not Dark Modern
+
+Worth stating because it is the trap this re-base nearly walked into: **Dark Modern is no longer
+the default.** `ThemeSettingDefaults.COLOR_THEME_DARK` is `'Dark 2026'`
+(`src/vs/workbench/services/themes/common/workbenchThemeService.ts:41-46`), and
+`migrateThemeSettingsId` maps the former id `'VS Code Dark'` onto it (`:53-70`) — so "the VS Code
+dark theme" **is** 2026 Dark.
+
+It is not a standalone file. `2026-dark.json` includes `dark_modern.json`, which includes
+`dark_plus.json`, which includes `dark_vs.json`, and the outermost overrides most of what it
+inherits: 725 lines against Dark Modern's 133. Reading any one file in that chain gives the wrong
+colour. **The chain must be resolved before a value is transcribed** — `include` walked outermost
+last, `colors` merged by key and `tokenColors` concatenated so the last matching rule wins, which
+is tmTheme precedence.
+
+Measured after resolving, the difference is not cosmetic: `editor.background` is `#121314`, not
+Dark Modern's `#1F1F1F`.
+
+The chain-walking is `scripts/resolve_vscode_theme.py`, so this is checkable rather than asserted:
+
+```sh
+cd reference/research_repos/vscode/extensions/theme-defaults/themes
+python3 ../../../../../../scripts/resolve_vscode_theme.py 2026-dark.json --color editor.background
+```
+
+### The 4.5:1 contrast floor survives the palette swap, measured against the resolved themes
+
+`EditorPaletteTest` holds every syntax colour to WCAG AA 4.5:1, and that floor is the reason the
+palette is pinned at all. It was measured against the **resolved** 2026 themes before P2u was
+planned, so the swap is known to be affordable rather than hoped to be:
+
+| Role | 2026 Dark on `#121314` | 2026 Light on `#FFFFFF` |
+|---|---|---|
+| plain | `#BBBEBF` 9.95:1 | `#202020` 16.29:1 |
+| keyword | `#C586C0` 6.68:1 | `#AF00DB` 5.46:1 |
+| string | `#a5d6ff` 12.10:1 | `#0a3069` 12.81:1 |
+| number | `#b5cea8` 10.95:1 | `#098658` **4.60:1** |
+| comment | `#8b949e` 6.05:1 | `#6e7781` **4.55:1** |
+| function | `#d2a8ff` 9.55:1 | `#8250df` 5.05:1 |
+| heading | `#79c0ff` 9.56:1 | `#0550ae` 7.59:1 |
+
+Every role clears it. **Light's margin is thin** — `comment` at 4.55:1 and `number` at 4.60:1 — so
+the test is a live gate here, not a formality: it must be re-run per ramp value, and a value may
+not be nudged "to match VS Code more closely" without re-measuring.
+
+The table above is this tool's own output, and reproducing it is one command per theme:
+
+```sh
+python3 scripts/resolve_vscode_theme.py \
+  reference/research_repos/vscode/extensions/theme-defaults/themes/2026-light.json
+```
+
 ### The palette is read out of IntelliJ, and its contrast is pinned
 
 Syntax colours used to come from `colorScheme` roles — so `NUMBER` sat close to the body text and
@@ -2503,7 +2583,12 @@ techniques studied, no code vendored. For sora this is load-bearing rather than 
 reference for the editor we write ourselves, and a fork would stay LGPL-2.1, so forking answers the
 licence question with "no".
 
-`reference/` is gitignored and travels with no clone. The three consulted here, at the remotes the
+VS Code and vscode-jupyter are both **MIT** (`vscode/LICENSE.txt`, `vscode-jupyter/LICENSE`),
+which is why P2u may transcribe colour values out of them where Winlator's LGPL forced clean-room:
+MIT permits reuse with attribution, and every transcribed value carries its colour id in a doc
+comment.
+
+`reference/` is gitignored and travels with no clone. The five consulted here, at the remotes the
 local clones actually point at:
 
 ```sh
@@ -2511,6 +2596,8 @@ cd reference/research_repos
 git clone --depth 1 https://github.com/jupyterlab/jupyterlab
 git clone --depth 1 https://github.com/JetBrains/intellij-community.git   # 2.4 GB
 git clone --depth 1 https://github.com/brunodev85/winlator
+git clone --depth 1 https://github.com/microsoft/vscode.git               # 1.7 GB
+git clone --depth 1 https://github.com/microsoft/vscode-jupyter.git       # 256 MB
 ```
 
 ---
