@@ -2154,6 +2154,47 @@ problem is not "the compact window" but **every window the shell draws as one pa
 `Explorer` entry hosting the side panels is not composed while a notebook is open. P2o-4 is costed
 against both widths rather than against 320dp alone.
 
+### One pane grows no navigation bar, and two destinations is why (P2o-4)
+
+`docs/PLAN.md` asked for "the bar on compact, the same two panels", with a named risk that would
+decide it. P2o-3 sharpened the question from "compact" to **every window the shell draws as one
+pane** - the 320dp phone *and* the tablet in portrait at 800dp. Neither gets a bar. Three things
+say so, and the first is not ours.
+
+**Two destinations is below Material's own floor.** Android's guidance for `NavigationBar` is
+*"three to five destinations of equal importance"*
+(`developer.android.com/develop/ui/compose/components/navigation-bar`). This app has two panels, and
+at one pane only one of them is a destination at all: Files is a screen you navigate to, and the
+table of contents is a surface over the document you are already in. A bar whose two items are one
+navigation and one bottom sheet is not "destinations of equal importance".
+
+**The named risk does not bite, and the flow says so at both widths.** The risk was that the ToC
+would be "reachable only after leaving the document". It is not, and never was: `toc:show-panel` in
+the notebook's own menu opens the overlay P2h built - a `ModalBottomSheet` at 320dp and a
+`DropdownMenu` at 800dp, which is `CellActionPresentation`'s rule applied to one list of headings.
+`p2o-4-one-pane-side-panels` drives both entry points at both one-pane widths.
+
+**And a bar's cost is measured rather than argued.** The notebook's cell list is `y 136..536` =
+**400.0dp** at 320×640dp and `y 142..1152` = **1010.0dp** at 800×1280dp. An 80dp bar is **20% of
+the notebook** on the phone - and a cell block there measures 96-110dp, so roughly three-quarters of
+a cell of the four on screen. P2q-2 gave the notebook back **48dp** at that width because it was
+enough to push a fourth cell's source under the bottom bar, and four flows caught it; spending 80dp
+to add a second path to two things that already have one is that trade in reverse. The modal drawer
+`docs/PLAN.md` named as the fallback is declined for the same reason: its trigger would be 48dp of a
+320dp top row that P2q already had to split in two to fit a filename into.
+
+**What would reopen it is a third destination**, and `docs/PLAN.md` already names it: P6d's Launcher
+is *"the second top-level destination a navigation rail has been waiting for since U7"*. Files +
+Launcher + Table of contents is three, which is the floor, and the Launcher is a destination in the
+way the ToC is not. Re-cost it then, against these numbers.
+
+**A harness limitation this named rather than fixed.** `WIDE WINDOW` means >= 600dp to the sharder,
+but `p2o-2-side-panel` and `p2h-4-table-of-contents-folds` need **two panes**, which is >= 840dp. On
+the devices this project drives the two are the same set, so nothing is misplaced today; attach a
+device between 600 and 840dp and those two flows would be placed on it and **fail** - loudly, which
+is the failure mode `driver-rules.sh` exists to prefer. A `TWO PANES` rule would fix it and is not
+built, because there is no device to exercise it.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary

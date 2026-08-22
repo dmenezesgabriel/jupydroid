@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# P2o-4: where the shell draws **one pane** there is no side area, and both of the things the
+# activity bar switches between are reachable anyway - which is the measurement that decides
+# whether this app grows a navigation bar at all.
+#
+# Two claims, one per panel:
+#   1. **Files** is one tap from the document: the back arrow returns to the browser, which is
+#      where an Android reader looks for it and is the only "destination" at this width.
+#   2. **Table of contents** is reachable *without leaving the document*, through `toc:show-panel`
+#      in the notebook's own menu - the overlay this app has had since P2h, which is the narrow
+#      adaptation of a sidebar the reference has never written one for
+#      (`docs/DECISIONS.md`: no media query, no width branch, a `format: 'mobile'` never assigned).
+#
+# **NARROW WINDOW**, which the sharder reads as < 840dp - and that is exactly "one pane", which is
+# what this flow is about. Run by hand on the tablet in portrait as well, where the window is 800dp
+# and also one pane; the driver names its evidence from the width it measured.
+#
+# Reuses p2f-2's fixture: three headings at three depths, in a notebook known not to fit one
+# screen, so the jump is a movement rather than a scroll position that looked the same either way.
+#
+# No cell is run, so this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- scrollUntilVisible:
+    element:
+      text: "Heading Sections.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "Notes before any heading."
+    timeout: 30000
+# One pane: the browser is not beside the document. `Workspace` is the crumb only it draws.
+- assertNotVisible: "Workspace"
+- takeScreenshot: 01-one-pane-and-no-side-area
+# --- 2. the table of contents, without leaving the document -------------------------------
+- tapOn: "Notebook actions"
+- assertVisible: "Show table of contents"
+- tapOn: "Show table of contents"
+- assertVisible: "Table of contents Chapter one"
+- assertVisible: "Table of contents Part A"
+- assertVisible: "Table of contents Chapter two"
+- takeScreenshot: 02-the-overlay-over-the-document
+# To the bottom first, so the jump back is a movement. Named by a cell rather than by a heading's
+# own words: the overlay lists "Chapter one" and so does the markdown cell behind it.
+- tapOn: "Table of contents Chapter two"
+- assertVisible: "two = 3"
+# **The pick dismissed it**, which is why this is an overlay and not a panel - and the reason a
+# fold would never survive to be looked at twice here (`TableOfContentsRows`).
+- assertNotVisible: "Table of contents Chapter one"
+- takeScreenshot: 03-jumped-and-the-overlay-is-gone
+# --- 1. and Files is one tap away ---------------------------------------------------------
+- tapOn: "Back to notebooks"
+- assertVisible: "Workspace"
+- assertVisible: "Files"
+- takeScreenshot: 04-files-is-one-tap-from-the-document
