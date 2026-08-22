@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# P2h-3: the table of contents as a persistent pane beside the notebook, where the editor has room
-# for one - it opens from the View menu, survives a jump, and closes from its own button.
+# P2o-2: the table of contents as a **sidebar panel of the shell**, reached from the activity bar
+# beside the file browser - the rail swaps the side area, a pick jumps and leaves the panel up, and
+# picking the showing panel again collapses the area to the bar alone.
 #
-# WIDE WINDOW: `tocPresentationFor` gives a pane only above 840dp of *editor* width, which the
-# tablet has (1280dp window less the 360dp explorer) and the emulator does not.
-# `p2h-2-table-of-contents` makes the same claims against the overlay a narrow one gets.
+# WIDE WINDOW: the rail is drawn only where there is room for two panes, which the tablet's 1280dp
+# window has and the emulator's 320dp does not. `p2h-2-table-of-contents` makes the neighbouring
+# claims against the overlay the same menu row opens where there is no side area to activate.
 #
 # No cell is run, so this needs the width rather than the arm64 kernel.
 set -euo pipefail
@@ -21,4 +22,4 @@ reset_notebooks
 # screen - which is what makes the jump below a movement worth asserting.
 seed_notebook "$ROOT/.maestro/fixtures/p2f-2-collapse-all-headings.ipynb" "Heading Sections"
 
-run_flow "$ROOT/.maestro/p2h-3-table-of-contents-pane.yaml" "$ROOT/evidence/p2h-3-table-of-contents-pane"
+run_flow "$ROOT/.maestro/p2o-2-side-panel.yaml" "$ROOT/evidence/p2o-2-side-panel"

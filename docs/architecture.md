@@ -50,11 +50,12 @@ to depend on**, which is checkable:
 | `domain/{model,port}` | the app's own types and its ports | no `android.*`, no other layer — **guard-tested** |
 | `data/{disk,fake,intent,space}` | adapters implementing ports | one file per adapter, named `<Mechanism><PortConcept>` |
 | `ui/{editor,explorer,fileeditor}` | screens and ViewModels | reads ports; never constructs an adapter |
+| `ui/shell` | the chrome that belongs to **no** screen — the activity bar and the side panels | drawn by `Navigation`, beside the panes rather than inside one; the *state* it moves stays at the root with `Navigation.kt`, which is what §4 already says about wiring that belongs to no screen |
 | `di` | `AppContainer`, the composition root | constructed once per process, in `JupydroidApplication` |
 | `html`, `import`, `markdown`, `syntax` | **document and language logic** — parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages*, not this app's domain; not `data/`, because they implement no port. JVM-testable, and every test for them is a plain unit test |
 | `richtext` | **mixed on purpose**: `RichBlock` is the model, `RichInlineString` renders it | the split is the point — the model is testable without Compose, and only the renderer imports it |
 | `theme` | Compose design tokens, the IntelliJ-derived palette | Compose throughout; `EditorPaletteTest` pins its contrast ratios |
-| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, the three `NavKey`s | the app shell and its navigation | see §4 |
+| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, the three `NavKey`s | the app shell and its navigation | see §4 |
 
 Measured, not asserted: `html` (0 of 3 files), `import` (0/1), `markdown` (0/1) and `syntax`
 (0/6) import `android.*`; `theme` imports it in 5 of 5; `richtext` in 1 of 2. That 1 is
@@ -193,6 +194,13 @@ edit and closes the kernel socket. Nothing closed a socket before this existed.
 `openOrReveal`), and a *different* document replaces the open one instead of stacking. Both
 decorators key on `NavEntry.contentKey`, so two entries for one path would share a single
 `ViewModelStore` and a single `SaveableStateHolder` slot — a double tap is enough to cause it.
+
+**The shell has one side area, and an activity bar beside the whole thing.** `MainNavigation` draws
+a `SidePanelRail` next to `NavDisplay` — not inside a pane — because that is where JupyterLab's own
+`leftHandler.sideBar` sits, beside the split that holds both the panel and the document area. One
+`SidePanel` shows at a time (Files, Table of contents), the list pane draws whichever is chosen, and
+choosing the showing one collapses the area: the directive drops to one partition and the notebook
+takes the width. The rail is only drawn where there is room for two panes.
 
 **One thing crosses between the panes, and it is a published model.** The shell's side panel is in
 the list pane and a notebook's headings are derived in the detail pane's `EditorViewModel`, which

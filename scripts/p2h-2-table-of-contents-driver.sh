@@ -4,7 +4,7 @@
 #
 # NARROW WINDOW: above 840dp of editor the same command draws a pane that stays open across a
 # pick, so the dismissal this flow asserts is the wrong question there rather than a failure -
-# `p2h-3-table-of-contents-pane` makes the same claims against that adaptation.
+# `p2o-2-side-panel` makes the neighbouring claims against the shell's own sidebar panel.
 #
 # No cell is run, so nothing here needs the tablet.
 set -euo pipefail

@@ -8,7 +8,9 @@ appId: com.jupydroid.app
 # the words "markdown" and "raw" where the reference draws no prompt at all - `_setPrompt` has a
 # single caller, `CodeCell._updatePrompt` (`packages/cells/src/widget.ts:1693-1700`) - and a
 # heading cell's collapser was drawn in front of that word, so two markdown cells in one frame
-# started 48dp apart. Visible in `evidence/p2h-3-table-of-contents-pane/02-the-pane.png`, and
+# started 48dp apart. Visible in
+# `git show b4f157b:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - P2o-2 renamed that
+# flow to `p2o-2-side-panel`, so the frame is in git history rather than in the tree - and
 # invisible to every assertion in the suite: the labels read the right words in the right cells.
 #
 # **The flow's job is to put all three headers on screen; the driver's is to measure them.** It

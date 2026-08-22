@@ -188,37 +188,37 @@ class NotebookActionsMenuTest {
   }
 
   /**
-   * With a pane to show, the row asks for it rather than opening an overlay - the editor is
-   * drawing the list itself, so a second copy over the top of it would be two answers to one
-   * question.
+   * With a shell panel to activate, the row asks for it rather than opening an overlay - the panel
+   * is already drawing the list, so a second copy over the top of it would be two answers to one
+   * question. `toc:show-panel` is exactly that there: `labShell.activateById(toc.id)` and nothing
+   * else (`packages/toc-extension/src/index.ts:161-172`).
    */
   @Test
-  fun inPaneModeTheRowAsksForThePaneAndOpensNoOverlay() {
+  fun withASidePanelTheRowActivatesItAndOpensNoOverlay() {
     showTopBar(
       tableOfContentsHeadings = listOf(TocHeading("h1", 1, "Chapter one")),
-      tableOfContentsPresentation = TocPresentation.PANE,
+      onShowTableOfContentsPanel = { tableOfContentsPanelActivations++ },
     )
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
     compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).performClick()
 
-    compose.runOnIdle { assertEquals(1, tableOfContentsPaneToggles) }
+    compose.runOnIdle { assertEquals(1, tableOfContentsPanelActivations) }
     compose.onNodeWithContentDescription("Table of contents Chapter one").assertDoesNotExist()
   }
 
   /**
-   * **The label flips with the state**, which is this app's own convention for a toggle
-   * ([SHOW_LINE_NUMBERS]) and load-bearing for the same reason: Android's accessibility tree
-   * keeps a `DropdownMenuItem`'s toggled state on a node carrying no label, so a check mark is a
-   * state no Maestro flow can read.
+   * **One label, not two**, which departs from [SHOW_LINE_NUMBERS]' convention because the
+   * reference's command departs from a toggle: `toc:show-panel` activates the panel and declares no
+   * `isToggled`, so there is no opposite state for the row to name.
    */
   @Test
-  fun theRowNamesTheOppositeOfWhatIsOnScreen() {
-    showTopBar(tableOfContentsPresentation = TocPresentation.PANE, tableOfContentsPaneOpen = true)
+  fun theRowReadsTheSameWhicheverSurfaceItWouldOpen() {
+    showTopBar(onShowTableOfContentsPanel = { tableOfContentsPanelActivations++ })
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
 
-    compose.onNodeWithText(HIDE_TABLE_OF_CONTENTS).assertIsDisplayed()
+    compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).assertIsDisplayed()
   }
 
   @Test
@@ -369,7 +369,7 @@ class NotebookActionsMenuTest {
   private val headingsSetTo = mutableListOf<Boolean>()
   private var lineNumberToggles = 0
   private val tableOfContentsSelections = mutableListOf<String>()
-  private var tableOfContentsPaneToggles = 0
+  private var tableOfContentsPanelActivations = 0
   private var exportPickerOpens = 0
   private val exportedAs = mutableListOf<String>()
 
@@ -380,8 +380,7 @@ class NotebookActionsMenuTest {
     lineNumbersShown: Boolean = true,
     settings: EditorSettings = EditorSettings(),
     tableOfContentsHeadings: List<TocHeading> = emptyList(),
-    tableOfContentsPresentation: TocPresentation = TocPresentation.OVERLAY,
-    tableOfContentsPaneOpen: Boolean = false,
+    onShowTableOfContentsPanel: (() -> Unit)? = null,
     exportState: ExportState = ExportState(offered = OFFERED_EXPORT_FORMATS),
   ) {
     compose.setContent {
@@ -401,9 +400,7 @@ class NotebookActionsMenuTest {
           onSettingsChanged = { settingsWritten += it },
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },
-          tableOfContentsPresentation = tableOfContentsPresentation,
-          tableOfContentsPaneOpen = tableOfContentsPaneOpen,
-          onToggleTableOfContentsPane = { tableOfContentsPaneToggles++ },
+          onShowTableOfContentsPanel = onShowTableOfContentsPanel,
           exportState = exportState,
           onExportPickerOpened = { exportPickerOpens++ },
           onExportAs = { exportedAs += it },

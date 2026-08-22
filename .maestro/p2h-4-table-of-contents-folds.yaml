@@ -6,8 +6,9 @@ appId: com.jupydroid.app
 # cell of that section exactly where it was (`syncCollapseState` defaults false,
 # `packages/toc-extension/schema/registry.json:32-69`).
 #
-# **WIDE WINDOW**, for `p2h-3-table-of-contents-pane`'s reason: the disclosure belongs to the pane,
-# because a fold on a surface that is dismissed by the pick would never survive to be seen twice.
+# **WIDE WINDOW**, for `p2o-2-side-panel`'s reason: the disclosure belongs to the sidebar panel,
+# because a fold on a surface that is dismissed by the pick would never survive to be seen twice -
+# and the rail that reaches that panel is drawn only where there is room for two panes.
 #
 # Reuses p2f-2's fixture: `# Chapter one` owns `## Part A`, which is the one nesting this needs.
 #
@@ -24,8 +25,9 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Notes before any heading."
     timeout: 30000
-- tapOn: "Notebook actions"
-- tapOn: "Show table of contents"
+# From the rail, which is where the panel lives since P2o-2 - `toc:show-panel` in the notebook's
+# own menu activates the same panel, and `p2o-2-side-panel` is what asserts that it does.
+- tapOn: "Table of contents"
 - assertVisible: "Table of contents Chapter one"
 - assertVisible: "Table of contents Part A"
 # Drawn only where there is something under it: Chapter one owns Part A, and Part A owns nothing.

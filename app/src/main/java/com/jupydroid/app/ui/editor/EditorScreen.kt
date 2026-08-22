@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.editor
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,11 +23,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +75,13 @@ fun EditorScreen(
    * derived, offered to the pane that cannot reach this entry's `EditorViewModel`.
    */
   outline: OpenDocumentOutline,
+  /**
+   * `toc:show-panel`, whose whole body there is `labShell.activateById(toc.id)`
+   * (`packages/toc-extension/src/index.ts:161-172`): it *activates* the shell's panel and nothing
+   * else. **Null when the shell has no side area** - on a compact window the notebook's own menu
+   * shows the overlay instead, which is the narrow adaptation of a sidebar this app has always had.
+   */
+  onShowTableOfContents: (() -> Unit)?,
   onBack: () -> Unit,
   /**
    * Reports where the notebook lives *now*, because a rename moves it.
@@ -149,23 +153,14 @@ fun EditorScreen(
       onDismiss = { viewModel.answerOverwrite(accepted = false) },
     )
   }
-  // **The editor's own width, not the window's**, which is what decides where the table of
-  // contents goes ([tocPresentationFor]): in the two-pane layout the explorer has already spent
-  // 360dp of the window, so asking `currentWindowAdaptiveInfo()` would offer a pane to an editor
-  // with no room for one. It is also what makes both branches reachable from a test - a window
-  // cannot be forced under a composable, while a layout constraint can (`docs/DECISIONS.md`).
-  BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-    val tocPresentation = tocPresentationFor(maxWidth.value.toInt())
-    // Saved rather than remembered: the pane survives a rotation, which is the one gesture most
-    // likely to bring it into range in the first place. Hidden by default, as the reference's own
-    // ToC tab is - the file browser is the sidebar panel that opens with the shell, not this.
-    var tocPaneOpen by rememberSaveable { mutableStateOf(false) }
-    // Remembered rather than saved, which is the reference's own lifetime for it - see [TocFolds].
-    val tocFolds = remember { TocFolds() }
+  // **The table of contents is not drawn here.** It is a sidebar panel of the shell's
+  // (`shell.add(toc, 'left', { rank: 400 })`), which this entry cannot reach - so the headings are
+  // published for it (see [outline]) and the notebook keeps its whole width. Where the shell has no
+  // side area, [onShowTableOfContents] is null and the notebook's own menu shows the overlay.
+  Box(modifier = modifier.fillMaxSize()) {
     // One list for every surface that reads it - the panel, the numbers on the notebook's own
     // headings, and the jump - so a heading cannot be numbered one way here and another there.
     val tocHeadings = state.tableOfContentsHeadings(editorSettings.tocIncludeOutput)
-    val showTocPane = tocPaneOpen && tocPresentation == TocPresentation.PANE
     // `activateNewMatch`'s `scrollToItem` (`packages/notebook/src/searchprovider.ts:625-630`),
     // keyed on the hit rather than on the cell: two matches in one cell are two steps, and a
     // notebook that only moved when the *cell* changed would look stuck on the second of them.
@@ -244,9 +239,7 @@ fun EditorScreen(
             editorSettings = editorSettings,
             onSettingsChanged = { changed -> applicationScope.launch { editorSettingsRepository.update(changed) } },
             tocHeadings = tocHeadings,
-            tocPresentation = tocPresentation,
-            tocPaneOpen = showTocPane,
-            onToggleTocPane = { tocPaneOpen = !tocPaneOpen },
+            onShowTableOfContents = onShowTableOfContents,
             onHeadingSelected = jumpToHeading,
             onBack = onBack,
             titleCollapse = titleCollapse,
@@ -290,17 +283,6 @@ fun EditorScreen(
           listState = listState,
           modifier = Modifier.weight(1f),
         )
-        if (showTocPane) {
-          TableOfContentsPane(
-            headings = tocHeadings,
-            onHeadingSelected = jumpToHeading,
-            onClose = { tocPaneOpen = false },
-            collapsed = tocFolds.collapsed,
-            onToggleCollapsed = tocFolds::toggle,
-            onToggleAllCollapsed = { tocFolds.toggleAll(tocHeadings) },
-            numbering = editorSettings.tocNumbering(),
-          )
-        }
       }
     }
     // Outside the Scaffold's slots because it draws nothing: it posts to [exportReports], which

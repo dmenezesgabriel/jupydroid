@@ -1852,7 +1852,9 @@ pre-P2m-2 shape rather than against a number.
 **The invented word cost more than a word.** It was the only thing in front of a heading cell's
 collapser, so the collapser pushed it: two markdown cells in one frame started 48dp apart, measured
 on device at `evidence/p2n-gutter/before/gutter.txt` (`RAGGED by 48dp`) and visible since P2h in
-`evidence/p2h-3-table-of-contents-pane/02-the-pane.png`. With the word gone the collapser takes the
+`git show b4f157b:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - P2o-2 renamed that flow
+to `p2o-2-side-panel`, so the frame is in git history rather than in the tree. With the word gone
+the collapser takes the
 leading position instead, which is where the reference draws it anyway - `maybeCreateCollapseButton`
 appends it to the *prompt node* at `position: absolute; right: 0`
 (`packages/cells/src/widget.ts:2386-2408`, `packages/cells/style/widget.css:154-168`), directly
@@ -2054,6 +2056,71 @@ one rule that is not Compose's own gets a JVM test.
 <com.jupydroid.app.DocumentOutline@...>`. This project has shipped three assertions that could not
 fail (`HiddenCellsRowTest`'s touch target, the dimension gate's `rglob`, `ktlintCheck` itself), and
 a test whose subject is a teardown is exactly the shape that passes for the wrong reason.
+
+### The table of contents is a sidebar panel of the shell, not a column in the notebook (P2o-2)
+
+`docs/PLAN.md` measured the gap: *"the reference has one side area; this app has two half-answers."*
+JupyterLab has a single left sidebar holding File Browser (rank 100) and Table of Contents (rank
+400) among others; this app drew the ToC on the **right of the notebook** and gave the explorer a
+pane with no panel chrome. `TableOfContentsPane`, `TocPresentation` and `tocPresentationFor` are
+gone, and the rule they encoded - "is the editor 840dp wide" - is replaced by "does the shell have a
+side area".
+
+**The activity bar is beside the whole shell, not inside the side area, and `docs/PLAN.md` had it
+wrong.** That row asked for a `NavigationRail` "at the left edge of the list pane". Reading
+`shell.ts` corrected it: `hboxPanel` holds `leftHandler.sideBar` next to the split that contains
+*both* the panel and the document area (`packages/application/src/shell.ts:468-477`). The
+correction is load-bearing rather than cosmetic - it is what lets the area collapse to the bar
+alone while the document keeps the width.
+
+**A collapsed side area is a one-pane layout**, which is `collapseLeft` said in this app's own
+terms: `collapse()` sets `currentTitle = null` and, in `'side'` mode, *"only deselects the active
+tab, leaving the activity bar visible"* (`shell.ts:2383-2394`). So the collapse is spelled on the
+`PaneScaffoldDirective` rather than inside the pane, and the notebook actually gains the 360dp -
+measured on the tablet at `evidence/p2o-2-side-panel/06-collapsed-to-the-rail-alone.png`.
+
+**`toc:show-panel` is not a toggle, so its row does not name two states.** Every other row in the
+View menu flips its label, which is this app's convention because Android's accessibility tree keeps
+a `DropdownMenuItem`'s toggled state on a node carrying no label. This row departs from it because
+the *command* departs from it: `execute` is `labShell.activateById(toc.id)` and there is no
+`isToggled` (`packages/toc-extension/src/index.ts:161-172`). `HIDE_TABLE_OF_CONTENTS` is gone with
+the pane whose close button also carried it.
+
+**One placeholder for both empty states.** `if (!this.model || this.model.headings.length === 0)`
+(`packages/toc/src/treeview.tsx:31-40`) - so "nothing is open" and "nothing has headings" draw the
+same headline and the same line of explanation (`packages/toc/src/panel.ts:32-36`), in this app's
+sentence case. The wording is about *documents* rather than notebooks because that is what the
+reference promises and what P5e delivers for `.py` files.
+
+**The panel is named for the document, which also answers the question P2q left open.**
+`this._title.setTitle(this._model?.title ?? this._trans.__('Table of Contents'))`
+(`panel.ts:77-80`), rendered into a `TopAppBar` - the same chrome `ExplorerScreen`'s `FilesBar`
+has. P2q recorded that "the explorer pane's own header draws 'Files' far larger than a notebook's
+title now sits beside it" and said the answer belonged with this rail. It does, and the answer is
+that both panels wear the same bar. The cost is that on a tablet the document's name is on screen
+twice, in the panel's header and in the notebook's own title row; the reference has the same
+duplication with a tab in place of the title row, and P2q-2's collapse takes ours back on the first
+scroll.
+
+**Three defects the assertions could not see, and the screenshot did.** The flow went green on
+every line of the first run and the frame showed: the panel's header drawn *on top of the status
+bar* (a bare `Column` outside any `Scaffold` gets no window inset), the rail's "Table of contents"
+label spilling out of the rail and across the panel beside it, and no edge at all between the bar
+and what it was showing. Fixed by the `Scaffold` above, by an **icon-only** rail - which is the
+reference's own 32px strip (`packages/application/style/sidepanel.css:11-14`), with the name on the
+item for a screen reader and a flow - and by a `VerticalDivider`. This is the fourth time in this
+project's history that a green suite was wrong in the picture.
+
+**`TocFolds` moved into the panel and is keyed on the document.** It used to be `remember`ed by
+`EditorScreen`, which died with the notebook; the panel outlives every notebook, so a fold set
+would otherwise carry from one document to the next. Keyed on the title rather than on the outline
+object, which is republished on every edit to a heading. A rename therefore resets the ToC's folds,
+which is a consequence rather than a rule and is small enough to state rather than engineer around.
+
+**What the rail costs and what it does not.** It is drawn only where there is room for two panes:
+on a 320dp phone a rail would spend a quarter of the screen on chrome, and the notebook's own menu
+still opens the overlay there, which is the narrow adaptation this app has had since P2h. The bar
+on compact is P2o-4.
 
 ## Harness
 

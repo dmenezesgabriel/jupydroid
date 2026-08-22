@@ -12,7 +12,7 @@ appId: com.jupydroid.app
 #
 # Width-agnostic on purpose: the row is addressed the same way whether the editor drew
 # `TableOfContentsPane` or `TableOfContentsPanel`, and what is asserted - the hidden cell is on
-# screen now - is true of both. So no `WIDE WINDOW` / `NARROW WINDOW` rule, unlike p2h-2 and p2h-3.
+# screen now - is true of both. So no `WIDE WINDOW` / `NARROW WINDOW` rule, unlike p2h-2 and p2o-2.
 #
 # No cell is run, so nothing here needs the tablet.
 - launchApp

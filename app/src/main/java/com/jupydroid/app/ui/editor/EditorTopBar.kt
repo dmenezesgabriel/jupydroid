@@ -111,14 +111,14 @@ fun EditorTopBar(
   onSettingsChanged: (EditorSettings) -> Unit = {},
   /** `toc:show-panel`'s content - every heading in the notebook; see [NotebookActionsMenu]. */
   tableOfContentsHeadings: List<TocHeading> = emptyList(),
-  /** `toc:show-panel`'s pick, in [TocPresentation.OVERLAY] - jumps to the chosen heading's cell. */
+  /** `toc:show-panel`'s pick on the overlay - jumps to the chosen heading's cell. */
   onTableOfContentsHeadingSelected: (String) -> Unit = {},
-  /** Whether the editor is drawing the list itself; see [tocPresentationFor]. */
-  tableOfContentsPresentation: TocPresentation = TocPresentation.OVERLAY,
-  /** Whether that pane is up, which is what the row is named from - see [NotebookActionsMenu]. */
-  tableOfContentsPaneOpen: Boolean = false,
-  /** `toc:show-panel` in [TocPresentation.PANE], where the row is a toggle rather than a picker. */
-  onToggleTableOfContentsPane: () -> Unit = {},
+  /**
+   * `toc:show-panel` where the shell has a side area: activates its panel, and nothing else -
+   * `labShell.activateById(toc.id)` (`packages/toc-extension/src/index.ts:161-172`). Null where
+   * there is no side area, which is what puts the overlay up instead.
+   */
+  onShowTableOfContentsPanel: (() -> Unit)? = null,
   /** `documentsearch:start` - see [FindTopBar], which is what it puts up. */
   onFind: () -> Unit = {},
   /** `notebook:export-to-format` - what its picker is doing; see [NotebookActionsMenu]. */
@@ -184,9 +184,7 @@ fun EditorTopBar(
           onSettingsChanged = onSettingsChanged,
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
-          tableOfContentsPresentation = tableOfContentsPresentation,
-          tableOfContentsPaneOpen = tableOfContentsPaneOpen,
-          onToggleTableOfContentsPane = onToggleTableOfContentsPane,
+          onShowTableOfContentsPanel = onShowTableOfContentsPanel,
         )
       },
     )

@@ -37,7 +37,7 @@ filesystem the kernel, the server and the app all share.
 | Notebook | **kernel history** walked into the cell being edited; **find and replace** across the document, with the reference's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
-| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. Cell chrome is the reference's: the collapser transparent at rest and brand blue on the active cell, the editor boxed by a 1dp border that turns brand blue for the cell being typed into. A cell's prompt is the reference's - `[7]:` on code and **nothing at all** on markdown or raw, so every header's leading mark sits at one x. The document's name has a row of its own above its actions, where the reference's single-document mode puts it; the heading caret sits beside the heading it folds, where the reference draws it. The open document publishes its headings for a side panel that cannot reach its ViewModel, which is the seam the rail needs. **Still open in this phase: P2o-2 to P2o-4, P2r and P2p** - the rail itself, and the cell-type control the reference keeps in its toolbar |
+| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. Cell chrome is the reference's: the collapser transparent at rest and brand blue on the active cell, the editor boxed by a 1dp border that turns brand blue for the cell being typed into. A cell's prompt is the reference's - `[7]:` on code and **nothing at all** on markdown or raw, so every header's leading mark sits at one x. The document's name has a row of its own above its actions, where the reference's single-document mode puts it; the heading caret sits beside the heading it folds, where the reference draws it. The table of contents is a **sidebar panel of the shell** reached from an activity bar beside the file browser, where it used to be a column on the right of the notebook; the open document publishes its headings across to it, since the panel cannot reach the notebook's ViewModel. Picking the showing panel collapses the side area and the notebook takes the width. **Still open in this phase: P2o-3, P2o-4, P2r and P2p** - the two-pane threshold, the bar on compact, and the cell-type control the reference keeps in its toolbar |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, Material's own type scale, per-notebook ViewModel scoping |
 | Tests | 256 instrumented, 1261 unit, 100 Maestro drivers over 114 flows - 95 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
 
@@ -596,7 +596,8 @@ side panel (P2o). What follows from each is `docs/DECISIONS.md`.
   (`packages/cells/style/inputarea.css:18-26`, `base.css:160-164`).
 - **The cell gutter is ragged, and committed evidence shows it.** `CellHeader` adds the heading
   collapser as an ordinary `Row` child before the execution label, so two markdown headers start at
-  different x in `evidence/p2h-3-table-of-contents-pane/02-the-pane.png`.
+  different x in `git show b4f157b:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - P2o-2
+  renamed that flow to `p2o-2-side-panel`, so the frame is in git history rather than in the tree.
   **P2n found the cause was not the gutter.** The reference gives a markdown or raw cell no prompt
   at all (`widget.ts:1693-1700`); the words this app drew there were its own, and they were what the
   collapser had to push. `flex: 0 0` at `inputarea.css:29-31` - the citation this row was written
@@ -635,7 +636,7 @@ side panel (P2o). What follows from each is `docs/DECISIONS.md`.
 | **P2m-2** | *(shipped)* The editor box: 1dp always, brand blue in edit mode, one shared modifier across the three fields rather than three copies. No elevation - the reference's shadow is *inset*, and why that matters is `docs/DECISIONS.md`. | — |
 | **P2n** | *(shipped, and not as written)* **The prompt is the reference's, and a non-code cell has none.** The row asked for two fixed-width gutter slots on the strength of `flex: 0 0` at `inputarea.css:29-31`; that is the desktop rule, overridden at `width <= 760px` by `flex: 0 0 auto; text-align: left` (`:76-88`), which is this app's layout at every width. What was actually ragged was this app's invented `markdown`/`raw` label being pushed by the heading collapser. Removed - `_setPrompt`'s one caller is `CodeCell._updatePrompt` (`widget.ts:1693-1700`) - plus the reference's trailing colon (`inputarea.ts:283-290`). | Instrumented at 320dp: every code prompt at one x, the collapser leading its own header, and the `⋮` still on screen. Measured on both devices: `RAGGED by 48dp` → `aligned`. |
 | **P2o-1** | *(shipped)* The mediator: which panel is selected, and the open notebook's headings and jump lambda, published by the editor and read by the panel. **No duplicated derivation** - `EditorViewModel` stays the one place headings, folds and numbering are computed. **The reference is a settable, nullable model** - `TableOfContentsPanel.model` (`packages/toc/src/panel.ts:41-60`), assigned from `labShell.currentChanged` and disposed with the widget (`toc-extension/src/index.ts:316,341-343,353`) - so `OpenDocumentOutline` is that property rather than an invention. | JVM over both types; instrumented that a real editor entry publishes and that **disposing it empties the holder** - checked against a build with the teardown removed before it was believed. |
-| **P2o-2** | The rail on medium and expanded: `NavigationRail` at the left edge of the list pane, panels Files and Table of contents in the reference's rank order. `tocPresentationFor` is superseded - the rule becomes "is there a side pane", not "is the editor 840dp". | Tablet at 1280dp: switch to ToC, jump to a heading, the panel stays and the notebook moves. |
+| **P2o-2** | *(shipped, and the rail is not where this row put it)* The rail on medium and expanded, panels Files and Table of contents in the reference's rank order. **Beside the whole shell, not inside the list pane**: `hboxPanel` holds `leftHandler.sideBar` next to the split that contains both the panel and the document area (`packages/application/src/shell.ts:468-477`), which is what lets the area collapse to the bar alone. `TableOfContentsPane`, `TocPresentation` and `tocPresentationFor` are deleted - the rule is now "does the shell have a side area". | Instrumented over the rail, the panel and the wiring across the two `NavEntry`s; tablet at 1280dp - switch to ToC, jump to a heading, the panel stays and the notebook moves, and picking the showing panel again gives the notebook the width. |
 | **P2o-3** | **The two-pane threshold, re-derived rather than kept.** An 80dp rail (`NavigationRailCollapsedTokens.NarrowContainerWidth`) changes the arithmetic 840dp came from, and 800dp portrait is a real device in a real orientation. Measure before changing the constant; if it says 840dp stays, that is the outcome and it is recorded. | A measurement at 320 / 800 / 1280dp into `evidence/`, whichever way it lands. |
 | **P2o-4** | The bar on compact, the same two panels. The in-notebook bottom-sheet ToC stays: the reference has both a sidebar tab and `toc:show-panel` for one widget. | Emulator at **320dp**, which is the width that decides; both entry points in one flow. |
 | **P2n-3** | *(shipped)* **The heading caret leaves the header strip for the heading it folds.** The reference appends it to the *prompt node* at `position: absolute; right: 0` (`widget.ts:2386-2408`, `widget.css:154-168`) - a disclosure triangle beside the heading, in both the rendered and the source state. Its vertical placement is the reference's six per-level rules, re-derived: ours was 10dp low, measured. With it gone a heading cell's strip is a markdown cell's strip. | Instrumented: the caret is left of the heading and shares its line, at all six levels. Both devices. |
@@ -827,6 +828,30 @@ Three things it cost that this file did not name:
   - `expected null, but was: <DocumentOutline@...>` - which is the only reason it is believed.
   Three assertions in this project's history could not fail, and a test whose subject is a teardown
   is exactly that shape.
+
+**P2o-2 has shipped, and the row it was written from named the wrong edge.** The rail is beside the
+whole shell rather than inside the list pane, because that is where the reference's activity bar is
+(`shell.ts:468-477`) - and the correction is load-bearing, not cosmetic: it is what lets a collapsed
+side area leave the bar on screen while the notebook takes the width. `TableOfContentsPane`,
+`TocPresentation` and `tocPresentationFor` are gone with it. What it settled is `docs/DECISIONS.md`;
+the evidence is `evidence/p2o-2-side-panel/` (tablet, 1280dp) and `evidence/p2h-4-table-of-contents-folds/`.
+
+Three costs the plan did not name:
+
+- **The first run was green on every assertion and wrong in three places in the picture.** The
+  panel's header drew on top of the status bar, the rail's "Table of contents" label spilled out of
+  the rail and across the panel, and nothing separated the bar from what it was showing. The fixes
+  are a `Scaffold` (which is also what pads a panel out of the status bar), an **icon-only** rail -
+  the reference's own 32px strip - and a divider. Fourth time in this project's history.
+- **It answered a question P2q left open rather than opening a new one.** "Whether the explorer's
+  'Files' header and a notebook's title should agree" was filed as belonging to this rail; the
+  answer is that both panels wear the same `TopAppBar`, and the ToC's is named for the document,
+  which is `panel.ts:77-80`.
+- **Renaming the flow broke four historical citations, and they had to be re-pointed at a commit
+  rather than a path.** `p2h-3-table-of-contents-pane` is now `p2o-2-side-panel`, and four places
+  cited a frame in its evidence directory as the record of a defect P2n fixed. They name
+  `git show b4f157b:…` now. A capture that is *evidence of history* needs a revision, not a path -
+  re-running the flow would have replaced the frame even without the rename.
 
 ---
 

@@ -71,9 +71,8 @@ internal fun NotebookActionsMenu(
   onSettingsChanged: (EditorSettings) -> Unit,
   tableOfContentsHeadings: List<TocHeading>,
   onTableOfContentsHeadingSelected: (String) -> Unit,
-  tableOfContentsPresentation: TocPresentation,
-  tableOfContentsPaneOpen: Boolean,
-  onToggleTableOfContentsPane: () -> Unit,
+  /** `toc:show-panel` where the shell has a side area - see [EditorTopBar]. Null where it has none. */
+  onShowTableOfContentsPanel: (() -> Unit)?,
 ) {
   val tocNumbering = settings.tocNumbering()
   var open by remember { mutableStateOf(false) }
@@ -140,15 +139,16 @@ internal fun NotebookActionsMenu(
           onSettingsChanged(settings.copy(accessKernelHistory = !settings.accessKernelHistory))
         },
       )
-      // One row, two jobs, and which one is the editor's own width: with a pane on screen the row
-      // toggles it and flips its label, and without one it opens the overlay and reads the same
-      // thing every time - there is no state to name, since the pick dismisses it.
-      val paneMode = tableOfContentsPresentation == TocPresentation.PANE
+      // One row, two jobs, and which one is whether the shell has a side area. With one, this is
+      // `toc:show-panel` exactly as the reference defines it - it *activates* the sidebar panel and
+      // has no toggled state to name (`packages/toc-extension/src/index.ts:161-172`). Without one,
+      // it opens the overlay, which is the same row reading the same thing, since a pick dismisses
+      // that surface and leaves nothing to name either.
       DropdownMenuItem(
-        text = { Text(if (paneMode && tableOfContentsPaneOpen) HIDE_TABLE_OF_CONTENTS else SHOW_TABLE_OF_CONTENTS) },
+        text = { Text(SHOW_TABLE_OF_CONTENTS) },
         onClick = {
           open = false
-          if (paneMode) onToggleTableOfContentsPane() else tocOpen = true
+          onShowTableOfContentsPanel?.invoke() ?: run { tocOpen = true }
         },
       )
       DropdownMenuItem(
@@ -183,7 +183,7 @@ internal fun NotebookActionsMenu(
     // Never both surfaces at once: with the editor drawing the list, a copy over the top of it
     // would be two answers to one question.
     TableOfContentsPanel(
-      expanded = tocOpen && tableOfContentsPresentation == TocPresentation.OVERLAY,
+      expanded = tocOpen,
       headings = tableOfContentsHeadings,
       onHeadingSelected = onTableOfContentsHeadingSelected,
       onDismiss = { tocOpen = false },
@@ -300,20 +300,13 @@ internal const val ENABLE_KERNEL_HISTORY = "Enable kernel history access"
 internal const val DISABLE_KERNEL_HISTORY = "Disable kernel history access"
 
 /**
- * `toc:show-panel` (`packages/toc-extension/src/index.ts:161-172`), as two labels for the reason
- * [SHOW_LINE_NUMBERS] is - and here only half the time. Where the editor draws
- * [TableOfContentsPane] the row is a toggle and the label flips; where it opens
- * [TableOfContentsPanel] the pick dismisses the surface, so there is no state to name and it reads
- * "Show" every time.
+ * `toc:show-panel` (`packages/toc-extension/src/index.ts:161-172`), and **one label rather than
+ * two** - which departs from [SHOW_LINE_NUMBERS]' convention on purpose, because the reference's
+ * command departs from a toggle: it activates the sidebar panel and declares no `isToggled`. Where
+ * the shell has no side area the row opens [TableOfContentsPanel], whose pick dismisses it, so
+ * there is no state to name on that side either.
  */
 internal const val SHOW_TABLE_OF_CONTENTS = "Show table of contents"
-
-/**
- * The same command from the other side - see [SHOW_TABLE_OF_CONTENTS]. Also the name on
- * [TableOfContentsPane]'s own close button, so the menu, the pane and a Maestro flow all address
- * one string.
- */
-internal const val HIDE_TABLE_OF_CONTENTS = "Hide table of contents"
 
 /**
  * `toc:display-numbering`, whose own label is *"Show heading number in the document"*

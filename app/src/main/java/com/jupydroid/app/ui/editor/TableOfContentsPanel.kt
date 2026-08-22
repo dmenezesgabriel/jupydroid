@@ -33,10 +33,10 @@ import com.jupydroid.app.theme.Spacing
  * needs once there is room for a `DropdownMenu` anchored to the button that opened it. Reusing
  * [CellActionPresentation] rather than inventing a second width rule for the same picker shape.
  *
- * `packages/toc-extension/src/index.ts:161-172` just activates the reference's own sidebar tab;
- * there is no sidebar here, so this is the **narrow** adaptation of it - an editor with room for a
- * column gets [TableOfContentsPane] instead, which is the reference's own persistent shape.
- * [tocPresentationFor] is the rule, and it measures the editor rather than the window.
+ * `packages/toc-extension/src/index.ts:161-172` just activates the reference's own sidebar tab.
+ * This is the **narrow** adaptation of it, for a window with no side area to activate: since P2o-2
+ * a shell that has one draws `TableOfContentsSidePanel` there instead, which is the reference's own
+ * persistent shape, and `onShowTableOfContentsPanel` is what picks between the two.
  *
  * Every entry is drawn, indented by level and never folded: `toc:toggle-collapse` belongs to the
  * pane, because a fold on a surface that is opened, picked from and gone would never survive to be
@@ -101,13 +101,13 @@ private fun TableOfContentsSheet(rows: List<TocRow>, onDismiss: () -> Unit, onCh
 }
 
 /**
- * The rows themselves, shared with [TableOfContentsPane] - the two surfaces differ in where they
+ * The rows themselves, shared with `TableOfContentsSidePanel` - the surfaces differ in where they
  * are drawn and whether a pick closes them, never in what a heading looks like or is called.
  *
  * [onToggleCollapsed] is null on the overlay and that is the adaptation rather than an omission:
  * the reference's ToC collapse state is rebuilt on every refresh and never saved
  * (`packages/notebook/src/toc.ts:274,293`), so on a surface that is opened, picked from and gone
- * a fold would never survive to be looked at twice. The pane is the only one that outlives a jump.
+ * a fold would never survive to be looked at twice. The side panel is the one that outlives a jump.
  */
 @Composable
 internal fun TableOfContentsRows(

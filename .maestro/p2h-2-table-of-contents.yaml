@@ -6,7 +6,7 @@ appId: com.jupydroid.app
 #
 # **NARROW WINDOW** (< 840dp), and it is the feature's own rule rather than a harness limitation:
 # an editor with room for a column gets `TableOfContentsPane` instead, which stays open across a
-# pick and so cannot satisfy the dismissal this flow asserts. `p2h-3-table-of-contents-pane`
+# pick and so cannot satisfy the dismissal this flow asserts. `p2o-2-side-panel`
 # is the same claims against that adaptation.
 #
 # Reuses p2f-2's fixture rather than a new one: three headings at three different depths already
