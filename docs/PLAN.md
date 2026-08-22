@@ -51,10 +51,15 @@ this file's own contrast table had been measured against the page rather than th
 the floor its place as the gate: light's `number` is **4.42:1** on the cell, and **parity won**, so
 the palette is now pinned by equality to the resolved themes. **P2u-2b** retired the markdown fold
 the re-base had left without a citation, and **P2u-2c** fixed the defect that exposed - a quote was
-green on its chevron and plain on its body. **Next: P2u-3**, the remaining `EditorPalette` tokens
-onto VS Code's `notebook.*` ids. Until it lands the cell's *background, border and stripes* are
-IntelliJ's while everything drawn on them is VS Code's - a narrowing split
-`theme/EditorPalettes.kt` states in its own header rather than leaving to be noticed.
+green on its chevron and plain on its body. **P2u-3a-f then finished the palette**: two fields
+nothing drew are gone and a gate stops the next one, the surfaces and lines are VS Code's ids
+resolved through their registered defaults, a search match is a translucent wash where it used to
+be an opaque fill with the text restated over it, and rendered markdown takes the webview base
+stylesheet that actually themes it. **`EditorPalette` is now entirely VS Code's** - the split
+`theme/EditorPalettes.kt` used to state in its header is closed.
+
+**Next: P2v-1**, the run gutter - the first of the layout work, where everything before it was
+colour.
 
 Status lives here rather than in the table, because that table says what the app **is** and this
 says where the work **is up to**; the two were one cell until P2s and the Presentation row was
