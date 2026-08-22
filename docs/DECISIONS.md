@@ -1928,6 +1928,29 @@ assertion in the suite was green: the test environment has no system insets, so 
 instrumented can see it. It is the third defect in this project's history that was green against
 every assertion and wrong in the picture, and the frame is in `evidence/p2n-gutter/` history.
 
+**The row is not free, and it does not pretend to be (P2q-2).** Measured at 320dp it cost **48dp
+of notebook** - enough to put a fourth cell's source under the bottom bar - and four flows caught
+it at once. The reference does not have this problem because its chrome is proportionally tiny: a
+28px strip over a ~28px toolbar. Material's own answer for a two-row bar is that the second row
+collapses with the content, which is what `MediumTopAppBar` does for a title *below* the actions;
+`titleCollapseFraction` is the same rule for one above them. The name is there at the top of the
+document, where you look for it, and the 48dp is the notebook's from the first scroll on. Measured
+on device: the action row moves from y=92 to y=64 as the strip goes.
+
+**Driven from the list's own scroll, not from a `nestedScroll` connection.** `EditorScreen` already
+holds the `LazyListState` the cells are drawn from, so the fraction is derived from what is on
+screen rather than from a second channel that could disagree with it - and the whole rule is a pure
+function with a JVM test, rather than a `TopAppBarScrollBehavior` threaded through three layers.
+
+**Two of the four flows were not this defect at all, and finding that out cost a re-run each.**
+`p2i-4-next-previous` and `p2i-6-replace` tap a file in the explorer immediately after
+`tapOn: "Back to notebooks"`. `tapOn` locates a node and then taps where it *was*: fired while the
+document is still on screen it can read the title strip - which carries the same file name - and
+tap those coordinates once the explorer has replaced it, landing on the header. A manual tap at the
+same point opened the notebook every time, which is what said the app was right and the flow was
+early. Three flows wait for `Workspace` now, the section only the explorer draws. It was already
+failing intermittently before this phase; P2q made it deterministic.
+
 **Left open, and named so nobody re-derives it.** The explorer pane's own header draws "Files" far
 larger than a notebook's title now sits beside it on a tablet. Whether the two headers should agree
 is a question about the *shell*, not about this bar, and it belongs with P2o's rail.

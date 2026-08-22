@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -20,6 +21,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -188,6 +191,15 @@ fun EditorScreen(
       val index = state.withCellRevealed(cellId).cellsOnScreen.indexOfFirst { it.id == cellId }
       if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
     }
+    // The title's row is not free on a phone, so it is not permanent either - see
+    // [titleCollapseFraction]. Derived from the list the cells are drawn from rather than from a
+    // `nestedScroll` connection, so there is one answer to "where is the document" and not two.
+    val stripPx = with(LocalDensity.current) { LocalMinimumInteractiveComponentSize.current.toPx() }
+    val titleCollapse by remember(listState, stripPx) {
+      derivedStateOf {
+        titleCollapseFraction(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, stripPx)
+      }
+    }
     Scaffold(
       // **The notebook consumes the keyboard's inset while the find bar is up, and nothing else
       // does.** Every other surface that can be on screen under an IME carries its own
@@ -211,6 +223,7 @@ fun EditorScreen(
             onToggleTocPane = { tocPaneOpen = !tocPaneOpen },
             onHeadingSelected = jumpToHeading,
             onBack = onBack,
+            titleCollapse = titleCollapse,
           )
           // Under whichever bar is up rather than over the notebook: it says the *document* is
           // busy, and covering the document to say so would be the wrong trade. See [ExportStatus].

@@ -35,6 +35,8 @@ internal fun EditorTopBars(
   onToggleTocPane: () -> Unit,
   onHeadingSelected: (String) -> Unit,
   onBack: () -> Unit,
+  /** See [titleCollapseFraction] - the document's bar is the only one of the three with a title. */
+  titleCollapse: Float,
 ) {
   val head = state.cells.firstOrNull { it.id == state.selectedCellId }
   val searching = state.search
@@ -84,6 +86,7 @@ internal fun EditorTopBars(
       onToggleTocPane = onToggleTocPane,
       onHeadingSelected = onHeadingSelected,
       onBack = onBack,
+      titleCollapse = titleCollapse,
     )
   }
 }
@@ -101,6 +104,7 @@ private fun DocumentTopBar(
   onToggleTocPane: () -> Unit,
   onHeadingSelected: (String) -> Unit,
   onBack: () -> Unit,
+  titleCollapse: Float,
 ) {
   EditorTopBar(
     title = state.title,
@@ -120,6 +124,7 @@ private fun DocumentTopBar(
     tableOfContentsPresentation = tocPresentation,
     tableOfContentsPaneOpen = tocPaneOpen,
     onToggleTableOfContentsPane = onToggleTocPane,
+    titleCollapse = titleCollapse,
     onFind = viewModel.search::start,
     exportState = state.export,
     onExportPickerOpened = viewModel.export::pickerOpened,

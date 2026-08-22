@@ -76,6 +76,14 @@ appId: com.jupydroid.app
 - takeScreenshot: 07-one-undo-took-back-one-command
 # And it reaches disk - leaving the document is what flushes the debounce.
 - tapOn: "Back to notebooks"
+# **Wait for the explorer before reaching into it.** `tapOn` locates a node and then taps where it
+# was: fired while the document is still on screen it can read the title strip - which carries this
+# same file name since P2q - and tap those coordinates after the explorer has replaced it, landing
+# on the header and doing nothing. `Workspace` is the section only the explorer draws, so this
+# waits for the destination rather than for a duration.
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 10000
 - tapOn: "Replace Me.ipynb"
 - extendedWaitUntil:
     visible: "dog = 1"

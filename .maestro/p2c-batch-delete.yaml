@@ -33,11 +33,26 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "alpha = 1"
     timeout: 30000
-- assertVisible: "delta = 4"
 # The fixture's saved result, which the undo has to bring back with the cell.
 - assertVisible: "batch output"
 - assertVisible: "\\[7\\]:"
 - takeScreenshot: 01-four-cells-one-with-a-result
+# **Scrolled to, where this used to assert it outright.** Four cells no longer fit above the fold
+# at 320dp: P2q gave the document's name a row of its own, which is the reference's single-document
+# arrangement (`packages/application/src/shell.ts:690-705`), and that row costs 48dp until the
+# reader scrolls and `titleCollapseFraction` hands it back. The claim is unchanged - the fourth
+# cell is in the document - and scrolling is how a reader reaches it.
+- scrollUntilVisible:
+    element:
+      text: "delta = 4"
+    direction: DOWN
+    timeout: 10000
+# Back to the top, so the taps below address the first cell's controls and not the fourth's.
+- scrollUntilVisible:
+    element:
+      text: "alpha = 1"
+    direction: UP
+    timeout: 10000
 - tapOn: "Cell actions"
 - tapOn: "Cell menu Select cells"
 - waitForAnimationToEnd:

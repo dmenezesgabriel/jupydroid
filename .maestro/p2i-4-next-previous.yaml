@@ -58,6 +58,14 @@ appId: com.jupydroid.app
 # document is what flushes the debounce (`stopApp` is a force-stop, `docs/DECISIONS.md`).
 - tapOn: "Close search"
 - tapOn: "Back to notebooks"
+# **Wait for the explorer before reaching into it.** `tapOn` locates a node and then taps where it
+# was: fired while the document is still on screen it can read the title strip - which carries this
+# same file name since P2q - and tap those coordinates after the explorer has replaced it, landing
+# on the header and doing nothing. `Workspace` is the section only the explorer draws, so this
+# waits for the destination rather than for a duration.
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 10000
 - tapOn: "Folded Matches.ipynb"
 - extendedWaitUntil:
     visible: "hidden_velocity = 9"

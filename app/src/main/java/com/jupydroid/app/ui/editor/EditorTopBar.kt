@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,11 +22,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -125,6 +127,11 @@ fun EditorTopBar(
   onExportPickerOpened: () -> Unit = {},
   onExportPickerDismissed: () -> Unit = {},
   onExportAs: (String) -> Unit = {},
+  /**
+   * How far the title's row has slid away as the notebook is read - see [titleCollapseFraction].
+   * `0f` at the top of the document, `1f` once the strip is gone and the notebook has its 48dp.
+   */
+  titleCollapse: Float = 0f,
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -138,7 +145,7 @@ fun EditorTopBar(
       .background(TopAppBarDefaults.topAppBarColors().containerColor)
       .windowInsetsPadding(TopAppBarDefaults.windowInsets),
   ) {
-    NotebookTitleStrip(title = title, onClick = { renameOpen = true })
+    NotebookTitleStrip(title = title, onClick = { renameOpen = true }, collapse = titleCollapse)
     TopAppBar(
       // Empty on purpose: the name is on its own row above, and an empty slot is how a `TopAppBar`
       // is told the space between the navigation icon and the actions is not its to fill.
@@ -258,12 +265,17 @@ private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onR
  * unlike an `<input>` reached with a mouse this is a touch target.
  */
 @Composable
-private fun NotebookTitleStrip(title: String, onClick: () -> Unit) {
+private fun NotebookTitleStrip(title: String, onClick: () -> Unit, collapse: Float) {
+  // Shrunk rather than hidden, so the notebook slides under it instead of jumping when the last
+  // pixel goes. Clipped because the name inside keeps its own height whatever the row's is.
+  val whole = LocalMinimumInteractiveComponentSize.current
+  val shown = whole * (1f - collapse)
   Row(
     modifier = Modifier
       .fillMaxWidth()
+      .height(shown)
+      .clipToBounds()
       .clickable(onClickLabel = "Rename notebook", onClick = onClick)
-      .minimumInteractiveComponentSize()
       // The reference's own inset is `margin-left: 8px`; Material's horizontal margin for a bar's
       // content is 16dp, and the row below this one is drawn by `TopAppBar` on that margin - so
       // taking the reference's would step the two rows in and out by 8dp against each other.
