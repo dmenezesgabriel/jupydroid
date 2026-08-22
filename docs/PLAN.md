@@ -44,15 +44,17 @@ filesystem the kernel, the server and the app all share.
 **Where the plan is:** P2l-P2p is closed except its re-capture, which P2z absorbs. What is open
 is **P2t-P2z**, the VS Code presentation re-base - since P2t, VS Code answers for how the notebook
 looks and JupyterLab still answers for what it does (`docs/DECISIONS.md` names exactly what that
-does and does not reopen). **Shipped in it: P2t, P2s, P2u-1 and P2u-2a** - P2u-1 retired the
+does and does not reopen). **Shipped in it: P2t, P2s, P2u-1 and P2u-2a/b/c.** P2u-1 retired the
 IntelliJ-derived chrome palette the Shell row above used to report and corrected two of its own
-colour ids by measuring them; **P2u-2a** did the same for the eight syntax colours, and found that
-this file's own contrast table had been measured against the page rather than the cell. **Next:
-P2u-2b**, the markdown fold - `CODE`, `QUOTE` and `MARKER` still fold onto `string` and `keyword`
-on an IntelliJ citation the re-base retired, where VS Code has a value for each. After it, P2u-3
-brings the surfaces across; until then the cell's *background, border and stripes* are IntelliJ's
-while everything drawn on them is VS Code's, a narrowing split `theme/EditorPalettes.kt` states in
-its own header rather than leaving to be noticed.
+colour ids by measuring them; **P2u-2a** did the same for the eight syntax colours - and found that
+this file's own contrast table had been measured against the page rather than the cell, which cost
+the floor its place as the gate: light's `number` is **4.42:1** on the cell, and **parity won**, so
+the palette is now pinned by equality to the resolved themes. **P2u-2b** retired the markdown fold
+the re-base had left without a citation, and **P2u-2c** fixed the defect that exposed - a quote was
+green on its chevron and plain on its body. **Next: P2u-3**, the remaining `EditorPalette` tokens
+onto VS Code's `notebook.*` ids. Until it lands the cell's *background, border and stripes* are
+IntelliJ's while everything drawn on them is VS Code's - a narrowing split
+`theme/EditorPalettes.kt` states in its own header rather than leaving to be noticed.
 
 Status lives here rather than in the table, because that table says what the app **is** and this
 says where the work **is up to**; the two were one cell until P2s and the Presentation row was
