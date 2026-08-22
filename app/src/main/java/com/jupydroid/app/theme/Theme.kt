@@ -27,6 +27,11 @@ val LocalEditorPalette = staticCompositionLocalOf { DarkEditorPalette }
  * A palette whose contrast can be asserted is worth more here than one that matches the launcher,
  * because the thing being coloured is code.
  *
+ * **The two halves have two sources, and since P2u-1 they are different references.** The Material
+ * scheme below is VS Code's, read from the resolved 2026 themes through [ColorRamp]; the editor
+ * palette is still IntelliJ's until P2u-2 and P2u-3 re-source it. That is the phase's own split -
+ * VS Code answers for presentation, and it is arriving one step at a time.
+ *
  * ```
  * JupyterDroidTheme { EditorScreen(...) }
  * ```
@@ -49,94 +54,114 @@ val editorPalette: EditorPalette
   get() = LocalEditorPalette.current
 
 /**
- * The Material roles, mapped onto the same ramp the editor tokens come from, so app chrome
- * (bars, menus, dialogs, FAB) sits in the same world as the cells rather than beside it.
+ * The Material roles, mapped onto the same ramp the app's chrome comes from, so bars, menus,
+ * dialogs and the explorer sit in the same world as the cells rather than beside them.
  *
- * **Every reachable role is set, and that is not thoroughness for its own sake.** Whatever is
- * left out keeps `darkColorScheme()`'s default, and those defaults are the Material *baseline
- * purple* - a colour from a different design system. Setting most of them is what put a purple
- * FAB on Home beside a Darcula editor: `FloatingActionButton` reaches for `primaryContainer`,
- * which nothing had set. `ColorSchemeTest` enumerates them so the next omission fails a
- * test rather than waiting to be noticed in a screenshot.
+ * **Every reachable role is set, and that is not thoroughness for its own sake.** Whatever is left
+ * out keeps `darkColorScheme()`'s default, and those defaults are the Material *baseline purple* -
+ * a colour from a different design system. Setting most of them is what put a purple FAB on Home
+ * beside a Darcula editor: `FloatingActionButton` reaches for `primaryContainer`, which nothing
+ * had set. `ColorSchemeTest` enumerates them so the next omission fails a test rather than waiting
+ * to be noticed in a screenshot.
+ *
+ * **Two mappings depart from what `docs/PLAN.md` first named, and measurement is why** - both
+ * recorded in `docs/DECISIONS.md`, "The chrome ramp is VS Code's, and two roles are not the id the
+ * plan named (P2u-1)":
+ *
+ * - `primary` is `textLink.foreground`, not `button.background`. VS Code splits what Material
+ *   fuses - one value is a fill under `button.foreground`, the other is the accent drawn *on* a
+ *   surface - and this app draws `primary` as text, an icon tint or a caret in all nine of its
+ *   sites and as a filled button in none. `button.background` sits at 3.88:1 there; this is
+ *   6.31:1. The fill pair is kept intact on `primaryContainer` / `onPrimaryContainer`.
+ * - `outline` is `checkbox.border`, not `panel.border`. Material's `outline` bounds a component,
+ *   which WCAG 1.4.11 asks 3:1 of; `panel.border` is a separator and measures 1.31:1. VS Code has
+ *   both kinds of border, so each takes the Material role that means the same thing and
+ *   `outlineVariant` - the decorative divider - is where `panel.border` goes.
  */
 internal val DarkColorScheme: ColorScheme = with(ColorRamp) {
   darkColorScheme(
-    primary = DarkBlue6,
-    onPrimary = DarkGray14,
+    primary = DarkBlue2,
+    onPrimary = DarkGray1,
     primaryContainer = DarkBlue1,
-    onPrimaryContainer = DarkBlue11,
-    inversePrimary = LightBlue4,
-    secondary = DarkGray9,
+    onPrimaryContainer = DarkGray10,
+    inversePrimary = LightBlue1,
+    secondary = DarkGray8,
     onSecondary = DarkGray1,
-    secondaryContainer = DarkGray3,
-    onSecondaryContainer = DarkGray11,
-    tertiary = DarkGreen7,
+    secondaryContainer = DarkGray6,
+    onSecondaryContainer = DarkGray9,
+    tertiary = DarkGreen1,
     onTertiary = DarkGray1,
-    tertiaryContainer = DarkGreen1,
-    onTertiaryContainer = DarkGreen11,
+    tertiaryContainer = DarkGray6,
+    onTertiaryContainer = DarkGray9,
     background = DarkGray1,
-    onBackground = DarkGray11,
+    onBackground = DarkGray9,
     surface = DarkGray1,
-    onSurface = DarkGray11,
+    onSurface = DarkGray9,
     surfaceVariant = DarkGray2,
-    onSurfaceVariant = DarkGray10,
-    surfaceTint = DarkBlue6,
-    inverseSurface = DarkGray12,
+    onSurfaceVariant = DarkGray8,
+    surfaceTint = DarkBlue2,
+    inverseSurface = DarkGray9,
     inverseOnSurface = DarkGray1,
     surfaceDim = DarkGray1,
-    surfaceBright = DarkGray4,
+    surfaceBright = DarkGray5,
     surfaceContainerLowest = DarkGray1,
     surfaceContainerLow = DarkGray2,
     surfaceContainer = DarkGray2,
     surfaceContainerHigh = DarkGray3,
     surfaceContainerHighest = DarkGray4,
-    outline = DarkGray5,
-    outlineVariant = DarkGray3,
-    scrim = DarkGray1,
-    error = DarkRed7,
-    onError = DarkGray14,
+    outline = DarkGray7,
+    outlineVariant = DarkGray5,
+    scrim = Black,
+    error = DarkRed2,
+    onError = DarkGray1,
     errorContainer = DarkRed1,
-    onErrorContainer = DarkRed10,
+    onErrorContainer = DarkRed2,
   )
 }
 
+/**
+ * Light's accent is one value where dark's is two: `button.background` and `textLink.foreground`
+ * are both `#0069CC` here, so `primary` and `primaryContainer` would collapse onto each other.
+ * The container role takes `inputValidation.infoBackground` - the theme's own pale blue - so that
+ * a container is still a container.
+ */
 internal val LightColorScheme: ColorScheme = with(ColorRamp) {
   lightColorScheme(
-    primary = LightBlue4,
-    onPrimary = LightGray14,
-    primaryContainer = LightBlue11,
-    onPrimaryContainer = LightBlue2,
-    inversePrimary = DarkBlue11,
-    secondary = LightGray6,
-    onSecondary = LightGray14,
-    secondaryContainer = LightGray12,
-    onSecondaryContainer = LightGray2,
-    tertiary = LightGreen5,
-    onTertiary = LightGray14,
-    tertiaryContainer = LightGreen10,
-    onTertiaryContainer = LightGreen1,
-    background = LightGray14,
+    primary = LightBlue1,
+    onPrimary = LightGray8,
+    primaryContainer = LightBlue2,
+    onPrimaryContainer = LightBlue1,
+    inversePrimary = DarkBlue2,
+    secondary = LightGray2,
+    onSecondary = LightGray8,
+    secondaryContainer = LightGray4,
+    onSecondaryContainer = LightGray1,
+    tertiary = LightGreen1,
+    onTertiary = LightGray8,
+    tertiaryContainer = LightGray5,
+    onTertiaryContainer = LightGray1,
+    background = LightGray8,
     onBackground = LightGray1,
-    surface = LightGray14,
-    onSurface = LightGray2,
-    surfaceVariant = LightGray13,
-    onSurfaceVariant = LightGray5,
-    surfaceTint = LightBlue4,
-    inverseSurface = LightGray2,
-    inverseOnSurface = LightGray14,
-    surfaceDim = LightGray11,
-    surfaceBright = LightGray14,
-    surfaceContainerLowest = LightGray14,
-    surfaceContainerLow = LightGray13,
-    surfaceContainer = LightGray13,
-    surfaceContainerHigh = LightGray12,
-    surfaceContainerHighest = LightGray11,
-    outline = LightGray8,
-    outlineVariant = LightGray11,
-    scrim = LightGray1,
-    error = LightRed4,
-    onError = LightGray14,
-    errorContainer = LightRed10,
-    onErrorContainer = LightRed1,
+    surface = LightGray8,
+    onSurface = LightGray1,
+    surfaceVariant = LightGray7,
+    onSurfaceVariant = LightGray2,
+    surfaceTint = LightBlue1,
+    inverseSurface = LightGray1,
+    inverseOnSurface = LightGray8,
+    surfaceDim = LightGray5,
+    surfaceBright = LightGray8,
+    surfaceContainerLowest = LightGray8,
+    surfaceContainerLow = LightGray7,
+    surfaceContainer = LightGray7,
+    surfaceContainerHigh = LightGray6,
+    surfaceContainerHighest = LightGray5,
+    outline = LightGray3,
+    outlineVariant = LightGray6,
+    scrim = Black,
+    error = LightRed2,
+    onError = LightGray8,
+    errorContainer = LightRed1,
+    onErrorContainer = LightRed2,
   )
 }

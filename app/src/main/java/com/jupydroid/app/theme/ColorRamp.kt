@@ -3,83 +3,154 @@ package com.jupydroid.app.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * The app's raw colour ramps - every hex value it draws with, dark and light, in one place.
+ * The app's raw chrome ramps - every hex value the Material scheme draws with, dark and light.
  *
- * Nothing outside this file states a colour: [EditorPalette] and the Material schemes both name
- * positions here, so a colour can be changed once and a colour that has drifted can be caught by
- * a test (see `ColorSchemeTest`).
+ * The values are transcribed from VS Code's **resolved** default themes, `2026-dark.json` and
+ * `2026-light.json`, read out of `reference/research_repos/vscode` at `f3fa55c39d3`. Each position
+ * below names the colour id it came from, so a value can be checked against its origin instead of
+ * argued about:
+ *
+ * ```sh
+ * cd reference/research_repos/vscode/extensions/theme-defaults/themes
+ * python3 ../../../../../../scripts/resolve_vscode_theme.py 2026-dark.json --color editor.background
+ * ```
+ *
+ * **Resolved, and that word is the whole trap.** `2026-dark.json` is the outermost file of a
+ * four-deep `include` chain and overrides most of what it inherits; reading any single file gives
+ * the wrong colour, and not by a little - `editor.background` is `#121314` resolved and `#1F1F1F`
+ * in Dark Modern alone (`docs/DECISIONS.md`, "The default VS Code theme is 2026 Dark / 2026
+ * Light, not Dark Modern").
  *
  * Named by ramp position rather than by job, because a position is a fact and a job is an
  * opinion: `Gray2` is one specific grey, where "surfaceVariant" is a role several greys could
- * fill. The values were transcribed from the reference tree's editor themes
- * (`platform/platform-resources/src/themes/expUI/expUI_{dark,light}.theme.json`); the citation is
- * there so a value can be checked against its origin instead of argued about.
+ * fill. Both ramps run **ascending luminance**, so `Gray1` is the darkest step of each - which
+ * means `DarkGray1` is a page and `LightGray1` is body text, and they must not be swapped.
  *
- * The two ramps are not reflections of each other: dark's greys run light-on-dark from `Gray1`
- * (the darkest surface) upward, light's run dark-on-light from `Gray1` (black text) downward. So
- * `DarkGray2` is a background and `LightGray2` is a foreground, and they must not be swapped.
+ * **A position with no consumer is not here.** The ramp holds what `Theme.kt` maps a role onto and
+ * nothing else; the resolved themes have many more greys than these, and carrying the unused ones
+ * would be a list nobody could tell was stale.
+ *
+ * This file is not the app's only statement of a colour: [EditorPalette]'s two instances state
+ * their own hex, from IntelliJ, and keep it until P2u-2 and P2u-3 re-source them. What is true is
+ * narrower and still worth having - **no Material role states a colour**, so a role that has
+ * drifted off the ramp fails `ColorSchemeTest` rather than waiting to be noticed in a screenshot.
  */
 internal object ColorRamp {
-  // Dark - expUI_dark.theme.json
-  val DarkGray1 = Color(0xFF1E1F22)
-  val DarkGray2 = Color(0xFF2B2D30)
-  val DarkGray3 = Color(0xFF393B40)
-  val DarkGray4 = Color(0xFF43454A)
-  val DarkGray5 = Color(0xFF4E5157)
-  val DarkGray6 = Color(0xFF5A5D63)
-  val DarkGray8 = Color(0xFF868A91)
-  val DarkGray9 = Color(0xFF9DA0A8)
-  val DarkGray10 = Color(0xFFB4B8BF)
-  val DarkGray11 = Color(0xFFCED0D6)
-  val DarkGray12 = Color(0xFFDFE1E5)
-  val DarkGray14 = Color(0xFFFFFFFF)
-  val DarkBlue1 = Color(0xFF25324D)
-  val DarkBlue6 = Color(0xFF3574F0)
-  val DarkBlue11 = Color(0xFF99BBFF)
-  val DarkGreen1 = Color(0xFF253627)
-  val DarkGreen7 = Color(0xFF5FAD65)
-  val DarkGreen11 = Color(0xFFB9EBBD)
-  val DarkRed1 = Color(0xFF402929)
-  val DarkRed7 = Color(0xFFDB5C5C)
-  val DarkRed10 = Color(0xFFF2B1AA)
+  // Dark - 2026 Dark, ascending luminance.
+  /** `editor.background` - the page a document is drawn on. */
+  val DarkGray1 = Color(0xFF121314)
 
-  // Light - expUI_light.theme.json
-  val LightGray1 = Color(0xFF000000)
-  val LightGray2 = Color(0xFF27282E)
-  val LightGray5 = Color(0xFF5A5D6B)
-  val LightGray6 = Color(0xFF6C707E)
-  val LightGray8 = Color(0xFFA8ADBD)
-  val LightGray11 = Color(0xFFDFE1E5)
-  val LightGray12 = Color(0xFFEBECF0)
-  val LightGray13 = Color(0xFFF7F8FA)
-  val LightGray14 = Color(0xFFFFFFFF)
-  val LightBlue2 = Color(0xFF315FBD)
-  val LightBlue4 = Color(0xFF3574F0)
-  val LightBlue11 = Color(0xFFD4E2FF)
-  val LightGreen1 = Color(0xFF1E6B33)
-  val LightGreen5 = Color(0xFF369650)
-  val LightGreen10 = Color(0xFFE3F7E7)
-  val LightRed1 = Color(0xFFAD2B38)
-  val LightRed4 = Color(0xFFDB3B4B)
-  val LightRed10 = Color(0xFFFFEBEC)
+  /** `sideBar.background` - the explorer and the rail, one step up from the page. */
+  val DarkGray2 = Color(0xFF191A1B)
+
+  /** `editorWidget.background`, which is also `menu.background`. */
+  val DarkGray3 = Color(0xFF202122)
+
+  /** `checkbox.background`, which is also `editor.lineHighlightBackground`. */
+  val DarkGray4 = Color(0xFF242526)
+
+  /** `panel.border` - a separator between two panels, and faint by design. */
+  val DarkGray5 = Color(0xFF2A2B2C)
+
+  /** `list.inactiveSelectionBackground` - a filled row. */
+  val DarkGray6 = Color(0xFF2C2D2E)
+
+  /** `checkbox.border` - a *component's* bounds, which is a different job from `panel.border`. */
+  val DarkGray7 = Color(0xFF707070)
+
+  /** `descriptionForeground` - secondary text, and `icon.foreground`. */
+  val DarkGray8 = Color(0xFF8C8C8C)
+
+  /** `editor.foreground` - body text. */
+  val DarkGray9 = Color(0xFFBBBEBF)
+
+  /** `button.foreground`. */
+  val DarkGray10 = Color(0xFFFFFFFF)
+
+  /** `button.background` - the accent as a *fill*, under [DarkGray10]. */
+  val DarkBlue1 = Color(0xFF297AA0)
+
+  /** `textLink.foreground` - the accent as *text on a surface*, which is a different value. */
+  val DarkBlue2 = Color(0xFF48A0C7)
+
+  /** `charts.green`. */
+  val DarkGreen1 = Color(0xFF86CF86)
+
+  /** `inputValidation.errorBackground`. */
+  val DarkRed1 = Color(0xFF3A1D1D)
+
+  /** `errorForeground`, which is also `list.errorForeground`. */
+  val DarkRed2 = Color(0xFFF48771)
+
+  // Light - 2026 Light, ascending luminance.
+  /** `editor.foreground` - body text. */
+  val LightGray1 = Color(0xFF202020)
+
+  /** `descriptionForeground` - secondary text, and `icon.foreground`. */
+  val LightGray2 = Color(0xFF606060)
+
+  /** `checkbox.border` - a component's bounds. */
+  val LightGray3 = Color(0xFF868686)
+
+  /** `list.inactiveSelectionBackground` - a filled row. */
+  val LightGray4 = Color(0xFFDADADA)
+
+  /** `button.secondaryBackground`, which is also `checkbox.background`. */
+  val LightGray5 = Color(0xFFEAEAEA)
+
+  /** `panel.border` - a separator, faint by design. */
+  val LightGray6 = Color(0xFFF0F1F2)
+
+  /** `sideBar.background` - the explorer and the rail, one step *down* from the page here. */
+  val LightGray7 = Color(0xFFFAFAFD)
+
+  /** `editor.background` - the page. */
+  val LightGray8 = Color(0xFFFFFFFF)
+
+  /**
+   * `button.background`, which in this theme is also `textLink.foreground` - light does not split
+   * its fill accent from its text accent the way dark does.
+   */
+  val LightBlue1 = Color(0xFF0069CC)
+
+  /** `inputValidation.infoBackground` - the pale blue that gives [LightBlue1] a container. */
+  val LightBlue2 = Color(0xFFE6F2FA)
+
+  /**
+   * `gitDecoration.addedResourceForeground`, and **not** `charts.green`.
+   *
+   * Light's `charts.green` `#388A34` measures 4.33:1 on `editor.background`, under AA; this one
+   * measures 4.88:1. The two are the same "added/success" idea in the same theme, so taking the
+   * one that clears the floor is a choice between the reference's own values rather than a
+   * departure from it.
+   */
+  val LightGreen1 = Color(0xFF587C0C)
+
+  /** `inputValidation.errorBackground`. */
+  val LightRed1 = Color(0xFFFDEDED)
+
+  /** `errorForeground`, which is also `inputValidation.errorBorder`. */
+  val LightRed2 = Color(0xFFAD0707)
+
+  /**
+   * The base both themes composite their overlays over - `button.secondaryBackground` is
+   * `#00000000` in dark and `toolbar.hoverBackground` is `#0000001F` in light. Shared rather than
+   * written twice, because it is one colour and neither ramp owns it.
+   */
+  val Black = Color(0xFF000000)
 
   /**
    * Every colour above, for the assertion that no Material role has drifted off the ramp.
    *
-   * A set rather than a list: what matters is membership, and two ramp positions holding the
-   * same hex (`DarkBlue6` and `LightBlue4` are both `#3574F0`) is a fact about IntelliJ, not a
-   * mistake to be caught here.
+   * A set rather than a list: what matters is membership, and two positions holding the same hex
+   * would be a fact about the theme rather than a mistake to be caught here.
    */
   val all: Set<Color> = setOf(
-    DarkGray1, DarkGray2, DarkGray3, DarkGray4, DarkGray5, DarkGray6, DarkGray8, DarkGray9,
-    DarkGray10, DarkGray11, DarkGray12, DarkGray14,
-    DarkBlue1, DarkBlue6, DarkBlue11,
-    DarkGreen1, DarkGreen7, DarkGreen11,
-    DarkRed1, DarkRed7, DarkRed10,
-    LightGray1, LightGray2, LightGray5, LightGray6, LightGray8, LightGray11, LightGray12,
-    LightGray13, LightGray14,
-    LightBlue2, LightBlue4, LightBlue11,
-    LightGreen1, LightGreen5, LightGreen10,
-    LightRed1, LightRed4, LightRed10,
+    DarkGray1, DarkGray2, DarkGray3, DarkGray4, DarkGray5, DarkGray6, DarkGray7, DarkGray8,
+    DarkGray9, DarkGray10,
+    DarkBlue1, DarkBlue2, DarkGreen1, DarkRed1, DarkRed2,
+    LightGray1, LightGray2, LightGray3, LightGray4, LightGray5, LightGray6, LightGray7, LightGray8,
+    LightBlue1, LightBlue2, LightGreen1, LightRed1, LightRed2,
+    Black,
   )
 }

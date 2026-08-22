@@ -2421,6 +2421,74 @@ WINDOW` (`< 600dp`) is the exact complement of `WIDE WINDOW`, added to both scri
 because `driver-rules.sh` exists precisely so the runner and the sharder cannot disagree about a
 rule.
 
+### The chrome ramp is VS Code's, and two roles are not the id the plan named (P2u-1)
+
+`theme/ColorRamp.kt` is re-sourced from the **resolved** `2026-dark.json` / `2026-light.json`, and
+`theme/Theme.kt` maps every Material role onto it. This is the first code step of the presentation
+re-base; the syntax palette is still IntelliJ's until P2u-2 and P2u-3.
+
+Measured on the emulator, before and after, in `evidence/p2u-1-chrome/`:
+
+| What | Before (IntelliJ) | After (VS Code 2026) | Colour id |
+|---|---|---|---|
+| the page | `#1E1F22` | `#121314` | `editor.background` |
+| body text | `#CED0D6` | `#BBBEBF` | `editor.foreground` |
+| the sidebar and the bars | `#2B2D30` | `#191A1B` | `sideBar.background` |
+| the blockquote's rule | `#4E5157` 1.74:1 | `#707070` **3.76:1** | `checkbox.border` |
+| the thematic break | `#393B40` | `#2A2B2C` | `panel.border` |
+
+**Two mappings `docs/PLAN.md` named did not survive being measured**, and both are recorded here
+rather than quietly transcribed. The pattern is P2m-2's: a floor moves only when a number says so.
+
+**`primary` is `textLink.foreground`, not `button.background`.** VS Code splits what Material
+fuses - `button.background` `#297AA0` is a fill drawn under `button.foreground`, and
+`textLink.foreground` `#48A0C7` is the accent drawn *on* a surface. Material has one `primary` for
+both. Which one this app needs was not a matter of taste but of counting its call sites: **nine,
+every one a label, an icon tint or a caret, and not one a filled button** - `HiddenCellsRow`,
+`CollapsedCell`, `CellHeader`, `HeadingCollapser`, `TableOfContentsPanel`, and three `cursorBrush`.
+The app has no `Button` and no `FloatingActionButton` at all.
+
+```sh
+grep -rnE '(^|[^a-zA-Z])Button\(' app/src/main | grep -vE 'IconButton|TextButton|OutlinedButton'
+```
+
+returns nothing. On dark's page `button.background` measures **3.88:1** and `textLink.foreground`
+**6.31:1**, so the fill accent would have put every one of those nine sites under AA. The fill pair
+is kept intact and unused-but-correct on `primaryContainer` / `onPrimaryContainer`, at 4.79:1.
+
+**`outline` is `checkbox.border`, not `panel.border`.** `panel.border` measures **1.31:1** dark and
+**1.13:1** light, and that is not a flaw in the theme - VS Code draws separators that faint on
+purpose, and its `textBlockQuote.border` is the same value. But Material's `outline` is the role
+that bounds a *component*, which WCAG 1.4.11 asks 3:1 of, and this app's one reader of it is the
+blockquote rule at `RichText.kt:82`, which would have vanished. VS Code has both kinds of border,
+so each takes the Material role that means the same thing: `outline` ← `checkbox.border` (3.76:1
+dark, 3.64:1 light) and `outlineVariant` ← `panel.border`, which is Material's *decorative*
+divider and is meant to be faint. Nothing was invented; the two references were lined up.
+
+**VS Code 2026 has no green surface**, checked across `charts.*`, `inputValidation.*`,
+`diffEditor.*`, `gitDecoration.*` and `editorGutter.*`. So only `tertiary` is green and the
+tertiary *container* is the theme's neutral container with the theme's foreground on it. Light's
+`charts.green` `#388A34` is **4.33:1** and was passed over for `gitDecoration.addedResourceForeground`
+`#587C0C` at **4.88:1** - a choice between two of the reference's own values for the same idea,
+not a departure from it.
+
+**`ColorSchemeTest` gained a contrast gate, and the old ramp fails it.** Membership on the ramp
+cannot say a role is legible on what it is drawn over, which is the whole subject here. Run against
+the IntelliJ ramp the new assertion reports **thirteen** pairs under their floor - including
+`primary on surface` at 3.85:1 dark and `outline on surface` at 2.07:1 - so this is a measured
+improvement rather than a lateral move. Without it, `docs/DECISIONS.md`'s own rule that a value may
+not be nudged without re-measuring would have had nothing enforcing it.
+
+**One thing this step knowingly leaves inconsistent for one commit.** `primary` and
+`EditorPalette.stripeSelected` used to be the same `#3574F0`; `primary` has moved and
+`stripeSelected` has not, so the active cell draws a `#3574F0` collapser beside a `#48A0C7`
+chevron. `EditorPalette` is P2u-2's and P2u-3's, and P2u-3 re-derives that border from
+`notebook.focusedCellBorder` → `focusBorder` `#3994BC` - the same teal family. Moving it here to
+match would transcribe the value twice, the second time with the wrong citation, and would ship a
+cell-chrome change without the `u3-cell-chrome` re-capture that P2u-3's gate requires. It is
+visible in `evidence/p2u-1-chrome/after/dark/03-the-document-at-rest.png` and named here so it is
+a known state rather than a defect nobody wrote down.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
