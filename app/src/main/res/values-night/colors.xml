@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- DarkEditorPalette.editorBackground (Gray1). See values/colors.xml for why it is here. -->
-    <color name="window_background">#FF1E1F22</color>
+    <!-- DarkEditorPalette.editorBackground (`notebook.editorBackground`, resolved).
+         See values/colors.xml for why it is here. -->
+    <color name="window_background">#FF121314</color>
 
 </resources>

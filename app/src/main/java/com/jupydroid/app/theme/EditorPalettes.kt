@@ -34,16 +34,20 @@ import androidx.compose.ui.graphics.Color
  */
 val DarkEditorPalette: EditorPalette =
   EditorPalette(
-    // Gray1 / the `TEXT` background.
-    editorBackground = Color(0xFF1E1F22),
-    // Gray2 - the New UI's panel surface, one step up from the editor page.
-    cellBackground = Color(0xFF2B2D30),
-    // Gray3.
+    // `notebook.editorBackground`, which 2026 Dark leaves unset -> `editorPane.background` ->
+    // `editor.background`. Two hops, and `res/values-night/colors.xml` holds the same value for
+    // the window drawn before Compose exists.
+    editorBackground = Color(0xFF121314),
+    // `notebook.cellEditorBackground` -> `sideBar.background`. A cell is one step *up* from the
+    // page in dark, which is the direction the IntelliJ ramp had too.
+    cellBackground = Color(0xFF191A1B),
+    // Still IntelliJ's Gray3, and P2u-3d's: its one reader is rendered markdown's inline code,
+    // not a selected cell, which is a finding rather than a colour - `docs/PLAN.md`.
     cellSelectionBackground = Color(0xFF393B40),
-    // JupyterLab's own dark value: `rgba(33, 150, 243, 0.24)`
-    // (`packages/theme-dark-extension/style/variables.css:298`). An alpha tint rather than a
-    // solid, because it is drawn *over* the page and has to read as a wash on it.
-    cellMultiSelected = Color(0x3D2196F3),
+    // `notebook.selectedCellBackground`, which 2026 Dark leaves unset ->
+    // `list.inactiveSelectionBackground`. Opaque here where light's is a wash, and that is the
+    // reference's own asymmetry rather than a transcription slip.
+    cellMultiSelected = Color(0xFF2C2D2E),
     // Gray5 - IntelliJ's `Component.borderColor`. The same ramp step P2m-1 removed from the
     // gutter, which is the point: the reference draws cell bounds on the box and not beside it.
     cellEditorBorder = Color(0xFF4E5157),
@@ -84,15 +88,18 @@ val DarkEditorPalette: EditorPalette =
 
 val LightEditorPalette: EditorPalette =
   EditorPalette(
-    // Gray14 / the `TEXT` background.
+    // `notebook.editorBackground` -> `editorPane.background` -> `editor.background`. The one
+    // surface the swap does not move: IntelliJ's Gray14 was already `#FFFFFF`.
     editorBackground = Color(0xFFFFFFFF),
-    // Gray13, the New UI's panel surface.
-    cellBackground = Color(0xFFF7F8FA),
-    // Gray12.
+    // `notebook.cellEditorBackground` -> `sideBar.background`. A cell is one step *down* from the
+    // page in light, the mirror of dark.
+    cellBackground = Color(0xFFFAFAFD),
+    // Still IntelliJ's Gray12, and P2u-3d's - see the dark palette's note.
     cellSelectionBackground = Color(0xFFEBECF0),
-    // JupyterLab's own light value: `--md-blue-50`, `#e3f2fd`
-    // (`packages/theme-light-extension/style/variables.css:295`).
-    cellMultiSelected = Color(0xFFE3F2FD),
+    // `notebook.selectedCellBackground`, which 2026 Light **does** set, and sets translucent:
+    // `#C8DDF150`. VS Code writes `#RRGGBBAA` and Compose writes `0xAARRGGBB`, so the alpha
+    // swaps ends - transcribed in the reference's own order this would be a near-black at 79%.
+    cellMultiSelected = Color(0x50C8DDF1),
     // Gray9 - IntelliJ's `Component.borderColor`.
     cellEditorBorder = Color(0xFFC9CCD6),
     // Blue4, the New UI accent.

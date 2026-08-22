@@ -104,6 +104,28 @@ class EditorPaletteTest {
     assertEquals("light is not 2026 Light", LIGHT_2026, LightEditorPalette.syntax.byScope())
   }
 
+  /**
+   * **The surfaces are the reference's too, and pinned the same way as the syntax colours.**
+   *
+   * Keyed by the **colour id** rather than a token scope, because these are workbench colours and
+   * are reached differently: most notebook ids are unset in both 2026 themes - dark sets *no*
+   * `notebook.*` colour at all - so the value comes from the chain of `registerColor` defaults.
+   * `docs/PLAN.md`, "What P2u-3 is transcribing", carries each resolution.
+   *
+   * The map grows one sub-step at a time. A field not in it yet is one P2u-3 has not reached.
+   */
+  @Test
+  fun everySurfaceIsTheReferenceValue() {
+    assertEquals("dark surfaces", DARK_SURFACES, DarkEditorPalette.surfacesByColourId())
+    assertEquals("light surfaces", LIGHT_SURFACES, LightEditorPalette.surfacesByColourId())
+  }
+
+  private fun EditorPalette.surfacesByColourId(): Map<String, Color> = mapOf(
+    "notebook.editorBackground" to editorBackground,
+    "notebook.cellEditorBackground" to cellBackground,
+    "notebook.selectedCellBackground" to cellMultiSelected,
+  )
+
   /** Each value against the VS Code scope it was read from, so a failure says which rule moved. */
   private fun SyntaxPalette.byScope(): Map<String, Color> = mapOf(
     "editor.foreground" to plain,
@@ -340,6 +362,30 @@ class EditorPaletteTest {
 
   private companion object {
     const val BODY_TEXT_FLOOR = 4.5
+
+    /**
+     * `notebook.editorBackground` -> `editorPane.background` -> `editor.background`;
+     * `notebook.cellEditorBackground` -> `sideBar.background`;
+     * `notebook.selectedCellBackground` -> `list.inactiveSelectionBackground`, dark setting none.
+     */
+    val DARK_SURFACES = mapOf(
+      "notebook.editorBackground" to Color(0xFF121314),
+      "notebook.cellEditorBackground" to Color(0xFF191A1B),
+      "notebook.selectedCellBackground" to Color(0xFF2C2D2E),
+    )
+
+    /**
+     * Light states `notebook.selectedCellBackground` itself, and states it **translucent**.
+     *
+     * `#C8DDF150` is VS Code's `#RRGGBBAA`; Compose writes `0xAARRGGBB`, so the alpha that reads
+     * last there reads first here. Transcribing it in the reference's own order would give a
+     * near-black at 79% opacity instead of a pale blue at 31%.
+     */
+    val LIGHT_SURFACES = mapOf(
+      "notebook.editorBackground" to Color(0xFFFFFFFF),
+      "notebook.cellEditorBackground" to Color(0xFFFAFAFD),
+      "notebook.selectedCellBackground" to Color(0x50C8DDF1),
+    )
 
     /** `2026-dark.json`, resolved through its four-deep `include` chain. */
     val DARK_2026 = mapOf(
