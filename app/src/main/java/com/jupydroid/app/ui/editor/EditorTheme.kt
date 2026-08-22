@@ -63,11 +63,17 @@ fun searchMatchStyles(): SearchMatchStyles = SearchMatchStyles(
 )
 
 /**
- * How each inline mark in rendered prose is drawn.
+ * How each inline mark in **rendered** prose is drawn.
  *
- * Emphasis is weight and slant with no colour, the way IntelliJ declares `MARKDOWN_BOLD` and
- * `MARKDOWN_ITALIC`; inline code and links take the palette's own values so a rendered cell and
- * the source behind it agree.
+ * Emphasis is weight and slant with no colour, which both references agree on. Code and links do
+ * **not** take the source palette's values, and that is the correction P2u-3d made: a rendered
+ * markdown cell is a webview in the reference, and `webviewThemeMapping.ts:8-27` is the table that
+ * says what themes it - `theme-code-foreground` / `theme-code-background` onto the `textPreformat`
+ * pair, and `theme-link` onto `textLink.foreground`, which is `MaterialTheme`'s `primary` here.
+ *
+ * Rendered prose and the source behind it therefore *disagree* on purpose. A link is
+ * `string.other.link` in the source, where it is a string like any other, and the accent in the
+ * rendered cell, where it is something to press.
  */
 @Composable
 @ReadOnlyComposable
@@ -76,11 +82,11 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
   strong = SpanStyle(fontWeight = FontWeight.Bold),
   code = SpanStyle(
     fontFamily = FontFamily.Monospace,
-    color = editorPalette.syntax.string,
-    background = editorPalette.cellSelectionBackground,
+    color = editorPalette.inlineCodeForeground,
+    background = editorPalette.inlineCodeBackground,
   ),
   link = SpanStyle(
-    color = editorPalette.syntax.link,
+    color = MaterialTheme.colorScheme.primary,
     textDecoration = TextDecoration.Underline,
   ),
 )

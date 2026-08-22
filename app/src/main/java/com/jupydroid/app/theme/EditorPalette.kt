@@ -33,8 +33,18 @@ data class EditorPalette(
   /** A cell's own surface, and deliberately not [editorBackground] - that is what makes a cell
    *  read as a cell. IntelliJ's `JUPYTER.CODE_CELL_BACKGROUND`. */
   val cellBackground: Color,
-  /** The selected cell's surface. `JUPYTER.SELECTION_BACKGROUND`. */
-  val cellSelectionBackground: Color,
+  /**
+   * Behind inline `` `code` `` in **rendered** prose - `textPreformat.background`.
+   *
+   * **It was called `cellSelectionBackground` and described as "the selected cell's surface", and
+   * nothing had drawn a selected cell with it for a long time.** Its one reader is
+   * `richInlineStyles()`. Renamed for what it does, and sourced from what the reference uses for
+   * the same job: a notebook's markdown preview is a webview, and `webviewThemeMapping.ts:20-21`
+   * maps its `theme-code-foreground` / `theme-code-background` onto the `textPreformat` pair.
+   */
+  val inlineCodeBackground: Color,
+  /** Inline `` `code` `` in rendered prose - `textPreformat.foreground`, the other half of the pair. */
+  val inlineCodeForeground: Color,
   /**
    * Behind a cell that is part of a marked *run* - JupyterLab's `--jp-notebook-multiselected-color`
    * (`packages/notebook/style/base.css:141-143`).

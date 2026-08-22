@@ -129,6 +129,8 @@ class EditorPaletteTest {
     "notebookStatusErrorIcon.foreground" to stripeError,
     "editorLineNumber.foreground" to lineNumber,
     "descriptionForeground" to executionTime,
+    "textPreformat.background" to inlineCodeBackground,
+    "textPreformat.foreground" to inlineCodeForeground,
   )
 
   /** Each value against the VS Code scope it was read from, so a failure says which rule moved. */
@@ -391,6 +393,8 @@ class EditorPaletteTest {
       "notebookStatusErrorIcon.foreground" to Color(0xFFF48771),
       "editorLineNumber.foreground" to Color(0xFF858889),
       "descriptionForeground" to Color(0xFF8C8C8C),
+      "textPreformat.background" to Color(0xFF262626),
+      "textPreformat.foreground" to Color(0xFF8C8C8C),
     )
 
     /**
@@ -409,6 +413,8 @@ class EditorPaletteTest {
       "notebookStatusErrorIcon.foreground" to Color(0xFFAD0707),
       "editorLineNumber.foreground" to Color(0xFF606060),
       "descriptionForeground" to Color(0xFF606060),
+      "textPreformat.background" to Color(0xFFECECEC),
+      "textPreformat.foreground" to Color(0xFF606060),
     )
 
     /** `2026-dark.json`, resolved through its four-deep `include` chain. */

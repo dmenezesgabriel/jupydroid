@@ -34,7 +34,12 @@ seed_notebook "$FIXTURE" "Markdown Render"
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
-maestro_test "$ROOT/.maestro/a1c-markdown-render.yaml"
+# `run_flow` rather than `maestro_test`, so the frames land in evidence/ and get committed. This
+# driver, like step5-theme-driver.sh before P2u-2a, left its artefacts in ~/.maestro/tests/ - so
+# evidence/audit-a1c-markdown-render/ kept the audit's originals while every re-run went nowhere.
+# The optional sub-directory keeps a second device from overwriting the first's frames.
+run_flow "$ROOT/.maestro/a1c-markdown-render.yaml" \
+  "$ROOT/evidence/audit-a1c-markdown-render${1:+/$1}"
 
 # The order on disk is the real assertion: the screenshots show a menu, but only the saved
 # file proves the notebook was actually re-shaped and persisted.

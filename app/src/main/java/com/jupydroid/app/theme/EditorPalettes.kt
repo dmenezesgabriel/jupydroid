@@ -41,9 +41,10 @@ val DarkEditorPalette: EditorPalette =
     // `notebook.cellEditorBackground` -> `sideBar.background`. A cell is one step *up* from the
     // page in dark, which is the direction the IntelliJ ramp had too.
     cellBackground = Color(0xFF191A1B),
-    // Still IntelliJ's Gray3, and P2u-3d's: its one reader is rendered markdown's inline code,
-    // not a selected cell, which is a finding rather than a colour - `docs/PLAN.md`.
-    cellSelectionBackground = Color(0xFF393B40),
+    // `textPreformat.background` / `.foreground`, which is what the notebook's own markdown
+    // webview takes for code (`webviewThemeMapping.ts:20-21`).
+    inlineCodeBackground = Color(0xFF262626),
+    inlineCodeForeground = Color(0xFF8C8C8C),
     // `notebook.selectedCellBackground`, which 2026 Dark leaves unset ->
     // `list.inactiveSelectionBackground`. Opaque here where light's is a wash, and that is the
     // reference's own asymmetry rather than a transcription slip.
@@ -99,8 +100,9 @@ val LightEditorPalette: EditorPalette =
     // `notebook.cellEditorBackground` -> `sideBar.background`. A cell is one step *down* from the
     // page in light, the mirror of dark.
     cellBackground = Color(0xFFFAFAFD),
-    // Still IntelliJ's Gray12, and P2u-3d's - see the dark palette's note.
-    cellSelectionBackground = Color(0xFFEBECF0),
+    // `textPreformat.background` / `.foreground` - see the dark palette's note.
+    inlineCodeBackground = Color(0xFFECECEC),
+    inlineCodeForeground = Color(0xFF606060),
     // `notebook.selectedCellBackground`, which 2026 Light **does** set, and sets translucent:
     // `#C8DDF150`. VS Code writes `#RRGGBBAA` and Compose writes `0xAARRGGBB`, so the alpha
     // swaps ends - transcribed in the reference's own order this would be a near-black at 79%.
