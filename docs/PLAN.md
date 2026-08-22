@@ -37,7 +37,7 @@ filesystem the kernel, the server and the app all share.
 | Notebook | **kernel history** walked into the cell being edited; **find and replace** across the document, with the reference's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on the reference's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
-| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. The collapser is transparent at rest and brand blue on the active cell, which is the reference's rule and not this app's old one. **Still open in this phase: P2m-2 to P2p** - the cell's editor box, the gutter's fixed slots, and the side panel's rail |
+| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. Cell chrome is the reference's: the collapser transparent at rest and brand blue on the active cell, the editor boxed by a 1dp border that turns brand blue for the cell being typed into. **Still open in this phase: P2n to P2p** - the gutter's fixed slots and the side panel's rail |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, IntelliJ-derived palette, Material's own type scale, per-notebook ViewModel scoping |
 | Tests | 256 instrumented, 1261 unit, 100 Maestro drivers over 114 flows - 95 of them in the sweep, the other five being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates |
 
@@ -630,7 +630,7 @@ side panel (P2o). What follows from each is `docs/DECISIONS.md`.
 | **P2l-3a** | *(shipped)* **One size for code.** Measured: the cell's source states none at all (`codeSourceStyle` reads `LocalTextStyle`, so it resolves to Compose's `DefaultFontSize = 14.sp` with the font's own line height), outputs and the folded-cell placeholder are `bodySmall`, the completion popup `bodyMedium` - where the reference has one `--jp-code-font-size` and one `--jp-code-line-height` (`variables.css:196-197`) read by the editor, the input area, `.jp-RenderedText pre` and **both** completer selectors (`codemirror/base.css:8`, `inputarea.css:37`, `rendermime/base.css:28`, `completer/base.css:75,118`). `theme/CodeText.kt` at **14sp/18sp**, and the four surfaces that take it. | JVM over the scale; instrumented that an output line measures the code line height; a screenshot of a cell, its output and its completions in one frame. |
 | **P2l-3b** | *(shipped)* **Rendered markdown's code is a different rule, and that is why this is two commits.** `.jp-RenderedHTMLCommon pre, code` takes the code family and the code line height but **`font-size: inherit`** (`rendermime/base.css:405-417`) - the prose size, not the code size. Ours draws both at `bodySmall`. Plus the gate that keeps `CodeText` the only place a code size is spelled out. | Instrumented: a fenced block in a markdown cell measures the prose size, not the code size. The gate red before, clean after. |
 | **P2m-1** | *(shipped)* The collapser: transparent at rest, brand blue when active. `stripeResting` left `EditorPalette`, and the position it reversed is argued in `docs/DECISIONS.md` rather than deleted. | — |
-| **P2m-2** | The editor box: 1px always, brand blue plus elevation in edit mode, one shared modifier across the three fields rather than three copies. | `EditorPaletteTest` extended with the contrast assertion it already pins for every other pair; an instrumented test that the border follows the mode. |
+| **P2m-2** | *(shipped)* The editor box: 1dp always, brand blue in edit mode, one shared modifier across the three fields rather than three copies. No elevation - the reference's shadow is *inset*, and why that matters is `docs/DECISIONS.md`. | — |
 | **P2n** | The cell gutter becomes two fixed-width slots, so the execution label's x does not depend on which optional controls a cell carries. | Instrumented: the label's x is equal across a plain code cell, a heading cell and a cell in a marked run - the three that differ today. |
 | **P2o-1** | The mediator: which panel is selected, and the open notebook's headings and jump lambda, published by the editor and read by the panel. **No duplicated derivation** - `EditorViewModel` stays the one place headings, folds and numbering are computed. | JVM, including the lifetime: the panel empties when the notebook closes, so a ToC cannot outlive its document. |
 | **P2o-2** | The rail on medium and expanded: `NavigationRail` at the left edge of the list pane, panels Files and Table of contents in the reference's rank order. `tocPresentationFor` is superseded - the rule becomes "is there a side pane", not "is the editor 840dp". | Tablet at 1280dp: switch to ToC, jump to a heading, the panel stays and the notebook moves. |
@@ -769,6 +769,34 @@ Three costs the plan did not name:
   real traceback, and `FakeKernelGateway` echoes the source back as stdout - the cell would have
   "succeeded" and the error stripe would never have been drawn. The plan's verification section said
   both devices were attached; attached at planning time is not attached at gate time.
+
+**P2m-2 has shipped, and with it P2m is closed.** `Modifier.cellEditorBox(editing)` draws a 1dp
+border on all three fields - brand blue on the one being typed into - and `EditorPalette` gained
+`cellEditorBorder`. With the collapser transparent since P2m-1, this is now the only thing that
+says where a cell's editor ends, which is the reference's own arrangement and why the two rows are
+one phase. What it settled is `docs/DECISIONS.md`; the evidence is `evidence/u3-cell-chrome/`
+(tablet, dark, 1280dp) and `evidence/u2-cell-mode/` (emulator, light, 320dp).
+
+Three costs the plan did not name:
+
+- **The floor this row was planned around does not survive measurement.** The plan asked for 3:1
+  against the cell, decided by whichever IntelliJ ramp step reached it. No step that reads as a
+  border does - Gray5 is 1.74:1 dark, Gray9 1.51:1 light - and **neither reference clears it
+  either**, JupyterLab's own light border measuring 1.21:1 on its own surface. A value that passed
+  would be a hard grey rule around every cell in the document. 3:1 now sits where 1.4.11 actually
+  points, on the *state*: the brand border measures 3.23:1 dark and 4.03:1 light and is held to it.
+  The full table is in `docs/DECISIONS.md`.
+- **"Elevation in edit mode" was the wrong direction, and reading the rule is what said so.** The
+  reference's `--jp-cell-editor-box-shadow` is `inset 0 0 2px` - an inner glow. An elevation casts
+  outward and would lift the field off the cell, which the reference never does; it is declined
+  rather than approximated.
+- **The tablet found a defect this phase had already shipped, and it was not this row's.**
+  `CellOutputsViewTest` asserted `CodeText.lineHeight.toDp()`, which under Android 14's non-linear
+  font scaling is **19.2dp** at the tablet's `fontScale = 1.1` while a line of that style lays out
+  to **20.67dp**. Green on `dev36` at `fontScale = 1.0`, red on the device the evidence rule names.
+  Fixed in its own commit before this one - it measures a line of code now - and the lesson is
+  P2l-4's again in a new form: **`dev36`'s defaults are not a device**, and a suite only ever run
+  there is a suite run at one font scale.
 
 ---
 

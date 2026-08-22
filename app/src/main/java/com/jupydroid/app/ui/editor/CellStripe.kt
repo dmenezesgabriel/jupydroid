@@ -42,7 +42,7 @@ internal fun cellStripe(
   // Reserved whether or not anything is drawn in it, so selecting a cell never shifts its content.
   // Only the selected cell can be the one being edited, so a notebook in edit mode leaves every
   // other stripe at its resting width.
-  width = if (selected && mode == CellMode.EDIT) EDIT_WIDTH else COMMAND_WIDTH,
+  width = if (cellIsBeingEdited(selected, mode)) EDIT_WIDTH else COMMAND_WIDTH,
   color = when {
     // Selection outranks failure: you always know which cell you are on, and the failure is
     // still sitting in the cell's output either way.

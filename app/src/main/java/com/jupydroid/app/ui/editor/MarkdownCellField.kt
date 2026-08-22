@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.padding
@@ -24,7 +23,6 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
 import com.jupydroid.app.syntax.MarkdownSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
-import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
 /** What an empty markdown cell says, so it is never a row with nothing in it. */
@@ -67,6 +65,8 @@ fun MarkdownCellField(
   lineNumbersShown: Boolean = true,
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
+  /** Whether this is the cell the caret is in - see [cellIsBeingEdited] and [cellEditorBox]. */
+  editing: Boolean = false,
 ) {
   val styles = syntaxStyles()
   val caret = remember { FocusRequester() }
@@ -100,9 +100,12 @@ fun MarkdownCellField(
     // The panel is the editor's, not the cell's: it is what says "you are typing in this", the
     // same way a code cell reads. Rendered prose sitting in a box would be wrong, so this is
     // here rather than around MarkdownCell.
+    //
+    // Since P2m-2 it is literally the same panel: this wrote its own out of
+    // `colorScheme.surfaceVariant` while the code and raw fields used `cellBackground` - one role,
+    // two colours, and nothing that would have caught the divergence.
     modifier = modifier
-      .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-      .padding(Spacing.sm)
+      .cellEditorBox(editing)
       .focusRequester(caret)
       .lineNumbers(state.text, layout, numberStyle, gutter),
     onTextLayout = { getResult -> layout = getResult() },

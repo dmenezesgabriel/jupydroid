@@ -1778,6 +1778,64 @@ reference's `activeCellIndex = 0`. The comment had been false since the flow was
 invisible while every cell had a stripe of some colour; P2m-1 makes that frame one blue line and
 nothing else, so the label is corrected with the behaviour rather than after it.
 
+### The editor's border is the cell's boundary, and 3:1 is the wrong floor for it (P2m-2)
+
+The other half of P2m, and the half that made P2m-1 safe: `.jp-InputArea-editor` carries
+`border: var(--jp-border-width) solid var(--jp-cell-editor-border-color)` **unconditionally**
+(`packages/cells/style/inputarea.css:18-26`), and the cell being typed into swaps that colour for
+`--jp-cell-editor-active-border-color` = `--jp-brand-color1`
+(`packages/notebook/style/base.css:160-164`). One factory, `Modifier.cellEditorBox(editing)`,
+draws it for all three fields.
+
+**The plan's floor did not survive being measured.** It asked for the WCAG 1.4.11 non-text floor
+of 3:1 against `cellBackground`, decided by whichever IntelliJ ramp step reached it. Measured, no
+step that reads as a border does:
+
+| Candidate | On the cell |
+|---|---|
+| Gray5 `#4E5157` dark - IntelliJ's `Component.borderColor` | **1.74:1** |
+| Gray7 `#6F737A` dark | 2.90:1 |
+| Gray9 `#C9CCD6` light - IntelliJ's `Component.borderColor` | **1.51:1** |
+| Gray7 `#818594` light | 3.46:1 |
+| JupyterLab's own `#616161` on its own dark surface | 2.60:1 |
+| JupyterLab's own `#E0E0E0` on its own light surface | **1.21:1** |
+
+**Neither reference clears 3:1 either**, and the value that would is a hard grey rule around every
+cell in the document - heavier than anything either app draws, and noise once a notebook has
+twenty cells. So the floor moves to the requirement that actually applies. 1.4.11 asks for
+contrast in what is *required to identify* a component and its **states**; the state here is
+"which cell am I typing in", and the brand border that says so measures **3.23:1 dark and 4.03:1
+light** - held to 3:1 in `EditorPaletteTest` and passing. What the resting border owes is weaker
+and assertable: that it strengthens the boundary the fill step alone makes (1.74 against 1.19 dark,
+1.51 against 1.06 light).
+
+**The grey that was wrong in the gutter is right on the box.** Dark's border is Gray5 `#4E5157` -
+the exact value P2m-1 deleted as `stripeResting`. Same ramp step, different role, and that is the
+point of the pair: the reference bounds a cell with its box, not with a mark beside it.
+
+**Three departures, each measured rather than assumed:**
+
+- **No inner glow.** The reference adds `inset 0 0 2px var(--md-blue-300)` in edit mode. Compose
+  has no inset shadow, and elevation is not its substitute: an elevation casts *outward* and would
+  lift the field off the cell, which the reference never does. Same shape as
+  `EditorPalette.currentSearchMatch`, which declined IntelliJ's outline for the same
+  not-expressible-here reason and took a contrast answer instead.
+- **The corner stays `shapes.small` where the reference squares it** (`border-radius: 0`, same
+  rule). A cell's outputs, its collapsed placeholder and its completion popup are all drawn on that
+  radius; squaring only the editor would make it the odd panel in its own cell.
+- **The active *background* swap is declined, and the numbers are why.** The reference also moves
+  the active editor to `--jp-cell-editor-active-background` (`layout-color1` to `layout-color0`,
+  a real step in its palette). The equivalent pair here measures **1.19:1 dark and 1.06:1 light**,
+  so copying the rule would add a branch nobody can see. Every syntax colour was checked against
+  the page first and all of them clear their floor there - the reason for declining is that it is
+  invisible, not that it is unsafe.
+
+**And it folded a divergence nothing would have caught.** `MarkdownCellField` drew its panel with
+`colorScheme.surfaceVariant` while the code and raw fields used `cellBackground` - one role, two
+colours, in three hand-written copies. `Modifier.border` strokes inside the layout bounds, so none
+of this moved the gutter, which is P2n's subject; `CellEditorBoxTest` asserts that against the
+pre-P2m-2 shape rather than against a number.
+
 
 ## Harness
 

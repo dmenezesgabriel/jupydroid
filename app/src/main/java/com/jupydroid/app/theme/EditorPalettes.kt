@@ -41,6 +41,9 @@ val DarkEditorPalette: EditorPalette =
     // (`packages/theme-dark-extension/style/variables.css:298`). An alpha tint rather than a
     // solid, because it is drawn *over* the page and has to read as a wash on it.
     cellMultiSelected = Color(0x3D2196F3),
+    // Gray5 - IntelliJ's `Component.borderColor`. The same ramp step P2m-1 removed from the
+    // gutter, which is the point: the reference draws cell bounds on the box and not beside it.
+    cellEditorBorder = Color(0xFF4E5157),
     // Blue6, the New UI accent.
     stripeSelected = Color(0xFF3574F0),
     // Red4.
@@ -87,6 +90,8 @@ val LightEditorPalette: EditorPalette =
     // JupyterLab's own light value: `--md-blue-50`, `#e3f2fd`
     // (`packages/theme-light-extension/style/variables.css:295`).
     cellMultiSelected = Color(0xFFE3F2FD),
+    // Gray9 - IntelliJ's `Component.borderColor`.
+    cellEditorBorder = Color(0xFFC9CCD6),
     // Blue4, the New UI accent.
     stripeSelected = Color(0xFF3574F0),
     // Red4.

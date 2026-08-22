@@ -186,6 +186,65 @@ class EditorPaletteTest {
     }
   }
 
+  /**
+   * The border has to be tellable from **both** surfaces it separates - the field's own fill on
+   * the inside and the page on the outside - because it is drawn between them and a line the
+   * colour of either side is not a line.
+   */
+  @Test
+  fun theEditorBoxIsBoundedApartFromTheSurfacesItSeparates() {
+    palettes.forEach { (name, palette) ->
+      assertNotEquals("$name border must differ from the field", palette.cellBackground, palette.cellEditorBorder)
+      assertNotEquals("$name border must differ from the page", palette.editorBackground, palette.cellEditorBorder)
+    }
+  }
+
+  /**
+   * **The border must do more work than the fill step already does**, which is the assertion that
+   * replaced the one this row was planned around.
+   *
+   * The plan asked for the 3:1 WCAG 1.4.11 non-text floor against the cell. Measured, **no step of
+   * the IntelliJ ramp that reads as a border reaches it** - Gray5 is 1.74:1 dark and Gray9 1.51:1
+   * light - and neither reference clears it either: JupyterLab's own `--jp-cell-editor-border-color`
+   * measures 2.60:1 dark and **1.21:1** light on its own surfaces. A value that passed would be a
+   * hard grey rule around every cell in the document, heavier than anything either reference draws.
+   *
+   * So the floor moves to the requirement that actually applies. 1.4.11 asks for contrast in what
+   * is *required to identify* a component, and the thing that identifies this one under WCAG is
+   * its **active** state - held to 3:1 in the test below. What the resting border owes is that it
+   * strengthens the boundary the fill alone makes, and that is a ratio this can assert: the border
+   * against the field, versus the field against the page.
+   */
+  @Test
+  fun theRestingBorderDrawsAStrongerBoundaryThanTheFillStepAlone() {
+    palettes.forEach { (name, palette) ->
+      val border = contrastRatio(palette.cellEditorBorder, palette.cellBackground)
+      val fill = contrastRatio(palette.cellBackground, palette.editorBackground)
+      assertTrue(
+        "$name border is ${"%.2f".format(border)}:1 on the field, no better than the fill's ${"%.2f".format(fill)}:1",
+        border > fill,
+      )
+    }
+  }
+
+  /**
+   * **The state indicator is held to 3:1, and it is the one that clears it.** In edit mode the
+   * active cell's editor takes `--jp-cell-editor-active-border-color`
+   * (`packages/notebook/style/base.css:160-164`), which is `--jp-brand-color1` - the same variable
+   * the active collapser takes, which is why this app reads it from one field rather than two that
+   * could drift. Measured 3.23:1 dark and 4.03:1 light against the field it outlines.
+   */
+  @Test
+  fun theActiveBorderClearsTheNonTextContrastFloor() {
+    palettes.forEach { (name, palette) ->
+      val ratio = contrastRatio(palette.stripeSelected, palette.cellBackground)
+      assertTrue(
+        "$name active border is ${"%.2f".format(ratio)}:1 on the field, below $NON_TEXT_FLOOR:1",
+        ratio >= NON_TEXT_FLOOR,
+      )
+    }
+  }
+
   @Test
   fun theTwoPalettesAreNotTheSamePalette() {
     assertNotEquals(DarkEditorPalette.editorBackground, LightEditorPalette.editorBackground)
@@ -195,6 +254,9 @@ class EditorPaletteTest {
   private companion object {
     const val BODY_TEXT_FLOOR = 4.5
     const val COMMENT_FLOOR = 3.0
+
+    /** WCAG 2.1 1.4.11, the floor for a component's state rather than for text. */
+    const val NON_TEXT_FLOOR = 3.0
 
     val PYTHON_KINDS = listOf(
       SyntaxKind.KEYWORD,

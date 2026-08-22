@@ -22,3 +22,18 @@ enum class CellMode {
   COMMAND,
   EDIT,
 }
+
+/**
+ * Whether this cell is the one the caret is in - the reference's
+ * `.jp-Notebook.jp-mod-editMode .jp-Cell.jp-mod-active`, which is the selector both of its
+ * edit-mode rules hang off (`packages/notebook/style/base.css:108-110`, `:160-164`).
+ *
+ * Stated once because it has two readers: the stripe narrows for it ([cellStripe]) and the
+ * editor's border turns brand blue for it ([cellEditorBox]). Spelled out at both, the two could
+ * disagree about which cell is being typed into.
+ *
+ * ```
+ * Modifier.cellEditorBox(editing = cellIsBeingEdited(selected, mode))
+ * ```
+ */
+internal fun cellIsBeingEdited(selected: Boolean, mode: CellMode): Boolean = selected && mode == CellMode.EDIT

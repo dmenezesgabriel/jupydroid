@@ -1,13 +1,10 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -85,6 +82,8 @@ internal fun EditorCell(
   val act: (CellAction) -> Unit = { action ->
     onCellAction(action, CellEditorText(field.text.toString(), field.selection))
   }
+  // The one rule both the stripe and the editor's border hang off - see [cellIsBeingEdited].
+  val editing = cellIsBeingEdited(selected, mode)
   val stripe = cellStripe(
     selected = selected,
     mode = mode,
@@ -141,10 +140,7 @@ internal fun EditorCell(
             lineNumbersShown = lineNumbersShown,
             search = search,
             autoClosingBrackets = autoClosingBrackets,
-            modifier = Modifier
-              .fillMaxWidth()
-              .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
-              .padding(Spacing.sm),
+            modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
           )
 
           CellKind.MARKDOWN -> MarkdownCell(
@@ -152,6 +148,7 @@ internal fun EditorCell(
             source = cell.source,
             rendered = markdownRendered,
             headingPrefix = headingPrefix,
+            editing = editing,
             onEditRequested = onMarkdownEditRequested,
             onSourceEdited = onSourceEdited,
             input = cellInput,
@@ -169,10 +166,7 @@ internal fun EditorCell(
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
             search = search,
-            modifier = Modifier
-              .fillMaxWidth()
-              .background(editorPalette.cellBackground, MaterialTheme.shapes.small)
-              .padding(Spacing.sm),
+            modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
           )
         }
       }

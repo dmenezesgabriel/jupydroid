@@ -46,6 +46,12 @@ fun MarkdownCell(
   input: FocusedCellInput? = null,
   /** Whether this cell's editor was asked for - see [EditorUiState.markdownTakingCaret]. */
   takesCaret: Boolean = false,
+  /**
+   * Whether this is the cell the caret is in - see [cellIsBeingEdited]. **Not the same question as
+   * [rendered]**: `changeCellType` unrenders every cell it visits and ends in command mode, so a
+   * run changed to markdown leaves several open editors and only one of them is being typed into.
+   */
+  editing: Boolean = false,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
   /**
@@ -70,6 +76,7 @@ fun MarkdownCell(
       input = input,
       takesCaret = takesCaret,
       lineNumbersShown = lineNumbersShown,
+      editing = editing,
     )
     return
   }

@@ -46,7 +46,25 @@ data class EditorPalette(
    * (`packages/notebook/src/widget.ts:2763-2765`, `:146-148`).
    */
   val cellMultiSelected: Color,
-  /** The left stripe of the cell holding the caret. `JUPYTER.CELL_STRIPE_SELECTED_COLOR`. */
+  /**
+   * The line around a cell's editor, drawn whether or not the cell is active - the reference's
+   * `.jp-InputArea-editor { border: var(--jp-border-width) solid var(--jp-cell-editor-border-color) }`
+   * (`packages/cells/style/inputarea.css:18-26`).
+   *
+   * IntelliJ's `Component.borderColor` - Gray5 dark, Gray9 light - the value it gives every input
+   * component (`expUI_{dark,light}.theme.json`). Held to a boundary rule rather than to the 3:1
+   * non-text floor, and `EditorPaletteTest` carries the measurement that decided which.
+   */
+  val cellEditorBorder: Color,
+  /**
+   * The left stripe of the cell holding the caret, **and the border of the editor being typed
+   * into**. `JUPYTER.CELL_STRIPE_SELECTED_COLOR`.
+   *
+   * One field for both because the reference has one variable for both: the active collapser and
+   * the active editor border are each `var(--jp-brand-color1)`
+   * (`packages/notebook/style/base.css:108-110`, `:160-164`). Two fields here could drift apart in
+   * a way the reference cannot.
+   */
   val stripeSelected: Color,
   /** The stripe of a cell whose last run raised. Has no IntelliJ key: the plugin tints the run
    *  gutter icon instead, which needs a pointer to be seen at all. */
