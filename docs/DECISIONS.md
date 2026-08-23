@@ -2585,6 +2585,38 @@ cell-chrome change without the `u3-cell-chrome` re-capture that P2u-3's gate req
 visible in `evidence/p2u-1-chrome/after/dark/03-the-document-at-rest.png` and named here so it is
 a known state rather than a defect nobody wrote down.
 
+### The cell keeps its header strip, and VS Code's run gutter is declined (P2v)
+
+P2v was written as a re-derivation of the cell chrome from VS Code: run control into an outside
+gutter (`width: 35px; left: -35px`, `media/notebook.css:228-234`), execution count at the gutter's
+foot, the heading caret onto that same indicator, and `CellHeader` retired with the `⋮` moving
+top-right and the duration to a foot status bar. **All four are cancelled before any of them is
+built**, on this app's own measurements rather than on taste:
+
+- **The width is not there.** The gutter was already widened to 48dp against the reference's 35px,
+  because P2l-4's rule reserves touch-target space rather than expanding bounds. 48dp beside every
+  editor is 15% of a 320dp window - and P2o-4 declined an 80dp bottom bar at 20% for more than
+  this would have bought.
+- **The header it retires fits.** `CellHeaderTest.theMenuButtonStaysOnScreenAt320dp` holds the
+  strip's worst case - prompt, Run, duration label, `⋮` - inside 320dp. Moving three controls to a
+  top-right toolbar and a foot status bar solves crowding this app does not have.
+- **VS Code's markup affordances assume a pointer.** It renders a markup cell on blur or Escape;
+  a touch screen has neither, which is why this app's rendered markdown *is* the tap target that
+  opens its editor.
+
+What ships instead is two adaptations, each recorded where it lands:
+
+- **The cells' play icon is outlined**, `Icons.Outlined.PlayArrow`. A filled triangle at rest
+  reads as "playing"; outlined reads as available, which is what an idle control means. Scope is
+  the three run controls in `CellHeader` only - the notebook bar's *Run all* and the selection
+  bar's play are toolbar commands and keep their filled glyphs.
+- **A heading's fold caret shows rendered only.** JupyterLab's prompt node carries the caret in
+  both states (`packages/cells/src/inputarea.ts:53-56`), but composing it while the source is open
+  spends a column of the editor's width on an affordance the user cannot use mid-typing anyway -
+  collapsing the section would close what they are writing. Hidden while editing, the heading's
+  editor runs full-width like every other cell's; the caret returns when the cell renders again.
+  This supersedes the both-states assertion of P2n-3.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
