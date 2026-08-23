@@ -37,7 +37,7 @@ filesystem the kernel, the server and the app all share.
 | Notebook | **kernel history** walked into the cell being edited; **find and replace** across the document, with JupyterLab's own filters; all three `cell_type`s - code, markdown and **raw**; cells editable, syntax-highlighted, executed; outputs (stream, error+ANSI, PNG, `text/html`, tables) render natively; collapse - of a cell's source, of its outputs, of the **section under a heading**, and outputs can be **bounded to a scrollable strip**; a contiguous run of cells can be marked and every cell **and run** command acts on it — ranged runs, the compound restarts and clear-all included; nbformat round-trip preserves unknown fields |
 | Editor | `BasicTextField` + generated ANTLR lexer, auto-indent, bracket match (**toggleable, persisted, universal** across a cell and the plain file editor), line numbers (**toggleable**), kernel-backed completion, symbol row |
 | Files | explorer with create / rename / delete / browse, Recents as a section, **export** beside the document and out through a share sheet, polling on JupyterLab's own cadence (`packages/filebrowser/src/model.ts:26`, `DEFAULT_REFRESH_INTERVAL = 10000`, `standby: 'when-hidden'` at `:106`) |
-| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. **Everything below this point is JupyterLab-derived and named as such, because since P2t this file has two presentation references and its own rule is that a claim must say which.** Cell chrome is JupyterLab's: the collapser transparent at rest and brand blue on the active cell, the editor boxed by a 1dp border that turns brand blue for the cell being typed into. A cell's prompt is JupyterLab's - `[7]:` on code and **nothing at all** on markdown or raw, so every header's leading mark sits at one x. The document's name has a row of its own above its actions, where JupyterLab's single-document mode puts it; the heading caret sits beside the heading it folds, where JupyterLab draws it. The table of contents is a **sidebar panel of the shell** reached from an activity bar beside the file browser, where it used to be a column on the right of the notebook; the open document publishes its headings across to it, since the panel cannot reach the notebook's ViewModel. Picking the showing panel collapses the side area and the notebook takes the width. The active cell's type is named on the bar where there is room for it and in the notebook's overflow where there is not, which is what JupyterLab's `ReactiveToolbar` does with an item that does not fit. Every cell type's editor is **one font** - a markdown cell's source is drawn in the code font a code and a raw cell's is (P2s), which both references agree on and which is **not** rendered markdown's code inheriting the prose size (P2l-3b). **P2v declined to re-derive the cell chrome from VS Code** - its outside run gutter and its header retirement spend width a phone does not have, and are cancelled rather than built (`docs/DECISIONS.md`); what it ships instead is two adaptations, an outlined play and a heading caret shown rendered only. **P2w still re-derives the notebook's top**, so the sentences above about the document's name and the table of contents are the ones that change next. |
+| Presentation | three scales and one gate each: Material's type scale stated rather than hand-built, `theme/Spacing.kt` on the 4dp grid, and `theme/CodeText.kt` at 14sp/18sp with `FontFamily.Monospace` confined to `EditorTheme.kt`; every tap target reserves Material's 48dp. **Everything below this point is JupyterLab-derived and named as such, because since P2t this file has two presentation references and its own rule is that a claim must say which.** Cell chrome is JupyterLab's: the collapser transparent at rest and brand blue on the active cell, the editor boxed by a 1dp border that turns brand blue for the cell being typed into. A cell's prompt is JupyterLab's - `[7]:` on code and **nothing at all** on markdown or raw, so every header's leading mark sits at one x. The document's name has a row of its own above its actions, where JupyterLab's single-document mode puts it; the heading caret sits beside the heading it folds, where JupyterLab draws it. The table of contents is a **sidebar panel of the shell** reached from an activity bar beside the file browser, where it used to be a column on the right of the notebook; the open document publishes its headings across to it, since the panel cannot reach the notebook's ViewModel. Picking the showing panel collapses the side area and the notebook takes the width. The active cell's type is named on the bar where there is room for it and in the notebook's overflow where there is not, which is what JupyterLab's `ReactiveToolbar` does with an item that does not fit. Every cell type's editor is **one font** - a markdown cell's source is drawn in the code font a code and a raw cell's is (P2s), which both references agree on and which is **not** rendered markdown's code inheriting the prose size (P2l-3b). **P2v and P2w re-derive the cell chrome and the notebook's top from VS Code**, so the four sentences above them are the ones that change next. |
 | Shell | two panes ≥ 840dp on `ListDetailSceneStrategy`, **VS Code's chrome palette** - every Material role on the resolved 2026 ramp, each pair held to a contrast floor (P2u-1) - Material's own type scale, per-notebook ViewModel scoping |
 | Tests | 291 instrumented, 1293 unit, 138 script, 107 Maestro drivers over 121 flows - 101 of them in the sweep, the other six being tools rather than checks (`NOT A SUITE FLOW`) - `run-flows-sharded.sh` **balanced by measured time** across both devices, gradle + script gates. Counted, not carried: this row read 256/1261/100/114 until P2s, which was 35 instrumented tests behind what the tree held |
 
@@ -58,9 +58,9 @@ be an opaque fill with the text restated over it, and rendered markdown takes th
 stylesheet that actually themes it. **`EditorPalette` is now entirely VS Code's** - the split
 `theme/EditorPalettes.kt` used to state in its header is closed.
 
-**Next: P2v-1**, the outlined play - and P2v is now two small adaptations rather than the layout
-work it was written as, which is cancelled (`docs/DECISIONS.md`, "The cell keeps its header strip,
-and VS Code's run gutter is declined").
+**Next: P2v-1**, the run gutter - the first of the layout work, where everything before it was
+colour. P2v was once declined on width grounds and is re-taken by decision; `docs/DECISIONS.md`,
+"The run gutter is re-taken", carries both halves so neither has to be re-litigated.
 
 Status lives here rather than in the table, because that table says what the app **is** and this
 says where the work **is up to**; the two were one cell until P2s and the Presentation row was
@@ -988,20 +988,24 @@ which is a change of reference and not a change of taste - `docs/DECISIONS.md`, 
 reference is VS Code; the behaviour reference stays JupyterLab", is the entry that permits it and
 names its limits. Behaviour, the command surface, `nbformat` and the kernel protocol are untouched.
 
-The phase was written as six changes and one of them new. **Four of the six are cancelled before
-any of them is built** - the outside run gutter, the execution count at its foot, the heading cell's
-gutter position and `CellHeader`'s retirement, P2v-1..4 as first filed - because they re-derive a
-desktop layout whose cost this app's own evidence already priced: a 48dp column left of every
-editor is 15% of a 320dp window (P2o-4 measured an 80dp bar at 20% and declined it), and moving
-three controls off the header buys nothing on a screen where that header fits with room to spare
-(`CellHeaderTest.theMenuButtonStaysOnScreenAt320dp`). What remains of it:
+Six things change and one of them is new:
 
-1. The cells' **play icon is outlined** rather than filled.
-2. A **markdown heading cell shows its fold caret rendered only**: in edit mode the source runs
-   full-width like every other editor's, so a heading being written lines up with the code beside
-   it.
-3. The notebook's top grows a **breadcrumb** and a **kernel indicator at its right**.
-4. **Workspace search and replace** - a panel on the rail, and a bottom navigation on phones.
+1. The cell's **run control moves into a left gutter** beside the editor, where a header row above
+   the editor holds it today.
+2. The **execution count moves to the foot of that gutter**, and reads `[ ]` before a first run -
+   and the header prompt retires, because `[N]` in the gutter is the same fact in the reference's
+   own place for it.
+3. A **markdown heading cell** shows the fold chevron rendered and the play unrendered, one slot.
+4. The cell's **overflow moves to its top-right** and `CellHeader` is retired.
+5. The notebook's top grows a **breadcrumb** and a **kernel indicator at its right**.
+6. **Workspace search and replace** - a panel on the rail, and a bottom navigation on phones.
+
+One thing was decided here that VS Code does not answer: **the gutter is drawn on all three
+kinds** - code's Run/Stop/spinner and count; markdown's play or chevron; raw empty, so every
+editor shares one x. The reference builds the gutter node per *code* cell (`cellRenderer.ts:273`),
+but this app runs markdown to render it - a touch screen has neither blur nor Escape, which is
+P2v-3's recorded adaptation - and a raw cell without the column would start its editor 48dp left
+of every neighbour's.
 
 ## What was measured before this phase was written
 
@@ -1036,9 +1040,9 @@ Two measurements decided things this file would otherwise have guessed, and both
 
 ## What this phase declines to decide by taste
 
-- **The run gutter was going to be 48dp where VS Code's is 35px**, on P2l-4's rule that a touch
-  target is *reserved space, not expanded bounds*. It is now declined outright rather than widened:
-  see the cancelled four above and `docs/DECISIONS.md`.
+- **The run gutter is 48dp where VS Code's is 35px.** P2l-4 settled that a touch target is
+  *reserved space, not expanded bounds*, so a 35dp gutter cannot hold Material's 48dp minimum.
+  Both numbers go in `docs/DECISIONS.md` so the departure stays legible.
 - **P2p is folded into P2z** rather than run first. It is the whole suite on two devices, and every
   frame it would capture is re-drawn by this phase. Each sub-step still gates on its own evidence,
   which is what `CLAUDE.md` actually requires.
@@ -1058,9 +1062,10 @@ Two measurements decided things this file would otherwise have guessed, and both
 | **P2u-3d** | *(shipped)* **Rendered markdown's inline marks, which are not the source's.** `cellSelectionBackground` was documented as "the selected cell's surface" and its one reader was `richInlineStyles().code.background` - nothing had drawn a selected cell with it. Renamed `inlineCodeBackground`, given the `inlineCodeForeground` it needed, and both sourced from `textPreformat.*`. **The link moved too**, to `textLink.foreground`: a notebook's markdown preview is a webview and `webviewThemeMapping.ts:8-27` is the reference's own table for what themes it - `theme-code-*` onto the `textPreformat` pair, `theme-link` onto `textLink.foreground`. Rendered prose and its source now disagree **on purpose**: a link is a string in the source and the accent in the render. | The chrome pin extended; `a1c-markdown-render` on both devices, all three values sampled off the PNG. |
 | **P2u-3e** | *(shipped)* **The highlights, and the two foregrounds VS Code does not state.** `matchedBracket` ← `editorBracketMatch.background`, `searchMatch` ← `editor.findMatchHighlightBackground`, `currentSearchMatch` ← `editor.findMatchBackground` - all three **translucent**, because `editor.findMatchForeground` and `editor.findMatchHighlightForeground` are registered `null` and the code has to show through. `searchMatchText` and `currentSearchMatchText` are **deleted**. **Measured cost**: the reference separates current from found by alpha alone, `#214555` against `#20414F` on the dark cell, **1.06:1**, with no border id set - so the app's pre-existing **bold** on the current match now carries the signal, recorded in `docs/DECISIONS.md` as a departure. | The wash assertion replaced two readability ones; `p2i-3-find` on both devices, both composites sampled off the tablet PNG (`#214555` and `#20414E`) with `#BBBEBF` code visible through each. |
 | **P2u-3f** | *(shipped, and it corrected P2u-3d's citation)* Rendered markdown's **block** colours: the fenced block onto the `textPreformat` pair it shares with an inline span (`pre code` resets only padding), the block quote onto `textBlockQuote.background` **and** `.border` - a wash it did not have before, which is why the rule can be as faint as the reference draws it - the thematic break and the list marker onto the inherited body colour, which is what the notebook's renderer leaves them to. **The real stylesheet is the webview's base**, `contrib/webview/browser/pre/index.html:125-160`; `webviewThemeMapping.ts` exports the same ids under `theme-*` names but **nothing in the tree consumes them** - they are a compatibility surface for third-party renderers, and P2u-3d cited them by mistake. The values were right, the citation was not. | The chrome pin extended to fifteen ids; `a1c-markdown-render` on both devices, the quote wash, its rule and the preformat chip all sampled off the tablet PNG. |
-| **P2v-1** | *(rewritten; the row it replaces is cancelled)* **The cells' play icon is outlined**, not filled: `Icons.Outlined.PlayArrow` on the three run controls in `CellHeader` - a code cell's idle and queued Run and a markdown cell's Run. The notebook bar's *Run all* and the selection bar's play are toolbar commands, not cell chrome, and keep their filled glyphs. | Instrumented that every `Run cell` node on a code and a markdown header draws the outlined glyph; `p1d-part1-run-a-cell` re-captured on both devices. |
-| **P2v-2** | *(rewritten; the row it replaces is cancelled)* **A heading's fold caret shows rendered only.** While the cell's source is open the caret column is not composed, so the editor runs full-width like every other cell's and a heading being written aligns with the code beside it - the collapse stays available one blur away, when the cell renders again. This departs from the reference deliberately: JupyterLab's prompt node carries its caret in both states (`inputarea.ts:53-56`), but its edit mode is a desktop's separate click target, and on this app's touch screen the rendered cell *is* the tap that opens the editor. Retires the both-states assertion from P2n-3. | Instrumented at all six levels: source ⇒ no caret and the body starts where a non-heading body does; rendered ⇒ caret beside the heading as before. `p2f-1-heading-collapse` re-captured on both devices. |
-| **P2v-4** | **CANCELLED, never built.** `CellHeader` keeps the strip: the `⋮` stays where it is, the duration stays beside the run control, the multi-select tick stays leading. VS Code moves these to a top-right toolbar and a foot status bar across a 35px gutter this window does not have; measured against P2o-4's own numbers the layout spends width this app declined to spend for less. | — |
+| **P2v-1** | **The run gutter.** A fixed column left of the editor holding Run / Stop / spinner, top-aligned with the editor's first line. 48dp, for the reason above. Run and Stop leave `CellHeader`. Markdown's render-play moves into the same column, so a heading or not it is one slot; raw's is empty. | JVM over its states; instrumented that the Run control's bounds are left of the editor's and share its top y, at 320dp and 1280dp. |
+| **P2v-2** | **The execution count at the gutter's foot**, `[N]` and `[ ]`, **and the header prompt retires** - `[7]:` above the editor and `[7]` in the gutter are one fact twice. Code cells only. Drawn in the code font at the reference's *proportion* (10px against its 13px editor) rather than at its pixel size, since `CodeText` is 14sp here; the style lives in `EditorTheme.kt`, which is where `check_monospace_home.py` says monospace is named. | Instrumented that the label sits below the Run control and shares the editor's bottom y; that a never-run code cell reads `[ ]`; that markdown and raw have none. `p2n-gutter` re-run. |
+| **P2v-3** | **The markdown heading cell's gutter**: chevron rendered, play unrendered, one position. The chevron is VS Code's; **the play icon is an adaptation** - VS Code renders a markup cell on blur or Escape, and a touch screen has neither - recorded beside what it departs from. Retires P2n-3's caret position. | Instrumented at all six levels: rendered ⇒ chevron, source ⇒ play, both at the editor's top y. `p2f-1-heading-collapse` re-captured. |
+| **P2v-4** | **`CellHeader` is retired**, in two commits rather than one: **4a** moves the `⋮` to the cell's top-right (`cellToolbarLocation` default `'right'`); **4b** moves the run duration to a status strip at the cell's foot, where VS Code keeps it. The multi-select checkbox stays leading on the frame throughout. | Instrumented that the overflow opens from the top-right and that the duration reads at the cell's foot; `u4-execution-status`, `u5a-cell-actions`, `p2c-selection` re-captured on both devices. |
 | **P2w-1** | **The breadcrumb**, between the title row and the action row, which is where `BreadcrumbsControl` sits relative to a tab title. Segments of the open document's path; a segment opens that folder. Collapses with the title - `titleCollapseFraction` (P2q-2) is reused, not duplicated. | JVM over the segmenting; instrumented at 320dp that it sits between the two rows and collapses on scroll. The three rows' total height measured against P2q-2's 112dp. |
 | **P2w-2** | **The kernel indicator at the action row's right.** Names the notebook's kernel and its state; tapping opens the existing kernel menu. **Not a picker**: `KernelGateway` has no kernelspec listing and one kernelspec exists, so a picker over one entry is chrome. The port it would need is named here as P3's. | Instrumented that it is the rightmost item and that its state follows a run; on the **arm64 tablet**, idle → busy → idle across a real run. |
 | **P2x-1** | **The port.** `domain/port/WorkspaceSearcher` - a streamed flow of per-file matches for a query plus include / exclude globs, and replace-across-files. `DiskWorkspaceSearcher`, and the `Fake…` that `AppContainer` defaults to. `SearchQuery` **moves** out of `ui/editor/` to a shared home in the same commit: it is document logic both surfaces read, and CLAUDE.md gives that one home. | Port contract test over both implementations; JVM over the globs against `files.exclude` / `search.exclude` defaults. |
@@ -1101,8 +1106,11 @@ reference declines to state at all - VS Code keeps a match readable by making th
 (P2u-3e). **Alpha is load-bearing** in six of these values and this app's palette has been opaque
 throughout, so P2u-3e is the one that changes how a colour is applied rather than only which.
 
-**The two script-gate extensions this paragraph once announced are moot**: both were for the run
-gutter and the execution-count label it would have held, which are cancelled. No gate moves.
+**Two script gates will need extending, and that is part of the work rather than a surprise:**
+`check_ui_dimensions.py` sees the new gutter constant, and `check_monospace_home.py` sees the
+execution-count label. Extending a gate is allowed; routing around one is not - which is why both
+new values get homes rather than exceptions: `CELL_RUN_GUTTER` as a named constant with its KDoc,
+the count as a named style in `EditorTheme.kt`.
 
 ---
 
