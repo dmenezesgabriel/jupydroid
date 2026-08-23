@@ -44,14 +44,14 @@ class CellHeaderTest {
 
   @Test
   fun showsAVisibleMenuButton() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).assertIsDisplayed()
   }
 
   @Test
   fun tappingTheMenuButtonOpensTheActions() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
 
@@ -71,7 +71,7 @@ class CellHeaderTest {
   @Test
   fun aMarkdownCellHasTheMenuButtonToo() {
     compose.setContent {
-      CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+      CellHeader(MARKDOWN_CELL, execution = null, canPaste = false, mark = null, {}, {})
     }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
@@ -86,7 +86,7 @@ class CellHeaderTest {
    */
   @Test
   fun aRawCellHasNoRunControlButKeepsItsMenu() {
-    compose.setContent { CellHeader(RAW_CELL, null, execution = null, canPaste = false, mark = null, {}, {}) }
+    compose.setContent { CellHeader(RAW_CELL, execution = null, canPaste = false, mark = null, {}, {}) }
 
     compose.onNodeWithContentDescription(RUN_BUTTON).assertDoesNotExist()
     compose.onNodeWithContentDescription(MENU_BUTTON).assertIsDisplayed()
@@ -94,16 +94,16 @@ class CellHeaderTest {
 
   /**
    * **No header carries a Run control any more** - P2v-1 moved it into the gutter left of the
-   * editor ([CellGutterTest] holds the gutter's own assertions). The header keeps the prompt, the
-   * duration and the menu; raw never had Run and markdown lost it with the rest, since running it
-   * renders it and that button lives where every other one does now.
+   * editor ([CellGutterTest] holds the gutter's own assertions). The header keeps the duration and
+   * the menu; raw never had Run and markdown lost it with the rest, since running it renders it
+   * and that button lives where every other one does now.
    */
   @Test
   fun noHeaderCarriesARunControlAnyMore() {
     compose.setContent {
       Column {
-        CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
-        CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+        CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {})
+        CellHeader(MARKDOWN_CELL, execution = null, canPaste = false, mark = null, {}, {})
       }
     }
 
@@ -116,7 +116,7 @@ class CellHeaderTest {
   fun choosingAnActionReportsItAndClosesTheMenu() {
     val chosen = mutableListOf<CellAction>()
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {
+      CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {
         chosen +=
           it
       })
@@ -137,7 +137,7 @@ class CellHeaderTest {
   @Test
   fun whileSelecting_theCellShowsATickInsteadOfTheMenuButton() {
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = MARK, {}, {})
+      CellHeader(CODE_CELL, execution = null, canPaste = false, mark = MARK, {}, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 2").assertIsDisplayed()
@@ -147,7 +147,7 @@ class CellHeaderTest {
   @Test
   fun withNoSelection_thereIsNoTick() {
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+      CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 2").assertDoesNotExist()
@@ -157,7 +157,7 @@ class CellHeaderTest {
   @Test
   fun theTickCarriesWhetherTheCellIsInTheRun() {
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = MARK, {}, {})
+      CellHeader(CODE_CELL, execution = null, canPaste = false, mark = MARK, {}, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 2").assertIsOn()
@@ -167,7 +167,7 @@ class CellHeaderTest {
   fun tappingTheTickReportsIt() {
     var toggled = 0
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, MARK, { toggled++ }, {})
+      CellHeader(CODE_CELL, execution = null, canPaste = false, MARK, { toggled++ }, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 2").performClick()
@@ -175,34 +175,27 @@ class CellHeaderTest {
     assertEquals(1, toggled)
   }
 
-  // --- the prompt, and what may precede it (P2n) --------------------------------------
+  // --- what the strip no longer carries (P2v-2) ----------------------------------------
 
   /**
-   * **Nothing is ever in front of a code cell's prompt**, so every bracket in a document starts at
-   * the same x. That is the reference's arrangement reached by removing rather than reserving: its
-   * prompt is the first child of the input area (`packages/cells/src/inputarea.ts:53-56`), and the
-   * one thing that could precede it - the heading collapser - is not a sibling at all but an
-   * absolutely positioned child *of the prompt* (`packages/cells/src/widget.ts:2386-2408`,
-   * `packages/cells/style/widget.css:154-168`).
-   *
-   * Measured ragged before this: two markdown labels 48dp apart in one frame
-   * (`evidence/p2n-gutter/before/gutter.txt`).
+   * **No header draws a bracket any more.** The prompt left for the gutter's foot in P2v-2 -
+   * `[7]:` above the editor and `[7]` at its foot are one fact twice - so a cell that has run
+   * twelve times says so below its editor ([CellGutterTest] holds that side), and nothing above
+   * it repeats the number. The alignment tests this replaces (`everyCodePromptInOneFrame…`,
+   * `aMarkedRunKeepsEveryPromptInLine`) pinned brackets that no longer exist.
    */
   @Test
-  fun everyCodePromptInOneFrameStartsAtTheSameX() {
+  fun aHeaderDrawsNoBracketAnyMore() {
     compose.setContent {
-      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
-        Column {
-          CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
-          CellHeader(CODE_CELL, 1, execution = null, canPaste = false, mark = null, {}, {})
-          CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
-          CellHeader(CODE_CELL, 12, execution = null, canPaste = false, mark = null, {}, {})
-        }
+      Column {
+        CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {})
+        CellHeader(HEADING_CELL, execution = null, canPaste = false, mark = null, {}, {})
+        CellHeader(RAW_CELL, execution = null, canPaste = false, mark = null, {}, {})
       }
     }
 
-    assertEquals(0.dp, compose.onNodeWithText("[1]:").getUnclippedBoundsInRoot().left)
-    assertEquals(0.dp, compose.onNodeWithText("[12]:").getUnclippedBoundsInRoot().left)
+    compose.onNodeWithText("[ ]").assertDoesNotExist()
+    compose.onNodeWithText("[12]").assertDoesNotExist()
   }
 
   /**
@@ -215,8 +208,8 @@ class CellHeaderTest {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
         Column {
-          CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
-          CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+          CellHeader(PROSE_CELL, execution = null, canPaste = false, mark = null, {}, {})
+          CellHeader(HEADING_CELL, execution = null, canPaste = false, mark = null, {}, {})
         }
       }
     }
@@ -235,8 +228,8 @@ class CellHeaderTest {
   fun neitherMarkdownNorRawCarriesAPrompt() {
     compose.setContent {
       Column {
-        CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
-        CellHeader(RAW_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+        CellHeader(PROSE_CELL, execution = null, canPaste = false, mark = null, {}, {})
+        CellHeader(RAW_CELL, execution = null, canPaste = false, mark = null, {}, {})
       }
     }
 
@@ -244,35 +237,20 @@ class CellHeaderTest {
     compose.onNodeWithText("raw").assertDoesNotExist()
   }
 
-  /** A marked run puts one tick on every cell, so the prompts stay in line with each other. */
-  @Test
-  fun aMarkedRunKeepsEveryPromptInLine() {
-    compose.setContent {
-      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
-        Column {
-          CellHeader(CODE_CELL, 1, null, false, CellMark(checked = false, position = 1), {}, {})
-          CellHeader(HEADING_CELL, null, null, false, CellMark(checked = true, position = 2), {}, {})
-          CellHeader(CODE_CELL, 12, null, false, CellMark(checked = false, position = 3), {}, {})
-        }
-      }
-    }
-
-    val first = compose.onNodeWithText("[1]:").getUnclippedBoundsInRoot().left
-    assertEquals(first, compose.onNodeWithText("[12]:").getUnclippedBoundsInRoot().left)
-  }
+  /** A marked run puts one tick on every cell, and nothing about that changed for the strip. */
 
   /**
    * **A header has to fit at 320dp**, which is the width this app is driven at and the one that
-   * decides. The worst case is a code cell that has finished: prompt, Run, the duration label and
-   * the `⋮`. This is the assertion that keeps anything added to the strip honest - the version of
-   * P2n that reserved two 48dp gutter slots left about 10dp of headroom here and would have gone
-   * over as soon as `fontScale` rose, which on the tablet it already has (1.1).
+   * decides. The worst case left here is a code cell that has finished: the duration label and the
+   * `⋮`. This is the assertion that keeps anything added to the strip honest - the version of P2n
+   * that reserved two 48dp gutter slots left about 10dp of headroom here and would have gone over
+   * as soon as `fontScale` rose, which on the tablet it already has (1.1).
    */
   @Test
   fun theMenuButtonStaysOnScreenAt320dp() {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
-        CellHeader(CODE_CELL, 1, RAN_FOR_EIGHT_SECONDS, canPaste = false, mark = null, {}, {})
+        CellHeader(CODE_CELL, RAN_FOR_EIGHT_SECONDS, canPaste = false, mark = null, {}, {})
       }
     }
 

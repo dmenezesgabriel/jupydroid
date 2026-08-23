@@ -1,16 +1,23 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
@@ -106,7 +113,6 @@ internal fun EditorCell(
   ) {
     CellHeader(
       cell = cell,
-      executionCount = executionCount,
       execution = execution,
       canPaste = canPaste,
       mark = mark,
@@ -120,14 +126,33 @@ internal fun EditorCell(
     // area* rather than the row, which is the distinction JupyterLab draws in `_evtFocusIn`: focus
     // anywhere in a cell selects it, but only focus inside the editor means edit mode - put on the
     // Row, the gutter's buttons would count as typing.
-    Row(modifier = Modifier.fillMaxWidth()) {
+    // IntrinsicSize.Min is what makes "as tall as the editor" sayable: a plain Row reports no
+    // height of its own, and fillMaxHeight inside it stretches to the *column's* remaining space -
+    // which is how the first cut of this put a 600dp gutter under a 20dp editor
+    // (evidence/p2v-2-count-at-foot). With the intrinsic pass, the Row's height is decided by its
+    // tallest content - the editor - and the gutter's fillMaxHeight matches exactly that.
+    //
+    // The floor is the reference's editor minimum read as intent: a code input is never shorter
+    // than play + air + bracket (`codeCell.ts:195-201`), so even one line of code holds both ends
+    // of its gutter. A collapsed source floors nothing - its chip replaces the editor, and with
+    // the editor goes the label, which is `_updatePosition` hiding the count when
+    // `isInputCollapsed` (`cellExecution.ts:127-131`).
+    val showRunGutterStack = cell.kind == CellKind.CODE && !cell.sourceHidden
+    val inputFloor = if (showRunGutterStack) cellInputMinHeight() else Dp.Unspecified
+    Row(
+      modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min).heightIn(min = inputFloor),
+    ) {
+      // Height-filling so the gutter's foot - the execution count since P2v-2 - reaches the
+      // editor's bottom y, which is where the reference pins it (`cellExecution.ts:139,200`).
       CellGutter(
         kind = cell.kind,
         status = execution?.status ?: ExecutionStatus.NOT_STARTED,
+        executionCount = if (cell.sourceHidden) null else executionCount,
         onRun = onRun,
         onStop = onStop,
+        modifier = Modifier.fillMaxHeight(),
       )
-      Box(modifier = onCellInputFocus(onFocusChanged).weight(1f)) {
+      Box(modifier = onCellInputFocus(onFocusChanged).weight(1f).fillMaxHeight().testTag(CELL_INPUT_AREA)) {
         if (cell.sourceHidden) {
           // Collapsed beats every other source state: there is nothing to type into, and the tap
           // that expands must not also land in a text field.
@@ -146,7 +171,10 @@ internal fun EditorCell(
               lineNumbersShown = lineNumbersShown,
               search = search,
               autoClosingBrackets = autoClosingBrackets,
-              modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
+              // Height-filling before the border is drawn around it, so a floored one-line cell
+              // shows an editor of its full minimum height - trailing space inside the frame -
+              // rather than a short editor floating under a bracket pinned past its edge.
+              modifier = Modifier.fillMaxWidth().fillMaxHeight().cellEditorBox(editing),
             )
 
             CellKind.MARKDOWN -> MarkdownCell(
@@ -181,13 +209,17 @@ internal fun EditorCell(
         }
       }
     }
-    CellOutputs(
-      outputs = outputs,
-      hidden = cell.outputsHidden,
-      scrolled = cell.outputsScrolled,
-      search = outputSearch,
-      onExpand = { act(CellAction.ToggleOutputsHidden) },
-    )
+    // Indented by the gutter so outputs read as part of the editor's column: with the gutter
+    // inside the cell (P2v-1), anything below the row that starts at the frame edge sits under it.
+    Box(modifier = Modifier.padding(start = CELL_RUN_GUTTER)) {
+      CellOutputs(
+        outputs = outputs,
+        hidden = cell.outputsHidden,
+        scrolled = cell.outputsScrolled,
+        search = outputSearch,
+        onExpand = { act(CellAction.ToggleOutputsHidden) },
+      )
+    }
     // Inside this cell's frame rather than between it and the next, because that is what it is
     // about: the reference appends the button to the heading cell's own node (`widget.ts:2429`).
     if (hiddenBelow > 0) {
@@ -195,3 +227,6 @@ internal fun EditorCell(
     }
   }
 }
+
+/** The editor's input area - the column every output below a cell lines up with (P2v-2). */
+internal const val CELL_INPUT_AREA = "cell-input-area"

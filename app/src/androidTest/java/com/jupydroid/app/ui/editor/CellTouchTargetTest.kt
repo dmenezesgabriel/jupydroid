@@ -38,7 +38,7 @@ class CellTouchTargetTest {
   @Test
   fun theMenuButtonIsBigEnoughToHit() {
     compose.setContent {
-      CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {})
+      CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {})
     }
 
     compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget(compose.density)
@@ -52,7 +52,7 @@ class CellTouchTargetTest {
   @Test
   fun theRunControlInTheGutterIsBigEnoughToHit() {
     compose.setContent {
-      CellGutter(kind = CellKind.CODE, status = ExecutionStatus.NOT_STARTED, onRun = {}, onStop = {})
+      CellGutter(kind = CellKind.CODE, status = ExecutionStatus.NOT_STARTED, executionCount = null, onRun = {}, onStop = {})
     }
 
     compose.onNodeWithContentDescription("Run cell").assertIsAtLeastMinimumTouchTarget(compose.density)
@@ -62,7 +62,7 @@ class CellTouchTargetTest {
   @Test
   fun theStopButtonInTheGutterIsBigEnoughToHit() {
     compose.setContent {
-      CellGutter(kind = CellKind.CODE, status = ExecutionStatus.RUNNING, onRun = {}, onStop = {})
+      CellGutter(kind = CellKind.CODE, status = ExecutionStatus.RUNNING, executionCount = null, onRun = {}, onStop = {})
     }
 
     compose.onNodeWithContentDescription("Stop cell").assertIsAtLeastMinimumTouchTarget(compose.density)
@@ -75,7 +75,7 @@ class CellTouchTargetTest {
   @Test
   fun theSelectionTickIsBigEnoughToHit() {
     compose.setContent {
-      CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = MARK, {}, {})
+      CellHeader(CODE_CELL, execution = null, canPaste = false, mark = MARK, {}, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 1").assertIsAtLeastMinimumTouchTarget(compose.density)
@@ -85,7 +85,7 @@ class CellTouchTargetTest {
   @Test
   fun aMarkdownCellsPlayIsBigEnoughToHit() {
     compose.setContent {
-      CellGutter(kind = CellKind.MARKDOWN, status = ExecutionStatus.NOT_STARTED, onRun = {}, onStop = {})
+      CellGutter(kind = CellKind.MARKDOWN, status = ExecutionStatus.NOT_STARTED, executionCount = null, onRun = {}, onStop = {})
     }
 
     compose.onNodeWithContentDescription("Run cell").assertIsAtLeastMinimumTouchTarget(compose.density)

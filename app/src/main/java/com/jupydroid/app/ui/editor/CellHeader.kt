@@ -27,13 +27,14 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
 /**
- * The strip above a cell: where its run got to, and the way into [CellMenu]. Its Run/Stop control
- * left for the gutter in P2v-1 - [CellGutter], left of the editor.
+ * The strip above a cell: how long its last run took, and the way into [CellMenu]. Its Run/Stop
+ * control left for the gutter in P2v-1 - [CellGutter], left of the editor - and its execution
+ * prompt followed in P2v-2, replaced by the count at that gutter's foot: `[7]:` above the editor
+ * and `[7]` at its foot are one fact twice.
  */
 @Composable
 internal fun CellHeader(
   cell: Cell,
-  executionCount: Int?,
   execution: CellExecution?,
   canPaste: Boolean,
   /** The tick this cell shows while a run is being marked, or null when none is - see [CellMark]. */
@@ -55,7 +56,7 @@ internal fun CellHeader(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier.fillMaxWidth().semantics { stateDescription = status.spokenState() },
   ) {
-    // Leading, where a Material selection list puts its tick, and before the prompt so the eye
+    // Leading, where a Material selection list puts its tick, and before the duration so the eye
     // runs down one column of ticks rather than hunting them among four different labels.
     if (mark != null) {
       Checkbox(
@@ -64,18 +65,6 @@ internal fun CellHeader(
         // On the Checkbox itself, so a screen reader reads which cell and whether it is in the
         // run off one node - the same rule the undo buttons cost a flow to learn.
         modifier = Modifier.semantics { contentDescription = mark.label },
-      )
-    }
-    // Nothing at all on a markdown or raw cell, which is the reference's own arrangement:
-    // `_setPrompt`'s only caller is `CodeCell._updatePrompt`
-    // (`packages/cells/src/widget.ts:1693-1700`), so their prompt node is drawn and left textless.
-    // Composed away rather than drawn empty - an empty `Text` still measures its line height and
-    // still sits between the collapser and the Run control.
-    executionLabel(cell.kind, status, executionCount)?.let { prompt ->
-      Text(
-        text = prompt,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.primary,
       )
     }
     // How long the last one took, in the reference's own `EXECUTION_TIME_COLOR`. Absent while a

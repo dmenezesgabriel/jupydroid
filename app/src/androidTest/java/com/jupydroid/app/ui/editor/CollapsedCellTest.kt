@@ -73,7 +73,7 @@ class CollapsedCellTest {
 
   @Test
   fun theMenuOffersBothCollapsesOnAnExpandedCodeCell() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
@@ -88,7 +88,7 @@ class CollapsedCellTest {
    */
   @Test
   fun theMenuOffersOutputScrollingOnACodeCellWhicheverWayItIsScrolled() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, execution = null, canPaste = false, mark = null, {}, {}) }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
 
@@ -99,7 +99,7 @@ class CollapsedCellTest {
   @Test
   fun theMenuOffersExpandOnceTheSourceIsCollapsed() {
     compose.setContent {
-      CellHeader(CODE_CELL.copy(sourceHidden = true), null, null, canPaste = false, mark = null, {}, {})
+      CellHeader(CODE_CELL.copy(sourceHidden = true), null, canPaste = false, mark = null, {}, {})
     }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
@@ -112,7 +112,7 @@ class CollapsedCellTest {
   @Test
   fun theTwoCollapsesAreLabelledIndependently() {
     compose.setContent {
-      CellHeader(CODE_CELL.copy(outputsHidden = true), null, null, canPaste = false, mark = null, {}, {})
+      CellHeader(CODE_CELL.copy(outputsHidden = true), null, canPaste = false, mark = null, {}, {})
     }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()
@@ -129,7 +129,7 @@ class CollapsedCellTest {
   @Test
   fun theMenuOffersNeitherCollapseOnAMarkdownCell() {
     compose.setContent {
-      CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+      CellHeader(MARKDOWN_CELL, execution = null, canPaste = false, mark = null, {}, {})
     }
 
     compose.onNodeWithContentDescription("Cell actions").performClick()

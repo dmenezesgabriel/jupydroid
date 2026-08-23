@@ -1,40 +1,33 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.CellKind
 import java.time.Duration
 import java.util.Locale
 
 /**
- * The prompt beside a cell, in Jupyter's own notation - or null on a cell the reference gives none.
+ * The execution count at a code cell's gutter foot, in the reference's own notation - or null when
+ * there is nothing to say. P2v-2 moved it here from the header strip, whose prompt it replaces:
+ * `[7]:` above the editor and `[7]` at its foot are one fact twice.
  *
- * `[ ]:` never run, `[*]:` working, `[7]:` ran seventh - a notation a Jupyter user reads without
- * being told. It replaces a label that showed `[7]` or the word "code", under which a code cell
- * nobody had run and one waiting its turn were the same thing.
+ * `[ ]` never run, `[*]` working, `[7]` ran seventh - read out of the reference rather than
+ * remembered: `cellExecution.ts` draws `[N]` from the kernel's count and `[ ]` when the cell has
+ * never run (`view/cellParts/cellExecution.ts:94,133,181,194`). **No trailing colon**: that was
+ * JupyterLab's `InputPrompt`, and VS Code's execution count is the bracket alone
+ * (`media/notebook.css:256-266`). Drawn only where a kernel can put a count - code cells;
+ * markdown renders and raw does nothing (`cellexecutor.ts:36-141`) - which is [CellGutter]'s
+ * switch rather than this function's.
  *
- * **The trailing colon is the reference's, not decoration.** `InputPrompt`'s setter writes
- * `` `[${'$'}{value || ' '}]:` `` (`packages/cells/src/inputarea.ts:283-290`), and the empty string
- * falling through `||` to a space is where `[ ]:` comes from.
- *
- * **Nothing that is not code carries a prompt at all**, which is read rather than reasoned:
- * `_setPrompt` has exactly one caller, `CodeCell._updatePrompt`
- * (`packages/cells/src/widget.ts:1693-1700`). `MarkdownCell` and `RawCell` never call it, so
- * `InputPrompt.executionCount` is never set and their prompt node stays textless. Neither ever
- * reaches a kernel either - `runCell` renders the first and falls through to `default: break` for
- * the second (`packages/notebook/src/cellexecutor.ts:36-141`) - so there is no count to show.
- *
- * The words "markdown" and "raw" that used to sit here were this app's own, and they cost more
- * than a word: a heading cell's collapser was drawn in front of one, so two markdown cells in the
- * same frame started 48dp apart (`evidence/p2n-gutter/before/gutter.txt`).
+ * `[-]` is ours: Jupyter has no notation for skipped, because Jupyter's Run All does not stop at
+ * a failure. Without it a skipped cell draws as `[ ]` and is indistinguishable from one nobody
+ * ran - which is precisely the state SKIPPED exists to tell apart.
  */
-internal fun executionLabel(kind: CellKind, status: ExecutionStatus, count: Int?): String? = when {
-  kind != CellKind.CODE -> null
-  status == ExecutionStatus.QUEUED || status == ExecutionStatus.RUNNING -> "[*]:"
-  // `[-]` is ours: Jupyter has no notation for skipped, because Jupyter's Run All does not stop
-  // at a failure. Without it a skipped cell draws as `[ ]:` and is indistinguishable from one
-  // nobody ran - which is precisely the state SKIPPED exists to tell apart.
-  status == ExecutionStatus.SKIPPED -> "[-]:"
-  count != null -> "[$count]:"
-  else -> "[ ]:"
+internal fun executionCountLabel(status: ExecutionStatus, count: Int?): String? = when {
+  status == ExecutionStatus.QUEUED || status == ExecutionStatus.RUNNING -> "[*]"
+  // See KDoc: ours, because Run All stops and the queue below the failure must say so.
+  status == ExecutionStatus.SKIPPED -> "[-]"
+  // Before the queued checks would hide a count kernel history walked back in - a cell the
+  // document re-opened with is not one nobody ran.
+  count != null -> "[$count]"
+  else -> "[ ]"
 }
 
 /**

@@ -202,3 +202,24 @@ fun symbolKeyStyle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFa
 @Composable
 @ReadOnlyComposable
 fun codeSourceStyle(): TextStyle = codeTextStyle().copy(color = editorPalette.syntax.plain)
+
+/**
+ * The execution count at a code cell's gutter foot - `[7]`, `[ ]`, `[*]` - which is code-shaped but
+ * deliberately **smaller than code**: the reference draws it at `font-size: 10px`
+ * (`media/notebook.css:256-266`) against its 13px editor, and the proportion survives the size
+ * change P2l-3a made rather than the pixel value, so it is derived from [CodeText.size] here.
+ * Monospace because it lines up with the column of brackets above nothing else - one glyph wide,
+ * always.
+ *
+ * Lives here because this is where `FontFamily.Monospace` is named - the one home
+ * `scripts/check_monospace_home.py` keeps.
+ */
+@Composable
+@ReadOnlyComposable
+fun executionCountStyle(): TextStyle = LocalTextStyle.current.copy(
+  fontFamily = FontFamily.Monospace,
+  fontSize = CodeText.size.times(EXECUTION_COUNT_PROPORTION),
+)
+
+/** The reference's 10px count against its 13px editor (`media/notebook.css:256-266`). */
+private val EXECUTION_COUNT_PROPORTION = 10f / 13f
