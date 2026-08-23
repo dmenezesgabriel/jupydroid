@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -110,67 +111,73 @@ internal fun EditorCell(
       canPaste = canPaste,
       mark = mark,
       onToggleSelected = onToggleSelected,
-      // One Run for both kinds now: `runCells` is what decides that a code cell reaches the kernel
-      // and a markdown cell renders, exactly as `Private.runCells` does.
-      onRun = onRun,
-      onStop = onStop,
       onCellAction = act,
     )
     Spacer(modifier = Modifier.height(Spacing.xs))
-    // Wrapped so the focus listener sits on the *input area* rather than the whole cell, which
-    // is the distinction JupyterLab draws in `_evtFocusIn`: focus anywhere in a cell selects it,
-    // but only focus inside the editor means edit mode. Put on the Column, the header's buttons
-    // would count as typing.
-    Box(modifier = onCellInputFocus(onFocusChanged)) {
-      if (cell.sourceHidden) {
-        // Collapsed beats every other source state: there is nothing to type into, and the tap
-        // that expands must not also land in a text field.
-        CollapsedCell(
-          preview = firstNonEmptyLine(cell.source),
-          description = COLLAPSED_SOURCE,
-          onExpand = { act(CellAction.ToggleSourceHidden) },
-        )
-      } else {
-        when (cell.kind) {
-          CellKind.CODE -> CodeCellField(
-            state = field,
-            onSourceEdited = onSourceEdited,
-            completionsAt = completionsAt,
-            input = cellInput,
-            lineNumbersShown = lineNumbersShown,
-            search = search,
-            autoClosingBrackets = autoClosingBrackets,
-            modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
+    // The gutter leads and the editor follows, which is P2v-1's whole layout: Run / Stop / spinner
+    // hang from the editor's first line in a column of their own (`media/notebook.css:228-234`),
+    // on all three kinds so every editor starts at one x. The focus listener stays on the *input
+    // area* rather than the row, which is the distinction JupyterLab draws in `_evtFocusIn`: focus
+    // anywhere in a cell selects it, but only focus inside the editor means edit mode - put on the
+    // Row, the gutter's buttons would count as typing.
+    Row(modifier = Modifier.fillMaxWidth()) {
+      CellGutter(
+        kind = cell.kind,
+        status = execution?.status ?: ExecutionStatus.NOT_STARTED,
+        onRun = onRun,
+        onStop = onStop,
+      )
+      Box(modifier = onCellInputFocus(onFocusChanged).weight(1f)) {
+        if (cell.sourceHidden) {
+          // Collapsed beats every other source state: there is nothing to type into, and the tap
+          // that expands must not also land in a text field.
+          CollapsedCell(
+            preview = firstNonEmptyLine(cell.source),
+            description = COLLAPSED_SOURCE,
+            onExpand = { act(CellAction.ToggleSourceHidden) },
           )
+        } else {
+          when (cell.kind) {
+            CellKind.CODE -> CodeCellField(
+              state = field,
+              onSourceEdited = onSourceEdited,
+              completionsAt = completionsAt,
+              input = cellInput,
+              lineNumbersShown = lineNumbersShown,
+              search = search,
+              autoClosingBrackets = autoClosingBrackets,
+              modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
+            )
 
-          CellKind.MARKDOWN -> MarkdownCell(
-            state = field,
-            source = cell.source,
-            rendered = markdownRendered,
-            // Null on anything that is not a heading, which is the reference's `level > 0` guard.
-            fold = cell.headingLevel?.let { HeadingFold(it, cell.headingCollapsed) },
-            onToggleHeadingCollapse = { act(CellAction.ToggleHeadingCollapse) },
-            headingPrefix = headingPrefix,
-            editing = editing,
-            onEditRequested = onMarkdownEditRequested,
-            onSourceEdited = onSourceEdited,
-            input = cellInput,
-            takesCaret = markdownTakesCaret,
-            lineNumbersShown = lineNumbersShown,
-            search = search,
-            modifier = Modifier.fillMaxWidth(),
-          )
+            CellKind.MARKDOWN -> MarkdownCell(
+              state = field,
+              source = cell.source,
+              rendered = markdownRendered,
+              // Null on anything that is not a heading, which is the reference's `level > 0` guard.
+              fold = cell.headingLevel?.let { HeadingFold(it, cell.headingCollapsed) },
+              onToggleHeadingCollapse = { act(CellAction.ToggleHeadingCollapse) },
+              headingPrefix = headingPrefix,
+              editing = editing,
+              onEditRequested = onMarkdownEditRequested,
+              onSourceEdited = onSourceEdited,
+              input = cellInput,
+              takesCaret = markdownTakesCaret,
+              lineNumbersShown = lineNumbersShown,
+              search = search,
+              modifier = Modifier.fillMaxWidth(),
+            )
 
-          // The code cell's panel rather than the markdown editor's: the reference gives a raw
-          // cell no styling of its own, so it draws in the same input area a code cell does.
-          CellKind.RAW -> RawCellField(
-            state = field,
-            onSourceEdited = onSourceEdited,
-            input = cellInput,
-            lineNumbersShown = lineNumbersShown,
-            search = search,
-            modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
-          )
+            // The code cell's panel rather than the markdown editor's: the reference gives a raw
+            // cell no styling of its own, so it draws in the same input area a code cell does.
+            CellKind.RAW -> RawCellField(
+              state = field,
+              onSourceEdited = onSourceEdited,
+              input = cellInput,
+              lineNumbersShown = lineNumbersShown,
+              search = search,
+              modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
+            )
+          }
         }
       }
     }

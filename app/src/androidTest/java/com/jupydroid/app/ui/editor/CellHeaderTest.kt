@@ -44,14 +44,14 @@ class CellHeaderTest {
 
   @Test
   fun showsAVisibleMenuButton() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).assertIsDisplayed()
   }
 
   @Test
   fun tappingTheMenuButtonOpensTheActions() {
-    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent { CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}) }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
 
@@ -71,7 +71,7 @@ class CellHeaderTest {
   @Test
   fun aMarkdownCellHasTheMenuButtonToo() {
     compose.setContent {
-      CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+      CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
     }
 
     compose.onNodeWithContentDescription(MENU_BUTTON).performClick()
@@ -80,35 +80,43 @@ class CellHeaderTest {
   }
 
   /**
-   * **A raw cell has no Run control at all**, which markdown does and code does.
-   * `runCell`'s switch answers `markdown` by rendering and `code` by executing, and falls to
-   * `default: break` for raw (`packages/notebook/src/cellexecutor.ts:36-141`), so a Run button
-   * here would be a control that lights up and does nothing - the thing this app already refuses
-   * to ship in `cellActionItems`. It keeps the `\u22ee`: every other cell operation still applies.
+   * Raw gets no Run anywhere - the gutter draws it nothing (`cellexecutor.ts:36-141` falls through
+   * `default: break`) - and since P2v-1 that is true of every kind's *header*; what raw keeps here
+   * is the `⋮`, because every other cell operation still applies.
    */
   @Test
   fun aRawCellHasNoRunControlButKeepsItsMenu() {
-    compose.setContent { CellHeader(RAW_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {}) }
+    compose.setContent { CellHeader(RAW_CELL, null, execution = null, canPaste = false, mark = null, {}, {}) }
 
     compose.onNodeWithContentDescription(RUN_BUTTON).assertDoesNotExist()
     compose.onNodeWithContentDescription(MENU_BUTTON).assertIsDisplayed()
   }
 
-  /** Markdown does get one - running it renders it, which is a real thing to do. */
+  /**
+   * **No header carries a Run control any more** - P2v-1 moved it into the gutter left of the
+   * editor ([CellGutterTest] holds the gutter's own assertions). The header keeps the prompt, the
+   * duration and the menu; raw never had Run and markdown lost it with the rest, since running it
+   * renders it and that button lives where every other one does now.
+   */
   @Test
-  fun aMarkdownCellDoesHaveARunControl() {
+  fun noHeaderCarriesARunControlAnyMore() {
     compose.setContent {
-      CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+      Column {
+        CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+        CellHeader(MARKDOWN_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+      }
     }
 
-    compose.onNodeWithContentDescription(RUN_BUTTON).assertIsDisplayed()
+    // One matcher over both headers: zero matches passes here, and any Run at all - on either
+    // cell - fails this either as a second match or as a found node.
+    compose.onNodeWithContentDescription(RUN_BUTTON).assertDoesNotExist()
   }
 
   @Test
   fun choosingAnActionReportsItAndClosesTheMenu() {
     val chosen = mutableListOf<CellAction>()
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {
+      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {
         chosen +=
           it
       })
@@ -129,7 +137,7 @@ class CellHeaderTest {
   @Test
   fun whileSelecting_theCellShowsATickInsteadOfTheMenuButton() {
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = MARK, {}, {}, {}, {})
+      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = MARK, {}, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 2").assertIsDisplayed()
@@ -139,7 +147,7 @@ class CellHeaderTest {
   @Test
   fun withNoSelection_thereIsNoTick() {
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 2").assertDoesNotExist()
@@ -149,7 +157,7 @@ class CellHeaderTest {
   @Test
   fun theTickCarriesWhetherTheCellIsInTheRun() {
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = MARK, {}, {}, {}, {})
+      CellHeader(CODE_CELL, null, execution = null, canPaste = false, mark = MARK, {}, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 2").assertIsOn()
@@ -159,7 +167,7 @@ class CellHeaderTest {
   fun tappingTheTickReportsIt() {
     var toggled = 0
     compose.setContent {
-      CellHeader(CODE_CELL, null, execution = null, canPaste = false, MARK, { toggled++ }, {}, {}, {})
+      CellHeader(CODE_CELL, null, execution = null, canPaste = false, MARK, { toggled++ }, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 2").performClick()
@@ -185,10 +193,10 @@ class CellHeaderTest {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
         Column {
-          CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
-          CellHeader(CODE_CELL, 1, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
-          CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
-          CellHeader(CODE_CELL, 12, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+          CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+          CellHeader(CODE_CELL, 1, execution = null, canPaste = false, mark = null, {}, {})
+          CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+          CellHeader(CODE_CELL, 12, execution = null, canPaste = false, mark = null, {}, {})
         }
       }
     }
@@ -199,23 +207,23 @@ class CellHeaderTest {
 
   /**
    * **A heading cell's header is a markdown cell's header, with nothing extra on it.** The caret
-   * left this strip in P2n-3 for the heading it folds, so the two are now the same row of
-   * controls - which is the parity the reference has by having no per-cell strip at all.
+   * left this strip in P2n-3 for the heading it folds, and its Run control left for the gutter in
+   * P2v-1 - which is the parity the reference has by having no per-cell strip at all.
    */
   @Test
   fun aHeadingsHeaderCarriesNothingAProseHeaderDoesNot() {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
         Column {
-          CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
-          CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+          CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+          CellHeader(HEADING_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
         }
       }
     }
 
     compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertDoesNotExist()
-    val prose = compose.onAllNodesWithContentDescription(RUN_BUTTON)[0].getUnclippedBoundsInRoot().left
-    assertEquals(prose, compose.onAllNodesWithContentDescription(RUN_BUTTON)[1].getUnclippedBoundsInRoot().left)
+    val prose = compose.onAllNodesWithContentDescription(MENU_BUTTON)[0].getUnclippedBoundsInRoot().left
+    assertEquals(prose, compose.onAllNodesWithContentDescription(MENU_BUTTON)[1].getUnclippedBoundsInRoot().left)
   }
 
   /**
@@ -227,8 +235,8 @@ class CellHeaderTest {
   fun neitherMarkdownNorRawCarriesAPrompt() {
     compose.setContent {
       Column {
-        CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
-        CellHeader(RAW_CELL, null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+        CellHeader(PROSE_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
+        CellHeader(RAW_CELL, null, execution = null, canPaste = false, mark = null, {}, {})
       }
     }
 
@@ -242,9 +250,9 @@ class CellHeaderTest {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
         Column {
-          CellHeader(CODE_CELL, 1, null, false, CellMark(checked = false, position = 1), {}, {}, {}, {})
-          CellHeader(HEADING_CELL, null, null, false, CellMark(checked = true, position = 2), {}, {}, {}, {})
-          CellHeader(CODE_CELL, 12, null, false, CellMark(checked = false, position = 3), {}, {}, {}, {})
+          CellHeader(CODE_CELL, 1, null, false, CellMark(checked = false, position = 1), {}, {})
+          CellHeader(HEADING_CELL, null, null, false, CellMark(checked = true, position = 2), {}, {})
+          CellHeader(CODE_CELL, 12, null, false, CellMark(checked = false, position = 3), {}, {})
         }
       }
     }
@@ -264,7 +272,7 @@ class CellHeaderTest {
   fun theMenuButtonStaysOnScreenAt320dp() {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
-        CellHeader(CODE_CELL, 1, RAN_FOR_EIGHT_SECONDS, canPaste = false, mark = null, {}, {}, {}, {})
+        CellHeader(CODE_CELL, 1, RAN_FOR_EIGHT_SECONDS, canPaste = false, mark = null, {}, {})
       }
     }
 

@@ -5,13 +5,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,22 +19,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.Cell
-import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
-/** The glyph every cell Run control draws - outlined, not filled (P2v-1). Pinned by CellRunIconTest. */
-internal val cellRunIcon: ImageVector = Icons.Outlined.PlayArrow
-
 /**
- * The strip above a cell: where its run got to, its Run/Stop control, and the way into
- * [CellMenu].
+ * The strip above a cell: where its run got to, and the way into [CellMenu]. Its Run/Stop control
+ * left for the gutter in P2v-1 - [CellGutter], left of the editor.
  */
 @Composable
 internal fun CellHeader(
@@ -49,8 +39,6 @@ internal fun CellHeader(
   /** The tick this cell shows while a run is being marked, or null when none is - see [CellMark]. */
   mark: CellMark?,
   onToggleSelected: () -> Unit,
-  onRun: () -> Unit,
-  onStop: () -> Unit,
   onCellAction: (CellAction) -> Unit,
 ) {
   var menuOpen by remember { mutableStateOf(false) }
@@ -90,20 +78,9 @@ internal fun CellHeader(
         color = MaterialTheme.colorScheme.primary,
       )
     }
-    // Three kinds, three answers, and they are `runCell`'s own switch: code executes, markdown
-    // renders - so it gets Run but never a spinner or Stop, since nothing of it reaches a kernel -
-    // and raw falls through `default: break` (`packages/notebook/src/cellexecutor.ts:36-141`), so it
-    // gets no Run at all. A button that lights up and does nothing is what this app already
-    // refuses to ship in the menu next door.
-    when (cell.kind) {
-      CellKind.CODE -> RunControl(status = status, onRun = onRun, onStop = onStop)
-      CellKind.MARKDOWN ->
-        IconButton(onClick = onRun) { Icon(cellRunIcon, contentDescription = "Run cell") }
-      CellKind.RAW -> Unit
-    }
     // How long the last one took, in the reference's own `EXECUTION_TIME_COLOR`. Absent while a
     // cell is running rather than counting up: a ticking label would recompose the header on
-    // every frame, and the spinner beside it already says the same thing.
+    // every frame, and the spinner in the gutter already says the same thing.
     runDurationLabel(execution?.took)?.let { took ->
       Text(
         text = took,
@@ -135,51 +112,3 @@ internal fun CellHeader(
     }
   }
 }
-
-@Composable
-private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () -> Unit) {
-  // A queued cell is spoken for but is not what the kernel is doing, so it gets neither. The
-  // spinner would claim work that has not started, and Stop interrupts *the kernel* - offered on
-  // three queued cells at once it reads as three separate things to cancel. Run is disabled
-  // instead, which says "claimed, waiting" without promising either.
-  //
-  // Found by looking at the evidence: every queued cell had a spinner and a Stop button
-  // (evidence/u4-execution-status/02-queued-and-running.png, before this).
-  if (status == ExecutionStatus.QUEUED) {
-    IconButton(onClick = onRun, enabled = false) {
-      Icon(cellRunIcon, contentDescription = "Run cell")
-    }
-    return
-  }
-  if (status != ExecutionStatus.RUNNING) {
-    IconButton(onClick = onRun) {
-      Icon(cellRunIcon, contentDescription = "Run cell")
-    }
-    return
-  }
-  // Spinner *and* Stop: the spinner says the kernel is working, the button is the only way to
-  // take it back, since the cell has no handle on the kernel's work.
-  CircularProgressIndicator(
-    modifier = Modifier.padding(start = Spacing.sm).size(SPINNER_SIZE).semantics { contentDescription = "Running" },
-    strokeWidth = SPINNER_STROKE,
-  )
-  IconButton(onClick = onStop) {
-    // The real glyph now that material-icons-extended is a dependency (X2a). It was a drawn Box
-    // only because importing the whole icon set for one square was the worse trade; that reason
-    // is gone. The button around it still reserves 48dp, which `CellTouchTargetTest` pins.
-    Icon(
-      imageVector = Icons.Filled.Stop,
-      contentDescription = "Stop cell",
-      tint = MaterialTheme.colorScheme.error,
-    )
-  }
-}
-
-/**
- * The spinner beside a running cell. Deliberately smaller than the 24dp icons around it: it is a
- * status, not a control, and one that reads as a button invites a press that does nothing.
- */
-private val SPINNER_SIZE = 16.dp
-
-/** `CircularProgressIndicator`'s own default is 4dp, which at [SPINNER_SIZE] is a disc. */
-private val SPINNER_STROKE = 2.dp

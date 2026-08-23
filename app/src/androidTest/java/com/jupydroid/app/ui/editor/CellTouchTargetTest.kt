@@ -11,7 +11,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Every control on a cell header accepts a press over at least 48dp, Material's minimum.
+ * Every control a cell offers accepts a press over at least 48dp, Material's minimum - on the
+ * header since it was written, and in the run gutter since P2v-1 moved the controls there.
  *
  * **This pins behaviour that was already correct, and the measurement is the reason it says so.**
  * The header used to wrap each `IconButton` in `Modifier.size(32.dp)`, which looked like an
@@ -35,27 +36,33 @@ class CellTouchTargetTest {
   @get:Rule val compose = createComposeRule()
 
   @Test
-  fun theRunAndMenuButtonsAreBigEnoughToHit() {
+  fun theMenuButtonIsBigEnoughToHit() {
     compose.setContent {
-      CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+      CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {})
+    }
+
+    compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget(compose.density)
+  }
+
+  /**
+   * The run controls left the header for the gutter in P2v-1, and the minimum travels with them -
+   * a column reserved at [CELL_RUN_GUTTER] is exactly for the press, so a smaller target would
+   * make the reservation a lie.
+   */
+  @Test
+  fun theRunControlInTheGutterIsBigEnoughToHit() {
+    compose.setContent {
+      CellGutter(kind = CellKind.CODE, status = ExecutionStatus.NOT_STARTED, onRun = {}, onStop = {})
     }
 
     compose.onNodeWithContentDescription("Run cell").assertIsAtLeastMinimumTouchTarget(compose.density)
-    compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 
   /** Stop replaces Run mid-execution, so it is a separate composition and a separate risk. */
   @Test
-  fun theStopButtonIsBigEnoughToHit() {
+  fun theStopButtonInTheGutterIsBigEnoughToHit() {
     compose.setContent {
-      CellHeader(
-        CODE_CELL, executionCount = null,
-        execution = CellExecution(
-          ExecutionStatus.RUNNING,
-        ),
-        canPaste = false, mark = null, {
-        }, {}, {}, {},
-      )
+      CellGutter(kind = CellKind.CODE, status = ExecutionStatus.RUNNING, onRun = {}, onStop = {})
     }
 
     compose.onNodeWithContentDescription("Stop cell").assertIsAtLeastMinimumTouchTarget(compose.density)
@@ -68,21 +75,20 @@ class CellTouchTargetTest {
   @Test
   fun theSelectionTickIsBigEnoughToHit() {
     compose.setContent {
-      CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = MARK, {}, {}, {}, {})
+      CellHeader(CODE_CELL, executionCount = null, execution = null, canPaste = false, mark = MARK, {}, {})
     }
 
     compose.onNodeWithContentDescription("Select cell 1").assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 
-  /** A markdown cell composes a different branch of the header, with its own Run button. */
+  /** Markdown's render-play moved to the gutter with code's Run, and keeps its own press. */
   @Test
-  fun aMarkdownCellsControlsAreBigEnoughToHit() {
+  fun aMarkdownCellsPlayIsBigEnoughToHit() {
     compose.setContent {
-      CellHeader(MARKDOWN_CELL, executionCount = null, execution = null, canPaste = false, mark = null, {}, {}, {}, {})
+      CellGutter(kind = CellKind.MARKDOWN, status = ExecutionStatus.NOT_STARTED, onRun = {}, onStop = {})
     }
 
     compose.onNodeWithContentDescription("Run cell").assertIsAtLeastMinimumTouchTarget(compose.density)
-    compose.onNodeWithContentDescription("Cell actions").assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 
   private companion object {
