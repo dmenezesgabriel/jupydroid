@@ -52,20 +52,3 @@ enum class NewItem {
   PYTHON_FILE,
   FOLDER,
 }
-
-/**
- * The path split for the breadcrumb, root first.
- *
- * `packages/filebrowser/src/crumbs.ts` shows the same ancestry and makes each segment a target.
- * The root is labelled rather than shown as an empty string, because a crumb with no text is not
- * something a finger can aim at.
- */
-internal fun crumbsFor(path: String, rootLabel: String): List<Pair<String, String>> {
-  val segments = path.split("/").filter { it.isNotEmpty() }
-  return buildList {
-    add("" to rootLabel)
-    segments.forEachIndexed { at, segment ->
-      add(segments.take(at + 1).joinToString("/") to segment)
-    }
-  }
-}

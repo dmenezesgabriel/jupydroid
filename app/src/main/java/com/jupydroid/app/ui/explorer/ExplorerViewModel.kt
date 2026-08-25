@@ -12,6 +12,8 @@ import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.ui.ROOT_LABEL
+import com.jupydroid.app.ui.crumbsFor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -130,11 +132,6 @@ class ExplorerViewModel(
           _uiState.value = _uiState.value.copy(error = failure.message ?: "could not open '$path'")
         }
     }
-  }
-
-  private companion object {
-    /** What the root crumb is called, since its path is the empty string. */
-    const val ROOT_LABEL = "Workspace"
   }
 
   /**
