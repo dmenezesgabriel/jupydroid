@@ -2,9 +2,7 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
-import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.idBeside
-import com.jupydroid.app.domain.model.inWorkspaceOrder
 import com.jupydroid.app.domain.model.isValidFileName
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -15,7 +13,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.time.Instant
 import java.util.UUID
 
 /**
@@ -42,10 +39,7 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
   override suspend fun list(path: String): List<WorkspaceEntry> = withContext(ioDispatcher) {
     val directory = root.fileAt(path)
     require(directory.isDirectory) { "no directory at '$path' in the workspace" }
-    (directory.listFiles() ?: emptyArray())
-      .filterNot { it.name.startsWith(".") }
-      .map { entryFor(it, path) }
-      .inWorkspaceOrder()
+    directory.workspaceEntriesUnder(path)
   }
 
   override suspend fun readText(path: String): String = withContext(ioDispatcher) {
@@ -141,26 +135,6 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     _changes.emit(WorkspaceChange.Deleted(path))
   }
 }
-
-/**
- * A symlink is described by what it points at, which is how a rootfs has to be read.
- *
- * `File.isDirectory` follows the link already; a broken one is neither a directory nor a
- * readable file and is listed as a file, so a dangling link shows in the browser instead of
- * making the whole directory unopenable.
- *
- * A top-level function rather than a member: it turns a `File` into a domain type and asks the
- * repository for nothing, and detekt counting it against the class was what said so.
- */
-private fun entryFor(file: File, parentPath: String): WorkspaceEntry = WorkspaceEntry(
-  name = file.name,
-  path = if (parentPath.isEmpty()) file.name else "$parentPath/${file.name}",
-  kind = if (file.isDirectory) WorkspaceEntryKind.DIRECTORY else WorkspaceEntryKind.FILE,
-  // The file's own mtime, which is what `last_modified` is (`filemanager.py:285`). A broken
-  // symlink answers 0 here rather than throwing, and reads as the epoch - which is honest:
-  // there is nothing behind it to have a time.
-  updatedAt = Instant.ofEpochMilli(file.lastModified()),
-)
 
 /** `untitled`, lowercase - the server's `untitled_file`, which is not its `Untitled` notebook. */
 private const val UNTITLED_FILE = "untitled"

@@ -89,6 +89,7 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 |---|---|---|
 | `NotebookRepository` | read/write one notebook | `DiskNotebookRepository` over nbformat JSON |
 | `WorkspaceRepository` | list/read/write/rename/delete in the shared tree, and a change stream | `DiskWorkspaceRepository` |
+| `WorkspaceSearcher` | find a query across the whole tree, and replace it there | `DiskWorkspaceSearcher` |
 | `RecentDocumentsRepository` | what was opened, persisted outside the workspace | `DiskRecentDocumentsRepository` |
 | `KernelGateway` | connect/execute/interrupt/restart/complete/history against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
 | `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |

@@ -2893,6 +2893,50 @@ because Windows produces a backslash; every path this app matches is workspace-r
 `WorkspaceRoot` refuses anything else. The narrowing is applied to the reference's output before
 the parity comparison, so it is the only edit and it is visible in the test's own doc.
 
+### The three things a workspace walk declines to read (P2x-1d)
+
+`DiskWorkspaceSearcher` reads every file in the tree to answer one query, and three kinds of file
+are passed over. Each is a decision, and one of them departs from the reference.
+
+**A binary file, by ripgrep's rule.** VS Code states none of its own - it sets `maxFileSize` to
+16 GB and delegates the whole question to the engine (`rawSearchService.ts:85-87`,
+`ripgrepTextSearchEngine.ts:444-446`) - so the rule was read out of ripgrep's `GUIDE.md`, "Binary
+data": *"a file is considered 'binary' if and only if it contains a NUL byte somewhere in its
+contents"*, and its default mode, *"the one that applies to files searched as a result of recursive
+directory traversal"*, removes such a file from the search completely. Checked on the bytes rather
+than after decoding, so a PNG is never turned into a megabyte of replacement characters on the way
+to being discarded.
+
+**A notebook, until a hit can name its cell.** Read as the JSON it is, a `.ipynb` would report
+`"cell_type"` and the inside of a base64 image output as matches - which is exactly what P2x-4's
+gate forbids. Searching it wrongly now and fixing it later would be a defect shipped on purpose, so
+it is skipped, with the skip named in the code and pinned by a test. P2x-4 lifts it and makes a hit
+a *cell* hit, holding input apart from rendered output as `searchNotebookHelpers.ts` does.
+
+**A directory symlink, and this is the departure.** `search.followSymlinks` defaults to **true**
+(`search.contribution.ts:186-190`). The workspace lives inside a rootfs and a cell can call
+`os.symlink`, so a loop is reachable; ripgrep detects one and nothing in this app would. Following
+them would need loop detection - canonical paths held for the length of a walk - which is machinery
+bought for a case no user has met. A file symlink is still followed, because it cannot loop.
+`aSymlinkLoopDoesNotHangTheWalk` is the regression test, and it fails when the rule is removed.
+
+### A replace across files does not know about an open document (P2x-1d)
+
+`replaceAll` writes through `WorkspaceRoot` straight to disk, which is what
+`DiskWorkspaceRepository.writeText` does too - and `WorkspaceChange` carries `Renamed` and
+`Deleted` only, so **no content change has ever been announced**. Nothing is being weakened here.
+
+What is new is that a *second* surface can now write a file a screen has open. Today it cannot
+bite: nothing calls `replaceAll` yet, and `.ipynb` is skipped, so the notebook editor is out of
+reach either way. **P2x-5 is where it becomes real** - a `.py` open in the file editor, replaced
+underneath, and the editor's debounced save putting the old text back.
+
+The reference does not have this problem because its replace goes through the text model an editor
+already shares (`IReplaceService.replace` takes the `ITextFileService`), where ours goes through
+the filesystem. Stated here so P2x-5 starts from it rather than discovering it: either the replace
+routes through whatever holds the document, or the document reloads on a change it did not make -
+which is the `Contents.fileChanged` subscription `WorkspaceRepository.changes` already exists for.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary

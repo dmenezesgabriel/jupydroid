@@ -8,6 +8,7 @@ import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
@@ -69,6 +70,9 @@ class JupydroidApplication : Application() {
     return AppContainer(
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
+      // The same tree, walked rather than listed. Always real, like the sharer: searching needs no
+      // Space, so it works on a device that cannot run one.
+      workspaceSearcher = DiskWorkspaceSearcher(workspace),
       // `filesDir`, deliberately not `workspace`: the workspace is the kernel's HOME and the
       // server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from
       // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
