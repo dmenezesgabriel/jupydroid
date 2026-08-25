@@ -2966,7 +2966,89 @@ entry, so nothing can be asked for "the ViewModel holding `reports/a.py`". That 
 `docs/PLAN.md`'s `openNotebook` back-stack risk describes from the other side, and P2x-5 cannot be
 attempted before it exists.
 
+### The activity bar's order takes both references, and neither could state it alone (P2x-2)
+
+`docs/PLAN.md`'s P2x-2 row said the rail followed *"VS Code's activity-bar order — which is also
+JupyterLab's rank order, so `SidePanel`'s existing doc comment stays true."* **The second half is
+false, and it was checked in both trees rather than assumed.**
+
+| | file browser | search | table of contents |
+|---|---|---|---|
+| JupyterLab | rank 100 (`filebrowser-extension/src/index.ts:676`) | **none** | rank 400 (`toc-extension/src/index.ts:309`) |
+| VS Code | `order: 0` (`files/browser/explorerViewlet.ts:265`) | **`order: 1`** (`search/browser/search.contribution.ts:59`) | **none** |
+
+`shell.add(…, 'left', …)` is called **five** times in JupyterLab's whole tree — File Browser 100,
+Sessions 200, Command Palette 300, Table of Contents 400, Extension Manager 1000 — and none of them
+is a search. Its `documentsearch` is scoped to `app.shell.currentWidget`
+(`documentsearch-extension/src/index.ts:227`), which is the find bar P2i shipped, not a panel. VS
+Code, from the other side, registers no table-of-contents container: its Outline is a view *inside*
+the explorer's, `registerViews([…{ order: 2 }], VIEW_CONTAINER)`
+(`outline/browser/outline.contribution.ts:11,26,35`).
+
+So the two answer **different halves and agree where they overlap**: the browser is first in both,
+search is second because VS Code says so, the table of contents is last because JupyterLab says so.
+This is the same split P2x-1e recorded from the behaviour side — P2x is where JupyterLab stops
+having an opinion, and here it stops having one about presentation too.
+
+**The panel is named and empty, and that is the reference rather than an omission.**
+`TableOfContentsSidePanel` carries a placeholder because `treeview.tsx:31-40` draws one; VS Code's
+search view with an empty query is its input box and nothing else. There is no string to
+transcribe, and an invented one would be a string P2x-3 deletes. What the empty body did cost is a
+**measurement instead of a screenshot**: a panel with no content has no visible right edge, so
+whether it sat in the list pane or spanned the window could not be read off the picture. Dumped on
+the tablet at 1.5× (`evidence/p2x-2-search-panel/hierarchy-with-search-up.xml`): rail
+`[0,0][120,1200]` = 80dp, panel `[122,0][662,1200]` = the 360dp list pane, document area
+`[698,0][1920,1200]` = 815dp.
+
+### A one-pane window draws the browser, whatever the rail was left on (P2x-2b)
+
+`sidePanel` is `rememberSaveable`, so it survives the activity relaunch a rotation causes. The rail
+is drawn only `if (twoPane)`. Nothing sat between them, so a tablet rotated to portrait — 1280dp
+landscape is two panes, 800dp portrait is one — kept drawing the panel it had **with no rail to
+leave it by**, and the file browser could not be reached again without killing the app. Collapsed,
+the pane drew nothing at all.
+
+Pre-existing since **P2o-2** and not introduced by P2x-2, which took it from two panels to three —
+which is why it was fixed rather than filed. `p2o-4`'s own header already states the rule it broke:
+*"where the shell draws one pane there is no side area."*
+
+The fix derives the showing panel once, beside the `directive` line that already spells the other
+half of the same rule, so the `when` keeps exactly the arms it had. **An override rather than a
+reset**: rotating back restores the panel the user had chosen, where clearing `sidePanel` would
+have thrown it away.
+
+**Measured before it was fixed**, which is the whole reason it is an entry and not a hunch: 9
+instrumented cases, 2 failed, both of them the new ones. The two drive the width as *state* —
+`ForcedSize` plus a `MutableState<Boolean>` — because that is the half of a rotation composition
+sees. The other half is a real configuration change, which no Compose test drives, so it is a
+device flow: `p2x-2-rotation`, TABLET ONLY (the emulator is one pane in both orientations) and
+NOT A SUITE FLOW (it rotates the device, which every flow after it on that device would inherit).
+
 ## Harness
+
+### The local gate does not compile `androidTest`, and it went green over a file that would not build (P2x-2)
+
+Measured in P2x-2, not reasoned about: an instrumented test file with an unresolved reference
+survived the whole documented gate -
+
+    ktlintCheck ktlintMainSourceSetCheck ktlintTestDebugSourceSetCheck
+    ktlintAndroidTestDebugSourceSetCheck detekt lintDebug testDebugUnitTest assembleDebug
+
+`BUILD SUCCESSFUL`. The next `connectedDebugAndroidTest` failed at
+`compileDebugAndroidTestKotlin` with `Unresolved reference 'value'`.
+
+**Every task in that list stops short of the source set.** `assembleDebug` compiles `main`;
+`testDebugUnitTest` compiles `test`; `ktlintAndroidTestDebugSourceSetCheck` is a *formatter*, and a
+formatter parses without resolving - which is exactly the shape of the P2t finding above, where
+`ktlintCheck` reported success over source sets it was not looking at. The pre-commit hooks inherit
+the gap, since they run the same tasks.
+
+The cost is bounded and known: a broken instrumented test cannot reach a device, so it fails loudly
+at the next `connectedDebugAndroidTest` rather than passing quietly. But it fails **after** the
+7-minute device run has been queued, and a commit can carry it. `compileDebugAndroidTestKotlin` is
+the one task that closes it and it is seconds; adding it to the documented command and to the hooks
+is not done here because P2x-2 is a shell sub-step and changing the commit gate is not, but it is
+recorded so the next harness step does not re-derive it.
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
 
