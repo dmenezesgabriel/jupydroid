@@ -52,15 +52,17 @@ to depend on**, which is checkable:
 | `ui/{editor,explorer,fileeditor}` | screens and ViewModels | reads ports; never constructs an adapter |
 | `ui/shell` | the chrome that belongs to **no** screen — the activity bar and the side panels | drawn by `Navigation`, beside the panes rather than inside one; the *state* it moves stays at the root with `Navigation.kt`, which is what §4 already says about wiring that belongs to no screen |
 | `di` | `AppContainer`, the composition root | constructed once per process, in `JupydroidApplication` |
-| `html`, `import`, `markdown`, `syntax` | **document and language logic** — parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages*, not this app's domain; not `data/`, because they implement no port. JVM-testable, and every test for them is a plain unit test |
+| `glob`, `html`, `import`, `markdown`, `syntax` | **document and language logic** — a glob pattern as the regex it denotes, parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages*, not this app's domain; not `data/`, because they implement no port. JVM-testable, and every test for them is a plain unit test |
 | `richtext` | **mixed on purpose**: `RichBlock` is the model, `RichInlineString` renders it | the split is the point — the model is testable without Compose, and only the renderer imports it |
 | `theme` | Compose design tokens, the IntelliJ-derived palette | Compose throughout; `EditorPaletteTest` pins its contrast ratios |
 | root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, the three `NavKey`s | the app shell and its navigation | see §4 |
 
-Measured, not asserted: `html` (0 of 3 files), `import` (0/1), `markdown` (0/1) and `syntax`
-(0/6) import `android.*`; `theme` imports it in 5 of 5; `richtext` in 1 of 2. That 1 is
-`RichInlineString.kt`, and it is the only file in those six packages that touches Compose
-besides `theme`.
+Measured, not asserted, and **re-counted rather than carried**: `glob` (0 of 2 files), `html`
+(0 of 3), `import` (0/1), `markdown` (0/2) and `syntax` (0/6) import `android.*` or `androidx.*`;
+`theme` imports one in 7 of 7; `richtext` in 1 of 2. That 1 is `RichInlineString.kt`, and it is the
+only file in those seven packages that touches Compose besides `theme`. Two of these numbers had
+drifted before P2x-1b touched the sentence - `markdown` gained `HeadingNumbering.kt` and `theme`
+gained two files - which is what a measurement stated in prose costs when nothing counts it.
 
 **The practical test for a new file:** if it needs Compose it belongs in `ui/` or `theme/`; if
 it implements a port it belongs in `data/`; if it is one of the app's own nouns it belongs in

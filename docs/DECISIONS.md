@@ -2859,6 +2859,40 @@ replace-across-files, so `DiskWorkspaceSearcher` is what substitutes - and `data
 Nothing else moved. `SearchHit`, `NotebookSearch` and `NotebookReplace` are what a *notebook* does
 with a query, and stay where the notebook is.
 
+### The glob language is transcribed, because the platform's disagrees about depth (P2x-1b)
+
+`search.exclude` and `files.exclude` are glob expressions, and their eight registered defaults are
+the first thing workspace search has to honour. Android ships a glob matcher already -
+`java.nio.file.FileSystems.getDefault().getPathMatcher("glob:...")` - so the cheap move was to hand
+the patterns to it.
+
+**Measured on this machine's JDK, it disagrees with the reference on the one case the defaults are
+made of.** A leading globstar there requires a separator to be present:
+
+| Pattern | Path | `java.nio` | VS Code |
+|---|---|---|---|
+| globstar + `/node_modules` | `node_modules` | **false** | **true** |
+| globstar + `/node_modules` | `a/node_modules` | true | true |
+| globstar + `/*.py` | `notes.py` | **false** | **true** |
+| globstar + `/*.py` | `reports/deep/notes.py` | true | true |
+
+Every registered default is written with that leading globstar, so the platform matcher would have
+excluded a nested `node_modules` and quietly kept a top-level one. A search that misses files, or
+reports files it should not, with nothing on screen to say so.
+
+So `com.jupydroid.app.glob` transcribes `parseRegExp` (`glob.ts:108-256`) instead - eight branches,
+about 90 lines of reference. **The gate for a transcription is equality, not behaviour**:
+`PathGlobParityTest` holds the regular-expression source for 25 patterns against the reference's
+own output, obtained by extracting `starsToRegExp`, `splitGlobAware` and `parseRegExp` into a
+standalone module and running them under node at `f3fa55c39d3`. It was mutation-checked - narrowing
+the no-separator class by one character fails it - which is the same reason `EditorPaletteTest`
+pins the palette by equality rather than by contrast.
+
+**The one departure is the separator class.** The reference's `PATH_REGEX` is `[/` backslash `]`,
+because Windows produces a backslash; every path this app matches is workspace-relative POSIX, and
+`WorkspaceRoot` refuses anything else. The narrowing is applied to the reference's output before
+the parity comparison, so it is the only edit and it is visible in the test's own doc.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
