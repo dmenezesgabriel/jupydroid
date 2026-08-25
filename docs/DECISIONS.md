@@ -2928,14 +2928,27 @@ bought for a case no user has met. A file symlink is still followed, because it 
 
 What is new is that a *second* surface can now write a file a screen has open. Today it cannot
 bite: nothing calls `replaceAll` yet, and `.ipynb` is skipped, so the notebook editor is out of
-reach either way. **P2x-5 is where it becomes real** - a `.py` open in the file editor, replaced
-underneath, and the editor's debounced save putting the old text back.
+reach either way. **P2x-4 widens it and P2x-5 is where it becomes real.**
+
+**Measured in `FileEditorViewModel`, because "the editor shows stale text" was the smaller half of
+it.** The editor reads its file once at open, subscribes to `changes` for `Renamed` and `Deleted`
+only, and writes `_uiState.text` back whole - on a debounce, and again from `onCleared` when
+`save.cancelPending()` reports work outstanding. So a replace under a *pristine* editor is merely
+invisible, and a replace under a *dirty* one is **undone**: the farewell flush puts the pre-replace
+text back over it, and the file the user was told had changed has not.
 
 The reference does not have this problem because its replace goes through the text model an editor
 already shares (`IReplaceService.replace` takes the `ITextFileService`), where ours goes through
-the filesystem. Stated here so P2x-5 starts from it rather than discovering it: either the replace
-routes through whatever holds the document, or the document reloads on a change it did not make -
-which is the `Contents.fileChanged` subscription `WorkspaceRepository.changes` already exists for.
+the filesystem. Two ways to close it, and this entry deliberately picks neither - the replace
+routes through whatever holds the document, or `WorkspaceChange` grows a `Modified` and an open
+document reloads on a change it did not make, which is the `Contents.fileChanged` subscription
+`WorkspaceRepository.changes` already exists for.
+
+**It is a gate rather than a note, and it was not one when P2x-1d shipped.** P2x-5's row asked only
+that both files be *read back*, which a stale editor on screen passes; it now also asks for a `.py`
+replaced **while open**, and for the same with an unsaved edit outstanding. `docs/PLAN.md`'s open
+risks carries it too, because the same shape arrives with any second writer of the workspace - a
+terminal (P4), a language server (P5).
 
 ## Harness
 
