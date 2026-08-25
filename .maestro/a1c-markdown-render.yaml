@@ -34,31 +34,40 @@ appId: com.jupydroid.app
 # so focusing it scrolled its header - and the Run button on it - above the viewport. Put the
 # keyboard away and come back up to the button, which is what a person does before pressing Run.
 - hideKeyboard
-# Scrolled to the *kind label*, not to "Run cell", and then anchored to it. `markdown` appears on
-# exactly one header, so this addresses that cell's Run whatever else is on screen. `index: 0`
-# counted the Run buttons *rendered*, and at 320dp the markdown header is above the fold while
-# the code cell below it is not - so index 0 was the code cell's Run and the flow ran the wrong
-# cell entirely, then failed looking for a render that was never asked for.
-# Anchored on the heading's collapser, not on a kind label. The label was this app's own - the
-# reference gives markdown no prompt at all (`packages/cells/src/widget.ts:1693-1700`) - and the
-# collapser is the better anchor anyway: it is `# Analysis`'s own control, so it names *this* cell
-# rather than every markdown cell on screen.
-- scrollUntilVisible:
-    element:
-      text: "Collapse heading"
-    direction: UP
-    timeout: 10000
+# **Back to the top of the document by swiping, not by scrolling to an element.**
+# `scrollUntilVisible` needs something that is *off* screen to aim at, and since P2v-2 drew the
+# heading's caret rendered-only (`docs/DECISIONS.md`, "The cell keeps its header strip") the only
+# node left on an open markdown cell is its field - which carries the whole source as one node, so
+# it is already partly visible and the scroll is a no-op that leaves the cell's first line above
+# the viewport. Before P2v-2 the anchor was that caret, and before that a kind label this app
+# invented, the reference giving markdown no prompt at all
+# (`packages/cells/src/widget.ts:1693-1700`).
+#
+# Down the frame's **left edge**, clear of the text: inside a focused field a drag is a selection,
+# not a scroll. Three is more than the two this notebook needs, and a swipe at the top of a list
+# does nothing - so over-swiping costs a gesture, where under-swiping costs the frame.
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 4%, 30%
+          end: 4%, 90%
+          duration: 300
+- waitForAnimationToEnd:
+    timeout: 2000
+# The whole-node match the wait above already uses: unrendered, the field's node carries the
+# entire source, so `# Analysis` alone finds nothing.
+- assertVisible: "(?s).*# Analysis.*"
 # Run renders it again, which is what running a markdown cell means in Jupyter.
-# **`above` the heading, where this said `rightOf` the collapser.** P2n-3 moved the caret out of the
-# header strip to beside the heading it folds - which is where the reference draws it
-# (`packages/cells/src/widget.ts:2386-2408`) - so no control in the strip is right of it any more.
-# The strip is still above the body, so this cell's Run is the one above its own caret; the code
-# cell's is below it. `Analysis` would not do as the anchor: the cell is unrendered here, so its
-# node carries the whole source and a full-text match on the heading alone finds nothing.
+# **`above` the source, and the swipe above is what makes that reachable.** `index: 0` counted the
+# Run buttons *rendered*, and at 320dp the markdown header was above the fold while the code cell
+# below it was not - so index 0 was the code cell's Run and the flow ran the wrong cell entirely,
+# then failed looking for a render that was never asked for. The strip is above the body, so this
+# cell's Run is the one above its own text; the code cell's is below it.
 - tapOn:
     text: "Run cell"
     above:
-      text: "Collapse heading"
+      text: "(?s).*# Analysis.*"
 - extendedWaitUntil:
     visible: "Rendered markdown"
     timeout: 10000

@@ -68,12 +68,24 @@ fun MarkdownCell(
    * be - reaching one unrenders the cell (`packages/cells/src/searchprovider.ts:380-410`).
    */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
-  /** This cell's heading and whether it is folded, or null when it is not one - see [HeadingFold]. */
+  /**
+   * This cell's heading and whether it is folded, or null when it is not one - see [HeadingFold].
+   * Drawn **only while [rendered]**, which is P2v-2 - see the comment on the branch below.
+   */
   fold: HeadingFold? = null,
   /** `notebook:toggle-heading-collapse`, asked for by the caret beside the heading. */
   onToggleHeadingCollapse: () -> Unit = {},
 ) {
-  if (fold == null) {
+  // **Not a heading, or its source is open: no caret, and the body runs the cell's full width.**
+  // The reference draws it in both states - `InputArea` builds the prompt node once and hides only
+  // the *editor* when the cell renders (`packages/cells/src/inputarea.ts:53-56,111-119`) - and
+  // P2n-3 transcribed that. P2v-2 retires it: the column costs 48dp of the editor's width
+  // (measured by `MarkdownCellTest.anOpenHeadingsSourceStartsWhereProseDoes`, 80dp against 32dp)
+  // for an affordance that cannot be used mid-typing anyway, since folding the section would close
+  // what is being written. `docs/DECISIONS.md`, "The cell keeps its header strip", carries the
+  // cost: the caret is `ToggleHeadingCollapse`'s only caller, so a heading renders before its
+  // section folds - while [HiddenCellsRow] keeps *expanding* reachable in either state.
+  if (fold == null || !rendered) {
     MarkdownCellBody(
       state, source, rendered, onEditRequested, onSourceEdited, modifier,
       input, takesCaret, editing, lineNumbersShown, headingPrefix, search,
@@ -82,10 +94,7 @@ fun MarkdownCell(
   }
   // The caret leads the cell's body, which is where the reference draws it: appended to the prompt
   // node and pinned to its right edge, immediately left of the content
-  // (`packages/cells/src/widget.ts:2386-2408`, `packages/cells/style/widget.css:154-168`). Beside
-  // the source as well as beside the rendered heading, because the prompt node is there in both
-  // states - `InputArea` builds it once and only hides the *editor* when it renders
-  // (`packages/cells/src/inputarea.ts:53-56,111-119`).
+  // (`packages/cells/src/widget.ts:2386-2408`, `packages/cells/style/widget.css:154-168`).
   Row(modifier = modifier, verticalAlignment = Alignment.Top) {
     HeadingCollapser(fold = fold, onToggle = onToggleHeadingCollapse)
     MarkdownCellBody(

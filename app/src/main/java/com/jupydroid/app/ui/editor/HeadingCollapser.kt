@@ -17,7 +17,17 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 
 /**
- * The chevron that folds a heading's section away, drawn **beside the heading it folds**.
+ * The chevron that folds a heading's section away, drawn **beside the heading it folds** - and
+ * only while that heading is rendered.
+ *
+ * **Rendered only is P2v-2's, and it departs from the reference.** JupyterLab's prompt node carries
+ * the caret in both states: `InputArea` builds it once and hides only the *editor* when the cell
+ * renders (`packages/cells/src/inputarea.ts:53-56,111-119`), which P2n-3 transcribed. Composing it
+ * beside an open source costs 48dp of the editor's width - measured, 80dp against 32dp
+ * (`MarkdownCellTest.anOpenHeadingsSourceStartsWhereProseDoes`) - for an affordance nobody can use
+ * mid-typing, since folding the section would close what is being written. `docs/DECISIONS.md`,
+ * "The cell keeps its header strip", carries the trade and its cost. [MarkdownCell] is where the
+ * state is decided; this composable is unconditional and knows nothing about it.
  *
  * **Where it goes is the reference's, and this app had it somewhere else.** JupyterLab appends the
  * caret to the cell's *prompt node* (`packages/cells/src/widget.ts:2386-2408`) and pins it at

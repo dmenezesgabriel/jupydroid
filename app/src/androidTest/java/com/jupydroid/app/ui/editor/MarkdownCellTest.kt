@@ -277,9 +277,17 @@ class MarkdownCellTest {
     compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 
-  /** Unrendered too: the reference's prompt node - and so its caret - is there in both states. */
+  /**
+   * **Rendered only, which retires P2n-3's both-states assertion.** JupyterLab's prompt node
+   * carries the caret whether the editor is showing or not - `InputArea` builds it once and hides
+   * only the *editor* when the cell renders (`packages/cells/src/inputarea.ts:53-56,111-119`) -
+   * and this test used to transcribe that. Composing it while the source is open spends a column
+   * of the editor's width on an affordance that cannot be used mid-typing anyway: collapsing the
+   * section would close what is being written (`docs/DECISIONS.md`, "The cell keeps its header
+   * strip"). The header's play - the control that renders the cell - is what is left on it.
+   */
   @Test
-  fun theCollapserIsBesideTheSourceWhileTheHeadingIsBeingWritten() {
+  fun theCollapserIsGoneWhileTheHeadingsSourceIsOpen() {
     compose.setContent {
       MarkdownCell(
         rememberTextFieldState("## Results"),
@@ -291,7 +299,51 @@ class MarkdownCellTest {
       )
     }
 
+    compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertDoesNotExist()
+  }
+
+  /** The other half of the pair: rendered, the caret is back where it folds what it names. */
+  @Test
+  fun theCollapserIsBesideTheHeadingOnceItRenders() {
+    compose.setContent {
+      MarkdownCell(
+        rememberTextFieldState("## Results"),
+        "## Results",
+        rendered = true,
+        {},
+        {},
+        fold = HeadingFold(level = 2, collapsed = false),
+      )
+    }
+
     compose.onNodeWithContentDescription(COLLAPSE_HEADING).assertIsDisplayed()
+  }
+
+  /**
+   * **What the caret's absence buys, measured rather than asserted in prose**: a heading's open
+   * source starts at the same x as a cell that never had a caret, so every editor in the document
+   * runs to one left bound while it is being typed into. This is the invariant P2n spent itself
+   * establishing (`evidence/p2n-gutter/`), read here at the state P2n could not reach.
+   */
+  @Test
+  fun anOpenHeadingsSourceStartsWhereProseDoes() {
+    compose.setContent {
+      Column {
+        MarkdownCell(
+          rememberTextFieldState("## Results"),
+          "## Results",
+          rendered = false,
+          {},
+          {},
+          fold = HeadingFold(level = 2, collapsed = false),
+        )
+        MarkdownCell(rememberTextFieldState("just prose"), "just prose", rendered = false, {}, {})
+      }
+    }
+
+    val heading = compose.onNodeWithText("## Results").getUnclippedBoundsInRoot()
+    val prose = compose.onNodeWithText("just prose").getUnclippedBoundsInRoot()
+    assertEquals(prose.left, heading.left)
   }
 
   /** A cell that is not a heading has no caret at all - `level > 0` is the reference's own guard. */
