@@ -2653,6 +2653,87 @@ heading draws `HiddenCellsRow` inside its own frame whatever state its source is
 (`EditorCell.kt`), so a section folded and then edited is never a dead end. A menu row for the
 command is deliberately *not* added - a second route to folding-while-typing would undo the step.
 
+### The notebook's breadcrumb is ancestors only, and absent at the root (P2w-1)
+
+The trail sits between the document's name and its actions, which is where `BreadcrumbsControl`
+sits relative to a tab title. **Three decisions in it are not transcription**, and each is here
+because measuring or reading said so.
+
+**Ancestors only - the document's own name is never a segment.** VS Code's file path ends with the
+file itself: `_initFilePathInfo` unshifts a `FileKind.FILE` element for the resource before walking
+up (`breadcrumbsModel.ts:142`), and `breadcrumbs.filePath` defaults to `'on'`, the whole path
+(`parts/editor/breadcrumbs.ts:132-136`). It can afford to repeat the name because its breadcrumb
+sits under a **tab bar**, and a tab is also a close target and a document selector; ours sits
+directly under a title row that is neither and already draws the name at `titleMedium`. Repeating
+it would spend a row of a phone's chrome on a string already on screen 48dp above. Every segment is
+therefore a folder, which is also what makes *"a segment opens that folder"* one rule rather than
+two - VS Code needs two, because its last segment opens a picker instead.
+
+**A tap navigates the browser, which is JupyterLab's behaviour and not VS Code's.** VS Code's plain
+click opens a picker over that folder and only a modifier reveals in an editor
+(`breadcrumbsControl.ts:609-641`, `:729-733`); JupyterLab's is `this._model.cd(destination)`
+(`packages/filebrowser/src/crumbs.ts:415`). This is inside the re-base's stated limits - *"The
+presentation reference is VS Code; the behaviour reference stays JupyterLab"*. VS Code answers
+where the row sits and what it looks like. It does not answer what a tap does, and a picker is also
+a second navigation surface over a tree this app already has a screen for.
+
+**Absent at the workspace root, where VS Code renders `"no elements"`.** A document with no
+ancestry has nothing to say, and most notebooks in this workspace are at the root - so drawn
+unconditionally the row would be a permanent tax paid by the common case for the rare one. The bar
+is exactly P2q-2's 112dp for a root notebook and 160dp for a nested one. The trade is a bar whose
+height differs between documents, which is accepted: the alternative is the 48dp P2v declined the
+run gutter over, spent on a single crumb reading *Workspace*.
+
+**The cost is pinned as a difference, not as a total**, and that is a measurement lesson rather
+than a style choice. `EditorTopBar` consumes `TopAppBarDefaults.windowInsets`, so the bar's total
+height includes a status bar that is 24dp on the emulator and something else on the tablet - the
+first version of `theThirdRowsCostIsPinnedAgainstTheTwoRowBar` asserted 112dp and measured 640dp
+and 132dp before it was reading the right thing. What each row *reserves* is
+`LocalMinimumInteractiveComponentSize` on every device, so the assertion is what the trail adds.
+
+**One fraction collapses both rows.** `titleCollapseFraction` already takes the region's height as
+a parameter (P2q-2), so a second collapsing row is a change to the argument `EditorScreen` passes
+it. Two fractions could disagree; one cannot. Collapsed, a three-row bar is the 64dp action row -
+the same place a notebook that never had a trail reaches.
+
+**And the explorer's own trail moved rather than being copied.** `Breadcrumb` is one composable in
+`ui/` serving both surfaces. It costs the browser's row 4dp - intrinsic height made it 52dp, a
+20dp label inside 16dp of vertical padding, and it now states Material's 48dp minimum, which is
+also the number `EditorScreen` needs in order to say how far the bar slides.
+
+**The seam is hoisted state, not a holder.** `OpenDocumentOutline` exists because the outline flows
+*sideways* between two `NavEntry`s that cannot see each other; a crumb's target flows **down** from
+their common parent, so `MainNavigation` holds a `browseRequest` and both entries read it. What is
+not symmetric is what each layout needs beside it: in one window the browser is not composed until
+the editor entry is popped, and beside the notebook the side area may be drawing the table of
+contents, so the request also shows Files. Both halves are driven - `p2w-1-breadcrumb-wide` raises
+the outline on purpose, which is also what makes its selectors unambiguous, since two panes
+otherwise put "Workspace" and "reports" on screen twice.
+
+**It found a race, and the race was older than it.** See the entry below.
+
+### A listing in flight could overwrite where the browser had just gone
+
+`ExplorerViewModel.refresh` re-lists `uiState.path` - where the browser *is* - and
+`KeepTheListingFresh` calls it the moment the screen enters composition. A navigation starting in
+the same frame therefore raced a listing of the directory it was leaving, two `viewModelScope`
+coroutines each writing the whole state, and whichever finished last won.
+
+**The frame is what caught it**, on the tablet: the crumb brought the browser back beside the
+notebook and left it standing in `reports` after a tap on `Workspace`. Every assertion up to that
+point was green, and the emulator's one-pane run had passed the same code.
+
+Two halves, and one alone inverts the bug rather than fixing it. `listing?.cancel()` settles which
+listing wins. `browsing` - where the browser is *going*, which leads `uiState.path` for as long as
+a listing is in flight - is what `refresh` re-lists, so a poll launched between a navigation
+starting and landing follows it instead of undoing it; cancelling alone would have let that poll
+cancel the navigation and re-list the old directory.
+
+`SlowListingWorkspaceRepository` exists because a `StandardTestDispatcher` completes queued
+coroutines in launch order, and this defect needs the opposite: the listing started **first** has
+to finish **last**. A per-path delay is the only way to put the completions in that order on
+purpose.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
