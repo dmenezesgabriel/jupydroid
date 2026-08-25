@@ -21,6 +21,12 @@ COPY sigsys_report.c /tmp/sigsys_report.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libsigsys_report.so /tmp/sigsys_report.c \
  && strip /tmp/libsigsys_report.so
 
+# The x86_64-only interposer, built in the same stage for the same reason: only the .so crosses
+# over. See musl_at_shim.c for the four measured refusals it answers.
+COPY musl_at_shim.c /tmp/musl_at_shim.c
+RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libmusl_at_shim.so /tmp/musl_at_shim.c \
+ && strip /tmp/libmusl_at_shim.so
+
 FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 
 # patchelf is installed here rather than on the host so the ELF edits in
@@ -58,6 +64,17 @@ print('kernel entry point OK')"
 # Diagnostic only, and inert unless LD_PRELOAD names it, so it costs 8 KB and nothing else.
 COPY --from=sigsys-builder /tmp/libsigsys_report.so /lib/libsigsys_report.so
 
+# **The interposer ships in the x86_64 image alone**, because on arm64 musl already issues the
+# `*at` syscalls - the legacy four do not exist in that kernel ABI - so it would be dead code.
+# TARGETARCH is BuildKit's, and build.sh always passes --platform, so it is always set.
+ARG TARGETARCH
+COPY --from=sigsys-builder /tmp/libmusl_at_shim.so /tmp/libmusl_at_shim.so
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+      mv /tmp/libmusl_at_shim.so /lib/libmusl_at_shim.so; \
+    else \
+      rm -f /tmp/libmusl_at_shim.so; \
+    fi
+
 # Prove the constructor actually installs the handler, here rather than on the device.
 # getsignal() returns None precisely when something outside Python installed a handler,
 # and SIG_DFL when nothing did - so this distinguishes "preloaded and armed" from
@@ -67,6 +84,17 @@ import signal;\
 handler = signal.getsignal(signal.SIGSYS);\
 assert handler is None, f'SIGSYS handler not installed by the preload: {handler!r}';\
 print('sigsys reporter armed')"
+
+# Prove the interposer actually replaces the four, and that they still work when nothing is
+# refusing them. Here rather than on device because a shim that fails to load, or that breaks
+# an ordinary unlink, is a build error - not something to discover in a kernel that will not start.
+# What this cannot show is the seccomp behaviour: a Docker build has no Android filter. That half
+# is evidence/, on the device.
+COPY at_shim_probe.py /tmp/at_shim_probe.py
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+      LD_PRELOAD=/lib/libmusl_at_shim.so python3 /tmp/at_shim_probe.py; \
+    fi \
+ && rm -f /tmp/at_shim_probe.py
 
 # The spike only has to answer whether this runs on Android; docs and bytecode
 # caches are pure bulk. One layer, so the export is smaller.

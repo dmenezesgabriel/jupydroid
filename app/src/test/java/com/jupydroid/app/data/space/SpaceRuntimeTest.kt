@@ -92,6 +92,49 @@ class SpaceRuntimeTest {
     assertFalse(SpaceRuntime(empty, interpreter).environment().containsKey("LD_PRELOAD"))
   }
 
+  /**
+   * **The x86_64 interposer joins the preload when the rootfs carries it**, and the arm64 rootfs
+   * does not carry it - musl already issues the `*at` syscalls there, so it would be dead code
+   * (`tools/rootfs/musl_at_shim.c`). One list rather than a per-ABI branch in Kotlin: the rootfs
+   * that needs the shim is the rootfs that ships it.
+   */
+  @Test
+  fun environment_preloadsTheAtShimBesideTheReporterWhenTheRootfsHasBoth() {
+    val installed = spaceWithHandler().apply { File(this, "lib/libmusl_at_shim.so").writeText("ELF") }
+
+    val preload = SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD")
+
+    assertEquals(
+      listOf("lib/libsigsys_report.so", "lib/libmusl_at_shim.so").joinToString(" ") { File(installed, it).path },
+      preload,
+    )
+  }
+
+  /** The arm64 rootfs has the reporter and no shim, and must be preloaded with exactly the one. */
+  @Test
+  fun environment_preloadsOnlyTheReporterWhenThereIsNoAtShim() {
+    val installed = spaceWithHandler()
+
+    assertEquals(
+      File(installed, "lib/libsigsys_report.so").path,
+      SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD"),
+    )
+  }
+
+  /** And a rootfs with the shim but no reporter still gets the shim: they are independent. */
+  @Test
+  fun environment_preloadsTheAtShimOnItsOwn() {
+    val installed = tempFolder.newFolder("space-with-shim-only").apply {
+      File(this, "lib").mkdirs()
+      File(this, "lib/libmusl_at_shim.so").writeText("ELF")
+    }
+
+    assertEquals(
+      File(installed, "lib/libmusl_at_shim.so").path,
+      SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD"),
+    )
+  }
+
   private fun spaceWithHandler(): File = tempFolder.newFolder("space-with-handler").apply {
     File(this, "lib").mkdirs()
     File(this, "lib/libsigsys_report.so").writeText("ELF")

@@ -44,17 +44,24 @@ class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: Fil
    * Omitted rather than dangling when absent, so a Space extracted by an older version
    * gets a clean environment instead of a preload pointing at nothing.
    *
+   * **[AT_SHIM] rides the same variable, and only the rootfs that needs it carries it.** On
+   * x86_64 musl issues four legacy syscalls Android refuses - `lstat`, `access`, `mkdir`,
+   * `unlink` - where bionic issues the `*at` forms; on arm64 those four are not in the kernel ABI
+   * at all, so musl already issues `*at` and the shim would be dead code. Which ABI gets it is
+   * therefore decided in `tools/rootfs/Dockerfile`, not here: the rootfs that needs the shim is
+   * the rootfs that ships it, and this just preloads what it finds.
+   *
    * The reports go to a log file, never stderr: ipykernel captures a kernel's stderr and
    * forwards it as cell output, so reporting there would print "SIGSYS seccomp-refused" into
    * the user's notebook on every numpy import. Measured on device, not guessed.
    */
   private fun sigsysHandler(): Map<String, String> {
     val handler = File(baseDir, SIGSYS_HANDLER)
-    if (!handler.isFile) return emptyMap()
-    return mapOf(
-      "LD_PRELOAD" to handler.path,
-      "JUPYDROID_SIGSYS_LOG" to inBase(SIGSYS_LOG),
-    )
+    val log = if (handler.isFile) mapOf("JUPYDROID_SIGSYS_LOG" to inBase(SIGSYS_LOG)) else emptyMap()
+    val preloads = PRELOADS.map { File(baseDir, it) }.filter { it.isFile }
+    if (preloads.isEmpty()) return emptyMap()
+    // Space-separated, which is what the musl loader splits `LD_PRELOAD` on - the same as glibc.
+    return mapOf("LD_PRELOAD" to preloads.joinToString(" ") { it.path }) + log
   }
 
   /**
@@ -74,6 +81,12 @@ class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: Fil
   private companion object {
     /** Built by tools/rootfs/Dockerfile; see tools/rootfs/sigsys_report.c. */
     const val SIGSYS_HANDLER = "lib/libsigsys_report.so"
+
+    /** Built into the x86_64 image alone; see tools/rootfs/musl_at_shim.c. */
+    const val AT_SHIM = "lib/libmusl_at_shim.so"
+
+    /** In load order: the reporter first, so it is armed before the shim's own calls run. */
+    val PRELOADS = listOf(SIGSYS_HANDLER, AT_SHIM)
 
     /** In tmp/ because it always exists in the rootfs, unlike run/ before the server starts. */
     const val SIGSYS_LOG = "tmp/sigsys.log"
