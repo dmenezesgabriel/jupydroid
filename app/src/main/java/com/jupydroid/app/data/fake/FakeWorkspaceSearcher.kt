@@ -6,7 +6,6 @@ import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.model.compile
 import com.jupydroid.app.domain.model.matchedLinesIn
-import com.jupydroid.app.domain.model.textWithMatchesReplaced
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.glob.SearchFilter
 import kotlinx.coroutines.flow.Flow
@@ -39,20 +38,6 @@ class FakeWorkspaceSearcher(textByPath: Map<String, String> = emptyMap()) : Work
     searchable(filter).forEach { (path, text) ->
       val matches = matchedLinesIn(text, regex)
       if (matches.isNotEmpty()) emit(MatchedFile(path, matches))
-    }
-  }
-
-  override suspend fun replaceAll(
-    query: SearchQuery,
-    replacement: String,
-    preserveCase: Boolean,
-    scope: SearchScope,
-  ): Int {
-    val filter = SearchFilter(scope.include, scope.exclude)
-    return searchable(filter).sumOf { (path, text) ->
-      val replaced = textWithMatchesReplaced(text, query, replacement, preserveCase)
-      if (replaced.count > 0) files[path] = replaced.text
-      replaced.count
     }
   }
 

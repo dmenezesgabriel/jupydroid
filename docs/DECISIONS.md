@@ -2920,35 +2920,51 @@ them would need loop detection - canonical paths held for the length of a walk -
 bought for a case no user has met. A file symlink is still followed, because it cannot loop.
 `aSymlinkLoopDoesNotHangTheWalk` is the regression test, and it fails when the rule is removed.
 
-### A replace across files does not know about an open document (P2x-1d)
+### Replace across files goes through the editor's model, not the filesystem (P2x-1e)
 
-`replaceAll` writes through `WorkspaceRoot` straight to disk, which is what
-`DiskWorkspaceRepository.writeText` does too - and `WorkspaceChange` carries `Renamed` and
-`Deleted` only, so **no content change has ever been announced**. Nothing is being weakened here.
+P2x-1c put `replaceAll` on `WorkspaceSearcher`, arguing that finding and replacing are one feature
+*"because the reference's replace-all walks the results the search just produced"*. **Reading the
+reference retired that argument, and the method with it.**
 
-What is new is that a *second* surface can now write a file a screen has open. Today it cannot
-bite: nothing calls `replaceAll` yet, and `.ipynb` is skipped, so the notebook editor is out of
-reach either way. **P2x-4 widens it and P2x-5 is where it becomes real.**
+`ReplaceService.replace` builds `ResourceTextEdit`s and hands them to `IBulkEditService`
+(`replaceService.ts:115-118`). `BulkTextEdits._createEditsTasks` then calls
+`_textModelResolverService.createModelReference(uri)` for **every** resource in the set - open or
+not (`bulkTextEdits.ts:227`) - edits the *models*, and only afterwards saves each one:
+`this.textFileService.files.get(e.resource)?.save(...)` (`replaceService.ts:136`). A notebook cell
+resolves its notebook model and saves that (`:120-128`).
 
-**Measured in `FileEditorViewModel`, because "the editor shows stale text" was the smaller half of
-it.** The editor reads its file once at open, subscribes to `changes` for `Renamed` and `Deleted`
-only, and writes `_uiState.text` back whole - on a debounce, and again from `onCleared` when
-`save.cancelPending()` reports work outstanding. So a replace under a *pristine* editor is merely
-invisible, and a replace under a *dirty* one is **undone**: the farewell flush puts the pre-replace
-text back over it, and the file the user was told had changed has not.
+So there is no "write the file, then tell whoever has it open". The document **is** what is edited;
+where none exists, one is resolved for the occasion. Three consequences follow from the same code
+and none of them was in this app's plan:
 
-The reference does not have this problem because its replace goes through the text model an editor
-already shares (`IReplaceService.replace` takes the `ITextFileService`), where ours goes through
-the filesystem. Two ways to close it, and this entry deliberately picks neither - the replace
-routes through whatever holds the document, or `WorkspaceChange` grows a `Modified` and an open
-document reloads on a change it did not make, which is the `Contents.fileChanged` subscription
-`WorkspaceRepository.changes` already exists for.
+- **Replace-all is one undo.** A `MultiModelEditStackElement` over every touched model, in one
+  `UndoRedoGroup` (`bulkTextEdits.ts:319-330`).
+- **A conflict throws rather than prompting.** `_validateBeforePrepare` and `_validateTasks` raise
+  `"has changed in the meantime"` on a `versionId` mismatch (`:213-216`, `:300-306`). There is no
+  dialog, and an earlier draft of this entry guessed there was one.
+- **The confirmation is counted.** *"Replace {0} occurrences across {1} files?"*, and the same
+  counts are reported afterwards (`searchView.ts:831-837`, `:860-925`).
 
-**It is a gate rather than a note, and it was not one when P2x-1d shipped.** P2x-5's row asked only
-that both files be *read back*, which a stale editor on screen passes; it now also asks for a `.py`
-replaced **while open**, and for the same with an unsaved edit outstanding. `docs/PLAN.md`'s open
-risks carries it too, because the same shape arrives with any second writer of the workspace - a
-terminal (P4), a language server (P5).
+**`WorkspaceSearcher.replaceAll` is therefore gone** (P2x-1e), along with `textWithMatchesReplaced`
+and `ReplacedText`. It had no caller, and its signature could not express what the reference
+guarantees: it took a *query* and re-ran the search, where `IReplaceService.replace` takes the
+*matches already on screen* - so a file changed between the search and the replace would have been
+rewritten against matches the user never saw, which is the exact case `_validateBeforePrepare`
+exists to refuse. Removing an uncalled method is cheaper than leaving one that invites a caller it
+cannot serve.
+
+**JupyterLab answers none of this**, which is itself worth recording: its search is scoped to
+`app.shell.currentWidget` (`documentsearch-extension/src/index.ts:227`) and it has no workspace-wide
+search or replace at all. P2t split the references - VS Code for presentation, JupyterLab for
+behaviour - and P2x is the first place where the behaviour reference has nothing to say, so VS Code
+answers both halves here.
+
+**What this leaves open is a prerequisite, not a detail.** Parity needs a registry of open documents
+keyed by path, which this app does not have: `Navigation.kt:161` scopes ViewModels to the Activity's
+`ViewModelStore` through `rememberViewModelStoreNavEntryDecorator`, keyed by class inside a nav
+entry, so nothing can be asked for "the ViewModel holding `reports/a.py`". That is the same gap
+`docs/PLAN.md`'s `openNotebook` back-stack risk describes from the other side, and P2x-5 cannot be
+attempted before it exists.
 
 ## Harness
 

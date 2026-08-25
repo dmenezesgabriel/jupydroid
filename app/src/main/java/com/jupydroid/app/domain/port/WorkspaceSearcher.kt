@@ -6,11 +6,16 @@ import com.jupydroid.app.domain.model.SearchScope
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Finds a query across the whole workspace, and replaces it there.
+ * Finds a query across the whole workspace.
  *
- * `ISearchService.textSearch` and `IReplaceService.replace` as one port, because they are one
- * feature: the reference's replace-all walks the results the search just produced
- * (`searchModel.ts`), and a port that could find but not write would leave the writing to a screen.
+ * `ISearchService.textSearch`, and **only** that. P2x-1c bundled `IReplaceService.replace` in here
+ * too, on the argument that they are one feature; reading the reference retired it. VS Code keeps
+ * them apart because they need different machinery: search walks files, and replace goes through
+ * the *editor model* stack - `ReplaceService.replace` builds `ResourceTextEdit`s and hands them to
+ * `IBulkEditService` (`replaceService.ts:115-118`), which resolves a text model for every resource,
+ * open or not (`bulkTextEdits.ts:227`), edits the models, and only then saves
+ * (`replaceService.ts:136`). A replace that wrote files behind an open document's back could not
+ * reach that, and `WorkspaceSearcher` is the wrong owner for it. P2x-5 gives it its own home.
  *
  * **Beside [WorkspaceRepository] rather than inside it.** The repository answers what is *at* a
  * path; this answers which paths hold something, which is a different question with a different
@@ -34,16 +39,4 @@ interface WorkspaceSearcher {
    * which is `CompiledQuery.Empty` and `CompiledQuery.Invalid`.
    */
   fun search(query: SearchQuery, scope: SearchScope): Flow<MatchedFile>
-
-  /**
-   * Replaces every match [search] would report, and answers how many that was.
-   *
-   * The same query and the same scope, so a *"replace all"* cannot reach a file the results on
-   * screen never named. `preserveCase` is here rather than on the query because it changes what a
-   * replacement becomes and not what matches - the reference's own split, `IReplaceOptions` versus
-   * the query (`searchmodel.ts:295-311`).
-   *
-   * Destructive, and there is no undo across files: the caller asks first, which is P2x-5.
-   */
-  suspend fun replaceAll(query: SearchQuery, replacement: String, preserveCase: Boolean, scope: SearchScope): Int
 }

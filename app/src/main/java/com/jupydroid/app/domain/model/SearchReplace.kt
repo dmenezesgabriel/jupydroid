@@ -14,10 +14,12 @@ package com.jupydroid.app.domain.model
  * So a group reference works only under the regex option, and preserving case is applied to
  * whatever the substitution produced rather than to what was typed.
  *
- * Beside [SearchQuery] in `domain/model` and **public** since P2x-1, where it used to be
- * `internal` to `ui/editor`: `DiskWorkspaceSearcher` is what substitutes across a workspace, and
- * `data` may not import `ui` (`docs/architecture.md` §5). Re-deriving it there would be two
- * copies of the reference's two-step rule.
+ * Beside [SearchQuery] in `domain/model`, because it is a rule *about* a [SearchQuery] and the two
+ * are read together. **Its only caller today is the notebook's find bar**, in `ui/editor`, and that
+ * is said plainly rather than left to look like a shared home earning its keep: P2x-1c moved it
+ * here so `DiskWorkspaceSearcher` could substitute across a workspace, and P2x-1e took that
+ * replace off the port again once the reference showed replace goes through the editor-model stack
+ * rather than the filesystem (see `WorkspaceSearcher`). Public for the one cross-package caller.
  *
  * ```
  * replacementFor("CAT", "dog", SearchQuery("cat"), preserveCase = true)   // "DOG"

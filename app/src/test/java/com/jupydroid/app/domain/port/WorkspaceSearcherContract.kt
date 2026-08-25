@@ -134,40 +134,4 @@ abstract class WorkspaceSearcherContract {
 
     assertEquals(listOf("notes.py"), found.map { it.path })
   }
-
-  /** `IReplaceService.replace` across every file the same query reaches, and it says how many. */
-  @Test
-  fun replaceAllWritesEveryMatchAndCountsThem() = runTest {
-    given("a.py" to "cat and cat", "b.py" to "cat")
-    val searcher = searcher()
-
-    val replaced = searcher.replaceAll(SearchQuery("cat"), "dog", preserveCase = false, scope = SearchScope())
-
-    assertEquals(3, replaced)
-    assertTrue(searcher.search(SearchQuery("cat"), SearchScope()).toList().isEmpty())
-    assertEquals(3, searcher.found("dog").sumOf { it.matches.size })
-  }
-
-  /** `preserveCase` is applied to what the substitution produced - see `replacementFor`. */
-  @Test
-  fun preserveCaseAppliesToTheReplacement() = runTest {
-    given("a.py" to "CAT")
-    val searcher = searcher()
-
-    searcher.replaceAll(SearchQuery("cat"), "dog", preserveCase = true, scope = SearchScope())
-
-    assertEquals("DOG", searcher.found("DOG").single().matches.single().text)
-  }
-
-  /** A replace reaches exactly what the same query and scope found, and nothing beside it. */
-  @Test
-  fun replaceAllHonoursTheScope() = runTest {
-    given("notes.py" to "cat", "notes.txt" to "cat")
-    val searcher = searcher()
-
-    val replaced = searcher.replaceAll(SearchQuery("cat"), "dog", preserveCase = false, SearchScope(include = "*.py"))
-
-    assertEquals(1, replaced)
-    assertEquals(listOf("notes.txt"), searcher.found("cat").map { it.path })
-  }
 }

@@ -1,7 +1,7 @@
 package com.jupydroid.app.domain.model
 
 /**
- * What a query found in one file, and what replacing those matches leaves behind.
+ * What a query found in one file.
  *
  * `IFileMatch` and `ITextSearchMatch` (`services/search/common/search.ts:195-221`), with the
  * matching itself here rather than in either adapter: the fake and the disk searcher have to agree
@@ -44,34 +44,4 @@ data class MatchedLine(val line: Int, val text: String, val range: IntRange)
  */
 fun matchedLinesIn(text: String, regex: Regex): List<MatchedLine> = text.split("\n").flatMapIndexed { at, line ->
   regex.findAll(line).map { MatchedLine(line = at + 1, text = line, range = it.range) }
-}
-
-/** A file's text after a replace, and how many matches that took. */
-data class ReplacedText(val text: String, val count: Int)
-
-/**
- * [text] with every match of [query] replaced, and the count of them.
- *
- * Line by line for the reason [matchedLinesIn] gives - a replace must touch exactly what a search
- * reported, and nothing beside it. `\n` is put back as it was taken, so a `\r\n` file keeps its
- * `\r` inside the line.
- *
- * A query that compiles to nothing changes nothing, rather than throwing: the box is blank or
- * half-typed for most of the time it is being typed.
- */
-fun textWithMatchesReplaced(
-  text: String,
-  query: SearchQuery,
-  replacement: String,
-  preserveCase: Boolean,
-): ReplacedText {
-  val regex = (query.compile() as? CompiledQuery.Matching)?.regex ?: return ReplacedText(text, 0)
-  var count = 0
-  val replaced = text.split("\n").joinToString("\n") { line ->
-    regex.replace(line) { match ->
-      count++
-      replacementFor(match.value, replacement, query, preserveCase)
-    }
-  }
-  return ReplacedText(replaced, count)
 }

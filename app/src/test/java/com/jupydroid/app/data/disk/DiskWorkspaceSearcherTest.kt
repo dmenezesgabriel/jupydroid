@@ -121,16 +121,6 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
     assertEquals(MAX_SEARCH_RESULTS, matches)
   }
 
-  /** A replace leaves the rest of the file alone, and the file is read back to say so. */
-  @Test
-  fun replaceAllRewritesOnlyTheMatches() = runTest {
-    given("notes.py" to "import os\nprint(os)\nprint(1)\n")
-
-    searcher().replaceAll(SearchQuery("os"), "sys", preserveCase = false, scope = SearchScope())
-
-    assertEquals("import sys\nprint(sys)\nprint(1)\n", File(temp.root, "notes.py").readText())
-  }
-
   /** A path that leaves the workspace is refused by `WorkspaceRoot`, and nothing walks above it. */
   @Test
   fun nothingAboveTheRootIsReached() = runTest {

@@ -8,7 +8,6 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.compile
 import com.jupydroid.app.domain.model.matchedLinesIn
-import com.jupydroid.app.domain.model.textWithMatchesReplaced
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.glob.SearchFilter
 import kotlinx.coroutines.CoroutineDispatcher
@@ -16,7 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -45,22 +43,6 @@ class DiskWorkspaceSearcher(rootDir: File, private val ioDispatcher: CoroutineDi
       budget -= capped.matches.size
     }
   }.flowOn(ioDispatcher)
-
-  override suspend fun replaceAll(
-    query: SearchQuery,
-    replacement: String,
-    preserveCase: Boolean,
-    scope: SearchScope,
-  ): Int = withContext(ioDispatcher) {
-    searchablePaths(scope).sumOf { path ->
-      val text = readableTextAt(path) ?: return@sumOf 0
-      val replaced = textWithMatchesReplaced(text, query, replacement, preserveCase)
-      // Written only when something changed, so a search-then-replace does not move the mtime of
-      // every file it merely read - `last_modified` is what the browser sorts and Recents reads.
-      if (replaced.count > 0) root.fileAt(path).writeText(replaced.text)
-      replaced.count
-    }
-  }
 
   /** What one file holds, or null when it holds nothing - a file with no match is never a result. */
   private fun matchedFileAt(path: String, regex: Regex): MatchedFile? {
