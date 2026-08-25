@@ -9,9 +9,11 @@ import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -387,6 +389,46 @@ class ExplorerViewModelTest {
     assertTrue(viewModel.uiState.value.recents.isEmpty())
   }
 
+  /**
+   * **A poll that started before a navigation must not land on top of it** - found on the tablet,
+   * where the notebook's breadcrumb (P2w-1) is the first thing that navigates this browser from
+   * outside it. Coming back into composition restarts `KeepTheListingFresh`, which calls
+   * [ExplorerViewModel.refresh] at once; that re-lists whatever path is on screen, and it was
+   * racing the crumb's own `goTo`. Two listings, whichever finished last winning, and the frame
+   * showed the browser still standing in the folder the crumb had just left
+   * (`evidence/p2w-1-breadcrumb-wide/`).
+   */
+  @Test
+  fun aListingAlreadyInFlightDoesNotOverwriteWhereWeJustWent() = runTest {
+    given("At Root.ipynb", "reports/Nested.ipynb")
+    val viewModel = explorer(workspace = SlowListingWorkspaceRepository(disk(), slowPath = "reports"))
+    viewModel.goTo("reports")
+
+    // The poll reads the path on screen - "reports" - and its listing is the slow one, so it is
+    // still in flight when the crumb navigates away.
+    viewModel.refresh()
+    viewModel.goTo("")
+    advanceUntilIdle()
+
+    assertEquals("", viewModel.uiState.value.path)
+    assertEquals(listOf("reports", "At Root.ipynb"), viewModel.uiState.value.entries.map { it.name })
+  }
+
+  /** And the poll itself still re-lists, rather than being cancelled into doing nothing. */
+  @Test
+  fun refreshingStillRelistsWhereWeAre() = runTest {
+    given("reports/Nested.ipynb")
+    val viewModel = explorer()
+    viewModel.goTo("reports")
+
+    File(temp.root, "reports/Later.ipynb").writeText("x")
+    viewModel.refresh()
+    advanceUntilIdle()
+
+    assertEquals("reports", viewModel.uiState.value.path)
+    assertEquals(listOf("Later.ipynb", "Nested.ipynb"), viewModel.uiState.value.entries.map { it.name })
+  }
+
   private fun recent(path: String) = RecentDocument(path, WorkspaceEntryKind.FILE)
 
   private fun recentFolder(path: String) = RecentDocument(path, WorkspaceEntryKind.DIRECTORY)
@@ -402,11 +444,10 @@ class ExplorerViewModelTest {
     notebooks: NotebookRepository =
       DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler)),
     recents: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
-  ) = ExplorerViewModel(
-    DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler)),
-    notebooks,
-    recents,
-  )
+    workspace: WorkspaceRepository = disk(),
+  ) = ExplorerViewModel(workspace, notebooks, recents)
+
+  private fun TestScope.disk() = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
 
   private fun given(vararg paths: String) {
     paths.forEach { path ->

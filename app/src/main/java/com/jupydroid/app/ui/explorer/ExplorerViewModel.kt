@@ -14,6 +14,7 @@ import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.crumbsFor
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,6 +64,15 @@ class ExplorerViewModel(
    * a given directory shows, and it must not be re-derived from a truncated copy.
    */
   private var recentlyOpened: List<RecentDocument> = emptyList()
+
+  /**
+   * Which directory is being listed, which leads [ExplorerUiState.path] while a listing is in
+   * flight - see [goTo]. The screen shows where we *are*; this is where we are going.
+   */
+  private var browsing: String = ""
+
+  /** The listing in flight, so the next one can cancel it - see [goTo]. */
+  private var listing: Job? = null
 
   init {
     goTo("")
@@ -116,7 +126,17 @@ class ExplorerViewModel(
    *   row stayed below the fold, and every unit test stayed green. The flow is what caught it.
    */
   fun goTo(path: String, justCreated: String? = null) {
-    viewModelScope.launch {
+    // **The latest navigation wins, and the poll follows it rather than fighting it.** Two
+    // listings used to be able to be in flight at once - `refresh` re-listing what was on screen
+    // while a `goTo` was on its way somewhere else - and whichever finished last wrote the state.
+    // Cancelling settles the order, and [browsing] is what stops a poll launched in between from
+    // re-listing the directory we are leaving. Found on the tablet, where P2w-1's breadcrumb is
+    // the first thing that navigates this browser from outside it
+    // (`evidence/p2w-1-breadcrumb-wide/`); `aListingAlreadyInFlightDoesNotOverwriteWhereWeJustWent`
+    // is the pin.
+    browsing = path
+    listing?.cancel()
+    listing = viewModelScope.launch {
       runCatching { workspaceRepository.list(path) }
         .onSuccess { entries ->
           _uiState.value = ExplorerUiState(
@@ -180,7 +200,9 @@ class ExplorerViewModel(
     // be shown (`mainmenu-extension/src/recents.ts`). Ours is always on screen, so "about to be
     // shown" is this.
     viewModelScope.launch { recentDocuments.revalidate() }
-    goTo(_uiState.value.path)
+    // [browsing] and not `uiState.path`: where we are *going*, which is the same thing except
+    // while a listing is in flight - and that is exactly when this used to undo one.
+    goTo(browsing)
   }
 
   /**
