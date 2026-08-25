@@ -15,6 +15,8 @@ ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 APP="com.jupydroid.app"
+# This file is sourced, so `$0` is the driver; `BASH_SOURCE` is the one thing that names *this*.
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Where notebooks live on the device, which X1a moved.
 #
@@ -242,10 +244,19 @@ require_installed_app() {
 # Twenty-five drivers carried this same six-line if/else by hand. `scripts/check_driver_isolation.py`
 # requires going through here now, so it cannot be half-copied into the twenty-sixth - which is
 # also what makes this the one place [require_unlocked_device] has to be called from.
+# Clears a *system* "isn't responding" dialog, so one stuck service does not fail every flow after
+# it - see `scripts/clear_system_anr.py` for the incident and for why our own app's dialog is never
+# cleared. A precondition like [require_unlocked_device], and here for the same reason: it is about
+# the screen being in a state where a flow means anything.
+clear_system_anr() {
+  python3 "$ROOT_DIR/clear_system_anr.py" --serial "$MAESTRO_DEVICE" --app "$APP" --adb "$ADB"
+}
+
 maestro_test() {
   local flow="$1"
   require_installed_app || return 1
   require_unlocked_device || return 1
+  clear_system_anr || return 1
   if [ -n "$MAESTRO_DEVICE" ]; then
     "$MAESTRO" --device "$MAESTRO_DEVICE" test "$flow"
   else
