@@ -2,6 +2,7 @@ package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.CompiledQuery
 import com.jupydroid.app.domain.model.MatchedFile
+import com.jupydroid.app.domain.model.SearchProgress
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.model.compile
@@ -26,18 +27,25 @@ import kotlinx.coroutines.flow.flow
 class FakeWorkspaceSearcher(textByPath: Map<String, String> = emptyMap()) : WorkspaceSearcher {
   private val files = textByPath.toMutableMap()
 
-  /** Replaces what this workspace holds - what a test seeds through, and what a replace writes to. */
+  /** Replaces what this workspace holds - what a test seeds through. */
   fun holds(vararg files: Pair<String, String>) {
     this.files.clear()
     this.files.putAll(files)
   }
 
-  override fun search(query: SearchQuery, scope: SearchScope): Flow<MatchedFile> = flow {
-    val regex = (query.compile() as? CompiledQuery.Matching)?.regex ?: return@flow
+  override fun search(query: SearchQuery, scope: SearchScope): Flow<SearchProgress> = flow {
+    matchingFiles(query, scope).forEach { emit(SearchProgress.Found(it)) }
+    // Nothing bounds a map held in memory, so nothing was ever left out of one - the cap and the
+    // walk that spends it are `DiskWorkspaceSearcher`'s.
+    emit(SearchProgress.Complete(limitHit = false))
+  }
+
+  /** Every file this workspace holds that the query and the scope both reach, in path order. */
+  private fun matchingFiles(query: SearchQuery, scope: SearchScope): List<MatchedFile> {
+    val regex = (query.compile() as? CompiledQuery.Matching)?.regex ?: return emptyList()
     val filter = SearchFilter(scope.include, scope.exclude)
-    searchable(filter).forEach { (path, text) ->
-      val matches = matchedLinesIn(text, regex)
-      if (matches.isNotEmpty()) emit(MatchedFile(path, matches))
+    return searchable(filter).mapNotNull { (path, text) ->
+      matchedLinesIn(text, regex).takeIf { it.isNotEmpty() }?.let { MatchedFile(path, it) }
     }
   }
 

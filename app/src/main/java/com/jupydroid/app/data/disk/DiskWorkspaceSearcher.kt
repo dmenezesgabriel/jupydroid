@@ -2,6 +2,7 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.CompiledQuery
 import com.jupydroid.app.domain.model.MatchedFile
+import com.jupydroid.app.domain.model.SearchProgress
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.model.WorkspaceEntry
@@ -13,6 +14,7 @@ import com.jupydroid.app.glob.SearchFilter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import java.io.File
@@ -29,20 +31,46 @@ import java.io.File
  * DiskWorkspaceSearcher(notebookWorkspace(context)).search(SearchQuery("cat"), SearchScope())
  * ```
  */
-class DiskWorkspaceSearcher(rootDir: File, private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO) :
-  WorkspaceSearcher {
+class DiskWorkspaceSearcher(
+  rootDir: File,
+  /**
+   * `search.maxResults`, which the reference reads **per query** rather than baking in
+   * (`searchView.ts:1670`). A parameter for the same reason: P6c is where a settings screen gets to
+   * change it, and until then every caller takes the registered default.
+   */
+  private val maxResults: Int = MAX_SEARCH_RESULTS,
+  private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : WorkspaceSearcher {
   private val root = WorkspaceRoot(rootDir)
 
-  override fun search(query: SearchQuery, scope: SearchScope): Flow<MatchedFile> = flow {
-    val regex = (query.compile() as? CompiledQuery.Matching)?.regex ?: return@flow
-    var budget = MAX_SEARCH_RESULTS
-    for (file in searchablePaths(scope).mapNotNull { matchedFileAt(it, regex) }) {
-      if (budget <= 0) break
-      val capped = file.cappedAt(budget)
-      emit(capped)
-      budget -= capped.matches.size
-    }
+  override fun search(query: SearchQuery, scope: SearchScope): Flow<SearchProgress> = flow {
+    val regex = (query.compile() as? CompiledQuery.Matching)?.regex
+    // A query that came to nothing walked nothing, so nothing was left out - see `SearchProgress`.
+    emit(SearchProgress.Complete(limitHit = regex != null && emitMatchingFiles(regex, scope)))
   }.flowOn(ioDispatcher)
+
+  /**
+   * Emits one [SearchProgress.Found] per matching file, and answers whether the cap cost anything.
+   *
+   * `search.maxResults` spent as the walk goes rather than counted afterwards, so a workspace with
+   * more matches than the cap stops being *read* at the cap. True the moment something is left
+   * out - a file truncated mid-way, or a file the budget never reached - and false when the cap
+   * happened to land exactly on the last match, which is the case a caller counting for itself
+   * cannot tell from truncation.
+   */
+  private suspend fun FlowCollector<SearchProgress>.emitMatchingFiles(regex: Regex, scope: SearchScope): Boolean {
+    var budget = maxResults
+    for (file in searchablePaths(scope).mapNotNull { matchedFileAt(it, regex) }) {
+      // A spent budget caps a file to *nothing*, which is why the emit is guarded rather than the
+      // loop: "the walk never reached this file" and "the walk stopped inside it" are the same
+      // arithmetic, and both mean something was left out.
+      val capped = file.cappedAt(budget)
+      if (capped.matches.isNotEmpty()) emit(SearchProgress.Found(capped))
+      budget -= capped.matches.size
+      if (capped.matches.size < file.matches.size) return true
+    }
+    return false
+  }
 
   /** What one file holds, or null when it holds nothing - a file with no match is never a result. */
   private fun matchedFileAt(path: String, regex: Regex): MatchedFile? {
@@ -107,10 +135,7 @@ class DiskWorkspaceSearcher(rootDir: File, private val ioDispatcher: CoroutineDi
   }
 }
 
-/**
- * At most [budget] of this file's matches - `search.maxResults` spent as the walk goes rather than
- * counted afterwards, so a workspace with more matches than the cap stops being read at the cap.
- */
+/** At most [budget] of this file's matches - see `emitMatchingFiles` for what spends the budget. */
 private fun MatchedFile.cappedAt(budget: Int): MatchedFile =
   if (matches.size <= budget) this else copy(matches = matches.take(budget))
 

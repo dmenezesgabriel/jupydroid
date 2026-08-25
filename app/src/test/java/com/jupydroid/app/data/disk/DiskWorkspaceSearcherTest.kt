@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.SearchProgress
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.port.WorkspaceSearcher
@@ -26,7 +27,11 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
     }
   }
 
-  private suspend fun found(text: String) = searcher().search(SearchQuery(text), SearchScope()).toList().map { it.path }
+  private suspend fun found(text: String) =
+    progressFor(text).filterIsInstance<SearchProgress.Found>().map { it.file.path }
+
+  private suspend fun progressFor(text: String, searcher: WorkspaceSearcher = searcher()): List<SearchProgress> =
+    searcher.search(SearchQuery(text), SearchScope()).toList()
 
   /** Directories first then natural name order, at every level - the browser's own order. */
   @Test
@@ -116,9 +121,55 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
   fun theWalkStopsAtTheReferencesResultCap() = runTest {
     given("many.py" to "cat\n".repeat(MAX_SEARCH_RESULTS + 10))
 
-    val matches = searcher().search(SearchQuery("cat"), SearchScope()).toList().sumOf { it.matches.size }
+    val matches = progressFor("cat").filterIsInstance<SearchProgress.Found>().sumOf { it.file.matches.size }
 
     assertEquals(MAX_SEARCH_RESULTS, matches)
+  }
+
+  /**
+   * **A truncated file says so**, which is the whole of what `limitHit` is for: the walk stopped
+   * inside `many.py`, so what was reported is a subset and the panel has to draw the reference's
+   * own warning above it (`searchView.ts:1897-1899`).
+   *
+   * Driven through the cap rather than through 20000 matching lines, because `search.maxResults`
+   * **is a setting** in the reference and is read per query (`searchView.ts:1670`) - so a small one
+   * is an ordinary configuration and not a test hook.
+   */
+  @Test
+  fun aWalkTruncatedInsideAFileSaysTheLimitWasHit() = runTest {
+    given("many.py" to "cat\ncat\ncat\n")
+
+    val progress = progressFor("cat", DiskWorkspaceSearcher(temp.root, maxResults = 2))
+
+    assertEquals(listOf(1, 2), progress.filterIsInstance<SearchProgress.Found>().single().file.matches.map { it.line })
+    assertEquals(SearchProgress.Complete(limitHit = true), progress.last())
+  }
+
+  /**
+   * A cap that lands **exactly** on the last match left nothing out, and does not claim it did.
+   *
+   * The seam a running count in the caller could not see, and the reason `limitHit` is the port's
+   * to answer: two matches reported against a cap of two is either "all of them" or "the first two
+   * of many", and only the thing walking the tree knows which.
+   */
+  @Test
+  fun aCapThatLandsExactlyOnTheLastMatchDidNotTruncate() = runTest {
+    given("some.py" to "cat\ncat\n")
+
+    val progress = progressFor("cat", DiskWorkspaceSearcher(temp.root, maxResults = 2))
+
+    assertEquals(SearchProgress.Complete(limitHit = false), progress.last())
+  }
+
+  /** A file the budget could not be spent on at all is a subset too - the walk stopped before it. */
+  @Test
+  fun aFileTheWalkNeverReachedSaysTheLimitWasHit() = runTest {
+    given("a.py" to "cat\ncat\n", "b.py" to "cat")
+
+    val progress = progressFor("cat", DiskWorkspaceSearcher(temp.root, maxResults = 2))
+
+    assertEquals(listOf("a.py"), progress.filterIsInstance<SearchProgress.Found>().map { it.file.path })
+    assertEquals(SearchProgress.Complete(limitHit = true), progress.last())
   }
 
   /** A path that leaves the workspace is refused by `WorkspaceRoot`, and nothing walks above it. */

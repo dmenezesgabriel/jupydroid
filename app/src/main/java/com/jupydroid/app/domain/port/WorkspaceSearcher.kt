@@ -1,6 +1,6 @@
 package com.jupydroid.app.domain.port
 
-import com.jupydroid.app.domain.model.MatchedFile
+import com.jupydroid.app.domain.model.SearchProgress
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import kotlinx.coroutines.flow.Flow
@@ -22,12 +22,12 @@ import kotlinx.coroutines.flow.Flow
  * shape - it is a stream, it takes a query, and it reads far more files than it reports.
  *
  * ```
- * searcher.search(SearchQuery("cat"), SearchScope(include = "*.py")).collect { println(it.path) }
+ * searcher.search(SearchQuery("cat"), SearchScope(include = "*.py")).collect { println(it) }
  * ```
  */
 interface WorkspaceSearcher {
   /**
-   * Every file with a match, **as they are found**.
+   * Every file with a match **as it is found**, then one [SearchProgress.Complete].
    *
    * Streamed rather than gathered, which is `ISearchProgressItem`'s whole point: a workspace walk
    * is slow enough that a list at the end is a blank screen for the length of it. One item per
@@ -36,7 +36,8 @@ interface WorkspaceSearcher {
    * what a listing would have shown first.
    *
    * A file with no match is never emitted. An empty or unparseable query finds nothing at all,
-   * which is `CompiledQuery.Empty` and `CompiledQuery.Invalid`.
+   * which is `CompiledQuery.Empty` and `CompiledQuery.Invalid` - and **still completes**, because
+   * a walk that found nothing and a flow nobody ran look identical otherwise.
    */
-  fun search(query: SearchQuery, scope: SearchScope): Flow<MatchedFile>
+  fun search(query: SearchQuery, scope: SearchScope): Flow<SearchProgress>
 }
