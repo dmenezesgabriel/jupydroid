@@ -81,3 +81,44 @@ val DEFAULT_EXCLUDED_GLOBS: List<PathGlob> = (FILES_EXCLUDE_DEFAULT + SEARCH_EXC
  */
 private fun atAnyDepth(pattern: String): List<String> =
   listOf("**/$pattern/**", "**/$pattern").map { it.replace("**/**", "**") }
+
+/**
+ * Which paths a search reaches, given what the include and exclude boxes hold.
+ *
+ * `QueryBuilder.commonQuery` folds the two boxes and the two settings into one include/exclude
+ * pair and hands it to the engine (`queryBuilder.ts:140-160`); this is that pair, asked one path at
+ * a time, and it is what both `WorkspaceSearcher` implementations filter with so neither has a
+ * copy of the rules.
+ *
+ * Two plain strings rather than the domain's `SearchScope`, so this package keeps knowing only
+ * about globs - the adapter is what joins a domain type to a language.
+ *
+ * ```
+ * SearchFilter(include = "*.py", exclude = "").searches("reports/notes.py")   // true
+ * ```
+ *
+ * @param include the *"files to include"* box; blank means everything.
+ * @param exclude the *"files to exclude"* box, which applies beside [DEFAULT_EXCLUDED_GLOBS] and
+ *   never instead of them.
+ */
+class SearchFilter(include: String, exclude: String) {
+  private val included = globsFrom(include)
+  private val excluded = DEFAULT_EXCLUDED_GLOBS + globsFrom(exclude)
+
+  /**
+   * Whether the file at [path] is searched: not excluded, and named by the include when there is
+   * one. Exclude wins, which is the order the reference applies them in.
+   */
+  fun searches(path: String): Boolean =
+    !excluded.any { it.matches(path) } && (included.isEmpty() || included.any { it.matches(path) })
+
+  /**
+   * Whether the walk descends into the directory at [path] - **exclude only**.
+   *
+   * An include cannot prune: a `.py` can be any distance below a directory whose own name matches
+   * nothing. An exclude can, and pruning is what makes a default like `node_modules` cover the
+   * subtree it names rather than only the folder - ripgrep's own behaviour, since a `--glob !`
+   * pattern that matches a directory drops everything under it.
+   */
+  fun descendsInto(path: String): Boolean = !excluded.any { it.matches(path) }
+}

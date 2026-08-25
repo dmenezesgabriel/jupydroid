@@ -7,6 +7,7 @@ import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.port.DocumentSharer
@@ -17,6 +18,7 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceSearcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,6 +37,11 @@ class AppContainer(
    * notebooks cannot.
    */
   val workspaceRepository: WorkspaceRepository = FakeWorkspaceRepository(),
+  /**
+   * The same tree again, asked which files hold something rather than what is at a path - a
+   * different question with a different shape, so a port of its own (P2x-1).
+   */
+  val workspaceSearcher: WorkspaceSearcher = FakeWorkspaceSearcher(),
   /**
    * What was opened, which no listing of the tree can answer - a recent is a record of an act.
    * Kept apart from [notebookRepository] for that reason, and because it remembers plain files
