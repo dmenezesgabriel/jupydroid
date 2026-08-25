@@ -2585,6 +2585,74 @@ cell-chrome change without the `u3-cell-chrome` re-capture that P2u-3's gate req
 visible in `evidence/p2u-1-chrome/after/dark/03-the-document-at-rest.png` and named here so it is
 a known state rather than a defect nobody wrote down.
 
+### The cell keeps its header strip, and VS Code's run gutter is declined (P2v)
+
+P2v was written as a re-derivation of the cell chrome from VS Code: the run control into a gutter
+**outside** the cell (`width: 35px; left: -35px`, `media/notebook.css:228-234`), the execution
+count at that gutter's foot (`cellExecution.ts:139,200`), the heading caret onto the same left
+indicator (`cellRenderer.ts:148`), and `CellHeader` retired - the `⋮` to the cell's top-right
+(`notebookOptions.ts:162`), the duration to a foot status bar. **All four rows are declined.**
+
+**Unlike the first time this was written down, the gutter was built before it was refused.** The
+frames are `evidence/p2v-1-run-gutter/` on the unreachable branch `p2v-declined-attempt`
+(`git show 74b9cd8:evidence/p2v-1-run-gutter/tablet/01-nothing-run-yet.png`), and they are the
+measurement this entry rests on rather than the arithmetic that preceded them:
+
+- **The width is not there, and a phone is where it is spent.** The column is 48dp and not the
+  reference's 35px, because P2l-4 settled that a touch target is reserved space rather than
+  expanded bounds - so it is as wide as the press it holds. 48dp beside every editor is **15% of a
+  320dp window**, and what it takes is the one thing a cell exists for: the width of the text being
+  edited. P2o-4 declined an 80dp bottom bar at 20% for more than this buys.
+- **The reference does not pay the same price.** VS Code spends `codeCellLeftMargin: 28` +
+  `cellRunGutter: 32` = 60px of a desktop window (`notebookOptions.ts:118-136`) - single digits as
+  a fraction. A ratio transcribed from a surface an order of magnitude wider is not the same
+  decision on a phone, which is the whole reason this file separates what is transcribed from what
+  is adapted.
+- **Built, it broke P2n's own invariant.** The gutter arrives beside the editor while the header
+  strip above it keeps the prompt, so `[ ]:` sits at the frame's left edge and the editor 48dp
+  right of it - **two leading marks at two x's**, which is precisely the ragged edge P2n spent
+  itself removing (`evidence/p2n-gutter/before/gutter.txt`). Only retiring the header closes it,
+  and retiring the header is the row that has to justify itself independently.
+- **The header it retires fits.** `CellHeaderTest.theMenuButtonStaysOnScreenAt320dp` holds the
+  strip's worst case - prompt, Run, duration label, `⋮` - inside 320dp. Moving three controls to a
+  top-right toolbar and a foot status bar solves crowding this app does not have.
+- **VS Code's markup affordances assume a pointer.** It renders a markup cell on blur or Escape;
+  a touch screen has neither, which is why this app's rendered markdown *is* the tap target that
+  opens its editor. The chevron/play slot P2v-3 asked for was an adaptation of an adaptation.
+
+This does not reopen the presentation re-base. **Colour is settled and stays settled** - P2u-1
+through P2u-3f are VS Code's and untouched - and P2w onward (the breadcrumb, the kernel indicator,
+workspace search, the phone's bottom navigation) is unaffected: none of it is cell chrome. What is
+refused is the *cell layout* half, and only that.
+
+What ships instead is two adaptations, each narrower than the row it replaces.
+
+**A cell's play is outlined, not filled.** A filled triangle at rest reads as "playing"; outlined
+reads as available, which is what an idle control means, and a notebook draws one per cell so the
+misread is repeated down the whole document. Scope is the three run controls in `CellHeader` -
+`NotebookBar`'s *Run all* and `SelectionTopBar`'s play are toolbar commands acting on a selection
+rather than a cell's own state, and keep their filled glyphs. `cellRunIcon` is a value rather than
+an inline argument so `CellRunIconTest` has something to pin: without it the departure back to
+filled is a one-token edit no gate would see.
+
+**A heading's fold chevron shows rendered only.** JupyterLab's prompt node carries the caret in
+both states - `InputArea` builds it once and hides only the *editor* when the cell renders
+(`packages/cells/src/inputarea.ts:53-56,111-119`) - and P2n-3 transcribed that. Composing it while
+the source is open spends a column of the editor's width on an affordance that cannot be used
+mid-typing anyway: collapsing the section would close what is being written. Hidden while editing,
+a heading's editor runs full-width like every other cell's, and the header's play - the control
+that renders the cell - is the only thing on it. The caret returns when the cell renders again.
+**This supersedes the both-states assertion of P2n-3**, which `MarkdownCellTest` carried as
+*"Unrendered too: the reference's prompt node - and so its caret - is there in both states."*
+
+**Its cost, named rather than discovered later:** `CellAction.ToggleHeadingCollapse` has exactly
+one caller, the caret itself (`MarkdownCell.kt`), and it is in no menu - so while a heading cell is
+being edited its section cannot be folded at all. Rendering the cell first is the route, which is
+the sequence the reasoning above already assumes. **Expanding is not affected**: a collapsed
+heading draws `HiddenCellsRow` inside its own frame whatever state its source is in
+(`EditorCell.kt`), so a section folded and then edited is never a dead end. A menu row for the
+command is deliberately *not* added - a second route to folding-while-typing would undo the step.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary
