@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# P2w-1, the half only two panes can reach: a crumb tapped in the notebook has to reach a browser
+# that is a *different* `NavEntry` - and that is not enough on its own, because the side area may
+# be drawing the table of contents instead. `onGoToFolder` shows Files again before it navigates,
+# and this is the flow that proves it: with the outline up there is no browser on screen at all,
+# so the trail's tap has to bring one back.
+#
+# Driving it with the outline up is also what makes the assertions unambiguous. In two panes the
+# browser draws a crumb trail of its own, so "Workspace" and "reports" are each on screen twice
+# and a tap would be a coin toss. Behind the outline the notebook's trail is the only one.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "reports"
+- tapOn: "Nested.ipynb"
+- extendedWaitUntil:
+    visible: "print('this notebook lives in a folder')"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-the-nested-notebook-beside-the-browser
+
+# The rail swaps the side area over to the outline, which is `labShell.activateById(toc.id)`.
+# The browser and its own trail go with it.
+- tapOn: "Table of contents"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "data.csv"
+- takeScreenshot: 02-the-outline-has-the-side-area
+
+# The notebook's own trail is still there - it is the document's, not the shell's - and its tap
+# has to do both halves: bring the browser back and move it.
+- tapOn: "Workspace"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "At Root.ipynb"
+- assertVisible: "reports"
+# The notebook did not close: two panes, so the browser arrives *beside* it.
+- assertVisible: "print('this notebook lives in a folder')"
+- takeScreenshot: 03-the-crumb-brought-the-browser-back-at-the-root

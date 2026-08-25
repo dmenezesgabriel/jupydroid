@@ -42,7 +42,9 @@ import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.RenameFileDialog
+import com.jupydroid.app.ui.ancestorCrumbsFor
 
 /** Small enough to read as part of the title rather than as a button beside it. */
 private val TITLE_EDIT_ICON_SIZE = 18.dp
@@ -82,6 +84,12 @@ private val TITLE_EDIT_ICON_SIZE = 18.dp
  * is asks the kernel nothing. Where the row has no width for it, it moves to the overflow the way
  * a `ReactiveToolbar` moves an item into its popup opener; see [CellTypeControl] and
  * [cellTypeOnBar].
+ *
+ * **The breadcrumb is between the two rows** (P2w-1), which is where `BreadcrumbsControl` sits
+ * relative to a tab title in VS Code, and it is **absent** on a document at the workspace root -
+ * see [ancestorCrumbsFor] for both departures. A tap navigates the file browser, which is
+ * JupyterLab's behaviour rather than VS Code's picker (`packages/filebrowser/src/crumbs.ts:415`):
+ * the re-base moved where this app takes its *presentation* from, never its behaviour.
  *
  * **Undo and redo are here and not on [NotebookBar]**, which is the split that bar states about
  * itself: it is what you ask the *kernel*. Taking back a cell operation is neither a kernel action
@@ -155,6 +163,13 @@ fun EditorTopBar(
    * `0f` at the top of the document, `1f` once the strip is gone and the notebook has its 48dp.
    */
   titleCollapse: Float = 0f,
+  /**
+   * Where the document lives, root first - [ancestorCrumbsFor]. **Empty draws no row at all**,
+   * which is what a notebook at the workspace root gets.
+   */
+  crumbs: List<Pair<String, String>> = emptyList(),
+  /** A segment was tapped: browse that folder. `""` is the workspace root, not "no target". */
+  onGoToFolder: (String) -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -169,6 +184,12 @@ fun EditorTopBar(
       .windowInsetsPadding(TopAppBarDefaults.windowInsets),
   ) {
     NotebookTitleStrip(title = title, onClick = { renameOpen = true }, collapse = titleCollapse)
+    // **One fraction collapses both rows**, because `titleCollapseFraction` takes the region's
+    // height as an argument - so widening the region is a change to what [EditorScreen] passes it,
+    // not a second fraction that could disagree with this one.
+    if (crumbs.isNotEmpty()) {
+      Breadcrumb(crumbs = crumbs, onGoTo = onGoToFolder, modifier = Modifier.collapsedBy(titleCollapse))
+    }
     TopAppBar(
       // The document's *name* is not here - it has the row above, which is what the reference's
       // single-document mode does (`application/style/titlepanel.css:10-37`). What this slot holds
@@ -298,15 +319,10 @@ private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onR
  */
 @Composable
 private fun NotebookTitleStrip(title: String, onClick: () -> Unit, collapse: Float) {
-  // Shrunk rather than hidden, so the notebook slides under it instead of jumping when the last
-  // pixel goes. Clipped because the name inside keeps its own height whatever the row's is.
-  val whole = LocalMinimumInteractiveComponentSize.current
-  val shown = whole * (1f - collapse)
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .height(shown)
-      .clipToBounds()
+      .collapsedBy(collapse)
       .clickable(onClickLabel = "Rename notebook", onClick = onClick)
       // The reference's own inset is `margin-left: 8px`; Material's horizontal margin for a bar's
       // content is 16dp, and the row below this one is drawn by `TopAppBar` on that margin - so
@@ -332,3 +348,17 @@ private fun NotebookTitleStrip(title: String, onClick: () -> Unit, collapse: Flo
     )
   }
 }
+
+/**
+ * How a row of this bar gives its height back as the notebook is read - see [titleCollapseFraction].
+ *
+ * **Shrunk rather than hidden**, so the notebook slides under it instead of jumping when the last
+ * pixel goes, and clipped because whatever is inside keeps its own height whatever the row's is.
+ * One modifier because two rows collapse now and they must do it identically; before P2w-1 the
+ * title strip spelled it inline.
+ *
+ * @param collapse `0f` whole, `1f` gone.
+ */
+@Composable
+private fun Modifier.collapsedBy(collapse: Float): Modifier =
+  height(LocalMinimumInteractiveComponentSize.current * (1f - collapse)).clipToBounds()

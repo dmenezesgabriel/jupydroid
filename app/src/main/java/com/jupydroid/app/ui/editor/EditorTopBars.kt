@@ -3,6 +3,8 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.runtime.Composable
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.ui.ROOT_LABEL
+import com.jupydroid.app.ui.ancestorCrumbsFor
 
 /**
  * Which bar the notebook has along its top edge - one of three, never two.
@@ -37,6 +39,8 @@ internal fun EditorTopBars(
   onBack: () -> Unit,
   /** See [titleCollapseFraction] - the document's bar is the only one of the three with a title. */
   titleCollapse: Float,
+  /** A breadcrumb segment was tapped: browse that folder. See [EditorTopBar]. */
+  onGoToFolder: (String) -> Unit,
 ) {
   val head = state.cells.firstOrNull { it.id == state.selectedCellId }
   val searching = state.search
@@ -88,6 +92,7 @@ internal fun EditorTopBars(
       onHeadingSelected = onHeadingSelected,
       onBack = onBack,
       titleCollapse = titleCollapse,
+      onGoToFolder = onGoToFolder,
     )
   }
 }
@@ -107,6 +112,7 @@ private fun DocumentTopBar(
   onHeadingSelected: (String) -> Unit,
   onBack: () -> Unit,
   titleCollapse: Float,
+  onGoToFolder: (String) -> Unit,
 ) {
   EditorTopBar(
     title = state.title,
@@ -128,6 +134,9 @@ private fun DocumentTopBar(
     onTableOfContentsHeadingSelected = onHeadingSelected,
     onShowTableOfContentsPanel = onShowTableOfContents,
     titleCollapse = titleCollapse,
+    // The document's own name is never a segment - it is on the row above. See [ancestorCrumbsFor].
+    crumbs = ancestorCrumbsFor(state.notebookId, ROOT_LABEL),
+    onGoToFolder = onGoToFolder,
     onFind = viewModel.search::start,
     exportState = state.export,
     onExportPickerOpened = viewModel.export::pickerOpened,

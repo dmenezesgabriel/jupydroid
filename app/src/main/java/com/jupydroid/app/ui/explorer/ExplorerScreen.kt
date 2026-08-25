@@ -2,9 +2,7 @@ package com.jupydroid.app.ui.explorer
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,11 +13,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.DropdownMenu
@@ -46,7 +42,6 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,6 +54,7 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
@@ -100,6 +96,16 @@ fun ExplorerScreen(
    * whole paths is that same rule said once, since every entry carries its full path.
    */
   openDocumentPath: String? = null,
+  /**
+   * A folder this screen has been asked to browse from outside its own entry, or null.
+   *
+   * The open document's breadcrumb is the one caller (P2w-1). It cannot reach this
+   * `ExplorerViewModel` - a different `NavEntry` owns it - so the request arrives from the
+   * navigation above both, which is the same route `docmanager:open` takes in reverse.
+   */
+  browseRequest: String? = null,
+  /** The request has been acted on, so it is not replayed on the next recomposition. */
+  onBrowseRequestHandled: () -> Unit = {},
   onBack: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
   viewModel: ExplorerViewModel =
@@ -116,6 +122,15 @@ fun ExplorerScreen(
   val listing = rememberLazyListState()
 
   KeepTheListingFresh(viewModel::refresh)
+
+  // Consumed rather than merely read: without clearing it, a request satisfied once would re-fire
+  // every time this screen recomposed and pin the browser to that folder.
+  LaunchedEffect(browseRequest) {
+    browseRequest?.let {
+      viewModel.goTo(it)
+      onBrowseRequestHandled()
+    }
+  }
 
   // A created row can land anywhere, because the listing is ordered by name - so it is brought
   // into view rather than left below the fold, which is audit A3 on this surface.
@@ -249,36 +264,6 @@ private fun NewMenu(onCreate: (NewItem) -> Unit) {
         open = false
         onCreate(item)
       })
-    }
-  }
-}
-
-/**
- * The ancestry, scrolling sideways rather than eliding.
- *
- * Horizontal inside a vertical list is the one nesting Compose allows without a fixed size - the
- * guidance forbids only *same-direction* nesting - and it is what keeps the folder you are **in**
- * on screen. Truncating the tail would hide precisely the crumb that matters.
- */
-@Composable
-private fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> Unit) {
-  Row(
-    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    crumbs.forEachIndexed { at, (path, label) ->
-      if (at > 0) {
-        Icon(
-          Icons.AutoMirrored.Filled.KeyboardArrowRight,
-          contentDescription = null,
-          modifier = Modifier.size(CRUMB_SEPARATOR_SIZE),
-        )
-      }
-      Text(
-        text = label,
-        style = MaterialTheme.typography.labelLarge,
-        modifier = Modifier.clickable { onGoTo(path) }.padding(horizontal = Spacing.md, vertical = Spacing.lg),
-      )
     }
   }
 }
@@ -444,12 +429,6 @@ private fun ExplorerError(message: String) {
     modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
   )
 }
-
-/**
- * The chevron between two breadcrumbs. A size and not a gap, and named as one: `SEPARATOR` said
- * what it was beside rather than what it is, and `Modifier.size(SEPARATOR)` read as a spacer.
- */
-private val CRUMB_SEPARATOR_SIZE = 16.dp
 
 /**
  * How often the listing is re-read: `DEFAULT_REFRESH_INTERVAL`, which the reference sets to 10 s

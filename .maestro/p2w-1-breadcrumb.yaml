@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# P2w-1: the open document's breadcrumb. Where a notebook lives, and the way back to its folder.
+#
+# The trail is **ancestors only** - the document's own name is on the title row above it, so the
+# name is never said twice. VS Code ends its trail with the file (`breadcrumbsModel.ts:142`)
+# because its breadcrumb sits under a *tab bar*; ours sits under a title row, which is neither a
+# close target nor a document selector.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+- takeScreenshot: 01-the-workspace
+
+# A notebook at the workspace root has no ancestry, so the row is **absent** rather than blank -
+# 48dp spent saying nothing is what P2v declined the run gutter over. Its title is on screen and
+# nothing below it is.
+- tapOn: "At Root.ipynb"
+- extendedWaitUntil:
+    visible: "print('this one is at the root')"
+    timeout: 10000
+- assertVisible: "At Root.ipynb"
+- assertNotVisible: "Workspace"
+- takeScreenshot: 02-at-the-root-there-is-no-trail
+- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+
+# The notebook inside a folder says so, on a row between its name and its actions.
+- tapOn: "reports"
+- tapOn: "Nested.ipynb"
+- extendedWaitUntil:
+    visible: "print('this notebook lives in a folder')"
+    timeout: 10000
+- assertVisible: "Nested.ipynb"
+- assertVisible: "Workspace"
+- assertVisible: "reports"
+- takeScreenshot: 03-a-nested-notebook-says-where-it-lives
+
+# **A tap navigates the browser**, which is JupyterLab's `this._model.cd(destination)`
+# (`packages/filebrowser/src/crumbs.ts:415`) and not VS Code's picker. The root crumb's path is the
+# empty string, so this lands at the top of the workspace - past the folder the notebook was
+# opened from, which is what proves it navigated rather than merely went back.
+- tapOn: "Workspace"
+- assertVisible: "At Root.ipynb"
+- assertVisible: "reports"
+- assertNotVisible: "Nested.ipynb"
+- takeScreenshot: 04-the-root-crumb-browsed-to-the-root
+
+# And a folder segment lands in *that* folder rather than at the root. Opened from the root, so
+# the browser is somewhere the crumb has to move it to.
+- tapOn: "reports"
+- tapOn: "Nested.ipynb"
+- extendedWaitUntil:
+    visible: "print('this notebook lives in a folder')"
+    timeout: 10000
+- tapOn: "reports"
+- assertVisible: "Nested.ipynb"
+- assertVisible: "data.csv"
+- assertNotVisible: "At Root.ipynb"
+- takeScreenshot: 05-the-folder-crumb-browsed-to-the-folder

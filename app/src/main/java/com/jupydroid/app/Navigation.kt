@@ -94,6 +94,11 @@ fun MainNavigation(
   // current path, never by the one a widget was created with.
   var openNotebookId by remember { mutableStateOf<String?>(null) }
   val openDocument = rememberDocumentOpener(backStack, appContainer)
+  // Where the browser has been asked to go from *outside* its own entry - the open document's
+  // breadcrumb (P2w-1). Plain hoisted state rather than an `OpenDocumentOutline`-style holder,
+  // because that one exists for something flowing **sideways** between two entries and this flows
+  // down from their common parent: the editor asks here, and here is already above the browser.
+  var browseRequest by remember { mutableStateOf<String?>(null) }
   // Which row the pane beside the browser belongs to, and **only while there is a pane beside it**.
   // In one window the browser is on screen exactly when nothing is open, so a marked row would
   // point at a pane that is not there. The notebook's path comes from `openNotebookId` rather than
@@ -206,6 +211,8 @@ fun MainNavigation(
                 onOpenFile = { file -> openDocument(file.path) },
                 onOpenRecent = openDocument,
                 openDocumentPath = openDocumentPath,
+                browseRequest = browseRequest,
+                onBrowseRequestHandled = { browseRequest = null },
                 // No arrow at all: this is the first screen now, so there is nowhere to go back *to*.
                 // Back still climbs the workspace while there is a parent - `filebrowser:go-up` - and
                 // at the root it leaves the app, which is what nothing swallowing it means.
@@ -237,6 +244,15 @@ fun MainNavigation(
             // `toc:show-panel` where there is a side area to activate, and null where there is not -
             // which is what puts the overlay up on a compact window instead.
             onShowTableOfContents = { sidePanel = SidePanel.TABLE_OF_CONTENTS }.takeIf { twoPane },
+            // A breadcrumb segment, which is JupyterLab's `this._model.cd(destination)`
+            // (`packages/filebrowser/src/crumbs.ts:415`) - so the browser has to be *showing* for
+            // the navigation to be visible, and which half that needs differs by layout. Beside
+            // the notebook the side area may be drawing the table of contents instead; in one
+            // window the browser is not composed at all until this entry goes.
+            onGoToFolder = { folder ->
+              browseRequest = folder
+              if (twoPane) sidePanel = SidePanel.FILES else backStack.removeLastOrNull()
+            },
             onBack = { backStack.removeLastOrNull() },
             onNotebookMoved = { moved -> openNotebookId = moved },
           )

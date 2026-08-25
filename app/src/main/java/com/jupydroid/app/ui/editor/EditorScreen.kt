@@ -47,6 +47,8 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.OverwriteFileDialog
+import com.jupydroid.app.ui.ROOT_LABEL
+import com.jupydroid.app.ui.ancestorCrumbsFor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -82,6 +84,14 @@ fun EditorScreen(
    * shows the overlay instead, which is the narrow adaptation of a sidebar this app has always had.
    */
   onShowTableOfContents: (() -> Unit)?,
+  /**
+   * A breadcrumb segment was tapped: browse that folder (`""` is the workspace root).
+   *
+   * `filebrowser` is a different `NavEntry` with its own `ViewModel`, so this cannot reach it -
+   * but unlike the outline, which flows *sideways*, this flows **down** from the entries' common
+   * parent and needs nothing but the state `MainNavigation` hoists. See [EditorTopBar].
+   */
+  onGoToFolder: (String) -> Unit,
   onBack: () -> Unit,
   /**
    * Reports where the notebook lives *now*, because a rename moves it.
@@ -215,7 +225,13 @@ fun EditorScreen(
     // The title's row is not free on a phone, so it is not permanent either - see
     // [titleCollapseFraction]. Derived from the list the cells are drawn from rather than from a
     // `nestedScroll` connection, so there is one answer to "where is the document" and not two.
-    val stripPx = with(LocalDensity.current) { LocalMinimumInteractiveComponentSize.current.toPx() }
+    // **Both collapsing rows, not just the title.** `titleCollapseFraction` takes the region's
+    // height as an argument, so a breadcrumb below the title widens what is passed rather than
+    // needing a second fraction - and without this the bar would lose ~96dp over 48dp of scroll.
+    val crumbs = ancestorCrumbsFor(state.notebookId, ROOT_LABEL)
+    val rowHeight = LocalMinimumInteractiveComponentSize.current
+    val collapsingRows = if (crumbs.isEmpty()) 1 else 2
+    val stripPx = with(LocalDensity.current) { (rowHeight * collapsingRows).toPx() }
     val titleCollapse by remember(listState, stripPx) {
       derivedStateOf {
         titleCollapseFraction(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, stripPx)
@@ -243,6 +259,7 @@ fun EditorScreen(
             onHeadingSelected = jumpToHeading,
             onBack = onBack,
             titleCollapse = titleCollapse,
+            onGoToFolder = onGoToFolder,
           )
           // Under whichever bar is up rather than over the notebook: it says the *document* is
           // busy, and covering the document to say so would be the wrong trade. See [ExportStatus].
