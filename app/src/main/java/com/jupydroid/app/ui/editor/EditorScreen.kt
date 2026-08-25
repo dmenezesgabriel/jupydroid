@@ -192,6 +192,19 @@ fun EditorScreen(
       // between two matches already in front of the reader must not yank the notebook.
       if (index >= 0 && !listState.isFullyVisible(index)) listState.animateScrollToItem(index)
     }
+    // **A cell about to be typed into has to be on screen**, which is the reference's `_ensureFocus`
+    // (`packages/notebook/src/widget.ts:2885-2905`) - see [cellBeingEditedIndex] for the rule and
+    // for what its absence cost. Keyed on the cell and the mode rather than on the document, so
+    // typing into the cell does not re-scroll on every keystroke.
+    //
+    // Guarded by [isFullyVisible] exactly as the search's scroll is, and for the reference's own
+    // reason: `if (activeCell.inViewport) focus() else scrollToItem(...)`. A cell already in front
+    // of the reader must not be yanked.
+    LaunchedEffect(state.mode, state.selectedCellId, state.cellsOnScreen.size) {
+      val index = cellBeingEditedIndex(state.mode, state.selectedCellId, state.cellsOnScreen)
+        ?: return@LaunchedEffect
+      if (!listState.isFullyVisible(index)) listState.animateScrollToItem(index)
+    }
     val jumpToHeading: (String) -> Unit = { cellId ->
       // A heading is never hidden by its own section (CellHeadings.kt), but one nested inside an
       // ancestor's collapsed section is - and **the reference reveals it**, which P2h recorded the
