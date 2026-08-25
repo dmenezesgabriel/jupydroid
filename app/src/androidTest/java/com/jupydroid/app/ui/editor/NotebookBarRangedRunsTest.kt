@@ -103,17 +103,16 @@ class NotebookBarRangedRunsTest {
       JupyterDroidTheme {
         NotebookBar(
           busy = false,
-          notebookTitle = "Data",
           onRunAll = { ran += RunRange.ALL },
-          onRun = { range -> ran += range },
-          canRunAllAbove = canRunAllAbove,
-          canRunSelectedAndBelow = canRunSelectedAndBelow,
           onInterrupt = {},
           // The restarts are `NotebookBarTest`'s and the shutdowns `NotebookBarShutdownTest`'s.
           onRestart = {},
           onRestartAndRunAll = {},
-          onShutdown = {},
-          onCloseAndShutdown = {},
+          commands = NotebookKernelCommands(
+            onRun = { range -> ran += range },
+            canRunAllAbove = canRunAllAbove,
+            canRunSelectedAndBelow = canRunSelectedAndBelow,
+          ),
         )
       }
     }

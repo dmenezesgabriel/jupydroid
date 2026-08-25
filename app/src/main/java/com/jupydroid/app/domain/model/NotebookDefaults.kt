@@ -11,6 +11,20 @@ package com.jupydroid.app.domain.model
 const val DEFAULT_KERNEL_ID = "python3"
 
 /**
+ * What that kernel is *called* - the `display_name` of the kernelspec the Space ships.
+ *
+ * Here rather than in the three places that used to spell it, because they have to agree: the
+ * kernelspec written into the rootfs (`data/space/SpaceKernelSpec.kt`), the `metadata.kernelspec`
+ * a notebook is saved with (`data/disk/NotebookJsonWriter.kt`), and the name the bar draws
+ * ([com.jupydroid.app.ui.editor.KernelIndicator]). It is the *live* kernel's name in all three,
+ * which is the distinction `kernelDisplayName` makes in the reference: it resolves through the
+ * spec manager rather than reading the file's own metadata, so an imported notebook claiming
+ * "Python 3.11 (conda)" is still reported as whatever is actually going to run it
+ * (`packages/apputils/src/sessioncontext.tsx:584-603`).
+ */
+const val DEFAULT_KERNEL_DISPLAY_NAME = "Python 3"
+
+/**
  * The base name of a brand-new notebook.
  *
  * `new_untitled` supplies `Untitled` for `type: "notebook"` (`services/contents/manager.py`),

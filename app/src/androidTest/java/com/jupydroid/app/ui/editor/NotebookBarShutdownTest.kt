@@ -29,7 +29,7 @@ import org.junit.runner.RunWith
 class NotebookBarShutdownTest {
   @get:Rule val compose = createComposeRule()
 
-  private val commands = mutableListOf<String>()
+  private val asked = mutableListOf<String>()
 
   @Test
   fun theKernelMenuOffersBothWaysOfEndingIt() {
@@ -49,7 +49,7 @@ class NotebookBarShutdownTest {
     compose.onNodeWithContentDescription(KERNEL_ACTIONS).performClick()
     compose.onNodeWithText("Shut Down Kernel").performClick()
 
-    compose.runOnIdle { assertEquals(listOf("shutdown"), commands) }
+    compose.runOnIdle { assertEquals(listOf("shutdown"), asked) }
   }
 
   /** Closing takes the notebook off the screen as well, so this one asks. */
@@ -61,7 +61,7 @@ class NotebookBarShutdownTest {
     compose.onNodeWithText("Close and Shut Down Notebook…").performClick()
 
     compose.onNodeWithText("""Are you sure you want to close "Data"?""").assertIsDisplayed()
-    compose.runOnIdle { assertEquals("nothing may happen before the user agrees", emptyList<String>(), commands) }
+    compose.runOnIdle { assertEquals("nothing may happen before the user agrees", emptyList<String>(), asked) }
   }
 
   @Test
@@ -72,7 +72,7 @@ class NotebookBarShutdownTest {
     compose.onNodeWithText("Close and Shut Down Notebook…").performClick()
     compose.onNodeWithText("Shut Down").performClick()
 
-    compose.runOnIdle { assertEquals(listOf("close-and-shutdown"), commands) }
+    compose.runOnIdle { assertEquals(listOf("close-and-shutdown"), asked) }
   }
 
   @Test
@@ -83,7 +83,7 @@ class NotebookBarShutdownTest {
     compose.onNodeWithText("Close and Shut Down Notebook…").performClick()
     compose.onNodeWithText("Cancel").performClick()
 
-    compose.runOnIdle { assertEquals(emptyList<String>(), commands) }
+    compose.runOnIdle { assertEquals(emptyList<String>(), asked) }
   }
 
   /**
@@ -117,13 +117,15 @@ class NotebookBarShutdownTest {
       JupyterDroidTheme {
         NotebookBar(
           busy = false,
-          notebookTitle = "Data",
           onRunAll = {},
           onInterrupt = {},
           onRestart = {},
           onRestartAndRunAll = {},
-          onShutdown = { commands += "shutdown" },
-          onCloseAndShutdown = { commands += "close-and-shutdown" },
+          commands = NotebookKernelCommands(
+            notebookTitle = "Data",
+            onShutdown = { asked += "shutdown" },
+            onCloseAndShutdown = { asked += "close-and-shutdown" },
+          ),
         )
       }
     }

@@ -124,7 +124,7 @@ private fun DocumentTopBar(
     onBack = onBack,
     activeCellKind = head?.kind,
     onChangeCellKind = { kind -> head?.let { viewModel.edits.applyTo(it.id, CellAction.ChangeKind(kind)) } },
-    cellTypeOnBar = isCellTypeOnBar(),
+    cellTypeOnBar = labelsFitOnActionRow(),
     onSetAllHeadingsCollapsed = viewModel.edits::setAllHeadingsCollapsed,
     lineNumbersShown = state.lineNumbersShown,
     onToggleLineNumbers = viewModel::toggleLineNumbers,
@@ -142,5 +142,16 @@ private fun DocumentTopBar(
     onExportPickerOpened = viewModel.export::pickerOpened,
     onExportPickerDismissed = viewModel.export::pickerDismissed,
     onExportAs = viewModel.export::exportAs,
+    // The kernel indicator and the menu it opens - the same commands [EditorBottomBars] gives
+    // [NotebookBar]'s `⋮`, wired once because it is the same menu. See [KernelIndicator].
+    kernelIndicator = {
+      KernelIndicator(
+        status = state.kernelStatus,
+        // The name goes where the row cannot afford it and the status glyph stays - see
+        // [labelsFitOnActionRow], and `docs/DECISIONS.md` for why that is the half kept.
+        nameShown = labelsFitOnActionRow(),
+        commands = notebookKernelCommands(state, viewModel, onBack),
+      )
+    },
   )
 }

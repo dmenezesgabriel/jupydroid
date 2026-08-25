@@ -83,7 +83,7 @@ private val TITLE_EDIT_ICON_SIZE = 18.dp
  * [NotebookBar] for that bar's own stated reason: it is what you ask the kernel, and what a cell
  * is asks the kernel nothing. Where the row has no width for it, it moves to the overflow the way
  * a `ReactiveToolbar` moves an item into its popup opener; see [CellTypeControl] and
- * [cellTypeOnBar].
+ * [labelsFitOnActionRow].
  *
  * **The breadcrumb is between the two rows** (P2w-1), which is where `BreadcrumbsControl` sits
  * relative to a tab title in VS Code, and it is **absent** on a document at the workspace root -
@@ -118,7 +118,7 @@ fun EditorTopBar(
   /** `notebook:change-cell-to-{code,markdown,raw}`, from the control above. */
   onChangeCellKind: (CellKind) -> Unit = {},
   /**
-   * Whether this bar has the room to carry [activeCellKind] itself - [cellTypeOnBar].
+   * Whether this bar has the room to carry [activeCellKind] itself - [labelsFitOnActionRow].
    *
    * Passed in rather than read here, because `currentWindowAdaptiveInfo()` measures the
    * *activity's* window and so does not follow a test's `ForcedSize` (`Navigation.kt`,
@@ -170,6 +170,15 @@ fun EditorTopBar(
   crumbs: List<Pair<String, String>> = emptyList(),
   /** A segment was tapped: browse that folder. `""` is the workspace root, not "no target". */
   onGoToFolder: (String) -> Unit = {},
+  /**
+   * The kernel indicator, at the right of this row - see [KernelIndicator].
+   *
+   * **A slot rather than a dozen parameters**, because what the control opens is [KernelMenu] and
+   * that menu needs every kernel callback the bottom bar already takes. Passed as content, this bar
+   * gains one parameter and still decides the one thing that is its business: *where* the indicator
+   * sits. [EditorTopBars] fills it, which is where this screen's wiring already lives.
+   */
+  kernelIndicator: @Composable () -> Unit = {},
 ) {
   var renameOpen by remember { mutableStateOf(false) }
 
@@ -196,7 +205,7 @@ fun EditorTopBar(
       // is the space between the navigation icon and the actions, measured at **72dp at 320dp and
       // 552dp at 800dp** (`evidence/p2o-3-two-pane-threshold/`), and the reference lays its toolbar
       // out left to right by rank - so `cellType` at 40 belongs here, well before the spacer at
-      // 100. Empty again where there is no room for it; see [cellTypeOnBar].
+      // 100. Empty again where there is no room for it; see [labelsFitOnActionRow].
       title = {
         if (cellTypeOnBar && activeCellKind != null) {
           CellTypeControl(kind = activeCellKind, onPick = onChangeCellKind)
@@ -224,6 +233,11 @@ fun EditorTopBar(
         IconButton(onClick = onFind, modifier = Modifier.semantics { contentDescription = FIND_ACTION }) {
           Icon(Icons.Filled.Search, contentDescription = null)
         }
+        // **Between Find and the overflow, which is the reference's own far right.** JupyterLab
+        // ranks `kernelName` 1000 and `executionProgress` 1002, after the spacer at 100 - but its
+        // toolbar's last widget is the popup opener, which `ReactiveToolbar` inserts first and
+        // never collects (`toolbar.tsx:391`, `:470-480`, `:661-700`). Ours is the `⋮` below.
+        kernelIndicator()
         NotebookActionsMenu(
           exportState = exportState,
           onExportPickerOpened = onExportPickerOpened,

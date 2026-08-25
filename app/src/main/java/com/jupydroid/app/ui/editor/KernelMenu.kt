@@ -8,10 +8,78 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+
+/**
+ * Everything [KernelMenu] asks of a notebook - wired **once**, for both of its anchors.
+ *
+ * A type rather than ten parameters repeated at two call sites, and that is the point: since
+ * P2w-2c the menu is opened from the bottom bar's `⋮` ([NotebookBar]) *and* from the kernel
+ * indicator on the action row ([KernelIndicator]). Spelled out at each, the two wirings would have
+ * to be kept in step by hand, which is the drift `CLAUDE.md` gives one home to avoid.
+ *
+ * `@Immutable` so a bar holding one stays skippable, which is [CellExecution]'s call for the same
+ * reason.
+ *
+ * ```
+ * KernelMenu(expanded, onDismiss = {…}, commands = notebookKernelCommands(state, viewModel, onBack))
+ * ```
+ */
+@Immutable
+internal data class NotebookKernelCommands(
+  /** Named in the close confirmation, the way the reference's dialog names the file it will close. */
+  val notebookTitle: String = "",
+  val canRunAllAbove: Boolean = false,
+  val canRunSelectedAndBelow: Boolean = false,
+  /** `notebook:restart-and-run-to-selected` is greyed with no head to run up to. */
+  val canRestartAndRunTo: Boolean = false,
+  val onRun: (RunRange) -> Unit = {},
+  /** `notebook:clear-all-cell-outputs` - a document operation, not a kernel one. */
+  val onClearAllOutputs: () -> Unit = {},
+  /** `notebook:restart-clear-output`: the restart's continuation, after the user has agreed. */
+  val onRestartAndClear: () -> Unit = {},
+  val onRestartAndRunTo: () -> Unit = {},
+  val onShutdown: () -> Unit = {},
+  val onCloseAndShutdown: () -> Unit = {},
+)
+
+/**
+ * This notebook's answers to [NotebookKernelCommands] - the wiring [EditorBottomBars] and
+ * [EditorTopBars] both need and neither should own.
+ *
+ * @param onBack `notebook:close-and-shutdown`'s second half; the shutdown is the first.
+ */
+internal fun notebookKernelCommands(
+  state: EditorUiState,
+  viewModel: EditorViewModel,
+  onBack: () -> Unit,
+): NotebookKernelCommands = NotebookKernelCommands(
+  notebookTitle = state.title,
+  // Greyed rather than absent, so the menu's shape does not change under the thumb as the head
+  // moves - and each says why by being disabled exactly where the reference disables it.
+  canRunAllAbove = state.canRunAllAbove,
+  canRunSelectedAndBelow = state.canRunSelectedAndBelow,
+  // Greyed with nothing selected: `restart-and-run-to-selected` is `isEnabledAndSingleSelected`
+  // there, and with no head there is no "up to" to run.
+  canRestartAndRunTo = state.selectedCellId != null,
+  onRun = viewModel.kernel::run,
+  // In this menu although it asks the kernel nothing, because it is where the reference files it
+  // too - the Kernel menu, beside the restart it composes with.
+  onClearAllOutputs = viewModel.edits::clearAllOutputs,
+  // Composed here rather than on the kernel, and the asymmetry is the ownership: the two restarts
+  // that run cells need the runner `NotebookKernel` keeps private, while this one's continuation
+  // is a document operation `NotebookCellEdits` owns.
+  onRestartAndClear = { viewModel.kernel.restart(then = { viewModel.edits.clearAllOutputs() }) },
+  onRestartAndRunTo = viewModel.kernel::restartAndRunTo,
+  onShutdown = { viewModel.kernel.shutdown() },
+  // The close is the shutdown's continuation rather than a second act, so it runs after the
+  // session has actually ended - `notebook:close-and-shutdown` awaits it too.
+  onCloseAndShutdown = { viewModel.kernel.shutdown(then = onBack) },
+)
 
 /**
  * What is asked of the kernel but does not earn a button: the ranged runs, and the two ways of
@@ -45,24 +113,7 @@ import androidx.compose.runtime.setValue
  * ```
  */
 @Composable
-internal fun KernelMenu(
-  expanded: Boolean,
-  onDismiss: () -> Unit,
-  /** Named in the close confirmation, the way the reference's dialog names the file it will close. */
-  notebookTitle: String,
-  canRunAllAbove: Boolean,
-  canRunSelectedAndBelow: Boolean,
-  canRestartAndRunTo: Boolean,
-  onRun: (RunRange) -> Unit,
-  /** `notebook:clear-all-cell-outputs` - a document operation, not a kernel one. */
-  onClearAllOutputs: () -> Unit,
-  /** `notebook:restart-clear-output`: the restart's continuation, after the user has agreed. */
-  onRestartAndClear: () -> Unit,
-  /** `notebook:restart-and-run-to-selected`, greyed with no head to run up to. */
-  onRestartAndRunTo: () -> Unit,
-  onShutdown: () -> Unit,
-  onCloseAndShutdown: () -> Unit,
-) {
+internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: NotebookKernelCommands) {
   var confirming by remember { mutableStateOf<RestartRequest?>(null) }
   var closeConfirming by remember { mutableStateOf(false) }
 
@@ -78,13 +129,19 @@ internal fun KernelMenu(
     // dead row leaves this menu open, because [onRun] is what closes it.
     DropdownMenuItem(
       text = { Text(RUN_ALL_ABOVE) },
-      enabled = canRunAllAbove,
-      onClick = { onRun(RunRange.ABOVE) },
+      enabled = commands.canRunAllAbove,
+      onClick = {
+        onDismiss()
+        commands.onRun(RunRange.ABOVE)
+      },
     )
     DropdownMenuItem(
       text = { Text(RUN_SELECTED_AND_BELOW) },
-      enabled = canRunSelectedAndBelow,
-      onClick = { onRun(RunRange.BELOW) },
+      enabled = commands.canRunSelectedAndBelow,
+      onClick = {
+        onDismiss()
+        commands.onRun(RunRange.BELOW)
+      },
     )
     HorizontalDivider()
     // The two compound restarts, in the group the reference files them under - its Kernel menu
@@ -99,7 +156,7 @@ internal fun KernelMenu(
     )
     DropdownMenuItem(
       text = { Text(RESTART_AND_RUN_TO_SELECTED) },
-      enabled = canRestartAndRunTo,
+      enabled = commands.canRestartAndRunTo,
       onClick = {
         onDismiss()
         confirming = RestartRequest.RESTART_AND_RUN_TO_SELECTED
@@ -109,9 +166,21 @@ internal fun KernelMenu(
     // Its own group: it throws results away rather than producing them, and it is the only row here
     // that asks the kernel nothing at all - `clearAllOutputs` is a model operation
     // (`actions.tsx:1851`). Grouped apart so a thumb reaching for Run All Above does not find it.
-    DropdownMenuItem(text = { Text(CLEAR_ALL_OUTPUTS) }, onClick = onClearAllOutputs)
+    DropdownMenuItem(
+      text = { Text(CLEAR_ALL_OUTPUTS) },
+      onClick = {
+        onDismiss()
+        commands.onClearAllOutputs()
+      },
+    )
     HorizontalDivider()
-    DropdownMenuItem(text = { Text("Shut Down Kernel") }, onClick = onShutdown)
+    DropdownMenuItem(
+      text = { Text("Shut Down Kernel") },
+      onClick = {
+        onDismiss()
+        commands.onShutdown()
+      },
+    )
     DropdownMenuItem(
       text = { Text("Close and Shut Down Notebook…") },
       onClick = {
@@ -122,10 +191,11 @@ internal fun KernelMenu(
   }
 
   // Outside the menu, because a dialog is its own window and the `DropdownMenu` above is about to
-  // be dismissed. Every row that raises one dismisses the menu first: a menu left expanded behind a
-  // modal dialog is still there when the dialog is cancelled, which is not what the row asked for.
-  // That is what the three `onDismiss()` calls above are, and it is what the old shape got for free
-  // by keeping this state in the anchor.
+  // be dismissed. **Every row dismisses the menu first**, which is the menu's own job rather than
+  // each anchor's - it was the anchor's while [NotebookBar] was the only one, and two anchors
+  // spelling it out is two chances to forget. A row that raises a dialog needs it most: a menu left
+  // expanded behind a modal one is still there when the dialog is cancelled. A *disabled* row fires
+  // no click at all, so the ranged runs still leave the menu open exactly as their comment says.
   confirming?.let { request ->
     RestartDialog(
       request = request,
@@ -133,8 +203,8 @@ internal fun KernelMenu(
       onConfirm = {
         confirming = null
         when (request) {
-          RestartRequest.RESTART_AND_CLEAR -> onRestartAndClear()
-          RestartRequest.RESTART_AND_RUN_TO_SELECTED -> onRestartAndRunTo()
+          RestartRequest.RESTART_AND_CLEAR -> commands.onRestartAndClear()
+          RestartRequest.RESTART_AND_RUN_TO_SELECTED -> commands.onRestartAndRunTo()
           // The bar's own two buttons ask these, and they never reach this menu.
           RestartRequest.RESTART, RestartRequest.RESTART_AND_RUN_ALL -> Unit
         }
@@ -144,11 +214,11 @@ internal fun KernelMenu(
 
   if (closeConfirming) {
     CloseAndShutDownDialog(
-      notebookTitle = notebookTitle,
+      notebookTitle = commands.notebookTitle,
       onDismiss = { closeConfirming = false },
       onConfirm = {
         closeConfirming = false
-        onCloseAndShutdown()
+        commands.onCloseAndShutdown()
       },
     )
   }

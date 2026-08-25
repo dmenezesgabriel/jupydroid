@@ -84,7 +84,7 @@ internal fun NotebookActionsMenu(
   /** `toc:show-panel` where the shell has a side area - see [EditorTopBar]. Null where it has none. */
   onShowTableOfContentsPanel: (() -> Unit)?,
   /**
-   * The active cell's type, where the bar has no room to name it itself - see [cellTypeOnBar].
+   * The active cell's type, where the bar has no room to name it itself - see [labelsFitOnActionRow].
    *
    * Null where the bar carries it, and null where there is no active cell: a `ReactiveToolbar`
    * moves an item into its popup, it does not copy it there.

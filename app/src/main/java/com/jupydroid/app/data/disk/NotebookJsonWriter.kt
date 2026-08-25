@@ -2,6 +2,7 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_DISPLAY_NAME
 import com.jupydroid.app.domain.model.Notebook
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -53,7 +54,7 @@ private fun Notebook.kernelspecJson(): JsonObject = buildJsonObject {
   val preservedSpec = preserved.objectAt("metadata").objectAt("kernelspec")
   preservedSpec.forEach { (key, value) -> put(key, value) }
   put("name", kernelId)
-  if ("display_name" !in preservedSpec) put("display_name", DEFAULT_DISPLAY_NAME)
+  if ("display_name" !in preservedSpec) put("display_name", DEFAULT_KERNEL_DISPLAY_NAME)
 }
 
 /**
@@ -126,7 +127,6 @@ private val OWNED_METADATA_KEYS = setOf("jupyter", "collapsed", HEADING_COLLAPSE
 
 private const val NBFORMAT_MAJOR = 4
 private const val NBFORMAT_MINOR = 5
-private const val DEFAULT_DISPLAY_NAME = "Python 3"
 
 /** The namespace this app used to keep its own fields in. Nothing writes it now; writes strip it. */
 private const val JUPYDROID_METADATA = "jupydroid"

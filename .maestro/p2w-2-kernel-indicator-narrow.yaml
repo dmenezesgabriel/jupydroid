@@ -1,0 +1,50 @@
+appId: com.jupydroid.app
+---
+# P2w-2's layout half: what the kernel indicator keeps when the row cannot afford its name.
+#
+# NARROW WINDOW (<840dp): the emulator at 320dp. Free width in this action row is **72dp** there
+# (`evidence/p2o-3-two-pane-threshold/320/hierarchy.xml`) and a status glyph beside "Python 3"
+# wants about 110dp, so 320dp is the only width that decides this - a 1280dp tablet has 567dp free
+# and would draw the name whatever the rule said.
+#
+# **The name goes and the status stays**, which departs from the reference's own removal order:
+# `_getWidgetsToRemove` sheds the rightmost items first (`toolbar.tsx:661-700`), so JupyterLab
+# would push the execution indicator into the popup *before* the kernel name. A phone is this
+# app's primary device and the kernel's state is what has to stay glanceable there.
+# `docs/DECISIONS.md` carries it. Driven by scripts/p2w-2-kernel-indicator-narrow-driver.sh.
+#
+# **What this flow does not claim.** On x86_64 there is no rootfs, so nothing here runs a cell:
+# every assertion is about placement and about the resting state of a notebook nobody has run.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Kernel Indicator.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Kernel Indicator.ipynb"
+- extendedWaitUntil:
+    visible: ".*time.sleep\\(6\\).*"
+    timeout: 30000
+
+# The glyph and its whole description are still here; the kernel's name is not drawn beside it.
+# One node carries the name, the state and the click, which is why the narrow branch is assertable
+# at all - see `UndoRedo` for the rule and what its absence cost.
+- assertVisible: "Kernel Python 3: No Kernel"
+- assertNotVisible: "Python 3"
+- takeScreenshot: 01-the-status-stays-and-the-name-goes
+
+# And the row it shares still holds everything it held before: five controls and the arrow, which
+# is 288dp of the window's 320dp. Nothing was pushed off to make room.
+- assertVisible: "Back to notebooks"
+- assertVisible: "Undo cell operation"
+- assertVisible: "Redo cell operation"
+- assertVisible: "Find in notebook"
+- assertVisible: "Notebook actions"
+- takeScreenshot: 02-the-row-still-holds-everything-else
+
+# Pressable at 320dp, and it opens the same menu the wide window's does.
+- tapOn: "Kernel Python 3: No Kernel"
+- assertVisible: "Shut Down Kernel"
+- takeScreenshot: 03-still-opens-the-kernel-menu

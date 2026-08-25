@@ -47,33 +47,15 @@ internal fun EditorBottomBars(
     )
     EditorBottomBar.KERNEL -> NotebookBar(
       busy = state.runningCellId != null,
-      notebookTitle = state.title,
       onRunAll = { viewModel.kernel.run(RunRange.ALL) },
-      onRun = viewModel.kernel::run,
-      // Greyed rather than absent, so the menu's shape does not change under the thumb as the
-      // head moves - and each says why by being disabled exactly where the reference disables it.
-      canRunAllAbove = state.canRunAllAbove,
-      canRunSelectedAndBelow = state.canRunSelectedAndBelow,
-      // On the kernel bar although it asks the kernel nothing, because it is where the
-      // reference files it too - the Kernel menu, beside the restart it composes with.
-      onClearAllOutputs = viewModel.edits::clearAllOutputs,
       onInterrupt = viewModel.kernel::stopRunningCell,
       onRestart = { viewModel.kernel.restart() },
       // Each of the three is the same restart with a different continuation, which is exactly
-      // how the reference composes them (`index.ts:3245-3345`).
+      // how the reference composes them (`index.ts:3245-3345`). The other two are in the menu.
       onRestartAndRunAll = viewModel.kernel::restartAndRunAll,
-      // Composed here rather than on the kernel, and the asymmetry is the ownership: the two
-      // that run cells need the runner `NotebookKernel` keeps private, while this one's
-      // continuation is a document operation `NotebookCellEdits` owns.
-      onRestartAndClear = { viewModel.kernel.restart(then = { viewModel.edits.clearAllOutputs() }) },
-      onRestartAndRunTo = viewModel.kernel::restartAndRunTo,
-      // Greyed with nothing selected: `restart-and-run-to-selected` is `isEnabledAndSingleSelected`
-      // there, and with no head there is no "up to" to run.
-      canRestartAndRunTo = state.selectedCellId != null,
-      onShutdown = { viewModel.kernel.shutdown() },
-      // The close is the shutdown's continuation rather than a second act, so it runs after
-      // the session has actually ended - `notebook:close-and-shutdown` awaits it too.
-      onCloseAndShutdown = { viewModel.kernel.shutdown(then = onBack) },
+      // Everything behind the `⋮`, wired where the kernel indicator's copy is wired too - see
+      // [notebookKernelCommands], which is what stops the two anchors from drifting apart.
+      commands = notebookKernelCommands(state, viewModel, onBack),
     )
   }
 }

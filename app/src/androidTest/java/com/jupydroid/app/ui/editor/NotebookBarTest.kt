@@ -164,18 +164,17 @@ class NotebookBarTest {
       JupyterDroidTheme {
         NotebookBar(
           busy = busy,
-          notebookTitle = "Data",
           onRunAll = {},
           onInterrupt = {},
           onRestart = { restarts += "restart" },
           onRestartAndRunAll = { restarts += "restart-and-run-all" },
           // The shutdown half is `NotebookBarShutdownTest`'s; this suite is about the restarts.
-          onShutdown = {},
-          onCloseAndShutdown = {},
-          onClearAllOutputs = onClearAllOutputs,
-          onRestartAndClear = { restarts += "restart-and-clear" },
-          onRestartAndRunTo = { restarts += "restart-and-run-to" },
-          canRestartAndRunTo = canRestartAndRunTo,
+          commands = NotebookKernelCommands(
+            onClearAllOutputs = onClearAllOutputs,
+            onRestartAndClear = { restarts += "restart-and-clear" },
+            onRestartAndRunTo = { restarts += "restart-and-run-to" },
+            canRestartAndRunTo = canRestartAndRunTo,
+          ),
         )
       }
     }

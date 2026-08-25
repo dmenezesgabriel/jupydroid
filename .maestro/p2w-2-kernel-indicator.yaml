@@ -1,0 +1,77 @@
+appId: com.jupydroid.app
+---
+# P2w-2: the kernel indicator - which kernel this notebook runs on, and what it is doing.
+#
+# TABLET ONLY. The whole claim is that the state follows a *real* kernel: cold to No Kernel,
+# Starting while the Space installs and the server comes up, Busy for as long as the cell sleeps,
+# Idle when it is done. On the x86_64 emulator MainActivity falls back to FakeKernelGateway, which
+# opens no session and echoes the source back - so every one of those four would be a fiction.
+# The layout half is `p2w-2-kernel-indicator-narrow`, on the emulator.
+#
+# Two of JupyterLab's toolbar items in one control: `kernelName` at rank 1000 and
+# `executionProgress` at 1002 (`packages/notebook-extension/schema/panel.json`), which are the last
+# two things on its notebook toolbar. A phone's bar has no room for two 48dp targets answering one
+# question. Driven by scripts/p2w-2-kernel-indicator-driver.sh.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Kernel Indicator.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Kernel Indicator.ipynb"
+- extendedWaitUntil:
+    visible: ".*time.sleep\\(6\\).*"
+    timeout: 30000
+
+# **Nothing has run, so there is no kernel** - this app starts one lazily, where JupyterLab opens a
+# session with the document. The reference's own word for the condition is `noKernelName`
+# ("No Kernel", `packages/apputils/src/sessioncontext.tsx:675-677`), and it is on the name rather
+# than the status there too. The tablet is a wide window, so the kernel is named beside its glyph.
+- assertVisible: "Kernel Python 3: No Kernel"
+- assertVisible: "Python 3"
+- takeScreenshot: 01-no-kernel-until-something-runs
+
+# **Starting is the fourteen seconds**, and it is the state this indicator exists for: on a cold app
+# the tap installs the Space, starts jupyter_server and starts the kernel, and nothing on screen
+# used to say so. Polled rather than asserted at a moment, because how long it lasts depends on
+# whether the Space is already installed.
+- tapOn: "Run all cells"
+- extendedWaitUntil:
+    visible: "Kernel Python 3: Starting"
+    timeout: 20000
+- takeScreenshot: 02-starting-while-the-kernel-comes-up
+
+# **Busy for as long as the cell sleeps.** Six seconds is chosen so the state is reachable by a
+# poll rather than by luck - the same reason `u4-execution-status` sleeps in its first cell.
+- extendedWaitUntil:
+    visible: "Kernel Python 3: Busy"
+    timeout: 120000
+- takeScreenshot: 03-busy-while-the-cell-runs
+
+# And idle once the output has landed. Anchored on what the *kernel* produced rather than on the
+# indicator alone: a status that said Idle with no output would be a claim about nothing. `42` is
+# computed by the interpreter and appears nowhere in the cell's source, so only a real run can
+# put it on screen - the same trick `p2d-compound-restarts` uses.
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- assertVisible: "Kernel Python 3: Idle"
+- takeScreenshot: 04-idle-once-the-run-is-done
+
+# **Not a picker**: the Space has one kernelspec and `KernelGateway` cannot list them, so what the
+# tap opens is the kernel menu the bottom bar's overflow already anchors - the thing that says a
+# kernel is stuck is the thing you restart it from.
+- tapOn: "Kernel Python 3: Idle"
+- assertVisible: "Shut Down Kernel"
+- assertVisible: "Restart Kernel and Clear Outputs of All Cells…"
+- takeScreenshot: 05-the-indicator-opens-the-kernel-menu
+
+# Shutting the kernel down puts the indicator back where it started, which is the round trip: the
+# state is derived from whether there is a session, not from whether a cell has ever run.
+- tapOn: "Shut Down Kernel"
+- extendedWaitUntil:
+    visible: "Kernel Python 3: No Kernel"
+    timeout: 20000
+- takeScreenshot: 06-back-to-no-kernel-after-a-shutdown

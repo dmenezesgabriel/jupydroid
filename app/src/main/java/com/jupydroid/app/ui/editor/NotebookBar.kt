@@ -43,25 +43,12 @@ import androidx.compose.ui.Modifier
 @Composable
 internal fun NotebookBar(
   busy: Boolean,
-  /** Named in the close confirmation, the way the reference's dialog names the file it will close. */
-  notebookTitle: String,
   onRunAll: () -> Unit,
   onInterrupt: () -> Unit,
   onRestart: () -> Unit,
   onRestartAndRunAll: () -> Unit,
-  onShutdown: () -> Unit,
-  onCloseAndShutdown: () -> Unit,
-  /** The two ranged runs, and whether the head's position leaves either with anything to do. */
-  onRun: (RunRange) -> Unit = {},
-  canRunAllAbove: Boolean = false,
-  canRunSelectedAndBelow: Boolean = false,
-  /** `notebook:clear-all-cell-outputs` - a document operation, not a kernel one. */
-  onClearAllOutputs: () -> Unit = {},
-  /** `notebook:restart-clear-output`: the restart's continuation, after the user has agreed. */
-  onRestartAndClear: () -> Unit = {},
-  /** `notebook:restart-and-run-to-selected`, greyed with no head to run up to. */
-  onRestartAndRunTo: () -> Unit = {},
-  canRestartAndRunTo: Boolean = false,
+  /** Everything behind the `⋮` - see [NotebookKernelCommands], which the indicator shares. */
+  commands: NotebookKernelCommands = NotebookKernelCommands(),
   modifier: Modifier = Modifier,
 ) {
   // The two restarts **this bar's own buttons** ask for. [KernelMenu] holds the pending state for
@@ -96,34 +83,7 @@ internal fun NotebookBar(
       KernelMenu(
         expanded = kernelMenuOpen,
         onDismiss = { kernelMenuOpen = false },
-        notebookTitle = notebookTitle,
-        canRunAllAbove = canRunAllAbove,
-        canRunSelectedAndBelow = canRunSelectedAndBelow,
-        canRestartAndRunTo = canRestartAndRunTo,
-        onRun = { range ->
-          kernelMenuOpen = false
-          onRun(range)
-        },
-        onClearAllOutputs = {
-          kernelMenuOpen = false
-          onClearAllOutputs()
-        },
-        onRestartAndClear = {
-          kernelMenuOpen = false
-          onRestartAndClear()
-        },
-        onRestartAndRunTo = {
-          kernelMenuOpen = false
-          onRestartAndRunTo()
-        },
-        onShutdown = {
-          kernelMenuOpen = false
-          onShutdown()
-        },
-        onCloseAndShutdown = {
-          kernelMenuOpen = false
-          onCloseAndShutdown()
-        },
+        commands = commands,
       )
     }
   }

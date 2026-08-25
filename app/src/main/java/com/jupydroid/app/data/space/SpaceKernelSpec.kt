@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_DISPLAY_NAME
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -67,7 +68,7 @@ object SpaceKernelSpec {
     """
     {
       "argv": ["${interpreter.path}", "-m", "$KERNEL_MODULE", "-f", "{connection_file}", "$KERNEL_LOG_LEVEL"],
-      "display_name": "Python 3",
+      "display_name": "$DEFAULT_KERNEL_DISPLAY_NAME",
       "language": "python",
       "env": {"PYTHONFAULTHANDLER": "1"},
       "metadata": {"debugger": true}

@@ -31,7 +31,7 @@ import org.junit.runner.RunWith
  *
  * Instrumented rather than JVM because what is in question is whether there is something *visible
  * to press* and whether it **fits the row it shares**, and neither is a question a JVM test can
- * answer. [CellTypeLabelTest] and [CellTypePlacementTest] hold the halves that are pure.
+ * answer. [CellTypeLabelTest] and [ActionRowPlacementTest] hold the halves that are pure.
  */
 @RunWith(AndroidJUnit4::class)
 class CellTypeControlTest {
@@ -110,7 +110,7 @@ class CellTypeControlTest {
   /**
    * **The measurement the 600dp threshold is worth**, and the reason this test is instrumented.
    *
-   * [cellTypeOnBar] says the bar takes this control from 600dp up. That is only true if the widest
+   * [labelsFitOnActionRow] says the bar takes this control from 600dp up. That is only true if the widest
    * label it can draw actually fits beside the navigation icon and the four actions - measured on
    * the shipped build, at the narrowest width the rule offers it, against the same string drawn
    * with nothing competing for the row. The technique is
@@ -121,7 +121,7 @@ class CellTypeControlTest {
    * **What it measured**: "Markdown" at `labelLarge` draws **73.3dp**, on both devices. The action
    * row has 72dp free at 320dp (`evidence/p2o-3-two-pane-threshold/320dp/hierarchy.xml`), so the
    * label alone does not fit there before the caret and the button's padding are counted - which
-   * is [cellTypeOnBar]'s threshold arrived at from a measurement rather than an estimate.
+   * is [labelsFitOnActionRow]'s threshold arrived at from a measurement rather than an estimate.
    *
    * If this fails the number moves - the measurement is the deliverable, which is P2o-3's rule.
    */
@@ -288,7 +288,7 @@ class CellTypeControlTest {
   }
 
   private companion object {
-    /** [cellTypeOnBar]'s own boundary, which is the width the rule has to be right about. */
+    /** [labelsFitOnActionRow]'s own boundary, which is the width the rule has to be right about. */
     val NARROWEST_WITH_ROOM = DpSize(600.dp, 800.dp)
 
     /** The longest of the three the control can be asked to draw. */

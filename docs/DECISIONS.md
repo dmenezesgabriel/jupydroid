@@ -2726,6 +2726,91 @@ otherwise put "Workspace" and "reports" on screen twice.
 
 **It found a race, and the race was older than it.** See the entry below.
 
+### The kernel indicator is right of Find and left of the `⋮` (P2w-2)
+
+`docs/PLAN.md`'s P2w-2 row asked for *"the rightmost item"*, and reading the reference's own layout
+rather than recalling it says that is not where the reference puts it either.
+
+JupyterLab ranks `kernelName` **1000** and `executionProgress` **1002**
+(`packages/notebook-extension/schema/panel.json`), after the spacer at 100 - the last two things on
+its notebook toolbar. But that toolbar is a `ReactiveToolbar`, and its **popup opener is always the
+last widget**: it is inserted first (`packages/ui-components/src/components/toolbar.tsx:391`) and
+every later `insertItem` clamps to `widgets.length - 1` (`:470-480`), so items land *before* it;
+`_getWidgetsToRemove` then walks `while (index < toIndex)` with `toIndex = widgets.length - 1`
+(`:661-700`), which is the opener's own index, so it is never collected either. This app's popup
+opener is `NotebookActionsMenu`, as `ActionRowPlacement` already states about itself. Android's
+top-app-bar convention puts the overflow last too, so the two agree and there was nothing to trade.
+
+**The two toolbar items are one control here.** A phone's action row has no width for two 48dp
+targets answering one question, and VS Code already draws them as one - a single item in group
+`'status'` at order `-10` (`viewParts/notebookKernelView.ts:73-76`).
+
+**Not a picker**, which is both references' behaviour for it (`dialogs.selectKernel`,
+`KernelPickerMRUStrategy.showQuickPick`). `KernelGateway` has no kernelspec listing and the base
+Space has one kernel, so a picker over one entry is chrome; the port it would need is P3's. The tap
+opens the kernel menu the bottom bar's `⋮` already anchors - the thing that says a kernel is stuck
+is the thing you restart it from - and `notebookKernelCommands` is what stops the two anchors from
+drifting apart.
+
+### The kernel's name goes before its status does, which reverses the reference's order (P2w-2)
+
+`_getWidgetsToRemove` sheds a `ReactiveToolbar`'s **rightmost** items into the popup first
+(`toolbar.tsx:661-700`), so JupyterLab would push `executionProgress` (1002) in *before*
+`kernelName` (1000). This app does the opposite: below 600dp the status glyph stays on the bar and
+the kernel's name is what goes.
+
+Measured, not preferred: free width in this action row is **72dp at 320dp** and **552dp at 800dp**
+(`evidence/p2o-3-two-pane-threshold/<w>/hierarchy.xml`), and a status glyph beside "Python 3" wants
+about 110dp - the same arithmetic that put the cell type in the overflow at P2r. What differs is
+which half is worth keeping: a phone is this app's primary device, the kernel's *state* is what a
+glance is for, and a name that never changes is what a glance does not need.
+`evidence/p2w-2-kernel-indicator-narrow/` is the frame - six controls in 288dp of a 320dp window,
+nothing truncated.
+
+### Active kernel states are solid, resting ones are outlined, and the reference disagrees with itself (P2w-2)
+
+Two components in the reference draw this and they do not draw it the same way.
+
+The retired `KernelStatus` toolbar item used `circleIcon` - a **solid disc** - for busy, starting,
+restarting, terminating and initializing, `circleEmptyIcon` for idle, and `offlineBoltIcon` for
+connecting/disconnected/unknown (`packages/apputils/src/toolbar/widget.tsx:213-232`). The
+`ExecutionIndicator` that replaced it keeps that split for starting and restarting
+(`packages/notebook/src/executionindicator.tsx:140-151`) but draws busy and idle as a
+`ProgressCircle` at **0% and 100%** (`:153-188`), so **its idle is the filled one**.
+
+This app follows the retired item, and the reason is what the newer one *is*. `ProgressCircle` is a
+progress meter: a stroked ring with a filled pie inside whose angle is `executed/scheduled`
+(`packages/statusbar/src/components/progressCircle.tsx`). 100% reads as "full" only where a
+percentage is being drawn, and this bar draws none - where a run got to is on the cell's own header
+(`ExecutionLabel`). Two discs with no scale to read them against is worse than one rule.
+
+**The cost is named rather than glossed:** a JupyterLab user's eye is trained on the meter's
+polarity, and here a filled mark means *busy* where theirs means *finished*.
+
+**And the bolt is outlined where the reference's is filled**, which is a change of weight and
+nothing else. `offline-bolt.svg` is Material's filled `offline_bolt` verbatim, and every toolbar
+icon there - this one included - is the same `jp-icon3` grey
+(`ui-components/style/icons.css:23`, `theme-light-extension/style/variables.css:231`), so the
+reference makes no tonal distinction either. What differs is **which state rests**: JupyterLab
+opens a session with the document and is practically never here, while this app starts a kernel
+lazily and so shows this on every notebook until something is run. Drawn filled beside four
+outlined glyphs it was the loudest thing in the row - seen in the frame, not predicted - and a
+resting state that reads as an alarm is the misread P2v-1 retired the filled play for.
+`KernelStatusGlyphTest` pins all of it.
+
+### The indicator can read *Idle* for a kernel P1c has already stopped (P2w-2)
+
+`KernelStatus` is derived from whether a session is open, and `IdleServerStopper` stops the app's
+own server after 30s of a backgrounded idle app (`data/space/IdleServerStopper.kt`). Nothing tells
+the editor that happened, so for one window - *backgrounded past the grace, returned, nothing run
+yet* - the bar says the kernel is idle when there is none.
+
+It corrects itself on the next run: the stale session is refused,
+`NotebookKernelSession.reopeningIfStale` drops it, and the status falls to `STARTING`. The honest
+fix is a server-generation signal reaching the editor - `BaseSpaceServer` already counts one - and
+that is a new port surface, so it belongs with P3's rather than here. Recorded so the gap is a
+known cost and not a bug somebody re-finds.
+
 ### A listing in flight could overwrite where the browser had just gone
 
 `ExplorerViewModel.refresh` re-lists `uiState.path` - where the browser *is* - and
