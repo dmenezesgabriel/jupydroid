@@ -22,14 +22,35 @@ class NotebookKernelSession(
   private val kernelGateway: KernelGateway,
   private val space: Space,
   /**
+   * Told whenever this notebook gains or loses a kernel, so the bar can say so - see
+   * [com.jupydroid.app.ui.editor.kernelStatus].
+   *
+   * Reported from here rather than by each caller because this is the one object that sees every
+   * arrival and every departure: an [open], a [forget], and the drop [reopeningIfStale] makes when
+   * a server stopped by P1c refuses a session. A caller-by-caller report would miss that last one,
+   * which is precisely the case where the notebook would go on claiming a kernel it has lost.
+   *
+   * **Declared before [documentPath] despite being the defaulted one**, so the path stays the
+   * trailing lambda every call site already writes it as.
+   */
+  private val onConnectedChanged: (Boolean) -> Unit = {},
+  /**
    * Read when a session is opened rather than captured, because since X1b the notebook's id *is*
    * its path and a rename moves it.
    */
   private val documentPath: () -> String,
 ) {
-  /** The open session, or null when this notebook has never asked for a kernel. */
+  /**
+   * The open session, or null when this notebook has never asked for a kernel.
+   *
+   * The setter is what reports it, so no path through this class can change the answer without
+   * saying so.
+   */
   var opened: KernelSession? = null
-    private set
+    private set(value) {
+      field = value
+      onConnectedChanged(value != null)
+    }
 
   /**
    * The notebook's own path goes to the kernel, because that is what gives the kernel a working

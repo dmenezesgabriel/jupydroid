@@ -154,6 +154,24 @@ data class EditorUiState(
    * `documentsearch:end`. See [SearchState].
    */
   val search: SearchState? = null,
+  /**
+   * Whether this notebook holds an open kernel session - see [kernelStatus], which is the only
+   * thing that reads it.
+   *
+   * Written by [NotebookKernelSession] rather than by whoever asked for the kernel, because the
+   * session is the one object that sees every way one arrives and every way one goes: an
+   * `open()`, a `forget()` on shutdown or teardown, and the drop `reopeningIfStale` makes when
+   * P1c's stopped server refuses a session.
+   */
+  val kernelConnected: Boolean = false,
+  /**
+   * `notebook:restart-kernel` is in flight - see [NotebookKernel.restart].
+   *
+   * Its own field rather than an [ExecutionStatus], because a restart is a fact about the *kernel*
+   * and the executions are facts about cells: the restart's whole effect on them is that they stop
+   * being true.
+   */
+  val kernelRestarting: Boolean = false,
 )
 
 /**

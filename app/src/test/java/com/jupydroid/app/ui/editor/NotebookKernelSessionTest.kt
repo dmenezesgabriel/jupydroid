@@ -76,4 +76,38 @@ class NotebookKernelSessionTest {
 
     assertNull(session.forget())
   }
+
+  /**
+   * **Every arrival and every departure is reported**, which is why the report lives on the setter
+   * rather than at each call site - see [NotebookKernelSession.onConnectedChanged]. The sequence a
+   * stale reconnect produces is the case a per-caller report would miss: the refusal drops the
+   * session inside [NotebookKernelSession.reopeningIfStale], where no caller can see it, and a
+   * notebook that went on claiming a kernel there would say *Idle* with no kernel at all.
+   */
+  @Test
+  fun aStaleReconnectReportsTheKernelGoingAndComingBack() = runTest {
+    val gateway = StaleSessionKernelGateway(refusals = 1)
+    val reported = mutableListOf<Boolean>()
+    val session =
+      NotebookKernelSession(gateway, space, onConnectedChanged = { reported += it }) { "Analysis.ipynb" }
+
+    session.reopeningIfStale { open -> gateway.execute(open, "c1", "2 + 2").toList() }
+
+    assertEquals(listOf(true, false, true), reported)
+  }
+
+  @Test
+  fun forgettingReportsTheKernelGone() = runTest {
+    val reported = mutableListOf<Boolean>()
+    val session = NotebookKernelSession(
+      StaleSessionKernelGateway(refusals = 0),
+      space,
+      onConnectedChanged = { reported += it },
+    ) { "Analysis.ipynb" }
+
+    session.open()
+    session.forget()
+
+    assertEquals(listOf(true, false), reported)
+  }
 }

@@ -50,7 +50,12 @@ class NotebookKernel(
   private val clock: Clock = Clock.systemUTC(),
 ) {
   /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
-  private val session = NotebookKernelSession(kernelGateway, BASE_SPACE) { uiState.value.notebookId }
+  private val session =
+    NotebookKernelSession(
+      kernelGateway,
+      BASE_SPACE,
+      onConnectedChanged = { connected -> uiState.update { it.copy(kernelConnected = connected) } },
+    ) { uiState.value.notebookId }
 
   private val runs =
     NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, persist, clock)
@@ -105,9 +110,14 @@ class NotebookKernel(
   fun restart(then: suspend () -> Unit = {}) {
     scope.launch {
       session.opened?.let { open ->
+        // Announced for the length of the call rather than after it: replacing an interpreter is
+        // the one kernel operation with nothing else on screen to say it is happening, and on a
+        // device it is not instant. Only when there *is* a process to replace, which is the same
+        // guard the restart itself carries.
+        uiState.update { state -> state.copy(kernelRestarting = true) }
         kernelGateway.restart(open)
         // Whatever was in flight died with the process; anything finished is history and stays.
-        uiState.update { state -> state.abandoningRun() }
+        uiState.update { state -> state.abandoningRun().copy(kernelRestarting = false) }
       }
       then()
     }
