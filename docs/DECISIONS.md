@@ -59,17 +59,31 @@ terminal must pay for busybox.
 
 `useLegacyPackaging = true` is load-bearing: without it the libs stay inside the APK.
 
-### musl, not glibc; arm64, not x86_64
+### musl, not glibc; and arm64 ships, x86_64 does not (yet)
 
 Android 16's app seccomp filter kills glibc's libc startup with SIGSYS on both ABIs; musl starts
 cleanly under the same filter with everything else held constant. The Jupyter stack still comes
 from ordinary wheels — musllinux rather than manylinux — so nothing is hand-cross-compiled.
 `evidence/step8.3/`.
 
-x86_64 has no rootfs at all: the same filter kills musl there too. The app logs
+x86_64 ships no rootfs, and **the reason has changed even though the rule has not**. It was
+"the same filter kills musl there too"; that is superseded. The refusals are now named — seven of
+them, all cases where musl issues a legacy syscall and bionic issues the `*at` form, which do not
+exist in the arm64 kernel ABI at all — and `tools/rootfs/musl_at_shim.c` routes every one. With it,
+`jupyter_server` starts on the emulator, `POST /api/sessions` returns 201 and a kernel starts, with
+**zero** refused syscalls. `evidence/x86-64-seccomp-syscalls/`.
+
+What still stops it is that the kernel dies after starting, for a reason that is *not* seccomp and
+not memory. So `SpaceAbi` stays arm64-only, the app still logs
 `no Space runtime here: no rootfs is built for ABI 'x86_64'` and falls back to
 `FakeKernelGateway`, which echoes a cell's source back as its output. **No emulator flow may run
-a cell** — it would go green against the fake. `evidence/step8.3/musl-is-arm64-only.txt`.
+a cell** — it would go green against the fake. That rule is unchanged and stays unchanged until a
+cell actually runs there; when it does, it will still be weaker evidence than the tablet, because
+x86_64 reaches the kernel through a shim arm64 does not use.
+
+An arm64 emulator is not the way round it on an x86_64 host: the emulator refuses the AVD outright
+(`not supported by the QEMU2 emulator on x86_64 host`), on both engines, and NDK translation
+segfaults on an `execve`'d arm64 binary. Both measured, in the same evidence directory.
 
 ### SIGSYS is a signal to handle, not a verdict
 

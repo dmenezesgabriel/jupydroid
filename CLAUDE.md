@@ -89,7 +89,7 @@ is skipped "for speed". A step is only finished when all of them hold.
 - After a step's code is done and all tests pass, drive the **real app on a real
   device** with Maestro CLI flows: launch, tap, type, navigate.
 - **Which device is not a free choice.** Anything that runs a cell must go on the
-  **arm64 tablet** (`SM-X216B`): the rootfs is arm64-only, so on the x86_64 `dev36`
+  **arm64 tablet** (`SM-X216B`): only arm64 ships a rootfs, so on the x86_64 `dev36`
   emulator `MainActivity` falls back to `FakeKernelGateway`, which echoes the cell's
   source back as its output. A flow that runs a cell there proves nothing about the
   kernel and can go green while the kernel has never started. The emulator is fine
