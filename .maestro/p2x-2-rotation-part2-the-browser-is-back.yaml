@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# P2x-2b part 2: after the driver rotated to portrait, `MainActivity` has been relaunched and
+# `sidePanel` came back through `rememberSaveable` still reading SEARCH - while the rail, drawn
+# only where there are two panes, did not.
+#
+# **The file browser is what a one-pane window draws**, whatever the rail was last left on:
+# `p2o-4`'s own rule, *"where the shell draws one pane there is no side area"*. Before the fix this
+# window kept drawing the panel with no rail to leave it by, and the browser could not be reached
+# again without killing the app.
+#
+# `stopApp: false`: a fresh start would set `sidePanel` back to FILES and measure nothing.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+# `Workspace` is the breadcrumb only the file browser draws.
+- assertVisible: "Workspace"
+# And no rail, because there is no side area at this width.
+- assertNotVisible: "Table of contents"
+- takeScreenshot: 02-the-browser-is-what-the-narrowed-window-draws

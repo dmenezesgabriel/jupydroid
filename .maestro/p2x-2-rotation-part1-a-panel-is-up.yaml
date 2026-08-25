@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# P2x-2b part 1: get a panel up in a two-pane window, so the rotation has something to strand.
+#
+# Landscape on the tablet is 1280dp - two panes, and the rail is drawn. The driver rotates to
+# portrait after this, where the window is 800dp and the shell draws one pane.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- tapOn:
+    text: "^Search$"
+- assertVisible:
+    text: "^Search$"
+- assertNotVisible: "Workspace"
+- takeScreenshot: 01-search-is-up-in-a-two-pane-window

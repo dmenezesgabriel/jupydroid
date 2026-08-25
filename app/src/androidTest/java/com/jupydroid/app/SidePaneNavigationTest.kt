@@ -1,5 +1,7 @@
 package com.jupydroid.app
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsDisplayed
@@ -130,6 +132,47 @@ class SidePaneNavigationTest {
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
   }
 
+  /**
+   * **A window that narrows while a panel is up still has to leave the browser reachable.**
+   *
+   * `sidePanel` is `rememberSaveable`, so it survives the activity relaunch a rotation causes; the
+   * rail is drawn only where there are two panes. Between them, a tablet rotated to portrait -
+   * 1280dp landscape is two panes, 800dp portrait is one - used to draw the table of contents in
+   * the list pane with no rail to switch away from it, and the file browser could not be reached
+   * again without killing the app. P2x-2 widened that from two panels to three, which is why it
+   * is fixed here rather than recorded.
+   *
+   * `p2o-4`'s own header states the rule: *"where the shell draws one pane there is no side area"*.
+   */
+  @Test
+  fun aWindowThatNarrowsWhileAPanelIsUpStillDrawsTheBrowser() {
+    val twoPane = mutableStateOf(true)
+    startApp(twoPane)
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+    waitForText(SEARCH)
+
+    twoPane.value = false
+
+    waitForText(WORKSPACE)
+    compose.onNodeWithText(WORKSPACE).assertIsDisplayed()
+  }
+
+  /** The collapsed area is the same problem with nothing on screen at all, rather than the wrong thing. */
+  @Test
+  fun aWindowThatNarrowsWhileTheAreaIsCollapsedStillDrawsTheBrowser() {
+    val twoPane = mutableStateOf(true)
+    startApp(twoPane)
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(FILES).performClick()
+    assertGone(WORKSPACE)
+
+    twoPane.value = false
+
+    waitForText(WORKSPACE)
+    compose.onNodeWithText(WORKSPACE).assertIsDisplayed()
+  }
+
   /** A rail on a 320dp phone would spend a quarter of the screen on chrome; P2o-4 owns that bar. */
   @Test
   fun aCompactWindowHasNoRail() {
@@ -140,11 +183,18 @@ class SidePaneNavigationTest {
     assert(rail.isEmpty()) { "a compact window drew ${rail.size} rail item(s)" }
   }
 
-  private fun startApp(twoPane: Boolean) {
+  private fun startApp(twoPane: Boolean) = startApp(mutableStateOf(twoPane))
+
+  /**
+   * The width as **state**, so a test can narrow the window on a shell that is already running -
+   * which is the half of a rotation that composition sees. `rememberSaveable` keeps its value
+   * across the recomposition exactly as it does across the relaunch.
+   */
+  private fun startApp(twoPane: MutableState<Boolean>) {
     val repository = DiskNotebookRepository(tempFolder.root)
     runBlocking { repository.saveNotebook(notebook()) }
     compose.setContent {
-      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane.value))) {
         JupyterDroidTheme {
           MainNavigation(
             appContainer = AppContainer(
@@ -153,7 +203,7 @@ class SidePaneNavigationTest {
             ),
             importTitle = null,
             onImportConsumed = {},
-            twoPane = twoPane,
+            twoPane = twoPane.value,
           )
         }
       }

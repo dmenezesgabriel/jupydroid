@@ -113,11 +113,20 @@ fun MainNavigation(
   // to draw has to be able to overrule it - otherwise `twoPane` would decide the row marking above
   // and not the layout, and the two would disagree. Same boolean, both halves.
   val measured = paneScaffoldDirective()
+  // **There is no side area at all where the shell draws one pane**, so the browser is what the
+  // list pane holds there whatever the rail was last left on. The rail is drawn only `if (twoPane)`
+  // below, and `sidePanel` is `rememberSaveable` - so without this a tablet rotated to portrait
+  // (1280dp landscape is two panes, 800dp portrait is one) kept drawing the panel it had, with no
+  // rail to switch away from it and no way back to the files but killing the app. Measured:
+  // `SidePaneNavigationTest.aWindowThatNarrowsWhileAPanelIsUpStillDrawsTheBrowser`.
+  //
+  // An override rather than a reset, so rotating back restores the panel the user had chosen.
+  val showingPanel = if (twoPane) sidePanel else SidePanel.FILES
   // **A collapsed side area is a one-pane layout**, which is what `collapseLeft` does there:
   // the panel goes and the document area takes the width, while the activity bar stays
   // (`packages/application/src/shell.ts:2383-2394`). So the collapse is spelled here rather
   // than inside the pane, and the notebook actually gains the 360dp.
-  val directive = if (twoPane && sidePanel != null) measured else measured.forcedToOnePane()
+  val directive = if (twoPane && showingPanel != null) measured else measured.forcedToOnePane()
 
   // The VIEW intent, which used to be Home's because Home was the first screen. It is an
   // app-level act rather than a screen's - nothing about it belongs to the browser - so it lives
@@ -195,10 +204,9 @@ fun MainNavigation(
           // The side area draws **one** panel, which is the reference's own arrangement:
           // `SideBarHandler._onCurrentChanged` hides the outgoing widget and shows the incoming one
           // (`packages/application/src/shell.ts:2630-2643`). The collapsed branch draws nothing here
-          // and the directive above has already dropped this pane, so it is only ever reached in the
-          // one-pane layout, where it means "no document and no panel" - the reference's empty
-          // document area, which P6d's Launcher fills.
-          when (sidePanel) {
+          // and the directive above has already dropped this pane, so it is unreachable - a one-pane
+          // window has no side area to collapse, and `showingPanel` is the file browser there.
+          when (showingPanel) {
             SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
             // Named and empty until P2x-3, which is the sub-step that draws a query box into it.
             SidePanel.SEARCH -> SearchSidePanel()
