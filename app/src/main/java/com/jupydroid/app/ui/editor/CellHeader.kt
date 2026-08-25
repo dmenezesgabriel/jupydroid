@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -31,6 +32,19 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
+
+/**
+ * The glyph every cell's Run control draws - **outlined, not filled** (P2v-1).
+ *
+ * A filled triangle at rest reads as "playing"; outlined reads as available, which is what an
+ * idle control means (`docs/DECISIONS.md`, "The cell keeps its header strip"). A value rather
+ * than an inline argument so `CellRunIconTest` has something to pin - without it the departure
+ * back to filled is a one-token edit no gate would see.
+ *
+ * Scope is this file's three run controls. `NotebookBar`'s *Run all* and `SelectionTopBar`'s
+ * play act on a selection rather than on a cell's own state, and keep their filled glyphs.
+ */
+internal val cellRunIcon: ImageVector = Icons.Outlined.PlayArrow
 
 /**
  * The strip above a cell: where its run got to, its Run/Stop control, and the way into
@@ -94,7 +108,7 @@ internal fun CellHeader(
     when (cell.kind) {
       CellKind.CODE -> RunControl(status = status, onRun = onRun, onStop = onStop)
       CellKind.MARKDOWN ->
-        IconButton(onClick = onRun) { Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell") }
+        IconButton(onClick = onRun) { Icon(cellRunIcon, contentDescription = "Run cell") }
       CellKind.RAW -> Unit
     }
     // How long the last one took, in the reference's own `EXECUTION_TIME_COLOR`. Absent while a
@@ -143,13 +157,13 @@ private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () ->
   // (evidence/u4-execution-status/02-queued-and-running.png, before this).
   if (status == ExecutionStatus.QUEUED) {
     IconButton(onClick = onRun, enabled = false) {
-      Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell")
+      Icon(cellRunIcon, contentDescription = "Run cell")
     }
     return
   }
   if (status != ExecutionStatus.RUNNING) {
     IconButton(onClick = onRun) {
-      Icon(Icons.Filled.PlayArrow, contentDescription = "Run cell")
+      Icon(cellRunIcon, contentDescription = "Run cell")
     }
     return
   }
