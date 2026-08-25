@@ -27,6 +27,7 @@ import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
+import com.jupydroid.app.ui.shell.SearchSidePanel
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
 import kotlinx.coroutines.launch
@@ -199,6 +200,8 @@ fun MainNavigation(
           // document area, which P6d's Launcher fills.
           when (sidePanel) {
             SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
+            // Named and empty until P2x-3, which is the sub-step that draws a query box into it.
+            SidePanel.SEARCH -> SearchSidePanel()
             null -> Unit
             SidePanel.FILES ->
               ExplorerScreen(

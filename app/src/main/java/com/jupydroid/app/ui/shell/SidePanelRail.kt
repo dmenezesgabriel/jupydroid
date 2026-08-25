@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -56,21 +57,27 @@ fun SidePanelRail(selected: SidePanel?, onChoose: (SidePanel) -> Unit, modifier:
 }
 
 /**
- * What the rail calls each panel. The reference's own tab captions - `type: 'File Browser'`
- * (`packages/filebrowser-extension/src/index.ts:676`) and `type: 'Table of Contents'`
- * (`packages/toc-extension/src/index.ts:309`) - in this app's sentence case, and "Files" because
- * that is already the name its own screen carries.
+ * What the rail calls each panel. Each reference's own caption for the panel it owns -
+ * `type: 'File Browser'` (`packages/filebrowser-extension/src/index.ts:676`),
+ * `title: "Search"` (`vscode/…/search/browser/search.contribution.ts:55`) and
+ * `type: 'Table of Contents'` (`packages/toc-extension/src/index.ts:309`) - in this app's sentence
+ * case, and "Files" because that is already the name its own screen carries.
  */
 internal val SidePanel.label: String
   get() = when (this) {
     SidePanel.FILES -> "Files"
+    SidePanel.SEARCH -> "Search"
     SidePanel.TABLE_OF_CONTENTS -> "Table of contents"
   }
 
-/** Material's nearest equivalents of `folder.svg` and `toc.svg` in the reference's icon registry. */
+/** Material's nearest equivalents of `folder.svg`, `search.svg` and `toc.svg` in the icon registry. */
 private val SidePanel.icon: ImageVector
   get() = when (this) {
     SidePanel.FILES -> Icons.Filled.Folder
+    // **Not** AutoMirrored, unlike the two below, and that is Material's own rule rather than an
+    // omission: the magnifier is on its list of icons that keep their direction in a right-to-left
+    // locale, which is why the icon set ships no mirrored variant of it to import.
+    SidePanel.SEARCH -> Icons.Filled.Search
     // AutoMirrored, for the reason the explorer's own file icon is: the glyph's ragged edge
     // flips in a right-to-left locale, and the plain `Icons.Filled.Toc` is deprecated for it.
     SidePanel.TABLE_OF_CONTENTS -> Icons.AutoMirrored.Filled.Toc

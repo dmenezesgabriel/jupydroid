@@ -99,6 +99,37 @@ class SidePaneNavigationTest {
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
   }
 
+  /**
+   * The rail's third item, and the panel behind it - `order: 1` on VS Code's sidebar container
+   * (`search.contribution.ts:59`), which is the only reference that registers one at all.
+   */
+  @Test
+  fun theRailSwapsTheFileBrowserForSearch() {
+    startApp(twoPane = true)
+    waitForText(WORKSPACE)
+
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+
+    waitForText(SEARCH)
+    compose.onNodeWithText(SEARCH).assertIsDisplayed()
+    assertGone(WORKSPACE)
+  }
+
+  /** The other half of the toggle, on the panel P2x-2 added - see the ToC's own case above. */
+  @Test
+  fun pickingSearchAgainCollapsesTheAreaAndLeavesTheRail() {
+    startApp(twoPane = true)
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+    waitForText(SEARCH)
+
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+
+    assertGone(WORKSPACE)
+    assertNoPanelTitle()
+    compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
+  }
+
   /** A rail on a 320dp phone would spend a quarter of the screen on chrome; P2o-4 owns that bar. */
   @Test
   fun aCompactWindowHasNoRail() {
@@ -151,6 +182,16 @@ class SidePaneNavigationTest {
     compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
   }
 
+  /**
+   * A collapsed area draws no panel at all, and the panel's *title* is what says so - `Search` is
+   * still on the rail as a content description, so a text query is the one that can tell the two
+   * apart.
+   */
+  private fun assertNoPanelTitle() {
+    val found = compose.onAllNodesWithText(SEARCH).fetchSemanticsNodes()
+    assert(found.isEmpty()) { "expected the collapsed area to draw no panel, found ${found.size} title(s)" }
+  }
+
   private fun assertGone(text: String) {
     val found = compose.onAllNodesWithText(text).fetchSemanticsNodes()
     assert(found.isEmpty()) { "expected '$text' to be gone, found ${found.size} node(s)" }
@@ -164,6 +205,7 @@ class SidePaneNavigationTest {
     const val WORKSPACE = "Workspace"
     const val NO_HEADINGS = "No headings"
     const val FILES = "Files"
+    const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
     const val TIMEOUT_MILLIS = 5_000L
   }

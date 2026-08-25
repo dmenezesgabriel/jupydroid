@@ -28,11 +28,13 @@ class SidePanelRailTest {
 
   private val chosen = mutableListOf<SidePanel>()
 
+  /** Three items since P2x-2 - one per [SidePanel], which is what the rail iterates. */
   @Test
-  fun bothPanelsAreOnTheRail() {
+  fun everyPanelIsOnTheRail() {
     show(SidePanel.FILES)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertIsDisplayed()
   }
 
@@ -42,6 +44,16 @@ class SidePanelRailTest {
     show(SidePanel.TABLE_OF_CONTENTS)
 
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertIsSelected()
+    compose.onNodeWithContentDescription(FILES).assertIsNotSelected()
+    compose.onNodeWithContentDescription(SEARCH).assertIsNotSelected()
+  }
+
+  /** And the one P2x-2 added is selectable like the two beside it, not merely drawable. */
+  @Test
+  fun theSearchPanelIsTheSelectedOneWhenItIsShowing() {
+    show(SidePanel.SEARCH)
+
+    compose.onNodeWithContentDescription(SEARCH).assertIsSelected()
     compose.onNodeWithContentDescription(FILES).assertIsNotSelected()
   }
 
@@ -64,6 +76,7 @@ class SidePanelRailTest {
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
     compose.onNodeWithContentDescription(FILES).assertIsNotSelected()
+    compose.onNodeWithContentDescription(SEARCH).assertIsNotSelected()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertIsNotSelected()
   }
 
@@ -87,6 +100,7 @@ class SidePanelRailTest {
 
   private companion object {
     const val FILES = "Files"
+    const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
   }
 }

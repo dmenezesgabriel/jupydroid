@@ -36,12 +36,33 @@ class SidePanelTest {
   }
 
   /**
-   * The reference's own rank order, which is what the rail draws top to bottom: File Browser at
-   * rank 100 (`packages/filebrowser-extension/src/index.ts:676`) and Table of Contents at 400
-   * (`packages/toc-extension/src/index.ts:309`).
+   * The order the rail draws top to bottom, and **it takes both references to state it** - which
+   * is the correction P2x-2 made to its own row in `docs/PLAN.md`.
+   *
+   * - The file browser is first in both: rank 100
+   *   (`packages/filebrowser-extension/src/index.ts:676`), `order: 0`
+   *   (`vscode/…/files/browser/explorerViewlet.ts:265`).
+   * - **Search is second, and only VS Code says so**: `order: 1` on the sidebar view container
+   *   (`vscode/…/search/browser/search.contribution.ts:59`), directly after the explorer's 0.
+   *   JupyterLab registers no search panel at all - `shell.add(…, 'left', …)` is called five times
+   *   in its whole tree and none of them is one.
+   * - **The table of contents is last, and only JupyterLab says so**: rank 400
+   *   (`packages/toc-extension/src/index.ts:309`). VS Code has no such container - its Outline is
+   *   a view *inside* the explorer's (`vscode/…/outline/browser/outline.contribution.ts:26-38`).
+   *
+   * So the two answer different halves and agree where they overlap.
    */
   @Test
-  fun theOrderIsTheReferencesRankOrder() {
-    assertEquals(listOf(SidePanel.FILES, SidePanel.TABLE_OF_CONTENTS), SidePanel.entries)
+  fun theOrderIsWhatTheTwoReferencesTogetherSay() {
+    assertEquals(
+      listOf(SidePanel.FILES, SidePanel.SEARCH, SidePanel.TABLE_OF_CONTENTS),
+      SidePanel.entries,
+    )
+  }
+
+  /** Every panel toggles, including the one P2x-2 added - `chosen` is written over the type. */
+  @Test
+  fun everyPanelCollapsesTheAreaWhenItIsTheOneShowing() {
+    SidePanel.entries.forEach { panel -> assertNull(panel.chosen(panel)) }
   }
 }
