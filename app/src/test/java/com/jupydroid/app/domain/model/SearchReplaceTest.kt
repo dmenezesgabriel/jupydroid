@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui.editor
+package com.jupydroid.app.domain.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

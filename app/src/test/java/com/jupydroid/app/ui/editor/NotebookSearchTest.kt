@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.StreamName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

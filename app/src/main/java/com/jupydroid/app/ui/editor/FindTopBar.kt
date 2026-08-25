@@ -39,6 +39,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import com.jupydroid.app.domain.model.SearchQuery
+import com.jupydroid.app.domain.model.replacementFor
 import com.jupydroid.app.theme.Spacing
 
 /**

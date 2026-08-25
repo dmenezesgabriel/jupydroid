@@ -2833,6 +2833,32 @@ coroutines in launch order, and this defect needs the opposite: the listing star
 to finish **last**. A per-path delay is the only way to put the completions in that order on
 purpose.
 
+### `SearchQuery` lives in `domain/model`, and the measurement is what put it there (P2x-1a)
+
+`docs/PLAN.md`'s P2x-1 row says `SearchQuery` *"moves out of `ui/editor/` to a shared home"* and
+does not name the home. Two were candidates, and one of them is not free.
+
+The row's own argument - *"it is document logic both surfaces read"* - points at CLAUDE.md's
+document-and-language rule, which would give it a package of its own beside `syntax/`. But
+`domain/port/WorkspaceSearcher` takes a `SearchQuery`, so wherever it goes, **`domain` imports
+it**. Measured across `domain/`, every project-local import is
+`com.jupydroid.app.domain.model` - one package, no exceptions - and `docs/architecture.md` §1
+states the rule that keeps it so: *"domain imports nothing project-local"*. A `search/` package
+would have been the first exception, and §1 and §5 would both have needed amending in the same
+commit to stay true.
+
+`domain/model` needs no amendment, and it is not a loophole: `WorkspaceEntry` already stands in
+exactly this relationship to `WorkspaceRepository` - the type a port's signature is written in.
+`SearchQuery` is now that for `WorkspaceSearcher`.
+
+**`replacementFor` moved with it**, from `internal` in `ui/editor` to public here. The port owns
+replace-across-files, so `DiskWorkspaceSearcher` is what substitutes - and `data` may not import
+`ui` (§5). The alternative was a second copy of the reference's two-step rule
+(`substitutedText` then `preserveCase`), which is the duplication CLAUDE.md bans.
+
+Nothing else moved. `SearchHit`, `NotebookSearch` and `NotebookReplace` are what a *notebook* does
+with a query, and stay where the notebook is.
+
 ## Harness
 
 ### `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary

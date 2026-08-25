@@ -1,5 +1,9 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.CompiledQuery
+import com.jupydroid.app.domain.model.SearchQuery
+import com.jupydroid.app.domain.model.compile
+import com.jupydroid.app.domain.model.replacementFor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 

@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui.editor
+package com.jupydroid.app.domain.model
 
 /**
  * What one match becomes when it is replaced.
@@ -14,11 +14,16 @@ package com.jupydroid.app.ui.editor
  * So a group reference works only under the regex option, and preserving case is applied to
  * whatever the substitution produced rather than to what was typed.
  *
+ * Beside [SearchQuery] in `domain/model` and **public** since P2x-1, where it used to be
+ * `internal` to `ui/editor`: `DiskWorkspaceSearcher` is what substitutes across a workspace, and
+ * `data` may not import `ui` (`docs/architecture.md` §5). Re-deriving it there would be two
+ * copies of the reference's two-step rule.
+ *
  * ```
  * replacementFor("CAT", "dog", SearchQuery("cat"), preserveCase = true)   // "DOG"
  * ```
  */
-internal fun replacementFor(matched: String, replaceText: String, query: SearchQuery, preserveCase: Boolean): String {
+fun replacementFor(matched: String, replaceText: String, query: SearchQuery, preserveCase: Boolean): String {
   val substituted = if (query.useRegex) matched.substituted(replaceText, query) else replaceText
   return if (preserveCase) substituted.inTheCaseOf(matched) else substituted
 }

@@ -2,6 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.CompiledQuery
+import com.jupydroid.app.domain.model.SearchQuery
+import com.jupydroid.app.domain.model.compile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
