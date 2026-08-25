@@ -86,6 +86,24 @@ class NotebookBarShutdownTest {
     compose.runOnIdle { assertEquals(emptyList<String>(), commands) }
   }
 
+  /**
+   * **The menu is gone once its dialog is up**, which nothing pinned until P2w-2b moved the menu
+   * and its dialogs into [KernelMenu]. While the state lived on the anchor a row got this for free
+   * - the same lambda that raised the dialog closed the menu - and the move made it something the
+   * menu has to do for itself. A menu left expanded behind a modal dialog is still there when the
+   * dialog is cancelled, which is not what the row asked for.
+   */
+  @Test
+  fun raisingTheCloseDialogDismissesTheMenuUnderIt() {
+    showBar()
+
+    compose.onNodeWithContentDescription(KERNEL_ACTIONS).performClick()
+    compose.onNodeWithText("Close and Shut Down Notebook…").performClick()
+
+    compose.onNodeWithText("Shut down the notebook?").assertIsDisplayed()
+    compose.onNodeWithText("Shut Down Kernel").assertDoesNotExist()
+  }
+
   /** Material's minimum, and the rule `CellTouchTargetTest` pins for every control in the app. */
   @Test
   fun theKernelMenuIsBigEnoughToHit() {
