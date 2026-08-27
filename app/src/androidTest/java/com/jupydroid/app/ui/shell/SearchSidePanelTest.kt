@@ -399,10 +399,49 @@ class SearchSidePanelTest {
     compose.onNodeWithContentDescription(fileMatchLabel("notes.py", 1)).performClick()
     compose.onNodeWithText("print(cat)").assertDoesNotExist()
   }
+
+  /**
+   * **A notebook hit names its cell**, which is what a notebook row needs and a file row does not:
+   * `search.showLineNumbers` is false, so a row draws its line and nothing else - and in a notebook
+   * "line 1" belongs to as many lines as there are cells.
+   *
+   * **Named in the label rather than drawn as a level**, which is the reference's own presentation:
+   * `searchResultsView.ts` has no notebook branch at all, and the cell rides on `MatchInNotebook`'s
+   * id (`notebookSearchModel.ts:35`). A third tree level would spend indentation the 360dp panel
+   * needs for the code, which is why P2x-3 already declined `FolderMatchRenderer`'s folder level.
+   */
+  @Test
+  fun aNotebookHitNamesTheCellItIsIn() {
+    show(NotebookWorkspaceWalk())
+
+    searchFor("cat", until = hasText("print(cat)"))
+
+    compose.onNodeWithContentDescription("Cell 2, line 1, print(cat)").assertIsDisplayed()
+  }
+
+  /** A plain file's row is unchanged - there is no cell to name, and none is invented. */
+  @Test
+  fun aPlainFilesHitStillNamesOnlyItsLine() {
+    show(FakeWorkspaceSearcher(mapOf("notes.py" to "print(cat)")))
+
+    searchFor("cat", until = hasText("print(cat)"))
+
+    compose.onNodeWithContentDescription("Line 1, print(cat)").assertIsDisplayed()
+  }
 }
 
 /** Long enough for the 300 ms debounce plus a walk of an in-memory workspace, short enough to fail. */
 private const val WALK_TIMEOUT_MILLIS = 5_000L
+
+/** A walk that found something in a notebook's **second** cell - `INotebookCellMatchNoModel.index`. */
+private class NotebookWorkspaceWalk : WorkspaceSearcher {
+  override fun search(query: SearchQuery, scope: SearchScope): Flow<SearchProgress> = flowOf(
+    SearchProgress.Found(
+      MatchedFile("analysis.ipynb", listOf(MatchedLine(line = 1, text = "print(cat)", range = 6..8, cell = 1))),
+    ),
+    SearchProgress.Complete(limitHit = false),
+  )
+}
 
 /** A walk that stopped early - `search.maxResults`, without twenty thousand lines of it. */
 private class CappedWorkspaceWalk : WorkspaceSearcher {

@@ -208,9 +208,24 @@ internal fun fileMatchLabel(path: String, matches: Int): String =
   "$path, " + if (matches == 1) "1 match found" else "$matches matches found"
 
 /**
- * What a match row answers to - `getMatchTitle`, which names the line the match is on.
+ * What a match row answers to - `getMatchTitle`, which names the line the match is on, **and the
+ * cell it is in where there is one**.
  *
  * The number is here and not drawn, which is the reference's own default: `search.showLineNumbers`
- * is false, and a 360dp panel has better uses for the width than a gutter.
+ * is false, and a 360dp panel has better uses for the width than a gutter. That default is also
+ * what makes the cell necessary rather than decorative: in a notebook, "line 1" belongs to as many
+ * lines as the file has cells, so without the cell two rows a tap apart can answer to one string -
+ * which is the thing `docs/DECISIONS.md` refuses of two controls and refuses of two rows for the
+ * same reason.
+ *
+ * **In the label rather than as a level of the tree**, which is the reference's own presentation:
+ * `searchResultsView.ts` has no notebook branch at all and the cell rides on `MatchInNotebook`'s
+ * id (`notebookSearchModel.ts:35`). A third level would spend indentation on chrome that the code
+ * needs, which is the call P2x-3 already made against `FolderMatchRenderer`'s folder level.
+ *
+ * **One-based here where [MatchedLine.cell] is zero-based**, so it reads beside the line number it
+ * is spoken with - the reference's own `rawCell#${index}` is an id and never a sentence.
  */
-internal fun matchRowLabel(match: MatchedLine): String = "Line ${match.line}, ${match.text.trim()}"
+internal fun matchRowLabel(match: MatchedLine): String =
+  match.cell?.let { "Cell ${it + 1}, line ${match.line}, ${match.text.trim()}" }
+    ?: "Line ${match.line}, ${match.text.trim()}"

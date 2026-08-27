@@ -1,0 +1,53 @@
+appId: com.jupydroid.app
+---
+# P2x-4c: a notebook is searched as the **cells** it is, and a result row names the cell.
+#
+# `INotebookCellMatchNoModel` is `{ index, contentResults, webviewResults }`
+# (`vscode/…/search/common/searchNotebookHelpers.ts:18-22`) - the cell's index and its source
+# matches. Until P2x-4b every `.ipynb` was skipped, because read as JSON a notebook reports
+# `"cell_type"` and the inside of a base64 image as matches.
+#
+# **What the assertions below are shaped by**: `search.showLineNumbers` is false, so a row draws its
+# line and nothing else - and in a notebook "line 1" belongs to as many lines as there are cells. So
+# the cell goes in the row's label, which is what a screen reader and this flow read. Two matches in
+# two different cells is the case that proves it: both are on line 1 of their own cell, and without
+# the cell they would be one string.
+#
+# The notebook's **fourth** cell holds the marker and its **fifth** is a raw cell - both are asserted,
+# because all three `cell_type`s have a source and the reference searches all three.
+#
+# The JSON keys are asserted **absent**, which is the half P2x-1d skipped the whole file over.
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
+# this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- assertVisible: "analysis.ipynb"
+- tapOn:
+    text: "^Search$"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- hideKeyboard
+- takeScreenshot: 01-a-notebook-is-in-the-results
+# --- the notebook, and which cells its matches are in ---------------------------------------------
+- assertVisible: "analysis.ipynb, 2 matches found"
+- assertVisible: "Cell 4, line 1, MARKER = \"the cat is in cell four\""
+- assertVisible: "Cell 5, line 1, a raw cell, no cat here"
+# The plain file beside it is unchanged - no cell to name, and none invented.
+- assertVisible: "notes.py, 3 matches found"
+- assertVisible: "Line 4, def feed_the_cat(name):"
+- takeScreenshot: 02-each-notebook-row-names-its-cell
+# --- what a notebook read as JSON would have reported, and does not ------------------------------
+- tapOn: "Search the workspace"
+- eraseText
+- inputText: "cell_type"
+- extendedWaitUntil:
+    visible: "No results found"
+    timeout: 15000
+- hideKeyboard
+- takeScreenshot: 03-the-json-a-notebook-is-stored-in-is-not-searched
