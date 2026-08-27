@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.shell
 
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.TextEdit
+import com.jupydroid.app.domain.model.withEditsApplied
 
 /**
  * A document that is open, remembering what was applied to it and where.
@@ -19,5 +20,8 @@ class RecordingOpenDocument(override val path: String, private var text: String?
 
   override fun applyEdits(cell: Int?, edits: List<TextEdit>) {
     applied = applied + (cell to edits)
+    // A real document's source changes when it is edited, and an undo is refused unless it does -
+    // it compares what the replace produced against what is there now.
+    text = text?.withEditsApplied(edits)
   }
 }

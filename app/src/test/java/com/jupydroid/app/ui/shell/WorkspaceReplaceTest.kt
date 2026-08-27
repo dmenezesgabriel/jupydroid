@@ -44,7 +44,7 @@ class WorkspaceReplaceTest {
   fun aClosedFileIsRewrittenOnDisk() = runTest {
     val outcome = replace.replaceAll(listOf(fileMatch("a.py", "cat = 1")), "dog", cat, preserveCase = false)
 
-    assertEquals(ReplaceOutcome.Replaced(occurrences = 1, fileCount = 1), outcome)
+    assertEquals(1 to 1, outcome.occurrencesAndFiles())
     assertEquals("dog = 1", workspace.readText("a.py"))
   }
 
@@ -54,7 +54,7 @@ class WorkspaceReplaceTest {
 
     val outcome = replace.replaceAll(files, "dog", cat, preserveCase = false)
 
-    assertEquals(ReplaceOutcome.Replaced(occurrences = 2, fileCount = 2), outcome)
+    assertEquals(2 to 2, outcome.occurrencesAndFiles())
     assertEquals("dog = 1", workspace.readText("a.py"))
     assertEquals("dog = 2", workspace.readText("b.py"))
   }
@@ -75,7 +75,7 @@ class WorkspaceReplaceTest {
       preserveCase = false,
     )
 
-    assertEquals(ReplaceOutcome.Replaced(occurrences = 1, fileCount = 1), outcome)
+    assertEquals(1 to 1, outcome.occurrencesAndFiles())
     val saved = notebooks.readNotebook("nb.ipynb")
     assertEquals("print('hello')", saved.cells[0].source)
     assertEquals("dog = 1", saved.cells[1].source)
@@ -115,7 +115,7 @@ class WorkspaceReplaceTest {
 
     val outcome = replace.replaceAll(listOf(fileMatch("a.py", "cat = 1")), "dog", cat, preserveCase = false)
 
-    assertEquals(ReplaceOutcome.Replaced(occurrences = 1, fileCount = 1), outcome)
+    assertEquals(1 to 1, outcome.occurrencesAndFiles())
     assertEquals(listOf(null to listOf(TextEdit(0..2, "dog"))), document.applied)
     // Untouched by the engine: the document is what saves, on its own debounce.
     assertEquals("cat = 1", workspace.readText("a.py"))
@@ -184,7 +184,7 @@ class WorkspaceReplaceTest {
   fun replacingNothingReplacesNothing() = runTest {
     val outcome = replace.replaceAll(emptyList(), "dog", cat, preserveCase = false)
 
-    assertEquals(ReplaceOutcome.Replaced(occurrences = 0, fileCount = 0), outcome)
+    assertEquals(0 to 0, outcome.occurrencesAndFiles())
   }
 
   /** Two matches in one file are two occurrences in one file - `buildReplaceAllConfirmationMessage`. */
@@ -195,7 +195,7 @@ class WorkspaceReplaceTest {
 
     val outcome = replace.replaceAll(listOf(file), "dog", cat, preserveCase = false)
 
-    assertEquals(ReplaceOutcome.Replaced(occurrences = 2, fileCount = 1), outcome)
+    assertEquals(2 to 1, outcome.occurrencesAndFiles())
     assertEquals("dog\ndog", workspace.readText("a.py"))
   }
 
@@ -209,6 +209,101 @@ class WorkspaceReplaceTest {
 
     assertTrue(outcome is ReplaceOutcome.Refused)
     assertEquals(listOf("a.py", "b.py"), (outcome as ReplaceOutcome.Refused).paths)
+  }
+
+  /**
+   * **One entry takes back every file**, which is the property that makes this an undo of the
+   * *command* rather than of each file it happened to touch: `MultiModelEditStackElement.undo` loops
+   * every element it was built over, in one go (`editStack.ts:330-336`).
+   */
+  @Test
+  fun oneUndoTakesBackEveryFileTheReplaceWrote() = runTest {
+    val files = listOf(fileMatch("a.py", "cat = 1"), fileMatch("b.py", "cat = 2"))
+    val replaced = replace.replaceAll(files, "dog", cat, preserveCase = false) as ReplaceOutcome.Replaced
+
+    val outcome = replace.undo(replaced.undo)
+
+    assertEquals(UndoOutcome.Undone, outcome)
+    assertEquals("cat = 1", workspace.readText("a.py"))
+    assertEquals("cat = 2", workspace.readText("b.py"))
+  }
+
+  /** The notebook route inverts through `NotebookRepository` too, and keeps what it does not model. */
+  @Test
+  fun undoingANotebookReplacePutsTheCellBackAndKeepsItsForeignFields() = runTest {
+    notebooks.saveNotebook(aNotebookWithForeignFields())
+    val match = listOf(MatchedFile("nb.ipynb", listOf(MatchedLine(1, "cat = 1", 0..2, cell = 1))))
+    val replaced = replace.replaceAll(match, "dog", cat, preserveCase = false) as ReplaceOutcome.Replaced
+
+    assertEquals(UndoOutcome.Undone, replace.undo(replaced.undo))
+
+    val saved = notebooks.readNotebook("nb.ipynb")
+    assertEquals("cat = 1", saved.cells[1].source)
+    assertEquals(JsonPrimitive("also kept"), saved.cells[1].preserved["nbgrader"])
+  }
+
+  /** An open document is edited back rather than written back - the same route, pointed the other way. */
+  @Test
+  fun undoingAnOpenDocumentEditsItRatherThanWritingTheFile() = runTest {
+    val document = RecordingOpenDocument("a.py", "cat = 1")
+    open.opened(document)
+    val replaced = replace
+      .replaceAll(listOf(fileMatch("a.py", "cat = 1")), "dog", cat, preserveCase = false) as ReplaceOutcome.Replaced
+
+    assertEquals(UndoOutcome.Undone, replace.undo(replaced.undo))
+
+    assertEquals("cat = 1", document.sourceOf(null))
+    assertEquals(listOf(null to listOf(TextEdit(0..2, "dog")), null to listOf(TextEdit(0..2, "cat"))), document.applied)
+    assertEquals("cat = 1", workspace.readText("a.py"))
+  }
+
+  /**
+   * `_checkWorkspaceUndo` refuses when the element is no longer the closest past one on **every**
+   * impacted resource - *"Could not undo '{0}' across all files because changes were made to {1}"*
+   * (`undoRedoService.ts:853-869`). So one file written since refuses the lot, and the others keep
+   * the replacement they were given.
+   */
+  @Test
+  fun aFileWrittenSinceTheReplaceRefusesTheWholeUndo() = runTest {
+    val files = listOf(fileMatch("a.py", "cat = 1"), fileMatch("b.py", "cat = 2"))
+    val replaced = replace.replaceAll(files, "dog", cat, preserveCase = false) as ReplaceOutcome.Replaced
+    workspace.writeText("b.py", "dog = 22")
+
+    val outcome = replace.undo(replaced.undo)
+
+    assertEquals(UndoOutcome.Refused(listOf("b.py")), outcome)
+    assertEquals("dog = 1", workspace.readText("a.py"))
+    assertEquals("dog = 22", workspace.readText("b.py"))
+  }
+
+  /**
+   * **And a change nowhere near the replacement refuses it too**, which is the half a per-edit check
+   * would miss: the reference's rule is about the *resource*, not about the characters it put there.
+   */
+  @Test
+  fun aChangeElsewhereInARewrittenFileRefusesTheUndoJustTheSame() = runTest {
+    workspace.writeText("a.py", "cat = 1\nkeep = 0")
+    val replaced = replace
+      .replaceAll(listOf(fileMatch("a.py", "cat = 1")), "dog", cat, preserveCase = false) as ReplaceOutcome.Replaced
+    workspace.writeText("a.py", "dog = 1\nkeep = 9")
+
+    assertEquals(UndoOutcome.Refused(listOf("a.py")), replace.undo(replaced.undo))
+  }
+
+  @Test
+  fun undoingAReplaceThatWroteNothingWritesNothing() = runTest {
+    val replaced = replace.replaceAll(emptyList(), "dog", cat, preserveCase = false) as ReplaceOutcome.Replaced
+
+    assertEquals(UndoOutcome.Undone, replace.undo(replaced.undo))
+  }
+
+  /**
+   * The two counts the confirmation needs, apart from the undo entry the outcome also carries -
+   * which no test here spells out, because what it *is* is asserted by undoing it.
+   */
+  private fun ReplaceOutcome.occurrencesAndFiles(): Pair<Int, Int> {
+    val replaced = this as ReplaceOutcome.Replaced
+    return replaced.occurrences to replaced.fileCount
   }
 
   private fun aNotebookWithForeignFields() = Notebook(

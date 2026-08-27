@@ -108,4 +108,73 @@ class TextEditTest {
     val edits = matches("CAT", query).editsAgainst("CAT", "[\$1]", query, preserveCase = true)
     assertEquals(listOf(TextEdit(0..2, "[A]")), edits)
   }
+
+  /**
+   * The inverse of one edit sits **where the replacement landed**, carrying what was there before.
+   *
+   * `TextModel._applyUndo` builds exactly this from each recorded change - `{ range: newPosition..
+   * newEnd, text: change.oldText }` (`textModel.ts:1441-1450`).
+   */
+  @Test
+  fun anEditInvertsToWhereItsReplacementLandedCarryingWhatWasThere() {
+    val edits = listOf(TextEdit(6..8, "dog"))
+
+    assertEquals(listOf(TextEdit(6..8, "cat")), edits.invertedAgainst("print(cat)"))
+  }
+
+  /**
+   * A replacement of a different length moves every inverse after it, which is the whole arithmetic:
+   * the inverse is expressed against the document the edits **produced**, not the one they were
+   * built from.
+   */
+  @Test
+  fun aLongerReplacementShiftsTheInverseOfEveryEditAfterIt() {
+    val edits = listOf(TextEdit(0..2, "elephant"), TextEdit(8..10, "dog"))
+
+    assertEquals(
+      listOf(TextEdit(0..7, "cat"), TextEdit(13..15, "cat")),
+      edits.invertedAgainst("cat and cat"),
+    )
+  }
+
+  /** Sorted here too, for [withEditsApplied]'s reason - a caller must not have to know it matters. */
+  @Test
+  fun editsInvertInPositionOrderHoweverTheyArrive() {
+    val edits = listOf(TextEdit(8..10, "dog"), TextEdit(0..2, "elephant"))
+
+    assertEquals(
+      listOf(TextEdit(0..7, "cat"), TextEdit(13..15, "cat")),
+      edits.invertedAgainst("cat and cat"),
+    )
+  }
+
+  /** Replacing with nothing is a deletion, and its inverse is an insertion at the point it removed. */
+  @Test
+  fun aDeletionInvertsToAnInsertionWhereItRemovedTheText() {
+    val edits = listOf(TextEdit(0..3, ""))
+
+    val inverse = edits.invertedAgainst("cat and cat")
+
+    assertEquals(listOf(TextEdit(0..-1, "cat ")), inverse)
+    assertEquals("cat and cat", "and cat".withEditsApplied(inverse))
+  }
+
+  /**
+   * The property the whole undo rests on, stated once: apply, invert, apply, and the document is
+   * exactly what it was.
+   */
+  @Test
+  fun applyingTheInverseOfAnEditPutsTheDocumentBackAsItWas() {
+    val before = "cat and cat and cat"
+    val edits = listOf(TextEdit(0..2, "elephant"), TextEdit(8..10, ""), TextEdit(16..18, "ox"))
+
+    val after = before.withEditsApplied(edits)
+
+    assertEquals(before, after.withEditsApplied(edits.invertedAgainst(before)))
+  }
+
+  @Test
+  fun nothingReplacedInvertsToNothingToPutBack() {
+    assertEquals(emptyList<TextEdit>(), emptyList<TextEdit>().invertedAgainst("cat"))
+  }
 }

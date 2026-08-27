@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.editsAgainst
+import com.jupydroid.app.domain.model.invertedAgainst
 import com.jupydroid.app.domain.model.withEditsApplied
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -25,14 +26,20 @@ sealed interface ReplaceOutcome {
    * Both numbers, because the reference's own message needs both - *"Replaced {0} occurrences across
    * {1} files"* - and a caller cannot derive one from the other.
    */
-  data class Replaced(val occurrences: Int, val fileCount: Int) : ReplaceOutcome
+  data class Replaced(val occurrences: Int, val fileCount: Int, val undo: ReplaceUndo) : ReplaceOutcome
 
   /**
    * Nothing was written, because [paths] no longer read the way the walk read them.
    *
    * **All or none**: the reference validates every resource before preparing a single task, so one
-   * stale file leaves the others exactly as they were. [paths] carries every one that moved on,
-   * because the reference's own message names them - *"…because changes were made to {1}"*.
+   * stale file leaves the others exactly as they were.
+   *
+   * **Naming every one is a departure, and a small one.** `_validateBeforePrepare` throws on the
+   * first mismatch it meets - *"&lt;uri&gt; has changed in the meantime"* (`bulkTextEdits.ts:216`) - so
+   * the reference's *replace* names one resource. Its *undo* names them all, *"…because changes were
+   * made to {1}"* (`undoRedoService.ts:858-869`), and a reader told which files moved on can act on
+   * it where a reader told about the first cannot. [UndoOutcome.Refused] is the same list for the
+   * message it is actually quoting.
    */
   data class Refused(val paths: List<String>) : ReplaceOutcome
 }
@@ -43,9 +50,45 @@ sealed interface ReplaceOutcome {
  * `ResourceTextEdit` grouped by resource, where a resource is a file **or one cell of a notebook** -
  * `ReplaceService.createEdits` addresses a notebook match through `match.cell?.uri`
  * (`replaceService.ts:206-214`). Built before anything is written, which is what lets the whole
- * operation be refused, and kept as a value so P2x-5d can invert it into one undo entry.
+ * operation be refused, and kept as a value because [ReplaceUndo] is the same shape inverted.
+ *
+ * @property source the text [edits] were computed against. Carried rather than re-read: the read
+ *   already happened when the resource was validated, and reading again between validating and
+ *   writing would reopen the window `_validateBeforePrepare` exists to close. It is also what an
+ *   undo compares against - see [ReplaceUndo].
  */
-data class ResourceEdits(val path: String, val cell: Int?, val edits: List<TextEdit>)
+data class ResourceEdits(val path: String, val cell: Int?, val source: String, val edits: List<TextEdit>)
+
+/**
+ * One replace-all, ready to be taken back - **one entry for the command, not one per file**.
+ *
+ * `MultiModelEditStackElement` over every model a bulk edit touched, whose `undo()` loops the lot in
+ * one go (`editStack.ts:243`, `:330-336`). Each resource carries the edits that put it back -
+ * [invertedAgainst], which is `TextModel._applyUndo`'s own arithmetic - and the text the replace
+ * produced, which is what says the undo is still allowed.
+ *
+ * **And nothing of this reaches an open document's own history.** `CellUndo.adoptingRewrites`
+ * exists for exactly that: a second entry there would make one command undoable twice, in two
+ * scopes that could then disagree about what the document is.
+ */
+data class ReplaceUndo(val resources: List<ResourceEdits>)
+
+/**
+ * How an undo ended.
+ *
+ * Its own type rather than an arm of [ReplaceOutcome], because the two refusals quote different
+ * messages: a replace refuses on `"has changed in the meantime"` (`bulkTextEdits.ts:216`) and an
+ * undo on *"Could not undo '{0}' across all files because changes were made to {1}"*
+ * (`undoRedoService.ts:858-869`). There is no redo here, because nothing asks for one -
+ * `MultiModelEditStackElement` has one and P2x-5 does not.
+ */
+sealed interface UndoOutcome {
+  /** Every resource was put back. */
+  data object Undone : UndoOutcome
+
+  /** Nothing was put back, because [paths] no longer read the way the replace left them. */
+  data class Refused(val paths: List<String>) : UndoOutcome
+}
 
 /**
  * Replace across files, through whatever holds each file's text - **never past an open document**.
@@ -70,7 +113,9 @@ data class ResourceEdits(val path: String, val cell: Int?, val edits: List<TextE
  * a ViewModel's collaborator is, exactly as `NotebookReplace` is the notebook's.
  *
  * ```
- * WorkspaceReplace(openDocuments, notebooks, workspace).replaceAll(results, "dog", query, false)
+ * val replace = WorkspaceReplace(openDocuments, notebooks, workspace)
+ * val done = replace.replaceAll(results, "dog", query, false) as ReplaceOutcome.Replaced
+ * replace.undo(done.undo)      // and the workspace is exactly what it was
  * ```
  */
 class WorkspaceReplace(
@@ -94,8 +139,24 @@ class WorkspaceReplace(
     val planned = resources.map { it to plan(it, replaceText, query, preserveCase) }
     val stale = planned.filter { it.second == null }.map { it.first.path }
     if (stale.isNotEmpty()) return ReplaceOutcome.Refused(stale.distinct())
-    planned.forEach { (_, edits) -> write(requireNotNull(edits)) }
-    return ReplaceOutcome.Replaced(files.sumOf { it.matches.size }, files.size)
+    val written = planned.map { requireNotNull(it.second) }
+    written.forEach { write(it) }
+    return ReplaceOutcome.Replaced(files.sumOf { it.matches.size }, files.size, written.asUndo())
+  }
+
+  /**
+   * Puts back everything one replace-all wrote, or **nothing at all**.
+   *
+   * `_checkWorkspaceUndo` refuses an undo that is no longer the closest past element on every
+   * impacted resource (`undoRedoService.ts:853-869`), so what is compared here is the whole
+   * resource and not the characters the replace put there: a file edited anywhere since is a file
+   * this undo may not rewrite.
+   */
+  suspend fun undo(undo: ReplaceUndo): UndoOutcome {
+    val stale = undo.resources.filter { sourceOf(it.resource()) != it.source }.map { it.path }
+    if (stale.isNotEmpty()) return UndoOutcome.Refused(stale.distinct())
+    undo.resources.forEach { write(it) }
+    return UndoOutcome.Undone
   }
 
   /**
@@ -111,7 +172,7 @@ class WorkspaceReplace(
   ): ResourceEdits? {
     val source = sourceOf(resource) ?: return null
     return resource.matches.editsAgainst(source, replaceText, query, preserveCase)
-      ?.let { ResourceEdits(resource.path, resource.cell, it) }
+      ?.let { ResourceEdits(resource.path, resource.cell, source, it) }
   }
 
   /**
@@ -148,21 +209,29 @@ class WorkspaceReplace(
   private suspend fun write(edits: ResourceEdits) {
     val open = openDocuments.at(edits.path)
     if (open != null) return open.applyEdits(edits.cell, edits.edits)
-    val cell = edits.cell ?: return writeFile(edits)
+    val cell = edits.cell ?: return workspaceRepository.writeText(edits.path, edits.rewritten())
     val notebook = notebookRepository.readNotebook(edits.path)
     val rewritten = notebook.cells.mapIndexed { at, existing ->
-      if (at == cell) existing.copy(source = existing.source.withEditsApplied(edits.edits)) else existing
+      if (at == cell) existing.copy(source = edits.rewritten()) else existing
     }
     // `copy` and never a rebuild: nbformat is an open format, and `Notebook.preserved` and
     // `Cell.preserved` are what carry the fields this app does not model (`NotebookRoundTripTest`).
     notebookRepository.saveNotebook(notebook.copy(cells = rewritten))
   }
-
-  private suspend fun writeFile(edits: ResourceEdits) {
-    val text = workspaceRepository.readText(edits.path)
-    workspaceRepository.writeText(edits.path, text.withEditsApplied(edits.edits))
-  }
 }
+
+/** What this resource becomes - the source it was validated against, edited. */
+private fun ResourceEdits.rewritten(): String = source.withEditsApplied(edits)
+
+/** Which resource this addresses, so an undo routes exactly as the replace that made it did. */
+private fun ResourceEdits.resource(): Resource = Resource(path, cell, emptyList())
+
+/**
+ * What was written, as what puts it back: each resource's edits inverted, against the text they
+ * produced - see [ReplaceUndo].
+ */
+private fun List<ResourceEdits>.asUndo(): ReplaceUndo =
+  ReplaceUndo(map { ResourceEdits(it.path, it.cell, it.rewritten(), it.edits.invertedAgainst(it.source)) })
 
 /**
  * One file's matches split into the resources they are actually in - the file, or its cells.

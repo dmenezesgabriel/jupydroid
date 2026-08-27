@@ -102,3 +102,35 @@ private fun MatchedLine.stillAt(document: String): IntRange? {
   val at = rangeIn(document) ?: return null
   return at.takeIf { document.substring(it) == text.substring(range) }
 }
+
+/**
+ * These edits expressed against the document they **produced**, putting back what they replaced.
+ *
+ * The one undo a replace-all is. `TextModel._applyUndo` builds exactly this from every recorded
+ * change - `{ range: newPosition..newEnd, text: change.oldText }` (`textModel.ts:1441-1450`) - so an
+ * undo is not a special operation but the same edits pointed the other way, which is why a workspace
+ * replace can take itself back through the routes it wrote through.
+ *
+ * **Against the document they produced** is the whole arithmetic: a replacement of a different
+ * length moves every inverse after it, so the ranges here are [withEditsApplied]'s output offsets
+ * and not this list's. Sorted for the same reason [withEditsApplied] sorts.
+ *
+ * [before] is the text these edits were applied to, which is where the replaced characters are read
+ * from - nothing else remembers them.
+ *
+ * ```
+ * val edits = listOf(TextEdit(0..2, "dog"))
+ * "cat and cat".withEditsApplied(edits).withEditsApplied(edits.invertedAgainst("cat and cat"))
+ * // "cat and cat"
+ * ```
+ */
+fun List<TextEdit>.invertedAgainst(before: String): List<TextEdit> {
+  var shift = 0
+  return sortedBy { it.range.first }.map { edit ->
+    val start = edit.range.first + shift
+    shift += edit.text.length - (edit.range.last + 1 - edit.range.first)
+    // Empty when the edit inserted nothing, which is an insertion point and what `withEditsApplied`
+    // already reads an empty range as.
+    TextEdit(start until start + edit.text.length, before.substring(edit.range))
+  }
+}
