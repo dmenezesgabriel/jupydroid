@@ -429,6 +429,48 @@ class WorkspaceSearchViewModelTest {
 
     assertFalse(model.uiState.value.searching)
   }
+
+  /**
+   * `.replace-container.disabled` - the replace row starts collapsed and the chevron opens it
+   * (`searchWidget.ts:553`, `onToggleReplaceButton`).
+   */
+  @Test
+  fun theReplaceRowIsHiddenUntilItIsAskedFor() = runTest {
+    val model = searchingIn("notes.py" to "cat")
+
+    assertFalse(model.uiState.value.replaceShown)
+    model.toggleReplaceShown()
+    assertTrue(model.uiState.value.replaceShown)
+    model.toggleReplaceShown()
+    assertFalse(model.uiState.value.replaceShown)
+  }
+
+  /** What is typed into the replace box changes nothing that is *found* - only what a replace writes. */
+  @Test
+  fun theReplacementIsRememberedAndChangesNothingThatWasFound() = runTest {
+    val model = searchingIn("notes.py" to "cat")
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+
+    model.replaceTextChanged("dog")
+
+    assertEquals("dog", model.uiState.value.replaceText)
+    assertEquals(listOf("notes.py"), model.uiState.value.results.map { it.path })
+  }
+
+  /**
+   * `preserveCase` lives on the **replace** input, not the search one - `ReplaceInput`'s own toggle
+   * (`searchWidget.ts:570-576`), which is why it is not a fourth `SearchQuery` flag.
+   */
+  @Test
+  fun preserveCaseIsFlippedOnTheReplaceRowAndNotOnTheQuery() = runTest {
+    val model = searchingIn("notes.py" to "cat")
+
+    model.togglePreserveCase()
+
+    assertTrue(model.uiState.value.preserveCase)
+    assertFalse(model.uiState.value.query.caseSensitive)
+  }
 }
 
 /** A walk that takes time, and remembers what it was asked - the two halves a debounce is tested by. */

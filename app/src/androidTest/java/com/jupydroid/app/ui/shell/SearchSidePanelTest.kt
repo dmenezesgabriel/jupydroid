@@ -24,10 +24,15 @@ import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import com.jupydroid.app.ui.assertReservesMinimumTouchTarget
+import com.jupydroid.app.ui.editor.HIDE_REPLACE
 import com.jupydroid.app.ui.editor.IGNORE_CASE
 import com.jupydroid.app.ui.editor.MATCH_CASE
 import com.jupydroid.app.ui.editor.MATCH_WHOLE_WORD
+import com.jupydroid.app.ui.editor.PRESERVE_CASE
+import com.jupydroid.app.ui.editor.REPLACE_VERBATIM
+import com.jupydroid.app.ui.editor.SHOW_REPLACE
 import com.jupydroid.app.ui.editor.USE_REGULAR_EXPRESSION
 import com.jupydroid.app.ui.scrollUntilFound
 import kotlinx.coroutines.flow.Flow
@@ -427,6 +432,67 @@ class SearchSidePanelTest {
     searchFor("cat", until = hasText("print(cat)"))
 
     compose.onNodeWithContentDescription("Line 1, print(cat)").assertIsDisplayed()
+  }
+
+  /**
+   * **The replace row is behind the chevron, and closed is where it starts** -
+   * `.replace-container.disabled` until `onToggleReplaceButton` opens it (`searchWidget.ts:553`,
+   * `:600-616`). The chevron itself is always drawn, because a disclosure with nothing to tap is
+   * not one.
+   */
+  @Test
+  fun theReplaceRowIsBehindTheChevronAndClosedToStartWith() {
+    show(FakeWorkspaceSearcher())
+
+    compose.onNodeWithContentDescription(REPLACE_IN_WORKSPACE_BOX).assertDoesNotExist()
+
+    compose.onNodeWithContentDescription(SHOW_REPLACE).performClick()
+
+    compose.onNodeWithContentDescription(REPLACE_IN_WORKSPACE_BOX).assertIsDisplayed()
+    compose.onNodeWithContentDescription(PRESERVE_CASE).assertIsDisplayed()
+  }
+
+  /** The chevron names what a tap will do, like every toggle here - see [aToggleNamesItselfByWhatItWillDoNext]. */
+  @Test
+  fun theReplaceChevronNamesItselfByWhatItWillDoNext() {
+    show(FakeWorkspaceSearcher())
+
+    compose.onNodeWithContentDescription(SHOW_REPLACE).performClick()
+
+    compose.onNodeWithContentDescription(HIDE_REPLACE).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SHOW_REPLACE).assertDoesNotExist()
+  }
+
+  /** And so does preserve case, which is `ReplaceInput`'s own toggle rather than a query flag. */
+  @Test
+  fun preserveCaseNamesItselfByWhatItWillDoNext() {
+    show(FakeWorkspaceSearcher())
+    compose.onNodeWithContentDescription(SHOW_REPLACE).performClick()
+
+    compose.onNodeWithContentDescription(PRESERVE_CASE).performClick()
+
+    compose.onNodeWithContentDescription(REPLACE_VERBATIM).assertIsDisplayed()
+    compose.onNodeWithContentDescription(PRESERVE_CASE).assertDoesNotExist()
+  }
+
+  /**
+   * Both controls on the row are targets a thumb can hit, **asserted the way each one can be**.
+   *
+   * The toggle is a bare `clickable` sized to 48dp, so it can be held to the stronger claim -
+   * reserved layout, which is the part that regresses when a neighbour claims the pixels. The
+   * chevron is an `IconButton`, whose merged semantics node is the 40dp `clickable` *inside*
+   * `minimumInteractiveComponentSize()`; that reservation carries no semantics of its own, so the
+   * strong assertion reads 40dp against a control that is correct. `MinimumTouchTarget.kt` states
+   * exactly this, and `KernelIndicatorTest` is the precedent - the first run of this test asserted
+   * the wrong one of the two and went red at 40dp, which is the helper's own documented case.
+   */
+  @Test
+  fun bothControlsOnTheReplaceRowAreBigEnoughToHit() {
+    show(FakeWorkspaceSearcher())
+    compose.onNodeWithContentDescription(SHOW_REPLACE).performClick()
+
+    compose.onNodeWithContentDescription(PRESERVE_CASE).assertReservesMinimumTouchTarget()
+    compose.onNodeWithContentDescription(HIDE_REPLACE).assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 }
 

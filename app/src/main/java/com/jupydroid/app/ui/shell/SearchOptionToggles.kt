@@ -77,9 +77,12 @@ fun SearchOptionToggles(query: SearchQuery, onOptionChanged: (SearchQuery) -> Un
  * carries no label, so what says which way this is set is the label itself, flipped - the rule every
  * toggle in this app follows since the export picker (`docs/DECISIONS.md`). [label] is therefore
  * what a *tap will do*, never what is currently true.
+ *
+ * Shared with [SearchReplaceRow]'s preserve-case toggle rather than copied: the reference draws
+ * that one with the same `Toggle` widget, inside the replace input (`replaceInput.ts:119-124`).
  */
 @Composable
-private fun SearchOptionToggle(
+internal fun SearchOptionToggle(
   glyph: String,
   on: Boolean,
   label: String,

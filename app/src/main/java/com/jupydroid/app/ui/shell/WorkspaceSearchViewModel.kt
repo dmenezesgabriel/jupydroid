@@ -35,6 +35,12 @@ import kotlinx.coroutines.launch
  * @property scopeShown whether those boxes are drawn - `queryDetailsExpanded`
  *   (`searchView.ts:500`), which the reference keeps in its viewlet state rather than in the DOM.
  *   Here that is this ViewModel, which is what outlives the panel being switched away from.
+ * @property replaceShown whether the replace row is drawn - `.replace-container.disabled` until
+ *   `onToggleReplaceButton` opens it (`searchWidget.ts:553`).
+ * @property replaceText what a replace would write. Changes nothing that is *found*.
+ * @property preserveCase `ReplaceInput`'s own toggle (`searchWidget.ts:570-576`), which is why it
+ *   lives here and not as a fourth flag on [SearchQuery]: it is a property of the replacement, and
+ *   the walk is over before it is read.
  */
 data class WorkspaceSearchUiState(
   val query: SearchQuery = SearchQuery(""),
@@ -45,6 +51,9 @@ data class WorkspaceSearchUiState(
   val searching: Boolean = false,
   val completed: Boolean = false,
   val parseError: String? = null,
+  val replaceShown: Boolean = false,
+  val replaceText: String = "",
+  val preserveCase: Boolean = false,
 )
 
 /**
@@ -129,6 +138,15 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
 
   /** The `…` - `toggleQueryDetails` (`searchView.ts:1489-1518`), without its focus half. */
   fun toggleScopeShown() = _uiState.update { it.copy(scopeShown = !it.scopeShown) }
+
+  /** The chevron - `onToggleReplaceButton` (`searchWidget.ts:600-616`). Starts nothing walking. */
+  fun toggleReplaceShown() = _uiState.update { it.copy(replaceShown = !it.replaceShown) }
+
+  /** The replace box was typed into. What is *found* is untouched, so no walk is asked for. */
+  fun replaceTextChanged(text: String) = _uiState.update { it.copy(replaceText = text) }
+
+  /** `preserveCase` - see [WorkspaceSearchUiState.preserveCase] for why it is not a query flag. */
+  fun togglePreserveCase() = _uiState.update { it.copy(preserveCase = !it.preserveCase) }
 
   /**
    * What all three are - the panel updated now, the walk requested for [waitMillis] from now.

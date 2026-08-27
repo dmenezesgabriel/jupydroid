@@ -91,6 +91,19 @@ fun SearchSidePanel(
           onOptionChanged = viewModel::optionChanged,
         )
       }
+      // Between the box and `.query-details`, which is where `.replace-container` is rendered -
+      // `renderReplaceInput` is called after the search input and before the query details
+      // (`searchWidget.ts:414`).
+      item {
+        SearchReplaceRow(
+          shown = state.replaceShown,
+          replaceText = state.replaceText,
+          preserveCase = state.preserveCase,
+          onToggleShown = viewModel::toggleReplaceShown,
+          onReplaceTextChanged = viewModel::replaceTextChanged,
+          onTogglePreserveCase = viewModel::togglePreserveCase,
+        )
+      }
       // Under the box, where `.query-details` sits (`searchview.css:118-146`).
       item {
         SearchScopeBoxes(

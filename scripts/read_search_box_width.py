@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""How much of the search panel's query box is left for the query, read off a `uiautomator dump`.
+"""How much of the search panel's two boxes is left to type in, read off a `uiautomator dump`.
 
 P2x-3d. The reference draws the three option toggles **inside** the input, at its trailing edge
 (`findInput.ts:196`), and its input is a workbench sidebar's width on a desktop. Ours is a 360dp
 list pane, so whether a magnifier plus three 48dp targets still leave a readable query is a question
 about this device and not about the reference - and the answer decides whether the toggles stay in
 the box or move to a row beneath it.
+
+P2x-5e asks the same question of the **replace** box, which carries one toggle rather than three
+and is disclosed by a chevron in a column of its own - so what it has left is a different number,
+and the chevron's cost to the row is what the placement decision turns on.
 
 **A measurement, not a gate.** It prints what it found and exits 0; the decision it informs is
 recorded in `docs/DECISIONS.md` with these numbers beside it.
@@ -29,6 +33,8 @@ DENSITY = re.compile(r"^\s*(?:Physical|Override) density:\s*(\d+)", re.MULTILINE
 BASELINE_DPI = 160.0
 #: What the box answers to - `SEARCH_WORKSPACE_BOX`, which is deliberately not the panel's title.
 BOX_LABEL = "Search the workspace"
+#: `REPLACE_IN_WORKSPACE_BOX` - named apart from the find bar's for the same reason (P2x-5e).
+REPLACE_BOX_LABEL = "Replace across the workspace"
 #: Both names of each toggle, because a toggle here says what a **tap will do** rather than what is
 #: currently true (`docs/DECISIONS.md`) - so an enabled Match Case is on screen as "Ignore case".
 TOGGLE_LABELS = (
@@ -39,37 +45,48 @@ TOGGLE_LABELS = (
     "Use regular expression",
     "Search for plain text",
 )
+#: The replace box carries one toggle, and it flips its own name too - `ReplaceInput`'s preserve case.
+REPLACE_TOGGLE_LABELS = ("Preserve case", "Replace verbatim")
+#: The chevron that discloses the replace row, whose column is what P2x-5e departed from the
+#: reference to avoid taking off the query box - so what it costs *this* row is worth reading.
+REPLACE_CHEVRON_LABELS = ("Show replace", "Hide replace")
 
 
-def search_box_span(xml_text: str, density: int) -> tuple[float, float]:
-    """The query box's left and right edges in dp.
+def box_span(xml_text: str, density: int, label: str = BOX_LABEL) -> tuple[float, float]:
+    """One box's left and right edges in dp, found by the name it answers to.
 
     Args:
         xml_text: One `uiautomator dump`.
         density: The device's dpi, from `wm density`.
+        label: What the box answers to - `BOX_LABEL` or `REPLACE_BOX_LABEL`.
 
     Raises:
-        LookupError: The dump holds no query box, which means the panel was not up when it was
-            taken - a zero would read as "no room" rather than as "wrong screen".
+        LookupError: The dump holds no such box, which means the panel was not up - or, for the
+            replace box, that its row was still collapsed. A zero would read as "no room" rather
+            than as "wrong screen".
 
     ```
-    search_box_span(open("ui.xml").read(), 240)  # -> (136.0, 472.0)
+    box_span(open("ui.xml").read(), 240)  # -> (136.0, 472.0)
     ```
     """
-    for label, left, right in _labelled_spans(xml_text, density):
-        if label == BOX_LABEL:
+    for found, left, right in _labelled_spans(xml_text, density):
+        if found == label:
             return left, right
-    raise LookupError(f"no node labelled {BOX_LABEL!r}; the search panel was not up for this dump")
+    raise LookupError(f"no node labelled {label!r}; the panel was not up, or its row was collapsed")
 
 
-def option_toggle_spans(xml_text: str, density: int) -> list[tuple[str, float, float]]:
-    """Each option toggle as (label, left, right) in dp, left to right.
+def toggle_spans(
+    xml_text: str,
+    density: int,
+    labels: tuple[str, ...] = TOGGLE_LABELS,
+) -> list[tuple[str, float, float]]:
+    """Each toggle as (label, left, right) in dp, left to right.
 
     ```
-    option_toggle_spans(open("ui.xml").read(), 240)[0]  # -> ("Match case", 328.0, 376.0)
+    toggle_spans(open("ui.xml").read(), 240)[0]  # -> ("Match case", 328.0, 376.0)
     ```
     """
-    found = [span for span in _labelled_spans(xml_text, density) if span[0] in TOGGLE_LABELS]
+    found = [span for span in _labelled_spans(xml_text, density) if span[0] in labels]
     return sorted(found, key=lambda span: span[1])
 
 
@@ -108,18 +125,32 @@ def _density_from(text: str) -> int:
     return int(found[-1])
 
 
+def _report(what: str, xml_text: str, density: int, label: str, toggles: tuple[str, ...]) -> None:
+    """One box and its toggles, or a line saying it was not on screen."""
+    try:
+        box = box_span(xml_text, density, label)
+    except LookupError as why:
+        print(f"{what}: {why}")
+        return
+    found = toggle_spans(xml_text, density, toggles)
+    print(f"{what:8} x {box[0]:7.1f} .. {box[1]:7.1f}dp   width {box[1] - box[0]:7.1f}dp")
+    for name, left, right in found:
+        print(f"  toggle x {left:7.1f} .. {right:7.1f}dp   width {right - left:7.1f}dp   {name}")
+    print(f"  room to type in, leading icon included: {text_room_between(box, found):.1f}dp")
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
     xml_text = open(sys.argv[1]).read()
     density = _density_from(sys.stdin.read())
-    box = search_box_span(xml_text, density)
-    toggles = option_toggle_spans(xml_text, density)
-    print(f"box      x {box[0]:7.1f} .. {box[1]:7.1f}dp   width {box[1] - box[0]:7.1f}dp")
-    for label, left, right in toggles:
-        print(f"  toggle x {left:7.1f} .. {right:7.1f}dp   width {right - left:7.1f}dp   {label}")
-    print(f"room for the query, magnifier included: {text_room_between(box, toggles):.1f}dp")
+    _report("query", xml_text, density, BOX_LABEL, TOGGLE_LABELS)
+    # The chevron is drawn whether or not the row is open, so it is read on its own: what it costs
+    # this row is the number P2x-5e's departure is answerable to.
+    for name, left, right in toggle_spans(xml_text, density, REPLACE_CHEVRON_LABELS):
+        print(f"chevron  x {left:7.1f} .. {right:7.1f}dp   width {right - left:7.1f}dp   {name}")
+    _report("replace", xml_text, density, REPLACE_BOX_LABEL, REPLACE_TOGGLE_LABELS)
     return 0
 
 
