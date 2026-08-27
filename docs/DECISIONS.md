@@ -2399,7 +2399,7 @@ problem is not "the compact window" but **every window the shell draws as one pa
 `Explorer` entry hosting the side panels is not composed while a notebook is open. P2o-4 is costed
 against both widths rather than against 320dp alone.
 
-### One pane grows no navigation bar, and two destinations is why (P2o-4)
+### One pane grows no navigation bar, and two destinations is why (P2o-4, **reversed by P2y**)
 
 `docs/PLAN.md` asked for "the bar on compact, the same two panels", with a named risk that would
 decide it. P2o-3 sharpened the question from "compact" to **every window the shell draws as one
@@ -2432,6 +2432,15 @@ to add a second path to two things that already have one is that trade in revers
 is *"the second top-level destination a navigation rail has been waiting for since U7"*. Files +
 Launcher + Table of contents is three, which is the floor, and the Launcher is a destination in the
 way the ToC is not. Re-cost it then, against these numbers.
+
+**Reversed by P2y, and not by the reason this entry predicted.** What reopened it was not a third
+destination but a **second one with no route at all**: P2x-2 added workspace search to the activity
+bar, and unlike the table of contents it had no overlay to reach it by, so at one pane it could not
+be reached at all. The count is still two and still below Material's floor, which is now recorded
+rather than argued from. Of the three reasons above, the second and third **survive unchanged** -
+the ToC is still reachable without leaving the document and is still not on the bar, and the 80dp
+cost is still real, which is exactly why P2y draws the bar over the *panel* and never over a
+document. See "The bar is drawn wherever the shell draws one pane" and the three entries after it.
 
 **A harness limitation this named rather than fixed.** `WIDE WINDOW` means >= 600dp to the sharder,
 but `p2o-2-side-panel` and `p2h-4-table-of-contents-folds` need **two panes**, which is >= 840dp. On
@@ -3362,6 +3371,126 @@ this one says exactly why it cannot be pressed and what would make it pressable.
 On a phone that label is what a **screen reader** hears, where the reference raises it as a tooltip.
 The visible text does not change with the state, so the row does not reflow as a walk settles.
 
+### The bar is drawn wherever the shell draws **one pane**, not below 600dp (P2y-c)
+
+`docs/PLAN.md`'s P2y row asked for a bottom navigation *"present below 600dp and absent at and above
+it"*, which is Material's own breakpoint - navigation bars are for *"compact window sizes"*
+(`developer.android.com/develop/ui/compose/components/navigation-bar`). **It is not this app's rail
+rule.** The rail is drawn at `maxHorizontalPartitions > 1` (`PaneDirective.kt`), which is 840dp, so
+the row as written left **600-840dp with neither control** - and that band is this project's own
+tablet in portrait, measured at `w800dp` by P2o-3, where workspace search would have stayed
+unreachable with no overlay to fall back to.
+
+P2o-3 had already recorded the sharper rule and this row had not caught up with it: *"the problem is
+not 'the compact window' but every window the shell draws as one pane"*. So the bar is `!twoPane`,
+the rail is `twoPane`, and there is no width with neither.
+
+**What that departs from is Material's bar/rail split, and it is a departure this app already made.**
+`NavigationSuiteScaffold`'s documented default is a bar at compact and a rail at everything else;
+this app has drawn its rail on pane count rather than width class since P2o-2, because the rail is
+the activity bar *beside the side area* and a side area is what two panes means. Keeping the bar on
+the same rule is the consistent half of that choice, not a second exception.
+
+### The bar carries two destinations, which is below Material's own floor (P2y-a)
+
+Android's guidance for `NavigationBar` is *"three to five destinations of equal importance"*. This
+app's bar has two: Files and Search. The third panel, the table of contents, is deliberately **not**
+on it, and P2o-4's own argument is why - Files is a screen you navigate *to* and an outline is a
+surface over the document you are already *in*. Where the bar is drawn a panel **is** the window, so
+there is no open document for an outline to belong to at all; its route at this width is the overlay
+`toc:show-panel` opens from the notebook's menu, which `p2o-4-one-pane-side-panels` still proves.
+
+Recorded rather than padded to three. A third item that is not a destination would satisfy the count
+by breaking the sentence the count comes from, and `docs/PLAN.md` already names the real third:
+P6d's Launcher.
+
+### The bar is drawn over the panel and never over a document (P2y-c)
+
+In one window `NavDisplay` composes only the top entry, so where the bar is *spelled* decides
+whether it is drawn over an open notebook. It is spelled inside the `Explorer` entry.
+
+Three things say so. Android's own rule is that a navigation bar carries top-level destinations, and
+an open document is not one. P2o-4 measured the alternative: an 80dp bar is **20%** of the 400.0dp
+cell list at 320dp, and P2q-2 had to fight for 48dp at that same width. And the screenshot showed
+the half P2o-4 could not have known - **the notebook already carries its own bottom action row**
+(`evidence/p2y-bottom-navigation/*/02-no-bar-over-the-notebook.png`), so an always-on bar would have
+stacked two bottom bars on a phone.
+
+The cost of scoping it is that Search is two taps from inside a document rather than one: back, then
+the bar. Back is already one tap and `p2o-4` proves it.
+
+### The bar's items carry no visible text, and two strings measured it (P2y-b)
+
+Material recommends labels on a navigation bar. This one is icon-only, with the panel's name on the
+item as a `contentDescription` - which is the rule `SidePanelRail` already had, for the reason a flow
+cost this project in P2b: a screen reader and a Maestro flow address one string.
+
+**Measured, not preferred.** `ExplorerScreen` titles itself **"Files"** and `SearchSidePanel` titles
+itself **"Search"**. A labelled item sits directly under one of those, so each string would be on
+screen twice at one pane: `onNodeWithText("Files")` throws on two matches and Maestro's `tapOn` picks
+one of them silently. Keeping the names in semantics keeps every visible string unique - and it is
+what makes the flow's own addressing work, since on the browser only the bar says "Search" and on the
+search panel only the bar says "Files".
+
+VS Code agrees: its activity bar is icon-only in `DEFAULT`, `TOP` **and** `BOTTOM`
+(`vscode/…/parts/activitybar/activitybarPart.ts`). `SidePanelBarTest.theItemsCarryNoVisibleText`
+pins it.
+
+### The bar does not collapse, where the rail does (P2y-a, P2y-b)
+
+Picking the showing panel on the rail collapses the side area - `collapse()` *"only deselects the
+active tab, leaving the activity bar visible"* (`packages/application/src/shell.ts:2383-2394`), which
+is what `SidePanel.chosen` models. The bar assigns instead. Beside a document a collapsed area is a
+coherent state; at one pane the panel **is** the window, so collapsing it leaves nothing on screen.
+It is the one behavioural difference between the two controls, and `SidePanelBarTest` and
+`SidePanelRailTest` pin the pair from both sides so they cannot drift into agreeing.
+
+### A one-pane window keeps a panel the bar can leave, which narrows P2x-2b (P2y-a)
+
+P2x-2b forced every narrowed window to the file browser, because there was no control there to leave
+a panel by: a tablet rotated from 1280dp to 800dp with a panel up could not reach the files again
+without killing the app. With a bar there that override is too broad - a user who rotates mid-search
+should not lose the search. `SidePanel.showingAtOnePane` keeps Files and Search and falls back only
+for the table of contents, which has no item on the bar, and for the collapsed `null`.
+
+P2x-2b's defect is not reopened; it is narrowed to exactly the case that still has it.
+
+### Back reaches the start destination before it leaves the app (P2y-c)
+
+Android's principle: the start destination *"is also the last screen the user sees when they return
+to the launcher after pressing the Back button"* (`developer.android.com/guide/navigation/principles`).
+The file browser is this app's root, so backing out of a one-pane Search selects Files rather than
+exiting.
+
+`NavDisplay` cannot do it - there is one entry on the stack and nothing to pop - so it is a
+`BackHandler` in `MainNavigation`, enabled only where the bar is drawn, the panel is not already
+Files, and the `Explorer` entry is on top. That last condition is what keeps Back belonging to the
+document while one is open.
+
+### The bar's arrangement is the reference's own sentence, and the tablet is what asked for it (P2y-d)
+
+P2y-c drew one arrangement at both one-pane widths. Measured on the tablet in portrait, that was
+wrong: each of two items was **396dp** wide with centres **404dp** apart - a 24dp icon inside a tap
+target half the window across, with the two controls stranded at the quarter points.
+
+`ShortNavigationBar`'s own KDoc (material3 1.4.0) states the rule: *"In small screens … its
+arrangement should be `EqualWeight`, so that the navigation items are equally distributed on the
+bar"*; *"In medium screens … its arrangement should be `Centered`, so that the navigation items are
+distributed grouped on the center of the bar"*. `itemArrangementAt` is that, keyed on
+`WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND` - so the width branch is the reference's, not an
+adaptation of it. `ShortNavigationBar` is stable in 1.4.0, so this cost no experimental opt-in, and
+at 64dp against `NavigationBar`'s 80dp it gave the panel 16dp back at both widths.
+
+**The bar measures itself** with `BoxWithConstraints` rather than asking the window. At one pane the
+pane *is* the window, so the bar's own constraints are the width the rule is about - and unlike
+`currentWindowAdaptiveInfo()`, which reads the activity's window, a constraint is something a test
+can set. `ActionRowPlacement` records what the alternative cost: a test that forces a width drives
+one branch twice while appearing to cover both.
+
+Measured after, on both devices (`evidence/p2y-bottom-navigation/measurement.txt`): 320dp gives
+160dp items with centres at the quarter points; 800dp gives 200dp items in a 400dp group centred at
+400dp, which is `calculateCenteredContentHorizontalPadding`'s own answer for two items.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)
@@ -3665,6 +3794,28 @@ show the difference, via `wm size` / `wm density` overrides that are reset after
   indifferent to what the file holds. Green twice back to back with the clear in place.
 
 ---
+
+### A one-pane defect can need the tablet, not the phone (P2y-d)
+
+The 320dp emulator is this project's narrow device and it could not have found P2y-d. The bar's two
+arrangements differ only above Material's 600dp boundary, and the only one-pane window this project
+has above it is **the tablet rotated to portrait** - 800dp, which the phone cannot reach and the
+tablet's default landscape is two panes away from.
+
+So "narrow window" is two devices here rather than one, which `p2o-4-one-pane-side-panels-driver.sh`
+already said and P2y's driver repeats: both name their evidence directory from the width they
+measured, so a run cannot be mislabelled. The rule this adds is that a **one-pane** feature owes its
+second width a run before it is called shipped, exactly as a two-pane one owes the tablet.
+
+### A layout assertion in dp measures the component's padding by accident (P2y-d)
+
+P2y-d's first assertion was "two items fill the bar", written as a sum of widths against the window.
+It read **312dp of 320dp** and failed - the missing 8dp being the gap `NavigationBar` puts between
+its items, which is not what the test was about.
+
+Rewritten as the **fraction of the bar between the two items' centres**, the two arrangements are
+0.500 and 0.250 and nothing in between: scale-free, padding-free, and impossible to confuse. The
+rule: assert the relationship the rule is about, not a dimension that happens to encode it.
 
 ## Licences
 
