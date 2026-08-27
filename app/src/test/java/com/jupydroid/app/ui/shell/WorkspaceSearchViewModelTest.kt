@@ -146,6 +146,104 @@ class WorkspaceSearchViewModelTest {
   }
 
   /**
+   * **The two glob boxes reach the walk**, which is the whole of what `SearchScope` is for: the
+   * reference folds `filesToInclude` / `filesToExclude` into the query before anything is walked
+   * (`queryBuilder.ts:140-160`), and until now the panel passed a blank one every time.
+   */
+  @Test
+  fun theScopeTypedIntoTheGlobBoxesReachesTheWalk() = runTest {
+    val walk = SlowWorkspaceWalk(FakeWorkspaceSearcher(mapOf("notes.py" to "cat")))
+    val model = searchingIn(searcher = walk)
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+
+    model.scopeChanged(SearchScope(include = "*.py", exclude = "reports"))
+    advanceUntilIdle()
+
+    assertEquals(listOf(SearchScope(), SearchScope(include = "*.py", exclude = "reports")), walk.scopes)
+  }
+
+  /**
+   * **A glob box is typed into, so it waits like the box above it** - and this is the one place the
+   * reference does *not* use its zero delay: `onFilePatternSubmit` passes
+   * `delay: searchOnTypeDebouncePeriod` (`searchView.ts:582-588`), fired per keystroke by
+   * `inputBox.onDidChange` (`patternInputWidget.ts:156`). A toggle is a decision; a glob is typing.
+   */
+  @Test
+  fun aBurstOfGlobTypingIsOneWalkAndNotOnePerCharacter() = runTest {
+    val walk = SlowWorkspaceWalk(FakeWorkspaceSearcher(mapOf("notes.py" to "cat")))
+    val model = searchingIn(searcher = walk)
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+
+    listOf("*", "*.", "*.py").forEach { model.scopeChanged(SearchScope(include = it)) }
+    advanceTimeBy(SEARCH_ON_TYPE_DEBOUNCE_MILLIS)
+    assertEquals(listOf(SearchScope()), walk.scopes)
+
+    advanceTimeBy(1)
+    assertEquals(listOf(SearchScope(), SearchScope(include = "*.py")), walk.scopes)
+  }
+
+  /** A glob narrows what the walk reaches, which is the half a recorded argument does not prove. */
+  @Test
+  fun anExcludeLeavesItsFolderOutOfTheResults() = runTest {
+    val model = searchingIn("notes.py" to "cat", "reports/analysis.py" to "cat")
+
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+    assertEquals(listOf("notes.py", "reports/analysis.py"), model.uiState.value.results.map { it.path })
+
+    model.scopeChanged(SearchScope(exclude = "reports"))
+    advanceUntilIdle()
+    assertEquals(listOf("notes.py"), model.uiState.value.results.map { it.path })
+  }
+
+  /** The same blank-box guard a keystroke meets - a glob typed over nothing walks nothing. */
+  @Test
+  fun aGlobTypedOverABlankBoxWalksNothing() = runTest {
+    val walk = SlowWorkspaceWalk(FakeWorkspaceSearcher(mapOf("notes.py" to "cat")))
+    val model = searchingIn(searcher = walk)
+
+    model.scopeChanged(SearchScope(include = "*.py"))
+    advanceUntilIdle()
+
+    assertTrue(walk.scopes.isEmpty())
+  }
+
+  /** The scope is state, not an argument: the next keystroke carries the globs already set. */
+  @Test
+  fun theScopeStandsWhileTheQueryChangesUnderIt() = runTest {
+    val walk = SlowWorkspaceWalk(FakeWorkspaceSearcher(mapOf("notes.py" to "cat")))
+    val model = searchingIn(searcher = walk)
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+    model.scopeChanged(SearchScope(include = "*.py"))
+    advanceUntilIdle()
+
+    model.queryChanged(SearchQuery("cats"))
+    advanceUntilIdle()
+
+    assertEquals(SearchScope(include = "*.py"), walk.scopes.last())
+    assertEquals("cats", walk.queries.last().text)
+  }
+
+  /**
+   * **The `…` starts closed and stays where it was put** - `queryDetailsExpanded`
+   * (`searchView.ts:500`), which the reference keeps in its viewlet state rather than in the DOM.
+   * Here that is the ViewModel, which is what survives the panel being switched away from.
+   */
+  @Test
+  fun theGlobBoxesAreHiddenUntilTheyAreAskedFor() = runTest {
+    val model = searchingIn("notes.py" to "cat")
+
+    assertFalse(model.uiState.value.scopeShown)
+    model.toggleScopeShown()
+    assertTrue(model.uiState.value.scopeShown)
+    model.toggleScopeShown()
+    assertFalse(model.uiState.value.scopeShown)
+  }
+
+  /**
    * **A superseded walk is cancelled, not merged**, which is what a `Delayer` plus a cancellation
    * token buys the reference - and what a result list would otherwise get wrong in the worst way,
    * by showing one query's hits under another query's text.
@@ -339,11 +437,15 @@ private class SlowWorkspaceWalk(private val walk: WorkspaceSearcher, private val
   /** What was asked for. Recorded *before* the delay, so it means "asked" and not "answered". */
   val queries = mutableListOf<SearchQuery>()
 
+  /** Which files each walk was told to reach - the half `queries` cannot show. */
+  val scopes = mutableListOf<SearchScope>()
+
   /** What ran to the end of its own flow. A cancelled walk never gets here, which is the point. */
   val finished = mutableListOf<SearchQuery>()
 
   override fun search(query: SearchQuery, scope: SearchScope): Flow<SearchProgress> = flow {
     queries += query
+    scopes += scope
     delay(millis)
     emitAll(walk.search(query, scope))
     finished += query

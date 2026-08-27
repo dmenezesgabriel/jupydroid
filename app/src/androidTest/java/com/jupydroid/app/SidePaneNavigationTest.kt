@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -145,6 +146,19 @@ class SidePaneNavigationTest {
    * `rememberViewModelStoreNavEntryDecorator` (`Navigation.kt:177-180`), which the panel switch
    * does not touch. Pinned rather than assumed, because it would be silently lost by scoping it
    * anywhere else.
+   *
+   * **The query is what is asserted, and the results moved next door** - measured rather than
+   * preferred. Under `ForcedSize` the list pane lays out at **zero height**: the query box measures
+   * `Rect(0,0,0,0)` here while the rail beside it measures properly, because
+   * `currentWindowAdaptiveInfo()` reads the *activity's* window and not the override (this file's
+   * own `windowFor`, and `TwoPaneLayoutTest` records the same). This test used to read a result row
+   * in that pane, which a `Column` lays out anyway by overflowing a parent with no room - a
+   * `LazyColumn` composes only what fits, so since P2x-3e there is nothing there to read.
+   *
+   * A box still holding *"cat"* proves the whole of the claim: a rebuilt `WorkspaceSearchViewModel`
+   * starts at `SearchQuery("")`, so surviving text is a surviving instance. The results half is
+   * `SearchSidePanelTest.whatWasFoundSurvivesThePanelLeavingComposition`, where the panel is hosted
+   * on its own and has a window to be laid out in.
    */
   @Test
   fun whatASearchFoundSurvivesLeavingThePanelAndComingBack() {
@@ -153,14 +167,14 @@ class SidePaneNavigationTest {
     compose.onNodeWithContentDescription(SEARCH).performClick()
     waitForContentDescription(SEARCH_WORKSPACE_BOX)
     compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).performTextInput(SEARCHED_TERM)
-    waitForText(SEARCHED_LINE)
+    compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).assertTextEquals(SEARCHED_TERM)
 
     compose.onNodeWithContentDescription(FILES).performClick()
     waitForText(WORKSPACE)
     compose.onNodeWithContentDescription(SEARCH).performClick()
 
-    waitForText(SEARCHED_LINE)
-    compose.onNodeWithText(SEARCHED_LINE).assertIsDisplayed()
+    waitForContentDescription(SEARCH_WORKSPACE_BOX)
+    compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).assertTextEquals(SEARCHED_TERM)
   }
 
   /**

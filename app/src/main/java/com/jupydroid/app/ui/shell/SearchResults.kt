@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -43,31 +43,34 @@ import com.jupydroid.app.ui.editor.searchMatchStyles
  * this app has one root and a 360dp panel, so a third level of indentation would spend the width
  * the code needs to show a match in.
  *
+ * **A `LazyListScope` extension rather than a composable owning a list**, and that is a measurement
+ * rather than a style: with the glob boxes open (P2x-3e) the panel's fixed chrome is about 290dp,
+ * and a soft keyboard leaves less than that - so a tree in a list of its own was measured with
+ * **zero height**, composed and correct and impossible to reach. The reference has no keyboard to
+ * inset for and keeps its widgets fixed above a scrolling tree; here the whole panel scrolls as one
+ * surface, which is what puts a result back within reach of a thumb.
+ *
  * ```
- * SearchResults(results, collapsed = emptySet(), onToggleFile = {}, onOpenMatch = { _, _ -> })
+ * LazyColumn { searchResults(results, collapsed = emptySet(), onToggleFile = {}, onOpenMatch = { _, _ -> }) }
  * ```
  *
  * @param collapsed the paths whose matches are folded away - see [SearchSidePanel] for its lifetime.
  */
-@Composable
-fun SearchResults(
+fun LazyListScope.searchResults(
   results: List<MatchedFile>,
   collapsed: Set<String>,
   onToggleFile: (String) -> Unit,
   onOpenMatch: (MatchedFile, MatchedLine) -> Unit,
-  modifier: Modifier = Modifier,
 ) {
-  LazyColumn(modifier = modifier.fillMaxWidth()) {
-    results.forEach { file ->
-      item(key = file.path) {
-        FileMatchHeader(file = file, folded = file.path in collapsed, onToggle = { onToggleFile(file.path) })
-      }
-      // `search.collapseResults` is `alwaysExpand` by default (`search.contribution.ts:215`), so a
-      // file arrives open and the header is what folds it.
-      if (file.path !in collapsed) {
-        items(items = file.matches, key = { "${file.path}:${it.line}:${it.range.first}" }) { match ->
-          MatchRow(match = match, onOpen = { onOpenMatch(file, match) })
-        }
+  results.forEach { file ->
+    item(key = file.path) {
+      FileMatchHeader(file = file, folded = file.path in collapsed, onToggle = { onToggleFile(file.path) })
+    }
+    // `search.collapseResults` is `alwaysExpand` by default (`search.contribution.ts:215`), so a
+    // file arrives open and the header is what folds it.
+    if (file.path !in collapsed) {
+      items(items = file.matches, key = { "${file.path}:${it.line}:${it.range.first}" }) { match ->
+        MatchRow(match = match, onOpen = { onOpenMatch(file, match) })
       }
     }
   }

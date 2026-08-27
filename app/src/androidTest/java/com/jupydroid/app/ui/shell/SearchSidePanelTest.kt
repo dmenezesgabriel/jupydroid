@@ -1,8 +1,13 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -24,6 +29,7 @@ import com.jupydroid.app.ui.editor.IGNORE_CASE
 import com.jupydroid.app.ui.editor.MATCH_CASE
 import com.jupydroid.app.ui.editor.MATCH_WHOLE_WORD
 import com.jupydroid.app.ui.editor.USE_REGULAR_EXPRESSION
+import com.jupydroid.app.ui.scrollUntilFound
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
@@ -63,6 +69,21 @@ class SearchSidePanelTest {
    * by each test, because a helper that waited for "anything" would let a test pass on the wrong
    * thing appearing.
    */
+  /**
+   * Scrolls the panel until [what] is on screen, waiting for the walk that puts it there.
+   *
+   * **Scrolling is not the test being fussy - it is the claim.** With the glob boxes open, the
+   * panel's fixed chrome is taller than this window, so a `LazyColumn` never composes the messages
+   * or the tree until they are scrolled to: measured, by printing the semantics tree, which ended at
+   * the exclude box. That is the state a reader would be stuck in if the panel were not one
+   * scrolling surface (`SearchResults`' own doc carries the reading).
+   *
+   * The scroll is inside the wait because both have to succeed: the walk has 300 ms of debounce to
+   * spend before the node exists at all, and until it exists there is nothing to scroll to.
+   */
+  private fun scrollToSettled(what: SemanticsMatcher) =
+    scrollUntilFound(compose, hasScrollAction(), what) { "the panel never scrolled to $what" }
+
   private fun searchFor(text: String, until: SemanticsMatcher) {
     compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).performTextInput(text)
     compose.waitUntil(WALK_TIMEOUT_MILLIS) { compose.onAllNodes(until).fetchSemanticsNodes().isNotEmpty() }
@@ -234,6 +255,137 @@ class SearchSidePanelTest {
     listOf(MATCH_CASE, MATCH_WHOLE_WORD, USE_REGULAR_EXPRESSION).forEach { option ->
       compose.onNodeWithContentDescription(option).assertReservesMinimumTouchTarget()
     }
+  }
+
+  /**
+   * **The two glob boxes are behind the `…`, and closed is where they start** - `.file-types` is
+   * `display: none` until `.query-details` gains `.more` (`searchview.css:135-146`), and
+   * `queryDetailsExpanded` is unset on a fresh view (`searchView.ts:500`). Their headings are the
+   * reference's own, *"files to include"* and *"files to exclude"* (`searchView.ts:538,564`).
+   */
+  @Test
+  fun theGlobBoxesAreBehindTheEllipsisAndClosedToStartWith() {
+    show(FakeWorkspaceSearcher())
+
+    compose.onNodeWithContentDescription(FILES_TO_INCLUDE).assertDoesNotExist()
+    compose.onNodeWithContentDescription(FILES_TO_EXCLUDE).assertDoesNotExist()
+
+    compose.onNodeWithContentDescription(SHOW_SEARCH_DETAILS).performClick()
+
+    compose.onNodeWithContentDescription(FILES_TO_INCLUDE).assertIsDisplayed()
+    compose.onNodeWithContentDescription(FILES_TO_EXCLUDE).assertIsDisplayed()
+  }
+
+  /** The `…` names what a tap will do, like every other toggle here - see [aToggleNamesItselfByWhatItWillDoNext]. */
+  @Test
+  fun theEllipsisNamesItselfByWhatItWillDoNext() {
+    show(FakeWorkspaceSearcher())
+
+    compose.onNodeWithContentDescription(SHOW_SEARCH_DETAILS).performClick()
+
+    compose.onNodeWithContentDescription(HIDE_SEARCH_DETAILS).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SHOW_SEARCH_DETAILS).assertDoesNotExist()
+  }
+
+  /**
+   * **Opening the details puts the cursor in the include box**, which is `toggleQueryDetails`'s own
+   * `moveFocus` - `this.inputPatternIncludes.focus()` on the forward path (`searchView.ts:1499-1505`).
+   * You tapped `…` to type a glob; landing anywhere else is a second tap for nothing.
+   */
+  @Test
+  fun openingTheDetailsPutsTheCursorInTheIncludeBox() {
+    show(FakeWorkspaceSearcher())
+
+    compose.onNodeWithContentDescription(SHOW_SEARCH_DETAILS).performClick()
+
+    compose.onNodeWithContentDescription(FILES_TO_INCLUDE).assertIsFocused()
+  }
+
+  /**
+   * **One node answers to each heading, and a flow is what found otherwise.** The reference gives
+   * the input an `ariaLabel` equal to the `h4` above it (`searchView.ts:542`) - two nodes, one name,
+   * which in a browser is harmless and here is not: `p2x-3-search-scope` tapped *"files to exclude"*
+   * and landed on the **label**, so the glob went into the include box and the flow failed one
+   * assertion later against a count that was right for what had actually been typed.
+   *
+   * The heading is drawn and cleared out of the tree; the field carries the name, which is the same
+   * split the reference means. `docs/DECISIONS.md` states the rule this keeps.
+   */
+  @Test
+  fun eachGlobHeadingNamesExactlyOneNode() {
+    show(FakeWorkspaceSearcher())
+
+    compose.onNodeWithContentDescription(SHOW_SEARCH_DETAILS).performClick()
+
+    listOf(FILES_TO_INCLUDE, FILES_TO_EXCLUDE).forEach { heading ->
+      assertEquals(1, compose.onAllNodes(hasContentDescription(heading)).fetchSemanticsNodes().size)
+      assertEquals(0, compose.onAllNodes(hasText(heading)).fetchSemanticsNodes().size)
+    }
+  }
+
+  /** An include reaches the walk: `*.py` leaves the notebook-adjacent `.md` out of the answer. */
+  @Test
+  fun anIncludeNarrowsWhatTheWalkReaches() {
+    show(FakeWorkspaceSearcher(mapOf("notes.py" to "print(cat)", "readme.md" to "a cat")))
+
+    searchFor("cat", until = hasText(resultCountMessage(results = 2, files = 2)))
+    compose.onNodeWithContentDescription(SHOW_SEARCH_DETAILS).performClick()
+    compose.onNodeWithContentDescription(FILES_TO_INCLUDE).performTextInput("*.py")
+
+    // The count first, because it is what says the walk narrowed rather than merely finished.
+    scrollToSettled(hasText(resultCountMessage(results = 1, files = 1)))
+    scrollToSettled(hasContentDescription(fileMatchLabel("notes.py", 1)))
+    compose.onNodeWithContentDescription(fileMatchLabel("notes.py", 1)).assertIsDisplayed()
+  }
+
+  /** And an exclude, which is the other box and the other half of `commonQuery`. */
+  @Test
+  fun anExcludeLeavesItsFolderOutOfWhatTheWalkReaches() {
+    show(FakeWorkspaceSearcher(mapOf("notes.py" to "print(cat)", "reports/analysis.py" to "a cat")))
+
+    searchFor("cat", until = hasText(resultCountMessage(results = 2, files = 2)))
+    compose.onNodeWithContentDescription(SHOW_SEARCH_DETAILS).performClick()
+    compose.onNodeWithContentDescription(FILES_TO_EXCLUDE).performTextInput("reports")
+
+    scrollToSettled(hasText(resultCountMessage(results = 1, files = 1)))
+    scrollToSettled(hasContentDescription(fileMatchLabel("notes.py", 1)))
+    compose.onNodeWithContentDescription(fileMatchLabel("notes.py", 1)).assertIsDisplayed()
+  }
+
+  /**
+   * **What a walk found outlives the panel leaving composition**, which is what the shell's rail
+   * does to it every time a reader looks at the file browser and comes back.
+   *
+   * It is a property of *where the ViewModel is scoped* rather than of anything the panel does -
+   * `viewModel { }` resolves the host's `ViewModelStore`, which removing the composable does not
+   * touch. Pinned here rather than in `SidePaneNavigationTest`, whose own doc records why: under
+   * `ForcedSize` that pane lays out at zero height, so a result row there cannot be read at all.
+   */
+  @Test
+  fun whatWasFoundSurvivesThePanelLeavingComposition() {
+    val showing = mutableStateOf(true)
+    compose.setContent {
+      JupyterDroidTheme {
+        if (showing.value) {
+          SearchSidePanel(
+            searcher = FakeWorkspaceSearcher(mapOf("notes.py" to "print(cat)")),
+            onOpenMatch = { file, match -> opened += file.path to match.line },
+          )
+        }
+      }
+    }
+
+    searchFor("cat", until = hasText("print(cat)"))
+    showing.value = false
+    compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).assertDoesNotExist()
+    showing.value = true
+
+    // No second search: the box is not typed into again, so anything on screen came back with the
+    // ViewModel rather than being found afresh.
+    compose.waitUntil(WALK_TIMEOUT_MILLIS) {
+      compose.onAllNodes(hasText("print(cat)")).fetchSemanticsNodes().isNotEmpty()
+    }
+    compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).assertTextEquals("cat")
   }
 
   /** `collapseResults: alwaysExpand` - a file arrives open, and its header is what folds it. */

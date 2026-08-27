@@ -31,9 +31,15 @@ import kotlinx.coroutines.launch
  *   its messages in `onSearchComplete` (`searchView.ts:1900-1905`), so a query being typed shows
  *   the last settled answer rather than "No results found" for the length of the debounce.
  * @property parseError `_parsingError` - the pattern did not compile, and the box says so.
+ * @property scope which files the walk reaches - the two glob boxes behind the `…`.
+ * @property scopeShown whether those boxes are drawn - `queryDetailsExpanded`
+ *   (`searchView.ts:500`), which the reference keeps in its viewlet state rather than in the DOM.
+ *   Here that is this ViewModel, which is what outlives the panel being switched away from.
  */
 data class WorkspaceSearchUiState(
   val query: SearchQuery = SearchQuery(""),
+  val scope: SearchScope = SearchScope(),
+  val scopeShown: Boolean = false,
   val results: List<MatchedFile> = emptyList(),
   val limitHit: Boolean = false,
   val searching: Boolean = false,
@@ -85,7 +91,7 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
     // what `collectLatest` already is.
     // **The delay is the request's and not this line's**, which is `triggerQueryChange`'s own shape:
     // one path for every caller, and the caller says how long it waits (`searchView.ts:1589-1601`).
-    viewModelScope.launch { asked.debounce { it.waitMillis }.collectLatest { walk(it.query) } }
+    viewModelScope.launch { asked.debounce { it.waitMillis }.collectLatest { walk(it.query, it.scope) } }
   }
 
   /**
@@ -107,10 +113,33 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
    */
   fun optionChanged(query: SearchQuery) = ask(query, AT_ONCE)
 
-  /** What both of the above are - the box updated now, the walk requested for [waitMillis] from now. */
+  /**
+   * A keystroke in one of the two glob boxes: shown at once, walked on the **same** delay the query
+   * box uses.
+   *
+   * The one place the reference does not take its own zero: `onFilePatternSubmit` passes
+   * `delay: searchOnTypeDebouncePeriod` (`searchView.ts:582-588`), and it is fired per keystroke by
+   * `inputBox.onDidChange` (`patternInputWidget.ts:156`). A toggle is a decision already made; a
+   * glob is being typed, so there is a next character to wait for.
+   */
+  fun scopeChanged(scope: SearchScope) {
+    _uiState.update { it.copy(scope = scope) }
+    ask(_uiState.value.query, SEARCH_ON_TYPE_DEBOUNCE_MILLIS)
+  }
+
+  /** The `…` - `toggleQueryDetails` (`searchView.ts:1489-1518`), without its focus half. */
+  fun toggleScopeShown() = _uiState.update { it.copy(scopeShown = !it.scopeShown) }
+
+  /**
+   * What all three are - the panel updated now, the walk requested for [waitMillis] from now.
+   *
+   * **The scope is read off the state rather than passed**, which is what makes it stand while the
+   * query changes under it: `commonQuery` folds the two glob boxes into every query the view builds
+   * (`queryBuilder.ts:140-160`), not into the one that changed them.
+   */
   private fun ask(query: SearchQuery, waitMillis: Long) {
     _uiState.update { it.copy(query = query, parseError = (query.compile() as? CompiledQuery.Invalid)?.message) }
-    asked.tryEmit(SearchRequest(query, waitMillis))
+    asked.tryEmit(SearchRequest(query, _uiState.value.scope, waitMillis))
   }
 
   /**
@@ -123,7 +152,7 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
    * time it is being typed, and emptying the tree under each keystroke would be worse than saying
    * nothing.
    */
-  private suspend fun walk(query: SearchQuery) {
+  private suspend fun walk(query: SearchQuery, scope: SearchScope) {
     if (query.text.isEmpty()) {
       _uiState.update { it.copy(results = emptyList(), limitHit = false, searching = false, completed = false) }
       return
@@ -131,7 +160,7 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
     if (query.compile() is CompiledQuery.Invalid) return
     // `showEmptyStage()` - the tree is emptied when the walk *starts*, not as the box is typed in.
     _uiState.update { it.copy(results = emptyList(), limitHit = false, searching = true, completed = false) }
-    searcher.search(query, SearchScope()).collect { progress -> _uiState.update { it.after(progress) } }
+    searcher.search(query, scope).collect { progress -> _uiState.update { it.after(progress) } }
   }
 }
 
@@ -141,7 +170,7 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
  * `triggerQueryChange`'s `{ delay }` as a value rather than as an argument, because what carries it
  * here is a flow: `debounce { it.waitMillis }` is the `Delayer` the reference re-arms per call.
  */
-private data class SearchRequest(val query: SearchQuery, val waitMillis: Long)
+private data class SearchRequest(val query: SearchQuery, val scope: SearchScope, val waitMillis: Long)
 
 /** One more thing the walk said, folded into what is on screen. */
 private fun WorkspaceSearchUiState.after(progress: SearchProgress): WorkspaceSearchUiState = when (progress) {

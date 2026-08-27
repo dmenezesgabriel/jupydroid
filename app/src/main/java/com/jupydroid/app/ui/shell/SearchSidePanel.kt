@@ -1,10 +1,11 @@
 package com.jupydroid.app.ui.shell
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -77,19 +78,35 @@ fun SearchSidePanel(
     // (`evidence/p2x-3-workspace-search/`). The reference has no soft keyboard to inset for; every
     // editor screen in this app already does this, and a panel whose whole point is a text field
     // over a list needs it most.
-    Column(modifier = Modifier.padding(padding).fillMaxSize().imePadding()) {
-      SearchBox(
-        query = state.query,
-        onTextChanged = { viewModel.queryChanged(state.query.copy(text = it)) },
-        onOptionChanged = viewModel::optionChanged,
-      )
+    // **One scrolling surface, box included**, which is where this departs from the reference and
+    // why: `searchView` keeps its widgets fixed above a scrolling tree, but it has no soft keyboard
+    // taking half the view. With the glob boxes open (P2x-3e) the fixed chrome here is about 290dp,
+    // and an IME leaves less than that - measured on the tablet, with the tree composed, correct
+    // and **zero pixels tall**. A reader scrolls the panel; the box comes back the same way.
+    LazyColumn(modifier = Modifier.padding(padding).fillMaxSize().imePadding()) {
+      item {
+        SearchBox(
+          query = state.query,
+          onTextChanged = { viewModel.queryChanged(state.query.copy(text = it)) },
+          onOptionChanged = viewModel::optionChanged,
+        )
+      }
+      // Under the box, where `.query-details` sits (`searchview.css:118-146`).
+      item {
+        SearchScopeBoxes(
+          scope = state.scope,
+          shown = state.scopeShown,
+          onToggle = viewModel::toggleScopeShown,
+          onScopeChanged = viewModel::scopeChanged,
+        )
+      }
       // Under the box, where the reference's own regex complaint goes.
-      state.parseError?.let { PanelMessage(text = it, color = MaterialTheme.colorScheme.error) }
+      state.parseError?.let { why -> item { PanelMessage(text = why, color = MaterialTheme.colorScheme.error) } }
       // `progressService.withProgress` on the view's own location - a walk of a rootfs is slow
       // enough that a still panel would read as "nothing found" while it was still looking.
-      if (state.searching) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-      SettledMessages(state)
-      SearchResults(
+      if (state.searching) item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
+      settledMessages(state)
+      searchResults(
         results = state.results,
         collapsed = collapsed,
         onToggleFile = { path -> collapsed = if (path in collapsed) collapsed - path else collapsed + path },
@@ -107,17 +124,16 @@ fun SearchSidePanel(
  * for: a box holding "cat" with the debounce still running would otherwise read *"No results
  * found"* for 300 ms of every query.
  */
-@Composable
-private fun SettledMessages(state: WorkspaceSearchUiState) {
+private fun LazyListScope.settledMessages(state: WorkspaceSearchUiState) {
   if (!state.completed) return
   if (state.results.isEmpty()) {
-    PanelMessage(NO_RESULTS_FOUND)
+    item { PanelMessage(NO_RESULTS_FOUND) }
     return
   }
-  PanelMessage(resultCountMessage(state.results.sumOf { it.matches.size }, state.results.size))
+  item { PanelMessage(resultCountMessage(state.results.sumOf { it.matches.size }, state.results.size)) }
   // **The cap drawn rather than silent**, which is the thing P2x-3 exists to fix: the walk stops at
   // `search.maxResults` and until now nothing said so.
-  if (state.limitHit) PanelMessage(RESULTS_ARE_A_SUBSET)
+  if (state.limitHit) item { PanelMessage(RESULTS_ARE_A_SUBSET) }
 }
 
 @Composable

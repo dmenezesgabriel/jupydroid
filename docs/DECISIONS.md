@@ -3089,7 +3089,86 @@ A Replace All that cannot replace is the control this file already refuses under
 formats — *"a row that can only fail is a control that lies"*. The row is corrected rather than
 quietly under-delivered.
 
+### The search panel is one scrolling surface, box included (P2x-3e)
+
+The reference keeps its widgets fixed above a scrolling tree (`searchview.css:118-146`), and until
+the glob boxes arrived so did this panel. Then it stopped working, and the measurement says why:
+with both fields open the panel's fixed chrome is about **290dp**, and a soft keyboard leaves less
+than that.
+
+**The results were composed, correct, and zero pixels tall.** Logged off the tablet:
+`walk ended, state=true n=2`, with the panel drawing the box, the `…` and the two fields and nothing
+else — no count message, no tree, and nothing to scroll. The semantics tree printed in the
+instrumented run ends at the exclude box: the later items were never composed at all. A screenshot
+is what asked the question and a log is what answered it; neither would have done alone.
+
+So `SearchResults` became `LazyListScope.searchResults` and the panel owns one `LazyColumn` — box,
+`…`, glob fields, messages and tree as its items. The reference never meets this because it has no
+keyboard taking half the view, which makes it a departure the platform forces rather than one taste
+chose. The instrumented tests scroll through `scrollToSettled`, and that scroll **is** the
+assertion: before the change there was nothing to scroll to.
+
+### A glob heading is drawn and cleared out of the tree (P2x-3e)
+
+The reference gives each pattern input an `ariaLabel` equal to the `h4` above it
+(`searchView.ts:542`). In a browser the heading is decoration and the label is the control's name.
+Here both landed in the semantics tree, so two nodes answered to *"files to exclude"* — and
+`p2x-3-search-scope` tapped the **label**: `reports` went into the *include* box, and the flow failed
+one assertion later against a count that was exactly right for what had actually been typed.
+
+The rule this app already had — two controls a tap apart may not be spelled the same way — is what
+the heading breaks, and `clearAndSetSemantics {}` is what keeps the reference's split intact: the
+heading is drawn, the field carries the name. `eachGlobHeadingNamesExactlyOneNode` pins it.
+
+### The details open focused and do not close focused (P2x-3e)
+
+`toggleQueryDetails` moves focus both ways — into the include box on open, back to the query box on
+close (`searchView.ts:1499-1517`). The opening half ships, because you tapped `…` to type a glob and
+landing anywhere else is a second tap for nothing.
+
+The closing half does not, and the reason is the platform's: focusing a text field on Android raises
+the soft keyboard, so giving focus back would re-raise the keyboard the reader had just put away by
+closing the details — the opposite of what the tap meant. The reference has no keyboard to raise.
+
 ## Harness
+
+### A lazy list is what a two-pane test cannot lay out, and a `Column` was hiding it (P2x-3e)
+
+`SidePaneNavigationTest` drives the shell under `DeviceConfigurationOverride.ForcedSize`. This file
+already records that `currentWindowAdaptiveInfo()` reads the *activity's* window and not the
+override; what it did not record is the consequence for **layout**. Measured when the search panel
+became a `LazyColumn`:
+
+    box         = Rect(0, 0, 0, 0)
+    panel list  = Rect(0, 0, 0, 0)
+    rail Search = Rect(0, 40, 20, 54)
+
+The rail is laid out and the whole list pane is **zero by zero**. The test used to read a result row
+in that pane and `assertIsDisplayed()` on it - which passed because a `Column` lays its children out
+anyway, overflowing a parent with no room. A `LazyColumn` composes only what fits, so the same rows
+stopped existing, and the assertion that had been passing turns out to have been describing
+something no reader could have seen.
+
+So the claim was split rather than weakened: the shell test asserts the **query** survives the rail
+switch - a rebuilt `WorkspaceSearchViewModel` starts at `SearchQuery("")`, so surviving text is a
+surviving instance - and `SearchSidePanelTest.whatWasFoundSurvivesThePanelLeavingComposition` asserts
+the **results** survive, hosting the panel on its own where it has a window to be laid out in.
+
+### A scroll action inside a `waitUntil` hangs the whole instrumentation (P2x-3e)
+
+Reaching a row in the panel's lazy list needs `performScrollToNode`, and the first two attempts put
+it inside the wait that gives the walk time to finish:
+
+    compose.waitUntil(TIMEOUT) { runCatching { list.performScrollToNode(what) }.isSuccess }
+
+Run that way the suite **stopped**: `TestRunner` logged the test started, the app process sat at
+`R` with no timeout ever firing, and the run had to be killed. Both shapes did it - `waitUntil` and a
+plain bounded loop - because the hazard is the action, not the loop: `performScrollToNode`
+synchronises on idleness, and while a walk is in flight the panel's `LinearProgressIndicator` is
+animating, so idle never arrives.
+
+`ui/ScrollUntilFound.kt` is the shape that works, and it is written with that reading in its own doc
+so the next person does not re-derive it from a hung device.
 
 ### The local gate does not compile `androidTest`, and it went green over a file that would not build (P2x-2)
 
