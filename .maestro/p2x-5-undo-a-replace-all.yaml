@@ -1,0 +1,77 @@
+appId: com.jupydroid.app
+---
+# P2x-5i: **one undo takes back the whole replace-all** - every file, in one tap.
+#
+# `MultiModelEditStackElement` is one entry over every model a bulk edit touched, and its `undo()`
+# loops the lot in one go (`editStack.ts:319-330`, `:330-336`). What is asserted here is that
+# property and not a per-file undo: a notebook and a plain file were rewritten by one action, and one
+# tap puts **both** back.
+#
+# **The control is this app's and the reference has none.** A replace-all there is undone with Ctrl+Z
+# from any editor it touched, and the search view never learns of it; there is no keyboard here, and
+# the notebook's own history deliberately does not carry a workspace replace (`WorkspaceReplace` -
+# one command undoable twice would be two scopes able to disagree). So the offer sits beside the
+# report, living exactly as long as that sentence does (`docs/DECISIONS.md`).
+#
+# **The results come back with the files**, which is the half a screenshot has to show: nothing else
+# on this panel would have changed, and re-drawing the matches is what says the workspace is what the
+# walk found. The undo is refused unless every resource still reads as the replace left it, so once
+# it succeeds those matches are exactly valid again.
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
+# this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- assertVisible: "analysis.ipynb"
+- tapOn:
+    text: "^Search$"
+# --- replace across both files, exactly as P2x-5h does ------------------------------------------
+- tapOn: "Show replace"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- hideKeyboard
+- tapOn: "Replace across the workspace"
+- inputText: "dog"
+- hideKeyboard
+- tapOn: "Replace all in workspace"
+- tapOn:
+    text: "^Replace$"
+- extendedWaitUntil:
+    visible: "Replaced 5 occurrences across 2 files with 'dog'."
+    timeout: 15000
+- assertVisible: "Undo this replace"
+- takeScreenshot: 01-the-report-and-the-offer-to-take-it-back
+# --- one tap ------------------------------------------------------------------------------------
+- tapOn: "Undo this replace"
+# The tree is back, and it is the *whole* tree: both files, both counts.
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- assertVisible: "analysis.ipynb, 2 matches found"
+- assertVisible: "notes.py, 3 matches found"
+# One undo, no redo - `MultiModelEditStackElement` has both and a panel can reach one.
+- assertNotVisible: "Undo this replace"
+- assertNotVisible: "Replaced 5 occurrences across 2 files with 'dog'."
+- takeScreenshot: 02-the-results-came-back-with-the-files
+# --- read back: both files are what they were ----------------------------------------------------
+- tapOn:
+    text: "^Files$"
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+- assertVisible: "(?s).*feed_the_cat.*"
+- assertNotVisible: "(?s).*feed_the_dog.*"
+- takeScreenshot: 03-the-plain-file-is-what-it-was
+- tapOn: "Back to files"
+- tapOn: "analysis.ipynb"
+- extendedWaitUntil:
+    visible: "MARKER = \"the cat is in cell four\""
+    timeout: 15000
+- assertVisible: "a raw cell, no cat here"
+- takeScreenshot: 04-the-notebook-is-what-it-was

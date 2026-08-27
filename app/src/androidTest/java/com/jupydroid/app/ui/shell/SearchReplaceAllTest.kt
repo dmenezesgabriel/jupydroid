@@ -174,4 +174,77 @@ class SearchReplaceAllTest {
     assertEquals("cat = 2", textOf("b.py"))
     scrollTo(hasText("cat = 2"))
   }
+
+  // --- the undo, which is this panel's own and not the reference's -------------------------------
+
+  /**
+   * **One undo across every file, offered beside the sentence that reports the replace.**
+   *
+   * The reference undoes a replace-all from an *editor* - `MultiModelEditStackElement` on the
+   * workspace undo stack, reached with Ctrl+Z - and its search view never learns that it happened.
+   * There is no such path here and the notebook's own history deliberately does not carry a
+   * workspace replace (`WorkspaceReplace`), so the panel that performed it is what offers to take it
+   * back. The **results come back with the files**, which is what says so: nothing else on this
+   * panel would have changed.
+   */
+  @Test
+  fun theReportOffersAnUndoAndTakingItPutsEveryFileBack() {
+    show("a.py" to "cat = 1", "b.py" to "cat = 2")
+
+    searchAndReplace("cat", "dog", until = hasText("cat = 2"))
+    scrollTo(hasText(REPLACE_ALL_IN_WORKSPACE))
+    compose.onNodeWithText(REPLACE_ALL_IN_WORKSPACE).performClick()
+    compose.onNodeWithText(REPLACE_ALL_CONFIRM).performClick()
+    scrollTo(hasText(UNDO_THE_REPLACE))
+    compose.onNodeWithText(UNDO_THE_REPLACE).performClick()
+    scrollTo(hasText("cat = 2"))
+
+    assertEquals("cat = 1", textOf("a.py"))
+    assertEquals("cat = 2", textOf("b.py"))
+    compose.onNodeWithText(UNDO_THE_REPLACE).assertDoesNotExist()
+  }
+
+  /**
+   * A refusal wrote nothing, so there is nothing to take back - and the offer is **absent** rather
+   * than disabled, which is the split `REPLACE_ALL_DISABLED` records: a disabled Replace All states
+   * its own precondition, and an Undo beside a refusal would state nothing at all.
+   */
+  @Test
+  fun aRefusedReplaceOffersNoUndo() {
+    show("a.py" to "cat = 1", "b.py" to "cat = 2")
+
+    searchAndReplace("cat", "dog", until = hasText("cat = 2"))
+    scrollTo(hasText(REPLACE_ALL_IN_WORKSPACE))
+    compose.onNodeWithText(REPLACE_ALL_IN_WORKSPACE).performClick()
+    runBlocking { workspace.writeText("a.py", "someone else got here first") }
+    compose.onNodeWithText(REPLACE_ALL_CONFIRM).performClick()
+    scrollTo(hasText("a.py has changed in the meantime"))
+
+    compose.onNodeWithText(UNDO_THE_REPLACE).assertDoesNotExist()
+  }
+
+  /**
+   * A new walk clears the report - `showEmptyStage()` calls `clearMessage()` (`searchView.ts:1996`) -
+   * and the undo goes with it, which is the whole of its lifetime. One undo, living exactly as long
+   * as the line that offers it.
+   */
+  @Test
+  fun anotherSearchTakesTheUndoAway() {
+    show("a.py" to "cat = 1")
+
+    searchAndReplace("cat", "dog", until = hasText("cat = 1"))
+    scrollTo(hasText(REPLACE_ALL_IN_WORKSPACE))
+    compose.onNodeWithText(REPLACE_ALL_IN_WORKSPACE).performClick()
+    compose.onNodeWithText(REPLACE_ALL_CONFIRM).performClick()
+    scrollTo(hasText(UNDO_THE_REPLACE))
+    compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).performTextInput("s")
+    compose.waitUntil(UNDO_GONE_MILLIS) {
+      compose.onAllNodes(hasText(UNDO_THE_REPLACE)).fetchSemanticsNodes().isEmpty()
+    }
+
+    assertEquals("dog = 1", textOf("a.py"))
+  }
 }
+
+/** Longer than the 300 ms debounce the new walk waits out before it clears anything. */
+private const val UNDO_GONE_MILLIS = 5_000L

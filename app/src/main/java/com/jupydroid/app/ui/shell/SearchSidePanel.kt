@@ -127,7 +127,11 @@ fun SearchSidePanel(
       // One slot, and the report wins it: `replaceAll` calls `clearMessage()` before appending its
       // own (`searchView.ts:842-845`), so a report and *"No results found"* are never both drawn.
       val report = state.report
-      if (report != null) item { SearchReplaceReport(report) } else settledMessages(state)
+      if (report != null) {
+        item { SearchReplaceReport(report, onUndo = viewModel.replaceAll::undo) }
+      } else {
+        settledMessages(state)
+      }
       searchResults(
         results = state.results,
         collapsed = collapsed,
