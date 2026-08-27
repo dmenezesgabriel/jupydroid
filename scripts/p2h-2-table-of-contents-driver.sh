@@ -17,10 +17,19 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 
 reset_notebooks
-# Reused rather than a new fixture: three headings at three different depths already exist here,
-# and the notebook is already known not to fit one screen (p2f-2's own flow), which is what makes
-# a jump-back a real movement to assert on.
-seed_notebook "$ROOT/.maestro/fixtures/p2f-2-collapse-all-headings.ipynb" "Heading Sections"
+# **A fixture of its own since P2z, and the tablet in portrait is why.** This reused p2f-2's, on
+# the grounds that "the notebook is already known not to fit one screen" - and that was measured on
+# the 320dp emulator, 640dp tall. NARROW WINDOW also admits the tablet in portrait, 800x1280, where
+# all seven of p2f-2's cells fit with 350px to spare: `scrollUntilVisible` found "Chapter two"
+# without scrolling at all, so there was no movement for the jump to undo and the flow's whole claim
+# was unassertable (`evidence/p2z-suite-sweep/portrait-800dp/RED-p2h-2-table-of-contents.log`).
+#
+# Same three headings at the same depths and the same texts the flow addresses; eight `filler_N`
+# code cells between them, which is `p2x-4-open-at-the-cell.ipynb`'s own idiom for a document that
+# has to overflow. Fifteen cells is about 1.9x the taller window's viewport, so the first cell is
+# off screen long before the last heading is reached - at *both* widths, which is the property the
+# old fixture had at only one.
+seed_notebook "$ROOT/.maestro/fixtures/p2h-2-table-of-contents.ipynb" "Heading Sections"
 # A2's own fixture: no `cells` key at all, so it opens on the one default cell `toEditorUiState`
 # gives an empty file - a code cell, and so a notebook with no headings at all.
 seed_notebook "$ROOT/.maestro/fixtures/a2-empty-notebook.ipynb" "Empty Notebook"

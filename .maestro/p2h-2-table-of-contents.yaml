@@ -12,7 +12,8 @@ appId: com.jupydroid.app
 # Reuses p2f-2's fixture rather than a new one: three headings at three different depths already
 # exist there, and its own flow already establishes that its seven expanded cells do not fit one
 # screen - which is exactly what makes "the notebook actually moved" a claim worth making rather
-# than a scroll position that would have looked the same either way.
+# than a scroll position that would have looked the same either way. **"One screen" is the 320dp
+# emulator's**, and P2z is where that mattered: see the note on the scroll below.
 #
 # No cell is run, so nothing here needs the tablet.
 - launchApp
@@ -31,12 +32,22 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-notebook-open-at-the-top
 # Away from the top, so jumping back is a real movement and not a no-op the screenshot could not
 # tell apart from doing nothing.
+#
+# **The thing scrolled past is the document's first cell, not the previous heading.** Until P2z this
+# read `assertNotVisible: "Chapter one"` after scrolling to "Chapter two", and that is a *proxy* for
+# "away from the top" which quietly encodes a 640dp-tall screen: the fixture is seven cells, and on
+# the tablet in portrait - 800x1280, the other window this NARROW WINDOW flow is allowed - both
+# headings are on screen at once, so the proxy was false while the intent was still perfectly
+# satisfiable (`evidence/p2z-suite-sweep/portrait-800dp/RED-p2h-2-table-of-contents.log`).
+#
+# "Notes before any heading." is cell 0. Its absence is the top of the document being gone, which is
+# what "away from the top" actually means and is true at any height that can scroll at all.
 - scrollUntilVisible:
     element:
       text: "Chapter two"
     direction: DOWN
     timeout: 10000
-- assertNotVisible: "Chapter one"
+- assertNotVisible: "Notes before any heading."
 - takeScreenshot: 02-scrolled-away-from-chapter-one
 - tapOn: "Notebook actions"
 - tapOn: "Show table of contents"
