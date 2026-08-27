@@ -1,14 +1,18 @@
 package com.jupydroid.app.ui.fileeditor
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.syntax.JsonSyntax
 import com.jupydroid.app.syntax.PythonSyntax
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -175,6 +179,129 @@ class FileEditorViewModelTest {
     assertEquals(emptyList<String>(), temp.root.list()?.toList())
   }
 
-  private fun kotlinx.coroutines.test.TestScope.editorFor(file: Pair<String, String>, open: String = file.first) =
-    FileEditorViewModel(open, FakeWorkspaceRepository(textByPath = mapOf(file)), this)
+  /** A screen showing a document is a document that is open, and its text is what it holds. */
+  @Test
+  fun theOpenFileIsReachedByItsPathAndReadsBackItsText() = runTest {
+    val open = OpenDocuments()
+    val viewModel = editorFor("notes.txt" to "cat", registeredIn = open)
+    advanceUntilIdle()
+
+    assertSame(viewModel, open.at("notes.txt"))
+    assertEquals("cat", open.at("notes.txt")?.sourceOf(cell = null))
+  }
+
+  /**
+   * **A document that could not be read is open and unreadable, not open and empty.**
+   *
+   * It is registered from `init` rather than on a successful load, so a replace can never slip in
+   * between the two and write a file this editor is about to overwrite from stale memory. The cost
+   * is this state, and it must refuse rather than offer the empty string that is on screen: the
+   * engine reads a null source as the conflict it is, and a replace against `""` would delete the
+   * file's contents.
+   */
+  @Test
+  fun aFileThatCouldNotBeReadIsOpenButRefusesToBeRead() = runTest {
+    val open = OpenDocuments()
+    val viewModel = editorFor("other.txt" to "x", open = "missing.txt", registeredIn = open)
+    advanceUntilIdle()
+
+    assertSame(viewModel, open.at("missing.txt"))
+    assertEquals(false, viewModel.uiState.value.loaded)
+    assertNull(open.at("missing.txt")?.sourceOf(cell = null))
+  }
+
+  /** A plain file has one resource and it is the file - a cell index names nothing here. */
+  @Test
+  fun aPlainFileHasNoCellToAddress() = runTest {
+    val open = OpenDocuments()
+    editorFor("notes.txt" to "cat", registeredIn = open)
+    advanceUntilIdle()
+
+    assertNull(open.at("notes.txt")?.sourceOf(cell = 0))
+  }
+
+  /**
+   * The edit lands in the **model**, which is the whole point: `BulkTextEdits` edits the resolved
+   * model and saves it (`replaceService.ts:136`), where a write to the file would be overwritten by
+   * this editor's own next save.
+   */
+  @Test
+  fun anEditThroughTheRegistryRewritesTheTextAndIsWrittenOut() = runTest {
+    val temp = TemporaryFolder().also { it.create() }
+    val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    File(temp.root, "notes.txt").writeText("cat")
+    val open = OpenDocuments()
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, open)
+    advanceUntilIdle()
+
+    viewModel.applyEdits(cell = null, edits = listOf(TextEdit(0..2, "dog")))
+    advanceUntilIdle()
+
+    assertEquals("dog", viewModel.uiState.value.text)
+    assertEquals("dog", File(temp.root, "notes.txt").readText())
+  }
+
+  /**
+   * **And the field is told**, which is the measurement this sub-step exists for:
+   * `rememberTextFieldState(initialText)` is `rememberSaveable(saver) { … }` with **no keys**
+   * (foundation `TextFieldState.kt:657-661`), so a changed `text` alone leaves the field showing
+   * what it had. The notebook has carried `sourceRevisions` for this since Split; the file editor
+   * had nothing.
+   */
+  @Test
+  fun anEditThroughTheRegistryTellsTheFieldItsTextChanged() = runTest {
+    val open = OpenDocuments()
+    val viewModel = editorFor("notes.txt" to "cat", registeredIn = open)
+    advanceUntilIdle()
+    val before = viewModel.uiState.value.revision
+
+    viewModel.applyEdits(cell = null, edits = listOf(TextEdit(0..2, "dog")))
+
+    assertEquals(before + 1, viewModel.uiState.value.revision)
+  }
+
+  /** Typing does not, because typing came *from* the field - adopting it back would fight the caret. */
+  @Test
+  fun typingDoesNotTellTheFieldAnything() = runTest {
+    val viewModel = editorFor("notes.txt" to "cat")
+    advanceUntilIdle()
+
+    viewModel.edit("catt")
+
+    assertEquals(0, viewModel.uiState.value.revision)
+  }
+
+  @Test
+  fun aClosedEditorIsNotOpenAnyMore() = runTest {
+    val open = OpenDocuments()
+    val viewModel = editorFor("notes.txt" to "cat", registeredIn = open)
+    advanceUntilIdle()
+
+    viewModel.onCleared()
+
+    assertNull(open.at("notes.txt"))
+  }
+
+  /** The registry reads [FileEditorViewModel.path] live, so a rename moves the document with it. */
+  @Test
+  fun aRenamedFileIsReachedByWhereItLivesNow() = runTest {
+    val temp = TemporaryFolder().also { it.create() }
+    val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    File(temp.root, "notes.txt").writeText("cat")
+    val open = OpenDocuments()
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, open)
+    advanceUntilIdle()
+
+    workspace.rename("notes.txt", "kept.txt")
+    advanceUntilIdle()
+
+    assertNull(open.at("notes.txt"))
+    assertSame(viewModel, open.at("kept.txt"))
+  }
+
+  private fun kotlinx.coroutines.test.TestScope.editorFor(
+    file: Pair<String, String>,
+    open: String = file.first,
+    registeredIn: OpenDocuments = OpenDocuments(),
+  ) = FileEditorViewModel(open, FakeWorkspaceRepository(textByPath = mapOf(file)), this, registeredIn)
 }

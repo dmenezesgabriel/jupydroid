@@ -13,11 +13,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -27,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -35,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.DocumentOutline
 import com.jupydroid.app.OpenDocumentOutline
+import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.EditorSettings
@@ -46,7 +44,6 @@ import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
-import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.ancestorCrumbsFor
@@ -112,6 +109,11 @@ fun EditorScreen(
   reveal: MatchedLine? = null,
   /** Consumed once, the way `browseRequest` is - see the `LaunchedEffect` below. */
   onRevealHandled: () -> Unit = {},
+  /**
+   * Where this document says it is open, so a workspace replace edits its cells rather than
+   * rewriting the file underneath it. Defaulted for a test that drives this screen alone.
+   */
+  openDocuments: OpenDocuments = remember { OpenDocuments() },
   modifier: Modifier = Modifier,
   viewModel: EditorViewModel = viewModel {
     EditorViewModel(
@@ -122,6 +124,7 @@ fun EditorScreen(
       notebookExporter,
       applicationScope,
       activeCellRuns,
+      openDocuments,
     )
   },
 ) {
@@ -392,80 +395,64 @@ private fun EditorContent(
       // inside the item lambda would be both wrong and quadratic. Keyed by cell, so a heading a
       // code cell printed is counted but leaves no prefix for a markdown cell to draw.
       val headingPrefixes = tocHeadings.map { it.cellId }.zip(tocHeadings.tocPrefixes(tocNumbering)).toMap()
-      LazyColumn(state = listState, modifier = modifier.fillMaxSize()) {
-        // contentType as well as key: a code cell and a markdown cell compose to very different
-        // trees, and telling the list so lets it reuse each kind against its own pool instead of
-        // rebuilding whenever the two alternate.
-        itemsIndexed(onScreen, key = { _, cell -> cell.id }, contentType = { _, cell -> cell.kind }) { at, cell ->
-          EditorCell(
-            cell = cell,
-            outputs = state.outputs[cell.id].orEmpty(),
-            executionCount = state.executionCounts[cell.id],
-            sourceRevision = state.sourceRevisions[cell.id] ?: 0,
-            execution = state.executionOf(cell.id),
-            canPaste = state.clipboard.isNotEmpty(),
-            selected = state.selectedCellId == cell.id,
-            // Null unless a run is being marked, which is what keeps the tick and the `\u22ee` from
-            // ever being on screen together. The position is 1-based and is the screen reader's,
-            // not the eye's - see [CellMark].
-            mark = if (state.selecting) CellMark(cell.id in marked, position = at + 1) else null,
-            markedCount = marked.size,
-            // The reference's rule, read literally: the tint is on the cell node and the active
-            // cell only joins it once the run holds more than one - `jp-mod-multiSelected` is
-            // added at `count > 1` (`packages/notebook/src/widget.ts:2763-2765`).
-            tinted = marked.size > 1 && cell.id in marked,
-            mode = state.mode,
-            onRun = { onRunCell(cell) },
-            onStop = onStopCell,
-            onSourceEdited = { source -> onEditCell(cell.id, source) },
-            completionsAt = completionsAt,
-            onCellAction = { action, editor -> onCellAction(cell.id, action, editor) },
-            onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
-            onToggleSelected = { onToggleSelected(cell.id) },
-            // Rendered unless somebody opened this one - see [MarkdownEditing]. Read from the state
-            // rather than remembered in the cell, because a run has to be able to close the editor.
-            markdownRendered = state.isMarkdownRendered(cell.id),
-            // Only the cell a tap asked for - a command that unrenders leaves the caret alone.
-            markdownTakesCaret = state.markdownTakingCaret == cell.id,
-            onMarkdownEditRequested = { onMarkdownEditRequested(cell.id) },
-            // Only ever non-zero on a collapsed heading, which is the reference's own condition for
-            // drawing the row at all (`packages/cells/src/widget.ts:2424-2427`).
-            hiddenBelow = if (cell.headingCollapsed) state.headingSectionOf(cell.id).size else 0,
-            // One flag for the whole notebook and all three cell types, which is what the command
-            // is: `toggleAllLineNumbers` writes code, markdown and raw together.
-            lineNumbersShown = state.lineNumbersShown,
-            headingPrefix = headingPrefixes[cell.id].orEmpty(),
-            // Per cell rather than sliced once for the list, unlike the numbers above: a cell's
-            // matches depend only on that cell - see [searchHighlightOf].
-            search = state.searchHighlightOf(cell.id),
-            outputSearch = state.outputSearchHighlightsOf(cell.id),
-            autoClosingBrackets = autoClosingBrackets,
-            cellInput = cellInput,
-          )
+      // **Beside the notebook, never instead of it** - see [EditorUiState.saveFailure]. A failure to
+      // save is a state that goes on being true, so it is a banner over the document rather than
+      // the snackbar an export's outcome gets, and there is nothing to remember having shown.
+      Column(modifier = modifier.fillMaxSize()) {
+        state.saveFailure?.let { SaveFailureBanner(it) }
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+          // contentType as well as key: a code cell and a markdown cell compose to very different
+          // trees, and telling the list so lets it reuse each kind against its own pool instead of
+          // rebuilding whenever the two alternate.
+          itemsIndexed(onScreen, key = { _, cell -> cell.id }, contentType = { _, cell -> cell.kind }) { at, cell ->
+            EditorCell(
+              cell = cell,
+              outputs = state.outputs[cell.id].orEmpty(),
+              executionCount = state.executionCounts[cell.id],
+              sourceRevision = state.sourceRevisions[cell.id] ?: 0,
+              execution = state.executionOf(cell.id),
+              canPaste = state.clipboard.isNotEmpty(),
+              selected = state.selectedCellId == cell.id,
+              // Null unless a run is being marked, which is what keeps the tick and the `\u22ee` from
+              // ever being on screen together. The position is 1-based and is the screen reader's,
+              // not the eye's - see [CellMark].
+              mark = if (state.selecting) CellMark(cell.id in marked, position = at + 1) else null,
+              markedCount = marked.size,
+              // The reference's rule, read literally: the tint is on the cell node and the active
+              // cell only joins it once the run holds more than one - `jp-mod-multiSelected` is
+              // added at `count > 1` (`packages/notebook/src/widget.ts:2763-2765`).
+              tinted = marked.size > 1 && cell.id in marked,
+              mode = state.mode,
+              onRun = { onRunCell(cell) },
+              onStop = onStopCell,
+              onSourceEdited = { source -> onEditCell(cell.id, source) },
+              completionsAt = completionsAt,
+              onCellAction = { action, editor -> onCellAction(cell.id, action, editor) },
+              onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
+              onToggleSelected = { onToggleSelected(cell.id) },
+              // Rendered unless somebody opened this one - see [MarkdownEditing]. Read from the state
+              // rather than remembered in the cell, because a run has to be able to close the editor.
+              markdownRendered = state.isMarkdownRendered(cell.id),
+              // Only the cell a tap asked for - a command that unrenders leaves the caret alone.
+              markdownTakesCaret = state.markdownTakingCaret == cell.id,
+              onMarkdownEditRequested = { onMarkdownEditRequested(cell.id) },
+              // Only ever non-zero on a collapsed heading, which is the reference's own condition for
+              // drawing the row at all (`packages/cells/src/widget.ts:2424-2427`).
+              hiddenBelow = if (cell.headingCollapsed) state.headingSectionOf(cell.id).size else 0,
+              // One flag for the whole notebook and all three cell types, which is what the command
+              // is: `toggleAllLineNumbers` writes code, markdown and raw together.
+              lineNumbersShown = state.lineNumbersShown,
+              headingPrefix = headingPrefixes[cell.id].orEmpty(),
+              // Per cell rather than sliced once for the list, unlike the numbers above: a cell's
+              // matches depend only on that cell - see [searchHighlightOf].
+              search = state.searchHighlightOf(cell.id),
+              outputSearch = state.outputSearchHighlightsOf(cell.id),
+              autoClosingBrackets = autoClosingBrackets,
+              cellInput = cellInput,
+            )
+          }
         }
       }
     }
-  }
-}
-
-@Composable
-private fun ErrorMessage(message: String, modifier: Modifier = Modifier) {
-  Box(modifier = modifier.fillMaxSize().padding(Spacing.lg), contentAlignment = Alignment.Center) {
-    Text(
-      text = message,
-      color = MaterialTheme.colorScheme.error,
-      style = MaterialTheme.typography.bodyLarge,
-    )
-  }
-}
-
-@Composable
-private fun EmptyMessage(text: String, modifier: Modifier = Modifier) {
-  Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    Text(
-      text = text,
-      style = MaterialTheme.typography.bodyLarge,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
   }
 }

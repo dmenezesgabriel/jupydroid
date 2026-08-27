@@ -29,6 +29,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.rangeIn
@@ -37,6 +38,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.PythonTypingRules
+import com.jupydroid.app.ui.editor.adoptRewrittenSource
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -74,9 +76,14 @@ fun FileEditorScreen(
   reveal: MatchedLine? = null,
   /** Consumed once, the way `browseRequest` is - see the `LaunchedEffect` below. */
   onRevealHandled: () -> Unit = {},
+  /**
+   * Where this document says it is open, so a workspace replace edits the model rather than the
+   * file. Defaulted so a test driving this screen alone need not supply one.
+   */
+  openDocuments: OpenDocuments = remember { OpenDocuments() },
   modifier: Modifier = Modifier,
   viewModel: FileEditorViewModel =
-    viewModel { FileEditorViewModel(path, workspaceRepository, applicationScope) },
+    viewModel { FileEditorViewModel(path, workspaceRepository, applicationScope, openDocuments) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val editorSettings by editorSettingsRepository.observeSettings()
@@ -107,6 +114,11 @@ fun FileEditorScreen(
         // **The field's state is remembered against the text it was built from**, because landing on
         // a match means editing that state and the file arrives after the first composition.
         val source = rememberTextFieldState(state.text)
+        // **What tells the field its text was rewritten by something other than typing.**
+        // `rememberTextFieldState(initialText)` has no keys (foundation `TextFieldState.kt:657-661`),
+        // so a changed `state.text` alone leaves the field showing what it had - measured, and it is
+        // why `FileEditorUiState.revision` exists. The same function the notebook's cells use.
+        adoptRewrittenSource(source, state.text, state.revision)
         val scroll = rememberScrollState()
         // How the field laid the text out, which is the only thing that knows where a line ended up
         // once wrapping has had its say - see `CodeCellField.onLayoutMeasured`.

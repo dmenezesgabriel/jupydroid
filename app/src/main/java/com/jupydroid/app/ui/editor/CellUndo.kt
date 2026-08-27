@@ -60,6 +60,20 @@ private fun EditorUiState.sourcesRewrittenFrom(before: EditorUiState): Set<Strin
   return cells.filter { it.id in was && was[it.id] != it.source }.mapTo(mutableSetOf()) { it.id }
 }
 
+/**
+ * Tells each rewritten cell's field that its text changed, **without** an undo entry.
+ *
+ * What an edit arriving from outside this notebook needs - a workspace replace through
+ * `OpenDocuments`. The reference records **one** `MultiModelEditStackElement` for the whole replace
+ * (`bulkTextEdits.ts:319-330`), so a second entry in this document's own history would make one
+ * command undoable twice, in two scopes that could then disagree about what the document is.
+ *
+ * The revision bump itself is not optional: a cell's `TextFieldState` cannot see a changed
+ * `Cell.source` on its own (see [adoptRewrittenSource]).
+ */
+internal fun EditorUiState.adoptingRewrites(before: EditorUiState): EditorUiState =
+  copy(sourceRevisions = sourceRevisions.bumping(sourcesRewrittenFrom(before)))
+
 /** Tells each named field that its text was changed under it - see [EditorUiState.sourceRevisions]. */
 private fun Map<String, Int>.bumping(ids: Set<String>): Map<String, Int> =
   if (ids.isEmpty()) this else this + ids.associateWith { (this[it] ?: 0) + 1 }

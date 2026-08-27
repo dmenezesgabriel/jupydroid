@@ -81,6 +81,14 @@ fun MainNavigation(
    * composition's `LazyListState`. Passed in so a test can read what a real editor entry published.
    */
   outline: OpenDocumentOutline = remember { OpenDocumentOutline() },
+  /**
+   * Where the open document is reached by path, for something that is not its own screen - today,
+   * the search panel's replace (P2x-5).
+   *
+   * Remembered here rather than owned by [AppContainer] for [OpenDocumentOutline]'s reason: it
+   * holds a live ViewModel, and a process-scoped holder would outlive the composition that made it.
+   */
+  openDocuments: OpenDocuments = remember { OpenDocuments() },
 ) {
   // The explorer is what the app opens on. Recents was a scan of one directory and is now a
   // section of this screen, so there is no second surface left to start from - which is also the
@@ -258,6 +266,7 @@ fun MainNavigation(
             onBack = { backStack.removeLastOrNull() },
             reveal = revealRequest,
             onRevealHandled = { revealRequest = null },
+            openDocuments = openDocuments,
           )
         }
         entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->
@@ -291,6 +300,7 @@ fun MainNavigation(
             // path alone, and the match travels beside it either way.
             reveal = revealRequest,
             onRevealHandled = { revealRequest = null },
+            openDocuments = openDocuments,
           )
         }
       },

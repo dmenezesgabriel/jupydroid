@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.WorkspaceChange
@@ -73,6 +74,15 @@ class EditorViewModel(
    * backstop reads before it stops the server under a backgrounded computation.
    */
   activeCellRuns: ActiveCellRuns,
+  /**
+   * Where this notebook says it is open, so a workspace replace edits its cells rather than
+   * rewriting the file underneath it (`bulkTextEdits.ts:227`).
+   *
+   * Defaulted for the same reason [com.jupydroid.app.ui.fileeditor.FileEditorViewModel]'s is: the
+   * cases that drive an editor alone are not made to care, and a registry nobody reads costs
+   * nothing.
+   */
+  private val openDocuments: OpenDocuments = OpenDocuments(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -99,6 +109,13 @@ class EditorViewModel(
   val replace = NotebookReplace(_uiState, save)
 
   /**
+   * This notebook as something a **workspace** replace can edit by path; see [NotebookDocument].
+   *
+   * Registered from here rather than by itself, because the lifetime is this ViewModel's.
+   */
+  val document = NotebookDocument(_uiState, save, notebookId = { notebookId })
+
+  /**
    * `notebook:export-to-format`. Writes a file *beside* the notebook rather than to it, so it
    * takes the workspace and not the save; see [NotebookExport].
    */
@@ -113,6 +130,10 @@ class EditorViewModel(
   )
 
   init {
+    // Open before it has loaded, so a replace can never slip in between the read and the register
+    // and rewrite a file this editor is about to overwrite from stale memory. Until the cells are
+    // here [sourceOf] answers null, which the engine reads as the conflict it is.
+    openDocuments.opened(document)
     viewModelScope.launch {
       _uiState.value =
         try {
@@ -271,6 +292,7 @@ class EditorViewModel(
   }
 
   public override fun onCleared() {
+    openDocuments.closed(document)
     val hadUnsavedWork = save.cancelPending()
     applicationScope.launch {
       if (hadUnsavedWork) persist()
@@ -310,12 +332,26 @@ class EditorViewModel(
     }
   }
 
+  /**
+   * Writes the notebook back - and **adopts the result only if the write happened**.
+   *
+   * Two things used to be true before the save rather than after it, and both were wrong when it
+   * failed: `dirty` was cleared, so a notebook that owed a write claimed not to, and the exception
+   * went straight into `viewModelScope`, where it is fatal. A cell that removes the notebook's
+   * folder is enough to cause it, and nothing announces that - `WorkspaceRepository.changes`
+   * carries what this app moved, not what the kernel did.
+   *
+   * `EditorUiState.dirty` says it is *"cleared by the save, not by the edit"*, which is only true
+   * from here. See [EditorUiState.saveFailure] for why the report is not `error`.
+   */
   private suspend fun persist() {
     if (notebookIsGone) return
-    val state = _uiState.value
-    val updated = notebook?.copy(cells = state.withResultsOnCells()) ?: return
-    notebook = updated
-    _uiState.update { it.copy(cells = updated.cells, dirty = false) }
-    notebookRepository.saveNotebook(updated)
+    val updated = notebook?.copy(cells = _uiState.value.withResultsOnCells()) ?: return
+    runCatching { notebookRepository.saveNotebook(updated) }
+      .onSuccess {
+        notebook = updated
+        _uiState.update { it.copy(cells = updated.cells, dirty = false, saveFailure = null) }
+      }
+      .onFailure { failure -> _uiState.update { it.copy(saveFailure = failure.message) } }
   }
 }

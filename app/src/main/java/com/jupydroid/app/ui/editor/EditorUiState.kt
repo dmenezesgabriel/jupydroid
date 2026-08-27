@@ -27,7 +27,25 @@ data class EditorUiState(
   val title: String = "",
   val cells: List<Cell> = emptyList(),
   val loaded: Boolean = false,
+  /**
+   * This notebook could not be **opened**, so there is nothing to draw - see `EditorScreen`, which
+   * shows this *instead of* the document. A failure to *save* is [saveFailure] and not this, for
+   * exactly that reason: replacing a notebook with a message would take unsaved work off the screen.
+   */
   val error: String? = null,
+  /**
+   * The last write that could not be made, or null when the notebook is being saved cleanly.
+   *
+   * **A state rather than an event**, which is why it is not reported through the snackbar
+   * [ExportState.report] uses: an export either happened or did not and is over, while "your work
+   * is not reaching the disk" goes on being true until it stops. So it is drawn beside the notebook
+   * and cleared by the next save that works, and nothing has to remember having shown it.
+   *
+   * Reachable, not defensive: `WorkspaceRepository.changes` announces what this app moved, never
+   * what the kernel did, so a cell that removes the notebook's folder leaves this editor writing to
+   * a path that is not there.
+   */
+  val saveFailure: String? = null,
   /**
    * The name a rename asked for and could not have, or null when nothing is pending.
    *

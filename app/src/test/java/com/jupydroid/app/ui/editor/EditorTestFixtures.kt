@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
@@ -210,6 +211,8 @@ internal fun TestScope.loadedEditor(
   applicationScope: CoroutineScope = this,
   // Only the cases about P1c pass one; every other case ignores what it counts.
   activeCellRuns: ActiveCellRuns = ActiveCellRuns(),
+  // Only the cases about the open-document registry pass one; the rest never read it.
+  openDocuments: OpenDocuments = OpenDocuments(),
 ): EditorViewModel {
   launch {
     repository.saveNotebook(Notebook(notebookId, title, "python3", cells))
@@ -218,7 +221,16 @@ internal fun TestScope.loadedEditor(
   // No collector: uiState is a StateFlow, so .value is current without one - and a
   // collector that is never cancelled leaves runTest waiting on it.
   val viewModel =
-    EditorViewModel(notebookId, repository, workspace, gateway, exporter, applicationScope, activeCellRuns)
+    EditorViewModel(
+      notebookId,
+      repository,
+      workspace,
+      gateway,
+      exporter,
+      applicationScope,
+      activeCellRuns,
+      openDocuments,
+    )
   advanceUntilIdle()
   return viewModel
 }

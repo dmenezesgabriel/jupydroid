@@ -2,9 +2,13 @@ package com.jupydroid.app.ui.fileeditor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.OpenDocument
+import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
+import com.jupydroid.app.domain.model.withEditsApplied
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.syntax.syntaxForFile
@@ -30,6 +34,17 @@ data class FileEditorUiState(
   val syntax: SyntaxHighlighter = syntaxForFile(""),
   val loaded: Boolean = false,
   val error: String? = null,
+  /**
+   * Bumped whenever [text] was rewritten by something that is **not** the field - today, a
+   * workspace replace reaching this document through [OpenDocuments].
+   *
+   * `EditorUiState.sourceRevisions` for a document with one resource instead of a cell each, and it
+   * exists for a measured reason: `rememberTextFieldState(initialText)` is
+   * `rememberSaveable(saver) { … }` with **no keys** (foundation `TextFieldState.kt:657-661`), so a
+   * changed [text] on its own leaves the field showing what it had. Typing never bumps it - that
+   * came from the field, and adopting it back would fight the caret.
+   */
+  val revision: Int = 0,
   /** The file was deleted, so the screen showing it should close - see `EditorUiState.gone`. */
   val gone: Boolean = false,
 )
@@ -52,12 +67,24 @@ class FileEditorViewModel(
    *
    * `Context._path`, which `_updatePath` reassigns in place while the open widget carries on.
    */
-  private var path: String,
+  private var filePath: String,
   private val workspaceRepository: WorkspaceRepository,
   private val applicationScope: CoroutineScope,
-) : ViewModel() {
-  private val _uiState = MutableStateFlow(FileEditorUiState(path = path, name = notebookLeafOf(path)))
+  /**
+   * Where this document says it is open, so a workspace replace edits the model rather than the
+   * file (`bulkTextEdits.ts:227`).
+   *
+   * Defaulted so the many tests that drive an editor alone are not made to care, which is the same
+   * arrangement every port on `AppContainer` has; a registry nobody reads costs nothing.
+   */
+  private val openDocuments: OpenDocuments = OpenDocuments(),
+) : ViewModel(),
+  OpenDocument {
+  private val _uiState = MutableStateFlow(FileEditorUiState(path = filePath, name = notebookLeafOf(filePath)))
   val uiState: StateFlow<FileEditorUiState> = _uiState
+
+  /** Where this document lives now - read live by [OpenDocuments], so a rename moves it. */
+  override val path: String get() = this.filePath
 
   private val save = NotebookSaveDebounce(viewModelScope) { persist() }
 
@@ -65,10 +92,15 @@ class FileEditorViewModel(
   private var fileIsGone = false
 
   init {
+    // **Open before it has loaded, on purpose.** A replace arriving mid-read must not be handed the
+    // empty string that is on screen, and must not be allowed to write the file either - this
+    // editor's next save would put the old text straight back. Present with a null source is the
+    // conflict the engine already knows how to refuse.
+    openDocuments.opened(this)
     viewModelScope.launch {
       // A shared workspace can lose a file under the user - a cell can `os.remove` it - so a read
       // that fails is an ordinary event to report, not a corrupt state to crash on.
-      runCatching { workspaceRepository.readText(path) }
+      runCatching { workspaceRepository.readText(filePath) }
         .onSuccess { text ->
           _uiState.update { it.copy(text = text, syntax = syntaxForFile(it.name), loaded = true, error = null) }
         }
@@ -79,8 +111,8 @@ class FileEditorViewModel(
     viewModelScope.launch {
       workspaceRepository.changes.collect { change ->
         when (change) {
-          is WorkspaceChange.Renamed -> pathAfterRename(path, change.from, change.to)?.let { adopt(it) }
-          is WorkspaceChange.Deleted -> if (change.path == path) stopWriting()
+          is WorkspaceChange.Renamed -> pathAfterRename(filePath, change.from, change.to)?.let { adopt(it) }
+          is WorkspaceChange.Deleted -> if (change.path == filePath) stopWriting()
         }
       }
     }
@@ -88,7 +120,7 @@ class FileEditorViewModel(
 
   /** Takes on where the file lives now; the document did not change, only its path. */
   private fun adopt(moved: String) {
-    path = moved
+    filePath = moved
     _uiState.update { it.copy(path = moved, name = notebookLeafOf(moved)) }
   }
 
@@ -111,14 +143,52 @@ class FileEditorViewModel(
     save.schedule()
   }
 
+  /**
+   * The text of the resource [cell] names - the file itself, and nothing else.
+   *
+   * A plain file has one resource where a notebook has one per cell, so an index names nothing
+   * here. Null until the file has loaded; see the note in `init`.
+   */
+  override fun sourceOf(cell: Int?): String? = _uiState.value.takeIf { cell == null && it.loaded }?.text
+
+  /**
+   * Rewrites this document from a workspace replace - `BulkTextEdits` editing the resolved model,
+   * then saving it (`replaceService.ts:136`).
+   *
+   * Saved on the same debounce every other write here uses, and the revision is bumped because the
+   * field cannot see a changed [FileEditorUiState.text] on its own.
+   */
+  override fun applyEdits(cell: Int?, edits: List<TextEdit>) {
+    if (cell != null || edits.isEmpty()) return
+    _uiState.update { it.copy(text = it.text.withEditsApplied(edits), revision = it.revision + 1) }
+    save.schedule()
+  }
+
   public override fun onCleared() {
+    openDocuments.closed(this)
     val hadUnsavedWork = save.cancelPending()
     if (hadUnsavedWork) applicationScope.launch { persist() }
     super.onCleared()
   }
 
+  /**
+   * Writes the file back, and **reports a write it could not make instead of raising into
+   * `viewModelScope`**, where an uncaught exception takes the process down.
+   *
+   * The same argument this file already makes for the read, one direction over: a shared workspace
+   * can lose the directory under an open file - a cell can `shutil.rmtree` it - and
+   * `WorkspaceRepository.changes` announces only what *this app* moved, so nothing warns us. The
+   * reference reports it the same way and leaves the document owing a write:
+   * `Context.save()`'s failure path is `showErrorMessage`, not a rethrow.
+   *
+   * Cleared by a save that works, so a failure that has passed does not sit on screen for ever.
+   */
   private suspend fun persist() {
     if (fileIsGone || !_uiState.value.loaded) return
-    workspaceRepository.writeText(path, _uiState.value.text)
+    runCatching { workspaceRepository.writeText(filePath, _uiState.value.text) }
+      .fold(
+        onSuccess = { _uiState.update { it.copy(error = null) } },
+        onFailure = { failure -> _uiState.update { it.copy(error = failure.message) } },
+      )
   }
 }
