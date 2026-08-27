@@ -216,6 +216,55 @@ class WorkspaceSearchViewModelTest {
     assertFalse(model.uiState.value.searching)
   }
 
+  /**
+   * **A walk has to have *finished* before the panel says anything about what it found**, and this
+   * is the flag that says so - `showEmptyStage()` at the start of a walk, the messages added in
+   * `onSearchComplete` (`searchView.ts:1900-1905`). Without it a box holding "cat" and no results
+   * yet would read "No results found" for the length of the debounce.
+   */
+  @Test
+  fun nothingIsSettledUntilAWalkHasFinished() = runTest {
+    val model = searchingIn(searcher = SlowWorkspaceWalk(FakeWorkspaceSearcher(mapOf("a.py" to "cat")), millis = 5_000))
+
+    model.queryChanged(SearchQuery("cat"))
+    assertFalse(model.uiState.value.completed)
+    advanceTimeBy(SEARCH_ON_TYPE_DEBOUNCE_MILLIS + 1_000)
+    assertFalse(model.uiState.value.completed)
+
+    advanceUntilIdle()
+    assertTrue(model.uiState.value.completed)
+  }
+
+  /**
+   * **What was found last stays settled while the next query is being typed**, which is the whole
+   * of `showEmptyStage()` being called when a walk *starts* rather than when the box changes: a
+   * result list that emptied on every keystroke would flicker under a thumb.
+   */
+  @Test
+  fun theLastAnswerStandsWhileTheNextQueryIsBeingTyped() = runTest {
+    val model = searchingIn("notes.py" to "cat")
+
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+    model.queryChanged(SearchQuery("catn"))
+
+    assertTrue(model.uiState.value.completed)
+    assertEquals(listOf("notes.py"), model.uiState.value.results.map { it.path })
+  }
+
+  /** An emptied box has nothing settled to say, so the panel goes back to its box and nothing else. */
+  @Test
+  fun anEmptiedBoxHasNothingSettledToSay() = runTest {
+    val model = searchingIn("notes.py" to "cat")
+
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+    model.queryChanged(SearchQuery(""))
+    advanceUntilIdle()
+
+    assertFalse(model.uiState.value.completed)
+  }
+
   /** Nothing is walked for a blank box, so nothing claims to be walking either. */
   @Test
   fun anEmptyBoxIsNotAWalkInFlight() = runTest {

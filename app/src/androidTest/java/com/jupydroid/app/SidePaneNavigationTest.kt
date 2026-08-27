@@ -11,16 +11,19 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.shell.SEARCH_WORKSPACE_BOX
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -133,6 +136,34 @@ class SidePaneNavigationTest {
   }
 
   /**
+   * **What a search found survives leaving the panel and coming back**, which is what the reference
+   * does: its view is a registered `ViewPane` whose model outlives being hidden, so switching to
+   * the explorer and back does not cost you the walk you just paid for.
+   *
+   * Here that is a property of *where the ViewModel is scoped*, not of anything the panel does:
+   * `viewModel { }` inside the `Explorer` entry resolves the entry's own `ViewModelStore` through
+   * `rememberViewModelStoreNavEntryDecorator` (`Navigation.kt:177-180`), which the panel switch
+   * does not touch. Pinned rather than assumed, because it would be silently lost by scoping it
+   * anywhere else.
+   */
+  @Test
+  fun whatASearchFoundSurvivesLeavingThePanelAndComingBack() {
+    startApp(twoPane = true)
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+    waitForContentDescription(SEARCH_WORKSPACE_BOX)
+    compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).performTextInput(SEARCHED_TERM)
+    waitForText(SEARCHED_LINE)
+
+    compose.onNodeWithContentDescription(FILES).performClick()
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+
+    waitForText(SEARCHED_LINE)
+    compose.onNodeWithText(SEARCHED_LINE).assertIsDisplayed()
+  }
+
+  /**
    * **A window that narrows while a panel is up still has to leave the browser reachable.**
    *
    * `sidePanel` is `rememberSaveable`, so it survives the activity relaunch a rotation causes; the
@@ -200,6 +231,7 @@ class SidePaneNavigationTest {
             appContainer = AppContainer(
               notebookRepository = repository,
               workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+              workspaceSearcher = FakeWorkspaceSearcher(mapOf(SEARCHABLE_FILE to SEARCHED_LINE)),
             ),
             importTitle = null,
             onImportConsumed = {},
@@ -257,6 +289,11 @@ class SidePaneNavigationTest {
     const val FILES = "Files"
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
+
+    /** A workspace the search panel can actually find something in - see the persistence case. */
+    const val SEARCHABLE_FILE = "notes.py"
+    const val SEARCHED_LINE = "print(cat)"
+    const val SEARCHED_TERM = "cat"
     const val TIMEOUT_MILLIS = 5_000L
   }
 }

@@ -208,8 +208,15 @@ fun MainNavigation(
           // window has no side area to collapse, and `showingPanel` is the file browser there.
           when (showingPanel) {
             SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
-            // Named and empty until P2x-3, which is the sub-step that draws a query box into it.
-            SidePanel.SEARCH -> SearchSidePanel()
+            SidePanel.SEARCH ->
+              SearchSidePanel(
+                searcher = appContainer.workspaceSearcher,
+                // The path is what opens a document, exactly as the browser's own rows hand one up
+                // - `docmanager:open` decides the editor from the path and nothing else. The match
+                // comes with it because the panel is the only thing that knows which one was
+                // tapped; **P2x-3f is what reads it**, to land the editor on the line.
+                onOpenMatch = { file, _ -> openDocument(file.path) },
+              )
             null -> Unit
             SidePanel.FILES ->
               ExplorerScreen(

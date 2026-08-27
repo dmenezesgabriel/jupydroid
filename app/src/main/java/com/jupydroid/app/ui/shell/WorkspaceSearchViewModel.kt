@@ -26,6 +26,10 @@ import kotlinx.coroutines.launch
  * @property results one entry per file with a match, in the order the walk found them.
  * @property limitHit `ISearchComplete.limitHit` as the walk reported it - see [SearchProgress].
  * @property searching a walk is in flight; the panel draws progress rather than "nothing found".
+ * @property completed a walk has **finished** and [results] is its whole answer. What the panel
+ *   says about a search hangs off this rather than off [results] being empty: the reference adds
+ *   its messages in `onSearchComplete` (`searchView.ts:1900-1905`), so a query being typed shows
+ *   the last settled answer rather than "No results found" for the length of the debounce.
  * @property parseError `_parsingError` - the pattern did not compile, and the box says so.
  */
 data class WorkspaceSearchUiState(
@@ -33,6 +37,7 @@ data class WorkspaceSearchUiState(
   val results: List<MatchedFile> = emptyList(),
   val limitHit: Boolean = false,
   val searching: Boolean = false,
+  val completed: Boolean = false,
   val parseError: String? = null,
 )
 
@@ -105,12 +110,12 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
    */
   private suspend fun walk(query: SearchQuery) {
     if (query.text.isEmpty()) {
-      _uiState.update { it.copy(results = emptyList(), limitHit = false, searching = false) }
+      _uiState.update { it.copy(results = emptyList(), limitHit = false, searching = false, completed = false) }
       return
     }
     if (query.compile() is CompiledQuery.Invalid) return
     // `showEmptyStage()` - the tree is emptied when the walk *starts*, not as the box is typed in.
-    _uiState.update { it.copy(results = emptyList(), limitHit = false, searching = true) }
+    _uiState.update { it.copy(results = emptyList(), limitHit = false, searching = true, completed = false) }
     searcher.search(query, SearchScope()).collect { progress -> _uiState.update { it.after(progress) } }
   }
 }
@@ -118,7 +123,7 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
 /** One more thing the walk said, folded into what is on screen. */
 private fun WorkspaceSearchUiState.after(progress: SearchProgress): WorkspaceSearchUiState = when (progress) {
   is SearchProgress.Found -> copy(results = results + progress.file)
-  is SearchProgress.Complete -> copy(searching = false, limitHit = progress.limitHit)
+  is SearchProgress.Complete -> copy(searching = false, completed = true, limitHit = progress.limitHit)
 }
 
 /**
