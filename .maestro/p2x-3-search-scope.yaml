@@ -37,12 +37,21 @@ appId: com.jupydroid.app
 - assertNotVisible: "files to include"
 - assertNotVisible: "files to exclude"
 - tapOn: "Show search details"
+# The details open **focused** - `toggleQueryDetails`' own `moveFocus` - so the IME comes up with
+# them, and since P2x-5e put the replace chevron's row above these two boxes the exclude one no
+# longer fits in what it leaves. This flow was the thing that said so, one phase late: its committed
+# `02` frame already showed the exclude field half clipped, and 48dp finished the job. Putting the
+# keyboard away first is what a reader does to read a panel, and it is what `03` and `04` below have
+# always done before reading a count (`docs/DECISIONS.md`).
+- hideKeyboard
 - assertVisible: "files to include"
 - assertVisible: "files to exclude"
-# The cursor lands where a glob is typed - `toggleQueryDetails`' own `moveFocus`.
 - assertVisible: "Hide search details"
 - takeScreenshot: 02-the-two-glob-boxes
 # --- include: `*.py` drops the markdown, at any depth --------------------------------------------
+# Tapped rather than typed into blind: the focus `moveFocus` gave the include box did not survive
+# the keyboard being dismissed above.
+- tapOn: "files to include"
 - inputText: "*.py"
 # **The keyboard goes away before the count is read.** With the two glob fields open the panel's
 # fixed chrome is about 290dp, and an IME leaves less than that - measured on the tablet, with the
@@ -57,6 +66,9 @@ appId: com.jupydroid.app
 # --- exclude: `reports` prunes the folder, and the markdown returns -------------------------------
 - tapOn: "files to include"
 - eraseText
+# Same 48dp as above: with the IME up the exclude box is off the bottom of a panel that is one
+# scrolling surface, so it is put away before the box below is reached for.
+- hideKeyboard
 - tapOn: "files to exclude"
 - inputText: "reports"
 - hideKeyboard
