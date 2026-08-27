@@ -1,0 +1,73 @@
+appId: com.jupydroid.app
+---
+# P2x-5j: a replace reaches **the document that is open**, not the file underneath it.
+#
+# `BulkTextEdits` resolves a text model for every resource, open or not (`bulkTextEdits.ts:227`),
+# edits the models, and only then saves each (`replaceService.ts:136`). The reason is the whole of
+# why P2x-1e took `replaceAll` off the port and why P2x-5b built `OpenDocuments`: a replace that
+# wrote the *file* under an open editor would be undone by that editor's next debounced save, and the
+# reader would watch their replacement disappear.
+#
+# **This is the one gate no JVM test can stand in for.** `theOpenDocumentIsEditedRatherThanWritten`
+# pins the routing against a fake; what it cannot say is that the ViewModel a real screen is holding
+# is the one the registry hands back - `Navigation.kt` scopes ViewModels per `NavEntry`, and the
+# registry is the only thing bridging two of them.
+#
+# The shape below is what makes it load-bearing: `notes.py` is opened **first**, into the detail
+# pane, and the panel is switched to in the list pane beside it. The editor is **never closed**
+# between the replace and the assertion - so what is asserted is the model changing under a live
+# screen, and not a file being re-read on the way in. The reopen at the end is the other half: the
+# model was edited *and* the save happened.
+#
+# **WIDE WINDOW**: this needs two panes at once, which is the whole point. No cell is run, so it
+# needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+# --- the document, open, in the detail pane -------------------------------------------------------
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+- assertVisible: "(?s).*feed_the_cat.*"
+- takeScreenshot: 01-the-document-open-beside-the-browser
+# --- the panel, in the list pane, without leaving the document ------------------------------------
+- tapOn:
+    text: "^Search$"
+- assertVisible: "Search the workspace"
+# The editor is still there. Everything after this happens **under** it.
+- assertVisible: "(?s).*feed_the_cat.*"
+- tapOn: "Show replace"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "3 results in 1 file"
+    timeout: 15000
+- hideKeyboard
+- tapOn: "Replace across the workspace"
+- inputText: "dog"
+- hideKeyboard
+- takeScreenshot: 02-the-panel-beside-the-open-document
+# --- one replace, and the open document adopts it -------------------------------------------------
+- tapOn: "Replace all in workspace"
+- assertVisible: "Replace 3 occurrences across 1 file with 'dog'?"
+- tapOn:
+    text: "^Replace$"
+- extendedWaitUntil:
+    visible: "Replaced 3 occurrences across 1 file with 'dog'."
+    timeout: 15000
+# **The editor was never reopened**, and it shows the replacement: this is the model being edited.
+- assertVisible: "(?s).*feed_the_dog.*"
+- assertNotVisible: "(?s).*feed_the_cat.*"
+- takeScreenshot: 03-the-open-document-adopted-the-replacement
+# --- and the file underneath it was written too ---------------------------------------------------
+- tapOn: "Back to files"
+- tapOn:
+    text: "^Files$"
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+- assertVisible: "(?s).*feed_the_dog.*"
+- takeScreenshot: 04-and-the-file-was-saved-too
