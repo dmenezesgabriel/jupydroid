@@ -2,11 +2,13 @@ package com.jupydroid.app
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Which panel the side area shows, and the one rule that is not Compose's own: picking the panel
- * already showing collapses the area rather than doing nothing.
+ * Which panel the side area shows, and the two rules that are not Compose's own: picking the panel
+ * already showing collapses the area rather than doing nothing, and what a **one-pane** window is
+ * left showing when it has no rail to collapse from.
  */
 class SidePanelTest {
   @Test
@@ -64,5 +66,69 @@ class SidePanelTest {
   @Test
   fun everyPanelCollapsesTheAreaWhenItIsTheOneShowing() {
     SidePanel.entries.forEach { panel -> assertNull(panel.chosen(panel)) }
+  }
+
+  /**
+   * **What the bottom bar offers, where the rail offers everything.** The table of contents is not
+   * on it, and that is P2o-4's own argument rather than a shortening: Files is a screen you
+   * navigate *to*, and the table of contents is a surface over the document you are already *in* -
+   * which is why `toc:show-panel` opens an overlay from the notebook's own menu at this width
+   * (`TableOfContentsPanel`) and why it needs no destination beside it.
+   *
+   * **Two is below Material's own floor** of *"three to five destinations of equal importance"*
+   * (`developer.android.com/develop/ui/compose/components/navigation-bar`), and that is recorded in
+   * `docs/DECISIONS.md` rather than glossed - a third item that is not a destination would satisfy
+   * the count by breaking the sentence it comes from.
+   */
+  @Test
+  fun theBarOffersTheTwoPanelsThatAreDestinations() {
+    assertEquals(listOf(SidePanel.FILES, SidePanel.SEARCH), onePaneDestinations)
+  }
+
+  /** And it is a sub-list of the rail's, in the rail's order - one rank order, not two. */
+  @Test
+  fun theBarKeepsTheRailsOrder() {
+    assertEquals(SidePanel.entries.filter { it in onePaneDestinations }, onePaneDestinations)
+  }
+
+  /**
+   * **A one-pane window shows the panel it was left on**, which is the half P2x-2b could not give:
+   * with no bar there, every panel had to fall back to the browser or become unreachable.
+   */
+  @Test
+  fun aOnePaneWindowKeepsAPanelTheBarCanLeave() {
+    assertEquals(SidePanel.FILES, SidePanel.FILES.showingAtOnePane())
+    assertEquals(SidePanel.SEARCH, SidePanel.SEARCH.showingAtOnePane())
+  }
+
+  /**
+   * **P2x-2b's defect, narrowed rather than reopened.** A tablet rotated from 1280dp to 800dp with
+   * the table of contents up used to keep drawing it with no rail to leave it by, and the browser
+   * could not be reached again without killing the app. The bar has no table-of-contents item, so
+   * that panel is still the one case that falls back - and the fall-back is the browser.
+   */
+  @Test
+  fun aPanelWithNoItemOnTheBarFallsBackToTheBrowser() {
+    assertEquals(SidePanel.FILES, SidePanel.TABLE_OF_CONTENTS.showingAtOnePane())
+  }
+
+  /**
+   * **A collapsed area is not a state one pane has.** `collapse()` leaves the activity bar visible
+   * over an empty area (`packages/application/src/shell.ts:2383-2394`), which is coherent beside a
+   * document and is an empty window without one.
+   */
+  @Test
+  fun aCollapsedAreaNarrowsToTheBrowserRatherThanToNothing() {
+    val collapsed: SidePanel? = null
+
+    assertEquals(SidePanel.FILES, collapsed.showingAtOnePane())
+  }
+
+  /** Whatever it is handed, it draws something - there is no fourth answer for a caller to miss. */
+  @Test
+  fun everyPanelNarrowsToOneThatIsDrawn() {
+    (SidePanel.entries + null).forEach { panel ->
+      assertTrue("$panel narrowed to something the bar cannot leave", panel.showingAtOnePane() in onePaneDestinations)
+    }
   }
 }

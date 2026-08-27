@@ -66,3 +66,38 @@ enum class SidePanel {
  * ```
  */
 internal fun SidePanel?.chosen(panel: SidePanel): SidePanel? = if (this == panel) null else panel
+
+/**
+ * The panels a **one-pane** window offers on its bottom bar, in the rail's own rank order.
+ *
+ * [SidePanel.TABLE_OF_CONTENTS] is deliberately absent, and P2o-4's own argument is why: Files is
+ * a screen you navigate *to* and the table of contents is a surface over the document you are
+ * already *in*, which is what `toc:show-panel` opens from the notebook's menu at this width
+ * (`TableOfContentsPanel`). A destination for it would be a destination for something that has no
+ * meaning where the bar is drawn - the bar shows only when a panel *is* the window, and there is no
+ * open document for an outline to belong to.
+ *
+ * **Two is below Material's floor** of *"three to five destinations of equal importance"*
+ * (`developer.android.com/develop/ui/compose/components/navigation-bar`). Recorded in
+ * `docs/DECISIONS.md` rather than padded to three: P6d's Launcher is the third destination this
+ * app is actually waiting for.
+ */
+internal val onePaneDestinations: List<SidePanel> = listOf(SidePanel.FILES, SidePanel.SEARCH)
+
+/**
+ * What a window that draws **one pane** is left showing, given the panel the rail was last on.
+ *
+ * The rule is *"can the bar leave it again"*, and it is the narrowed form of the override P2x-2b
+ * added: a tablet rotated from 1280dp to 800dp used to keep drawing whatever panel it had with no
+ * rail to switch away from it, and the browser could not be reached again without killing the app.
+ * With a bar there, only a panel the bar has no item for still has to fall back - which is the
+ * table of contents, and `null`, since a collapsed area over an empty window is not a state.
+ *
+ * An override rather than a reset: [SidePanel] itself is untouched, so rotating back to two panes
+ * restores the panel the user had chosen.
+ *
+ * ```
+ * val showingPanel = if (twoPane) sidePanel else sidePanel.showingAtOnePane()
+ * ```
+ */
+internal fun SidePanel?.showingAtOnePane(): SidePanel = this?.takeIf { it in onePaneDestinations } ?: SidePanel.FILES
