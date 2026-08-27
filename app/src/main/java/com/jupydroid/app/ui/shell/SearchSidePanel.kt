@@ -106,6 +106,8 @@ fun SearchSidePanel(
           onToggleShown = viewModel::toggleReplaceShown,
           onReplaceTextChanged = viewModel::replaceTextChanged,
           onTogglePreserveCase = viewModel::togglePreserveCase,
+          replaceAllEnabled = state.replaceAllEnabled,
+          onReplaceAll = viewModel.replaceAll::requested,
         )
       }
       // Under the box, where `.query-details` sits (`searchview.css:118-146`).
@@ -122,7 +124,10 @@ fun SearchSidePanel(
       // `progressService.withProgress` on the view's own location - a walk of a rootfs is slow
       // enough that a still panel would read as "nothing found" while it was still looking.
       if (state.searching) item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
-      settledMessages(state)
+      // One slot, and the report wins it: `replaceAll` calls `clearMessage()` before appending its
+      // own (`searchView.ts:842-845`), so a report and *"No results found"* are never both drawn.
+      val report = state.report
+      if (report != null) item { SearchReplaceReport(report) } else settledMessages(state)
       searchResults(
         results = state.results,
         collapsed = collapsed,
@@ -130,6 +135,13 @@ fun SearchSidePanel(
         onOpenMatch = onOpenMatch,
       )
     }
+  }
+  state.confirming?.let { asked ->
+    ReplaceAllDialog(
+      asked = asked,
+      onReplace = viewModel.replaceAll::confirmed,
+      onDismiss = viewModel.replaceAll::dismissed,
+    )
   }
 }
 
@@ -153,8 +165,14 @@ private fun LazyListScope.settledMessages(state: WorkspaceSearchUiState) {
   if (state.limitHit) item { PanelMessage(RESULTS_ARE_A_SUBSET) }
 }
 
+/**
+ * One line above the tree - a `.message` in the search view's messages element.
+ *
+ * `internal` rather than private since P2x-5h, because [SearchReplaceReport] draws into the same
+ * slot: the reference appends both into `this.messagesElement`, and only one of them is ever in it.
+ */
 @Composable
-private fun PanelMessage(text: String, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+internal fun PanelMessage(text: String, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
   Text(
     text = text,
     style = MaterialTheme.typography.bodySmall,

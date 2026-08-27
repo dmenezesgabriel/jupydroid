@@ -1,0 +1,84 @@
+appId: com.jupydroid.app
+---
+# P2x-5h: Replace All across the workspace - the counted question, and **one action rewriting a
+# notebook and a plain file together**.
+#
+# `SearchView.replaceAll` (`searchView.ts:812-853`): the counts are the tree's own
+# (`searchResult.count()` / `fileCount()`, `:816-817`), the question is
+# `buildReplaceAllConfirmationMessage` (`:885-928`), the report is the same sentence in the past
+# tense built *before* the write so the two cannot disagree (`:820`, `:855-883`), and the tree is
+# **emptied** on success (`textSearchHeading.ts:299-303`).
+#
+# **Two files and two mechanisms is the point of this flow.** `notes.py` goes through
+# `WorkspaceRepository.writeText`; `analysis.ipynb` goes through `NotebookRepository`, cell by cell,
+# because a `.ipynb` written as text would put the replacement into the JSON that stores it
+# (`ReplaceService.createEdits` addresses a notebook match through `match.cell?.uri`,
+# `replaceService.ts:206-214`). One `Replace All`, both routes, and **both files read back** by
+# reopening them - which is the only thing that can tell a write from a redraw.
+#
+# The Replace All control is a **labelled button on a row of its own**, named apart from the notebook
+# find bar's *"Replace all"* - at this width both can be in one tree. Its first draft was VS Code's
+# icon, and the screenshot is what refused it: Material's `find_replace` at 24dp read as *refresh*,
+# beside a query box whose leading icon is the magnifier it is drawn from (`docs/DECISIONS.md`).
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
+# this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- assertVisible: "analysis.ipynb"
+- tapOn:
+    text: "^Search$"
+# --- what is found, and what a replace would write ------------------------------------------------
+- tapOn: "Show replace"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- hideKeyboard
+- assertVisible: "analysis.ipynb, 2 matches found"
+- assertVisible: "notes.py, 3 matches found"
+- tapOn: "Replace across the workspace"
+- inputText: "dog"
+- hideKeyboard
+- takeScreenshot: 01-five-matches-in-two-files-and-a-replacement
+# --- the question, counted -----------------------------------------------------------------------
+- tapOn: "Replace all in workspace"
+- assertVisible: "Replace All"
+- assertVisible: "Replace 5 occurrences across 2 files with 'dog'?"
+- assertVisible: "Cancel"
+- takeScreenshot: 02-the-counted-question
+# --- the answer, and the tree it empties ---------------------------------------------------------
+- tapOn:
+    text: "^Replace$"
+- extendedWaitUntil:
+    visible: "Replaced 5 occurrences across 2 files with 'dog'."
+    timeout: 15000
+# `this.clear()` runs in `replaceAll`'s resolve arm: the results described a workspace that no
+# longer exists, so they go with it.
+- assertNotVisible: "analysis.ipynb, 2 matches found"
+- assertNotVisible: "notes.py, 3 matches found"
+- takeScreenshot: 03-what-the-replace-reported
+# --- read back: the plain file, through WorkspaceRepository ---------------------------------------
+- tapOn:
+    text: "^Files$"
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+- assertVisible: "(?s).*feed_the_dog.*"
+- assertNotVisible: "(?s).*feed_the_cat.*"
+- takeScreenshot: 04-the-plain-file-was-rewritten
+- tapOn: "Back to files"
+# --- read back: the notebook, cell by cell through NotebookRepository ------------------------------
+- tapOn: "analysis.ipynb"
+- extendedWaitUntil:
+    visible: "MARKER = \"the dog is in cell four\""
+    timeout: 15000
+# The raw cell's match went too, and the notebook is still a notebook: the markdown heading above
+# both of them is untouched, which a replace written into the JSON would not have left alone.
+- assertVisible: "a raw cell, no dog here"
+- assertVisible: "(?s).*Feeding notes.*"
+- takeScreenshot: 05-the-notebook-was-rewritten-cell-by-cell
