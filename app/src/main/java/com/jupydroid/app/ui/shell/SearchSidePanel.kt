@@ -49,9 +49,12 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * bar, and drawn as a bare `Column` its header sat on top of the clock.
  *
  * ```
- * SidePanel.SEARCH -> SearchSidePanel(appContainer.workspaceSearcher, onOpenMatch = { f, _ -> … })
+ * SidePanel.SEARCH -> SearchSidePanel(searcher, replace, onOpenMatch = { f, _ -> … })
  * ```
  *
+ * @param replace what a Replace All goes through - the editor's model where a document is open and
+ *   the file where it is not ([WorkspaceReplace]). Built by the shell, because it needs the open
+ *   document registry this panel has no business knowing about.
  * @param onOpenMatch a tap on a result. Opening is the shell's job rather than this panel's, the
  *   same way the explorer hands a path up rather than choosing an editor for it.
  */
@@ -59,9 +62,10 @@ import com.jupydroid.app.ui.editor.codeTextStyle
 @Composable
 fun SearchSidePanel(
   searcher: WorkspaceSearcher,
+  replace: WorkspaceReplace,
   onOpenMatch: (MatchedFile, MatchedLine) -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: WorkspaceSearchViewModel = viewModel { WorkspaceSearchViewModel(searcher) },
+  viewModel: WorkspaceSearchViewModel = viewModel { WorkspaceSearchViewModel(searcher, replace) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   // Which files are folded away. Keyed on the query, so a fold set cannot outlive the results it

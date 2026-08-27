@@ -1,6 +1,9 @@
 package com.jupydroid.app.ui.shell
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.domain.model.MatchedFile
 import com.jupydroid.app.domain.model.MatchedLine
@@ -36,7 +39,10 @@ class WorkspaceSearchViewModelTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
   private fun searchingIn(vararg files: Pair<String, String>, searcher: WorkspaceSearcher? = null) =
-    WorkspaceSearchViewModel(searcher ?: FakeWorkspaceSearcher(files.toMap()))
+    WorkspaceSearchViewModel(
+      searcher ?: FakeWorkspaceSearcher(files.toMap()),
+      WorkspaceReplace(OpenDocuments(), FakeNotebookRepository(), FakeWorkspaceRepository(textByPath = files.toMap())),
+    )
 
   /** The box has to echo a keystroke at once; only the *walk* it causes is held back. */
   @Test

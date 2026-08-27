@@ -41,6 +41,8 @@ import kotlinx.coroutines.launch
  * @property preserveCase `ReplaceInput`'s own toggle (`searchWidget.ts:570-576`), which is why it
  *   lives here and not as a fourth flag on [SearchQuery]: it is a property of the replacement, and
  *   the walk is over before it is read.
+ * @property confirming the counted question a Replace All is waiting on, null when none is asked.
+ * @property report what the last replace or undo had to say - see [ReplaceReport].
  */
 data class WorkspaceSearchUiState(
   val query: SearchQuery = SearchQuery(""),
@@ -54,7 +56,18 @@ data class WorkspaceSearchUiState(
   val replaceShown: Boolean = false,
   val replaceText: String = "",
   val preserveCase: Boolean = false,
-)
+  val confirming: ReplaceAllRequest? = null,
+  val report: ReplaceReport? = null,
+) {
+  /**
+   * Whether Replace All can be pressed - `setReplaceAllActionState(!searchResult.isEmpty())`
+   * (`searchView.ts:792`).
+   *
+   * Derived rather than stored, because it is a reading of [results] and a second copy of it could
+   * disagree: the reference re-derives it on every tree change for the same reason.
+   */
+  val replaceAllEnabled: Boolean get() = results.isNotEmpty()
+}
 
 /**
  * The workspace searched from the shell's own panel, where the find bar searches one document.
@@ -65,7 +78,7 @@ data class WorkspaceSearchUiState(
  * both references").
  *
  * ```
- * WorkspaceSearchViewModel(appContainer.workspaceSearcher).queryChanged(SearchQuery("cat"))
+ * WorkspaceSearchViewModel(appContainer.workspaceSearcher, replace).queryChanged(SearchQuery("cat"))
  * ```
  *
  * `Flow.debounce` is still `@FlowPreview` at coroutines 1.10.2, and the opt-in is stated here
@@ -73,9 +86,16 @@ data class WorkspaceSearchUiState(
  * rests on, and hand-rolling a timer to avoid the annotation would be the worse trade.
  */
 @OptIn(FlowPreview::class)
-class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewModel() {
+class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher, private val replace: WorkspaceReplace) :
+  ViewModel() {
   private val _uiState = MutableStateFlow(WorkspaceSearchUiState())
   val uiState: StateFlow<WorkspaceSearchUiState> = _uiState.asStateFlow()
+
+  /**
+   * What a Replace All goes through - see [WorkspaceReplaceAll] for why it is a collaborator and
+   * not four more functions here.
+   */
+  val replaceAll = WorkspaceReplaceAll(_uiState, replace, viewModelScope)
 
   /**
    * What has been asked for, each carrying how long it is willing to wait.
@@ -172,12 +192,12 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
    */
   private suspend fun walk(query: SearchQuery, scope: SearchScope) {
     if (query.text.isEmpty()) {
-      _uiState.update { it.copy(results = emptyList(), limitHit = false, searching = false, completed = false) }
+      _uiState.update { it.emptied(searching = false) }
       return
     }
     if (query.compile() is CompiledQuery.Invalid) return
     // `showEmptyStage()` - the tree is emptied when the walk *starts*, not as the box is typed in.
-    _uiState.update { it.copy(results = emptyList(), limitHit = false, searching = true, completed = false) }
+    _uiState.update { it.emptied(searching = true) }
     searcher.search(query, scope).collect { progress -> _uiState.update { it.after(progress) } }
   }
 }
@@ -189,6 +209,17 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
  * here is a flow: `debounce { it.waitMillis }` is the `Delayer` the reference re-arms per call.
  */
 private data class SearchRequest(val query: SearchQuery, val scope: SearchScope, val waitMillis: Long)
+
+/**
+ * The tree emptied, and **the report with it** - `showEmptyStage()` calls `clearMessage()`
+ * (`searchView.ts:1996`).
+ *
+ * Which is also the whole lifetime of the undo a report carries, and why it is offered beside that
+ * sentence rather than floated over the panel: one undo, living exactly as long as the line that
+ * offers it.
+ */
+private fun WorkspaceSearchUiState.emptied(searching: Boolean): WorkspaceSearchUiState =
+  copy(results = emptyList(), limitHit = false, searching = searching, completed = false, report = null)
 
 /** One more thing the walk said, folded into what is on screen. */
 private fun WorkspaceSearchUiState.after(progress: SearchProgress): WorkspaceSearchUiState = when (progress) {

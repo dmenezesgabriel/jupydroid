@@ -109,4 +109,39 @@ class ReplaceAllMessagesTest {
     assertEquals("Replace 5 occurrences across 2 files with 'dog'?", replaceAllConfirmation(5, 2, "dog"))
     assertEquals("Replaced 5 occurrences across 2 files with 'dog'.", replaceAllReport(5, 2, "dog"))
   }
+
+  // --- the two refusals, which quote different messages ------------------------------------------
+
+  /**
+   * `_validateBeforePrepare`'s own `Error`, which is a template literal rather than a localized
+   * string (`bulkTextEdits.ts:216`) - so this is the sentence, not a translation of it.
+   */
+  @Test
+  fun aStaleResourceQuotesTheReferencesOwnConflict() {
+    assertEquals("notes.py has changed in the meantime", staleResourceMessage("notes.py"))
+  }
+
+  /**
+   * `cannotWorkspaceUndoDueToChanges` (`undoRedoService.ts:864-867`), with both substitutions
+   * resolved: `{0}` is the bulk edit's label and a search replace passes none, so it is
+   * `IBulkEditService`'s own default *"Workspace Edit"* (`bulkEditService.ts:152`), and `{1}` is
+   * the impacted resources joined by `', '`.
+   */
+  @Test
+  fun aRefusedUndoNamesTheCommandAndEveryFileThatMovedOn() {
+    assertEquals(
+      "Could not undo 'Workspace Edit' across all files because changes were made to " +
+        "notes.py, reports/a.py",
+      couldNotUndoMessage(listOf("notes.py", "reports/a.py")),
+    )
+  }
+
+  /** One file is the same sentence with nothing to join - the reference has no singular arm here. */
+  @Test
+  fun aRefusedUndoOverOneFileNamesTheOneFile() {
+    assertEquals(
+      "Could not undo 'Workspace Edit' across all files because changes were made to notes.py",
+      couldNotUndoMessage(listOf("notes.py")),
+    )
+  }
 }

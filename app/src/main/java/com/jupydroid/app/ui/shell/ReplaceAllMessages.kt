@@ -64,3 +64,38 @@ private fun countedSentence(
   val with = if (replaceValue.isEmpty()) "" else " with '$replaceValue'"
   return "$verb $occurrences $occurrence across $fileCount $file$with$ends"
 }
+
+/**
+ * *"notes.py has changed in the meantime"* - one resource the walk's reading no longer matches.
+ *
+ * `_validateBeforePrepare`'s own `Error`, which is a template literal and not a localized string
+ * (`bulkTextEdits.ts:216`) - so this is the sentence rather than a translation of it.
+ *
+ * **Drawn once per stale resource, where the reference draws it once.** `_validateBeforePrepare`
+ * throws on the first mismatch it meets, so a reader is told about one file out of however many
+ * moved on; `ReplaceOutcome.Refused` carries them all, for the reason its own docstring gives, and
+ * repeating the reference's sentence per path says so without inventing a plural of it.
+ *
+ * ```
+ * staleResourceMessage("notes.py")   // "notes.py has changed in the meantime"
+ * ```
+ */
+fun staleResourceMessage(path: String): String = "$path has changed in the meantime"
+
+/**
+ * *"Could not undo 'Workspace Edit' across all files because changes were made to notes.py"*.
+ *
+ * `cannotWorkspaceUndoDueToChanges` (`undoRedoService.ts:864-867`) with both substitutions
+ * resolved: `{0}` is the bulk edit's label, and a search replace passes none - `apply(edits, {
+ * progress })` (`replaceService.ts:117`) - so it is `IBulkEditService`'s own default
+ * (`bulkEditService.ts:152`). `{1}` is the impacted resources, joined the reference's way.
+ *
+ * ```
+ * couldNotUndoMessage(listOf("notes.py"))
+ * ```
+ */
+fun couldNotUndoMessage(paths: List<String>): String =
+  "Could not undo '$WORKSPACE_EDIT' across all files because changes were made to ${paths.joinToString(", ")}"
+
+/** `localize('workspaceEdit', "Workspace Edit")` - what a replace's undo entry is called. */
+private const val WORKSPACE_EDIT = "Workspace Edit"

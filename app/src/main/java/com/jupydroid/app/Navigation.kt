@@ -31,6 +31,7 @@ import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.shell.SearchSidePanel
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
+import com.jupydroid.app.ui.shell.WorkspaceReplace
 import kotlinx.coroutines.launch
 
 /**
@@ -226,6 +227,12 @@ fun MainNavigation(
             SidePanel.SEARCH ->
               SearchSidePanel(
                 searcher = appContainer.workspaceSearcher,
+                // Built here and not in `AppContainer`, because the registry it needs is the
+                // shell's own state rather than a process-wide implementation: `openDocuments` is
+                // remembered by this composition and a container outlives every one of them.
+                replace = remember {
+                  WorkspaceReplace(openDocuments, appContainer.notebookRepository, appContainer.workspaceRepository)
+                },
                 // The path is what opens a document, exactly as the browser's own rows hand one up
                 // - `docmanager:open` decides the editor from the path and nothing else. The match
                 // travels beside it, because `openEditor` takes a `selection` as well as a resource

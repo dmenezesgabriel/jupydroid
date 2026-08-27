@@ -15,7 +15,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.SidePanel
+import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.domain.model.MatchedFile
 import com.jupydroid.app.domain.model.MatchedLine
@@ -55,11 +58,24 @@ class SearchSidePanelTest {
 
   private val opened = mutableListOf<Pair<String, Int>>()
 
-  private fun show(searcher: WorkspaceSearcher) {
+  /**
+   * The workspace a Replace All writes to, seeded **apart** from what the walk finds.
+   *
+   * Which is how it is on a device too: `FakeWorkspaceSearcher` answers a query out of a map of its
+   * own, and the replace goes to the repository. Seeding both from one call site would hide the one
+   * thing worth pinning - that a replace writes to what the *files* hold and not to what the panel
+   * is drawing.
+   */
+  private var workspace = FakeWorkspaceRepository()
+
+  private fun show(searcher: WorkspaceSearcher, files: Map<String, String> = emptyMap()) {
+    workspace = FakeWorkspaceRepository(textByPath = files)
+    val replace = WorkspaceReplace(OpenDocuments(), FakeNotebookRepository(), workspace)
     compose.setContent {
       JupyterDroidTheme {
         SearchSidePanel(
           searcher = searcher,
+          replace = replace,
           onOpenMatch = { file, match -> opened += file.path to match.line },
         )
       }
@@ -369,11 +385,13 @@ class SearchSidePanelTest {
   @Test
   fun whatWasFoundSurvivesThePanelLeavingComposition() {
     val showing = mutableStateOf(true)
+    val replace = WorkspaceReplace(OpenDocuments(), FakeNotebookRepository(), FakeWorkspaceRepository())
     compose.setContent {
       JupyterDroidTheme {
         if (showing.value) {
           SearchSidePanel(
             searcher = FakeWorkspaceSearcher(mapOf("notes.py" to "print(cat)")),
+            replace = replace,
             onOpenMatch = { file, match -> opened += file.path to match.line },
           )
         }
