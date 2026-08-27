@@ -286,6 +286,11 @@ fun MainNavigation(
             },
             onBack = { backStack.removeLastOrNull() },
             onNotebookMoved = { moved -> openNotebookId = moved },
+            // The same request the file editor takes, because the panel does not know - and should
+            // not - which of the two a path opens: `docmanager:open` decides the editor from the
+            // path alone, and the match travels beside it either way.
+            reveal = revealRequest,
+            onRevealHandled = { revealRequest = null },
           )
         }
       },

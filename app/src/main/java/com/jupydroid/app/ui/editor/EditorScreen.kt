@@ -38,6 +38,7 @@ import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
@@ -102,6 +103,15 @@ fun EditorScreen(
    * created with.
    */
   onNotebookMoved: (String) -> Unit = {},
+  /**
+   * A workspace search result this notebook was opened from, to be landed on - the notebook half of
+   * what [com.jupydroid.app.ui.fileeditor.FileEditorScreen] already does for a plain file.
+   *
+   * Null for every other way of opening a notebook, which is every way there was before P2x-4d.
+   */
+  reveal: MatchedLine? = null,
+  /** Consumed once, the way `browseRequest` is - see the `LaunchedEffect` below. */
+  onRevealHandled: () -> Unit = {},
   modifier: Modifier = Modifier,
   viewModel: EditorViewModel = viewModel {
     EditorViewModel(
@@ -192,6 +202,7 @@ fun EditorScreen(
       // between two matches already in front of the reader must not yank the notebook.
       if (index >= 0 && !listState.isFullyVisible(index)) listState.animateScrollToItem(index)
     }
+    LandingOnAMatch(reveal, state, viewModel.edits, listState, onRevealHandled)
     // **A cell about to be typed into has to be on screen**, which is the reference's `_ensureFocus`
     // (`packages/notebook/src/widget.ts:2885-2905`) - see [cellBeingEditedIndex] for the rule and
     // for what its absence cost. Keyed on the cell and the mode rather than on the document, so

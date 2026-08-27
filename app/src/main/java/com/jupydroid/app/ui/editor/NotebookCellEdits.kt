@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.MatchedLine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -104,6 +105,32 @@ class NotebookCellEdits(
     if (after === before) return
     uiState.value = after
     if (after.cells !== before.cells) save.schedule()
+  }
+
+  /**
+   * Lands on a match the **workspace** search found, and answers with the cell it landed on.
+   *
+   * [revealCell]'s stronger sibling: a search result is landed on with [EditorUiState.landedOn],
+   * which undoes the collapsed source and the rendered prose as well as the section - the split
+   * [CellReveal] draws, and the reference's own. Not undoable, for [revealCell]'s reason: being
+   * sent somewhere is not an operation anybody asked to take back.
+   *
+   * Null when the notebook no longer holds the match, which leaves the document untouched - the
+   * caller has nothing to scroll to and says so.
+   *
+   * ```
+   * edits.landOnMatch(match)?.let { scrollTo(it) }
+   * ```
+   */
+  fun landOnMatch(match: MatchedLine): String? {
+    val before = uiState.value
+    val after = before.landedOn(match)
+    if (after === before) return null
+    uiState.value = after
+    // The same guard [revealCell] uses: only a *persisted* change is worth a write, and reading
+    // through a workspace's matches must not rewrite every notebook it visits.
+    if (after.cells !== before.cells) save.schedule()
+    return after.selectedCellId
   }
 
   /**
