@@ -20,12 +20,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.MatchedLine
+import com.jupydroid.app.domain.model.rangeIn
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
@@ -59,6 +65,15 @@ fun FileEditorScreen(
    */
   editorSettingsRepository: EditorSettingsRepository,
   onBack: () -> Unit,
+  /**
+   * A search result this screen was opened from, to be landed on - `IEditorOptions.selection`,
+   * which `searchView.open` builds from the match's own range (`searchView.ts:2240-2256`).
+   *
+   * Null for every other way of opening a file, which is every way there was before P2x-3f.
+   */
+  reveal: MatchedLine? = null,
+  /** Consumed once, the way `browseRequest` is - see the `LaunchedEffect` below. */
+  onRevealHandled: () -> Unit = {},
   modifier: Modifier = Modifier,
   viewModel: FileEditorViewModel =
     viewModel { FileEditorViewModel(path, workspaceRepository, applicationScope) },
@@ -89,14 +104,42 @@ fun FileEditorScreen(
         // The whole file scrolls, rather than the field: a `BasicTextField` given an unbounded
         // height lays out every line, which is what keeps one gutter numbering the whole document
         // instead of a window onto it.
+        // **The field's state is remembered against the text it was built from**, because landing on
+        // a match means editing that state and the file arrives after the first composition.
+        val source = rememberTextFieldState(state.text)
+        val scroll = rememberScrollState()
+        // How the field laid the text out, which is the only thing that knows where a line ended up
+        // once wrapping has had its say - see `CodeCellField.onLayoutMeasured`.
+        var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+        // `selection` handed to `openEditor` (`searchView.ts:2245-2256`), applied once the file is
+        // here **and** laid out: selecting is half of landing on a match and scrolling to it is the
+        // other, and only the layout can say where to scroll to. A match the file no longer holds
+        // does neither, rather than selecting the wrong characters (`MatchedLine.rangeIn`) - and
+        // either way the request is reported handled, so a later recomposition cannot drag the
+        // reader back to a match they have scrolled away from.
+        // Once per request, whatever the field does afterwards: `onLayoutMeasured` fires again on
+        // any re-measure, and without this the effect would re-run and report the same match handled
+        // twice - measured, at `expected:<1> but was:<2>`.
+        var landedOn by remember { mutableStateOf<MatchedLine?>(null) }
+        LaunchedEffect(reveal, state.text, layout) {
+          val measured = layout ?: return@LaunchedEffect
+          val landing = reveal?.takeIf { it != landedOn } ?: return@LaunchedEffect
+          landedOn = landing
+          landing.rangeIn(state.text)?.let { found ->
+            source.edit { selection = TextRange(found.first, found.last + 1) }
+            scroll.scrollTo(measured.topOf(found.first))
+          }
+          onRevealHandled()
+        }
         CodeCellField(
-          state = rememberTextFieldState(state.text),
+          state = source,
           onSourceEdited = viewModel::edit,
           highlighter = state.syntax,
           typing = remember(state.name, editorSettings.autoClosingBrackets) {
             typingRulesFor(state.name, editorSettings.autoClosingBrackets)
           },
-          modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+          onLayoutMeasured = { layout = it },
+          modifier = Modifier.fillMaxSize().verticalScroll(scroll),
         )
       }
     }
@@ -132,3 +175,13 @@ private fun FileEditorError(message: String) {
     modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
   )
 }
+
+/**
+ * The top of the line [offset] sits on, in pixels from the top of the text.
+ *
+ * `revealRangeInCenterIfOutsideViewport`'s job done plainly: the reference centres a revealed range
+ * in the viewport, and this puts it at the top. Centring needs the viewport's height, which the
+ * scroll state knows and the layout does not - and the top of the file above a match is the context
+ * a reader wants anyway, where centring would spend half the screen on what came before it.
+ */
+private fun TextLayoutResult.topOf(offset: Int): Int = getLineTop(getLineForOffset(offset)).toInt()

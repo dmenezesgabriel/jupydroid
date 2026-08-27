@@ -3130,7 +3130,50 @@ The closing half does not, and the reason is the platform's: focusing a text fie
 the soft keyboard, so giving focus back would re-raise the keyboard the reader had just put away by
 closing the details — the opposite of what the tap meant. The reference has no keyboard to raise.
 
+### Opening a result lands on the match, and the match rides beside the route (P2x-3f)
+
+`searchView.open` hands `openEditor` a `selection` built from the match's own range
+(`searchView.ts:2240-2256`) - a range and not a line, so the editor reveals it *and* shows which
+characters were found.
+
+**Beside the route rather than inside it.** `NavEntry.contentKey` defaults to the key's
+`toString()`, so a match carried in `FileEditor` would make the same file opened from search and
+from the browser two entries with two `ViewModelStore`s - two editors on one document, which
+`FileEditor`'s own doc already warns about. It travels as `revealRequest` in the shell, consumed
+once, which is the pattern `browseRequest` set.
+
+**Selecting is half of landing.** The other half is the scroll, and only the field's own
+`TextLayoutResult` knows where a line ended up once wrapping has had its say - so `CodeCellField`
+now offers the layout it already computed for its gutter through `onLayoutMeasured`, and the screen
+scrolls to `getLineTop(getLineForOffset(…))`. Line-index × line height would be wrong the moment a
+line wraps.
+
+**The reference centres a revealed range and this puts it at the top.** Centring needs the viewport
+height, which the layout does not carry, and the lines above a match are the context a reader wants
+anyway - centring would spend half the screen on what came before it.
+
+**A file that moved on is not guessed at.** `MatchedLine.rangeIn` answers null rather than selecting
+whatever now sits at those offsets, because the workspace is shared with the kernel and a cell can
+rewrite a file between the walk and the tap. The reference refuses a stale match the same way,
+throwing *"has changed in the meantime"* on a version mismatch (`replaceService.ts:213-216`).
+
 ## Harness
+
+### Where the editor is scrolled to is a thing no Maestro flow can assert (P2x-3f)
+
+`p2x-3-open-at-the-match` asserted the matched line was visible after the tap and **passed with the
+editor on line 1**, the match forty-six lines below the fold: the editor is one node carrying the
+whole file, so any text in it matches at any scroll position.
+
+The gutter was the next idea and is not one either - line numbers are *drawn* by
+`Modifier.lineNumbers`, not composed as nodes, so `assertVisible: "47"` fails against an editor
+showing line 47 perfectly well. Written, run, and removed on the measurement.
+
+What can see it: the **screenshot**, and an instrumented test reading the node's own
+`VerticalScrollAxisRange` (`FileEditorRevealTest.theMatchIsScrolledOnToTheScreen`, red first at
+*"the editor never scrolled off the top"*). The flow keeps the file assertion, states in its own
+header that it cannot assert the landing, and names the two things that do. This is the working
+agreement's *"a green log is only half the evidence"* in one step.
 
 ### A lazy list is what a two-pane test cannot lay out, and a `Column` was hiding it (P2x-3e)
 

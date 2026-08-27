@@ -62,6 +62,14 @@ fun CodeCellField(
   lineNumbersShown: Boolean = true,
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
+  /**
+   * How the text came out, for a caller that has to put a *place in it* on screen.
+   *
+   * The field owns this - it is what `BasicTextField` measured - and a caller that guessed instead
+   * would be guessing wrong the moment a line wraps. `FileEditorScreen` reads it to scroll a search
+   * match into view (P2x-3f); everything else takes the default and never hears about layout.
+   */
+  onLayoutMeasured: (TextLayoutResult) -> Unit = {},
 ) {
   val styles = syntaxStyles()
   val matched = bracketMatchStyle()
@@ -88,7 +96,7 @@ fun CodeCellField(
       // The gutter's width comes from the line *count*, so it never depends on the layout this
       // callback publishes - which is what keeps writing state from here out of a measure loop.
       modifier = modifier.lineNumbers(state.text, layout, numberStyle, gutter),
-      onTextLayout = { getResult -> layout = getResult() },
+      onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
       textStyle = codeStyle,
       interactionSource = interactions,
       cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

@@ -45,3 +45,39 @@ data class MatchedLine(val line: Int, val text: String, val range: IntRange)
 fun matchedLinesIn(text: String, regex: Regex): List<MatchedLine> = text.split("\n").flatMapIndexed { at, line ->
   regex.findAll(line).map { MatchedLine(line = at + 1, text = line, range = it.range) }
 }
+
+/**
+ * Where this match sits in [text] as a whole, or null when [text] no longer holds it.
+ *
+ * What opening a result has to land on: `searchView.open` builds a `selection` from the match's own
+ * range and hands it to `openEditor` (`searchView.ts:2240`), so the editor reveals the match *and*
+ * shows which characters were found. A [MatchedLine] carries offsets within its own line, and this
+ * is the arithmetic from there to the file's.
+ *
+ * **Null rather than a guess when the file has moved on.** The workspace is shared with the kernel,
+ * so a cell can rewrite a file between the walk and the tap. The reference refuses a stale match the
+ * same way, throwing *"has changed in the meantime"* on a version mismatch
+ * (`replaceService.ts:213-216`); selecting whatever now happens to sit at those offsets would be
+ * worse than landing at the top of the file.
+ *
+ * ```
+ * MatchedLine(2, "print(cat)", 6..8).rangeIn("import os\nprint(cat)\n")   // 16..18
+ * ```
+ */
+fun MatchedLine.rangeIn(text: String): IntRange? {
+  val start = text.split("\n").startOf(this) ?: return null
+  return (start + range.first)..(start + range.last)
+}
+
+/**
+ * Where [match]'s line begins in these lines, or null when they no longer hold it.
+ *
+ * Its own function because the two halves answer different questions - whether the line is still
+ * there and long enough, and how far into the file it starts. detekt asked for the split by counting
+ * returns, and the seam it landed on is the right one, exactly as it was for `asSearchRegex`.
+ */
+private fun List<String>.startOf(match: MatchedLine): Int? {
+  val line = getOrNull(match.line - 1) ?: return null
+  // Every earlier line and the newline that ended it.
+  return if (match.range.last >= line.length) null else take(match.line - 1).sumOf { it.length + 1 }
+}

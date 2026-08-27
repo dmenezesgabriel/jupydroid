@@ -23,6 +23,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
+import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.explorer.ExplorerScreen
@@ -100,6 +101,12 @@ fun MainNavigation(
   // because that one exists for something flowing **sideways** between two entries and this flows
   // down from their common parent: the editor asks here, and here is already above the browser.
   var browseRequest by remember { mutableStateOf<String?>(null) }
+  // The match a search result was opened from, on its way to the editor that has to land on it.
+  // **Beside the route rather than inside it**, which `browseRequest` is the precedent for and the
+  // `FileEditor` key is the reason: `NavEntry.contentKey` defaults to the key's `toString()`, so a
+  // match carried in the key would make the same file opened from search and from the browser two
+  // entries with two `ViewModelStore`s - two editors on one document.
+  var revealRequest by remember { mutableStateOf<MatchedLine?>(null) }
   // Which row the pane beside the browser belongs to, and **only while there is a pane beside it**.
   // In one window the browser is on screen exactly when nothing is open, so a marked row would
   // point at a pane that is not there. The notebook's path comes from `openNotebookId` rather than
@@ -213,9 +220,13 @@ fun MainNavigation(
                 searcher = appContainer.workspaceSearcher,
                 // The path is what opens a document, exactly as the browser's own rows hand one up
                 // - `docmanager:open` decides the editor from the path and nothing else. The match
-                // comes with it because the panel is the only thing that knows which one was
-                // tapped; **P2x-3f is what reads it**, to land the editor on the line.
-                onOpenMatch = { file, _ -> openDocument(file.path) },
+                // travels beside it, because `openEditor` takes a `selection` as well as a resource
+                // (`searchView.ts:2245-2256`) and the panel is the only thing that knows which
+                // result was tapped.
+                onOpenMatch = { file, match ->
+                  revealRequest = match
+                  openDocument(file.path)
+                },
               )
             null -> Unit
             SidePanel.FILES ->
@@ -245,6 +256,8 @@ fun MainNavigation(
             applicationScope = appContainer.applicationScope,
             editorSettingsRepository = appContainer.editorSettings,
             onBack = { backStack.removeLastOrNull() },
+            reveal = revealRequest,
+            onRevealHandled = { revealRequest = null },
           )
         }
         entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->

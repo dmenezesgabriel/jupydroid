@@ -1,0 +1,51 @@
+appId: com.jupydroid.app
+---
+# P2x-3f: a tap on a result lands the editor **on the match**, not at the top of the file.
+#
+# `searchView.open` hands `openEditor` a `selection` built from the match's own range
+# (`searchView.ts:2240-2256`), so the editor reveals it and shows which characters were found.
+# Before this the panel handed up the path and dropped the match.
+#
+# **The match is on line 47 of a 60-line file, and that is the whole design of this flow.** A match
+# on line 1 is on screen whether anything reveals it or not, so it would pass against an editor that
+# ignored the request entirely - which is exactly what this app did until now.
+#
+# The file's own first line is asserted *gone* for the same reason: `filler_1 = 1` is what an editor
+# that opened at the top would be showing.
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
+# this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- tapOn:
+    text: "^Search$"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "1 result in 1 file"
+    timeout: 15000
+- hideKeyboard
+- assertVisible: "deep.py, 1 match found"
+- takeScreenshot: 01-one-match-far-down-a-long-file
+# --- the tap, and where it lands ----------------------------------------------------------------
+- tapOn: "Line 47, MARKER_47 = \"the cat is on line forty-seven\""
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+# **This assertion cannot tell where the editor is scrolled to, and the first run of this flow
+# proved it.** The editor is one node carrying the whole file, so `(?s).*MARKER_47.*` matched while
+# the editor sat on line 1 with the match forty-six lines below the fold - green, against exactly
+# the thing this step exists to change. The screenshot is what caught it.
+#
+# It stays because it is still worth asserting the right *file* opened - and **nothing here can
+# assert where it is scrolled to**. The gutter was the next idea and it is not one either: line
+# numbers are *drawn* by `Modifier.lineNumbers`, not composed as nodes, so `assertVisible: "47"`
+# fails against an editor showing line 47 perfectly well.
+#
+# So the landing is proved by the two things that can see it: the screenshot below, which is why
+# this flow exists at all, and `FileEditorRevealTest.theMatchIsScrolledOnToTheScreen`, which reads
+# the scroll offset directly. `docs/DECISIONS.md` carries the reading.
+- assertVisible: "(?s).*MARKER_47.*"
+- takeScreenshot: 02-the-editor-landed-on-the-match
