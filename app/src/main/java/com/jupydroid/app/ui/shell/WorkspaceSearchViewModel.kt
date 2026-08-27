@@ -63,13 +63,13 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
   val uiState: StateFlow<WorkspaceSearchUiState> = _uiState.asStateFlow()
 
   /**
-   * The box's value on its way to the walk, held back by [SEARCH_ON_TYPE_DEBOUNCE_MILLIS].
+   * What has been asked for, each carrying how long it is willing to wait.
    *
    * A `SharedFlow` and not a `StateFlow`, so the same text typed twice is two requests: a
    * `StateFlow` conflates equal values, and re-submitting a query is a thing the reference lets you
-   * do (`onSearchSubmit`). `DROP_OLDEST` because only the newest keystroke can be worth walking.
+   * do (`onSearchSubmit`). `DROP_OLDEST` because only the newest request can be worth walking.
    */
-  private val typed = MutableSharedFlow<SearchQuery>(
+  private val asked = MutableSharedFlow<SearchRequest>(
     extraBufferCapacity = 1,
     onBufferOverflow = BufferOverflow.DROP_OLDEST,
   )
@@ -83,7 +83,9 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
     // *write* back and reports whether one is still owed on the way out. Nothing here is owed, and
     // what is needed instead - the superseded job cancelled and its partial results discarded - is
     // what `collectLatest` already is.
-    viewModelScope.launch { typed.debounce(SEARCH_ON_TYPE_DEBOUNCE_MILLIS).collectLatest { walk(it) } }
+    // **The delay is the request's and not this line's**, which is `triggerQueryChange`'s own shape:
+    // one path for every caller, and the caller says how long it waits (`searchView.ts:1589-1601`).
+    viewModelScope.launch { asked.debounce { it.waitMillis }.collectLatest { walk(it.query) } }
   }
 
   /**
@@ -93,9 +95,22 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
    * puts each of them - `isInputValid` is the input box's own validation, checked as you type,
    * while the query itself goes through `triggerQueryDelayer` (`searchView.ts:1589-1601`).
    */
-  fun queryChanged(query: SearchQuery) {
+  fun queryChanged(query: SearchQuery) = ask(query, SEARCH_ON_TYPE_DEBOUNCE_MILLIS)
+
+  /**
+   * One of the three option toggles flipped: shown at once and **walked at once**.
+   *
+   * `onDidOptionChange` calls `triggerQueryChange()` bare (`searchView.ts:712-713`), and that
+   * function's own default is `delay: 0` (`:1590`) - typing is the one caller that passes a period
+   * (`:584`). The reason holds outside the reference too: a debounce exists to wait for the next
+   * character, and a toggle has no next character coming.
+   */
+  fun optionChanged(query: SearchQuery) = ask(query, AT_ONCE)
+
+  /** What both of the above are - the box updated now, the walk requested for [waitMillis] from now. */
+  private fun ask(query: SearchQuery, waitMillis: Long) {
     _uiState.update { it.copy(query = query, parseError = (query.compile() as? CompiledQuery.Invalid)?.message) }
-    typed.tryEmit(query)
+    asked.tryEmit(SearchRequest(query, waitMillis))
   }
 
   /**
@@ -120,6 +135,14 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher) : ViewMo
   }
 }
 
+/**
+ * A walk asked for, and how long it waits before it starts.
+ *
+ * `triggerQueryChange`'s `{ delay }` as a value rather than as an argument, because what carries it
+ * here is a flow: `debounce { it.waitMillis }` is the `Delayer` the reference re-arms per call.
+ */
+private data class SearchRequest(val query: SearchQuery, val waitMillis: Long)
+
 /** One more thing the walk said, folded into what is on screen. */
 private fun WorkspaceSearchUiState.after(progress: SearchProgress): WorkspaceSearchUiState = when (progress) {
   is SearchProgress.Found -> copy(results = results + progress.file)
@@ -133,3 +156,6 @@ private fun WorkspaceSearchUiState.after(progress: SearchProgress): WorkspaceSea
  * until P6c, so typing is what runs a search here - the reference's own arrangement.
  */
 internal const val SEARCH_ON_TYPE_DEBOUNCE_MILLIS = 300L
+
+/** `triggerQueryChange`'s own default (`searchView.ts:1590`) - everything but a keystroke. */
+private const val AT_ONCE = 0L

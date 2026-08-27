@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -19,6 +20,10 @@ import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.assertReservesMinimumTouchTarget
+import com.jupydroid.app.ui.editor.IGNORE_CASE
+import com.jupydroid.app.ui.editor.MATCH_CASE
+import com.jupydroid.app.ui.editor.MATCH_WHOLE_WORD
+import com.jupydroid.app.ui.editor.USE_REGULAR_EXPRESSION
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
@@ -168,6 +173,67 @@ class SearchSidePanelTest {
     compose.onNodeWithContentDescription(fileMatchLabel("notes.py", 1)).assertReservesMinimumTouchTarget()
     compose.onNodeWithContentDescription(matchRowLabel(MatchedLine(line = 1, text = "print(cat)", range = 6..8)))
       .assertReservesMinimumTouchTarget()
+  }
+
+  /**
+   * **The three toggles, in the reference's own order** - `caseSensitive`, `wholeWords`, `regex`,
+   * which is the order `findInput.ts:181-197` appends them to the input's `.controls` under
+   * `showCommonFindToggles: true` (`searchWidget.ts:454`). The same order the notebook's find bar
+   * already lists them in.
+   *
+   * Order is asserted by **where they are**, not by where the semantics tree happens to walk: a
+   * left-to-right row is what a reader sees, so left-to-right is what is measured.
+   */
+  @Test
+  fun theThreeOptionTogglesSitOnTheBoxInTheReferencesOrder() {
+    show(FakeWorkspaceSearcher())
+
+    val lefts = listOf(MATCH_CASE, MATCH_WHOLE_WORD, USE_REGULAR_EXPRESSION).map { option ->
+      compose.onNodeWithContentDescription(option).assertIsDisplayed().getUnclippedBoundsInRoot().left
+    }
+
+    assertEquals(lefts.sorted(), lefts)
+  }
+
+  /**
+   * **A toggle says which way it is now by changing its name**, not by a check mark: Android's
+   * accessibility tree keeps a toggled state on a node that carries no label, so a mark is a state
+   * no flow and no screen reader can read (`docs/DECISIONS.md`). Every toggle in this app has two
+   * labels for that reason, and these three already have theirs in `ui/editor/FindTopBar.kt`.
+   */
+  @Test
+  fun aToggleNamesItselfByWhatItWillDoNext() {
+    show(FakeWorkspaceSearcher())
+
+    compose.onNodeWithContentDescription(MATCH_CASE).performClick()
+
+    compose.onNodeWithContentDescription(IGNORE_CASE).assertIsDisplayed()
+    compose.onNodeWithContentDescription(MATCH_CASE).assertDoesNotExist()
+  }
+
+  /** The toggle is read by the walk, not just carried: Match Case leaves the upper-case file behind. */
+  @Test
+  fun matchCaseNarrowsWhatIsOnScreen() {
+    show(FakeWorkspaceSearcher(mapOf("lower.py" to "print(cat)", "upper.py" to "print(CAT)")))
+
+    searchFor("cat", until = hasText(resultCountMessage(results = 2, files = 2)))
+    compose.onNodeWithContentDescription(MATCH_CASE).performClick()
+
+    compose.waitUntil(WALK_TIMEOUT_MILLIS) {
+      compose.onAllNodes(hasText(resultCountMessage(results = 1, files = 1))).fetchSemanticsNodes().isNotEmpty()
+    }
+    compose.onNodeWithContentDescription(fileMatchLabel("lower.py", 1)).assertIsDisplayed()
+    compose.onNodeWithContentDescription(fileMatchLabel("upper.py", 1)).assertDoesNotExist()
+  }
+
+  /** Three targets a thumb has to hit, side by side - Material's minimum, reserved on each. */
+  @Test
+  fun everyOptionToggleReservesTheMinimumTouchTarget() {
+    show(FakeWorkspaceSearcher())
+
+    listOf(MATCH_CASE, MATCH_WHOLE_WORD, USE_REGULAR_EXPRESSION).forEach { option ->
+      compose.onNodeWithContentDescription(option).assertReservesMinimumTouchTarget()
+    }
   }
 
   /** `collapseResults: alwaysExpand` - a file arrives open, and its header is what folds it. */

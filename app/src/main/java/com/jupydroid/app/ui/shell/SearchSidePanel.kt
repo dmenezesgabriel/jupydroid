@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.domain.model.MatchedFile
 import com.jupydroid.app.domain.model.MatchedLine
+import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeTextStyle
@@ -77,7 +78,11 @@ fun SearchSidePanel(
     // editor screen in this app already does this, and a panel whose whole point is a text field
     // over a list needs it most.
     Column(modifier = Modifier.padding(padding).fillMaxSize().imePadding()) {
-      SearchBox(text = state.query.text, onTextChanged = { viewModel.queryChanged(state.query.copy(text = it)) })
+      SearchBox(
+        query = state.query,
+        onTextChanged = { viewModel.queryChanged(state.query.copy(text = it)) },
+        onOptionChanged = viewModel::optionChanged,
+      )
       // Under the box, where the reference's own regex complaint goes.
       state.parseError?.let { PanelMessage(text = it, color = MaterialTheme.colorScheme.error) }
       // `progressService.withProgress` on the view's own location - a walk of a rootfs is slow
@@ -145,13 +150,15 @@ private fun PanelMessage(text: String, color: Color = MaterialTheme.colorScheme.
  * (`searchWidget.ts:291`).
  */
 @Composable
-private fun SearchBox(text: String, onTextChanged: (String) -> Unit) {
+private fun SearchBox(query: SearchQuery, onTextChanged: (String) -> Unit, onOptionChanged: (SearchQuery) -> Unit) {
   OutlinedTextField(
-    value = text,
+    value = query.text,
     onValueChange = onTextChanged,
     singleLine = true,
     textStyle = codeTextStyle(),
     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+    // Inside the input at its trailing edge, which is where `.controls` sits (`findInput.ts:196`).
+    trailingIcon = { SearchOptionToggles(query = query, onOptionChanged = onOptionChanged) },
     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
     modifier = Modifier
       .fillMaxWidth()

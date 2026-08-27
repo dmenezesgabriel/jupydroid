@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -87,6 +88,61 @@ class WorkspaceSearchViewModelTest {
 
     advanceTimeBy(1)
     assertEquals(listOf("cat"), walk.queries.map { it.text })
+  }
+
+  /**
+   * **An option is walked at once, where a keystroke waits** - and that split is the reference's
+   * own: `onDidOptionChange` calls `triggerQueryChange()` bare (`searchView.ts:712-713`), whose
+   * default is `delay: 0` (`:1590`), while typing is the one caller that passes
+   * `delay: searchOnTypeDebouncePeriod` (`:584`). A toggle is a decision already made; there is no
+   * next character coming to wait for.
+   *
+   * The counterpart is [nothingIsWalkedBeforeTheDebouncePeriodIsUp], which measures the other arm
+   * at its own boundary.
+   */
+  @Test
+  fun anOptionIsWalkedAtOnceWhereAKeystrokeWaits() = runTest {
+    val walk = SlowWorkspaceWalk(FakeWorkspaceSearcher(mapOf("notes.py" to "cat")))
+    val model = searchingIn(searcher = walk)
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+
+    model.optionChanged(SearchQuery("cat", caseSensitive = true))
+    runCurrent()
+
+    // No virtual time was advanced between the toggle and this line, so a walk that is here at all
+    // is one that did not wait - and the flag it carries is what says the option reached it.
+    assertEquals(listOf(false, true), walk.queries.map { it.caseSensitive })
+    assertTrue(model.uiState.value.query.caseSensitive)
+  }
+
+  /** The option is not just carried, it is *read* - Match Case leaves the upper-case file behind. */
+  @Test
+  fun matchCaseNarrowsWhatTheWalkFinds() = runTest {
+    val model = searchingIn("lower.py" to "cat", "upper.py" to "CAT")
+
+    model.queryChanged(SearchQuery("cat"))
+    advanceUntilIdle()
+    assertEquals(listOf("lower.py", "upper.py"), model.uiState.value.results.map { it.path })
+
+    model.optionChanged(SearchQuery("cat", caseSensitive = true))
+    advanceUntilIdle()
+    assertEquals(listOf("lower.py"), model.uiState.value.results.map { it.path })
+  }
+
+  /**
+   * A toggle flipped over a blank box walks nothing - the same `contentPattern.length === 0` guard
+   * a keystroke meets (`searchView.ts:1631-1632`), which the fast path must not go round.
+   */
+  @Test
+  fun anOptionFlippedOverABlankBoxWalksNothing() = runTest {
+    val walk = SlowWorkspaceWalk(FakeWorkspaceSearcher(mapOf("notes.py" to "cat")))
+    val model = searchingIn(searcher = walk)
+
+    model.optionChanged(SearchQuery("", caseSensitive = true))
+    advanceUntilIdle()
+
+    assertTrue(walk.queries.isEmpty())
   }
 
   /**

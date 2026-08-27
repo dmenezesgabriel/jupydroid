@@ -1,0 +1,91 @@
+appId: com.jupydroid.app
+---
+# P2x-3d: the three toggles on the query box, and what each one changes about the walk.
+#
+# `showCommonFindToggles: true` (`searchWidget.ts:454`) puts them inside the input, and
+# `findInput.ts:181-197` fixes their order - **case, whole word, regex**. VS Code answers for both
+# halves here: JupyterLab registers no workspace search at all (`docs/DECISIONS.md`, "The activity
+# bar's order takes both references").
+#
+# **Each toggle is proved by a query it changes the answer to**, never by tapping it and looking:
+#
+#   * whole word   - "cat" is 5 hits, but two of them are inside `feed_the_cat` and
+#                    `CAT_REPORT_TITLE`, where the neighbouring `_` is a word character. `\b` drops
+#                    exactly those two.
+#   * regex        - "c.t" is nothing at all as text, because `parseQuery` escapes a non-regex
+#                    query (`searchmodel.ts:398-427`), and is every "cat" as a pattern.
+#   * match case   - "CAT" finds all five while the walk is case-insensitive, and only the
+#                    upper-case one when it is not.
+#
+# A toggle says which way it is set by **flipping its own name**, not by a check mark: Android keeps
+# a toggled state on a node that carries no label (`docs/DECISIONS.md`), so the assertions below
+# address "Match anywhere" after turning whole-word on, and that *is* the state readout.
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
+# this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- tapOn:
+    text: "^Search$"
+# --- the three toggles are there, off, and named for what a tap will do -------------------------
+- assertVisible: "Match case"
+- assertVisible: "Match whole word"
+- assertVisible: "Use regular expression"
+- takeScreenshot: 01-three-toggles-on-the-box
+# --- whole word: `\b` drops the two hits that sit against an underscore -------------------------
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- hideKeyboard
+- tapOn: "Match whole word"
+- extendedWaitUntil:
+    visible: "3 results in 2 files"
+    timeout: 15000
+# The name flipped, which is the whole of how this app reports a toggle's state.
+- assertVisible: "Match anywhere"
+- takeScreenshot: 02-whole-word-drops-the-two-inside-identifiers
+- tapOn: "Match anywhere"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- assertVisible: "Match whole word"
+# --- regex: a query is escaped until this says it is a pattern ----------------------------------
+- tapOn: "Search the workspace"
+- eraseText
+- inputText: "c.t"
+- extendedWaitUntil:
+    visible: "No results found"
+    timeout: 15000
+- hideKeyboard
+- tapOn: "Use regular expression"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- assertVisible: "Search for plain text"
+- takeScreenshot: 03-the-same-query-as-a-pattern
+- tapOn: "Search for plain text"
+- extendedWaitUntil:
+    visible: "No results found"
+    timeout: 15000
+# --- match case ---------------------------------------------------------------------------------
+- tapOn: "Search the workspace"
+- eraseText
+- inputText: "CAT"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- hideKeyboard
+- tapOn: "Match case"
+- extendedWaitUntil:
+    visible: "1 result in 1 file"
+    timeout: 15000
+- assertVisible: "Ignore case"
+# `reports/analysis.py` is the only file holding an upper-case CAT, and it holds one - so the
+# other file leaves the tree entirely, which is the half a count alone does not show.
+- assertVisible: "reports/analysis.py, 1 match found"
+- assertNotVisible: "notes.py, 3 matches found"
+- takeScreenshot: 04-match-case-leaves-one

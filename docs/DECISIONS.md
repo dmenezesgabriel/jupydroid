@@ -3024,6 +3024,71 @@ sees. The other half is a real configuration change, which no Compose test drive
 device flow: `p2x-2-rotation`, TABLET ONLY (the emulator is one pane in both orientations) and
 NOT A SUITE FLOW (it rotates the device, which every flow after it on that device would inherit).
 
+### The option toggles are drawn as type, because Material ships none of the three glyphs (P2x-3d)
+
+`match_case`, `match_word` and `regular_expression` are Material **Symbols**. The artifact this app
+depends on is `material-icons-extended`, and it has **none of them** — checked in the jar, not
+assumed: what it does have near the subject is `Abc`, `Spellcheck`, `TextFields` and `FormatSize`,
+each of which means something else. A near-miss icon is worse than no icon; it is a control that
+lies about what it does.
+
+The reference's own icons are **typographic**, read from the codicon sources rather than remembered
+(`vscode-codicons/src/icons/`): `case-sensitive` is a capital and a lower-case A, `whole-word` is
+two letters over a full-width rule, `regex` is an asterisk and a dot. So type draws them — `Aa`,
+`ab` underlined, `.*` — in `symbolKeyStyle`, the style that exists for exactly this case and says so
+in its own doc: monospace for the *shape* of a mark rather than because it is source
+(`scripts/check_monospace_home.py` states the rule and this exception together).
+
+### A toggle's on state is a wash and a new name, and the wash is a role this app already had (P2x-3d)
+
+The reference's `Toggle` marks *on* with `inputOption.activeBackground` / `activeForeground` and no
+check mark. Resolved in the 2026 themes (`scripts/resolve_vscode_theme.py`) against what Material's
+`secondaryContainer` pair already resolves to on this app's ramp:
+
+| | reference | this app's role | delta |
+|---|---|---|---|
+| dark background | `#313233` | `#2C2D2E` (`DarkGray6`) | one step of the same ramp |
+| dark foreground | `#bfbfbf` | `#BBBEBF` (`DarkGray9`) | 4/255 |
+| light background | `#D6D6D6` | `#DADADA` (`LightGray4`) | 4/255 |
+| light foreground | `#202020` | `#202020` (`LightGray1`) | **equal** |
+
+So the role carries it and no fourth colour id is introduced. P2u's own rule is that a palette
+states colours something draws (`scripts/check_palette_consumers.py`); three new ids a hair from
+three existing ones would be the opposite of that.
+
+**The wash is not the accessible state.** Android keeps a toggled state on a node that carries no
+label, so what says which way a toggle is set is the label itself, flipped — the rule every toggle
+in this app has followed since the export picker. A control here reads as what a **tap will do**,
+never as what is currently true, which is why a flow asserts *"Match anywhere"* to prove whole-word
+is **on**.
+
+### A toggle is walked at once and a keystroke is not, so the delay moved onto the request (P2x-3d)
+
+`onDidOptionChange` calls `triggerQueryChange()` bare (`searchView.ts:712-713`), and that function's
+own default is `delay: 0` (`:1590`). Typing is the **one** caller that passes a period,
+`searchOnTypeDebouncePeriod` (`:584`), and the include/exclude boxes are the other (`:582-588`).
+
+The reason holds outside the reference too: a debounce exists to wait for the next character, and a
+toggle has no next character coming.
+
+So `WorkspaceSearchViewModel` carries the wait on the request rather than on the operator —
+`debounce { it.waitMillis }` over a `SearchRequest(query, waitMillis)`, which is `triggerQueryChange`
+as a value. One path for every caller, and `collectLatest`'s cancellation still supersedes a pending
+walk whichever door it came through. Pinned by `anOptionIsWalkedAtOnceWhereAKeystrokeWaits` and
+mutation-checked: setting `AT_ONCE` to the debounce period fails it.
+
+### The replace toggle is P2x-5's, not P2x-3's (P2x-3d)
+
+`docs/PLAN.md`'s P2x-3 row lists a replace toggle among the query UI. It is **declined here** and
+ships with the behaviour behind it, for the reason P2x-1e already recorded: `replaceAll` came off
+the port because the reference replaces through the editor-model stack over *the matches on screen*
+(`replaceService.ts:115-118`, `bulkTextEdits.ts:227`), and P2x-5 is where that lands together with
+the open-document registry the open risks name.
+
+A Replace All that cannot replace is the control this file already refuses under the export
+formats — *"a row that can only fail is a control that lies"*. The row is corrected rather than
+quietly under-delivered.
+
 ## Harness
 
 ### The local gate does not compile `androidTest`, and it went green over a file that would not build (P2x-2)

@@ -192,7 +192,7 @@ private fun MatchPreview.annotated(): AnnotatedString {
  * (`ui/MinimumTouchTarget.kt` records the same reading against an `IconButton`). Constraining the
  * node that carries the tap is what actually reserves the space.
  */
-private val MINIMUM_TAP_TARGET: Dp = 48.dp
+internal val MINIMUM_TAP_TARGET: Dp = 48.dp
 
 /**
  * What a file's header answers to - its path and the reference's own count wording,
