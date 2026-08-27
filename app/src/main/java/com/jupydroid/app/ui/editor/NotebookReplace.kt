@@ -1,7 +1,9 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.replacementFor
+import com.jupydroid.app.domain.model.withEditsApplied
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -57,12 +59,7 @@ fun EditorUiState.withCurrentMatchReplaced(): EditorUiState {
 
 /** The rewrite itself, split off so [withCurrentMatchReplaced] answers "is there one" and nothing else. */
 private fun EditorUiState.replacing(searching: SearchState, hit: SearchHit, cell: Cell): EditorUiState {
-  val replacement = replacementFor(
-    matched = cell.source.substring(hit.range.first, hit.range.last + 1),
-    replaceText = searching.replaceText,
-    query = searching.query,
-    preserveCase = searching.preserveCase,
-  )
+  val replacement = searching.replacementOf(cell.source.substring(hit.range))
   val rewritten = cell.source.replaceRange(hit.range.first, hit.range.last + 1, replacement)
   // Where the cursor goes next: the end of what was just written, not the start of it.
   val after = hit.range.first + replacement.length
@@ -97,24 +94,24 @@ fun EditorUiState.withAllMatchesReplaced(): EditorUiState {
   return copy(cells = rewritten, dirty = true).recording(before = this).withSearchRecomputed()
 }
 
-/** One cell's source with every one of its matches replaced, keeping the text between them. */
-private fun String.withHitsReplaced(hits: List<SearchHit>, searching: SearchState): String {
-  val out = StringBuilder()
-  var lastEnd = 0
-  hits.forEach { hit ->
-    out.append(substring(lastEnd, hit.range.first))
-    out.append(
-      replacementFor(
-        matched = substring(hit.range.first, hit.range.last + 1),
-        replaceText = searching.replaceText,
-        query = searching.query,
-        preserveCase = searching.preserveCase,
-      ),
-    )
-    lastEnd = hit.range.last + 1
-  }
-  return out.append(substring(lastEnd)).toString()
-}
+/**
+ * One cell's source with every one of its matches replaced, keeping the text between them.
+ *
+ * **The fold itself is [withEditsApplied]'s**, not this file's. P2x-5a moved it to `domain/model`
+ * because a workspace replace needs the identical arithmetic over `MatchedLine`s, and two copies of
+ * "append what is between, then the replacement" is how the two would drift apart.
+ */
+private fun String.withHitsReplaced(hits: List<SearchHit>, searching: SearchState): String =
+  withEditsApplied(hits.map { TextEdit(it.range, searching.replacementOf(substring(it.range))) })
+
+/**
+ * What [matched] becomes under this search - [replacementFor] bound to the row's own three fields.
+ *
+ * Both replace commands need it and neither should have to re-state which of [SearchState]'s
+ * fields feed which parameter.
+ */
+private fun SearchState.replacementOf(matched: String): String =
+  replacementFor(matched = matched, replaceText = replaceText, query = query, preserveCase = preserveCase)
 
 /** Re-runs the query and stands on the first match at or after where a replacement ended. */
 private fun EditorUiState.withSearchRefoundFrom(cellId: String, offset: Int): EditorUiState {
