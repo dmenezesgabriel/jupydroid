@@ -2893,7 +2893,7 @@ because Windows produces a backslash; every path this app matches is workspace-r
 `WorkspaceRoot` refuses anything else. The narrowing is applied to the reference's output before
 the parity comparison, so it is the only edit and it is visible in the test's own doc.
 
-### The three things a workspace walk declines to read (P2x-1d)
+### The three things a workspace walk declines to read (P2x-1d, and one of them lifted by P2x-4b)
 
 `DiskWorkspaceSearcher` reads every file in the tree to answer one query, and three kinds of file
 are passed over. Each is a decision, and one of them departs from the reference.
@@ -2907,11 +2907,12 @@ directory traversal"*, removes such a file from the search completely. Checked o
 than after decoding, so a PNG is never turned into a megabyte of replacement characters on the way
 to being discarded.
 
-**A notebook, until a hit can name its cell.** Read as the JSON it is, a `.ipynb` would report
-`"cell_type"` and the inside of a base64 image output as matches - which is exactly what P2x-4's
-gate forbids. Searching it wrongly now and fixing it later would be a defect shipped on purpose, so
-it is skipped, with the skip named in the code and pinned by a test. P2x-4 lifts it and makes a hit
-a *cell* hit, holding input apart from rendered output as `searchNotebookHelpers.ts` does.
+**A notebook, until a hit could name its cell - and P2x-4b lifted it.** Read as the JSON it is, a
+`.ipynb` would report `"cell_type"` and the inside of a base64 image output as matches. Searching it
+wrongly and fixing it later would have been a defect shipped on purpose, so it was skipped, with the
+skip named in the code and pinned by a test. A notebook is now *parsed* rather than passed over, and
+the test that pinned the skip is the test that pins the opposite; what took its place as the walk's
+fourth refusal is **a notebook this app cannot read** - see the P2x-4b entry below.
 
 **A directory symlink, and this is the departure.** `search.followSymlinks` defaults to **true**
 (`search.contribution.ts:186-190`). The workspace lives inside a rootfs and a cell can call
@@ -3157,7 +3158,118 @@ whatever now sits at those offsets, because the workspace is shared with the ker
 rewrite a file between the walk and the tap. The reference refuses a stale match the same way,
 throwing *"has changed in the meantime"* on a version mismatch (`replaceService.ts:213-216`).
 
+### A notebook is searched as its cells, and the cell is named by **index** (P2x-4a)
+
+`INotebookCellMatchNoModel` is `{ index, contentResults, webviewResults }`
+(`vscode/…/search/common/searchNotebookHelpers.ts:18-22`), and `matchedCellsIn` is the first two of
+those three: one pass per cell over that cell's source, stamped with the cell's index.
+
+**The index and not the cell's id, on a measurement rather than a preference.** The reference falls
+back to `rawCell#${index}` wherever there is no live cell model to ask (`searchNotebookHelpers.ts:20`,
+`notebookSearchModel.ts:162`). Here the id is worse than merely absent: nbformat's cell id is
+optional before 4.5 and `CellFile.toDomain` mints a fresh `UUID` for a cell that carries none, so
+**the id the walk read and the id the editor loaded need not be the same string**. The index is.
+
+`MatchedLine.line` stays one-based and becomes the line **within that cell**, which is what makes
+the cell load-bearing in the label rather than decorative - two cells both have a line 1.
+
+### The fourth kind of file a workspace walk declines (P2x-4b)
+
+Three were recorded at P2x-1d - a binary file, a notebook, a directory symlink - and P2x-4b turns
+the second into its opposite: a notebook is now the one kind of file that is *parsed*. What it adds
+in its place is **a notebook this app cannot read**.
+
+`Json.readNotebook` throws for JSON that is not an object and for a `cell_type` outside nbformat's
+three (`NotebookFile.kt`), and one such file in a workspace must not end the walk over every other.
+The reference swallows a serializer's failure per file for the same reason - `catch (e) { return; }`
+around each notebook it deserializes (`extHostNotebook.ts:555-558`).
+
+Pinned by `aNotebookThatCannotBeReadIsPassedOver`, which is red without the decline.
+
+### VS Code searches a **closed** notebook as JSON, so this is its experimental branch (P2x-4b)
+
+`docs/PLAN.md`'s P2x-4 row said notebook-aware matching *"is VS Code parity rather than a departure
+from it"*. **Only for an open notebook**, and the tree says so: `NotebookSearchService` searches
+open notebook widgets cell-by-cell always, but reaches a *closed* one only when
+`search.experimental.closedNotebookRichContentResults` is on, and its registered default is
+**false** (`search.contribution.ts:287-291`, `notebookSearchService.ts:77`). Out of the box VS Code
+hands a closed `.ipynb` to ripgrep and **does** report `"cell_type"`.
+
+So what P2x-4 builds is that experimental branch - which is also, unconditionally, what JupyterLab's
+own document search does. The same "both references answer different halves" split P2x-2 recorded
+for the activity bar's order. It is a *better* answer than the reference's default rather than a
+worse one, and it is named here so nobody reads the code against the wrong baseline.
+
+### Cell outputs are not searched from the workspace panel (P2x-4)
+
+`webviewResults` - the third field of `INotebookCellMatchNoModel` - is not built. Three measurements
+decide it, and none of them is "later":
+
+**The references disagree, and the one that is closer to this app says no.** JupyterLab's `output`
+filter is **off** by default (`packages/notebook/src/searchprovider.ts:229-243`, already transcribed
+in `SearchState.searchOutputs`). VS Code's four notebook filters default **on**
+(`searchWidget.ts:204-208`) - but its filter control is hidden unless a notebook is open
+(`searchWidget.ts:227-231`), and this panel has no settings screen to expose one until P6c.
+
+**A hit in an output could not be landed on.** `SearchHit.outputAt` indexes the **rendered** outputs
+(`renderedOutputsOf`), not the stored ones, because that is what `CellOutputs` draws - and rendering
+drops `ClearOutput`. A disk-side index would name a different output from the one the editor shows.
+
+**And the rule for which outputs even have text is in the wrong layer to be shared.** *"Only what
+`RenderedOutput.Text` draws"* lives in `ui/editor/`, which `data/` may not import
+(`ArchitectureGuardTest`, `docs/architecture.md` §1). Closing this means giving "what text an output
+offers a search" one home that both can read - a real refactor with a real design question in it
+(the mime ranking that decides `text/plain` loses to `text/html`), not an afterthought.
+
+`docs/PLAN.md`'s open risks carry it as a gap with a named prerequisite.
+
+### The cell is named in the row's label, not drawn as a level of the tree (P2x-4c)
+
+`searchResultsView.ts` has **no notebook branch at all** - `grep -n cell` over it returns nothing.
+The cell rides on `MatchInNotebook`'s id (`notebookSearchModel.ts:35`) and is used for opening, never
+for rendering; the tree is file → match for a notebook exactly as it is for a `.py`.
+
+Ours follows, and the 360dp panel is the second reason: a third level of indentation would spend the
+width the code needs, which is the call P2x-3 already made against `FolderMatchRenderer`'s folder
+level. What the cell gets instead is the row's `contentDescription` - which is where the line number
+already lives, `search.showLineNumbers` being false - so a screen reader and a Maestro flow both
+have one string per row and two rows a tap apart cannot answer to the same one.
+
+One-based in that sentence where `MatchedLine.cell` is zero-based: it is spoken beside a one-based
+line number, and the reference's own `rawCell#${index}` is an id that is never read aloud.
+
+### A `LaunchedEffect` must not be keyed on what it changes (P2x-4d)
+
+`LandingOnAMatch` was keyed on `state.cells`. **Landing changes the cells** - it expands the heading
+hiding the match - and Compose cancels a running effect the moment a key changes, so
+`animateScrollToItem` died mid-animation and `onRevealHandled` was never called. The restarted
+effect found its own `landedOn` guard already set and did nothing, leaving the notebook on cell one
+with the match far below the fold.
+
+Keyed on `state.loaded`, which flips false→true once and never again, both halves survive: it still
+waits for the notebook to arrive, and nothing the landing does re-arms it.
+
+The general shape is worth keeping: an effect whose body mutates state is only safe on keys that
+body cannot touch. `EditorScreen`'s two neighbouring effects are keyed on `state.mode` /
+`state.selectedCellId` and on `state.search?.current` - neither of which the effect itself writes.
+
 ## Harness
+
+### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)
+
+`p2x-4-open-at-the-cell` asserted the matched cell was visible after the tap and **passed against a
+notebook sitting on cell one**, the match fourteen cells below the fold - the screenshot is what
+said otherwise (`evidence/p2x-4-open-at-the-cell/00-…`).
+
+This is the same blindness `p2x-3-open-at-the-match` recorded for the file editor, reached from the
+other direction. There the editor is one node carrying every line, so any text in it matches at any
+scroll position. Here the list *is* one node per cell - which is why a collapsed section is a real
+assertion, since its cells are not in the tree at all - but a `LazyColumn` composes and keeps a
+margin beyond its own viewport, and a composed-but-clipped item is still in the semantics tree.
+
+What can see it is the **other end of the notebook**: `assertNotVisible: "filler_1 = 1"` names the
+second cell, which is on screen exactly when the landing did not happen. That line and
+`LandingOnAMatchTest` both fail on the defect; the `assertVisible` on the match itself never did.
 
 ### Where the editor is scrolled to is a thing no Maestro flow can assert (P2x-3f)
 
