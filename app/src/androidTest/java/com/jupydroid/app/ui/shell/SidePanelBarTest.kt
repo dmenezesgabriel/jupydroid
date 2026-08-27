@@ -1,12 +1,18 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -91,6 +97,58 @@ class SidePanelBarTest {
     compose.onNodeWithContentDescription(FILES).assertIsSelected()
   }
 
+  /**
+   * **The items spread on a small screen**, which is the reference's own recommendation for one:
+   * *"In small screens ... its `arrangement` should be `ShortNavigationBarArrangement.EqualWeight`,
+   * so that the navigation items are equally distributed on the bar"*
+   * (`androidx.compose.material3.ShortNavigationBar`'s KDoc, material3 1.4.0).
+   *
+   * Two items therefore fill the bar between them, which is also what puts each within a thumb's
+   * reach of the edge it is nearest.
+   */
+  @Test
+  fun theItemsFillTheBarOnASmallScreen() {
+    showAt(PHONE)
+
+    assertEquals(
+      "two items equally distributed sit at the bar's quarter points",
+      0.5f,
+      centreGapFraction(PHONE),
+      TOLERANCE_FRACTION,
+    )
+  }
+
+  /**
+   * **And they group on a medium screen**, which is the other half of the same sentence: *"In
+   * medium screens ... its `arrangement` should be `ShortNavigationBarArrangement.Centered`, so that
+   * the navigation items are distributed grouped on the center of the bar"*.
+   *
+   * **This is a defect the tablet found and the phone could not.** Measured at 800dp before the fix
+   * (`evidence/p2y-bottom-navigation/800dp/`): each item was **396dp** wide with its centre at 198dp
+   * and 602dp - a 24dp icon inside a tap target half the window across, and 404dp of dead bar
+   * between the two. The reference's own `calculateCenteredContentHorizontalPadding` puts two items
+   * in **50%** of the bar - `(100 - 10 * (itemsCount + 3)) / 2` percent of padding a side - so the
+   * group spans half the width and is centred in it.
+   */
+  @Test
+  fun theItemsGroupInTheMiddleOnAMediumScreen() {
+    showAt(TABLET_PORTRAIT)
+
+    // Two items in 50% of the bar puts their centres a **quarter** of it apart, against the half
+    // that spreading them puts between them - which is the whole difference the tablet exposed.
+    assertEquals(
+      "two items grouped take half the bar between them",
+      0.25f,
+      centreGapFraction(TABLET_PORTRAIT),
+      TOLERANCE_FRACTION,
+    )
+    val files = compose.onNodeWithContentDescription(FILES).getUnclippedBoundsInRoot()
+    val search = compose.onNodeWithContentDescription(SEARCH).getUnclippedBoundsInRoot()
+    val groupCentre = (files.left.value + search.right.value) / 2
+
+    assertEquals("and the group is centred", TABLET_PORTRAIT.width.value / 2, groupCentre, 2f)
+  }
+
   private fun show(selected: SidePanel) {
     compose.setContent {
       JupyterDroidTheme {
@@ -99,7 +157,49 @@ class SidePanelBarTest {
     }
   }
 
+  /**
+   * How far apart the two items' centres sit, as a fraction of the bar's width.
+   *
+   * **Scale-free on purpose**: it is the one number that separates the two arrangements without
+   * depending on the component's own item padding, which is what a first pass at this assertion
+   * measured by accident - two items "filling" a 320dp bar read 312dp, the missing 8dp being the
+   * gap the bar puts between them.
+   */
+  private fun centreGapFraction(size: DpSize): Float {
+    val files = compose.onNodeWithContentDescription(FILES).getUnclippedBoundsInRoot()
+    val search = compose.onNodeWithContentDescription(SEARCH).getUnclippedBoundsInRoot()
+    val centreOf = { b: DpRect -> (b.left.value + b.right.value) / 2 }
+    return (centreOf(search) - centreOf(files)) / size.width.value
+  }
+
+  /**
+   * The bar at a stated width. `ForcedSize` changes the **layout constraints**, which is what the
+   * bar reads for itself - unlike `currentWindowAdaptiveInfo()`, which measures the activity's
+   * window and would leave a test driving one branch twice (`ActionRowPlacement`).
+   */
+  private fun showAt(size: DpSize) {
+    compose.setContent {
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
+        JupyterDroidTheme {
+          SidePanelBar(selected = SidePanel.FILES, onChoose = { chosen += it })
+        }
+      }
+    }
+  }
+
   private companion object {
+    /** The emulator's own window, which is this project's compact device. */
+    val PHONE = DpSize(320.dp, 640.dp)
+
+    /** The tablet rotated to portrait - `w800dp`, measured, and the width P2y's bar exists for. */
+    val TABLET_PORTRAIT = DpSize(800.dp, 1280.dp)
+
+    /**
+     * Slack for the gap the bar puts between its items, not a range the rule may drift in: the two
+     * arrangements are 0.5 and 0.25 apart, so a 0.02 window cannot confuse one for the other.
+     */
+    const val TOLERANCE_FRACTION = 0.02f
+
     const val FILES = "Files"
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
