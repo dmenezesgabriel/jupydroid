@@ -2,12 +2,15 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.CompiledQuery
 import com.jupydroid.app.domain.model.MatchedFile
+import com.jupydroid.app.domain.model.MatchedLine
+import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.SearchProgress
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.compile
+import com.jupydroid.app.domain.model.matchedCellsIn
 import com.jupydroid.app.domain.model.matchedLinesIn
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.glob.SearchFilter
@@ -17,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.serialization.json.Json
 import java.io.File
 
 /**
@@ -39,6 +43,11 @@ class DiskWorkspaceSearcher(
    * change it, and until then every caller takes the registered default.
    */
   private val maxResults: Int = MAX_SEARCH_RESULTS,
+  /**
+   * How a `.ipynb` is read - the same reader and the same leniency [DiskNotebookRepository] has,
+   * because a notebook the editor can open is one the walk has to be able to search.
+   */
+  private val json: Json = Json { ignoreUnknownKeys = true },
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : WorkspaceSearcher {
   private val root = WorkspaceRoot(rootDir)
@@ -74,9 +83,32 @@ class DiskWorkspaceSearcher(
 
   /** What one file holds, or null when it holds nothing - a file with no match is never a result. */
   private fun matchedFileAt(path: String, regex: Regex): MatchedFile? {
-    val text = readableTextAt(path) ?: return null
-    val matches = matchedLinesIn(text, regex)
-    return if (matches.isEmpty()) null else MatchedFile(path, matches)
+    val matches = if (path.endsWith(NOTEBOOK_SUFFIX)) matchedCellsAt(path, regex) else matchedTextAt(path, regex)
+    return if (matches.isNullOrEmpty()) null else MatchedFile(path, matches)
+  }
+
+  /** An ordinary file, read as the characters it is. */
+  private fun matchedTextAt(path: String, regex: Regex): List<MatchedLine>? =
+    readableTextAt(path)?.let { matchedLinesIn(it, regex) }
+
+  /**
+   * A notebook, read as the cells it is - the skip P2x-1d put in, lifted.
+   *
+   * **A notebook this app cannot read is declined rather than thrown on**, which makes it the
+   * fourth kind of file a walk passes over (`docs/DECISIONS.md`). `readNotebook` raises for JSON
+   * that is not an object and for a `cell_type` outside nbformat's three, and one such file in a
+   * workspace must not end the walk over every other - the reference swallows a serializer's
+   * failure per file for the same reason (`extHostNotebook.ts:555-558`, `catch (e) { return; }`).
+   */
+  @Suppress("TooGenericExceptionCaught", "SwallowedException")
+  private fun matchedCellsAt(path: String, regex: Regex): List<MatchedLine>? {
+    val file = root.fileAt(path)
+    if (!file.isFile) return null
+    return try {
+      matchedCellsIn(json.readNotebook(file, path), regex)
+    } catch (unreadable: Exception) {
+      null
+    }
   }
 
   /** Every file a [scope] reaches, in the order the walk finds them. One rule for both operations. */
@@ -96,9 +128,6 @@ class DiskWorkspaceSearcher(
         entry.isADirectoryLink() -> Unit
         entry.kind == WorkspaceEntryKind.DIRECTORY ->
           if (filter.descendsInto(entry.path)) yieldAll(pathsUnder(entry.path, filter))
-        // A notebook read as the JSON it is would report `cell_type` and a base64 output as hits,
-        // which is what P2x-4's gate forbids. P2x-4 lifts this and makes a hit a *cell* hit.
-        entry.path.endsWith(NOTEBOOK_SUFFIX) -> Unit
         filter.searches(entry.path) -> yield(entry.path)
       }
     }
@@ -141,7 +170,5 @@ private fun MatchedFile.cappedAt(budget: Int): MatchedFile =
 
 /** `search.maxResults`' registered default (`search.contribution.ts:202-205`, `search.ts:32`). */
 internal const val MAX_SEARCH_RESULTS = 20_000
-
-private const val NOTEBOOK_SUFFIX = ".ipynb"
 
 private const val NUL: Byte = 0
