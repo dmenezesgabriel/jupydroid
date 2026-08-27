@@ -1,0 +1,124 @@
+package com.jupydroid.app
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.MatchedLine
+import com.jupydroid.app.ui.explorer.ExplorerScreen
+import com.jupydroid.app.ui.shell.SearchSidePanel
+import com.jupydroid.app.ui.shell.SidePanelBar
+import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
+import com.jupydroid.app.ui.shell.WorkspaceReplace
+
+/**
+ * The shell's side pane: the one panel it is showing, and - where it is the whole window - the bar
+ * that changes which.
+ *
+ * Beside two panes this is the list pane and the activity bar is the rail left of the whole shell
+ * (`SidePanelRail`). In one window it *is* the window, and the activity bar is under it.
+ *
+ * ```
+ * entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) { ShellSidePane(…) }
+ * ```
+ *
+ * @param showingPanel the panel to draw, `null` being the collapsed side area - which only a
+ *   two-pane window has, since collapsing the one thing on screen is not a state.
+ * @param barSelection the panel the bottom bar marks, or `null` to draw **no bar at all**. Null
+ *   beside two panes, where the rail is the activity bar and this pane is only half the shell.
+ * @param onRevealMatch where a tapped search result puts the match, on its way to the editor that
+ *   has to land on it. Separate from [openDocument] because the two are one act in the caller and
+ *   two different pieces of its state.
+ */
+@Composable
+fun ShellSidePane(
+  showingPanel: SidePanel?,
+  barSelection: SidePanel?,
+  onChoosePanel: (SidePanel) -> Unit,
+  appContainer: AppContainer,
+  outline: OpenDocumentOutline,
+  openDocuments: OpenDocuments,
+  openDocument: (String) -> Unit,
+  openDocumentPath: String?,
+  browseRequest: String?,
+  onBrowseRequestHandled: () -> Unit,
+  onRevealMatch: (MatchedLine) -> Unit,
+) {
+  Column(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.weight(1f).then(panelInsets(barSelection != null))) {
+      // The side area draws **one** panel, which is the reference's own arrangement:
+      // `SideBarHandler._onCurrentChanged` hides the outgoing widget and shows the incoming one
+      // (`packages/application/src/shell.ts:2630-2643`). The collapsed branch draws nothing here
+      // and the caller's directive has already dropped this pane, so it is unreachable - a one-pane
+      // window has no side area to collapse, and `SidePanel.showingAtOnePane` never answers null.
+      when (showingPanel) {
+        SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
+        SidePanel.SEARCH ->
+          SearchSidePanel(
+            searcher = appContainer.workspaceSearcher,
+            // Built here and not in `AppContainer`, because the registry it needs is the shell's
+            // own state rather than a process-wide implementation: `openDocuments` is remembered by
+            // this composition and a container outlives every one of them.
+            replace = remember {
+              WorkspaceReplace(openDocuments, appContainer.notebookRepository, appContainer.workspaceRepository)
+            },
+            // The path is what opens a document, exactly as the browser's own rows hand one up -
+            // `docmanager:open` decides the editor from the path and nothing else. The match
+            // travels beside it, because `openEditor` takes a `selection` as well as a resource
+            // (`searchView.ts:2245-2256`) and the panel is the only thing that knows which result
+            // was tapped.
+            onOpenMatch = { file, match ->
+              onRevealMatch(match)
+              openDocument(file.path)
+            },
+          )
+        null -> Unit
+        SidePanel.FILES ->
+          ExplorerScreen(
+            workspaceRepository = appContainer.workspaceRepository,
+            notebookRepository = appContainer.notebookRepository,
+            recentDocuments = appContainer.recentDocuments,
+            // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
+            // so there is nothing to translate. It briefly was not, and the suffix went on twice:
+            // `Nested.ipynb.ipynb` opened nothing.
+            onOpenFile = { file -> openDocument(file.path) },
+            onOpenRecent = openDocument,
+            openDocumentPath = openDocumentPath,
+            browseRequest = browseRequest,
+            onBrowseRequestHandled = onBrowseRequestHandled,
+            // No arrow at all: this is the first screen now, so there is nowhere to go back *to*.
+            // Back still climbs the workspace while there is a parent - `filebrowser:go-up` - and
+            // at the root it leaves the app, which is what nothing swallowing it means.
+            onBack = null,
+          )
+      }
+    }
+    // **The bar is drawn here and nowhere else**, which is what keeps it off an open document: in
+    // one window `NavDisplay` composes only the top entry, so a bar spelled beside it would sit
+    // under the notebook too. That is Android's own rule - a navigation bar carries top-level
+    // destinations - and it is the difference P2o-4 costed: an 80dp bar is 20% of the 400.0dp cell
+    // list at 320dp, where P2q-2 fought for 48dp at that same width. Here it costs the document
+    // nothing.
+    //
+    // Never `SidePanel.chosen`: re-picking here would collapse the only thing on screen.
+    barSelection?.let { SidePanelBar(selected = it, onChoose = onChoosePanel) }
+  }
+}
+
+/**
+ * What the panel above the bottom bar must **not** reserve a second time.
+ *
+ * Every side panel is a `Scaffold` and none sets `contentWindowInsets`, so each reserves the system
+ * navigation-bar inset at its foot - and `NavigationBar` reserves it again underneath. Left alone
+ * that is a gap between the last row and the bar, which is P2q's "doubled window inset" defect in a
+ * new place. Consumed only where a bar is drawn: with none, the panel really is the window's foot.
+ */
+@Composable
+private fun panelInsets(hasBar: Boolean): Modifier =
+  if (hasBar) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier

@@ -1,16 +1,26 @@
 appId: com.jupydroid.app
 ---
-# P2o-4: where the shell draws **one pane** there is no side area, and both of the things the
-# activity bar switches between are reachable anyway - which is the measurement that decides
-# whether this app grows a navigation bar at all.
+# P2o-4: where the shell draws **one pane** there is no side *area*, and the document's two routes
+# out of it still work - the back arrow to the browser, and the table of contents without leaving.
+#
+# **P2y answered the question this header used to end on.** It read "the measurement that decides
+# whether this app grows a navigation bar at all", and the answer is now yes: P2x-2 added a third
+# panel, workspace search, which had no route at this width at all, and `p2y-bottom-navigation`
+# covers the bar that reaches it. What did *not* change is either claim below - a bar is not drawn
+# over a document, so from inside the notebook both routes are exactly what they were.
 #
 # Two claims, one per panel:
 #   1. **Files** is one tap from the document: the back arrow returns to the browser, which is
-#      where an Android reader looks for it and is the only "destination" at this width.
+#      where an Android reader looks for it. Since P2y the browser it returns to has the bar under
+#      it, which is the third claim below.
 #   2. **Table of contents** is reachable *without leaving the document*, through `toc:show-panel`
 #      in the notebook's own menu - the overlay this app has had since P2h, which is the narrow
 #      adaptation of a sidebar the reference has never written one for
 #      (`docs/DECISIONS.md`: no media query, no width branch, a `format: 'mobile'` never assigned).
+#      It stays an overlay and gets **no** bar item: it is a surface over the document you are
+#      already in, where a destination is a screen you navigate to.
+#   3. And the bar is under the browser when the document is left, and was not under the document -
+#      which is the regression half of this flow now that P2y exists.
 #
 # **NARROW WINDOW**, which the sharder reads as < 840dp - and that is exactly "one pane", which is
 # what this flow is about. Run by hand on the tablet in portrait as well, where the window is 800dp
@@ -56,4 +66,10 @@ appId: com.jupydroid.app
 - tapOn: "Back to notebooks"
 - assertVisible: "Workspace"
 - assertVisible: "Files"
-- takeScreenshot: 04-files-is-one-tap-from-the-document
+# --- 3. the bar is here, and the outline is still not on it ---------------------------------
+# `Search` is unique on this screen - the browser titles itself "Files", so only the bar says the
+# other word. The table of contents has no item, which is what tells the bar from the rail.
+- assertVisible:
+    text: "^Search$"
+- assertNotVisible: "Table of contents"
+- takeScreenshot: 04-files-is-one-tap-from-the-document-and-the-bar-is-under-it

@@ -1,0 +1,109 @@
+appId: com.jupydroid.app
+---
+# P2y: the activity bar where the shell draws **one pane**, and what it is *not* drawn over.
+#
+# This reverses P2o-4, which declined a navigation bar when the shell had two side panels and both
+# were already reachable. P2x-2 added a third - **workspace search** - and it had no route at this
+# width at all: the rail is the only control that selects a panel and the rail is drawn only beside
+# two panes, so a phone, and the tablet in portrait at 800dp, could not reach search by any path.
+# The table of contents was never in that position; `toc:show-panel` opens it as an overlay from the
+# notebook's own menu, which `p2o-4-one-pane-side-panels` still proves.
+#
+# The bar is VS Code's own activity bar relocated - `ActivityBarPosition.BOTTOM`
+# (`vscode/…/services/layout/browser/layoutService.ts:75-80`) - carrying the same containers, not an
+# Android control invented beside one. JupyterLab answers nothing at this width: no media query, no
+# width branch, a `'desktop' | 'mobile'` form factor never assigned.
+#
+# Four claims:
+#   1. a one-pane window draws the bar under the panel, and **the bar is not drawn over a document**
+#      - which is the decision this flow exists to show in a picture, since an 80dp bar is 20% of
+#      the 400.0dp cell list P2o-4 measured at 320dp;
+#   2. it reaches search, which is the thing that had no route here;
+#   3. a result still opens its document, and the panel is still on Search when the document is
+#      left - the bar is navigation, not a one-way door;
+#   4. Back out of Search reaches the browser rather than leaving the app, which is Android's own
+#      "the start destination is the last screen the user sees" (`guide/navigation/principles`).
+#
+# **The two labels are addressed from the screen where each is unique**, and that is a property
+# rather than luck: the browser titles itself "Files" and the search panel titles itself "Search",
+# so on the browser only the bar says "Search" and on the search panel only the bar says "Files".
+# The bar's items carry no visible text at all - the name is on the item for a screen reader and for
+# this flow, which is the rule a flow cost this project in P2b.
+#
+# NARROW WINDOW, which the sharder reads as < 840dp - exactly the windows this app draws as one
+# pane, and exactly where the bar is drawn.
+#
+# No cell is run, so this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+# --- 1. the bar is under the panel, and not under the document ------------------------------------
+# `Workspace` is the breadcrumb only the file browser draws.
+- assertVisible: "Workspace"
+- assertVisible:
+    text: "^Search$"
+- takeScreenshot: 01-the-bar-under-the-browser
+- scrollUntilVisible:
+    element:
+      text: "Heading Sections.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "Notes before any heading."
+    timeout: 30000
+# **Neither item is drawn over the document.** `NavDisplay` composes only the top entry in one
+# window, so a bar spelled beside it would sit under the notebook; it is spelled inside the panel's
+# own entry instead, and this is the assertion that says so. The find bar is closed, so nothing else
+# on this screen answers to either name.
+- assertNotVisible:
+    text: "^Search$"
+- assertNotVisible:
+    text: "^Files$"
+- takeScreenshot: 02-no-bar-over-the-notebook
+# --- 2. and it reaches search, which had no route at this width ------------------------------------
+- tapOn: "Back to notebooks"
+- assertVisible: "Workspace"
+- assertVisible:
+    text: "^Search$"
+- takeScreenshot: 03-the-bar-is-back-with-the-panel
+- tapOn:
+    text: "^Search$"
+- assertVisible: "Search the workspace"
+- takeScreenshot: 04-search-reached-from-the-bar
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "notes.py, 3 matches found"
+    timeout: 15000
+# The keyboard away before the rows are read, for the reason P2x-3's own first run recorded: with
+# the IME up a tap at a lower row's coordinates lands on the space bar and edits the query instead.
+# Here it also puts the **bar** back on screen, which is what the next screenshot has to show.
+- hideKeyboard
+- assertVisible:
+    text: "^Files$"
+- takeScreenshot: 05-results-and-the-bar-still-under-them
+# --- 3. a result opens its document, and the panel is still there afterwards -----------------------
+- tapOn: "Line 4, def feed_the_cat(name):"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+# `import os` and not the matched line: line 1 holds no match, so only the editor can be showing it.
+# Wrapped, because the editor is one node carrying the whole file (`p2x-3-workspace-search`).
+- assertVisible: "(?s).*import os.*"
+- assertNotVisible:
+    text: "^Files$"
+- takeScreenshot: 06-the-match-opened-its-file-and-the-bar-went
+- tapOn: "Back to files"
+# **Still on Search**, not reset to the browser: the bar is navigation between panels and the panel
+# it was left on is the panel it comes back to.
+- extendedWaitUntil:
+    visible: "notes.py, 3 matches found"
+    timeout: 15000
+- takeScreenshot: 07-the-panel-was-still-on-search
+# --- 4. Back reaches the browser rather than leaving the app ---------------------------------------
+- back
+- assertVisible: "Workspace"
+- assertVisible:
+    text: "^Search$"
+- takeScreenshot: 08-back-reached-the-start-destination

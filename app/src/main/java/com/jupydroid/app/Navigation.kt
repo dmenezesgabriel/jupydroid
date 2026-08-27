@@ -1,5 +1,6 @@
 package com.jupydroid.app
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.VerticalDivider
@@ -26,12 +27,8 @@ import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.ui.editor.EditorScreen
-import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
-import com.jupydroid.app.ui.shell.SearchSidePanel
 import com.jupydroid.app.ui.shell.SidePanelRail
-import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
-import com.jupydroid.app.ui.shell.WorkspaceReplace
 import kotlinx.coroutines.launch
 
 /**
@@ -129,15 +126,20 @@ fun MainNavigation(
   // to draw has to be able to overrule it - otherwise `twoPane` would decide the row marking above
   // and not the layout, and the two would disagree. Same boolean, both halves.
   val measured = paneScaffoldDirective()
-  // **There is no side area at all where the shell draws one pane**, so the browser is what the
-  // list pane holds there whatever the rail was last left on. The rail is drawn only `if (twoPane)`
-  // below, and `sidePanel` is `rememberSaveable` - so without this a tablet rotated to portrait
-  // (1280dp landscape is two panes, 800dp portrait is one) kept drawing the panel it had, with no
-  // rail to switch away from it and no way back to the files but killing the app. Measured:
-  // `SidePaneNavigationTest.aWindowThatNarrowsWhileAPanelIsUpStillDrawsTheBrowser`.
+  // **A one-pane window has no side area, so its panel *is* the window** - and until P2y that meant
+  // the browser and nothing else, because the rail is drawn only `if (twoPane)` below while
+  // `sidePanel` is `rememberSaveable`. A tablet rotated to portrait (1280dp landscape is two panes,
+  // 800dp portrait is one) kept drawing the panel it had with no rail to switch away from it and no
+  // way back to the files but killing the app (P2x-2b). The bottom bar leaves Files and Search, so
+  // only the table of contents still falls back - it has no item there, and its own route at this
+  // width is the overlay the notebook's menu opens.
   //
   // An override rather than a reset, so rotating back restores the panel the user had chosen.
-  val showingPanel = if (twoPane) sidePanel else SidePanel.FILES
+  //
+  // The two are held apart because the bar needs the **non-null** answer to mark its selection,
+  // where `showingPanel` still has a collapsed state to carry for the two-pane case.
+  val onePanePanel = sidePanel.showingAtOnePane()
+  val showingPanel = if (twoPane) sidePanel else onePanePanel
   // **A collapsed side area is a one-pane layout**, which is what `collapseLeft` does there:
   // the panel goes and the document area takes the width, while the activity bar stays
   // (`packages/application/src/shell.ts:2383-2394`). So the collapse is spelled here rather
@@ -159,6 +161,16 @@ fun MainNavigation(
         .onSuccess { openDocument(it.id) }
       onImportConsumed()
     }
+  }
+
+  // **Back reaches the start destination before it leaves the app.** Android's own principle: the
+  // start destination *"is also the last screen the user sees when they return to the launcher
+  // after pressing the Back button"* (`developer.android.com/guide/navigation/principles`). The
+  // browser is this app's root, so backing out of a one-pane Search selects Files rather than
+  // exiting. `NavDisplay` cannot do it - there is one entry on the stack and nothing to pop - and
+  // it is deliberately off while a document is open, where Back belongs to the document.
+  BackHandler(enabled = !twoPane && onePanePanel != SidePanel.FILES && backStack.lastOrNull() == Explorer) {
+    sidePanel = SidePanel.FILES
   }
 
   // **The activity bar is beside the whole shell, not inside the side area.** The reference's
@@ -217,52 +229,20 @@ fun MainNavigation(
       entryProvider =
       entryProvider {
         entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
-          // The side area draws **one** panel, which is the reference's own arrangement:
-          // `SideBarHandler._onCurrentChanged` hides the outgoing widget and shows the incoming one
-          // (`packages/application/src/shell.ts:2630-2643`). The collapsed branch draws nothing here
-          // and the directive above has already dropped this pane, so it is unreachable - a one-pane
-          // window has no side area to collapse, and `showingPanel` is the file browser there.
-          when (showingPanel) {
-            SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
-            SidePanel.SEARCH ->
-              SearchSidePanel(
-                searcher = appContainer.workspaceSearcher,
-                // Built here and not in `AppContainer`, because the registry it needs is the
-                // shell's own state rather than a process-wide implementation: `openDocuments` is
-                // remembered by this composition and a container outlives every one of them.
-                replace = remember {
-                  WorkspaceReplace(openDocuments, appContainer.notebookRepository, appContainer.workspaceRepository)
-                },
-                // The path is what opens a document, exactly as the browser's own rows hand one up
-                // - `docmanager:open` decides the editor from the path and nothing else. The match
-                // travels beside it, because `openEditor` takes a `selection` as well as a resource
-                // (`searchView.ts:2245-2256`) and the panel is the only thing that knows which
-                // result was tapped.
-                onOpenMatch = { file, match ->
-                  revealRequest = match
-                  openDocument(file.path)
-                },
-              )
-            null -> Unit
-            SidePanel.FILES ->
-              ExplorerScreen(
-                workspaceRepository = appContainer.workspaceRepository,
-                notebookRepository = appContainer.notebookRepository,
-                recentDocuments = appContainer.recentDocuments,
-                // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
-                // so there is nothing to translate. It briefly was not, and the suffix went on twice:
-                // `Nested.ipynb.ipynb` opened nothing.
-                onOpenFile = { file -> openDocument(file.path) },
-                onOpenRecent = openDocument,
-                openDocumentPath = openDocumentPath,
-                browseRequest = browseRequest,
-                onBrowseRequestHandled = { browseRequest = null },
-                // No arrow at all: this is the first screen now, so there is nowhere to go back *to*.
-                // Back still climbs the workspace while there is a parent - `filebrowser:go-up` - and
-                // at the root it leaves the app, which is what nothing swallowing it means.
-                onBack = null,
-              )
-          }
+          ShellSidePane(
+            showingPanel = showingPanel,
+            // No bar beside two panes: the rail left of the whole shell is the activity bar there.
+            barSelection = if (twoPane) null else onePanePanel,
+            onChoosePanel = { sidePanel = it },
+            appContainer = appContainer,
+            outline = outline,
+            openDocuments = openDocuments,
+            openDocument = openDocument,
+            openDocumentPath = openDocumentPath,
+            browseRequest = browseRequest,
+            onBrowseRequestHandled = { browseRequest = null },
+            onRevealMatch = { match -> revealRequest = match },
+          )
         }
         entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
           FileEditorScreen(

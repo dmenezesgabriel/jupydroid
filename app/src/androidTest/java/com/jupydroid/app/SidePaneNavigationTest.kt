@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
@@ -26,6 +27,7 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.shell.SEARCH_WORKSPACE_BOX
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -178,29 +180,51 @@ class SidePaneNavigationTest {
   }
 
   /**
-   * **A window that narrows while a panel is up still has to leave the browser reachable.**
+   * **A window that narrows onto a panel the bar cannot leave still draws the browser.**
    *
    * `sidePanel` is `rememberSaveable`, so it survives the activity relaunch a rotation causes; the
    * rail is drawn only where there are two panes. Between them, a tablet rotated to portrait -
    * 1280dp landscape is two panes, 800dp portrait is one - used to draw the table of contents in
    * the list pane with no rail to switch away from it, and the file browser could not be reached
-   * again without killing the app. P2x-2 widened that from two panels to three, which is why it
-   * is fixed here rather than recorded.
+   * again without killing the app (P2x-2b).
    *
-   * `p2o-4`'s own header states the rule: *"where the shell draws one pane there is no side area"*.
+   * **P2y narrows this rather than reopening it.** The bar the narrowed window now lands on can
+   * leave Files and Search, so those two survive - see the case below. The table of contents has no
+   * item on it, so it is the one panel that still has to fall back, and this is now the whole of
+   * P2x-2b's defect rather than a third of it.
    */
   @Test
-  fun aWindowThatNarrowsWhileAPanelIsUpStillDrawsTheBrowser() {
+  fun aWindowThatNarrowsOntoTheOutlineStillDrawsTheBrowser() {
     val twoPane = mutableStateOf(true)
     startApp(twoPane)
     waitForText(WORKSPACE)
-    compose.onNodeWithContentDescription(SEARCH).performClick()
-    waitForText(SEARCH)
+    compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).performClick()
+    waitForText(NO_HEADINGS)
 
     twoPane.value = false
 
     waitForText(WORKSPACE)
     compose.onNodeWithText(WORKSPACE).assertIsDisplayed()
+  }
+
+  /**
+   * **And a window that narrows onto Search keeps it**, which is what the bar buys: P2x-2b had to
+   * send every panel back to the browser because a narrowed window had no control at all, and a
+   * user who rotated mid-search lost the search. The bar can leave Search, so nothing has to.
+   */
+  @Test
+  fun aWindowThatNarrowsOntoSearchKeepsIt() {
+    val twoPane = mutableStateOf(true)
+    startApp(twoPane)
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+    waitForContentDescription(SEARCH_WORKSPACE_BOX)
+
+    twoPane.value = false
+
+    waitForContentDescription(SEARCH_WORKSPACE_BOX)
+    compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).assertIsDisplayed()
+    assertGone(WORKSPACE)
   }
 
   /** The collapsed area is the same problem with nothing on screen at all, rather than the wrong thing. */
@@ -218,14 +242,85 @@ class SidePaneNavigationTest {
     compose.onNodeWithText(WORKSPACE).assertIsDisplayed()
   }
 
-  /** A rail on a 320dp phone would spend a quarter of the screen on chrome; P2o-4 owns that bar. */
+  /**
+   * **A one-pane window draws the bar, not the rail** - a rail there would spend a quarter of a
+   * 320dp screen on chrome, which is the cost P2o-4 measured and this step did not reopen.
+   *
+   * The table of contents is what tells the two controls apart: it is on the rail and not on the
+   * bar, so its absence beside two present destinations is the whole assertion.
+   */
   @Test
-  fun aCompactWindowHasNoRail() {
+  fun aOnePaneWindowDrawsTheBarAndNotTheRail() {
     startApp(twoPane = false)
 
     waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
     val rail = compose.onAllNodesWithContentDescription(TABLE_OF_CONTENTS).fetchSemanticsNodes()
-    assert(rail.isEmpty()) { "a compact window drew ${rail.size} rail item(s)" }
+    assert(rail.isEmpty()) { "a one-pane window drew ${rail.size} rail item(s)" }
+  }
+
+  /**
+   * And the reverse: two panes get the rail and **no** bar under it. Counted rather than asserted
+   * present, because both controls name their items the same - two Files items would be the tell.
+   */
+  @Test
+  fun aTwoPaneWindowDrawsTheRailAndNoBar() {
+    startApp(twoPane = true)
+
+    waitForText(WORKSPACE)
+    val files = compose.onAllNodesWithContentDescription(FILES).fetchSemanticsNodes()
+    assertEquals("two panes drew a bar under the rail", 1, files.size)
+  }
+
+  /**
+   * **The reason this step exists**: workspace search had no route at all where the shell draws one
+   * pane. The rail was the only control that could select it and the rail is drawn only beside two
+   * panes, so a phone - and the tablet in portrait at 800dp - could not reach it.
+   */
+  @Test
+  fun theBarReachesSearchWhereTheRailIsNotDrawn() {
+    startApp(twoPane = false)
+    waitForText(WORKSPACE)
+
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+
+    waitForContentDescription(SEARCH_WORKSPACE_BOX)
+    compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).assertIsDisplayed()
+  }
+
+  /** And back again, which is the half that makes it navigation rather than a one-way door. */
+  @Test
+  fun theBarReturnsToTheBrowser() {
+    startApp(twoPane = false)
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+    waitForContentDescription(SEARCH_WORKSPACE_BOX)
+
+    compose.onNodeWithContentDescription(FILES).performClick()
+
+    waitForText(WORKSPACE)
+    compose.onNodeWithText(WORKSPACE).assertIsDisplayed()
+  }
+
+  /**
+   * **Back reaches the start destination before it leaves the app.** Android's own principle: the
+   * start destination *"is also the last screen the user sees when they return to the launcher
+   * after pressing the Back button"* (`developer.android.com/guide/navigation/principles`). The
+   * browser is this app's root, so Back out of a one-pane Search selects Files rather than exiting
+   * - and `NavDisplay` cannot do it, because there is one entry on the stack and nothing to pop.
+   */
+  @Test
+  fun backFromSearchReachesTheBrowserRatherThanLeaving() {
+    startApp(twoPane = false)
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(SEARCH).performClick()
+    waitForContentDescription(SEARCH_WORKSPACE_BOX)
+
+    Espresso.pressBack()
+
+    waitForText(WORKSPACE)
+    compose.onNodeWithText(WORKSPACE).assertIsDisplayed()
   }
 
   private fun startApp(twoPane: Boolean) = startApp(mutableStateOf(twoPane))
