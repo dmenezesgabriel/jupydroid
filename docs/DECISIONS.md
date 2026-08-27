@@ -3253,6 +3253,115 @@ The general shape is worth keeping: an effect whose body mutates state is only s
 body cannot touch. `EditorScreen`'s two neighbouring effects are keyed on `state.mode` /
 `state.selectedCellId` and on `state.search?.current` - neither of which the effect itself writes.
 
+### The open-document registry is **one** document, and that is a measurement (P2x-5b)
+
+`docs/PLAN.md`'s first open risk said this was P2x-5's prerequisite and not a detail of it, and it
+was right: `Navigation.kt` scopes ViewModels per `NavEntry`, so a document is reachable from its own
+screen and nowhere else, while `BulkTextEdits` resolves a text model for **every** resource it edits
+(`bulkTextEdits.ts:227`). `OpenDocuments` is that bridge. The risk is closed and lives here now.
+
+**It holds one document rather than a map, and the reason is `NotebookBackStack`'s.**
+`chooseDetailThatFitsTheSurface` removes the current detail entry before adding the next, so this
+app's back stack *cannot* hold two documents at once - the reference needs a map because it has tabs
+and split editors, and this refuses both. If a surface ever opens a second document it becomes a map
+keyed by `OpenDocument.path` and nothing else about it changes.
+
+**Implemented by the ViewModels rather than by an adapter around them**, because `path` has to be
+read *live*: a rename moves the file while the document carries on, and the ViewModel is what learns
+of that. And `closed()` clears **by identity**, because `chooseDetailThatFitsTheSurface` registers
+the incoming document before the outgoing entry is disposed - clearing unconditionally there would
+empty the registry while a document was on screen.
+
+`p2x-5-replace-under-an-open-document` is the run that says the bridge works: two panes, the editor
+never closed between the replace and the assertion, and the file read back afterwards.
+
+### A replace-all empties the tree on success and leaves it standing on a refusal (P2x-5g)
+
+`this.clear()` runs only in `replaceAll`'s resolve arm (`textSearchHeading.ts:299-303`); the reject
+arm sets `replacingAll = false` and nothing else. Both halves are one rule - results describe a
+workspace, and a refusal wrote to none of it - and neither is a preference: a tree left standing
+after a successful replace would offer matches that no longer exist, and a tree cleared after a
+refusal would hide the ones that still do.
+
+### An undo brings the **results** back, where the reference's cannot (P2x-5g, P2x-5i)
+
+VS Code undoes a replace-all with Ctrl+Z from any editor it touched; the search view never learns it
+happened, so its tree stays cleared. Here the panel is what performs the undo, and
+`WorkspaceReplace.undo` refuses unless **every** resource still reads as the replace left it
+(`_checkWorkspaceUndo`, `undoRedoService.ts:853-869`) - so once it succeeds each file is byte for
+byte what the walk read and the matches it found are exactly valid again.
+
+Re-drawing them is also the only feedback an undo has. Nothing else on this panel would have
+changed, and a panel that merely emptied would have said nothing at all - which is the same problem
+the surface question below answers.
+
+### The undo sits beside the report, and the choice was made on lifetime (P2x-5i)
+
+Two Material idioms were available and a snackbar is the classic one for a reversible bulk action -
+this app already uses a snackbar for an export's outcome. It was declined: a snackbar carries the
+message **and the only route to the undo** away after a few seconds, where the reference's undo
+stays available until the file is edited. Beside the report it lives exactly as long as the sentence
+that offers it, which is `clearMessage()`'s own lifetime (`searchView.ts:1996`) - one undo, cleared
+by the next walk.
+
+There is no redo, and nothing asks for one: `MultiModelEditStackElement` has both and a panel can
+reach one. And the offer is **absent** beside a refusal rather than disabled, which is the inverse of
+the Replace All button below and for the stated reason - a disabled Replace All explains its own
+precondition, and an Undo that wrote nothing has nothing to explain.
+
+It is called *"Undo this replace"* and not *"Undo"*: `EditorTopBar` ships *"Undo cell operation"* and
+at 1280dp that bar and this panel are two panes of one window, where *"Undo"* is a prefix of it.
+
+### `truncateValue` is declined rather than transcribed (P2x-5f)
+
+`buildReplaceAllConfirmationMessage` clamps a replacement of more than ten lines to ten and an
+ellipsis (`searchView.ts:889-899`). The replace box here is `singleLine = true`, so a replacement
+cannot hold a newline and the clamp could never fire. Transcribing it would be unreachable code,
+which `CLAUDE.md` forbids; a multi-line replace box is what would bring it back.
+
+The sixteen counted strings around it *are* transcribed, and by equality
+(`ReplaceAllMessagesTest`), because the reference spells every plural combination out only because
+`nls.localize` needs a key per literal - the arithmetic underneath is three substitutions.
+
+### Material's `find_replace` reads as *refresh*, so Replace All is a labelled button (P2x-5h)
+
+`Codicon.replaceAll` is typographic - the SVG read this phase is a `b` letterform, a curved arrow and
+a box of letters - and Material's only transcription of the idea is `find_replace`, a magnifier
+wrapped in a circular arrow. Shipped inline where the reference puts it (`.replace-container` is an
+`inline-flex` with the action bar pushed onto it, `searchWidget.ts:583-586`, `searchview.css:90-115`)
+and **drawn at 24dp on the tablet, it read as refresh** - eleven dp from a query box whose own
+leading icon is the magnifier `find_replace` is built from. An action that rewrites every matching
+file in the workspace may not be drawn as the one glyph that means *do it again, harmlessly*.
+
+Neither the unit nor the instrumented suite could have said so. The screenshot did, which is the
+fourth time this phase (`evidence/p2x-5-replace-all/`).
+
+What ships is a `TextButton` on a **row of its own**. Two departures, each measured:
+
+- **Type rather than a glyph**, which is P2x-3d's answer to a missing codicon (`Aa`, `ab`, `.*`)
+  applied to an action - and the control Material gives type is a button, not a label.
+- **Its own row**, because a label inline costs the box about 100dp, and this panel spends *height*:
+  the same trade the replace chevron's own column made (P2x-5e) and the one that made the panel one
+  scrolling surface (P2x-3e). The box keeps its full 296dp.
+
+**The label is not the reference's.** VS Code says *"Replace All"* and `FindTopBar` already ships
+JupyterLab's *"Replace all"*; at 840dp both are in one tree, two buttons a tap apart, one rewriting a
+document and one rewriting every file in the workspace. *"Replace all in workspace"* carries the
+scope that tells them apart - the rule `REPLACE_IN_WORKSPACE_BOX` was named under. The **dialog**
+keeps the reference's strings word for word, because a modal dialog is a tree of its own and nothing
+of the find bar is in it.
+
+### Replace All is drawn disabled rather than hidden, and it is the exception this file allows (P2x-5h)
+
+`docs/DECISIONS.md`'s standing rule is that a row which can only fail is a control that lies - it is
+why the export formats nothing can produce are absent. A disabled Replace All is the case that rule
+does not cover, because the reference's own label *explains the precondition*: `REPLACE_ALL_DISABLED_LABEL`
+is *"Replace All (Submit Search to Enable)"* (`searchWidget.ts:118`). An absent control says nothing;
+this one says exactly why it cannot be pressed and what would make it pressable.
+
+On a phone that label is what a **screen reader** hears, where the reference raises it as a tooltip.
+The visible text does not change with the state, so the row does not reflow as a walk settles.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)
@@ -3598,3 +3707,23 @@ git clone --depth 1 https://github.com/microsoft/vscode-jupyter.git       # 256 
 - **Waiting for the server's DEBUG log to explain the stall will not work.** The server's nudge is
   satisfied by a **control** reply alone (`jupyter_server/services/kernels/connection/channels.py:158-164`
   and `:291-292`), so a kernel with a dead shell channel looks healthy to it. See `docs/PLAN.md` P0.
+
+### A change to shared chrome owes the flows that draw it a re-run (P2x-5e, found at P2x-5k)
+
+P2x-5e added the replace chevron's row to the search panel - 48dp above the two glob boxes - and
+re-ran none of the panel's other flows. `p2x-3-search-scope` had been red ever since, and nothing
+knew until P2x-5k asked it again: `assertVisible: "files to exclude"` fails, because the details open
+**focused** (`toggleQueryDetails`' `moveFocus`), the IME comes up with them, and 48dp was more than
+the margin left.
+
+It was already marginal and the committed evidence said so in a picture nobody re-read: the frame
+from P2x-3f shows the exclude *field* half clipped, with only its heading above the fold. A frame
+that is *just* passing is a frame that will fail on the next 48dp, and this file has now spent two
+phases learning that a green log is half the evidence.
+
+The app is not what changed - the panel is one scrolling surface (P2x-3e) and a reader reaches the
+box. The flow puts the keyboard away before reading the panel, which its own later steps have always
+done before reading a count.
+
+The rule: a sub-step that changes chrome two screens share re-runs both, not the one it was written
+for. P2x-5k re-ran all eight panel flows on the tablet.
