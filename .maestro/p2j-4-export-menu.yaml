@@ -4,8 +4,8 @@ appId: com.jupydroid.app
 #
 # **NARROW WINDOW** (<840dp). The label is the reference's own - *"Save and Export Notebook As…"* -
 # and it is the longest row in this menu by some way; *"Reveal.js Slides"* is the longest in the
-# picker. Whether either fits is decided at 320dp and nowhere else, which is the same reason
-# `p2i-5-search-options` keeps the emulator's capture rather than the tablet's.
+# picker. Whether either fits is decided in a narrow window and nowhere else, which is the same
+# reason `p2i-5-search-options` keeps the emulator's capture rather than the tablet's.
 #
 # **What this flow does not claim.** On x86_64 there is no rootfs, so `AppContainer` falls back to
 # `FakeNotebookExporter` and the file at the end is its stub rather than a conversion. That the
@@ -35,7 +35,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Reveal.js Slides"
     timeout: 20000
-- takeScreenshot: 02-the-picker-at-320dp
+- takeScreenshot: 02-the-picker
 - assertVisible: "HTML"
 - assertVisible: "Markdown"
 - assertVisible: "Executable Script"

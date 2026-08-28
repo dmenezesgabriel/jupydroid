@@ -14,7 +14,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too
 # shellcheck source=scripts/maestro-run.sh
-. "$ROOT/scripts/maestro-run.sh"
+. "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook + window_width_dp
+
+# NARROW WINDOW is two real widths here, so the evidence says which one it holds - the shape
+# `p2o-4-one-pane-side-panels-driver.sh` established, now gated by `check_driver_isolation.py`.
+WIDTH_DP="$(window_width_dp)"
+echo "=== the table of contents at ${WIDTH_DP}dp ==="
 
 reset_notebooks
 # **A fixture of its own since P2z, and the tablet in portrait is why.** This reused p2f-2's, on
@@ -34,4 +39,5 @@ seed_notebook "$ROOT/.maestro/fixtures/p2h-2-table-of-contents.ipynb" "Heading S
 # gives an empty file - a code cell, and so a notebook with no headings at all.
 seed_notebook "$ROOT/.maestro/fixtures/a2-empty-notebook.ipynb" "Empty Notebook"
 
-run_flow "$ROOT/.maestro/p2h-2-table-of-contents.yaml" "$ROOT/evidence/p2h-2-table-of-contents"
+run_flow "$ROOT/.maestro/p2h-2-table-of-contents.yaml" \
+  "$ROOT/evidence/p2h-2-table-of-contents/${WIDTH_DP}dp"
