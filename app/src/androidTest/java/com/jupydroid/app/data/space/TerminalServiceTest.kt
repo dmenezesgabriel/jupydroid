@@ -165,6 +165,45 @@ class TerminalServiceTest {
   }
 
   /**
+   * **The server runs in the directory it is rooted at**, which is what makes a terminal land
+   * somewhere the user owns.
+   *
+   * `jupyter_server` declares no default for `root_dir`; the `@default` under it returns
+   * `os.getcwd()` (`serverapp.py:1842-1848`), so upstream the two are one directory by
+   * construction. This app passed `--ServerApp.root_dir` while leaving `ProcessBuilder` at the app
+   * process's cwd, which on Android is `/` - and `PtyWithClients` inherits exactly that whenever a
+   * `POST` carries no `cwd` (`terminado/management.py:225-232`), which is what JupyterLab's own
+   * launcher sends.
+   *
+   * Asserted on the **running** process rather than on the `ProcessBuilder`, because
+   * [JupyterServerWorkingDirTest] already owns the argument side and what it cannot see is whether
+   * the kernel honoured the request. Kernels never exposed this: their cwd comes from `root_dir`
+   * through `cwd_for_path` (`services/kernels/kernelmanager.py:211-218`).
+   */
+  @Test
+  fun theServerProcessRunsInTheWorkspaceItIsRootedAt() {
+    val cwd = serverProcessCwd()
+    assumeTrue("no server process was visible in /proc, so this device cannot answer", cwd != null)
+
+    assertEquals(notebookWorkspaceIn(baseSpaceDir(context)).canonicalFile, cwd)
+  }
+
+  /**
+   * The cwd of the running `jupyter_server`, or null where `/proc` hides a sibling of the same uid.
+   *
+   * Found by argv rather than by remembering a pid: the launcher owns the `Process` and does not
+   * publish it, and `-m jupyter_server` is on the command line this app built
+   * (`jupyterServerArgs`).
+   */
+  private fun serverProcessCwd(): File? {
+    val processes = File("/proc").listFiles { entry -> entry.name.toIntOrNull() != null } ?: return null
+    val server = processes.firstOrNull { it.argv()?.contains("jupyter_server") == true } ?: return null
+    val cwd = runCatching { File(server, "cwd").canonicalFile }.getOrNull()
+    Log.i(TAG, "jupyter_server pid ${server.name} cwd=$cwd")
+    return cwd
+  }
+
+  /**
    * Every `/proc` entry this uid can see whose argv starts with the pinned shell, or null when
    * `/proc` is unreadable at all - Android mounts it `hidepid`, and whether a sibling process of
    * the same uid is visible is a property of the device rather than something to assume.

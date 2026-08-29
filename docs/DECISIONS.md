@@ -296,6 +296,46 @@ Without it a cell's `open('data.csv','w')` raises `OSError: [Errno 30]` on a rea
 The server root (`--ServerApp.root_dir`), the kernel's `HOME` and the repository root are **one
 tree**.
 
+### The server's own cwd is that tree as well, because upstream it cannot be anything else
+
+`jupyter_server` declares **no** default for `root_dir`; the `@default` under it returns
+`os.getcwd()` (`serverapp.py:1839-1848`). So everywhere but here the server's process cwd and its
+`root_dir` are one directory *by construction* - you run `jupyter lab` somewhere and that somewhere
+becomes both. X2h passed `--ServerApp.root_dir` explicitly and left `ProcessBuilder` alone, which
+split them: root_dir the workspace, cwd Android's read-only `/`.
+
+**Kernels could not see it and terminals cannot avoid it.** A kernel's cwd comes from `root_dir`
+through `cwd_for_path` (`services/kernels/kernelmanager.py:211-218`). A terminal's is *inherited* -
+`PtyWithClients` is handed `cwd=None` whenever the `POST` carries none
+(`terminado/management.py:225-232`), which is what JupyterLab's own launcher sends
+(`terminal-extension/src/index.ts:514`). That is why eight phases of runtime work went by.
+
+**So `JupyterServerLauncher` calls `.directory(rootDir)`.** Measured, not reasoned: with the line
+backed out, `/proc/<server pid>/cwd` on the tablet read `/`
+(`evidence/p4-terminal/server-working-dir.md`).
+
+Every reference sets a spawned shell's cwd **at the spawn point** rather than inheriting, and
+defaults it to the workspace or home: Termux `chdir`s the forked child
+(`terminal-emulator/src/main/jni/termux.c:101`) to the same constant it uses for `$HOME`
+(`TermuxShellEnvironment.java:78, 101`); Winlator calls `ProcessBuilder.directory`
+(`core/ProcessHelper.java:68`); VS Code resolves an absolute cwd and **fails the launch** if it is
+not a directory (`terminalProcess.ts:261-273`); IntelliJ walks configured → default → project path
+→ home, checking each exists (`LocalOptionsConfigurer.java:77-101`). vscode-jupyter has this app's
+divergence exactly - `--notebook-dir` with no child cwd
+(`jupyterInterpreterSubCommandExecutionService.node.ts:100-135`) - and never reaches the defect
+because it runs only kernels against that server.
+
+**This forbids** the alternative repair: sending an absolute `cwd` on every `POST /api/terminals`.
+It leaves the server's cwd wrong for P5's LSP and P6b's Console, and it leaves the handler's
+*relative* branch broken - `api_handlers.py:41-49` resolves a relative `cwd` against the process cwd
+**before** falling back to `server_root_dir`, so under cwd `/` a request for `notebooks` would
+silently mean `/notebooks`. That branch is what "Open Terminal Here" uses.
+
+**Two gates, because one is one-sided.** `JupyterServerWorkingDirTest` asserts the directory *and*
+that it equals the `--ServerApp.root_dir` argument - a launcher pointed somewhere else would pass a
+test that only checked the first. `TerminalServiceTest.theServerProcessRunsInTheWorkspaceItIsRootedAt`
+reads the **running** process, which no argument assertion can see.
+
 ### Cell semantics come from `NotebookActions`, and most are not the obvious answer
 
 Read out of `packages/notebook/src/actions.tsx` and `packages/cells/src/model.ts`:

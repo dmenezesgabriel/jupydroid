@@ -53,13 +53,7 @@ class JupyterServerLauncher(
     val started = withContext(ioDispatcher) {
       runtimeDir.mkdirs()
       JupyterRuntimeFile.clear(runtimeDir) // a stale file would advertise a dead port
-      runtime.processBuilder(
-        serverArgs(),
-        mapOf("JUPYTER_RUNTIME_DIR" to runtimeDir.path), // faulthandler comes from SpaceRuntime
-      )
-        .redirectErrorStream(true)
-        .redirectOutput(logFile())
-        .start()
+      jupyterServerProcess(runtime, runtimeDir, rootDir, shell, token).start()
     }
     process = started
     return awaitConnection() ?: failStart(started)
@@ -98,9 +92,7 @@ class JupyterServerLauncher(
     )
   }
 
-  private fun logFile(): File = File(runtimeDir, "jupyter_server.log")
-
-  private fun serverArgs(): List<String> = jupyterServerArgs(rootDir, token, shell)
+  private fun logFile(): File = jupyterServerLogFile(runtimeDir)
 
   private fun JupyterRuntimeFile.toConnection() =
     ServerConnection(baseUrl = url.ifBlank { "http://127.0.0.1:$port/" }, port = port, token = token)
@@ -112,6 +104,39 @@ class JupyterServerLauncher(
     const val LOG_EXCERPT = 2000
   }
 }
+
+/**
+ * The server process, configured but not started - the launch as a value, the way
+ * [jupyterServerArgs] makes the command line one.
+ *
+ * Separated for the same reason and asserted the same way: starting a real jupyter_server is a
+ * tablet gate, so what a JVM test can own is how the process was set up before anyone ran it.
+ */
+internal fun jupyterServerProcess(
+  runtime: SpaceRuntime,
+  runtimeDir: File,
+  rootDir: File,
+  shell: File,
+  token: String,
+): ProcessBuilder = runtime.processBuilder(
+  jupyterServerArgs(rootDir, token, shell),
+  mapOf("JUPYTER_RUNTIME_DIR" to runtimeDir.path), // faulthandler comes from SpaceRuntime
+)
+  // `root_dir` defaults to `os.getcwd()` (`serverapp.py:1842-1848`), so upstream the two are one
+  // directory and everything downstream is written against that. A terminal is the client that
+  // proves it: `PtyWithClients` inherits this cwd whenever the POST carries none
+  // (`terminado/management.py:225-232`). Without this line a shell opens on Android's read-only
+  // `/`. See [JupyterServerWorkingDirTest] and `docs/DECISIONS.md`.
+  //
+  // [rootDir] is guaranteed to exist rather than created here: the only path that starts this
+  // launcher is `BaseSpaceServer.startSpace`, which calls `installSpace()` first, and the rootfs
+  // tarball carries `home/jupydroid/`. A cwd that does not exist would make `start()` throw.
+  .directory(rootDir)
+  .redirectErrorStream(true)
+  .redirectOutput(jupyterServerLogFile(runtimeDir))
+
+/** One home for the log's path: [jupyterServerProcess] writes it and a failed start reads it. */
+internal fun jupyterServerLogFile(runtimeDir: File): File = File(runtimeDir, "jupyter_server.log")
 
 /**
  * The server's command line, as a value rather than a side effect of starting one.
