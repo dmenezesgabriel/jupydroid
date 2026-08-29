@@ -18,7 +18,7 @@ import kotlinx.serialization.json.jsonPrimitive
 class ScriptedKernelSocketOpener(
   private val reply: (requestMsgId: String) -> List<String>,
   /** Ends the socket once the scripted frames are delivered, so failure paths can be driven. */
-  private val endAfter: KernelSocketEvent.Ended? = null,
+  private val endAfter: JupyterSocketEvent.Ended? = null,
   /**
    * Whether the handshake has finished by the time [open] returns.
    *
@@ -68,33 +68,33 @@ class ScriptedKernelSocketOpener(
   val sent = mutableListOf<String>()
 
   private var opened = false
-  private var events: ((KernelSocketEvent) -> Unit)? = null
+  private var events: ((JupyterSocketEvent) -> Unit)? = null
   private var kernelInfoAsks = 0
 
   /** Completes the handshake, the way OkHttp's `onOpen` does. */
   fun finishHandshake() {
     opened = true
-    events?.invoke(KernelSocketEvent.Opened)
+    events?.invoke(JupyterSocketEvent.Opened)
   }
 
   /** Ends the socket without it ever opening: a refused upgrade, a 404 for a dead kernel. */
   fun failHandshake(reason: String) {
-    events?.invoke(KernelSocketEvent.Ended(reason = reason, failed = true))
+    events?.invoke(JupyterSocketEvent.Ended(reason = reason, failed = true))
   }
 
-  override fun open(kernelId: String, sessionId: String, onEvent: (KernelSocketEvent) -> Unit): KernelSocket {
+  override fun open(kernelId: String, sessionId: String, onEvent: (JupyterSocketEvent) -> Unit): JupyterSocket {
     openedKernelId = kernelId
     openedSessionId = sessionId
     openCount++
     events = onEvent
     if (openImmediately) {
       opened = true
-      onEvent(KernelSocketEvent.Opened)
+      onEvent(JupyterSocketEvent.Opened)
     }
     return ScriptedSocket(onEvent)
   }
 
-  private inner class ScriptedSocket(private val onEvent: (KernelSocketEvent) -> Unit) : KernelSocket {
+  private inner class ScriptedSocket(private val onEvent: (JupyterSocketEvent) -> Unit) : JupyterSocket {
     override fun send(frame: String): Boolean {
       // A real server drops what arrives before its own `open()` has associated the session, so
       // the fake keeps it and answers nothing - which is what the stall looks like.
@@ -116,11 +116,11 @@ class ScriptedKernelSocketOpener(
       if (msgType == "kernel_info_request") {
         kernelInfoAsks++
         if (answerKernelInfo(kernelInfoAsks)) {
-          onEvent(KernelSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId)))
+          onEvent(JupyterSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId)))
         }
         return
       }
-      reply(requestMsgId).forEach { onEvent(KernelSocketEvent.Received(it)) }
+      reply(requestMsgId).forEach { onEvent(JupyterSocketEvent.Received(it)) }
       endAfter?.let(onEvent)
     }
 

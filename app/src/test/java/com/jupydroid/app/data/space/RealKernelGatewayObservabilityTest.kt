@@ -140,7 +140,7 @@ class RealKernelGatewayObservabilityTest {
   fun aSocketThatEndsIsReportedWithItsReason() = runTest {
     val opener = ScriptedKernelSocketOpener(
       reply = { listOf() },
-      endAfter = KernelSocketEvent.Ended(reason = "closed: 1006 gone", failed = false),
+      endAfter = JupyterSocketEvent.Ended(reason = "closed: 1006 gone", failed = false),
     )
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle(), log)
     val session = gateway.connect(SPACE, "Analysis.ipynb")

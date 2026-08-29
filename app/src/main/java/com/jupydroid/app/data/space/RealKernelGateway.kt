@@ -137,15 +137,15 @@ class RealKernelGateway(
 
   /** Returns false once this execution is complete, which is what ends the flow. */
   private suspend fun FlowCollector<KernelEvent>.emitUntilComplete(
-    event: KernelSocketEvent,
+    event: JupyterSocketEvent,
     requestMsgId: String,
     cellId: String,
     completion: ExecutionCompletion,
   ): Boolean {
     // A socket that ends mid-execution must fail the cell rather than complete it: a cell
     // that silently produced nothing looks exactly like one that ran and printed nothing.
-    if (event is KernelSocketEvent.Ended) throw KernelChannelException(event.reason)
-    if (event !is KernelSocketEvent.Received) return true
+    if (event is JupyterSocketEvent.Ended) throw KernelChannelException(event.reason)
+    if (event !is JupyterSocketEvent.Received) return true
 
     KernelOutputs.executionCountOf(event.frame, requestMsgId)?.let { emit(KernelEvent.ExecutionCount(cellId, it)) }
     KernelOutputs.outputOf(event.frame, requestMsgId)?.let { emit(KernelEvent.Output(cellId, it)) }
@@ -165,7 +165,7 @@ class RealKernelGateway(
     // Buffered so the socket's thread is never blocked by a slow collector. A kernel's shell
     // channel is serial - one execution in flight at a time - so this is generous, and with
     // no replay the flow discards frames arriving between executions rather than growing.
-    val events = MutableSharedFlow<KernelSocketEvent>(extraBufferCapacity = FRAME_BUFFER)
+    val events = MutableSharedFlow<JupyterSocketEvent>(extraBufferCapacity = FRAME_BUFFER)
     val connected = CompletableDeferred<Unit>()
     log.reached(KernelLog.SOCKET_OPENED, mapOf("kernelId" to session.kernelId, "sessionId" to session.id))
     val socket = opener.open(session.kernelId, session.id) { event ->
@@ -195,8 +195,8 @@ class RealKernelGateway(
    * the session, and dropped. The kernel then sent its startup statuses and nothing else.
    */
   private class SessionSocket(
-    val socket: KernelSocket,
-    val events: MutableSharedFlow<KernelSocketEvent>,
+    val socket: JupyterSocket,
+    val events: MutableSharedFlow<JupyterSocketEvent>,
     private val sessionId: String,
     private val connected: CompletableDeferred<Unit>,
     /** Replaces the process behind this socket; see [recoverOnce] for when that is the answer. */
@@ -261,8 +261,8 @@ class RealKernelGateway(
           // A socket that ends before the reply fails the ask rather than answering nothing, for
           // the reason a dying execution fails its cell: silence and "there is no answer" are
           // different claims and only one of them is true.
-          if (event is KernelSocketEvent.Ended) throw KernelChannelException(event.reason)
-          (event as? KernelSocketEvent.Received)?.let { readReply(it.frame, requestMsgId) }
+          if (event is JupyterSocketEvent.Ended) throw KernelChannelException(event.reason)
+          (event as? JupyterSocketEvent.Received)?.let { readReply(it.frame, requestMsgId) }
         }
         .first()
     }
@@ -339,7 +339,9 @@ class RealKernelGateway(
       val answered = withTimeoutOrNull(KERNEL_INFO_TIMEOUT) {
         events
           .onSubscription { socket.send(JupyterMessage.kernelInfoRequest(sessionId, msgId)) }
-          .first { it is KernelSocketEvent.Received && JupyterFrame.ofType(it.frame, msgId, KERNEL_INFO_REPLY) != null }
+          .first {
+            it is JupyterSocketEvent.Received && JupyterFrame.ofType(it.frame, msgId, KERNEL_INFO_REPLY) != null
+          }
       }
       log.reached(
         if (answered != null) KernelLog.GREET_ANSWERED else KernelLog.GREET_TIMED_OUT,
@@ -369,15 +371,15 @@ class RealKernelGateway(
  * Beside [settle] rather than inside the gateway for the same reason that one is: it reads an
  * event and a log and touches nothing the class holds.
  */
-private fun report(log: SpaceLifecycleLog, event: KernelSocketEvent, subscribers: Int, accepted: Boolean) {
+private fun report(log: SpaceLifecycleLog, event: JupyterSocketEvent, subscribers: Int, accepted: Boolean) {
   val fields = mapOf("subscribers" to subscribers.toString())
   when (event) {
-    is KernelSocketEvent.Opened -> log.reached(KernelLog.SOCKET_CONNECTED, fields)
-    is KernelSocketEvent.Ended -> {
+    is JupyterSocketEvent.Opened -> log.reached(KernelLog.SOCKET_CONNECTED, fields)
+    is JupyterSocketEvent.Ended -> {
       val why = mapOf("reason" to event.reason, "failed" to event.failed.toString())
       log.reached(KernelLog.SOCKET_ENDED, fields + why)
     }
-    is KernelSocketEvent.Received -> {
+    is JupyterSocketEvent.Received -> {
       val what = mapOf(
         "msgType" to (JupyterFrame.msgTypeOf(event.frame) ?: "?"),
         // Empty means the frame answers no request of ours - the kernel's own startup chatter.
@@ -395,10 +397,10 @@ private fun report(log: SpaceLifecycleLog, event: KernelSocketEvent, subscribers
  * Completing exceptionally matters as much as completing: waiting for a handshake that never lands
  * would turn a lost frame into a hang, which is worse than the defect being fixed.
  */
-private fun settle(connected: CompletableDeferred<Unit>, event: KernelSocketEvent) {
+private fun settle(connected: CompletableDeferred<Unit>, event: JupyterSocketEvent) {
   when (event) {
-    is KernelSocketEvent.Opened -> connected.complete(Unit)
-    is KernelSocketEvent.Ended -> connected.completeExceptionally(KernelChannelException(event.reason))
-    is KernelSocketEvent.Received -> Unit
+    is JupyterSocketEvent.Opened -> connected.complete(Unit)
+    is JupyterSocketEvent.Ended -> connected.completeExceptionally(KernelChannelException(event.reason))
+    is JupyterSocketEvent.Received -> Unit
   }
 }

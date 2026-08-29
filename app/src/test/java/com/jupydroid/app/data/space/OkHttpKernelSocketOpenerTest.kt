@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 class OkHttpKernelSocketOpenerTest {
   @get:Rule val serverRule = MockWebServerRule()
 
-  private val events = LinkedBlockingQueue<KernelSocketEvent>()
+  private val events = LinkedBlockingQueue<JupyterSocketEvent>()
 
   @Test
   fun open_connectsToTheKernelChannelsEndpointCarryingTheToken() {
@@ -29,7 +29,7 @@ class OkHttpKernelSocketOpenerTest {
 
     opener(server).open("kernel-1", "session-9") { events.put(it) }
 
-    assertTrue(nextEvent() is KernelSocketEvent.Opened)
+    assertTrue(nextEvent() is JupyterSocketEvent.Opened)
     val request = server.takeRequest(TIMEOUT_SECONDS, TimeUnit.SECONDS)!!
     assertEquals("/api/kernels/kernel-1/channels?session_id=session-9", request.target)
     assertEquals("token secret-token", request.headers["Authorization"])
@@ -38,18 +38,18 @@ class OkHttpKernelSocketOpenerTest {
   @Test
   fun send_deliversFramesAndReceivesWhatTheKernelSendsBack() {
     val socket = opener(echoServer()).open("kernel-1", "session-9") { events.put(it) }
-    assertTrue(nextEvent() is KernelSocketEvent.Opened)
+    assertTrue(nextEvent() is JupyterSocketEvent.Opened)
 
     assertTrue(socket.send("""{"hello":"kernel"}"""))
 
-    assertEquals(KernelSocketEvent.Received("""echo:{"hello":"kernel"}"""), nextEvent())
+    assertEquals(JupyterSocketEvent.Received("""echo:{"hello":"kernel"}"""), nextEvent())
   }
 
   /** Frames keep arriving after the first: this socket outlives one execution. */
   @Test
   fun open_staysOpenAcrossManyFrames() {
     val socket = opener(echoServer()).open("kernel-1", "session-9") { events.put(it) }
-    assertTrue(nextEvent() is KernelSocketEvent.Opened)
+    assertTrue(nextEvent() is JupyterSocketEvent.Opened)
 
     repeat(3) { socket.send("frame-$it") }
 
@@ -68,18 +68,18 @@ class OkHttpKernelSocketOpenerTest {
 
     assertTrue("send() must accept a frame before Opened", socket.send("early"))
 
-    assertTrue(nextEvent() is KernelSocketEvent.Opened)
+    assertTrue(nextEvent() is JupyterSocketEvent.Opened)
     assertEquals("echo:early", received())
   }
 
   @Test
   fun close_endsTheSocketAndSaysSo() {
     val socket = opener(echoServer()).open("kernel-1", "session-9") { events.put(it) }
-    assertTrue(nextEvent() is KernelSocketEvent.Opened)
+    assertTrue(nextEvent() is JupyterSocketEvent.Opened)
 
     socket.close()
 
-    val ended = nextEvent() as KernelSocketEvent.Ended
+    val ended = nextEvent() as JupyterSocketEvent.Ended
     assertTrue("a close is not a failure, was $ended", !ended.failed)
   }
 
@@ -94,7 +94,7 @@ class OkHttpKernelSocketOpenerTest {
 
     opener(server).open("missing-kernel", "session-9") { events.put(it) }
 
-    val ended = nextEvent() as KernelSocketEvent.Ended
+    val ended = nextEvent() as JupyterSocketEvent.Ended
     assertTrue("expected a failure, was $ended", ended.failed)
     assertTrue("reason must name the status, was '${ended.reason}'", ended.reason.contains("404"))
   }
@@ -125,10 +125,10 @@ class OkHttpKernelSocketOpenerTest {
     ),
   )
 
-  private fun nextEvent(): KernelSocketEvent =
+  private fun nextEvent(): JupyterSocketEvent =
     events.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS) ?: error("no socket event arrived")
 
-  private fun received(): String = (nextEvent() as KernelSocketEvent.Received).frame
+  private fun received(): String = (nextEvent() as JupyterSocketEvent.Received).frame
 
   private companion object {
     const val TIMEOUT_SECONDS = 5L

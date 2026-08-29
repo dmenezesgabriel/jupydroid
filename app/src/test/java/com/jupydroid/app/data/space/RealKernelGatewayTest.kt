@@ -177,7 +177,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   fun execute_failsWhenTheSocketEndsMidExecution() = runTest {
     val opener = ScriptedKernelSocketOpener(
       reply = { listOf(KernelFrames.stream(it, "partial")) },
-      endAfter = KernelSocketEvent.Ended("connection reset", failed = true),
+      endAfter = JupyterSocketEvent.Ended("connection reset", failed = true),
     )
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
 
@@ -192,7 +192,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   fun execute_completesNormallyWhenTheSocketClosesAfterIdle() = runTest {
     val opener = ScriptedKernelSocketOpener(
       reply = { KernelFrames.successfulExecution(it) },
-      endAfter = KernelSocketEvent.Ended("closed: 1000 ", failed = false),
+      endAfter = JupyterSocketEvent.Ended("closed: 1000 ", failed = false),
     )
     val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
 
@@ -255,7 +255,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val gateway = RealKernelGateway(
       ScriptedKernelSocketOpener(
         reply = { emptyList() },
-        endAfter = KernelSocketEvent.Ended("connection reset", failed = true),
+        endAfter = JupyterSocketEvent.Ended("connection reset", failed = true),
       ),
       FakeKernelLifecycle(),
     )
@@ -350,7 +350,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val gateway = RealKernelGateway(
       ScriptedKernelSocketOpener(
         reply = { emptyList() },
-        endAfter = KernelSocketEvent.Ended("connection reset", failed = true),
+        endAfter = JupyterSocketEvent.Ended("connection reset", failed = true),
       ),
       FakeKernelLifecycle(),
     )
