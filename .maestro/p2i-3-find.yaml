@@ -15,10 +15,15 @@ appId: com.jupydroid.app
 #   `highlightNext(true, { from: 'selection-start', scroll: false })` (`:389-401`) - so with cell
 #   one active the count reads 1/5 and nothing scrolls. The arrows are P2i-4.
 #
-# The screenshot is what carries the colours: the current match amber, the other four on the
-# palette's found-match background. A match in the *rendered* markdown cell is counted and not
-# lit - our departure, because rendered prose is `RichText` rather than a text field, and it is
-# reached by unrendering the cell (`docs/DECISIONS.md`).
+# The screenshot is what carries the marks, and what separates them is **weight, not hue**. Both
+# matches take the same teal - `searchMatch` `#27678280` and `currentSearchMatch` `#27678290`
+# (`EditorPalettes.kt:74-75`), one alpha apart, which is the reference separating them by alpha
+# alone and measures 1.06:1 on the dark cell. So the current one is drawn **bold** as well
+# (`EditorTheme.kt:62-70`), and `docs/DECISIONS.md` records that as a departure. Measured off
+# frame 03: the current match's ink sits on `(33,69,85)` against the other's `(32,65,78)`.
+# A match in the *rendered* markdown cell is counted and not lit - our departure, because rendered
+# prose is `RichText` rather than a text field, and it is reached by unrendering the cell
+# (`docs/DECISIONS.md`).
 #
 # No cell is run, so nothing here needs the tablet.
 - launchApp
