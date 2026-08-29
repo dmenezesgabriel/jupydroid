@@ -3742,6 +3742,55 @@ are **P4f's** gate, where the reference itself puts them.
 gets four files before it gets a caller - a storage layer whose tests all go through a parser is a
 layer with no gate of its own.
 
+### A transcription of an algorithm is diffed against it, not reviewed against it (P4e-3)
+
+`TerminalRow.setChar` is 117 lines upstream at a complexity detekt refuses, so it ships here as
+nine functions across two classes. Twenty-six transcribed assertions are a thin oracle for a
+rewrite of an array splice, so both implementations were **run against the same scripted
+sequence** - `java.util.Random` is specified, so a seed produces the same stream in Java and in
+Kotlin - and their entire observable state compared after every operation: `spaceUsed`, `isBlank`,
+every java char in hex, all 41 column starts, all 40 styles.
+
+12,000 operations over three seeds, **byte-identical**
+(`evidence/p4-terminal/row-differential.md`).
+
+Four mutations were run to show the comparison can fail, and the two that survive are explained
+rather than shrugged at: the combining cap is out of the script's reach - measured, it never stacks
+more than **four** marks on one column - and the array's growth chunk is capacity, which no caller
+can observe.
+
+**And the first script was not enough, which the method itself showed.** It drove only `setChar`
+and `clear`, so `copyInterval` - the method this transcription changed most - had no coverage
+beyond two unit tests until it was added. It is identical with ~1,275 of them in.
+
+**This is the standard for P4f-P4h**, where `TerminalEmulator.java` is 2,617 lines and the same
+decomposition pressure applies: a transcription of an algorithm is closed by a differential against
+the source, and the transcribed unit tests cover what the differential's inputs cannot reach.
+
+### `RowText` is the seam a 117-line method had to be cut along (P4e-3)
+
+detekt found four things in the first draft and each answer is a design change rather than a
+suppression - this repo carries no detekt suppression and does not start here.
+
+`TooManyFunctions` (17 against 11) is the real one. Decomposing one long method necessarily makes
+many short ones, so `LongMethod` and `TooManyFunctions` pull against each other for any dense
+algorithm. The split that resolves it is a real boundary rather than an arithmetic one: **where
+does column N live in this char array, and how do I make room there** is not **what code point and
+style is column N**. `RowText` owns the first - the packed array, `findStartOfColumn`, the splice,
+the shift, the grow - and `TerminalRow` owns the second. Both land at exactly 11 functions, which
+is a ceiling to notice when P4f adds to either.
+
+The other three: `ReturnCount` twice, answered by folding two exits into one expression each -
+`excludeGuardClauses` is **false** by default in detekt 2.x, so a leading `return` is counted;
+`LongMethod` on `copyInterval`, answered by making the read and write columns one cursor and an
+offset, and by clearing the second-half-of-a-wide flag unconditionally, which is equivalent because
+it can only be true on the first iteration. `PackedText.kt` came out of the same pass: the
+surrogate-pair decode appears four times across the two classes where the reference inlines it each
+time.
+
+Every one of those changes was re-run through the differential, which is what makes them safe to
+make at all.
+
 ### `decodeEffect` reads two bits `encode` never wrote, and the mask is narrowed (P4e-2)
 
 `TextStyle.encode` masks the effect to nine bits (`0b111111111`, [BOLD]..[DIM]) and then sets the
