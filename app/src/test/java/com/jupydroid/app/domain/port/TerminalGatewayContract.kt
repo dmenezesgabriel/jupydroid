@@ -5,6 +5,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertEquals
@@ -103,13 +104,22 @@ abstract class TerminalGatewayContract {
     assertNotNull("nothing carrying 'echo hello' came back within $OUTPUT_TIMEOUT", output)
   }
 
-  /** Resizing is accepted before anything is typed - the screen has a size from its first frame. */
+  /**
+   * Resizing reaches an attached terminal, and is asserted **while attached** because a resize is a
+   * write.
+   *
+   * `set_size` is a frame on the terminal's own socket (`terminado/websocket.py`, `on_message`),
+   * not a property the server holds elsewhere - so a gateway that accepted one with nothing
+   * attached would be accepting a frame it has nowhere to put. The first version of this test did
+   * exactly that and passed against the fake while failing against the real one, which is how the
+   * port came to say that [TerminalGateway.resize] waits the way [TerminalGateway.send] does.
+   */
   @Test
-  fun resize_isAcceptedOnAFreshTerminal() = runTest {
+  fun resize_reachesAnAttachedTerminal() = runTest {
     val gateway = gateway()
     val session = gateway.open()
 
-    gateway.resize(session, rows = 24, cols = 80)
+    gateway.whileAttached(session) { gateway.resize(session, rows = 24, cols = 80) }
 
     assertTrue("$session stopped running when it was resized", session in gateway.running())
   }
@@ -128,6 +138,23 @@ abstract class TerminalGatewayContract {
    * first would be sending to a terminal nothing is attached to - precisely the case the port
    * exists to make impossible.
    */
+  /**
+   * Runs [body] with [session] attached, then lets the attach go.
+   *
+   * A terminal's socket belongs to its attach, so anything written to one needs a collector alive
+   * around it - the same discipline the screen has, where a key handler only exists while the
+   * terminal is on screen.
+   */
+  private suspend fun TerminalGateway.whileAttached(session: TerminalSession, body: suspend () -> Unit) =
+    coroutineScope {
+      val attached = launch { attach(session).collect { } }
+      try {
+        body()
+      } finally {
+        attached.cancel()
+      }
+    }
+
   private suspend fun TerminalGateway.outputAfterTyping(
     session: TerminalSession,
     typed: String,

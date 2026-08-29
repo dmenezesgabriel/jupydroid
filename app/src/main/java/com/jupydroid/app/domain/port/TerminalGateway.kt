@@ -91,6 +91,9 @@ interface TerminalGateway {
    *
    * Rows before columns, which is the wire's order and not a preference: terminado reads the
    * frame as `command[1:3]` (`terminado/websocket.py`, `on_message`).
+   *
+   * Waits for an attach exactly as [send] does, and for the same reason: `set_size` is a frame on
+   * the same socket, so a resize is a write and not a property of the terminal.
    */
   suspend fun resize(session: TerminalSession, rows: Int, cols: Int)
 

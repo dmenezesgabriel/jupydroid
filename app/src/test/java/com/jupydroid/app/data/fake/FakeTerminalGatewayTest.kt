@@ -1,10 +1,12 @@
 package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.port.TerminalEvent
+import com.jupydroid.app.domain.port.TerminalGatewayContract
 import com.jupydroid.app.domain.port.TerminalSession
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -37,11 +39,16 @@ class FakeTerminalGatewayTest {
     assertEquals(listOf("reports", null), gateway.openedIn)
   }
 
+  /** Attached, because a resize is a write - see [TerminalGatewayContract.resize_reachesAnAttachedTerminal]. */
   @Test
   fun resize_recordsRowsThenColumns() = runTest {
     val session = gateway.open()
 
-    gateway.resize(session, rows = 24, cols = 80)
+    coroutineScope {
+      val attached = launch { gateway.attach(session).collect { } }
+      gateway.resize(session, rows = 24, cols = 80)
+      attached.cancel()
+    }
 
     assertEquals(24 to 80, gateway.sizeOf(session))
   }

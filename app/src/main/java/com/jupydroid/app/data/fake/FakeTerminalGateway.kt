@@ -55,9 +55,16 @@ class FakeTerminalGateway : TerminalGateway {
     shell.printed.emit(TerminalEvent.Output(text))
   }
 
-  /** Nothing here has a screen to reflow; the size is remembered so a caller can be shown to. */
+  /**
+   * Nothing here has a screen to reflow, so the size is only remembered - but it **waits for an
+   * attach** the way [send] does, because on the wire a resize is a frame on the terminal's socket
+   * and a fake that accepted one without a socket would let a caller pass a contract the real
+   * gateway fails.
+   */
   override suspend fun resize(session: TerminalSession, rows: Int, cols: Int) {
-    shellFor(session).size = rows to cols
+    val shell = shellFor(session)
+    shell.ready.await()
+    shell.size = rows to cols
   }
 
   override suspend fun close(session: TerminalSession) {
