@@ -1458,6 +1458,33 @@ still offers "Select cells" while the find bar is up, and search wins the bar ov
 run can be started underneath it. The row is offered only while something is marked, this app's
 rule for a control whose two states would look identical.
 
+### A pseudoterminal works on the device, and the terminal phase keeps its shape
+
+P4a, measured before anything was built: `pty.fork()` succeeds from this app, a process `execv`'d
+inside the pty keeps it (`os.isatty(1)` is True on the far side, which is what terminado actually
+does), and `TIOCSWINSZ` on the **master** reaches the process inside - rows=43 cols=132 set by the
+parent, read back as `132x43` by the child. **Zero seccomp refusals**, checked in `tmp/sigsys.log`
+rather than assumed from a green assertion. `evidence/p4-terminal/pty-support.md`.
+
+**Probed first, ahead of staging busybox, and that ordering is the decision.** `docs/PLAN.md` had
+the staging step first; a `pty.fork()` child can write and `_exit` with no shell at all, so the
+cheaper question was also the one whose answer could have thrown the other away.
+
+**The `\r\n` is the proof, not the payload.** The child wrote `\n` and the master read `\r\n`, so a
+line discipline is in the path: this is a pty rather than a pipe that happened to work. The same
+fact is what broke the first draft of the probe - a canonical master holds a byte until a newline,
+so a go-ahead written as `b"g"` hung the child, the parent and the instrumentation, which reported
+`Tests 0/3 completed` and nothing else. **Every probe now runs under `signal.alarm`**, because a
+refusal is an answer and a hang is not.
+
+**Termux is evidence and not proof, and the distinction is worth keeping.**
+`terminal-emulator/src/main/jni/termux.c:36-51` opens `/dev/ptmx` and calls
+`grantpt`/`unlockpt`/`ptsname_r` from an ordinary app process - but at `targetSdkVersion=28` and
+against bionic, where ours is musl under a preloaded SIGSYS handler at 36. It raised the prior; it
+could not close it.
+
+**This does not settle that a shell can be reached** - see the busybox entry.
+
 ### ANSI handling today is a stripper, not an emulator
 
 `RenderedOutput.kt:96-102` regex-replaces SGR escapes out of tracebacks
