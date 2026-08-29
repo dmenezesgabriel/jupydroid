@@ -280,6 +280,15 @@ run_flow() {
   [ -n "$run_dir" ] || { echo "no maestro run directory found for $flow"; exit 1; }
   # A failed flow has fewer screenshots than it planned, and may have none.
   cp "$run_dir/takeScreenshot"/*.png "$out/" 2>/dev/null || true
+  # And a renamed screenshot used to leave its predecessor here for good - `evidence/x2e-…` kept
+  # four frames of a launch screen X2h retired, `evidence/p2o-4-…/800dp` a browser with no bottom
+  # bar beside the frame whose point is the bar (P2z-h, `evidence/p2z-suite-sweep/frames.md`).
+  # Keyed by flow, so the five drivers that run several flows into one directory keep each other's.
+  local stems=() png
+  for png in "$run_dir/takeScreenshot"/*.png; do
+    if [ -e "$png" ]; then stems+=("$(basename "$png" .png)"); fi
+  done
+  python3 "$ROOT_DIR/prune_stale_frames.py" "$out" "$(basename "$flow" .yaml)" ${stems[@]+"${stems[@]}"}
   cp "$run_dir/logs/device-logcat.txt" "$out/logcat.txt"
   record_device "$out"
   return "$status"
