@@ -3721,6 +3721,47 @@ Measured after, on both devices (`evidence/p2y-bottom-navigation/measurement.txt
 160dp items with centres at the quarter points; 800dp gives 200dp items in a 400dp group centred at
 400dp, which is `calculateCenteredContentHorizontalPadding`'s own answer for two items.
 
+### The emulator's storage and its parser are two steps, because the reference's tests are (P4e-1)
+
+`docs/PLAN.md` gated **P4e** - "the screen buffer" - on seven Termux test classes. Counted in the
+tree rather than assumed, five of them drive the *parser*, not the buffer:
+`CursorAndScreenTest` (84 `enterString`/`withTerminalSized` call sites), `ScrollRegionTest` (51),
+`RectangularAreasTest` (45), `ResizeTest` (40) and `UnicodeInputTest` (31), each of them zero direct
+`TerminalBuffer` or `TerminalRow` construction. `ScreenBufferTest` is three-fifths the same. Cursor
+addressing, the scroll region and ED/EL erase are `TerminalEmulator.java`; `TerminalBuffer.java`'s
+whole public surface is `setChar`, `blockSet`, `blockCopy`, `scrollDownOneLine`, `resize`, the
+transcript readers and the line-wrap flags.
+
+So P4e is the **storage** - `CharacterWidth`, `CellStyle`, `TerminalRow`, `TerminalGrid`, one
+sub-step each - gated by the three classes that reach it (`WcWidthTest`, `TextStyleTest`,
+`TerminalRowTest`) plus `ScreenBufferTest`'s two buffer-level tests. The five escape-driven classes
+are **P4f's** gate, where the reference itself puts them.
+
+**This forbids** closing P4e on a test that types an escape sequence: if a gate needs
+`enterString`, it belongs to the parser and the parser is a later step. It is also why `terminal/`
+gets four files before it gets a caller - a storage layer whose tests all go through a parser is a
+layer with no gate of its own.
+
+### `CharacterWidthRanges` is packed, and a test checks the packing (P4e-1)
+
+`WcWidth.java` is 566 lines because its two interval tables are an `int[][]` literal at one range
+per line - `ZERO_WIDTH` alone is 343 ranges. This project's ceiling is 500 non-blank lines
+(`scripts/check-file-line-length.sh`), so the tables are transcribed as flat `intArrayOf(low, high,
+…)`, four ranges per line, into a file of their own: 146 lines for both.
+
+That is a shape change, and a shape change to 464 hand-moved numbers needs its own gate, because
+the nine spot checks `WcWidthTest` carries would pass over a truncated or misordered table.
+`CharacterWidthTest` therefore also asserts that every pair has `low <= high`, that both tables are
+ascending and disjoint - which is what makes the binary search correct at all - and that they hold
+**343** and **121** ranges. Four mutations were run rather than trusted: indexing the search by row
+instead of by pair, dropping the C0/C1 guard, deleting the last `ZERO_WIDTH` range, and swapping one
+pair's endpoints. Each fails at least one test.
+
+**Three tests exist that upstream has none of**, and they cover code upstream only reaches through
+`TerminalRow`: `CharacterWidth.at` over a surrogate pair, `zeroWidthCountIn`, and the C0/C1 rule -
+which is the one place this file departs from `wcwidth(3)` (0 rather than -1) and had nothing
+pinning it.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)
@@ -4103,7 +4144,16 @@ which is why P2u may transcribe colour values out of them where Winlator's LGPL 
 MIT permits reuse with attribution, and every transcribed value carries its colour id in a doc
 comment.
 
-`reference/` is gitignored and travels with no clone. The five consulted here, at the remotes the
+Termux's `terminal-emulator` and `terminal-view` are **Apache 2.0**, and this is an exception
+rather than the repository's licence: `termux-app/LICENSE.md` is GPLv3 with those two modules
+carved out, inherited from Jack Palevich's Android Terminal Emulator. That is what lets P4e-P4h
+**transcribe** them the way P2u transcribes VS Code, where Winlator's LGPL forced clean-room. Every
+transcribed file names its upstream path and the checked-out commit
+(`3df69d1da197dd9bd71a3bafd902dffd720576b4`) in its KDoc; the app carries no `NOTICE` file because
+it ships no `LICENSE` of its own yet, and one attribution point per file is the form the rest of
+this repo already uses for citations.
+
+`reference/` is gitignored and travels with no clone. The six consulted here, at the remotes the
 local clones actually point at:
 
 ```sh
@@ -4113,6 +4163,7 @@ git clone --depth 1 https://github.com/JetBrains/intellij-community.git   # 2.4 
 git clone --depth 1 https://github.com/brunodev85/winlator
 git clone --depth 1 https://github.com/microsoft/vscode.git               # 1.7 GB
 git clone --depth 1 https://github.com/microsoft/vscode-jupyter.git       # 256 MB
+git clone --depth 1 https://github.com/termux/termux-app.git
 ```
 
 ---
