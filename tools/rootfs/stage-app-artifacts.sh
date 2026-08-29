@@ -22,12 +22,15 @@ case "$ABI" in
   # LOADER must match SpaceAbi.loaderLinkPath: it is baked into PT_INTERP below and
   # symlinked into nativeLibraryDir by BaseSpaceInstaller. musl keeps its loader in
   # /lib on every architecture, named after the architecture.
-  x86_64)    LOADER=lib/ld-musl-x86_64.so.1;  INTERPRETER=usr/bin/python3.12 ;;
-  arm64-v8a) LOADER=lib/ld-musl-aarch64.so.1; INTERPRETER=usr/bin/python3.12 ;;
+  # PLATFORM is the same mapping build.sh uses; busybox is compiled here rather than read out of
+  # the tarball, so this script now needs to know what to build it for.
+  x86_64)    LOADER=lib/ld-musl-x86_64.so.1;  INTERPRETER=usr/bin/python3.12; PLATFORM=linux/amd64 ;;
+  arm64-v8a) LOADER=lib/ld-musl-aarch64.so.1; INTERPRETER=usr/bin/python3.12; PLATFORM=linux/arm64 ;;
   *) echo "unknown abi '$ABI'; expected x86_64 or arm64-v8a" >&2; exit 1 ;;
 esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+DOCKER_DIR="$ROOT/tools/rootfs"
 # patchelf runs on the HOST architecture, whatever ABI is being staged. It rewrites ELF headers
 # and does not execute the binary, so an x86_64 patchelf edits an aarch64 ELF correctly - measured,
 # and the loader it produces is byte-identical (sha256) to one staged the old way. This is what
@@ -61,21 +64,30 @@ else
   rm -f "$ASSET_DIR/rootfs-$ABI.tgz"
 fi
 
-echo "==> extracting the three executable ELFs from the tarball"
+echo "==> extracting the loader and the interpreter from the tarball"
 # From the tarball rather than from the image, because the tarball IS `docker export` of that
-# image - so the bytes are the same - and reading it needs no emulation. busybox joins the
-# interpreter and the loader as of P4: the image ships it as a real ELF at bin/busybox with 304
-# applet symlinks pointing absolutely at it, and neither the applets nor the ELF is reachable on
-# device. BaseSpaceInstaller points bin/busybox at this library and makes the applets relative to
-# it - so the shell resolves, and busybox still reads its applet from the basename of the path it
-# was reached by, which is why the applets are not pointed here directly
-# (evidence/p4-terminal/busybox-dispatch.md).
+# image - so the bytes are the same - and reading it needs no emulation.
 STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
-tar -xzf "$TARBALL" -C "$STAGE_DIR" "$LOADER" "$INTERPRETER" bin/busybox
+tar -xzf "$TARBALL" -C "$STAGE_DIR" "$LOADER" "$INTERPRETER"
 cp "$STAGE_DIR/$LOADER"      "$STAGE_DIR/libloader.so"
 cp "$STAGE_DIR/$INTERPRETER" "$STAGE_DIR/libpython3.so"
-cp "$STAGE_DIR/bin/busybox"  "$STAGE_DIR/libbusybox.so"
+
+echo "==> building busybox (P4b-2: the one without FEATURE_SUID)"
+# busybox is the exception to "from the tarball", and the reason is P4b-2: Alpine's stock build
+# sets CONFIG_FEATURE_SUID=y, so every applet dispatch calls setgid()/setuid() and Android's app
+# seccomp filter kills it with SIGSYS before it prints a byte. The Dockerfile builds one without
+# that flag; this takes it from that stage directly, so the ELF staged here is the fixed one even
+# when build/rootfs/*.tgz predates the fix.
+#
+# It is the applets, not this file, that make the shell work: the image ships 304 symlinks
+# pointing absolutely at /bin/busybox, and neither they nor the ELF is reachable on device.
+# BaseSpaceInstaller points bin/busybox at this library and makes the applets relative to it, and
+# busybox reads its applet from the basename of the path it was reached by - which is why the
+# applets are not pointed here directly (evidence/p4-terminal/busybox-dispatch.md).
+docker buildx build --platform "$PLATFORM" --target busybox-artifact \
+  --output "type=local,dest=$STAGE_DIR/busybox-out" "$DOCKER_DIR"
+cp "$STAGE_DIR/busybox-out/busybox" "$STAGE_DIR/libbusybox.so"
 
 echo "==> repointing PT_INTERP and RPATH"
 # The stock PT_INTERP is /$LOADER, an absolute path that on Android resolves against the device

@@ -59,6 +59,50 @@ terminal must pay for busybox.
 
 `useLegacyPackaging = true` is load-bearing: without it the libs stay inside the APK.
 
+### busybox is built here, not taken from Alpine, and one flag is why
+
+**Alpine's busybox cannot run a single applet in this app's process.** It is built with
+`CONFIG_FEATURE_SUID=y`, which compiles in `check_suid()` - called on *every* applet dispatch
+(`libbb/appletlib.c:965`) and ending, for every `BB_SUID_DROP` applet, in `setgid(rgid); setuid(ruid);`.
+Both are on bionic's `libc/SECCOMP_BLOCKLIST_APP.TXT` for lp64, an app process is zygote-spawned
+and carries that filter, and busybox has no SIGSYS handler - so `sh`, `ls` and `echo` alike were
+killed about seven milliseconds after exec, having printed nothing. Full account in
+`evidence/p4-terminal/busybox-under-app-seccomp.md`.
+
+So `tools/rootfs/Dockerfile` builds it, from Alpine's own `busyboxconfig` for the same version with
+**one line flipped** (`tools/rootfs/busybox.config`). `CONFIG_FEATURE_SUID=n` replaces `check_suid`
+with `#define check_suid(x) ((void)0)`, so the calls are gone at compile time.
+
+**This is the reference implementation's setting, not an invention.** Termux runs busybox in an
+Android app process under this same filter and sets `# CONFIG_FEATURE_SUID is not set`
+(`termux-packages/packages/busybox/busybox.config:32`). Alpine sets it the other way because Alpine
+is a distribution, where `su` and `passwd` need it.
+
+**utmps is linked statically**, following Alpine's *static* recipe (`APKBUILD:219`,
+`-Wl,--push-state,-Bstatic`) rather than its dynamic one. The rootfs carries no libutmps - the base
+image's busybox is Alpine's BOOTSTRAP build, which skips it - so a dynamic link made every applet
+fail on device with `Error loading shared library libutmps.so.0.1`.
+
+**This forbids** taking busybox from `apk add` again, and it is gated:
+`scripts/check_busybox_seccomp.py` fails on a config that restores the flag and on any staged
+`libbusybox.so` carrying the `check_suid` fingerprint. **A `run-as` gate cannot enforce it** -
+that process is not under the app's seccomp filter, which is exactly how P4b shipped this defect
+green. The device gate is `BusyBoxAppletsDeviceTest`, which forks applets from inside the app.
+
+### The Space's shell is named once, in `SHELL`, and three things read it
+
+`SpaceRuntime.environment()` sets `SHELL` to `spaceShellIn(baseDir)`. Three consumers, all read in
+the shipped source rather than assumed:
+
+- `jupyter_server_terminals` consults it before falling back to `which("sh")` - though P4c pins
+  `shell_command` outright, so this is its belt;
+- pexpect resolves it for a cell's printing escape, `!ls` (`_process_posix.py:48`);
+- and `IPython/utils/_process_common.py:86-90` passes it as `Popen(executable=…)` for the *capture*
+  escape, `files = !ls`. **Unset, that stays `None` and CPython falls back to the absolute
+  `/bin/sh`, which Android does not have** - so the command ran nowhere and the cell got an empty
+  string back, with no error. That one is why this is a decision and not a tidy-up;
+  `evidence/p4-terminal/shell-escapes.md` has the before and after.
+
 ### musl, not glibc; and arm64 ships, x86_64 does not (yet)
 
 Android 16's app seccomp filter kills glibc's libc startup with SIGSYS on both ABIs; musl starts

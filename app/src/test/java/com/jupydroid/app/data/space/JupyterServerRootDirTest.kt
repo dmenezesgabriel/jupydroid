@@ -23,7 +23,7 @@ class JupyterServerRootDirTest {
 
   @Test
   fun theServerIsRootedAtTheWorkspace() {
-    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "t")
+    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "t", shell = spaceShellIn(baseDir))
 
     assertTrue(
       "expected a root_dir argument, got $args",
@@ -41,7 +41,8 @@ class JupyterServerRootDirTest {
 
   @Test
   fun theOtherArgumentsAreStillThere() {
-    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "secret")
+    val args =
+      jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "secret", shell = spaceShellIn(baseDir))
 
     assertTrue(args.contains("--IdentityProvider.token=secret"))
     assertTrue(args.contains("--KernelManager.transport=ipc"))

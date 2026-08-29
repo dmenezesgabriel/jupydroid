@@ -12,10 +12,8 @@ class SpaceRuntimeTest {
   @get:Rule val tempFolder = TemporaryFolder()
 
   private val interpreter = File("/data/app/abc==/lib/arm64/libpython3.so")
-  private val runtime = SpaceRuntime(
-    baseDir = File("/data/data/com.jupydroid.app/files/spaces/base"),
-    nativeInterpreter = interpreter,
-  )
+  private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")
+  private val runtime = SpaceRuntime(baseDir = baseDir, nativeInterpreter = interpreter)
 
   @Test
   fun command_execsTheNativeInterpreterNotTheOneInTheRootfs() {
@@ -146,5 +144,31 @@ class SpaceRuntimeTest {
     val path = runtime.environment().getValue("PATH")
 
     assertTrue("expected only rootfs entries, got $path", path.split(":").all { it.startsWith("/data/data/") })
+  }
+
+  /**
+   * `SHELL` names the Space's shell, and it is load-bearing rather than tidy.
+   *
+   * A cell's capture escape - `files = !ls` - reaches `IPython/utils/_process_common.py:86-90`:
+   *
+   *     executable = None
+   *     if shell and os.name == 'posix' and 'SHELL' in os.environ:
+   *         executable = os.environ['SHELL']
+   *     p = subprocess.Popen(cmd, shell=shell, executable=executable, ...)
+   *
+   * Unset, `executable` stays None and CPython falls back to the absolute `/bin/sh`, which does
+   * not exist on Android - so the command runs nowhere and the cell gets an empty string back.
+   * Measured before this was set: `getoutput repr: ''` for `echo` itself, while `!echo`, which
+   * takes the pexpect path and searches `PATH`, worked (`evidence/p4-terminal/shell-escapes.md`).
+   *
+   * The same variable is what `jupyter_server_terminals` consults before falling back to
+   * `which("sh")`, and what pexpect resolves for the printing escape - so one setting decides
+   * the shell for all three rather than each finding its own.
+   */
+  @Test
+  fun environment_namesTheSpacesShellSoNothingFallsBackToTheDevicesRoot() {
+    val shell = runtime.environment().getValue("SHELL")
+
+    assertEquals(spaceShellIn(baseDir).path, shell)
   }
 }

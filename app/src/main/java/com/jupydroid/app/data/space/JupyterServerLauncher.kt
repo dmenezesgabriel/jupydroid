@@ -32,6 +32,8 @@ class JupyterServerLauncher(
   private val runtimeDir: File,
   /** Where the server's Contents API is rooted - the same directory the app reads notebooks from. */
   private val rootDir: File,
+  /** What terminado spawns in a pseudoterminal; see [jupyterServerArgs]. */
+  private val shell: File,
   private val startTimeout: Duration = START_TIMEOUT,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ServerLauncher {
@@ -98,7 +100,7 @@ class JupyterServerLauncher(
 
   private fun logFile(): File = File(runtimeDir, "jupyter_server.log")
 
-  private fun serverArgs(): List<String> = jupyterServerArgs(rootDir, token)
+  private fun serverArgs(): List<String> = jupyterServerArgs(rootDir, token, shell)
 
   private fun JupyterRuntimeFile.toConnection() =
     ServerConnection(baseUrl = url.ifBlank { "http://127.0.0.1:$port/" }, port = port, token = token)
@@ -119,7 +121,7 @@ class JupyterServerLauncher(
  * unset for eight steps, which left the Contents API rooted at whatever cwd `ProcessBuilder` gave
  * it, and nothing noticed because nothing but the app read the files.
  */
-internal fun jupyterServerArgs(rootDir: File, token: String): List<String> = listOf(
+internal fun jupyterServerArgs(rootDir: File, token: String, shell: File): List<String> = listOf(
   "-m", "jupyter_server",
   "--ServerApp.ip=127.0.0.1",
   "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
@@ -131,6 +133,21 @@ internal fun jupyterServerArgs(rootDir: File, token: String): List<String> = lis
   // (evidence/step8.5/psutil-segfault.txt).
   "--KernelManager.transport=ipc",
   "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
+  // P4c: terminado spawns *this* shell, rather than whatever a PATH search turns up. Unpinned,
+  // `jupyter_server_terminals/app.py:initialize_configurables` resolves it as
+  //   [os.environ.get("SHELL") or which("sh")]
+  // and then appends `-l`, because that append is guarded on `shell_override is None` and this
+  // server's stdout is a file rather than a tty (`start` calls `redirectOutput`). Both would be
+  // wrong here: SHELL is unset, `which` searches an environment variable for the one binary the
+  // Space cannot substitute, and a login shell would source a profile out of the rootfs that
+  // nothing has audited.
+  //
+  // A **list**, never a string: the same function runs `shlex.split` over a string value, so a
+  // path would be one quoting rule away from being torn in two, while a list reaches ptyprocess
+  // as the argv it already is. Measured against jupyter_server 2.20.0 and
+  // jupyter_server_terminals 0.5.4 - the versions in `tools/rootfs/requirements.lock` - rather
+  // than assumed to parse: `evidence/p4-terminal/terminado-arg-parses.txt`.
+  """--ServerApp.terminado_settings={"shell_command": ["${shell.path}"]}""",
   // P1b: the server may stop itself. `shutdown_no_activity_timeout` fires only while **no
   // kernels** exist (serverapp.py `shutdown_no_activity` returns early when `len(km) != 0`),
   // and idle kernels are culled first by `MappingKernelManager.cull_idle_timeout`. Culling

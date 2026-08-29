@@ -15,11 +15,11 @@ import java.io.File
  * the tablet gate `evidence/p1-lifecycle/`.
  */
 class JupyterServerLifecycleArgsTest {
-  private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base/home/jupydroid")
+  private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")
 
   @Test
   fun theServerStopsItselfAfterAnIdleWithNoKernels() {
-    val args = jupyterServerArgs(rootDir = baseDir, token = "t")
+    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "t", shell = spaceShellIn(baseDir))
 
     assertTrue(
       "expected shutdown_no_activity_timeout, got $args",
@@ -29,7 +29,7 @@ class JupyterServerLifecycleArgsTest {
 
   @Test
   fun idleKernelsAreCulledBeforeTheServerCanStop() {
-    val args = jupyterServerArgs(rootDir = baseDir, token = "t")
+    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "t", shell = spaceShellIn(baseDir))
 
     assertTrue(
       "expected cull_idle_timeout, got $args",
@@ -44,7 +44,7 @@ class JupyterServerLifecycleArgsTest {
    */
   @Test
   fun cullingRunsOnAShortEnoughIntervalToBeMeasured() {
-    val args = jupyterServerArgs(rootDir = baseDir, token = "t")
+    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "t", shell = spaceShellIn(baseDir))
 
     assertTrue(
       "expected cull_interval, got $args",

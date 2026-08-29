@@ -41,6 +41,7 @@ fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher = JupyterSe
   runtime = baseSpaceRuntime(context),
   runtimeDir = File(baseSpaceDir(context), "run"),
   rootDir = notebookWorkspace(context),
+  shell = spaceShellIn(baseSpaceDir(context)),
 )
 
 /**

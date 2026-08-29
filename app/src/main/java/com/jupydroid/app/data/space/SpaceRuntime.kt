@@ -29,6 +29,16 @@ class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: Fil
     "PYTHONFAULTHANDLER" to "1",
     "HOME" to notebookWorkspaceIn(baseDir).path,
     "TMPDIR" to inBase("tmp"),
+    // One setting decides the shell for all three things that go looking for one, and it is
+    // load-bearing for the third rather than merely tidy:
+    //   - jupyter_server_terminals consults it before falling back to `which("sh")` (P4c pins
+    //     `shell_command` outright, so this is its belt);
+    //   - pexpect resolves it for a cell's printing escape, `!ls`, which would otherwise search PATH;
+    //   - and `IPython/utils/_process_common.py:86-90` passes it as `Popen(executable=...)` for the
+    //     *capture* escape, `files = !ls`. Unset, that stays None and CPython falls back to the
+    //     absolute `/bin/sh`, which does not exist on Android - so the command runs nowhere and the
+    //     cell gets an empty string. Measured: `evidence/p4-terminal/shell-escapes.md`.
+    "SHELL" to spaceShellIn(baseDir).path,
     "PATH" to listOf(inBase("usr/local/bin"), inBase("usr/bin"), inBase("bin")).joinToString(":"),
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.
     // musl has no multiarch directories, so these two cover the whole rootfs.

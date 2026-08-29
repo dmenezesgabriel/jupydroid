@@ -27,6 +27,58 @@ COPY musl_at_shim.c /tmp/musl_at_shim.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libmusl_at_shim.so /tmp/musl_at_shim.c \
  && strip /tmp/libmusl_at_shim.so
 
+# busybox is built here rather than taken from `apk add busybox`, and the reason is one config
+# flag: Alpine ships CONFIG_FEATURE_SUID=y, which compiles in check_suid() and makes every applet
+# dispatch call setgid()/setuid() - both refused to app processes by Android's seccomp filter, so
+# every applet died of SIGSYS. See tools/rootfs/busybox.config and
+# evidence/p4-terminal/busybox-under-app-seccomp.md. Termux, which runs busybox in an Android app
+# process under the same filter, sets the flag the same way we do.
+#
+# utmps is Alpine's own answer to musl having no utmpx, and it is linked **statically**, which is
+# the one place this build deliberately follows Alpine's *static* recipe (APKBUILD:219,
+# `-Wl,--push-state,-Bstatic`) rather than its dynamic one (APKBUILD:172). Measured the hard way:
+# linked dynamically, every applet dies on device with
+#   Error loading shared library libutmps.so.0.1: No such file or directory
+# because the shipped rootfs carries no libutmps - the base image's busybox is Alpine's BOOTSTRAP
+# build, which skips utmps entirely (APKBUILD:17). Static costs a few KB and adds no runtime
+# dependency to a rootfs that has none.
+#
+# Built with Alpine's config, so every applet symlink the rootfs already carries still names an
+# applet this binary has.
+FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d AS busybox-builder
+RUN apk add --no-cache gcc musl-dev make perl bzip2 linux-headers utmps-dev utmps-static pkgconf
+COPY busybox.config /tmp/busybox.config
+RUN wget -qO /tmp/busybox.tar.bz2 https://busybox.net/downloads/busybox-1.37.0.tar.bz2 \
+ && echo "3311dff32e746499f4df0d5df04d7eb396382d7e108bb9250e7b519b837043a4  /tmp/busybox.tar.bz2" \
+    | sha256sum -c - \
+ && mkdir -p /tmp/busybox \
+ && tar -xjf /tmp/busybox.tar.bz2 -C /tmp/busybox --strip-components=1 \
+ && cp /tmp/busybox.config /tmp/busybox/.config \
+ && make -C /tmp/busybox silentoldconfig \
+ && make -C /tmp/busybox -j"$(nproc)" \
+      CONFIG_EXTRA_CFLAGS="$(pkg-config --cflags --static utmps)" \
+      CONFIG_EXTRA_LDFLAGS="-Wl,--push-state,-Bstatic $(pkg-config --libs --static utmps) -Wl,--pop-state"
+# Fail the image build, not the device, on the two ways this binary has actually been wrong.
+#
+# `silentoldconfig` rewrites .config, so the flag is re-read from the file the compiler saw, and
+# the fingerprint check reads the bytes rather than trusting it: "must be suid to work properly"
+# is emitted inside check_suid() and nowhere else.
+#
+# The libutmps check is not hypothetical either - a dynamic link passed every check in this
+# builder, which *has* the library, and then failed on every applet on the device, which does not.
+# So the dependency is asserted here rather than the ability to run, which proves less.
+RUN grep -q '^# CONFIG_FEATURE_SUID is not set$' /tmp/busybox/.config \
+ && ! grep -q 'must be suid to work properly' /tmp/busybox/busybox \
+ && ! grep -q 'libutmps' /tmp/busybox/busybox \
+ && /tmp/busybox/busybox ls / >/dev/null \
+ && /tmp/busybox/busybox | head -1
+
+# Nothing but the ELF crosses over, so `--output type=local` writes exactly one file.
+# stage-app-artifacts.sh builds this target directly; see the note there about why busybox no
+# longer comes out of the rootfs tarball.
+FROM scratch AS busybox-artifact
+COPY --from=busybox-builder /tmp/busybox/busybox /busybox
+
 FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 
 # patchelf is installed here rather than on the host so the ELF edits in
@@ -107,3 +159,13 @@ RUN rm -rf /usr/share/man /usr/share/doc /var/cache/apk \
 # and on device it is not /root.
 RUN mkdir -p /home/jupydroid /tmp/spaces
 ENV HOME=/home/jupydroid
+
+# Last, so no RUN above is served by a shell this line replaced: the image's own busybox becomes
+# the one built without FEATURE_SUID. The 304 applet symlinks are untouched and still resolve,
+# because that build uses Alpine's own config for the same version.
+#
+# Strictly this is belt and braces for the *device*, where bin/busybox is deleted and re-pointed
+# at nativeLibraryDir on every launch (BusyBoxApplets.relink), so the tarball's copy is never
+# executed there. It is here so the image cannot quietly go back to carrying a binary that dies
+# on the first applet - which is what a reader who greps the rootfs for `sh` would otherwise find.
+COPY --from=busybox-builder /tmp/busybox/busybox /bin/busybox
