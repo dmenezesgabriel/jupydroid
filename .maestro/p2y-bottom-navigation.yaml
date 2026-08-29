@@ -14,7 +14,7 @@ appId: com.jupydroid.app
 # Android control invented beside one. JupyterLab answers nothing at this width: no media query, no
 # width branch, a `'desktop' | 'mobile'` form factor never assigned.
 #
-# Four claims:
+# Five claims:
 #   1. a one-pane window draws the bar under the panel, and **the bar is not drawn over a document**
 #      - which is the decision this flow exists to show in a picture, since an 80dp bar is 20% of
 #      the 400.0dp cell list P2o-4 measured at 320dp;
@@ -22,7 +22,12 @@ appId: com.jupydroid.app
 #   3. a result still opens its document, and the panel is still on Search when the document is
 #      left - the bar is navigation, not a one-way door;
 #   4. Back out of Search reaches the browser rather than leaving the app, which is Android's own
-#      "the start destination is the last screen the user sees" (`guide/navigation/principles`).
+#      "the start destination is the last screen the user sees" (`guide/navigation/principles`);
+#   5. and with a list too long for the pane, the bar is still drawn under it - the panel's
+#      content is clipped by the bar rather than stopping short of it, which is what
+#      `ShellSidePane.panelInsets` consuming the navigation inset once buys. Frame `09` carried
+#      that claim from P2y-d without a step behind it; a screenshot no flow re-takes is evidence
+#      the next sweep cannot check, so it is a step now.
 #
 # **The two labels are addressed from the screen where each is unique**, and that is a property
 # rather than luck: the browser titles itself "Files" and the search panel titles itself "Search",
@@ -107,3 +112,14 @@ appId: com.jupydroid.app
 - assertVisible:
     text: "^Search$"
 - takeScreenshot: 08-back-reached-the-start-destination
+# --- 5. and the bar is still under a list that overflows the pane -----------------------------------
+- scrollUntilVisible:
+    element:
+      text: "file19.py"
+    direction: DOWN
+    timeout: 20000
+# The bar under a *full* list, not under blank space: both items still answer while a row is at
+# the pane's foot. The bounds this frame is read for are in `evidence/…/measurement.txt`.
+- assertVisible:
+    text: "^Search$"
+- takeScreenshot: 09-a-full-list-runs-up-to-the-bar

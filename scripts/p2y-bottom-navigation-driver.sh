@@ -26,13 +26,21 @@ WIDTH_DP="$(window_width_dp)"
 echo "=== one pane at ${WIDTH_DP}dp ==="
 
 # A clean workspace, because a search reads *everything* and the count this flow asserts is the
-# count these two fixtures hold - the exposure `p2x-3-workspace-search-driver.sh` records.
+# count these fixtures hold - the exposure `p2x-3-workspace-search-driver.sh` records. The filler
+# below is written to match nothing the flow searches for, which is what keeps that count at 3.
 reset_notebooks
 # The notebook the bar must **not** be drawn over. P2f-2's fixture, as `p2o-4` uses it: known not to
 # fit one screen at this width, so a bar under it would be over content rather than over blank.
 seed_notebook "$ROOT/.maestro/fixtures/p2f-2-collapse-all-headings.ipynb" "Heading Sections"
 # The file the search finds. Three matches for "cat", none of which is in the notebook above.
 seed_file "$ROOT/.maestro/fixtures/p2x-3-search.py" "notes.py"
+# **Twenty more, so the list overflows the pane.** The last claim is about the panel's foot -
+# that its content is clipped BY the bar rather than stopping short of it - and blank space under
+# the last row proves nothing either way. Twenty is what P2y-d measured the defect with; zero-
+# padded so the order is the same at both widths.
+for n in $(seq -w 0 19); do
+  seed_file "$ROOT/.maestro/fixtures/p2y-filler.py" "file$n.py"
+done
 
 run_flow "$ROOT/.maestro/p2y-bottom-navigation.yaml" \
   "$ROOT/evidence/p2y-bottom-navigation/${WIDTH_DP}dp"
