@@ -3817,6 +3817,35 @@ Rewritten as the **fraction of the bar between the two items' centres**, the two
 0.500 and 0.250 and nothing in between: scale-free, padding-free, and impossible to confuse. The
 rule: assert the relationship the rule is about, not a dimension that happens to encode it.
 
+### Evidence is a directory, and `run_flow` used to only ever add to it (P2z-h)
+
+`run_flow` did `mkdir -p "$out"` and then `cp`. Nothing removed. So renaming a `takeScreenshot`
+left its predecessor in `evidence/<step>/` **and in the commit**, for as long as the repository
+lives - and a stale frame is not clutter, it is a second answer to the question the current frame
+answers. P2z-x found eleven, in six directories:
+
+- `evidence/p2o-4-…/800dp/04-files-is-one-tap-from-the-document.png`, from 22 Aug, showing a
+  browser with **no bottom bar** - beside the frame whose entire point is that the bar is there.
+- `evidence/u5a-cell-actions/02-changed-to-markdown.png`, from 18 Aug, drawing the word
+  **`markdown`** where a cell's prompt goes: what P2n removed and what `p2n-gutter` now asserts is
+  absent.
+- Seven frames of the **Recents launch screen** X2h retired, across `x2a`, `x2d`, `x2e` and
+  `x2h-1`. `x2e-home-new-python-file` carried four, one of them answering a current frame's
+  question under a different number.
+
+**Deleting whatever a run did not write would have been wrong twice.** Five drivers run several
+flows into one directory (`p1b`, `p1c`, `p1d`, `p1g`, `p2x-2`), so a later part would wipe an
+earlier part's frames; and a driver may write a frame itself - `00-the-defect-only-a-screenshot-
+could-see` is deliberate, and a rule that could not tell it from a leftover would delete the most
+valuable frame in the tree.
+
+So `scripts/prune_stale_frames.py` keeps a **per-flow manifest**, `evidence/<step>/.frames`, of
+which flow wrote which frame, and removes only what *that flow* wrote before and has stopped
+writing. Six tests, one per way it could get this wrong. It protects a directory from the run
+after its first manifest, not before - the eleven already committed were deleted by hand, and
+`p2o-4`'s twelfth was deleted in P2z-i for exactly that reason, which is the limitation
+demonstrating itself.
+
 ## Licences
 
 Winlator (LGPL-2.1), sora-editor (LGPL-2.1) and Callisto (proprietary) are **clean-room**:
@@ -3878,3 +3907,57 @@ done before reading a count.
 
 The rule: a sub-step that changes chrome two screens share re-runs both, not the one it was written
 for. P2x-5k re-ran all eight panel flows on the tablet.
+
+### An assertion that cannot fail is not an assertion (P2z-c, P2z-f, P2z-i)
+
+Three flows in this suite asserted something that was already true before the step that was
+supposed to make it true. All three were green from the day they were written, and all three were
+found by looking at the frame rather than at the log.
+
+- `p2h-2-table-of-contents` scrolled and then asserted the previous heading was gone - a proxy for
+  "away from the top" that encodes a screen height. At 320dp its seven-cell fixture overflowed; at
+  800dp it did not, so `scrollUntilVisible` found the target **without scrolling** and the jump had
+  no movement to undo (P2z-c).
+- `p2h-6-output-headings` tapped a table-of-contents entry and asserted the text it points at was
+  visible. The fixture was three cells and fitted every window the flow runs in (P2z-f).
+- `p2o-4-one-pane-side-panels` did the same with `two = 3`, vacuous at 800dp for the same reason
+  (P2z-i).
+
+Two fixes, and which one applies is decided by **whose claim it is**:
+
+1. If the flow owns the claim, the fixture grows until the premise can be asserted - and the
+   premise *is* asserted, before the step. `p2h-2` and `p2h-6` both took a fifteen- and a
+   thirteen-cell fixture and an `assertNotVisible` ahead of the tap.
+2. If another flow owns it, the flow stops claiming it and its frame is renamed for what it does
+   show. `p2o-4` is about the side area at one pane; the jump is `p2h-2`'s, already proved at both
+   widths, and copying a tall fixture here would have been a second proof of a proved thing.
+
+The general rule, which `scripts/check_maestro_output_assertions.py` already enforces for one
+special case (a post-Run wait must need a kernel): **before asserting that a step made something
+true, assert that it was false.** Where the flow cannot, the frame's name must not say it did.
+
+### A caption is a claim, and it goes stale like any other (P2z-g, P2z-j)
+
+Two flows carried prose describing what a reader should see, and the prose had stopped being true
+of the frame beneath it.
+
+- `p2i-3-find` said *"the current match amber"*. Nothing in this app has ever been amber. Both
+  match marks take the same teal one alpha apart (`#27678280` / `#27678290`) and what separates
+  them is the **bold weight** `EditorTheme.kt` adds for exactly that reason. A reader checking the
+  frame against its caption would have concluded the palette had regressed, and a palette "fixed"
+  to match would have undone P2u-3d.
+- `p2u-1-chrome` was worse: the sentence was in the **fixture**, so it is rendered into the
+  committed screenshot. *"A blockquote's rule is the app's only reader of `colorScheme.outline`"*
+  was true until P2u-3f gave the quote a wash and moved its rule to `blockQuoteBorder` at a
+  deliberate 1.08:1. The frame measures 1.08:1; the sentence in it promises 3.76:1.
+
+The rule: **a caption that names a colour, a value or a role is checked against the tree when the
+thing it names moves**, the same as any citation in this file. A fixture that states a fact about
+the app states it in the evidence, permanently.
+
+And the correction that came out of chasing the second one, kept because it is a trap worth
+naming: `colorScheme.outline` looked unread - `grep -rn colorScheme.outline app/src/main` returns
+one comment and no code. It is read by Material itself. `OutlinedTextFieldTokens.OutlineColor` is
+`ColorSchemeKeyTokens.Outline` and `TextFieldDefaults.kt:1393` makes it every outlined field's
+resting border, so it is drawn in the rename dialog and the four boxes on the search panel.
+**Grepping app code is the wrong question to ask of a Material role**; the token tables are.
