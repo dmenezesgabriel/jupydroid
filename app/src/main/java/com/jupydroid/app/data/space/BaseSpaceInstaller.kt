@@ -26,6 +26,8 @@ data class InstalledSpace(
  *   archive = { assets.open("spaces/base/rootfs-x86_64.tgz") },
  *   baseDir = File(filesDir, "spaces/base"),
  *   nativeLoader = File(applicationInfo.nativeLibraryDir, "libloader.so"),
+ *   nativeInterpreter = File(applicationInfo.nativeLibraryDir, "libpython3.so"),
+ *   nativeBusyBox = File(applicationInfo.nativeLibraryDir, "libbusybox.so"),
  * ).installIfNeeded()
  * ```
  */
@@ -34,6 +36,7 @@ class BaseSpaceInstaller(
   private val baseDir: File,
   private val nativeLoader: File,
   private val nativeInterpreter: File,
+  private val nativeBusyBox: File,
   private val loaderLinkPath: String = SpaceAbi.ARM64.loaderLinkPath,
   private val bundledVersion: Int = BUNDLED_ROOTFS_VERSION,
   private val extractor: TarGzExtractor = TarGzExtractor(),
@@ -47,6 +50,7 @@ class BaseSpaceInstaller(
     // update while the extracted Space survives, so a stale link would leave exec
     // failing with ENOENT until the user cleared the app's data.
     linkLoaderToNativeLibrary()
+    BusyBoxApplets(baseDir, nativeBusyBox, ioDispatcher).relink()
     SpaceKernelSpec.install(baseDir, nativeInterpreter, ioDispatcher)
 
     if (!alreadyInstalled) stampVersion()
@@ -81,6 +85,6 @@ class BaseSpaceInstaller(
     const val STAMP_PATH = ".jupydroid/rootfs-version"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
-    const val BUNDLED_ROOTFS_VERSION = 3
+    const val BUNDLED_ROOTFS_VERSION = 4
   }
 }

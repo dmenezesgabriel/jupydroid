@@ -22,13 +22,18 @@ case "$ABI" in
   # LOADER must match SpaceAbi.loaderLinkPath: it is baked into PT_INTERP below and
   # symlinked into nativeLibraryDir by BaseSpaceInstaller. musl keeps its loader in
   # /lib on every architecture, named after the architecture.
-  x86_64)    PLATFORM=linux/amd64; LOADER=lib/ld-musl-x86_64.so.1 ;;
-  arm64-v8a) PLATFORM=linux/arm64; LOADER=lib/ld-musl-aarch64.so.1 ;;
+  x86_64)    LOADER=lib/ld-musl-x86_64.so.1;  INTERPRETER=usr/bin/python3.12 ;;
+  arm64-v8a) LOADER=lib/ld-musl-aarch64.so.1; INTERPRETER=usr/bin/python3.12 ;;
   *) echo "unknown abi '$ABI'; expected x86_64 or arm64-v8a" >&2; exit 1 ;;
 esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-IMAGE="jupydroid-rootfs:$ABI"
+# patchelf runs on the HOST architecture, whatever ABI is being staged. It rewrites ELF headers
+# and does not execute the binary, so an x86_64 patchelf edits an aarch64 ELF correctly - measured,
+# and the loader it produces is byte-identical (sha256) to one staged the old way. This is what
+# makes the script run on a machine with no arm64 binfmt registered, which is otherwise a silent
+# prerequisite: `docker run --platform linux/arm64` fails with `exec format error`.
+PATCHELF_IMAGE="${PATCHELF_IMAGE:-jupydroid-rootfs:x86_64}"
 TARBALL="$ROOT/build/rootfs/rootfs-$ABI.tgz"
 JNI_DIR="$ROOT/app/src/main/jniLibs/$ABI"
 ASSET_DIR="$ROOT/app/src/main/assets/spaces/base"
@@ -56,29 +61,43 @@ else
   rm -f "$ASSET_DIR/rootfs-$ABI.tgz"
 fi
 
-echo "==> extracting and patching the two executable ELFs"
-# patchelf runs inside the image so it edits binaries against the same libc that
-# produced them, and so the host needs no patchelf installed.
-docker run --rm --platform "$PLATFORM" --user "$(id -u):$(id -g)" -v "$JNI_DIR:/out" "$IMAGE" sh -euc "
-  cp \"\$(readlink -f /usr/bin/python3)\" /tmp/libpython3.so
-  cp \"\$(readlink -f /$LOADER)\" /tmp/libloader.so
+echo "==> extracting the three executable ELFs from the tarball"
+# From the tarball rather than from the image, because the tarball IS `docker export` of that
+# image - so the bytes are the same - and reading it needs no emulation. busybox joins the
+# interpreter and the loader as of P4: the image ships it as a real ELF at bin/busybox with 304
+# applet symlinks pointing absolutely at it, and neither the applets nor the ELF is reachable on
+# device. BaseSpaceInstaller points bin/busybox at this library and makes the applets relative to
+# it - so the shell resolves, and busybox still reads its applet from the basename of the path it
+# was reached by, which is why the applets are not pointed here directly
+# (evidence/p4-terminal/busybox-dispatch.md).
+STAGE_DIR="$(mktemp -d)"
+trap 'rm -rf "$STAGE_DIR"' EXIT
+tar -xzf "$TARBALL" -C "$STAGE_DIR" "$LOADER" "$INTERPRETER" bin/busybox
+cp "$STAGE_DIR/$LOADER"      "$STAGE_DIR/libloader.so"
+cp "$STAGE_DIR/$INTERPRETER" "$STAGE_DIR/libpython3.so"
+cp "$STAGE_DIR/bin/busybox"  "$STAGE_DIR/libbusybox.so"
 
-  # The stock PT_INTERP is /$LOADER, an absolute path that on Android resolves
-  # against the device root, not the rootfs. Repoint it at the rootfs's on-device
-  # location, where the installer symlinks it on into nativeLibraryDir - the only
-  # place an ELF interpreter may live (evidence/step8.3/musl-runs.txt).
-  patchelf --set-interpreter '$ROOTFS_ON_DEVICE/$LOADER' \
-           --set-rpath '$ROOTFS_ON_DEVICE/usr/lib:$ROOTFS_ON_DEVICE/lib' \
-           /tmp/libpython3.so
-
-  cp /tmp/libpython3.so /tmp/libloader.so /out/
-  chmod 0644 /out/libpython3.so /out/libloader.so
+echo "==> repointing PT_INTERP and RPATH"
+# The stock PT_INTERP is /$LOADER, an absolute path that on Android resolves against the device
+# root, not the rootfs. Repoint it at the rootfs's on-device location, where the installer symlinks
+# it on into nativeLibraryDir - the only place an ELF interpreter may live
+# (evidence/step8.3/musl-runs.txt). The loader itself is not patched: it *is* the interpreter.
+docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" -v "$STAGE_DIR:/out" "$PATCHELF_IMAGE" sh -euc "
+  for elf in /out/libpython3.so /out/libbusybox.so; do
+    patchelf --set-interpreter '$ROOTFS_ON_DEVICE/$LOADER' \
+             --set-rpath '$ROOTFS_ON_DEVICE/usr/lib:$ROOTFS_ON_DEVICE/lib' \
+             \"\$elf\"
+  done
 "
+
+install -m 0644 "$STAGE_DIR/libloader.so" "$STAGE_DIR/libpython3.so" "$STAGE_DIR/libbusybox.so" "$JNI_DIR/"
 
 echo "==> staged:"
 ls -l "$JNI_DIR" "$ASSET_DIR"
 echo
-echo "patched interpreter: $(docker run --rm --platform "$PLATFORM" --user "$(id -u):$(id -g)" -v "$JNI_DIR:/out" "$IMAGE" \
-  patchelf --print-interpreter /out/libpython3.so)"
-echo "patched rpath:       $(docker run --rm --platform "$PLATFORM" --user "$(id -u):$(id -g)" -v "$JNI_DIR:/out" "$IMAGE" \
-  patchelf --print-rpath /out/libpython3.so)"
+for elf in libpython3.so libbusybox.so; do
+  echo "$elf interpreter: $(docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" \
+    -v "$JNI_DIR:/out" "$PATCHELF_IMAGE" patchelf --print-interpreter "/out/$elf")"
+  echo "$elf rpath:       $(docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" \
+    -v "$JNI_DIR:/out" "$PATCHELF_IMAGE" patchelf --print-rpath "/out/$elf")"
+done

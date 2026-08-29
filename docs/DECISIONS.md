@@ -1458,6 +1458,56 @@ still offers "Select cells" while the find bar is up, and search wins the bar ov
 run can be started underneath it. The row is offered only while something is marked, this app's
 rule for a control whose two states would look identical.
 
+### A shell is reached through a path named `sh`, and all 304 applets with it
+
+P4b. busybox dispatches on the **basename of the path it is reached by**, and its `argv[1]`
+fallback engages only for a basename prefixed `busybox`. `libbusybox.so` is not, and `lib*.so` is
+not negotiable - it is what AGP packages into `lib/<abi>/`. So the applet name cannot ride on
+`argv[0]` either: `ptyprocess.PtyProcess.spawn`, which is how terminado reaches a shell, does
+`command = which(argv[0])` and then **overwrites `argv[0]` with it**.
+
+Measured against the shipped BusyBox 1.37.0 rather than argued from its source, with a control
+proving the multiplexer is present and working (`evidence/p4-terminal/busybox-dispatch.md`):
+
+| Invocation | Basename | Result |
+|---|---|---|
+| `libbusybox.so` | `libbusybox.so` | `applet not found`, 127 |
+| `libbusybox.so sh -c …` | `libbusybox.so` | `applet not found`, 127 |
+| `sh -c …` (symlink to it) | `sh` | works |
+| `busybox-x sh -c …` | `busybox-x` | works |
+
+**And `bin/sh` alone is not enough, which the obvious gate hides.** 304 of the rootfs's 353
+symlinks are the same absolute `-> /bin/busybox` - 81 in `bin`, 59 in `sbin`, 137 in `usr/bin`, 27
+in `usr/sbin` - so a shell with only `bin/sh` repaired has no `ls`, `cat`, `grep` or `vi`, and
+`sh -c 'echo ok'` still prints `ok` because `echo` is an ash builtin. **P4b's gate forks an applet.**
+
+**One maintained link rather than 305.** `bin/busybox` points into `nativeLibraryDir` and is
+repaired on every launch, as the loader link is; the applets are made *relative* to it once, so
+they can never go stale. `execve` walks the chain to find the inode and runs the SELinux check on
+the target, while busybox reads `ls` off the path the caller gave it.
+
+**PATH decides whose coreutils the shell gets, and this was nearly captioned wrong.** Under
+`run-as`, Android's PATH is in place and an unqualified `ls` is **toybox 0.8.12-android**, not ours;
+with the Space's PATH it is BusyBox 1.37.0. The first draft of
+`evidence/p4-terminal/busybox-on-device.txt` captioned two such lines as proof that `sh` had forked
+a busybox applet, and they were not. The app is unaffected - `SpaceRuntime.environment()` sets
+PATH to the Space's, the server inherits it, and terminado's shell inherits it from the server -
+but the evidence had to say what it actually showed.
+
+### Staging needs no emulation, and patchelf never cared about the target architecture
+
+`tools/rootfs/stage-app-artifacts.sh` ran patchelf inside the **target-ABI** image, so staging
+arm64 on an x86_64 host needed `binfmt_misc` registered - an undocumented prerequisite that fails
+as `exec format error`. patchelf rewrites ELF headers and never executes the binary, so an x86_64
+patchelf edits an aarch64 ELF correctly; measured, and the loader it produces is **byte-identical
+by sha256** to one staged the old way.
+
+The ELFs now come from the tarball - which *is* `docker export` of that image, so the bytes are the
+same - and patchelf runs in a host-architecture container. The script's own comment used to justify
+the old shape as editing *"binaries against the same libc that produced them"*; that is not what
+patchelf does, and the real reason for a container - the host needs no patchelf installed - is
+preserved.
+
 ### A pseudoterminal works on the device, and the terminal phase keeps its shape
 
 P4a, measured before anything was built: `pty.fork()` succeeds from this app, a process `execv`'d

@@ -95,39 +95,60 @@ class BaseSpaceInstallerTest {
     assertEquals(nativeLib.canonicalPath, link.canonicalPath)
   }
 
+  /**
+   * The shell has to be reachable before a terminal can be, and the installer is the only thing
+   * that runs on every launch - which is when `nativeLibraryDir` may have moved. See
+   * [BusyBoxAppletsTest] for why it is all 304 applets and not just `bin/sh`.
+   */
+  @Test
+  fun install_pointsTheShellAtTheNativeBusyBox() = runTest {
+    val nativeBusyBox = tempFolder.newFile("libbusybox-${System.nanoTime()}.so").apply { writeText("ELF") }
+
+    val installed = installer(version = 1, nativeBusyBox = nativeBusyBox).installIfNeeded()
+
+    assertEquals(nativeBusyBox.canonicalPath, File(installed.baseDir, "bin/sh").canonicalPath)
+  }
+
   private fun installer(
     version: Int,
     baseDir: File = tempFolder.newFolder("base-$version-${System.nanoTime()}"),
     nativeLoader: File = tempFolder.newFile("loader-${System.nanoTime()}.so"),
+    nativeBusyBox: File = tempFolder.newFile("busybox-${System.nanoTime()}.so"),
   ) = BaseSpaceInstaller(
     archive = { rootfsArchive().inputStream() },
     baseDir = baseDir,
     nativeLoader = nativeLoader,
     nativeInterpreter = nativeLoader,
+    nativeBusyBox = nativeBusyBox,
     loaderLinkPath = "lib64/ld-linux-x86-64.so.2",
     bundledVersion = version,
   )
 
-  /** Stands in for the real rootfs: same shapes (dir, file, the shipped loader link). */
+  /** Stands in for the real rootfs: the same shapes - a file, the shipped loader link, busybox. */
   private fun rootfsArchive(): ByteArray {
     val bytes = ByteArrayOutputStream()
     TarArchiveOutputStream(GZIPOutputStream(bytes)).use { tar ->
       tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
       tar.putArchiveEntry(TarArchiveEntry("usr/bin/"))
       tar.closeArchiveEntry()
-
-      val python = TarArchiveEntry("usr/bin/python3.11")
-      val content = "print(1)\n".toByteArray()
-      python.size = content.size.toLong()
-      tar.putArchiveEntry(python)
-      tar.write(content)
-      tar.closeArchiveEntry()
-
-      val shipped = TarArchiveEntry("lib64/ld-linux-x86-64.so.2", TarArchiveEntry.LF_SYMLINK)
-      shipped.linkName = "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2"
-      tar.putArchiveEntry(shipped)
-      tar.closeArchiveEntry()
+      tar.putFile("usr/bin/python3.11", "print(1)\n")
+      tar.putSymlink("lib64/ld-linux-x86-64.so.2", "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2")
+      // The image's own busybox: one real ELF, and an applet link pointing absolutely at it.
+      tar.putFile("bin/busybox", "ELF")
+      tar.putSymlink("bin/sh", "/bin/busybox")
     }
     return bytes.toByteArray()
+  }
+
+  private fun TarArchiveOutputStream.putFile(path: String, content: String) {
+    val bytes = content.toByteArray()
+    putArchiveEntry(TarArchiveEntry(path).apply { size = bytes.size.toLong() })
+    write(bytes)
+    closeArchiveEntry()
+  }
+
+  private fun TarArchiveOutputStream.putSymlink(path: String, target: String) {
+    putArchiveEntry(TarArchiveEntry(path, TarArchiveEntry.LF_SYMLINK).apply { linkName = target })
+    closeArchiveEntry()
   }
 }

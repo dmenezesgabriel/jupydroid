@@ -17,6 +17,7 @@ fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpace
   baseDir = baseSpaceDir(context),
   nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libloader.so"),
   nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
+  nativeBusyBox = File(context.applicationInfo.nativeLibraryDir, "libbusybox.so"),
   loaderLinkPath = abi.loaderLinkPath,
 )
 
