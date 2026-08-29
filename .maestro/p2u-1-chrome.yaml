@@ -8,13 +8,26 @@ appId: com.jupydroid.app
 #
 #   the explorer  - `surface`, `surfaceContainer`, `onSurfaceVariant` on the rows, `outlineVariant`
 #                   on the dividers, and the breadcrumb
-#   the document  - `outline` on the blockquote's rule, `outlineVariant` on the thematic break and
-#                   the table, and `primary` on the active cell's collapser and editor border
+#   the document  - `blockQuoteBorder` and `blockQuoteBackground` on the quote, `outlineVariant`
+#                   on the thematic break and the table, and `primary` on the active cell's
+#                   collapser and editor border
 #   the overflow  - `surfaceContainerHigh`, which nothing else on screen draws
 #
-# The fixture carries a blockquote, a rule and a table on purpose: `RichText.kt:82` is the app's
-# only reader of `colorScheme.outline`, and P2u-1 is the step that moves it off `panel.border`
-# (1.31:1) onto `checkbox.border` (3.76:1). A frame with no blockquote in it could not show that.
+# The fixture carries a blockquote, a rule and a table on purpose - the three marks a rendered
+# document draws that nothing else on screen does.
+#
+# **It used to say more than that, and the sentence was rendered into the frame.** Both this header
+# and the quote's own prose called the blockquote's rule *"the app's only reader of
+# `colorScheme.outline`"*. True when P2u-1 moved that role off `panel.border` (1.31:1) onto
+# `checkbox.border` (3.76:1); false since **P2u-3f**, which gave the quote a wash and moved its
+# rule to `blockQuoteBorder` - deliberately faint, 1.08:1 against that wash, because the wash
+# carries the mark now (`EditorPalette.kt:53-68`). P2z-x measured the frame and got the 1.08:1,
+# not the 3.76:1 the sentence promised.
+#
+# `colorScheme.outline` is still drawn, just not here: it is `OutlinedTextFieldTokens.OutlineColor`
+# (`material3 1.4.0`, `TextFieldDefaults.kt:1393`), so it is the resting border of every outlined
+# field in the app - the rename dialog and the four boxes on the search panel, which `p2x-3-…`'s
+# frames carry. A component's bounds, which is what `Theme.kt:76-79` maps it for.
 #
 # Seeded by scripts/p2u-1-chrome-driver.sh, which sets the system night mode and runs this flow
 # once per theme into its own directory; clearState would delete the fixture.
