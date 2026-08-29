@@ -336,6 +336,75 @@ that it equals the `--ServerApp.root_dir` argument - a launcher pointed somewher
 test that only checked the first. `TerminalServiceTest.theServerProcessRunsInTheWorkspaceItIsRootedAt`
 reads the **running** process, which no argument assertion can see.
 
+### A terminal is ready when `setup` arrives, not when the socket opens
+
+`TermSocket.open` sends `["setup", {}]` and *then* appends the client to `terminal.clients`
+(`terminado/websocket.py`). The websocket handshake completes a round trip earlier, so a frame
+written in between is accepted by the socket and dropped by a server that has not associated it -
+**silently, at both ends**. The reference refuses to call itself connected until `setup`
+(`packages/services/src/terminal/default.ts:301-307`) and queues what is typed meanwhile
+(`_sendMessage` into `_pendingMessages`).
+
+So `TerminalGateway.send` and `.resize` **suspend** until readiness rather than failing: a screen
+composes its key handler and its collector independently, so a keystroke can genuinely arrive first
+and refusing would make that a crash on a race the UI cannot order. Bounded at ten seconds, and the
+readiness signal is completed *exceptionally* when a socket dies before `setup` - a stale name
+answers 404 at upgrade, and every pending keystroke has to learn that rather than merely stop. P0 is
+the argument against shipping a silent forever-wait.
+
+**This forbids** treating `JupyterSocketEvent.Opened` as readiness anywhere on this wire.
+
+### The terminal socket is opened by the attach, and the route is outside `api/`
+
+Two shapes that are not the kernel's.
+
+`r"/terminals/websocket/(\w+)"` is registered by `jupyter_server_terminals/app.py` while that same
+extension's REST handlers are `r"/api/terminals"`. Getting the prefix wrong is a 404 at upgrade and
+nothing else.
+
+And the socket belongs to the *attach*, not to the gateway. A kernel's socket is held from the first
+execution until the document closes, because the server counts connections against the kernel. A
+terminal has no per-request traffic - its socket **is** the reading of it - so it opens when the
+flow is collected and closes when the collection stops. That is what keeps the first prompt:
+`TermSocket.open` writes `setup` and immediately drains `read_buffer`, so a socket opened eagerly
+would deliver both into a flow with no subscriber and no replay. It is also what makes leaving the
+screen cheap, since the shell lives on and the next attach is replayed into.
+
+**This forbids** a `BaseSpaceTerminalGateway` registry of issued names. `BaseSpaceKernelGateway`
+needs one because a stale kernel session surfaces as an undebuggable 404; a terminal's does not - a
+replaced server lists no terminals, and an attach to a name it never minted is refused by
+`TermSocket.get` and arrives as `TerminalEvent.Ended` carrying that 404. A registry would invent a
+state the wire already reports.
+
+### A pty echoes, so "type X, read X back" proves nothing
+
+`docs/PLAN.md`'s P4d gate was *"`send("echo ok\n")` -> `ok` read back"*. A terminal in canonical
+mode echoes the typed line before any program sees it, so `ok` arrives inside the echo of the
+command whether or not a shell ever ran. Measured on the first green run: the captured output was
+`… $ echo ok` and nothing after it.
+
+The same defect, sharper, for the working directory: busybox ash's default `PS1` is `\w \$`, so the
+cwd is in the **prompt** - and the prompt is replayed out of `read_buffer` the instant an attach
+connects. A bare `pwd` matched before the command had been echoed, let alone run.
+
+**So an assertion on a shell's output must name something that cannot appear in the command text or
+the prompt**: `echo $((6*7))` -> `42`, `echo cwd=$(pwd)` -> `cwd=<path>`. This is
+`scripts/check_maestro_output_assertions.py`'s rule - *a post-Run wait must need a kernel* -
+reaching the terminal by the same route, and the third time in P4 a gate has been green against the
+wrong thing (P4b's `sh -c 'echo ok'`, P4c's `GET /api/terminals`).
+
+### One `jupyter_server` per instrumentation run
+
+Instrumentation runs every test class in one process, so a second `JupyterServerLauncher` starts a
+second server against the same `run/` directory - where `JupyterRuntimeFile.clear` deletes every
+`jpserver-*.json` and `read` takes the first by name. Two servers there means one wiping the other's
+file and either reading the other's port, and both truncating the one `jupyter_server.log` every
+Space investigation reads.
+
+`BaseSpaceUnderTest` is therefore the test suite's composition root, holding the one server, the way
+`JupydroidApplication` holds the one container per process. **This forbids** any device test calling
+`baseSpaceServerLauncher` for itself.
+
 ### Cell semantics come from `NotebookActions`, and most are not the obvious answer
 
 Read out of `packages/notebook/src/actions.tsx` and `packages/cells/src/model.ts`:

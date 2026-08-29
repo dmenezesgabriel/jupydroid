@@ -12,14 +12,21 @@ import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
+import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.intent.IntentDocumentSharer
+import com.jupydroid.app.data.space.BaseSpaceServer
+import com.jupydroid.app.data.space.JupyterServerLauncher
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
 import com.jupydroid.app.data.space.baseSpaceNotebookExporter
 import com.jupydroid.app.data.space.baseSpaceServer
 import com.jupydroid.app.data.space.baseSpaceServerLauncher
+import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.NotebookExporter
+import com.jupydroid.app.domain.port.TerminalGateway
 import java.io.File
 
 /**
@@ -55,16 +62,10 @@ class JupydroidApplication : Application() {
   }
 
   private fun buildContainer(): AppContainer {
-    // A device with no runnable Space keeps the fake, so the UI still works on an x86_64
-    // emulator where the runtime cannot (evidence/step8.3/musl-is-arm64-only.txt).
-    // The launcher is built once and shared: the gateway starts it and P1c's backstop stops it,
+    // The launcher is built once and shared: the gateways start it and P1c's backstop stops it,
     // and two launchers would be two processes pretending to be one.
     val serverLauncher = baseSpaceServerLauncher(this)
-    // One server object for the whole process, shared by every client of the Space - see
-    // [BaseSpaceServer]. Null on a device where no Space can run at all.
-    val space = baseSpaceServer(this, serverLauncher)
-    val kernelGateway = space?.let(::baseSpaceKernelGateway)
-    val notebookExporter = space?.let(::baseSpaceNotebookExporter)
+    val space = SpaceBackedPorts(serverLauncher, this)
     val workspace = notebookWorkspace(this)
     migrateNotebooksOnce(workspace)
     return AppContainer(
@@ -77,17 +78,39 @@ class JupydroidApplication : Application() {
       // server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from
       // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
       recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
-      kernelGateway = kernelGateway ?: FakeKernelGateway(),
-      notebookExporter = notebookExporter ?: FakeNotebookExporter(),
-      // Always real, unlike the two above: sharing needs no Space, so it works on a device that
-      // cannot run one - there is nothing to export there, but a file put in the workspace by any
-      // other means can still be sent.
+      kernelGateway = space.kernels,
+      notebookExporter = space.exporter,
+      terminalGateway = space.terminals,
+      // Always real, unlike the Space-backed three: sharing needs no Space, so it works on a device
+      // that cannot run one - there is nothing to export there, but a file put in the workspace by
+      // any other means can still be sent.
       documentSharer = IntentDocumentSharer(this, workspace),
       serverLauncher = serverLauncher,
       // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
       // state, not a Contents API file.
       editorSettings = DiskEditorSettingsRepository(filesDir),
     )
+  }
+
+  /**
+   * The three ports a running Space backs, or the fakes where none can run.
+   *
+   * A group rather than three unrelated fields, and named once it became a third: what they share
+   * is the *condition* - a device with no runnable Space - and stating it in one place is what
+   * stops that having three chances to be got wrong. On an x86_64 emulator the runtime cannot work
+   * at all (`evidence/step8.3/musl-is-arm64-only.txt`), and the UI is better served by fakes than
+   * by controls that always fail.
+   *
+   * **One server object for all three**, because `JupyterServerLauncher.start` begins with `stop()`
+   * - see [BaseSpaceServer], whose KDoc has named an export, a terminal and a language server as
+   * its clients since P1.
+   */
+  private class SpaceBackedPorts(launcher: JupyterServerLauncher, application: Application) {
+    private val space: BaseSpaceServer? = baseSpaceServer(application, launcher)
+
+    val kernels: KernelGateway = space?.let(::baseSpaceKernelGateway) ?: FakeKernelGateway()
+    val exporter: NotebookExporter = space?.let(::baseSpaceNotebookExporter) ?: FakeNotebookExporter()
+    val terminals: TerminalGateway = space?.let(::baseSpaceTerminalGateway) ?: FakeTerminalGateway()
   }
 
   /**

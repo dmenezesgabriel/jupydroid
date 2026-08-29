@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
+import com.jupydroid.app.domain.port.TerminalGateway
 import java.io.File
 
 /**
@@ -84,6 +85,22 @@ fun baseSpaceKernelGateway(server: BaseSpaceServer): KernelGateway = BaseSpaceKe
     )
   },
   log = LogcatSpaceLifecycleLog,
+)
+
+/** The terminals of [server]'s `jupyter_server`, over one socket per attached shell. */
+fun baseSpaceTerminalGateway(server: BaseSpaceServer): TerminalGateway = BaseSpaceTerminalGateway(
+  server = server,
+  gatewayFor = { connection ->
+    RealTerminalGateway(
+      opener = OkHttpTerminalSocketOpener(connection),
+      // The lifecycle gets the log for the one thing it reports rather than raises: a terminal that
+      // was already gone when we asked to end it, which on device is the only account of it.
+      lifecycle = OkHttpTerminalLifecycle(connection, log = LogcatSpaceLifecycleLog),
+      // The same tag the rest of the runtime reports under, so a shell that shows nothing is one
+      // filter to read: `adb logcat -s JupydroidSpace`. See [TerminalLog].
+      log = LogcatSpaceLifecycleLog,
+    )
+  },
 )
 
 /**

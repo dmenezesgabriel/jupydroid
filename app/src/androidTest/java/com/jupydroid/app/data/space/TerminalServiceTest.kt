@@ -240,13 +240,12 @@ class TerminalServiceTest {
     val pinnedShell: File get() = spaceShellIn(baseSpaceDir(context))
 
     /**
-     * One server for the whole class. Starting `jupyter_server` out of the Space costs seconds
-     * and the four tests are independent inside it - each closes whatever it opened.
+     * One server for the whole **run**, not merely this class - see [BaseSpaceUnderTest]. Starting
+     * `jupyter_server` out of the Space costs seconds, and the tests are independent inside it:
+     * each closes whatever it opened.
      */
     val terminals: TerminalsApi by lazy {
-      val launcher = baseSpaceServerLauncher(context)
-      val server = requireNotNull(baseSpaceServer(context, launcher)) { "no Space on this device" }
-      TerminalsApi(runBlocking { server.connection() }.connection)
+      TerminalsApi(runBlocking { BaseSpaceUnderTest.require().connection() }.connection)
     }
 
     /**

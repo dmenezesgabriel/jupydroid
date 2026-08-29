@@ -6,6 +6,7 @@ import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
+import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.data.space.IdleServerStopper
@@ -17,6 +18,7 @@ import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.ServerLauncher
+import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +51,14 @@ class AppContainer(
    */
   val recentDocuments: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
   val kernelGateway: KernelGateway = FakeKernelGateway(),
+  /**
+   * The Space's shells - `terminal:create-new`, which JupyterLab adds to `'main'` as a
+   * `MainAreaWidget` rather than to a panel (`packages/terminal-extension/src/index.ts:523-524`).
+   *
+   * Its fake echoes what is typed, so the terminal screen composes and takes input on a device
+   * with no Space; only the shell is missing.
+   */
+  val terminalGateway: TerminalGateway = FakeTerminalGateway(),
   /**
    * `notebook:export-to-format`, over the Space's own nbconvert - a **server-side algorithm**,
    * which this app may not re-implement (`docs/DECISIONS.md`).
