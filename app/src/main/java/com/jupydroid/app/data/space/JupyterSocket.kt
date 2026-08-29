@@ -58,6 +58,20 @@ fun interface KernelSocketOpener {
 }
 
 /**
+ * Opens the socket carrying one terminal's bytes.
+ *
+ * One name where a kernel's opener needs two ids, because a terminal has nothing to sign: its
+ * socket *is* its session (`terminado/websocket.py`, `TermSocket.open`).
+ *
+ * ```
+ * val socket = opener.open("1") { event -> … }
+ * ```
+ */
+fun interface TerminalSocketOpener {
+  fun open(name: String, onEvent: (JupyterSocketEvent) -> Unit): JupyterSocket
+}
+
+/**
  * The OkHttp half of a socket: the listener, the failure reporting and the close code.
  *
  * Separated from the URL because that is the whole of what distinguishes one endpoint from
