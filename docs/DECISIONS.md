@@ -3742,6 +3742,50 @@ are **P4f's** gate, where the reference itself puts them.
 gets four files before it gets a caller - a storage layer whose tests all go through a parser is a
 layer with no gate of its own.
 
+### A selection takes a wide character whole, or not at all (P4e-4)
+
+Two rules of `TerminalBuffer.getSelectedText` that this transcription got wrong on its first draft,
+both now pinned in `TerminalGridTest` and both reached by the differential:
+
+- A selection lying **wholly inside** one wide character yields the whole character. Both column
+  ends map to that character's own start, so the span would be empty; the reference reaches one
+  column further to break the tie.
+- A selection **ending on** a wide character's first half **drops it**. Columns 0..1 over `a` then
+  a wide character at columns 1-2 give `a` alone, because column 2 maps back to that character's
+  start and the span closes before it.
+
+**This forbids** "fixing" the second: it is the same rule as the first seen from the other side,
+and a selection UI that wants the character has to ask for the column it also covers.
+
+The trailing-space rule is the third: a row whose `lineWrap` is set and whose selection runs to the
+last column keeps its trailing spaces, because a wrapped row and its continuation are one logical
+line and the spaces between them are real text.
+
+### `TerminalGrid` is three classes, and rows are addressed one way (P4e-4)
+
+`TerminalBuffer.java` has nineteen functions where this project's ceiling is eleven, so it ships as
+`RowRing` (the circular buffer and the external↔internal row map), `TerminalGrid` (the screen
+written through it) and `GridSelection` (a region read back as text) - the same storage/behaviour
+seam `RowText` and `TerminalRow` were cut along, for the same reason.
+
+**`externalToInternalRow` is not public here**, where it is in the reference; `rowAt(externalRow)`
+is. The reference exposes the slot index because its own tests use it, and a slot index is the
+ring's business - nothing outside `RowRing` has any use for one. Ours take `rowAt`.
+
+**And the three line-wrap wrappers are gone.** `setLineWrap`, `getLineWrap` and `clearLineWrap`
+exist upstream because `TerminalRow.mLineWrap` is package-private there; `TerminalRow.lineWrap` is
+a public `var` here, so `grid.rowAt(row).lineWrap` is the same access with no second API to keep in
+step.
+
+**Three members are deliberately absent**, each left to the step that owns its caller: `resize` to
+P4h, `setOrClearEffect` to P4f's rectangular/DECSCA path, and `getWordAtLocation` to selection,
+which nothing in P4 schedules. `TerminalGrid` is at eight functions rather than eleven so P4f has
+somewhere to put the second of those.
+
+One behaviour is stricter than the reference and is a strict improvement: `GridSelection` reads
+rows through `rowAt`, which allocates a blank row, where the reference indexes `mLines` directly
+and would dereference null. The reference's own `getStyleAt` already allocates.
+
 ### A transcription of an algorithm is diffed against it, not reviewed against it (P4e-3)
 
 `TerminalRow.setChar` is 117 lines upstream at a complexity detekt refuses, so it ships here as

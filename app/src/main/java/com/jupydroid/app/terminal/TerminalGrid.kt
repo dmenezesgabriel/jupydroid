@@ -1,0 +1,113 @@
+package com.jupydroid.app.terminal
+
+/**
+ * A terminal's screen and its scrollback: [screenRows] visible rows of [columns] columns, over a
+ * ring of [RowRing] slots that also holds what has scrolled off the top.
+ *
+ * Transcribed from `terminal-emulator/src/main/java/com/termux/terminal/TerminalBuffer.java`
+ * (`reference/research_repos/termux-app`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`,
+ * Apache 2.0 under that repository's `LICENSE.md` exception).
+ *
+ * **Named `TerminalGrid`, not `TerminalBuffer`**: `read_buffer` is already terminado's in this
+ * codebase (`RealTerminalGateway`), and what this is, is the logical screen.
+ *
+ * **Rows are addressed externally**: `0` is the top of the screen, `screenRows - 1` the bottom,
+ * and negative rows are scrollback. Nothing outside `RowRing` sees a slot index - which is one
+ * departure from the reference, whose `externalToInternalRow` is public because its own tests use
+ * it. [rowAt] is what callers want, and this file's tests take it.
+ *
+ * ```
+ * val grid = TerminalGrid(columns = 80, totalRows = 200, screenRows = 24)
+ * grid.setChar(column = 0, row = 0, codePoint = 'a'.code, style = CellStyle.NORMAL)
+ * ```
+ */
+class TerminalGrid(val columns: Int, totalRows: Int, val screenRows: Int) {
+  private val ring = RowRing(columns, totalRows, screenRows)
+  private val selection = GridSelection(this)
+
+  /** How many rows of scrollback are live. */
+  val activeTranscriptRows: Int get() = ring.activeTranscriptRows
+
+  /** The scrollback plus the screen. */
+  val activeRows: Int get() = ring.activeRows
+
+  /** Everything the ring holds, screen and scrollback, trimmed. */
+  val transcriptText: String
+    get() = selectedText(0, -activeTranscriptRows, columns, screenRows).trim()
+
+  init {
+    blockSet(0, 0, columns, screenRows, ' '.code, CellStyle.NORMAL)
+  }
+
+  /**
+   * The row at [externalRow], created blank if nothing has written to it yet. Its `lineWrap` is
+   * read and written directly, where the reference wraps that field in three methods because it
+   * is package-private there.
+   */
+  fun rowAt(externalRow: Int): TerminalRow = ring.rowAt(externalRow)
+
+  fun setChar(column: Int, row: Int, codePoint: Int, style: CellStyle) {
+    require(row in 0 until screenRows && column in 0 until columns) {
+      "cell out of range: row=$row, column=$column, expected row 0 until $screenRows, " +
+        "column 0 until $columns"
+    }
+    ring.rowAt(row).setChar(column, codePoint, style)
+  }
+
+  fun styleAt(externalRow: Int, column: Int): CellStyle = ring.rowAt(externalRow).styleAt(column)
+
+  /** Fill a `w` by `h` rectangle with one code point - how the parser erases. */
+  fun blockSet(sx: Int, sy: Int, w: Int, h: Int, codePoint: Int, style: CellStyle) {
+    require(sx >= 0 && sx + w <= columns && sy >= 0 && sy + h <= screenRows) {
+      "block out of range: sx=$sx, sy=$sy, w=$w, h=$h, expected within $columns x $screenRows"
+    }
+    for (row in 0 until h) {
+      for (column in 0 until w) setChar(sx + column, sy + row, codePoint, style)
+    }
+  }
+
+  /**
+   * Copy a `w` by `h` rectangle from `(sx, sy)` to `(dx, dy)`. The two may overlap: rows are
+   * copied bottom-up or top-down so that a move never reads what it has already written.
+   */
+  fun blockCopy(sx: Int, sy: Int, w: Int, h: Int, dx: Int, dy: Int) {
+    if (w == 0) return
+    require(sx >= 0 && sx + w <= columns && sy >= 0 && sy + h <= screenRows) {
+      "source out of range: sx=$sx, sy=$sy, w=$w, h=$h, expected within $columns x $screenRows"
+    }
+    require(dx >= 0 && dx + w <= columns && dy >= 0 && dy + h <= screenRows) {
+      "destination out of range: dx=$dx, dy=$dy, w=$w, h=$h, expected within $columns x $screenRows"
+    }
+    val copyingUp = sy > dy
+    for (offset in 0 until h) {
+      val row = if (copyingUp) offset else h - (offset + 1)
+      ring.rowAt(dy + row).copyInterval(ring.rowAt(sy + row), sx, sx + w, dx)
+    }
+  }
+
+  /**
+   * Scroll `[topMargin, bottomMargin)` down one line. The row leaving the top of the region goes
+   * into the scrollback, and the newly revealed one is blanked with [style].
+   */
+  fun scrollDownOneLine(topMargin: Int, bottomMargin: Int, style: CellStyle) =
+    ring.scrollDownOneLine(topMargin, bottomMargin, style)
+
+  /** Forget the scrollback, keeping the screen. */
+  fun clearTranscript() = ring.clearTranscript()
+
+  /**
+   * The text of columns `[x1, x2]` on rows `[y1, y2]`, both inclusive.
+   *
+   * [joinBackLines] treats a row that wrapped and its continuation as one line, which is what a
+   * copy out of a terminal wants; [joinFullLines] does the same for a row that merely fills its
+   * width.
+   */
+  fun selectedText(
+    x1: Int,
+    y1: Int,
+    x2: Int,
+    y2: Int,
+    joinBackLines: Boolean = true,
+    joinFullLines: Boolean = false,
+  ): String = selection.textIn(x1, y1, x2, y2, joinBackLines, joinFullLines)
+}
