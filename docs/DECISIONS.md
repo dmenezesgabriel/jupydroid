@@ -3742,6 +3742,31 @@ are **P4f's** gate, where the reference itself puts them.
 gets four files before it gets a caller - a storage layer whose tests all go through a parser is a
 layer with no gate of its own.
 
+### `decodeEffect` reads two bits `encode` never wrote, and the mask is narrowed (P4e-2)
+
+`TextStyle.encode` masks the effect to nine bits (`0b111111111`, [BOLD]..[DIM]) and then sets the
+two truecolor markers at bits 9 and 10 itself. `decodeEffect` reads **eleven**. So a cell with a
+24-bit colour reports a marker as an attribute. **Measured, not argued**: transcribed with the
+upstream mask, `CellStyle.encode(0xFF808080, 0, 0).effect` returns **512**, and the narrowed mask
+is what makes it 0.
+
+Upstream's own tests walk straight past it, which is why it is worth writing down.
+`testEncodingSingle` sweeps every indexed pair and every effect - and indexed colours set neither
+marker. `testEncoding24Bit` is the only test that sets them, and it never asks for the effect back.
+
+`CellStyle.effect` therefore masks nine bits, matching what `encode` wrote.
+
+**This forbids** reading an attribute out of a style with a raw `and` against an eleven-bit mask,
+and it forbids adding a tenth attribute bit without moving the two markers - `CellStyleTest` fails
+on both, since it asserts each attribute is a distinct single bit below `1 shl 9`.
+
+Two further mutations were run and **survived, correctly**: swapping `FOREGROUND_SHIFT` with
+`BACKGROUND_SHIFT`, and detecting truecolor on any non-zero alpha rather than on an opaque one.
+Both are equivalent mutants - the layout never escapes the value class, and no reachable colour
+here carries partial alpha - so no test was invented to kill them. What *is* pinned instead is the
+one place the encoding does escape: `CellStyle(0L)` is palette index 0 on both sides with no
+effect, because `ScreenBufferTest` and `TerminalGrid`'s callers pass a literal `0` as a style.
+
 ### `CharacterWidthRanges` is packed, and a test checks the packing (P4e-1)
 
 `WcWidth.java` is 566 lines because its two interval tables are an `int[][]` literal at one range
