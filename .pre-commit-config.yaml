@@ -57,7 +57,7 @@ repos:
         always_run: true
       - id: ktlint-check
         name: ktlint format check
-        entry: scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestDebugSourceSetCheck ktlintAndroidTestDebugSourceSetCheck
+        entry: scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck
         language: system
         pass_filenames: false
         always_run: true

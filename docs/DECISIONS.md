@@ -3568,14 +3568,14 @@ so the next person does not re-derive it from a hung device.
 Measured in P2x-2, not reasoned about: an instrumented test file with an unresolved reference
 survived the whole documented gate -
 
-    ktlintCheck ktlintMainSourceSetCheck ktlintTestDebugSourceSetCheck
-    ktlintAndroidTestDebugSourceSetCheck detekt lintDebug testDebugUnitTest assembleDebug
+    ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck
+    ktlintAndroidTestSourceSetCheck detekt lintDebug testDebugUnitTest assembleDebug
 
 `BUILD SUCCESSFUL`. The next `connectedDebugAndroidTest` failed at
 `compileDebugAndroidTestKotlin` with `Unresolved reference 'value'`.
 
 **Every task in that list stops short of the source set.** `assembleDebug` compiles `main`;
-`testDebugUnitTest` compiles `test`; `ktlintAndroidTestDebugSourceSetCheck` is a *formatter*, and a
+`testDebugUnitTest` compiles `test`; `ktlintAndroidTestSourceSetCheck` is a *formatter*, and a
 formatter parses without resolving - which is exactly the shape of the P2t finding above, where
 `ktlintCheck` reported success over source sets it was not looking at. The pre-commit hooks inherit
 the gap, since they run the same tasks.
@@ -3617,11 +3617,26 @@ was a genuine defect - `RenameFileDialogTest.kt` held a class called `RenameNote
 left behind when the composable under it was renamed.
 
 **This forbids** relying on an aggregate task to prove a gate ran. The commit hook names
-`ktlintMainSourceSetCheck`, `ktlintTestDebugSourceSetCheck` and
-`ktlintAndroidTestDebugSourceSetCheck` explicitly, so a plugin that stops seeing a source set fails
-with *"Task not found"* rather than passing quietly - and the same reasoning applies to any future
-gate whose task list is discovered rather than declared. Verified by planting an unused import in
-each of the three source sets and watching all three tasks fail.
+`ktlintMainSourceSetCheck`, `ktlintTestSourceSetCheck` and `ktlintAndroidTestSourceSetCheck`
+explicitly, so a plugin that stops seeing a source set fails with *"Task not found"* rather than
+passing quietly - and the same reasoning applies to any future gate whose task list is discovered
+rather than declared.
+
+**Two of those three names were wrong until P4a, and the bug was this decision's own failure mode
+one level up.** The hook named `ktlintTestDebugSourceSetCheck` and
+`ktlintAndroidTestDebugSourceSetCheck`. Those tasks exist - `ktlint-gradle` registers one per
+*variant* source set - but `src/testDebug/` and `src/androidTestDebug/` do not, so both were
+permanently `NO-SOURCE` -> `SKIPPED`, and every unit and instrumented test file went unchecked by
+the named half of the gate for as long as it has existed. The paragraph above claimed *"verified by
+planting an unused import in each of the three source sets and watching all three tasks fail"*; what
+actually failed was the aggregate `ktlintCheck` sitting beside them on the same command line -
+the exact substitution this decision forbids, performed by the verification of the decision.
+
+Re-measured, one task at a time, on an unused import planted in `PythonRunnerTest.kt`:
+`ktlintTestDebugSourceSetCheck` alone -> `NO-SOURCE`, `BUILD SUCCESSFUL in 952ms`;
+`ktlintTestSourceSetCheck` alone -> `BUILD FAILED`, naming the line. The names are now the
+source-set ones, which is why `src/` has three directories and not five. There is no backlog to
+clear: the aggregate had been covering both all along.
 
 ### The emulator the suite runs on is 320dp wide **and** density 160, and only the first is deliberate
 

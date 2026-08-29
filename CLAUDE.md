@@ -189,7 +189,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 Local verification command (same as the commit gate):
 ```sh
 JAVA_HOME=<jdk> ./gradlew \
-  ktlintCheck ktlintMainSourceSetCheck ktlintTestDebugSourceSetCheck ktlintAndroidTestDebugSourceSetCheck \
+  ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck \
   detekt lintDebug testDebugUnitTest assembleDebug
 ```
 
