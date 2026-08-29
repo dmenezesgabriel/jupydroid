@@ -1462,7 +1462,7 @@ rule for a control whose two states would look identical.
 
 `RenderedOutput.kt:96-102` regex-replaces SGR escapes out of tracebacks
 (`withoutAnsiColours()`). It is not reusable for a terminal, which needs a grid with cursor
-addressing — see `docs/PLAN.md` P4d.
+addressing — see `docs/PLAN.md` P4e-P4h, which were P4d until the terminal phase was re-lettered.
 
 ---
 

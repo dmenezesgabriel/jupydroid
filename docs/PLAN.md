@@ -74,7 +74,13 @@ No production line changed in P2z-f…P2z-j - the defects were in flows, fixture
 the harness - so the sweep's own result stands for the app, and every flow that did change was
 re-run green on the device its rule names, in the commit that changed it.
 
-**Next: P3.**
+**Next: P4**, and the order changed. Phases now run **P4 → P5 → P6 → P3**: the terminal, then
+LSP, then the debugger/console/settings/launcher group, and **Spaces last**. Nothing ahead of P3
+depends on it - `BaseSpaceServer`, `SpaceRuntime` and `JupyterServerLauncher` already give all three
+the one base Space they need, and `BaseSpaceServer`'s own KDoc has named *"an export, a terminal, a
+language server"* as clients of that single server since P1. **The labels did not move with the
+order**: P3 is still "P3 - Spaces" wherever it is cited, and its section sits after P6 rather than
+being renumbered, so no commit message or `docs/DECISIONS.md` entry became wrong.
 
 **P2y shipped in five commits, corrected its own gate, and found a defect only the tablet could
 have.** The gate said the bar is *"present below 600dp and absent at and above it"* - Material's own
@@ -216,7 +222,8 @@ trigger that would make it real).
 
 ## How to read this
 
-Phases run in order. Each sub-step is **one commit** and closes on one gate. `CLAUDE.md` owns the
+Phases run in the order **the sections appear in**, which since P2z is no longer the order their
+labels sort in: P4 → P5 → P6 → **P3 last**. Each sub-step is **one commit** and closes on one gate. `CLAUDE.md` owns the
 rules that gate every commit (TDD, Maestro evidence, the device rule, formatting, hooks); nothing
 here repeats them. What each sub-step adds is the citation that settles it, and the gate that
 closes it.
@@ -234,8 +241,13 @@ If a sub-step cannot be closed in one functional commit, split it before writing
 | **VS Code** `reference/research_repos/vscode` | **presentation, since P2t**: notebook layout and cell chrome (`src/vs/workbench/contrib/notebook/browser/`), the palette (`extensions/theme-defaults/themes/`), the search viewlet (`src/vs/workbench/contrib/search/browser/`) | the kernel wire protocol — it reaches a Jupyter server through an extension, and speaks no ZMQ in this tree |
 | **vscode-jupyter** `reference/research_repos/vscode-jupyter` | kernel selection and status **as an extension contributes them** (`src/kernels`, `src/notebooks/controllers`) | **notebook chrome** — `src/` is `kernels`, `notebooks`, `standalone`, `webviews`, and `grep -rl 'run-button-container\|execution-count-label\|cellRunGutter' src/` returns **nothing**. Every cell part is core VS Code |
 | **Compose docs** developer.android.com | which component exists and how it behaves on a phone or tablet | — |
+| **Termux** `reference/research_repos/termux-app` | the **terminal**: a VT emulator (`terminal-emulator/`), how a buffer is drawn with a monospace font (`terminal-view/TerminalRenderer.java`), and the extra-keys row with its latching modifiers (`termux-shared/…/extrakeys/`). `LICENSE.md` carves both terminal modules out of the repo's GPLv3 as **Apache 2.0**, inherited from Jack Palevich's Android Terminal Emulator | its exec model — `gradle.properties:19` is `targetSdkVersion=28`, the same boundary Winlator sits on |
 
-A statement that "the reference does X" must name **which** reference.
+A statement that "the reference does X" must name **which** reference. **Three more trees are
+checked out and none is authoritative for anything scheduled**, so they are named here rather than
+re-discovered: `box64` and `box86` are x86 userspace emulators, relevant only if this app ever has
+to run a non-native binary, which the exec model forbids; `reference/xeus-android` is two prose
+documents (`FEASIBILITY.md`, `STUDY_CASES.md`), not source.
 
 **Two references now answer for presentation, and the split is deliberate.** Since P2t, VS Code
 decides how the notebook *looks* and JupyterLab decides how it *behaves* — `docs/DECISIONS.md`,
@@ -1246,7 +1258,193 @@ execution-count label. Extending a gate is allowed; routing around one is not.
 
 ---
 
+# P4 — Terminal
+
+Everything the server side needs is **already shipped**: `jupyter_server_terminals==0.5.4`,
+`terminado==0.18.1`, `ptyprocess==0.7.0` (`tools/rootfs/requirements.lock`), and
+`ServerApp.terminals_enabled` defaults to **True** — not by its `Bool()` declaration, which alone
+would be False, but by the `@default` under it (`serverapp.py:1997-1999`). The extension enables
+itself through `usr/etc/jupyter/jupyter_server_config.d/jupyter_server_terminals.json`, which is
+in the tarball.
+
+## Two blockers, verified in the tarball rather than assumed
+
+**One: every shell in the rootfs is a dangling link.** Alpine's `bin/sh`, `bin/ash` and every other
+applet is an **absolute** symlink `-> /bin/busybox` (`tar -tvzf $T | grep '^l'`). On device that
+resolves against Android's root, not the rootfs. `bin/busybox` itself is real — a 919 KB aarch64
+PIE — but its `PT_INTERP` is `/lib/ld-musl-aarch64.so.1`, equally absolute and equally dangling,
+and a rootfs file cannot be `execve`'d at targetSdk 36 in any case.
+
+**Two: `argv[0]` cannot carry the applet name, and this corrects the fix this section used to
+state.** It read *"applet dispatch is by `argv[0]`, which the caller sets independently of the
+path"*. That is true of `execve` and false of the caller we actually have.
+`ptyprocess.PtyProcess.spawn` does `command = which(argv[0])` and then **`argv[0] = command`**
+(`ptyprocess/ptyprocess.py`), overwriting whatever name was asked for with the resolved path. And
+busybox falls back to reading the applet out of `argv[1]` **only** when its own basename is prefixed
+`busybox`, which `libbusybox.so` is not - so it dies *"applet not found"*, exit 127, and passing
+`sh` as `argv[1]` does not rescue it. Run against the shipped busybox rather than argued from
+source, with a control showing the multiplexer is present and working:
+`evidence/p4-terminal/busybox-dispatch.md`. And `lib*.so` is not negotiable - it is what AGP packages
+into `lib/<abi>/` and what Android extracts to `nativeLibraryDir`.
+
+**So the shell is reached through a path whose *basename* is `sh`.** Stage busybox as
+`jniLibs/<abi>/libbusybox.so`, patchelf'd `--set-interpreter` / `--set-rpath` exactly as
+`libpython3.so` is in `tools/rootfs/stage-app-artifacts.sh`, and have `BaseSpaceInstaller` point the
+rootfs at it, the way it already points the loader. Dispatch then comes from the basename of the
+path ptyprocess resolves, and the SELinux exec check lands on the symlink **target** in
+`nativeLibraryDir` — the mechanism `evidence/step8.3/musl-runs.txt` already measured for the
+interpreter.
+
+**And `bin/sh` alone is not enough, which is worth saying because the obvious gate hides it.** The
+rootfs holds **304** applet links and every one is the same absolute `-> /bin/busybox`, so a shell
+with only `bin/sh` repaired is a shell in which `ls`, `cat`, `grep`, `vi` and `top` are all *not
+found* - while `sh -c 'echo ok'` still passes, because `echo` is an ash builtin. The rewrite is
+therefore all 304, and the cheapest correct shape is **one** maintained link: point `bin/busybox` at
+the native library on every launch, and make the applets *relative* to it once at extract time.
+`execve` resolves the chain to find the inode, and busybox reads its applet from the caller's
+`argv[0]` - which for a shell forking `ls` is `"ls"`, not the path - so one indirection costs
+nothing. Three other absolute links exist and are harmless: `etc/mtab -> /proc/mounts`, which is a
+real Android path, and two `etc/ssl1.1/` entries nothing reads.
+
+## The protocol
+
+Read out of the **shipped** `terminado` and `jupyter_server_terminals` rather than JupyterLab's
+TypeScript alone, because two of the claims this section used to make were incomplete.
+
+- REST `api/terminals` (`restapi.ts`, `TERMINAL_SERVICE_URL`; handlers in
+  `jupyter_server_terminals/api_handlers.py`) — `POST {name, cwd}` returns **200 with the model**,
+  not a redirect (`restapi.ts` errors on `status !== 200`), and a relative `cwd` is resolved against
+  `server_root_dir` by the handler itself; `GET` lists; `DELETE` sets 204.
+- WebSocket `/terminals/websocket/<name>`, registered in `jupyter_server_terminals/app.py` as
+  `r"/terminals/websocket/(\w+)"`. Messages are JSON arrays `[type, ...content]` (`default.ts`:
+  `const msg = [message.type, ...message.content]`).
+- **Five message types, not four.** The socket's *first* frame is `["setup", {}]`, sent from
+  `TermSocket.open` (`terminado/websocket.py`), and the reference client refuses to call itself
+  connected until it arrives (`default.ts:300-304`). The rest are `["stdout", text]` and
+  `["disconnect", 1]` from the server, `["stdin", text]` and `["set_size", rows, cols]` — read as
+  `command[1:3]` — to it.
+- **A reconnect replays.** `TermSocket.open` drains `terminal.read_buffer` into the new socket
+  before anything else. That is what makes backgrounding the app survivable, and it is the
+  server's behaviour rather than something this app has to build.
+- `ServerApp.terminado_settings` (`serverapp.py:1492`) carries `shell_command`, which `app.py`
+  prefers over `which("sh")`. Pinning it buys a second thing measured in the same file: the `-l`
+  login-shell append is guarded on `shell_override is None`, so a pinned shell never gets it.
+
+## What the server already does, so this phase does not
+
+`shutdown_no_activity` early-returns on `extension_manager.any_activity()`
+(`serverapp.py:2602-2618`, `extension/manager.py:463-468`), and the terminals extension's
+`current_activity()` reports its live terminals — so a server with a terminal open and no kernel
+does **not** shut itself down. **This app's own stopper is the one that would**; that is a defect
+this phase introduces rather than inherits, it is in the open risks, and **P4k** closes it.
+
+## The emulator has a reference after all, and this file said it did not
+
+P4d used to read *"Nothing existing is reusable"* and *"IntelliJ does not answer this either"*, and
+concluded that the buffer *"is written against the VT spec, and that gap is stated here so nobody
+looks for a reference that is not there."* **Half of that is right and the conclusion is wrong.**
+
+Right: `RenderedOutput.withoutAnsiColours` (`RenderedOutput.kt:96-102`) is a regex *stripper* for
+SGR escapes in tracebacks and cannot become a grid; VS Code's emulator is xterm.js, an npm
+dependency (`package.json:143-144`); IntelliJ's is JediTerm, an external library
+(`plugins/terminal/BUILD.bazel:55-56`). Neither of those trees carries a buffer to read.
+
+Wrong: **`reference/research_repos/termux-app` does**, and it was checked out all along - the
+reference table above simply never listed it, so P4d only ever cited its extra-keys row.
+`terminal-emulator/` is a complete VT emulator in Android-flavoured Java: `TerminalEmulator.java`
+(2617 lines, an explicit `ESC_*` state machine covering CSI with every intermediate, OSC, DCS and
+APC), `TerminalBuffer.java`, `TerminalRow.java`, `TextStyle.java`, `TerminalColors.java` and
+`WcWidth.java`. It ships **19 JUnit classes** that are a conformance suite in their own right -
+`CursorAndScreenTest`, `ScrollRegionTest`, `RectangularAreasTest`, `DecSetTest`, `ResizeTest`,
+`HistoryTest`, `UnicodeInputTest` and the rest. `terminal-view/TerminalRenderer.java` (249 lines)
+answers the half after that: drawing a buffer with a monospace font.
+
+**And the licence permits it.** `termux-app/LICENSE.md` is GPLv3 *with an explicit exception* for
+`terminal-view` and `terminal-emulator`, which are **Apache 2.0**, inherited from Jack Palevich's
+Android Terminal Emulator. So these are read - and where transcribed, attributed - like every other
+reference in this repo, rather than looked at and reimplemented at arm's length.
+
+What this does **not** change: P4e-P4h are still ours to write, in Kotlin, in `terminal/`, free of
+`android.*`, under TDD. What it changes is that "correct" now has an oracle, and the tests come from
+one instead of from a reading of the spec.
+
+## The sub-steps
+
+**Re-lettered, and P4a/P4b are swapped on purpose.** Proving the PTY needs no build change at all —
+`pty.fork()`'s child can write and `_exit` without any shell — and its answer reshapes the phase, so
+staging busybox behind it would be work that a refusal throws away. The old P4d ("a terminal
+emulator in Compose") is now **P4e–P4h**, and `docs/DECISIONS.md` was updated where it cited it.
+
+| # | Sub-step | Gate |
+|---|---|---|
+| **P4a** | **Prove the PTY before anything is built.** terminado reaches a shell through `ptyprocess`, i.e. `/dev/ptmx` and `pty.fork()`. Whether that is permitted under Android's app seccomp filter is **unverified**, and if it fails the whole phase changes shape. Termux raises the prior without closing it: `terminal-emulator/src/main/jni/termux.c:36-51` opens `/dev/ptmx` and calls `grantpt`/`unlockpt`/`ptsname_r` from an ordinary app process, so the device node is reachable - but that process is bionic at `targetSdkVersion=28`, and ours is musl under a preloaded SIGSYS handler at 36. Driven from an instrumented test through the existing `PythonRunner`, `Assume`-skipped where `SpaceAbi.of` has no rootfs so it is green-by-skip on the emulator. Three probes: fork a pty and read the child's bytes; exec `sys.executable` inside it; `TIOCSWINSZ` and read the size back. | A master fd carrying the child's bytes, **or** the failure and its errno — either outcome closes the sub-step. `tmp/sigsys.log` pulled after the run names any refused syscall. Both into `evidence/p4-terminal/`. |
+| **P4b** | Stage busybox into `jniLibs`, and give the rootfs **one** link that has to be maintained. `bin/busybox` -> `<nativeLibraryDir>/libbusybox.so`, relinked on every launch the way the loader already is; the **304** applet links are rewritten *relative* at extract time (`bin/ls` -> `busybox`, `usr/bin/awk` -> `../../bin/busybox`) so they never go stale when `nativeLibraryDir` moves. Bump `BUNDLED_ROOTFS_VERSION`. | JVM: the applet links resolve, `bin/busybox` points into `nativeLibraryDir`, and a second `installIfNeeded()` repairs it after it is left pointing at a stale path. Device: `run-as … bin/sh -c 'ls /'` - **not `echo`**, which is an ash builtin and would pass with every applet still broken - plus `ls -l` of `bin/busybox` and a sample applet, into `evidence/p4-terminal/`. |
+| **P4c** | Pin the shell with `--ServerApp.terminado_settings`, rather than trusting `which`. | `jupyterServerArgs` is already a value rather than a side effect of starting a server, so this is a JVM test; then `GET /api/terminals` → `200 []` on the tablet. |
+| **P4d** | `TerminalGateway` port + `OkHttpTerminalGateway` (REST + WS) behind a `TerminalSocketOpener` seam, contract-tested against a scripted socket the way `KernelGateway` is, with its `Fake…` in `data/fake/`. Built through `PerRunningServer` off `BaseSpaceServer` — **never a second launcher**, for the reason `docs/DECISIONS.md` gives under "One object owns the Space's server". | Contract tests over both implementations; on the tablet, create → `send("echo ok\n")` → `ok` read back. |
+| **P4e** | **The screen buffer.** A grid with cursor addressing, wrap, LF/CR, scroll region and ED/EL erase, plus the East Asian width table that decides how far a glyph advances the cursor. Lives in `terminal/`, a document-and-language home like `syntax/` and `markdown/`, free of `android.*` — which is one real departure from the reference, whose `TerminalEmulator` imports `android.util.Base64` on its OSC path where `java.util.Base64` will do. | JVM tests over cursor addressing, erase, scroll region, wrap and width, transcribed from `CursorAndScreenTest`, `ScreenBufferTest`, `ScrollRegionTest`, `ResizeTest`, `RectangularAreasTest`, `UnicodeInputTest`, `WcWidthTest`. |
+| **P4f** | **The parser.** The escape state machine feeding P4e: ground / ESC / CSI (with its `?`, `>`, `$`, `!`, `"`, `'`, space and asterisk intermediates) / OSC / DCS / APC. | JVM tests transcribed from Termux's own, which are already split this way: `ControlSequenceIntroducerTest`, `OperatingSystemControlTest`, `DeviceControlStringTest`, `ApcTest`, `DecSetTest`. |
+| **P4g** | SGR to attributes, and the sixteen ANSI colours resolved from VS Code's `terminalColorRegistry.ts` **registered defaults** — the default themes override none of them, so this is the same resolve-through-the-registered-default shape P2u-3 used for the surfaces. | JVM equality against the resolved ramp, under the existing palette-consumers gate. |
+| **P4h** | Scrollback, and reflow on resize. | JVM tests from `HistoryTest` and `ResizeTest`: a resize narrower and back preserves what was written, and lines pushed off the top are reachable. |
+| **P4i** | **The screen.** `ui/terminal/`, a navigation destination beside the editors — JupyterLab adds a terminal to `'main'` as a `MainAreaWidget` (`packages/terminal-extension/src/index.ts:523-524`), a document-like surface rather than a panel, which is also the shape that gives a shell the whole window on a phone. `set_size` from measured monospace cell metrics - `terminal-view/TerminalRenderer.java` is the reference for how a buffer becomes glyphs at a fixed cell size; the font stays behind `theme/CodeText.kt` under the monospace-home gate. | Instrumented tests; Maestro on the tablet: open a terminal, type `ls`, read the workspace back, and a screenshot of `vi`. |
+| **P4j** | **Mobile input. Two things already exist and neither should be reinvented.** The app has `SymbolRow` (U5d) — a scrolling key row with `imePadding` + `navigationBarsPadding`, written for exactly this problem in the cell editor — so this generalises it rather than adding a second one. And Termux answers what a *terminal* row needs, which the editor's does not: `ExtraKeysView` / `ExtraKeysInfo` / `ExtraKeysConstants` (`reference/research_repos/termux-app/termux-shared/src/main/java/com/termux/shared/termux/extrakeys/`), including modifier keys that **latch** (Ctrl/Alt held for the next keystroke) rather than emitting a character. Read that before choosing the key set. Plus gesture scrollback, font size, and `set_size` on every resize including when the IME opens. | Maestro on tablet and at phone width: type a command, read its output, send Ctrl-C to a running one, resize with the keyboard and show the shell reflowed. |
+| **P4k** | **The idle stopper stops killing a live terminal** — the defect this phase introduces, closed inside it. `IdleServerStopper`'s idleness takes attached terminals as well as in-flight cells. | JVM regression test first; then the tablet: open a terminal, background 60 s, foreground, and the shell is still live with its scrollback intact (the `read_buffer` replay is what makes that true). |
+| **P4l** | `evidence/p4-terminal/README.md`, the "Where we are" counts re-counted off the tree, and `docs/DECISIONS.md` for the `bin/sh` link, the pinned `shell_command`, the `setup` frame and the replay, and whatever P4a measured. | The counts match `git ls-files`-derived greps rather than the last row's arithmetic. |
+
+**This supersedes Step 11's Console REPL for shell work but does not replace the Console** (P6b),
+which shares the notebook's kernel namespace — something a shell cannot do.
+
+---
+
+# P5 — LSP
+
+`jupyter-lsp>=2.0.0` is a **core JupyterLab dependency** (`pyproject.toml:45`), so this is parity,
+not an extra. `jedi==0.20.0` and `parso` are already in the rootfs; `python-lsp-server` and
+`jedi-language-server` both publish pure-Python `py3-none-any` wheels, so they install into musl
+exactly as `jupyter_server` did. `pyright` is out — it needs Node, which the Space does not have.
+
+**Two routes, and this plan takes the second:**
+
+1. The `jupyter-lsp` server extension — websocket at `<wsBase>/lsp/ws/<languageServerId>`, status
+   at `<baseUrl>/lsp/status` (`packages/lsp/src/connection_manager.ts:661-662`,
+   `packages/lsp/src/manager.ts:71`). Parity-exact, one more hop, one more moving part.
+2. **`pylsp` as a direct stdio subprocess** off the same `nativeLibraryDir` interpreter the kernel
+   already runs from. No new executable, no websocket, and the wire format — LSP over
+   `Content-Length` framing — is identical either way.
+
+Route 2 is chosen for the smaller surface; recorded as a departure because the reference uses
+route 1, and the port is shaped so route 1 stays a swap behind it.
+
+This **supersedes** 5.5's `complete_request` completion rather than duplicating it, and adds
+diagnostics, hover, signature help, document symbols and folding over one protocol. IntelliJ's
+`platform/lsp` is the reference for the client's shape: capability negotiation, document sync,
+cancellation.
+
+| # | Sub-step |
+|---|---|
+| **P5a** | `python-lsp-server` into `tools/rootfs/requirements.lock`; the image build's existing import gate proves the wheel is `py3-none-any` and resolves under `--only-binary=:all:`. |
+| **P5b** | `LanguageServerPort` + a process/stdio adapter with `Content-Length` framing, contract-tested against a scripted server. Lifecycle: one server per Space, started lazily, stopped with the Space (P1's rules apply). |
+| **P5c** | Completion swapped over behind the existing popup. Same UI, better answers; the kernel-backed path stays as the fallback when no server is running. |
+| **P5d** | Diagnostics as cell gutter marks. A cell is a fragment, not a module — the virtual-document mapping in `packages/lsp/src/virtual/document.ts` is what makes `NameError`-shaped false positives avoidable, and it is read rather than approximated. |
+| **P5e** | Document symbols, feeding P2h's ToC for `.py` files and folding for both. |
+
+---
+
+# P6 — Debugger, Console, Settings, Launcher
+
+| # | Sub-step | What settles it |
+|---|---|---|
+| **P6a** | **Debugger.** The kernelspec already declares `"metadata": {"debugger": true}` (`SpaceKernelSpec.kt`) and `debugpy==1.8.21` is in the lock file. Transport is `debug_request` / `debug_reply` on the **control** channel (`packages/services/src/kernel/messages.ts:1244`) carrying DAP; `packages/debugger/src/service.ts` is the protocol layer. The control channel is the one that has never stalled. **Phone scope:** breakpoints in a cell, step / continue, variables, call stack. Not the full DAP surface. |
+| **P6b** | **Console.** `packages/console-extension` — 21 commands. A REPL sharing the open notebook's kernel namespace; Enter runs, Shift+Enter newlines; `console:linebreak`, `console:inject`, `console:interaction-mode`, input history, clear transcript. **This is the sub-step that makes the `openNotebook` back-stack risk real** (see Open risks). |
+| **P6c** | **Settings.** `packages/settingregistry` is the model. Theme, accent, code font size, wrap, completion on/off, symbol row, autosave interval — and the persistence P2g's toggles need. |
+| **P6d** | **Launcher and onboarding.** `packages/launcher` — the surface that offers notebook / console / terminal / file per Space. Also the second top-level destination a navigation rail has been waiting for since U7. |
+
+---
+
 # P3 — Spaces
+
+**Last, not third.** The label is kept because it is cited elsewhere; the section sits here because
+P4-P6 need only the one base Space that already exists, and this is the largest unbuilt thing in the
+file. Nothing above it waits on it.
 
 The product's headline concept and entirely unbuilt. A **Space** is a project's environment
 (the SageMaker Studio term — "environment" would collide with the Python environments inside one).
@@ -1299,102 +1497,17 @@ compiling on a phone, which is the same gate `tools/rootfs/Dockerfile` already a
 
 ---
 
-# P4 — Terminal
-
-Everything the server side needs is **already shipped**: `jupyter_server_terminals==0.5.4`,
-`terminado==0.18.1`, `ptyprocess==0.7.0`, and `ServerApp.terminals_enabled` defaults to **True**
-(`serverapp.py:1997-1999`).
-
-## The blocker, verified in the tarball rather than assumed
-
-Alpine's `bin/sh`, `bin/ash` and every other applet is an **absolute** symlink `-> /bin/busybox`
-(`tar -tvzf $T | grep '^l'`). On device that resolves against Android's root, not the rootfs, so
-**every one of them is dangling** — and `jupyter_server_terminals/app.py` picks its shell with
-`which("sh")`. Even repaired, a rootfs file cannot be `execve`'d at targetSdk 36.
-
-**The fix is the pattern the loader already proves.** Stage busybox as
-`jniLibs/<abi>/libbusybox.so`, patchelf'd `--set-interpreter` to the rootfs loader path exactly as
-`libpython3.so` is in `tools/rootfs/stage-app-artifacts.sh`, and have `BaseSpaceInstaller` relink
-`bin/busybox` at it on every launch. Applet dispatch is by `argv[0]`, which the caller sets
-independently of the path, so `bin/sh` dispatches the `sh` applet while the SELinux check lands
-on the symlink **target** in `nativeLibraryDir`.
-
-## The protocol
-
-`packages/services/src/terminal/`:
-
-- REST `api/terminals` (`restapi.ts`, `TERMINAL_SERVICE_URL`) — `POST {name, cwd}` → `{name}`;
-  `GET` lists; `DELETE` warns on 404 and otherwise expects 204.
-- WebSocket `/terminals/websocket/<name>` — the route is registered in
-  `jupyter_server_terminals/app.py` as `r"/terminals/websocket/(\w+)"`. Messages are JSON arrays
-  `[type, ...content]` (`default.ts`: `const msg = [message.type, ...message.content]`) with
-  `type ∈ {'stdout','stdin','set_size','disconnect'}` (`terminal.ts:124`).
-- `ServerApp.terminado_settings` (`serverapp.py:1492`) carries `shell_command`, which
-  `app.py` prefers over `which`; `app.py` also appends `-l` when stdout is not a tty, which on
-  device it never is.
-
-| # | Sub-step | Gate |
-|---|---|---|
-| **P4a** | Stage busybox into `jniLibs`; relink `bin/busybox` on install, on every launch (`nativeLibraryDir` moves). | `adb shell run-as com.jupydroid.app files/spaces/base/bin/sh -c 'echo ok'` **and** a `ls -l` of the link, both in `evidence/p4-terminal/`. |
-| **P4b** | **Prove the PTY before any UI.** terminado reaches a shell through `ptyprocess`, i.e. `/dev/ptmx` and `pty.fork()`. Whether that is permitted under Android's app seccomp filter is **unverified**, and if it fails the whole phase changes shape. One-shot device probe through `PythonRunner`. | A device capture showing a `sh` child and its pty, or the failure and its errno. Either outcome closes the sub-step. |
-| **P4c** | `TerminalGateway` port + `OkHttpTerminalGateway` (REST + WS), contract-tested against a scripted socket the way `KernelGateway` is. Pin the shell with `--ServerApp.terminado_settings` rather than trusting `which`. | Contract tests; `GET /api/terminals` non-empty on the tablet. |
-| **P4d** | **A terminal emulator in Compose.** The real cost of this phase: a screen buffer, scrollback and selection, and enough ANSI/VT to run `ash`, `vi` and `top`. Nothing existing is reusable — `RenderedOutput.withoutAnsiColours` (`RenderedOutput.kt:96-102`) is a regex **stripper** for SGR escapes in tracebacks, not a parser, and a terminal needs a grid with cursor addressing. **IntelliJ does not answer this either:** its emulator is JediTerm, an external library (`plugins/terminal/BUILD.bazel:55-56`), so `plugins/terminal` shows how a terminal is *integrated* (`ObservableJediTerminal.kt`, `JediTerminalListener.kt`, search and hyperlink filters) and not how the buffer is built. The buffer is written against the VT spec, and that gap is stated here so nobody looks for a reference that is not there. | Instrumented tests over the buffer (cursor addressing, erase, scroll region, wrap) plus a tablet screenshot of `vi`. |
-| **P4e** | Mobile input. **Two things already exist and neither should be reinvented.** The app has `SymbolRow` (U5d) — a scrolling key row with `imePadding` + `navigationBarsPadding`, written for exactly this problem in the cell editor — so this generalises it rather than adding a second one. And Termux answers what a *terminal* row needs, which the editor's does not: `ExtraKeysView` / `ExtraKeysInfo` / `ExtraKeysConstants` (`termux-shared/src/main/java/com/termux/shared/termux/extrakeys/`), including modifier keys that **latch** (Ctrl/Alt held for the next keystroke) rather than emitting a character. Read that before choosing the key set. Plus gesture scrollback, font size, and `set_size` on every resize including when the IME opens. | Maestro on tablet and phone: type a command, read its output, send Ctrl-C to a running one, resize with the keyboard and show the shell reflowed. |
-
-**This supersedes Step 11's Console REPL for shell work but does not replace the Console** (P6b),
-which shares the notebook's kernel namespace — something a shell cannot do.
-
----
-
-# P5 — LSP
-
-`jupyter-lsp>=2.0.0` is a **core JupyterLab dependency** (`pyproject.toml:45`), so this is parity,
-not an extra. `jedi==0.20.0` and `parso` are already in the rootfs; `python-lsp-server` and
-`jedi-language-server` both publish pure-Python `py3-none-any` wheels, so they install into musl
-exactly as `jupyter_server` did. `pyright` is out — it needs Node, which the Space does not have.
-
-**Two routes, and this plan takes the second:**
-
-1. The `jupyter-lsp` server extension — websocket at `<wsBase>/lsp/ws/<languageServerId>`, status
-   at `<baseUrl>/lsp/status` (`packages/lsp/src/connection_manager.ts:661-662`,
-   `packages/lsp/src/manager.ts:71`). Parity-exact, one more hop, one more moving part.
-2. **`pylsp` as a direct stdio subprocess** off the same `nativeLibraryDir` interpreter the kernel
-   already runs from. No new executable, no websocket, and the wire format — LSP over
-   `Content-Length` framing — is identical either way.
-
-Route 2 is chosen for the smaller surface; recorded as a departure because the reference uses
-route 1, and the port is shaped so route 1 stays a swap behind it.
-
-This **supersedes** 5.5's `complete_request` completion rather than duplicating it, and adds
-diagnostics, hover, signature help, document symbols and folding over one protocol. IntelliJ's
-`platform/lsp` is the reference for the client's shape: capability negotiation, document sync,
-cancellation.
-
-| # | Sub-step |
-|---|---|
-| **P5a** | `python-lsp-server` into `tools/rootfs/requirements.lock`; the image build's existing import gate proves the wheel is `py3-none-any` and resolves under `--only-binary=:all:`. |
-| **P5b** | `LanguageServerPort` + a process/stdio adapter with `Content-Length` framing, contract-tested against a scripted server. Lifecycle: one server per Space, started lazily, stopped with the Space (P1's rules apply). |
-| **P5c** | Completion swapped over behind the existing popup. Same UI, better answers; the kernel-backed path stays as the fallback when no server is running. |
-| **P5d** | Diagnostics as cell gutter marks. A cell is a fragment, not a module — the virtual-document mapping in `packages/lsp/src/virtual/document.ts` is what makes `NameError`-shaped false positives avoidable, and it is read rather than approximated. |
-| **P5e** | Document symbols, feeding P2h's ToC for `.py` files and folding for both. |
-
----
-
-# P6 — Debugger, Console, Settings, Launcher
-
-| # | Sub-step | What settles it |
-|---|---|---|
-| **P6a** | **Debugger.** The kernelspec already declares `"metadata": {"debugger": true}` (`SpaceKernelSpec.kt`) and `debugpy==1.8.21` is in the lock file. Transport is `debug_request` / `debug_reply` on the **control** channel (`packages/services/src/kernel/messages.ts:1244`) carrying DAP; `packages/debugger/src/service.ts` is the protocol layer. The control channel is the one that has never stalled. **Phone scope:** breakpoints in a cell, step / continue, variables, call stack. Not the full DAP surface. |
-| **P6b** | **Console.** `packages/console-extension` — 21 commands. A REPL sharing the open notebook's kernel namespace; Enter runs, Shift+Enter newlines; `console:linebreak`, `console:inject`, `console:interaction-mode`, input history, clear transcript. **This is the sub-step that makes the `openNotebook` back-stack risk real** (see Open risks). |
-| **P6c** | **Settings.** `packages/settingregistry` is the model. Theme, accent, code font size, wrap, completion on/off, symbol row, autosave interval — and the persistence P2g's toggles need. |
-| **P6d** | **Launcher and onboarding.** `packages/launcher` — the surface that offers notebook / console / terminal / file per Space. Also the second top-level destination a navigation rail has been waiting for since U7. |
-
----
-
 ## Open risks
 
 Measured, not speculative. Anything closed moves to `docs/DECISIONS.md`.
 
+- **`IdleServerStopper` will kill a live terminal, and P4 is what makes that reachable.** It waits
+  on `cellsInFlight` alone (`IdleServerStopper.kt`), so backgrounding the app with a shell open and
+  no cell running stops the server under it after the 30 s grace. **The server side is already
+  safe** - `shutdown_no_activity` early-returns on `extension_manager.any_activity()`
+  (`serverapp.py:2602-2618`), and `jupyter_server_terminals`' `current_activity()` reports its live
+  terminals - so this is ours alone. Read in the source rather than observed, because nothing can
+  observe it until P4d exists. **Scheduled: P4k.**
 - **A workspace search does not reach a notebook's outputs, and closing that is a refactor rather
   than a switch.** `webviewResults` is the third field of `INotebookCellMatchNoModel` and P2x-4
   builds the other two. Three things hold it shut, and only the first is a preference: JupyterLab's
