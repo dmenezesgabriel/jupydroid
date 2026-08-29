@@ -30,8 +30,16 @@ appId: com.jupydroid.app
 - assertVisible: "Table of contents Written heading"
 - assertVisible: "Table of contents Printed heading"
 - assertVisible: "Table of contents Second written heading"
+# **The premise the jump rests on**, and the reason this fixture is thirteen cells rather than
+# three: the printed heading's own output has to be off screen *before* the tap, or "it is visible
+# now" is true of a screen nothing moved. Three cells fit any window this flow runs in, so the
+# assertion below could not fail and the frame showed a document that had not moved (P2z-x). Ten
+# `filler_N` cells between the written heading and the cell that prints one is about twice the
+# 1280x800 viewport - the same fix, and the same idiom, P2z-c gave `p2h-2`.
+- assertNotVisible: "from the kernel"
 - takeScreenshot: 01-a-printed-heading-is-an-entry
-# It jumps like any other entry: the cell it points at is the one that printed it.
+# It jumps like any other entry: the cell it points at is the one that printed it, and it was not
+# on screen a moment ago.
 - tapOn: "Table of contents Printed heading"
 - assertVisible: "from the kernel"
 - takeScreenshot: 02-jumped-to-the-cell-that-printed-it
