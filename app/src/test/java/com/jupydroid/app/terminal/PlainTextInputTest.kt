@@ -202,7 +202,23 @@ class PlainTextInputTest {
     joinFullLines: Boolean = false,
   ): String = fixture.emulator.screen.grid.selectedText(x1, y1, x2, y2, joinFullLines = joinFullLines)
 
+  /**
+   * **HT leaves a pending wrap standing**, where an addressed move clears it: the reference assigns
+   * the column rather than going through its setter. On the last column a tab finds no stop above
+   * it and returns that column, so the cursor does not move and the flag is all that differs.
+   *
+   * **The differential cannot be relied on for this one.** It was detected in some tables and not
+   * others - a mutation's detection is a property of the random draw - and the P4f-5c sweep found
+   * it covered by no test at all. Expectations read off `RefScreen`.
+   */
+  @Test
+  fun aTabLeavesAPendingWrapStanding() {
+    terminal(10, 3).enterString("$ESC[10GA\tB").assertLinesAre("         A", "B         ", "          ")
+    terminal(10, 3).enterString("$ESC[10GA$ESC[10GB").assertLinesAre("         B", "          ", "          ")
+  }
+
   private companion object {
     const val BELL = "\u0007"
+    const val ESC = "\u001B"
   }
 }

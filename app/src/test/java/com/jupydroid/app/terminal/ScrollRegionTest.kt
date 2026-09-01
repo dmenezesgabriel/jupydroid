@@ -267,6 +267,31 @@ class ScrollRegionTest {
     terminal(4, 3).enterString("${region}A$ESC[3GB").assertLinesAre("  B ", "    ", "    ")
   }
 
+  /**
+   * **A linefeed on the bottom margin stays put when that margin is the last row.** The predicate
+   * is `row >= bottomMargin`, and it differs from `row > bottomMargin` in exactly one place: at
+   * `row == bottomMargin`, where the `>=` form takes the below-region branch and holds the cursor
+   * on the last row, and the `>` form falls through and steps it **off the screen**.
+   *
+   * That needs `bottomMargin == rows - 1`, which is why a region ending at the screen's own bottom
+   * does not show it - the first case below scrolls, the second does not.
+   *
+   * **The differential is not a reliable witness here.** It was unreachable through P4f-4b,
+   * detected at P4f-5a, and survived again at P4f-5c, where a full-suite sweep found the mutation
+   * covered by no test at all. Expectations read off `RefScreen`.
+   */
+  @Test
+  fun aLinefeedOnABottomMarginThatIsTheLastRowStaysThere() {
+    val filled = "1\r\n2\r\n3\r\n4\r\n5"
+    val held = terminal(2, 5).enterString("$filled$ESC[1;4r$ESC[5;1HQ\nR")
+    held.assertLinesAre("1 ", "2 ", "3 ", "4 ", "QR")
+    assertEquals(4 to 1, cursorOf(held))
+
+    val scrolled = terminal(2, 5).enterString("$filled$ESC[1;5r$ESC[5;1HQ\nR")
+    scrolled.assertLinesAre("2 ", "3 ", "4 ", "Q ", " R")
+    assertEquals(4 to 1, cursorOf(scrolled))
+  }
+
   private companion object {
     const val ESC = "\u001B"
   }
