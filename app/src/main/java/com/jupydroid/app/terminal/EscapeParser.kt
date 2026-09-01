@@ -35,6 +35,9 @@ enum class EscapeState {
   /** `ESC [ ' ` - the byte after it is DECIC or DECDC, both of which move within the margins. */
   ColumnEdit,
 
+  /** `ESC [ " ` - the byte after it is DECSCA, which sets the protected attribute. */
+  ProtectionAttribute,
+
   /** An intermediate byte (`!`, `"`, `$`, `*`, space) this step does not implement. */
   UnsupportedIntermediateByte,
 }
@@ -68,6 +71,7 @@ class EscapeParser(private val screen: TerminalScreen) {
   private val edits = ScreenEditing(screen)
   private val switches = ModeSwitching(screen)
   private val margins = ScrollMargins(screen)
+  private val selective = SelectiveErasing(screen)
 
   var state: EscapeState = EscapeState.Ground
     private set
@@ -100,6 +104,7 @@ class EscapeParser(private val screen: TerminalScreen) {
       EscapeState.ControlSequence -> inControlSequence(codePoint)
       EscapeState.PrivateParameter -> inPrivateParameter(codePoint)
       EscapeState.ColumnEdit -> inColumnEdit(codePoint)
+      EscapeState.ProtectionAttribute -> inProtectionAttribute(codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true
@@ -115,6 +120,7 @@ class EscapeParser(private val screen: TerminalScreen) {
     codePoint == PRIVATE_MODE_BYTE -> EscapeState.PrivateParameter
     codePoint in PRIVATE_PARAMETER_BYTES -> EscapeState.UnsupportedParameterByte
     codePoint == COLUMN_EDIT_BYTE -> EscapeState.ColumnEdit
+    codePoint == PROTECTION_BYTE -> EscapeState.ProtectionAttribute
     codePoint in UNIMPLEMENTED_INTERMEDIATE_BYTES -> EscapeState.UnsupportedIntermediateByte
     else -> applyFinalByte(codePoint)
   }
@@ -140,12 +146,13 @@ class EscapeParser(private val screen: TerminalScreen) {
 
   /**
    * `ESC [ ?` collects parameters like any other control sequence; its final byte goes to
-   * [ModeSwitching], and one it does not own is swallowed rather than printed - `CSI ? J`/`K` are
-   * P4f-5's and `CSI ? n`/`$ p` are P4f-6's.
+   * [SelectiveErasing] for `J`/`K` and [ModeSwitching] for the rest; one neither owns is swallowed
+   * rather than printed - `CSI ? n` and `CSI ? $ p` are P4f-6's.
    */
   private fun inPrivateParameter(codePoint: Int): EscapeState = when {
     parameters.accept(codePoint) -> EscapeState.PrivateParameter
     codePoint in INTERMEDIATE_BYTE_RANGE -> EscapeState.UnsupportedIntermediateByte
+    selective.apply(codePoint, parameters) -> EscapeState.Ground
     else -> {
       switches.applyPrivate(codePoint, parameters)
       EscapeState.Ground
@@ -158,6 +165,12 @@ class EscapeParser(private val screen: TerminalScreen) {
    */
   private fun inColumnEdit(codePoint: Int): EscapeState {
     margins.applyColumnEdit(codePoint, parameters)
+    return EscapeState.Ground
+  }
+
+  /** `ESC [ "`, whose one final byte is DECSCA. Anything else ends the sequence. */
+  private fun inProtectionAttribute(codePoint: Int): EscapeState {
+    selective.applyProtection(codePoint, parameters)
     return EscapeState.Ground
   }
 
@@ -194,14 +207,17 @@ class EscapeParser(private val screen: TerminalScreen) {
     /** `'`, which introduces DECIC and DECDC - both margin arithmetic, so both land at P4f-5a. */
     const val COLUMN_EDIT_BYTE = '\''.code
 
+    /** `"`, which introduces DECSCA - the protected attribute the selective erases read. */
+    const val PROTECTION_BYTE = '"'.code
+
     /**
      * The intermediate bytes the reference routes to a state of its own, each for a sequence a
-     * later sub-step implements: `!` DECSTR, `"` DECSCA (P4f-5b), `$` the rectangular operations
-     * and `*` DECSACE (both P4f-5c), and space DECSCUSR. **Every other intermediate byte ends the
+     * later sub-step implements: `!` DECSTR, `$` the rectangular operations and `*` DECSACE (both
+     * P4f-5c), and space DECSCUSR. **Every other intermediate byte ends the
      * sequence**, which is the reference's own `parseArg` fall-through rather than a rule of
      * ECMA-48 - transcribed as it stands, so the two agree byte for byte.
      */
     val UNIMPLEMENTED_INTERMEDIATE_BYTES =
-      setOf('!'.code, '"'.code, '$'.code, '*'.code, ' '.code)
+      setOf('!'.code, '$'.code, '*'.code, ' '.code)
   }
 }
