@@ -3880,6 +3880,102 @@ pair's endpoints. Each fails at least one test.
 which is the one place this file departs from `wcwidth(3)` (0 rather than -1) and had nothing
 pinning it.
 
+### DEC Special Graphics `d` and `h` are control pictures, not the controls (P4f-1)
+
+`TerminalEmulator.java`'s line-drawing table maps `d` to `'\r'` and `h` to `'\n'` — the literal
+control characters. Transcribed as-is that is a **defect here specifically**: `CharacterWidth`
+scores a C0 control 0, so a zero-width `\r` written through `TerminalScreen.writeCodePoint` lands
+as a *combining mark on the previous cell* rather than as a glyph of its own. The mapping is to
+`U+240D SYMBOL FOR CARRIAGE RETURN` and `U+2424 SYMBOL FOR NEWLINE`, the Unicode control pictures
+the graphics actually are.
+
+Settled against `vttest`'s own character-set page
+(`reference/research_repos/jediterm/core/tests/resources/testData/vttest/Test3_Characters/1`)
+rather than by preference, and the three positions where Termux and JediTerm disagree each have a
+test in `LineDrawingCharsetTest`.
+
+**This forbids** "restoring parity" by writing the control characters back, and it is the one
+divergence the P4f differential has to exclude by hand: reaching it needs `ESC ( 0`, which is
+P4f-3, so P4f-3's script must exclude it **explicitly** rather than let it pass because nothing
+emits it.
+
+### SGR is P4f-2's, and the P4g row that claimed it was wrong (P4f-2)
+
+`docs/PLAN.md`'s P4g row read *"SGR to attributes, and the sixteen ANSI colours…"*. Checked against
+the tree, the first half cannot live there: SGR **is** a CSI sequence, so anything that applies it
+needs the parameter buffer, the CSI state and the final-byte dispatch — which is the whole of P4f's
+machine. Two places in the tree had already scheduled it correctly (`TerminalScreen.kt`'s
+`currentStyle` KDoc and `PlainTextInputTest`'s), and the row had not caught up.
+
+What is left in P4g is a palette question with no parser in it: what index 1 **is**, in ARGB, out of
+VS Code's `terminalColorRegistry.ts` registered defaults. P4f-2 settles only that it is 1.
+
+**This forbids** resolving a colour inside `terminal/`: `GraphicRendition` writes indices and 24-bit
+values into a `CellStyle` and never a theme colour, which is also what keeps `terminal/` free of
+`theme/` and under the palette-consumers gate when P4g arrives.
+
+### `58` and `59` are parsed and thrown away, and parsing them is the point (P4f-2)
+
+The reference stores an underline colour in `mUnderlineColor`. Measured rather than assumed:
+`getStyle()` is `TextStyle.encode(mForeColor, mBackColor, mEffect)` — three fields, and that is not
+one of them — and a grep across `terminal-emulator/` **and** `terminal-view/` finds four writes and
+no reads. It is a field nothing in the reference has ever used, and `CellStyle`'s 59 occupied bits
+have nowhere to put it.
+
+So `58` and `59` change nothing here. But they are still **parsed**, and dropping the codes would be
+a defect rather than a simplification: `58`'s arguments would then be read as codes of their own, so
+`58;5;1` would arrive as blink and bold. `GraphicRenditionTest.anUnderlineColourIsParsedAndDiscarded`
+is what stops someone deleting the branch as dead.
+
+The same reading explains a quirk that looks like a bug and is parity:
+`anInvalidExtendedColourFormIsReadAgainAsACodeOfItsOwn`. An extended colour whose form is neither
+`2` nor `5` consumes **nothing**, so the walk reads its arguments again — `48;8;129` ends up
+invisible, because the `8` that named the bad form is read a second time as SGR 8.
+
+### A final byte P4f-2 does not implement is swallowed, never printed (P4f-2)
+
+The machine ships whole and the vocabulary arrives sub-step by sub-step. That leaves a choice for
+every sequence the machine can *reach* and not yet act on, and the answer is that it is consumed
+with its parameters and nothing reaches the screen. The alternative — end the sequence at the
+unknown byte — puts `2J` on the shell's screen as text the first time anything clears it.
+
+Three consequences, all transcribed from the reference's routing rather than generalised from
+ECMA-48:
+
+- The private parameter bytes `< = > ?` go to one swallowing state, and the intermediate bytes
+  `! " ' $ *` and space to another — **exactly the six the reference gives a state of its own**.
+  Every *other* intermediate byte ends the sequence, which is `parseArg`'s own fall-through and not
+  a rule of ECMA-48. Transcribed as it stands, so the two agree byte for byte.
+- `ESC` followed by anything but `[` ends the sequence taking only itself. That is right for the
+  introducers the reference does not implement and **a declared, temporary divergence** for the
+  twelve it does; `EscapeSequenceTest` says so at the test that pins it, and P4f-3 replaces it.
+- Neither is in the differential's reach, on purpose: the reference *implements* those bytes, so
+  emitting one would compare a divergence this step declares against a defect. The evidence file
+  states the exclusion.
+
+**This forbids** closing a later sub-step without deleting the tests that pin the swallowing it
+replaces — they are named "changes at P4f-3" / "P4f-4" where they stand.
+
+### The differential's state dump gained the styles, and it was hiding all of them (P4f-2)
+
+P4f-1's dump printed the cursor, the bell count, the transcript depth and every live row's
+characters and line-wrap flag. It did not print a single **style**, which was harmless while
+`currentStyle` was `CellStyle.NORMAL` for the whole run and useless the moment SGR existed: two
+implementations disagreeing about every colour on the screen would still have printed the same
+characters.
+
+Styles are now dumped **run-length encoded per row**. Spelled out per column they multiplied the
+dump tenfold for a value that changes far less often than a character does; encoded, the dumps land
+at ~28 MB and lose nothing.
+
+This also gave the write path's style argument its first exercise: until now `setChar`, `blockSet`
+and `scrollDownOneLine` were compared with one style throughout, so a transcription that had dropped
+the argument would have passed all 12,000 operations.
+
+**The general rule, and it is the one P4e-3 set seen from the other side**: a differential compares
+what it prints. When a sub-step adds a *field* to the state, the dump gains it in the same commit —
+otherwise the script grows while the oracle does not.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)

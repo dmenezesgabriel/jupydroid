@@ -7,9 +7,9 @@ package com.jupydroid.app.terminal
  * Transcribed from `TerminalEmulator.append` / `processByte` / `processCodePoint`
  * (`terminal-emulator/src/main/java/com/termux/terminal/TerminalEmulator.java`, termux-app
  * `3df69d1da197dd9bd71a3bafd902dffd720576b4`, Apache 2.0 under that repository's `LICENSE.md`
- * exception). The escape sequences themselves arrive in later steps; **what is here is exactly the
- * reference's behaviour in its `ESC_NONE` state**, which is why a control character it does not
- * name is dropped rather than drawn.
+ * exception). **What is here is the reference's ground state** - which is why a control character
+ * it does not name is dropped rather than drawn; everything after an `ESC` belongs to
+ * [EscapeParser].
  *
  * ```
  * val emulator = TerminalEmulator(columns = 80, rows = 24, notices = Silent)
@@ -24,6 +24,7 @@ class TerminalEmulator(
 ) {
   val screen = TerminalScreen(columns, rows, totalRowsFor(transcriptRows))
   private val decoder = Utf8Decoder()
+  private val parser = EscapeParser(screen)
 
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
   fun append(buffer: ByteArray, length: Int) {
@@ -33,6 +34,7 @@ class TerminalEmulator(
   /** Back to a freshly opened terminal, keeping what is on screen. */
   fun reset() {
     decoder.reset()
+    parser.finishSequence()
     screen.reset()
   }
 
@@ -52,8 +54,14 @@ class TerminalEmulator(
     }
   }
 
+  /**
+   * The C0 controls are dispatched **before** the escape state is looked at, as the reference
+   * dispatches them: a carriage return inside a half-read sequence moves the cursor and the
+   * sequence goes on.
+   */
   private fun processCodePoint(codePoint: Int) {
     if (handleControlCharacter(codePoint)) return
+    if (parser.accept(codePoint)) return
     // A control character nothing above claimed is dropped, never drawn.
     if (codePoint >= FIRST_PRINTABLE) screen.writeCodePoint(codePoint)
   }
@@ -61,7 +69,8 @@ class TerminalEmulator(
   /** The C0 controls this state acts on; false means "not a control character of ours". */
   private fun handleControlCharacter(codePoint: Int): Boolean {
     when (codePoint) {
-      NUL, CAN, SUB -> Unit
+      NUL -> Unit
+      CAN, SUB -> abandonSequence()
       BEL -> notices.onBell()
       BS -> screen.backspace()
       HT -> screen.horizontalTab()
@@ -69,9 +78,21 @@ class TerminalEmulator(
       CR -> screen.carriageReturn()
       SO -> screen.charset.mapToGL(1)
       SI -> screen.charset.mapToGL(0)
+      ESC -> parser.start()
       else -> return false
     }
     return true
+  }
+
+  /**
+   * CAN and SUB abandon a sequence where it stands and leave a `DEL` on the screen - which the
+   * reference writes straight through, bypassing its own state machine, since a `DEL` nobody sent
+   * is not something to re-parse. Outside a sequence both do nothing at all.
+   */
+  private fun abandonSequence() {
+    if (!parser.isParsing) return
+    parser.finishSequence()
+    screen.writeCodePoint(DELETE)
   }
 
   companion object {
@@ -95,7 +116,11 @@ class TerminalEmulator(
     private const val SO = 14
     private const val SI = 15
     private const val CAN = 24
+    private const val ESC = 27
     private const val SUB = 26
+
+    /** What CAN and SUB leave behind when they abandon a sequence. */
+    private const val DELETE = 127
 
     /** Space. Everything below it is a control character. */
     private const val FIRST_PRINTABLE = 32

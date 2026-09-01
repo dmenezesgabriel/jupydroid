@@ -30,7 +30,7 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
   /** IRM. A written character pushes what is already there to the right instead of replacing it. */
   var insertMode: Boolean = false
 
-  /** What a written cell is painted with; SGR is what changes it, and that is P4f-2. */
+  /** What a written cell is painted with. [GraphicRendition] - `ESC [ Pm m` - is what changes it. */
   var currentStyle: CellStyle = CellStyle.NORMAL
 
   /** Draw [codePoint] at the cursor, wrapping, inserting and advancing as the modes require. */
