@@ -9,10 +9,10 @@ import org.junit.Test
  * Eight of `UnicodeInputTest`'s eleven cases, plus `TerminalTest`'s `testNormalization`, `testBel`,
  * `testAutomargins` and the first half of `testTab` (termux-app `3df69d1d`, Apache 2.0 - see
  * [TerminalGrid]). **The rest of those classes drive escape sequences and go with the step that
- * adds them**: `testWideCharacterDeletion` and `testWideCharOverwriting` need `CSI D` (P4f-3),
- * `testWideCharacterWithoutWrapping` needs `CSI ? 7 l` (P4f-4), and `testLineDrawing` needs
- * `ESC )` (P4f-3) - `LineDrawingCharsetTest` covers the table itself here. `testTab`'s second line
- * needs SGR and is in `EscapeSequenceTest`, which has one.
+ * adds them**: `testWideCharacterDeletion` and `testWideCharOverwriting` need `CSI D` (P4f-3b),
+ * `testWideCharacterWithoutWrapping` needs `CSI ? 7 l` (P4f-4), and `testLineDrawing` is in
+ * `EscapeDispatchTest` (P4f-3a) - `LineDrawingCharsetTest` covers the table itself here.
+ * `testTab`'s second line needs SGR and is in `EscapeSequenceTest`, which has one.
  *
  * Combining marks stay spelled as `\uXXXX`, as the reference spells them, so a reader can see which
  * mark is meant rather than trusting an editor to render it.

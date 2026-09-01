@@ -46,12 +46,17 @@ class LineDrawingCharset {
     return if (drawable) GRAPHICS[codePoint - FIRST].code else codePoint
   }
 
-  /** Back to ASCII in both sets, with G0 invoked. */
-  fun reset() {
-    g0IsLineDrawing = false
-    g1IsLineDrawing = false
-    invokedIsG0 = true
+  /** What DECSC puts away of this state, and [restore] puts back. */
+  fun snapshot(): GraphicSetState = GraphicSetState(g0IsLineDrawing, g1IsLineDrawing, invokedIsG0)
+
+  fun restore(state: GraphicSetState) {
+    g0IsLineDrawing = state.g0IsLineDrawing
+    g1IsLineDrawing = state.g1IsLineDrawing
+    invokedIsG0 = state.invokedIsG0
   }
+
+  /** Back to ASCII in both sets, with G0 invoked. */
+  fun reset() = restore(GraphicSetState.ASCII)
 
   private companion object {
     /** `_`, whose graphic is the blank. */
@@ -62,5 +67,19 @@ class LineDrawingCharset {
 
     /** The 32 graphics of `FIRST..LAST`, in order. */
     const val GRAPHICS = " ◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·"
+  }
+}
+
+/**
+ * The three flags of a [LineDrawingCharset], as one value DECSC can put away.
+ *
+ * The reference keeps `mUseLineDrawingG0` / `mUseLineDrawingG1` / `mUseLineDrawingUsesG0` on both
+ * the emulator and its `SavedScreenState`, copying each field twice per save and restore; named,
+ * the two halves cannot drift apart. The name is JediTerm's `GraphicSetState`.
+ */
+data class GraphicSetState(val g0IsLineDrawing: Boolean, val g1IsLineDrawing: Boolean, val invokedIsG0: Boolean) {
+  companion object {
+    /** What a terminal starts in, and what a reset puts it back to. */
+    val ASCII = GraphicSetState(g0IsLineDrawing = false, g1IsLineDrawing = false, invokedIsG0 = true)
   }
 }

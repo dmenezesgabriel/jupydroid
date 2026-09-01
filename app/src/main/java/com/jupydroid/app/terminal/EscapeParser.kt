@@ -4,8 +4,8 @@ package com.jupydroid.app.terminal
  * Where a sequence is, between its `ESC` and the byte that ends it.
  *
  * The reference's `ESC_*` constants (`TerminalEmulator.java` lines 45-89, termux-app `3df69d1d`,
- * Apache 2.0 - see [TerminalGrid]), of which only the states this step can actually reach exist
- * here: a state nothing routes to is dead code, and the later sub-steps add their own.
+ * Apache 2.0 - see [TerminalGrid]), of which only the states something routes to exist here: a
+ * state nothing reaches is dead code, and the later sub-steps add their own.
  */
 enum class EscapeState {
   /** No sequence in progress; bytes are text and C0 controls. */
@@ -13,6 +13,15 @@ enum class EscapeState {
 
   /** `ESC` has arrived and the byte after it says what kind of sequence this is. */
   Escape,
+
+  /** `ESC #` - the byte after it selects a DEC private sequence, of which one is implemented. */
+  EscapePound,
+
+  /** `ESC (` - the byte after it designates the G0 graphic set. */
+  DesignateG0,
+
+  /** `ESC )` - the byte after it designates G1. */
+  DesignateG1,
 
   /** `ESC [` - a control sequence, collecting its parameters until a final byte. */
   ControlSequence,
@@ -26,8 +35,9 @@ enum class EscapeState {
 
 /**
  * The escape state machine: `ESC` starts a sequence, the bytes after it say which one, and a final
- * byte ends it. At this step exactly one sequence is acted on - `ESC [ Pm m`, Select Graphic
- * Rendition - and every other one is **swallowed whole** rather than printed.
+ * byte ends it. The `ESC` sequences are [EscapeDispatch]'s; of the control sequences, `ESC [ Pm m`
+ * - Select Graphic Rendition - is acted on here and every other final byte is **swallowed whole**
+ * rather than printed, until the sub-step that owns it arrives.
  *
  * Transcribed from `TerminalEmulator.processCodePoint`'s state dispatch, `doEsc`, `doCsi`,
  * `startEscapeSequence`, `continueSequence`, `finishSequence` and
@@ -47,6 +57,7 @@ enum class EscapeState {
  */
 class EscapeParser(private val screen: TerminalScreen) {
   private val parameters = EscapeParameters()
+  private val escapes = EscapeDispatch(screen)
 
   var state: EscapeState = EscapeState.Ground
     private set
@@ -72,20 +83,15 @@ class EscapeParser(private val screen: TerminalScreen) {
   fun accept(codePoint: Int): Boolean {
     state = when (state) {
       EscapeState.Ground -> return false
-      EscapeState.Escape -> afterEscape(codePoint)
+      EscapeState.Escape -> escapes.introduce(codePoint)
+      EscapeState.EscapePound -> escapes.applyPound(codePoint)
+      EscapeState.DesignateG0 -> escapes.designateG0(codePoint)
+      EscapeState.DesignateG1 -> escapes.designateG1(codePoint)
       EscapeState.ControlSequence -> inControlSequence(codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true
   }
-
-  /**
-   * **`[` is the only introducer this step knows**, and every other one ends the sequence taking
-   * only itself - which is what the reference does with an introducer it does not implement, and
-   * what P4f-3 replaces for `#`, `(`, `)`, `7`, `8`, `c`, `D`, `E`, `M`, `P`, `]` and `_`.
-   */
-  private fun afterEscape(codePoint: Int): EscapeState =
-    if (codePoint == CONTROL_SEQUENCE_INTRODUCER) EscapeState.ControlSequence else EscapeState.Ground
 
   /**
    * Parameters accumulate until a byte that is not one. `m` is applied; every other final byte is
@@ -101,7 +107,7 @@ class EscapeParser(private val screen: TerminalScreen) {
 
   /**
    * The byte that ends a control sequence. `m` is applied; **every other one is swallowed with its
-   * parameters**, which is the frame P4f-3 onwards fill in rather than a stub - a final byte the
+   * parameters**, which is the frame P4f-3b onwards fill in rather than a stub - a final byte the
    * reference implements and this step does not must not reach the screen as text.
    */
   private fun applyFinalByte(codePoint: Int): EscapeState {
@@ -123,7 +129,6 @@ class EscapeParser(private val screen: TerminalScreen) {
   }
 
   private companion object {
-    const val CONTROL_SEQUENCE_INTRODUCER = '['.code
     const val SELECT_GRAPHIC_RENDITION = 'm'.code
 
     /** ECMA-48's parameter bytes, `0` through `?`. */

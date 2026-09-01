@@ -11,9 +11,9 @@ import org.junit.Test
  * Apache 2.0 - see [TerminalGrid]); the rest are cases neither reference suite covers, because
  * upstream the machine is only ever driven through sequences it fully implements.
  *
- * **Four of these change at P4f-3 and P4f-4**, and say so where they stand: at P4f-2 the only
- * escape introducer that leads anywhere is `[`, and the only CSI final byte that does anything
- * is `m`.
+ * **Three of these change at P4f-3b, P4f-4 and P4f-5**, and say so where they stand: the CSI final
+ * bytes, the private parameter bytes and the intermediate bytes are each swallowed until the
+ * sub-step that implements them arrives.
  */
 class EscapeSequenceTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)
@@ -125,12 +125,13 @@ class EscapeSequenceTest {
   }
 
   /**
-   * **Changes at P4f-3**, which adds the rest of the `ESC` dispatch. At P4f-2 `[` is the only
-   * introducer that leads anywhere and every other one ends the sequence, taking only itself.
+   * An introducer no arm of the `ESC` dispatch claims ends the sequence taking only itself, which
+   * is the reference's `unknownSequence`. `%` is one for good: it selects a character set upstream
+   * declares a state for (`ESC_PERCENT`) and then routes nothing to, so no sub-step reaches it.
    */
   @Test
-  fun anEscapeIntroducerThisStepDoesNotKnowEndsTheSequence() {
-    terminal(5, 2).enterString("$ESC(0x").assertLineIs(0, "0x   ")
+  fun anEscapeIntroducerNoArmClaimsEndsTheSequence() {
+    terminal(5, 2).enterString("$ESC%x").assertLineIs(0, "x    ")
   }
 
   /**

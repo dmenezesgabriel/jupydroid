@@ -3976,6 +3976,57 @@ the argument would have passed all 12,000 operations.
 what it prints. When a sub-step adds a *field* to the state, the dump gains it in the same commit —
 otherwise the script grows while the oracle does not.
 
+### The screen is three classes, and detekt named both seams (P4f-3a)
+
+`TerminalScreen` reached **20 functions against detekt's 11** the moment the `ESC` dispatch had
+somewhere to put its operations. Raising the threshold was not on the table — every other class in
+this tree that hit `TooManyFunctions` was split instead (`CellFolds`, `CellSplit`, `NotebookKernel`,
+`WorkspaceReplaceAll`) — so the question is where the two cuts go, and detekt was pointing at real
+seams both times.
+
+- **`CharacterPlacement`** takes the write path: `write` and the four helpers that exist only for
+  it. Nothing else in the tree calls `wrapBeforeWriting`, `wrapToNextRow`, `makeRoomForInsert` or
+  `columnToWrite`, where every *other* operation on a screen is one a control character or an
+  escape sequence asks for by name. Upstream this is one 150-line `emitCodePoint`.
+- **`EscapeDispatch`** takes the `ESC` operations themselves — NEL, RI, RIS, DECBI, DECFI and the
+  alignment test — which is **where the reference puts them too** (`doEsc` does the work inline).
+  Each is reachable from an `ESC` sequence and from nowhere else, so a screen would be carrying
+  them for one caller apiece. Three of the nine go elsewhere for a reason of their own: DECSC and
+  DECRC stay on the screen because `CSI s` and `CSI u` reach them as well (P4f-3b), and lower-left
+  is a cursor motion with no grid in it, so it is `TerminalCursor.moveToLowerLeft`.
+
+What is left on `TerminalScreen` is the state a terminal has and the operations a **control
+character** names: BS, HT, LF, CR, the scroll they can cause, and the reset.
+
+**This forbids** a later sub-step growing `TerminalScreen` back: P4f-3b's cursor sequences belong to
+its own applier over `TerminalCursor`, and P4f-3c's erases and edits to theirs. It also forbids
+`EscapeParser` reaching into `TerminalGrid` — the parser routes, and the two operation classes are
+what touch the grid, which is the JediTerm seam `TerminalScreen`'s own comment states.
+
+### Two `ESC` sequences are transcribed as the reference's comments read, not as its code runs (P4f-3a)
+
+Both were **measured against the shipped reference** rather than argued from its source, with a
+scratch oracle that prints what Termux's emulator makes of one input string; the same oracle is
+where every expectation in `EscapeDispatchTest` came from.
+
+- **`ESC F` — cursor to lower left.** `doEsc` calls `setCursorRowCol(0, mBottomMargin - 1)`, whose
+  parameters are `(row, col)`. On a 4×3 screen the reference therefore lands at **row 0, column 2**
+  while its own comment on the line says *"Cursor to lower-left corner of screen"* — the two
+  arguments are transposed. xterm's `ctlseqs` is unambiguous (*"ESC F — Cursor to lower left corner
+  of screen"*), so `TerminalCursor.moveToLowerLeft` is `moveTo(bottomMargin - 1, 0)`.
+- **`ESC c` — RIS.** The reference's `reset()` assigns `mForeColor` and `mBackColor` and **never
+  `mEffect`**, so upstream `ESC [ 1;4m . ESC c .` leaves the second character bold and underlined;
+  measured at effect `5` on the shipped build. RIS is a *hard* reset — xterm's `ctlseqs` calls it
+  "Full Reset" — so `TerminalScreen.reset` clears the whole style, effects included.
+
+**Both are excluded from the differential's alphabet by name**, which is the same discipline the
+`d`/`h` line-drawing divergence set at P4f-1: a divergence a step declares must not be emitted, or
+the comparison scores it against a defect. `evidence/p4-terminal/emulator-differential.md` states
+the exclusions and `EmulatorDump.ESCAPES` carries them as a comment beside the omission.
+
+**This forbids** "restoring parity" on either, and it forbids adding `F` or `c` to the differential
+without also removing the divergence.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)

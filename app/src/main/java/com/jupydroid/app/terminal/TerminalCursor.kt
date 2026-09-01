@@ -72,6 +72,18 @@ class TerminalCursor(private val columns: Int, private val rows: Int) {
     return rightMargin - 1
   }
 
+  /**
+   * `ESC F`. **A declared divergence**: the reference transposes the two arguments of its own
+   * `setCursorRowCol` here, so its "lower left" is row 0 at the column its bottom margin names.
+   * `docs/DECISIONS.md` carries xterm's wording and the measurement.
+   */
+  fun moveToLowerLeft() = moveTo(bottomMargin - 1, 0)
+
+  /** HTS. A stop where the cursor stands, which [nextTabStop] then finds. */
+  fun setTabStopAtCursor() {
+    tabStops[column] = true
+  }
+
   /** A stop every eight columns, and never at column 0. */
   fun resetTabStops() {
     for (candidate in 0 until columns) tabStops[candidate] = candidate % TAB_WIDTH == 0 && candidate != 0
