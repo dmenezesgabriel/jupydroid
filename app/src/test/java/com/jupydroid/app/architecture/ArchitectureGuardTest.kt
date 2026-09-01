@@ -8,6 +8,18 @@ import java.io.File
 class ArchitectureGuardTest {
   private val domainRoot = File("src/main/java/com/jupydroid/app/domain")
 
+  /**
+   * The document-and-language row of `docs/architecture.md`: parsers and formats that model
+   * documents and languages rather than this app's domain. CLAUDE.md requires them free of
+   * `android.*` **so that every test for them is a plain JVM test**, which was prose until P4f-1.
+   *
+   * P4f is the phase that would have broken it: `TerminalEmulator.java` imports
+   * `android.util.Base64` on its OSC 52 path and `TerminalColors.java` imports
+   * `android.graphics.Color`, and both are transcribed into `terminal/`.
+   */
+  private val documentAndLanguageRoots = listOf("syntax", "markdown", "html", "import", "terminal")
+    .map { File("src/main/java/com/jupydroid/app/$it") }
+
   @Test
   fun domainLayer_hasSources_withZeroAndroidImports() {
     val sources = ktSourcesUnder(domainRoot)
@@ -15,6 +27,17 @@ class ArchitectureGuardTest {
 
     val offenders = androidImports(sources)
     assertTrue("domain must not import android.*: $offenders", offenders.isEmpty())
+  }
+
+  @Test
+  fun documentAndLanguageModules_haveSources_withZeroAndroidImports() {
+    for (root in documentAndLanguageRoots) {
+      val sources = ktSourcesUnder(root)
+      assertTrue("${root.name} must contain Kotlin sources", sources.isNotEmpty())
+
+      val offenders = androidImports(sources)
+      assertTrue("${root.name} must not import android.*: $offenders", offenders.isEmpty())
+    }
   }
 
   @Test
