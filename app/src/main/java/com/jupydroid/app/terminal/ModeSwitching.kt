@@ -47,7 +47,7 @@ class ModeSwitching(private val screen: TerminalScreen) {
     DecMode.ofCode(code)?.let { modes.set(it, on) }
     when (code) {
       COLUMN_MODE -> resetToColumnMode()
-      ORIGIN_MODE -> if (on) screen.cursor.moveTo(0, 0)
+      ORIGIN_MODE -> if (on) screen.cursor.moveWithinMargins(0, 0, originMode = true)
       LEFT_RIGHT_MARGIN_MODE -> if (!on) screen.cursor.resetHorizontalMargins()
       SAVE_CURSOR -> if (on) screen.saveCursor() else screen.restoreCursor()
       in ALTERNATE_SCREEN -> useAlternateScreen(on)

@@ -67,6 +67,17 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
     return this
   }
 
+  /**
+   * The scrollback, newest first: `assertHistoryStartsWith("333")` is the row that scrolled off
+   * most recently. From `TerminalTestCase.assertHistoryStartsWith`.
+   */
+  fun assertHistoryStartsWith(vararg rows: String): EmulatorFixture {
+    val available = screen.grid.activeTranscriptRows
+    assertTrue("asked for ${rows.size} history rows, only $available are live", available >= rows.size)
+    rows.forEachIndexed { index, expected -> assertLineIs(-index - 1, expected) }
+    return this
+  }
+
   fun assertCursorAt(row: Int, column: Int): EmulatorFixture {
     val actual = screen.cursor.row to screen.cursor.column
     assertEquals("cursor", row to column, actual)

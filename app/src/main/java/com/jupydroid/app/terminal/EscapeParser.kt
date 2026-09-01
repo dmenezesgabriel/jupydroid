@@ -32,7 +32,10 @@ enum class EscapeState {
   /** A private parameter byte (`<`, `=`, `>`) this step does not implement. */
   UnsupportedParameterByte,
 
-  /** An intermediate byte (`!`, `"`, `'`, `$`, `*`, space) this step does not implement. */
+  /** `ESC [ ' ` - the byte after it is DECIC or DECDC, both of which move within the margins. */
+  ColumnEdit,
+
+  /** An intermediate byte (`!`, `"`, `$`, `*`, space) this step does not implement. */
   UnsupportedIntermediateByte,
 }
 
@@ -64,6 +67,7 @@ class EscapeParser(private val screen: TerminalScreen) {
   private val cursors = CursorAddressing(screen)
   private val edits = ScreenEditing(screen)
   private val switches = ModeSwitching(screen)
+  private val margins = ScrollMargins(screen)
 
   var state: EscapeState = EscapeState.Ground
     private set
@@ -95,6 +99,7 @@ class EscapeParser(private val screen: TerminalScreen) {
       EscapeState.DesignateG1 -> escapes.designateG1(codePoint)
       EscapeState.ControlSequence -> inControlSequence(codePoint)
       EscapeState.PrivateParameter -> inPrivateParameter(codePoint)
+      EscapeState.ColumnEdit -> inColumnEdit(codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true
@@ -109,6 +114,7 @@ class EscapeParser(private val screen: TerminalScreen) {
     parameters.accept(codePoint) -> EscapeState.ControlSequence
     codePoint == PRIVATE_MODE_BYTE -> EscapeState.PrivateParameter
     codePoint in PRIVATE_PARAMETER_BYTES -> EscapeState.UnsupportedParameterByte
+    codePoint == COLUMN_EDIT_BYTE -> EscapeState.ColumnEdit
     codePoint in UNIMPLEMENTED_INTERMEDIATE_BYTES -> EscapeState.UnsupportedIntermediateByte
     else -> applyFinalByte(codePoint)
   }
@@ -124,6 +130,7 @@ class EscapeParser(private val screen: TerminalScreen) {
       codePoint == SELECT_GRAPHIC_RENDITION ->
         screen.currentStyle = GraphicRendition.applied(parameters, screen.currentStyle)
 
+      margins.apply(codePoint, parameters) -> Unit
       cursors.apply(codePoint, parameters) -> Unit
       switches.applyAnsi(codePoint, parameters) -> Unit
       else -> edits.apply(codePoint, parameters)
@@ -143,6 +150,15 @@ class EscapeParser(private val screen: TerminalScreen) {
       switches.applyPrivate(codePoint, parameters)
       EscapeState.Ground
     }
+  }
+
+  /**
+   * `ESC [ '`, whose two final bytes are DECIC and DECDC. Anything else ends the sequence, which is
+   * the reference's `unknownSequence` arm.
+   */
+  private fun inColumnEdit(codePoint: Int): EscapeState {
+    margins.applyColumnEdit(codePoint, parameters)
+    return EscapeState.Ground
   }
 
   /**
@@ -175,14 +191,17 @@ class EscapeParser(private val screen: TerminalScreen) {
      */
     val PRIVATE_PARAMETER_BYTES = '<'.code..'?'.code
 
+    /** `'`, which introduces DECIC and DECDC - both margin arithmetic, so both land at P4f-5a. */
+    const val COLUMN_EDIT_BYTE = '\''.code
+
     /**
      * The intermediate bytes the reference routes to a state of its own, each for a sequence a
-     * later sub-step implements: `!` DECSTR, `"` DECSCA, `'` DECIC/DECDC, `$` the rectangular
-     * operations, `*` DECSACE and space DECSCUSR. **Every other intermediate byte ends the
+     * later sub-step implements: `!` DECSTR, `"` DECSCA (P4f-5b), `$` the rectangular operations
+     * and `*` DECSACE (both P4f-5c), and space DECSCUSR. **Every other intermediate byte ends the
      * sequence**, which is the reference's own `parseArg` fall-through rather than a rule of
      * ECMA-48 - transcribed as it stands, so the two agree byte for byte.
      */
     val UNIMPLEMENTED_INTERMEDIATE_BYTES =
-      setOf('!'.code, '"'.code, '\''.code, '$'.code, '*'.code, ' '.code)
+      setOf('!'.code, '"'.code, '$'.code, '*'.code, ' '.code)
   }
 }

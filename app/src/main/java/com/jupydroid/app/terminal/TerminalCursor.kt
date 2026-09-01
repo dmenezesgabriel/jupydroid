@@ -60,6 +60,22 @@ class TerminalCursor(private val columns: Int, private val rows: Int) {
     aboutToAutoWrap = false
   }
 
+  /**
+   * `setCursorPosition`: move to a position **stated relative to the margins when origin mode is
+   * on**, and to the screen's own corner when it is off, clamped to whichever of the two applies.
+   *
+   * P4f-3b wrote the five sequences that go through this as their origin-mode-off case, because no
+   * margin could be set then and the two are identical without one. [ScrollMargins] makes them
+   * differ, so they are re-pointed here.
+   */
+  fun moveWithinMargins(newRow: Int, newColumn: Int, originMode: Boolean) {
+    val top = if (originMode) topMargin else 0
+    val bottom = if (originMode) bottomMargin else rows
+    val left = if (originMode) leftMargin else 0
+    val right = if (originMode) rightMargin else columns
+    moveTo((top + newRow).coerceIn(top, bottom - 1), (left + newColumn).coerceIn(left, right - 1))
+  }
+
   /** DECLRMM off, and part of what DECCOLM resets: the row keeps its margins, the columns do not. */
   fun resetHorizontalMargins() {
     leftMargin = 0

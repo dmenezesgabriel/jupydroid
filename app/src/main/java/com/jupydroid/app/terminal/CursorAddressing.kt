@@ -9,11 +9,13 @@ package com.jupydroid.app.terminal
  * because `doCsi` is 327 lines and detekt's `LongMethod` is 20: the final bytes arrive in groups,
  * and each group gets the applier that owns it - this one, and P4f-3c's for the erases and edits.
  *
- * **Six of these respect origin mode upstream** - CUP, HVP, CNL, CPL, HPA and VPR all go through
- * `setCursorPosition`, whose effective margins are the scrolling region when DECOM is on and the
- * whole screen when it is off. Origin mode is **P4f-4**, so what is written here is the
- * origin-mode-off case, spelled as a clamp to the screen rather than read off [TerminalCursor]'s
- * margins - which would silently change meaning the moment P4f-5 can set one.
+ * **Six of these respect origin mode** - CUP, HVP, CNL, CPL, HPA and VPR all go through
+ * [TerminalCursor.moveWithinMargins], whose effective margins are the scrolling region when DECOM
+ * is on and the whole screen when it is off. P4f-3b wrote them as the origin-mode-off case for want
+ * of any way to set a margin; P4f-5a re-pointed them at the real clamp.
+ *
+ * **CUU and CUD do not** - they clamp to the screen, which is the reference's behaviour and
+ * termux-app#1340's fix: a scrolling region bounds what scrolls, not where the cursor may go.
  *
  * ```
  * CursorAddressing(screen).apply('H'.code, parameters)   // CUP: row and column, one-based
@@ -37,13 +39,13 @@ class CursorAddressing(private val screen: TerminalScreen) {
       CURSOR_DOWN -> cursor.moveToRow(minOf(screen.rows - 1, cursor.row + count))
       CURSOR_FORWARD, COLUMN_RELATIVE -> cursor.moveToColumn(minOf(cursor.rightMargin - 1, cursor.column + count))
       CURSOR_BACK -> cursor.moveToColumn(maxOf(cursor.leftMargin, cursor.column - count))
-      NEXT_LINE -> cursor.moveTo(cursor.row + count, 0)
-      PREVIOUS_LINE -> cursor.moveTo(cursor.row - count, 0)
+      NEXT_LINE -> moveWithinMargins(cursor.row + count, 0)
+      PREVIOUS_LINE -> moveWithinMargins(cursor.row - count, 0)
       COLUMN_ABSOLUTE -> cursor.moveToColumn(minOf(maxOf(1, count), screen.columns) - 1)
-      POSITION, POSITION_ALIAS -> cursor.moveTo(count - 1, parameters.at(1, 1, treatZeroAsDefault = true) - 1)
-      COLUMN_ABSOLUTE_RELATIVE_TO_ORIGIN -> cursor.moveTo(cursor.row, count - 1)
+      POSITION, POSITION_ALIAS -> moveWithinMargins(count - 1, parameters.at(1, 1, treatZeroAsDefault = true) - 1)
+      COLUMN_ABSOLUTE_RELATIVE_TO_ORIGIN -> moveWithinMargins(cursor.row, count - 1)
       ROW_ABSOLUTE -> cursor.moveToRow(minOf(maxOf(1, count), screen.rows) - 1)
-      ROW_RELATIVE -> cursor.moveTo(cursor.row + count, cursor.column)
+      ROW_RELATIVE -> moveWithinMargins(cursor.row + count, cursor.column)
       FORWARD_TABULATION -> cursor.moveToColumn(cursor.tabs.next(count))
       BACKWARD_TABULATION -> cursor.column = cursor.tabs.previous(count)
       else -> return false
@@ -51,10 +53,14 @@ class CursorAddressing(private val screen: TerminalScreen) {
     return true
   }
 
+  /** [TerminalCursor.moveWithinMargins] with the mode this screen is in, which is all five want. */
+  private fun moveWithinMargins(row: Int, column: Int) =
+    cursor.moveWithinMargins(row, column, screen.modes.isSet(DecMode.ORIGIN))
+
   /**
-   * The cursor store and the tab clears. `CSI s` saves **unconditionally** here; upstream it is
-   * guarded on DECLRMM, where it sets the left and right margins instead - and DECLRMM cannot be
-   * turned on until P4f-5, which is where that guard belongs.
+   * The cursor store and the tab clears. **`CSI s` only reaches here when DECLRMM is off**, which
+   * is the reference's own guard: with the mode on it is DECSLRM, and [ScrollMargins] claims the
+   * byte before this applier is offered it.
    */
   private fun storeCursorOrClearTabs(finalByte: Int, parameters: EscapeParameters): Boolean {
     when (finalByte) {

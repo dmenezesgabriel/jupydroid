@@ -96,9 +96,13 @@ class EscapeDispatch(private val screen: TerminalScreen) {
     }
   }
 
-  /** NEL. A linefeed that also returns to the first column, where IND is the linefeed alone. */
+  /**
+   * NEL. A linefeed that also returns to the first column - **which under origin mode is the left
+   * margin**, not column 0. P4f-3a wrote the off-case for want of any way to set a margin;
+   * `ScrollRegionTest.nextLineRespectsTheLeftMargin` is what makes the two differ.
+   */
   private fun nextLine() {
-    cursor.moveToColumn(0)
+    cursor.moveToColumn(if (screen.modes.isSet(DecMode.ORIGIN)) cursor.leftMargin else 0)
     screen.newLine()
   }
 
@@ -123,7 +127,7 @@ class EscapeDispatch(private val screen: TerminalScreen) {
     screen.reset()
     screen.buffers.clearTranscript()
     screen.blockClear(0, 0, screen.columns, screen.rows)
-    cursor.moveTo(0, 0)
+    cursor.moveWithinMargins(0, 0, screen.modes.isSet(DecMode.ORIGIN))
   }
 
   /**

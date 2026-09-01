@@ -59,9 +59,23 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
   /** Draw [codePoint] at the cursor, wrapping, inserting and advancing as the modes require. */
   fun writeCodePoint(codePoint: Int) = placement.write(codePoint)
 
-  /** BS. At the left margin this steps back onto the row above, if that row wrapped into this one. */
+  /**
+   * BS. At the left margin this steps back onto the row above, if that row wrapped into this one.
+   *
+   * **A declared divergence, and the smallest one that removes a crash.** The reference tests
+   * `mCursorCol == mLeftMargin`, which holds only *at* the margin - so with the cursor **left of**
+   * it the else-branch decrements, and the column goes negative. That state is reachable from a
+   * shell: `CSI ? 69 h` then `CSI 2 s` sets a left margin of 1 and homes the cursor to column 0,
+   * outside its own margin, because DECSLRM's home ignores the margin when origin mode is off.
+   * One backspace then puts the reference at column **-1**, which it papers over in `setChar`
+   * (`if (column < 0) column = 0`) and **throws** on in the insert path.
+   *
+   * `>` instead of `==` differs from the reference **only** when the cursor is already left of the
+   * margin - the state the reference cannot represent - and is identical everywhere else, margin
+   * or no margin. Measured, not argued: `evidence/p4-terminal/backspace-past-the-left-margin.md`.
+   */
   fun backspace() {
-    if (cursor.column != cursor.leftMargin) {
+    if (cursor.column > cursor.leftMargin) {
       cursor.moveToColumn(cursor.column - 1)
       return
     }

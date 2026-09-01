@@ -4148,6 +4148,30 @@ it reachable rather than written blind - the same call P4f-4a made for origin mo
 **This forbids** giving `47`/`1047`/`1049` three different behaviours, routing a transcript clear
 through `screen.grid`, sharing one saved cursor between the buffers, and making a reset swap back.
 
+### Backspace tests `>` where the reference tests `==`, because the reference can crash (P4f-5a)
+
+**The first divergence in this phase that is not "the reference does something a spec-reader would
+correct" but "the reference is wrong".** `CSI ? 69 h` then `CSI 2 s` sets a left margin of 1 and
+homes the cursor to column 0 - *outside the margin it just set*, because DECSLRM's home ignores the
+margins when origin mode is off. The reference's backspace then tests `mCursorCol == mLeftMargin`,
+which is false at column 0 with a margin of 1, so it decrements into column **-1**. It clamps that
+for the write (`if (column < 0) column = 0`, under a comment guessing at a thread race) and
+**throws** on it for the insert-mode `blockCopy`.
+
+The differential found it, not a reading: the widened script aborted the *Java* side, and this
+aborted with it, because the transcription was faithful. `>` instead of `==` differs from the
+reference only when the cursor is already left of the margin - the state it cannot represent - and
+is the same predicate in every other case, margin or none. The truth table, the minimal repro and
+the two rejected fix sites are in `evidence/p4-terminal/backspace-past-the-left-margin.md`.
+
+**This forbids** fixing it at `blockCopy` instead, which would keep a cursor position no terminal
+can hold and merely hide the abort, and fixing it at DECSLRM's home, which would change where every
+DECSLRM leaves the cursor - behaviour the reference gets right.
+
+**It also costs the differential three alphabet entries**, excluded by name: `2s`, `2;3s` and `9;9s`.
+Five mutations become unreachable by the script as a result, and each is pinned by a test run
+against it - including CBT's two, which a one-column DECSLRM region makes observable.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)
