@@ -14,6 +14,10 @@ import org.junit.Test
  * `EscapeDispatchTest` (P4f-3a) - `LineDrawingCharsetTest` covers the table itself here.
  * `testTab`'s second line needs SGR and is in `EscapeSequenceTest`, which has one.
  *
+ * `ScreenBufferTest`'s two selection cases are here as well (P4f-3b). `TerminalGridTest` already
+ * covers [GridSelection] at the grid level; what these add is the join, driven end to end - that
+ * the emulator's writes land where a selection reads them, wrap flag included.
+ *
  * Combining marks stay spelled as `\uXXXX`, as the reference spells them, so a reader can see which
  * mark is meant rather than trusting an editor to render it.
  */
@@ -159,6 +163,44 @@ class PlainTextInputTest {
     terminal.append(byteArrayOf(0x9D.toByte(), 'a'.code.toByte()))
     terminal.assertLinesAre("枝a ", "    ")
   }
+
+  /**
+   * `ScreenBufferTest.testGetSelectedText`: a selection that spans rows joins them, and a row that
+   * wrapped is joined without the newline a real line break would carry.
+   */
+  @Test
+  fun aSelectionSpanningRowsJoinsAWrappedRowAndBreaksARealOne() {
+    val wrapped = terminal(5, 3).enterString("ABCDEFGHIJ").assertLinesAre("ABCDE", "FGHIJ", "     ")
+    assertEquals("AB", selection(wrapped, 0, 0, 1, 0))
+    assertEquals("CDE", selection(wrapped, 2, 0, 4, 0))
+    assertEquals("ABCDEFG", selection(wrapped, 0, 0, 1, 1))
+
+    val broken = terminal(5, 3).enterString("ABCDE\r\nFGHIJ").assertLinesAre("ABCDE", "FGHIJ", "     ")
+    assertEquals("ABCDE\nFG", selection(broken, 0, 0, 1, 1))
+  }
+
+  /**
+   * `ScreenBufferTest.testGetSelectedTextJoinFullLines`: asked to, a selection also joins a row
+   * that merely *fills* its width, which a copy out of a terminal usually wants and a wrap check
+   * alone cannot tell from a line that happened to end there.
+   */
+  @Test
+  fun joiningFullLinesTakesARowThatFilledItsWidthAsContinuing() {
+    val full = terminal(5, 3).enterString("ABCDE\r\nFG")
+    assertEquals("ABCDEFG", selection(full, 0, 0, 1, 1, joinFullLines = true))
+
+    val short = terminal(5, 3).enterString("ABC\r\nFG")
+    assertEquals("ABC\nFG", selection(short, 0, 0, 1, 1, joinFullLines = true))
+  }
+
+  private fun selection(
+    fixture: EmulatorFixture,
+    x1: Int,
+    y1: Int,
+    x2: Int,
+    y2: Int,
+    joinFullLines: Boolean = false,
+  ): String = fixture.emulator.screen.grid.selectedText(x1, y1, x2, y2, joinFullLines = joinFullLines)
 
   private companion object {
     const val BELL = "\u0007"

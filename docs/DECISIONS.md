@@ -4027,6 +4027,27 @@ the exclusions and `EmulatorDump.ESCAPES` carries them as a comment beside the o
 **This forbids** "restoring parity" on either, and it forbids adding `F` or `c` to the differential
 without also removing the divergence.
 
+### Two P4f-3b behaviours are the reference's minus a mode nothing can set yet (P4f-3b)
+
+Both are places where transcribing the reference *exactly* would mean writing code against state
+that does not exist, and both are written as the reference's own **behaviour with that state off**
+rather than as a guess at it.
+
+- **`CSI s`.** Upstream it is `if (DECLRMM) setLeftAndRightMargins() else saveCursor()`. DECLRMM is
+  `CSI ? 69 h`, which is P4f-4, and the margins it would set are P4f-5 — so at P4f-3b the guard has
+  exactly one reachable arm and `CSI s` saves the cursor. P4f-5 adds the other arm with the test
+  that can finally tell them apart.
+- **The six sequences that respect origin mode** — CUP, HVP, CNL, CPL, HPA and VPR all reach the
+  cursor through `setCursorPosition`, whose effective margins are the scrolling region under DECOM
+  and the whole screen without it. DECOM is P4f-4. What is written is the clamp to the screen,
+  **spelled as a clamp** rather than read off `TerminalCursor.topMargin`/`leftMargin`: those are
+  identical today and would stop being identical the moment P4f-5 can set a margin, which is the
+  kind of silent change a differential cannot catch because both sides would move together.
+
+**This forbids** "simplifying" either into the margins it happens to equal, and it forbids P4f-4
+or P4f-5 landing without revisiting both — `CursorAddressing`'s KDoc names them, and so does
+`docs/PLAN.md`.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)

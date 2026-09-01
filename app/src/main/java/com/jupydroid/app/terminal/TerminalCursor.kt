@@ -84,6 +84,25 @@ class TerminalCursor(private val columns: Int, private val rows: Int) {
     tabStops[column] = true
   }
 
+  /** The column [count] tab stops to the left, never past the left margin. */
+  fun previousTabStop(count: Int): Int {
+    var remaining = count
+    for (candidate in column - 1 downTo 0) {
+      if (tabStops[candidate] && --remaining == 0) return maxOf(candidate, leftMargin)
+    }
+    return leftMargin
+  }
+
+  /** TBC 0. */
+  fun clearTabStopAtCursor() {
+    tabStops[column] = false
+  }
+
+  /** TBC 3. Where [resetTabStops] puts the eight-column defaults back, this leaves none at all. */
+  fun clearAllTabStops() {
+    tabStops.fill(false)
+  }
+
   /** A stop every eight columns, and never at column 0. */
   fun resetTabStops() {
     for (candidate in 0 until columns) tabStops[candidate] = candidate % TAB_WIDTH == 0 && candidate != 0

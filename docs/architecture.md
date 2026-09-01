@@ -58,7 +58,7 @@ to depend on**, which is checkable:
 | root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, the three `NavKey`s | the app shell and its navigation | see §4 |
 
 Measured, not asserted, and **re-counted rather than carried**: `glob` (0 of 2 files), `html`
-(0 of 3), `import` (0/1), `markdown` (0/2), `syntax` (0/6) and `terminal` (0/21) import `android.*`
+(0 of 3), `import` (0/1), `markdown` (0/2), `syntax` (0/6) and `terminal` (0/22) import `android.*`
 or `androidx.*`; `theme` imports one in 7 of 7; `richtext` in 1 of 2. That 1 is `RichInlineString.kt`, and it is the
 only file in those eight packages that touches Compose besides `theme`. `terminal` joined them in
 P4e and is the one departure the reference forced a choice on: Termux's `TerminalEmulator` imports
@@ -66,7 +66,7 @@ P4e and is the one departure the reference forced a choice on: Termux's `Termina
 drifted before P2x-1b touched the sentence - `markdown` gained `HeadingNumbering.kt` and `theme`
 gained two files - which is what a measurement stated in prose costs when nothing counts it. And
 `terminal` **drifted the same way immediately**: it read 0/9 through P4f-1, which added six files,
-and 0/18 through P4f-3a, which added three more.
+0/18 through P4f-3a, which added three more, and 0/21 through P4f-3b.
 The zero itself is no longer prose - `ArchitectureGuardTest` has covered this row since P4f-1, so
 what can go stale here is the denominator, not the claim.
 

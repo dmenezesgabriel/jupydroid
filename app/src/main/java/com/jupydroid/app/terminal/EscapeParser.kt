@@ -58,6 +58,7 @@ enum class EscapeState {
 class EscapeParser(private val screen: TerminalScreen) {
   private val parameters = EscapeParameters()
   private val escapes = EscapeDispatch(screen)
+  private val cursors = CursorAddressing(screen)
 
   var state: EscapeState = EscapeState.Ground
     private set
@@ -106,14 +107,17 @@ class EscapeParser(private val screen: TerminalScreen) {
   }
 
   /**
-   * The byte that ends a control sequence. `m` is applied; **every other one is swallowed with its
-   * parameters**, which is the frame P4f-3b onwards fill in rather than a stub - a final byte the
-   * reference implements and this step does not must not reach the screen as text.
+   * The byte that ends a control sequence, offered to each applier that owns a group of them.
+   * **What none of them claims is swallowed with its parameters**, which is the frame P4f-3c
+   * onwards fill in rather than a stub - a final byte the reference implements and this step does
+   * not must not reach the screen as text.
    */
   private fun applyFinalByte(codePoint: Int): EscapeState {
     if (codePoint == SELECT_GRAPHIC_RENDITION) {
       screen.currentStyle = GraphicRendition.applied(parameters, screen.currentStyle)
+      return EscapeState.Ground
     }
+    cursors.apply(codePoint, parameters)
     return EscapeState.Ground
   }
 
