@@ -59,6 +59,7 @@ class EscapeParser(private val screen: TerminalScreen) {
   private val parameters = EscapeParameters()
   private val escapes = EscapeDispatch(screen)
   private val cursors = CursorAddressing(screen)
+  private val edits = ScreenEditing(screen)
 
   var state: EscapeState = EscapeState.Ground
     private set
@@ -113,11 +114,13 @@ class EscapeParser(private val screen: TerminalScreen) {
    * not must not reach the screen as text.
    */
   private fun applyFinalByte(codePoint: Int): EscapeState {
-    if (codePoint == SELECT_GRAPHIC_RENDITION) {
-      screen.currentStyle = GraphicRendition.applied(parameters, screen.currentStyle)
-      return EscapeState.Ground
+    when {
+      codePoint == SELECT_GRAPHIC_RENDITION ->
+        screen.currentStyle = GraphicRendition.applied(parameters, screen.currentStyle)
+
+      cursors.apply(codePoint, parameters) -> Unit
+      else -> edits.apply(codePoint, parameters)
     }
-    cursors.apply(codePoint, parameters)
     return EscapeState.Ground
   }
 

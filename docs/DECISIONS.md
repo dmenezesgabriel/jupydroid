@@ -4048,6 +4048,39 @@ rather than as a guess at it.
 or P4f-5 landing without revisiting both — `CursorAddressing`'s KDoc names them, and so does
 `docs/PLAN.md`.
 
+### An erase blanks to the colours in force, and two of the ten edits leave the pending wrap alone (P4f-3c)
+
+Two asymmetries that look like bugs, are parity, and would each be "tidied away" by anyone
+regularising the ten sequences into one shape.
+
+**What an erase blanks a cell *to* is the current style.** The reference's `blockClear` passes
+`getStyle()`, not the terminal's defaults, so `ESC [ 48;5;129 m ESC [ 2 J` paints the whole screen
+that background — background-colour erase, which every full-screen program relies on and
+`TerminalTest.testBackgroundColorErase` pins. `ScreenEditing.blockClear` is the one place this is
+decided, and it reads `screen.currentStyle`.
+
+**Six of the ten clear the pending wrap; two do not, and one does so conditionally.** ED and EL
+clear it *only when their parameter was one they understood* — upstream the clear is the line after
+the inner `switch`, and the unknown arm `return`s before reaching it. IL never clears it and SU, SD
+and REP never touch it. So `eraseInDisplay` and `eraseInLine` return a `Boolean` and the caller
+clears on it, which is the reference's own control flow rather than a shape invented here.
+`CursorAndScreenTest.testClearingOfAutowrap` covers the six that clear; **the conditional half is
+only visible with a parameter nothing claims**, which is why `9J` and `9K` are in the differential's
+alphabet.
+
+**REP stores the code point, not the glyph.** `CharacterPlacement` records
+`lastEmittedCodePoint` *before* the graphic set substitutes, and `repeatLastCharacter` writes it
+back through `writeCodePoint`, which substitutes again. Storing the already-substituted glyph looks
+equivalent and saves a lookup - and is, right up until the set changes between the character and
+the repeat: `ESC ( 0 a ESC ( B ESC [ b` draws `▒a` on the reference and `▒▒` with the glyph stored.
+**The differential could not see this** - it needs four steps in one order - so it is
+`ScreenEditingTest.repeatDrawsThroughTheGraphicSetInForceWhenItRunsRatherThanTheGlyphItDrew` that
+holds the line, and that test was run against the mutation to watch it fail.
+
+**This forbids** hoisting the pending-wrap clear out of the ten into one place, it forbids
+`blockClear` taking `CellStyle.NORMAL` "because a blank cell has no colour", and it forbids
+`lastEmittedCodePoint` moving to after the substitution.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)

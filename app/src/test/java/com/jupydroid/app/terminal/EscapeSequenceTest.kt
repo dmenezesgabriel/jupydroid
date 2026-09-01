@@ -11,9 +11,9 @@ import org.junit.Test
  * Apache 2.0 - see [TerminalGrid]); the rest are cases neither reference suite covers, because
  * upstream the machine is only ever driven through sequences it fully implements.
  *
- * **Three of these change at P4f-3c, P4f-4 and P4f-5**, and say so where they stand: the CSI final
- * bytes the erases use, the private parameter bytes and the intermediate bytes are each swallowed
- * until the sub-step that implements them arrives.
+ * **Three of these change at P4f-4 and P4f-5**, and say so where they stand: the modes, the private
+ * parameter bytes and the intermediate bytes are each swallowed until the sub-step that implements
+ * them arrives.
  */
 class EscapeSequenceTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)
@@ -101,13 +101,15 @@ class EscapeSequenceTest {
   }
 
   /**
-   * **Changes at P4f-3c**, which implements the erases and edits. Until then an unimplemented final
-   * byte is swallowed with its parameters rather than printed - the frame, not a stub. P4f-3b took
-   * the second case this used to carry, `CSI 10;3 H`, which is cursor positioning now.
+   * A final byte the reference implements and this step does not is **swallowed with its
+   * parameters** rather than printed - the frame, not a stub. The two cases move on as the
+   * sub-steps take them: this held `CSI 2 J` and `CSI 10;3 H` until P4f-3b and P4f-3c implemented
+   * both, and now holds IRM (**P4f-4**) and DECSTBM (**P4f-5**).
    */
   @Test
   fun aFinalByteThisStepDoesNotImplementIsSwallowedWhole() {
-    terminal(5, 2).enterString("$ESC[2Jx").assertLineIs(0, "x    ")
+    terminal(5, 2).enterString("$ESC[4hx").assertLineIs(0, "x    ")
+    terminal(5, 2).enterString("$ESC[2;3rx").assertLineIs(0, "x    ")
   }
 
   /** A private parameter byte (`?`, `>`, `<`, `=`) is swallowed to its final byte. P4f-4 implements them. */

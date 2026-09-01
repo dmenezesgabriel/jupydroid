@@ -22,11 +22,9 @@ package com.jupydroid.app.terminal
 class CursorAddressing(private val screen: TerminalScreen) {
   private val cursor get() = screen.cursor
 
-  /** Act on [finalByte] if it is one of these sequences; anything else is left for another applier. */
-  fun apply(finalByte: Int, parameters: EscapeParameters) {
-    if (moveCursor(finalByte, parameters)) return
-    storeCursorOrClearTabs(finalByte, parameters)
-  }
+  /** Act on [finalByte] if it is one of these sequences, and say whether it was. */
+  fun apply(finalByte: Int, parameters: EscapeParameters): Boolean =
+    moveCursor(finalByte, parameters) || storeCursorOrClearTabs(finalByte, parameters)
 
   /**
    * The motions. Every one reads its count with a zero meaning "unstated", so `CSI 0 A` moves one
@@ -58,13 +56,14 @@ class CursorAddressing(private val screen: TerminalScreen) {
    * guarded on DECLRMM, where it sets the left and right margins instead - and DECLRMM cannot be
    * turned on until P4f-5, which is where that guard belongs.
    */
-  private fun storeCursorOrClearTabs(finalByte: Int, parameters: EscapeParameters) {
+  private fun storeCursorOrClearTabs(finalByte: Int, parameters: EscapeParameters): Boolean {
     when (finalByte) {
       SAVE_CURSOR -> screen.saveCursor()
       RESTORE_CURSOR -> screen.restoreCursor()
       CLEAR_TAB_STOP -> clearTabStop(parameters.at(0, default = 0, treatZeroAsDefault = true))
-      else -> Unit
+      else -> return false
     }
+    return true
   }
 
   /** Every other parameter of TBC is specified to have no effect, and the reference obeys that. */

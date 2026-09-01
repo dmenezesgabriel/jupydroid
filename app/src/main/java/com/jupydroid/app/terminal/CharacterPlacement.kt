@@ -21,6 +21,7 @@ class CharacterPlacement(private val screen: TerminalScreen) {
 
   /** Draw [codePoint] at the cursor, wrapping, inserting and advancing as the modes require. */
   fun write(codePoint: Int) {
+    screen.lastEmittedCodePoint = codePoint
     val drawn = screen.charset.substitute(codePoint)
     val width = CharacterWidth.of(drawn)
     if (!wrapBeforeWriting(width)) return

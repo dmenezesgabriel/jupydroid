@@ -41,6 +41,14 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
   /** DECSC's, and never null: a restore before any save homes the cursor. See [SavedCursor]. */
   private var savedCursor: SavedCursor = SavedCursor.INITIAL
 
+  /**
+   * What REP (`CSI Pn b`) repeats: the code point [writeCodePoint] was last given, **before** the
+   * graphic set substituted for it, so a repeat under a different set draws what that set says.
+   * A reset does not clear it, which is the reference's behaviour rather than an oversight kept.
+   */
+  var lastEmittedCodePoint: Int = NOTHING_EMITTED
+    internal set
+
   /** Draw [codePoint] at the cursor, wrapping, inserting and advancing as the modes require. */
   fun writeCodePoint(codePoint: Int) = placement.write(codePoint)
 
@@ -111,7 +119,19 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
     val width = cursor.rightMargin - cursor.leftMargin
     val height = cursor.bottomMargin - cursor.topMargin - 1
     grid.blockCopy(cursor.leftMargin, cursor.topMargin + 1, width, height, cursor.leftMargin, cursor.topMargin)
-    grid.blockSet(cursor.leftMargin, cursor.bottomMargin - 1, width, 1, ' '.code, currentStyle)
+    blockClear(cursor.leftMargin, cursor.bottomMargin - 1, width)
+  }
+
+  /**
+   * The reference's `blockClear`: a rectangle of spaces in **whatever style is in force**, which is
+   * what makes a shell that sets a background and then clears paint the screen that colour. Every
+   * erase goes through here, and so do RIS and the blank row a reverse index opens.
+   *
+   * `EscapeDispatch`'s DECBI and DECFI do **not** - they blank with the colours and no effects,
+   * which is a different style and a declared divergence; see `blankStyle` there.
+   */
+  fun blockClear(x: Int, y: Int, width: Int, height: Int = 1) {
+    grid.blockSet(x, y, width, height, ' '.code, currentStyle)
   }
 
   /** Back to the state a freshly opened terminal is in, keeping what is on screen. */
@@ -124,5 +144,10 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
     insertMode = false
     currentStyle = CellStyle.NORMAL
     savedCursor = SavedCursor.INITIAL
+  }
+
+  companion object {
+    /** [lastEmittedCodePoint] before anything has been drawn, so REP has nothing to repeat. */
+    const val NOTHING_EMITTED = -1
   }
 }

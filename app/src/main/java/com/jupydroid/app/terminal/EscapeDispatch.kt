@@ -113,14 +113,14 @@ class EscapeDispatch(private val screen: TerminalScreen) {
     val width = cursor.rightMargin - cursor.leftMargin
     val height = cursor.bottomMargin - (cursor.topMargin + 1)
     grid.blockCopy(cursor.leftMargin, cursor.topMargin, width, height, cursor.leftMargin, cursor.topMargin + 1)
-    grid.blockSet(cursor.leftMargin, cursor.topMargin, width, 1, ' '.code, screen.currentStyle)
+    screen.blockClear(cursor.leftMargin, cursor.topMargin, width)
   }
 
   /** RIS. Everything [TerminalScreen.reset] does, and then the screen, the scrollback and home. */
   private fun resetToInitialState() {
     screen.reset()
     grid.clearTranscript()
-    grid.blockSet(0, 0, screen.columns, screen.rows, ' '.code, screen.currentStyle)
+    screen.blockClear(0, 0, screen.columns, screen.rows)
     cursor.moveTo(0, 0)
   }
 
