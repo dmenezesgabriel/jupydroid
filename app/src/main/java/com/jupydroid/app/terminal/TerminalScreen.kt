@@ -15,8 +15,10 @@ package com.jupydroid.app.terminal
  * nothing has a second implementation and no test drives a fake of it. Extracting the interface is
  * a rename away if P4j's type-ahead ever wants one.
  *
- * **Two neighbours own the rest**, both split off here on detekt's `TooManyFunctions` at P4f-3a:
- * [CharacterPlacement] writes one character, and [EscapeDispatch] performs the `ESC` sequences.
+ * **Three neighbours own the rest**, each split off here on detekt's `TooManyFunctions`:
+ * [CharacterPlacement] writes one character and [EscapeDispatch] performs the `ESC` sequences, both
+ * from P4f-3a; [ScreenBuffers] holds the two screens and the cursor each one saved, from P4f-4b.
+ * [grid] is whichever of those two is live, so nothing here names either by name.
  *
  * ```
  * val screen = TerminalScreen(columns = 80, rows = 24, totalRows = 2000)
@@ -24,7 +26,12 @@ package com.jupydroid.app.terminal
  * ```
  */
 class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
-  val grid = TerminalGrid(columns, totalRows, rows)
+  /** The main and alternate screens, and the cursor each one saved. `CSI ? 1049` moves between them. */
+  val buffers = ScreenBuffers(columns, rows, totalRows)
+
+  /** The buffer being written to, which is the main one until a shell asks for the alternate. */
+  val grid: TerminalGrid get() = buffers.live
+
   val cursor = TerminalCursor(columns, rows)
   val charset = LineDrawingCharset()
   private val placement = CharacterPlacement(this)
@@ -40,9 +47,6 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
 
   /** What a written cell is painted with. [GraphicRendition] - `ESC [ Pm m` - is what changes it. */
   var currentStyle: CellStyle = CellStyle.NORMAL
-
-  /** DECSC's, and never null: a restore before any save homes the cursor. See [SavedCursor]. */
-  private var savedCursor: SavedCursor = SavedCursor.INITIAL
 
   /**
    * What REP (`CSI Pn b`) repeats: the code point [writeCodePoint] was last given, **before** the
@@ -94,9 +98,12 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
     cursor.moveToColumn(cursor.leftMargin)
   }
 
-  /** DECSC. `CSI s` joins it at P4f-3b, and P4f-5 puts the margin-mode condition on that one. */
+  /**
+   * DECSC. `CSI s` joins it at P4f-3b, and P4f-5 puts the margin-mode condition on that one. What
+   * it writes belongs to the **live buffer** - see [ScreenBuffers.savedCursor].
+   */
   fun saveCursor() {
-    savedCursor = SavedCursor(
+    buffers.savedCursor = SavedCursor(
       cursor.row,
       cursor.column,
       currentStyle,
@@ -108,11 +115,12 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
 
   /** DECRC, and `CSI u` from P4f-3b. */
   fun restoreCursor() {
-    cursor.moveTo(savedCursor.row, savedCursor.column)
-    currentStyle = savedCursor.style
-    charset.restore(savedCursor.graphicSets)
-    modes.set(DecMode.AUTOWRAP, savedCursor.autoWrap)
-    modes.set(DecMode.ORIGIN, savedCursor.originMode)
+    val saved = buffers.savedCursor
+    cursor.moveTo(saved.row, saved.column)
+    currentStyle = saved.style
+    charset.restore(saved.graphicSets)
+    modes.set(DecMode.AUTOWRAP, saved.autoWrap)
+    modes.set(DecMode.ORIGIN, saved.originMode)
   }
 
   /**
@@ -146,7 +154,11 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
     grid.blockSet(x, y, width, height, ' '.code, currentStyle)
   }
 
-  /** Back to the state a freshly opened terminal is in, keeping what is on screen. */
+  /**
+   * Back to the state a freshly opened terminal is in, keeping what is on screen. **It does not
+   * switch back to the main buffer** - the reference's `reset()` clears both saved cursors and
+   * leaves the pointer where it is, so a RIS inside the alternate screen stays there.
+   */
   fun reset() {
     cursor.resetMargins()
     cursor.tabs.reset()
@@ -155,7 +167,7 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
     modes.reset()
     insertMode = false
     currentStyle = CellStyle.NORMAL
-    savedCursor = SavedCursor.INITIAL
+    buffers.forgetSavedCursors()
   }
 
   companion object {

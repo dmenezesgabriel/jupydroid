@@ -17,6 +17,11 @@ package com.jupydroid.app.terminal
  * regularised: ED and EL clear it only when their parameter was one they understood, IL does not
  * clear it at all, and SU/SD/REP never touch it.
  *
+ * **`CSI 3 J` clears the *main* screen's scrollback**, not the live buffer's - upstream that arm
+ * names `mMainBuffer` - so it goes through [ScreenBuffers.clearTranscript] rather than
+ * `screen.grid`. A full-screen program clearing the scrollback from the alternate screen is
+ * clearing the one the user sees when it exits.
+ *
  * ```
  * ScreenEditing(screen).apply('J'.code, parameters)   // ED: erase from the cursor down
  * ```
@@ -60,7 +65,7 @@ class ScreenEditing(private val screen: TerminalScreen) {
       }
 
       ERASE_EVERYTHING -> screen.blockClear(0, 0, screen.columns, screen.rows)
-      ERASE_SCROLLBACK -> screen.grid.clearTranscript()
+      ERASE_SCROLLBACK -> screen.buffers.clearTranscript()
       else -> return false
     }
     return true

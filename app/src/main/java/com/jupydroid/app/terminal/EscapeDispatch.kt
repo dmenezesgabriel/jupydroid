@@ -121,7 +121,7 @@ class EscapeDispatch(private val screen: TerminalScreen) {
   /** RIS. Everything [TerminalScreen.reset] does, and then the screen, the scrollback and home. */
   private fun resetToInitialState() {
     screen.reset()
-    grid.clearTranscript()
+    screen.buffers.clearTranscript()
     screen.blockClear(0, 0, screen.columns, screen.rows)
     cursor.moveTo(0, 0)
   }

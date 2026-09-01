@@ -4109,6 +4109,45 @@ width is unchanged" is what breaks a shell's reset.
 **This forbids** making `mark` read the current value, storing the other ten flags in
 `SavedCursor`, and reducing DECCOLM to a no-op.
 
+### The scrollback belongs to the main screen, and the saved cursor to whichever is live (P4f-4b)
+
+`CSI ? 47`, `? 1047` and `? 1049` reach **one arm** in the reference, and it is not the arm the
+three numbers historically mean: xterm distinguishes them - `1049` saves the cursor where `47` does
+not - and Termux does not. Transcribed as it stands, because a differential against a reference this
+codebase then diverges from is no longer a differential. `1048` is DECSC and DECRC under another
+number, with no switch in it.
+
+**The transcript is the main screen's, whichever buffer is live.** `CSI 3 J` and RIS both name
+`mMainBuffer` upstream rather than the current pointer, so a full-screen program that clears the
+scrollback from inside the alternate screen clears the one the user sees when it exits. Measured on
+the shipped reference rather than read off it: `a b c d ESC[?1049h ESC[3J ESC[?1049l` leaves the
+transcript at `y\nz`, and the same input with the `3 J` removed leaves it whole.
+`ScreenBuffers.clearTranscript` is therefore the *only* way either reaches a transcript, and both
+call sites go through it.
+
+**There is one saved cursor per buffer**, picked by which is live at the moment of the save - which
+is what makes entering and leaving carry the cursor: `saveCursor` runs *before* the swap and
+`restoreCursor` *after* it, so both land on the main screen's slot. A DECSC inside the alternate
+screen writes the other slot and is invisible to the main one.
+`AlternateScreenTest.theSavedCursorBelongsToTheBufferItWasSavedIn` pins it, expectations read off
+`RefScreen`.
+
+**RIS inside the alternate screen stays there.** `reset()` clears *both* saved cursors and leaves
+the buffer pointer alone, so a shell that resets while in the alternate screen does not fall back to
+the main one - it clears the alternate screen and the main screen's scrollback and stays put.
+
+**The alternate screen is built with exactly as many rows as the screen**, so nothing ever reaches
+its transcript - `RowRing` grows history only while `activeTranscriptRows < totalRows - screenRows`.
+That structure *is* the behaviour, and `EmulatorFixture.assertInvariants` asserts the behaviour
+rather than the structure: after every write, an alternate screen that is live has no history.
+
+**What is not here:** the reference resizes when the two buffers disagree on size. Nothing resizes
+until **P4h**, which owns `resize`, so that branch is unreachable and is left to the step that makes
+it reachable rather than written blind - the same call P4f-4a made for origin mode's clamp.
+
+**This forbids** giving `47`/`1047`/`1049` three different behaviours, routing a transcript clear
+through `screen.grid`, sharing one saved cursor between the buffers, and making a reset swap back.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)

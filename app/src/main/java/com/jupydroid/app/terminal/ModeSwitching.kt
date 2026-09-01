@@ -49,8 +49,27 @@ class ModeSwitching(private val screen: TerminalScreen) {
       COLUMN_MODE -> resetToColumnMode()
       ORIGIN_MODE -> if (on) screen.cursor.moveTo(0, 0)
       LEFT_RIGHT_MARGIN_MODE -> if (!on) screen.cursor.resetHorizontalMargins()
+      SAVE_CURSOR -> if (on) screen.saveCursor() else screen.restoreCursor()
+      in ALTERNATE_SCREEN -> useAlternateScreen(on)
       else -> Unit
     }
+  }
+
+  /**
+   * `CSI ? 47`/`1047`/`1049`, which the reference implements as **one arm**: entering saves the
+   * cursor and blanks the alternate screen, leaving swaps back *before* restoring, so that the save
+   * and the restore both land on the main screen's slot. A switch to the buffer already live is
+   * dropped whole - no save, no blanking.
+   *
+   * The reference also resizes here when the two buffers disagree on size. **Nothing resizes until
+   * P4h**, which owns `resize`, so that branch is unreachable and is left to the step that makes
+   * it reachable rather than written blind.
+   */
+  private fun useAlternateScreen(on: Boolean) {
+    if (screen.buffers.isAlternateLive == on) return
+    if (on) screen.saveCursor()
+    screen.buffers.makeAlternateLive(on)
+    if (on) screen.blockClear(0, 0, screen.columns, screen.rows) else screen.restoreCursor()
   }
 
   /**
@@ -78,5 +97,17 @@ class ModeSwitching(private val screen: TerminalScreen) {
     const val COLUMN_MODE = 3
     const val ORIGIN_MODE = 6
     const val LEFT_RIGHT_MARGIN_MODE = 69
+
+    /** `1048`: DECSC and DECRC under another name, with no buffer switch in it. */
+    const val SAVE_CURSOR = 1048
+
+    /**
+     * The alternate screen, under the three numbers that reach the same arm upstream - xterm gives
+     * them three meanings and the reference gives them one, which is transcribed rather than
+     * corrected. **Neither these nor [SAVE_CURSOR] map to a DECSET bit**:
+     * `mapDecSetBitToInternalBit` returns `-1` for all four, so which buffer is live carries the
+     * state and nothing else does. That is also why `CSI ? 1049 s`/`r` do nothing on either side.
+     */
+    val ALTERNATE_SCREEN = setOf(47, 1047, 1049)
   }
 }

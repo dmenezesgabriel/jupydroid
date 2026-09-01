@@ -80,6 +80,11 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
    * reference indexes `mLines` directly. `RowRing` keeps its slots private on purpose (P4e-4), and
    * every *live* row - the screen plus the transcript - is reachable by external index, so the
    * "one row object in two places" check still has everything it can meaningfully catch.
+   *
+   * **The alternate screen keeps no history**, which is the reference's last two assertions in
+   * their observable form: upstream compares `mAltBuffer`'s total rows against its screen rows, and
+   * what that structure *means* is that nothing ever reaches its transcript. Checked after every
+   * write rather than once, and needing no field exposed for a test to read.
    */
   fun assertInvariants(): EmulatorFixture {
     val seen = mutableSetOf<TerminalRow>()
@@ -87,6 +92,9 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
       val line = screen.grid.rowAt(row)
       assertTrue("row $row is also live elsewhere", seen.add(line))
       assertEquals("row $row does not fill the screen width", columns, widthOf(line, row))
+    }
+    if (screen.buffers.isAlternateLive) {
+      assertEquals("the alternate screen kept history", 0, screen.grid.activeTranscriptRows)
     }
     return this
   }
