@@ -40,11 +40,8 @@ class TerminalCursor(private val columns: Int, private val rows: Int) {
   var leftMargin: Int = 0
   var rightMargin: Int = columns
 
-  private val tabStops = BooleanArray(columns)
-
-  init {
-    resetTabStops()
-  }
+  /** The tab stops, which read this cursor's column and margins. See [TabStops]. */
+  val tabs = TabStops(this, columns)
 
   fun moveToRow(newRow: Int) {
     row = newRow
@@ -63,13 +60,10 @@ class TerminalCursor(private val columns: Int, private val rows: Int) {
     aboutToAutoWrap = false
   }
 
-  /** The column [count] tab stops to the right, never past the right margin. */
-  fun nextTabStop(count: Int): Int {
-    var remaining = count
-    for (candidate in column + 1 until columns) {
-      if (tabStops[candidate] && --remaining == 0) return minOf(candidate, rightMargin)
-    }
-    return rightMargin - 1
+  /** DECLRMM off, and part of what DECCOLM resets: the row keeps its margins, the columns do not. */
+  fun resetHorizontalMargins() {
+    leftMargin = 0
+    rightMargin = columns
   }
 
   /**
@@ -79,43 +73,10 @@ class TerminalCursor(private val columns: Int, private val rows: Int) {
    */
   fun moveToLowerLeft() = moveTo(bottomMargin - 1, 0)
 
-  /** HTS. A stop where the cursor stands, which [nextTabStop] then finds. */
-  fun setTabStopAtCursor() {
-    tabStops[column] = true
-  }
-
-  /** The column [count] tab stops to the left, never past the left margin. */
-  fun previousTabStop(count: Int): Int {
-    var remaining = count
-    for (candidate in column - 1 downTo 0) {
-      if (tabStops[candidate] && --remaining == 0) return maxOf(candidate, leftMargin)
-    }
-    return leftMargin
-  }
-
-  /** TBC 0. */
-  fun clearTabStopAtCursor() {
-    tabStops[column] = false
-  }
-
-  /** TBC 3. Where [resetTabStops] puts the eight-column defaults back, this leaves none at all. */
-  fun clearAllTabStops() {
-    tabStops.fill(false)
-  }
-
-  /** A stop every eight columns, and never at column 0. */
-  fun resetTabStops() {
-    for (candidate in 0 until columns) tabStops[candidate] = candidate % TAB_WIDTH == 0 && candidate != 0
-  }
-
   fun resetMargins() {
     topMargin = 0
     leftMargin = 0
     bottomMargin = rows
     rightMargin = columns
-  }
-
-  private companion object {
-    const val TAB_WIDTH = 8
   }
 }

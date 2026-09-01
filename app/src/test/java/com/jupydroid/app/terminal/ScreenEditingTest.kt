@@ -242,6 +242,24 @@ class ScreenEditingTest {
     terminal(5, 2).enterString("$ESC(0a$ESC(B$ESC[2b").assertLineIs(0, "\u2592aa  ")
   }
 
+  /**
+   * **ED and EL clear the pending wrap only for a parameter they understood.** Upstream the clear
+   * is the line after the inner `switch` and the unknown arm `return`s before reaching it, so
+   * `CSI 9 J` leaves the wrap standing where `CSI 0 J` takes it down. Expectations read off the
+   * reference (`harness/RefScreen.java`).
+   *
+   * P4f-3c left this to the differential, which detected it then and **stopped detecting it at
+   * P4f-4a** - not because anything broke, but because a widened alphabet reshuffles the random
+   * stream and this conjunction stopped coming up. A test does not drift that way.
+   */
+  @Test
+  fun anEraseWithAParameterItDoesNotUnderstandLeavesThePendingWrapStanding() {
+    terminal(5, 3).enterString("abcde$ESC[9J-").assertLinesAre("abcde", "-    ", "     ")
+    terminal(5, 3).enterString("abcde$ESC[0J-").assertLinesAre("abcd-", "     ", "     ")
+    terminal(5, 3).enterString("abcde$ESC[9K-").assertLinesAre("abcde", "-    ", "     ")
+    terminal(5, 3).enterString("abcde$ESC[0K-").assertLinesAre("abcd-", "     ", "     ")
+  }
+
   private companion object {
     const val ESC = "\u001B"
     const val COMBINING_CIRCUMFLEX = "\u0302"

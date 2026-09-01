@@ -6,16 +6,23 @@ package com.jupydroid.app.terminal
  * Transcribed from `TerminalEmulator.SavedScreenState` and the `saveCursor` / `restoreCursor` pair
  * (termux-app `3df69d1da197dd9bd71a3bafd902dffd720576b4`, Apache 2.0 - see [TerminalGrid]).
  *
- * **The DEC private modes are not here yet, and that is the reference's list minus what cannot be
- * set.** Upstream a save also carries the DECSET flags, of which a restore puts back exactly two -
- * autowrap and origin mode. Neither can be changed until `CSI ? Pm h` exists, which is **P4f-4**;
- * that step adds them here, with the test that can finally tell them apart.
+ * **A save carries the DECSET flags; a restore puts back exactly two of them** - autowrap and
+ * origin mode - because `restoreCursor` masks `mSavedDecFlags` down to that pair. So only those
+ * two are kept here: storing the rest would be state nothing ever reads back. P4f-4a added them,
+ * and the differential is what found they were missing, not a reading of the source.
  *
  * ```
  * val saved = SavedCursor(row = 0, column = 3, style = CellStyle.NORMAL, graphicSets = GraphicSetState.ASCII)
  * ```
  */
-data class SavedCursor(val row: Int, val column: Int, val style: CellStyle, val graphicSets: GraphicSetState) {
+data class SavedCursor(
+  val row: Int,
+  val column: Int,
+  val style: CellStyle,
+  val graphicSets: GraphicSetState,
+  val autoWrap: Boolean = true,
+  val originMode: Boolean = false,
+) {
   companion object {
     /**
      * What a restore finds when nothing has saved. The reference builds its `SavedScreenState` in

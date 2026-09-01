@@ -4081,6 +4081,34 @@ holds the line, and that test was run against the mutation to watch it fail.
 `blockClear` taking `CellStyle.NORMAL` "because a blank cell has no colour", and it forbids
 `lastEmittedCodePoint` moving to after the substitution.
 
+### A mode "save" marks the flag set, and a cursor save carries exactly two flags (P4f-4a)
+
+Three things about the modes that read as bugs, are the reference's behaviour, and would each be
+"corrected" by anyone implementing from the specification rather than from the source.
+
+**`CSI ? Pm s` records no value.** The name says save, and DECSET's own documentation says save,
+but the arm is `mSavedDecSetFlags |= internalBit` with no read of the current state - so the flag
+is *marked*, not saved, and the `CSI ? Pm r` that follows always turns the mode **on**. Measured on
+the shipped reference rather than read off it: `?7l ?7s ?7r`, `?7l ?7r` and `?7s ?7l ?7r` all leave
+wrapping on. `ScreenModes.mark` is named for what it does, and
+`ScreenModesTest.savingADecFlagMarksItSetRatherThanRecordingTheValueItHad` pins it.
+
+**DECSC and DECRC carry two DEC flags and only two** - autowrap and origin mode - because
+`restoreCursor` masks the saved flags down to that pair before putting them back. So `SavedCursor`
+stores those two and not the other ten: the rest would be state nothing ever reads.
+**The differential is what found this**, not a reading of the source - the first defect it has
+caught in this phase (`evidence/p4-terminal/emulator-differential.md`, "the differential found a
+defect the unit tests did not"). It is also why the sub-step plan moved the flags from P4f-4b to
+P4f-4a: they are needed the moment a mode can change, not when a second buffer exists.
+
+**DECCOLM does not change the width, and keeps its side effects anyway.** The reference does not
+resize on `CSI ? 3 h` either, but it still resets all four margins, turns DECLRMM off, erases the
+screen and homes the cursor - because `reset(1)` leans on exactly those. Dropping them "since the
+width is unchanged" is what breaks a shell's reset.
+
+**This forbids** making `mark` read the current value, storing the other ten flags in
+`SavedCursor`, and reducing DECCOLM to a no-op.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)

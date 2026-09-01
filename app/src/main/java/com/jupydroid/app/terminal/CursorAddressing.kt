@@ -44,8 +44,8 @@ class CursorAddressing(private val screen: TerminalScreen) {
       COLUMN_ABSOLUTE_RELATIVE_TO_ORIGIN -> cursor.moveTo(cursor.row, count - 1)
       ROW_ABSOLUTE -> cursor.moveToRow(minOf(maxOf(1, count), screen.rows) - 1)
       ROW_RELATIVE -> cursor.moveTo(cursor.row + count, cursor.column)
-      FORWARD_TABULATION -> cursor.moveToColumn(cursor.nextTabStop(count))
-      BACKWARD_TABULATION -> cursor.column = cursor.previousTabStop(count)
+      FORWARD_TABULATION -> cursor.moveToColumn(cursor.tabs.next(count))
+      BACKWARD_TABULATION -> cursor.column = cursor.tabs.previous(count)
       else -> return false
     }
     return true
@@ -68,8 +68,8 @@ class CursorAddressing(private val screen: TerminalScreen) {
 
   /** Every other parameter of TBC is specified to have no effect, and the reference obeys that. */
   private fun clearTabStop(mode: Int) {
-    if (mode == CLEAR_STOP_AT_CURSOR) cursor.clearTabStopAtCursor()
-    if (mode == CLEAR_EVERY_STOP) cursor.clearAllTabStops()
+    if (mode == CLEAR_STOP_AT_CURSOR) cursor.tabs.clearAtCursor()
+    if (mode == CLEAR_EVERY_STOP) cursor.tabs.clearAll()
   }
 
   private companion object {

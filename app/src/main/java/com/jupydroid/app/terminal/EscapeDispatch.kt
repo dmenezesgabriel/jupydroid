@@ -87,9 +87,11 @@ class EscapeDispatch(private val screen: TerminalScreen) {
       INDEX -> screen.newLine()
       NEXT_LINE -> nextLine()
       LOWER_LEFT -> cursor.moveToLowerLeft()
-      TAB_SET -> cursor.setTabStopAtCursor()
+      TAB_SET -> cursor.tabs.setAtCursor()
       REVERSE_INDEX -> reverseIndex()
       RESET_TO_INITIAL_STATE -> resetToInitialState()
+      APPLICATION_KEYPAD -> screen.modes.set(DecMode.APPLICATION_KEYPAD, true)
+      NUMERIC_KEYPAD -> screen.modes.set(DecMode.APPLICATION_KEYPAD, false)
       else -> Unit
     }
   }
@@ -152,6 +154,10 @@ class EscapeDispatch(private val screen: TerminalScreen) {
   }
 
   private companion object {
+    /** DECKPAM and DECKPNM. The flag is all there is until P4j sends a key. */
+    const val APPLICATION_KEYPAD = '='.code
+    const val NUMERIC_KEYPAD = '>'.code
+
     const val POUND = '#'.code
     const val LEFT_PARENTHESIS = '('.code
     const val RIGHT_PARENTHESIS = ')'.code

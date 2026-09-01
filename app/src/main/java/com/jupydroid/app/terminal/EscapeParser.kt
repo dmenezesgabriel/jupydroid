@@ -26,7 +26,10 @@ enum class EscapeState {
   /** `ESC [` - a control sequence, collecting its parameters until a final byte. */
   ControlSequence,
 
-  /** A private parameter byte (`<`, `=`, `>`, `?`) this step does not implement. */
+  /** `ESC [ ?` - a DEC private mode sequence, collecting its parameters until a final byte. */
+  PrivateParameter,
+
+  /** A private parameter byte (`<`, `=`, `>`) this step does not implement. */
   UnsupportedParameterByte,
 
   /** An intermediate byte (`!`, `"`, `'`, `$`, `*`, space) this step does not implement. */
@@ -60,6 +63,7 @@ class EscapeParser(private val screen: TerminalScreen) {
   private val escapes = EscapeDispatch(screen)
   private val cursors = CursorAddressing(screen)
   private val edits = ScreenEditing(screen)
+  private val switches = ModeSwitching(screen)
 
   var state: EscapeState = EscapeState.Ground
     private set
@@ -90,6 +94,7 @@ class EscapeParser(private val screen: TerminalScreen) {
       EscapeState.DesignateG0 -> escapes.designateG0(codePoint)
       EscapeState.DesignateG1 -> escapes.designateG1(codePoint)
       EscapeState.ControlSequence -> inControlSequence(codePoint)
+      EscapeState.PrivateParameter -> inPrivateParameter(codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true
@@ -102,6 +107,7 @@ class EscapeParser(private val screen: TerminalScreen) {
    */
   private fun inControlSequence(codePoint: Int): EscapeState = when {
     parameters.accept(codePoint) -> EscapeState.ControlSequence
+    codePoint == PRIVATE_MODE_BYTE -> EscapeState.PrivateParameter
     codePoint in PRIVATE_PARAMETER_BYTES -> EscapeState.UnsupportedParameterByte
     codePoint in UNIMPLEMENTED_INTERMEDIATE_BYTES -> EscapeState.UnsupportedIntermediateByte
     else -> applyFinalByte(codePoint)
@@ -119,9 +125,24 @@ class EscapeParser(private val screen: TerminalScreen) {
         screen.currentStyle = GraphicRendition.applied(parameters, screen.currentStyle)
 
       cursors.apply(codePoint, parameters) -> Unit
+      switches.applyAnsi(codePoint, parameters) -> Unit
       else -> edits.apply(codePoint, parameters)
     }
     return EscapeState.Ground
+  }
+
+  /**
+   * `ESC [ ?` collects parameters like any other control sequence; its final byte goes to
+   * [ModeSwitching], and one it does not own is swallowed rather than printed - `CSI ? J`/`K` are
+   * P4f-5's and `CSI ? n`/`$ p` are P4f-6's.
+   */
+  private fun inPrivateParameter(codePoint: Int): EscapeState = when {
+    parameters.accept(codePoint) -> EscapeState.PrivateParameter
+    codePoint in INTERMEDIATE_BYTE_RANGE -> EscapeState.UnsupportedIntermediateByte
+    else -> {
+      switches.applyPrivate(codePoint, parameters)
+      EscapeState.Ground
+    }
   }
 
   /**
@@ -144,9 +165,13 @@ class EscapeParser(private val screen: TerminalScreen) {
     /** ECMA-48's intermediate bytes, space through `/`. */
     val INTERMEDIATE_BYTE_RANGE = 0x20..0x2F
 
+    /** `?`, which introduces a DEC private mode - the one private parameter byte acted on here. */
+    const val PRIVATE_MODE_BYTE = '?'.code
+
     /**
-     * The private parameter bytes. `?` and `>` get states of their own at P4f-4, where DECSET and
-     * the secondary device attributes live; `<` and `=` are unimplemented upstream as well.
+     * The private parameter bytes left over. `>` gets a state of its own at **P4f-6**, where the
+     * secondary device attributes it introduces can be written back to the shell; `<` and `=` are
+     * unimplemented upstream as well.
      */
     val PRIVATE_PARAMETER_BYTES = '<'.code..'?'.code
 

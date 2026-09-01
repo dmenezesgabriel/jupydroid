@@ -29,8 +29,11 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
   val charset = LineDrawingCharset()
   private val placement = CharacterPlacement(this)
 
+  /** The DEC private modes. [ModeSwitching] is what turns one on or off. */
+  val modes = ScreenModes()
+
   /** DECAWM. A character written past the right margin starts a new row instead of overwriting. */
-  var autoWrap: Boolean = true
+  val autoWrap: Boolean get() = modes.isSet(DecMode.AUTOWRAP)
 
   /** IRM. A written character pushes what is already there to the right instead of replacing it. */
   var insertMode: Boolean = false
@@ -69,7 +72,7 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
    * going through its setter - so tabbing onto the last column still wraps on the next character.
    */
   fun horizontalTab() {
-    cursor.column = cursor.nextTabStop(1)
+    cursor.column = cursor.tabs.next(1)
   }
 
   /** LF, VT and FF alike, and IND: down one row, scrolling when that would leave the region. */
@@ -93,7 +96,14 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
 
   /** DECSC. `CSI s` joins it at P4f-3b, and P4f-5 puts the margin-mode condition on that one. */
   fun saveCursor() {
-    savedCursor = SavedCursor(cursor.row, cursor.column, currentStyle, charset.snapshot())
+    savedCursor = SavedCursor(
+      cursor.row,
+      cursor.column,
+      currentStyle,
+      charset.snapshot(),
+      autoWrap = modes.isSet(DecMode.AUTOWRAP),
+      originMode = modes.isSet(DecMode.ORIGIN),
+    )
   }
 
   /** DECRC, and `CSI u` from P4f-3b. */
@@ -101,6 +111,8 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
     cursor.moveTo(savedCursor.row, savedCursor.column)
     currentStyle = savedCursor.style
     charset.restore(savedCursor.graphicSets)
+    modes.set(DecMode.AUTOWRAP, savedCursor.autoWrap)
+    modes.set(DecMode.ORIGIN, savedCursor.originMode)
   }
 
   /**
@@ -137,10 +149,10 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
   /** Back to the state a freshly opened terminal is in, keeping what is on screen. */
   fun reset() {
     cursor.resetMargins()
-    cursor.resetTabStops()
+    cursor.tabs.reset()
     cursor.aboutToAutoWrap = false
     charset.reset()
-    autoWrap = true
+    modes.reset()
     insertMode = false
     currentStyle = CellStyle.NORMAL
     savedCursor = SavedCursor.INITIAL
