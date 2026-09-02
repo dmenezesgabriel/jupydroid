@@ -1,12 +1,17 @@
 package com.jupydroid.app.terminal
 
 /**
- * The rectangular operations under the `$` intermediate. **P4f-5c is the fill and the two erases**:
- * DECFRA (`CSI Pch;Pt;Pl;Pb;Pr $ x`), DECERA (`CSI Pt;Pl;Pb;Pr $ z`) and DECSERA (`$ {`).
+ * The rectangular operations under the `$` intermediate: the fill and the two erases - DECFRA
+ * (`CSI Pch;Pt;Pl;Pb;Pr $ x`), DECERA (`CSI Pt;Pl;Pb;Pr $ z`) and DECSERA (`$ {`) - and the copy,
+ * DECCRA (`CSI Pts;Pls;Pbs;Prs;Pps;Ptd;Pld;Ppd $ v`).
  *
- * Transcribed from `ESC_CSI_DOLLAR`'s `x`/`z`/`{` arm (termux-app `3df69d1d`, Apache 2.0 - see
- * [TerminalGrid]). DECCRA joins at P4f-5d and DECCARA/DECRARA at P4f-5e; the arm is ~120 lines
- * upstream over three groups that share only [Bounds], which is why they are three sub-steps.
+ * Transcribed from `ESC_CSI_DOLLAR`'s `x`/`z`/`{`/`v` arms (termux-app `3df69d1d`, Apache 2.0 -
+ * see [TerminalGrid]). DECCARA and DECRARA join at P4f-5e; the arm is ~120 lines upstream over
+ * three groups that share only their effective margins, which is why they are three sub-steps.
+ *
+ * **DECCRA's coordinates are zero-based where the other three's are not**: it subtracts one from
+ * its top and left, and they carry theirs one-based into the loop. Same arm, two conventions,
+ * transcribed rather than regularised.
  *
  * **The coordinates are stated relative to the margins when origin mode is on**, exactly as
  * [TerminalCursor.moveWithinMargins] is - the reference recomputes the same four effective margins
@@ -31,12 +36,45 @@ class RectangularAreas(private val screen: TerminalScreen) {
 
   /** Act on [finalByte] if it is one of these. Anything else is swallowed with its parameters. */
   fun apply(finalByte: Int, parameters: EscapeParameters) {
-    if (finalByte != FILL && finalByte != ERASE && finalByte != SELECTIVE_ERASE) return
+    when (finalByte) {
+      COPY -> copyArea(parameters)
+      FILL, ERASE, SELECTIVE_ERASE -> paintArea(finalByte, parameters)
+      else -> Unit
+    }
+  }
+
+  /** DECFRA, DECERA and DECSERA, which differ only in what they write and what they spare. */
+  private fun paintArea(finalByte: Int, parameters: EscapeParameters) {
     val fillFrom = if (finalByte == FILL) 1 else 0
     val fillChar = if (finalByte == FILL) parameters.at(0, default = -1, treatZeroAsDefault = true) else ' '.code
     if (fillChar !in PRINTABLE && fillChar !in PRINTABLE_HIGH) return
     paint(boundsFrom(parameters, fillFrom), fillChar, selective = finalByte == SELECTIVE_ERASE)
   }
+
+  /**
+   * DECCRA. **The destination is clipped to the screen, not to the source's size**, so a block
+   * copied near the right or bottom edge arrives truncated rather than wrapping or being refused.
+   * The two page parameters are read and discarded upstream, and are not read at all here.
+   */
+  private fun copyArea(parameters: EscapeParameters) {
+    val origin = screen.modes.isSet(DecMode.ORIGIN)
+    val top = if (origin) screen.cursor.topMargin else 0
+    val left = if (origin) screen.cursor.leftMargin else 0
+    val sourceTop = minOf(parameters.at(TOP, 1, treatZeroAsDefault = true) - 1 + top, screen.rows)
+    val sourceLeft = minOf(parameters.at(LEFT, 1, treatZeroAsDefault = true) - 1 + left, screen.columns)
+    val statedBottom = parameters.at(BOTTOM, screen.rows, treatZeroAsDefault = true) + top
+    val statedRight = parameters.at(RIGHT, screen.columns, treatZeroAsDefault = true) + left
+    val sourceBottom = clampedTo(statedBottom, sourceTop, screen.rows)
+    val sourceRight = clampedTo(statedRight, sourceLeft, screen.columns)
+    val toTop = minOf(parameters.at(DESTINATION_TOP, 1, treatZeroAsDefault = true) - 1 + top, screen.rows)
+    val toLeft = minOf(parameters.at(DESTINATION_LEFT, 1, treatZeroAsDefault = true) - 1 + left, screen.columns)
+    val height = minOf(screen.rows - toTop, sourceBottom - sourceTop)
+    val width = minOf(screen.columns - toLeft, sourceRight - sourceLeft)
+    screen.grid.blockCopy(sourceLeft, sourceTop, width, height, toLeft, toTop)
+  }
+
+  /** The reference's `min(max(value, floor), ceiling)`, which keeps an inverted rectangle empty. */
+  private fun clampedTo(value: Int, floor: Int, ceiling: Int): Int = minOf(maxOf(value, floor), ceiling)
 
   /**
    * The four coordinates, each clamped to the effective margin on its own axis. [from] is 1 for
@@ -73,10 +111,11 @@ class RectangularAreas(private val screen: TerminalScreen) {
   }
 
   private companion object {
-    /** DECFRA, DECERA and DECSERA. */
+    /** DECFRA, DECERA, DECSERA and DECCRA. */
     const val FILL = 'x'.code
     const val ERASE = 'z'.code
     const val SELECTIVE_ERASE = '{'.code
+    const val COPY = 'v'.code
 
     /**
      * Where each coordinate sits, counted from the first one - which is parameter 0 for DECERA and
@@ -86,6 +125,10 @@ class RectangularAreas(private val screen: TerminalScreen) {
     const val LEFT = 1
     const val BOTTOM = 2
     const val RIGHT = 3
+
+    /** DECCRA's destination corner. `4` and `7` are its two pages, which the reference discards. */
+    const val DESTINATION_TOP = 5
+    const val DESTINATION_LEFT = 6
 
     /**
      * DECFRA's stated range: *"Pch can be any value from 32 to 126 or from 160 to 255. If Pch is

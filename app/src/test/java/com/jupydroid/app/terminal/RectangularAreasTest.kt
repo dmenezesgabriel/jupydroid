@@ -96,6 +96,54 @@ class RectangularAreasTest {
     assertEquals(0 to 2, fixture.emulator.screen.cursor.let { it.row to it.column })
   }
 
+  /**
+   * `testRectangularCopy` (DECCRA, `$ v`), all seven cases. Eight parameters: the source rectangle,
+   * a page it ignores, the destination corner, and another page it ignores.
+   *
+   * **Its coordinates are zero-based where the fill and erase group's are not** - DECCRA subtracts
+   * one from its top and left, and the others carry theirs one-based into the loop. Same arm,
+   * two conventions, transcribed rather than regularised.
+   */
+  @Test
+  fun rectangularCopyMovesABlockAndClipsItToTheScreen() {
+    val grid = "ABC\r\nDEF\r\nGHI"
+    terminal(7, 3).enterString("$grid$ESC[1;1;2;2;1;2;5;1\$v").assertLinesAre("ABC    ", "DEF AB ", "GHI DE ")
+    terminal(7, 3).enterString("$grid$ESC[1;1;3;3;1;1;4;1\$v").assertLinesAre("ABCABC ", "DEFDEF ", "GHIGHI ")
+    terminal(7, 3).enterString("$grid$ESC[1;1;3;3;1;1;3;1\$v").assertLinesAre("ABABC  ", "DEDEF  ", "GHGHI  ")
+
+    val indented = "   ABC\r\n   DEF\r\n   GHI"
+    terminal(7, 3).enterString("$indented$ESC[1;4;3;6;1;1;1;1\$v").assertLinesAre("ABCABC ", "DEFDEF ", "GHIGHI ")
+    terminal(7, 3).enterString("$indented$ESC[1;4;3;6;1;1;2;1\$v").assertLinesAre(" ABCBC ", " DEFEF ", " GHIHI ")
+
+    terminal(3, 3).enterString("$grid$ESC[1;1;2;2;1;2;2;1\$v").assertLinesAre("ABC", "DAB", "GDE")
+  }
+
+  /** The same, under origin mode with both horizontal margins set - so it needs P4f-5a's DECSLRM. */
+  @Test
+  fun rectangularCopyReadsItsCoordinatesFromTheMarginsUnderOriginMode() {
+    val fixture = terminal(5, 5).enterString("$ESC[?6h$ESC[?69h$ESC[2;4s")
+    fixture.enterString("ABCDEFGHIJK").assertLinesAre(" ABC ", " DEF ", " GHI ", " JK  ", "     ")
+    fixture.enterString("$ESC[1;1;2;2;1;2;2;1\$v").assertLinesAre(" ABC ", " DAB ", " GDE ", " JK  ", "     ")
+  }
+
+  /**
+   * **An inverted source rectangle copies nothing**, either way round. The reference holds each
+   * far edge at or beyond its near one, so the extent is zero rather than negative.
+   *
+   * The mutation that removes those clamps is **equivalent**, and is recorded as such rather than
+   * left as an open survivor: a negative extent is inert at both levels that consume one -
+   * `TerminalGrid.blockCopy` iterates `0 until h`, and `TerminalRow.copyInterval` loops
+   * `while (charIndex < end)`. Neither runs when the range is inverted, so no input can tell the
+   * two apart. This test pins the *behaviour*; the equivalence argument is in the evidence.
+   */
+  @Test
+  fun anInvertedSourceRectangleCopiesNothing() {
+    val grid = "ABC\r\nDEF\r\nGHI"
+    terminal(7, 3).enterString("$grid$ESC[3;1;1;3;1;1;5;1\$v").assertLinesAre("ABC    ", "DEF    ", "GHI    ")
+    terminal(7, 3).enterString("$grid$ESC[1;3;3;1;1;1;5;1\$v").assertLinesAre("ABC    ", "DEF    ", "GHI    ")
+    terminal(7, 3).enterString("$grid$ESC[1;1;3;3;1;1;5;1\$v").assertLinesAre("ABC ABC", "DEF DEF", "GHI GHI")
+  }
+
   private companion object {
     const val ESC = "\u001B"
   }
