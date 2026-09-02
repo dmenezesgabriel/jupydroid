@@ -410,7 +410,7 @@ class TerminalRowTest {
     assertEquals(COLUMNS, row.spaceUsed)
     assertTrue(row.isBlank())
     assertColumnsStartAt(0, 1, 2, 3)
-    assertEquals(CellStyle.NORMAL, row.styleAt(0))
+    assertEquals(CellStyle.NORMAL, row.styles.at(0))
   }
 
   @Test
@@ -424,8 +424,8 @@ class TerminalRowTest {
   fun aStyleIsRememberedPerColumn() {
     val bold = CellStyle.encode(2, 3, CellStyle.BOLD)
     row.setChar(1, 'x'.code, bold)
-    assertEquals(bold, row.styleAt(1))
-    assertEquals(CellStyle.NORMAL, row.styleAt(0))
+    assertEquals(bold, row.styles.at(1))
+    assertEquals(CellStyle.NORMAL, row.styles.at(0))
   }
 
   @Test

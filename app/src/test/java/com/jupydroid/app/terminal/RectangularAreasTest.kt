@@ -144,7 +144,58 @@ class RectangularAreasTest {
     terminal(7, 3).enterString("$grid$ESC[1;1;3;3;1;1;5;1\$v").assertLinesAre("ABC ABC", "DEF DEF", "GHI GHI")
   }
 
+  /** Every cell's effect bits, row by row - the shape `RectangularAreasTest`'s upstream helper takes. */
+  private fun assertEffectsAre(fixture: EmulatorFixture, vararg rows: IntArray) {
+    rows.forEachIndexed { row, expected ->
+      expected.forEachIndexed { column, effect ->
+        assertEquals(
+          "effect at $row,$column",
+          effect,
+          fixture.emulator.screen.grid.styleAt(row, column).effect,
+        )
+      }
+    }
+  }
+
+  /**
+   * `testChangeAttributesInRectangularArea` (DECCARA, `$ r`). **Without DECSACE the region is a
+   * *stream*** - the first row runs to the right margin and only the last stops at the rectangle's
+   * right edge - and `CSI 2 * x` turns it into a true rectangle.
+   */
+  @Test
+  fun changeAttributesRunsAsAStreamUntilDecsaceMakesItARectangle() {
+    val streamed = terminal(3, 3).enterString("ABCDEFGHI$ESC[1;1;2;2;1\$r")
+    streamed.assertLinesAre("ABC", "DEF", "GHI")
+    assertEffectsAre(streamed, intArrayOf(B, B, B), intArrayOf(B, B, 0), intArrayOf(0, 0, 0))
+
+    val boxed = terminal(3, 3).enterString("$ESC[2*xABCDEFGHI$ESC[1;1;2;2;1\$r")
+    boxed.assertLinesAre("ABC", "DEF", "GHI")
+    assertEffectsAre(boxed, intArrayOf(B, B, 0), intArrayOf(B, B, 0), intArrayOf(0, 0, 0))
+  }
+
+  /**
+   * `testReverseAttributesInRectangularArea` (DECRARA, `$ t`), all four cases - including the two
+   * that start with a bit already set, which is what tells a reverse from a set.
+   */
+  @Test
+  fun reverseAttributesFlipsEachBitItIsGiven() {
+    val streamed = terminal(3, 3).enterString("ABCDEFGHI$ESC[1;1;2;2;1\$t")
+    assertEffectsAre(streamed, intArrayOf(B, B, B), intArrayOf(B, B, 0), intArrayOf(0, 0, 0))
+
+    val boxed = terminal(3, 3).enterString("$ESC[2*xABCDEFGHI$ESC[1;1;2;2;1\$t")
+    assertEffectsAre(boxed, intArrayOf(B, B, 0), intArrayOf(B, B, 0), intArrayOf(0, 0, 0))
+
+    val alreadyBold = terminal(3, 3).enterString("$ESC[2*xA$ESC[1mB$ESC[0mCDEFGHI$ESC[1;1;2;2;1\$t")
+    assertEffectsAre(alreadyBold, intArrayOf(B, 0, 0), intArrayOf(B, B, 0), intArrayOf(0, 0, 0))
+
+    val mixed = "$ESC[2*x$ESC[4mA$ESC[0m$ESC[1mB$ESC[0mCDEFGHI"
+    val both = terminal(3, 3).enterString("$mixed$ESC[1;1;2;2;1;4\$t")
+    assertEffectsAre(both, intArrayOf(B, U, 0), intArrayOf(B or U, B or U, 0), intArrayOf(0, 0, 0))
+  }
+
   private companion object {
+    const val B = CellStyle.BOLD
+    const val U = CellStyle.UNDERLINE
     const val ESC = "\u001B"
   }
 }

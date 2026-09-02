@@ -45,6 +45,13 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
   /** IRM. A written character pushes what is already there to the right instead of replacing it. */
   var insertMode: Boolean = false
 
+  /**
+   * DECSACE (`CSI 2 * x`). **A mode with no DECSET number** - `mapDecSetBitToInternalBit` returns
+   * `-1` for it upstream, so [ScreenModes] has nowhere to put it and it sits here beside
+   * [insertMode]. It decides whether [RectangularAttributes] writes a rectangle or a stream.
+   */
+  var rectangularAttributeChange: Boolean = false
+
   /** What a written cell is painted with. [GraphicRendition] - `ESC [ Pm m` - is what changes it. */
   var currentStyle: CellStyle = CellStyle.NORMAL
 

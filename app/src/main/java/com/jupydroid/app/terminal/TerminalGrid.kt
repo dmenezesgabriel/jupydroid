@@ -54,7 +54,7 @@ class TerminalGrid(val columns: Int, totalRows: Int, val screenRows: Int) {
     ring.rowAt(row).setChar(column, codePoint, style)
   }
 
-  fun styleAt(externalRow: Int, column: Int): CellStyle = ring.rowAt(externalRow).styleAt(column)
+  fun styleAt(externalRow: Int, column: Int): CellStyle = ring.rowAt(externalRow).styles.at(column)
 
   /** Fill a `w` by `h` rectangle with one code point - how the parser erases. */
   fun blockSet(sx: Int, sy: Int, w: Int, h: Int, codePoint: Int, style: CellStyle) {
@@ -91,6 +91,51 @@ class TerminalGrid(val columns: Int, totalRows: Int, val screenRows: Int) {
    */
   fun scrollDownOneLine(topMargin: Int, bottomMargin: Int, style: CellStyle) =
     ring.scrollDownOneLine(topMargin, bottomMargin, style)
+
+  /**
+   * DECCARA and DECRARA's write: set, clear or flip [bits] over a region, keeping every cell's
+   * colours. **Left without a caller at P4e-4 on purpose** - the sequences that need it are P4f-5e's.
+   *
+   * [rectangular] is DECSACE: false makes the region a *stream*, where only the first row starts at
+   * [left] and only the last ends at [right] and the rows between run the full margins.
+   */
+  @Suppress("LongParameterList") // the reference's own signature; every argument is a distinct edge
+  fun setOrClearEffect(
+    bits: Int,
+    setOrClear: Boolean,
+    reverse: Boolean,
+    rectangular: Boolean,
+    leftMargin: Int,
+    rightMargin: Int,
+    top: Int,
+    left: Int,
+    bottom: Int,
+    right: Int,
+  ) {
+    // The reference indexes `mLines` directly here where every one of its other six row accesses
+    // allocates, and its `bottom` can exceed the screen - so `CSI ? 6 h`, `CSI 3;4 r`,
+    // `CSI 1;1;4;4;1 $ r` on four rows walks off the screen and throws. Clamped, which is the
+    // smallest change that makes the region defined and a no-op wherever the reference works.
+    // See `evidence/p4-terminal/deccara-past-the-last-row.md`.
+    for (row in top until minOf(bottom, screenRows)) {
+      val line = ring.rowAt(row)
+      val from = if (rectangular || row == top) left else leftMargin
+      val to = if (rectangular || row + 1 == bottom) right else rightMargin
+      for (column in from until to) {
+        line.styles.set(column, effectApplied(line.styles.at(column), bits, setOrClear, reverse))
+      }
+    }
+  }
+
+  /** A reverse flips only the bits it is given; otherwise they are set or cleared outright. */
+  private fun effectApplied(style: CellStyle, bits: Int, setOrClear: Boolean, reverse: Boolean): CellStyle {
+    val effect = when {
+      reverse -> (style.effect and bits.inv()) or (bits and style.effect.inv())
+      setOrClear -> style.effect or bits
+      else -> style.effect and bits.inv()
+    }
+    return CellStyle.encode(style.foreColor, style.backColor, effect)
+  }
 
   /** Forget the scrollback, keeping the screen. */
   fun clearTranscript() = ring.clearTranscript()

@@ -29,7 +29,13 @@ class TerminalRow(private val columns: Int, style: CellStyle) {
     private set
 
   private val packed = RowText(columns)
-  private val cellStyles = LongArray(columns)
+
+  /**
+   * This row's styles, read and written directly the way [text] is. **Internal, like [RowText]**:
+   * it is storage rather than a cell, and callers outside `terminal/` reach a style through
+   * [TerminalGrid.styleAt].
+   */
+  internal val styles = RowStyles(columns)
 
   init {
     clear(style)
@@ -41,9 +47,6 @@ class TerminalRow(private val columns: Int, style: CellStyle) {
   /** How many java chars of [text] are the row. */
   val spaceUsed: Int get() = packed.used
 
-  /** The style of one column. */
-  fun styleAt(column: Int): CellStyle = CellStyle(cellStyles[column])
-
   /** Whether every column is a space, which is what lets a scroll skip a row. */
   fun isBlank(): Boolean = packed.isBlank()
 
@@ -53,7 +56,7 @@ class TerminalRow(private val columns: Int, style: CellStyle) {
   /** Every column back to a space carrying [style]. */
   fun clear(style: CellStyle) {
     packed.blank()
-    cellStyles.fill(style.bits)
+    styles.fill(style)
     hasNonOneWidthOrSurrogateChars = false
   }
 
@@ -65,7 +68,7 @@ class TerminalRow(private val columns: Int, style: CellStyle) {
     require(column in 0 until columns) {
       "column out of range: column=$column, codePoint=$codePoint, expected 0 until $columns"
     }
-    cellStyles[column] = style.bits
+    styles.set(column, style)
     val width = CharacterWidth.of(codePoint)
     if (writeOnFastPath(column, codePoint, width)) return
     writeCodePoint(repairWideNeighbours(column, width, style), codePoint, width)
@@ -93,7 +96,7 @@ class TerminalRow(private val columns: Int, style: CellStyle) {
         column += lastAdvance
         lastAdvance = width
       }
-      setChar(column + destinationX - sourceX1, codePoint, source.styleAt(column))
+      setChar(column + destinationX - sourceX1, codePoint, source.styles.at(column))
     }
   }
 

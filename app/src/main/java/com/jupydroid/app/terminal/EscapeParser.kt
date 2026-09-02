@@ -41,6 +41,9 @@ enum class EscapeState {
   /** `ESC [ $` - the byte after it names a rectangular operation. */
   RectangularArea,
 
+  /** `ESC [ *` - the byte after it is DECSACE, which says how the attribute region is shaped. */
+  AttributeChangeExtent,
+
   /** An intermediate byte (`!`, `"`, `$`, `*`, space) this step does not implement. */
   UnsupportedIntermediateByte,
 }
@@ -76,6 +79,7 @@ class EscapeParser(private val screen: TerminalScreen) {
   private val margins = ScrollMargins(screen)
   private val selective = SelectiveErasing(screen)
   private val rectangles = RectangularAreas(screen)
+  private val rectangleAttributes = RectangularAttributes(screen)
 
   var state: EscapeState = EscapeState.Ground
     private set
@@ -110,6 +114,7 @@ class EscapeParser(private val screen: TerminalScreen) {
       EscapeState.ColumnEdit -> inColumnEdit(codePoint)
       EscapeState.ProtectionAttribute -> inProtectionAttribute(codePoint)
       EscapeState.RectangularArea -> inRectangularArea(codePoint)
+      EscapeState.AttributeChangeExtent -> inAttributeChangeExtent(codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true
@@ -127,6 +132,7 @@ class EscapeParser(private val screen: TerminalScreen) {
     codePoint == COLUMN_EDIT_BYTE -> EscapeState.ColumnEdit
     codePoint == PROTECTION_BYTE -> EscapeState.ProtectionAttribute
     codePoint == RECTANGLE_BYTE -> EscapeState.RectangularArea
+    codePoint == ATTRIBUTE_EXTENT_BYTE -> EscapeState.AttributeChangeExtent
     codePoint in UNIMPLEMENTED_INTERMEDIATE_BYTES -> EscapeState.UnsupportedIntermediateByte
     else -> applyFinalByte(codePoint)
   }
@@ -182,7 +188,19 @@ class EscapeParser(private val screen: TerminalScreen) {
 
   /** `ESC [ $`, whose final byte names a rectangular operation. One nothing claims is swallowed. */
   private fun inRectangularArea(codePoint: Int): EscapeState {
-    rectangles.apply(codePoint, parameters)
+    if (!rectangleAttributes.apply(codePoint, parameters)) rectangles.apply(codePoint, parameters)
+    return EscapeState.Ground
+  }
+
+  /**
+   * `ESC [ *`, whose one final byte is DECSACE. `2` means a rectangle and `0`/`1` a stream;
+   * anything else is an unknown sequence, and so is a final byte that is not `x`.
+   */
+  private fun inAttributeChangeExtent(codePoint: Int): EscapeState {
+    val extent = parameters.at(0, default = 0, treatZeroAsDefault = false)
+    if (codePoint == ATTRIBUTE_EXTENT && extent in STREAM_EXTENT..RECTANGLE_EXTENT) {
+      screen.rectangularAttributeChange = extent == RECTANGLE_EXTENT
+    }
     return EscapeState.Ground
   }
 
@@ -225,14 +243,20 @@ class EscapeParser(private val screen: TerminalScreen) {
     /** `$`, which introduces the rectangular operations. */
     const val RECTANGLE_BYTE = '$'.code
 
+    /** `*`, which introduces DECSACE, and the one final byte and three parameters it takes. */
+    const val ATTRIBUTE_EXTENT_BYTE = '*'.code
+    const val ATTRIBUTE_EXTENT = 'x'.code
+    const val STREAM_EXTENT = 0
+    const val RECTANGLE_EXTENT = 2
+
     /**
      * The intermediate bytes the reference routes to a state of its own, each for a sequence a
-     * later sub-step implements: `!` DECSTR, `*` DECSACE (P4f-5e) and space DECSCUSR. **Every
-     * other intermediate byte ends the
+     * later sub-step implements: `!` DECSTR and space DECSCUSR. **Every other intermediate byte
+     * ends the
      * sequence**, which is the reference's own `parseArg` fall-through rather than a rule of
      * ECMA-48 - transcribed as it stands, so the two agree byte for byte.
      */
     val UNIMPLEMENTED_INTERMEDIATE_BYTES =
-      setOf('!'.code, '*'.code, ' '.code)
+      setOf('!'.code, ' '.code)
   }
 }
