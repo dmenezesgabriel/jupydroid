@@ -20,8 +20,16 @@ internal class RecordingNotices : TerminalNotices {
     bellsRung++
   }
 
+  /** How often the colour table was written to - `MockTerminalOutput.colorsChanged`. */
+  var colorsChanged: Int = 0
+    private set
+
   override fun onTitleChanged(oldTitle: String?, newTitle: String?) {
     titleChanges += oldTitle to newTitle
+  }
+
+  override fun onColorsChanged() {
+    colorsChanged++
   }
 }
 
@@ -105,6 +113,13 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
   fun assertReplyTo(input: String, expected: String): EmulatorFixture {
     enterString(input)
     assertEquals("reply to ${input.replace("\u001B", "ESC")}", expected, replies.takeReply())
+    return this
+  }
+
+  /** `TerminalTestCase.assertColor`: what the colour table holds at one index. */
+  fun assertColor(index: Int, expected: Int): EmulatorFixture {
+    val actual = screen.colors.at(index)
+    assertEquals("colour $index", Integer.toHexString(expected), Integer.toHexString(actual))
     return this
   }
 

@@ -25,7 +25,7 @@ package com.jupydroid.app.terminal
  * screen.writeCodePoint('a'.code)
  * ```
  */
-class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
+class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int, val colors: TerminalColors) {
   /** The main and alternate screens, and the cursor each one saved. `CSI ? 1049` moves between them. */
   val buffers = ScreenBuffers(columns, rows, totalRows)
 
@@ -189,6 +189,7 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int) {
     insertMode = false
     currentStyle = CellStyle.NORMAL
     buffers.forgetSavedCursors()
+    colors.reset()
   }
 
   companion object {

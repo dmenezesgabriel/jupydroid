@@ -6,9 +6,9 @@ package com.jupydroid.app.terminal
  *
  * Transcribed from `TerminalEmulator.doOsc`, `doOscEsc`, `collectOSCArgs` and the header parse of
  * `doOscSetTextParameters` (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). **The window
- * title is the only number acted on here**; every other one is dropped, which is the frame P4f-6b-2
- * and P4f-6b-3 fill in with the colours and the clipboard rather than a stub - the same shape
- * P4f-2 left for the CSI final bytes.
+ * title is the only number acted on here**; the colours are [ColorCommands]' and the clipboard is
+ * P4f-6b-3's, and a number none of them claims is dropped - the frame P4f-2 left for the CSI final
+ * bytes.
  *
  * **Two terminators, and neither is a byte the emulator can dispatch blindly.** A `BEL` ends the
  * string here and rings the bell everywhere else, and an `ESC` is the first half of `ESC \` here
@@ -23,7 +23,7 @@ package com.jupydroid.app.terminal
  * strings.collect(7)                             // BEL: the title is set
  * ```
  */
-class OperatingSystemCommand(private val title: WindowTitle) {
+class OperatingSystemCommand(private val title: WindowTitle, private val colorCommands: ColorCommands) {
   private val argument = StringBuilder()
 
   /** `ESC ]`: the buffer is emptied and the string starts, which is upstream's `setLength(0)`. */
@@ -38,7 +38,7 @@ class OperatingSystemCommand(private val title: WindowTitle) {
    * over-long string rings instead of setting a title.
    */
   fun collect(codePoint: Int): EscapeState = when {
-    codePoint == BELL -> applyAndFinish()
+    codePoint == BELL -> applyAndFinish(BELL_TERMINATOR)
     codePoint == ESCAPE -> EscapeState.OperatingSystemCommandEscape
     collectArgument(codePoint) -> EscapeState.OperatingSystemCommand
     else -> EscapeState.Ground
@@ -51,7 +51,7 @@ class OperatingSystemCommand(private val title: WindowTitle) {
    * because upstream's `continueSequence(ESC_OSC)` runs after the append either way.
    */
   fun afterEscape(codePoint: Int): EscapeState {
-    if (codePoint == STRING_TERMINATOR_FINAL) return applyAndFinish()
+    if (codePoint == STRING_TERMINATOR_FINAL) return applyAndFinish(STRING_TERMINATOR)
     collectArgument(ESCAPE)
     collectArgument(codePoint)
     return EscapeState.OperatingSystemCommand
@@ -68,16 +68,23 @@ class OperatingSystemCommand(private val title: WindowTitle) {
    * The string is over: the leading number, then the text parameter after the first `;`. A byte
    * before that `;` which is not a digit makes the whole command unknown, and so does an empty
    * string - which leaves the number at [NO_VALUE] and matches no arm.
+   *
+   * [terminator] is carried this far because a colour **query** echoes it back: `OSC 10 ; ? BEL` is
+   * answered with a `BEL` and `OSC 10 ; ? ST` with an `ST`.
    */
-  private fun applyAndFinish(): EscapeState {
+  private fun applyAndFinish(terminator: String): EscapeState {
     val body = argument.toString()
     val separator = body.indexOf(PARAMETER_SEPARATOR)
     val digits = if (separator < 0) body else body.substring(0, separator)
     if (digits.any { it !in '0'..'9' }) return EscapeState.Ground
-    if (leadingValue(digits) in SET_TITLE_CODES) {
-      title.set(if (separator < 0) "" else body.substring(separator + 1))
-    }
+    val textParameter = if (separator < 0) "" else body.substring(separator + 1)
+    apply(leadingValue(digits), textParameter, terminator)
     return EscapeState.Ground
+  }
+
+  /** The title's numbers, then the colours'; a number neither claims is logged upstream and lost. */
+  private fun apply(value: Int, textParameter: String, terminator: String) {
+    if (value in SET_TITLE_CODES) title.set(textParameter) else colorCommands.apply(value, textParameter, terminator)
   }
 
   /**
@@ -95,6 +102,10 @@ class OperatingSystemCommand(private val title: WindowTitle) {
     const val ESCAPE = 27
     const val STRING_TERMINATOR_FINAL = '\\'.code
     const val PARAMETER_SEPARATOR = ';'
+
+    /** What a query echoes back: the terminator the request itself used. */
+    const val BELL_TERMINATOR = "\u0007"
+    const val STRING_TERMINATOR = "\u001B\\"
 
     /** Upstream's `MAX_OSC_STRING_LENGTH`, and its reason: an `OSC 52` paste has to fit. */
     const val MAX_STRING_LENGTH = 8192

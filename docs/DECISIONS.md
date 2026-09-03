@@ -4220,6 +4220,59 @@ The same blind spot existed in the differential dump and the same fix closed it 
 value and `titled=` for the count. **The count is not redundant**: a title set to what it already
 was is invisible in the value, and one mutation survived on exactly that until `titled=` existed.
 
+### The colour defaults are a constructor argument, so P4g stays a palette question (P4f-6b-2)
+
+**Upstream's `TerminalColors.COLOR_SCHEME` is a process-global mutable static** - one array shared
+by every emulator, rewritten in place by `updateWith(Properties)` from Termux's own theme file.
+Transcribing that shape would have made the ANSI ramp a property of the *process*, and this app's
+ramp is a property of the **theme**: VS Code registers `terminal.ansiGreen` as `#107C10` in light
+and `#0DBC79` in dark (`terminalColorRegistry.ts:120-127`), and `terminal/` may not import from
+`theme/` to ask which is in force.
+
+So `TerminalPalette` is a value and `TerminalEmulator` takes one, the way it already takes
+`cellWidthPixels`. **This step owns the mechanism and P4g owns which colours** - the mutable table,
+the XParseColor parser, and set / query / reset are here; resolving VS Code's ramp per theme and
+handing it in at the composition root is P4g's, unchanged and un-anticipated.
+
+It is also what makes the differential possible at all. The comparison runs against the shipped
+reference, so the Kotlin side has to be able to hold **Termux's** scheme; a hard-coded VS Code ramp
+would have made every colour byte differ by construction. `TerminalPalette.REFERENCE` is that
+scheme, and `TerminalColorsTest` pins it to the reference's own table.
+
+**This forbids** reaching the ramp through a global, a service locator or an `object` singleton
+inside `terminal/`, and it forbids P4g changing `TerminalPalette.REFERENCE` - that value is what the
+differential compares against, and P4g adds a second palette rather than editing this one.
+
+### `OSC 104` is fixed rather than transcribed, because an ordinary prompt reaches its crash (P4f-6b-2)
+
+**The fourth reference defect this phase has found, and the first that needs no exotic mode.**
+`printf '\033]104;1;\007'` - a colour reset with a trailing semicolon - throws
+`StringIndexOutOfBoundsException`, and `printf '\033]104;259\007'` throws
+`ArrayIndexOutOfBoundsException`. Two unguarded failures in one arm: a `break` placed inside a `try`
+that swallows `NumberFormatException`, so the loop walks past the end of its own string; and an
+unchecked array write, in an arm whose sibling `OSC 4` checks its index.
+
+`ColorCommands.resetIndexed` splits on `;` and applies each token independently, skipping one that
+is not an index and one outside the table. It agrees with the reference on **every input the
+reference survives** - measured, all nine forms - and where the reference throws it does what that
+`catch`'s own comment says: `// Ignore.`
+
+**Why fixed rather than shared**, where P4f-6a let both sides throw together first: the trigger is
+not exotic. A shell prompt, a colour-scheme script or a `tmux` restore emits `OSC 104` in the
+ordinary course of resetting a palette, and the whole emulator would die on it.
+`evidence/p4-terminal/the-colour-reset-that-walks-off-its-own-string.md` has the reproductions.
+
+**This forbids** guarding only one of the two - the loop and the index fail for different reasons
+and either alone still crashes - and it forbids widening `OSC 4`'s index guard to match, or
+narrowing `OSC 104`'s to match `OSC 4`: the two arms **disagree on purpose enough to be measured**,
+`OSC 104 ; 258` resets the cursor colour and `OSC 4 ; 258 ; #FFFFFF` is refused.
+
+**It also costs the differential eight alphabet entries**, excluded by name: `104;1;x`, `104;x`,
+`104;;`, `104;1;`, `104;99999999999`, `104;259`, `104;999` and `104;-1`. Two tests whose
+expectations are **ours rather than the reference's** cover them -
+`OperatingSystemColorsTest.aResetSkipsATokenThatIsNotAnIndexRatherThanWalkingOffTheString` and
+`aResetSkipsAnIndexOutsideTheTableRatherThanThrowing`.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)
@@ -4715,3 +4768,27 @@ one comment and no code. It is read by Material itself. `OutlinedTextFieldTokens
 `ColorSchemeKeyTokens.Outline` and `TextFieldDefaults.kt:1393` makes it every outlined field's
 resting border, so it is drawn in the rename dialog and the four boxes on the search panel.
 **Grepping app code is the wrong question to ask of a Material role**; the token tables are.
+
+### A differential that prints deltas measures neither side's baseline (P4f-6b-2)
+
+**A mutation survived that nothing about the sequence stream could have caught**, and the reason was
+in the harness, not the alphabet. The colour table is 259 entries and only two or three ever move,
+so the dump prints the entries that **differ from the defaults** - and each side compared against
+*its own* defaults. Change the grey ramp's starting value on the Kotlin side and both sides still
+print nothing: the entry equals its own default on each. A systematically wrong palette cancelled
+out exactly where a differential is supposed to be strongest.
+
+Both dumps now print `palette=`, `Arrays.hashCode` over all 259 defaults - which Java and Kotlin
+compute identically, so it is comparable without spelling the table out on every line.
+
+The rule this states, and it is not about colours: **a state dump that reports a delta has to report
+what the delta is against.** The same shape is already in this file twice - P4f-2 found the styles
+were invisible and P4f-6a found the replies were - and each time the fix was to widen what is
+printed rather than to widen the alphabet. A field the two sides compute from different baselines
+is worse than an absent one, because it looks like coverage.
+
+The counterpart correction, in the same step: `painted=` counts colour reports, and **the
+reference's constructor calls `reset()` and reports one before the stream sends a byte** where this
+transcription builds its table without reporting. `EmulatorDump` zeroes the counter after
+construction so both sides count what the stream caused. Making the emulator fire a notice at
+construction to match a counter would have been changing the subject to suit the instrument.

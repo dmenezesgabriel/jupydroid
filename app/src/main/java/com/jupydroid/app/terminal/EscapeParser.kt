@@ -82,9 +82,14 @@ enum class EscapeState {
  * "[31m".forEach { parser.accept(it.code) }       // red from here on
  * ```
  */
-class EscapeParser(private val screen: TerminalScreen, private val reporting: TerminalReporting, title: WindowTitle) {
+class EscapeParser(
+  private val screen: TerminalScreen,
+  private val reporting: TerminalReporting,
+  title: WindowTitle,
+  colorCommands: ColorCommands,
+) {
   private val parameters = EscapeParameters()
-  private val strings = OperatingSystemCommand(title)
+  private val strings = OperatingSystemCommand(title, colorCommands)
   private val escapes = EscapeDispatch(screen, strings)
   private val cursors = CursorAddressing(screen)
   private val edits = ScreenEditing(screen)

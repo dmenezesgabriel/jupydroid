@@ -21,17 +21,18 @@ class TerminalEmulator(
   rows: Int,
   private val notices: TerminalNotices,
   replies: TerminalReplies,
+  palette: TerminalPalette = TerminalPalette.REFERENCE,
   transcriptRows: Int = DEFAULT_TRANSCRIPT_ROWS,
   cellWidthPixels: Int = DEFAULT_CELL_WIDTH_PIXELS,
   cellHeightPixels: Int = DEFAULT_CELL_HEIGHT_PIXELS,
 ) {
-  val screen = TerminalScreen(columns, rows, totalRowsFor(transcriptRows))
+  val screen = TerminalScreen(columns, rows, totalRowsFor(transcriptRows), TerminalColors(palette, notices))
 
   /** What the shell has called this terminal, which P4i draws and `CSI 22/23 t` stacks. */
   val title = WindowTitle(notices)
   private val decoder = Utf8Decoder()
   private val reporting = TerminalReporting(screen, replies, title, cellWidthPixels, cellHeightPixels)
-  private val parser = EscapeParser(screen, reporting, title)
+  private val parser = EscapeParser(screen, reporting, title, ColorCommands(screen.colors, replies))
 
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
   fun append(buffer: ByteArray, length: Int) {
