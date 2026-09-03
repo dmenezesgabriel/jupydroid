@@ -184,12 +184,6 @@ class EscapeParser(private val screen: TerminalScreen, private val reporting: Te
     }
   }
 
-  /** `ESC [ ? … $`, whose one final byte is DECRQM. Anything else ends the sequence. */
-  private fun inModeQuery(codePoint: Int): EscapeState {
-    if (codePoint == MODE_QUERY) reporting.replyModeState(parameters)
-    return EscapeState.Ground
-  }
-
   /**
    * `ESC [ >`, whose one final byte is DA2. **Parameters are collected and then ignored** - the
    * reference's `doCsiBiggerThan` falls through to `parseArg`, and its `c` arm reads none of them,
