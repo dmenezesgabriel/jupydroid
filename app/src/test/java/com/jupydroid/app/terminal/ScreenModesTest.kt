@@ -1,16 +1,18 @@
 package com.jupydroid.app.terminal
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * The modes: `CSI ? Pm h`/`l` (DECSET/DECRST), the `CSI ? Pm s`/`r` that save and recall them, the
  * ANSI `h`/`l` modes, and `ESC =`/`ESC >`.
  *
- * `DecSetTest.testWrapAroundMode` is transcribed here (termux-app `3df69d1d`, Apache 2.0 - see
- * [TerminalGrid]); `DecSetTest`'s other two need surfaces this step does not have -
- * `testEnableDisableCursor` a cursor-visibility query and `testBracketedPasteMode` the reply path -
- * and go with the steps that give them one.
+ * All three `DecSetTest` methods are transcribed here now (termux-app `3df69d1d`, Apache 2.0 -
+ * see [TerminalGrid]): `testWrapAroundMode` from the start, and `testEnableDisableCursor` /
+ * `testBracketedPasteMode` since P4f-6d gave them the surfaces they were waiting on -
+ * `TerminalEmulator.isCursorEnabled` and `TerminalEmulator.paste`.
  *
  * Everything upstream never exercises had its **expectations read off the reference itself**
  * (`evidence/p4-terminal/emulator-differential.md`, "The oracle the expectations came from").
@@ -90,6 +92,54 @@ class ScreenModesTest {
     terminal(3, 3).enterString("${ESC}7$ESC[?7l${ESC}8abcd").assertLinesAre("abc", "d  ", "   ")
     terminal(3, 3).enterString("$ESC[?7l${ESC}7$ESC[?7h${ESC}8abcd").assertLinesAre("abd", "   ", "   ")
     terminal(3, 3).enterString("$ESC[s$ESC[?7l$ESC[uabcd").assertLinesAre("abc", "d  ", "   ")
+  }
+
+  /** `testEnableDisableCursor`. DECSET 25, DECTCEM, controls the cursor's visibility. */
+  @Test
+  fun cursorVisibilityIsToggledByDecset25AndRestoredByReset() {
+    val fixture = terminal(3, 3)
+    assertTrue("Initially the cursor should be enabled", fixture.emulator.isCursorEnabled)
+    fixture.enterString("$ESC[?25l")
+    assertFalse(fixture.emulator.isCursorEnabled)
+    fixture.enterString("$ESC[?25h")
+    assertTrue(fixture.emulator.isCursorEnabled)
+
+    fixture.enterString("$ESC[?25l")
+    assertFalse(fixture.emulator.isCursorEnabled)
+    fixture.emulator.reset()
+    assertTrue("Resetting the terminal should enable the cursor", fixture.emulator.isCursorEnabled)
+
+    fixture.enterString("$ESC[?25l")
+    assertFalse(fixture.emulator.isCursorEnabled)
+    fixture.enterString("${ESC}c") // RIS resetting should enable the cursor.
+    assertTrue(fixture.emulator.isCursorEnabled)
+  }
+
+  /** What one `paste()` writes back, for the assertions below to read in one line each. */
+  private fun assertPasteEcho(fixture: EmulatorFixture, text: String, expected: String) {
+    fixture.emulator.paste(text)
+    assertEquals(expected, fixture.replies.takeReply())
+  }
+
+  /** `testBracketedPasteMode`. DECSET 2004 brackets a paste; escapes and C1 controls are stripped. */
+  @Test
+  fun bracketedPasteModeWrapsAPasteAndStripsEscapesAndC1Controls() {
+    val fixture = terminal(3, 3)
+    assertPasteEcho(fixture, "a", "a")
+
+    fixture.enterString("$ESC[?2004h")
+    assertPasteEcho(fixture, "a", "$ESC[200~a$ESC[201~")
+
+    fixture.enterString("$ESC[?2004l")
+    assertPasteEcho(fixture, "a", "a")
+
+    fixture.enterString("$ESC[?2004h")
+    assertPasteEcho(fixture, "a", "$ESC[200~a$ESC[201~")
+    assertPasteEcho(fixture, "${ESC}ab${ESC}cd$ESC", "$ESC[200~abcd$ESC[201~")
+    assertPasteEcho(fixture, "\u0081ab\u0081cd\u009F", "$ESC[200~abcd$ESC[201~")
+
+    fixture.emulator.reset()
+    assertPasteEcho(fixture, "a", "a")
   }
 
   private companion object {

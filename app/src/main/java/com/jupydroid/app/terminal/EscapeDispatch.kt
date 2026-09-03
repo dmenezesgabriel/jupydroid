@@ -16,9 +16,9 @@ package com.jupydroid.app.terminal
  * lower-left is a cursor motion with no grid in it, so it is [TerminalCursor.moveToLowerLeft].
  * detekt's `TooManyFunctions` asked the question at P4f-3a; `docs/DECISIONS.md` records the answer.
  *
- * **What is not here, and which sub-step has it**: `_` (APC) is P4f-6d. Until then it ends the
- * sequence taking only itself, which is what the reference does with an introducer it does not
- * implement.
+ * **`_` (APC) is here since P4f-6d**, though it introduces no state of its own worth holding:
+ * [EscapeState.ApplicationProgramCommand] discards everything until its terminator, so
+ * `introduce` just names the state and [EscapeParser] does the rest.
  *
  * ```
  * val dispatch = EscapeDispatch(screen, strings, deviceControl)
@@ -49,6 +49,7 @@ class EscapeDispatch(
     CONTROL_SEQUENCE_INTRODUCER -> EscapeState.ControlSequence
     OPERATING_SYSTEM_COMMAND -> strings.startString()
     DEVICE_CONTROL_STRING -> deviceControl.startString()
+    APPLICATION_PROGRAM_COMMAND -> EscapeState.ApplicationProgramCommand
     else -> {
       applyCommand(codePoint)
       EscapeState.Ground
@@ -178,6 +179,9 @@ class EscapeDispatch(
 
     /** `P`. Emptied on the way in too, same as `]`. */
     const val DEVICE_CONTROL_STRING = 'P'.code
+
+    /** `_`. No buffer to empty - every byte from here on is discarded rather than collected. */
+    const val APPLICATION_PROGRAM_COMMAND = '_'.code
 
     /** The final byte of `ESC ( C` that means DEC Special Graphics rather than a Latin set. */
     const val DEC_SPECIAL_GRAPHICS = '0'.code

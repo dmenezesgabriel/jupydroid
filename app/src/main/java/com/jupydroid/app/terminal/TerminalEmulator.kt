@@ -32,6 +32,7 @@ class TerminalEmulator(
   val title = WindowTitle(notices)
   private val decoder = Utf8Decoder()
   private val reporting = TerminalReporting(screen, replies, title, cellWidthPixels, cellHeightPixels)
+  private val pasteCommand = PasteCommand(screen.modes, replies)
   private val parser = EscapeParser(
     screen,
     reporting,
@@ -41,10 +42,16 @@ class TerminalEmulator(
     DeviceControlString(replies),
   )
 
+  /** DECSET 25 (DECTCEM): whether the cursor should be drawn. P4i reads this to decide. */
+  val isCursorEnabled: Boolean get() = screen.modes.isSet(DecMode.CURSOR_ENABLED)
+
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
   fun append(buffer: ByteArray, length: Int) {
     for (index in 0 until length) processByte(buffer[index])
   }
+
+  /** Text pasted into the terminal as though typed - see [PasteCommand]. */
+  fun paste(text: String) = pasteCommand.paste(text)
 
   /** Back to a freshly opened terminal, keeping what is on screen. */
   fun reset() {
@@ -82,10 +89,19 @@ class TerminalEmulator(
    * widening of the `OSC` one, per `docs/DECISIONS.md`. Every other control keeps acting on the
    * screen while a string collects, measured rather than assumed: a carriage return inside an `OSC`
    * returns the carriage and is not collected into the title.
+   *
+   * **One state asks first and takes everything, not just two controls.** Inside
+   * [EscapeParser.isApplicationProgramCommand] the reference's own early return runs *before* this
+   * method's switch at all - "the APC string might be arbitrary non-printable characters, so
+   * handle that early" - so not even `CR` or `CAN` act while an APC string is open; every byte is
+   * discarded into it.
    */
   private fun processCodePoint(codePoint: Int) {
-    if (handleControlCharacter(codePoint)) return
-    if (parser.accept(codePoint)) return
+    if (parser.isApplicationProgramCommand) {
+      parser.accept(codePoint)
+      return
+    }
+    if (handleControlCharacter(codePoint) || parser.accept(codePoint)) return
     // A control character nothing above claimed is dropped, never drawn.
     if (codePoint >= FIRST_PRINTABLE) screen.writeCodePoint(codePoint)
   }

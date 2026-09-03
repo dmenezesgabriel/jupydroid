@@ -64,6 +64,16 @@ enum class EscapeState {
    * the reference drops one outright rather than looking ahead the way `OSC` does.
    */
   DeviceControlString,
+
+  /**
+   * `ESC _` - an Application Program Command. **Nothing is collected**: the reference's own
+   * comment is "Eat APC sequences silently for now", so every byte is discarded and only the
+   * lookahead below asks whether one of them ends the sequence.
+   */
+  ApplicationProgramCommand,
+
+  /** `ESC _ ... ESC` - either the bare `\\` that ends the APC string, or more discarded data. */
+  ApplicationProgramCommandEscape,
 }
 
 /**
@@ -130,6 +140,17 @@ class EscapeParser(
    */
   val isDeviceControlString: Boolean get() = state == EscapeState.DeviceControlString
 
+  /**
+   * Whether every byte - printable or control - is being discarded into an APC string rather than
+   * acted on, true in both [EscapeState.ApplicationProgramCommand] and its escape lookahead. This
+   * mirrors the reference's own early return **before** its C0 switch: "the APC string might be
+   * arbitrary non-printable characters, so handle that early" - so [TerminalEmulator]'s C0
+   * dispatch never sees a byte while this is true, unlike [isCollectingString] and
+   * [isDeviceControlString], which only intercept `BEL`/`ESC`.
+   */
+  val isApplicationProgramCommand: Boolean
+    get() = state == EscapeState.ApplicationProgramCommand || state == EscapeState.ApplicationProgramCommandEscape
+
   /** `ESC` arrived: begin a sequence, abandoning any already in progress. */
   fun start() {
     parameters.startSequence()
@@ -158,9 +179,9 @@ class EscapeParser(
       EscapeState.AttributeChangeExtent, EscapeState.ModeQuery,
       -> actOnIntermediate(state, codePoint)
       EscapeState.SecondaryAttributes -> inSecondaryAttributes(codePoint)
-      EscapeState.OperatingSystemCommand -> strings.collect(codePoint)
-      EscapeState.OperatingSystemCommandEscape -> strings.afterEscape(codePoint)
-      EscapeState.DeviceControlString -> deviceControl.collect(codePoint)
+      EscapeState.OperatingSystemCommand, EscapeState.OperatingSystemCommandEscape, EscapeState.DeviceControlString,
+      EscapeState.ApplicationProgramCommand, EscapeState.ApplicationProgramCommandEscape,
+      -> inCollectorState(state, codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true
@@ -273,6 +294,33 @@ class EscapeParser(
   }
 
   /**
+   * The five states that collect - or, for `APC`, discard - a string rather than parameters:
+   * `OSC`, its escape lookahead, `DCS`, and `APC` with its own escape lookahead. **One arm in
+   * [accept] for all five**, the way [actOnIntermediate] holds its five: `accept` sat at detekt's
+   * twenty-line cap before this step, and P4f-6d's two new `APC` states would have pushed it over
+   * on their own.
+   *
+   * `APC`'s half is `doApc`/`doApcEscape` transcribed: every byte is discarded, matching the
+   * reference's own comment - "Eat APC sequences silently for now." Only the terminator is
+   * examined - an `ESC` opens the lookahead, and only a bare `\\` immediately after ends the
+   * sequence; anything else, including another `ESC` or `_`, is discarded and collecting resumes.
+   */
+  private fun inCollectorState(state: EscapeState, codePoint: Int): EscapeState = when (state) {
+    EscapeState.OperatingSystemCommand -> strings.collect(codePoint)
+    EscapeState.OperatingSystemCommandEscape -> strings.afterEscape(codePoint)
+    EscapeState.DeviceControlString -> deviceControl.collect(codePoint)
+    EscapeState.ApplicationProgramCommandEscape ->
+      if (codePoint == APC_TERMINATOR) EscapeState.Ground else EscapeState.ApplicationProgramCommand
+    else -> if (codePoint ==
+      APC_ESCAPE
+    ) {
+      EscapeState.ApplicationProgramCommandEscape
+    } else {
+      EscapeState.ApplicationProgramCommand
+    }
+  }
+
+  /**
    * `doCsiUnsupportedParameterOrIntermediateByte`: parameter bytes may follow parameter bytes,
    * intermediate bytes may follow either, and a final byte ends the sequence. Anything else ends
    * it too, which upstream is the `unknownSequence` arm.
@@ -285,6 +333,10 @@ class EscapeParser(
 
   private companion object {
     const val SELECT_GRAPHIC_RENDITION = 'm'.code
+
+    /** The lookahead byte an APC's terminator starts with, and the byte that completes it. */
+    const val APC_ESCAPE = 0x1B
+    const val APC_TERMINATOR = '\\'.code
 
     /** ECMA-48's parameter bytes, `0` through `?`. */
     val PARAMETER_BYTE_RANGE = 0x30..0x3F
