@@ -10,8 +10,18 @@ internal class RecordingNotices : TerminalNotices {
   var bellsRung: Int = 0
     private set
 
+  /**
+   * Every old-to-new pair, in order - `MockTerminalOutput.titleChanges`. **A list rather than the
+   * latest**, because that is what proves a pop onto the title already showing reports nothing.
+   */
+  val titleChanges: MutableList<Pair<String?, String?>> = mutableListOf()
+
   override fun onBell() {
     bellsRung++
+  }
+
+  override fun onTitleChanged(oldTitle: String?, newTitle: String?) {
+    titleChanges += oldTitle to newTitle
   }
 }
 

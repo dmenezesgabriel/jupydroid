@@ -26,9 +26,12 @@ class TerminalEmulator(
   cellHeightPixels: Int = DEFAULT_CELL_HEIGHT_PIXELS,
 ) {
   val screen = TerminalScreen(columns, rows, totalRowsFor(transcriptRows))
+
+  /** What the shell has called this terminal, which P4i draws and `CSI 22/23 t` stacks. */
+  val title = WindowTitle(notices)
   private val decoder = Utf8Decoder()
-  private val reporting = TerminalReporting(screen, replies, cellWidthPixels, cellHeightPixels)
-  private val parser = EscapeParser(screen, reporting)
+  private val reporting = TerminalReporting(screen, replies, title, cellWidthPixels, cellHeightPixels)
+  private val parser = EscapeParser(screen, reporting, title)
 
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
   fun append(buffer: ByteArray, length: Int) {
@@ -62,6 +65,12 @@ class TerminalEmulator(
    * The C0 controls are dispatched **before** the escape state is looked at, as the reference
    * dispatches them: a carriage return inside a half-read sequence moves the cursor and the
    * sequence goes on.
+   *
+   * **Two of them ask the state first, and only two.** A `BEL` ends an `OSC` string where it would
+   * otherwise ring, and an `ESC` opens that string's terminator where it would otherwise start a
+   * new sequence - which is the reference's `case 7` and `case 27`. Every other control keeps
+   * acting on the screen while a string collects, measured rather than assumed: a carriage return
+   * inside an `OSC` returns the carriage and is not collected into the title.
    */
   private fun processCodePoint(codePoint: Int) {
     if (handleControlCharacter(codePoint)) return
@@ -75,14 +84,14 @@ class TerminalEmulator(
     when (codePoint) {
       NUL -> Unit
       CAN, SUB -> abandonSequence()
-      BEL -> notices.onBell()
+      BEL -> if (parser.isCollectingString) parser.accept(BEL) else notices.onBell()
       BS -> screen.backspace()
       HT -> screen.horizontalTab()
       LF, VT, FF -> screen.newLine()
       CR -> screen.carriageReturn()
       SO -> screen.charset.mapToGL(1)
       SI -> screen.charset.mapToGL(0)
-      ESC -> parser.start()
+      ESC -> if (parser.isCollectingString) parser.accept(ESC) else parser.start()
       else -> return false
     }
     return true

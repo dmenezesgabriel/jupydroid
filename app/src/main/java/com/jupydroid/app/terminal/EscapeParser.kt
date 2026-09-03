@@ -52,6 +52,12 @@ enum class EscapeState {
 
   /** An intermediate byte (`!`, `"`, `$`, `*`, space) this step does not implement. */
   UnsupportedIntermediateByte,
+
+  /** `ESC ]` - an Operating System Command, collecting a string until `BEL` or `ESC \\`. */
+  OperatingSystemCommand,
+
+  /** `ESC ] … ESC` - either the `\\` that ends the string, or two more bytes for it. */
+  OperatingSystemCommandEscape,
 }
 
 /**
@@ -76,9 +82,10 @@ enum class EscapeState {
  * "[31m".forEach { parser.accept(it.code) }       // red from here on
  * ```
  */
-class EscapeParser(private val screen: TerminalScreen, private val reporting: TerminalReporting) {
+class EscapeParser(private val screen: TerminalScreen, private val reporting: TerminalReporting, title: WindowTitle) {
   private val parameters = EscapeParameters()
-  private val escapes = EscapeDispatch(screen)
+  private val strings = OperatingSystemCommand(title)
+  private val escapes = EscapeDispatch(screen, strings)
   private val cursors = CursorAddressing(screen)
   private val edits = ScreenEditing(screen)
   private val switches = ModeSwitching(screen)
@@ -92,6 +99,14 @@ class EscapeParser(private val screen: TerminalScreen, private val reporting: Te
 
   /** Whether a sequence is in progress, i.e. whether [accept] would take the next code point. */
   val isParsing: Boolean get() = state != EscapeState.Ground
+
+  /**
+   * Whether a `BEL` would **end** the string in progress rather than ring, and an `ESC` would open
+   * its terminator rather than start a new sequence. True in [EscapeState.OperatingSystemCommand]
+   * and nowhere else - notably **not** in [EscapeState.OperatingSystemCommandEscape], where the
+   * reference rings the bell and restarts on an `ESC`, because its guards read `== ESC_OSC`.
+   */
+  val isCollectingString: Boolean get() = state == EscapeState.OperatingSystemCommand
 
   /** `ESC` arrived: begin a sequence, abandoning any already in progress. */
   fun start() {
@@ -117,13 +132,12 @@ class EscapeParser(private val screen: TerminalScreen, private val reporting: Te
       EscapeState.DesignateG1 -> escapes.designateG1(codePoint)
       EscapeState.ControlSequence -> inControlSequence(codePoint)
       EscapeState.PrivateParameter -> inPrivateParameter(codePoint)
-      EscapeState.ColumnEdit,
-      EscapeState.ProtectionAttribute,
-      EscapeState.RectangularArea,
-      EscapeState.AttributeChangeExtent,
-      EscapeState.ModeQuery,
+      EscapeState.ColumnEdit, EscapeState.ProtectionAttribute, EscapeState.RectangularArea,
+      EscapeState.AttributeChangeExtent, EscapeState.ModeQuery,
       -> actOnIntermediate(state, codePoint)
       EscapeState.SecondaryAttributes -> inSecondaryAttributes(codePoint)
+      EscapeState.OperatingSystemCommand -> strings.collect(codePoint)
+      EscapeState.OperatingSystemCommandEscape -> strings.afterEscape(codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true

@@ -16,17 +16,17 @@ package com.jupydroid.app.terminal
  * lower-left is a cursor motion with no grid in it, so it is [TerminalCursor.moveToLowerLeft].
  * detekt's `TooManyFunctions` asked the question at P4f-3a; `docs/DECISIONS.md` records the answer.
  *
- * **What is not here, and which sub-step has it**: `P` (DCS), `]` (OSC) and `_` (APC) are P4f-6,
- * which is where a reply path to the pty arrives; `=` and `>` (DECKPAM/DECKPNM) are P4f-4, where
- * the DEC private mode they set lives. Until then each ends the sequence taking only itself, which
- * is what the reference does with an introducer it does not implement.
+ * **What is not here, and which sub-step has it**: `P` (DCS) is P4f-6c and `_` (APC) is P4f-6d.
+ * Until then each ends the sequence taking only itself, which is what the reference does with an
+ * introducer it does not implement.
  *
  * ```
- * val dispatch = EscapeDispatch(screen)
+ * val dispatch = EscapeDispatch(screen, strings)
  * dispatch.introduce('7'.code)   // DECSC: the cursor is put away
+ * dispatch.introduce(']'.code)   // OSC: the string state, with an empty buffer
  * ```
  */
-class EscapeDispatch(private val screen: TerminalScreen) {
+class EscapeDispatch(private val screen: TerminalScreen, private val strings: OperatingSystemCommand) {
   private val grid get() = screen.grid
   private val cursor get() = screen.cursor
 
@@ -43,6 +43,7 @@ class EscapeDispatch(private val screen: TerminalScreen) {
     LEFT_PARENTHESIS -> EscapeState.DesignateG0
     RIGHT_PARENTHESIS -> EscapeState.DesignateG1
     CONTROL_SEQUENCE_INTRODUCER -> EscapeState.ControlSequence
+    OPERATING_SYSTEM_COMMAND -> strings.startString()
     else -> {
       applyCommand(codePoint)
       EscapeState.Ground
@@ -166,6 +167,9 @@ class EscapeDispatch(private val screen: TerminalScreen) {
     const val LEFT_PARENTHESIS = '('.code
     const val RIGHT_PARENTHESIS = ')'.code
     const val CONTROL_SEQUENCE_INTRODUCER = '['.code
+
+    /** `]`. The buffer is emptied on the way in, which is why this arm is not just a state. */
+    const val OPERATING_SYSTEM_COMMAND = ']'.code
 
     /** The final byte of `ESC ( C` that means DEC Special Graphics rather than a Latin set. */
     const val DEC_SPECIAL_GRAPHICS = '0'.code

@@ -5,6 +5,11 @@ package com.jupydroid.app.terminal
  * [TerminalReplies]: device attributes, status reports, the DEC mode query and the window
  * operations that report a size.
  *
+ * **Two of `CSI t`'s arms answer nothing and push the title stack instead**, which is not a report
+ * at all. They are here because they are `CSI t`, and splitting four of that sequence's codes into
+ * a class of their own would cost more than the name does - the reference dispatches all of them
+ * from one `switch`.
+ *
  * Transcribed from the `c`, `n` and `t` arms of `TerminalEmulator.doCsi`, `doCsiBiggerThan`'s `c`,
  * `doCsiQuestionMark`'s `n`, and the `ESC_CSI_QUESTIONMARK_ARG_DOLLAR` state (termux-app
  * `3df69d1d`, Apache 2.0 - see [TerminalGrid]).
@@ -19,6 +24,7 @@ package com.jupydroid.app.terminal
 class TerminalReporting(
   private val screen: TerminalScreen,
   private val replies: TerminalReplies,
+  private val title: WindowTitle,
   private val cellWidthPixels: Int,
   private val cellHeightPixels: Int,
 ) {
@@ -72,9 +78,10 @@ class TerminalReporting(
   }
 
   /**
-   * `CSI Pn t`. The size reports are the useful ones and the position and state answers are fixed.
-   * **The two label reports are not here**: they belong with the title, which is P4f-6b's, and
-   * upstream answers them with a constant rather than the real one on purpose.
+   * `CSI Pn t`. The size reports are the useful ones, the position and state answers are fixed, and
+   * the two **label** reports answer with a constant rather than the real title - which upstream
+   * does on purpose, its comment beside both reading "Disabled due to security concerns". The
+   * stack operations take a parameter and ignore it: `22;0`, `22;1` and `22;2` reach one arm.
    */
   private fun reportWindow(what: Int) {
     when (what) {
@@ -84,12 +91,18 @@ class TerminalReporting(
       CELL_PIXELS -> replies.reply(CSI + "6;$cellHeightPixels;${cellWidthPixels}t")
       TEXT_AREA_CELLS -> replies.reply(CSI + "8;${screen.rows};${screen.columns}t")
       SCREEN_CELLS -> replies.reply(CSI + "9;${screen.rows};${screen.columns}t")
+      ICON_LABEL -> replies.reply(OSC + "LIconLabel" + STRING_TERMINATOR)
+      WINDOW_LABEL -> replies.reply(OSC + "l" + STRING_TERMINATOR)
+      PUSH_TITLE -> title.push()
+      POP_TITLE -> title.pop()
       else -> Unit
     }
   }
 
   private companion object {
     const val CSI = "\u001B["
+    const val OSC = "\u001B]"
+    const val STRING_TERMINATOR = "\u001B\\"
 
     const val DEVICE_ATTRIBUTES = 'c'.code
     const val STATUS_REPORT = 'n'.code
@@ -121,5 +134,9 @@ class TerminalReporting(
     const val CELL_PIXELS = 16
     const val TEXT_AREA_CELLS = 18
     const val SCREEN_CELLS = 19
+    const val ICON_LABEL = 20
+    const val WINDOW_LABEL = 21
+    const val PUSH_TITLE = 22
+    const val POP_TITLE = 23
   }
 }

@@ -4172,6 +4172,54 @@ DECSLRM leaves the cursor - behaviour the reference gets right.
 Five mutations become unreachable by the script as a result, and each is pinned by a test run
 against it - including CBT's two, which a one-column DECSLRM region makes observable.
 
+### Exactly two C0 controls ask the escape state, and the guard is one state narrower than "a string is in progress" (P4f-6b-1)
+
+**The emulator's rule since P4f-1 was that C0 controls are dispatched before the escape state is
+looked at.** That is right for six of them and wrong for two, and the OSC string is where the
+difference becomes visible: a `BEL` **ends** the string where it would otherwise ring the bell, and
+an `ESC` opens the two-byte `ESC \` terminator where it would otherwise start a new sequence. The
+reference guards exactly those two (`TerminalEmulator.java:583-588` and `:633-643`) and leaves
+`BS`, `HT`, `LF`, `VT`, `FF`, `CR`, `SO` and `SI` acting on the screen while the string collects -
+so `ESC ] 0 ; xy CR z BEL` returns the carriage and sets the title to `xyz`.
+
+**Both guards read `mEscapeState == ESC_OSC`, which is narrower than "a string is in progress".**
+One byte after an unresolved `ESC` the machine is in `ESC_OSC_ESC`, where a `BEL` **rings** - and
+the byte after *that* is still read as `doOscEsc`'s default, so the `ESC` reaches the string anyway.
+Measured on the shipped reference rather than read off it, because the source reads either way:
+
+```
+printf '\033]0;q\033\007r\007' | RefScreen 10 2
+# title = q<ESC>r          bells = 1
+```
+
+`EscapeParser.isCollectingString` is therefore `state == OperatingSystemCommand` and explicitly not
+`OperatingSystemCommandEscape`. There is a mutation for the wider predicate and the differential
+detects it.
+
+**This forbids** the two shapes that look tidier and are wrong: routing every C0 through
+`EscapeParser.accept` first, which would stop a carriage return inside an `OSC` from returning the
+carriage; and defining the guard as "any string state", which would make a `BEL` after an `ESC` end
+the string. **P4f-6c and P4f-6d may not widen this predicate** - the reference's DCS guard is
+`== ESC_P` and *ignores* the `ESC` where this one collects it, and its APC path runs before the C0
+switch is reached at all, so each of those steps needs a predicate of its own.
+
+### `RefScreen` reports what the notices carried, not only what the screen holds (P4f-6b-1)
+
+**A transcribed expectation is only as good as what the oracle prints**, and until this step
+`RefScreen` printed the screen, the cursor, the transcript, the styles and the replies. None of them
+moves when a shell sets a window title, copies to the clipboard or changes a colour - the three
+things the whole `OSC` family exists to do.
+
+It now also prints `title =`, `titles =` (every old-to-new pair, so a set that changed nothing is
+distinguishable from one that did), `bells =`, `clipboard =` and `colorsChanged =`. **The last two
+are added before they have a producer on purpose**: P4f-6b-2 and P4f-6b-3 need them, and an oracle
+that changes shape mid-family is one whose earlier measurements cannot be re-run against its later
+form.
+
+The same blind spot existed in the differential dump and the same fix closed it - `title=` for the
+value and `titled=` for the count. **The count is not redundant**: a title set to what it already
+was is invisible in the value, and one mutation survived on exactly that until `titled=` existed.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)

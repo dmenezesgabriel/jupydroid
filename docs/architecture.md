@@ -58,7 +58,7 @@ to depend on**, which is checkable:
 | root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, the three `NavKey`s | the app shell and its navigation | see §4 |
 
 Measured, not asserted, and **re-counted rather than carried**: `glob` (0 of 2 files), `html`
-(0 of 3), `import` (0/1), `markdown` (0/2), `syntax` (0/6) and `terminal` (0/34) import `android.*`
+(0 of 3), `import` (0/1), `markdown` (0/2), `syntax` (0/6) and `terminal` (0/36) import `android.*`
 or `androidx.*`; `theme` imports one in 7 of 7; `richtext` in 1 of 2. That 1 is `RichInlineString.kt`, and it is the
 only file in those eight packages that touches Compose besides `theme`. `terminal` joined them in
 P4e and is the one departure the reference forced a choice on: Termux's `TerminalEmulator` imports
@@ -67,7 +67,7 @@ drifted before P2x-1b touched the sentence - `markdown` gained `HeadingNumbering
 gained two files - which is what a measurement stated in prose costs when nothing counts it. And
 `terminal` **drifted the same way immediately**: it read 0/9 through P4f-1, which added six files,
 0/18 through P4f-3a, which added three more, 0/21 through P4f-3b, 0/22 through P4f-3c, 0/23
-through P4f-4a, which added three, 0/26 through P4f-4b, which added `ScreenBuffers.kt`, 0/27 through P4f-5a, which added `ScrollMargins.kt`, 0/28 through P4f-5b, which added `SelectiveErasing.kt`, 0/29 through P4f-5c, which added `RectangularAreas.kt`, 0/30 through P4f-5e, which added `RectangularAttributes.kt` and `RowStyles.kt`, and 0/32 through P4f-6a, which added `TerminalReplies.kt` and `TerminalReporting.kt`.
+through P4f-4a, which added three, 0/26 through P4f-4b, which added `ScreenBuffers.kt`, 0/27 through P4f-5a, which added `ScrollMargins.kt`, 0/28 through P4f-5b, which added `SelectiveErasing.kt`, 0/29 through P4f-5c, which added `RectangularAreas.kt`, 0/30 through P4f-5e, which added `RectangularAttributes.kt` and `RowStyles.kt`, 0/32 through P4f-6a, which added `TerminalReplies.kt` and `TerminalReporting.kt`, and 0/34 through P4f-6b-1, which added `OperatingSystemCommand.kt` and `WindowTitle.kt` - **the second of the two departures the OSC path forces, `android.util.Base64`, is P4f-6b-3's**.
 The zero itself is no longer prose - `ArchitectureGuardTest` has covered this row since P4f-1, so
 what can go stale here is the denominator, not the claim.
 
