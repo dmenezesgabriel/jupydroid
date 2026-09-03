@@ -29,7 +29,13 @@ enum class EscapeState {
   /** `ESC [ ?` - a DEC private mode sequence, collecting its parameters until a final byte. */
   PrivateParameter,
 
-  /** A private parameter byte (`<`, `=`, `>`) this step does not implement. */
+  /** `ESC [ >` - the byte after it is DA2, the one sequence this parameter byte carries. */
+  SecondaryAttributes,
+
+  /** `ESC [ ? … $` - the byte after it is DECRQM, which asks what a mode is set to. */
+  ModeQuery,
+
+  /** A private parameter byte (`<`, `=`) this step does not implement. */
   UnsupportedParameterByte,
 
   /** `ESC [ ' ` - the byte after it is DECIC or DECDC, both of which move within the margins. */
@@ -70,7 +76,7 @@ enum class EscapeState {
  * "[31m".forEach { parser.accept(it.code) }       // red from here on
  * ```
  */
-class EscapeParser(private val screen: TerminalScreen) {
+class EscapeParser(private val screen: TerminalScreen, private val reporting: TerminalReporting) {
   private val parameters = EscapeParameters()
   private val escapes = EscapeDispatch(screen)
   private val cursors = CursorAddressing(screen)
@@ -111,10 +117,13 @@ class EscapeParser(private val screen: TerminalScreen) {
       EscapeState.DesignateG1 -> escapes.designateG1(codePoint)
       EscapeState.ControlSequence -> inControlSequence(codePoint)
       EscapeState.PrivateParameter -> inPrivateParameter(codePoint)
-      EscapeState.ColumnEdit -> inColumnEdit(codePoint)
-      EscapeState.ProtectionAttribute -> inProtectionAttribute(codePoint)
-      EscapeState.RectangularArea -> inRectangularArea(codePoint)
-      EscapeState.AttributeChangeExtent -> inAttributeChangeExtent(codePoint)
+      EscapeState.ColumnEdit,
+      EscapeState.ProtectionAttribute,
+      EscapeState.RectangularArea,
+      EscapeState.AttributeChangeExtent,
+      EscapeState.ModeQuery,
+      -> actOnIntermediate(state, codePoint)
+      EscapeState.SecondaryAttributes -> inSecondaryAttributes(codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true
@@ -128,6 +137,7 @@ class EscapeParser(private val screen: TerminalScreen) {
   private fun inControlSequence(codePoint: Int): EscapeState = when {
     parameters.accept(codePoint) -> EscapeState.ControlSequence
     codePoint == PRIVATE_MODE_BYTE -> EscapeState.PrivateParameter
+    codePoint == SECONDARY_ATTRIBUTES_BYTE -> EscapeState.SecondaryAttributes
     codePoint in PRIVATE_PARAMETER_BYTES -> EscapeState.UnsupportedParameterByte
     codePoint == COLUMN_EDIT_BYTE -> EscapeState.ColumnEdit
     codePoint == PROTECTION_BYTE -> EscapeState.ProtectionAttribute
@@ -149,6 +159,7 @@ class EscapeParser(private val screen: TerminalScreen) {
         screen.currentStyle = GraphicRendition.applied(parameters, screen.currentStyle)
 
       margins.apply(codePoint, parameters) -> Unit
+      reporting.apply(codePoint, parameters) -> Unit
       cursors.apply(codePoint, parameters) -> Unit
       switches.applyAnsi(codePoint, parameters) -> Unit
       else -> edits.apply(codePoint, parameters)
@@ -158,50 +169,76 @@ class EscapeParser(private val screen: TerminalScreen) {
 
   /**
    * `ESC [ ?` collects parameters like any other control sequence; its final byte goes to
-   * [SelectiveErasing] for `J`/`K` and [ModeSwitching] for the rest; one neither owns is swallowed
-   * rather than printed - `CSI ? n` and `CSI ? $ p` are P4f-6's.
+   * [SelectiveErasing] for `J`/`K`, [TerminalReporting] for `n`, and [ModeSwitching] for the rest.
+   * The `$` intermediate leads to DECRQM and every other one still ends the sequence.
    */
   private fun inPrivateParameter(codePoint: Int): EscapeState = when {
     parameters.accept(codePoint) -> EscapeState.PrivateParameter
+    codePoint == MODE_QUERY_BYTE -> EscapeState.ModeQuery
     codePoint in INTERMEDIATE_BYTE_RANGE -> EscapeState.UnsupportedIntermediateByte
     selective.apply(codePoint, parameters) -> EscapeState.Ground
+    reporting.applyPrivate(codePoint, parameters) -> EscapeState.Ground
     else -> {
       switches.applyPrivate(codePoint, parameters)
       EscapeState.Ground
     }
   }
 
-  /**
-   * `ESC [ '`, whose two final bytes are DECIC and DECDC. Anything else ends the sequence, which is
-   * the reference's `unknownSequence` arm.
-   */
-  private fun inColumnEdit(codePoint: Int): EscapeState {
-    margins.applyColumnEdit(codePoint, parameters)
-    return EscapeState.Ground
-  }
-
-  /** `ESC [ "`, whose one final byte is DECSCA. Anything else ends the sequence. */
-  private fun inProtectionAttribute(codePoint: Int): EscapeState {
-    selective.applyProtection(codePoint, parameters)
-    return EscapeState.Ground
-  }
-
-  /** `ESC [ $`, whose final byte names a rectangular operation. One nothing claims is swallowed. */
-  private fun inRectangularArea(codePoint: Int): EscapeState {
-    if (!rectangleAttributes.apply(codePoint, parameters)) rectangles.apply(codePoint, parameters)
+  /** `ESC [ ? … $`, whose one final byte is DECRQM. Anything else ends the sequence. */
+  private fun inModeQuery(codePoint: Int): EscapeState {
+    if (codePoint == MODE_QUERY) reporting.replyModeState(parameters)
     return EscapeState.Ground
   }
 
   /**
-   * `ESC [ *`, whose one final byte is DECSACE. `2` means a rectangle and `0`/`1` a stream;
-   * anything else is an unknown sequence, and so is a final byte that is not `x`.
+   * `ESC [ >`, whose one final byte is DA2. **Parameters are collected and then ignored** - the
+   * reference's `doCsiBiggerThan` falls through to `parseArg`, and its `c` arm reads none of them,
+   * so `CSI > 0 c` and `CSI > c` answer alike. Its other arm, `m`, sets xterm resources nothing
+   * here has, and is swallowed with everything else.
+   *
+   * **Not part of [actOnIntermediate]'s table**: this one goes on collecting, where those five do
+   * not.
    */
-  private fun inAttributeChangeExtent(codePoint: Int): EscapeState {
+  private fun inSecondaryAttributes(codePoint: Int): EscapeState = when {
+    parameters.accept(codePoint) -> EscapeState.SecondaryAttributes
+    else -> {
+      if (codePoint == SECONDARY_ATTRIBUTES) reporting.replySecondaryAttributes()
+      EscapeState.Ground
+    }
+  }
+
+  /**
+   * The five states an **intermediate byte** leads to. Each collects no further parameters, acts on
+   * exactly one final byte and returns to the ground state; a byte none of them claims ends the
+   * sequence, which is the reference's `unknownSequence` arm.
+   *
+   * One table rather than five wrappers, because that is what it is - the state machine is this
+   * class's job and what each sequence *does* belongs to the appliers this dispatches to.
+   */
+  private fun actOnIntermediate(state: EscapeState, codePoint: Int): EscapeState {
+    when (state) {
+      // `'` - DECIC and DECDC.
+      EscapeState.ColumnEdit -> margins.applyColumnEdit(codePoint, parameters)
+      // `"` - DECSCA.
+      EscapeState.ProtectionAttribute -> selective.applyProtection(codePoint, parameters)
+      // `$` - the rectangles, attributes first since they share the `r` and `t` final bytes.
+      EscapeState.RectangularArea ->
+        if (!rectangleAttributes.apply(codePoint, parameters)) rectangles.apply(codePoint, parameters)
+      // `*` - DECSACE, whose `2` means a rectangle and `0`/`1` a stream.
+      EscapeState.AttributeChangeExtent -> applyAttributeChangeExtent(codePoint)
+      // `?` … `$` - DECRQM.
+      EscapeState.ModeQuery -> if (codePoint == MODE_QUERY) reporting.replyModeState(parameters)
+      else -> Unit
+    }
+    return EscapeState.Ground
+  }
+
+  /** DECSACE. A parameter outside `0..2`, and any final byte but `x`, is an unknown sequence. */
+  private fun applyAttributeChangeExtent(codePoint: Int) {
     val extent = parameters.at(0, default = 0, treatZeroAsDefault = false)
     if (codePoint == ATTRIBUTE_EXTENT && extent in STREAM_EXTENT..RECTANGLE_EXTENT) {
       screen.rectangularAttributeChange = extent == RECTANGLE_EXTENT
     }
-    return EscapeState.Ground
   }
 
   /**
@@ -227,11 +264,15 @@ class EscapeParser(private val screen: TerminalScreen) {
     /** `?`, which introduces a DEC private mode - the one private parameter byte acted on here. */
     const val PRIVATE_MODE_BYTE = '?'.code
 
-    /**
-     * The private parameter bytes left over. `>` gets a state of its own at **P4f-6**, where the
-     * secondary device attributes it introduces can be written back to the shell; `<` and `=` are
-     * unimplemented upstream as well.
-     */
+    /** `$` after a `?`, which introduces DECRQM, and the one final byte it takes. */
+    const val MODE_QUERY_BYTE = '$'.code
+    const val MODE_QUERY = 'p'.code
+
+    /** `>`, which introduces DA2, and the one final byte it takes. */
+    const val SECONDARY_ATTRIBUTES_BYTE = '>'.code
+    const val SECONDARY_ATTRIBUTES = 'c'.code
+
+    /** The private parameter bytes left over. `<` and `=` are unimplemented upstream as well. */
     val PRIVATE_PARAMETER_BYTES = '<'.code..'?'.code
 
     /** `'`, which introduces DECIC and DECDC - both margin arithmetic, so both land at P4f-5a. */

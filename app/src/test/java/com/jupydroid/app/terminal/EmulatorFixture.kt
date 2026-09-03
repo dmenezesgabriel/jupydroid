@@ -15,6 +15,18 @@ internal class RecordingNotices : TerminalNotices {
   }
 }
 
+/** A [TerminalReplies] that keeps what was written back, standing in for the reference's mock. */
+internal class RecordingReplies : TerminalReplies {
+  private val written = StringBuilder()
+
+  override fun reply(text: String) {
+    written.append(text)
+  }
+
+  /** What has been written since the last read, which is how `TerminalTestCase` reads it too. */
+  fun takeReply(): String = written.toString().also { written.clear() }
+}
+
 /**
  * The emulator under test plus the assertions its reference suites are written in.
  *
@@ -28,7 +40,8 @@ internal class RecordingNotices : TerminalNotices {
  */
 internal class EmulatorFixture(private val columns: Int, private val rows: Int) {
   val notices = RecordingNotices()
-  val emulator = TerminalEmulator(columns, rows, notices)
+  val replies = RecordingReplies()
+  val emulator = TerminalEmulator(columns, rows, notices, replies)
   private val screen get() = emulator.screen
 
   fun enterString(text: String): EmulatorFixture = append(text.toByteArray(Charsets.UTF_8))
@@ -75,6 +88,13 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
     val available = screen.grid.activeTranscriptRows
     assertTrue("asked for ${rows.size} history rows, only $available are live", available >= rows.size)
     rows.forEachIndexed { index, expected -> assertLineIs(-index - 1, expected) }
+    return this
+  }
+
+  /** `TerminalTestCase.assertEnteringStringGivesResponse`: what the shell gets back for one input. */
+  fun assertReplyTo(input: String, expected: String): EmulatorFixture {
+    enterString(input)
+    assertEquals("reply to ${input.replace("\u001B", "ESC")}", expected, replies.takeReply())
     return this
   }
 

@@ -112,11 +112,17 @@ class EscapeSequenceTest {
     terminal(5, 2).enterString("$ESC[2;3rx").assertLineIs(0, "x    ")
   }
 
-  /** A private parameter byte (`?`, `>`, `<`, `=`) is swallowed to its final byte. P4f-4 implements them. */
+  /**
+   * A private parameter byte (`?`, `>`, `<`, `=`) is swallowed to its final byte and never drawn.
+   * `?` is P4f-4's and `>` is P4f-6a's, and **both still draw nothing** - what changed for them is
+   * that something now happens off the screen. `<` and `=` are unimplemented upstream too.
+   */
   @Test
   fun aPrivateParameterByteIsSwallowedToItsFinalByte() {
     terminal(5, 2).enterString("$ESC[?7lx").assertLineIs(0, "x    ")
     terminal(5, 2).enterString("$ESC[>0cx").assertLineIs(0, "x    ")
+    terminal(5, 2).enterString("$ESC[<0cx").assertLineIs(0, "x    ")
+    terminal(5, 2).enterString("$ESC[=0cx").assertLineIs(0, "x    ")
   }
 
   /** So is an intermediate byte the reference gives a state of its own. P4f-3 and P4f-5 implement them. */

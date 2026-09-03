@@ -292,6 +292,35 @@ class ScrollRegionTest {
     assertEquals(4 to 1, cursorOf(scrolled))
   }
 
+  /**
+   * **A declared divergence, and the third reference crash this phase has found.** DECSLRM narrows
+   * the right margin without moving the cursor, and CHA clamps to the *screen*, so the cursor can
+   * sit right of its own margin. The reference then asks only whether it is on the margin's last
+   * column; a wide character written past that reaches the screen's last column and throws
+   * `Cannot put wide character in last column`.
+   *
+   * **The two controls are the reference's** - what it does when the margin does not interfere -
+   * and the first case is **ours**, because the reference has no answer there: it throws. It wraps
+   * into the margin region and the cursor stops at the margin rather than two columns on, which is
+   * the same rule that governs every other write. Expectations off `RefScreen` for the controls;
+   * see `evidence/p4-terminal/wide-character-outside-the-right-margin.md`.
+   */
+  @Test
+  fun aWideCharacterRightOfTheRightMarginWrapsRatherThanThrowing() {
+    val koala = "\uD83D\uDC28"
+    val narrowed = terminal(10, 2).enterString("$ESC[?69h$ESC[1;2s$ESC[10G$koala")
+    narrowed.assertLineIs(0, "          ").assertLineIs(1, "$koala        ")
+    assertEquals(1 to 1, cursorOf(narrowed))
+
+    val unbounded = terminal(10, 2).enterString("$ESC[10G$koala")
+    unbounded.assertLineIs(0, "          ").assertLineIs(1, "$koala        ")
+    assertEquals(1 to 2, cursorOf(unbounded))
+
+    val notWrapping = terminal(10, 2).enterString("$ESC[?7l$ESC[10G$koala")
+    notWrapping.assertLineIs(0, "          ").assertLineIs(1, "          ")
+    assertEquals(0 to 9, cursorOf(notWrapping))
+  }
+
   private companion object {
     const val ESC = "\u001B"
   }

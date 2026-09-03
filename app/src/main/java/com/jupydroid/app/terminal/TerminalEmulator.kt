@@ -12,7 +12,7 @@ package com.jupydroid.app.terminal
  * [EscapeParser].
  *
  * ```
- * val emulator = TerminalEmulator(columns = 80, rows = 24, notices = Silent)
+ * val emulator = TerminalEmulator(columns = 80, rows = 24, notices = Silent, replies = Ignored)
  * "ls\r\n".toByteArray().let { emulator.append(it, it.size) }
  * ```
  */
@@ -20,11 +20,15 @@ class TerminalEmulator(
   columns: Int,
   rows: Int,
   private val notices: TerminalNotices,
+  replies: TerminalReplies,
   transcriptRows: Int = DEFAULT_TRANSCRIPT_ROWS,
+  cellWidthPixels: Int = DEFAULT_CELL_WIDTH_PIXELS,
+  cellHeightPixels: Int = DEFAULT_CELL_HEIGHT_PIXELS,
 ) {
   val screen = TerminalScreen(columns, rows, totalRowsFor(transcriptRows))
   private val decoder = Utf8Decoder()
-  private val parser = EscapeParser(screen)
+  private val reporting = TerminalReporting(screen, replies, cellWidthPixels, cellHeightPixels)
+  private val parser = EscapeParser(screen, reporting)
 
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
   fun append(buffer: ByteArray, length: Int) {
@@ -102,6 +106,15 @@ class TerminalEmulator(
      * this app chooses between them, because P4h owns the scrollback.
      */
     const val DEFAULT_TRANSCRIPT_ROWS = 2000
+
+    /**
+     * What `CSI 14 t` and `CSI 16 t` report a cell as when nobody has measured one. The
+     * reference takes these as constructor arguments too, and its own tests pass 13 by 15;
+     * **P4i is what measures a real cell** and passes it here.
+     */
+    const val DEFAULT_CELL_WIDTH_PIXELS = 13
+    const val DEFAULT_CELL_HEIGHT_PIXELS = 15
+
     const val MIN_TRANSCRIPT_ROWS = 100
     const val MAX_TRANSCRIPT_ROWS = 50_000
 
