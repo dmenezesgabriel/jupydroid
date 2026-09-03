@@ -87,9 +87,10 @@ class EscapeParser(
   private val reporting: TerminalReporting,
   title: WindowTitle,
   colorCommands: ColorCommands,
+  clipboardCommand: ClipboardCommand,
 ) {
   private val parameters = EscapeParameters()
-  private val strings = OperatingSystemCommand(title, colorCommands)
+  private val strings = OperatingSystemCommand(title, colorCommands, clipboardCommand)
   private val escapes = EscapeDispatch(screen, strings)
   private val cursors = CursorAddressing(screen)
   private val edits = ScreenEditing(screen)

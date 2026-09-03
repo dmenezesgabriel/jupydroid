@@ -6,9 +6,9 @@ package com.jupydroid.app.terminal
  *
  * Transcribed from `TerminalEmulator.doOsc`, `doOscEsc`, `collectOSCArgs` and the header parse of
  * `doOscSetTextParameters` (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). **The window
- * title is the only number acted on here**; the colours are [ColorCommands]' and the clipboard is
- * P4f-6b-3's, and a number none of them claims is dropped - the frame P4f-2 left for the CSI final
- * bytes.
+ * title is the only number acted on here**; the colours are [ColorCommands]', the clipboard is
+ * [ClipboardCommand]'s, and a number none of them claims is dropped - the frame P4f-2 left for the
+ * CSI final bytes.
  *
  * **Two terminators, and neither is a byte the emulator can dispatch blindly.** A `BEL` ends the
  * string here and rings the bell everywhere else, and an `ESC` is the first half of `ESC \` here
@@ -23,7 +23,11 @@ package com.jupydroid.app.terminal
  * strings.collect(7)                             // BEL: the title is set
  * ```
  */
-class OperatingSystemCommand(private val title: WindowTitle, private val colorCommands: ColorCommands) {
+class OperatingSystemCommand(
+  private val title: WindowTitle,
+  private val colorCommands: ColorCommands,
+  private val clipboardCommand: ClipboardCommand,
+) {
   private val argument = StringBuilder()
 
   /** `ESC ]`: the buffer is emptied and the string starts, which is upstream's `setLength(0)`. */
@@ -82,9 +86,17 @@ class OperatingSystemCommand(private val title: WindowTitle, private val colorCo
     return EscapeState.Ground
   }
 
-  /** The title's numbers, then the colours'; a number neither claims is logged upstream and lost. */
+  /**
+   * The title's numbers, then the colours', then the clipboard's; a number none of them claims is
+   * logged upstream and lost.
+   */
   private fun apply(value: Int, textParameter: String, terminator: String) {
-    if (value in SET_TITLE_CODES) title.set(textParameter) else colorCommands.apply(value, textParameter, terminator)
+    when {
+      value in SET_TITLE_CODES -> title.set(textParameter)
+      colorCommands.apply(value, textParameter, terminator) -> Unit
+      value == CLIPBOARD -> clipboardCommand.apply(textParameter)
+      else -> Unit
+    }
   }
 
   /**
@@ -118,5 +130,8 @@ class OperatingSystemCommand(private val title: WindowTitle, private val colorCo
 
     /** `0` sets the icon name and the window title, `1` the icon name, `2` the window title. */
     val SET_TITLE_CODES = 0..2
+
+    /** `OSC 52`, Manipulate Selection Data. */
+    const val CLIPBOARD = 52
   }
 }

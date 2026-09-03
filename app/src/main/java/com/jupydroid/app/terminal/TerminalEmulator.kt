@@ -32,7 +32,13 @@ class TerminalEmulator(
   val title = WindowTitle(notices)
   private val decoder = Utf8Decoder()
   private val reporting = TerminalReporting(screen, replies, title, cellWidthPixels, cellHeightPixels)
-  private val parser = EscapeParser(screen, reporting, title, ColorCommands(screen.colors, replies))
+  private val parser = EscapeParser(
+    screen,
+    reporting,
+    title,
+    ColorCommands(screen.colors, replies),
+    ClipboardCommand(notices),
+  )
 
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
   fun append(buffer: ByteArray, length: Int) {

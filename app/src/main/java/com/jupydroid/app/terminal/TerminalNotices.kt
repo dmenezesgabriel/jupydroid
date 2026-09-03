@@ -13,6 +13,7 @@ package com.jupydroid.app.terminal
  *   override fun onBell() = Unit
  *   override fun onTitleChanged(oldTitle: String?, newTitle: String?) = Unit
  *   override fun onColorsChanged() = Unit
+ *   override fun onClipboardCopy(text: String) = Unit
  * }
  * ```
  */
@@ -33,4 +34,7 @@ interface TerminalNotices {
    * spec was a colour, so `ESC ] 4 ; 5 ; ? BEL` leaves the table alone and still reports.
    */
   fun onColorsChanged()
+
+  /** `OSC 52` decoded a payload and it should be copied to the system clipboard. */
+  fun onClipboardCopy(text: String)
 }

@@ -4273,6 +4273,35 @@ expectations are **ours rather than the reference's** cover them -
 `OperatingSystemColorsTest.aResetSkipsATokenThatIsNotAnIndexRatherThanWalkingOffTheString` and
 `aResetSkipsAnIndexOutsideTheTableRatherThanThrowing`.
 
+### A wrapped clipboard payload decodes because the line feed never reaches the decoder (P4f-6b-3)
+
+**The obvious explanation was wrong, and the actual one was already settled at P4f-6b-1.** Measured
+on the reference: `OSC 52 ; c ; <base64 wrapped across two lines> BEL` decodes and copies correctly,
+which looks like evidence that the Base64 decoder tolerates embedded line breaks - and the first
+implementation used `java.util.Base64.getMimeDecoder()` on exactly that reasoning.
+
+**It is the wrong layer.** A `\n` inside an `OSC` string is a C0 control character, and
+`TerminalEmulator.handleControlCharacter` dispatches `LF`/`VT`/`FF` to `screen.newLine()`
+**before** the string collector ever sees the byte - the same guard P4f-6b-1 wrote for a carriage
+return inside a title. So the text that reaches [ClipboardCommand.apply] is already newline-free;
+the wrapped lines were concatenated by the C0 pass-through, not tolerated by the decoder.
+Measured: the same input moves the cursor to row 1, column 0 - the screen-side evidence that the
+byte was consumed there and never collected.
+
+`ClipboardCommand` uses `java.util.Base64.getDecoder()` - the strict, RFC 4648 decoder, matching
+upstream's `android.util.Base64.decode(str, Base64.DEFAULT)` in the harness's own shim
+(`harness/shims/Base64.java`, itself `java.util.Base64.getDecoder()`). **`getMimeDecoder()` would
+have been the wrong fix for a real symptom**: it does not merely tolerate line breaks, it silently
+discards *any* character outside the alphabet, so `OSC 52 ; c ; not_valid_base64!!! BEL` would
+decode instead of being swallowed - a genuine mismatch that the OSC-52 differential entries alone
+would not have caught, since none of the alphabet's invalid forms mixes letters with the illegal
+punctuation this one has.
+
+**This forbids** reaching for a lenient decoder to explain behaviour observed through the whole
+pipeline. The layer that actually explains it - the string collector's C0 pass-through - is
+`OperatingSystemCommand.collect`'s, and it is shared with the title and the colours; a future OSC
+arm gets the same newline-stripping for free and does not need to special-case it.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)

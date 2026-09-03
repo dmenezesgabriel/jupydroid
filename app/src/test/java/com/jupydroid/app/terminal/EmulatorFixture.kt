@@ -31,6 +31,13 @@ internal class RecordingNotices : TerminalNotices {
   override fun onColorsChanged() {
     colorsChanged++
   }
+
+  /** Every payload copied, in order - `MockTerminalOutput.clipboardPuts`. */
+  val clipboardCopies: MutableList<String> = mutableListOf()
+
+  override fun onClipboardCopy(text: String) {
+    clipboardCopies += text
+  }
 }
 
 /** A [TerminalReplies] that keeps what was written back, standing in for the reference's mock. */
