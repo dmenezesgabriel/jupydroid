@@ -16,17 +16,21 @@ package com.jupydroid.app.terminal
  * lower-left is a cursor motion with no grid in it, so it is [TerminalCursor.moveToLowerLeft].
  * detekt's `TooManyFunctions` asked the question at P4f-3a; `docs/DECISIONS.md` records the answer.
  *
- * **What is not here, and which sub-step has it**: `P` (DCS) is P4f-6c and `_` (APC) is P4f-6d.
- * Until then each ends the sequence taking only itself, which is what the reference does with an
- * introducer it does not implement.
+ * **What is not here, and which sub-step has it**: `_` (APC) is P4f-6d. Until then it ends the
+ * sequence taking only itself, which is what the reference does with an introducer it does not
+ * implement.
  *
  * ```
- * val dispatch = EscapeDispatch(screen, strings)
+ * val dispatch = EscapeDispatch(screen, strings, deviceControl)
  * dispatch.introduce('7'.code)   // DECSC: the cursor is put away
  * dispatch.introduce(']'.code)   // OSC: the string state, with an empty buffer
  * ```
  */
-class EscapeDispatch(private val screen: TerminalScreen, private val strings: OperatingSystemCommand) {
+class EscapeDispatch(
+  private val screen: TerminalScreen,
+  private val strings: OperatingSystemCommand,
+  private val deviceControl: DeviceControlString,
+) {
   private val grid get() = screen.grid
   private val cursor get() = screen.cursor
 
@@ -44,6 +48,7 @@ class EscapeDispatch(private val screen: TerminalScreen, private val strings: Op
     RIGHT_PARENTHESIS -> EscapeState.DesignateG1
     CONTROL_SEQUENCE_INTRODUCER -> EscapeState.ControlSequence
     OPERATING_SYSTEM_COMMAND -> strings.startString()
+    DEVICE_CONTROL_STRING -> deviceControl.startString()
     else -> {
       applyCommand(codePoint)
       EscapeState.Ground
@@ -170,6 +175,9 @@ class EscapeDispatch(private val screen: TerminalScreen, private val strings: Op
 
     /** `]`. The buffer is emptied on the way in, which is why this arm is not just a state. */
     const val OPERATING_SYSTEM_COMMAND = ']'.code
+
+    /** `P`. Emptied on the way in too, same as `]`. */
+    const val DEVICE_CONTROL_STRING = 'P'.code
 
     /** The final byte of `ESC ( C` that means DEC Special Graphics rather than a Latin set. */
     const val DEC_SPECIAL_GRAPHICS = '0'.code

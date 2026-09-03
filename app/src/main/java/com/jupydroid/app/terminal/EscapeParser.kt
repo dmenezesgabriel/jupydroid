@@ -58,6 +58,12 @@ enum class EscapeState {
 
   /** `ESC ] … ESC` - either the `\\` that ends the string, or two more bytes for it. */
   OperatingSystemCommandEscape,
+
+  /**
+   * `ESC P` - a Device Control String, collecting until a bare `\\` - **no `ESC` needed**, since
+   * the reference drops one outright rather than looking ahead the way `OSC` does.
+   */
+  DeviceControlString,
 }
 
 /**
@@ -88,10 +94,11 @@ class EscapeParser(
   title: WindowTitle,
   colorCommands: ColorCommands,
   clipboardCommand: ClipboardCommand,
+  private val deviceControl: DeviceControlString,
 ) {
   private val parameters = EscapeParameters()
   private val strings = OperatingSystemCommand(title, colorCommands, clipboardCommand)
-  private val escapes = EscapeDispatch(screen, strings)
+  private val escapes = EscapeDispatch(screen, strings, deviceControl)
   private val cursors = CursorAddressing(screen)
   private val edits = ScreenEditing(screen)
   private val switches = ModeSwitching(screen)
@@ -113,6 +120,15 @@ class EscapeParser(
    * reference rings the bell and restarts on an `ESC`, because its guards read `== ESC_OSC`.
    */
   val isCollectingString: Boolean get() = state == EscapeState.OperatingSystemCommand
+
+  /**
+   * Whether an `ESC` inside the sequence in progress is **swallowed rather than starting a new
+   * one** - true only in [EscapeState.DeviceControlString], where the reference's guard reads
+   * `== ESC_P` and drops the byte outright, unlike [isCollectingString]'s `OSC` lookahead, which
+   * re-buffers it. A guard of its own rather than folded into that one, per `docs/DECISIONS.md`,
+   * "P4f-6c and P4f-6d may not widen this predicate".
+   */
+  val isDeviceControlString: Boolean get() = state == EscapeState.DeviceControlString
 
   /** `ESC` arrived: begin a sequence, abandoning any already in progress. */
   fun start() {
@@ -144,6 +160,7 @@ class EscapeParser(
       EscapeState.SecondaryAttributes -> inSecondaryAttributes(codePoint)
       EscapeState.OperatingSystemCommand -> strings.collect(codePoint)
       EscapeState.OperatingSystemCommandEscape -> strings.afterEscape(codePoint)
+      EscapeState.DeviceControlString -> deviceControl.collect(codePoint)
       EscapeState.UnsupportedParameterByte, EscapeState.UnsupportedIntermediateByte -> afterUnsupportedByte(codePoint)
     }
     return true

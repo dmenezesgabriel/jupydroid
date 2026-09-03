@@ -4821,3 +4821,49 @@ reference's constructor calls `reset()` and reports one before the stream sends 
 transcription builds its table without reporting. `EmulatorDump` zeroes the counter after
 construction so both sides count what the stream caused. Making the emulator fire a notice at
 construction to match a counter would have been changing the subject to suit the instrument.
+
+### The termcap table stops at what `DeviceControlStringTest` exercises (P4f-6c)
+
+`DCS + q` answers a termcap/terminfo name through the reference's `KeyHandler.getCodeFromTermcap`,
+which is backed by a ~60-entry `TERMCAP_TO_KEYCODE` table keyed on `android.view.KeyEvent`
+constants. Most of those answers - every arrow, function and keypad key - also read the
+cursor/keypad application modes, which this package already stores (`ScreenModes.kt`'s
+`DecMode.APPLICATION_CURSOR_KEYS`/`APPLICATION_KEYPAD`) for exactly this reason:
+`EscapeDispatch.kt`'s own comment on `APPLICATION_KEYPAD` says *"The flag is all there is until
+P4j sends a key."* `terminal/` has no Android key identity to resolve a keycode from, and won't
+until P4j gives it one.
+
+`"kB"`, back-tab, is the one name `DeviceControlStringTest.testReportKeys` exercises, and it
+resolves to `"\033[Z"` **regardless of either mode** - `KeyHandler.getCode`'s `KEYCODE_TAB` arm
+branches on `keyMode`, not on `cursorApp`/`keypadApplication`. So it is answered now, alongside
+`Co`/`colors`/`TN`/`name`, and every other capability name falls to the reference's own "invalid
+request" branch (`DCS 0 + r <name> ST`) - the faithful answer for a name this package cannot yet
+resolve, not a silently dropped one. The full table is real future work, gated on P4j giving it a
+key to resolve from, not on anything DCS-shaped.
+
+### A malformed hex pair is skipped, not thrown (P4f-6c)
+
+The reference decodes a `+q` capability name two hex digits at a time inside a
+`try { ... } catch (NumberFormatException e) { ...; continue; }` - a pair that fails to parse is
+silently skipped and the rest of the name still decodes. A first Kotlin transcription used
+`String.toInt(radix)`, which throws on exactly that input rather than returning nothing, and
+nothing in `DeviceControlStringTest`'s own three transcribed methods sends a malformed pair to
+catch it - reading the reference's control flow, not just its happy path, is what found this
+before it shipped rather than after. Fixed with `toIntOrNull` and `mapNotNull`, which is what the
+catch-and-continue *is*; `aMalformedHexPairAnswersInvalidRatherThanCrashing` pins it, and
+`RefScreen` confirms the reference's own answer for a malformed pair is `DCS 0 + r <raw> ST` - the
+same "invalid request" a well-formed but unrecognised name gets, since the decoded name comes back
+empty either way.
+
+### An anchor moved by a later refactor is re-pointed at the same behaviour, not deleted (P4f-6c)
+
+P4f-6c's own DCS guard - an `ESC` inside `ESC P` is dropped rather than looked ahead - pushed
+`TerminalEmulator.handleControlCharacter`'s `when` over detekt's cyclomatic-complexity cap once it
+grew a third branch. The fix is the same shape P4e-3's `RowText`/P4e-4's `RowStyles` split used:
+the `ESC` case moved into a `private fun onEscape()` of its own, branch count unchanged, only where
+it is counted. That moved the exact line an existing mutation
+(`"an ESC inside an OSC string starts a new sequence instead of opening the terminator"`) targeted.
+Per this file's own rule (`mutations.py`'s docstring: *"a moved [anchor] stops the sweep rather
+than being reported as a `SKIPPED` an hour later"*), it is re-pointed at the equivalent line inside
+`onEscape()` rather than dropped from the table - the same mutation, the same detection, the same
+label, a different `find`.

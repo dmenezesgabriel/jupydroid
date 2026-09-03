@@ -38,6 +38,7 @@ class TerminalEmulator(
     title,
     ColorCommands(screen.colors, replies),
     ClipboardCommand(notices),
+    DeviceControlString(replies),
   )
 
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
@@ -75,9 +76,12 @@ class TerminalEmulator(
    *
    * **Two of them ask the state first, and only two.** A `BEL` ends an `OSC` string where it would
    * otherwise ring, and an `ESC` opens that string's terminator where it would otherwise start a
-   * new sequence - which is the reference's `case 7` and `case 27`. Every other control keeps
-   * acting on the screen while a string collects, measured rather than assumed: a carriage return
-   * inside an `OSC` returns the carriage and is not collected into the title.
+   * new sequence - which is the reference's `case 7` and `case 27`. **`ESC` also asks a second
+   * state**, still at the same `case 27`: inside a `DCS` string it is dropped outright rather than
+   * looked ahead, since that reference guard is `mEscapeState == ESC_P` - a state of its own, not a
+   * widening of the `OSC` one, per `docs/DECISIONS.md`. Every other control keeps acting on the
+   * screen while a string collects, measured rather than assumed: a carriage return inside an `OSC`
+   * returns the carriage and is not collected into the title.
    */
   private fun processCodePoint(codePoint: Int) {
     if (handleControlCharacter(codePoint)) return
@@ -98,10 +102,24 @@ class TerminalEmulator(
       CR -> screen.carriageReturn()
       SO -> screen.charset.mapToGL(1)
       SI -> screen.charset.mapToGL(0)
-      ESC -> if (parser.isCollectingString) parser.accept(ESC) else parser.start()
+      ESC -> onEscape()
       else -> return false
     }
     return true
+  }
+
+  /**
+   * `case 27`. Inside an `OSC` string this is the first half of its terminator; inside a `DCS`
+   * string it is dropped outright, per [EscapeParser.isDeviceControlString]'s own KDoc; otherwise
+   * it starts a new sequence. Split out of [handleControlCharacter] to keep that `when` under
+   * detekt's cyclomatic-complexity cap - the branch count did not change, only where it is counted.
+   */
+  private fun onEscape() {
+    when {
+      parser.isCollectingString -> parser.accept(ESC)
+      parser.isDeviceControlString -> Unit
+      else -> parser.start()
+    }
   }
 
   /**
