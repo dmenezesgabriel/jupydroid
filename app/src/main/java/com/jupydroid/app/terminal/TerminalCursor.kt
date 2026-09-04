@@ -19,7 +19,7 @@ package com.jupydroid.app.terminal
  * cursor.moveTo(row = 5, column = 10)
  * ```
  */
-class TerminalCursor(private val columns: Int, private val rows: Int) {
+class TerminalCursor(private var columns: Int, private var rows: Int) {
   /** 0 is the top row of the screen. */
   var row: Int = 0
 
@@ -94,5 +94,27 @@ class TerminalCursor(private val columns: Int, private val rows: Int) {
     leftMargin = 0
     bottomMargin = rows
     rightMargin = columns
+  }
+
+  /**
+   * `TerminalEmulator.resize`'s two conditionals (`:395-408`): [rows] and its DECSTBM margins reset
+   * together when the row count actually changes, [columns] and its DECSLRM margins together with
+   * [tabs]' rebuild when the column count does. Neither [row] nor [column] is touched here - the
+   * reference does not clamp them in this method either. What [TerminalGrid.resize] returns is what
+   * [TerminalScreen.resize] assigns back; a second clamp here would only repeat the mistake
+   * `docs/DECISIONS.md`'s P4h-2 entry already found and centralised away from.
+   */
+  fun resize(newColumns: Int, newRows: Int) {
+    if (rows != newRows) {
+      rows = newRows
+      topMargin = 0
+      bottomMargin = rows
+    }
+    if (columns != newColumns) {
+      columns = newColumns
+      leftMargin = 0
+      rightMargin = columns
+      tabs.resize(columns)
+    }
   }
 }

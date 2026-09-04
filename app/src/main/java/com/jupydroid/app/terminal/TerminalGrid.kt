@@ -49,6 +49,9 @@ class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
   /** The visible screen's row count. Mutable only through [resize]. */
   val screenRows: Int get() = ring.screenRows
 
+  /** `mMainBuffer.mTotalRows`'s equivalent read: the ring's current capacity, scrollback included. */
+  val totalRows: Int get() = ring.totalRows
+
   /** How many rows of scrollback are live. */
   val activeTranscriptRows: Int get() = ring.activeTranscriptRows
 

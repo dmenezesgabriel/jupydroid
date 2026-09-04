@@ -17,8 +17,8 @@ package com.jupydroid.app.terminal
  * cursor.tabs.next(1)   // the column a single HT would reach
  * ```
  */
-class TabStops(private val cursor: TerminalCursor, private val columns: Int) {
-  private val stops = BooleanArray(columns)
+class TabStops(private val cursor: TerminalCursor, private var columns: Int) {
+  private var stops = BooleanArray(columns)
 
   init {
     reset()
@@ -60,6 +60,20 @@ class TabStops(private val cursor: TerminalCursor, private val columns: Int) {
   /** A stop every eight columns, and never at column 0. */
   fun reset() {
     for (candidate in 0 until columns) stops[candidate] = candidate % TAB_WIDTH == 0 && candidate != 0
+  }
+
+  /**
+   * `TerminalEmulator.resize`'s tab-stop rebuild (`:399-403`): a fresh eight-column default at
+   * [newColumns], with whatever was actually set below `min(columns, newColumns)` copied back over
+   * it - the reference's own order, `setDefaultTabStops()` then `arraycopy` the old array's prefix
+   * on top, so a custom stop below the old width survives and everything past it reverts to default.
+   */
+  fun resize(newColumns: Int) {
+    val old = stops
+    columns = newColumns
+    stops = BooleanArray(newColumns)
+    reset()
+    old.copyInto(stops, 0, 0, minOf(old.size, newColumns))
   }
 
   private companion object {

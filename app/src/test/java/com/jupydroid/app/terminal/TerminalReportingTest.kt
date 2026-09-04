@@ -31,25 +31,37 @@ class TerminalReportingTest {
   }
 
   /**
-   * `testReportTerminalSize`'s first case. **Its loop over nine widths and nine heights needs
-   * `resize`, which is P4h's**, so the row that follows this one there is deferred rather than
-   * quietly dropped.
+   * `testReportTerminalSize`, whole: the fixed 5x5 case, then every width and height from 3 to
+   * 11 - P4h-3's own `resize` closes the loop this used to defer.
    */
   @Test
   fun theTextAreaIsReportedInCharacters() {
-    terminal(5, 5).assertReplyTo("$ESC[18t", "$ESC[8;5;5t")
     terminal(5, 5).assertReplyTo("$ESC[19t", "$ESC[9;5;5t")
+
+    val fixture = terminal(5, 5)
+    fixture.assertReplyTo("$ESC[18t", "$ESC[8;5;5t")
+    for (width in 3..11) {
+      for (height in 3..11) {
+        fixture.resize(width, height)
+        fixture.assertReplyTo("$ESC[18t", "$ESC[8;$height;${width}t")
+      }
+    }
   }
 
   /**
-   * `testReportPixelSize`'s first two cases, on the reference's own default cell of 13 by 15 - and
-   * the reports are `rows * cellHeight` by `columns * cellWidth`, in that order. The resize half is
-   * P4h's, and **P4i is what measures a real cell** and passes it to the emulator.
+   * `testReportPixelSize`'s first two blocks, on the reference's own default cell of 13 by 15, and
+   * its `resize(23, 33)` leg - the reports are `rows * cellHeight` by `columns * cellWidth`, in
+   * that order. **The third leg, a cell-pixel-only resize, stays P4i's** - it is what measures a
+   * real cell and passes it to the emulator, which this entry point still takes no parameter for.
    */
   @Test
   fun theWindowAndCellAreReportedInPixels() {
-    terminal(5, 5).assertReplyTo("$ESC[14t", "$ESC[4;75;65t")
-    terminal(5, 5).assertReplyTo("$ESC[16t", "$ESC[6;15;13t")
+    val fixture = terminal(3, 3)
+    fixture.assertReplyTo("$ESC[14t", "$ESC[4;45;39t")
+    fixture.assertReplyTo("$ESC[16t", "$ESC[6;15;13t")
+    fixture.resize(23, 33)
+    fixture.assertReplyTo("$ESC[14t", "$ESC[4;495;299t")
+    fixture.assertReplyTo("$ESC[16t", "$ESC[6;15;13t")
   }
 
   /** The window state and position are fixed answers; a parameter nothing claims is silent. */

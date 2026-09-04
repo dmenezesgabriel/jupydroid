@@ -77,8 +77,34 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
     return this
   }
 
+  /** `TerminalTestCase.resize`: resize, then re-check the invariants a resize must still hold. */
+  fun resize(columns: Int, rows: Int): EmulatorFixture {
+    emulator.resize(columns, rows)
+    assertInvariants()
+    return this
+  }
+
+  /** `TerminalTestCase.getStyleAt`, for testing only - what a cell is packed with. */
+  fun getStyleAt(row: Int, column: Int): CellStyle = screen.grid.styleAt(row, column)
+
+  /** `TerminalTestCase.assertLineWraps`: whether each row, in order from the top, wraps into the next. */
+  fun assertLineWraps(vararg lines: Boolean): EmulatorFixture {
+    lines.forEachIndexed { row, expected -> assertEquals("line $row", expected, screen.grid.rowAt(row).lineWrap) }
+    return this
+  }
+
+  /** `TerminalTestCase.assertForegroundIndices`: one palette index expected per cell, row by row. */
+  fun assertForegroundIndices(vararg lines: IntArray): EmulatorFixture {
+    lines.forEachIndexed { row, expected ->
+      expected.forEachIndexed { column, expectedColor ->
+        assertEquals("line $row, column $column", expectedColor, getStyleAt(row, column).foreColor)
+      }
+    }
+    return this
+  }
+
   fun assertLinesAre(vararg lines: String): EmulatorFixture {
-    assertEquals("screen height", rows, lines.size)
+    assertEquals("screen height", screen.rows, lines.size)
     lines.forEachIndexed { row, expected -> assertLineIs(row, expected) }
     return this
   }
@@ -151,10 +177,10 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
    */
   fun assertInvariants(): EmulatorFixture {
     val seen = mutableSetOf<TerminalRow>()
-    for (row in -screen.grid.activeTranscriptRows until rows) {
+    for (row in -screen.grid.activeTranscriptRows until screen.rows) {
       val line = screen.grid.rowAt(row)
       assertTrue("row $row is also live elsewhere", seen.add(line))
-      assertEquals("row $row does not fill the screen width", columns, widthOf(line, row))
+      assertEquals("row $row does not fill the screen width", screen.columns, widthOf(line, row))
     }
     if (screen.buffers.isAlternateLive) {
       assertEquals("the alternate screen kept history", 0, screen.grid.activeTranscriptRows)

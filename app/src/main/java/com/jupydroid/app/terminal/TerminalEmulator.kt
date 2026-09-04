@@ -53,6 +53,9 @@ class TerminalEmulator(
   /** Text pasted into the terminal as though typed - see [PasteCommand]. */
   fun paste(text: String) = pasteCommand.paste(text)
 
+  /** The public entry point; `cellWidthPixels`/`cellHeightPixels` are P4i's - it measures a real cell. */
+  fun resize(columns: Int, rows: Int) = screen.resize(columns, rows)
+
   /** Back to a freshly opened terminal, keeping what is on screen. */
   fun reset() {
     decoder.reset()
@@ -151,11 +154,12 @@ class TerminalEmulator(
 
   companion object {
     /**
-     * Rows of screen plus scrollback, when the caller names none. The reference's default;
-     * JupyterLab's terminal defaults to 1000 (`packages/terminal/src/tokens.ts`) and P4h is where
-     * this app chooses between them, because P4h owns the scrollback.
+     * Rows of screen plus scrollback, when the caller names none. JupyterLab's own default -
+     * `packages/terminal/src/tokens.ts:107,160`, `scrollback: 1000` - taken over the reference's
+     * 2000, since P4h-3 is where this app chose between them: JupyterLab is authoritative for
+     * *behaviour*, and scrollback depth is behaviour, not presentation.
      */
-    const val DEFAULT_TRANSCRIPT_ROWS = 2000
+    const val DEFAULT_TRANSCRIPT_ROWS = 1000
 
     /**
      * What `CSI 14 t` and `CSI 16 t` report a cell as when nobody has measured one. The

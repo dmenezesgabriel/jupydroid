@@ -25,7 +25,7 @@ package com.jupydroid.app.terminal
  * screen.writeCodePoint('a'.code)
  * ```
  */
-class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int, val colors: TerminalColors) {
+class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors: TerminalColors) {
   /** The main and alternate screens, and the cursor each one saved. `CSI ? 1049` moves between them. */
   val buffers = ScreenBuffers(columns, rows, totalRows)
 
@@ -190,6 +190,29 @@ class TerminalScreen(val columns: Int, val rows: Int, totalRows: Int, val colors
     currentStyle = CellStyle.NORMAL
     buffers.forgetSavedCursors()
     colors.reset()
+  }
+
+  /**
+   * `TerminalEmulator.resize` fused with its own private `resizeScreen` (`:385-422`): a no-op when
+   * neither dimension moves, an `IllegalArgumentException` below two of either, otherwise the
+   * cursor's own size/margins/tabs brought to the new one ([TerminalCursor.resize]), the grid
+   * reflowed at it, and the cursor's post-reflow position read back from what [TerminalGrid.resize]
+   * returns - not clamped again here, see [TerminalCursor.resize]'s own KDoc.
+   *
+   * The [newTotalRows] choice is `resizeScreen`'s own (`:418`): the live grid keeps whatever
+   * scrollback it already holds unless it is the alternate screen, which [ScreenBuffers] always
+   * builds `totalRows == rows` deep and a resize must keep that shape.
+   */
+  fun resize(newColumns: Int, newRows: Int) {
+    if (columns == newColumns && rows == newRows) return
+    require(newColumns >= 2 && newRows >= 2) { "rows=$newRows, columns=$newColumns" }
+    cursor.resize(newColumns, newRows)
+    val newTotalRows = if (buffers.isAlternateLive) newRows else grid.totalRows
+    columns = newColumns
+    rows = newRows
+    val result = grid.resize(newColumns, newRows, newTotalRows, cursor.row, cursor.column, currentStyle)
+    cursor.row = result.row
+    cursor.column = result.column
   }
 
   companion object {
