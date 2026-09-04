@@ -45,6 +45,9 @@ class TerminalEmulator(
   /** DECSET 25 (DECTCEM): whether the cursor should be drawn. P4i reads this to decide. */
   val isCursorEnabled: Boolean get() = screen.modes.isSet(DecMode.CURSOR_ENABLED)
 
+  /** DECSET 1 (DECCKM): whether an arrow key is sent as SS3 rather than CSI. P4j-2 reads this. */
+  val isApplicationCursorKeys: Boolean get() = screen.modes.isSet(DecMode.APPLICATION_CURSOR_KEYS)
+
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
   fun append(buffer: ByteArray, length: Int) {
     for (index in 0 until length) processByte(buffer[index])

@@ -29,6 +29,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -94,7 +99,10 @@ fun TerminalPaneScreen(
           modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
         )
       }
-      TerminalInputField(onType = viewModel::type)
+      TerminalInputField(
+        onType = viewModel::type,
+        applicationCursorKeys = { viewModel.emulator.isApplicationCursorKeys },
+      )
     }
   }
 }
@@ -146,11 +154,15 @@ private fun KeepTheShellAttached(viewModel: TerminalPaneViewModel) {
 private val invisibleDecorator = TextFieldDecorator { }
 
 /**
- * The minimal keyboard capture this sub-step's gate needs: printable characters and Enter,
- * forwarded to [onType] verbatim (`TerminalGateway.send`'s own contract - `"ls\n"` runs `ls`).
+ * Printable characters and Enter go through [onType] verbatim (`TerminalGateway.send`'s own
+ * contract - `"ls\n"` runs `ls`) via [reportTerminalKeystroke]; a hardware arrow key or Ctrl+letter
+ * is intercepted first and sent through [terminalKeystroke] instead - `docs/PLAN.md`'s P4j-2, the
+ * encoder P4j-1's own KDoc deferred. [applicationCursorKeys] is read fresh on every key rather than
+ * once at composition, since a shell can flip DECCKM at any time (entering `vi` does).
  *
- * Full key encoding - arrows, Ctrl, latching modifiers, an extra-keys row built on `SymbolRow`'s
- * pattern - is `docs/PLAN.md`'s P4j-2/P4j-3, not this.
+ * An extra-keys row with latching Ctrl/Alt, built on `SymbolRow`'s pattern, is `docs/PLAN.md`'s
+ * P4j-3, not this - a software keyboard has no hardware Ctrl to hold down, so tapping Ctrl-C needs
+ * a row this sub-step does not build.
  *
  * Sized to fill the terminal area it sits over ([TerminalPaneScreen]'s `Box`), not a strip below
  * it - `docs/PLAN.md`'s P4j-1, closing the gap P4i-3a's own commit named: typing went into a
@@ -168,7 +180,7 @@ private val invisibleDecorator = TextFieldDecorator { }
  * line before it is sent, the way a shell's own canonical-mode editing expects to be driven.
  */
 @Composable
-private fun TerminalInputField(onType: (String) -> Unit) {
+private fun TerminalInputField(onType: (String) -> Unit, applicationCursorKeys: () -> Boolean) {
   val state = remember { TextFieldState() }
   val field = remember { FocusRequester() }
   LaunchedEffect(Unit) { field.requestFocus() }
@@ -194,6 +206,14 @@ private fun TerminalInputField(onType: (String) -> Unit) {
     modifier = Modifier.fillMaxSize()
       .imePadding()
       .focusRequester(field)
+      .onPreviewKeyEvent { event ->
+        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+        val bytes =
+          terminalKeystroke(event.key, event.isCtrlPressed, event.nativeKeyEvent.keyCode, applicationCursorKeys())
+            ?: return@onPreviewKeyEvent false
+        onType(bytes)
+        true
+      }
       .semantics { testTagsAsResourceId = true }
       .testTag(TERMINAL_INPUT_TAG),
   )

@@ -1,0 +1,10 @@
+appId: com.jupydroid.app
+---
+# The driver sent Ctrl-C between the two halves (`input keycombination <KEYCODE_CTRL_LEFT>
+# <KEYCODE_C>` - Maestro's own `pressKey` has no arrow/modifier vocabulary to send it, confirmed
+# reading `maestro.KeyCode`'s enum, `docs/DECISIONS.md`). No `launchApp` here: unlike a rotation,
+# a key combination does not recreate the activity, so the same Maestro session continues.
+- extendedWaitUntil:
+    visible: "^C"
+    timeout: 10000
+- takeScreenshot: 02-ctrl-c-interrupted-sleep
