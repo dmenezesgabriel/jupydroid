@@ -5173,3 +5173,28 @@ fallback, `LightEditorPalette.editorBackground`.
 **This forbids** treating `TerminalPalette.kt`'s "P4i replaces them" comment as already satisfied by
 merely picking `VS_CODE_DARK`/`VS_CODE_LIGHT` over `REFERENCE`; the ANSI ramp and the three dynamic
 slots are resolved separately and both had to be checked.
+
+### A `Canvas` carries no semantics of its own - a transparent `Text` per row does (P4i-2d)
+
+`TerminalPaneScreen`'s plain `Text`-per-row stand-in (P4i-1) was itself the accessibility tree and
+every test/Maestro assertion built against it. Swapping it for batched-run glyphs on a `Canvas`
+(P4i-2d) drew the same pixels but left nothing behind for `onNodeWithText` to find - measured, not
+assumed: `TerminalNavigationTest`'s own `waitForText("ls")` timed out on both connected devices the
+moment the swap landed, and so would every Maestro flow's `visible:` assertion against terminal
+output, including the two P4i-1 shipped with. A `Canvas` composes no semantics of its own; it is a
+raw draw surface.
+
+Fixed with one transparent `Text` per row, stacked in a `Box` over the `Canvas`: `color =
+Color.Transparent` keeps the pixels the `Canvas` alone draws, while the real text semantics - and
+so TalkBack, and every existing `onNodeWithText`/Maestro `visible:` assertion - read exactly what
+they did before. One node per row rather than one blob, for the same reason P4i-1's own
+`DECISIONS.md` entry gives: a screen reader must not read a whole screenful as one utterance.
+
+Re-run and passed on the tablet after the fix: `p4i-terminal-tablet.yaml` (`evidence/p4i-terminal-tablet/`)
+and `p4i-terminal-screen.yaml` on the emulator (`evidence/p4i-terminal-screen/`), both re-captured
+rather than assumed still green from before the `Canvas` swap.
+
+**This forbids** replacing a semantics-bearing composable (`Text`, `BasicTextField`, …) with a raw
+`Canvas`/`drawScope` surface without also composing an equivalent, even invisibly - the pixels and
+the accessibility tree are two different outputs of the same composable and neither substitutes
+for the other.

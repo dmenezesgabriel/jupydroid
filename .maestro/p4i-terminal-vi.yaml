@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# P4i-2's own closing gate: `vi` forces the alternate screen, a full redraw on entry, and its own
+# status line and `~` fill lines - none of which a shell prompt or an echoed keystroke can produce,
+# so `visible: "~"` is proof the Canvas actually drew what a real, unmodified program wrote, not
+# an artefact of typing. `docs/DECISIONS.md`'s own rule: an assertion must name something that
+# cannot appear in the prompt or the pty's own echo of the command line.
+#
+# Not `clearState: true` - `p4i-terminal-tablet.yaml`'s own reason: the driver's `reset_notebooks`
+# + `seed_file` already put a clean workspace and the marker file in place, and `clearState` would
+# wipe both and the already-installed Space, forcing a full reinstall this flow does not need.
+- launchApp
+- assertVisible: "Files"
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 120000
+
+- inputText: "vi p4i-vi-marker.txt"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "~"
+    timeout: 60000
+- takeScreenshot: 01-vi-full-screen

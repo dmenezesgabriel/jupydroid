@@ -37,14 +37,14 @@ import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeSourceStyle
-import com.jupydroid.app.ui.editor.codeTextStyle
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
 const val TERMINAL_INPUT_TAG = "terminal-input"
 
 /**
- * A shell, drawn plainly: `docs/PLAN.md`'s P4i, sub-step 1 - reachable and typeable, with the
- * faithful glyph-and-cursor rendering of sub-step 2 still to come.
+ * A shell, reachable, typeable and drawn faithfully - `docs/PLAN.md`'s P4i, sub-steps 1 and 2:
+ * batched-run glyphs and a block cursor on a real [TerminalCanvas], the VS Code palette resolved
+ * to the system's own dark/light theme, and a cell measured on this device rather than restated.
  *
  * ```
  * TerminalPaneScreen(session = TerminalSession("1"), terminalGateway, onBack = { backStack.removeLastOrNull() })
@@ -76,9 +76,10 @@ fun TerminalPaneScreen(
       // that stands in for it, exactly as `EditorUiState.sourceRevisions` stands in for a text
       // field Compose does not own either.
       key(state.redraw) {
-        Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = Spacing.md)) {
-          terminalScreenLines(viewModel).forEach { line -> Text(text = line, style = codeTextStyle()) }
-        }
+        TerminalCanvas(
+          emulator = viewModel.emulator,
+          modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = Spacing.md),
+        )
       }
       TerminalInputField(onType = viewModel::type)
     }
@@ -96,21 +97,6 @@ private fun TerminalBar(title: String?, onBack: () -> Unit) {
       }
     },
   )
-}
-
-/**
- * Every row the emulator currently holds, one [Text] each - the plain-text stand-in sub-step 2
- * replaces with cells drawn on a `Canvas`. One node per row rather than one blob for two real
- * reasons, not merely a Maestro convenience: TalkBack would otherwise read a whole screenful as
- * one utterance, and `TerminalRow.spaceUsed` is the row's full column width from construction
- * (`RowText.kt`) - trimmed here, since column-width padding is a rendering concern this stand-in
- * does not have yet and sub-step 2's `Canvas` is where it belongs.
- */
-private fun terminalScreenLines(viewModel: TerminalPaneViewModel): List<String> {
-  val screen = viewModel.emulator.screen
-  return (0 until screen.rows).map { row ->
-    screen.grid.rowAt(row).let { String(it.text, 0, it.spaceUsed) }.trimEnd()
-  }
 }
 
 /**
