@@ -5045,3 +5045,33 @@ P4h-4's own branch.
 `minOf` the two would hide the real divergence rather than surface it, and the two implementations
 would still disagree on content even if neither crashed); and widening the differential's alphabet to
 combine `RESIZE_TARGETS` with the excluded `MODES` entries before P4h-4 closes the branch they reach.
+
+### A re-entry to the alternate screen was already blanking what an earlier session left - nothing was pinning it (P4h-3b, closed same day)
+
+`useAlternateScreen`'s mutation table entry "entering the alternate screen does not blank it"
+survived P4h-3b's own whole-suite check (`docs/DECISIONS.md`'s entry above, same step), and a
+worktree check against `52ef8da` (P4h-2, before any of P4h-3's code existed) showed the identical
+result - so this predates P4h-3 and touches no line P4h-3 wrote.
+
+**Read before changing anything: the shipped code was already correct.** `useAlternateScreen`'s
+`if (on) screen.blockClear(...)` runs on *every* entry, not only a session's first - a probe test
+(`terminal(4,2).enterString("...1049h" + "ABCD")`, leave, re-enter, `assertLinesAre("    ", "    ")`)
+passed against HEAD before a single line of production code was touched. What the mutation actually
+found was a **coverage gap**: nothing in `AlternateScreenTest` left-and-re-entered a buffer that
+already carried content, so a regression here had no test to fail against. `aSecondEntryChangesNothing`
+looks similar but is not the same case - it is a **repeated** entry with no leave between, which is
+the one case `useAlternateScreen` deliberately skips the blank for (`screen.buffers.isAlternateLive
+== on` returns early), so it could never have caught this.
+
+**Closed by adding the missing test, not by changing behaviour.**
+`reenteringTheAlternateScreenBlanksContentAnEarlierSessionLeft` pins it, placed beside
+`enteringSavesTheCursorAndLeavingPutsItBack` since both are about what entering does. Confirmed
+three ways rather than assumed: the new test passes at HEAD; applying the exact mutation to a
+scratch copy of `ModeSwitching.kt` makes only this one test fail, nothing else in the suite; and
+`mutations.py`'s own entry for this label, re-run against the whole 2,009-test suite, now reports
+`KILLED` where it previously reported `SURVIVED`.
+
+**This forbids** treating a mutation survivor as evidence of a live bug without first checking
+whether the *shipped* behaviour is actually wrong - a survivor can equally mean the code is right
+and only the test suite is thin, which is the more common of the two in a codebase this heavily
+mutation-tested, and conflating the two would have meant "fixing" code that was never broken.

@@ -45,6 +45,24 @@ class AlternateScreenTest {
       .assertLinesAre("try ", "    ")
   }
 
+  /**
+   * A **second** entry, after a leave, blanks whatever the *first* session left behind - `blockClear`
+   * runs on every entry, not only the first, so old content never resurfaces. Nothing in this suite
+   * pinned that before: `enteringSavesTheCursorAndLeavingPutsItBack` above never leaves and
+   * re-enters, and `aSecondEntryChangesNothing` below is a **repeated** entry with no leave between,
+   * which is the one case `useAlternateScreen` deliberately skips the blank for. Found as a mutation
+   * survivor while widening P4h-3b's differential - confirmed to predate P4h-3 entirely, so this is
+   * `docs/DECISIONS.md`'s "A resize followed by a buffer switch..." entry's own sibling gap, not a
+   * behaviour change - `evidence/p4-terminal/a-resize-then-a-buffer-switch-reaches-p4h-4s-gap.md`.
+   */
+  @Test
+  fun reenteringTheAlternateScreenBlanksContentAnEarlierSessionLeft() {
+    val fixture = terminal(4, 2).enterString("$ESC[?1049hABCD")
+    fixture.assertLinesAre("ABCD", "    ")
+    fixture.enterString("$ESC[?1049l").enterString("$ESC[?1049h")
+    fixture.assertLinesAre("    ", "    ")
+  }
+
   /** `CursorAndScreenTest.testCursorSaveRestoreTextStyle`, third case: the style travels with it. */
   @Test
   fun enteringSavesTheStyleAndLeavingPutsItBack() {
