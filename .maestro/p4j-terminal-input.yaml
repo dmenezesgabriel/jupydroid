@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# P4j-1's own gate: input folded into the terminal canvas itself - no separate floating box below
+# the output, the merged surface Termux's own `TerminalView` is (`docs/PLAN.md` P4j-1). Runs on
+# both the tablet and a phone-width emulator profile - `p4i-terminal-screen`'s own precedent:
+# FakeTerminalGateway (the emulator's fallback) echoes what it is sent, which is enough to prove
+# the merged surface; the tablet run is a real shell answering the same input. Not `clearState`
+# on either device - `p4i-terminal-tablet.yaml`'s own reason: it would wipe the tablet's already
+# installed Space, forcing a full rootfs reinstall this flow does not need.
+- launchApp
+- assertVisible: "Files"
+- takeScreenshot: 01-the-workspace
+
+# The reach point: a second icon beside the New menu (`ExplorerScreen.kt`'s `FilesBar`).
+- tapOn: "New terminal"
+# Generous: on the tablet this can still own installing the Space and starting jupyter_server on
+# the very first run - `p4i-terminal-tablet.yaml`'s own timeout.
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 120000
+- takeScreenshot: 02-the-terminal-screen
+
+# Autofocused on composition, no tap first needed - `TerminalInputField`'s invisible decorator
+# still owns real focus/IME, it just paints nothing, so what is on screen here is only
+# `TerminalCanvas`: no separate input box beneath it, the way there was through P4i.
+- inputText: "ls"
+- takeScreenshot: 03-typed-ls

@@ -1,13 +1,14 @@
 package com.jupydroid.app.ui.terminal
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldDecorator
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,12 +21,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -40,6 +43,7 @@ import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeSourceStyle
+import kotlinx.coroutines.flow.drop
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
 const val TERMINAL_INPUT_TAG = "terminal-input"
@@ -74,7 +78,11 @@ fun TerminalPaneScreen(
     modifier = modifier.fillMaxSize(),
     topBar = { TerminalBar(title = state.title, onBack = onBack) },
   ) { padding ->
-    Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+    // A `Box`, not a `Column` with the field docked below it - `docs/PLAN.md`'s P4j-1. The two
+    // layers share the same bounds: `TerminalCanvas` draws every glyph and the block cursor, and
+    // `TerminalInputField` sits over the whole of it so a tap anywhere in the terminal is a tap on
+    // the one thing that receives input, the way Termux's `TerminalView` is both at once.
+    Box(modifier = Modifier.padding(padding).fillMaxSize()) {
       // Keyed on the redraw counter: `emulator.screen.grid` is mutated in place by
       // `TerminalPaneViewModel`, which Compose cannot observe on its own - `redraw` is the `State`
       // that stands in for it, exactly as `EditorUiState.sourceRevisions` stands in for a text
@@ -83,7 +91,7 @@ fun TerminalPaneScreen(
         TerminalCanvas(
           emulator = viewModel.emulator,
           onGridSizeChanged = { grid, cell -> viewModel.resize(grid, cell.width, cell.height) },
-          modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = Spacing.md),
+          modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
         )
       }
       TerminalInputField(onType = viewModel::type)
@@ -127,13 +135,28 @@ private fun KeepTheShellAttached(viewModel: TerminalPaneViewModel) {
 }
 
 /**
+ * Renders nothing of its own - [TerminalCanvas] draws every glyph and the block cursor from the
+ * emulator's own grid, the same decoupling Termux's `TerminalView` gets for free from being one
+ * `View`: `onCreateInputConnection` owns the IME, and the block cursor it draws is a rendering
+ * concern with no tie back to it (confirmed reading `TerminalView.java` - it never touches
+ * `CursorAnchorInfo`). `BasicTextField`'s own `TextFieldDecoratorModifier` - focus, touch-to-focus,
+ * the IME session - sits on the field's outer `Box`, outside a [TextFieldDecorator]'s reach, so
+ * never calling `innerTextField` here still leaves the field genuinely focusable and typeable.
+ */
+private val invisibleDecorator = TextFieldDecorator { }
+
+/**
  * The minimal keyboard capture this sub-step's gate needs: printable characters and Enter,
  * forwarded to [onType] verbatim (`TerminalGateway.send`'s own contract - `"ls\n"` runs `ls`).
  *
  * Full key encoding - arrows, Ctrl, latching modifiers, an extra-keys row built on `SymbolRow`'s
- * pattern - is `docs/PLAN.md`'s P4j, not this. The field keeps whatever the shell hands back on
- * screen elsewhere; what this diffs against is only what the field itself last held, so a change
- * is read as *typed* rather than compared to the terminal's own output.
+ * pattern - is `docs/PLAN.md`'s P4j-2/P4j-3, not this.
+ *
+ * Sized to fill the terminal area it sits over ([TerminalPaneScreen]'s `Box`), not a strip below
+ * it - `docs/PLAN.md`'s P4j-1, closing the gap P4i-3a's own commit named: typing went into a
+ * floating box first, not after the `$` a user is looking at. [invisibleDecorator] is what makes
+ * that safe: the field still owns real focus/IME/selection state, it just paints nothing, so a tap
+ * anywhere in the terminal is a tap on this field.
  *
  * Focused the moment this screen is on it, the way a real terminal is the instant it has the
  * window - `RenameFileDialog`'s own reason applies here too: without it the first keystroke goes
@@ -141,32 +164,34 @@ private fun KeepTheShellAttached(viewModel: TerminalPaneViewModel) {
  *
  * Cleared on Enter rather than on every character: multi-line by default, so Enter inserts `\n`
  * like any other character rather than being intercepted as an IME "Done" action - one path
- * instead of two for [sendTerminalDiff] to cover, and it is what lets backspace correct a line
- * before it is sent, the way a shell's own canonical-mode editing expects to be driven.
- *
- * `imePadding` sits on the field itself, not a shared ancestor - `SymbolRow`/`NotebookBar`'s own
- * precedent, both of which pad only the bar that would otherwise sit behind the keyboard. Padding
- * the whole screen instead pulled the output column's own height budget negative, which read as a
- * production defect until the field moved here made it a hierarchy accident.
+ * instead of two for [reportTerminalKeystroke] to cover, and it is what lets backspace correct a
+ * line before it is sent, the way a shell's own canonical-mode editing expects to be driven.
  */
 @Composable
 private fun TerminalInputField(onType: (String) -> Unit) {
-  var draft by remember { mutableStateOf("") }
+  val state = remember { TextFieldState() }
   val field = remember { FocusRequester() }
   LaunchedEffect(Unit) { field.requestFocus() }
+
+  val report by rememberUpdatedState(onType)
+  LaunchedEffect(state) {
+    var previous = ""
+    // `drop(1)`: the first emission is `snapshotFlow`'s own read of the initial (empty) text,
+    // `CellSourceTracking.reportCellEdits`'s own reason for the same drop - not an edit to report.
+    snapshotFlow { state.text.toString() }
+      .drop(1)
+      .collect { current -> previous = reportTerminalKeystroke(state, previous, current, report) }
+  }
+
   BasicTextField(
-    value = draft,
-    onValueChange = { typed ->
-      sendTerminalDiff(from = draft, to = typed, onType = onType)
-      draft = if (typed.endsWith("\n")) "" else typed
-    },
+    state = state,
     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
-    // `codeTextStyle()` alone draws black here regardless of theme - `EditorTheme.kt`'s own
-    // documented `BasicTextField` pitfall (`codeSourceStyle`'s KDoc). Measured on this screen too:
-    // the field composed and took input, but nothing typed into it was ever visible.
     textStyle = codeSourceStyle(),
-    modifier = Modifier.fillMaxWidth()
-      .padding(Spacing.md)
+    // Belt and braces alongside `invisibleDecorator`: even if a decorator ever did call through,
+    // a transparent brush keeps the cursor bar itself from painting.
+    cursorBrush = SolidColor(Color.Transparent),
+    decorator = invisibleDecorator,
+    modifier = Modifier.fillMaxSize()
       .imePadding()
       .focusRequester(field)
       .semantics { testTagsAsResourceId = true }
@@ -175,10 +200,31 @@ private fun TerminalInputField(onType: (String) -> Unit) {
 }
 
 /**
+ * Diffs [state]'s current text against [previous] into keystrokes via [onType], then clears
+ * [state] once its text ends in a newline - [TerminalInputField]'s own multi-line-by-default rule.
+ * A plain function rather than inline in the `LaunchedEffect` above, so [PythonTypingRulesTest]'s
+ * own reason applies here too: a real [TextFieldState] proves what the buffer looks like after an
+ * edit without a Compose test harness for it.
+ *
+ * @return what [previous] should be compared against next time.
+ */
+internal fun reportTerminalKeystroke(
+  state: TextFieldState,
+  previous: String,
+  current: String,
+  onType: (String) -> Unit,
+): String {
+  sendTerminalDiff(from = previous, to = current, onType = onType)
+  if (!current.endsWith("\n")) return current
+  state.edit { replace(0, length, "") }
+  return ""
+}
+
+/**
  * What one field edit means on the wire: an appended suffix is typed text, a shortened prefix is
  * that many backspaces - DEL (`\u007F`), the byte most shells' `stty erase` answers to today -
  * and anything else (autocorrect rewriting more than the tail) is not sent at all rather than
- * guessed at, which is this sub-step's deliberately minimal scope; P4j's own key encoder is where
+ * guessed at, which is this sub-step's deliberately minimal scope; P4j-2's own key encoder is where
  * a fuller edit-to-bytes mapping belongs.
  */
 private fun sendTerminalDiff(from: String, to: String, onType: (String) -> Unit) {
