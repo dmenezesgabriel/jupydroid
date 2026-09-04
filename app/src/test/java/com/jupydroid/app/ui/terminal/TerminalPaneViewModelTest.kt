@@ -5,6 +5,8 @@ import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import com.jupydroid.app.terminal.CellStyle
+import com.jupydroid.app.terminal.TerminalPalette
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -24,6 +26,23 @@ private const val ESC = "\u001B"
  */
 class TerminalPaneViewModelTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
+
+  /**
+   * P4i-2a: the palette a caller passes is what the emulator actually draws with, not always
+   * [com.jupydroid.app.terminal.TerminalPalette.REFERENCE] - `TerminalPaneScreen`'s own job is
+   * picking [com.jupydroid.app.terminal.TerminalPalette.VS_CODE_DARK] or `_LIGHT` from the
+   * system theme; this only has to prove the constructor still threads whatever it is given.
+   */
+  @Test
+  fun threadsTheGivenPaletteIntoTheEmulator() = runTest {
+    val gateway = FakeTerminalGateway()
+    val viewModel = TerminalPaneViewModel(gateway.open(), gateway, palette = TerminalPalette.VS_CODE_LIGHT)
+
+    assertEquals(
+      TerminalPalette.VS_CODE_LIGHT.at(CellStyle.COLOR_INDEX_BACKGROUND),
+      viewModel.emulator.screen.colors.at(CellStyle.COLOR_INDEX_BACKGROUND),
+    )
+  }
 
   @Test
   fun becomesReadyOnceTheGatewaySignalsIt() = runTest {

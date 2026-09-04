@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.terminal.TerminalEmulator
 import com.jupydroid.app.terminal.TerminalNotices
+import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.terminal.TerminalReplies
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,6 +46,7 @@ data class TerminalPaneUiState(
 class TerminalPaneViewModel(
   private val session: TerminalSession,
   private val terminalGateway: TerminalGateway,
+  palette: TerminalPalette = TerminalPalette.VS_CODE_DARK,
   columns: Int = DEFAULT_COLUMNS,
   rows: Int = DEFAULT_ROWS,
 ) : ViewModel() {
@@ -64,7 +66,13 @@ class TerminalPaneViewModel(
   }
 
   /** The VT100 state this screen draws - P4a-P4h's, unowned by this class beyond feeding it bytes. */
-  val emulator = TerminalEmulator(columns = columns, rows = rows, notices = notices, replies = replies)
+  val emulator = TerminalEmulator(
+    columns = columns,
+    rows = rows,
+    notices = notices,
+    replies = replies,
+    palette = palette,
+  )
 
   init {
     // Collected for exactly as long as this ViewModel lives - cancelled by `viewModelScope` on

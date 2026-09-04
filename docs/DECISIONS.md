@@ -5141,3 +5141,35 @@ the workspace, so every run paid a full rootfs reinstall (`{"stage":"installing 
 a clean workspace - does not. **This forbids** `clearState: true` in any flow a driver seeds a fixture
 or a file into; `reset_notebooks`/`seed_file`/`seed_notebook` are already the cleanup, and `clearState`
 undoes them rather than complementing them.
+
+### The terminal's own foreground/background/cursor are resolved, not left `REFERENCE`'s (P4i-2a)
+
+`TerminalPalette.VS_CODE_DARK`/`VS_CODE_LIGHT` (P4g) carried the sixteen ANSI colours right but left
+their three dynamic slots - indices 256-258, foreground/background/cursor - at `REFERENCE`'s own
+black-on-white placeholders, because nothing constructed a `TerminalEmulator` at all until P4i-1
+built the screen. Left alone, light mode would have drawn an opaque black terminal background
+against the app's white chrome the moment P4i-2d's `Canvas` started reading `CellStyle`'s
+background at all - a real, screenshot-visible defect, not a nit, and one the plan's own literal
+wording ("VS_CODE_DARK/LIGHT resolved... in place of REFERENCE") did not spell out but the class's
+own KDoc had already flagged as P4i's to close.
+
+Resolved the way every other value in `theme/EditorPalettes.kt` is, by reading the reference rather
+than guessing: `terminal.foreground` is registered non-null
+(`terminalColorRegistry.ts:19-24`) and neither `2026-dark.json` nor `2026-light.json` overrides it,
+so each keeps its include chain's own value - `dark_modern.json:114` (`#CCCCCC`) and
+`light_modern.json:133` (`#3B3B3B`), **not** the registry's bare fallback (`#CCCCCC`/`#333333`) -
+measured by walking the actual `include` chain rather than reading the outermost file alone, the same
+trap `EditorPalettes.kt`'s own KDoc already names. `terminal.background` and
+`terminalCursor.foreground` register `null` and are resolved at runtime by
+`TerminalInstanceColorProvider.getBackgroundColor` / `xtermTerminal.ts:1095-1096`: a cursor falls
+back to the terminal's own foreground, and a background falls back to `editor.background` for a
+terminal in the reference's "Editor location" branch - the fitting one, since this app's terminal is
+its own screen rather than a panel embedded beside other content. `2026-dark.json` states both
+outright (`terminal.background: #191A1B`, `terminalCursor.foreground: #bfbfbf`, `:241,244`);
+`2026-light.json` states only the cursor (`#202020`, `:249`) and **never** `terminal.background`
+anywhere in its own include chain - the one asymmetry between the two - so light's background is the
+fallback, `LightEditorPalette.editorBackground`.
+
+**This forbids** treating `TerminalPalette.kt`'s "P4i replaces them" comment as already satisfied by
+merely picking `VS_CODE_DARK`/`VS_CODE_LIGHT` over `REFERENCE`; the ANSI ramp and the three dynamic
+slots are resolved separately and both had to be checked.

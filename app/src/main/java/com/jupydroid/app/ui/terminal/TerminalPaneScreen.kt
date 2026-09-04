@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.terminal
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
@@ -54,7 +56,13 @@ fun TerminalPaneScreen(
   terminalGateway: TerminalGateway,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: TerminalPaneViewModel = viewModel { TerminalPaneViewModel(session, terminalGateway) },
+  // Read here, not inside the factory lambda below - `isSystemInDarkTheme` is itself composable
+  // and the factory runs once, outside recomposition, the way `viewModel {}` always does.
+  darkTheme: Boolean = isSystemInDarkTheme(),
+  viewModel: TerminalPaneViewModel = viewModel {
+    val palette = if (darkTheme) TerminalPalette.VS_CODE_DARK else TerminalPalette.VS_CODE_LIGHT
+    TerminalPaneViewModel(session, terminalGateway, palette = palette)
+  },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
 

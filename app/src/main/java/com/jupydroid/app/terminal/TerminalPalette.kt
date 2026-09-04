@@ -90,23 +90,25 @@ class TerminalPalette(private val defaults: IntArray) {
      * The 259 defaults for one sixteen-entry ANSI ramp: the cube and greys are shared arithmetic,
      * identical for every palette, and only [ansi] and the three dynamic slots vary.
      *
-     * **The dynamic slots (256-258) are not [ansi]'s to answer.** VS Code registers no default
-     * at all for `terminal.background` or `terminalCursor.foreground` - both resolve only
-     * through a live theme's panel surface, which nothing in `terminal/` has access to - and
-     * `terminal.foreground` alone having one is not enough to resolve the trio honestly. So every
-     * caller of this function gets [REFERENCE]'s placeholders here; P4i replaces them once the
-     * screen exists to answer for its own surface.
+     * **The dynamic slots (256-258) are [foreground]/[background]/[cursor], not [ansi]'s to
+     * answer.** [REFERENCE] passes its own placeholders; [VS_CODE_DARK]/[VS_CODE_LIGHT] pass P4i-2a's
+     * resolved values - see their own KDoc for the citation.
      */
-    private fun defaultsWithAnsi(ansi: IntArray): IntArray {
+    private fun defaultsWithAnsi(
+      ansi: IntArray,
+      foreground: Int = 0xFFFFFFFF.toInt(),
+      background: Int = OPAQUE,
+      cursor: Int = 0xFFFFFFFF.toInt(),
+    ): IntArray {
       val colors = IntArray(CellStyle.INDEXED_COLOR_COUNT)
       ansi.copyInto(colors)
       for (level in 0 until CUBE_LEVELS.size * CUBE_LEVELS.size * CUBE_LEVELS.size) {
         colors[CUBE_FIRST + level] = cubeEntry(level)
       }
       for (step in 0 until GREY_COUNT) colors[GREY_FIRST + step] = grey(GREY_START + GREY_STEP * step)
-      colors[CellStyle.COLOR_INDEX_FOREGROUND] = 0xFFFFFFFF.toInt()
-      colors[CellStyle.COLOR_INDEX_BACKGROUND] = OPAQUE
-      colors[CellStyle.COLOR_INDEX_CURSOR] = 0xFFFFFFFF.toInt()
+      colors[CellStyle.COLOR_INDEX_FOREGROUND] = foreground
+      colors[CellStyle.COLOR_INDEX_BACKGROUND] = background
+      colors[CellStyle.COLOR_INDEX_CURSOR] = cursor
       return colors
     }
 
@@ -133,16 +135,46 @@ class TerminalPalette(private val defaults: IntArray) {
     val REFERENCE: TerminalPalette = TerminalPalette(defaultsWithAnsi(ANSI))
 
     /**
-     * VS Code's ANSI ramp, dark theme (P4g). **Not yet handed to anything**: no production code
-     * constructs a `TerminalEmulator` at all until P4i builds the screen, and picking this over
-     * [VS_CODE_LIGHT] for the active theme is that composition root's decision, not `terminal/`'s
-     * - see the class KDoc for why `terminal/` cannot make that choice itself. Its foreground,
-     * background and cursor (indices 256-258) are [REFERENCE]'s placeholders, not VS Code's -
-     * [defaultsWithAnsi]'s KDoc says why.
+     * VS Code's ANSI ramp, dark theme (P4g), with its own foreground/background/cursor (P4i-2a).
+     * Picking this over [VS_CODE_LIGHT] for the active theme is the composition root's decision,
+     * not `terminal/`'s - see the class KDoc for why `terminal/` cannot make that choice itself.
+     *
+     * **The three dynamic slots, resolved rather than left [REFERENCE]'s placeholders.**
+     * `terminal.foreground` is registered non-null (`terminalColorRegistry.ts:19-24`,
+     * `reference/research_repos/vscode`) and neither `2026-dark.json` nor its `dark_modern.json`
+     * include overrides it, so it stays that file's own `#CCCCCC` (`dark_modern.json:114`).
+     * `terminal.background` and `terminalCursor.foreground` register `null` and are resolved at
+     * runtime by `TerminalInstanceColorProvider.getBackgroundColor` /
+     * `xtermTerminal.ts:1095-1096` - a cursor falls back to the terminal's own foreground, and a
+     * background falls back to `editor.background` for a terminal in the reference's own "Editor
+     * location", the fitting branch since this app's terminal is its own screen rather than an
+     * embedded panel. `2026-dark.json` states both outright rather than needing that fallback:
+     * `terminal.background: #191A1B` (`:241`), `terminalCursor.foreground: #bfbfbf` (`:244`).
      */
-    val VS_CODE_DARK: TerminalPalette = TerminalPalette(defaultsWithAnsi(ANSI_DARK))
+    val VS_CODE_DARK: TerminalPalette = TerminalPalette(
+      defaultsWithAnsi(
+        ANSI_DARK,
+        foreground = 0xFFCCCCCC.toInt(),
+        background = 0xFF191A1B.toInt(),
+        cursor = 0xFFBFBFBF.toInt(),
+      ),
+    )
 
-    /** VS Code's ANSI ramp, light theme. Same placeholders, same caveats as [VS_CODE_DARK]. */
-    val VS_CODE_LIGHT: TerminalPalette = TerminalPalette(defaultsWithAnsi(ANSI_LIGHT))
+    /**
+     * VS Code's ANSI ramp, light theme. Same mechanism as [VS_CODE_DARK], and the same three ids,
+     * resolved differently: `terminal.foreground` is `light_modern.json`'s own `#3B3B3B` (`:133`,
+     * unchanged through `2026-light.json`'s include); `terminalCursor.foreground` is
+     * `2026-light.json`'s own `#202020` (`:249`); `terminal.background` is set **nowhere** in the
+     * light include chain - the one asymmetry with dark - so it takes the fallback,
+     * `editor.background`, which is [com.jupydroid.app.theme.LightEditorPalette.editorBackground].
+     */
+    val VS_CODE_LIGHT: TerminalPalette = TerminalPalette(
+      defaultsWithAnsi(
+        ANSI_LIGHT,
+        foreground = 0xFF3B3B3B.toInt(),
+        background = 0xFFFFFFFF.toInt(),
+        cursor = 0xFF202020.toInt(),
+      ),
+    )
   }
 }
