@@ -185,6 +185,20 @@ class ResizeTest {
     wide.resize(5, 4).assertLinesAre("ＱＲ ", "     ", "     ", "     ")
   }
 
+  /**
+   * P4i-2b: a resize's cell-pixel pair is optional and defaults to "unchanged", not to
+   * [TerminalEmulator.DEFAULT_CELL_WIDTH_PIXELS]/`HEIGHT_PIXELS` - a plain columns/rows resize
+   * must not quietly forget a cell size a caller already reported.
+   */
+  @Test
+  fun aPlainResizeLeavesTheCellPixelSizeUntouched() {
+    val fixture = terminal(3, 3)
+    fixture.resize(3, 3, cellWidthPixels = 8, cellHeightPixels = 18)
+    fixture.assertReplyTo("$ESC[16t", "$ESC[6;18;8t")
+    fixture.resize(5, 5)
+    fixture.assertReplyTo("$ESC[16t", "$ESC[6;18;8t")
+  }
+
   private fun assertStyleEverywhere(fixture: EmulatorFixture, rows: Int, cols: Int, fore: Int, back: (Int) -> Int) {
     for (r in 0 until rows) {
       for (c in 0 until cols) {

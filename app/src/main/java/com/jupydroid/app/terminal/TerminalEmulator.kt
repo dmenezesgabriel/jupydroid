@@ -53,8 +53,19 @@ class TerminalEmulator(
   /** Text pasted into the terminal as though typed - see [PasteCommand]. */
   fun paste(text: String) = pasteCommand.paste(text)
 
-  /** The public entry point; `cellWidthPixels`/`cellHeightPixels` are P4i's - it measures a real cell. */
-  fun resize(columns: Int, rows: Int) = screen.resize(columns, rows)
+  /**
+   * The public entry point. [cellWidthPixels]/[cellHeightPixels] default to "unchanged" - a plain
+   * columns/rows resize (P4h-3's own shape) must not reset what a caller already reported, so
+   * both are read together or not at all, mirroring the reference's own
+   * `resize(columns, rows, cellWidthPixels, cellHeightPixels)` - it never means "reset one and
+   * leave the other," since a caller that has measured a cell always has both.
+   */
+  fun resize(columns: Int, rows: Int, cellWidthPixels: Int? = null, cellHeightPixels: Int? = null) {
+    screen.resize(columns, rows)
+    if (cellWidthPixels != null && cellHeightPixels != null) {
+      reporting.updateCellPixels(cellWidthPixels, cellHeightPixels)
+    }
+  }
 
   /** Back to a freshly opened terminal, keeping what is on screen. */
   fun reset() {

@@ -49,10 +49,10 @@ class TerminalReportingTest {
   }
 
   /**
-   * `testReportPixelSize`'s first two blocks, on the reference's own default cell of 13 by 15, and
-   * its `resize(23, 33)` leg - the reports are `rows * cellHeight` by `columns * cellWidth`, in
-   * that order. **The third leg, a cell-pixel-only resize, stays P4i's** - it is what measures a
-   * real cell and passes it to the emulator, which this entry point still takes no parameter for.
+   * `testReportPixelSize`, whole: the reference's own default cell of 13 by 15, its `resize(23, 33)`
+   * leg, and its third - a cell-pixel-only resize, `mTerminal.resize(columns, rows, 8, 18)` with
+   * columns/rows unchanged - which is P4i-2b's own entry point (`EmulatorFixture.resize`'s new
+   * optional pair). The reports are `rows * cellHeight` by `columns * cellWidth`, in that order.
    */
   @Test
   fun theWindowAndCellAreReportedInPixels() {
@@ -62,6 +62,9 @@ class TerminalReportingTest {
     fixture.resize(23, 33)
     fixture.assertReplyTo("$ESC[14t", "$ESC[4;495;299t")
     fixture.assertReplyTo("$ESC[16t", "$ESC[6;15;13t")
+    fixture.resize(23, 33, cellWidthPixels = 8, cellHeightPixels = 18)
+    fixture.assertReplyTo("$ESC[14t", "$ESC[4;594;184t")
+    fixture.assertReplyTo("$ESC[16t", "$ESC[6;18;8t")
   }
 
   /** The window state and position are fixed answers; a parameter nothing claims is silent. */

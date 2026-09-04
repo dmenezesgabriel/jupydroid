@@ -25,9 +25,18 @@ class TerminalReporting(
   private val screen: TerminalScreen,
   private val replies: TerminalReplies,
   private val title: WindowTitle,
-  private val cellWidthPixels: Int,
-  private val cellHeightPixels: Int,
+  private var cellWidthPixels: Int,
+  private var cellHeightPixels: Int,
 ) {
+  /**
+   * P4i-2b: what `CSI 14/16 t` answer after a real cell is measured - `TerminalEmulator.resize`'s
+   * own entry point, forwarded here rather than reconstructing this class on every layout.
+   */
+  fun updateCellPixels(widthPixels: Int, heightPixels: Int) {
+    cellWidthPixels = widthPixels
+    cellHeightPixels = heightPixels
+  }
+
   /** The ANSI reports: `CSI c`, `CSI n` and `CSI t`. Says whether [finalByte] was one of them. */
   fun apply(finalByte: Int, parameters: EscapeParameters): Boolean {
     val what = parameters.at(0, default = 0, treatZeroAsDefault = true)
