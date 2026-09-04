@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# P4i-3a's own gate: `gateway.resize` reaches the real pty on a real size change (rotation), not
+# only the app's own redraw. `vi`'s full-screen redraw is `p4i-terminal-vi`'s own proof reused for
+# the same reason: its `~` fill lines run to the bottom of whatever the pty told it its screen was,
+# so a changed fill-line count is proof `set_size` reached the real shell, not just that
+# `TerminalCanvas` drew a different apparent width. `stty size` was tried first and rejected - this
+# busybox/toybox build answers it from a fixed default rather than a live `ioctl`, unrelated to
+# whether the resize itself works (confirmed against `vi`'s own reflow before this flow was kept).
+#
+# TABLET ONLY (SM_X216B): a real shell, not `FakeTerminalGateway`'s echo.
+# NOT A SUITE FLOW: the driver rotates the device, which every flow running after it would inherit.
+- launchApp
+- assertVisible: "Files"
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 120000
+- inputText: "vi"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-vi-before-rotation

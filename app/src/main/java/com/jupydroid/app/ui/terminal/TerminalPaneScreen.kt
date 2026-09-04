@@ -78,6 +78,7 @@ fun TerminalPaneScreen(
       key(state.redraw) {
         TerminalCanvas(
           emulator = viewModel.emulator,
+          onGridSizeChanged = { grid, cell -> viewModel.resize(grid, cell.width, cell.height) },
           modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = Spacing.md),
         )
       }

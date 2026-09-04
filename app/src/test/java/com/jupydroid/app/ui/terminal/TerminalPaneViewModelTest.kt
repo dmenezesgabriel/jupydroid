@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.terminal
 
+import androidx.compose.ui.unit.IntSize
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.domain.port.TerminalEvent
@@ -103,6 +104,85 @@ class TerminalPaneViewModelTest {
     assertEquals("terminal ${session.name} was closed", viewModel.uiState.value.endedReason)
   }
 
+  /**
+   * P4i-3a: a measured grid reaches both halves `TerminalGateway.resize`'s own KDoc names -
+   * `emulator.resize` (what is drawn) and the wire `set_size` (what the pty is told), rows before
+   * columns since that is the wire's own order, not a preference.
+   */
+  @Test
+  fun resizeUpdatesTheEmulatorAndWritesTheGatewaysSetSize() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.resize(IntSize(80, 24), cellWidthPixels = 10, cellHeightPixels = 20)
+    advanceUntilIdle()
+
+    assertEquals(80, viewModel.emulator.screen.columns)
+    assertEquals(24, viewModel.emulator.screen.rows)
+    assertEquals(listOf(24 to 80), gateway.resized)
+  }
+
+  /**
+   * The regression P4i-3a's own gate names: a recomposition that reports the same grid must not
+   * write the wire again.
+   */
+  @Test
+  fun resizeIsANoOpWhenTheGridSizeIsUnchanged() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.resize(IntSize(80, 24), cellWidthPixels = 10, cellHeightPixels = 20)
+    viewModel.resize(IntSize(80, 24), cellWidthPixels = 10, cellHeightPixels = 20)
+    advanceUntilIdle()
+
+    assertEquals("a repeated grid size must not write the wire a second time", 1, gateway.resized.size)
+  }
+
+  @Test
+  fun resizeWritesAgainWhenTheGridSizeActuallyChanges() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.resize(IntSize(80, 24), cellWidthPixels = 10, cellHeightPixels = 20)
+    viewModel.resize(IntSize(40, 24), cellWidthPixels = 10, cellHeightPixels = 20)
+    advanceUntilIdle()
+
+    assertEquals(listOf(24 to 80, 24 to 40), gateway.resized)
+  }
+
+  /**
+   * `TerminalCanvas`'s own draw loop bounds itself to `screen.rows`/`columns` captured at its last
+   * composition - only a fresh `key(state.redraw)` rebuild picks up what [TerminalEmulator.resize]
+   * just mutated in place, the same reason every terminal `Output` event already bumps this.
+   */
+  @Test
+  fun resizeBumpsRedrawSoTheCanvasPicksUpTheNewGrid() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+    val before = viewModel.uiState.value.redraw
+
+    viewModel.resize(IntSize(80, 24), cellWidthPixels = 10, cellHeightPixels = 20)
+
+    assertEquals(before + 1, viewModel.uiState.value.redraw)
+  }
+
+  @Test
+  fun resizeDoesNotBumpRedrawWhenTheGridSizeIsUnchanged() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+    viewModel.resize(IntSize(80, 24), cellWidthPixels = 10, cellHeightPixels = 20)
+    val afterFirst = viewModel.uiState.value.redraw
+
+    viewModel.resize(IntSize(80, 24), cellWidthPixels = 10, cellHeightPixels = 20)
+
+    assertEquals(afterFirst, viewModel.uiState.value.redraw)
+  }
+
   // `spaceUsed` is the row's full column width, not its content's length - `RowText.kt`'s own
   // KDoc: "only the first [used] chars are the row", and a row starts fully space-filled. Trimmed
   // here, the way a caller comparing content rather than drawing cells wants it.
@@ -112,6 +192,7 @@ class TerminalPaneViewModelTest {
   /** A minimal spy - [FakeTerminalGateway] echoes what it is sent, which hides what was sent. */
   private class RecordingGateway : TerminalGateway {
     val sent = mutableListOf<String>()
+    val resized = mutableListOf<Pair<Int, Int>>()
     private val events = MutableSharedFlow<TerminalEvent>(extraBufferCapacity = 8)
 
     override suspend fun open(cwd: String?) = TerminalSession("1")
@@ -120,7 +201,9 @@ class TerminalPaneViewModelTest {
     override suspend fun send(session: TerminalSession, text: String) {
       sent += text
     }
-    override suspend fun resize(session: TerminalSession, rows: Int, cols: Int) = Unit
+    override suspend fun resize(session: TerminalSession, rows: Int, cols: Int) {
+      resized += rows to cols
+    }
     override suspend fun close(session: TerminalSession) = Unit
 
     suspend fun push(event: TerminalEvent) = events.emit(event)

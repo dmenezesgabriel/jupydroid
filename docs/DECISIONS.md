@@ -5198,3 +5198,31 @@ rather than assumed still green from before the `Canvas` swap.
 `Canvas`/`drawScope` surface without also composing an equivalent, even invisibly - the pixels and
 the accessibility tree are two different outputs of the same composable and neither substitutes
 for the other.
+
+### `stty size` answers from a fixed default in this rootfs, not a live `ioctl` - `vi`'s own reflow proves the resize instead (P4i-3a)
+
+The first attempt at P4i-3a's Maestro proof typed `stty size` before and after a rotation and
+compared the two numbers - `TerminalGateway.resize`'s own KDoc calls a changed `TIOCGWINSZ`
+answer the most direct evidence `set_size` reached the real pty, so it seemed the natural choice.
+Measured on the tablet, not assumed: the number stayed `25 80` across a landscape-to-portrait
+rotation that a device-level diagnostic confirmed genuinely changed the window from
+`w1280dp-h800dp` to `w800dp-h1280dp`, and confirmed again with `TerminalCanvas`'s own logged
+`BoxWithConstraints` measurements changing (`79 x 29` to `77 x 52` and back), `TerminalPaneViewModel.resize`
+running (`lastGridSize` starting `null` and updating each time, per `resize()`'s own log), and
+`TerminalGateway.resize` returning normally on every call - the whole P4i-3a pipeline, working.
+
+Right: `vi`, opened in the same session and rotated the same way, DID reflow - its `~` fill lines
+went from 11 (landscape) to 23 (portrait), read off the live accessibility tree
+(`uiautomator dump`, the same transparent `Text`-per-row P4i-2d already relies on). That is a
+kernel-level `SIGWINCH` + `TIOCGWINSZ` round trip a full-screen program depends on to redraw at
+all, so it is stronger evidence than `stty size`'s own report, not weaker.
+
+Wrong: trusting `stty size`'s number as ground truth for this environment. This app's rootfs
+`stty` (busybox/toybox) answers `25 80` - the classic 80x25 default - regardless of the pty's real
+window, which reads as "falls back to a default rather than doing the `ioctl`" rather than a
+resize failure once `vi` is the control.
+
+**This forbids** treating `stty size`'s output as authoritative in this specific rootfs without a
+control that is known to actually redraw on `SIGWINCH` (`vi`, `top`, anything full-screen) run
+alongside it first. `evidence/p4i-terminal-resize/` and `p4i-terminal-resize-driver.sh` use `vi`'s
+own fill-line count for exactly this reason.

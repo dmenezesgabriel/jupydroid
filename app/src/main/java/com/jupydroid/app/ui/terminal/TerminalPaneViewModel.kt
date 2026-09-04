@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.terminal
 
+import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.port.TerminalEvent
@@ -95,6 +96,33 @@ class TerminalPaneViewModel(
 
   /** A keystroke, typed verbatim - the other half of [replies], and the only caller `type` has. */
   fun type(text: String) = sendToShell(text)
+
+  /**
+   * The grid this call last resized to, so a repeated report from an unrelated recomposition
+   * writes the wire once, not every frame.
+   */
+  private var lastGridSize: IntSize? = null
+
+  /**
+   * The container's own measured size, turned into both halves `TerminalGateway.resize`'s own
+   * KDoc names: [TerminalEmulator.resize] (what this screen draws) and the wire `set_size` (what
+   * the pty is told) - `docs/PLAN.md`'s P4i-3a. A no-op once [gridSize] repeats, which is what
+   * keeps a redraw that changes nothing about the layout from writing the wire again.
+   *
+   * ```
+   * viewModel.resize(terminalGridSize(containerPixels, cell), cell.width, cell.height)
+   * ```
+   */
+  fun resize(gridSize: IntSize, cellWidthPixels: Int, cellHeightPixels: Int) {
+    if (gridSize == lastGridSize) return
+    lastGridSize = gridSize
+    emulator.resize(gridSize.width, gridSize.height, cellWidthPixels, cellHeightPixels)
+    // `TerminalCanvas`'s draw loop is bound to `screen.rows`/`columns` at its last composition -
+    // only a fresh `key(state.redraw)` rebuild reads what the mutation above just changed, the
+    // same reason every `Output` event already bumps this.
+    bumpRedraw()
+    viewModelScope.launch { terminalGateway.resize(session, rows = gridSize.height, cols = gridSize.width) }
+  }
 
   private fun sendToShell(text: String) {
     viewModelScope.launch { terminalGateway.send(session, text) }

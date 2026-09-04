@@ -1,16 +1,19 @@
 package com.jupydroid.app
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.IntSize
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.terminal.CellStyle
 import com.jupydroid.app.terminal.TerminalEmulator
@@ -21,6 +24,7 @@ import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.terminal.TerminalCanvas
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,12 +49,19 @@ class TerminalCanvasTest {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
     val sgr = "$ESC[42m ".toByteArray()
     emulator.append(sgr, sgr.size)
+    var cell: IntSize? = null
 
-    val image = capture { TerminalCanvas(emulator) }
-    val pixel = image.toPixelMap()[
-      image.width / (emulator.screen.columns * 2), image.height /
-        (emulator.screen.rows * 2),
-    ]
+    // P4i-3a: `TerminalCanvas` now fills whatever bounded size its caller gives it rather than
+    // sizing itself to the grid, so the sample point is the real measured cell centre - reported
+    // through `onGridSizeChanged` - not `image.width / columns`, which only held while the two
+    // were the same thing.
+    val image = capture {
+      TerminalCanvas(emulator, onGridSizeChanged = { _, measured ->
+        cell = measured
+      }, modifier = Modifier.fillMaxSize())
+    }
+    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val pixel = image.toPixelMap()[cellWidth / 2, cellHeight / 2]
 
     assertEquals(Color(TerminalPalette.REFERENCE.at(GREEN_INDEX)), pixel)
   }
@@ -65,11 +76,22 @@ class TerminalCanvasTest {
   fun theCursorIsDrawnOnlyWhileDectcemIsSet() {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
     var redraw by mutableStateOf(0)
-    compose.setContent { JupyterDroidTheme { key(redraw) { TerminalCanvas(emulator) } } }
+    var cell: IntSize? = null
+    compose.setContent {
+      JupyterDroidTheme {
+        key(redraw) {
+          TerminalCanvas(emulator, onGridSizeChanged = { _, measured ->
+            cell = measured
+          }, modifier = Modifier.fillMaxSize())
+        }
+      }
+    }
+    compose.waitForIdle()
 
     val enabled = compose.onRoot().captureToImage()
-    val cursorX = enabled.width / (emulator.screen.columns * 2)
-    val cursorY = enabled.height / (emulator.screen.rows * 2)
+    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val cursorX = cellWidth / 2
+    val cursorY = cellHeight / 2
     assertEquals(
       Color(TerminalPalette.REFERENCE.at(CellStyle.COLOR_INDEX_CURSOR)),
       enabled.toPixelMap()[cursorX, cursorY],
@@ -84,6 +106,39 @@ class TerminalCanvasTest {
     assertNotEquals(
       Color(TerminalPalette.REFERENCE.at(CellStyle.COLOR_INDEX_CURSOR)),
       disabled.toPixelMap()[cursorX, cursorY],
+    )
+  }
+
+  /**
+   * P4i-3a: the grid this reports is the container's own measured size, not
+   * `screen.columns`/`rows` echoed back - [silentEmulator] is 5x3, and any real device's canvas
+   * area holds far more than that, so a placeholder pass-through would fail this outright.
+   */
+  @Test
+  fun reportsARealMeasuredGridRatherThanTheEmulatorsOwnSize() {
+    val emulator = silentEmulator(TerminalPalette.REFERENCE)
+    var reportedGrid: IntSize? = null
+    var reportedCell: IntSize? = null
+
+    compose.setContent {
+      JupyterDroidTheme {
+        TerminalCanvas(
+          emulator,
+          onGridSizeChanged = { grid, cell ->
+            reportedGrid = grid
+            reportedCell = cell
+          },
+        )
+      }
+    }
+    compose.waitForIdle()
+
+    val grid = requireNotNull(reportedGrid) { "onGridSizeChanged was never called" }
+    val cell = requireNotNull(reportedCell)
+    assertTrue("cell $cell should be a real, positive measurement", cell.width > 0 && cell.height > 0)
+    assertTrue(
+      "grid $grid should reflect a real device's canvas area, not the 5x3 test emulator",
+      grid.width > emulator.screen.columns && grid.height > emulator.screen.rows,
     )
   }
 

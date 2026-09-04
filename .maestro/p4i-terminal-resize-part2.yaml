@@ -1,0 +1,10 @@
+appId: com.jupydroid.app
+---
+# The driver rotated the device between the two parts - `p1g-part2-reopen-after-rotation.yaml`'s
+# own reason for `launchApp: stopApp: false` rather than a bare continuation: a rotation relaunches
+# `MainActivity`, and Maestro's own session needs to reattach to the recreated view tree.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-vi-after-rotation

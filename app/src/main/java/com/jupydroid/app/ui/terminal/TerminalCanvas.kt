@@ -1,10 +1,10 @@
 package com.jupydroid.app.ui.terminal
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,10 +38,19 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * `key(state.redraw)` wrapper, since `emulator.screen.grid` is mutated in place and this composable
  * has no state of its own to observe it by.
  *
- * The cell size is [terminalCellMetrics]'s real device measurement, handed once to
- * [TerminalEmulator.resize] (P4i-2b's own entry point) so `CSI 14/16 t` answers with it too - P4i-3
- * is what drives that resize from the screen's own layout size and on every real size change; this
- * only needs it once, so the report and the grid agree from the first frame.
+ * The cell size is [terminalCellMetrics]'s real device measurement. [onGridSizeChanged] reports how
+ * many whole cells this composable's own measured area holds - `docs/PLAN.md`'s P4i-3a - through a
+ * `BoxWithConstraints` rather than a self-sized `Box`, since the grid this now draws is driven by
+ * the container's real size instead of dictating it. **The IME is deliberately excluded, not
+ * missed**: under `enableEdgeToEdge()` the window itself does not shrink for the keyboard
+ * (`CellCompletions.kt`'s own finding), but `TerminalInputField`'s own `imePadding` still steals the
+ * room back from this composable's `weight(1f)` sibling slot in `TerminalPaneScreen` - so
+ * `WindowInsets.ime`'s current bottom inset is added back before the grid is computed, the same
+ * technique `CellCompletions.kt` already uses rather than a new one. Resizing *for* the keyboard is
+ * P4j's, by the plan's own words - not this composable reacting to a shrink that was never real.
+ * Reporting is layout-only: the caller decides what a changed grid means
+ * ([com.jupydroid.app.ui.terminal.TerminalPaneViewModel.resize] is `TerminalPaneScreen`'s), keeping
+ * this file "layout and drawing only" as its own opening line still claims.
  *
  * **A transparent [Text] per row sits over the same grid, and is the point rather than an
  * accident.** `Canvas` carries no semantics of its own, so a screen reader - and every existing
@@ -52,22 +61,29 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * were themselves visible.
  *
  * ```
- * TerminalCanvas(emulator = viewModel.emulator)
+ * TerminalCanvas(
+ *   emulator = viewModel.emulator,
+ *   onGridSizeChanged = { grid, cell -> viewModel.resize(grid, cell.width, cell.height) },
+ * )
  * ```
  */
 @Composable
-fun TerminalCanvas(emulator: TerminalEmulator, modifier: Modifier = Modifier) {
+fun TerminalCanvas(
+  emulator: TerminalEmulator,
+  onGridSizeChanged: (grid: IntSize, cellPixels: IntSize) -> Unit = { _, _ -> },
+  modifier: Modifier = Modifier,
+) {
   val cell = terminalCellMetrics()
   val style = codeTextStyle()
   val renderer = GlyphRenderer(cell, style, rememberTextMeasurer(), emulator.screen.colors)
   val screen = emulator.screen
+  val imeBottomPixels = WindowInsets.ime.getBottom(LocalDensity.current)
 
-  LaunchedEffect(cell) { emulator.resize(screen.columns, screen.rows, cell.width, cell.height) }
+  BoxWithConstraints(modifier = modifier) {
+    val effectiveHeightPixels = constraints.maxHeight + imeBottomPixels
+    val gridSize = terminalGridSize(IntSize(constraints.maxWidth, effectiveHeightPixels), cell)
+    LaunchedEffect(gridSize, cell) { onGridSizeChanged(gridSize, cell) }
 
-  val density = LocalDensity.current
-  val width = with(density) { (cell.width * screen.columns).toDp() }
-  val height = with(density) { (cell.height * screen.rows).toDp() }
-  Box(modifier = modifier.width(width).height(height)) {
     Canvas(modifier = Modifier.matchParentSize()) {
       drawRect(Color(renderer.colors.at(CellStyle.COLOR_INDEX_BACKGROUND)))
       for (row in 0 until screen.rows) drawRow(screen.grid, row, screen.columns, renderer)
