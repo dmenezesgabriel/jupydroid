@@ -5,8 +5,7 @@ import org.junit.Test
 
 /**
  * Every method of `terminal-emulator/src/test/java/com/termux/terminal/ResizeTest.java`
- * (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]) **except `testShrinkingInAltBuffer`**,
- * which needs the lazy resize-on-buffer-switch branch P4h-4 wires up.
+ * (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]).
  */
 class ResizeTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)
@@ -31,6 +30,18 @@ class ResizeTest {
     fixture.enterString("h").assertLinesAre("   ", "   ", " h ").assertCursorAt(2, 2)
     fixture.resize(3, 5).resize(3, 3)
     fixture.enterString("$ESC[?1049l").assertLinesAre("a  ", "def", "$  ").assertCursorAt(2, 1)
+  }
+
+  /**
+   * `testShrinkingInAltBuffer`. Resizing while the alternate screen is live leaves the main
+   * buffer stale; leaving catches it up before the character that follows lands - P4h-4's gap.
+   */
+  @Test
+  fun leavingAShrunkAlternateScreenCatchesTheStaleMainBufferUp() {
+    val fixture = terminal(3, 5).enterString("A\r\nB\r\nC\r\nD\r\nE")
+    fixture.assertLinesAre("A  ", "B  ", "C  ", "D  ", "E  ")
+    fixture.enterString("$ESC[?1049h").assertLinesAre("   ", "   ", "   ", "   ", "   ")
+    fixture.resize(3, 3).enterString("$ESC[?1049lF").assertLinesAre("C  ", "D  ", "EF ")
   }
 
   /** `testResizeAfterNewlineWhenInAltBuffer`. A resize inside the alternate screen leaves the main screen alone. */

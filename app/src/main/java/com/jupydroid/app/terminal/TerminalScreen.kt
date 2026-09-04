@@ -196,21 +196,18 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
    * `TerminalEmulator.resize` fused with its own private `resizeScreen` (`:385-422`): a no-op when
    * neither dimension moves, an `IllegalArgumentException` below two of either, otherwise the
    * cursor's own size/margins/tabs brought to the new one ([TerminalCursor.resize]), the grid
-   * reflowed at it, and the cursor's post-reflow position read back from what [TerminalGrid.resize]
-   * returns - not clamped again here, see [TerminalCursor.resize]'s own KDoc.
-   *
-   * The [newTotalRows] choice is `resizeScreen`'s own (`:418`): the live grid keeps whatever
-   * scrollback it already holds unless it is the alternate screen, which [ScreenBuffers] always
-   * builds `totalRows == rows` deep and a resize must keep that shape.
+   * reflowed at it, and the cursor's post-reflow position read back from what
+   * [ScreenBuffers.resizeLiveGrid] returns - not clamped again here, see [TerminalCursor.resize]'s
+   * own KDoc. [ModeSwitching] calls [ScreenBuffers.resizeLiveGrid] the same way, directly, when the
+   * grid catching up is not this call's - see that method's own KDoc.
    */
   fun resize(newColumns: Int, newRows: Int) {
     if (columns == newColumns && rows == newRows) return
     require(newColumns >= 2 && newRows >= 2) { "rows=$newRows, columns=$newColumns" }
     cursor.resize(newColumns, newRows)
-    val newTotalRows = if (buffers.isAlternateLive) newRows else grid.totalRows
     columns = newColumns
     rows = newRows
-    val result = grid.resize(newColumns, newRows, newTotalRows, cursor.row, cursor.column, currentStyle)
+    val result = buffers.resizeLiveGrid(columns, rows, cursor.row, cursor.column, currentStyle)
     cursor.row = result.row
     cursor.column = result.column
   }

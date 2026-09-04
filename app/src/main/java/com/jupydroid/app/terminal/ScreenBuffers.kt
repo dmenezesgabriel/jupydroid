@@ -56,6 +56,24 @@ class ScreenBuffers(columns: Int, rows: Int, totalRows: Int) {
   }
 
   /**
+   * `resizeScreen()` (`TerminalEmulator.java:414-422`): [live] brought to [columns]/[rows]. The
+   * [newTotalRows] choice is `resizeScreen`'s own (`:418`): [live] keeps whatever scrollback it
+   * already holds unless it is [alternate], which is always built `totalRows == rows` deep and a
+   * resize must keep that shape.
+   *
+   * **Two callers, for two different reasons a grid can be behind [columns]/[rows].**
+   * [TerminalScreen.resize] calls this once its own columns/rows already name the new size, so
+   * [live] - the buffer that *was* live - is the one behind. [ModeSwitching] calls it directly,
+   * with [columns]/[rows] unmoved, when the buffer **just made** live was not the one resized the
+   * last time the terminal's own size changed and so is the one behind instead - the branch
+   * `ModeSwitching.kt` named unreachable until P4h-4 gave it a caller.
+   */
+  fun resizeLiveGrid(columns: Int, rows: Int, cursorRow: Int, cursorColumn: Int, style: CellStyle): GridCursor {
+    val newTotalRows = if (isAlternateLive) rows else live.totalRows
+    return live.resize(columns, rows, newTotalRows, cursorRow, cursorColumn, style)
+  }
+
+  /**
    * **The scrollback is the main screen's, whichever buffer is live.** `CSI 3 J` and RIS both name
    * `mMainBuffer` upstream rather than the current pointer, so a program that clears the scrollback
    * from inside the alternate screen clears the one the user will see when it exits.

@@ -5046,6 +5046,16 @@ P4h-4's own branch.
 would still disagree on content even if neither crashed); and widening the differential's alphabet to
 combine `RESIZE_TARGETS` with the excluded `MODES` entries before P4h-4 closes the branch they reach.
 
+**P4h-4 has landed, and both prohibitions lift.** `ModeSwitching.useAlternateScreen` now computes
+`resized` the same way this entry's own crash traces did - the buffer becoming live compared against
+`TerminalScreen.columns`/`rows` after the swap - and calls the new `ScreenBuffers.resizeLiveGrid`
+(`TerminalScreen.resize`'s own tail, moved there so `ModeSwitching` can call it too without pushing
+`TerminalScreen` over detekt's function cap) before the blank on entry, after `restoreCursor` on
+leave. `everResized`/`MODES_SAFE` are gone from both harnesses; `RESIZE_TARGETS` and the once-excluded
+`MODES` entries are drawn together again, and both crash traces above are now exercised rather than
+avoided - byte-identical on all three seeds, 12,000 operations, `evidence/p4-terminal/emulator-differential.md`'s
+own P4h-4 section.
+
 ### A re-entry to the alternate screen was already blanking what an earlier session left - nothing was pinning it (P4h-3b, closed same day)
 
 `useAlternateScreen`'s mutation table entry "entering the alternate screen does not blank it"
