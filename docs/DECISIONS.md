@@ -5009,3 +5009,39 @@ go through it now.
 means other than `GridCursor.clamped` - the reference's tail is one rule applied to both coordinates
 together, and a clamp that only ever sees one coordinate cannot apply it correctly, which is exactly
 the defect this entry documents.
+
+### A resize followed by a buffer switch reaches the branch nothing has ported yet, so P4h-3b's differential excludes it by name (P4h-3b)
+
+`TerminalScreen.resize` - like the reference's own `resize`/`resizeScreen` - touches only the buffer
+that is live when it runs. `TerminalEmulator.mColumns`/`mRows` (this port's `TerminalScreen.columns`/
+`rows`) are shared fields, updated unconditionally to the new size regardless of which buffer object
+was actually resized. The reference keeps that consistent by resizing the *other* buffer, lazily, the
+instant it becomes live and its own size disagrees with `mColumns`/`mRows`
+(`TerminalEmulator.java:1249-1275`) - the branch `ModeSwitching.kt:64-73` has named unreachable since
+P4f-4b, because nothing could make the two buffers' sizes disagree before P4h-3 gave the app a caller
+for `resize` at all. P4h-4 is where that branch is ported; until then it is a real, reachable gap, not
+argued but run into twice while building P4h-3b's own differential:
+
+- Resizing while the alternate screen is live, then switching to the main one and back, left the
+  alternate grid's own width stale relative to `TerminalScreen.columns` - reading a wider row than
+  the ring actually allocated threw `ArrayIndexOutOfBoundsException` inside `styles()`'s run-length
+  loop, the differential's own state printer, not production code.
+- Resizing the *main* screen and then switching straight to the alternate one crashes first, inside
+  production: `ModeSwitching.useAlternateScreen`'s own `blockClear` blanks the incoming buffer using
+  `TerminalScreen.columns`/`rows` - the size the *other* buffer was just resized to - and `TerminalGrid.blockSet`'s
+  own bounds check catches the mismatch: `evidence/p4-terminal/a-resize-then-a-buffer-switch-reaches-p4h-4s-gap.md`.
+
+**Excluded from `EmulatorDump`/`EmulatorDifferentialTest`'s alphabet by name, not by chance.** Both
+harnesses track one boolean, `everResized`, set the instant a resize step runs; once true, the ten
+`MODES` entries that switch a buffer (`?1049`/`?1047`/`?47`'s set, reset, save and recall forms) stop
+being drawn for the rest of that seed - `MODES_SAFE` is `MODES` minus exactly those ten, keeping
+`?1048h`/`?1048l` (DECSC/DECRC under another number, which never switches). A resize can still be
+drawn any number of times after that, in whichever buffer happens to be live, and every switch that
+happens *before* the first resize is unaffected - this only stops the one combination that reaches
+P4h-4's own branch.
+
+**This forbids** two things until P4h-4 lands: treating a mismatch between `TerminalScreen.columns`/
+`rows` and a non-live buffer's own width as a defect to silently paper over (clamping a read to
+`minOf` the two would hide the real divergence rather than surface it, and the two implementations
+would still disagree on content even if neither crashed); and widening the differential's alphabet to
+combine `RESIZE_TARGETS` with the excluded `MODES` entries before P4h-4 closes the branch they reach.
