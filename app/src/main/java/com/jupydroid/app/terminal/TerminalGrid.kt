@@ -1,6 +1,23 @@
 package com.jupydroid.app.terminal
 
 /**
+ * The cursor's position after a resize - both coordinates, since a reflow can move either where
+ * the fast, rows-only path ([RowRing.resize]) only ever moves the row.
+ */
+data class GridCursor(val row: Int, val column: Int) {
+  companion object {
+    /**
+     * `TerminalBuffer.resize`'s own shared tail (`:352-353`): either coordinate landing negative
+     * resets *both* to `0`, not just the one that went there. [RowRing.resize] returns a raw,
+     * possibly-negative row for exactly this reason - clamping it alone, before a caller's column
+     * is known, would leave that column untouched where the reference zeroes it too.
+     */
+    fun clamped(row: Int, column: Int): GridCursor =
+      if (row < 0 || column < 0) GridCursor(0, 0) else GridCursor(row, column)
+  }
+}
+
+/**
  * A terminal's screen and its scrollback: [screenRows] visible rows of [columns] columns, over a
  * ring of [RowRing] slots that also holds what has scrolled off the top.
  *
@@ -21,8 +38,12 @@ package com.jupydroid.app.terminal
  * grid.setChar(column = 0, row = 0, codePoint = 'a'.code, style = CellStyle.NORMAL)
  * ```
  */
-class TerminalGrid(val columns: Int, totalRows: Int, screenRows: Int) {
-  private val ring = RowRing(columns, totalRows, screenRows)
+class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
+  /** Mutable only through [resize] - a reflow replaces this along with [ring]. */
+  var columns: Int = columns
+    private set
+
+  private var ring = RowRing(columns, totalRows, screenRows)
   private val selection = GridSelection(this)
 
   /** The visible screen's row count. Mutable only through [resize]. */
@@ -96,15 +117,37 @@ class TerminalGrid(val columns: Int, totalRows: Int, screenRows: Int) {
     ring.scrollDownOneLine(topMargin, bottomMargin, style)
 
   /**
-   * Resize the screen when the column count is unchanged: `TerminalBuffer.resize`'s fast path
-   * (`TerminalBuffer.java:204-232`) - pure index arithmetic, no [TerminalRow] touched. A
-   * column-changing resize is P4h-2's reflow; nothing calls this with a different [columns] yet,
-   * so that branch is left unwritten rather than guessed at.
+   * Resize the screen. `TerminalBuffer.resize`'s own guard (`:204`) - the column count unchanged
+   * and the new row count no larger than the ring's *current* capacity - is [RowRing.resize]'s
+   * pure index arithmetic (P4h-1). Everything else rebuilds through [GridReflow] (P4h-2): a column
+   * change, or a grow of a ring shaped like the alternate screen (`totalRows == screenRows`, which
+   * fails the guard's second half even though its columns never move - `ScreenBuffers` is what
+   * builds a ring that shape).
    *
-   * @return the cursor's row after the resize - a shrink or grow shifts which external row it is on.
+   * A reflow's fresh ring starts out only as blank as [TerminalGrid]'s own constructor makes a new
+   * one - the visible [newScreenRows] filled with [style], the rest left to allocate lazily the way
+   * every ring here already does - which is [GridReflow]'s replay to fill in beyond that.
+   *
+   * @return the cursor's row and column after the resize - the fast path never moves the column,
+   * a reflow can.
    */
-  fun resize(newScreenRows: Int, newTotalRows: Int, cursorRow: Int, style: CellStyle): Int =
-    ring.resize(newScreenRows, newTotalRows, cursorRow, style)
+  fun resize(
+    newColumns: Int,
+    newScreenRows: Int,
+    newTotalRows: Int,
+    cursorRow: Int,
+    cursorColumn: Int,
+    style: CellStyle,
+  ): GridCursor {
+    if (newColumns == columns && newScreenRows <= ring.totalRows) {
+      return GridCursor.clamped(ring.resize(newScreenRows, newTotalRows, cursorRow, style), cursorColumn)
+    }
+    val oldRing = ring
+    ring = RowRing(newColumns, newTotalRows, newScreenRows)
+    columns = newColumns
+    blockSet(0, 0, newColumns, newScreenRows, ' '.code, style)
+    return GridReflow(oldRing, this).replay(cursorRow, cursorColumn, style)
+  }
 
   /**
    * DECCARA and DECRARA's write: set, clear or flip [bits] over a region, keeping every cell's

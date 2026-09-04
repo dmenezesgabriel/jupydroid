@@ -4958,3 +4958,54 @@ catching.
 
 **This forbids** dropping the clamp again on the strength of "the branch that reaches it already
 handles it" - the reference's own placement is the proof that no single branch does.
+
+### The dispatch guard, not a flag, decides when the alternate screen reflows (P4h-2)
+
+`TerminalBuffer.resize`'s guard - `newColumns == mColumns && newRows <= mTotalRows` - takes no
+`altScreen` parameter itself; that boolean only reaches the fast path's own body, as P4h-1's entry
+above already covers. What P4h-1 left unwritten was the guard *itself*, because `TerminalGrid.resize`
+took no `newColumns` at all yet: a column-changing call, and equally a grow of a ring shaped like the
+alternate screen (`totalRows == screenRows`, which fails `newRows <= mTotalRows` even though its
+columns never move), had nowhere to go.
+
+**`TerminalGrid.resize` now carries that guard directly**, reading its own `columns` and the ring's
+own `totalRows` rather than a flag: `if (newColumns == columns && newScreenRows <= ring.totalRows)`
+takes the fast path, everything else builds a fresh `RowRing` and replays through `GridReflow`. An
+alt-shaped grid growing therefore reflows automatically, the same way P4h-1's entry above already
+made an alt-shaped shrink clamp its scrollback automatically - both read off the sizes a caller
+passed rather than being told which grid they are.
+
+**This forbids** the same thing P4h-1's forbids already: no `altScreen`/`isAlternate` parameter
+anywhere in this call chain. It also forbids widening `RowRing.resize`'s own guard to accept a
+`newColumns` it would ignore - the guard belongs to whichever caller can compare `newColumns`
+against the *current* `columns`, and only `TerminalGrid` has both numbers.
+
+### `GridCursor.clamped` is the reference's shared tail, applied once rather than per-branch (P4h-2)
+
+`TerminalBuffer.resize`'s two paths share one common tail (`:352-353`) that resets *both*
+`cursor[0]` (column) and `cursor[1]` (row) to `0` together whenever either has gone negative. P4h-1
+transcribed this for the fast path as a row-only clamp inside `RowRing.resize`, because that path
+took no column parameter at all and had none to reset alongside the row - its own entry above
+already names this as what its clamp does not cover.
+
+**P4h-2 gave the fast path a column, and the first draft repeated the shape of the mistake one level
+up**: `TerminalGrid.resize`'s fast-path branch wrapped `RowRing.resize`'s already-clamped row with
+the caller's column, unchanged, whenever the row's clamp had actually fired - the reference resets
+the column too in exactly that case, and this transcription could not see whether a clamp had fired
+at all, only the safe value that came back. Found by the widened grid differential, not a re-reading
+of the source: 8 of 18,000 scripted operations disagreed, every one a `resize` line, every one the
+Kotlin side carrying the input column through where the Java side had zeroed it alongside the row
+(`evidence/p4-terminal/a-resize-cursors-column-left-unclamped-too.md`).
+
+**Fixed by moving the clamp to where both coordinates are known.** `RowRing.resize` now returns the
+*raw*, possibly-negative `cursorRow - shift` - it still has no column to compare against, so it no
+longer pretends to clamp on its own. `GridCursor.clamped(row, column)`, a factory on the `GridCursor`
+this step introduced, is the reference's shared tail written once: `(0, 0)` if either coordinate is
+negative, the pair unchanged otherwise. Both `TerminalGrid.resize`'s fast path and `GridReflow.replay`
+- which independently needed the same rule for its own sentinel-initialised, never-placed cursor -
+go through it now.
+
+**This forbids** re-clamping a row inside `RowRing.resize`, or a cursor inside `GridReflow` by any
+means other than `GridCursor.clamped` - the reference's tail is one rule applied to both coordinates
+together, and a clamp that only ever sees one coordinate cannot apply it correctly, which is exactly
+the defect this entry documents.

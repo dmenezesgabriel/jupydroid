@@ -95,10 +95,13 @@ internal class RowRing(val columns: Int, capacity: Int, screenRows: Int) {
    * totalRows - screenRows` already holds before every call and this arithmetic never grows the
    * left side past what the right side allows.
    *
-   * @return the cursor's row, shifted by the same amount the screen was and reset to `0` if that
-   * shift carried it above the screen - `TerminalBuffer.resize`'s own common tail (`:352-353`),
-   * shared by both its paths, resets the cursor whenever either coordinate goes negative; only the
-   * row can here; the column, unmoved by a rows-only resize, is the caller's to have kept valid.
+   * @return the cursor's row, shifted by the same amount the screen was - **not clamped to `0`**:
+   * `TerminalBuffer.resize`'s own common tail (`:352-353`) resets *both* coordinates together
+   * whenever either goes negative, and clamping the row here on its own would leave a caller's
+   * column untouched where the reference zeroes it too (P4h-2 found this - a fast-path resize
+   * with a nonzero column and a shift carrying the row negative disagreed with the reference until
+   * the joint reset moved to [TerminalGrid.resize], the one place both this and [GridReflow]'s own
+   * result meet). `GridCursor.clamped` is that shared tail.
    */
   fun resize(newScreenRows: Int, newTotalRows: Int, cursorRow: Int, style: CellStyle): Int {
     var shift = screenRows - newScreenRows
@@ -113,7 +116,7 @@ internal class RowRing(val columns: Int, capacity: Int, screenRows: Int) {
     totalRows = newTotalRows
     activeTranscriptRows = minOf(maxOf(0, activeTranscriptRows + shift), newTotalRows - newScreenRows)
     screenRows = newScreenRows
-    return maxOf(0, cursorRow - shift)
+    return cursorRow - shift
   }
 
   /** Try to absorb blank rows below [cursorRow] into the shrink rather than filing them as history. */

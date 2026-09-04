@@ -1,6 +1,7 @@
 package com.jupydroid.app.terminal
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -202,11 +203,18 @@ class TerminalGridTest {
   @Test
   fun shrinkingAbsorbsBlankRowsBelowTheCursorInsteadOfFilingHistory() {
     val grid = gridWithRows("hello")
-    val newCursorRow = grid.resize(newScreenRows = 2, newTotalRows = 8, cursorRow = 0, style = plain)
+    val cursor = grid.resize(
+      newColumns = 5,
+      newScreenRows = 2,
+      newTotalRows = 8,
+      cursorRow = 0,
+      cursorColumn = 0,
+      style = plain,
+    )
     assertEquals(0, grid.activeTranscriptRows)
     assertEquals("hello", rowText(grid, 0))
     assertTrue("the revealed row is blank", grid.rowAt(1).isBlank())
-    assertEquals(0, newCursorRow)
+    assertEquals(0, cursor.row)
   }
 
   /**
@@ -217,12 +225,19 @@ class TerminalGridTest {
   @Test
   fun shrinkingWithTheCursorOnTheCutRowFilesItIntoHistoryRatherThanAbsorbingIt() {
     val grid = gridWithRows("one", "two", "three")
-    val newCursorRow = grid.resize(newScreenRows = 2, newTotalRows = 8, cursorRow = 2, style = plain)
+    val cursor = grid.resize(
+      newColumns = 5,
+      newScreenRows = 2,
+      newTotalRows = 8,
+      cursorRow = 2,
+      cursorColumn = 0,
+      style = plain,
+    )
     assertEquals(1, grid.activeTranscriptRows)
     assertEquals("one", rowText(grid, -1))
     assertEquals("two", rowText(grid, 0))
     assertEquals("three", rowText(grid, 1))
-    assertEquals(1, newCursorRow)
+    assertEquals(1, cursor.row)
   }
 
   /** A grow pulls rows back out of the transcript before it blanks anything. */
@@ -230,13 +245,20 @@ class TerminalGridTest {
   fun growingInsideExistingHistoryPullsRowsBackOntoScreenRatherThanBlankingThem() {
     val grid = gridWithRows("one", "two", "three")
     grid.scrollDownOneLine(0, 3, CellStyle.NORMAL) // "one" -> history; screen: two, three, blank
-    val newCursorRow = grid.resize(newScreenRows = 4, newTotalRows = 8, cursorRow = 1, style = plain)
+    val cursor = grid.resize(
+      newColumns = 5,
+      newScreenRows = 4,
+      newTotalRows = 8,
+      cursorRow = 1,
+      cursorColumn = 0,
+      style = plain,
+    )
     assertEquals(0, grid.activeTranscriptRows)
     assertEquals("one", rowText(grid, 0))
     assertEquals("two", rowText(grid, 1))
     assertEquals("three", rowText(grid, 2))
     assertTrue("the fourth row is newly revealed and blank", grid.rowAt(3).isBlank())
-    assertEquals(2, newCursorRow)
+    assertEquals(2, cursor.row)
   }
 
   /**
@@ -247,11 +269,18 @@ class TerminalGridTest {
   fun growingPastTheTranscriptBlanksWhatItCannotSupplyInTheCurrentStyle() {
     val grid = TerminalGrid(columns = 5, totalRows = 8, screenRows = 2)
     val current = CellStyle.encode(foreColor = 9, backColor = 0, effect = 0)
-    val newCursorRow = grid.resize(newScreenRows = 5, newTotalRows = 8, cursorRow = 0, style = current)
+    val cursor = grid.resize(
+      newColumns = 5,
+      newScreenRows = 5,
+      newTotalRows = 8,
+      cursorRow = 0,
+      cursorColumn = 0,
+      style = current,
+    )
     assertEquals(0, grid.activeTranscriptRows)
     for (row in 0 until 5) assertTrue("row $row", grid.rowAt(row).isBlank())
     assertEquals(current, grid.styleAt(4, 0))
-    assertEquals(0, newCursorRow)
+    assertEquals(0, cursor.row)
   }
 
   /**
@@ -263,8 +292,15 @@ class TerminalGridTest {
   @Test
   fun aCursorTheShiftCarriesAboveTheScreenIsResetToZeroRatherThanLeftNegative() {
     val grid = gridWithRows("one", "two")
-    val newCursorRow = grid.resize(newScreenRows = 1, newTotalRows = 8, cursorRow = 0, style = plain)
-    assertEquals(0, newCursorRow)
+    val cursor = grid.resize(
+      newColumns = 5,
+      newScreenRows = 1,
+      newTotalRows = 8,
+      cursorRow = 0,
+      cursorColumn = 0,
+      style = plain,
+    )
+    assertEquals(0, cursor.row)
   }
 
   /**
@@ -275,8 +311,116 @@ class TerminalGridTest {
   @Test
   fun aRingShapedLikeTheAlternateScreenNeverGainsScrollbackFromAShrink() {
     val grid = TerminalGrid(columns = 5, totalRows = 4, screenRows = 4)
-    grid.resize(newScreenRows = 2, newTotalRows = 2, cursorRow = 3, style = plain)
+    grid.resize(newColumns = 5, newScreenRows = 2, newTotalRows = 2, cursorRow = 3, cursorColumn = 0, style = plain)
     assertEquals(0, grid.activeTranscriptRows)
+  }
+
+  /**
+   * P4h-2: growing the column count over plain content re-wraps nothing, because everything
+   * already fit - `TerminalBuffer.resize`'s reflow branch (`:233-350`) still walks it character by
+   * character, but the wider screen never trips the wrap guard.
+   */
+  @Test
+  fun growingColumnsOverPlainTextKeepsTheContentAndTriggersNoWrap() {
+    val grid = gridWithRows("ab")
+    val cursor = grid.resize(
+      newColumns = 8,
+      newScreenRows = 3,
+      newTotalRows = 8,
+      cursorRow = 0,
+      cursorColumn = 2,
+      style = plain,
+    )
+    assertEquals(8, grid.columns)
+    assertEquals("ab", rowText(grid, 0))
+    assertFalse("nothing here should have wrapped", grid.rowAt(0).lineWrap)
+    assertEquals(GridCursor(0, 2), cursor)
+  }
+
+  /**
+   * P4h-2: shrinking the column count wraps a row that no longer fits across as many output rows
+   * as it needs, marking the row it left with `lineWrap` the way a shell's own overflow would.
+   */
+  @Test
+  fun shrinkingColumnsWrapsALongRowAcrossTwoOutputRows() {
+    val grid = gridWithRows("ABCDE")
+    val cursor = grid.resize(
+      newColumns = 3,
+      newScreenRows = 4,
+      newTotalRows = 8,
+      cursorRow = 0,
+      cursorColumn = 4,
+      style = plain,
+    )
+    assertEquals(3, grid.columns)
+    assertTrue("the first output row wraps into the second", grid.rowAt(0).lineWrap)
+    assertEquals("ABC", rowText(grid, 0))
+    assertEquals("DE", rowText(grid, 1))
+    assertEquals(GridCursor(1, 1), cursor)
+  }
+
+  /**
+   * P4h-2: a row already wrapped rejoins its continuation before either is re-wrapped at the new
+   * width, rather than the two being re-wrapped independently.
+   */
+  @Test
+  fun aWrappedRowRejoinsItsContinuationAndReWrapsTogetherAtTheNewWidth() {
+    val grid = gridWithRows("ABCDE", "FG")
+    grid.rowAt(0).lineWrap = true
+    val cursor = grid.resize(
+      newColumns = 3,
+      newScreenRows = 4,
+      newTotalRows = 8,
+      cursorRow = 1,
+      cursorColumn = 1,
+      style = plain,
+    )
+    assertEquals("ABC", rowText(grid, 0))
+    assertEquals("DEF", rowText(grid, 1))
+    assertEquals("G", rowText(grid, 2))
+    assertEquals(GridCursor(2, 0), cursor)
+  }
+
+  /**
+   * P4h-2: an unwrapped row's trailing blanks are not copied into the replay, so a short row does
+   * not force a wrap it never needed - `TerminalBuffer.resize`'s own `lastNonSpaceIndex` scan.
+   */
+  @Test
+  fun trailingBlanksAreTrimmedOnAnUnwrappedRowRatherThanCopied() {
+    val grid = gridWithRows("AB")
+    val cursor = grid.resize(
+      newColumns = 3,
+      newScreenRows = 3,
+      newTotalRows = 8,
+      cursorRow = 1,
+      cursorColumn = 0,
+      style = plain,
+    )
+    assertEquals("AB", rowText(grid, 0))
+    assertFalse("the trimmed row itself never wraps", grid.rowAt(0).lineWrap)
+    assertEquals(GridCursor(1, 0), cursor)
+  }
+
+  /**
+   * P4h-2: a ring shaped like the alternate screen (`totalRows == screenRows`) fails the fast
+   * path's own `newScreenRows <= totalRows` guard on a grow even though its columns never move,
+   * so it reflows too - the correction P4h's own row in `docs/PLAN.md` names.
+   */
+  @Test
+  fun aRingShapedLikeTheAlternateScreenReflowsOnGrowEvenWithColumnsUnchanged() {
+    val grid = TerminalGrid(columns = 5, totalRows = 3, screenRows = 3)
+    grid.setChar(0, 0, 'a'.code, plain)
+    val cursor = grid.resize(
+      newColumns = 5,
+      newScreenRows = 5,
+      newTotalRows = 5,
+      cursorRow = 0,
+      cursorColumn = 0,
+      style = plain,
+    )
+    assertEquals(5, grid.screenRows)
+    assertEquals("a", rowText(grid, 0))
+    assertEquals(GridCursor(0, 0), cursor)
   }
 
   private fun gridWithRows(vararg rows: String): TerminalGrid {
