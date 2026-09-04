@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# P4i sub-step 1's tablet half - a real shell, not the fake's echo. `docs/DECISIONS.md`'s own
+# rule: an assertion must name something that cannot appear in the prompt or the pty's own echo of
+# the command line, so this asks for arithmetic the shell has to compute and lists a file the
+# driver seeded, rather than waiting for "ls" or "ok".
+#
+# Not `clearState: true`: the driver's own `reset_notebooks` + `seed_file` already put a clean
+# workspace and the marker file in place, and `clearState` would wipe both **and** the already
+# installed Space, forcing a full rootfs reinstall this flow does not need - `a2-empty-notebook`'s
+# own precedent, a bare `launchApp` after the driver's cleanup.
+- launchApp
+- assertVisible: "Files"
+- tapOn: "New terminal"
+# Generous: this can still own installing the Space and starting jupyter_server on the very first
+# run in a fresh environment, matching notebook-session-reattaches/p1d-part1-run-a-cell.
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 120000
+- takeScreenshot: 01-terminal-open
+
+- inputText: "echo $((6*7))"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 60000
+- takeScreenshot: 02-arithmetic-answered
+
+- inputText: "ls"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "p4i-marker.txt"
+    timeout: 60000
+- takeScreenshot: 03-workspace-listed

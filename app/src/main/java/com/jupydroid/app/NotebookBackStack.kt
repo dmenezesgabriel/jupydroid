@@ -40,6 +40,17 @@ fun MutableList<NavKey>.openFile(filePath: String) {
 }
 
 /**
+ * Opens a shell as the detail - [openNotebook] for the terminal document kind.
+ *
+ * Unlike a notebook or a file, a terminal has no path to reveal by: [name] is the server's own
+ * session name, minted fresh on every "New Terminal", so [chooseDetailThatFitsTheSurface]'s
+ * already-on-top check never matches and a second tap always replaces the first with a new shell.
+ */
+fun MutableList<NavKey>.openTerminal(name: String) {
+  chooseDetailThatFitsTheSurface { Terminal(name) }
+}
+
+/**
  * One document, revealed or replaced - never two.
  *
  * Both document kinds swap each other, because the explorer opens both and a detail it cannot
@@ -57,4 +68,4 @@ private fun MutableList<NavKey>.chooseDetailThatFitsTheSurface(opened: () -> Nav
  * Special-casing which kinds are documents is only true until the next document opens; when it
  * does, add it here - the rule is "anything a surface opens replaces the current detail".
  */
-private fun Any?.isDocument(): Boolean = this is Editor || this is FileEditor
+private fun Any?.isDocument(): Boolean = this is Editor || this is FileEditor || this is Terminal

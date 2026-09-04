@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -26,9 +27,11 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
+import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
+import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import kotlinx.coroutines.launch
 
 /**
@@ -59,6 +62,31 @@ private fun rememberDocumentOpener(backStack: MutableList<NavKey>, appContainer:
       appContainer.applicationScope.launch { appContainer.recentDocuments.recordOpening(path) }
     }
   }
+
+/**
+ * `terminal:create-new`, adapted: the reference reaches it from the Launcher tab or the File
+ * menu, and this app has neither until `docs/PLAN.md`'s P6d gives it one. So this is the
+ * explorer's own provisional reach point - a second icon beside the New notebook/file/folder
+ * menu rather than a fourth item inside it, since that menu's own KDoc already states parity
+ * with the reference's New widget (exactly three, none of them a terminal).
+ *
+ * A separate `rememberCoroutineScope` rather than [AppContainer.applicationScope]: opening a
+ * terminal only matters while this screen exists to navigate away from, which is
+ * `architecture.md`'s own line for what belongs on which scope - unlike recording a recent or
+ * flushing an edit, nothing here has to outlive the composition that asked for it.
+ */
+@Composable
+private fun rememberNewTerminal(backStack: MutableList<NavKey>, appContainer: AppContainer): (String) -> Unit {
+  val scope = rememberCoroutineScope()
+  return remember(backStack, appContainer, scope) {
+    { cwd ->
+      scope.launch {
+        val session = appContainer.terminalGateway.open(cwd.ifEmpty { null })
+        backStack.openTerminal(session.name)
+      }
+    }
+  }
+}
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -102,6 +130,7 @@ fun MainNavigation(
   // current path, never by the one a widget was created with.
   var openNotebookId by remember { mutableStateOf<String?>(null) }
   val openDocument = rememberDocumentOpener(backStack, appContainer)
+  val newTerminal = rememberNewTerminal(backStack, appContainer)
   // Where the browser has been asked to go from *outside* its own entry - the open document's
   // breadcrumb (P2w-1). Plain hoisted state rather than an `OpenDocumentOutline`-style holder,
   // because that one exists for something flowing **sideways** between two entries and this flows
@@ -242,6 +271,7 @@ fun MainNavigation(
             browseRequest = browseRequest,
             onBrowseRequestHandled = { browseRequest = null },
             onRevealMatch = { match -> revealRequest = match },
+            onNewTerminal = newTerminal,
           )
         }
         entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
@@ -288,6 +318,13 @@ fun MainNavigation(
             reveal = revealRequest,
             onRevealHandled = { revealRequest = null },
             openDocuments = openDocuments,
+          )
+        }
+        entry<Terminal>(metadata = ListDetailSceneStrategy.detailPane()) { terminal ->
+          TerminalPaneScreen(
+            session = TerminalSession(terminal.name),
+            terminalGateway = appContainer.terminalGateway,
+            onBack = { backStack.removeLastOrNull() },
           )
         }
       },

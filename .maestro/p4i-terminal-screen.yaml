@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# P4i sub-step 1's own gate: open a terminal, type, see it come back on screen. Runs on both
+# devices - the emulator's `FakeTerminalGateway` echoes what it is sent, which proves the UI flow;
+# only the tablet run (the terminal-tablet driver) proves a real shell answered.
+- launchApp:
+    clearState: true
+- assertVisible: "Files"
+- takeScreenshot: 01-the-workspace
+
+# The reach point: a second icon beside the New menu, since this app has no Launcher yet
+# (`docs/PLAN.md` P6d) - see `ExplorerScreen.kt`'s `FilesBar`.
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 5000
+- takeScreenshot: 02-the-terminal-screen
+
+# Autofocused on composition (`TerminalPaneScreen.kt`'s `TerminalInputField`), so typing needs no
+# tap first.
+- inputText: "ls"
+- takeScreenshot: 03-typed-ls

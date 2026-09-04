@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,6 +88,14 @@ fun ExplorerScreen(
   onOpenFile: (WorkspaceEntry) -> Unit,
   onOpenRecent: (String) -> Unit = {},
   /**
+   * Opens a shell rooted at the directory being browsed - `docs/PLAN.md`'s P4i, adapted: the
+   * reference reaches "New Terminal" from the Launcher or the File menu, and this app has
+   * neither yet, so the explorer's own bar is the provisional route. Takes the directory rather
+   * than reading it itself, since the caller above this screen is what actually opens one
+   * (`Navigation.kt`'s `rememberNewTerminal`) - this screen only knows *where*.
+   */
+  onNewTerminal: (String) -> Unit = {},
+  /**
    * The document open in the pane beside this one, so its row can say so - or null when the
    * browser has the window to itself.
    *
@@ -152,6 +161,7 @@ fun ExplorerScreen(
       FilesBar(
         onBack = onBack,
         onCreate = viewModel::create,
+        onNewTerminal = { onNewTerminal(state.path) },
       )
     },
   ) { padding ->
@@ -229,7 +239,7 @@ fun ExplorerScreen(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit) {
+private fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onNewTerminal: () -> Unit) {
   TopAppBar(
     title = { Text("Files") },
     navigationIcon = {
@@ -239,7 +249,14 @@ private fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit) {
         }
       }
     },
-    actions = { NewMenu(onCreate = onCreate) },
+    actions = {
+      // A second icon rather than a fourth item in NewMenu below - that menu's own KDoc already
+      // states parity with the reference's New widget, which offers no terminal.
+      IconButton(onClick = onNewTerminal) {
+        Icon(Icons.Filled.Terminal, contentDescription = "New terminal")
+      }
+      NewMenu(onCreate = onCreate)
+    },
   )
 }
 

@@ -5085,3 +5085,59 @@ scratch copy of `ModeSwitching.kt` makes only this one test fail, nothing else i
 whether the *shipped* behaviour is actually wrong - a survivor can equally mean the code is right
 and only the test suite is thin, which is the more common of the two in a codebase this heavily
 mutation-tested, and conflating the two would have meant "fixing" code that was never broken.
+
+### The reach point is a second icon, not a fourth item in New (P4i-1)
+
+JupyterLab reaches `terminal:create-new` from the Launcher tab or the File menu, neither of which
+this app has until `docs/PLAN.md`'s P6d gives it a Launcher. `ExplorerScreen.kt`'s own `NEW_MENU_ITEMS`
+comment already states parity with the reference's New widget - Notebook, Python file, Folder, and
+no fourth - so a terminal item there would both invent a menu entry the reference does not offer in
+that widget and quietly break that comment's own claim. The provisional route is a second icon in
+`FilesBar`, beside the New menu rather than inside it, opening a shell rooted at the directory being
+browsed (`gateway.open(cwd = state.path.ifEmpty { null })`, mirroring `ExplorerViewModel.create`'s own
+`directory` and the reference's "Open Terminal Here"). P6d is where this gets a proper home; nothing
+here should be read as the intended long-term surface.
+
+### A giant multi-line `Text` cannot be asserted on - Maestro full-matches a node's text (P4i-1)
+
+`TerminalPaneScreen` first rendered the whole screen as one `Text` joining every row with `\n`.
+Measured on the tablet rather than assumed: `visible: "42"` failed for over two minutes of retries
+against a screen that visibly showed `42`, on every timeout tried. The screen-hierarchy dump this
+project's own gates already capture for a failed Maestro step named the cause directly - the node's
+`attributes.text` field held the entire multi-line, space-padded blob, and Maestro's `visible:`
+regex-matches a node's *whole* text rather than searching within it, so no excerpt shorter than the
+whole blob can ever match. `TerminalPaneScreen` now draws one `Text` per row (`terminalScreenLines`,
+trimmed - `TerminalRow.spaceUsed`'s column-width padding is a rendering concern this plain-text
+stand-in does not have yet, and P4i-2's `Canvas` is where it belongs), which fixes the assertion and
+is independently the right shape for accessibility: a screen reader would otherwise read a whole
+terminal's worth of blank rows as one utterance. **This forbids** asserting `visible:` against any
+node whose text is built by joining unrelated lines into one string; the reference's own document
+search results and file listings already avoid this by construction (one row, one node), and this is
+the first surface that broke the pattern.
+
+### `imePadding` on a shared ancestor pulls a sibling's own height budget negative (P4i-1)
+
+`TerminalPaneScreen` first put `.imePadding()` on the outer `Column` wrapping both the output area and
+the input field, reasoning by analogy from `SymbolRow`/`NotebookBar` without reading what those two
+actually pad - the bar itself, not a shared parent. On a window too short for both the keyboard and
+`DEFAULT_ROWS` (24) fixed-height rows, the shared-ancestor placement read as the output column's own
+rows being pushed off the *top* of the screen (negative Compose bounds, confirmed with
+`printToLog` against `TerminalNavigationTest`'s own compose host, not assumed). Moved to the input
+field alone, matching `SymbolRow.kt`/`NotebookBar.kt`'s actual precedent, the output column now only
+ever loses height at its own *bottom* under the same squeeze - `TerminalPaneViewModel`'s fixed
+`DEFAULT_ROWS`/`DEFAULT_COLUMNS` are P4i-2/P4i-3's own placeholders to replace with a real measured,
+resized grid, so this remains a known, already-scheduled gap rather than a new one.
+
+### A seeding Maestro driver must not `clearState` after it seeds (P4i-1)
+
+`p4i-terminal-tablet.yaml` first opened with `launchApp: clearState: true`, copying `explorer-create`/
+`step2-create`'s shape without checking that those two seed nothing. `clearState` runs *after* the
+driver's own `seed_file`, so it deleted the marker file the assertion needed - measured on the
+tablet: `ls` printed nothing at all, twice, at two different (generous) timeouts, before the seeded
+file was found missing rather than merely slow. It also wipes the already-installed Space along with
+the workspace, so every run paid a full rootfs reinstall (`{"stage":"installing base Space"}` then
+`{"stage":"starting jupyter_server"}` in logcat, together costing over a minute) that a bare
+`launchApp` - `a2-empty-notebook-driver.sh`'s own shape, relying on the driver's `reset_notebooks` for
+a clean workspace - does not. **This forbids** `clearState: true` in any flow a driver seeds a fixture
+or a file into; `reset_notebooks`/`seed_file`/`seed_notebook` are already the cleanup, and `clearState`
+undoes them rather than complementing them.

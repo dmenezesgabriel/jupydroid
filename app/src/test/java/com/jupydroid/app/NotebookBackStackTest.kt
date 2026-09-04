@@ -102,4 +102,39 @@ class NotebookBackStackTest {
     fromNotebook.openFile("a.py")
     assertEquals(listOf(Explorer, Explorer, FileEditor("a.py")), fromNotebook)
   }
+
+  /** A terminal opens the same way: one document, pushed onto the browser. */
+  @Test
+  fun openingATerminalPushesItsScreen() {
+    val backStack = mutableListOf<NavKey>(Explorer)
+
+    backStack.openTerminal("1")
+
+    assertEquals(listOf(Explorer, Terminal("1")), backStack)
+  }
+
+  /**
+   * A second "new terminal" tap always opens a fresh session - two terminals never compare equal
+   * by name, since the server mints a new one every time - so it replaces rather than reveals.
+   */
+  @Test
+  fun openingASecondTerminalReplacesTheOneOpen() {
+    val backStack = mutableListOf<NavKey>(Explorer, Terminal("1"))
+
+    backStack.openTerminal("2")
+
+    assertEquals(listOf(Explorer, Terminal("2")), backStack)
+  }
+
+  /** A terminal swaps a document exactly as the other two kinds swap each other. */
+  @Test
+  fun openingATerminalReplacesAnEditorAndViceVersa() {
+    val fromEditor = mutableListOf<NavKey>(Explorer, Explorer, Editor("nb-1"))
+    fromEditor.openTerminal("1")
+    assertEquals(listOf(Explorer, Explorer, Terminal("1")), fromEditor)
+
+    val fromTerminal = mutableListOf<NavKey>(Explorer, Explorer, Terminal("1"))
+    fromTerminal.openNotebook("nb-1")
+    assertEquals(listOf(Explorer, Explorer, Editor("nb-1")), fromTerminal)
+  }
 }

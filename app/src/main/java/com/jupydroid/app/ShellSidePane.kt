@@ -35,6 +35,8 @@ import com.jupydroid.app.ui.shell.WorkspaceReplace
  * @param onRevealMatch where a tapped search result puts the match, on its way to the editor that
  *   has to land on it. Separate from [openDocument] because the two are one act in the caller and
  *   two different pieces of its state.
+ * @param onNewTerminal opens a shell rooted at the directory the explorer hands back - see
+ *   `Navigation.kt`'s `rememberNewTerminal`.
  */
 @Composable
 fun ShellSidePane(
@@ -49,6 +51,7 @@ fun ShellSidePane(
   browseRequest: String?,
   onBrowseRequestHandled: () -> Unit,
   onRevealMatch: (MatchedLine) -> Unit,
+  onNewTerminal: (String) -> Unit,
 ) {
   Column(modifier = Modifier.fillMaxSize()) {
     Box(modifier = Modifier.weight(1f).then(panelInsets(barSelection != null))) {
@@ -89,6 +92,7 @@ fun ShellSidePane(
             // `Nested.ipynb.ipynb` opened nothing.
             onOpenFile = { file -> openDocument(file.path) },
             onOpenRecent = openDocument,
+            onNewTerminal = onNewTerminal,
             openDocumentPath = openDocumentPath,
             browseRequest = browseRequest,
             onBrowseRequestHandled = onBrowseRequestHandled,
