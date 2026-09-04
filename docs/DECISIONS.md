@@ -4867,3 +4867,51 @@ Per this file's own rule (`mutations.py`'s docstring: *"a moved [anchor] stops t
 than being reported as a `SKIPPED` an hour later"*), it is re-pointed at the equivalent line inside
 `onEscape()` rather than dropped from the table - the same mutation, the same detection, the same
 label, a different `find`.
+
+### The ramp lives in `terminal/`, beside `REFERENCE`, not in `theme/EditorPalette` (P4g)
+
+**The obvious place to put sixteen theme-dependent colours is `theme/EditorPalette` - and it is
+wrong.** `EditorPalette` is read by `scripts/check_palette_consumers.py`, which fails a field with
+no production consumer (P2u-1's own finding: two fields cited, valued and drawn by nothing). Sixteen
+new `Color` fields there would be exactly that field today - `terminal/` has no caller at all until
+P4i builds the screen, so nothing in production Kotlin would ever read `.ansiRed`. The gate's own
+module docstring names this precisely: *"A field read only by a test is not drawn by anything, which
+is the case this exists to catch."* `editorBackground`'s existing exemption is not a precedent for
+this - it is drawn today, just not through Kotlin (`res/values-night/colors.xml` duplicates it for
+the window before Compose exists); stretching `EXEMPT` to cover a field with **no** consumer at all
+would defeat the one gate whose job is catching that.
+
+So the ramp is `TerminalPalette.VS_CODE_DARK` / `VS_CODE_LIGHT`, two more companion `val`s beside
+`REFERENCE`, built the same way and by the same generator (factored into `defaultsWithAnsi(ansi)`
+rather than duplicated). This is not an evasion of the gate - `check_palette_consumers.py` only ever
+scans `theme/EditorPalette.kt`'s own class, and `terminal/` was never in its domain, exactly as
+`TerminalPalette.REFERENCE` itself has sat there since P4f-6b-2, unconsumed by production code and
+used only by tests and the differential. DECISIONS.md already named this shape: "P4g adds a second
+palette rather than editing this one."
+
+**This does not resolve "terminal/ may not reach into theme/."** Both palettes are inert data,
+citable and testable on their own, same as `REFERENCE`. *Picking* between them for the active theme
+is still a `theme/`/composition-root decision `terminal/` cannot make itself - that wiring, and
+which of the two a running `TerminalEmulator` actually gets, is P4i's, unchanged from what P4f-6b-2
+already said.
+
+**Indices 256-258 (foreground, background, cursor) are not part of this step's ramp.** VS Code
+registers no default at all for `terminal.background` or `terminalCursor.foreground` -
+`terminalColorRegistry.ts:18,25-26` register them with a `null` `ColorDefaults`, resolved only
+through a live theme's panel surface, which `terminal/` has no equivalent of. `terminal.foreground`
+alone having a real default is not enough to resolve the trio honestly with two of three still
+placeholders. Both new palettes keep `REFERENCE`'s three placeholder values (white foreground,
+opaque black background, white cursor) at those indices, documented as such in
+`defaultsWithAnsi`'s KDoc, for P4i to replace once the screen exists to answer for its own surface.
+
+**The sixteen values, verified two ways rather than read once**: `terminalColorRegistry.ts:102-247`
+(`ansiColorMap`'s `light`/`dark` fields) directly, and independently confirmed empty -
+`grep -rn ansi extensions/theme-defaults/themes/` across all ten default theme JSON files, dark and
+light, "Modern" pair and "2026" pair alike - so no default theme overrides any `terminal.ansi*` id
+and the registered default *is* the resolved value, with no `resolve_vscode_theme.py` include-chain
+to walk (that script reads a theme's own `colors` dict; these sixteen never appear in one).
+
+**No Maestro or device evidence, matching every P4e/P4f-* row before it**: `terminal/` still has no
+caller, so there is no UI surface this step could affect. `TerminalColorsTest` pins both ramps by
+equality, `python3 -m unittest discover -s scripts` and `check_palette_consumers.py` both still
+green and unchanged - evidence the design sits outside the gate rather than quietly depending on it.

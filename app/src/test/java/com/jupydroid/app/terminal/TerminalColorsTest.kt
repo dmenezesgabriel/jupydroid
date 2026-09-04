@@ -143,6 +143,73 @@ class TerminalColorsTest {
     assertEquals(OPAQUE or 0xFFFFFF, palette.at(CellStyle.COLOR_INDEX_CURSOR))
   }
 
+  /**
+   * VS Code's sixteen `terminal.ansi*` registered defaults, dark theme - none of them overridden
+   * by a default theme (`grep -rn 'ansi' extensions/theme-defaults/themes/` is empty across all
+   * ten), so the registry's own `dark` field is the resolved value.
+   * `terminalColorRegistry.ts:102-247`. Indices 256-258 are [TerminalPalette.REFERENCE]'s
+   * placeholders still - see [TerminalPalette.VS_CODE_DARK]'s KDoc.
+   */
+  @Test
+  fun theVsCodeDarkRampMatchesTerminalColorRegistry() {
+    val palette = TerminalPalette.VS_CODE_DARK
+    assertEquals(OPAQUE or 0x000000, palette.at(0)) // ansiBlack
+    assertEquals(OPAQUE or 0xCD3131, palette.at(1)) // ansiRed
+    assertEquals(OPAQUE or 0x0DBC79, palette.at(2)) // ansiGreen
+    assertEquals(OPAQUE or 0xE5E510, palette.at(3)) // ansiYellow
+    assertEquals(OPAQUE or 0x2472C8, palette.at(4)) // ansiBlue
+    assertEquals(OPAQUE or 0xBC3FBC, palette.at(5)) // ansiMagenta
+    assertEquals(OPAQUE or 0x11A8CD, palette.at(6)) // ansiCyan
+    assertEquals(OPAQUE or 0xE5E5E5, palette.at(7)) // ansiWhite
+    assertEquals(OPAQUE or 0x666666, palette.at(8)) // ansiBrightBlack
+    assertEquals(OPAQUE or 0xF14C4C, palette.at(9)) // ansiBrightRed
+    assertEquals(OPAQUE or 0x23D18B, palette.at(10)) // ansiBrightGreen
+    assertEquals(OPAQUE or 0xF5F543, palette.at(11)) // ansiBrightYellow
+    assertEquals(OPAQUE or 0x3B8EEA, palette.at(12)) // ansiBrightBlue
+    assertEquals(OPAQUE or 0xD670D6, palette.at(13)) // ansiBrightMagenta
+    assertEquals(OPAQUE or 0x29B8DB, palette.at(14)) // ansiBrightCyan
+    assertEquals(OPAQUE or 0xE5E5E5, palette.at(15)) // ansiBrightWhite
+  }
+
+  /** VS Code's sixteen `terminal.ansi*` registered defaults, light theme. Same citation. */
+  @Test
+  fun theVsCodeLightRampMatchesTerminalColorRegistry() {
+    val palette = TerminalPalette.VS_CODE_LIGHT
+    assertEquals(OPAQUE or 0x000000, palette.at(0)) // ansiBlack
+    assertEquals(OPAQUE or 0xCD3131, palette.at(1)) // ansiRed
+    assertEquals(OPAQUE or 0x107C10, palette.at(2)) // ansiGreen
+    assertEquals(OPAQUE or 0x949800, palette.at(3)) // ansiYellow
+    assertEquals(OPAQUE or 0x0451A5, palette.at(4)) // ansiBlue
+    assertEquals(OPAQUE or 0xBC05BC, palette.at(5)) // ansiMagenta
+    assertEquals(OPAQUE or 0x0598BC, palette.at(6)) // ansiCyan
+    assertEquals(OPAQUE or 0x555555, palette.at(7)) // ansiWhite
+    assertEquals(OPAQUE or 0x666666, palette.at(8)) // ansiBrightBlack
+    assertEquals(OPAQUE or 0xCD3131, palette.at(9)) // ansiBrightRed
+    assertEquals(OPAQUE or 0x14CE14, palette.at(10)) // ansiBrightGreen
+    assertEquals(OPAQUE or 0xB5BA00, palette.at(11)) // ansiBrightYellow
+    assertEquals(OPAQUE or 0x0451A5, palette.at(12)) // ansiBrightBlue
+    assertEquals(OPAQUE or 0xBC05BC, palette.at(13)) // ansiBrightMagenta
+    assertEquals(OPAQUE or 0x0598BC, palette.at(14)) // ansiBrightCyan
+    assertEquals(OPAQUE or 0xA5A5A5, palette.at(15)) // ansiBrightWhite
+  }
+
+  /**
+   * The cube and the greys are shared arithmetic, not per-palette data - both new palettes must
+   * agree with [TerminalPalette.REFERENCE] at the same corners
+   * [theCubeAndTheGreysAreGeneratedToTheReferencesOwnTable] already pins, proving the factored
+   * generator didn't drift when it grew a second caller.
+   */
+  @Test
+  fun theCubeAndTheGreysAreSharedAcrossEveryPalette() {
+    for (palette in listOf(TerminalPalette.VS_CODE_DARK, TerminalPalette.VS_CODE_LIGHT)) {
+      assertEquals(OPAQUE or 0x000000, palette.at(16))
+      assertEquals(OPAQUE or 0x00005F, palette.at(17))
+      assertEquals(OPAQUE or 0xFFFFFF, palette.at(231))
+      assertEquals(OPAQUE or 0x080808, palette.at(232))
+      assertEquals(OPAQUE or 0xEEEEEE, palette.at(255))
+    }
+  }
+
   private companion object {
     const val OPAQUE = 0xFF shl 24
 

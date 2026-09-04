@@ -11,9 +11,9 @@ package com.jupydroid.app.terminal
  * mutable array shared by every emulator in the process, which `updateWith(Properties)` rewrites
  * from a theme file. Here the palette is a constructor argument, because this app's ANSI ramp is
  * **theme-dependent** - VS Code registers `terminal.ansiGreen` as `#107C10` light and `#0DBC79`
- * dark - and `terminal/` may not reach into `theme/` to ask which. **P4g** resolves that ramp and
- * hands it in; [REFERENCE] is what the differential compares against and what a caller gets until
- * then.
+ * dark - and `terminal/` may not reach into `theme/` to ask which. [VS_CODE_DARK] and
+ * [VS_CODE_LIGHT] are that ramp, resolved (P4g); [REFERENCE] is what the differential compares
+ * against and stays Termux's own scheme.
  *
  * **The cube and the greys are generated, not transcribed.** They are arithmetic - six levels per
  * channel and an even ramp - and 240 literals would be 240 chances to mistype one. [CUBE_LEVELS]
@@ -44,14 +44,37 @@ class TerminalPalette(private val defaults: IntArray) {
     private val CUBE_LEVELS = intArrayOf(0, 0x5F, 0x87, 0xAF, 0xD7, 0xFF)
 
     /**
-     * The sixteen ANSI entries, dim then bright. The only ones that are literals: they are a
-     * palette choice rather than arithmetic, and they are what P4g replaces.
+     * The sixteen ANSI entries, dim then bright. Termux's own choice - a palette value rather
+     * than arithmetic - and what the differential in `TerminalColorsTest` compares against, so
+     * it stays exactly this.
      */
     private val ANSI = intArrayOf(
       0xFF000000.toInt(), 0xFFCD0000.toInt(), 0xFF00CD00.toInt(), 0xFFCDCD00.toInt(),
       0xFF6495ED.toInt(), 0xFFCD00CD.toInt(), 0xFF00CDCD.toInt(), 0xFFE5E5E5.toInt(),
       0xFF7F7F7F.toInt(), 0xFFFF0000.toInt(), 0xFF00FF00.toInt(), 0xFFFFFF00.toInt(),
       0xFF5C5CFF.toInt(), 0xFFFF00FF.toInt(), 0xFF00FFFF.toInt(), 0xFFFFFFFF.toInt(),
+    )
+
+    /**
+     * VS Code's sixteen `terminal.ansi*` registered defaults, dark theme
+     * (`terminalColorRegistry.ts:102-247`, `ansiColorMap`'s `dark` field). None of the default
+     * themes override any of them - `grep -rn 'ansi' extensions/theme-defaults/themes/` is empty
+     * across all ten JSON files, dark and light both - so the registered default *is* the
+     * resolved value, with no `resolve_vscode_theme.py` include-chain to walk.
+     */
+    private val ANSI_DARK = intArrayOf(
+      0xFF000000.toInt(), 0xFFCD3131.toInt(), 0xFF0DBC79.toInt(), 0xFFE5E510.toInt(),
+      0xFF2472C8.toInt(), 0xFFBC3FBC.toInt(), 0xFF11A8CD.toInt(), 0xFFE5E5E5.toInt(),
+      0xFF666666.toInt(), 0xFFF14C4C.toInt(), 0xFF23D18B.toInt(), 0xFFF5F543.toInt(),
+      0xFF3B8EEA.toInt(), 0xFFD670D6.toInt(), 0xFF29B8DB.toInt(), 0xFFE5E5E5.toInt(),
+    )
+
+    /** VS Code's sixteen `terminal.ansi*` registered defaults, light theme. Same citation. */
+    private val ANSI_LIGHT = intArrayOf(
+      0xFF000000.toInt(), 0xFFCD3131.toInt(), 0xFF107C10.toInt(), 0xFF949800.toInt(),
+      0xFF0451A5.toInt(), 0xFFBC05BC.toInt(), 0xFF0598BC.toInt(), 0xFF555555.toInt(),
+      0xFF666666.toInt(), 0xFFCD3131.toInt(), 0xFF14CE14.toInt(), 0xFFB5BA00.toInt(),
+      0xFF0451A5.toInt(), 0xFFBC05BC.toInt(), 0xFF0598BC.toInt(), 0xFFA5A5A5.toInt(),
     )
 
     private const val CUBE_FIRST = 16
@@ -63,9 +86,20 @@ class TerminalPalette(private val defaults: IntArray) {
     private const val RED_SHIFT = 16
     private const val GREEN_SHIFT = 8
 
-    private fun referenceDefaults(): IntArray {
+    /**
+     * The 259 defaults for one sixteen-entry ANSI ramp: the cube and greys are shared arithmetic,
+     * identical for every palette, and only [ansi] and the three dynamic slots vary.
+     *
+     * **The dynamic slots (256-258) are not [ansi]'s to answer.** VS Code registers no default
+     * at all for `terminal.background` or `terminalCursor.foreground` - both resolve only
+     * through a live theme's panel surface, which nothing in `terminal/` has access to - and
+     * `terminal.foreground` alone having one is not enough to resolve the trio honestly. So every
+     * caller of this function gets [REFERENCE]'s placeholders here; P4i replaces them once the
+     * screen exists to answer for its own surface.
+     */
+    private fun defaultsWithAnsi(ansi: IntArray): IntArray {
       val colors = IntArray(CellStyle.INDEXED_COLOR_COUNT)
-      ANSI.copyInto(colors)
+      ansi.copyInto(colors)
       for (level in 0 until CUBE_LEVELS.size * CUBE_LEVELS.size * CUBE_LEVELS.size) {
         colors[CUBE_FIRST + level] = cubeEntry(level)
       }
@@ -92,10 +126,23 @@ class TerminalPalette(private val defaults: IntArray) {
      * differential compares against this, so it must stay byte-for-byte the reference's.
      *
      * **Declared after everything it reads.** A companion's properties initialise in source order,
-     * so a `REFERENCE` written at the top of the block runs `referenceDefaults()` while [ANSI] and
+     * so a `REFERENCE` written at the top of the block runs `defaultsWithAnsi()` while [ANSI] and
      * [CUBE_LEVELS] are still null - which is an `ExceptionInInitializerError` on first touch, not
      * a compile error.
      */
-    val REFERENCE: TerminalPalette = TerminalPalette(referenceDefaults())
+    val REFERENCE: TerminalPalette = TerminalPalette(defaultsWithAnsi(ANSI))
+
+    /**
+     * VS Code's ANSI ramp, dark theme (P4g). **Not yet handed to anything**: no production code
+     * constructs a `TerminalEmulator` at all until P4i builds the screen, and picking this over
+     * [VS_CODE_LIGHT] for the active theme is that composition root's decision, not `terminal/`'s
+     * - see the class KDoc for why `terminal/` cannot make that choice itself. Its foreground,
+     * background and cursor (indices 256-258) are [REFERENCE]'s placeholders, not VS Code's -
+     * [defaultsWithAnsi]'s KDoc says why.
+     */
+    val VS_CODE_DARK: TerminalPalette = TerminalPalette(defaultsWithAnsi(ANSI_DARK))
+
+    /** VS Code's ANSI ramp, light theme. Same placeholders, same caveats as [VS_CODE_DARK]. */
+    val VS_CODE_LIGHT: TerminalPalette = TerminalPalette(defaultsWithAnsi(ANSI_LIGHT))
   }
 }
