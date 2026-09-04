@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# P4i-3b's own gate: `attach()` cancels while backgrounded and a re-attach replays scrollback.
+#
+# Proving only that the *old* text is still on screen after the cycle would not test this sub-step
+# at all - `TerminalEmulator`'s own grid lives in the ViewModel's memory regardless of whether
+# `attach()`'s collection is running, so it would survive a background/foreground cycle even under
+# the old code that never cancelled it. The real proof is that a *second, new* command, typed only
+# after foregrounding, still gets an answer - which needs a live re-attach, not just old pixels.
+#
+# TABLET ONLY (SM-X216B): a real shell, not `FakeTerminalGateway`'s echo.
+- launchApp
+- assertVisible: "Files"
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 120000
+- inputText: "echo before-background"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "before-background"
+    timeout: 15000
+- takeScreenshot: 01-before-background
+- pressKey: Home
+- takeScreenshot: 02-backgrounded
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- inputText: "echo after-foreground"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "after-foreground"
+    timeout: 15000
+- assertVisible: "before-background"
+- takeScreenshot: 03-foregrounded-live-and-scrollback-intact

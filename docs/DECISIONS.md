@@ -5226,3 +5226,37 @@ resize failure once `vi` is the control.
 control that is known to actually redraw on `SIGWINCH` (`vi`, `top`, anything full-screen) run
 alongside it first. `evidence/p4i-terminal-resize/` and `p4i-terminal-resize-driver.sh` use `vi`'s
 own fill-line count for exactly this reason.
+
+### terminado's `read_buffer` replays the whole session, not just what was missed - a re-attach clears first (P4i-3b)
+
+P4i-3b moved `attach()`'s collection out of `viewModelScope`/`init` and into `TerminalPaneScreen`'s
+own `repeatOnLifecycle(STARTED)`, so backgrounding cancels it and foregrounding calls it again - a
+re-attach. The port's own KDoc (`TerminalGateway.attach`) says the server "replays what was
+missed," which reads as incremental catch-up. Measured on the tablet, not assumed: backgrounding a
+terminal that had already printed `before-background` and foregrounding it showed that line
+**twice**, with its own prompt and output each time (`evidence/p4i-terminal-background/`, first
+run before the fix).
+
+Right: `terminado/management.py`'s own comment names what `read_buffer` actually is - "Use
+read_buffer to store historical messages for reconnection," a `deque(maxlen=1000)` fed every byte
+the pty writes (`ptywclients.read_buffer.append(s)`), sent in full to whatever attaches
+(`websocket.py`'s `preopen_buffer = self.terminal.read_buffer.copy()`). It is not incremental and
+does not know what a particular client has already seen - it replays the session's whole recent
+history to every attach, first or otherwise. JupyterLab's own frontend never notices, because its
+usual "re-attach" is a fresh page load into an empty xterm.js instance, where replaying history
+*populates* the terminal rather than duplicating it. This app's `TerminalPaneViewModel` keeps its
+emulator alive in memory across a background/foreground cycle - a deliberate choice, since the
+process itself never dies - so a second attach's replay landed on top of content the emulator
+already had.
+
+Fixed in `TerminalPaneViewModel.attach()`: a second call (`hasAttachedBefore` already true) writes
+`ESC[H` `ESC[2J` `ESC[3J` to the emulator before collecting - home the cursor, blank the visible
+screen, forget the scrollback - all three already `terminal/`'s own erase support (P4f/P4h), reused
+rather than a new "clear" primitive invented for this. The incoming replay then becomes the sole
+source of truth for what is on screen, matching a fresh page load's own semantics rather than
+stacking onto what backgrounding already left behind.
+
+**This forbids** treating a port's "replays what was missed" as necessarily incremental without
+checking the concrete adapter - a re-attach to any stateful stream whose replay is a bounded
+history snapshot (not a resume-from-cursor) needs the same clear-before-replay shape this fix used,
+not just terminado's.

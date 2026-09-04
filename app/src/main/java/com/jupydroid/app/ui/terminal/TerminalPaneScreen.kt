@@ -30,7 +30,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
@@ -65,6 +68,7 @@ fun TerminalPaneScreen(
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  KeepTheShellAttached(viewModel)
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
@@ -98,6 +102,28 @@ private fun TerminalBar(title: String?, onBack: () -> Unit) {
       }
     },
   )
+}
+
+/**
+ * Attaches while the screen is at least visible, and cancels the moment it is not - `docs/PLAN.md`'s
+ * P4i-3b. `ExplorerScreen.KeepTheListingFresh` is this codebase's own precedent for a
+ * lifecycle-gated collection, but on `STARTED` here rather than its `RESUMED`, a deliberate
+ * departure: `RESUMED` is right for a periodic poll that should skip a wakeup nobody is
+ * interactively looking at, and it pauses on a transient partial-obscure too (a permission dialog,
+ * the notification shade) - tearing a live pty connection down and replaying scrollback every time
+ * one flickers over the screen would be a worse experience than what this sub-step is fixing, not
+ * a match for it. `STARTED` is Android's own documented case for "stay alive while visible."
+ *
+ * Cancelling closes the socket without this class asking it to (`TerminalGateway.attach`'s own
+ * KDoc), which is what makes backgrounding cheap; coming back is a re-attach the server answers by
+ * replaying what was missed.
+ */
+@Composable
+private fun KeepTheShellAttached(viewModel: TerminalPaneViewModel) {
+  val lifecycleOwner = LocalLifecycleOwner.current
+  LaunchedEffect(lifecycleOwner, viewModel) {
+    lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { viewModel.attach() }
+  }
 }
 
 /**

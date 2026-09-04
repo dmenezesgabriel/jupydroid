@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** `ESC`, for the cursor-home/clear-screen/clear-scrollback sequence [TerminalPaneViewModel.attach] sends itself. */
+private const val ESC = ""
+
 /**
  * What the terminal screen has to show, beyond the mutable grid [TerminalPaneViewModel.emulator]
  * already carries.
@@ -75,21 +78,45 @@ class TerminalPaneViewModel(
     palette = palette,
   )
 
-  init {
-    // Collected for exactly as long as this ViewModel lives - cancelled by `viewModelScope` on
-    // `onCleared`, which is what closes the socket without this class asking it to
-    // (`TerminalGateway.attach`'s own KDoc: "cancelling the collection closes the socket").
-    viewModelScope.launch {
-      terminalGateway.attach(session).collect { event ->
-        when (event) {
-          TerminalEvent.Ready -> _uiState.update { it.copy(ready = true) }
-          is TerminalEvent.Output -> {
-            val bytes = event.text.toByteArray(Charsets.UTF_8)
-            emulator.append(bytes, bytes.size)
-            bumpRedraw()
-          }
-          is TerminalEvent.Ended -> _uiState.update { it.copy(endedReason = event.reason) }
+  /** Whether [attach] has already run once - a second call is a re-attach, not the first connection. */
+  private var hasAttachedBefore = false
+
+  /**
+   * Collects [terminalGateway]'s events for as long as this call is not cancelled - `docs/PLAN.md`'s
+   * P4i-3b. No longer launched for the caller in `init`: `TerminalPaneScreen`'s own
+   * `repeatOnLifecycle(Lifecycle.State.STARTED)` is what decides when, so backgrounding cancels this
+   * (closing the socket - `TerminalGateway.attach`'s own KDoc) and coming back calls it again, which
+   * is a re-attach the server answers by replaying what was missed.
+   *
+   * **A re-attach clears the screen and scrollback first, a device run rather than a spec found
+   * necessary.** terminado's own `read_buffer` (`management.py`: `deque(maxlen=1000)`, "historical
+   * messages for reconnection") replays the *whole* session so far, not only what changed while
+   * this was cancelled - appending that onto an emulator that already drew it once duplicated the
+   * screen (`evidence/p4i-terminal-background/`, `docs/DECISIONS.md`). `ESC[H` homes the cursor,
+   * `ESC[2J` blanks the visible screen and `ESC[3J` forgets the scrollback - all three already
+   * `terminal/`'s own (P4f/P4h), reused rather than a new "clear" primitive invented for this.
+   *
+   * ```
+   * lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { viewModel.attach() }
+   * ```
+   */
+  suspend fun attach() {
+    if (hasAttachedBefore) {
+      val clear = "$ESC[H$ESC[2J$ESC[3J".toByteArray(Charsets.UTF_8)
+      emulator.append(clear, clear.size)
+      bumpRedraw()
+    }
+    hasAttachedBefore = true
+
+    terminalGateway.attach(session).collect { event ->
+      when (event) {
+        TerminalEvent.Ready -> _uiState.update { it.copy(ready = true) }
+        is TerminalEvent.Output -> {
+          val bytes = event.text.toByteArray(Charsets.UTF_8)
+          emulator.append(bytes, bytes.size)
+          bumpRedraw()
         }
+        is TerminalEvent.Ended -> _uiState.update { it.copy(endedReason = event.reason) }
       }
     }
   }
