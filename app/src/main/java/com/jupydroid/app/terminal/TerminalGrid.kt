@@ -21,9 +21,12 @@ package com.jupydroid.app.terminal
  * grid.setChar(column = 0, row = 0, codePoint = 'a'.code, style = CellStyle.NORMAL)
  * ```
  */
-class TerminalGrid(val columns: Int, totalRows: Int, val screenRows: Int) {
+class TerminalGrid(val columns: Int, totalRows: Int, screenRows: Int) {
   private val ring = RowRing(columns, totalRows, screenRows)
   private val selection = GridSelection(this)
+
+  /** The visible screen's row count. Mutable only through [resize]. */
+  val screenRows: Int get() = ring.screenRows
 
   /** How many rows of scrollback are live. */
   val activeTranscriptRows: Int get() = ring.activeTranscriptRows
@@ -91,6 +94,17 @@ class TerminalGrid(val columns: Int, totalRows: Int, val screenRows: Int) {
    */
   fun scrollDownOneLine(topMargin: Int, bottomMargin: Int, style: CellStyle) =
     ring.scrollDownOneLine(topMargin, bottomMargin, style)
+
+  /**
+   * Resize the screen when the column count is unchanged: `TerminalBuffer.resize`'s fast path
+   * (`TerminalBuffer.java:204-232`) - pure index arithmetic, no [TerminalRow] touched. A
+   * column-changing resize is P4h-2's reflow; nothing calls this with a different [columns] yet,
+   * so that branch is left unwritten rather than guessed at.
+   *
+   * @return the cursor's row after the resize - a shrink or grow shifts which external row it is on.
+   */
+  fun resize(newScreenRows: Int, newTotalRows: Int, cursorRow: Int, style: CellStyle): Int =
+    ring.resize(newScreenRows, newTotalRows, cursorRow, style)
 
   /**
    * DECCARA and DECRARA's write: set, clear or flip [bits] over a region, keeping every cell's

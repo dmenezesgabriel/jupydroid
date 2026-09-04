@@ -4915,3 +4915,46 @@ to walk (that script reads a theme's own `colors` dict; these sixteen never appe
 caller, so there is no UI surface this step could affect. `TerminalColorsTest` pins both ramps by
 equality, `python3 -m unittest discover -s scripts` and `check_palette_consumers.py` both still
 green and unchanged - evidence the design sits outside the gate rather than quietly depending on it.
+
+### `RowRing.resize` clamps the transcript rather than being told it is the alternate screen (P4h-1)
+
+`TerminalBuffer.resize`'s fast path takes an `altScreen` boolean whose only job is forcing
+`mActiveTranscriptRows` to zero for the alternate buffer, because that buffer is built with
+`mTotalRows == mScreenRows` and so is never meant to carry history - without the flag, a shrink's
+own arithmetic (`Math.max(0, mActiveTranscriptRows + shiftDownOfTopRow)`) would hand it scrollback
+regardless.
+
+**Not transcribed.** `RowRing.resize` instead clamps the result to `newTotalRows - newScreenRows`,
+which is `0` exactly when a ring is alternate-shaped and is *provably a no-op* when it is not: the
+invariant `activeTranscriptRows <= totalRows - screenRows` already holds before every call (every
+prior operation - construction, every `scrollDownOneLine`, every earlier `resize` - maintains it),
+and both the shrink and grow arithmetic keep the post-resize value within `newTotalRows -
+newScreenRows` given that precondition, worked through in full in
+`evidence/p4-terminal/grid-differential.md`'s equivalent-mutant section. `RowRing` therefore needs
+no boolean parameter and no way to be told which grid it is - a `TerminalGrid` instantiated with
+`totalRows == screenRows`, which is exactly how `ScreenBuffers` already builds the alternate one,
+gets the reference's `altScreen ? 0 : ...` behaviour for free.
+
+**This forbids** adding an `altScreen`/`isAlternate` parameter back to `RowRing.resize` or
+`TerminalGrid.resize` - the shape a caller would reach for is already implied by the sizes it
+passes, and a flag duplicating that is a second source of truth for one fact.
+
+### A resize's cursor, left unclamped, and only the differential found it (P4h-1)
+
+`TerminalBuffer.resize`'s two paths - `:205-232` and `:233-350` - share one common tail (`:352-353`)
+that resets the cursor to `(0, 0)` whenever either coordinate has gone negative. It sits *after*
+the `if`/`else` rather than inside either branch, which is exactly why a first transcription that
+followed the branch structure read as complete without it: `RowRing.resize` returned
+`cursorRow - shift` directly, and every hand-written `TerminalGridTest` case this sub-step started
+with happened to land on a non-negative row.
+
+**The widened grid differential caught it, not a re-reading of the source.** Extending
+`evidence/p4-terminal/grid-differential/harness/` with a `resize` op and running the same 3000-step
+script both sides already used, 105 of 9,000 steps disagreed - every one a `resize` line, every one
+the Kotlin side returning a negative row where the Java side had already reset to `0`
+(`evidence/p4-terminal/a-resize-cursor-left-unclamped.md`). Fixed with `maxOf(0, cursorRow - shift)`
+and pinned by a unit test built to hit it directly, not just left to the differential to keep
+catching.
+
+**This forbids** dropping the clamp again on the strength of "the branch that reaches it already
+handles it" - the reference's own placement is the proof that no single branch does.

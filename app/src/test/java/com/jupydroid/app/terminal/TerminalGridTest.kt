@@ -194,6 +194,91 @@ class TerminalGridTest {
     TerminalGrid(columns = 5, totalRows = 6, screenRows = 3).blockCopy(0, 0, 3, 4, 0, 0)
   }
 
+  /**
+   * A shrink first tries to absorb blank rows below the cursor rather than filing anything into
+   * history - `TerminalBuffer.resize`'s own shrink loop (`:210-218`). Here the whole shift is
+   * absorbed, so nothing moves into the scrollback and the cursor's row is unchanged.
+   */
+  @Test
+  fun shrinkingAbsorbsBlankRowsBelowTheCursorInsteadOfFilingHistory() {
+    val grid = gridWithRows("hello")
+    val newCursorRow = grid.resize(newScreenRows = 2, newTotalRows = 8, cursorRow = 0, style = plain)
+    assertEquals(0, grid.activeTranscriptRows)
+    assertEquals("hello", rowText(grid, 0))
+    assertTrue("the revealed row is blank", grid.rowAt(1).isBlank())
+    assertEquals(0, newCursorRow)
+  }
+
+  /**
+   * A shrink the cursor sits inside pushes the rows it cuts off into history rather than
+   * absorbing them, even though they are blank - `cursor[1] >= i` breaks the loop before it ever
+   * looks at whether a row is blank (`:212`).
+   */
+  @Test
+  fun shrinkingWithTheCursorOnTheCutRowFilesItIntoHistoryRatherThanAbsorbingIt() {
+    val grid = gridWithRows("one", "two", "three")
+    val newCursorRow = grid.resize(newScreenRows = 2, newTotalRows = 8, cursorRow = 2, style = plain)
+    assertEquals(1, grid.activeTranscriptRows)
+    assertEquals("one", rowText(grid, -1))
+    assertEquals("two", rowText(grid, 0))
+    assertEquals("three", rowText(grid, 1))
+    assertEquals(1, newCursorRow)
+  }
+
+  /** A grow pulls rows back out of the transcript before it blanks anything. */
+  @Test
+  fun growingInsideExistingHistoryPullsRowsBackOntoScreenRatherThanBlankingThem() {
+    val grid = gridWithRows("one", "two", "three")
+    grid.scrollDownOneLine(0, 3, CellStyle.NORMAL) // "one" -> history; screen: two, three, blank
+    val newCursorRow = grid.resize(newScreenRows = 4, newTotalRows = 8, cursorRow = 1, style = plain)
+    assertEquals(0, grid.activeTranscriptRows)
+    assertEquals("one", rowText(grid, 0))
+    assertEquals("two", rowText(grid, 1))
+    assertEquals("three", rowText(grid, 2))
+    assertTrue("the fourth row is newly revealed and blank", grid.rowAt(3).isBlank())
+    assertEquals(2, newCursorRow)
+  }
+
+  /**
+   * A grow past what the transcript can supply blanks the rows it can't pull back, in the style
+   * passed to [TerminalGrid.resize] rather than whatever the row held before it scrolled off.
+   */
+  @Test
+  fun growingPastTheTranscriptBlanksWhatItCannotSupplyInTheCurrentStyle() {
+    val grid = TerminalGrid(columns = 5, totalRows = 8, screenRows = 2)
+    val current = CellStyle.encode(foreColor = 9, backColor = 0, effect = 0)
+    val newCursorRow = grid.resize(newScreenRows = 5, newTotalRows = 8, cursorRow = 0, style = current)
+    assertEquals(0, grid.activeTranscriptRows)
+    for (row in 0 until 5) assertTrue("row $row", grid.rowAt(row).isBlank())
+    assertEquals(current, grid.styleAt(4, 0))
+    assertEquals(0, newCursorRow)
+  }
+
+  /**
+   * A shrink that carries the cursor's row above the new screen resets it to `0` rather than
+   * leaving it negative - `TerminalBuffer.resize`'s own common tail (`:352-353`), shared by both
+   * its paths. A cursor already above the shrunk screen (row 0, screen down to 1 row) is exactly
+   * that case: nothing below it can absorb the shift, so it lands at `-1` before the reset.
+   */
+  @Test
+  fun aCursorTheShiftCarriesAboveTheScreenIsResetToZeroRatherThanLeftNegative() {
+    val grid = gridWithRows("one", "two")
+    val newCursorRow = grid.resize(newScreenRows = 1, newTotalRows = 8, cursorRow = 0, style = plain)
+    assertEquals(0, newCursorRow)
+  }
+
+  /**
+   * A ring built alt-screen-shaped - `totalRows == screenRows`, so `RowRing.scrollDownOneLine`
+   * never grows a scrollback into it in the first place - stays at zero scrollback through a
+   * shrink too, the invariant `ScreenBuffers`' alternate grid depends on.
+   */
+  @Test
+  fun aRingShapedLikeTheAlternateScreenNeverGainsScrollbackFromAShrink() {
+    val grid = TerminalGrid(columns = 5, totalRows = 4, screenRows = 4)
+    grid.resize(newScreenRows = 2, newTotalRows = 2, cursorRow = 3, style = plain)
+    assertEquals(0, grid.activeTranscriptRows)
+  }
+
   private fun gridWithRows(vararg rows: String): TerminalGrid {
     val grid = TerminalGrid(columns = 5, totalRows = 8, screenRows = maxOf(rows.size, 3))
     for ((row, content) in rows.withIndex()) {
