@@ -5508,3 +5508,33 @@ general terminal text on this device is three times taller - and searching any c
 terminal's own known-safe leading one (`x=0-60`, what `terminal_content_bottom_y` and
 `terminal_row_spacing_px` already restrict themselves to) without first proving nothing else on
 screen ever paints there.
+
+### A swipe that starts on the soft keyboard never reaches this app at all (P4j-3d-4)
+
+`p4j-3d-4-terminal-alt-screen-arrows`'s first real run against `vi` produced no cursor movement
+whatsoever - not a wrong direction, not a partial move, five drags in a row against a freshly
+opened file that stayed on line 1 every time. Confirmed device-side, not guessed: a temporary
+`Log.d` inside `scrollBy` showed `isAlternateLive=true` and a correctly computed `deltaRows` on
+every call, and a hardware `KEYCODE_DPAD_DOWN` sent through the exact same `sendToShell` path
+moved the cursor immediately - the redirect logic and the wire were never the problem.
+
+**The swipe's own start point was inside the soft keyboard's bounds.** The flow's coordinates
+(`50%, 85%` to `50%, 25%`) were copied from `p4j-3d-3-terminal-scrollback`'s own working swipe
+without re-checking them against *this* screen's own layout - and the two differ: P4j-3d-3's
+swipe also ended inside the keyboard but *started* well above it, while this flow's swipe started
+at 85%, already past the keyboard's own top edge once it opens. A touch's target is decided at
+`ACTION_DOWN` and Android keeps routing that same gesture's `MOVE`/`UP` events to whatever
+received the `DOWN`, regardless of where the finger travels afterward - so a gesture that starts
+on the IME's own window is the IME's for its entire duration, and this app's `pointerInput` never
+sees so much as a `down` call. This is *why* P4j-3d-3's own swipe worked despite also crossing
+into keyboard territory: what matters is where a drag *starts*, not where it ends.
+
+**Fixed by keeping both ends of the swipe above 65% of the screen height** - comfortably clear of
+where the keyboard opens on this device - rather than teaching the flow to detect the keyboard's
+own bounds, which Maestro has no primitive for and this project's own `terminal_content_extent.py`
+oracles are pixel-comparison tools, not touch-routing ones.
+
+**This forbids** copying a swipe's coordinates from another flow without checking them against the
+*specific* screen state that flow runs in - a soft keyboard's presence, and its own height, differ
+by screen and by whether a field is focused, and a coordinate safe in one capture is not
+automatically safe in another just because both are "the terminal."

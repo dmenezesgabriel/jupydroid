@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.terminal
 
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /** `ESC`, for the cursor-home/clear-screen/clear-scrollback sequence [TerminalPaneViewModel.attach] sends itself. */
 private const val ESC = ""
@@ -235,10 +237,15 @@ class TerminalPaneViewModel(
    * number of cells: the fractional remainder carries to the next call rather than being dropped,
    * the way Termux's own `TerminalView.onScroll` keeps `distanceY += mScrollRemainder`.
    *
-   * @return the pixel amount [clampedTopRow][com.jupydroid.app.terminal.clampedTopRow] actually
-   *   applied, not [pixelDeltaY] itself - so a caller driving this from a fling (a later step, not
-   *   this one) can stop its own deceleration cleanly at a clamped boundary instead of believing
-   *   more was consumed than the grid actually moved.
+   * @return the pixel amount actually applied, not [pixelDeltaY] itself - so a caller driving
+   *   this from a fling (a later step, not this one) can stop its own deceleration cleanly at a
+   *   clamped boundary instead of believing more was consumed than the grid actually moved.
+   *
+   * **The alternate screen** (`vi`, `less`, `htop`) **carries no scrollback at all** - Termux's
+   * own `doScroll` redirects a drag there to Up/Down arrow keystrokes instead, reusing
+   * [terminalKeystroke]'s own encoding (a hardware key's, P4j-2) rather than a second one -
+   * `docs/PLAN.md`'s P4j-3d-4. `ScreenBuffers.isAlternateLive` is already public through
+   * [emulator]'s own `screen.buffers` - no new delegate property needed on [TerminalScreen].
    *
    * ```
    * detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellHeightPx) }
@@ -248,12 +255,33 @@ class TerminalPaneViewModel(
     val totalPixels = pixelDeltaY + scrollRemainder
     val deltaRows = (totalPixels / cellHeightPx).toInt()
     scrollRemainder = totalPixels - deltaRows * cellHeightPx
-    val current = _uiState.value.topRow
-    val next = emulator.screen.grid.clampedTopRow(current, deltaRows)
-    if (next == current) return 0f
-    _uiState.update { it.copy(topRow = next) }
-    bumpRedraw()
-    return (next - current) * cellHeightPx.toFloat()
+
+    // Local, not a sibling member - `TerminalPaneViewModel` is already at detekt's
+    // `TooManyFunctions` cap (the same reason `TerminalGrid.clampedTopRow` is an extension
+    // rather than a member, P4j-3d-1's own finding), and both need nothing outside this call's
+    // own `deltaRows`/`cellHeightPx`.
+    fun forwardArrowKeys(): Float {
+      val key = if (deltaRows < 0) Key.DirectionUp else Key.DirectionDown
+      val bytes =
+        terminalKeystroke(key, ctrlPressed = false, keyCode = 0, emulator.isApplicationCursorKeys) ?: return 0f
+      repeat(abs(deltaRows)) { sendToShell(bytes) }
+      return (deltaRows * cellHeightPx).toFloat()
+    }
+
+    fun moveTopRow(): Float {
+      val current = _uiState.value.topRow
+      val next = emulator.screen.grid.clampedTopRow(current, deltaRows)
+      if (next == current) return 0f
+      _uiState.update { it.copy(topRow = next) }
+      bumpRedraw()
+      return (next - current) * cellHeightPx.toFloat()
+    }
+
+    return when {
+      deltaRows == 0 -> 0f
+      emulator.screen.buffers.isAlternateLive -> forwardArrowKeys()
+      else -> moveTopRow()
+    }
   }
 
   private fun sendToShell(text: String) {

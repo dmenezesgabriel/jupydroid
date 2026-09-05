@@ -7,19 +7,10 @@ import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.domain.model.TerminalFontSize
 import com.jupydroid.app.domain.model.TerminalSettings
 import com.jupydroid.app.domain.port.TerminalEvent
-import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.terminal.CellStyle
 import com.jupydroid.app.terminal.TerminalPalette
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -27,13 +18,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-private const val ESC = "\u001B"
-
 /**
  * Binding the already-built [com.jupydroid.app.domain.port.TerminalGateway] to the already-built
  * `terminal/` emulator - the wiring P4i's own row exists for. `FakeTerminalGateway.send` echoes
  * back whatever it is given as `Output`, so it stands in for a real shell that types back what it
  * was sent.
+ *
+ * [TerminalPaneViewModelScrollbackTest] is the sibling for `docs/PLAN.md`'s P4j-3d - gesture
+ * scrollback and the alternate-screen redirect - split out once this file crossed the 500-line
+ * file-length gate; both share [RecordingGateway] and the rest of `TerminalPaneViewModelFixture.kt`.
  */
 class TerminalPaneViewModelTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
@@ -283,107 +276,6 @@ class TerminalPaneViewModelTest {
     assertEquals(afterFirst, viewModel.uiState.value.redraw)
   }
 
-  /**
-   * `docs/PLAN.md`'s P4j-3d-3: sub-cell drag distance is not lost between calls - Termux's own
-   * `mScrollRemainder`. Two 4px drags over a 10px cell move nothing on their own; a third pushes
-   * the accumulated 12px total past one whole cell, landing exactly one row.
-   */
-  @Test
-  fun scrollByRemembersTheRemainderAcrossCalls() = runTest {
-    val gateway = RecordingGateway()
-    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
-    advanceUntilIdle()
-    scrollDownOneLine(viewModel) // one row of scrollback to move into
-
-    viewModel.scrollBy(pixelDeltaY = -4f, cellHeightPx = 10)
-    viewModel.scrollBy(pixelDeltaY = -4f, cellHeightPx = 10)
-    assertEquals("8px of 10 is not yet a whole row", 0, viewModel.uiState.value.topRow)
-
-    viewModel.scrollBy(pixelDeltaY = -4f, cellHeightPx = 10)
-    assertEquals(-1, viewModel.uiState.value.topRow)
-  }
-
-  @Test
-  fun scrollByClampsAtTheLiveScreen() = runTest {
-    val gateway = RecordingGateway()
-    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
-    advanceUntilIdle()
-
-    val consumed = viewModel.scrollBy(pixelDeltaY = 1000f, cellHeightPx = 10)
-
-    assertEquals(0, viewModel.uiState.value.topRow)
-    assertEquals(0f, consumed, 0f)
-  }
-
-  @Test
-  fun scrollByClampsAtTheOldestScrollbackRowAndReportsOnlyWhatWasActuallyConsumed() = runTest {
-    val gateway = RecordingGateway()
-    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
-    advanceUntilIdle()
-    scrollDownOneLine(viewModel) // activeTranscriptRows == 1
-
-    // Ask for far more than the one row of history this screen actually has.
-    val consumed = viewModel.scrollBy(pixelDeltaY = -1000f, cellHeightPx = 10)
-
-    assertEquals(-1, viewModel.uiState.value.topRow)
-    assertEquals(
-      "a fling's own deceleration must stop where the grid actually stopped, not where it asked to go",
-      -10f,
-      consumed,
-      0f,
-    )
-  }
-
-  @Test
-  fun scrollByBumpsRedrawWhenTopRowActuallyMoves() = runTest {
-    val gateway = RecordingGateway()
-    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
-    advanceUntilIdle()
-    scrollDownOneLine(viewModel)
-    val before = viewModel.uiState.value.redraw
-
-    viewModel.scrollBy(pixelDeltaY = -10f, cellHeightPx = 10)
-
-    assertEquals(before + 1, viewModel.uiState.value.redraw)
-  }
-
-  /**
-   * Termux's own `TerminalView.onScreenUpdated` default path: no text selection, no auto-scroll
-   * lock exist in this app to carve an exception out for, so any new output while scrolled back
-   * snaps straight back to the live screen - a named simplification of the reference, not a
-   * silent omission (`docs/PLAN.md`).
-   */
-  @Test
-  fun newOutputWhileScrolledBackSnapsBackToTheLiveScreen() = runTest {
-    val gateway = RecordingGateway()
-    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
-    attachOn(viewModel)
-    advanceUntilIdle()
-    gateway.push(TerminalEvent.Ready)
-    scrollDownOneLine(viewModel)
-    viewModel.scrollBy(pixelDeltaY = -10f, cellHeightPx = 10)
-    advanceUntilIdle()
-    assertEquals(-1, viewModel.uiState.value.topRow)
-
-    gateway.push(TerminalEvent.Output("x"))
-    advanceUntilIdle()
-
-    assertEquals(0, viewModel.uiState.value.topRow)
-  }
-
-  private fun scrollDownOneLine(viewModel: TerminalPaneViewModel) {
-    viewModel.emulator.screen.grid.scrollDownOneLine(0, viewModel.emulator.screen.rows, CellStyle.NORMAL)
-  }
-
-  /**
-   * Launches `attach()` on `Dispatchers.Main` - the same dispatcher [MainDispatcherRule] points at
-   * `viewModelScope`'s own, so a keystroke sent through `type`/`resize` and this collector's flow
-   * rendezvous on one scheduler exactly as they do in the real app, where `TerminalPaneScreen`'s
-   * own `repeatOnLifecycle` effect runs on the same Main dispatcher `viewModelScope` does. A plain
-   * `launch` here runs on `runTest`'s own, separate scheduler instead - harmless for a buffered
-   * fake, but a real deadlock against `FakeTerminalGateway`'s unbuffered `printed` flow, which
-   * needs its collector and `type`'s `send` pumped by the same scheduler to rendezvous at all.
-   */
   // --- P4j-3a: a tapped/long-pressed Ctrl or Alt latch applied to soft-keyboard text ---
 
   @Test
@@ -533,40 +425,5 @@ class TerminalPaneViewModelTest {
     advanceUntilIdle()
 
     assertEquals(TerminalFontSize.MIN, viewModel.uiState.value.fontSizeSp)
-  }
-
-  private fun TestScope.attachOn(viewModel: TerminalPaneViewModel): Job =
-    backgroundScope.launch(Dispatchers.Main) { viewModel.attach() }
-
-  private fun firstRowOf(viewModel: TerminalPaneViewModel): String = rowAt(viewModel, 0)
-
-  // `spaceUsed` is the row's full column width, not its content's length - `RowText.kt`'s own
-  // KDoc: "only the first [used] chars are the row", and a row starts fully space-filled. Trimmed
-  // here, the way a caller comparing content rather than drawing cells wants it.
-  private fun rowAt(viewModel: TerminalPaneViewModel, row: Int): String =
-    viewModel.emulator.screen.grid.rowAt(row).let { String(it.text, 0, it.spaceUsed) }.trimEnd()
-
-  /** A minimal spy - [FakeTerminalGateway] echoes what it is sent, which hides what was sent. */
-  private class RecordingGateway : TerminalGateway {
-    val sent = mutableListOf<String>()
-    val resized = mutableListOf<Pair<Int, Int>>()
-
-    /** Set from [attach]'s own `onCompletion` - true only once a collector was cancelled, not merely absent. */
-    var attachWasCancelled = false
-    private val events = MutableSharedFlow<TerminalEvent>(extraBufferCapacity = 8)
-
-    override suspend fun open(cwd: String?) = TerminalSession("1")
-    override suspend fun running(): List<TerminalSession> = emptyList()
-    override fun attach(session: TerminalSession): Flow<TerminalEvent> =
-      events.onCompletion { cause -> if (cause is CancellationException) attachWasCancelled = true }
-    override suspend fun send(session: TerminalSession, text: String) {
-      sent += text
-    }
-    override suspend fun resize(session: TerminalSession, rows: Int, cols: Int) {
-      resized += rows to cols
-    }
-    override suspend fun close(session: TerminalSession) = Unit
-
-    suspend fun push(event: TerminalEvent) = events.emit(event)
   }
 }
