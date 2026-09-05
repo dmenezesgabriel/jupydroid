@@ -107,10 +107,33 @@ class IdleServerStopperTest {
     assertEquals(listOf("stopped"), stops)
   }
 
-  private fun TestScope.stopper(cellsInFlight: StateFlow<Int>) = IdleServerStopper(
-    scope = this,
-    cellsInFlight = cellsInFlight,
-    stopServer = { stops += "stopped" },
-    grace = 30.seconds,
-  )
+  /**
+   * A live terminal must hold the server open exactly as an in-flight cell does - the server side
+   * of this is `jupyter_server_terminals`' `current_activity()`, reported by `any_activity()`
+   * (`serverapp.py:2602-2618`); this class is the half of that this app owns.
+   */
+  @Test
+  fun stoppedWhileATerminalIsOpen_waitsForItBeforeStopping() = runTest {
+    val terminalsOpen = MutableStateFlow(1)
+    val stopper = stopper(MutableStateFlow(0), terminalsOpen)
+
+    stopper.onAppStopped()
+    advanceTimeBy(5.seconds.inWholeMilliseconds)
+    runCurrent()
+    assertTrue("a live terminal must not be killed, stopped: $stops", stops.isEmpty())
+
+    terminalsOpen.value = 0 // the shell exited, in the background
+    advanceTimeBy(31.seconds.inWholeMilliseconds) // and the grace counts down
+    runCurrent()
+    assertEquals(listOf("stopped"), stops)
+  }
+
+  private fun TestScope.stopper(cellsInFlight: StateFlow<Int>, terminalsOpen: StateFlow<Int> = MutableStateFlow(0)) =
+    IdleServerStopper(
+      scope = this,
+      cellsInFlight = cellsInFlight,
+      terminalsOpen = terminalsOpen,
+      stopServer = { stops += "stopped" },
+      grace = 30.seconds,
+    )
 }

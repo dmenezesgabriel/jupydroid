@@ -10,8 +10,10 @@ import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
+import com.jupydroid.app.data.space.ActivityTrackedTerminalGateway
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelGateway
@@ -58,9 +60,10 @@ class AppContainer(
    * `MainAreaWidget` rather than to a panel (`packages/terminal-extension/src/index.ts:523-524`).
    *
    * Its fake echoes what is typed, so the terminal screen composes and takes input on a device
-   * with no Space; only the shell is missing.
+   * with no Space; only the shell is missing. Wrapped below in [ActivityTrackedTerminalGateway]
+   * so [idleServerStopper] can see a terminal it opened without touching this port at all.
    */
-  val terminalGateway: TerminalGateway = FakeTerminalGateway(),
+  terminalGateway: TerminalGateway = FakeTerminalGateway(),
   /**
    * `notebook:export-to-format`, over the Space's own nbconvert - a **server-side algorithm**,
    * which this app may not re-implement (`docs/DECISIONS.md`).
@@ -98,15 +101,22 @@ class AppContainer(
    */
   val activeCellRuns = ActiveCellRuns()
 
+  /** How many terminals this process has opened and not yet closed. Read by [idleServerStopper]. */
+  val activeTerminals = ActiveTerminals()
+
+  val terminalGateway: TerminalGateway = ActivityTrackedTerminalGateway(terminalGateway, activeTerminals)
+
   /**
-   * P1c: stop the server when the app goes away - but only once nothing is still running.
-   * `MainActivity` drives it from `ProcessLifecycleOwner`'s ON_STOP/ON_START; the counter the
-   * stopper reads is moved by every run for the whole of its life, kernel start included, so a
-   * backgrounded computation keeps its server until it finishes.
+   * P1c: stop the server when the app goes away - but only once nothing is still running,
+   * a live terminal included. `MainActivity` drives it from `ProcessLifecycleOwner`'s
+   * ON_STOP/ON_START; the counters the stopper reads are moved by every run for the whole of its
+   * life, kernel start included, and by every terminal for the whole of its life, so a
+   * backgrounded computation or an open shell keeps its server until it is done.
    */
   val idleServerStopper = IdleServerStopper(
     scope = applicationScope,
     cellsInFlight = activeCellRuns.inFlight,
+    terminalsOpen = activeTerminals.open,
     stopServer = { serverLauncher.stop() },
     grace = IDLE_STOP_GRACE,
   )
