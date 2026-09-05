@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.TextUnit
 import com.jupydroid.app.richtext.RichInlineStyles
 import com.jupydroid.app.syntax.SyntaxKind
 import com.jupydroid.app.theme.CodeText
@@ -116,13 +117,17 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
  * ```
  * Text(text = output.text, style = codeTextStyle(), color = MaterialTheme.colorScheme.onSurface)
  * ```
+ *
+ * @param fontSize [CodeText.size] for every surface above; the terminal's own font-size setting
+ *   (`docs/PLAN.md` P4j-3c) is the one caller that overrides it, so its glyphs resize without a
+ *   second copy of this function.
  */
 @Composable
 @ReadOnlyComposable
-fun codeTextStyle(): TextStyle = LocalTextStyle.current.copy(
+fun codeTextStyle(fontSize: TextUnit = CodeText.size): TextStyle = LocalTextStyle.current.copy(
   fontFamily = FontFamily.Monospace,
-  fontSize = CodeText.size,
-  lineHeight = CodeText.lineHeight,
+  fontSize = fontSize,
+  lineHeight = CodeText.lineHeightFor(fontSize),
 )
 
 /**

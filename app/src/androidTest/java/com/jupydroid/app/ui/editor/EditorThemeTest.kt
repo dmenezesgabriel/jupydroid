@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.syntax.SyntaxKind
 import com.jupydroid.app.theme.CodeText
@@ -107,6 +108,24 @@ class EditorThemeTest {
     assertEquals("a source line is the code line height", CodeText.lineHeight, source.lineHeight)
     assertEquals("a source line is the code size", CodeText.size, source.fontSize)
     assertEquals("rendered code is still the prose size", prose.fontSize, renderedCode.fontSize)
+  }
+
+  /**
+   * `codeTextStyle(fontSize = ...)` - the seam the terminal's own font-size setting
+   * (`docs/PLAN.md` P4j-3c) resizes glyphs through. Every other call site keeps the no-arg default,
+   * asserted by [aCellsSourceTakesTheCodeLineHeightWhereRenderedCodeTakesTheProseSize] above still
+   * naming [CodeText.size]/[CodeText.lineHeight] unchanged.
+   */
+  @Test
+  fun codeTextStyleOverridesTheSizeAndItsLineHeightTogether() {
+    lateinit var resized: TextStyle
+    compose.setContent {
+      JupyterDroidTheme { resized = codeTextStyle(fontSize = 20.sp) }
+    }
+
+    assertEquals(20.sp, resized.fontSize)
+    assertEquals(CodeText.lineHeightFor(20.sp), resized.lineHeight)
+    assertEquals(FontFamily.Monospace, resized.fontFamily)
   }
 
   /**

@@ -7,6 +7,7 @@ import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeTerminalGateway
+import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.data.space.IdleServerStopper
@@ -19,6 +20,7 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.TerminalGateway
+import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import kotlinx.coroutines.CoroutineScope
@@ -79,6 +81,8 @@ class AppContainer(
    * means (`fileeditor:toggle-autoclosing-brackets-universal`).
    */
   val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
+  /** The app-wide terminal preferences - the font size `docs/PLAN.md`'s P4j-3c adds. */
+  val terminalSettings: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
   /**
    * For work that must finish after the screen that asked for it is gone - closing a notebook
    * flushes its last edit and closes its socket from here, because `viewModelScope` is already

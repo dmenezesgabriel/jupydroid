@@ -7,6 +7,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
+import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
@@ -89,6 +90,7 @@ class JupydroidApplication : Application() {
       // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
       // state, not a Contents API file.
       editorSettings = DiskEditorSettingsRepository(filesDir),
+      terminalSettings = DiskTerminalSettingsRepository(filesDir),
     )
   }
 

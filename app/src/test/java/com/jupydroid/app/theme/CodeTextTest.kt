@@ -1,5 +1,6 @@
 package com.jupydroid.app.theme
 
+import androidx.compose.ui.unit.sp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,6 +28,19 @@ class CodeTextTest {
     val expected = (CodeText.size.value * REFERENCE_LINE_HEIGHT_RATIO).roundToInt()
 
     assertEquals("$REFERENCE_LINE_HEIGHT_RATIO x ${CodeText.size}", expected, CodeText.lineHeight.value.toInt())
+  }
+
+  /**
+   * [CodeText.lineHeightFor] at a size other than [CodeText.size] - the seam the terminal's own
+   * font-size setting (`docs/PLAN.md` P4j-3c) resizes glyphs through, so a second, undertested copy
+   * of the ratio is not what proves it.
+   */
+  @Test
+  fun lineHeightForAnotherSizeUsesTheSameRatio() {
+    val size = 20.sp
+    val expected = (size.value * REFERENCE_LINE_HEIGHT_RATIO).roundToInt()
+
+    assertEquals("$REFERENCE_LINE_HEIGHT_RATIO x $size", expected, CodeText.lineHeightFor(size).value.toInt())
   }
 
   /** A fractional sp is a number nobody chose; every Material line height is whole. */

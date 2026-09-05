@@ -2,6 +2,7 @@ package com.jupydroid.app.theme
 
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /**
  * The size code is drawn at, and the line height under it.
@@ -39,5 +40,15 @@ object CodeText {
   val size: TextUnit = 14.sp
 
   /** `--jp-code-line-height: 1.3077` over [size], rounded to whole sp. */
-  val lineHeight: TextUnit = 18.sp
+  val lineHeight: TextUnit = lineHeightFor(size)
+
+  /**
+   * [lineHeight]'s own ratio, exposed for a size other than [size] - the terminal's own font-size
+   * setting (`docs/PLAN.md` P4j-3c) resizes its glyphs through this rather than restating
+   * `1.3077` a second time undertested.
+   */
+  fun lineHeightFor(size: TextUnit): TextUnit = (size.value * REFERENCE_LINE_HEIGHT_RATIO).roundToInt().sp
+
+  /** `--jp-code-line-height: 1.3077; /* 17px for 13px base */`. */
+  private const val REFERENCE_LINE_HEIGHT_RATIO = 1.3077f
 }
