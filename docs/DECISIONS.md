@@ -5538,3 +5538,76 @@ oracles are pixel-comparison tools, not touch-routing ones.
 *specific* screen state that flow runs in - a soft keyboard's presence, and its own height, differ
 by screen and by whether a field is focused, and a coordinate safe in one capture is not
 automatically safe in another just because both are "the terminal."
+
+### A live terminal's count cannot live inside the gateway that opened it (P4k)
+
+`IdleServerStopper`'s idleness was `cellsInFlight` alone, so a terminal open with no cell running
+read as idle and the server stopped under it after the 30s grace - the defect P4i made reachable
+by giving the app a real attached shell to lose (open risks, `docs/PLAN.md`). The obvious fix -
+track open terminals the way `RealTerminalGateway` already tracks attached sockets (`attached:
+MutableStateFlow<Map<String, AttachedTerminal>>`) - was rejected before being tried: sockets track
+whether a *client* is attached, and `TerminalPaneViewModel.attach()`'s collection is deliberately
+cancelled on `ON_STOP` (`repeatOnLifecycle(STARTED)`), so a socket-attachment count reads zero at
+the exact moment `onAppStopped()` fires. The correct signal is the server-side one -
+`current_activity()` reports a terminal *existing*, not a client watching it.
+
+Nor can the count live as ordinary state inside `RealTerminalGateway`/`BaseSpaceTerminalGateway`.
+`BaseSpaceTerminalGateway` rebuilds its underlying `RealTerminalGateway` whenever the base Space's
+server is replaced (`PerRunningServer`, its own docstring), so any counter kept there would reset
+to zero across exactly the restart the count has to survive across - a process-lifetime question
+answered by an object with a shorter lifetime than the process.
+
+**`ActiveTerminals` (`domain/model/`) mirrors `ActiveCellRuns`'s shape but not its API.**
+`ActiveCellRuns.whileRunning` wraps one bounded suspend call, because a cell run's whole lifetime
+is exactly that call. A terminal's lifetime spans two independent calls - `open()`, then a much
+later, maybe-never `close()` - so `ActiveTerminals` exposes plain `opened()`/`closed()` instead,
+floored at zero against a stray double-close. `ActivityTrackedTerminalGateway` (`data/space/`) is
+the one place both calls are wrapped: it decorates whichever `TerminalGateway` `AppContainer`
+already holds, forwarding every method unchanged except `open`/`close`, which additionally move
+the counter. The `TerminalGateway` port and its three implementations (`Real`/`BaseSpace`/`Fake`)
+needed no change and got none - the counting is a property of the *composition root's* wiring, not
+of the mechanism any of the three speaks.
+
+**This forbids** reaching for a gateway-local counter, or a client-attachment signal, for any
+future "is this still active" question shaped like this one: the right home is whichever object's
+lifetime actually matches the question being asked, and for anything server-side that survives a
+restart, that is a counter `AppContainer` owns directly, not the adapter that happens to answer
+requests today.
+
+### The device gate for P4k needed a third kind of evidence, twice over (P4k)
+
+The first real run against `p4i-terminal-background.yaml`'s own proven shape -
+`extendedWaitUntil: visible:` on an echoed marker - failed, and failed again on a second run: not
+intermittently, and reproduced against the pre-P4k build too. This is P4j-3b's own finding,
+re-encountered rather than re-discovered: accessibility polling of this terminal's per-row text is
+unreliable independent of anything `TerminalCanvas` draws, and P4j-3b's entry already forbids
+gating a flow's pass/fail on it.
+
+**`terminal_content_extent.py`'s existing pixel oracle turned out not to fit either, for a reason
+the module's own comments already state.** `terminal_content_bottom_y` breaks out of its own scan
+at the first ink band taller than a thin glyph stroke (`_MAX_GLYPH_STROKE_HEIGHT = 6`) - tuned
+against `vi`'s isolated `~` fill lines, each alone on its own row with clear background above and
+below. This gate's own content is ordinary wrapped `echo` output: several rows stacked with no
+vertical gap between them at the sampled column, which the same file's own P4j-3c entry already
+measured as "a plain `seq` digit row measures ~17px tall on this device, comfortably past" that
+filter. Read against real screenshots before being trusted: both a pre-background and a
+post-resume capture returned the function's own no-content fallback value, identically, which
+would have passed the gate on a comparison that measured nothing rather than on the fix working.
+
+**Fixed with two moves, neither a new oracle.** First, the terminal's own liveness after resuming
+is proved by a *second* marker command writing to a *second* file, read straight off the device's
+disk over `adb run-as ... cat` - the same move `p1c-app-death-backstop-driver.sh` already makes
+for a notebook's persisted answer, sidestepping the accessibility tree and the pixel oracle both.
+Second, scrollback intact is proved by `terminal_top_strip_differs` - already in the module, built
+for P4j-3d-3's opposite claim (proving two captures *differ*) - called here for sameness, over a
+crop wide and deep enough to hold every row this flow's markers draw. Confirmed non-vacuous before
+being trusted: the same crop over a screenshot taken *after* the new command was typed correctly
+reports `changed`, ruling out a comparison that would report "unchanged" regardless of content.
+Run in portrait, forced by the driver (`p4i-terminal-resize-driver.sh`'s own `rotate_to`) - P4j-3c's
+own entry already found a device left in landscape puts `Terminal` behind a two-pane layout no
+pixel bound here was measured against.
+
+**This forbids** trusting a pixel oracle's silence, or a crop comparison's "unchanged", without a
+negative control proving the same call can report the opposite - P4j-3c's own entry made exactly
+this point about a flat measurement across an intended change, and it applies just as much to a
+comparison intended to find no change as to one intended to find one.
