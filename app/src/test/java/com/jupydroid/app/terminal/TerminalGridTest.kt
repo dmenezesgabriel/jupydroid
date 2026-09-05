@@ -423,6 +423,46 @@ class TerminalGridTest {
     assertEquals(GridCursor(0, 0), cursor)
   }
 
+  /**
+   * P4j-3d-1: the viewport's own arithmetic - Termux's `TerminalView.doScroll`'s own clamp
+   * (`Math.min(0, Math.max(-activeTranscriptRows, mTopRow + delta))`), reused here rather than
+   * ported to `ui/terminal/`'s gesture code, since it needs nothing but [TerminalGrid]'s own
+   * [TerminalGrid.activeTranscriptRows].
+   */
+  @Test
+  fun clampedTopRowStopsAtTheLiveScreen() {
+    val grid = gridWithRows("one", "two", "three")
+    grid.scrollDownOneLine(0, 3, CellStyle.NORMAL) // one row of scrollback now exists
+    assertEquals(0, grid.clampedTopRow(current = 0, deltaRows = 5))
+  }
+
+  @Test
+  fun clampedTopRowStopsAtTheOldestScrollbackRow() {
+    val grid = gridWithRows("one", "two", "three")
+    grid.scrollDownOneLine(0, 3, CellStyle.NORMAL) // activeTranscriptRows == 1
+    assertEquals(-1, grid.clampedTopRow(current = 0, deltaRows = -5))
+  }
+
+  @Test
+  fun clampedTopRowLandsExactlyInsideTheRange() {
+    val grid = gridWithRows("one", "two", "three")
+    repeat(3) { grid.scrollDownOneLine(0, 3, CellStyle.NORMAL) } // activeTranscriptRows == 3
+    assertEquals(-2, grid.clampedTopRow(current = 0, deltaRows = -2))
+    assertEquals(-1, grid.clampedTopRow(current = -2, deltaRows = 1))
+  }
+
+  /**
+   * Termux's own `onScreenUpdated` re-clamps `mTopRow` defensively before trusting it
+   * (`if (mTopRow < -rowsInHistory) mTopRow = -rowsInHistory`) - a `current` already out of
+   * range (e.g. `activeTranscriptRows` having shrunk under it across a resize) must not compound
+   * with `deltaRows` but land back in range in the one call.
+   */
+  @Test
+  fun clampedTopRowRecoversFromAnAlreadyOutOfRangeCurrentValue() {
+    val grid = gridWithRows("one", "two", "three") // activeTranscriptRows == 0
+    assertEquals(0, grid.clampedTopRow(current = -50, deltaRows = 0))
+  }
+
   private fun gridWithRows(vararg rows: String): TerminalGrid {
     val grid = TerminalGrid(columns = 5, totalRows = 8, screenRows = maxOf(rows.size, 3))
     for ((row, content) in rows.withIndex()) {

@@ -216,3 +216,20 @@ class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
     joinFullLines: Boolean = false,
   ): String = selection.textIn(x1, y1, x2, y2, joinBackLines, joinFullLines)
 }
+
+/**
+ * [current] shifted by [deltaRows] rows, clamped to what this grid can actually show - no
+ * further down than the live screen (`0`), no further up than [TerminalGrid.activeTranscriptRows]
+ * - the gesture-scrollback viewport's own arithmetic (`docs/PLAN.md`'s P4j-3d-1). Termux's own
+ * `TerminalView.doScroll`: `Math.min(0, Math.max(-activeTranscriptRows, mTopRow + delta))`.
+ *
+ * [current] need not already be in range - a stale value (e.g. after a resize shrinks
+ * [TerminalGrid.activeTranscriptRows] out from under it) still lands back inside it in one call,
+ * the same defensive re-clamp `TerminalView.onScreenUpdated` applies before trusting `mTopRow`.
+ *
+ * An extension rather than a member - [TerminalGrid] is already at detekt's `TooManyFunctions`
+ * cap (P4h-1's own "spends its one remaining function slot" note), and this needs nothing of the
+ * class's own internals beyond the one property it already exposes.
+ */
+fun TerminalGrid.clampedTopRow(current: Int, deltaRows: Int): Int =
+  (current + deltaRows).coerceIn(-activeTranscriptRows, 0)
