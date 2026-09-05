@@ -82,6 +82,18 @@ fun TerminalPaneScreen(
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = { TerminalBar(title = state.title, onBack = onBack) },
+    // `docs/PLAN.md`'s P4j-3a - `EditorBottomBars`/`SymbolRow`'s own slot, so this row carries its
+    // own `imePadding`/`navigationBarsPadding` and Scaffold reserves it in `padding` below exactly
+    // as it already does for the editor's bottom bar.
+    bottomBar = {
+      TerminalExtraKeysRow(
+        latches = state.latches,
+        applicationCursorKeys = { viewModel.emulator.isApplicationCursorKeys },
+        onTapModifier = viewModel::tapModifier,
+        onLongPressModifier = viewModel::longPressModifier,
+        onKey = viewModel::type,
+      )
+    },
   ) { padding ->
     // A `Box`, not a `Column` with the field docked below it - `docs/PLAN.md`'s P4j-1. The two
     // layers share the same bounds: `TerminalCanvas` draws every glyph and the block cursor, and
@@ -100,7 +112,8 @@ fun TerminalPaneScreen(
         )
       }
       TerminalInputField(
-        onType = viewModel::type,
+        onTypedText = viewModel::typeCharacters,
+        onEncodedKey = viewModel::type,
         applicationCursorKeys = { viewModel.emulator.isApplicationCursorKeys },
       )
     }
@@ -154,15 +167,17 @@ private fun KeepTheShellAttached(viewModel: TerminalPaneViewModel) {
 private val invisibleDecorator = TextFieldDecorator { }
 
 /**
- * Printable characters and Enter go through [onType] verbatim (`TerminalGateway.send`'s own
- * contract - `"ls\n"` runs `ls`) via [reportTerminalKeystroke]; a hardware arrow key or Ctrl+letter
- * is intercepted first and sent through [terminalKeystroke] instead - `docs/PLAN.md`'s P4j-2, the
- * encoder P4j-1's own KDoc deferred. [applicationCursorKeys] is read fresh on every key rather than
- * once at composition, since a shell can flip DECCKM at any time (entering `vi` does).
+ * Printable characters and Enter go through [onTypedText] via [reportTerminalKeystroke] - the
+ * soft keyboard's own text, subject to `TerminalPaneViewModel.typeCharacters`'s tapped Ctrl/Alt
+ * latch (`docs/PLAN.md`'s P4j-3a). A hardware arrow key or Ctrl+letter is intercepted first and
+ * sent through [terminalKeystroke] to [onEncodedKey] instead, verbatim - `docs/PLAN.md`'s P4j-2,
+ * the encoder P4j-1's own KDoc deferred. [applicationCursorKeys] is read fresh on every key rather
+ * than once at composition, since a shell can flip DECCKM at any time (entering `vi` does).
  *
- * An extra-keys row with latching Ctrl/Alt, built on `SymbolRow`'s pattern, is `docs/PLAN.md`'s
- * P4j-3, not this - a software keyboard has no hardware Ctrl to hold down, so tapping Ctrl-C needs
- * a row this sub-step does not build.
+ * The two callbacks are not interchangeable: [onEncodedKey] carries bytes that are already a
+ * complete escape sequence (a hardware key's own [terminalKeystroke] output, or
+ * [TerminalExtraKeysRow]'s own taps) and must reach the shell unmodified - running an escape
+ * sequence through a Ctrl/Alt latch one character at a time would corrupt it.
  *
  * Sized to fill the terminal area it sits over ([TerminalPaneScreen]'s `Box`), not a strip below
  * it - `docs/PLAN.md`'s P4j-1, closing the gap P4i-3a's own commit named: typing went into a
@@ -180,12 +195,16 @@ private val invisibleDecorator = TextFieldDecorator { }
  * line before it is sent, the way a shell's own canonical-mode editing expects to be driven.
  */
 @Composable
-private fun TerminalInputField(onType: (String) -> Unit, applicationCursorKeys: () -> Boolean) {
+private fun TerminalInputField(
+  onTypedText: (String) -> Unit,
+  onEncodedKey: (String) -> Unit,
+  applicationCursorKeys: () -> Boolean,
+) {
   val state = remember { TextFieldState() }
   val field = remember { FocusRequester() }
   LaunchedEffect(Unit) { field.requestFocus() }
 
-  val report by rememberUpdatedState(onType)
+  val report by rememberUpdatedState(onTypedText)
   LaunchedEffect(state) {
     var previous = ""
     // `drop(1)`: the first emission is `snapshotFlow`'s own read of the initial (empty) text,
@@ -211,7 +230,7 @@ private fun TerminalInputField(onType: (String) -> Unit, applicationCursorKeys: 
         val bytes =
           terminalKeystroke(event.key, event.isCtrlPressed, event.nativeKeyEvent.keyCode, applicationCursorKeys())
             ?: return@onPreviewKeyEvent false
-        onType(bytes)
+        onEncodedKey(bytes)
         true
       }
       .semantics { testTagsAsResourceId = true }

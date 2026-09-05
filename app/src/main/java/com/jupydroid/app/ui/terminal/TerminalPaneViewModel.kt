@@ -26,12 +26,14 @@ private const val ESC = ""
  * @property redraw bumped on every [TerminalEvent.Output] and colour change, so the screen has a
  *   `State` to key its recomposition on - `emulator.screen.grid` is mutated in place and Compose
  *   cannot observe that on its own.
+ * @property latches [TerminalExtraKeysRow]'s own Ctrl/Alt state - `docs/PLAN.md`'s P4j-3a.
  */
 data class TerminalPaneUiState(
   val ready: Boolean = false,
   val redraw: Int = 0,
   val title: String? = null,
   val endedReason: String? = null,
+  val latches: TerminalModifierLatches = TerminalModifierLatches(),
 )
 
 /**
@@ -121,8 +123,41 @@ class TerminalPaneViewModel(
     }
   }
 
-  /** A keystroke, typed verbatim - the other half of [replies], and the only caller `type` has. */
+  /**
+   * A pre-encoded keystroke, sent verbatim - the other half of [replies], and how a hardware
+   * key's own [terminalKeystroke] bytes and [TerminalExtraKeysRow]'s own Esc/Tab/nav taps reach
+   * the shell. [typeCharacters] is soft-keyboard text's own entry point instead - applying a
+   * latch to bytes that are already an escape sequence would corrupt them character-by-character.
+   */
   fun type(text: String) = sendToShell(text)
+
+  /**
+   * Literal soft-keyboard text (or the backspace run `sendTerminalDiff` turns a shortened prefix
+   * into) - `docs/PLAN.md`'s P4j-3a: a tapped Ctrl/Alt latch applies to it the same way a
+   * hardware key's own `ctrlPressed` applies to [terminalKeystroke].
+   */
+  fun typeCharacters(text: String) {
+    val (encoded, next) = applyModifierLatches(text, _uiState.value.latches)
+    _uiState.update { it.copy(latches = next) }
+    sendToShell(encoded)
+  }
+
+  /** A tap on [TerminalExtraKeysRow]'s Ctrl/Alt key - [TerminalModifierLatch.tapped]. */
+  fun tapModifier(key: TerminalModifierKey) = updateLatch(key) { it.tapped() }
+
+  /** A long-press on [TerminalExtraKeysRow]'s Ctrl/Alt key - [TerminalModifierLatch.longPressed]. */
+  fun longPressModifier(key: TerminalModifierKey) = updateLatch(key) { it.longPressed() }
+
+  private fun updateLatch(key: TerminalModifierKey, transform: (TerminalModifierLatch) -> TerminalModifierLatch) {
+    _uiState.update { state ->
+      val latches = state.latches
+      val next = when (key) {
+        TerminalModifierKey.CTRL -> latches.copy(ctrl = transform(latches.ctrl))
+        TerminalModifierKey.ALT -> latches.copy(alt = transform(latches.alt))
+      }
+      state.copy(latches = next)
+    }
+  }
 
   /**
    * The grid this call last resized to, so a repeated report from an unrelated recomposition

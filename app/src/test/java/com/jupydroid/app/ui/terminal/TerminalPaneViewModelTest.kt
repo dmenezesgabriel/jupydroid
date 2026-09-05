@@ -288,6 +288,87 @@ class TerminalPaneViewModelTest {
    * fake, but a real deadlock against `FakeTerminalGateway`'s unbuffered `printed` flow, which
    * needs its collector and `type`'s `send` pumped by the same scheduler to rendezvous at all.
    */
+  // --- P4j-3a: a tapped/long-pressed Ctrl or Alt latch applied to soft-keyboard text ---
+
+  @Test
+  fun typingAfterATappedCtrlSendsTheControlByteNotTheLetter() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.tapModifier(TerminalModifierKey.CTRL)
+    viewModel.typeCharacters("c")
+    advanceUntilIdle()
+
+    assertEquals(listOf("\u0003"), gateway.sent)
+  }
+
+  @Test
+  fun aTappedCtrlLatchClearsAfterOneCharacter() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.tapModifier(TerminalModifierKey.CTRL)
+    viewModel.typeCharacters("c")
+    viewModel.typeCharacters("d")
+    advanceUntilIdle()
+
+    assertEquals(listOf("\u0003", "d"), gateway.sent)
+  }
+
+  @Test
+  fun aLongPressedCtrlLatchConvertsEveryTypedCharacterUntilToggledOff() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.longPressModifier(TerminalModifierKey.CTRL)
+    viewModel.typeCharacters("a")
+    viewModel.typeCharacters("b")
+    advanceUntilIdle()
+
+    assertEquals(listOf("\u0001", "\u0002"), gateway.sent)
+  }
+
+  @Test
+  fun aTappedAltPrefixesTheNextCharacterWithEscape() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.tapModifier(TerminalModifierKey.ALT)
+    viewModel.typeCharacters("f")
+    advanceUntilIdle()
+
+    assertEquals(listOf("${ESC}f"), gateway.sent)
+  }
+
+  @Test
+  fun theUiStateExposesTheCurrentLatches() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.tapModifier(TerminalModifierKey.CTRL)
+
+    assertEquals(TerminalModifierLatch(isActive = true), viewModel.uiState.value.latches.ctrl)
+  }
+
+  @Test
+  fun aTapOnAnActiveLatchDisarmsItWithoutTouchingTheNextCharacter() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    advanceUntilIdle()
+
+    viewModel.tapModifier(TerminalModifierKey.CTRL)
+    viewModel.tapModifier(TerminalModifierKey.CTRL)
+    viewModel.typeCharacters("c")
+    advanceUntilIdle()
+
+    assertEquals(listOf("c"), gateway.sent)
+  }
+
   private fun TestScope.attachOn(viewModel: TerminalPaneViewModel): Job =
     backgroundScope.launch(Dispatchers.Main) { viewModel.attach() }
 

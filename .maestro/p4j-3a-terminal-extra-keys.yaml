@@ -1,0 +1,60 @@
+appId: com.jupydroid.app
+---
+# `docs/PLAN.md`'s P4j-3a gate: "tap Ctrl then tap C to interrupt a running one" - a real shell
+# (TABLET ONLY, SM-X216B), not `FakeTerminalGateway`'s echo. `sleep 30`, not `yes` -
+# `p4j-terminal-ctrl-c-part1.yaml`'s own reason: `yes`'s screen-filling output makes two
+# screenshots indistinguishable whether or not it was interrupted; `sleep` prints nothing on its
+# own, so `^C` and a fresh prompt is proof only a real interrupt byte can produce.
+#
+# Esc is proved the same way, against a real `vi` (busybox's own `usr/bin/vi -> /bin/busybox`):
+# if the tap did nothing, `:wq` would be typed as literal buffer text - still in insert mode -
+# and the shell would never see a fresh prompt to run `cat` from. Home/End/PgUp/PgDn/Tab are not
+# repeated here - `TerminalExtraKeysRowTest` already proves each reaches a real device's own
+# semantics tree as the exact bytes `terminalKeystroke` (P4j-2) already sends for a hardware key
+# of the same name, on both the tablet and the emulator; what only a real shell can add is
+# confirmed once, through Esc, not five more times through keys with no new code path of their
+# own. Reaching them without scrolling the row past Esc keeps this flow to the one swipe-free
+# case `reveal-the-symbol-row-arrows.yaml`'s own reason names as safe to skip.
+#
+# Not `clearState` - `p4i-terminal-tablet.yaml`'s own reason: wipes the already-installed Space.
+- launchApp
+- assertVisible: "Files"
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 120000
+
+- inputText: "sleep 30"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-sleep-running
+
+- tapOn: "Ctrl"
+- inputText: "c"
+- extendedWaitUntil:
+    visible: "\\^C"
+    timeout: 10000
+- takeScreenshot: 02-ctrl-tap-interrupted-sleep
+
+- inputText: "vi p4j3a.txt"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "~"
+    timeout: 10000
+- inputText: "i"
+- inputText: "zqxvk"
+- tapOn: "Esc"
+- takeScreenshot: 03-vi-after-esc-tap
+- inputText: ":wq"
+- pressKey: Enter
+# Not an assertion on the prompt itself - "$" is also a shift-glyph hint on Gboard's own "d" key
+# (`docs/DECISIONS.md`'s own rule: a check must name something that cannot appear in the IME).
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "cat p4j3a.txt"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "zqxvk"
+    timeout: 10000
+- takeScreenshot: 04-esc-tap-left-insert-mode
