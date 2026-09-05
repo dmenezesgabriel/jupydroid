@@ -1,5 +1,6 @@
 package com.jupydroid.app
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -11,9 +12,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.IntSize
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.terminal.CellStyle
 import com.jupydroid.app.terminal.TerminalEmulator
@@ -36,7 +40,7 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class TerminalCanvasTest {
-  @get:Rule val compose = createComposeRule()
+  @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
   /**
    * `ESC[42m` (SGR background green) over a space - no glyph ink at all, so the whole cell is the
@@ -142,6 +146,46 @@ class TerminalCanvasTest {
     )
   }
 
+  /**
+   * `docs/PLAN.md`'s P4j-3b: the keyboard opening genuinely shrinks the grid, rather than
+   * `TerminalCanvas` adding the IME's own inset back to cancel the shrink out (P4i-3a's own
+   * compensation, retired - `docs/DECISIONS.md`'s P4j-3b entry). A synthetic `WindowInsetsCompat`
+   * dispatched onto the activity's `decorView` stands in for a real keyboard - the headless
+   * instrumentation this runs under has no soft keyboard of its own to open.
+   */
+  @Test
+  fun theGridShrinksWhenTheImeInsetOpens() {
+    val emulator = silentEmulator(TerminalPalette.REFERENCE)
+    var reportedGrid: IntSize? = null
+
+    compose.setContent {
+      JupyterDroidTheme {
+        TerminalCanvas(
+          emulator,
+          onGridSizeChanged = { grid, _ -> reportedGrid = grid },
+          modifier = Modifier.fillMaxSize(),
+        )
+      }
+    }
+    compose.waitForIdle()
+    val withoutIme = requireNotNull(reportedGrid) { "onGridSizeChanged was never called" }
+
+    compose.runOnUiThread {
+      val withIme = WindowInsetsCompat.Builder()
+        .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, IME_INSET_PIXELS))
+        .setVisible(WindowInsetsCompat.Type.ime(), true)
+        .build()
+      ViewCompat.dispatchApplyWindowInsets(compose.activity.window.decorView, withIme)
+    }
+    compose.waitForIdle()
+
+    val withIme = requireNotNull(reportedGrid)
+    assertTrue(
+      "grid $withIme should be shorter than $withoutIme once the IME opens",
+      withIme.height < withoutIme.height,
+    )
+  }
+
   private fun capture(content: @Composable () -> Unit): ImageBitmap {
     compose.setContent { JupyterDroidTheme { content() } }
     return compose.onRoot().captureToImage()
@@ -165,5 +209,8 @@ class TerminalCanvasTest {
   private companion object {
     const val ESC = "\u001B"
     const val GREEN_INDEX = 2
+
+    /** Comfortably larger than any real cell height, so at least one row is guaranteed to go. */
+    const val IME_INSET_PIXELS = 600
   }
 }

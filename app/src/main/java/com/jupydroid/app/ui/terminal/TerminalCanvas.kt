@@ -3,8 +3,7 @@ package com.jupydroid.app.ui.terminal
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -13,7 +12,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -41,14 +39,21 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * The cell size is [terminalCellMetrics]'s real device measurement. [onGridSizeChanged] reports how
  * many whole cells this composable's own measured area holds - `docs/PLAN.md`'s P4i-3a - through a
  * `BoxWithConstraints` rather than a self-sized `Box`, since the grid this now draws is driven by
- * the container's real size instead of dictating it. **The IME is deliberately excluded, not
- * missed**: under `enableEdgeToEdge()` the window itself does not shrink for the keyboard
- * (`CellCompletions.kt`'s own finding), but `TerminalInputField`'s own `imePadding` still steals the
- * room back from this composable's `weight(1f)` sibling slot in `TerminalPaneScreen` - so
- * `WindowInsets.ime`'s current bottom inset is added back before the grid is computed, the same
- * technique `CellCompletions.kt` already uses rather than a new one. Resizing *for* the keyboard is
- * P4j's, by the plan's own words - not this composable reacting to a shrink that was never real.
- * Reporting is layout-only: the caller decides what a changed grid means
+ * the container's real size instead of dictating it. **The IME genuinely shrinks it now -
+ * `docs/PLAN.md`'s P4j-3b**: `imePadding()` sits on this composable's own `BoxWithConstraints`, the
+ * same rule `TerminalExtraKeysRow`/`SymbolRow`/`NotebookBar` each already follow (their own inset,
+ * not an ancestor's or a sibling's) - so a keyboard opening is just another size change, read by
+ * the same [LaunchedEffect] that already answers a rotation, the way Termux's own
+ * `TerminalView.onSizeChanged` -> `updateSize()` treats every size change alike.
+ * P4i-3a's own compensation - adding the IME's bottom inset back before computing the grid - answered
+ * a `Column` layout this file no longer has: `TerminalCanvas` and the input field were a weighted
+ * `Column`, so the field's own `imePadding` shrank its `weight(1f)` sibling's incoming constraints
+ * too (`docs/DECISIONS.md`, "`imePadding` on a shared ancestor pulls a sibling's own height budget
+ * negative"). P4j-1 replaced that `Column` with a `Box` - independent overlapping siblings, where
+ * one child's own `imePadding` shrinks only its own layout - so the compensation was left cancelling
+ * out a squeeze that could no longer reach it, measured actually inflating the grid past what the
+ * pty had ever been told (`docs/DECISIONS.md`'s own P4j-3b entry). Reporting is layout-only: the
+ * caller decides what a changed grid means
  * ([com.jupydroid.app.ui.terminal.TerminalPaneViewModel.resize] is `TerminalPaneScreen`'s), keeping
  * this file "layout and drawing only" as its own opening line still claims.
  *
@@ -77,11 +82,9 @@ fun TerminalCanvas(
   val style = codeTextStyle()
   val renderer = GlyphRenderer(cell, style, rememberTextMeasurer(), emulator.screen.colors)
   val screen = emulator.screen
-  val imeBottomPixels = WindowInsets.ime.getBottom(LocalDensity.current)
 
-  BoxWithConstraints(modifier = modifier) {
-    val effectiveHeightPixels = constraints.maxHeight + imeBottomPixels
-    val gridSize = terminalGridSize(IntSize(constraints.maxWidth, effectiveHeightPixels), cell)
+  BoxWithConstraints(modifier = modifier.imePadding()) {
+    val gridSize = terminalGridSize(IntSize(constraints.maxWidth, constraints.maxHeight), cell)
     LaunchedEffect(gridSize, cell) { onGridSizeChanged(gridSize, cell) }
 
     Canvas(modifier = Modifier.matchParentSize()) {

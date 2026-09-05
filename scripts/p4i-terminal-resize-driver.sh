@@ -37,7 +37,13 @@ trap restore_rotation EXIT
 # `TerminalCanvas`'s own transparent `Text` per row (P4i-2d) is exactly what `uiautomator dump`
 # reports.
 count_vi_fill_lines() {
-  "$ADB" exec-out uiautomator dump /dev/tty 2>/dev/null | grep -oE 'text="~"' | wc -l
+  # `grep -c` rather than `grep -oE ... | wc -l`: under `set -o pipefail`, a genuine zero-match
+  # result makes `grep` itself exit 1, which poisoned this whole pipeline's status into the
+  # `BEFORE=$(...)`/`AFTER=$(...)` assignment below and aborted the script before its own
+  # `[ "$BEFORE" -gt 0 ]` check ever ran to explain why - a real run's silent, unexplained exit
+  # found this rather than a reading of the script (`docs/DECISIONS.md`'s P4j-3b entry). `grep -c`
+  # still exits 1 on no match, so `|| true` is what actually neutralises it.
+  "$ADB" exec-out uiautomator dump /dev/tty 2>/dev/null | grep -c 'text="~"' || true
 }
 
 reset_notebooks

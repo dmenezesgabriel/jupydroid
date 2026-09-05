@@ -5260,3 +5260,54 @@ stacking onto what backgrounding already left behind.
 checking the concrete adapter - a re-attach to any stateful stream whose replay is a bounded
 history snapshot (not a resume-from-cursor) needs the same clear-before-replay shape this fix used,
 not just terminado's.
+
+### `key(state.redraw)` looked like unnecessary churn and was load-bearing (P4j-3b)
+
+`TerminalCanvas`'s per-row accessibility `Text` column is torn down and rebuilt by
+`TerminalPaneScreen`'s `key(state.redraw) { ... }` wrapper on every single `Output` event -
+dozens of times for one `vi` launch. That looked like exactly the kind of unnecessary
+recomposition churn CLAUDE.md's "minimum code" rule warns against, and swapping it for a plain
+`redraw: Int` parameter (read only to stop Compose skipping the call, never used in the body)
+seemed like a strict improvement: same effect, no full-identity teardown.
+
+**It is not a safe substitution.** Measured on the tablet: with `key()` removed, `adb shell input
+text`/`input keyevent` and Maestro's own `inputText` alike stopped landing any characters in the
+terminal at all - Gboard's own candidate bar showed the letters as composing suggestions, never
+committed, while the app's structured log still showed the socket opening cleanly and the
+accessibility tree still showed `terminal-input` correctly focused. Restoring `key(state.redraw)`
+around `TerminalCanvas` - with every other line of the P4j-3b fix below unchanged - fixed it on
+the same device, same build. The exact mechanism by which discarding the `Text` column's
+composition identity keeps the input field's own IME connection alive was not chased further past
+that isolation; the isolation itself (binary search across two builds, one hunk apart) is what
+this entry is for.
+
+**This forbids** treating `key()` around a composable sharing a parent with a real text field as
+free to remove without a real-device typing test, no matter how reasoned the argument against it
+sounds - a Compose test's own `assertTextEquals`/`performTextInput` would not have caught this
+either, since it drives text through the semantics tree directly rather than a real `InputConnection`.
+
+### Maestro's own `visible:`/`extendedWaitUntil` cannot reliably read this app's terminal text (P4j-3b)
+
+`p4i-terminal-vi.yaml`'s `extendedWaitUntil: visible: "~"` (and `p4i-terminal-resize-driver.sh`'s
+own `count_vi_fill_lines`, a raw `adb exec-out uiautomator dump | grep -c 'text="~"'`) both failed
+repeatedly against a real, correctly-rendered `vi` screen - not intermittently, and not only
+against this phase's own code: reproduced against the untouched `fef3ace` build too, with
+`assertVisible`/`extendedWaitUntil` timing out for 30-60s over text a screenshot taken moments
+later shows plainly, and a raw `uiautomator dump` in the same state reporting every per-row
+`Text` node as `text=""`. Read alongside a REAL, working `count_vi_fill_lines` result from
+earlier the same session (`12`, from a rotation-driver run), the fault is not "this app's
+terminal never exposes text to accessibility" but some run-to-run inconsistency in whether it
+does, on this device, not chased to a root cause - ruled out along the way: the IME in use
+(Gboard vs. Samsung's Honeyboard), stuck flow control (`Ctrl+S`/`Ctrl+Q`), a stuck modifier, and
+a corrupted rootfs (a full uninstall-reinstall did not fix it).
+
+**This forbids** gating a Maestro flow's own pass/fail on `visible:`/`extendedWaitUntil` reading
+text out of this terminal's per-row `Text` column - `terminal_content_extent.py`'s pixel-based
+`terminal_content_bottom_y` (comparing a screenshot's own thin glyph strokes against its sampled
+background, theme-agnostic) is what `p4j-3b-terminal-ime-resize-driver.sh` uses instead, and is
+the pattern the next terminal-content Maestro gate should follow rather than re-deriving.
+Rotation's own gate (`p4i-terminal-resize-driver.sh`) still uses the accessibility-text oracle and
+was not migrated - out of scope here - so it remains exposed to the same flakiness; its own
+`count_vi_fill_lines` pipefail bug (a genuine zero-match `grep` aborting the script before its own
+`[ "$BEFORE" -gt 0 ]` check could explain why) was fixed in passing since it obscured this finding
+until fixed.
