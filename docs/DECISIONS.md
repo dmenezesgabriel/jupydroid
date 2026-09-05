@@ -5411,3 +5411,100 @@ prove is that the shell does not get *smaller* once the keyboard closes - not th
 `p4j-3b-terminal-ime-resize`'s `closed_y`/`open_y` comparison as proof of a live terminal-content
 redraw on any future change near it - the actual proof that a resize reaches the wire is
 `TerminalPaneScreenTest`'s own deterministic synthetic-inset measurement, not this flow.
+
+### `Modifier.scrollable` never once saw a real drag - a full-bleed transparent text field
+consumes touch movement on the pass every gesture detector in this codebase already uses (P4j-3d-3)
+
+The plan committed to Compose's own idiomatic drag-with-fling primitive, `Modifier.scrollable` /
+`rememberScrollableState`, over a hand-ported `GestureAndScaleRecognizer` + `android.widget.
+Scroller` - `developer.android.com`'s own documented recipe for exactly this. Wired onto
+`TerminalCanvas`'s own modifier, a real swipe on the tablet (`adb shell input swipe`, over a real
+shell that had just run `seq 1 200`) produced **no scroll at all** - not a wrong direction, not a
+partial move, the screenshot before and after were pixel-identical.
+
+**The cause is `TerminalInputField`'s own `BasicTextField`, not `scrollable` itself.** It shares
+the exact same bounds (`docs/PLAN.md`'s P4j-1 - the two layers are siblings in one `Box`, not a
+canvas with a strip docked below it) and is composed *after* `TerminalCanvas`, so it is the
+topmost node under the finger. Every gesture detector already in this codebase - `scrollable`
+included - processes pointer input on `PointerEventPass.Main`, the default every one of them
+uses, and Compose dispatches `Main` **descendant-to-ancestor**: whichever sibling or descendant is
+lowest in the tree gets first refusal, and the field's own touch handling consumes movement as
+part of recognising a drag (for text selection) whether or not one is actually confirmed - by the
+time `scrollable`'s own Main-pass handler on the sibling `TerminalCanvas` would run, there is
+nothing left unconsumed to see. Moving the modifier to the outer `Box` (`TerminalCanvas` and
+`TerminalInputField`'s shared ancestor) does not change this: an ancestor's own Main-pass handler
+still runs *after* every descendant's in that same pass.
+
+**The fix intercepts one pass earlier than the field ever runs.** `PointerEventPass.Initial` is
+dispatched **ancestor-to-descendant** - the opposite order - so a custom `pointerInput` on the
+outer `Box`, awaiting `PointerEventPass.Initial` explicitly (`detectTerminalScrollDrag`,
+`TerminalPaneScreen.kt`), sees every pointer event before the field's own `Main`-pass handler
+gets a chance to consume it. It tracks accumulated distance against `viewConfiguration.touchSlop`
+before consuming anything, so a plain tap (no travel past slop) is left untouched and still
+reaches the field beneath for tap-to-focus - only a confirmed drag calls `change.consume()`,
+which is what keeps the field from ever seeing it.
+
+**Drag only, not fling - a narrower gate than the plan's row first stated, closed rather than
+carried forward silently.** `Modifier.scrollable`'s own value over a hand-rolled gesture was
+never really about touch-slop detection (that part had to be reimplemented regardless, per the
+finding above); it was the free fling deceleration, and a custom `PointerEventPass.Initial`
+detector gets none of that from `scrollable` if it never composes it in the first place.
+Reimplementing fling on top of `PointerInputChange`'s own velocity tracking and
+`splineBasedDecay` would be the idiomatic Compose way to add it back, but this step's own gate -
+"scroll back into real output... and show it" - names a drag revealing history, not momentum, and
+`TerminalPaneViewModel.scrollBy`'s clamped, remainder-carrying arithmetic is identical either way
+a caller drives it. A fling is a named follow-up rather than a silent gap, the same shape P4j-3c's
+own pinch-to-zoom deferral already took.
+
+**This forbids** assuming `Modifier.scrollable` (or any Main-pass gesture modifier) will work
+correctly merely because it sits somewhere in the same subtree as `TerminalInputField` - a sibling
+or an ancestor both lose to the field's own Main-pass consumption. Any future gesture added near
+this screen needs `PointerEventPass.Initial` for the same reason, or must compose the field's own
+bounds out of its path entirely.
+
+### A distant-column ink search read two different pieces of chrome as scrollback, twice - a
+fixed strip compared between two captures needed neither (P4j-3d-3)
+
+The first oracle for this sub-step's own Maestro gate typed a long marker line before flooding
+the terminal with `seq` output, then searched a screenshot for ink at a column (`x=300-320`) no
+`seq` row's own three digits could ever reach - reasoning that presence there, without needing to
+read what any row says, would prove the marker's row was on screen. Run against a real capture,
+it read `True` on the **live tail**, before any scroll at all.
+
+**First cause: `TerminalExtraKeysRow`'s own button-label ink reaches the same distant column.**
+"Alt" sits at roughly that x-range in this device's own portrait layout - a keyboard-sized band
+(`_MAX_GLYPH_STROKE_HEIGHT`'s own filter), so `terminal_has_ink_in_column`'s first version
+excluded it the same way `terminal_row_spacing_px` already excludes a keyboard band from its own
+rows. Still `True`.
+
+**Second cause, found once the first was fixed: individual soft-keyboard key-label glyphs are
+thin enough to pass that same filter.** A `1408-1409` and a `1420-1421` band, both 2px tall -
+comfortably under the filter's own threshold - sit at the marker's own distant column too, deep in
+the keyboard's own territory. Bounding the search to `terminal_content_bottom_y`'s own answer (the
+terminal's leading-column content, x=0-60) was tried next, and it made things worse in a different
+way: on this device a plain `seq` digit row measures **17-18px tall** at the leading column, not
+the handful of pixels `_MAX_GLYPH_STROKE_HEIGHT=6` assumes - that constant was tuned against `vi`'s
+own `~` glyph specifically (a short, thin squiggle), never validated against general terminal
+text. `terminal_content_bottom_y` therefore `break`s on the very first real content row it meets,
+reporting `content_top_y` unchanged - "no content at all" - which is true of every prior caller of
+this function (all of them reading `vi`'s own fill lines) but not of a `seq` digit row, so bounding
+by it excluded the marker along with everything else.
+
+**Neither failure is specific to the marker technique - both are specific to searching an
+unbounded or wrongly-bounded region of the screen at all**, since `TerminalExtraKeysRow` and a
+soft keyboard both sit *below* the terminal and can each paint ink at any column a marker also
+would. The fix drops the marker and the column search entirely: `terminal_top_strip_differs`
+compares a **fixed strip just below the app bar** - `content_top_y` to `content_top_y +
+strip_height`, one row's own height - between two captures, pixel-for-pixel. That position is
+never anything but terminal content, regardless of scroll offset, font size, or how far a
+keyboard's own inset has shrunk the grid, so it needs no stroke-height filter and no
+content-boundary reading at all - only whether the same screen position shows different pixels,
+which is exactly this gate's own question ("did a drag reveal something that was not there
+before") and does not depend on knowing what either capture says.
+
+**This forbids** two things: reusing `_MAX_GLYPH_STROKE_HEIGHT`/`terminal_content_bottom_y`'s own
+thin-glyph assumption for anything but `vi`'s own `~` fill lines without re-measuring it first -
+general terminal text on this device is three times taller - and searching any column beyond the
+terminal's own known-safe leading one (`x=0-60`, what `terminal_content_bottom_y` and
+`terminal_row_spacing_px` already restrict themselves to) without first proving nothing else on
+screen ever paints there.

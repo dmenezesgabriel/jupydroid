@@ -8,7 +8,11 @@ from tempfile import TemporaryDirectory
 
 from PIL import Image
 
-from terminal_content_extent import terminal_content_bottom_y, terminal_row_spacing_px
+from terminal_content_extent import (
+    terminal_content_bottom_y,
+    terminal_row_spacing_px,
+    terminal_top_strip_differs,
+)
 
 _LIGHT_BG = (255, 255, 255)
 _LIGHT_INK = (0, 0, 0)
@@ -146,6 +150,56 @@ class TerminalRowSpacingPxTest(unittest.TestCase):
     def test_works_on_light_ink_over_a_dark_background_too(self) -> None:
         path = self._painted_path({30: (10, 13), 61: (10, 13)}, background=_DARK_BG, ink=_DARK_INK)
         self.assertEqual(31, terminal_row_spacing_px(path, content_top_y=_CONTENT_TOP))
+
+
+class TerminalTopStripDiffersTest(unittest.TestCase):
+    """`docs/PLAN.md`'s P4j-3d-3: gesture scrollback's own proof that a drag moved *something* -
+    a fixed strip just below the app bar, compared pixel-for-pixel between two captures, rather
+    than a distant-column ink search. Two things that search tried and both were device-measured
+    false positives, not guessed: `TerminalExtraKeysRow`'s own button-label ink reaches whatever
+    column a marker line would, and so does a soft keyboard's own key-label ink - and neither
+    reaches this strip, which sits just below the app bar regardless of scroll position."""
+
+    def _painted_path(
+        self,
+        rows: dict[int, tuple[int, int]],
+        background: tuple[int, int, int] = _LIGHT_BG,
+        ink: tuple[int, int, int] = _LIGHT_INK,
+        size: tuple[int, int] = (_WIDTH, _HEIGHT),
+    ) -> str:
+        image = Image.new("RGB", size, background)
+        for y, (start, end) in rows.items():
+            for x in range(start, end):
+                image.putpixel((x, y), ink)
+        directory = TemporaryDirectory()
+        path = Path(directory.name) / "screenshot.png"
+        image.save(path)
+        self.addCleanup(directory.cleanup)
+        return str(path)
+
+    def test_false_when_both_captures_show_the_same_content(self) -> None:
+        before = self._painted_path({30: (10, 40)})
+        after = self._painted_path({30: (10, 40)})
+        self.assertFalse(terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20))
+
+    def test_true_when_the_strip_shows_different_content(self) -> None:
+        before = self._painted_path({30: (10, 40)})  # e.g. "23"
+        after = self._painted_path({30: (10, 90)})  # e.g. "MARKER_123..."
+        self.assertTrue(terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20))
+
+    def test_ignores_a_difference_below_the_strip(self) -> None:
+        """A change well past `strip_height` - `TerminalExtraKeysRow`/a keyboard's own territory
+        - must not register, the whole reason this compares a bounded strip rather than the
+        two captures' full remaining height."""
+        size = (_WIDTH, 600)
+        before = self._painted_path({30: (10, 40)}, size=size)
+        after = self._painted_path({30: (10, 40), 500: (10, 590)}, size=size)
+        self.assertFalse(terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20))
+
+    def test_works_on_light_ink_over_a_dark_background_too(self) -> None:
+        before = self._painted_path({30: (10, 40)}, background=_DARK_BG, ink=_DARK_INK)
+        after = self._painted_path({30: (10, 90)}, background=_DARK_BG, ink=_DARK_INK)
+        self.assertTrue(terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20))
 
 
 if __name__ == "__main__":

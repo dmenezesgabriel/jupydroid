@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# P4j-3d-3's own gate: scroll back into real output a real shell produced, and show it - not the
+# live screen. Maestro's own `visible:`/`extendedWaitUntil` cannot reliably read this terminal's
+# text (`docs/DECISIONS.md`'s P4j-3b entry) - screenshots and the pixel-based
+# `terminal_top_strip_differs` oracle (`terminal_content_extent.py`) are what actually prove it,
+# the same screenshot-plus-python-oracle pattern P4j-3b/P4j-3c already established for this screen.
+#
+# TABLET ONLY (SM-X216B): a real shell, not `FakeTerminalGateway`'s echo.
+# NOT A SUITE FLOW: the driver rotates the device, which every flow running after it would inherit.
+- launchApp
+- assertVisible: "Files"
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 120000
+
+- inputText: "seq 1 60"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-live-tail
+
+# Several downward drags over the terminal content - one alone need not reach all the way back,
+# and a drag past the oldest row is a no-op (`TerminalGrid.clampedTopRow`'s own clamp), not an
+# error.
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: 50%, 25%
+          end: 50%, 85%
+          duration: 400
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: 02-scrolled-back
+
+# Typing again snaps the view back to the live tail - `TerminalPaneViewModel.attach`'s own
+# reset-on-output rule (`docs/PLAN.md`'s P4j-3d-3).
+- inputText: "echo done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: 03-new-output-snaps-back-to-live

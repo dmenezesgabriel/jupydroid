@@ -284,6 +284,98 @@ class TerminalPaneViewModelTest {
   }
 
   /**
+   * `docs/PLAN.md`'s P4j-3d-3: sub-cell drag distance is not lost between calls - Termux's own
+   * `mScrollRemainder`. Two 4px drags over a 10px cell move nothing on their own; a third pushes
+   * the accumulated 12px total past one whole cell, landing exactly one row.
+   */
+  @Test
+  fun scrollByRemembersTheRemainderAcrossCalls() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
+    advanceUntilIdle()
+    scrollDownOneLine(viewModel) // one row of scrollback to move into
+
+    viewModel.scrollBy(pixelDeltaY = -4f, cellHeightPx = 10)
+    viewModel.scrollBy(pixelDeltaY = -4f, cellHeightPx = 10)
+    assertEquals("8px of 10 is not yet a whole row", 0, viewModel.uiState.value.topRow)
+
+    viewModel.scrollBy(pixelDeltaY = -4f, cellHeightPx = 10)
+    assertEquals(-1, viewModel.uiState.value.topRow)
+  }
+
+  @Test
+  fun scrollByClampsAtTheLiveScreen() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
+    advanceUntilIdle()
+
+    val consumed = viewModel.scrollBy(pixelDeltaY = 1000f, cellHeightPx = 10)
+
+    assertEquals(0, viewModel.uiState.value.topRow)
+    assertEquals(0f, consumed, 0f)
+  }
+
+  @Test
+  fun scrollByClampsAtTheOldestScrollbackRowAndReportsOnlyWhatWasActuallyConsumed() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
+    advanceUntilIdle()
+    scrollDownOneLine(viewModel) // activeTranscriptRows == 1
+
+    // Ask for far more than the one row of history this screen actually has.
+    val consumed = viewModel.scrollBy(pixelDeltaY = -1000f, cellHeightPx = 10)
+
+    assertEquals(-1, viewModel.uiState.value.topRow)
+    assertEquals(
+      "a fling's own deceleration must stop where the grid actually stopped, not where it asked to go",
+      -10f,
+      consumed,
+      0f,
+    )
+  }
+
+  @Test
+  fun scrollByBumpsRedrawWhenTopRowActuallyMoves() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
+    advanceUntilIdle()
+    scrollDownOneLine(viewModel)
+    val before = viewModel.uiState.value.redraw
+
+    viewModel.scrollBy(pixelDeltaY = -10f, cellHeightPx = 10)
+
+    assertEquals(before + 1, viewModel.uiState.value.redraw)
+  }
+
+  /**
+   * Termux's own `TerminalView.onScreenUpdated` default path: no text selection, no auto-scroll
+   * lock exist in this app to carve an exception out for, so any new output while scrolled back
+   * snaps straight back to the live screen - a named simplification of the reference, not a
+   * silent omission (`docs/PLAN.md`).
+   */
+  @Test
+  fun newOutputWhileScrolledBackSnapsBackToTheLiveScreen() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
+    attachOn(viewModel)
+    advanceUntilIdle()
+    gateway.push(TerminalEvent.Ready)
+    scrollDownOneLine(viewModel)
+    viewModel.scrollBy(pixelDeltaY = -10f, cellHeightPx = 10)
+    advanceUntilIdle()
+    assertEquals(-1, viewModel.uiState.value.topRow)
+
+    gateway.push(TerminalEvent.Output("x"))
+    advanceUntilIdle()
+
+    assertEquals(0, viewModel.uiState.value.topRow)
+  }
+
+  private fun scrollDownOneLine(viewModel: TerminalPaneViewModel) {
+    viewModel.emulator.screen.grid.scrollDownOneLine(0, viewModel.emulator.screen.rows, CellStyle.NORMAL)
+  }
+
+  /**
    * Launches `attach()` on `Dispatchers.Main` - the same dispatcher [MainDispatcherRule] points at
    * `viewModelScope`'s own, so a keystroke sent through `type`/`resize` and this collector's flow
    * rendezvous on one scheduler exactly as they do in the real app, where `TerminalPaneScreen`'s

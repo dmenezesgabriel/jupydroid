@@ -100,6 +100,36 @@ def terminal_row_spacing_px(
     return gaps[len(gaps) // 2]
 
 
+def terminal_top_strip_differs(
+    before_path: str,
+    after_path: str,
+    x_range: tuple[int, int] = (0, 700),
+    content_top_y: int = 175,
+    strip_height: int = 40,
+) -> bool:
+    """Whether the terminal's own topmost strip of pixels differs between two captures.
+
+    `docs/PLAN.md`'s P4j-3d-3's own proof that a gesture-scrollback drag moved *something*,
+    without needing to read what either capture says: [content_top_y] to
+    `content_top_y + strip_height` sits just below the app bar - one row's own height, at any
+    real device's density this app ships for - and is nowhere near `TerminalExtraKeysRow` or a
+    soft keyboard, so it can never cross into either regardless of how far a drag has scrolled.
+
+    **Not [terminal_content_bottom_y]'s own thin-glyph filter** - that constant is tuned to `vi`'s
+    own `~` fill-line glyph (a handful of pixels tall), not general terminal text: a plain `seq`
+    digit row measures ~17px tall on this device, comfortably past it, and a distant-column
+    variant of this measurement tried first read `TerminalExtraKeysRow`'s own button-label ink,
+    and separately a soft keyboard's own key-label ink, as if it were terminal content - both
+    device-measured, not guessed. Comparing a fixed strip that stays inside the app bar's own
+    shadow, at the *same* screen position in both captures, needs neither a filter nor a bound.
+    """
+    x1, x2 = x_range
+    box = (x1, content_top_y, x2, content_top_y + strip_height)
+    before = Image.open(before_path).convert("RGB").crop(box)
+    after = Image.open(after_path).convert("RGB").crop(box)
+    return before.tobytes() != after.tobytes()
+
+
 def _ink_bands(
     image: Image.Image,
     x_range: tuple[int, int],

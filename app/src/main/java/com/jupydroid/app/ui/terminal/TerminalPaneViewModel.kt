@@ -14,6 +14,7 @@ import com.jupydroid.app.terminal.TerminalEmulator
 import com.jupydroid.app.terminal.TerminalNotices
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.terminal.TerminalReplies
+import com.jupydroid.app.terminal.clampedTopRow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +33,9 @@ private const val ESC = ""
  *   cannot observe that on its own.
  * @property latches [TerminalExtraKeysRow]'s own Ctrl/Alt state - `docs/PLAN.md`'s P4j-3a.
  * @property fontSizeSp [TerminalSettingsRepository]'s own current value - `docs/PLAN.md`'s P4j-3c.
+ * @property topRow the gesture-scrollback viewport - `0` is the live screen, negative is
+ *   scrollback (`docs/PLAN.md`'s P4j-3d-3), passed straight through to [TerminalCanvas]'s own
+ *   parameter of the same name.
  */
 data class TerminalPaneUiState(
   val ready: Boolean = false,
@@ -40,6 +44,7 @@ data class TerminalPaneUiState(
   val endedReason: String? = null,
   val latches: TerminalModifierLatches = TerminalModifierLatches(),
   val fontSizeSp: Int = TerminalFontSize.DEFAULT,
+  val topRow: Int = 0,
 )
 
 /**
@@ -131,6 +136,12 @@ class TerminalPaneViewModel(
         is TerminalEvent.Output -> {
           val bytes = event.text.toByteArray(Charsets.UTF_8)
           emulator.append(bytes, bytes.size)
+          // Termux's own `TerminalView.onScreenUpdated` default path: no text-selection anchor,
+          // no auto-scroll-lock toggle exist in this app to carve an exception out for, so any
+          // new output while scrolled back snaps straight back to the live screen
+          // (`docs/PLAN.md`'s P4j-3d-3) - a named simplification of the reference, not a silent
+          // omission.
+          _uiState.update { it.copy(topRow = 0) }
           bumpRedraw()
         }
         is TerminalEvent.Ended -> _uiState.update { it.copy(endedReason = event.reason) }
@@ -213,6 +224,36 @@ class TerminalPaneViewModel(
     if (next == current) return
     _uiState.update { it.copy(fontSizeSp = next) }
     viewModelScope.launch { terminalSettingsRepository.update(TerminalSettings(fontSizeSp = next)) }
+  }
+
+  /** Sub-cell drag distance carried between [scrollBy] calls - Termux's own `mScrollRemainder`. */
+  private var scrollRemainder = 0f
+
+  /**
+   * A drag's own pixel delta, turned into whole-row movement of [TerminalPaneUiState.topRow] -
+   * `docs/PLAN.md`'s P4j-3d-3, the gesture-scrollback viewport. [pixelDeltaY] need not be a whole
+   * number of cells: the fractional remainder carries to the next call rather than being dropped,
+   * the way Termux's own `TerminalView.onScroll` keeps `distanceY += mScrollRemainder`.
+   *
+   * @return the pixel amount [clampedTopRow][com.jupydroid.app.terminal.clampedTopRow] actually
+   *   applied, not [pixelDeltaY] itself - so a caller driving this from a fling (a later step, not
+   *   this one) can stop its own deceleration cleanly at a clamped boundary instead of believing
+   *   more was consumed than the grid actually moved.
+   *
+   * ```
+   * detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellHeightPx) }
+   * ```
+   */
+  fun scrollBy(pixelDeltaY: Float, cellHeightPx: Int): Float {
+    val totalPixels = pixelDeltaY + scrollRemainder
+    val deltaRows = (totalPixels / cellHeightPx).toInt()
+    scrollRemainder = totalPixels - deltaRows * cellHeightPx
+    val current = _uiState.value.topRow
+    val next = emulator.screen.grid.clampedTopRow(current, deltaRows)
+    if (next == current) return 0f
+    _uiState.update { it.copy(topRow = next) }
+    bumpRedraw()
+    return (next - current) * cellHeightPx.toFloat()
   }
 
   private fun sendToShell(text: String) {

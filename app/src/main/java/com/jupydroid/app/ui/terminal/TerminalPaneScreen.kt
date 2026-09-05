@@ -1,5 +1,7 @@
 package com.jupydroid.app.ui.terminal
 
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -24,8 +26,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -37,6 +41,11 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -57,6 +66,7 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
 import kotlinx.coroutines.flow.drop
+import kotlin.math.abs
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
 const val TERMINAL_INPUT_TAG = "terminal-input"
@@ -92,6 +102,10 @@ fun TerminalPaneScreen(
   // `docs/PLAN.md`'s P4j-3c - resolved once here rather than inside `TerminalCanvas`, which no
   // longer reads the setting itself.
   val textStyle = codeTextStyle(fontSize = state.fontSizeSp.sp)
+  // `docs/PLAN.md`'s P4j-3d-3: the last cell height [TerminalCanvas] reported, so a drag's own
+  // pixel delta can be turned into rows without waiting for a fresh `onGridSizeChanged` call -
+  // `terminalCellMetrics`'s own measurement never changes mid-gesture, only mid-recomposition.
+  var cellHeightPx by remember { mutableIntStateOf(1) }
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
@@ -130,7 +144,19 @@ fun TerminalPaneScreen(
     // window inset `ShellSidePane.kt`'s `panelInsets` already names for the navigation bar, found
     // here for the ime by a device measurement rather than a re-reading of the source
     // (`docs/DECISIONS.md`).
-    Box(modifier = Modifier.padding(padding).fillMaxSize().consumeWindowInsets(WindowInsets.ime)) {
+    //
+    // `pointerInput(cellHeightPx) { detectTerminalScrollDrag(...) }` sits on this `Box` - the
+    // ancestor of both `TerminalCanvas` and `TerminalInputField` - rather than `Modifier.scrollable`
+    // on either sibling, `docs/PLAN.md`'s P4j-3d-3's own device-measured finding: a `Modifier.scrollable`
+    // on `TerminalCanvas` never once saw a real drag, because `TerminalInputField`'s own
+    // `BasicTextField` already consumes touch movement in `PointerEventPass.Main` - the pass every
+    // gesture detector in this codebase defaults to - before a sibling's or an ancestor's own
+    // Main-pass handler would ever run. `PointerEventPass.Initial` runs ancestor-to-descendant,
+    // ahead of the field's pass, so consuming a drag here is what actually pre-empts it.
+    Box(
+      modifier = Modifier.padding(padding).fillMaxSize().consumeWindowInsets(WindowInsets.ime)
+        .pointerInput(cellHeightPx) { detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellHeightPx) } },
+    ) {
       // Keyed on the redraw counter: `emulator.screen.grid` is mutated in place by
       // `TerminalPaneViewModel`, which Compose cannot observe on its own - `redraw` is the `State`
       // that stands in for it, exactly as `EditorUiState.sourceRevisions` stands in for a text
@@ -138,9 +164,13 @@ fun TerminalPaneScreen(
       key(state.redraw) {
         TerminalCanvas(
           emulator = viewModel.emulator,
-          onGridSizeChanged = { grid, cell -> viewModel.resize(grid, cell.width, cell.height) },
+          onGridSizeChanged = { grid, cell ->
+            viewModel.resize(grid, cell.width, cell.height)
+            cellHeightPx = cell.height
+          },
           modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
           textStyle = textStyle,
+          topRow = state.topRow,
         )
       }
       TerminalInputField(
@@ -203,6 +233,48 @@ private fun KeepTheShellAttached(viewModel: TerminalPaneViewModel) {
   val lifecycleOwner = LocalLifecycleOwner.current
   LaunchedEffect(lifecycleOwner, viewModel) {
     lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { viewModel.attach() }
+  }
+}
+
+/**
+ * A drag over the terminal scrolls it into history - `docs/PLAN.md`'s P4j-3d-3 - and must win
+ * that decision *before* [TerminalInputField]'s own `BasicTextField` does. Measured on the
+ * tablet, not guessed: `Modifier.scrollable` placed on either the canvas or its ancestor never
+ * once saw a real drag, because the field's own touch handling runs on the default
+ * [PointerEventPass.Main] - the pass every gesture detector in this codebase already uses - which
+ * a descendant processes *before* an ancestor's or a sibling's own Main-pass handler ever would,
+ * and the field consumes movement unconditionally rather than only once a drag is confirmed.
+ * [PointerEventPass.Initial] runs ancestor-to-descendant, ahead of the field's own pass, so
+ * consuming here is what actually pre-empts it; a plain tap (no travel past
+ * [PointerInputScope.viewConfiguration]'s own touch slop) is left unconsumed, so tap-to-focus
+ * still reaches the field beneath.
+ *
+ * [onDragBy] receives the drag's own screen-space `y` delta (positive when a finger moves down),
+ * negated before it reaches [TerminalPaneViewModel.scrollBy] - a downward drag reveals what is
+ * *above* the live screen, i.e. history, which is [TerminalGrid.clampedTopRow]'s negative
+ * direction, not its positive one.
+ *
+ * Drag only, not fling - this step's own gate is "scroll back... and show it", not momentum. A
+ * fling is a named follow-up rather than silently dropped (`docs/DECISIONS.md`).
+ */
+private suspend fun PointerInputScope.detectTerminalScrollDrag(onDragBy: (Float) -> Unit) {
+  awaitEachGesture {
+    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+    var overSlop = 0f
+    var dragging = false
+    while (true) {
+      val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+      val change = event.changes.firstOrNull { it.id == down.id }
+      if (change == null || change.changedToUpIgnoreConsumed()) break
+      val delta = change.positionChange().y
+      if (dragging) {
+        change.consume()
+        onDragBy(-delta)
+      } else {
+        overSlop += delta
+        if (abs(overSlop) > viewConfiguration.touchSlop) dragging = true
+      }
+    }
   }
 }
 
