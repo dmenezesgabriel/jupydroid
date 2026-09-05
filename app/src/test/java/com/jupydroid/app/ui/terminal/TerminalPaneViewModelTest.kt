@@ -3,6 +3,9 @@ package com.jupydroid.app.ui.terminal
 import androidx.compose.ui.unit.IntSize
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeTerminalGateway
+import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
+import com.jupydroid.app.domain.model.TerminalFontSize
+import com.jupydroid.app.domain.model.TerminalSettings
 import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
@@ -13,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -367,6 +371,76 @@ class TerminalPaneViewModelTest {
     advanceUntilIdle()
 
     assertEquals(listOf("c"), gateway.sent)
+  }
+
+  // --- P4j-3c: the terminal's own font-size setting ---
+
+  /** The screen's own state carries whatever the repository already held, not always the default. */
+  @Test
+  fun theUiStateExposesTheStoredFontSize() = runTest {
+    val settings = FakeTerminalSettingsRepository(TerminalSettings(fontSizeSp = 20))
+    val viewModel =
+      TerminalPaneViewModel(TerminalSession("1"), RecordingGateway(), terminalSettingsRepository = settings)
+
+    advanceUntilIdle()
+
+    assertEquals(20, viewModel.uiState.value.fontSizeSp)
+  }
+
+  @Test
+  fun increaseFontSizeStepsUpAndPersists() = runTest {
+    val settings = FakeTerminalSettingsRepository(TerminalSettings(fontSizeSp = 20))
+    val viewModel =
+      TerminalPaneViewModel(TerminalSession("1"), RecordingGateway(), terminalSettingsRepository = settings)
+    advanceUntilIdle()
+
+    viewModel.changeFontSize(TerminalFontSize.STEP)
+    advanceUntilIdle()
+
+    assertEquals(22, viewModel.uiState.value.fontSizeSp)
+    assertEquals(22, settings.observeSettings().first().fontSizeSp)
+  }
+
+  @Test
+  fun decreaseFontSizeStepsDownAndPersists() = runTest {
+    val settings = FakeTerminalSettingsRepository(TerminalSettings(fontSizeSp = 20))
+    val viewModel =
+      TerminalPaneViewModel(TerminalSession("1"), RecordingGateway(), terminalSettingsRepository = settings)
+    advanceUntilIdle()
+
+    viewModel.changeFontSize(-TerminalFontSize.STEP)
+    advanceUntilIdle()
+
+    assertEquals(18, viewModel.uiState.value.fontSizeSp)
+    assertEquals(18, settings.observeSettings().first().fontSizeSp)
+  }
+
+  /** JupyterLab's own `isEnabled` gate (`terminal-extension/src/index.ts:771`), reread as a clamp. */
+  @Test
+  fun increaseFontSizeStopsAtTheMaximum() = runTest {
+    val settings = FakeTerminalSettingsRepository(TerminalSettings(fontSizeSp = TerminalFontSize.MAX))
+    val viewModel =
+      TerminalPaneViewModel(TerminalSession("1"), RecordingGateway(), terminalSettingsRepository = settings)
+    advanceUntilIdle()
+
+    viewModel.changeFontSize(TerminalFontSize.STEP)
+    advanceUntilIdle()
+
+    assertEquals(TerminalFontSize.MAX, viewModel.uiState.value.fontSizeSp)
+  }
+
+  /** The same gate from the other side - `terminal-extension/src/index.ts:791`. */
+  @Test
+  fun decreaseFontSizeStopsAtTheMinimum() = runTest {
+    val settings = FakeTerminalSettingsRepository(TerminalSettings(fontSizeSp = TerminalFontSize.MIN))
+    val viewModel =
+      TerminalPaneViewModel(TerminalSession("1"), RecordingGateway(), terminalSettingsRepository = settings)
+    advanceUntilIdle()
+
+    viewModel.changeFontSize(-TerminalFontSize.STEP)
+    advanceUntilIdle()
+
+    assertEquals(TerminalFontSize.MIN, viewModel.uiState.value.fontSizeSp)
   }
 
   private fun TestScope.attachOn(viewModel: TerminalPaneViewModel): Job =

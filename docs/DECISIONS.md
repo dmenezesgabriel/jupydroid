@@ -5311,3 +5311,33 @@ was not migrated - out of scope here - so it remains exposed to the same flakine
 `count_vi_fill_lines` pipefail bug (a genuine zero-match `grep` aborting the script before its own
 `[ "$BEFORE" -gt 0 ]` check could explain why) was fixed in passing since it obscured this finding
 until fixed.
+
+### A pixel oracle tuned against one pane layout reads the wrong pane in another (P4j-3c)
+
+`p4j-3c-terminal-font-size`'s first real run reported no reflow at all across two taps on
+Increase then one on Decrease - `terminal_row_spacing_px` returned the same handful of pixels
+for all three screenshots, which read as the font-size setting not reaching the grid. It was not:
+the tablet's own landscape default (`user_rotation`, unchanged since the previous session) put
+`Terminal` behind `ListDetailSceneStrategy`'s two-pane layout, `Files` on the left and the
+terminal detail pane on the right - and `terminal_content_extent.py`'s `_BACKGROUND_SAMPLE_X`
+(a fixed `x=500`) and every oracle's default `x_range` (`(0, 60)`) are tuned against a
+**single-pane** capture, the shape every prior terminal Maestro flow happened to run in
+(`evidence/p4j-3b-terminal-ime-resize/device.txt`: `w800dp-h1280dp`, this run's own:
+`w1280dp-h800dp`). At `x=500` in the two-pane capture the sample lands inside the *Files* pane,
+not the terminal's - confirmed by reading the raw pixels directly: the terminal's own cursor and
+`~` glyphs sat at `x≈716-730`, comfortably outside the oracle's own `(0, 60)`/`x=500` assumptions,
+so the "background" and the "ink" it compared were two unrelated panels, not two states of the
+same row.
+
+**Fixed by rotating to portrait first** (`p4i-terminal-resize-driver.sh`'s own `rotate_to`), so
+the terminal is single-pane and full-width again and the already-proven geometry applies
+unmodified - not by teaching the oracle a second pane layout's own pixel columns, which would
+have doubled the constants this module carries for one flow's own convenience.
+
+**This forbids** trusting a pixel-based oracle's silence (a flat measurement across an intended
+change) as proof of no reflow, without first checking the capture's own window width against the
+geometry the oracle was tuned for - `record_device`'s `window` line is exactly the fact that
+would have shortened this from a raw-pixel investigation to a one-line diff against
+`evidence/p4j-3b-terminal-ime-resize/device.txt`. Any future terminal-content Maestro flow that
+does not itself force portrait should state that assumption in its own header, the way this one
+now does, rather than inherit whatever orientation the device happened to be left in.

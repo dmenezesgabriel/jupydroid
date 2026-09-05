@@ -1,0 +1,56 @@
+appId: com.jupydroid.app
+---
+# `docs/PLAN.md`'s P4j-3c gate: "change the size, show the grid reflow and the glyphs redraw at
+# the new scale against a real shell." TABLET ONLY (SM-X216B): a real shell's own SIGWINCH
+# redraw on `set_size`, not `FakeTerminalGateway`'s echo.
+#
+# `vi`'s own full-screen `~` fill is the same oracle P4i-3a/P4j-3b already use for a resize -
+# read differently again here: the driver's own `terminal_row_spacing_px` measures the pixel gap
+# between consecutive `~` rows, which is `codeTextStyle`'s cell height rendered, not a layout
+# number either capture carries.
+#
+# `hideKeyboard` before every screenshot, unlike p4j-3b's own IME flow which keeps it open - so
+# the IME's own inset (P4j-3b) is not a second variable inside a measurement about font size
+# alone.
+#
+# The menu closes on every tap (`TerminalActionsMenu`'s own `DropdownMenuItem`, `open = false`
+# each row), so it is reopened before each row rather than assumed to stay open across two taps.
+#
+# NOT A SUITE FLOW: the driver rotates the device to portrait first
+# (`p4i-terminal-resize-driver.sh`'s own `rotate_to`, so the terminal is full-width rather than
+# sharing the screen with the Files pane) and leaves a `vi` session running - both of which a
+# flow run after it in the same sweep would inherit.
+- launchApp
+- assertVisible: "Files"
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 5000
+- inputText: "vi"
+- pressKey: Enter
+# A generous, fixed settle for vi's own full-screen redraw - p4j-3b-terminal-ime-resize-part1's
+# own reason: a cold rootfs/JIT can still be mid-launch at 5s, leaving an apparently-empty frame.
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-vi-default-size
+
+- tapOn: "Terminal actions"
+- tapOn: "Increase Terminal Font Size"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Terminal actions"
+- tapOn: "Increase Terminal Font Size"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02-vi-increased-size
+
+- tapOn: "Terminal actions"
+- tapOn: "Decrease Terminal Font Size"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-vi-decreased-size

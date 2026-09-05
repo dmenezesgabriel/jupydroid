@@ -15,6 +15,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.sp
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -25,6 +26,7 @@ import com.jupydroid.app.terminal.TerminalNotices
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.terminal.TerminalReplies
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.editor.codeTextStyle
 import com.jupydroid.app.ui.terminal.TerminalCanvas
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -184,6 +186,40 @@ class TerminalCanvasTest {
       "grid $withIme should be shorter than $withoutIme once the IME opens",
       withIme.height < withoutIme.height,
     )
+  }
+
+  /**
+   * `docs/PLAN.md`'s P4j-3c: the terminal's own font-size setting reaches [TerminalCanvas] through
+   * a `textStyle` parameter, plumbed into [com.jupydroid.app.ui.terminal.terminalCellMetrics]'s
+   * existing seam - so a larger size must measure a wider cell, not merely accept the parameter.
+   */
+  @Test
+  fun aLargerTextStyleMeasuresAWiderCell() {
+    val emulator = silentEmulator(TerminalPalette.REFERENCE)
+    var smallCell: IntSize? = null
+    var largeCell: IntSize? = null
+
+    compose.setContent {
+      JupyterDroidTheme {
+        TerminalCanvas(
+          emulator,
+          textStyle = codeTextStyle(fontSize = 10.sp),
+          onGridSizeChanged = { _, cell -> smallCell = cell },
+        )
+      }
+      JupyterDroidTheme {
+        TerminalCanvas(
+          emulator,
+          textStyle = codeTextStyle(fontSize = 30.sp),
+          onGridSizeChanged = { _, cell -> largeCell = cell },
+        )
+      }
+    }
+    compose.waitForIdle()
+
+    val small = requireNotNull(smallCell) { "the 10sp onGridSizeChanged was never called" }
+    val large = requireNotNull(largeCell) { "the 30sp onGridSizeChanged was never called" }
+    assertTrue("a 30sp cell $large should be wider than a 10sp cell $small", large.width > small.width)
   }
 
   private fun capture(content: @Composable () -> Unit): ImageBitmap {

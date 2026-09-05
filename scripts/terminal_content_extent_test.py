@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 
 from PIL import Image
 
-from terminal_content_extent import terminal_content_bottom_y
+from terminal_content_extent import terminal_content_bottom_y, terminal_row_spacing_px
 
 _LIGHT_BG = (255, 255, 255)
 _LIGHT_INK = (0, 0, 0)
@@ -96,6 +96,56 @@ class TerminalContentBottomYTest(unittest.TestCase):
             terminal_content_bottom_y(taller, content_top_y=_CONTENT_TOP),
             terminal_content_bottom_y(shorter, content_top_y=_CONTENT_TOP),
         )
+
+
+class TerminalRowSpacingPxTest(unittest.TestCase):
+    """`docs/PLAN.md`'s P4j-3c: the terminal's own font-size setting, read as the pixel distance
+    between consecutive rows' own ink - `codeTextStyle`'s cell height rendered, so two captures at
+    different sizes compare directly against each other rather than against a layout number
+    neither capture carries."""
+
+    def _painted_path(
+        self,
+        rows: dict[int, tuple[int, int]],
+        background: tuple[int, int, int] = _LIGHT_BG,
+        ink: tuple[int, int, int] = _LIGHT_INK,
+    ) -> str:
+        path, directory = _painted(rows, background, ink)
+        self.addCleanup(directory.cleanup)
+        return path
+
+    def test_returns_zero_when_nothing_is_drawn(self) -> None:
+        path = self._painted_path({})
+        self.assertEqual(0, terminal_row_spacing_px(path, content_top_y=_CONTENT_TOP))
+
+    def test_returns_zero_with_only_one_row_to_compare(self) -> None:
+        path = self._painted_path({30: (10, 13)})
+        self.assertEqual(0, terminal_row_spacing_px(path, content_top_y=_CONTENT_TOP))
+
+    def test_reports_the_gap_between_two_rows_own_ink(self) -> None:
+        path = self._painted_path({30: (10, 13), 61: (10, 13)})
+        self.assertEqual(31, terminal_row_spacing_px(path, content_top_y=_CONTENT_TOP))
+
+    def test_a_bigger_font_reports_a_wider_spacing_than_a_smaller_one(self) -> None:
+        """The actual comparison a driver makes: two real captures, the bigger font wins."""
+        small = self._painted_path({30: (10, 13), 51: (10, 13), 72: (10, 13)})
+        big = self._painted_path({30: (10, 13), 61: (10, 13), 92: (10, 13)})
+        self.assertGreater(
+            terminal_row_spacing_px(big, content_top_y=_CONTENT_TOP),
+            terminal_row_spacing_px(small, content_top_y=_CONTENT_TOP),
+        )
+
+    def test_excludes_a_thicker_band_from_the_spacing(self) -> None:
+        """A keyboard's own key glyphs must not be read as a terminal row - the same rule
+        `terminal_content_bottom_y` already applies, reused here."""
+        rows = {30: (10, 13), 61: (10, 13)}
+        rows.update({y: (10, 13) for y in range(90, 105)})  # a 15px-tall band: keyboard-sized
+        path = self._painted_path(rows)
+        self.assertEqual(31, terminal_row_spacing_px(path, content_top_y=_CONTENT_TOP))
+
+    def test_works_on_light_ink_over_a_dark_background_too(self) -> None:
+        path = self._painted_path({30: (10, 13), 61: (10, 13)}, background=_DARK_BG, ink=_DARK_INK)
+        self.assertEqual(31, terminal_row_spacing_px(path, content_top_y=_CONTENT_TOP))
 
 
 if __name__ == "__main__":

@@ -3,9 +3,13 @@ package com.jupydroid.app.ui.terminal
 import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
+import com.jupydroid.app.domain.model.TerminalFontSize
+import com.jupydroid.app.domain.model.TerminalSettings
 import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.terminal.TerminalEmulator
 import com.jupydroid.app.terminal.TerminalNotices
 import com.jupydroid.app.terminal.TerminalPalette
@@ -27,6 +31,7 @@ private const val ESC = ""
  *   `State` to key its recomposition on - `emulator.screen.grid` is mutated in place and Compose
  *   cannot observe that on its own.
  * @property latches [TerminalExtraKeysRow]'s own Ctrl/Alt state - `docs/PLAN.md`'s P4j-3a.
+ * @property fontSizeSp [TerminalSettingsRepository]'s own current value - `docs/PLAN.md`'s P4j-3c.
  */
 data class TerminalPaneUiState(
   val ready: Boolean = false,
@@ -34,6 +39,7 @@ data class TerminalPaneUiState(
   val title: String? = null,
   val endedReason: String? = null,
   val latches: TerminalModifierLatches = TerminalModifierLatches(),
+  val fontSizeSp: Int = TerminalFontSize.DEFAULT,
 )
 
 /**
@@ -52,12 +58,21 @@ data class TerminalPaneUiState(
 class TerminalPaneViewModel(
   private val session: TerminalSession,
   private val terminalGateway: TerminalGateway,
+  private val terminalSettingsRepository: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
   palette: TerminalPalette = TerminalPalette.VS_CODE_DARK,
   columns: Int = DEFAULT_COLUMNS,
   rows: Int = DEFAULT_ROWS,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(TerminalPaneUiState())
   val uiState: StateFlow<TerminalPaneUiState> = _uiState.asStateFlow()
+
+  init {
+    viewModelScope.launch {
+      terminalSettingsRepository.observeSettings().collect { settings ->
+        _uiState.update { it.copy(fontSizeSp = settings.fontSizeSp) }
+      }
+    }
+  }
 
   private val replies = object : TerminalReplies {
     override fun reply(text: String) = sendToShell(text)
@@ -184,6 +199,20 @@ class TerminalPaneViewModel(
     // same reason every `Output` event already bumps this.
     bumpRedraw()
     viewModelScope.launch { terminalGateway.resize(session, rows = gridSize.height, cols = gridSize.width) }
+  }
+
+  /**
+   * `terminal:increase-font`/`terminal:decrease-font` (`terminal-extension/src/index.ts:64-66`) -
+   * [TerminalActionsMenu]'s own two rows, one signed step apart rather than two near-identical
+   * functions. A no-op past either bound - the reference's own `isEnabled` (`:771`, `:791`), reread
+   * as a clamp rather than a disabled row this app's own menu still lets a fast double-tap reach.
+   */
+  fun changeFontSize(deltaSp: Int) {
+    val current = _uiState.value.fontSizeSp
+    val next = (current + deltaSp).coerceIn(TerminalFontSize.MIN, TerminalFontSize.MAX)
+    if (next == current) return
+    _uiState.update { it.copy(fontSizeSp = next) }
+    viewModelScope.launch { terminalSettingsRepository.update(TerminalSettings(fontSizeSp = next)) }
   }
 
   private fun sendToShell(text: String) {

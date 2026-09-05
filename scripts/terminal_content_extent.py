@@ -68,6 +68,38 @@ def terminal_content_bottom_y(
     return bottom_y
 
 
+def terminal_row_spacing_px(
+    image_path: str,
+    x_range: tuple[int, int] = (0, 60),
+    content_top_y: int = 175,
+) -> int:
+    """The pixel distance between consecutive terminal rows' own ink - `codeTextStyle`'s cell
+    height rendered, not a layout number either capture carries, so two screenshots at different
+    font sizes (`docs/PLAN.md`'s P4j-3c) compare directly against each other. `0` if fewer than
+    two rows of ink are found to compare - one capture with nothing drawn, or only one row.
+
+    Reuses [_ink_bands] and [terminal_content_bottom_y]'s own thin-glyph filter, so a soft
+    keyboard's or the extra-keys row's own thicker glyphs are excluded from the rows compared,
+    for the same reason they are excluded from the bottom-Y oracle.
+
+        from terminal_content_extent import terminal_row_spacing_px
+        small = terminal_row_spacing_px("10sp.png")
+        big = terminal_row_spacing_px("30sp.png")
+        assert big > small  # a bigger font sets a taller cell
+    """
+    image = Image.open(image_path).convert("RGB")
+    background = image.getpixel((_BACKGROUND_SAMPLE_X, content_top_y))
+    rows = [
+        band
+        for band in _ink_bands(image, x_range, content_top_y, background)
+        if band[1] - band[0] + 1 <= _MAX_GLYPH_STROKE_HEIGHT
+    ]
+    if len(rows) < 2:
+        return 0
+    gaps = sorted(next_start - start for (start, _), (next_start, _) in zip(rows, rows[1:]))
+    return gaps[len(gaps) // 2]
+
+
 def _ink_bands(
     image: Image.Image,
     x_range: tuple[int, int],

@@ -38,16 +38,21 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
+import com.jupydroid.app.domain.model.TerminalFontSize
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeSourceStyle
+import com.jupydroid.app.ui.editor.codeTextStyle
 import kotlinx.coroutines.flow.drop
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
@@ -68,20 +73,34 @@ fun TerminalPaneScreen(
   terminalGateway: TerminalGateway,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
+  /** The terminal's own font-size setting - `docs/PLAN.md`'s P4j-3c. */
+  terminalSettingsRepository: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
   // Read here, not inside the factory lambda below - `isSystemInDarkTheme` is itself composable
   // and the factory runs once, outside recomposition, the way `viewModel {}` always does.
   darkTheme: Boolean = isSystemInDarkTheme(),
   viewModel: TerminalPaneViewModel = viewModel {
     val palette = if (darkTheme) TerminalPalette.VS_CODE_DARK else TerminalPalette.VS_CODE_LIGHT
-    TerminalPaneViewModel(session, terminalGateway, palette = palette)
+    TerminalPaneViewModel(session, terminalGateway, terminalSettingsRepository, palette = palette)
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   KeepTheShellAttached(viewModel)
+  // The one style [TerminalCanvas]'s glyphs and [terminalCellMetrics]'s own measurement share -
+  // `docs/PLAN.md`'s P4j-3c - resolved once here rather than inside `TerminalCanvas`, which no
+  // longer reads the setting itself.
+  val textStyle = codeTextStyle(fontSize = state.fontSizeSp.sp)
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
-    topBar = { TerminalBar(title = state.title, onBack = onBack) },
+    topBar = {
+      TerminalBar(
+        title = state.title,
+        onBack = onBack,
+        fontSizeSp = state.fontSizeSp,
+        onIncreaseFontSize = { viewModel.changeFontSize(TerminalFontSize.STEP) },
+        onDecreaseFontSize = { viewModel.changeFontSize(-TerminalFontSize.STEP) },
+      )
+    },
     // `docs/PLAN.md`'s P4j-3a - `EditorBottomBars`/`SymbolRow`'s own slot, so this row carries its
     // own `imePadding`/`navigationBarsPadding` and Scaffold reserves it in `padding` below exactly
     // as it already does for the editor's bottom bar.
@@ -109,6 +128,7 @@ fun TerminalPaneScreen(
           emulator = viewModel.emulator,
           onGridSizeChanged = { grid, cell -> viewModel.resize(grid, cell.width, cell.height) },
           modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
+          textStyle = textStyle,
         )
       }
       TerminalInputField(
@@ -120,15 +140,34 @@ fun TerminalPaneScreen(
   }
 }
 
+/**
+ * Public rather than `private` - `docs/PLAN.md`'s P4j-3c: [TerminalActionsMenuTest][com.jupydroid.app.TerminalActionsMenuTest]
+ * drives this directly, [NotebookActionsMenuTest][com.jupydroid.app.ui.editor.NotebookActionsMenuTest]'s
+ * own reason - a test composing [TerminalActionsMenu] on its own would still pass with the button
+ * that opens it gone.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TerminalBar(title: String?, onBack: () -> Unit) {
+fun TerminalBar(
+  title: String?,
+  onBack: () -> Unit,
+  fontSizeSp: Int,
+  onIncreaseFontSize: () -> Unit,
+  onDecreaseFontSize: () -> Unit,
+) {
   TopAppBar(
     title = { Text(title ?: "Terminal") },
     navigationIcon = {
       IconButton(onClick = onBack) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
       }
+    },
+    actions = {
+      TerminalActionsMenu(
+        fontSizeSp = fontSizeSp,
+        onIncreaseFontSize = onIncreaseFontSize,
+        onDecreaseFontSize = onDecreaseFontSize,
+      )
     },
   )
 }

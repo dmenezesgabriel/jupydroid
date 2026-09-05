@@ -71,16 +71,21 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  *   onGridSizeChanged = { grid, cell -> viewModel.resize(grid, cell.width, cell.height) },
  * )
  * ```
+ *
+ * @param textStyle [codeTextStyle]'s own default for every other caller; the terminal's own
+ *   font-size setting (`docs/PLAN.md` P4j-3c) is what `TerminalPaneScreen` resolves and passes
+ *   here instead, one style shared by both [terminalCellMetrics]'s measurement and the glyphs
+ *   themselves so the two can never drift apart.
  */
 @Composable
 fun TerminalCanvas(
   emulator: TerminalEmulator,
   onGridSizeChanged: (grid: IntSize, cellPixels: IntSize) -> Unit = { _, _ -> },
   modifier: Modifier = Modifier,
+  textStyle: TextStyle = codeTextStyle(),
 ) {
-  val cell = terminalCellMetrics()
-  val style = codeTextStyle()
-  val renderer = GlyphRenderer(cell, style, rememberTextMeasurer(), emulator.screen.colors)
+  val cell = terminalCellMetrics(textStyle)
+  val renderer = GlyphRenderer(cell, textStyle, rememberTextMeasurer(), emulator.screen.colors)
   val screen = emulator.screen
 
   BoxWithConstraints(modifier = modifier.imePadding()) {
@@ -94,7 +99,7 @@ fun TerminalCanvas(
     }
     Column {
       for (row in 0 until screen.rows) {
-        Text(text = textOfRow(screen.grid.rowAt(row)), style = style, color = Color.Transparent)
+        Text(text = textOfRow(screen.grid.rowAt(row)), style = textStyle, color = Color.Transparent)
       }
     }
   }

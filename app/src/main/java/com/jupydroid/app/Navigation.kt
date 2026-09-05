@@ -325,6 +325,7 @@ fun MainNavigation(
             session = TerminalSession(terminal.name),
             terminalGateway = appContainer.terminalGateway,
             onBack = { backStack.removeLastOrNull() },
+            terminalSettingsRepository = appContainer.terminalSettings,
           )
         }
       },
