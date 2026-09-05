@@ -91,6 +91,13 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  *   font-size setting (`docs/PLAN.md` P4j-3c) is what `TerminalPaneScreen` resolves and passes
  *   here instead, one style shared by both [terminalCellMetrics]'s measurement and the glyphs
  *   themselves so the two can never drift apart.
+ * @param topRow the external row this draws at its own top edge - `0` is the live screen
+ *   (every existing caller's default), negative is scrollback (`docs/PLAN.md`'s P4j-3d-2). The
+ *   cursor is drawn only at `topRow == 0`: its own row is always among the *live* screen's
+ *   external rows, so scrolling away from `0` moves it out of the window this draws, the same
+ *   side effect Termux's own `TerminalRenderer.render` gets for free from iterating
+ *   `[topRow, topRow + rows)` - made an explicit condition here since this file's loop bounds
+ *   are a parameter now rather than always `0`.
  */
 @Composable
 fun TerminalCanvas(
@@ -98,6 +105,7 @@ fun TerminalCanvas(
   onGridSizeChanged: (grid: IntSize, cellPixels: IntSize) -> Unit = { _, _ -> },
   modifier: Modifier = Modifier,
   textStyle: TextStyle = codeTextStyle(),
+  topRow: Int = 0,
 ) {
   val cell = terminalCellMetrics(textStyle)
   val renderer = GlyphRenderer(cell, textStyle, rememberTextMeasurer(), emulator.screen.colors)
@@ -109,11 +117,11 @@ fun TerminalCanvas(
 
     Canvas(modifier = Modifier.matchParentSize()) {
       drawRect(Color(renderer.colors.at(CellStyle.COLOR_INDEX_BACKGROUND)))
-      for (row in 0 until screen.rows) drawRow(screen.grid, row, screen.columns, renderer)
-      if (emulator.isCursorEnabled) drawCursor(screen.cursor.row, screen.cursor.column, renderer)
+      for (row in topRow until topRow + screen.rows) drawRow(screen.grid, row, topRow, screen.columns, renderer)
+      if (topRow == 0 && emulator.isCursorEnabled) drawCursor(screen.cursor.row, screen.cursor.column, renderer)
     }
     Column {
-      for (row in 0 until screen.rows) {
+      for (row in topRow until topRow + screen.rows) {
         Text(text = textOfRow(screen.grid.rowAt(row)), style = textStyle, color = Color.Transparent)
       }
     }
@@ -128,14 +136,22 @@ private class GlyphRenderer(
   val colors: TerminalColors,
 )
 
-private fun DrawScope.drawRow(grid: TerminalGrid, rowIndex: Int, columns: Int, renderer: GlyphRenderer) {
+/**
+ * [rowIndex] is the external row read from [grid] (negative once scrolled back); [topRow] is
+ * what [TerminalCanvas] currently has at its own top edge, so `rowIndex - topRow` - never
+ * negative, since the loop that calls this never passes a [rowIndex] below [topRow] - is where
+ * this actually draws, the pixel row staying `0`-based regardless of how far into scrollback
+ * [rowIndex] reaches.
+ */
+private fun DrawScope.drawRow(grid: TerminalGrid, rowIndex: Int, topRow: Int, columns: Int, renderer: GlyphRenderer) {
   val row = grid.rowAt(rowIndex)
+  val drawRowIndex = rowIndex - topRow
   var column = 0
   while (column < columns) {
     val runStyle = grid.styleAt(rowIndex, column)
     var end = column + 1
     while (end < columns && grid.styleAt(rowIndex, end) == runStyle) end++
-    drawRun(row, rowIndex, column, end, runStyle, renderer)
+    drawRun(row, drawRowIndex, column, end, runStyle, renderer)
     column = end
   }
 }

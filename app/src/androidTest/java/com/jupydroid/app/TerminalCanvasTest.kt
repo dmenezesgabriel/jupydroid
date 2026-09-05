@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
@@ -220,6 +221,89 @@ class TerminalCanvasTest {
     val small = requireNotNull(smallCell) { "the 10sp onGridSizeChanged was never called" }
     val large = requireNotNull(largeCell) { "the 30sp onGridSizeChanged was never called" }
     assertTrue("a 30sp cell $large should be wider than a 10sp cell $small", large.width > small.width)
+  }
+
+  /**
+   * `docs/PLAN.md`'s P4j-3d-2: [TerminalCanvas]'s new `topRow` parameter actually shifts which
+   * external rows it draws, not merely accepted and ignored. `key(topRow)` remounts the subtree
+   * the same way [theCursorIsDrawnOnlyWhileDectcemIsSet] already does, since `TerminalCanvas` has
+   * no `State` of its own to recompose from a parameter change alone.
+   */
+  @Test
+  fun aNonZeroTopRowRendersTheScrolledBackRowInstead() {
+    val emulator = silentEmulator(TerminalPalette.REFERENCE)
+    writeRow(emulator, row = 0, text = "old")
+    emulator.screen.grid.scrollDownOneLine(0, emulator.screen.rows, CellStyle.NORMAL)
+    writeRow(emulator, row = 0, text = "new")
+    var topRow by mutableStateOf(0)
+
+    compose.setContent {
+      JupyterDroidTheme {
+        key(topRow) {
+          TerminalCanvas(emulator, topRow = topRow, modifier = Modifier.fillMaxSize())
+        }
+      }
+    }
+    compose.waitForIdle()
+    compose.onNodeWithText("new").assertExists()
+    compose.onNodeWithText("old").assertDoesNotExist()
+
+    // A 1-row scroll on a 3-row screen still keeps "new" (now at external row 0) inside the
+    // 3-row window `[-1, 2)` - the reference's own behaviour, not a bug this fix should hide.
+    // What proves the scroll is "old" (external row -1, out of the `[0, 3)` window a moment ago)
+    // becoming visible without anything having changed the grid itself.
+    topRow = -1
+    compose.waitForIdle()
+    compose.onNodeWithText("old").assertExists()
+  }
+
+  /**
+   * Termux's own `TerminalRenderer.render` side effect, made an explicit condition here: the
+   * cursor's row is always among the *live* screen's external rows, so once [TerminalCanvas]
+   * draws a window that has scrolled away from it, the cursor is not among the rows drawn.
+   */
+  @Test
+  fun theCursorIsHiddenOnceScrolledAwayFromTheLiveScreen() {
+    val emulator = silentEmulator(TerminalPalette.REFERENCE)
+    emulator.screen.grid.scrollDownOneLine(0, emulator.screen.rows, CellStyle.NORMAL)
+    var topRow by mutableStateOf(0)
+    var cell: IntSize? = null
+
+    compose.setContent {
+      JupyterDroidTheme {
+        key(topRow) {
+          TerminalCanvas(
+            emulator,
+            topRow = topRow,
+            onGridSizeChanged = { _, measured -> cell = measured },
+            modifier = Modifier.fillMaxSize(),
+          )
+        }
+      }
+    }
+    compose.waitForIdle()
+    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val cursorX = cellWidth / 2
+    val cursorY = cellHeight / 2
+    val atLiveTop = compose.onRoot().captureToImage()
+    assertEquals(
+      Color(TerminalPalette.REFERENCE.at(CellStyle.COLOR_INDEX_CURSOR)),
+      atLiveTop.toPixelMap()[cursorX, cursorY],
+    )
+
+    topRow = -1
+    compose.waitForIdle()
+    val scrolledBack = compose.onRoot().captureToImage()
+    assertNotEquals(
+      Color(TerminalPalette.REFERENCE.at(CellStyle.COLOR_INDEX_CURSOR)),
+      scrolledBack.toPixelMap()[cursorX, cursorY],
+    )
+  }
+
+  private fun writeRow(emulator: TerminalEmulator, row: Int, text: String) {
+    for ((column, character) in text.withIndex()) {
+      emulator.screen.grid.setChar(column, row, character.code, CellStyle.NORMAL)
+    }
   }
 
   private fun capture(content: @Composable () -> Unit): ImageBitmap {
