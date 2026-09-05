@@ -52,8 +52,23 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * negative"). P4j-1 replaced that `Column` with a `Box` - independent overlapping siblings, where
  * one child's own `imePadding` shrinks only its own layout - so the compensation was left cancelling
  * out a squeeze that could no longer reach it, measured actually inflating the grid past what the
- * pty had ever been told (`docs/DECISIONS.md`'s own P4j-3b entry). Reporting is layout-only: the
- * caller decides what a changed grid means
+ * pty had ever been told (`docs/DECISIONS.md`'s own P4j-3b entry).
+ *
+ * **The analogy two paragraphs up was wrong, and it shipped a doubled IME inset.** This
+ * composable is `TerminalPaneScreen`'s *content*, not a bottom bar - `TerminalExtraKeysRow` is the
+ * bar, and it is the one `EditorScreen.kt`'s own rule names: *"every other surface that can be on
+ * screen under an IME carries its own `imePadding`... so the cell list has never had to"* (the
+ * main content does, unless no bottom bar exists at all). `TerminalPaneScreen` always has one, so
+ * this file's own `imePadding` here was reserving the keyboard's height a second time on top of
+ * what `Scaffold`'s content padding already reflects from the bar's own growth - measured on
+ * device, not re-read from source, at a 27-row shrink where one keyboard's worth is closer to 19
+ * (`TerminalPaneScreenTest`, `docs/DECISIONS.md`'s entry on the double-counted IME inset). Left
+ * unchanged here on purpose: `TerminalPaneScreen` now consumes the inset before this composable
+ * ever sees it (`Modifier.consumeWindowInsets(WindowInsets.ime)`), so this `imePadding` becomes a
+ * no-op there while staying correct for this composable's own isolated test and any other caller
+ * with no bottom bar of its own.
+ *
+ * Reporting is layout-only: the caller decides what a changed grid means
  * ([com.jupydroid.app.ui.terminal.TerminalPaneViewModel.resize] is `TerminalPaneScreen`'s), keeping
  * this file "layout and drawing only" as its own opening line still claims.
  *

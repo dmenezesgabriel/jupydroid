@@ -2,7 +2,10 @@ package com.jupydroid.app.ui.terminal
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
@@ -118,7 +121,16 @@ fun TerminalPaneScreen(
     // layers share the same bounds: `TerminalCanvas` draws every glyph and the block cursor, and
     // `TerminalInputField` sits over the whole of it so a tap anywhere in the terminal is a tap on
     // the one thing that receives input, the way Termux's `TerminalView` is both at once.
-    Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+    //
+    // `consumeWindowInsets(WindowInsets.ime)` - `TerminalExtraKeysRow` is the bottom bar and
+    // already carries its own `imePadding` (`EditorScreen.kt`'s own rule: the bar owns the
+    // keyboard's inset, the content beside it does not), so `padding` above already reflects the
+    // bar's ime-grown height. Without this, `TerminalCanvas`'s own `imePadding` read the same,
+    // still-unconsumed inset again and shrank an already-correct area a second time - the doubled
+    // window inset `ShellSidePane.kt`'s `panelInsets` already names for the navigation bar, found
+    // here for the ime by a device measurement rather than a re-reading of the source
+    // (`docs/DECISIONS.md`).
+    Box(modifier = Modifier.padding(padding).fillMaxSize().consumeWindowInsets(WindowInsets.ime)) {
       // Keyed on the redraw counter: `emulator.screen.grid` is mutated in place by
       // `TerminalPaneViewModel`, which Compose cannot observe on its own - `redraw` is the `State`
       // that stands in for it, exactly as `EditorUiState.sourceRevisions` stands in for a text

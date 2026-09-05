@@ -5341,3 +5341,73 @@ would have shortened this from a raw-pixel investigation to a one-line diff agai
 `evidence/p4j-3b-terminal-ime-resize/device.txt`. Any future terminal-content Maestro flow that
 does not itself force portrait should state that assumption in its own header, the way this one
 now does, rather than inherit whatever orientation the device happened to be left in.
+
+### The terminal's IME inset was spent twice, and `TerminalCanvas`'s own P4j-3b KDoc drew the
+wrong analogy to explain why (post-P4j-3c)
+
+A live device report - the terminal visibly shrinking, sometimes past usability, whenever the
+keyboard opens - traced to three composables in `TerminalPaneScreen`'s tree each independently
+touching the ime inset: `TerminalExtraKeysRow` (`TerminalExtraKeysRow.kt:71-72`, Scaffold's
+`bottomBar`), `TerminalCanvas` (`TerminalCanvas.kt`, inside `content`, added by P4j-3b) and
+`TerminalInputField` (`TerminalPaneScreen.kt`, `content`'s other child). Read from Material3's own
+`Scaffold.kt` (`ScaffoldLayout`, the `bottom = if (isBottomBarEmpty) ... else
+bottomBarPlaceable.height.toDp()` branch): once a bottom bar is present, the `padding` Scaffold
+hands `content` **is** the bar's own measured height, already reflecting its own `imePadding`
+growth - nothing else is added on top. `TerminalPaneScreen`'s content `Box`
+(`Modifier.padding(padding).fillMaxSize()`) is therefore already sized correctly once the bar has
+grown; `TerminalCanvas` and `TerminalInputField` each calling their own `imePadding()` inside that
+already-correct area subtracted the keyboard's height a second (and, for the two of them
+together, sometimes a third) time.
+
+**This is the same defect shape a navigation-bar version of it already has a name for.**
+`ShellSidePane.kt`'s `panelInsets` ("What the panel above the bottom bar must **not** reserve a
+second time... P2q's 'doubled window inset' defect in a new place") and `EditorScreen.kt`'s own
+rule (*"every other surface that can be on screen under an IME carries its own `imePadding`...
+so the cell list has never had to"* - the bar owns the inset, the content beside it does not,
+unless no bar exists at all) both already say the analogy `TerminalCanvas.kt`'s own P4j-3b KDoc
+drew was backwards: it compared itself to `TerminalExtraKeysRow`/`SymbolRow`/`NotebookBar` - the
+*bars* - when its own role in this tree is `EditorScreen`'s cell list, the content beside a bar
+that already owns the inset. `TerminalPaneScreen` always has a bottom bar, so by the project's own
+already-stated rule this composable never needed its own `imePadding` here at all.
+
+**Measured, not re-read from source**: a new `TerminalPaneScreenTest` (instrumented, composing the
+full screen rather than `TerminalCanvas` alone the way `TerminalCanvasTest` does) found the grid
+shrinking by 27 rows for a synthetic 600px keyboard where one correct `imePadding` subtraction
+lands close to 19 (`600 / 31px-per-row`); after the fix, 17. `TerminalCanvasTest`'s own isolated
+`theGridShrinksWhenTheImeInsetOpens` needed no change - composed alone, with no bottom bar, its own
+`imePadding` genuinely is the only thing keeping it off the keyboard, which is exactly why that
+test's directional-only assertion (`withIme.height < withoutIme.height`) never caught a doubled
+inset it was never composed in a position to have one.
+
+**The fix consumes the inset once, at the point that already knows the bar spent it** -
+`Modifier.consumeWindowInsets(WindowInsets.ime)` on `TerminalPaneScreen`'s content `Box`
+(`ShellSidePane.kt`'s own technique, reused rather than re-invented) - leaving `TerminalCanvas`'s
+and `TerminalInputField`'s own `imePadding()` calls untouched: within this screen they now read an
+already-consumed (zero) inset and become no-ops, while `TerminalCanvasTest`'s isolated composition
+(no ancestor consuming anything) keeps its own contract. `TerminalCanvas.kt`'s own P4j-3b KDoc is
+corrected in place rather than deleted, per this project's "keep your own comments" rule - the
+paragraph that drew the wrong analogy stays, followed by the correction and its citation, the same
+layered-correction shape several other paragraphs in that file already use.
+
+**A second, unrelated finding surfaced verifying this on the tablet, and it forbids reading too
+much into `p4j-3b-terminal-ime-resize`'s own oracle.** With the fix in place and the device forced
+to portrait, `content_bottom_y` read identically before and after the keyboard closed - not because
+the resize was wrong (confirmed directly: a temporary log in `TerminalPaneViewModel.resize` showed
+the grid genuinely going `77x39 -> 77x52` closing the keyboard, exactly restoring the pre-keyboard
+size, single-counted) but because `vi`'s own `~` fill lines are its **startup** draw at whatever
+grid size was current when `p4j-3b-terminal-ime-resize-part1.yaml` launched it (already
+keyboard-open, from that flow's own "Input text vi"/Enter) - not a live repaint triggered by a
+later resize. This rootfs's own `stty size` limitation, already named in the driver script's own
+header ("answers from a fixed default, not a live `ioctl`"), is exactly why: `vi` has no live
+size to learn even though the wire resize genuinely reaches `TerminalEmulator`. The flow's own gate
+was therefore never proof of a live redraw so much as a marginal pixel shift that happened to clear
+a `>` comparison by a few pixels before this fix and does not after it, for reasons unrelated to
+whether the resize itself is correct. `p4j-3b-terminal-ime-resize-driver.sh`'s comparison is now
+`-ge` rather than `-gt`, with the same citation, since what the pixel oracle can still honestly
+prove is that the shell does not get *smaller* once the keyboard closes - not that `vi` redrew.
+
+**This forbids** two things: reading `TerminalCanvas.kt`'s "every surface carries its own
+`imePadding`" sentence as a general rule again without the correction beside it, and treating
+`p4j-3b-terminal-ime-resize`'s `closed_y`/`open_y` comparison as proof of a live terminal-content
+redraw on any future change near it - the actual proof that a resize reaches the wire is
+`TerminalPaneScreenTest`'s own deterministic synthetic-inset measurement, not this flow.
