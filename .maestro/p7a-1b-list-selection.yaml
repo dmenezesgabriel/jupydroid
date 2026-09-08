@@ -1,0 +1,42 @@
+appId: com.jupydroid.app
+---
+# P7a-1b: the explorer's row for the document that is open, which is `list.inactiveSelectionBackground`.
+#
+# **What this flow is for is a colour, and no assertion can read one** - the lesson P7a-1's own
+# driver records, and the reason that step's defect survived P2u-1 with every flow green. So the
+# deliverable is the frame plus the hierarchy the driver dumps after it, and
+# `scripts/check_node_fill.py` is what turns the pair into something that can fail.
+#
+# The claim: 2026 Light states this id **translucent** - `#DADADA99` - and the ramp flattened it to
+# an opaque `#DADADA`, because the row was drawn from `secondaryContainer`, a role that also served
+# the search toggles and two contextual bars. P7a-1b gives the row the side bar's own field, so it
+# paints `#E7E7E8` over `sideBar.background` the way the reference does.
+#
+# **WIDE WINDOW (>= 840dp)**: a row is marked only where there is a pane beside it to be marked
+# *for*. `Navigation.kt:152` ends `openDocumentPath` with `.takeIf { twoPane }`, and says why - in
+# one window the browser is on screen exactly when nothing is open, so a marked row would point at
+# a pane that is not there. There is no one-pane half of this to capture.
+#
+# The flow ends on that frame on purpose: maestro leaves the app where the last step put it, and
+# the driver's `uiautomator dump` is taken there (`scripts/p2n-gutter-driver.sh`'s own pattern).
+#
+# Seeded by scripts/p7a-1b-list-selection-driver.sh; clearState would delete the fixture. No cell is
+# run, so this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- assertVisible: "Chrome Check.ipynb"
+- takeScreenshot: 01-no-row-is-marked
+
+# --- open it, which is what marks its row ------------------------------------------------------
+# **Unindexed, and the driver is what makes that unambiguous.** `reset_notebooks` clears
+# `recent-documents.json` before every run, so there is no Recents section yet and the workspace
+# listing holds the only row of this name - `01-no-row-is-marked.png` is that frame. Opening it
+# *creates* a Recents row, so the final frame has two; only the listing's is marked, which is why
+# the measurement asks for the marked node rather than for a name.
+- tapOn: "Chrome Check.ipynb"
+- extendedWaitUntil:
+    visible: "Chrome check"
+    timeout: 30000
+- takeScreenshot: 02-the-open-row-is-washed
