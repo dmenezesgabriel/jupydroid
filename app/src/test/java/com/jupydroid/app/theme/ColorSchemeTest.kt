@@ -31,6 +31,34 @@ class ColorSchemeTest {
     assertEquals("$name roles that are not on the ramp", emptyMap<String, Color>(), strays)
   }
 
+  /**
+   * **`secondaryContainer` is the toggle's own id, and until P7a-1b it was the list's.**
+   *
+   * The role has four consumers and exactly one was a list: the explorer's open row. The other
+   * three - the search toggles' on-wash and the two contextual top bars - cite
+   * `inputOption.activeBackground`, and `docs/DECISIONS.md`'s P2x-3d folded them together on the
+   * grounds that the two ids measured 4/255 apart.
+   *
+   * The fold could not survive the alpha. `list.inactiveSelectionBackground` resolves `#DADADA99`
+   * in 2026 Light, so honouring it would have made the toggle's wash translucent where the
+   * reference draws it opaque, and 17/255 from the id it cites. The row moved to
+   * [ChromePalette.listInactiveSelectionBackground] and the role kept the three consumers it
+   * always described.
+   *
+   * Pinned by **equality to the resolved value**, the way `EditorPaletteTest` pins the syntax
+   * colours and `ChromePaletteTest` the parts - membership on the ramp cannot say *which* position,
+   * which is the hole this closes.
+   *
+   * ```sh
+   * python3 scripts/resolve_vscode_theme.py 2026-dark.json --color inputOption.activeBackground
+   * ```
+   */
+  @Test
+  fun theSecondaryContainerIsTheReferencesOwnToggleWash() {
+    assertEquals(Color(0xFF313233), DarkColorScheme.secondaryContainer)
+    assertEquals(Color(0xFFD6D6D6), LightColorScheme.secondaryContainer)
+  }
+
   @Test
   fun everyDarkPairClearsItsContrastFloor() = assertEveryPairClearsItsFloor("dark", DarkColorScheme)
 

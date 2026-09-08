@@ -52,8 +52,16 @@ internal object ColorRamp {
   /** `panel.border` - a separator between two panels, and faint by design. */
   val DarkGray5 = Color(0xFF2A2B2C)
 
-  /** `list.inactiveSelectionBackground` - a filled row. */
-  val DarkGray6 = Color(0xFF2C2D2E)
+  /**
+   * `inputOption.activeBackground` - the wash a search toggle takes when it is on.
+   *
+   * **It used to be `list.inactiveSelectionBackground`, and P7a-1b parted them.** One role served
+   * a list row and three things that are not lists; the reference states two ids there and states
+   * the list's one translucent in light, so an opaque position could not carry both. The row went
+   * to [ChromePalette.listInactiveSelectionBackground] and this position kept the consumers it had
+   * always described (`docs/DECISIONS.md`, "A toggle's on state is a wash").
+   */
+  val DarkGray6 = Color(0xFF313233)
 
   /** `checkbox.border` - a *component's* bounds, which is a different job from `panel.border`. */
   val DarkGray7 = Color(0xFF707070)
@@ -92,8 +100,8 @@ internal object ColorRamp {
   /** `checkbox.border` - a component's bounds. */
   val LightGray3 = Color(0xFF868686)
 
-  /** `list.inactiveSelectionBackground` - a filled row. */
-  val LightGray4 = Color(0xFFDADADA)
+  /** `inputOption.activeBackground` - the toggle wash, light's half of [DarkGray6]'s re-source. */
+  val LightGray4 = Color(0xFFD6D6D6)
 
   /** `button.secondaryBackground`, which is also `checkbox.background`. */
   val LightGray5 = Color(0xFFEAEAEA)

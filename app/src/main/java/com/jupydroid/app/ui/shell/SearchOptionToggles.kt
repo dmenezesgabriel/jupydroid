@@ -66,12 +66,18 @@ fun SearchOptionToggles(query: SearchQuery, onOptionChanged: (SearchQuery) -> Un
 /**
  * One option, on or off - the reference's `Toggle`, which marks *on* with a wash rather than a mark.
  *
- * **The wash is measured, not chosen.** `inputOption.activeBackground` / `activeForeground` resolve
- * in the 2026 themes to `#313233` / `#bfbfbf` dark and `#D6D6D6` / `#202020` light
- * (`scripts/resolve_vscode_theme.py`), and Material's `secondaryContainer` pair on this app's ramp
- * is `#2C2D2E` / `#BBBEBF` and `#DADADA` / `#202020` - one step of the same ramp apart, and exactly
- * equal on light's foreground. So the role carries it and no fourth colour id is introduced;
- * `docs/DECISIONS.md` holds the numbers.
+ * **The wash is measured, not chosen, and since P7a-1b the role *is* this id.**
+ * `inputOption.activeBackground` / `activeForeground` resolve in the 2026 themes to
+ * `#313233` / `#bfbfbf` dark and `#D6D6D6` / `#202020` light (`scripts/resolve_vscode_theme.py`),
+ * and `secondaryContainer` / `onSecondaryContainer` now hold `#313233` / `#BBBEBF` and
+ * `#D6D6D6` / `#202020` - the background exact and the foreground 4/255 off in dark and equal in
+ * light.
+ *
+ * It used to be a *fold*: the role was `list.inactiveSelectionBackground`, borrowed here because
+ * the two ids measured 4/255 apart. The fold did not survive that id's alpha - light states it
+ * `#DADADA99`, which paints `#E7E7E8` and would have made this wash translucent where the
+ * reference draws it opaque, and 17/255 from the id this doc cites. `docs/DECISIONS.md` holds the
+ * numbers and what retired the fold.
  *
  * **And the wash is not the accessible state.** Android's tree keeps a toggled state on a node that
  * carries no label, so what says which way this is set is the label itself, flipped - the rule every

@@ -3283,18 +3283,39 @@ in its own doc: monospace for the *shape* of a mark rather than because it is so
 
 The reference's `Toggle` marks *on* with `inputOption.activeBackground` / `activeForeground` and no
 check mark. Resolved in the 2026 themes (`scripts/resolve_vscode_theme.py`) against what Material's
-`secondaryContainer` pair already resolves to on this app's ramp:
+`secondaryContainer` pair resolves to on this app's ramp:
 
 | | reference | this app's role | delta |
 |---|---|---|---|
-| dark background | `#313233` | `#2C2D2E` (`DarkGray6`) | one step of the same ramp |
+| dark background | `#313233` | `#313233` (`DarkGray6`) | **equal** |
 | dark foreground | `#bfbfbf` | `#BBBEBF` (`DarkGray9`) | 4/255 |
-| light background | `#D6D6D6` | `#DADADA` (`LightGray4`) | 4/255 |
+| light background | `#D6D6D6` | `#D6D6D6` (`LightGray4`) | **equal** |
 | light foreground | `#202020` | `#202020` (`LightGray1`) | **equal** |
 
 So the role carries it and no fourth colour id is introduced. P2u's own rule is that a palette
 states colours something draws (`scripts/check_palette_consumers.py`); three new ids a hair from
 three existing ones would be the opposite of that.
+
+**The two backgrounds read `#2C2D2E` and `#DADADA` when this was written, and P7a-1b is why they
+no longer do.** The role was `list.inactiveSelectionBackground` then, borrowed here on the strength
+of that 4/255 — a *fold*, two reference ids on one Material role. What retired it was measuring the
+id the role actually held: 2026 Light states `list.inactiveSelectionBackground` as **`#DADADA99`**,
+60% opaque, which the ramp had flattened. Honouring the alpha would have pushed this wash to a
+composited `#E7E7E8` — **17/255** from the id it cites, and translucent where the reference draws it
+opaque — while leaving the fold's own justification gone.
+
+So the fold was undone rather than restated. `list.inactiveSelectionBackground` went to
+`ChromePalette.listInactiveSelectionBackground`, keeping its alpha, drawn by the one consumer that
+is a list: the explorer's row for the open document. The role stayed with the three consumers that
+were never lists — this toggle and the two contextual top bars (`FindTopBar`, `SelectionTopBar`) —
+and took the id they cite. Every position stayed in its own luminance slot, so nothing renumbered
+and `Theme.kt`'s role map did not move.
+
+**A role's four consumers were never all the same thing, and one delta hid it.** The lesson is the
+one `ChromePalette` was created for at P7a-1: where the reference has a part and Material has a
+role, the part is what has to be stated. `ColorSchemeTest.theSecondaryContainerIsTheReferencesOwnToggleWash`
+pins the role by equality now, because membership on the ramp could never say *which* position it
+held — which is exactly how this survived.
 
 **The wash is not the accessible state.** Android keeps a toggled state on a node that carries no
 label, so what says which way a toggle is set is the label itself, flipped — the rule every toggle
