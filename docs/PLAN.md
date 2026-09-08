@@ -1808,6 +1808,18 @@ Measured, not speculative. Anything closed moves to `docs/DECISIONS.md`.
   `AppContainer` constructs implementations" hold today — checked by grep, zero hits each — with
   nothing keeping them true. Extending the guard would go green immediately, which is the point
   of a regression gate. See `docs/architecture.md` §5.
+- **`TerminalPaneScreenTest.theTerminalShrinksByRoughlyOneKeyboardsWorthOfRowsNotTwo` is red on
+  the emulator and green on the tablet.** Found by P7a-1's own gate run and **checked rather than
+  blamed on it**: it fails identically on the commit before, so it predates P7 and belongs to
+  P4j-3b's territory. The assertion wants the terminal to shrink by roughly one keyboard's worth of
+  rows for a 600 px IME inset and measures **13 rows at 18 px per row against an expected ~33** on
+  `dev36`. The device disagreement is the interesting half - the same code satisfies it at the
+  tablet's density and window - so the suspect is the test's own px-per-row arithmetic on a
+  320dp/160dpi emulator rather than the inset handling P4j-3b shipped. Not scheduled inside P7,
+  which is not a terminal phase; recorded so the next full `connectedDebugAndroidTest` does not
+  re-derive it. `TerminalExtraKeysRowTest.arrowAndNavigationKeysReachTheShellAsTheirOwnSequences`
+  went red in the same run and is **not** this: it is a 5 s `waitUntil` that passed three
+  consecutive runs immediately after, so it is load-flaky under a full suite.
 - **`scripts/gradlew-jbr` hardcodes this machine's JBR path, and there is no CI.**
   Dev-environment debt: it slows a new machine down, it cannot corrupt a build.
 - **`--ServerApp.log_level=DEBUG` is on.** It costs nothing on screen (`redirectOutput` sends it to
