@@ -4,8 +4,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.jupydroid.app.SidePanel
+import com.jupydroid.app.theme.chromePalette
 
 /**
  * What each side panel is called and drawn as, for **both** controls that offer it.
@@ -43,3 +48,24 @@ internal val SidePanel.icon: ImageVector
     // flips in a right-to-left locale, and the plain `Icons.Filled.Toc` is deprecated for it.
     SidePanel.TABLE_OF_CONTENTS -> Icons.AutoMirrored.Filled.Toc
   }
+
+/**
+ * A side panel's own title bar, on the panel's surface rather than on the page's.
+ *
+ * **Here for the reason the label and the icon are here**: three panels draw one of these -
+ * `ExplorerScreen`'s `FilesBar`, `SearchSidePanel`'s and `TableOfContentsSidePanel`'s - and each
+ * already states in its own KDoc that it wears *"the same chrome as the two panels beside it"*.
+ * Three copies of one expression is how that sentence stops being true.
+ *
+ * `TopAppBar`'s Material default is `colorScheme.surface`, which this app maps to
+ * `editor.background` - so a panel that set only its `Scaffold`'s colour would draw a title strip
+ * of the document's colour across the top of itself.
+ *
+ * ```
+ * TopAppBar(title = { Text("Files") }, colors = sideBarTopAppBarColors())
+ * ```
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun sideBarTopAppBarColors(): TopAppBarColors =
+  TopAppBarDefaults.topAppBarColors(containerColor = chromePalette.sideBarBackground)

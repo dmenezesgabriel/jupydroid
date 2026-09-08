@@ -35,6 +35,7 @@ import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.codeTextStyle
 
 /**
@@ -73,7 +74,8 @@ fun SearchSidePanel(
   var collapsed by remember(state.query.text) { mutableStateOf(emptySet<String>()) }
   Scaffold(
     modifier = modifier.fillMaxSize(),
-    topBar = { TopAppBar(title = { Text(SidePanel.SEARCH.label) }) },
+    containerColor = chromePalette.sideBarBackground,
+    topBar = { TopAppBar(title = { Text(SidePanel.SEARCH.label) }, colors = sideBarTopAppBarColors()) },
   ) { padding ->
     // **`imePadding`, and a screenshot is what asked for it.** Typing into the box raises the
     // keyboard, and the results are drawn under whatever is left - the first run of

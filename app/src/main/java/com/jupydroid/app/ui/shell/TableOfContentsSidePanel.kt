@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.app.DocumentOutline
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.TableOfContentsRows
 import com.jupydroid.app.ui.editor.TocFolds
 import com.jupydroid.app.ui.editor.tocRows
@@ -60,8 +61,10 @@ fun TableOfContentsSidePanel(outline: DocumentOutline?, modifier: Modifier = Mod
   val headings = outline?.headings.orEmpty()
   Scaffold(
     modifier = modifier.fillMaxSize(),
+    containerColor = chromePalette.sideBarBackground,
     topBar = {
       TopAppBar(
+        colors = sideBarTopAppBarColors(),
         // Named for the **document**, which is the reference's own rule -
         // `this._title.setTitle(this._model?.title ?? this._trans.__('Table of Contents'))`
         // (`packages/toc/src/panel.ts:77-80`) - with the panel's own name as the fallback.

@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.onePaneDestinations
+import com.jupydroid.app.theme.chromePalette
 
 /**
  * The activity bar where the shell draws **one pane**: `SidePanelRail`'s bar, moved to the bottom.
@@ -48,7 +49,12 @@ fun SidePanelBar(selected: SidePanel, onChoose: (SidePanel) -> Unit, modifier: M
   // test can actually set, so both branches get driven rather than one of them twice
   // (`ActionRowPlacement` records what that cost).
   BoxWithConstraints(modifier = modifier) {
-    ShortNavigationBar(arrangement = itemArrangementAt(maxWidth)) {
+    // The same `activityBar.background` the rail states, because it is the same bar moved -
+    // the reference gives its three `ActivityBarPosition`s one colour id, not three.
+    ShortNavigationBar(
+      arrangement = itemArrangementAt(maxWidth),
+      containerColor = chromePalette.activityBarBackground,
+    ) {
       onePaneDestinations.forEach { panel ->
         ShortNavigationBarItem(
           selected = panel == selected,

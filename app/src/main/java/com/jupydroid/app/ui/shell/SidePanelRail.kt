@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.SidePanel
+import com.jupydroid.app.theme.chromePalette
 
 /**
  * The activity bar: which side panel is showing, and the only control that changes it.
@@ -31,7 +32,11 @@ import com.jupydroid.app.SidePanel
  */
 @Composable
 fun SidePanelRail(selected: SidePanel?, onChoose: (SidePanel) -> Unit, modifier: Modifier = Modifier) {
-  NavigationRail(modifier = modifier) {
+  // **`activityBar.background`, stated.** Material's default here is `colorScheme.surface`, which
+  // this app maps to `editor.background` - so the rail used to be the same field as the document
+  // beside it, with only the divider between them (`evidence/p2u-1-chrome/after-tablet/`,
+  // measured at y=900). The reference draws the bar a step off the page.
+  NavigationRail(modifier = modifier, containerColor = chromePalette.activityBarBackground) {
     SidePanel.entries.forEach { panel ->
       NavigationRailItem(
         selected = panel == selected,

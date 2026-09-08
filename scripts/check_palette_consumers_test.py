@@ -6,7 +6,7 @@ import pathlib
 import tempfile
 import unittest
 
-from check_palette_consumers import DECLARATION, INSTANCES, MAIN, declared_fields, unread_fields
+from check_palette_consumers import EDITOR, MAIN, PALETTES, declared_fields, unread_fields
 
 DECLARED = """package com.jupydroid.app.theme
 
@@ -32,6 +32,15 @@ fun SyntaxPalette.styles(): Map<SyntaxKind, SpanStyle> = mapOf(
 """
 
 
+CHROME_DECLARED = """package com.jupydroid.app.theme
+
+@Immutable
+data class ChromePalette(
+  val bar: Color,
+)
+"""
+
+
 class FakeTree:
     """A throwaway repository with one palette and one screen, so the gate can be run end to end."""
 
@@ -41,6 +50,8 @@ class FakeTree:
         palette = self.root / MAIN / "theme"
         palette.mkdir(parents=True)
         (palette / "EditorPalette.kt").write_text(DECLARED, encoding="utf-8")
+        (palette / "ChromePalette.kt").write_text(CHROME_DECLARED, encoding="utf-8")
+        (palette / "ChromePalettes.kt").write_text("val Dark = ChromePalette(bar = Color(0))", encoding="utf-8")
         (palette / "EditorPalettes.kt").write_text("val Dark = EditorPalette(ghost = Color(0))", encoding="utf-8")
         screens = self.root / MAIN / "ui"
         screens.mkdir(parents=True)
@@ -56,44 +67,44 @@ class DeclaredFieldsTest(unittest.TestCase):
         self.addCleanup(self.tree.close)
 
     def test_reads_the_editor_palettes_own_fields(self) -> None:
-        fields = declared_fields(self.tree.root / MAIN / DECLARATION)
+        fields = declared_fields(self.tree.root / MAIN / EDITOR.declaration, EDITOR.name)
         self.assertEqual(["editorBackground", "cellBackground", "ghost"], fields)
 
     def test_stops_before_syntax_palette(self) -> None:
         """`SyntaxPalette` answers to `styles()`, not to this rule - see the module docstring."""
-        fields = declared_fields(self.tree.root / MAIN / DECLARATION)
+        fields = declared_fields(self.tree.root / MAIN / EDITOR.declaration, EDITOR.name)
         self.assertNotIn("keyword", fields)
         self.assertNotIn("string", fields)
 
     def test_a_file_without_the_class_is_an_error_rather_than_an_empty_pass(self) -> None:
         """A gate that has stopped finding the declaration must fail, not report nothing wrong."""
-        empty = self.tree.root / MAIN / INSTANCES
+        empty = self.tree.root / MAIN / EDITOR.instances
         with self.assertRaises(ValueError):
-            declared_fields(empty)
+            declared_fields(empty, EDITOR.name)
 
 
 class UnreadFieldsTest(unittest.TestCase):
     def test_a_field_nothing_reads_is_reported(self) -> None:
         tree = FakeTree("val c = palette.cellBackground")
         self.addCleanup(tree.close)
-        self.assertEqual(["ghost"], unread_fields(tree.root))
+        self.assertEqual(["EditorPalette.ghost", "ChromePalette.bar"], unread_fields(tree.root))
 
     def test_a_field_a_screen_reads_is_not_reported(self) -> None:
         tree = FakeTree("val c = palette.cellBackground\nval g = palette.ghost")
         self.addCleanup(tree.close)
-        self.assertEqual([], unread_fields(tree.root))
+        self.assertEqual(["ChromePalette.bar"], unread_fields(tree.root))
 
     def test_the_instances_file_does_not_count_as_a_reader(self) -> None:
         """`EditorPalettes.kt` assigns `ghost`; assigning a value is not drawing with it."""
         tree = FakeTree("")
         self.addCleanup(tree.close)
-        self.assertIn("ghost", unread_fields(tree.root))
+        self.assertIn("EditorPalette.ghost", unread_fields(tree.root))
 
     def test_the_window_colour_is_exempt(self) -> None:
         """It is drawn from `res/values{,-night}/colors.xml`, before there is a composition."""
         tree = FakeTree("")
         self.addCleanup(tree.close)
-        self.assertNotIn("editorBackground", unread_fields(tree.root))
+        self.assertNotIn("EditorPalette.editorBackground", unread_fields(tree.root))
 
 
 class ThisRepositoryTest(unittest.TestCase):
@@ -105,7 +116,20 @@ class ThisRepositoryTest(unittest.TestCase):
     def test_the_real_palette_still_declares_fields(self) -> None:
         """If the shape of the declaration changes, the gate must not quietly see nothing."""
         root = pathlib.Path(__file__).resolve().parent.parent
-        self.assertIn("cellBackground", declared_fields(root / MAIN / DECLARATION))
+        self.assertIn("cellBackground", declared_fields(root / MAIN / EDITOR.declaration, EDITOR.name))
+
+    def test_every_palette_this_app_has_is_held(self) -> None:
+        """A second palette that nobody added here would be a palette with no gate at all.
+
+        `ChromePalette` (P7a-1) is exactly that case: it states the rail's and the side panels'
+        surfaces, and without this the gate would keep passing while reporting on one palette.
+        """
+        self.assertEqual(["EditorPalette", "ChromePalette"], [palette.name for palette in PALETTES])
+
+    def test_the_chrome_palette_still_declares_fields(self) -> None:
+        root = pathlib.Path(__file__).resolve().parent.parent
+        chrome = next(palette for palette in PALETTES if palette.name == "ChromePalette")
+        self.assertIn("activityBarBackground", declared_fields(root / MAIN / chrome.declaration, chrome.name))
 
 
 if __name__ == "__main__":

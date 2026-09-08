@@ -17,6 +17,14 @@ import androidx.compose.runtime.staticCompositionLocalOf
 val LocalEditorPalette = staticCompositionLocalOf { DarkEditorPalette }
 
 /**
+ * The workbench parts in scope - the rail's and the side panels' own surfaces.
+ *
+ * Beside [LocalEditorPalette] rather than folded into it, and static for the same reason: a part's
+ * colour changes only with the system theme.
+ */
+val LocalChromePalette = staticCompositionLocalOf { DarkChromePalette }
+
+/**
  * The app's theme: the editor palette and the Material scheme that matches it, dark or light,
  * following the system.
  *
@@ -39,7 +47,8 @@ val LocalEditorPalette = staticCompositionLocalOf { DarkEditorPalette }
 @Composable
 fun JupyterDroidTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
   val palette = if (darkTheme) DarkEditorPalette else LightEditorPalette
-  CompositionLocalProvider(LocalEditorPalette provides palette) {
+  val chrome = if (darkTheme) DarkChromePalette else LightChromePalette
+  CompositionLocalProvider(LocalEditorPalette provides palette, LocalChromePalette provides chrome) {
     MaterialTheme(
       colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
       typography = JupydroidTypography,
@@ -52,6 +61,11 @@ fun JupyterDroidTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Comp
 val editorPalette: EditorPalette
   @Composable @ReadOnlyComposable
   get() = LocalEditorPalette.current
+
+/** The parts in scope, the same convenience [editorPalette] is for the document's own colours. */
+val chromePalette: ChromePalette
+  @Composable @ReadOnlyComposable
+  get() = LocalChromePalette.current
 
 /**
  * The Material roles, mapped onto the same ramp the app's chrome comes from, so bars, menus,

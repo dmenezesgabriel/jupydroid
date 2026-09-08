@@ -55,11 +55,13 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.relativeTime
+import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
 import kotlinx.coroutines.delay
 import java.time.Instant
 import kotlin.time.Duration
@@ -157,6 +159,10 @@ fun ExplorerScreen(
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
+    // The explorer is the shell's `sideBar`, whichever pane it is drawn in - so it states
+    // `sideBar.background` rather than inheriting `Scaffold`'s `colorScheme.background`, which is
+    // the document's page.
+    containerColor = chromePalette.sideBarBackground,
     topBar = {
       FilesBar(
         onBack = onBack,
@@ -242,6 +248,7 @@ fun ExplorerScreen(
 private fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onNewTerminal: () -> Unit) {
   TopAppBar(
     title = { Text("Files") },
+    colors = sideBarTopAppBarColors(),
     navigationIcon = {
       onBack?.let {
         IconButton(onClick = it) {
