@@ -391,7 +391,10 @@ private fun EntryRow(
         selected = isOpen
         customActions = actions
       }
-      .background(if (isOpen) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+      // `list.inactiveSelectionBackground`, stated by the side bar this row is drawn in rather
+      // than borrowed from `secondaryContainer` - which also served the search toggles and two
+      // contextual bars, and could not stay opaque for them and translucent here (P7a-1b).
+      .background(if (isOpen) chromePalette.listInactiveSelectionBackground else Color.Transparent)
       // Long press for the row's own actions, which is the touch equivalent of the reference's
       // right-click context menu (`filebrowser-extension`) and of Winlator's per-row menu - and is
       // already what a notebook row on Home opens.

@@ -1,6 +1,7 @@
 package com.jupydroid.app.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
@@ -31,12 +32,15 @@ class ChromePaletteTest {
   fun darkStatesTheResolvedParts() {
     assertEquals(Color(0xFF191A1B), DarkChromePalette.activityBarBackground)
     assertEquals(Color(0xFF191A1B), DarkChromePalette.sideBarBackground)
+    assertEquals(Color(0xFF2C2D2E), DarkChromePalette.listInactiveSelectionBackground)
   }
 
   @Test
   fun lightStatesTheResolvedParts() {
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.activityBarBackground)
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.sideBarBackground)
+    // Translucent, and the alpha is the whole point of P7a-1b - see [theLightRowIsAWashAndNotAFill].
+    assertEquals(Color(0x99DADADA), LightChromePalette.listInactiveSelectionBackground)
   }
 
   /**
@@ -50,5 +54,28 @@ class ChromePaletteTest {
     assertNotEquals(DarkEditorPalette.editorBackground, DarkChromePalette.activityBarBackground)
     assertNotEquals(LightEditorPalette.editorBackground, LightChromePalette.sideBarBackground)
     assertNotEquals(LightEditorPalette.editorBackground, LightChromePalette.activityBarBackground)
+  }
+
+  /**
+   * **2026 Light states this row translucent, and the ramp used to flatten it.**
+   *
+   * `list.inactiveSelectionBackground` resolves `#DADADA99` - 60% - where the ramp held an opaque
+   * `#DADADA` (`ColorRamp.kt:96` before this step). So the app drew a fill where the reference
+   * draws a wash, and no test could fail on it: `ColorSchemeTest` asserts only that a role is
+   * *somewhere* on the ramp.
+   *
+   * **Measured after compositing, which is the only value a pixel ever takes** - the rule P2u-3c
+   * had to adopt for dark's 70%-opaque `focusBorder`. Over the side bar the row paints `#E7E7E8`,
+   * and that is the number `check_node_fill.py` holds the device frame to, so the constant here and
+   * the pixel there cannot drift apart.
+   *
+   * Dark's own value is opaque in the reference and is pinned by equality above; there is no
+   * composite to take.
+   */
+  @Test
+  fun theLightRowIsAWashAndNotAFill() {
+    val painted = LightChromePalette.listInactiveSelectionBackground
+      .compositeOver(LightChromePalette.sideBarBackground)
+    assertEquals(0xFFE7E7E8.toInt(), painted.toArgb())
   }
 }

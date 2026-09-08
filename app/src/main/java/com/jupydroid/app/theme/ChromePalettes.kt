@@ -21,10 +21,17 @@ import androidx.compose.ui.graphics.Color
 internal val DarkChromePalette = ChromePalette(
   activityBarBackground = Color(0xFF191A1B),
   sideBarBackground = Color(0xFF191A1B),
+  // `list.inactiveSelectionBackground`, opaque in this theme - only light states an alpha.
+  listInactiveSelectionBackground = Color(0xFF2C2D2E),
 )
 
 /** 2026 Light's parts. Both ids are `#FAFAFD` here, a step *down* from a white page. */
 internal val LightChromePalette = ChromePalette(
   activityBarBackground = Color(0xFFFAFAFD),
   sideBarBackground = Color(0xFFFAFAFD),
+  // `list.inactiveSelectionBackground`, which 2026 Light states **translucent**: `#DADADA99`.
+  // VS Code writes `#RRGGBBAA` and Compose writes `0xAARRGGBB`, so the alpha swaps ends - the same
+  // trap `EditorPalettes.kt`'s own `cellMultiSelected` records. Over the side bar it paints
+  // `#E7E7E8`, which `ChromePaletteTest.theLightRowIsAWashAndNotAFill` pins.
+  listInactiveSelectionBackground = Color(0x99DADADA),
 )

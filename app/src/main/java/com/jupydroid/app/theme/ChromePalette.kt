@@ -40,4 +40,19 @@ data class ChromePalette(
    * unable to follow one that did.
    */
   val sideBarBackground: Color,
+  /**
+   * Behind the row whose document is open - `list.inactiveSelectionBackground`.
+   *
+   * **A part, not a Material role, and P7a-1b is what moved it here.** It used to arrive as
+   * `secondaryContainer`, which meant one role served this row *and* the search toggles' on-wash
+   * *and* two contextual top bars - four consumers, one of them a list. The reference states two
+   * different ids there, and states this one **translucent in 2026 Light** (`#DADADA99`), so a
+   * single opaque role could not carry both without flattening one of them. Splitting them let each
+   * draw the id it always cited (`docs/DECISIONS.md`, "A toggle's on state is a wash").
+   *
+   * **Inactive rather than active on purpose.** VS Code parts a list that has focus from one that
+   * does not; this app marks a row because its document is open, which is the second of those, and
+   * the explorer never holds the caret while the row is marked.
+   */
+  val listInactiveSelectionBackground: Color,
 )
