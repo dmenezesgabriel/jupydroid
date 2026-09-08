@@ -17,13 +17,21 @@ minority of any column it appears in, so the mode is the part behind it.
 border - the thing that *separates* parts - and reporting it as a third one would make the
 oracle's own output depend on whether a border happened to be drawn.
 
+**And what is dropped there is read by [part_seams], because P7a-2 is about exactly it.** VS Code
+gives every part its own border id - `activityBar.border` *"separating to the side bar"* and
+`sideBar.border` *"on the side separating to the editor"* (`workbench/common/theme.ts:417,623`),
+both `#2A2B2C` / `#F0F1F2` in the 2026 themes. This app drew the first and not the second, and
+[chrome_bands] alone could not fail on that: a border it deliberately discards is a border it
+cannot report missing.
+
 **A measurement, not a gate**, the same footing `read_pane_widths.py` and
 `terminal_content_extent.py` stand on: a caller compares what it reads against what the resolved
 theme says, and this module holds no expected value of its own.
 
-    from read_chrome_parts import chrome_bands
+    from read_chrome_parts import chrome_bands, part_seams
     rail, sidebar, page = chrome_bands("01-the-explorer.png")
     assert rail.colour == sidebar.colour != page.colour
+    assert all("#2A2B2C" in seam.colours for seam in part_seams("01-the-explorer.png"))
 
 Tests in read_chrome_parts_test.py, including one that reads the committed *before* frame and
 asserts the defect is visible in it - an oracle that cannot see the bug cannot see the fix.
@@ -60,6 +68,31 @@ class Band:
         return self.end - self.start + 1
 
 
+@dataclasses.dataclass(frozen=True)
+class Seam:
+    """What is drawn between two parts: the gap it fills, and every colour in it.
+
+    **A tuple rather than one colour, because a 1dp border does not land on the pixel grid.** The
+    rail's own seam reads `('#2A2B2C', '#1E1E20')` on this project's tablet - one solid column of
+    the border and one blended into the part behind it - so a caller asks whether the border is
+    *in* the seam and never what the seam *is*.
+
+    An empty [colours] is the finding this class exists for: two parts that abut have no border
+    between them at all.
+    """
+
+    #: The x the part on the left ends at.
+    after: int
+    #: The x the part on the right starts at.
+    before: int
+    #: Every run of colour strictly between them, left to right.
+    colours: tuple[str, ...]
+
+    @property
+    def width(self) -> int:
+        return self.before - self.after - 1
+
+
 def column_colour(image: Image.Image, x: int) -> str:
     """The modal colour of column `x` inside [_Y_WINDOW], as `#RRGGBB`.
 
@@ -82,10 +115,29 @@ def chrome_bands(image_path: str) -> list[Band]:
     chrome_bands("01-the-explorer.png")   # [Band(0, 119, '#191A1B'), …, Band(122, 699, '#121314')]
     ```
     """
+    return [band for band in _runs(_column_colours(image_path)) if band.width >= _MIN_PART_WIDTH]
+
+
+def part_seams(image_path: str) -> list[Seam]:
+    """What separates each consecutive pair of parts, left to right - one [Seam] per pair.
+
+    ```
+    part_seams("01-the-file-browser.png")   # [Seam(119, 122, ('#2A2B2C', '#1E1E20')), Seam(661, 662, ())]
+    ```
+    """
+    runs = _runs(_column_colours(image_path))
+    parts = [at for at, run in enumerate(runs) if run.width >= _MIN_PART_WIDTH]
+    return [
+        Seam(runs[left].end, runs[right].start, tuple(run.colour for run in runs[left + 1:right]))
+        for left, right in zip(parts, parts[1:])
+    ]
+
+
+def _column_colours(image_path: str) -> list[str]:
+    """Every column's modal colour, left to right. Read once here so both callers agree."""
     with Image.open(image_path) as image:
         frame = image.convert("RGB")
-        colours = [column_colour(frame, x) for x in range(frame.size[0])]
-    return [band for band in _runs(colours) if band.width >= _MIN_PART_WIDTH]
+        return [column_colour(frame, x) for x in range(frame.size[0])]
 
 
 def _runs(colours: list[str]) -> list[Band]:
@@ -104,6 +156,9 @@ def main() -> int:
         print(path)
         for band in chrome_bands(path):
             print(f"  x{band.start:>5}-{band.end:<5} {band.width:>5}px  {band.colour}")
+        for seam in part_seams(path):
+            drawn = " ".join(seam.colours) if seam.colours else "NOT DRAWN"
+            print(f"  seam at x{seam.after + 1:<5} {seam.width:>5}px  {drawn}")
     return 0
 
 

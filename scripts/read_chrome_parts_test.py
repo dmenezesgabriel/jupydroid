@@ -8,7 +8,7 @@ import unittest
 
 from PIL import Image
 
-from read_chrome_parts import chrome_bands
+from read_chrome_parts import chrome_bands, part_seams
 
 RAIL = (0x19, 0x1A, 0x1B)
 PAGE = (0x12, 0x13, 0x14)
@@ -56,6 +56,41 @@ class ChromeBandsTest(unittest.TestCase):
         self.assertEqual(["#191A1B", "#121314"], [band.colour for band in chrome_bands(frame)])
 
 
+class PartSeamsTest(unittest.TestCase):
+    """The border *between* two parts - the thing [chrome_bands] drops on purpose."""
+
+    def test_a_seam_reports_the_colours_drawn_in_it(self) -> None:
+        frame = _painted([(120, RAIL), (2, SEAM), (300, PAGE)])
+        self.assertEqual([("#2A2B2C",)], [seam.colours for seam in part_seams(frame)])
+
+    def test_two_parts_that_abut_have_an_empty_seam(self) -> None:
+        """No border drawn at all, which is a finding rather than an absence of one."""
+        frame = _painted([(120, RAIL), (300, PAGE)])
+        self.assertEqual([()], [seam.colours for seam in part_seams(frame)])
+
+    def test_a_seam_reports_the_gap_it_fills(self) -> None:
+        frame = _painted([(120, RAIL), (2, SEAM), (300, PAGE)])
+        seam, = part_seams(frame)
+        self.assertEqual((119, 122, 2), (seam.after, seam.before, seam.width))
+
+    def test_three_parts_have_two_seams(self) -> None:
+        frame = _painted([(120, RAIL), (2, SEAM), (540, RAIL), (2, SEAM), (700, PAGE)])
+        self.assertEqual(2, len(part_seams(frame)))
+
+    def test_an_antialiased_seam_reports_every_column_of_it(self) -> None:
+        """A 1dp divider lands off the pixel grid, so the border is one solid column and one blend.
+
+        Measured, not supposed: `evidence/p7a-2-part-borders/before-the-fix/two-pane/dark/`
+        reads `#2A2B2C` at x=120 and `#1E1E20` at x=121.
+        """
+        frame = _painted([(120, RAIL), (1, SEAM), (1, (0x1E, 0x1E, 0x20)), (300, PAGE)])
+        self.assertEqual([("#2A2B2C", "#1E1E20")], [seam.colours for seam in part_seams(frame)])
+
+    def test_one_part_has_no_seams(self) -> None:
+        """A one-pane frame is the whole window in one colour - nothing to separate."""
+        self.assertEqual([], part_seams(_painted([(320, RAIL)])))
+
+
 class ThisRepositoryTest(unittest.TestCase):
     """The defect P7a exists to close, read off the frame that showed it.
 
@@ -69,6 +104,21 @@ class ThisRepositoryTest(unittest.TestCase):
         frame = root / "evidence/p2u-1-chrome/after-tablet/dark/01-the-explorer.png"
         bands = chrome_bands(str(frame))
         self.assertEqual({"#121314"}, {band.colour for band in bands})
+
+    def test_the_committed_before_frame_draws_one_of_its_two_seams(self) -> None:
+        """P7a-2's own defect, read off the frame P7a-1 shipped.
+
+        The rail is separated from the side panel and the side panel is **not** separated from the
+        document: `sideBar.border` is stated in both 2026 themes and nothing in this app drew it.
+        Asserting it here is what makes the after-frames' green mean something.
+        """
+        root = pathlib.Path(__file__).resolve().parent.parent
+        before = root / "evidence/p7a-2-part-borders/before-the-fix/two-pane"
+        for theme, border in (("dark", "#2A2B2C"), ("light", "#F0F1F2")):
+            with self.subTest(theme):
+                rail_to_panel, panel_to_document = part_seams(str(before / theme / "01-the-file-browser.png"))
+                self.assertIn(border, rail_to_panel.colours)
+                self.assertEqual((), panel_to_document.colours)
 
 
 if __name__ == "__main__":

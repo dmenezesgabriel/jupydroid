@@ -34,6 +34,9 @@ mapfile -t adb < <(device_adb)
 # `theme/ChromePalettes.kt`, which is pinned to the same values by `ChromePaletteTest`.
 declare -A PART_COLOUR=([dark]="#191A1B" [light]="#FAFAFD")
 declare -A PAGE_COLOUR=([dark]="#121314" [light]="#FFFFFF")
+# `activityBar.border` and `sideBar.border`, which the 2026 themes state at the same hex - two ids
+# for two seams, one value. P7a-2 is what draws the second of them.
+declare -A BORDER_COLOUR=([dark]="#2A2B2C" [light]="#F0F1F2")
 
 run_in_theme() {
   local theme="$1" night="$2"
@@ -54,13 +57,17 @@ run_in_theme() {
 # not the rail was ever fixed. An assertion that can pass for the wrong reason is not an assertion
 # (`docs/DECISIONS.md`). What is checked instead is that the **leftmost** band is the part - the
 # rail beside two panes, the side panel where there is one - and never the document.
+#
+# **And the seams between them, since P7a-2.** `read_chrome_parts.py` drops a 1-2px band on purpose,
+# so until this step nothing here could report a border that was never drawn - which is how the side
+# panel came to abut the document with no `sideBar.border` between them, through P7a-1 green.
 read_the_frames() {
   local theme="$1" frames=("$EVIDENCE/$theme"/*.png)
   echo
   echo "--- $theme: what each frame is actually drawn in ---"
   python3 "$ROOT/scripts/read_chrome_parts.py" "${frames[@]}"
   python3 "$ROOT/scripts/check_chrome_parts.py" \
-    "${PART_COLOUR[$theme]}" "${PAGE_COLOUR[$theme]}" "$LAYOUT" "${frames[@]}"
+    "${PART_COLOUR[$theme]}" "${PAGE_COLOUR[$theme]}" "${BORDER_COLOUR[$theme]}" "$LAYOUT" "${frames[@]}"
 }
 
 for theme in dark light; do
