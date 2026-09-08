@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
  *
  * **Two references meet in this file, and which one answers is per value.** The syntax colours
  * are VS Code's, transcribed from the **resolved** `2026-dark.json` / `2026-light.json` read out
- * of `reference/research_repos/vscode` at `f3fa55c39d3`. Everything above `syntax` - the
+ * of `reference/research_repos/vscode` at `3f3380c668d`. Everything above `syntax` - the
  * surfaces, the stripes, the search and bracket highlights - is still IntelliJ's until P2u-3
  * re-sources it onto VS Code's `notebook.*` colour ids. `theme/Theme.kt` states the same split
  * from the chrome's side.

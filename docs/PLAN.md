@@ -1302,17 +1302,17 @@ What still changes:
 
 ## What was measured before this phase was written
 
-Read out of the local clone at `f3fa55c3`, and every line number below verified against it:
+Read out of the local clone at `3f3380c668d`, and every line number below verified against it:
 
 | Fact | Citation |
 |---|---|
-| The run button is in a gutter **outside** the cell: `width: 35px; left: -35px` | `media/notebook.css:228-234` |
+| The run button is in a gutter **outside** the cell: `width: 35px; left: -35px` | `media/notebook.css:222-228` |
 | The gutter is a layout constant: `cellRunGutter: 32` / `codeCellLeftMargin: 28`, and `36` / `8` compact | `notebookOptions.ts:118-136` |
 | The gutter node is built per **code** cell | `view/renderers/cellRenderer.ts:273` |
 | The execution count is a **separate** node, on the left focus indicator | `cellRenderer.ts:276-277` |
 | It is drawn at the editor's **foot**: `top = editorHeight - 22 + statusBarHeight` | `view/cellParts/cellExecution.ts:139,200` |
 | Its text is `[N]`, and **`[ ]` when the cell has never run** | `cellExecution.ts:94,133,181,194` |
-| Its style: `font-size: 10px`, `--monaco-monospace-font`, `opacity: .7`, `width: 35px`, centred | `media/notebook.css:256-266` |
+| Its style: `font-size: 10px`, `--monaco-monospace-font`, `opacity: .7`, `width: 35px`, centred | `media/notebook.css:250-260` |
 | A **markdown** cell gets a fold chevron on that same indicator, three states | `cellRenderer.ts:148`, `view/cellParts/markupCell.ts:467-477` |
 | A markdown cell has **no run button** - `grep -c RunToolbar markupCell.ts` is **0** | `view/cellParts/markupCell.ts` |
 | The cell's own toolbar defaults to the cell's **top-right** | `notebookOptions.ts:162` |

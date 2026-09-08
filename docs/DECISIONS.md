@@ -1170,7 +1170,7 @@ selection handles and the magnifier; we own only the language layer. `evidence/s
 `docs/PLAN.md` opens with *"Parity is not a matter of taste"* and names JupyterLab's command ids
 as the specification. That still holds — for **behaviour**. What it decided by default rather than
 by argument is **presentation**, and since P2t that is VS Code's:
-`reference/research_repos/vscode` at `f3fa55c39d3df2923b46a3d76cf6baf0afa1db33`, beside
+`reference/research_repos/vscode` at `3f3380c668d07649b953eb8278354b2f263ea6ff`, beside
 `vscode-jupyter` at `f01d80ca0aa0dfdfa1d2e10a08943e12b776d155`.
 
 **What this reopens:** the palette, the cell's chrome, the notebook's top, and the shape of the
@@ -3123,7 +3123,7 @@ So `com.jupydroid.app.glob` transcribes `parseRegExp` (`glob.ts:108-256`) instea
 about 90 lines of reference. **The gate for a transcription is equality, not behaviour**:
 `PathGlobParityTest` holds the regular-expression source for 25 patterns against the reference's
 own output, obtained by extracting `starsToRegExp`, `splitGlobAware` and `parseRegExp` into a
-standalone module and running them under node at `f3fa55c39d3`. It was mutation-checked - narrowing
+standalone module and running them under node at `3f3380c668d`. It was mutation-checked - narrowing
 the no-separator class by one character fails it - which is the same reason `EditorPaletteTest`
 pins the palette by equality rather than by contrast.
 

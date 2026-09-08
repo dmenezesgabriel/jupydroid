@@ -14,7 +14,7 @@ import org.junit.Test
  *
  * **How the expected column was obtained**, so it can be re-derived rather than trusted:
  * `starsToRegExp`, `splitGlobAware` and `parseRegExp` were extracted from
- * `src/vs/base/common/glob.ts` at `f3fa55c39d3` into a standalone module, run under node over the
+ * `src/vs/base/common/glob.ts` at `3f3380c668d` into a standalone module, run under node over the
  * patterns below, and the reference's two-separator classes narrowed to the one this app can
  * produce - its `[/` backslash `]` to a plain slash, and the negated form likewise. That narrowing
  * is [PathGlob]'s one departure and the only edit made to the output.

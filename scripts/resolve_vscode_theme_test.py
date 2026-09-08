@@ -127,7 +127,7 @@ class ScopeForegroundTest(unittest.TestCase):
 class SyntaxScopeTest(unittest.TestCase):
     """The scope map is transcribed into `theme/EditorPalettes.kt`, so what it resolves is pinned.
 
-    Read off the resolved 2026 themes at `f3fa55c39d3`. A rule that stopped claiming its scope
+    Read off the resolved 2026 themes at `3f3380c668d`. A rule that stopped claiming its scope
     would otherwise fall through to the next candidate - or to None - and the palette would drift
     off the reference the next time someone re-ran this tool to check a value.
     """
