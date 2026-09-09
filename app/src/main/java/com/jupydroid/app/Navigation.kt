@@ -3,7 +3,6 @@ package com.jupydroid.app
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
@@ -28,9 +27,11 @@ import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.port.TerminalSession
+import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
+import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import kotlinx.coroutines.launch
 
@@ -212,14 +213,24 @@ fun MainNavigation(
   // there would spend a quarter of a 320dp screen on chrome.
   Row(modifier = Modifier.fillMaxSize()) {
     if (twoPane) {
-      SidePanelRail(selected = sidePanel, onChoose = { sidePanel = sidePanel.chosen(it) })
-      // The seam between the bar and whatever it is showing, which the reference budgets into the
-      // bar's own width: `.jp-SideBar[data-orientation='vertical']` is
+      // The seam between the bar and whatever it is showing, **drawn by the bar** - which is where
+      // both references put it, and the reason it is no longer a `VerticalDivider` beside it: the
+      // width is budgeted into the bar itself,
       // `calc(var(--jp-private-sidebar-tab-width) + var(--jp-border-width))`
-      // (`packages/application/style/sidepanel.css:41-44`). Without it the rail and the panel are
-      // one white field and the bar reads as part of the panel's content - measured, and it is one
-      // of the three things the first run's screenshot showed and its assertions could not.
-      VerticalDivider()
+      // (`packages/application/style/sidepanel.css:41-44`), and VS Code's activity bar strokes its
+      // own `border-right` (`parts/activitybar/media/activitybarpart.css:30-34`). Without it the
+      // rail and the panel are one white field and the bar reads as part of the panel's content -
+      // measured, and one of the three things the first run's screenshot showed and its assertions
+      // could not.
+      //
+      // **And it is `activityBar.border` now, not whatever `outlineVariant` happened to be.** The
+      // divider took `DividerDefaults.color`, which resolves to `panel.border` - the same hex as
+      // this id in both default themes, a different id, and nothing holding it (P7a-2).
+      SidePanelRail(
+        selected = sidePanel,
+        onChoose = { sidePanel = sidePanel.chosen(it) },
+        modifier = Modifier.trailingBorder(chromePalette.activityBarBorder),
+      )
     }
     NavDisplay(
       backStack = backStack,
@@ -260,8 +271,12 @@ fun MainNavigation(
         entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
           ShellSidePane(
             showingPanel = showingPanel,
-            // No bar beside two panes: the rail left of the whole shell is the activity bar there.
-            barSelection = if (twoPane) null else onePanePanel,
+            onePanePanel = onePanePanel,
+            // The one width fact, passed once. It used to arrive twice - as `showingPanel` and as a
+            // `barSelection` that was `if (twoPane) null else onePanePanel` - and P7a-2 needed a
+            // third reading of it for the side bar's own border. Two parameters that have to agree
+            // is a defect waiting to be written; the pane decides from the fact itself.
+            twoPane = twoPane,
             onChoosePanel = { sidePanel = it },
             appContainer = appContainer,
             outline = outline,

@@ -23,6 +23,11 @@ internal val DarkChromePalette = ChromePalette(
   sideBarBackground = Color(0xFF191A1B),
   // `list.inactiveSelectionBackground`, opaque in this theme - only light states an alpha.
   listInactiveSelectionBackground = Color(0xFF2C2D2E),
+  // `activityBar.border` and `sideBar.border`, both stated by 2026 Dark at `#2A2B2CFF`
+  // (`2026-dark.json:76,84`). Their *registered* defaults are `dark: null, light: null` - only a
+  // high-contrast theme gets one from the registry - so the theme file is what makes them real.
+  activityBarBorder = Color(0xFF2A2B2C),
+  sideBarBorder = Color(0xFF2A2B2C),
 )
 
 /** 2026 Light's parts. Both ids are `#FAFAFD` here, a step *down* from a white page. */
@@ -34,4 +39,7 @@ internal val LightChromePalette = ChromePalette(
   // trap `EditorPalettes.kt`'s own `cellMultiSelected` records. Over the side bar it paints
   // `#E7E7E8`, which `ChromePaletteTest.theLightRowIsAWashAndNotAFill` pins.
   listInactiveSelectionBackground = Color(0x99DADADA),
+  // Both border ids again, `#F0F1F2FF` here (`2026-light.json:85,93`).
+  activityBarBorder = Color(0xFFF0F1F2),
+  sideBarBorder = Color(0xFFF0F1F2),
 )

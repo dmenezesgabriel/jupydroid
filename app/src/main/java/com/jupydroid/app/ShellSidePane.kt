@@ -11,11 +11,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.MatchedLine
+import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.shell.SearchSidePanel
 import com.jupydroid.app.ui.shell.SidePanelBar
 import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
 import com.jupydroid.app.ui.shell.WorkspaceReplace
+import com.jupydroid.app.ui.shell.trailingBorder
 
 /**
  * The shell's side pane: the one panel it is showing, and - where it is the whole window - the bar
@@ -30,8 +32,14 @@ import com.jupydroid.app.ui.shell.WorkspaceReplace
  *
  * @param showingPanel the panel to draw, `null` being the collapsed side area - which only a
  *   two-pane window has, since collapsing the one thing on screen is not a state.
- * @param barSelection the panel the bottom bar marks, or `null` to draw **no bar at all**. Null
- *   beside two panes, where the rail is the activity bar and this pane is only half the shell.
+ * @param onePanePanel the panel the bottom bar marks. Read only where [twoPane] is false, since
+ *   beside two panes the rail is the activity bar and this pane is only half the shell.
+ * @param twoPane whether a document area sits beside this pane. **A parameter, never measured
+ *   here**: `currentWindowAdaptiveInfo()` reads the *activity's* window, which a
+ *   `DeviceConfigurationOverride` around a composable does not change, so a branch chosen inside
+ *   would drive one half twice while looking like it covered both (`PaneDirective.kt:31-38`). It
+ *   decides two things - whether a bar is drawn under the panel, and whether there is a document
+ *   for the side bar's own border to separate this pane from.
  * @param onRevealMatch where a tapped search result puts the match, on its way to the editor that
  *   has to land on it. Separate from [openDocument] because the two are one act in the caller and
  *   two different pieces of its state.
@@ -41,7 +49,8 @@ import com.jupydroid.app.ui.shell.WorkspaceReplace
 @Composable
 fun ShellSidePane(
   showingPanel: SidePanel?,
-  barSelection: SidePanel?,
+  onePanePanel: SidePanel,
+  twoPane: Boolean,
   onChoosePanel: (SidePanel) -> Unit,
   appContainer: AppContainer,
   outline: OpenDocumentOutline,
@@ -53,8 +62,15 @@ fun ShellSidePane(
   onRevealMatch: (MatchedLine) -> Unit,
   onNewTerminal: (String) -> Unit,
 ) {
-  Column(modifier = Modifier.fillMaxSize()) {
-    Box(modifier = Modifier.weight(1f).then(panelInsets(barSelection != null))) {
+  // **`sideBar.border`, drawn by the side bar itself** - the seam between this pane and the
+  // document, which the reference states (`workbench/common/theme.ts:623`, *"on the side separating
+  // to the editor"*) and this app drew nowhere until P7a-2: the panel's band ended at x661 and the
+  // page's began at x662 with no column between them
+  // (`evidence/p7a-2-part-borders/before-the-fix/`). Only beside two panes, because at one pane
+  // this pane *is* the window and its trailing edge is the screen's.
+  val separated = if (twoPane) Modifier.trailingBorder(chromePalette.sideBarBorder) else Modifier
+  Column(modifier = Modifier.fillMaxSize().then(separated)) {
+    Box(modifier = Modifier.weight(1f).then(panelInsets(hasBar = !twoPane))) {
       // The side area draws **one** panel, which is the reference's own arrangement:
       // `SideBarHandler._onCurrentChanged` hides the outgoing widget and shows the incoming one
       // (`packages/application/src/shell.ts:2630-2643`). The collapsed branch draws nothing here
@@ -111,7 +127,7 @@ fun ShellSidePane(
     // nothing.
     //
     // Never `SidePanel.chosen`: re-picking here would collapse the only thing on screen.
-    barSelection?.let { SidePanelBar(selected = it, onChoose = onChoosePanel) }
+    if (!twoPane) SidePanelBar(selected = onePanePanel, onChoose = onChoosePanel)
   }
 }
 

@@ -33,6 +33,8 @@ class ChromePaletteTest {
     assertEquals(Color(0xFF191A1B), DarkChromePalette.activityBarBackground)
     assertEquals(Color(0xFF191A1B), DarkChromePalette.sideBarBackground)
     assertEquals(Color(0xFF2C2D2E), DarkChromePalette.listInactiveSelectionBackground)
+    assertEquals(Color(0xFF2A2B2C), DarkChromePalette.activityBarBorder)
+    assertEquals(Color(0xFF2A2B2C), DarkChromePalette.sideBarBorder)
   }
 
   @Test
@@ -41,6 +43,8 @@ class ChromePaletteTest {
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.sideBarBackground)
     // Translucent, and the alpha is the whole point of P7a-1b - see [theLightRowIsAWashAndNotAFill].
     assertEquals(Color(0x99DADADA), LightChromePalette.listInactiveSelectionBackground)
+    assertEquals(Color(0xFFF0F1F2), LightChromePalette.activityBarBorder)
+    assertEquals(Color(0xFFF0F1F2), LightChromePalette.sideBarBorder)
   }
 
   /**
@@ -54,6 +58,41 @@ class ChromePaletteTest {
     assertNotEquals(DarkEditorPalette.editorBackground, DarkChromePalette.activityBarBackground)
     assertNotEquals(LightEditorPalette.editorBackground, LightChromePalette.sideBarBackground)
     assertNotEquals(LightEditorPalette.editorBackground, LightChromePalette.activityBarBackground)
+  }
+
+  /**
+   * **A border is not the part it bounds**, which is the P7a-2 half of [neitherPartIsThePage].
+   *
+   * The rail and the side panel were drawn as parts by P7a-1 and then abutted the document with
+   * nothing between them: `sideBar.border` is stated in both 2026 themes and this app drew it
+   * nowhere (`evidence/p7a-2-part-borders/before-the-fix/`, the seam at x662 reading NOT DRAWN).
+   * Equality above says each border is the resolved value; this says it is a *separator* - if a
+   * border ever collapsed onto the surface it divides, the seam would vanish and every equality
+   * assertion here would still hold.
+   */
+  @Test
+  fun neitherBorderIsThePartItSeparates() {
+    assertNotEquals(DarkChromePalette.activityBarBackground, DarkChromePalette.activityBarBorder)
+    assertNotEquals(DarkChromePalette.sideBarBackground, DarkChromePalette.sideBarBorder)
+    assertNotEquals(DarkEditorPalette.editorBackground, DarkChromePalette.sideBarBorder)
+    assertNotEquals(LightChromePalette.activityBarBackground, LightChromePalette.activityBarBorder)
+    assertNotEquals(LightChromePalette.sideBarBackground, LightChromePalette.sideBarBorder)
+    assertNotEquals(LightEditorPalette.editorBackground, LightChromePalette.sideBarBorder)
+  }
+
+  /**
+   * **Two ids, and they are kept apart though both themes state them at one hex.**
+   *
+   * `activityBar.border` *"separating to the side bar"* and `sideBar.border` *"on the side
+   * separating to the editor"* (`workbench/common/theme.ts:417,623`) are two registered colours a
+   * theme may part; folding them onto one field would make this app unable to follow one that did.
+   * The same rule [ChromePalette.sideBarBackground] already carries - and the rule P7a-1b was
+   * about, where one role served four consumers and flattened the alpha of the one that had it.
+   */
+  @Test
+  fun theTwoBorderIdsAreSeparateFieldsThoughTheyResolveAlike() {
+    assertEquals(DarkChromePalette.activityBarBorder, DarkChromePalette.sideBarBorder)
+    assertEquals(LightChromePalette.activityBarBorder, LightChromePalette.sideBarBorder)
   }
 
   /**

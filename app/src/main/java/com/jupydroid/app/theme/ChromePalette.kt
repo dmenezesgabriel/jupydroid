@@ -55,4 +55,35 @@ data class ChromePalette(
    * the explorer never holds the caret while the row is marked.
    */
   val listInactiveSelectionBackground: Color,
+  /**
+   * Between the activity bar and the side panel - `activityBar.border`, the reference's own words
+   * being *"border color separating to the side bar"* (`workbench/common/theme.ts:417`).
+   *
+   * **Drawn by the bar itself**, which is where the reference draws it:
+   * `.monaco-workbench .activitybar.left.bordered::before` is a 1px `border-right`
+   * (`parts/activitybar/media/activitybarpart.css:30-34`), and JupyterLab budgets the same line
+   * into the tab strip's own width - `calc(var(--jp-private-sidebar-tab-width) + var(--jp-border-width))`
+   * (`packages/application/style/sidepanel.css:41-44`).
+   *
+   * **It used to be drawn and not stated.** `Navigation.kt`'s seam was a bare `VerticalDivider()`,
+   * whose colour is `DividerDefaults.color` -> `outlineVariant` -> `ColorRamp.DarkGray5`, which is
+   * `panel.border`. The same hex as this id in both default themes, a different id, and nothing
+   * holding it - the trap [ChromePalette]'s own KDoc opens with.
+   */
+  val activityBarBorder: Color,
+  /**
+   * Between the side panel and the document - `sideBar.border`, *"border color on the side
+   * separating to the editor"* (`workbench/common/theme.ts:623`), drawn by the side bar as a 1px
+   * `borderRightWidth` on its own container (`parts/sidebar/sidebarPart.ts:175-180`).
+   *
+   * **This is the one nothing drew.** Both ids resolve to `#2A2B2C` / `#F0F1F2` in the 2026 themes,
+   * and the app drew the first and let the panel abut the page: measured at the seam x662 of
+   * `evidence/p7a-2-part-borders/before-the-fix/two-pane/dark/01-the-file-browser.png`, where the side
+   * panel's band ends at 661 and the document's begins at 662 with no column between them.
+   *
+   * Equal to [activityBarBorder] in both default themes and **kept separate anyway**, for the
+   * reason [sideBarBackground] is kept separate from [activityBarBackground] - and the reason
+   * P7a-1b had to undo a fold: two ids on one field cannot follow a theme that parts them.
+   */
+  val sideBarBorder: Color,
 )
