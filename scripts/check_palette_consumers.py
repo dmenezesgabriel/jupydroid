@@ -21,13 +21,24 @@ added silently.
 read only by a test is not drawn by anything, which is the case this exists to catch - the test
 would keep passing and the field would keep lying.
 
-Two things are deliberately outside the rule, and both are here rather than in a comment nobody
-reads. **`SyntaxPalette` is not checked**: its fields are consumed by `styles()`, which lives in
-the declaration file by design, so "outside the palette's own files" is the wrong question to ask
-of them - `EditorPaletteTest.everySyntaxKindButPlainIsStyled` is what holds that set complete.
-And **`editorBackground` is exempt**, because it is drawn before there is a composition: the window
-takes it from `res/values{,-night}/colors.xml`, a duplication `AppWindowTest` exists to keep
-honest. It is the one field whose consumer is not Kotlin.
+**And neither is a field read only by a comment**, which is the same lie one step out and was a
+live false green here: `terminal/TerminalPalette.kt` cross-references
+`LightEditorPalette.editorBackground` in a KDoc, and `.editorBackground` matched that text. Every
+palette in this repository documents its fields by naming its neighbours', so any new field
+mentioned in a KDoc would have passed for good. Comments are stripped before the search, by a
+scanner rather than a regex for the reason `resolve_vscode_theme.strip_jsonc` is one: `"https://…"`
+is a string, not a comment, and eating the rest of that line would hide a real consumer.
+
+One thing is deliberately outside the rule, and it is here rather than in a comment nobody reads.
+**`SyntaxPalette` is not checked**: its fields are consumed by `styles()`, which lives in the
+declaration file by design, so "outside the palette's own files" is the wrong question to ask of
+them - `EditorPaletteTest.everySyntaxKindButPlainIsStyled` is what holds that set complete.
+
+**`editorBackground` used to be exempt too** - drawn before there is a composition, by a window
+that takes it from `res/values{,-night}/colors.xml` - and P7a-2 retired the exemption by giving it
+Kotlin consumers: the three document `Scaffold`s state the page rather than inheriting it from
+`colorScheme.background`. The `colors.xml` duplication is still real and is still `AppWindowTest`'s
+to keep honest; it is no longer the field's *only* reader.
 
 Tests in check_palette_consumers_test.py, including one that runs the gate over this repository,
 so a gate that has stopped matching anything fails rather than passing quietly.
@@ -59,14 +70,10 @@ class Palette:
     declaration: str
     #: Where its instances are built. Assigning a field there is not drawing with it.
     instances: str
-    #: Fields whose consumer is not Kotlin - see the module docstring.
-    exempt: frozenset[str] = frozenset()
 
 
-#: The document's colours. `editorBackground` is drawn by the window before a composition exists.
-EDITOR = Palette(
-    "EditorPalette", "theme/EditorPalette.kt", "theme/EditorPalettes.kt", frozenset({"editorBackground"})
-)
+#: The document's colours - the page, the cell, the syntax.
+EDITOR = Palette("EditorPalette", "theme/EditorPalette.kt", "theme/EditorPalettes.kt")
 #: The workbench's parts - the activity bar and the side panels (P7a-1).
 CHROME = Palette("ChromePalette", "theme/ChromePalette.kt", "theme/ChromePalettes.kt")
 
@@ -101,18 +108,78 @@ def unread_fields(root: pathlib.Path) -> list[str]:
         f"{palette.name}.{field}"
         for palette in PALETTES
         for field in declared_fields(root / MAIN / palette.declaration, palette.name)
-        if field not in palette.exempt and not re.search(rf"\.{field}\b", body)
+        if not re.search(rf"\.{field}\b", body)
     ]
 
 
 def _production_text(root: pathlib.Path) -> str:
-    """Every production Kotlin file except every palette's own declaration and instances."""
+    """Every production Kotlin file except every palette's own declaration and instances, code only."""
     skip = {file for palette in PALETTES for file in (palette.declaration, palette.instances)}
     return "\n".join(
-        path.read_text(encoding="utf-8")
+        without_comments(path.read_text(encoding="utf-8"))
         for path in sorted((root / MAIN).rglob("*.kt"))
         if path.relative_to(root / MAIN).as_posix() not in skip
     )
+
+
+def without_comments(source: str) -> str:
+    """Kotlin source with its comments blanked out and its string literals left alone.
+
+    A scanner rather than a regex, for the reason `resolve_vscode_theme.strip_jsonc` is one: a
+    regex that treats `//` as a comment anywhere eats the second half of `"https://x/y"`, and a
+    field named after that on the same line would be reported as unread. Block comments **nest**,
+    which Kotlin allows and JSON does not, so the closer is counted rather than searched for.
+
+    ```
+    without_comments('// palette.ghost\nval c = palette.cell')   # '\nval c = palette.cell'
+    ```
+    """
+    out: list[str] = []
+    at, end = 0, len(source)
+    while at < end:
+        rest = source[at:]
+        if rest.startswith("//"):
+            at = source.find("\n", at)
+            at = end if at < 0 else at
+        elif rest.startswith("/*"):
+            at = _past_block_comment(source, at)
+        elif rest.startswith('"""') or source[at] in '"\'':
+            was = at
+            at = _past_literal(source, at)
+            out.append(source[was:at])
+        else:
+            out.append(source[at])
+            at += 1
+    return "".join(out)
+
+
+def _past_block_comment(source: str, at: int) -> int:
+    """The index just past the `/*` opening at `at`, counting nested openers as Kotlin does."""
+    depth, at, end = 0, at, len(source)
+    while at < end:
+        if source.startswith("/*", at):
+            depth, at = depth + 1, at + 2
+        elif source.startswith("*/", at):
+            depth, at = depth - 1, at + 2
+            if depth == 0:
+                return at
+        else:
+            at += 1
+    return end
+
+
+def _past_literal(source: str, at: int) -> int:
+    """The index just past the string or character literal starting at `at`."""
+    quote = '"""' if source.startswith('"""', at) else source[at]
+    at, end = at + len(quote), len(source)
+    while at < end:
+        if quote != '"""' and source[at] == "\\":
+            at += 2
+        elif source.startswith(quote, at):
+            return at + len(quote)
+        else:
+            at += 1
+    return end
 
 
 def main() -> int:

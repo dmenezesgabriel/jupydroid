@@ -36,6 +36,7 @@ import com.jupydroid.app.domain.model.rangeIn
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.PythonTypingRules
 import com.jupydroid.app.ui.editor.adoptRewrittenSource
@@ -94,6 +95,13 @@ fun FileEditorScreen(
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
+    // **The page a document is drawn on, stated rather than inherited.** `Scaffold`'s default is
+    // `colorScheme.background`, which this app maps onto `editor.background` - the right colour
+    // by way of a role that could be re-mapped, and `ColorSchemeTest` asserts only that a role
+    // is *somewhere* on the ramp, never which position. VS Code separates a part's identity from
+    // a surface's elevation, and this is the document's own id (`docs/DECISIONS.md`, "The
+    // palette states its colours; it does not derive them from a Material role").
+    containerColor = editorPalette.editorBackground,
     topBar = {
       TopAppBar(
         title = { Text(state.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },

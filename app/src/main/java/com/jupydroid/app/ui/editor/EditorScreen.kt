@@ -44,6 +44,7 @@ import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.ancestorCrumbsFor
@@ -274,6 +275,13 @@ fun EditorScreen(
       // the IME up, which made a match the arrows had just been sent to report as visible while
       // being under the keys (`evidence/p2i-4-next-previous/`, two runs before this).
       modifier = Modifier.fillMaxSize().then(if (state.search != null) Modifier.imePadding() else Modifier),
+      // **The page a document is drawn on, stated rather than inherited.** `Scaffold`'s default is
+      // `colorScheme.background`, which this app maps onto `editor.background` - the right colour
+      // by way of a role that could be re-mapped, and `ColorSchemeTest` asserts only that a role
+      // is *somewhere* on the ramp, never which position. VS Code separates a part's identity from
+      // a surface's elevation, and this is the document's own id (`docs/DECISIONS.md`, "The
+      // palette states its colours; it does not derive them from a Material role").
+      containerColor = editorPalette.editorBackground,
       topBar = {
         Column {
           EditorTopBars(

@@ -87,12 +87,26 @@ class UnreadFieldsTest(unittest.TestCase):
     def test_a_field_nothing_reads_is_reported(self) -> None:
         tree = FakeTree("val c = palette.cellBackground")
         self.addCleanup(tree.close)
-        self.assertEqual(["EditorPalette.ghost", "ChromePalette.bar"], unread_fields(tree.root))
+        self.assertEqual(
+            ["EditorPalette.editorBackground", "EditorPalette.ghost", "ChromePalette.bar"],
+            unread_fields(tree.root),
+        )
 
     def test_a_field_a_screen_reads_is_not_reported(self) -> None:
         tree = FakeTree("val c = palette.cellBackground\nval g = palette.ghost")
         self.addCleanup(tree.close)
-        self.assertEqual(["ChromePalette.bar"], unread_fields(tree.root))
+        self.assertEqual(["EditorPalette.editorBackground", "ChromePalette.bar"], unread_fields(tree.root))
+
+    def test_no_field_is_exempt(self) -> None:
+        """`editorBackground` was, until P7a-2 gave the document panes their own statement of it.
+
+        The window still takes the same colour from `res/values{,-night}/colors.xml`, which is
+        `AppWindowTest`'s to keep honest - but the field is no longer read only from XML, so the
+        exemption became a line that could hide the next field that is.
+        """
+        tree = FakeTree("val c = palette.cellBackground")
+        self.addCleanup(tree.close)
+        self.assertIn("EditorPalette.editorBackground", unread_fields(tree.root))
 
     def test_the_instances_file_does_not_count_as_a_reader(self) -> None:
         """`EditorPalettes.kt` assigns `ghost`; assigning a value is not drawing with it."""
@@ -100,11 +114,38 @@ class UnreadFieldsTest(unittest.TestCase):
         self.addCleanup(tree.close)
         self.assertIn("EditorPalette.ghost", unread_fields(tree.root))
 
-    def test_the_window_colour_is_exempt(self) -> None:
-        """It is drawn from `res/values{,-night}/colors.xml`, before there is a composition."""
-        tree = FakeTree("")
+    def test_a_field_only_a_line_comment_names_is_still_unread(self) -> None:
+        """The case this gate exists for, one step further out.
+
+        A field read only by a *test* is not drawn by anything - and neither is one read only by
+        a KDoc cross-reference, which is what `terminal/TerminalPalette.kt` does for
+        `editorBackground`. The gate matched that text and reported the field as consumed.
+        """
+        tree = FakeTree("// see palette.ghost\nval c = palette.cellBackground")
         self.addCleanup(tree.close)
-        self.assertNotIn("EditorPalette.editorBackground", unread_fields(tree.root))
+        self.assertIn("EditorPalette.ghost", unread_fields(tree.root))
+
+    def test_a_field_only_a_block_comment_names_is_still_unread(self) -> None:
+        tree = FakeTree("/** [palette.ghost] */\nval c = palette.cellBackground")
+        self.addCleanup(tree.close)
+        self.assertIn("EditorPalette.ghost", unread_fields(tree.root))
+
+    def test_a_nested_block_comment_closes_where_kotlin_closes_it(self) -> None:
+        """Kotlin nests block comments; stopping at the first `*/` would resume mid-comment."""
+        tree = FakeTree("/* /* palette.ghost */ */\nval c = palette.cellBackground")
+        self.addCleanup(tree.close)
+        self.assertIn("EditorPalette.ghost", unread_fields(tree.root))
+
+    def test_a_field_named_inside_a_string_is_a_reader(self) -> None:
+        """A `//` inside a string must not eat the rest of the line - a URL is the common case."""
+        tree = FakeTree('val u = "https://x/y"\nval g = palette.ghost')
+        self.addCleanup(tree.close)
+        self.assertNotIn("EditorPalette.ghost", unread_fields(tree.root))
+
+    def test_a_comment_marker_inside_a_raw_string_is_not_a_comment(self) -> None:
+        tree = FakeTree('val u = """a /* b"""\nval g = palette.ghost')
+        self.addCleanup(tree.close)
+        self.assertNotIn("EditorPalette.ghost", unread_fields(tree.root))
 
 
 class ThisRepositoryTest(unittest.TestCase):

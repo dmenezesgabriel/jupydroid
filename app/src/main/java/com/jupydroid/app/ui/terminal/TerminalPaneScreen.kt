@@ -63,6 +63,7 @@ import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
 import kotlinx.coroutines.flow.drop
@@ -109,6 +110,13 @@ fun TerminalPaneScreen(
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
+    // **The page a document is drawn on, stated rather than inherited.** `Scaffold`'s default is
+    // `colorScheme.background`, which this app maps onto `editor.background` - the right colour
+    // by way of a role that could be re-mapped, and `ColorSchemeTest` asserts only that a role
+    // is *somewhere* on the ramp, never which position. VS Code separates a part's identity from
+    // a surface's elevation, and this is the document's own id (`docs/DECISIONS.md`, "The
+    // palette states its colours; it does not derive them from a Material role").
+    containerColor = editorPalette.editorBackground,
     topBar = {
       TerminalBar(
         title = state.title,
