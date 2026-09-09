@@ -114,13 +114,18 @@ class FrameFailuresTest(unittest.TestCase):
 
 
 class ThisRepositoryTest(unittest.TestCase):
-    """The gate run over this repository's own frames.
+    """The gate run over this repository's own frames, in both directions.
 
-    **The live frames are the pre-fix state while this step is open.** `evidence/p7a-chrome-parts/`
-    holds what P7a-1 shipped - two parts a step off the page, and one of the two seams the reference
-    draws - so the assertion that they *hold* belongs after the re-capture and not before it. Until
-    then the archived copy below is byte-identical to them and carries the claim.
+    The captured frames must pass and the pre-fix frames must fail. Only the pair says anything:
+    a gate that cannot see the bug cannot be trusted to see the fix (`docs/DECISIONS.md`, P7a-1b).
     """
+
+    def test_the_captured_two_pane_frames_hold(self) -> None:
+        root = pathlib.Path(__file__).resolve().parent.parent
+        captured = sorted((root / "evidence/p7a-chrome-parts/two-pane/dark").glob("*.png"))
+        self.assertNotEqual([], captured, "P7a's own frames are missing")
+        for frame in captured:
+            self.assertEqual([], frame_failures(str(frame), PART_HEX, PAGE_HEX, BORDER_HEX, "two-pane"))
 
     def test_the_pre_fix_frames_fail_on_the_seam_the_side_bar_never_drew(self) -> None:
         """Non-vacuity, from the other side: the gate has to fail the frames P7a-1 shipped.

@@ -4323,6 +4323,70 @@ pipeline. The layer that actually explains it - the string collector's C0 pass-t
 `OperatingSystemCommand.collect`'s, and it is shared with the title and the colours; a future OSC
 arm gets the same newline-stripping for free and does not need to special-case it.
 
+### A part draws its own border, and the two border ids stay two (P7a-2)
+
+VS Code gives every workbench part a border id of its own and the 2026 themes state both:
+`activityBar.border` is *"border color separating to the side bar"* and `sideBar.border` is
+*"border color on the side separating to the editor"* (`workbench/common/theme.ts:417,623`), each
+`#2A2B2CFF` dark and `#F0F1F2FF` light (`2026-dark.json:76,84`, `2026-light.json:85,93`). Their
+**registered** defaults are `dark: null, light: null` - only a high-contrast theme gets one from the
+registry - so the theme file is what makes them real, and reading the registration alone would have
+concluded there is no border to draw.
+
+`docs/PLAN.md`'s P7a-2 row named one field, `panelBorder`. **It is two.** P7a-1b had just spent a
+whole sub-step undoing a fold of exactly this shape - one role serving four consumers, flattening
+the alpha of the one that had it - and the same argument applies here before rather than after:
+two ids a theme may part cannot be carried by one field. `ChromePalette` already keeps
+`activityBarBackground` and `sideBarBackground` apart though both are `#191A1B` in both default
+themes, and says so in its own KDoc. `ChromePaletteTest.theTwoBorderIdsAreSeparateFieldsThoughTheyResolveAlike`
+records that they agree **today** as a fact about the theme rather than a dependency on it.
+
+**The border belongs to the part, not between two parts.** The reference has each part stroke its
+own edge - `sidebarPart.ts:175-180` sets `borderRightWidth = '1px'` on the side bar's container,
+`activitybarpart.css:30-34` is a `border-right` on the activity bar's - and JupyterLab budgets the
+line *into* the tab strip's width, `calc(var(--jp-private-sidebar-tab-width) + var(--jp-border-width))`
+(`packages/application/style/sidepanel.css:41-44`). So `Modifier.trailingBorder`
+(`ui/shell/PartBorder.kt`) replaces the sibling `VerticalDivider` the shell used to draw, and the
+rail measures 118px where it measured 120px - the border is inside it now, which is what the
+citation already claimed while the divider sat outside it.
+
+Three consequences worth stating, because each was a decision:
+
+- **`drawWithContent`, never `drawBehind`.** Every part here paints its own background - a
+  `NavigationRail`'s `containerColor`, a side panel's `Scaffold` - so a line drawn behind the
+  content is painted over and never seen.
+- **Direction-resolved.** `sidebarPart.ts:176` branches on `isPositionLeft` and paints
+  `borderLeftWidth` on the other side; the shell's `Row` mirrors in a right-to-left locale, so the
+  border mirrors with the part it belongs to rather than staying on the physical right.
+- **The rail's seam was already the right hex, for the wrong reason.** `Navigation.kt`'s bare
+  `VerticalDivider()` took `DividerDefaults.color` -> `outlineVariant` -> `ColorRamp.DarkGray5`,
+  which is `panel.border` - the same value as `activityBar.border` in both default themes, a
+  different id, and nothing holding it. That is the trap `ChromePalette`'s KDoc opens with, drawn
+  on screen and green in every test.
+
+**This forbids** deriving a part's border from a Material role, and folding the two ids back
+together on the grounds that they resolve alike.
+
+### A palette-consumer gate that reads comments is not a gate (P7a-2)
+
+`check_palette_consumers.py` searched raw file text for `.fieldName`, and every palette in this
+repository documents a field by naming its neighbours'. `terminal/TerminalPalette.kt` cross-refers
+`LightEditorPalette.editorBackground` in a KDoc, so that field already "had" a consumer while its
+only reader was `res/values{,-night}/colors.xml` - which is why it also carried an exemption saying
+so. Both were true at once and neither could be trusted.
+
+Measured before it was changed: stripping comments changes the verdict for **exactly one field**,
+which is what makes this a false green rather than a habit. A scanner rather than a regex, for
+`strip_jsonc`'s reason - `"https://x/y"` is a string, and eating the rest of that line would hide a
+real consumer - and block comments are counted rather than searched for, because Kotlin nests them.
+
+The exemption is retired with it: P7a-2's three document `Scaffold`s state `editorBackground`, so
+it is no longer read only from XML. The `colors.xml` duplication is unchanged and still
+`AppWindowTest`'s to keep honest.
+
+**This forbids** exempting a palette field from the gate because its consumer is awkward to see.
+The gate is the thing that has to be able to see it.
+
 ## Harness
 
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)
