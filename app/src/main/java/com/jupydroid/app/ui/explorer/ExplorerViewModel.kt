@@ -14,6 +14,7 @@ import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.crumbsFor
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -118,8 +119,7 @@ class ExplorerViewModel(
    * A directory can vanish under the explorer - the workspace is shared with the kernel, and a
    * cell can remove the folder being looked at - so a failure leaves the view where it was and
    * says so, rather than emptying the screen or throwing.
-   */
-  /**
+   *
    * @param justCreated what a creation just made, so the screen can scroll to it - carried *into*
    *   the listing rather than set after it. This launches its own coroutine, so setting it
    *   afterwards raced the listing and lost: the fresh state built here overwrote it, audit A3's
@@ -139,16 +139,19 @@ class ExplorerViewModel(
     listing = viewModelScope.launch {
       runCatching { workspaceRepository.list(path) }
         .onSuccess { entries ->
-          _uiState.value = ExplorerUiState(
-            path = path,
-            entries = entries,
-            crumbs = crumbsFor(path, rootLabel),
-            error = null,
-            recents = recentlyOpened.shownWhileBrowsing(path),
-            justCreated = justCreated,
-          )
+          _uiState.value = listingOf(path, entries, rootLabel, recentlyOpened, justCreated)
         }
         .onFailure { failure ->
+          // **A cancellation is not a failure to report, and `runCatching` cannot tell them
+          // apart.** The `cancel()` above is this ViewModel's own doing - the newer navigation
+          // winning - so the browser drew *"StandaloneCoroutine was cancelled"* in
+          // `colorScheme.error` over a listing that was perfectly correct. Late, too, which is why
+          // it was visible rather than transient: `DiskWorkspaceRepository.list` is a
+          // `withContext(ioDispatcher)` (`:39`), which raises the cancellation when its block
+          // *finishes* - by then the newer listing has written a clean state and this `copy` puts
+          // the banner back on top of it. Found by looking at a frame the flow that captured it
+          // had reported green (`evidence/p7a-2-part-borders/the-banner-a-flow-passed-over/`).
+          if (failure is CancellationException) throw failure
           _uiState.value = _uiState.value.copy(error = failure.message ?: "could not open '$path'")
         }
     }
@@ -290,3 +293,31 @@ class ExplorerViewModel(
     }
   }
 }
+
+/**
+ * The whole state a finished listing puts on screen, built from the listing and nothing else.
+ *
+ * **A fresh state rather than a `copy`**, so nothing stale survives a navigation - an error from
+ * the directory we just left, a `justCreated` row that belongs to another folder.
+ *
+ * At file level, and private, because it needs no part of the ViewModel - everything it reads is
+ * an argument. Every `goTo` case in `ExplorerViewModelTest` goes through it.
+ *
+ * ```
+ * _uiState.value = listingOf(path, entries, rootLabel, recentlyOpened, justCreated = null)
+ * ```
+ */
+private fun listingOf(
+  path: String,
+  entries: List<WorkspaceEntry>,
+  rootLabel: String,
+  recentlyOpened: List<RecentDocument>,
+  justCreated: String?,
+): ExplorerUiState = ExplorerUiState(
+  path = path,
+  entries = entries,
+  crumbs = crumbsFor(path, rootLabel),
+  error = null,
+  recents = recentlyOpened.shownWhileBrowsing(path),
+  justCreated = justCreated,
+)

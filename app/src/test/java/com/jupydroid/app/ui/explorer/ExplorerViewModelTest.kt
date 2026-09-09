@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -412,6 +413,50 @@ class ExplorerViewModelTest {
 
     assertEquals("", viewModel.uiState.value.path)
     assertEquals(listOf("reports", "At Root.ipynb"), viewModel.uiState.value.entries.map { it.name })
+  }
+
+  /**
+   * **And a cancelled listing says nothing to the user**, which the test above cannot catch.
+   *
+   * `runCatching` catches `CancellationException` like any other throwable, so cancelling the
+   * in-flight listing wrote its own cancellation into the state as a failure: the browser drew
+   * *"StandaloneCoroutine was cancelled"* in `colorScheme.error` across the top of the file list
+   * (`evidence/p7a-2-part-borders/the-banner-a-flow-passed-over/`). Every assertion above holds
+   * while that banner is up, because none of them reads `error` - it was found by looking at a
+   * frame the flow it belongs to had reported green.
+   *
+   * **Driven by a repository that cancels rather than by a race**, because the race is not
+   * reproducible on a virtual scheduler: `advanceUntilIdle` resumes a cancelled `delay` at once,
+   * so the error write lands *before* the newer listing's and is overwritten. On a device the
+   * order is the other way round - `DiskWorkspaceRepository.list` is a `withContext(ioDispatcher)`
+   * (`:39`), which throws its `CancellationException` when the block *finishes*, by which time the
+   * newer listing has already written a clean state and `copy(error = …)` puts the banner back on
+   * top of it. What is pinned here is the rule that makes the ordering stop mattering: a
+   * cancellation is this ViewModel's own doing - the newer navigation winning, which
+   * [aListingAlreadyInFlightDoesNotOverwriteWhereWeJustWent] exists to make happen - and there is
+   * nothing to tell anyone about.
+   */
+  @Test
+  fun aCancelledListingIsNotReportedAsAFailure() = runTest {
+    given("At Root.ipynb")
+    val viewModel = explorer(workspace = CancellingWorkspaceRepository(disk()))
+
+    viewModel.goTo("reports")
+    advanceUntilIdle()
+
+    assertNull("a cancelled listing is not a failure to report", viewModel.uiState.value.error)
+  }
+
+  /** And a listing that fails for a real reason still says so - the guard must not eat those. */
+  @Test
+  fun aListingThatReallyFailedIsStillReported() = runTest {
+    given("At Root.ipynb")
+    val viewModel = explorer()
+
+    viewModel.goTo("nowhere")
+    advanceUntilIdle()
+
+    assertNotNull("a real failure is still the user's to see", viewModel.uiState.value.error)
   }
 
   /** And the poll itself still re-lists, rather than being cancelled into doing nothing. */
