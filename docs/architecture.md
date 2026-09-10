@@ -101,6 +101,8 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | `KernelGateway` | connect/execute/interrupt/restart/complete/history against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
 | `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
 | `EditorSettingsRepository` | the app-wide editor preferences | `DiskEditorSettingsRepository` |
+| `TerminalSettingsRepository` | the app-wide terminal preferences - the font size (P4j-3c) | `DiskTerminalSettingsRepository` |
+| `ExplorerSettingsRepository` | the app-wide explorer preferences - whether Recents is collapsed (P7c) | `DiskExplorerSettingsRepository` |
 | `NotebookExporter` | list nbconvert's formats, convert one notebook | `OkHttpNotebookExporter` over the server's nbconvert endpoints, behind `BaseSpaceNotebookExporter` |
 | `DocumentSharer` | offer a workspace file to another app | `IntentDocumentSharer` → `FileProvider` + `ACTION_SEND` |
 
