@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Edit
@@ -43,6 +42,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.Breadcrumb
+import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.ancestorCrumbsFor
 
@@ -110,6 +110,11 @@ fun EditorTopBar(
   onUndo: () -> Unit,
   onRedo: () -> Unit,
   onBack: () -> Unit,
+  /**
+   * Whether a browser is drawn beside this notebook, which decides only how [onBack] is presented -
+   * see [DocumentDismissAction]. Passed in for the reason [cellTypeOnBar] is.
+   */
+  twoPane: Boolean = false,
   /**
    * What the active cell is, for the control that names it - see [CellTypeControl]. Null on a
    * notebook with no active cell, which draws nothing rather than a control about nothing.
@@ -214,15 +219,15 @@ fun EditorTopBar(
       // Already taken by the Column that holds both rows, just above.
       windowInsets = WindowInsets(0, 0, 0, 0),
       navigationIcon = {
-        IconButton(onClick = onBack) {
-          // Named for where it goes, not for the gesture. "Back" is also the system navigation
-          // bar's button, and a `uiautomator` dump has both - so five Maestro flows meaning this
-          // arrow have been tapping the system one and passing anyway, because before the modal
-          // back of U2 the two did the same thing. They stopped agreeing, which is how it was
-          // found (`evidence/u-flow-sweep/`). A destination-naming label is also what TalkBack
-          // wants: "Back" leaves a screen reader to guess back to what.
-          Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to notebooks")
-        }
+        // Named for where it goes, not for the gesture. "Back" is also the system navigation
+        // bar's button, and a `uiautomator` dump has both - so five Maestro flows meaning this
+        // arrow have been tapping the system one and passing anyway, because before the modal
+        // back of U2 the two did the same thing. They stopped agreeing, which is how it was
+        // found (`evidence/u-flow-sweep/`). A destination-naming label is also what TalkBack
+        // wants: "Back" leaves a screen reader to guess back to what.
+        //
+        // Beside a browser it is a *close* instead, and one home decides that for all three bars.
+        DocumentDismissAction(twoPane = twoPane, backDescription = "Back to notebooks", onDismiss = onBack)
       },
       actions = {
         UndoRedo(canUndo, canRedo, onUndo, onRedo)

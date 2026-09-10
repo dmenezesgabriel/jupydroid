@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# P7d's other half, and it is not decoration: a width rule proved on one width is proved by half.
+#
+# Below two panes the document *is* the window, so leaving it goes back to what was underneath and
+# the arrow stays - named for where it goes, never bare "Back", because the system navigation bar
+# answers to that string too (`evidence/u-flow-sweep/`).
+#
+# ONE PANE (<840dp). Runs no cell.
+- launchApp
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+
+- tapOn: "Root.ipynb"
+- extendedWaitUntil:
+    visible: ".*this one is at the root.*"
+    timeout: 20000
+- assertVisible: "Back to notebooks"
+- assertNotVisible: "Close"
+- takeScreenshot: 01-the-notebook-keeps-its-arrow
+- tapOn: "Back to notebooks"
+- extendedWaitUntil:
+    visible: "file_editor.py"
+    timeout: 10000
+- takeScreenshot: 02-back-at-the-browser
+
+- tapOn: "file_editor.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 20000
+- assertVisible: "Back to files"
+- assertNotVisible: "Close"
+- takeScreenshot: 03-the-plain-editor-keeps-its-arrow
+- tapOn: "Back to files"
+- extendedWaitUntil:
+    visible: "Root.ipynb"
+    timeout: 10000
+- takeScreenshot: 04-back-at-the-browser-again

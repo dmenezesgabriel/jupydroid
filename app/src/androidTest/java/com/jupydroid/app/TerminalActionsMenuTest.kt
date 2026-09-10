@@ -1,14 +1,17 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.TerminalFontSize
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.CLOSE_DOCUMENT
 import com.jupydroid.app.ui.terminal.DECREASE_TERMINAL_FONT_SIZE
 import com.jupydroid.app.ui.terminal.INCREASE_TERMINAL_FONT_SIZE
 import com.jupydroid.app.ui.terminal.TerminalBar
@@ -83,7 +86,29 @@ class TerminalActionsMenuTest {
   private var increases = 0
   private var decreases = 0
 
-  private fun showBar(fontSizeSp: Int = TerminalFontSize.DEFAULT) {
+  /**
+   * Beside a browser the shell is closed rather than backed out of, exactly as both documents are -
+   * a terminal is not a file, but it is a thing occupying the document area, and what empties that
+   * area has one name.
+   */
+  @Test
+  fun besideABrowserTheShellIsClosedRatherThanBackedOutOf() {
+    showBar(twoPane = true)
+
+    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).assertIsDisplayed()
+    compose.onAllNodesWithContentDescription("Back").assertCountEquals(0)
+  }
+
+  /** Below two panes the arrow stays, because there the shell *is* the window. */
+  @Test
+  fun belowTwoPanesTheArrowStays() {
+    showBar()
+
+    compose.onNodeWithContentDescription("Back").assertIsDisplayed()
+    compose.onAllNodesWithContentDescription(CLOSE_DOCUMENT).assertCountEquals(0)
+  }
+
+  private fun showBar(fontSizeSp: Int = TerminalFontSize.DEFAULT, twoPane: Boolean = false) {
     compose.setContent {
       JupyterDroidTheme {
         TerminalBar(
@@ -92,6 +117,7 @@ class TerminalActionsMenuTest {
           fontSizeSp = fontSizeSp,
           onIncreaseFontSize = { increases++ },
           onDecreaseFontSize = { decreases++ },
+          twoPane = twoPane,
         )
       }
     }

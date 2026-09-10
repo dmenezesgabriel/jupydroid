@@ -10,10 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.ForcedSize
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -25,6 +27,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.CLOSE_DOCUMENT
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -252,7 +255,30 @@ class EditorTopBarTest {
     assertEquals(1, finds)
   }
 
-  private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false) {
+  /**
+   * Beside a browser the notebook is closed rather than backed out of - `application:close`, which
+   * the reference labels *Close Tab* (`application-extension/src/index.tsx:309-310`). The bar is
+   * where a user reaches it, so it is asserted here as well as on [DocumentDismissAction]'s own
+   * case: a component that is right and wired to nothing passes both.
+   */
+  @Test
+  fun besideABrowserTheNotebookIsClosedRatherThanBackedOutOf() {
+    showTopBar(twoPane = true)
+
+    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).assertIsDisplayed()
+    compose.onAllNodesWithContentDescription("Back to notebooks").assertCountEquals(0)
+  }
+
+  /** And below two panes it is still the arrow, because there the notebook *is* the window. */
+  @Test
+  fun belowTwoPanesTheArrowStays() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("Back to notebooks").assertIsDisplayed()
+    compose.onAllNodesWithContentDescription(CLOSE_DOCUMENT).assertCountEquals(0)
+  }
+
+  private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false, twoPane: Boolean = false) {
     compose.setContent {
       JupyterDroidTheme {
         EditorTopBar(
@@ -264,6 +290,7 @@ class EditorTopBarTest {
           onRedo = { redos++ },
           onBack = {},
           onFind = { finds++ },
+          twoPane = twoPane,
         )
       }
     }

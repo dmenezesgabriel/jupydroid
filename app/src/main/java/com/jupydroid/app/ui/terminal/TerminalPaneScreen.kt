@@ -14,11 +14,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -64,6 +60,7 @@ import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
 import kotlinx.coroutines.flow.drop
@@ -86,6 +83,11 @@ fun TerminalPaneScreen(
   session: TerminalSession,
   terminalGateway: TerminalGateway,
   onBack: () -> Unit,
+  /**
+   * Whether a browser is drawn beside this shell, which decides only how [onBack] is presented -
+   * see [DocumentDismissAction].
+   */
+  twoPane: Boolean = false,
   modifier: Modifier = Modifier,
   /** The terminal's own font-size setting - `docs/PLAN.md`'s P4j-3c. */
   terminalSettingsRepository: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
@@ -124,6 +126,7 @@ fun TerminalPaneScreen(
         fontSizeSp = state.fontSizeSp,
         onIncreaseFontSize = { viewModel.changeFontSize(TerminalFontSize.STEP) },
         onDecreaseFontSize = { viewModel.changeFontSize(-TerminalFontSize.STEP) },
+        twoPane = twoPane,
       )
     },
     // `docs/PLAN.md`'s P4j-3a - `EditorBottomBars`/`SymbolRow`'s own slot, so this row carries its
@@ -204,13 +207,19 @@ fun TerminalBar(
   fontSizeSp: Int,
   onIncreaseFontSize: () -> Unit,
   onDecreaseFontSize: () -> Unit,
+  /**
+   * Whether a browser is drawn beside this shell, which decides only how [onBack] is presented -
+   * see [DocumentDismissAction]. A parameter and never a measurement here (`PaneDirective.kt:31-38`).
+   */
+  twoPane: Boolean = false,
 ) {
   TopAppBar(
     title = { Text(title ?: "Terminal") },
     navigationIcon = {
-      IconButton(onClick = onBack) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-      }
+      // Beside a browser this is a *close*, and one home decides that for all three bars. The
+      // label stays "Back" below two panes: a terminal is not a file, so there is no folder to
+      // name - the same reason P7 declined to give this screen a breadcrumb.
+      DocumentDismissAction(twoPane = twoPane, backDescription = "Back", onDismiss = onBack)
     },
     actions = {
       TerminalActionsMenu(

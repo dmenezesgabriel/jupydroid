@@ -310,6 +310,9 @@ fun MainNavigation(
             applicationScope = appContainer.applicationScope,
             editorSettingsRepository = appContainer.editorSettings,
             onBack = { backStack.removeLastOrNull() },
+            // The one width fact this screen reads, and it decides one thing: whether leaving the
+            // document is drawn as going back or as closing it (`DocumentDismissAction`).
+            twoPane = twoPane,
             onGoToFolder = goToFolder,
             reveal = revealRequest,
             onRevealHandled = { revealRequest = null },
@@ -333,6 +336,9 @@ fun MainNavigation(
             onShowTableOfContents = { sidePanel = SidePanel.TABLE_OF_CONTENTS }.takeIf { twoPane },
             onGoToFolder = goToFolder,
             onBack = { backStack.removeLastOrNull() },
+            // The one width fact this screen reads, and it decides one thing: whether leaving the
+            // document is drawn as going back or as closing it (`DocumentDismissAction`).
+            twoPane = twoPane,
             onNotebookMoved = { moved -> openNotebookId = moved },
             // The same request the file editor takes, because the panel does not know - and should
             // not - which of the two a path opens: `docmanager:open` decides the editor from the
@@ -347,6 +353,9 @@ fun MainNavigation(
             session = TerminalSession(terminal.name),
             terminalGateway = appContainer.terminalGateway,
             onBack = { backStack.removeLastOrNull() },
+            // The one width fact this screen reads, and it decides one thing: whether leaving the
+            // shell is drawn as going back or as closing it (`DocumentDismissAction`).
+            twoPane = twoPane,
             terminalSettingsRepository = appContainer.terminalSettings,
           )
         }

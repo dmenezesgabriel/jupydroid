@@ -84,6 +84,18 @@ fun EditorScreen(
    */
   onShowTableOfContents: (() -> Unit)?,
   /**
+   * Whether a browser is drawn beside this notebook, which decides only how [onBack] is presented -
+   * see [DocumentDismissAction][com.jupydroid.app.ui.DocumentDismissAction].
+   *
+   * **A second reading of the width, and it is worth naming as one.** [onShowTableOfContents] is
+   * null for the same underlying reason - there is no side area to activate - and the two are
+   * derived from one `twoPane` at the single call site, so they cannot disagree there. They are not
+   * folded because they answer different questions of different widgets: one is *"is there a panel
+   * to ask"*, whose lambda differs in body and not only in presence, and this is *"is the browser
+   * already on screen"*. P7a-2's rule is about two parameters describing one widget's state.
+   */
+  twoPane: Boolean = false,
+  /**
    * A breadcrumb segment was tapped: browse that folder (`""` is the workspace root).
    *
    * `filebrowser` is a different `NavEntry` with its own `ViewModel`, so this cannot reach it -
@@ -293,6 +305,7 @@ fun EditorScreen(
             onShowTableOfContents = onShowTableOfContents,
             onHeadingSelected = jumpToHeading,
             onBack = onBack,
+            twoPane = twoPane,
             titleCollapse = titleCollapse,
             onGoToFolder = onGoToFolder,
           )

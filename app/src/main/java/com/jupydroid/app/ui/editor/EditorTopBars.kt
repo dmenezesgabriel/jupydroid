@@ -37,6 +37,8 @@ internal fun EditorTopBars(
   onShowTableOfContents: (() -> Unit)?,
   onHeadingSelected: (String) -> Unit,
   onBack: () -> Unit,
+  /** Whether a browser sits beside the notebook, which decides how [onBack] is drawn. */
+  twoPane: Boolean,
   /** See [titleCollapseFraction] - the document's bar is the only one of the three with a title. */
   titleCollapse: Float,
   /** A breadcrumb segment was tapped: browse that folder. See [EditorTopBar]. */
@@ -91,6 +93,7 @@ internal fun EditorTopBars(
       onShowTableOfContents = onShowTableOfContents,
       onHeadingSelected = onHeadingSelected,
       onBack = onBack,
+      twoPane = twoPane,
       titleCollapse = titleCollapse,
       onGoToFolder = onGoToFolder,
     )
@@ -111,6 +114,8 @@ private fun DocumentTopBar(
   onShowTableOfContents: (() -> Unit)?,
   onHeadingSelected: (String) -> Unit,
   onBack: () -> Unit,
+  /** Whether a browser sits beside the notebook, which decides how [onBack] is drawn. */
+  twoPane: Boolean,
   titleCollapse: Float,
   onGoToFolder: (String) -> Unit,
 ) {
@@ -122,6 +127,7 @@ private fun DocumentTopBar(
     onUndo = viewModel.edits::undo,
     onRedo = viewModel.edits::redo,
     onBack = onBack,
+    twoPane = twoPane,
     activeCellKind = head?.kind,
     onChangeCellKind = { kind -> head?.let { viewModel.edits.applyTo(it.id, CellAction.ChangeKind(kind)) } },
     cellTypeOnBar = labelsFitOnActionRow(),

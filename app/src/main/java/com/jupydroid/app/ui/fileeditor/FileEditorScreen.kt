@@ -9,11 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,6 +36,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.Breadcrumb
+import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.ancestorCrumbsFor
 import com.jupydroid.app.ui.editor.CodeCellField
@@ -73,6 +70,11 @@ fun FileEditorScreen(
    */
   editorSettingsRepository: EditorSettingsRepository,
   onBack: () -> Unit,
+  /**
+   * Whether a browser is drawn beside this file, which decides only how [onBack] is presented -
+   * see [DocumentDismissAction]. A parameter and never a measurement here (`PaneDirective.kt:31-38`).
+   */
+  twoPane: Boolean = false,
   /**
    * A breadcrumb segment was tapped: browse that folder (`""` is the workspace root).
    *
@@ -129,9 +131,8 @@ fun FileEditorScreen(
         TopAppBar(
           title = { Text(state.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
           navigationIcon = {
-            IconButton(onClick = onBack) {
-              Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to files")
-            }
+            // Beside a browser this is a *close*, and one home decides that for all three bars.
+            DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = onBack)
           },
         )
         // Ancestors only, and **absent** rather than blank at the root - P2w-1's three departures

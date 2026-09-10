@@ -1,9 +1,11 @@
 package com.jupydroid.app.ui.fileeditor
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -11,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.CLOSE_DOCUMENT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,7 +45,30 @@ class FileEditorBreadcrumbTest {
   /** Every folder a crumb reported, in the order it was tapped - the *path*, never the label. */
   private val browsedTo = mutableListOf<String>()
 
-  private fun open(path: String) {
+  /**
+   * Beside a browser the file is closed rather than backed out of - `application:close`, and the
+   * same rule the notebook's bar follows. Asserted on *this* bar as well as on
+   * [DocumentDismissAction][com.jupydroid.app.ui.DocumentDismissAction]'s own case, because a
+   * component that is right and wired to nothing passes both.
+   */
+  @Test
+  fun besideABrowserTheFileIsClosedRatherThanBackedOutOf() {
+    open("reports/data.csv", twoPane = true)
+
+    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).assertIsDisplayed()
+    compose.onAllNodesWithContentDescription("Back to files").assertCountEquals(0)
+  }
+
+  /** Below two panes the arrow stays, because there the file *is* the window. */
+  @Test
+  fun belowTwoPanesTheArrowStays() {
+    open("reports/data.csv")
+
+    compose.onNodeWithContentDescription("Back to files").assertIsDisplayed()
+    compose.onAllNodesWithContentDescription(CLOSE_DOCUMENT).assertCountEquals(0)
+  }
+
+  private fun open(path: String, twoPane: Boolean = false) {
     File(temp.root, path).apply { parentFile?.mkdirs() }.writeText("value\n")
     compose.setContent {
       JupyterDroidTheme {
@@ -52,6 +78,7 @@ class FileEditorBreadcrumbTest {
           applicationScope = scope,
           editorSettingsRepository = FakeEditorSettingsRepository(),
           onBack = {},
+          twoPane = twoPane,
           onGoToFolder = { browsedTo += it },
         )
       }

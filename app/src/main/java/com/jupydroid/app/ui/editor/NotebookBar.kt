@@ -3,11 +3,11 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,7 +65,14 @@ internal fun NotebookBar(
     // Only while something is running - interrupting an idle kernel is a no-op the user cannot
     // tell from a broken button.
     IconButton(onClick = onInterrupt, enabled = busy) {
-      Icon(Icons.Filled.Clear, contentDescription = "Interrupt kernel")
+      // **A stop square, which is what the reference draws**: `createInterruptButton` takes
+      // `stopIcon` (`apputils/src/toolbar/widget.tsx:50`) and that icon is `M6 6h12v12H6z`
+      // (`ui-components/style/icons/toolbar/stop.svg`) - a filled square, never a cross. This drew
+      // `Icons.Filled.Clear` until P7d, which was a parity gap on its own and became an ambiguity
+      // the moment a *second* cross appeared on the same screen: at two panes the notebook's own
+      // navigation slot is now a Close (`DocumentDismissAction`), so one glyph meant both "stop
+      // what the kernel is doing" and "close this document".
+      Icon(Icons.Filled.Stop, contentDescription = "Interrupt kernel")
     }
     IconButton(onClick = { confirming = RestartRequest.RESTART }) {
       Icon(Icons.Filled.Refresh, contentDescription = "Restart kernel")
