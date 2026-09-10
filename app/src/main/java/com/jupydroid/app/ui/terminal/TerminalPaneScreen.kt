@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -356,7 +357,21 @@ private fun TerminalInputField(
 
   BasicTextField(
     state = state,
-    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
+    // A terminal is not a text field and the IME must not treat it as one: on this repo's tablet
+    // (a Samsung), Gboard's automatic quote-completion was measured inserting a `'` the user never
+    // typed into `python3 -c 'import json, sys'`, and the diff below faithfully forwarded it
+    // (`evidence/p4m-terminal-input/edit-pairs.md`). `autoCorrectEnabled = false` alone clears only
+    // `TYPE_TEXT_FLAG_AUTO_CORRECT`. `KeyboardType.Password` is the Compose lever for the inputType
+    // the reference uses for exactly this - `TerminalView.onCreateInputConnection` sets
+    // `TYPE_TEXT_VARIATION_VISIBLE_PASSWORD | TYPE_TEXT_FLAG_NO_SUGGESTIONS` for Samsung keyboards
+    // that ignore `TYPE_NULL` (termux-app terminal-view/.../TerminalView.java:307-334, their #686).
+    // The field is invisible, so password masking shows nothing and costs nothing.
+    keyboardOptions =
+    KeyboardOptions(
+      capitalization = KeyboardCapitalization.None,
+      autoCorrectEnabled = false,
+      keyboardType = KeyboardType.Password,
+    ),
     textStyle = codeSourceStyle(),
     // Belt and braces alongside `invisibleDecorator`: even if a decorator ever did call through,
     // a transparent brush keeps the cursor bar itself from painting.
@@ -400,15 +415,18 @@ internal fun reportTerminalKeystroke(
 }
 
 /**
- * What one field edit means on the wire: an appended suffix is typed text, a shortened prefix is
- * that many backspaces - DEL (`\u007F`), the byte most shells' `stty erase` answers to today -
- * and anything else (autocorrect rewriting more than the tail) is not sent at all rather than
- * guessed at, which is this sub-step's deliberately minimal scope; P4j-2's own key encoder is where
- * a fuller edit-to-bytes mapping belongs.
+ * What one field edit means on the wire: delete back to the longest common prefix of [from] and
+ * [to] - one DEL (`\u007F`, the byte most shells' `stty erase` answers to) per character removed -
+ * then type whatever [to] adds past that prefix. A pure append sends no DELs and a pure deletion
+ * sends no text, so the two easy cases fall out of the one rule; the case P4j-1 left unsent - an
+ * edit that rewrites a token mid-line - is now a delete-and-retype rather than a silent drop that
+ * drifts the field and the shell apart (`evidence/p4m-terminal-input/edit-pairs.md`, where a
+ * Samsung IME's quote-completion was measured doing exactly that). [TerminalInputField] also asks
+ * the IME not to rewrite the buffer in the first place (`KeyboardType.Password`); this is the
+ * backstop for whatever still gets through.
  */
 private fun sendTerminalDiff(from: String, to: String, onType: (String) -> Unit) {
-  when {
-    to.length > from.length && to.startsWith(from) -> onType(to.removePrefix(from))
-    to.length < from.length && from.startsWith(to) -> onType("\u007F".repeat(from.length - to.length))
-  }
+  val shared = from.commonPrefixWith(to).length
+  if (from.length > shared) onType("\u007F".repeat(from.length - shared))
+  if (to.length > shared) onType(to.substring(shared))
 }

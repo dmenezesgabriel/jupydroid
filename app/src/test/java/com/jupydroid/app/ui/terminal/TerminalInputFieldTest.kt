@@ -55,4 +55,43 @@ class TerminalInputFieldTest {
     assertEquals(emptyList<String>(), sent)
     assertEquals("ls", next)
   }
+
+  /**
+   * The case the old KDoc said was "not sent at all": an edit that is neither a pure append nor a
+   * shortened prefix. Measured on the tablet (`evidence/p4m-terminal-input/edit-pairs.md`) - an IME
+   * that rewrites a token mid-line produces exactly this, and the old mapping dropped it silently,
+   * so the shell and the field drifted apart. The general form deletes back to the common prefix
+   * and retypes the divergent tail, which is what any line-editor-to-pty bridge does.
+   */
+  @Test
+  fun aRewrittenTailIsDeletedBackToTheCommonPrefixAndRetyped() {
+    val sent = mutableListOf<String>()
+    val state = TextFieldState("ls -a")
+
+    reportTerminalKeystroke(state, previous = "ls -l", current = "ls -a", onType = sent::add)
+
+    assertEquals(listOf("\u007F", "a"), sent)
+  }
+
+  @Test
+  fun aCharacterInsertedMidLineIsSentByRetypingFromThePrefix() {
+    val sent = mutableListOf<String>()
+    val state = TextFieldState("echo aXbc")
+
+    reportTerminalKeystroke(state, previous = "echo abc", current = "echo aXbc", onType = sent::add)
+
+    // common prefix "echo a"; delete "bc", retype "Xbc".
+    assertEquals(listOf("\u007F\u007F", "Xbc"), sent)
+  }
+
+  /** A word autocorrected in place: `teh` -> `the`, a two-DEL rewrite rather than a dropped edit. */
+  @Test
+  fun aWordCorrectedInPlaceIsRetypedFromTheDivergence() {
+    val sent = mutableListOf<String>()
+    val state = TextFieldState("the cat")
+
+    reportTerminalKeystroke(state, previous = "teh cat", current = "the cat", onType = sent::add)
+
+    assertEquals(listOf("\u007F".repeat(6), "he cat"), sent)
+  }
 }
