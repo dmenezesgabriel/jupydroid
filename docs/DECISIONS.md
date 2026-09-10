@@ -63,7 +63,13 @@ point at. Which one binds was therefore measured rather than reasoned about
 this app writes into its own `filesDir` and `chmod 0755`s is **still refused, rc=126**. So the
 table above is the binding rule and a permission fix reaches nothing.
 
-**Three rootfs paths are links into `nativeLibraryDir` today**, each repaired on every launch
+**P7e-2 is what a script does about it**, and it is not the shebang rewrite `docs/PLAN.md`'s row
+first carried: with SELinux binding, there is no ELF to point a symlink at, because the console
+script *is* the file being exec'd. So the trampoline in the table above - reached by name through
+`usr/local/bin`, resolving to a native library - reads the `#!` line the kernel will not, and
+execs the interpreter. `python3 -m pip` already worked; this is what makes `pip` work.
+
+**Four rootfs paths are links into `nativeLibraryDir` today**, each repaired on every launch
 because that directory moves on every app update:
 
 | Rootfs path | Native library | Why |
@@ -71,6 +77,7 @@ because that directory moves on every app update:
 | `lib/ld-musl-<arch>.so.1` (`SpaceAbi.loaderLinkPath`) | `libloader.so` | every ELF's `PT_INTERP` names it |
 | `bin/busybox` (`BusyBoxApplets`) | `libbusybox.so` | the shell and its 304 applet links |
 | `usr/bin/python3.12` (`BaseSpaceInstaller.INTERPRETER_PATH`, P7e-1) | `libpython3.so` | so the *shell* can run `python3`; the kernel never needed it, being exec'd from `nativeLibraryDir` directly |
+| `bin/shebang-exec` (`ConsoleScripts`, P7e-2) | `libshebang.so` | a `#!` console script cannot be exec'd out of `filesDir` either, so `pip`, `jupyter` and 29 others link from `usr/local/bin` to a trampoline that reads the shebang and execs the interpreter; **static**, so it is the one shipped ELF `stage-app-artifacts.sh` does not patch |
 
 The last is the image's one real interpreter ELF, so the `usr/bin/python3` and `usr/bin/python`
 links it already ships — both *relative* — reach it unchanged. It is **not** `bin/python3`: `PATH`
@@ -80,7 +87,19 @@ image ships and would never be reached.
 **This forbids:** proot, chroot, `LD_PRELOAD` exec interceptors, `/system/bin/linker64` tricks, a
 targetSdk downgrade, and the NDK (nothing is compiled — we ship prebuilt ELFs). It also means
 **every new tool costs an ABI-sized ELF in `jniLibs`** — which is what defers uv and what the
-terminal must pay for busybox.
+terminal must pay for busybox, and what P7e-2 pays for the console-script trampoline.
+
+**The bans have measured reasons now, not just a rule.** A **targetSdk downgrade** to 28 is what
+Winlator (`app/app/build.gradle:9`) and Termux (`gradle.properties:18`) do - it lands the app in
+SELinux's `untrusted_app_27` domain, which still carries `allow untrusted_app_27 app_data_file:file
+execute_no_trans` on AOSP `main` - and it would make the whole rootfs executable. It is declined
+on distribution, not technology: from 31 Aug 2026 Google Play requires existing apps to target
+API 35+ and new apps and updates API 36, so at 28 the app cannot be published or updated there;
+Termux and Winlator both ship off-Play. **proot** is declined on the Termux maintainer's own
+words for it - *"a performance impact and is not stable on all devices"*
+(`agnostic-apollo/Android-Docs`, `app-data-file-execute-restrictions.md`) - and it grants no exec
+permission anyway: the tracee's own `execve` still meets the policy. That same document names the
+`jniLibs` route *"the only solution that is compliant with Google PlayStore Policies"*.
 
 `useLegacyPackaging = true` is load-bearing: without it the libs stay inside the APK.
 
