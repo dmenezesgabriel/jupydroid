@@ -1,0 +1,120 @@
+appId: com.jupydroid.app
+---
+# P7e-1: the Space's shell can run the Space's Python.
+#
+# Before this step it could not. `evidence/p7e-0-runtime-probe/09-python3-in-the-shell.png` is the
+# same screen answering `sh: python3: Permission denied`, **rc=126**, while `command -v python3`
+# resolved perfectly - the file was an ELF under `filesDir` with no executable bit and the wrong
+# SELinux context, and `BaseSpaceInstaller` now points it at `nativeLibraryDir` the way `bin/sh`
+# has been pointed since P4b.
+#
+# **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell to ask.
+#
+# The terminal draws to a canvas, so nothing here can be asserted by text - the frames are the
+# record, which is this suite's standing rule for the terminal. The *assertions* live in
+# `PythonInterpreterDeviceTest`, which runs the same commands in the app's own process.
+#
+# `command -v` is run first so a later failure cannot be mistaken for the name not resolving.
+#
+# **The `echo` line is a harness marker, and P7e-1 sharpened it twice.** P7e-0 saw one typed
+# *space* vanish and left `echo SPACES a b c d e` behind to catch a repeat. This flow's first run
+# lost the comma in `import json, sys`, and its second - with the comma gone - lost the semicolon
+# in `import json; import sys` *and* the dot in `json.__file__`, while `COMMAS x,y,z` on this very
+# line came through whole. So it is **not** a character class: it is one character dropped out of
+# a long `inputText`, and the marker carries all three so the frame can say so.
+#
+# **The cause is the app, not the harness, and that is measured rather than suspected** -
+# `adb shell input text` drops the same characters with no Maestro in the picture. It is written
+# up in `evidence/p7e-1-space-python/the-defect-the-frames-showed/` and planned as its own step;
+# what this flow does about it is type short lines with no punctuation directly after a word, so
+# that what it is here to show is what its frames show.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- inputText: "echo SPACES a b c d e COMMAS x,y,z DOTS j.s.o.n"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+
+- inputText: "command -v python3"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+
+- inputText: "python3 --version"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- inputText: "echo rc=$?"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-python3-in-the-shell
+
+# A link that execs but cannot find its own stdlib would answer `--version` and fail every real
+# use, so this is the frame that says the *interpreter* works rather than the exec: the prefix it
+# resolves, and a stdlib module actually imported out of it.
+#
+# One question per line, and no dot after a word - see `the-defect-the-frames-showed/`.
+- inputText: "python3 -c 'import sys; print(sys.prefix)'"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 20000
+
+- inputText: "python3 -c 'import json'"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 20000
+
+- inputText: "echo rc=$?"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02-the-interpreter-it-reaches
+
+# pip is reachable *now*, without P7e-2: `-m` never execs the console script, which is exactly
+# what `%pip` does in a cell (`IPython/core/magics/packaging.py:99,105`).
+- inputText: "python3 -m pip --version"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 30000
+
+- inputText: "echo rc=$?"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-pip-through-the-module-path
+
+# **Not a fix, and not claimed as one.** This is the measurement P7e-2's design is written from,
+# and it is captured here because P7e-0 established that this failure only becomes visible once
+# P7e-1 has landed - until then the interpreter refused first.
+- inputText: "pip --version"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- inputText: "echo rc=$?"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 04-what-the-console-script-still-does
