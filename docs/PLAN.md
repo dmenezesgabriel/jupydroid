@@ -1829,9 +1829,14 @@ Measured, not speculative. Anything closed moves to `docs/DECISIONS.md`.
   tablet's density and window - so the suspect is the test's own px-per-row arithmetic on a
   320dp/160dpi emulator rather than the inset handling P4j-3b shipped. Not scheduled inside P7,
   which is not a terminal phase; recorded so the next full `connectedDebugAndroidTest` does not
-  re-derive it. `TerminalExtraKeysRowTest.arrowAndNavigationKeysReachTheShellAsTheirOwnSequences`
-  went red in the same run and is **not** this: it is a 5 s `waitUntil` that passed three
-  consecutive runs immediately after, so it is load-flaky under a full suite.
+  re-derive it. **`TerminalExtraKeysRowTest` is load-flaky under a full suite and is not this** -
+  its 5 s `waitUntil` is what gives way, not anything the app does. **Named as the class rather than
+  as one test, because the row as first written named one method and a different one went red next
+  time**: P7a-1's run lost `arrowAndNavigationKeysReachTheShellAsTheirOwnSequences`, and P7b's lost
+  `theCtrlKeyIsDescribedAsActiveWhileArmedAndPlainOnceConsumed` - each passing on a targeted re-run
+  immediately after (P7b's: 8 tests, 1 failure, that one being `TerminalPaneScreenTest` above).
+  A note that names a method cannot report the *next* method, which is how a recorded risk quietly
+  reads as an unrecorded one.
 - **`runCatching` inside a `launch` reports a cancellation as a failure, in eleven more places.**
   P7a-2 found and fixed the one that was *visible* - `ExplorerViewModel.goTo`, the only listing with
   a `cancel()` aimed at it, which drew *"StandaloneCoroutine was cancelled"* at the user
