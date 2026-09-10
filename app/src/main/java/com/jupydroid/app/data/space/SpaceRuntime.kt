@@ -39,6 +39,10 @@ class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: Fil
     //     absolute `/bin/sh`, which does not exist on Android - so the command runs nowhere and the
     //     cell gets an empty string. Measured: `evidence/p4-terminal/shell-escapes.md`.
     "SHELL" to spaceShellIn(baseDir).path,
+    // The rootfs is not mounted at `/` on the device, so the console-script trampoline
+    // (`tools/rootfs/shebang_exec.c`) prefixes this onto an absolute shebang: `#!/usr/bin/python3`
+    // becomes `<root>/usr/bin/python3`. One home for what a Space process sees, beside SHELL.
+    "JUPYDROID_SPACE_ROOT" to baseDir.path,
     "PATH" to listOf(inBase("usr/local/bin"), inBase("usr/bin"), inBase("bin")).joinToString(":"),
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.
     // musl has no multiarch directories, so these two cover the whole rootfs.

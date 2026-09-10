@@ -37,6 +37,7 @@ class BaseSpaceInstaller(
   private val nativeLoader: File,
   private val nativeInterpreter: File,
   private val nativeBusyBox: File,
+  private val nativeTrampoline: File,
   private val loaderLinkPath: String = SpaceAbi.ARM64.loaderLinkPath,
   private val bundledVersion: Int = BUNDLED_ROOTFS_VERSION,
   private val extractor: TarGzExtractor = TarGzExtractor(),
@@ -52,6 +53,7 @@ class BaseSpaceInstaller(
     linkLoaderToNativeLibrary()
     linkInterpreterToNativeLibrary()
     BusyBoxApplets(baseDir, nativeBusyBox, ioDispatcher).relink()
+    ConsoleScripts(baseDir, nativeTrampoline, ioDispatcher).relink()
     SpaceKernelSpec.install(baseDir, nativeInterpreter, ioDispatcher)
 
     if (!alreadyInstalled) stampVersion()

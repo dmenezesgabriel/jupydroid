@@ -151,6 +151,23 @@ class BaseSpaceInstallerTest {
     }
   }
 
+  /**
+   * P7e-2: a `#!` console script cannot be `execve`'d out of `filesDir`, so `usr/local/bin/pip`
+   * links to the trampoline instead. See [ConsoleScriptsTest] for the shapes it does and does not
+   * link; here it is only that the installer runs it.
+   */
+  @Test
+  fun install_linksTheConsoleScriptsThroughTheTrampoline() = runTest {
+    val nativeTrampoline = tempFolder.newFile("libshebang-${System.nanoTime()}.so").apply { writeText("ELF") }
+
+    val installed = installer(version = 1, nativeTrampoline = nativeTrampoline).installIfNeeded()
+
+    assertEquals(
+      nativeTrampoline.canonicalPath,
+      File(installed.baseDir, "usr/local/bin/pip").canonicalPath,
+    )
+  }
+
   /** The loader link's reason, from the other side: nativeLibraryDir moves on every app update. */
   @Test
   fun install_refreshesTheInterpreterLinkEvenWhenTheRootfsIsAlreadyInstalled() = runTest {
@@ -183,12 +200,14 @@ class BaseSpaceInstallerTest {
     nativeLoader: File = tempFolder.newFile("loader-${System.nanoTime()}.so"),
     nativeInterpreter: File = tempFolder.newFile("python3-${System.nanoTime()}.so"),
     nativeBusyBox: File = tempFolder.newFile("busybox-${System.nanoTime()}.so"),
+    nativeTrampoline: File = tempFolder.newFile("shebang-${System.nanoTime()}.so"),
   ) = BaseSpaceInstaller(
     archive = { rootfsArchive().inputStream() },
     baseDir = baseDir,
     nativeLoader = nativeLoader,
     nativeInterpreter = nativeInterpreter,
     nativeBusyBox = nativeBusyBox,
+    nativeTrampoline = nativeTrampoline,
     loaderLinkPath = "lib64/ld-linux-x86-64.so.2",
     bundledVersion = version,
   )
@@ -211,6 +230,8 @@ class BaseSpaceInstallerTest {
       tar.putFile("usr/bin/python3.12", "ELF")
       tar.putSymlink("usr/bin/python3", "python3.12")
       tar.putSymlink("usr/bin/python", "python3")
+      // A console script, in the shape the image ships them: a `#!/usr/bin/python3` text file.
+      tar.putFile("usr/bin/pip", "#!/usr/bin/python3\nimport pip\n")
     }
     return bytes.toByteArray()
   }
