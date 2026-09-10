@@ -1,0 +1,78 @@
+appId: com.jupydroid.app
+---
+# P7e-0: **measure before a line is written.**
+#
+# `docs/PLAN.md` names six questions and answers none of them from the tree: what the running kernel
+# says its interpreter is, whether `%pip` can be invoked at all, whether musl can resolve a name,
+# whether OpenSSL can find a trust store, whether one real HTTPS GET completes, and which of the
+# env vars nothing has ever set are set. The last three are explicitly *"a hypothesis, not a
+# measurement"* in that file, and P7e-3 onward is written from what comes back here.
+#
+# **TABLET ONLY (SM-X216B).** Every cell in this notebook runs against the kernel, and on x86_64
+# `MainActivity` falls back to `FakeKernelGateway`, which echoes a cell's source back as its
+# output - so a green run there would "answer" all six questions with the questions themselves.
+#
+# The flow's own assertions are deliberately thin: this step's oracle is not a string being on
+# screen, it is the notebook's saved outputs, which the driver pulls off the device and commits
+# verbatim. What the flow has to guarantee is only that every cell really ran.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Probe.ipynb"
+    timeout: 20000
+- tapOn: "Probe.ipynb"
+# The *source* is what is on screen before a run, and since the fixture assembles its markers at
+# run time there is no `PROBE-…` anywhere yet - so the notebook is recognised by a line of its code.
+- extendedWaitUntil:
+    visible: ".*import sys, os.*"
+    timeout: 30000
+- assertNotVisible: ".*PROBE-1.*"
+- takeScreenshot: 01-the-probe-before-it-is-run
+
+- tapOn: "Run all cells"
+# The kernel has to start first, and a cold Space installs a rootfs before it can - so the wait is
+# the longest in the suite. **`PROBE-1` exists only in an output**: the fixture builds every marker
+# with `"PROBE" + "-1"`, so no wait or scroll below can be satisfied by the cell that asks the
+# question. This probe's own third defect was exactly that - a frame named `03-dns` showing three
+# unexecuted cells, because the scroll had matched the source. `step4b-run-all-and-stop` records the
+# same trap from the other side.
+- extendedWaitUntil:
+    visible: ".*PROBE-1 prefix:.*"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 02-what-the-kernel-says-it-is
+
+# **Every answer is below the fold, so each is scrolled to rather than waited for.** This flow's
+# own second defect: `extendedWaitUntil: visible` requires the node to be *on screen*, and after Run
+# All the notebook is still at the top - so the wait for the last cell was asking a question about a
+# cell nobody had scrolled to. It passed once, on a run where the app's own scrolling happened to
+# have carried it into view, and failed the next with nothing in the app having changed.
+#
+# In document order, which is also the order the cells finish in, so each scroll doubles as the wait
+# for that cell's execution.
+- scrollUntilVisible:
+    element:
+      text: ".*PROBE-3 getaddrinfo.*"
+    direction: DOWN
+    timeout: 300000
+- takeScreenshot: 03-dns
+- scrollUntilVisible:
+    element:
+      text: ".*PROBE-4 cert_store_stats.*"
+    direction: DOWN
+    timeout: 120000
+- takeScreenshot: 04-tls-trust
+- scrollUntilVisible:
+    element:
+      text: ".*PROBE-5.*"
+    direction: DOWN
+    timeout: 120000
+- takeScreenshot: 05-one-real-https-get
+- scrollUntilVisible:
+    element:
+      text: ".*PROBE-6 SSL_CERT_FILE.*"
+    direction: DOWN
+    timeout: 120000
+- takeScreenshot: 06-the-env-vars-nothing-sets

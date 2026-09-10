@@ -1,0 +1,71 @@
+appId: com.jupydroid.app
+---
+# P7e-0's other half: what the *shell* can run, which the kernel cannot answer.
+#
+# `docs/PLAN.md` names two causes and asks which one each name actually hits: `usr/bin/python3.12`
+# is an ELF under `filesDir`, which `execve` refuses at targetSdk 36 (`docs/DECISIONS.md`, "Exec
+# model" - the reason `BusyBoxApplets` exists), and `usr/bin/pip`'s shebang is `#!/usr/bin/python3`,
+# an absolute path that does not exist because the rootfs is not mounted at `/`.
+# `SpaceRuntime.environment():42` puts all three bin dirs on `PATH`, so both names *resolve* and
+# then fail - and the interesting part is the errno, which only the shell prints.
+#
+# **TABLET ONLY (SM-X216B):** the emulator has no rootfs, so its terminal has no shell to ask.
+#
+# The terminal draws to a canvas, so nothing here can be asserted by text - the frames are the
+# record, and `command -v` is run first so that a later failure cannot be mistaken for the name not
+# resolving at all.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 15000
+- takeScreenshot: 07-a-shell
+
+- inputText: "command -v python3; command -v pip; command -v python3.12"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 08-which-names-resolve
+
+- inputText: "python3 --version 2>&1; echo rc=$?"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 15000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 09-python3-in-the-shell
+
+- inputText: "pip --version 2>&1; echo rc=$?"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 15000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 10-pip-in-the-shell
+
+# The shebang itself, read rather than assumed: `head -1` of the console script says which
+# interpreter it asks for, and the test of that path says whether it exists at all.
+#
+# **`test -e` rather than `ls -l`, and that is not a style choice.** The first run of this flow typed
+# `ls -l` and the shell received `ls-l` - one space, gone, mid-line and nowhere near a wrap. The line
+# below is a marker for exactly that: a fixed string with single spaces in it, echoed back, so the
+# next frame says whether a character is being dropped between Maestro and the shell or whether that
+# was a one-off. It is a measurement of the harness, not of the runtime, and it is here because a
+# terminal that silently eats input would make every other answer on this screen suspect.
+- inputText: "echo SPACES a b c d e; head -1 $(command -v pip); test -e /usr/bin/python3 && echo shebang-target-exists || echo shebang-target-missing"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 15000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 11-the-shebang-and-the-path-it-names
