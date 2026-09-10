@@ -39,8 +39,9 @@ follow it there.**
 **So: anything that must be executed ships in `jniLibs/<abi>/` and is reached through a symlink
 from the rootfs.** Android extracts `jniLibs` to `/data/app/…/lib/<abi>/` with SELinux context
 `apk_data_file`, where execution is permitted; the kernel resolves the symlink and checks the
-*target's* context. Two files use this today — `libloader.so` (musl's loader) and `libpython3.so`
-(CPython) — patched at build time by `tools/rootfs/stage-app-artifacts.sh`:
+*target's* context. Three files ship this way today — `libloader.so` (musl's loader),
+`libpython3.so` (CPython) and `libbusybox.so` (the shell) — the first two patched at build time by
+`tools/rootfs/stage-app-artifacts.sh`:
 
 ```
 patchelf --set-interpreter /data/data/com.jupydroid.app/files/spaces/base/lib/ld-musl-aarch64.so.1 \
@@ -51,6 +52,30 @@ patchelf --set-interpreter /data/data/com.jupydroid.app/files/spaces/base/lib/ld
 `PT_INTERP` names a **rootfs** path because `/data/data/<pkg>` is stable and `nativeLibraryDir`
 is not; `BaseSpaceInstaller.linkLoaderToNativeLibrary` points that path at the native library on
 every launch.
+
+**There is a second reason a rootfs file cannot be run, and P7e-1 is where it was measured.**
+`TarGzExtractor` sets **no executable bit** on anything it unpacks — deliberately, since the rootfs
+is otherwise only read and `mmap`'d — so everything under `filesDir` is mode `0600` and EACCES
+follows from the permission alone, without the SELinux rule ever being reached. The two are not
+interchangeable: for an ELF a symlink settles both at once, and for a *script* there is no ELF to
+point at. Which one binds was therefore measured rather than reasoned about
+(`PythonInterpreterDeviceTest.aScriptUnderFilesDirIsRefusedEvenWithItsExecutableBitSet`): a script
+this app writes into its own `filesDir` and `chmod 0755`s is **still refused, rc=126**. So the
+table above is the binding rule and a permission fix reaches nothing.
+
+**Three rootfs paths are links into `nativeLibraryDir` today**, each repaired on every launch
+because that directory moves on every app update:
+
+| Rootfs path | Native library | Why |
+|---|---|---|
+| `lib/ld-musl-<arch>.so.1` (`SpaceAbi.loaderLinkPath`) | `libloader.so` | every ELF's `PT_INTERP` names it |
+| `bin/busybox` (`BusyBoxApplets`) | `libbusybox.so` | the shell and its 304 applet links |
+| `usr/bin/python3.12` (`BaseSpaceInstaller.INTERPRETER_PATH`, P7e-1) | `libpython3.so` | so the *shell* can run `python3`; the kernel never needed it, being exec'd from `nativeLibraryDir` directly |
+
+The last is the image's one real interpreter ELF, so the `usr/bin/python3` and `usr/bin/python`
+links it already ships — both *relative* — reach it unchanged. It is **not** `bin/python3`: `PATH`
+is `usr/local/bin:usr/bin:bin` (`SpaceRuntime:42`), so a name in `bin/` is shadowed by the one the
+image ships and would never be reached.
 
 **This forbids:** proot, chroot, `LD_PRELOAD` exec interceptors, `/system/bin/linker64` tricks, a
 targetSdk downgrade, and the NDK (nothing is compiled — we ship prebuilt ELFs). It also means

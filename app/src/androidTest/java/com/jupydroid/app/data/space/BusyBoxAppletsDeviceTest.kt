@@ -1,7 +1,6 @@
 package com.jupydroid.app.data.space
 
 import android.os.Build
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
@@ -23,9 +22,9 @@ import java.io.File
  * shell was killed by SIGSYS about seven milliseconds after exec having printed nothing - which
  * `run-as` could never show. Measured in `evidence/p4-terminal/busybox-under-app-seccomp.md`.
  *
- * So this uses a plain [ProcessBuilder] from the instrumented test, which runs *inside* the app
- * process: the child is a sibling of the one `jupyter_server` forks, under the same filter, with
- * the same environment. **It must never shell out through `run-as`** - that is the whole defect.
+ * [runInSpace] is what keeps that: it starts the child from the instrumented test, in the app
+ * process, and P7e-1 moved it there so [PythonInterpreterDeviceTest] could not grow a second copy
+ * that forgot why.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
@@ -49,7 +48,7 @@ class BusyBoxAppletsDeviceTest {
   /** The shell itself, through an applet rather than a builtin - `echo` alone would prove nothing. */
   @Test
   fun theShellForksAnAppletAndLives() {
-    val run = run(spaceShellIn(baseDir).path, "-c", "ls -d /")
+    val run = runInSpace(spaceShellIn(baseDir).path, "-c", "ls -d /")
 
     assertSurvived(run)
     assertEquals("/", run.output.trim())
@@ -58,7 +57,7 @@ class BusyBoxAppletsDeviceTest {
   /** An applet reached directly, so a broken dispatch cannot hide behind the shell. */
   @Test
   fun anAppletReachedByItsOwnNameLives() {
-    val run = run(File(baseDir, "bin/ls").path, "-d", "/")
+    val run = runInSpace(File(baseDir, "bin/ls").path, "-d", "/")
 
     assertSurvived(run)
     assertEquals("/", run.output.trim())
@@ -71,7 +70,7 @@ class BusyBoxAppletsDeviceTest {
    */
   @Test
   fun anUnqualifiedNameFindsTheSpacesOwnCoreutils() {
-    val run = run(spaceShellIn(baseDir).path, "-c", "ls --help 2>&1 | head -1")
+    val run = runInSpace(spaceShellIn(baseDir).path, "-c", "ls --help 2>&1 | head -1")
 
     assertSurvived(run)
     assertTrue("expected BusyBox's ls, got: ${run.output.trim()}", "BusyBox" in run.output)
@@ -80,26 +79,25 @@ class BusyBoxAppletsDeviceTest {
   /**
    * A refusal the handler swallowed would leave the applet working and the log non-empty.
    *
-   * `mbind` is excluded by number rather than the check being dropped: numpy issues it on import
-   * and this runtime has tolerated it since step 8.7 (`docs/environment-fidelity.md:24-28`). The
-   * log is shared by every Space process and appended to, so any suite that has touched Python
-   * puts it there - which is how this test first went red, running beside [PtySupportTest] after
-   * passing alone.
+   * The log is shared by every Space process and appended to, so any suite that has touched Python
+   * puts lines in it - which is how this test first went red, running beside [PtySupportTest]
+   * after passing alone. [seccompRefusalsIn] is where the one tolerated refusal is named.
    *
    * It covers the interpreter side only: busybox carries no SIGSYS handler of its own, so a
    * refusal *there* kills it rather than being logged. That half is what the other tests assert.
    */
   @Test
   fun nothingWasRefusedWhileTheAppletsRan() {
-    run(spaceShellIn(baseDir).path, "-c", "ls -d / && echo done")
+    runInSpace(spaceShellIn(baseDir).path, "-c", "ls -d / && echo done")
 
-    val unexpected = File(baseDir, "tmp/sigsys.log").takeIf { it.isFile }?.readText().orEmpty()
-      .lines().filter { it.isNotBlank() && TOLERATED_REFUSAL !in it }
-
-    assertEquals("seccomp refused a syscall other than mbind while an applet ran", emptyList<String>(), unexpected)
+    assertEquals(
+      "seccomp refused a syscall other than mbind while an applet ran",
+      emptyList<String>(),
+      seccompRefusalsIn(baseDir),
+    )
   }
 
-  private fun assertSurvived(run: AppletRun) {
+  private fun assertSurvived(run: SpaceProcessRun) {
     // Java reports a signalled child as 128 + signal, so a seccomp kill is 159 - the same
     // encoding `JupyterServerLauncher.exitCode` documents.
     assertEquals(
@@ -111,31 +109,8 @@ class BusyBoxAppletsDeviceTest {
     )
   }
 
-  private fun run(vararg command: String): AppletRun {
-    val process = ProcessBuilder(command.toList())
-      .apply {
-        // Android's own PATH and linker variables would otherwise leak in, exactly as
-        // SpaceRuntime.processBuilder guards against for the interpreter.
-        environment().clear()
-        environment().putAll(baseSpaceRuntime(context).environment())
-      }
-      .redirectErrorStream(true)
-      .start()
-    val output = process.inputStream.bufferedReader().use { it.readText() }
-    return AppletRun(command.joinToString(" "), process.waitFor(), output)
-      .also { Log.i(TAG, "applet run: $it") }
-  }
-
-  private data class AppletRun(val command: String, val exitCode: Int, val output: String)
-
   private companion object {
     const val SIGSYS_EXIT = 159
-
-    /** `mbind` on aarch64: numpy issues it on import, tolerated since step 8.7. */
-    const val TOLERATED_REFUSAL = "syscall=235"
     const val OUTPUT_EXCERPT = 200
-
-    /** `adb logcat -s JupydroidSpace`, the filter every Space investigation already uses. */
-    const val TAG = "JupydroidSpace"
   }
 }

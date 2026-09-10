@@ -50,6 +50,7 @@ class BaseSpaceInstaller(
     // update while the extracted Space survives, so a stale link would leave exec
     // failing with ENOENT until the user cleared the app's data.
     linkLoaderToNativeLibrary()
+    linkInterpreterToNativeLibrary()
     BusyBoxApplets(baseDir, nativeBusyBox, ioDispatcher).relink()
     SpaceKernelSpec.install(baseDir, nativeInterpreter, ioDispatcher)
 
@@ -63,12 +64,40 @@ class BaseSpaceInstaller(
    * `/data/data/<pkg>` path, so redirect it at the native library, which can be
    * (docs/DECISIONS.md, "Exec model").
    */
-  private suspend fun linkLoaderToNativeLibrary() = withContext(ioDispatcher) {
+  private suspend fun linkLoaderToNativeLibrary() {
     require(nativeLoader.exists()) { "loader missing at '$nativeLoader'; is useLegacyPackaging on?" }
-    val link = File(baseDir, loaderLinkPath)
+    linkToNativeLibrary(loaderLinkPath, nativeLoader)
+  }
+
+  /**
+   * Gives the Space's *shell* a `python3` it can actually run (P7e-1).
+   *
+   * The kernel never needed this - it is exec'd from [nativeInterpreter] directly
+   * ([SpaceRuntime]) - but a terminal resolves the name through `PATH` and lands on the rootfs
+   * copy, which is refused twice over: it is an ELF under `filesDir`, and [TarGzExtractor]
+   * deliberately writes no executable bit. Both refusals are the *file's*, so a symlink settles
+   * them: `execve` walks the link and runs its checks on the target, exactly as `bin/busybox`
+   * relies on ([BusyBoxApplets]).
+   *
+   * **[INTERPRETER_PATH] rather than `bin/python3`, and `PATH` order is why.** [SpaceRuntime]
+   * searches `usr/local/bin:usr/bin:bin`, so a new name in `bin/` is shadowed by the
+   * `usr/bin/python3` the image already ships and is never reached. Replacing the one real ELF
+   * instead leaves that link - and `usr/bin/python` above it - pointing *relatively* at a name
+   * that now resolves, so all three work and only this one can ever go stale.
+   */
+  private suspend fun linkInterpreterToNativeLibrary() {
+    require(nativeInterpreter.exists()) {
+      "interpreter missing at '$nativeInterpreter'; is useLegacyPackaging on?"
+    }
+    linkToNativeLibrary(INTERPRETER_PATH, nativeInterpreter)
+  }
+
+  /** Replaces whatever the archive left at [relativePath] with a link into `nativeLibraryDir`. */
+  private suspend fun linkToNativeLibrary(relativePath: String, nativeLibrary: File) = withContext(ioDispatcher) {
+    val link = File(baseDir, relativePath)
     link.parentFile?.mkdirs()
     link.delete()
-    Files.createSymbolicLink(link.toPath(), nativeLoader.toPath())
+    Files.createSymbolicLink(link.toPath(), nativeLibrary.toPath())
   }
 
   private suspend fun installedVersion(): Int? = withContext(ioDispatcher) {
@@ -83,6 +112,13 @@ class BaseSpaceInstaller(
 
   private companion object {
     const val STAMP_PATH = ".jupydroid/rootfs-version"
+
+    /**
+     * The image's one real interpreter ELF, which `usr/bin/python3` and `usr/bin/python` both
+     * point at. **It must name the same file `tools/rootfs/stage-app-artifacts.sh` stages as
+     * `libpython3.so`** - the link is only right because the two are the same bytes.
+     */
+    const val INTERPRETER_PATH = "usr/bin/python3.12"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
     const val BUNDLED_ROOTFS_VERSION = 4

@@ -109,16 +109,85 @@ class BaseSpaceInstallerTest {
     assertEquals(nativeBusyBox.canonicalPath, File(installed.baseDir, "bin/sh").canonicalPath)
   }
 
+  /**
+   * P7e-1: the shell could not run `python3` at all, and the link is what fixes it.
+   *
+   * `usr/bin/python3.12` is the one real ELF, and `tools/rootfs/stage-app-artifacts.sh:27-28`
+   * stages *that file* as `libpython3.so` - so pointing the rootfs name at the native library
+   * points it at its own bytes, with the one difference that matters: the target carries an
+   * SELinux context that permits execve and an executable bit, and nothing under `filesDir` does
+   * (`docs/DECISIONS.md`, "Exec model").
+   */
+  @Test
+  fun install_pointsTheInterpreterLinkAtTheNativeLibrary() = runTest {
+    val nativeInterpreter = tempFolder.newFile("libpython3-${System.nanoTime()}.so").apply { writeText("ELF") }
+
+    val installed = installer(version = 1, nativeInterpreter = nativeInterpreter).installIfNeeded()
+
+    val link = File(installed.baseDir, "usr/bin/python3.12")
+    assertTrue("expected a symlink at $link", Files.isSymbolicLink(link.toPath()))
+    assertEquals(nativeInterpreter.canonicalPath, link.canonicalPath)
+  }
+
+  /**
+   * **Which name the link carries is decided by `PATH`, not by taste.** `SpaceRuntime:42` orders it
+   * `usr/local/bin:usr/bin:bin`, so a link made in `bin/` - which is where `docs/PLAN.md`'s P7e-1
+   * row said to put it - is shadowed by the `usr/bin/python3` the image already ships and is never
+   * reached. Replacing the ELF the shipped links point *at* is what makes all three names work,
+   * and it is `bin/busybox`'s own shape.
+   */
+  @Test
+  fun install_makesEveryShippedPythonNameResolveThroughTheLink() = runTest {
+    val nativeInterpreter = tempFolder.newFile("libpython3-${System.nanoTime()}.so").apply { writeText("ELF") }
+
+    val installed = installer(version = 1, nativeInterpreter = nativeInterpreter).installIfNeeded()
+
+    listOf("usr/bin/python3", "usr/bin/python").forEach { name ->
+      assertEquals(
+        "$name does not reach the interpreter",
+        nativeInterpreter.canonicalPath,
+        File(installed.baseDir, name).canonicalPath,
+      )
+    }
+  }
+
+  /** The loader link's reason, from the other side: nativeLibraryDir moves on every app update. */
+  @Test
+  fun install_refreshesTheInterpreterLinkEvenWhenTheRootfsIsAlreadyInstalled() = runTest {
+    val baseDir = tempFolder.newFolder("base")
+    val firstInstall = tempFolder.newFile("old-libpython3.so").apply { writeText("ELF") }
+    installer(version = 1, baseDir = baseDir, nativeInterpreter = firstInstall).installIfNeeded()
+
+    val afterUpdate = tempFolder.newFile("new-libpython3.so").apply { writeText("ELF") }
+    installer(version = 1, baseDir = baseDir, nativeInterpreter = afterUpdate).installIfNeeded()
+
+    assertEquals(afterUpdate.canonicalPath, File(baseDir, "usr/bin/python3").canonicalPath)
+  }
+
+  /**
+   * A dangling link is the failure this guard exists for, and it is invisible until a shell tries
+   * to run it: the loader's guard names `useLegacyPackaging` for the same reason.
+   */
+  @Test
+  fun install_refusesAnInterpreterThatIsNotThere() = runTest {
+    val missing = File(tempFolder.newFolder("gone-${System.nanoTime()}"), "libpython3.so")
+
+    val refusal = runCatching { installer(version = 1, nativeInterpreter = missing).installIfNeeded() }
+
+    assertEquals(missing.path, refusal.exceptionOrNull()?.message?.substringAfter("'")?.substringBefore("'"))
+  }
+
   private fun installer(
     version: Int,
     baseDir: File = tempFolder.newFolder("base-$version-${System.nanoTime()}"),
     nativeLoader: File = tempFolder.newFile("loader-${System.nanoTime()}.so"),
+    nativeInterpreter: File = tempFolder.newFile("python3-${System.nanoTime()}.so"),
     nativeBusyBox: File = tempFolder.newFile("busybox-${System.nanoTime()}.so"),
   ) = BaseSpaceInstaller(
     archive = { rootfsArchive().inputStream() },
     baseDir = baseDir,
     nativeLoader = nativeLoader,
-    nativeInterpreter = nativeLoader,
+    nativeInterpreter = nativeInterpreter,
     nativeBusyBox = nativeBusyBox,
     loaderLinkPath = "lib64/ld-linux-x86-64.so.2",
     bundledVersion = version,
@@ -136,6 +205,12 @@ class BaseSpaceInstallerTest {
       // The image's own busybox: one real ELF, and an applet link pointing absolutely at it.
       tar.putFile("bin/busybox", "ELF")
       tar.putSymlink("bin/sh", "/bin/busybox")
+      // The image's own python, in the three shapes `tar -tzf` reports: one real ELF and two
+      // *relative* links onto it. The relativeness is the point - it is what lets the installer
+      // maintain one link and leave the other two alone (BusyBoxApplets' own rule).
+      tar.putFile("usr/bin/python3.12", "ELF")
+      tar.putSymlink("usr/bin/python3", "python3.12")
+      tar.putSymlink("usr/bin/python", "python3")
     }
     return bytes.toByteArray()
   }

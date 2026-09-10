@@ -22,6 +22,9 @@ case "$ABI" in
   # LOADER must match SpaceAbi.loaderLinkPath: it is baked into PT_INTERP below and
   # symlinked into nativeLibraryDir by BaseSpaceInstaller. musl keeps its loader in
   # /lib on every architecture, named after the architecture.
+  # INTERPRETER must match BaseSpaceInstaller.INTERPRETER_PATH for the same reason: that is the
+  # rootfs path the installer replaces with a link into nativeLibraryDir (P7e-1), and the link is
+  # only right because the file it replaces is the one staged here as libpython3.so.
   # PLATFORM is the same mapping build.sh uses; busybox is compiled here rather than read out of
   # the tarball, so this script now needs to know what to build it for.
   x86_64)    LOADER=lib/ld-musl-x86_64.so.1;  INTERPRETER=usr/bin/python3.12; PLATFORM=linux/amd64 ;;

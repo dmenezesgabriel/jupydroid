@@ -1,0 +1,59 @@
+package com.jupydroid.app.data.space
+
+import android.util.Log
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
+
+/** What a Space process did: the command, how it exited, and everything it printed. */
+data class SpaceProcessRun(val command: String, val exitCode: Int, val output: String)
+
+/**
+ * Runs a command **in this app's process**, which is the only place the question means anything.
+ *
+ * **P4b-2, and the gate P4b was missing.** P4b proved the shell through `adb shell run-as`, which
+ * is not zygote-spawned and so carries no app seccomp filter. Under the filter every applet died,
+ * having printed nothing - which `run-as` could never show
+ * (`evidence/p4-terminal/busybox-under-app-seccomp.md`).
+ *
+ * So this is a plain [ProcessBuilder] started from an instrumented test, which runs *inside* the
+ * app process: the child is a sibling of the one `jupyter_server` forks, under the same filter,
+ * with the same environment. **Nothing that uses this may shell out through `run-as`** - that is
+ * the whole defect.
+ *
+ * ```
+ * val run = runInSpace(spaceShellIn(baseDir).path, "-c", "python3 --version")
+ * ```
+ */
+fun runInSpace(vararg command: String): SpaceProcessRun {
+  val context = InstrumentationRegistry.getInstrumentation().targetContext
+  val process = ProcessBuilder(command.toList())
+    .apply {
+      // Android's own PATH and linker variables would otherwise leak in, exactly as
+      // SpaceRuntime.processBuilder guards against for the interpreter.
+      environment().clear()
+      environment().putAll(baseSpaceRuntime(context).environment())
+    }
+    .redirectErrorStream(true)
+    .start()
+  val output = process.inputStream.bufferedReader().use { it.readText() }
+  return SpaceProcessRun(command.joinToString(" "), process.waitFor(), output)
+    .also { Log.i(SPACE_LOG_TAG, "space run: $it") }
+}
+
+/**
+ * The refusals the SIGSYS handler wrote, minus the one this runtime has tolerated since step 8.7.
+ *
+ * `mbind` is excluded by number rather than the check being dropped: numpy issues it on import
+ * (`docs/environment-fidelity.md:24-28`). The log is shared by every Space process and appended
+ * to, so any suite that has touched Python puts lines there - which is why a caller asserts on
+ * what it finds rather than on the file being absent.
+ */
+fun seccompRefusalsIn(baseDir: File): List<String> =
+  File(baseDir, "tmp/sigsys.log").takeIf { it.isFile }?.readText().orEmpty()
+    .lines().filter { it.isNotBlank() && TOLERATED_REFUSAL !in it }
+
+/** `mbind` on aarch64: numpy issues it on import, tolerated since step 8.7. */
+private const val TOLERATED_REFUSAL = "syscall=235"
+
+/** `adb logcat -s JupydroidSpace`, the filter every Space investigation already uses. */
+const val SPACE_LOG_TAG = "JupydroidSpace"
