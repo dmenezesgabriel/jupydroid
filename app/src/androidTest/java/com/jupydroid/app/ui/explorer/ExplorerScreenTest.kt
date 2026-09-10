@@ -1,9 +1,13 @@
 package com.jupydroid.app.ui.explorer
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -17,6 +21,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
@@ -84,16 +89,103 @@ class ExplorerScreenTest {
     assertEquals("reports/summary.ipynb", opened)
   }
 
-  /** `docmanager:clear-recents`, reachable as an action on the section rather than buried. */
+  /**
+   * `docmanager:clear-recents`, now behind the section's own overflow rather than beside its
+   * heading - the reference's view-pane header puts its secondary actions in a `…` menu
+   * (`viewPane.ts:693`, `toolbar.ts:135`), and the heading itself is the collapse.
+   */
   @Test
-  fun theSectionCanBeCleared() {
+  fun theSectionCanBeClearedFromItsOverflow() {
     given("notes.txt")
     showExplorer(recents = listOf(RecentDocument("notes.txt", WorkspaceEntryKind.FILE)))
     waitForText(RECENTS_HEADING)
 
-    compose.onNodeWithContentDescription("Clear recents").performClick()
+    compose.onNodeWithContentDescription(RECENTS_ACTIONS).performClick()
+    compose.onNodeWithText(CLEAR_RECENTS).performClick()
 
     waitUntilGone(RECENTS_HEADING)
+  }
+
+  /**
+   * The heading collapses the section, and **from anywhere on its row** - the reference toggles on
+   * a click or a tap anywhere in the header, not on the chevron alone
+   * (`paneview.ts:285-292`).
+   */
+  @Test
+  fun tappingTheHeadingHidesTheRowsAndKeepsTheHeading() {
+    given("notes.txt")
+    showExplorer(recents = listOf(RecentDocument(RECENT_ROW, WorkspaceEntryKind.FILE)))
+    waitForText(RECENTS_HEADING)
+
+    compose.onNodeWithText(RECENTS_HEADING).performClick()
+
+    waitUntilGone(RECENT_ROW)
+    compose.onNodeWithText(RECENTS_HEADING).assertIsDisplayed()
+  }
+
+  /** `setExpanded(!isExpanded())`: the same row brings the rows back. */
+  @Test
+  fun tappingTheHeadingAgainBringsTheRowsBack() {
+    given("notes.txt")
+    showExplorer(recents = listOf(RecentDocument(RECENT_ROW, WorkspaceEntryKind.FILE)))
+    waitForText(RECENTS_HEADING)
+    compose.onNodeWithText(RECENTS_HEADING).performClick()
+    waitUntilGone(RECENT_ROW)
+
+    compose.onNodeWithText(RECENTS_HEADING).performClick()
+
+    waitForText(RECENT_ROW)
+  }
+
+  /**
+   * What the section is doing, said to a screen reader - the reference's header is a `role=button`
+   * carrying an aria-expanded state (`paneview.ts:261-263`), which is what this maps onto. The
+   * chevron's own glyph is evidence, not an assertion: no instrumented test can read a vector.
+   */
+  @Test
+  fun theHeadingSaysWhetherItIsOpenOrShut() {
+    given("notes.txt")
+    showExplorer(recents = listOf(RecentDocument(RECENT_ROW, WorkspaceEntryKind.FILE)))
+    waitForText(RECENTS_HEADING)
+    compose.onNodeWithText(RECENTS_HEADING).assert(hasStateDescription(EXPANDED))
+
+    compose.onNodeWithText(RECENTS_HEADING).performClick()
+
+    compose.onNodeWithText(RECENTS_HEADING).assert(hasStateDescription(COLLAPSED))
+  }
+
+  /**
+   * And the state is an *action*, not only a label: TalkBack offers "expand" on a shut section and
+   * "collapse" on an open one, which is what the reference's aria-expanded amounts to for a screen
+   * reader. Asserted because the KDoc claims it and nothing else could check it.
+   */
+  @Test
+  fun theHeadingOffersTheActionThatMatchesItsState() {
+    given("notes.txt")
+    showExplorer(recents = listOf(RecentDocument(RECENT_ROW, WorkspaceEntryKind.FILE)))
+    waitForText(RECENTS_HEADING)
+    compose.onNodeWithText(RECENTS_HEADING).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.Collapse))
+
+    compose.onNodeWithText(RECENTS_HEADING).performClick()
+
+    compose.onNodeWithText(RECENTS_HEADING).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.Expand))
+  }
+
+  /**
+   * A shut section offers no actions, which is the reference's own rule rather than a simplification
+   * - every CSS rule that reveals a pane header's actions requires `.expanded`
+   * (`paneview.css:79-82`, `paneviewlet.css:26-27`).
+   */
+  @Test
+  fun aCollapsedSectionOffersNoActions() {
+    given("notes.txt")
+    showExplorer(recents = listOf(RecentDocument(RECENT_ROW, WorkspaceEntryKind.FILE)))
+    waitForText(RECENTS_HEADING)
+
+    compose.onNodeWithText(RECENTS_HEADING).performClick()
+
+    waitUntilGone(RECENT_ROW)
+    compose.onAllNodesWithContentDescription(RECENTS_ACTIONS).assertCountEquals(0)
   }
 
   /**
@@ -385,6 +477,7 @@ class ExplorerScreenTest {
           // construct the ViewModel, so the DiskNotebookRepository(temp.root) is inert here.
           notebookRepository = DiskNotebookRepository(temp.root),
           recentDocuments = FakeRecentDocumentsRepository(recents),
+          explorerSettings = FakeExplorerSettingsRepository(),
           onOpenFile = onOpenFile,
           onOpenRecent = onOpenRecent,
           onBack = onBack,
@@ -427,5 +520,21 @@ class ExplorerScreenTest {
     /** Longer than one refresh interval, so a poll has a turn before this gives up. */
     const val POLL_TIMEOUT_MILLIS = 30_000L
     const val RECENTS_HEADING = "Recent"
+
+    /**
+     * The one recent the collapse cases seed - a path **outside** the listing on purpose: the
+     * seeded file is a row of its own below, so a recent naming it could never be asserted gone.
+     */
+    const val RECENT_ROW = "reports/summary.ipynb"
+
+    /** The section's overflow, named for the surface it acts on as every other menu here is. */
+    const val RECENTS_ACTIONS = "Recent actions"
+
+    /** `docmanager:clear-recents`' own label (`docmanager-extension/src/recents.ts:73`). */
+    const val CLEAR_RECENTS = "Clear Recent Documents"
+
+    /** What the heading says it is doing, in the two states the reference's aria-expanded has. */
+    const val EXPANDED = "Expanded"
+    const val COLLAPSED = "Collapsed"
   }
 }

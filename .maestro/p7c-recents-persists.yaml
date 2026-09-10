@@ -1,0 +1,64 @@
+appId: com.jupydroid.app
+---
+# P7c's own gate: a section shut before the process died is still shut after it.
+#
+# The reference writes a view's `collapsed` straight through to storage on every change
+# (`viewContainerModel.ts:456-461`) and reads it back into the view's state on the next launch
+# (`:90-108`), so this is parity and not a convenience. Nothing on screen can tell a state that was
+# stored from one that merely survived in memory, which is why this flow kills the app rather than
+# navigating away and back.
+#
+# ONE PANE (<840dp). Runs no cell: the documents are plain files.
+- launchApp
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "file_editor.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 15000
+- tapOn: "Back to files"
+- tapOn: "reports"
+- tapOn: "data.csv"
+- extendedWaitUntil:
+    visible: ".*region,amount.*"
+    timeout: 15000
+- tapOn: "Back to files"
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "reports/data.csv"
+    timeout: 5000
+- takeScreenshot: 01-open-before-the-app-is-killed
+
+- tapOn: "Recent"
+- extendedWaitUntil:
+    notVisible: "reports/data.csv"
+    timeout: 5000
+- takeScreenshot: 02-shut-before-the-app-is-killed
+
+# The process goes. `clearState` is deliberately not used: it would delete the store this flow is
+# about along with everything else, and prove nothing.
+- stopApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 15000
+# The section is still there - the history outlived the process too - and still shut.
+- assertVisible: "Recent"
+- assertNotVisible: "reports/data.csv"
+- assertNotVisible: "Recent actions"
+- takeScreenshot: 03-still-shut-after-a-relaunch
+
+# And the stored state is a setting, not a one-way door: opening it again survives too.
+- tapOn: "Recent"
+- extendedWaitUntil:
+    visible: "reports/data.csv"
+    timeout: 5000
+- stopApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "reports/data.csv"
+    timeout: 15000
+- takeScreenshot: 04-open-again-and-still-open-after-a-relaunch

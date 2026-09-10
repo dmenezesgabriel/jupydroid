@@ -103,6 +103,7 @@ fun ShellSidePane(
             workspaceRepository = appContainer.workspaceRepository,
             notebookRepository = appContainer.notebookRepository,
             recentDocuments = appContainer.recentDocuments,
+            explorerSettings = appContainer.explorerSettings,
             // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
             // so there is nothing to translate. It briefly was not, and the suffix went on twice:
             // `Nested.ipynb.ipynb` opened nothing.

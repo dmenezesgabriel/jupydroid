@@ -51,6 +51,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.parentDirectory
+import com.jupydroid.app.domain.model.shownWhileBrowsing
+import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -87,6 +89,12 @@ fun ExplorerScreen(
   workspaceRepository: WorkspaceRepository,
   notebookRepository: NotebookRepository,
   recentDocuments: RecentDocumentsRepository,
+  /**
+   * Where the Recents section's collapse lives between launches - the reference stores a view's
+   * `collapsed` on every change (`viewContainerModel.ts:456-461`), so this is parity rather than a
+   * convenience.
+   */
+  explorerSettings: ExplorerSettingsRepository,
   onOpenFile: (WorkspaceEntry) -> Unit,
   onOpenRecent: (String) -> Unit = {},
   /**
@@ -120,9 +128,20 @@ fun ExplorerScreen(
   onBack: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
   viewModel: ExplorerViewModel =
-    viewModel { ExplorerViewModel(workspaceRepository, notebookRepository, recentDocuments) },
+    viewModel { ExplorerViewModel(workspaceRepository, notebookRepository) },
+  /**
+   * The Recents section's own state holder - a record of what was opened, which is `docmanager`'s
+   * in the reference and never `filebrowser`'s. Two here because they are two things, not because
+   * a screen may only have one.
+   */
+  recentsViewModel: RecentsViewModel = viewModel { RecentsViewModel(recentDocuments, explorerSettings) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val recentsState by recentsViewModel.uiState.collectAsStateWithLifecycle()
+  // How much of the history this directory shows, decided where the directory is known: a recents
+  // list is not a property of the folder you are standing in, and the reference's own surfaces are
+  // global - a File menu submenu and a sidebar panel - never per-directory.
+  val recents = recentsState.documents.shownWhileBrowsing(state.path)
   // The entry whose name is being typed, held here rather than in the row: a `DropdownMenu` item
   // that opened its own dialog would take it down with itself the moment it dismissed.
   var renaming by remember { mutableStateOf<WorkspaceEntry?>(null) }
@@ -132,7 +151,21 @@ fun ExplorerScreen(
   val now = remember(state.path, state.entries) { Instant.now() }
   val listing = rememberLazyListState()
 
-  KeepTheListingFresh(viewModel::refresh)
+  // Both, because both go stale for the same reason and at the same moment: the workspace is
+  // shared, so a file a recent names can be gone without this app having done anything.
+  //
+  // `remember`ed, and that is not decoration: [KeepTheListingFresh] keys its `LaunchedEffect` on
+  // this lambda, so a fresh instance per recomposition would restart the poll every time - and a
+  // poll that restarts calls `refresh()` on its first line. A method reference could be left to
+  // the compiler's own lambda memoisation; a lambda capturing two view models is not worth
+  // depending on it for.
+  val refreshBothLists = remember(viewModel, recentsViewModel) {
+    {
+      viewModel.refresh()
+      recentsViewModel.revalidate()
+    }
+  }
+  KeepTheListingFresh(refreshBothLists)
 
   // Consumed rather than merely read: without clearing it, a request satisfied once would re-fire
   // every time this screen recomposed and pin the browser to that folder.
@@ -148,7 +181,7 @@ fun ExplorerScreen(
   BringCreatedItemIntoView(
     justCreated = state.justCreated,
     entries = state.entries,
-    itemsAboveTheListing = itemsAboveTheListing(state.recents.size),
+    itemsAboveTheListing = itemsAboveTheListing(recents.size, recentsState.collapsed),
     listing = listing,
   )
 
@@ -180,9 +213,16 @@ fun ExplorerScreen(
       // rather than to give the inner one a fixed height.
       LazyColumn(state = listing, modifier = Modifier.fillMaxSize()) {
         recentsSection(
-          recents = state.recents,
-          onOpen = { document -> viewModel.openRecent(document, onOpenRecent) },
-          onClear = viewModel::clearRecents,
+          recents = recents,
+          collapsed = recentsState.collapsed,
+          onToggle = recentsViewModel::toggle,
+          // A folder moves *this* browser and a document goes to an editor above - the split the
+          // reference's own `openRecent` makes, kept out of the composable by being the section's
+          // to decide and only wired here.
+          onOpen = { document ->
+            recentsViewModel.open(document, onFolder = viewModel::goTo, onDocument = onOpenRecent)
+          },
+          onClear = recentsViewModel::clear,
         )
         // Keyed by path, which is the identity of a workspace entry and a String, so it survives
         // the Bundle round trip Compose needs for state restoration. contentType by kind, so a

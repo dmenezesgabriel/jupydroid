@@ -5,6 +5,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
+import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
@@ -91,6 +92,7 @@ class JupydroidApplication : Application() {
       // state, not a Contents API file.
       editorSettings = DiskEditorSettingsRepository(filesDir),
       terminalSettings = DiskTerminalSettingsRepository(filesDir),
+      explorerSettings = DiskExplorerSettingsRepository(filesDir),
     )
   }
 

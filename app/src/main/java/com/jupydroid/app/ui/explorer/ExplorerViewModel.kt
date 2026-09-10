@@ -3,14 +3,11 @@ package com.jupydroid.app.ui.explorer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
-import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.UNTITLED_NOTEBOOK
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
-import com.jupydroid.app.domain.model.shownWhileBrowsing
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
-import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.crumbsFor
@@ -41,12 +38,6 @@ class ExplorerViewModel(
    * server writes content into it (`services/contents/manager.py:605-607`).
    */
   private val notebookRepository: NotebookRepository,
-  /**
-   * What was opened, which no listing of the tree can answer. Its own port because a recent is a
-   * record of an act where a listing is a record of a tree - and because it remembers plain files
-   * and folders too.
-   */
-  private val recentDocuments: RecentDocumentsRepository,
   private val rootLabel: String = ROOT_LABEL,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(ExplorerUiState())
@@ -61,12 +52,6 @@ class ExplorerViewModel(
   private var renamingPath: String? = null
 
   /**
-   * The whole list, kept apart from what is on screen: [shownWhileBrowsing] decides how much of it
-   * a given directory shows, and it must not be re-derived from a truncated copy.
-   */
-  private var recentlyOpened: List<RecentDocument> = emptyList()
-
-  /**
    * Which directory is being listed, which leads [ExplorerUiState.path] while a listing is in
    * flight - see [goTo]. The screen shows where we *are*; this is where we are going.
    */
@@ -77,29 +62,6 @@ class ExplorerViewModel(
 
   init {
     goTo("")
-    viewModelScope.launch {
-      recentDocuments.observeRecents().collect { opened ->
-        recentlyOpened = opened
-        _uiState.update { it.copy(recents = opened.shownWhileBrowsing(it.path)) }
-      }
-    }
-  }
-
-  /**
-   * A recent folder moves the browser; only a document is handed to an editor.
-   *
-   * The reference's `openRecent` makes the same split - a `contentType: 'directory'` goes to the
-   * file browser's `openPath` and everything else to `docmanager:open`
-   * (`packages/mainmenu-extension/src/recents.ts`). Which editor a document gets is not decided
-   * here, for the same reason [open] does not decide it.
-   */
-  fun openRecent(document: RecentDocument, onOpenFile: (String) -> Unit) {
-    if (document.kind == WorkspaceEntryKind.DIRECTORY) goTo(document.path) else onOpenFile(document.path)
-  }
-
-  /** `docmanager:clear-recents`, which the reference offers from the same submenu. */
-  fun clearRecents() {
-    viewModelScope.launch { recentDocuments.clear() }
   }
 
   /**
@@ -139,7 +101,7 @@ class ExplorerViewModel(
     listing = viewModelScope.launch {
       runCatching { workspaceRepository.list(path) }
         .onSuccess { entries ->
-          _uiState.value = listingOf(path, entries, rootLabel, recentlyOpened, justCreated)
+          _uiState.value = listingOf(path, entries, rootLabel, justCreated)
         }
         .onFailure { failure ->
           // **A cancellation is not a failure to report, and `runCatching` cannot tell them
@@ -197,12 +159,6 @@ class ExplorerViewModel(
    * A6 is why this is not optional: an edit must move the row's time, and the row is here now.
    */
   fun refresh() {
-    // Recents is re-checked here as well as re-listed: an entry whose file has since been renamed
-    // or deleted points at nothing, and the reference drops exactly those - `_isValid` treats a
-    // 404 as invalid and `RecentsMenu.onBeforeAttach` re-validates every time the list is about to
-    // be shown (`mainmenu-extension/src/recents.ts`). Ours is always on screen, so "about to be
-    // shown" is this.
-    viewModelScope.launch { recentDocuments.revalidate() }
     // [browsing] and not `uiState.path`: where we are *going*, which is the same thing except
     // while a listing is in flight - and that is exactly when this used to undo one.
     goTo(browsing)
@@ -304,20 +260,18 @@ class ExplorerViewModel(
  * an argument. Every `goTo` case in `ExplorerViewModelTest` goes through it.
  *
  * ```
- * _uiState.value = listingOf(path, entries, rootLabel, recentlyOpened, justCreated = null)
+ * _uiState.value = listingOf(path, entries, rootLabel, justCreated = null)
  * ```
  */
 private fun listingOf(
   path: String,
   entries: List<WorkspaceEntry>,
   rootLabel: String,
-  recentlyOpened: List<RecentDocument>,
   justCreated: String?,
 ): ExplorerUiState = ExplorerUiState(
   path = path,
   entries = entries,
   crumbs = crumbsFor(path, rootLabel),
   error = null,
-  recents = recentlyOpened.shownWhileBrowsing(path),
   justCreated = justCreated,
 )

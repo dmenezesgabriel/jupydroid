@@ -24,4 +24,7 @@ seed_file "$ROOT/.maestro/fixtures/p2x-3-search.py" "notes.py"
 # row draws where the file lives under its name.
 seed_file "$ROOT/.maestro/fixtures/p2x-3-search-nested.py" "reports/analysis.py"
 
-run_flow "$ROOT/.maestro/p2x-3-workspace-search.yaml" "$ROOT/evidence/p2x-3-workspace-search"
+# Overridable, so a step that only needs this flow *green again* captures under its own name
+# rather than replacing frames captured on another device - P7a-3's precedent, and P7c needed
+# it because the fold chevron on this panel moved into `ui/Twistie.kt`.
+run_flow "$ROOT/.maestro/p2x-3-workspace-search.yaml" "${EVIDENCE_ROOT:-$ROOT/evidence/p2x-3-workspace-search}"

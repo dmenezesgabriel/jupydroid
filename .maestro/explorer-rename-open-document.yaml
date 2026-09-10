@@ -41,7 +41,11 @@ appId: com.jupydroid.app
 # was tried and is not stable: maestro's ordering is its own, and the editor's app-bar title is a
 # third node with the same text. Emptying the section leaves one row in the browser, which is the
 # state these flows were written against.
-- tapOn: "Clear recents"
+# Clearing is behind the section's own overflow since P7c - the reference's view-pane header keeps
+# its secondary actions in a `…` menu (`viewPane.ts:693`) and gives the heading itself to the
+# collapse, so the two taps here are one act.
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
 - extendedWaitUntil:
     notVisible: "Recent"
     timeout: 5000

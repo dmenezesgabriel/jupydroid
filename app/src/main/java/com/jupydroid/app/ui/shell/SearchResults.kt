@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +27,7 @@ import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.ui.Twistie
 import com.jupydroid.app.ui.editor.codeTextStyle
 import com.jupydroid.app.ui.editor.searchMatchStyles
 
@@ -99,14 +96,7 @@ private fun FileMatchHeader(file: MatchedFile, folded: Boolean, onToggle: () -> 
       .padding(horizontal = Spacing.md, vertical = Spacing.sm),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Icon(
-      // AutoMirrored on the folded arm and not on the open one, which is Material's own split
-      // rather than an inconsistency: a chevron pointing *into* the row flips in a right-to-left
-      // locale and one pointing down does not. Same rule the rail's own icons follow.
-      imageVector = if (folded) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.Filled.KeyboardArrowDown,
-      contentDescription = null,
-      tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    Twistie(collapsed = folded)
     Column(modifier = Modifier.weight(1f).padding(start = Spacing.sm)) {
       Text(
         text = notebookLeafOf(file.path),

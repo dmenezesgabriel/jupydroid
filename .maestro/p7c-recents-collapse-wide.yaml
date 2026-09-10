@@ -1,0 +1,46 @@
+appId: com.jupydroid.app
+---
+# P7c at two panes: the section shares the window with an open document, which is the arrangement
+# the reference's side bar is always in.
+#
+# The collapse has no width rule - it is one section's state, not a layout branch - so this is a
+# second reading of the same behaviour rather than the other half of a rule. What only two panes
+# can show is that collapsing the browser's own section leaves the document alone.
+#
+# WIDE WINDOW (>= 840dp). Runs no cell: the document is a plain file.
+- launchApp
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- assertNotVisible: "Recent"
+
+# Opened from the browser, and the browser stays: at two panes `openDocumentPath` keeps it beside
+# the document (`Navigation.kt:152`, `.takeIf { twoPane }`).
+- tapOn: "reports"
+- tapOn: "data.csv"
+- extendedWaitUntil:
+    visible: ".*region,amount.*"
+    timeout: 15000
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "Recent"
+    timeout: 5000
+- assertVisible: "reports/data.csv"
+- takeScreenshot: 01-the-section-beside-the-document
+
+- tapOn: "Recent"
+- extendedWaitUntil:
+    notVisible: "reports/data.csv"
+    timeout: 5000
+- assertVisible: "Recent"
+- assertNotVisible: "Recent actions"
+# The document is untouched by the section shutting - the two are different parts, which is what
+# the seam between them is drawn to say (P7a-2).
+- assertVisible: ".*region,amount.*"
+- takeScreenshot: 02-collapsed-and-the-document-is-untouched
+
+- tapOn: "Recent"
+- extendedWaitUntil:
+    visible: "reports/data.csv"
+    timeout: 5000
+- takeScreenshot: 03-expanded-again

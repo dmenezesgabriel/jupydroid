@@ -9,7 +9,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="$ROOT/evidence/x2f-explorer-rename"
+# Overridable, so a step that only needs this flow *green again* can capture under its own name
+# rather than overwriting frames captured on another device. P7c needed exactly that: it moved
+# Clear behind the section's overflow, so this flow's two taps changed and its committed
+# tablet frames must not be replaced by an emulator's (`EVIDENCE_ROOT=…` -> P7a-3's precedent).
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/x2f-explorer-rename}"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"

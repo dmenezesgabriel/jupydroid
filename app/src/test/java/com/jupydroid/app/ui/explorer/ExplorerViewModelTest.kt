@@ -3,12 +3,8 @@ package com.jupydroid.app.ui.explorer
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
-import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
-import com.jupydroid.app.domain.model.RecentDocument
-import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.port.NotebookRepository
-import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -319,78 +315,6 @@ class ExplorerViewModelTest {
   }
 
   /**
-   * The root carries Recents; a subdirectory does not.
-   *
-   * A recents list is not a property of the folder you are standing in - the reference's own
-   * surfaces are global, a File menu submenu and a sidebar panel, never per-directory. At the root
-   * it is the first thing under the bar; one level down the screen is about *that folder*.
-   */
-  @Test
-  fun theRootCarriesRecentsAndADirectoryDoesNot() = runTest {
-    given("reports/summary.ipynb")
-    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listOf(recent("reports/summary.ipynb"))))
-
-    assertEquals(listOf("reports/summary.ipynb"), viewModel.uiState.value.recents.map { it.path })
-
-    viewModel.open(viewModel.uiState.value.entries.single())
-
-    assertTrue("a subdirectory must not carry Recents", viewModel.uiState.value.recents.isEmpty())
-  }
-
-  /** Directories first, which is `RecentsMenu.updateItems`' only sorting rule. */
-  @Test
-  fun recentsListDirectoriesFirst() = runTest {
-    given("reports/summary.ipynb")
-    val listed = listOf(recent("reports/summary.ipynb"), recentFolder("reports"))
-
-    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listed))
-
-    assertEquals(listOf("reports", "reports/summary.ipynb"), viewModel.uiState.value.recents.map { it.path })
-  }
-
-  /**
-   * A recent folder navigates the browser it lives in; only a document opens.
-   *
-   * The reference makes the same split - `openRecent` prefers the file browser's `openPath` for a
-   * `contentType: 'directory'` and sends everything else to `docmanager:open`
-   * (`packages/mainmenu-extension/src/recents.ts`).
-   */
-  @Test
-  fun openingARecentFolderDescendsRatherThanOpeningADocument() = runTest {
-    given("reports/summary.ipynb")
-    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listOf(recentFolder("reports"))))
-    var opened: String? = null
-
-    viewModel.openRecent(viewModel.uiState.value.recents.single()) { opened = it }
-
-    assertEquals("reports", viewModel.uiState.value.path)
-    assertNull("a folder must not be handed to a document editor", opened)
-  }
-
-  @Test
-  fun openingARecentDocumentHandsItToTheEditor() = runTest {
-    given("reports/summary.ipynb")
-    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listOf(recent("reports/summary.ipynb"))))
-    var opened: String? = null
-
-    viewModel.openRecent(viewModel.uiState.value.recents.single()) { opened = it }
-
-    assertEquals("reports/summary.ipynb", opened)
-    assertEquals("the browser must not have moved", "", viewModel.uiState.value.path)
-  }
-
-  /** `docmanager:clear-recents`, which the reference offers from the same submenu. */
-  @Test
-  fun clearingRecentsEmptiesTheSection() = runTest {
-    given("notes.txt")
-    val viewModel = explorer(recents = FakeRecentDocumentsRepository(listOf(recent("notes.txt"))))
-
-    viewModel.clearRecents()
-
-    assertTrue(viewModel.uiState.value.recents.isEmpty())
-  }
-
-  /**
    * **A poll that started before a navigation must not land on top of it** - found on the tablet,
    * where the notebook's breadcrumb (P2w-1) is the first thing that navigates this browser from
    * outside it. Coming back into composition restarts `KeepTheListingFresh`, which calls
@@ -474,10 +398,6 @@ class ExplorerViewModelTest {
     assertEquals(listOf("Later.ipynb", "Nested.ipynb"), viewModel.uiState.value.entries.map { it.name })
   }
 
-  private fun recent(path: String) = RecentDocument(path, WorkspaceEntryKind.FILE)
-
-  private fun recentFolder(path: String) = RecentDocument(path, WorkspaceEntryKind.DIRECTORY)
-
   /**
    * The repository is given the *test* dispatcher, or nothing here waits for it.
    *
@@ -488,9 +408,8 @@ class ExplorerViewModelTest {
   private fun TestScope.explorer(
     notebooks: NotebookRepository =
       DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler)),
-    recents: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
     workspace: WorkspaceRepository = disk(),
-  ) = ExplorerViewModel(workspace, notebooks, recents)
+  ) = ExplorerViewModel(workspace, notebooks)
 
   private fun TestScope.disk() = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
 

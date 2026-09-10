@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.explorer
 
-import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
 
 /**
@@ -14,9 +13,6 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
  *   reference's question on screen - `"%1" already exists, overwrite?` - and only a taken name
  *   gets there, exactly as only a 409 does in `renameFile`; an invalid name is never offered an
  *   overwrite, because it is simply not a name.
- * @property recents what was opened, directories first, and **empty anywhere but the root**. A
- *   recents list is not a property of the folder you are standing in: the reference's own surfaces
- *   are global - a File menu submenu and a sidebar panel - never per-directory.
  */
 data class ExplorerUiState(
   val path: String = "",
@@ -24,7 +20,6 @@ data class ExplorerUiState(
   val crumbs: List<Pair<String, String>> = emptyList(),
   val error: String? = null,
   val nameTaken: String? = null,
-  val recents: List<RecentDocument> = emptyList(),
   /**
    * The path a creation just made, until the listing has scrolled to it - or null.
    *

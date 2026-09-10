@@ -39,6 +39,12 @@ RECENTS_STORE="files/recent-documents.json"
 # them. `EditorSettingsRepository` reads its default the moment this file is gone.
 EDITOR_SETTINGS_STORE="files/editor-settings.json"
 
+# The explorer preferences (P7c) - whether the Recents section is shut - beside the two above and
+# cleared for exactly their reason, sharpened: this one is *invisible*. A flow that collapses the
+# section leaves every flow after it on that device looking at a browser with no recent rows in it,
+# and nothing on screen says why. `ExplorerSettingsRepository` reads its default once this is gone.
+EXPLORER_SETTINGS_STORE="files/explorer-settings.json"
+
 # --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator and a
 # phone attached it picks one of its own accord and the fixture is on the other.
 MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
@@ -64,6 +70,7 @@ reset_notebooks() {
   "$ADB" shell "run-as $APP sh -c 'cd \"$NOTEBOOK_DIR\" 2>/dev/null && rm -rf ./*' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$RECENTS_STORE\"' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$EDITOR_SETTINGS_STORE\"' || true"
+  "$ADB" shell "run-as $APP sh -c 'rm -f \"$EXPLORER_SETTINGS_STORE\"' || true"
 }
 
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.
