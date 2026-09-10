@@ -193,6 +193,20 @@ fun MainNavigation(
     }
   }
 
+  // **A breadcrumb segment, and one copy of what it does.** JupyterLab's `this._model.cd(destination)`
+  // (`packages/filebrowser/src/crumbs.ts:415`) - so the browser has to be *showing* for the
+  // navigation to be visible, and which half of the shell that needs differs by layout. Beside the
+  // document the side area may be drawing the table of contents instead; in one window the browser
+  // is not composed at all until the open entry goes.
+  //
+  // **Both documents take this same lambda** - the notebook since P2w-1, the plain file editor
+  // since P7b - because two copies of a branch that has to agree is a defect waiting to be written,
+  // which is the reason `ShellSidePane` stopped being handed the width fact twice in P7a-2.
+  val goToFolder: (String) -> Unit = { folder ->
+    browseRequest = folder
+    if (twoPane) sidePanel = SidePanel.FILES else backStack.removeLastOrNull()
+  }
+
   // **Back reaches the start destination before it leaves the app.** Android's own principle: the
   // start destination *"is also the last screen the user sees when they return to the launcher
   // after pressing the Back button"* (`developer.android.com/guide/navigation/principles`). The
@@ -296,6 +310,7 @@ fun MainNavigation(
             applicationScope = appContainer.applicationScope,
             editorSettingsRepository = appContainer.editorSettings,
             onBack = { backStack.removeLastOrNull() },
+            onGoToFolder = goToFolder,
             reveal = revealRequest,
             onRevealHandled = { revealRequest = null },
             openDocuments = openDocuments,
@@ -316,15 +331,7 @@ fun MainNavigation(
             // `toc:show-panel` where there is a side area to activate, and null where there is not -
             // which is what puts the overlay up on a compact window instead.
             onShowTableOfContents = { sidePanel = SidePanel.TABLE_OF_CONTENTS }.takeIf { twoPane },
-            // A breadcrumb segment, which is JupyterLab's `this._model.cd(destination)`
-            // (`packages/filebrowser/src/crumbs.ts:415`) - so the browser has to be *showing* for
-            // the navigation to be visible, and which half that needs differs by layout. Beside
-            // the notebook the side area may be drawing the table of contents instead; in one
-            // window the browser is not composed at all until this entry goes.
-            onGoToFolder = { folder ->
-              browseRequest = folder
-              if (twoPane) sidePanel = SidePanel.FILES else backStack.removeLastOrNull()
-            },
+            onGoToFolder = goToFolder,
             onBack = { backStack.removeLastOrNull() },
             onNotebookMoved = { moved -> openNotebookId = moved },
             // The same request the file editor takes, because the panel does not know - and should

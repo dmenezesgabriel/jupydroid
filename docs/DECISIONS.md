@@ -5761,3 +5761,36 @@ one.
 
 **This forbids** matching a Kotlin construct against raw file text in a new gate, and forbids
 working around a gate by rewording the prose it misread.
+
+### The plain file editor takes the notebook's breadcrumb, and both take one lambda (P7b)
+
+`FileEditorScreen` draws `ancestorCrumbsFor(path, ROOT_LABEL)` through the existing `ui/Breadcrumb.kt`
+— reuse, not a second implementation, which is the point of P2w-1 having put the segmenting in
+`ui/PathCrumbs.kt` in the first place. **P2w-1's three departures are inherited, not re-argued**:
+ancestors only (the name is on the row above, so it is never said twice), absent rather than blank
+at the root, and a tap that *navigates the browser* — JupyterLab's `this._model.cd(destination)`
+(`packages/filebrowser/src/crumbs.ts:415`) rather than VS Code's picker.
+
+**Under the bar, where the notebook puts it between two.** `BreadcrumbsControl` sits beneath a tab
+title; the notebook has a title strip and an action row and puts the trail between them
+(`EditorTopBar`), while this screen's single `TopAppBar` is both, so under it is the same position.
+**`EditorTopBar`'s collapsing arithmetic is deliberately not copied** — `titleCollapse` exists
+because the notebook scrolls under a three-row region, and this bar does not collapse today.
+
+**And the inset defect `EditorTopBar` records cannot arise here.** That bar had to hoist
+`TopAppBarDefaults.windowInsets` onto its `Column` because its `TopAppBar` was the *second* row and
+padded itself down by the status bar while the first row drew under the clock. Here the `TopAppBar`
+is still the first element, so it keeps its own insets and the crumb row sits below them — checked
+on a device frame (`evidence/p7b-file-editor-breadcrumb/320dp/03-…png`), not reasoned about, since
+no assertion in this suite sees a system inset.
+
+**`Navigation.kt` now holds one `goToFolder` and hands it to both documents.** The lambda has a
+branch in it — `if (twoPane) sidePanel = SidePanel.FILES else backStack.removeLastOrNull()`, because
+beside a document the side area may be drawing the table of contents and in one window the browser
+is not composed at all until the open entry goes. Two copies of a branch that has to agree is a
+defect waiting to be written, which is the same reason `ShellSidePane` stopped being handed the
+width fact twice in P7a-2. `p2w-1-breadcrumb` and `p2w-1-breadcrumb-wide` were re-run green on the
+refactor, because the notebook's own path through that lambda changed even though its flow did not.
+
+**This forbids** a second breadcrumb implementation, a second `onGoToFolder` branch, and giving this
+bar a collapsing region without the scroll state that would justify one.

@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.fileeditor
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -17,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +39,9 @@ import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.app.ui.Breadcrumb
+import com.jupydroid.app.ui.ROOT_LABEL
+import com.jupydroid.app.ui.ancestorCrumbsFor
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.PythonTypingRules
 import com.jupydroid.app.ui.editor.adoptRewrittenSource
@@ -68,6 +73,14 @@ fun FileEditorScreen(
    */
   editorSettingsRepository: EditorSettingsRepository,
   onBack: () -> Unit,
+  /**
+   * A breadcrumb segment was tapped: browse that folder (`""` is the workspace root).
+   *
+   * The same door the notebook has (`EditorScreen.onGoToFolder`), wired to the same lambda in
+   * `Navigation.kt` rather than a second copy of it - the browser is a different `NavEntry`, so
+   * which half of the shell has to move differs by layout and neither document should know that.
+   */
+  onGoToFolder: (String) -> Unit = {},
   /**
    * A search result this screen was opened from, to be landed on - `IEditorOptions.selection`,
    * which `searchView.open` builds from the match's own range (`searchView.ts:2240-2256`).
@@ -103,14 +116,33 @@ fun FileEditorScreen(
     // palette states its colours; it does not derive them from a Material role").
     containerColor = editorPalette.editorBackground,
     topBar = {
-      TopAppBar(
-        title = { Text(state.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        navigationIcon = {
-          IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to files")
-          }
-        },
-      )
+      // **The trail is under the row carrying the name**, which is where `BreadcrumbsControl` sits
+      // relative to a tab title (`parts/editor/breadcrumbsControl.ts`). The notebook puts its own
+      // between a title strip and an action row because it has two (P2w-1); this screen's single
+      // row is both, so under it is the same position.
+      //
+      // **The Column takes the bar's colour and the bar keeps its own insets.** `EditorTopBar` had
+      // to hoist `TopAppBarDefaults.windowInsets` onto its Column because its `TopAppBar` was the
+      // *second* row and padded itself down by the status bar; here it is still the first, so the
+      // defect that entry records cannot arise - checked on a device frame, not reasoned about.
+      Column(modifier = Modifier.background(TopAppBarDefaults.topAppBarColors().containerColor)) {
+        TopAppBar(
+          title = { Text(state.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+          navigationIcon = {
+            IconButton(onClick = onBack) {
+              Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to files")
+            }
+          },
+        )
+        // Ancestors only, and **absent** rather than blank at the root - P2w-1's three departures
+        // from VS Code, argued once in [ancestorCrumbsFor] and inherited here rather than
+        // re-decided. This bar does not collapse, so `EditorTopBar`'s own scroll arithmetic is not
+        // copied with it.
+        val crumbs = ancestorCrumbsFor(path, ROOT_LABEL)
+        if (crumbs.isNotEmpty()) {
+          Breadcrumb(crumbs = crumbs, onGoTo = onGoToFolder)
+        }
+      }
     },
   ) { padding ->
     Column(modifier = Modifier.padding(padding).imePadding()) {

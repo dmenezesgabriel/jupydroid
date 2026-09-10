@@ -1,0 +1,64 @@
+appId: com.jupydroid.app
+---
+# P7b: the plain file editor's breadcrumb. Where a file lives, and the way back to its folder.
+#
+# The trail the notebook has had since P2w-1, on the other document this app opens. It is
+# **ancestors only** - the file's own name is on the bar above it, so the name is never said twice -
+# and it sits **under** that bar, which is where `BreadcrumbsControl` sits relative to a tab title
+# (`parts/editor/breadcrumbsControl.ts`). The notebook has two rows and puts the trail between
+# them; this screen's single row is both, so under it is the same position.
+#
+# One pane, deliberately: in two panes the browser draws a trail of its own, so "Workspace" and
+# "reports" are each on screen twice and a selector would be a coin toss. The two-pane half is
+# `p7b-file-editor-breadcrumb-wide`, which hides the browser behind the outline to disambiguate.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+- takeScreenshot: 01-the-workspace
+
+# A file at the workspace root has no ancestry, so the row is **absent** rather than blank -
+# `ancestorCrumbsFor` returns empty there, and 48dp spent saying nothing is the trade P2v declined
+# the run gutter over. "Back to files" is the plain editor's own arrow, so seeing it proves the
+# file did not open as a notebook.
+- tapOn: "file_editor.py"
+- assertVisible: "Back to files"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 10000
+- assertNotVisible: "Workspace"
+- takeScreenshot: 02-at-the-root-there-is-no-trail
+- tapOn: "Back to files"
+
+# A file inside a folder says so, on a row under the one carrying its name.
+- tapOn: "reports"
+- tapOn: "data.csv"
+- extendedWaitUntil:
+    visible: ".*north.*"
+    timeout: 10000
+- assertVisible: "data.csv"
+- assertVisible: "Workspace"
+- assertVisible: "reports"
+- takeScreenshot: 03-a-nested-file-says-where-it-lives
+
+# **A tap navigates the browser**, which is JupyterLab's `this._model.cd(destination)`
+# (`packages/filebrowser/src/crumbs.ts:415`) and not VS Code's picker. The root crumb's path is the
+# empty string, so this lands at the top of the workspace - past the folder the file was opened
+# from, which is what proves it navigated rather than merely went back.
+- tapOn: "Workspace"
+- assertVisible: "file_editor.py"
+- assertVisible: "reports"
+- assertNotVisible: "data.csv"
+- takeScreenshot: 04-the-root-crumb-browsed-to-the-root
+
+# And a folder segment lands in *that* folder rather than at the root.
+- tapOn: "reports"
+- tapOn: "data.csv"
+- extendedWaitUntil:
+    visible: ".*north.*"
+    timeout: 10000
+- tapOn: "reports"
+- assertVisible: "data.csv"
+- assertVisible: "Nested.ipynb"
+- assertNotVisible: "file_editor.py"
+- takeScreenshot: 05-the-folder-crumb-browsed-to-the-folder

@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# P7b, the half only two panes can reach: a crumb tapped in the file editor has to reach a browser
+# that is a *different* `NavEntry` - and that is not enough on its own, because the side area may
+# be drawing the table of contents instead. `goToFolder` shows Files again before it navigates,
+# and this is the flow that proves it for the plain editor, as `p2w-1-breadcrumb-wide` does for the
+# notebook. Both take the same lambda since P7b, so this is also what says the hoist is wired.
+#
+# Driving it with the outline up is also what makes the assertions unambiguous. In two panes the
+# browser draws a crumb trail of its own, so "Workspace" and "reports" are each on screen twice.
+# Behind the outline the file's trail is the only one.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "reports"
+- tapOn: "data.csv"
+- extendedWaitUntil:
+    visible: ".*north.*"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-the-nested-file-beside-the-browser
+
+# The rail swaps the side area over to the outline, which is `labShell.activateById(toc.id)`.
+# The browser and its own trail go with it. `Nested.ipynb` is the marker rather than `data.csv`,
+# because `data.csv` is also the open document's name and would still be on screen.
+- tapOn: "Table of contents"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "Nested.ipynb"
+- takeScreenshot: 02-the-outline-has-the-side-area
+
+# The file's own trail is still there - it is the document's, not the shell's - and its tap has to
+# do both halves: bring the browser back and move it.
+- tapOn: "Workspace"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "file_editor.py"
+- assertVisible: "reports"
+# The file did not close: two panes, so the browser arrives *beside* it.
+- assertVisible: ".*north.*"
+- takeScreenshot: 03-the-crumb-brought-the-browser-back-at-the-root
