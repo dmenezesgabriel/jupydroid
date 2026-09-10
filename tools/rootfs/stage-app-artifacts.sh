@@ -92,12 +92,20 @@ docker buildx build --platform "$PLATFORM" --target busybox-artifact \
   --output "type=local,dest=$STAGE_DIR/busybox-out" "$DOCKER_DIR"
 cp "$STAGE_DIR/busybox-out/busybox" "$STAGE_DIR/libbusybox.so"
 
+echo "==> building the console-script trampoline (P7e-2)"
+# Same exception, same reason: static, so the ELF is what ships - no PT_INTERP edit below touches
+# it. See shebang_exec.c for why `pip`, `jupyter` and 29 other `#!` scripts cannot run otherwise.
+docker buildx build --platform "$PLATFORM" --target shebang-artifact \
+  --output "type=local,dest=$STAGE_DIR/shebang-out" "$DOCKER_DIR"
+cp "$STAGE_DIR/shebang-out/shebang-exec" "$STAGE_DIR/libshebang.so"
+
 echo "==> repointing PT_INTERP and RPATH"
 # The stock PT_INTERP is /$LOADER, an absolute path that on Android resolves against the device
 # root, not the rootfs. Repoint it at the rootfs's on-device location, where the installer symlinks
 # it on into nativeLibraryDir - the only place an ELF interpreter may live
 # (evidence/step8.3/musl-runs.txt). The loader itself is not patched: it *is* the interpreter.
 docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" -v "$STAGE_DIR:/out" "$PATCHELF_IMAGE" sh -euc "
+  # libshebang.so is deliberately absent: it is static, so it has no PT_INTERP or rpath to set.
   for elf in /out/libpython3.so /out/libbusybox.so; do
     patchelf --set-interpreter '$ROOTFS_ON_DEVICE/$LOADER' \
              --set-rpath '$ROOTFS_ON_DEVICE/usr/lib:$ROOTFS_ON_DEVICE/lib' \
@@ -105,7 +113,8 @@ docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" -v "$STAGE_DIR
   done
 "
 
-install -m 0644 "$STAGE_DIR/libloader.so" "$STAGE_DIR/libpython3.so" "$STAGE_DIR/libbusybox.so" "$JNI_DIR/"
+install -m 0644 "$STAGE_DIR/libloader.so" "$STAGE_DIR/libpython3.so" "$STAGE_DIR/libbusybox.so" \
+  "$STAGE_DIR/libshebang.so" "$JNI_DIR/"
 
 echo "==> staged:"
 ls -l "$JNI_DIR" "$ASSET_DIR"

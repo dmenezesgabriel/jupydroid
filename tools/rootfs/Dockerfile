@@ -27,6 +27,27 @@ COPY musl_at_shim.c /tmp/musl_at_shim.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libmusl_at_shim.so /tmp/musl_at_shim.c \
  && strip /tmp/libmusl_at_shim.so
 
+# The console-script trampoline. Static, so it needs no loader and none of stage-app-artifacts.sh's
+# ELF surgery - the one shipped executable that is self-contained. See shebang_exec.c for why a
+# `#!/usr/bin/python3` script cannot be run any other way under `filesDir`.
+COPY shebang_exec.c /tmp/shebang_exec.c
+RUN gcc -static -O2 -Wall -Wextra -Werror -o /tmp/shebang-exec /tmp/shebang_exec.c \
+ && strip /tmp/shebang-exec
+# Prove it dispatches, here rather than on the device: reached by a name, it must find the *other*
+# file of that name on PATH (the `#!` script, not its own ELF), read the shebang, exec the
+# interpreter and pass the caller's args through - and honour a `#!/usr/bin/env python3` arg. A
+# trampoline that finds itself, or drops an argument, is a build error.
+# `#!/bin/sh` and `#!/usr/bin/env sh`, not python - this builder stage has no interpreter but the
+# dispatch logic is the interpreter-agnostic part. `JUPYDROID_SPACE_ROOT` is unset here so an
+# absolute shebang keeps its path, which is why `/bin/sh` has to exist (it does, in alpine).
+RUN set -eux; d=$(mktemp -d); mkdir -p "$d/bin" "$d/usr/bin"; \
+    ln -s /tmp/shebang-exec "$d/bin/pip"; ln -s /tmp/shebang-exec "$d/bin/jflag"; \
+    printf '#!/bin/sh\necho "D:$*"\n' > "$d/usr/bin/pip"; \
+    printf '#!/usr/bin/env sh\necho "E:$*"\n' > "$d/usr/bin/jflag"; \
+    test "$(PATH="$d/usr/bin:$PATH" "$d/bin/pip" --version q)" = 'D:--version q'; \
+    test "$(PATH="$d/usr/bin:$PATH" "$d/bin/jflag" x)" = 'E:x'; \
+    rm -rf "$d"; echo 'shebang-exec dispatches'
+
 # busybox is built here rather than taken from `apk add busybox`, and the reason is one config
 # flag: Alpine ships CONFIG_FEATURE_SUID=y, which compiles in check_suid() and makes every applet
 # dispatch call setgid()/setuid() - both refused to app processes by Android's seccomp filter, so
@@ -78,6 +99,11 @@ RUN grep -q '^# CONFIG_FEATURE_SUID is not set$' /tmp/busybox/.config \
 # longer comes out of the rootfs tarball.
 FROM scratch AS busybox-artifact
 COPY --from=busybox-builder /tmp/busybox/busybox /busybox
+
+# Same pattern for the trampoline: one file crosses over, stage-app-artifacts.sh builds this
+# target directly. Static, so unlike libbusybox.so it is shipped as-is with no PT_INTERP edit.
+FROM scratch AS shebang-artifact
+COPY --from=sigsys-builder /tmp/shebang-exec /shebang-exec
 
 FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 
