@@ -52,6 +52,27 @@ class OffencesTest(unittest.TestCase):
         found = self.offences("// from the reference\nprivate val GAP = 5.dp\n")
         self.assertEqual(1, len(found), found)
 
+    def test_a_literal_in_a_line_comment_is_not_a_dimension(self):
+        """Prose is not a point of use, which is the whole rule - see the module docstring."""
+        self.assertEqual([], self.offences("// 8.dp used to live here\nval name = \"x\"\n"))
+
+    def test_a_kdoc_may_name_the_number_it_is_explaining(self):
+        """`theme/CornerRadius.kt` is the file that found this: its KDoc explains a retired literal."""
+        source = "/** Was `TOGGLE_CORNER = 8.dp`, chosen against nothing. */\nval large: Dp = 8.dp\n"
+        self.assertEqual([], self.offences(source))
+
+    def test_a_real_literal_beside_a_comment_is_still_reported(self):
+        """The blanking must not become an escape hatch: only the comment half goes."""
+        found = self.offences("Modifier.padding(16.dp)  // and 24.dp was too much\n")
+        self.assertEqual(1, len(found), found)
+        self.assertIn("16.dp", found[0])
+
+    def test_a_block_comment_does_not_renumber_what_follows_it(self):
+        """Blanked rather than deleted, so a comment's newlines survive and line 4 is still line 4."""
+        found = self.offences("/*\n * 5.dp\n */\nModifier.padding(16.dp)\n")
+        self.assertEqual(1, len(found), found)
+        self.assertIn(":4:", found[0])
+
     def test_a_file_with_no_dimensions_is_silent(self):
         self.assertEqual([], self.offences("val name = \"x\"\n"))
 

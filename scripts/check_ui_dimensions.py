@@ -27,6 +27,14 @@ where they came from, which `CellFrame` and `CellStripe` were already paying bef
 
 `0.dp` is exempt: it is a sentinel - `if (width <= 0.dp)` - not a spacing decision.
 
+**And a number a comment is talking *about* is not a use of it.** This gate read raw file text
+until P7a-3, when `theme/CornerRadius.kt` arrived with a KDoc explaining which literal it had
+retired - `` `TOGGLE_CORNER = 8.dp`, a number chosen against nothing `` - and the gate refused
+the file over its own justification. That is the same defect `check_palette_consumers.py` had
+and fixed one step earlier from the other side, so the scanner has one home:
+`kotlin_source.without_comments`, which blanks comments **to spaces** rather than deleting them
+so this file's line numbers and its read of the line above a declaration still hold.
+
 Tests in check_ui_dimensions_test.py, including one that runs the gate over this repository, so a
 gate that has stopped matching anything fails rather than passing quietly.
 """
@@ -35,6 +43,8 @@ from __future__ import annotations
 import pathlib
 import re
 import sys
+
+from kotlin_source import without_comments
 
 UI_SOURCE = pathlib.Path("app/src/main/java/com/jupydroid/app")
 #: The scale is where the numbers live, so it is the one file allowed to spell them out.
@@ -54,10 +64,15 @@ def offences_in(path: pathlib.Path, root: pathlib.Path) -> list[str]:
     relative = path.relative_to(root).as_posix()
     if relative.endswith(THE_SCALE):
         return []
-    lines = path.read_text().splitlines()
+    source = path.read_text()
+    # Two readings of the same file, and they are not interchangeable. Literals are counted in the
+    # *code*, so a KDoc naming a number it retired is not an offence; the KDoc check and the
+    # message read the **source**, because a blanked comment is whitespace and neither would work.
+    lines = source.splitlines()
+    code = without_comments(source).splitlines()
     found: list[str] = []
     for at, line in enumerate(lines):
-        literals = LITERAL.findall(line)
+        literals = LITERAL.findall(code[at])
         if not literals:
             continue
         declared = DECLARATION.match(line)
