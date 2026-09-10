@@ -27,7 +27,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FLOW="$ROOT/.maestro/p7a-1b-toggle-wash.yaml"
 LAYOUT="${1:-two-pane}"
-EVIDENCE="$ROOT/evidence/p7a-1b-toggle-wash/$LAYOUT"
+# Overridable, so a later step can re-run this oracle without overwriting P7a-1b's own
+# committed frames. P7a-3 needed exactly that: it moves this toggle's radius onto a named
+# scale and changes no pixel, so the proof it owes is *this* check still green, captured
+# under its own name (`EVIDENCE_ROOT=… evidence/p7a-3-corner-radius`).
+EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/p7a-1b-toggle-wash}/$LAYOUT"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"

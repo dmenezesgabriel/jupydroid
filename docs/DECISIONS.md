@@ -5696,3 +5696,68 @@ pixel bound here was measured against.
 negative control proving the same call can report the opposite - P4j-3c's own entry made exactly
 this point about a flat measurement across an intended change, and it applies just as much to a
 comparison intended to find no change as to one intended to find one.
+
+### The corner scale is transcribed, minus the one token Compose already names (P7a-3)
+
+`theme/CornerRadius.kt` transcribes VS Code's registered corner radii
+(`platform/theme/common/sizes/baseSizes.ts:90-108`, at the clone's own sha `3f3380c668d`) — xSmall 2,
+small 4, medium 6, large 8, xLarge 12 — and `SearchOptionToggles`' `TOGGLE_CORNER = 8.dp`, the one
+rounded thing in the app, is retired onto `CornerRadius.large`. Same 8dp before and after; what
+changed is that the number can now say where it came from, which is what every colour in
+`ChromePalette` and `EditorPalette` has been able to say since P2u.
+
+**It is a second scale rather than more steps on `Spacing`, and that is not tidiness.** `Spacing` is
+Material's 4dp grid — a rule this app chose, which is why `SpacingTest` can assert `% 4` over it and
+a new step can be checked *against* it. Two of these radii are **off** that grid (2 and 6). Folding
+them in would make the grid's own gate meaningless, and `CornerRadiusTest` pins by **equality**
+instead, because a transcription has no property to check: `ColorRamp.LightGray4` held `#DADADA`
+for months where the reference states `#DADADA99` and every test over it passed, since they asserted
+membership rather than value (P7a-1b).
+
+**`cornerRadius.circle` (9999px, `baseSizes.ts:110-112`) is deliberately not on the scale**, and
+`CornerRadiusTest.theCircleTokenIsNotOnTheScale` asserts the absence rather than leaving it to a
+comment. 9999px is CSS's way of spelling a shape Compose names outright — `CircleShape` — so
+transcribing it would add a `9999.dp` val no consumer could legitimately draw, which is exactly the
+field `scripts/check_palette_consumers.py` refuses for a colour and exactly what P7a-1's "two
+fields, not six" refused for a palette.
+
+**No workbench *part* gets a radius**, which P7's plan already settled and this file restates
+because the file is where someone will look: the ask that opened the phase was for "discrete borders
+with border-radius", and every `border-radius` under `parts/sidebar/`, `parts/activitybar/` and
+`parts/editor/media/` is a badge, a floating panel, a drop target or a modal. `strokeThickness` does
+not move here either — P7a-2 gave it the one home a single consumer earns, a documented private val
+in `ui/shell/PartBorder.kt`, and it must not fold into `CellEditorBox`'s `BORDER_WIDTH`, which
+measures the same 1dp from JupyterLab's `--jp-border-width`. Two references, two citations.
+
+**This forbids** putting an off-grid radius on `Spacing`, giving a part a radius, or "completing"
+the transcription with `circle`.
+
+### A gate that reads prose is a gate that reads the wrong file (P7a-3)
+
+`check_ui_dimensions.py` refused `theme/CornerRadius.kt` over its own justification — the KDoc
+sentence *"`TOGGLE_CORNER = 8.dp`, a number chosen against nothing"* — because it matched `\d+\.dp`
+against raw file text. Three hits, all prose, and the rule the gate enforces is explicitly *about
+the point of use*: a comment is not one.
+
+This is the same defect `check_palette_consumers.py` had one step earlier from the other side, where
+a KDoc naming a neighbouring palette's field counted as *reading* it (P7a-2). So the scanner has one
+home now — **`scripts/kotlin_source.py`**, imported by both, the way `check_node_fill.py` imports
+`read_node_fill` and `check_chrome_parts.py` imports `read_chrome_parts`.
+
+**It blanks comments to spaces rather than deleting them, and that is what the move required.**
+`check_ui_dimensions.py` reports a line number and reads the line *directly above* a declaration to
+find its KDoc; a scanner that swallowed a block comment's newlines would renumber the rest of the
+file and break both. The result is the same length as the source, character for character, and
+`kotlin_source_test.py` holds that property directly. A scanner and not a regex for the reason
+`resolve_vscode_theme.strip_jsonc` is one: `"https://…"` is a string, and Kotlin's block comments
+nest.
+
+**Measured before it was trusted, the way P7a-2's own comment-stripping was.** Across
+`app/src/main/java`, reading raw text finds 29 literals and reading code finds 26: the three that
+disappear are this step's own prose (`theme/CornerRadius.kt:11`, `:28`,
+`ui/shell/SearchOptionToggles.kt:103`). **No pre-existing offence was pardoned** — that is the
+number that mattered, since a comment-blind gate could just as easily have gone quiet about a real
+one.
+
+**This forbids** matching a Kotlin construct against raw file text in a new gate, and forbids
+working around a gate by rewording the prose it misread.

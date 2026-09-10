@@ -16,8 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.SearchQuery
+import com.jupydroid.app.theme.CornerRadius
 import com.jupydroid.app.ui.editor.IGNORE_CASE
 import com.jupydroid.app.ui.editor.MATCH_ANYWHERE
 import com.jupydroid.app.ui.editor.MATCH_CASE
@@ -98,7 +98,11 @@ internal fun SearchOptionToggle(
   Box(
     modifier = Modifier
       .size(MINIMUM_TAP_TARGET)
-      .clip(RoundedCornerShape(TOGGLE_CORNER))
+      // `Toggle`'s own rounding, at the scale a 48dp target is drawn rather than a 20px one:
+      // `cornerRadius.large`, the step the reference reserves for *prominent* elements
+      // (`theme/CornerRadius.kt`). It reads as 8.dp either way - what changed in P7a-3 is that
+      // the number now says where it came from.
+      .clip(RoundedCornerShape(CornerRadius.large))
       .background(if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
       .clickable(onClick = onToggle)
       .semantics { contentDescription = label },
@@ -135,6 +139,3 @@ private const val WHOLE_WORD_GLYPH = "ab"
 
 /** `Codicon.regex` - an asterisk and a dot, the two shapes that svg is built from. */
 private const val REGEX_GLYPH = ".*"
-
-/** `Toggle`'s own rounding, at the scale a 48dp target is drawn rather than a 20px one. */
-private val TOGGLE_CORNER = 8.dp
