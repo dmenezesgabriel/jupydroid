@@ -171,4 +171,26 @@ class SpaceRuntimeTest {
 
     assertEquals(spaceShellIn(baseDir).path, shell)
   }
+
+  /**
+   * The rootfs ships a real CA bundle, and OpenSSL/musl both honour these two variables
+   * (measured: `openssl_cafile_env='SSL_CERT_FILE'`, evidence/p7e-0-runtime-probe/). Unconditional,
+   * unlike the preloads: the bundle always ships, so there is no older-Space case to guard.
+   */
+  @Test
+  fun environment_pointsOpensslAtTheShippedCaBundle() {
+    val env = runtime.environment()
+
+    assertEquals(
+      "/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs/ca-certificates.crt",
+      env["SSL_CERT_FILE"],
+    )
+  }
+
+  @Test
+  fun environment_pointsOpensslAtTheShippedCaDirectoryToo() {
+    val env = runtime.environment()
+
+    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs", env["SSL_CERT_DIR"])
+  }
 }

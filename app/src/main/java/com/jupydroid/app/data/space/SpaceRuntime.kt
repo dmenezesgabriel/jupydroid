@@ -47,6 +47,11 @@ class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: Fil
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.
     // musl has no multiarch directories, so these two cover the whole rootfs.
     "LD_LIBRARY_PATH" to listOf(inBase("usr/lib"), inBase("lib")).joinToString(":"),
+    // The rootfs ships a real CA bundle, and both OpenSSL and musl's own resolver honour these two
+    // variables (P7e-0: `openssl_cafile_env='SSL_CERT_FILE'`). Unconditional, unlike the preloads
+    // below - the bundle always ships, so there is no older-Space case to guard against.
+    "SSL_CERT_FILE" to inBase("etc/ssl/certs/ca-certificates.crt"),
+    "SSL_CERT_DIR" to inBase("etc/ssl/certs"),
   ) + sigsysHandler()
 
   /**
