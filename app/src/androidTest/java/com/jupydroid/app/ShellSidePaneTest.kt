@@ -69,6 +69,7 @@ class ShellSidePaneTest {
           onChoosePanel = {},
           appContainer = AppContainer(FakeNotebookRepository()),
           outline = OpenDocumentOutline(),
+          debugStack = OpenDebugStack(),
           openDocuments = OpenDocuments(),
           openDocument = {},
           openDocumentPath = null,

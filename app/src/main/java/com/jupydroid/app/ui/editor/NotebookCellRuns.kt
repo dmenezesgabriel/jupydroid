@@ -176,13 +176,20 @@ internal class NotebookCellRuns(
    * itself uses. The debug-event watcher started beside it follows that same session for exactly
    * as long as the execute flow is being collected - [Flow.onCompletion] is what cancels it the
    * instant that stops being true, whether the cell finished or the run was interrupted.
+   *
+   * **The watcher is launched only when [NotebookDebugger.startSession] actually attached.** A
+   * cell with no breakpoints returns `false` there and has no debug session for
+   * [NotebookDebugger.watchForStop] to watch - `BaseSpaceKernelDebugger.events` throws
+   * `StaleKernelSessionException` for a session that was never attached, uncaught inside the
+   * coroutine [scope] launches, which crashed the app on every ordinary run before this guard
+   * (found on a tablet, P6a-8's own Maestro run).
    */
   private fun eventsFor(cell: Cell): Flow<KernelEvent> = flow {
     emitAll(
       session.reopeningIfStale { open ->
-        debugger.startSession(open, cell)
-        val watcher = scope.launch { debugger.watchForStop(open, cell) }
-        kernelGateway.execute(open, cell.id, cell.source).onCompletion { watcher.cancel() }
+        val attached = debugger.startSession(open, cell)
+        val watcher = if (attached) scope.launch { debugger.watchForStop(open, cell) } else null
+        kernelGateway.execute(open, cell.id, cell.source).onCompletion { watcher?.cancel() }
       },
     )
   }

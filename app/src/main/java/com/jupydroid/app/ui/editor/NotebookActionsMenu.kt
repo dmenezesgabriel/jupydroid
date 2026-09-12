@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.EditorSettings
 
 /**
@@ -83,6 +84,10 @@ internal fun NotebookActionsMenu(
   onTableOfContentsHeadingSelected: (String) -> Unit,
   /** `toc:show-panel` where the shell has a side area - see [EditorTopBar]. Null where it has none. */
   onShowTableOfContentsPanel: (() -> Unit)?,
+  /** [DebuggerPanel]'s content - see [EditorTopBar]. */
+  debugStack: DebugStack?,
+  /** [onShowTableOfContentsPanel]'s own rule, for the debugger's side panel. */
+  onShowDebuggerPanel: (() -> Unit)?,
   /**
    * The active cell's type, where the bar has no room to name it itself - see [labelsFitOnActionRow].
    *
@@ -99,6 +104,9 @@ internal fun NotebookActionsMenu(
   // [TableOfContentsPanel] rather than closing it outright, the same two-step [CellActions]' own
   // heading-level picker already establishes.
   var tocOpen by remember { mutableStateOf(false) }
+  // [tocOpen]'s own reason: picking "Show call stack and variables" replaces this menu with
+  // [DebuggerPanel] rather than closing it outright.
+  var debuggerOpen by remember { mutableStateOf(false) }
   // The export picker, on its own flag for [tocOpen]'s reason: picking a format is a second step,
   // and `CellActionSurface` already cost a commit to learn that a row which opens something must
   // not also dismiss the surface it opened.
@@ -211,6 +219,16 @@ internal fun NotebookActionsMenu(
           onSettingsChanged(settings.copy(tocIncludeOutput = !settings.tocIncludeOutput))
         },
       )
+      // One row, two jobs, and which one is whether the shell has a side area - [SHOW_TABLE_OF_CONTENTS]'s
+      // own reasoning. Always offered, like that row: an empty stack draws [DebuggerPanel]'s own
+      // placeholder rather than the row being disabled.
+      DropdownMenuItem(
+        text = { Text(SHOW_DEBUGGER_PANEL) },
+        onClick = {
+          open = false
+          onShowDebuggerPanel?.invoke() ?: run { debuggerOpen = true }
+        },
+      )
     }
     // Same Box as "Notebook actions", so [TableOfContentsPanel]'s own `DropdownMenu` anchors to the
     // button that opened it rather than to wherever this composable happens to sit in the screen.
@@ -223,6 +241,8 @@ internal fun NotebookActionsMenu(
       onDismiss = { tocOpen = false },
       numbering = tocNumbering,
     )
+    // In the same Box for the same reason - see [TableOfContentsPanel]'s own comment just above.
+    DebuggerPanel(expanded = debuggerOpen, stack = debugStack, onDismiss = { debuggerOpen = false })
     // In the same Box for the same reason, so it anchors to the button that was tapped.
     ExportPicker(
       expanded = exportOpen,
@@ -387,3 +407,10 @@ internal const val SHOW_OUTPUT_HEADINGS = "Show output headings"
 
 /** The same command from the other side - see [SHOW_OUTPUT_HEADINGS]. */
 internal const val HIDE_OUTPUT_HEADINGS = "Hide output headings"
+
+/**
+ * One label, not two, for [SHOW_TABLE_OF_CONTENTS]'s own reason: [DebuggerPanel]'s row is read-only
+ * and declares no toggled state either. Named for what it shows rather than quoted from a reference
+ * command - JupyterLab's own Debugger sidebar has no "show" command to mirror; see [DebuggerPanel].
+ */
+internal const val SHOW_DEBUGGER_PANEL = "Show call stack and variables"

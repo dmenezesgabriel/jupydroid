@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Toc
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +35,7 @@ internal val SidePanel.label: String
     SidePanel.FILES -> "Files"
     SidePanel.SEARCH -> "Search"
     SidePanel.TABLE_OF_CONTENTS -> "Table of contents"
+    SidePanel.DEBUGGER -> "Debugger"
   }
 
 /** Material's nearest equivalents of `folder.svg`, `search.svg` and `toc.svg` in the icon registry. */
@@ -47,6 +49,10 @@ internal val SidePanel.icon: ImageVector
     // AutoMirrored, for the reason the explorer's own file icon is: the glyph's ragged edge
     // flips in a right-to-left locale, and the plain `Icons.Filled.Toc` is deprecated for it.
     SidePanel.TABLE_OF_CONTENTS -> Icons.AutoMirrored.Filled.Toc
+    // Both references draw their own debugger with a bug glyph - JupyterLab's `bugIcon`
+    // (`packages/ui-components/style/icons/bug.svg`) and VS Code's `codicon-debug-alt`/
+    // `run-view-icon` are each a bug shape, and `BugReport` is Material's nearest.
+    SidePanel.DEBUGGER -> Icons.Filled.BugReport
   }
 
 /**

@@ -46,6 +46,22 @@ enum class SidePanel {
 
   /** `toc:show-panel`, whose whole body is `labShell.activateById(toc.id)` (`index.ts:161-172`). */
   TABLE_OF_CONTENTS,
+
+  /**
+   * The call stack and variables of wherever the open notebook's debugger last stopped (P6a-8b).
+   *
+   * **A departure from both references' own placement, forced by this app having one side area.**
+   * JupyterLab's own Debugger is not among the ranked panels above at all - it registers on the
+   * shell's **right** area, `shell.add(sidebar, 'right', { type: 'Debugger' })`
+   * (`packages/debugger-extension/src/index.ts:1357`), which is a second side area this app does
+   * not have (`docs/architecture.md`, "The shell has one side area"). VS Code's own "Run and
+   * Debug" container is left-side but ranks after Source Control, at order 3 - which this app also
+   * does not model - so neither reference actually orders this panel against [FILES]/[SEARCH]/
+   * [TABLE_OF_CONTENTS]. Placed last for that reason: newest, most specialised, and the one
+   * ranking either reference does offer (VS Code's 3) sits nearer the end of its own list than the
+   * start.
+   */
+  DEBUGGER,
 }
 
 /**

@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -229,6 +230,48 @@ class NotebookDebuggerTest {
 
     assertEquals(listOf(codeCell.id), gateway.executed)
     assertTrue(fake.attachedSessions.isEmpty())
+  }
+
+  /**
+   * The crash a tablet run of P6a-8's own Maestro flow found: `startSession` used to answer
+   * `Unit`, so [NotebookCellRuns] launched [NotebookDebugger.watchForStop] for *every* run
+   * regardless of whether a debug session ever attached - and the real adapter's `events` throws
+   * for a session that was never `attach`ed, crashing the app on the ordinary case, a cell with
+   * no breakpoint at all. `startSession` now reports whether it attached, so the caller can skip
+   * watching when it did not.
+   */
+  @Test
+  fun startSessionReportsFalseWhenTheCellCarriesNoBreakpoint() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell))
+
+    assertFalse(viewModel.debugger.startSession(session, codeCell))
+  }
+
+  @Test
+  fun startSessionReportsTrueWhenTheCellCarriesABreakpoint() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = RecordingKernelDebugger())
+    viewModel.debugger.toggle(codeCell.id, line = 2)
+
+    assertTrue(viewModel.debugger.startSession(session, codeCell))
+  }
+
+  /**
+   * [ThrowsIfUnattachedKernelDebugger] mirrors the real adapter's contract - `events` throws for a
+   * session [NotebookDebugger.startSession] never attached. A cell with no breakpoint must never
+   * reach it: this is the same regression the two tests above cover from `startSession`'s own
+   * side, proved here from [NotebookCellRuns]'s - the run must still complete, not merely return a
+   * boolean nobody acted on.
+   */
+  @Test
+  fun runCellNeverWatchesForStopWhenTheCellCarriesNoBreakpoint() = runTest {
+    val gateway = RecordingKernelGateway()
+    val debugger = ThrowsIfUnattachedKernelDebugger()
+    val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell), debugger = debugger)
+
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+
+    assertEquals(listOf(codeCell.id), gateway.executed)
   }
 
   /** The stop reaches [EditorUiState.stoppedAt] while the run it belongs to is still in flight. */

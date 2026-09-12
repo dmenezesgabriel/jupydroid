@@ -13,6 +13,7 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.explorer.ExplorerScreen
+import com.jupydroid.app.ui.shell.DebuggerSidePanel
 import com.jupydroid.app.ui.shell.SearchSidePanel
 import com.jupydroid.app.ui.shell.SidePanelBar
 import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
@@ -45,6 +46,8 @@ import com.jupydroid.app.ui.shell.trailingBorder
  *   two different pieces of its state.
  * @param onNewTerminal opens a shell rooted at the directory the explorer hands back - see
  *   `Navigation.kt`'s `rememberNewTerminal`.
+ * @param debugStack the open notebook's stopped call stack - [SidePanel.DEBUGGER]'s own content;
+ *   see [OpenDebugStack].
  */
 @Composable
 fun ShellSidePane(
@@ -54,6 +57,7 @@ fun ShellSidePane(
   onChoosePanel: (SidePanel) -> Unit,
   appContainer: AppContainer,
   outline: OpenDocumentOutline,
+  debugStack: OpenDebugStack,
   openDocuments: OpenDocuments,
   openDocument: (String) -> Unit,
   openDocumentPath: String?,
@@ -78,6 +82,7 @@ fun ShellSidePane(
       // window has no side area to collapse, and `SidePanel.showingAtOnePane` never answers null.
       when (showingPanel) {
         SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
+        SidePanel.DEBUGGER -> DebuggerSidePanel(stack = debugStack.current)
         SidePanel.SEARCH ->
           SearchSidePanel(
             searcher = appContainer.workspaceSearcher,

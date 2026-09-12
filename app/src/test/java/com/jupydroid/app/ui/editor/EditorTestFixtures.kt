@@ -14,6 +14,7 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceChange
+import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
@@ -218,6 +219,30 @@ internal class RecordingKernelDebugger(private val fake: FakeKernelDebugger = Fa
     calls += "variables"
     variablesRequestedForReference += variablesReference
     return fake.variables(session, variablesReference)
+  }
+}
+
+/**
+ * Mirrors `BaseSpaceKernelDebugger.known`'s real contract - `events` throws for a session that
+ * was never `attach`ed - which [FakeKernelDebugger] alone does not, since its `events` answers
+ * any session. Found this way, not guessed: a tablet run of P6a-8's own Maestro flow crashed the
+ * app on an ordinary cell with no breakpoint, because [NotebookCellRuns] used to launch
+ * [NotebookDebugger.watchForStop] for *every* run regardless of whether [NotebookDebugger.startSession]
+ * ever attached.
+ */
+internal class ThrowsIfUnattachedKernelDebugger(private val fake: FakeKernelDebugger = FakeKernelDebugger()) :
+  KernelDebugger by fake {
+  private val attachedSessions = mutableSetOf<String>()
+
+  override suspend fun attach(session: KernelSession) {
+    attachedSessions += session.id
+    fake.attach(session)
+  }
+
+  override fun events(session: KernelSession): Flow<DebugEvent> = if (session.id in attachedSessions) {
+    fake.events(session)
+  } else {
+    flow { throw StaleKernelSessionException(session.id) }
   }
 }
 

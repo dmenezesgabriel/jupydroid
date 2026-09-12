@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
@@ -286,6 +287,38 @@ class NotebookActionsMenuTest {
   }
 
   @Test
+  fun theNotebookMenuOffersTheDebugger() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+
+    compose.onNodeWithText(SHOW_DEBUGGER_PANEL).assertIsDisplayed()
+  }
+
+  /** With no shell panel to activate, the row opens [DebuggerPanel] - [SHOW_TABLE_OF_CONTENTS]'s own adaptation. */
+  @Test
+  fun theDebuggerRowOpensThePanel() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(SHOW_DEBUGGER_PANEL).performClick()
+
+    compose.onNodeWithText("Not stopped").assertIsDisplayed()
+  }
+
+  /** [withASidePanelTheRowActivatesItAndOpensNoOverlay]'s own reasoning, for the debugger row. */
+  @Test
+  fun withASidePanelTheDebuggerRowActivatesItAndOpensNoOverlay() {
+    showTopBar(onShowDebuggerPanel = { debuggerPanelActivations++ })
+
+    compose.onNodeWithContentDescription("Notebook actions").performClick()
+    compose.onNodeWithText(SHOW_DEBUGGER_PANEL).performClick()
+
+    compose.runOnIdle { assertEquals(1, debuggerPanelActivations) }
+    compose.onNodeWithText("Not stopped").assertDoesNotExist()
+  }
+
+  @Test
   fun theNotebookMenuOffersToExport() {
     showTopBar()
 
@@ -370,6 +403,7 @@ class NotebookActionsMenuTest {
   private var lineNumberToggles = 0
   private val tableOfContentsSelections = mutableListOf<String>()
   private var tableOfContentsPanelActivations = 0
+  private var debuggerPanelActivations = 0
   private var exportPickerOpens = 0
   private val exportedAs = mutableListOf<String>()
 
@@ -381,6 +415,8 @@ class NotebookActionsMenuTest {
     settings: EditorSettings = EditorSettings(),
     tableOfContentsHeadings: List<TocHeading> = emptyList(),
     onShowTableOfContentsPanel: (() -> Unit)? = null,
+    debugStack: DebugStack? = null,
+    onShowDebuggerPanel: (() -> Unit)? = null,
     exportState: ExportState = ExportState(offered = OFFERED_EXPORT_FORMATS),
   ) {
     compose.setContent {
@@ -401,6 +437,8 @@ class NotebookActionsMenuTest {
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },
           onShowTableOfContentsPanel = onShowTableOfContentsPanel,
+          debugStack = debugStack,
+          onShowDebuggerPanel = onShowDebuggerPanel,
           exportState = exportState,
           onExportPickerOpened = { exportPickerOpens++ },
           onExportAs = { exportedAs += it },

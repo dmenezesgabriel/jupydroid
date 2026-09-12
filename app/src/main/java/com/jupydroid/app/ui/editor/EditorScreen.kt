@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.DocumentOutline
+import com.jupydroid.app.OpenDebugStack
 import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.domain.model.ActiveCellRuns
@@ -87,6 +88,10 @@ fun EditorScreen(
    * shows the overlay instead, which is the narrow adaptation of a sidebar this app has always had.
    */
   onShowTableOfContents: (() -> Unit)?,
+  /** Where this document publishes its stop's call stack and variables - see [OpenDebugStack]. */
+  debugPanel: OpenDebugStack,
+  /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [SidePanel.DEBUGGER]. */
+  onShowDebugger: (() -> Unit)?,
   /**
    * Whether a browser is drawn beside this notebook, which decides only how [onBack] is presented -
    * see [DocumentDismissAction][com.jupydroid.app.ui.DocumentDismissAction].
@@ -270,6 +275,11 @@ fun EditorScreen(
     // Its own effect rather than an `onDispose` on the one above, which would clear and republish
     // on every keystroke in a heading. This runs once, when the editor entry goes.
     DisposableEffect(outline) { onDispose { outline.clear() } }
+    // [outline]'s own seam, crossed for the debugger's side panel - published on every change
+    // rather than once, since a stop (and a continue that clears it) can arrive at any time the
+    // panel is on screen, not only when the editor entry is built.
+    LaunchedEffect(debugPanel, state.debugStack) { debugPanel.publish(state.debugStack) }
+    DisposableEffect(debugPanel) { onDispose { debugPanel.clear() } }
     // The title's row is not free on a phone, so it is not permanent either - see
     // [titleCollapseFraction]. Derived from the list the cells are drawn from rather than from a
     // `nestedScroll` connection, so there is one answer to "where is the document" and not two.
@@ -311,6 +321,7 @@ fun EditorScreen(
             onSettingsChanged = { changed -> applicationScope.launch { editorSettingsRepository.update(changed) } },
             tocHeadings = tocHeadings,
             onShowTableOfContents = onShowTableOfContents,
+            onShowDebugger = onShowDebugger,
             onHeadingSelected = jumpToHeading,
             onBack = onBack,
             twoPane = twoPane,

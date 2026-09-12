@@ -51,13 +51,18 @@ class SidePanelTest {
    * - **The table of contents is last, and only JupyterLab says so**: rank 400
    *   (`packages/toc-extension/src/index.ts:309`). VS Code has no such container - its Outline is
    *   a view *inside* the explorer's (`vscode/…/outline/browser/outline.contribution.ts:26-38`).
+   * - **The debugger is last of all (P6a-8b), and neither reference actually ranks it here**:
+   *   JupyterLab's own Debugger sits on the shell's *right* area
+   *   (`packages/debugger-extension/src/index.ts:1357`), a second side area this app does not
+   *   have, and VS Code's left-side "Run and Debug" (order 3) sits after Source Control, which
+   *   this app does not model either - see [SidePanel.DEBUGGER]'s own doc.
    *
    * So the two answer different halves and agree where they overlap.
    */
   @Test
   fun theOrderIsWhatTheTwoReferencesTogetherSay() {
     assertEquals(
-      listOf(SidePanel.FILES, SidePanel.SEARCH, SidePanel.TABLE_OF_CONTENTS),
+      listOf(SidePanel.FILES, SidePanel.SEARCH, SidePanel.TABLE_OF_CONTENTS, SidePanel.DEBUGGER),
       SidePanel.entries,
     )
   }

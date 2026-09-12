@@ -35,6 +35,8 @@ internal fun EditorTopBars(
   tocHeadings: List<TocHeading>,
   /** `toc:show-panel` - null where the shell has no side area; see [EditorScreen]. */
   onShowTableOfContents: (() -> Unit)?,
+  /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [EditorScreen]. */
+  onShowDebugger: (() -> Unit)?,
   onHeadingSelected: (String) -> Unit,
   onBack: () -> Unit,
   /** Whether a browser sits beside the notebook, which decides how [onBack] is drawn. */
@@ -91,6 +93,7 @@ internal fun EditorTopBars(
       onSettingsChanged = onSettingsChanged,
       tocHeadings = tocHeadings,
       onShowTableOfContents = onShowTableOfContents,
+      onShowDebugger = onShowDebugger,
       onHeadingSelected = onHeadingSelected,
       onBack = onBack,
       twoPane = twoPane,
@@ -112,6 +115,8 @@ private fun DocumentTopBar(
   tocHeadings: List<TocHeading>,
   /** `toc:show-panel` - null where the shell has no side area; see [EditorScreen]. */
   onShowTableOfContents: (() -> Unit)?,
+  /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [EditorScreen]. */
+  onShowDebugger: (() -> Unit)?,
   onHeadingSelected: (String) -> Unit,
   onBack: () -> Unit,
   /** Whether a browser sits beside the notebook, which decides how [onBack] is drawn. */
@@ -139,6 +144,8 @@ private fun DocumentTopBar(
     tableOfContentsHeadings = tocHeadings,
     onTableOfContentsHeadingSelected = onHeadingSelected,
     onShowTableOfContentsPanel = onShowTableOfContents,
+    debugStack = state.debugStack,
+    onShowDebuggerPanel = onShowDebugger,
     titleCollapse = titleCollapse,
     // The document's own name is never a segment - it is on the row above. See [ancestorCrumbsFor].
     crumbs = ancestorCrumbsFor(state.notebookId, ROOT_LABEL),

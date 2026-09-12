@@ -55,10 +55,17 @@ class NotebookDebugger(
    *
    * The reply is what turns [Breakpoint.verified] real: [store] and [uiState] are rewritten from
    * [KernelDebugger.setBreakpoints]'s own answer, not merely from what was asked for.
+   *
+   * @return whether a debug session actually attached - **[NotebookCellRuns]'s own signal for
+   *   whether [watchForStop] has anything to watch.** `BaseSpaceKernelDebugger.events` throws
+   *   [com.jupydroid.app.domain.port.StaleKernelSessionException] for a session that was never
+   *   attached, and until this returned a value there was nothing stopping [NotebookCellRuns] from
+   *   launching [watchForStop] anyway - crashing the app on every ordinary run, found on a tablet
+   *   in P6a-8's own Maestro run.
    */
-  suspend fun startSession(session: KernelSession, cell: Cell) {
+  suspend fun startSession(session: KernelSession, cell: Cell): Boolean {
     val armed = store.forCell(cell.id)
-    if (armed.isEmpty()) return
+    if (armed.isEmpty()) return false
     kernelDebugger.attach(session)
     val codeId = kernelDebugger.dumpCell(session, cell.source)
     val verified = kernelDebugger.setBreakpoints(session, codeId, armed.map { it.line })
@@ -66,6 +73,7 @@ class NotebookDebugger(
     val updated = verified.map { Breakpoint(line = it.line, verified = it.verified, codeId = codeId) }
     store.replace(cell.id, updated)
     uiState.update { it.copy(breakpointsByCellId = it.breakpointsByCellId + (cell.id to updated)) }
+    return true
   }
 
   /** [session]'s own `debug_event`s - a thin pass-through, since [NotebookCellRuns] holds no [KernelDebugger]. */

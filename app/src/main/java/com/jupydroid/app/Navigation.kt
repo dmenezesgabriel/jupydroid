@@ -108,6 +108,8 @@ fun MainNavigation(
    * composition's `LazyListState`. Passed in so a test can read what a real editor entry published.
    */
   outline: OpenDocumentOutline = remember { OpenDocumentOutline() },
+  /** [OpenDocumentOutline]'s own seam, crossed for the debugger's side panel - see [OpenDebugStack]. */
+  debugPanel: OpenDebugStack = remember { OpenDebugStack() },
   /**
    * Where the open document is reached by path, for something that is not its own screen - today,
    * the search panel's replace (P2x-5).
@@ -294,6 +296,7 @@ fun MainNavigation(
             onChoosePanel = { sidePanel = it },
             appContainer = appContainer,
             outline = outline,
+            debugStack = debugPanel,
             openDocuments = openDocuments,
             openDocument = openDocument,
             openDocumentPath = openDocumentPath,
@@ -336,6 +339,8 @@ fun MainNavigation(
             // `toc:show-panel` where there is a side area to activate, and null where there is not -
             // which is what puts the overlay up on a compact window instead.
             onShowTableOfContents = { sidePanel = SidePanel.TABLE_OF_CONTENTS }.takeIf { twoPane },
+            debugPanel = debugPanel,
+            onShowDebugger = { sidePanel = SidePanel.DEBUGGER }.takeIf { twoPane },
             onGoToFolder = goToFolder,
             onBack = { backStack.removeLastOrNull() },
             // The one width fact this screen reads, and it decides one thing: whether leaving the
