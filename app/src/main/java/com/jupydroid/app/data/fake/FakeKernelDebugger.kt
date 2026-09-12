@@ -45,14 +45,24 @@ class FakeKernelDebugger : KernelDebugger {
     return lines.map { VerifiedBreakpoint(line = it, verified = true) }
   }
 
-  override suspend fun stackTrace(session: KernelSession, threadId: Int): List<DebugStackFrame> =
+  /** Scripted per test; the default is the single-frame stack every P6a-6/7b test already asserts against. */
+  var stackFramesToReturn: List<DebugStackFrame> =
     listOf(DebugStackFrame(id = 1, name = "<module>", line = 1, column = 1))
 
-  override suspend fun scopes(session: KernelSession, frameId: Int): List<DebugScope> =
-    listOf(DebugScope(name = "Locals", variablesReference = frameId * 100 + 1, expensive = false))
+  /** Scripted per test; the default pairs with [stackFramesToReturn]'s default frame id. */
+  var scopesToReturn: List<DebugScope> =
+    listOf(DebugScope(name = "Locals", variablesReference = 101, expensive = false))
+
+  /** Scripted per test, keyed by the [DebugScope.variablesReference] a scope named. */
+  var variablesByReference: Map<Int, List<DebugVariable>> =
+    mapOf(101 to listOf(DebugVariable(name = "x", value = "1", type = "int", variablesReference = 0)))
+
+  override suspend fun stackTrace(session: KernelSession, threadId: Int): List<DebugStackFrame> = stackFramesToReturn
+
+  override suspend fun scopes(session: KernelSession, frameId: Int): List<DebugScope> = scopesToReturn
 
   override suspend fun variables(session: KernelSession, variablesReference: Int): List<DebugVariable> =
-    listOf(DebugVariable(name = "x", value = "1", type = "int", variablesReference = 0))
+    variablesByReference[variablesReference].orEmpty()
 
   /** Every stepping request this session made, in order, so a test can tell which command fired. */
   val stepRequests = mutableListOf<Pair<Int, SteppingCommand>>()

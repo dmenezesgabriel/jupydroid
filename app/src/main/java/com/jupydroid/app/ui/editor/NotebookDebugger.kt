@@ -2,7 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugStop
+import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.KernelDebugger
@@ -71,20 +73,40 @@ class NotebookDebugger(
 
   /**
    * Follows [session]'s debug events for as long as this is collected, reflecting a [DebugEvent.Stopped]
-   * thread's line into [EditorUiState.stoppedAt] and clearing it on [DebugEvent.Continued].
+   * into [EditorUiState.stoppedAt]/[EditorUiState.debugStack] and clearing both on [DebugEvent.Continued].
    *
-   * The line comes from `stackTrace`'s own top frame - [DebugEvent.Stopped] carries only a thread
-   * id, not a line. **Runs until the caller cancels it**, the same shape as any other subscription
-   * onto a hot flow: [NotebookCellRuns] owns how long "for the length of this run" is.
+   * **Runs until the caller cancels it**, the same shape as any other subscription onto a hot
+   * flow: [NotebookCellRuns] owns how long "for the length of this run" is.
    */
   suspend fun watchForStop(session: KernelSession, cell: Cell) {
-    events(session).collect { event -> uiState.update { it.copy(stoppedAt = resolvedStop(session, cell, event)) } }
+    events(session).collect { event ->
+      val resolved = resolvedStop(session, cell, event)
+      uiState.update { it.copy(stoppedAt = resolved?.first, debugStack = resolved?.second) }
+    }
   }
 
-  private suspend fun resolvedStop(session: KernelSession, cell: Cell, event: DebugEvent): DebugStop? = when (event) {
-    is DebugEvent.Stopped ->
-      kernelDebugger.stackTrace(session, event.threadId).firstOrNull()
-        ?.let { DebugStop(cellId = cell.id, line = it.line, threadId = event.threadId) }
-    DebugEvent.Continued -> null
+  /**
+   * `stackTrace -> scopes -> variables`, DAP's own dependency order (P6a-8a) - `null` on
+   * [DebugEvent.Continued] or when a `Stopped` thread's stack came back empty. Only the **top**
+   * frame's scopes/variables are fetched, matching JupyterLab's own default selection on a fresh
+   * stop (`packages/debugger/src/panels/callstack/model.ts:31-44`) - [DebugStack]'s own doc names
+   * why refocusing another frame is not built here.
+   */
+  private suspend fun resolvedStop(
+    session: KernelSession,
+    cell: Cell,
+    event: DebugEvent,
+  ): Pair<DebugStop, DebugStack>? {
+    val stopped = event as? DebugEvent.Stopped ?: return null
+    val frames = kernelDebugger.stackTrace(session, stopped.threadId)
+    return frames.firstOrNull()?.let { top ->
+      val stop = DebugStop(cellId = cell.id, line = top.line, threadId = stopped.threadId)
+      stop to DebugStack(frames, variableGroups(session, top.id))
+    }
   }
+
+  private suspend fun variableGroups(session: KernelSession, frameId: Int): List<DebugVariableGroup> =
+    kernelDebugger.scopes(session, frameId).map { scope ->
+      DebugVariableGroup(scope = scope.name, variables = kernelDebugger.variables(session, scope.variablesReference))
+    }
 }

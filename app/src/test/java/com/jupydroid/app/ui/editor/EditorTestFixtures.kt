@@ -14,6 +14,9 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceChange
+import com.jupydroid.app.domain.port.DebugScope
+import com.jupydroid.app.domain.port.DebugStackFrame
+import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
@@ -192,6 +195,29 @@ internal class RecordingKernelDebugger(private val fake: FakeKernelDebugger = Fa
   override suspend fun configurationDone(session: KernelSession) {
     calls += "configurationDone"
     fake.configurationDone(session)
+  }
+
+  /** Which frame id each `scopes` call named, in order - P6a-8a's own gate for "the top frame only". */
+  val scopesRequestedForFrame = mutableListOf<Int>()
+
+  /** Which `variablesReference` each `variables` call named, in order. */
+  val variablesRequestedForReference = mutableListOf<Int>()
+
+  override suspend fun stackTrace(session: KernelSession, threadId: Int): List<DebugStackFrame> {
+    calls += "stackTrace"
+    return fake.stackTrace(session, threadId)
+  }
+
+  override suspend fun scopes(session: KernelSession, frameId: Int): List<DebugScope> {
+    calls += "scopes"
+    scopesRequestedForFrame += frameId
+    return fake.scopes(session, frameId)
+  }
+
+  override suspend fun variables(session: KernelSession, variablesReference: Int): List<DebugVariable> {
+    calls += "variables"
+    variablesRequestedForReference += variablesReference
+    return fake.variables(session, variablesReference)
   }
 }
 

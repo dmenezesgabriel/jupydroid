@@ -3,9 +3,14 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.domain.model.Breakpoint
+import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugStop
+import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.DebugEvent
+import com.jupydroid.app.domain.port.DebugScope
+import com.jupydroid.app.domain.port.DebugStackFrame
+import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.domain.port.KernelSession
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -155,6 +160,36 @@ class NotebookDebuggerTest {
     advanceUntilIdle()
 
     assertNull(viewModel.uiState.value.stoppedAt)
+    assertNull(viewModel.uiState.value.debugStack)
+    watcher.cancel()
+  }
+
+  /**
+   * P6a-8a's own gate: a `Stopped` event chains `stackTrace -> scopes -> variables` **for the top
+   * frame only** (JupyterLab's own default selection on a fresh stop,
+   * `packages/debugger/src/panels/callstack/model.ts:31-44`), grouping variables by the scope
+   * they came from rather than flattening them into one list.
+   */
+  @Test
+  fun watchForStopChainsStackTraceThenScopesThenVariablesForTheTopFrame() = runTest {
+    val fake =
+      FakeKernelDebugger().apply {
+        stackFramesToReturn = listOf(topFrame, innerFrame)
+        scopesToReturn = listOf(localsScope)
+        variablesByReference = mapOf(201 to localsVariables)
+      }
+    val recorder = RecordingKernelDebugger(fake)
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = recorder)
+    val watcher = launch { viewModel.debugger.watchForStop(session, codeCell) }
+    advanceUntilIdle()
+
+    fake.emit(session, DebugEvent.Stopped(threadId = 9))
+    advanceUntilIdle()
+
+    assertEquals(listOf("stackTrace", "scopes", "variables"), recorder.calls)
+    assertEquals(listOf(5), recorder.scopesRequestedForFrame)
+    assertEquals(listOf(201), recorder.variablesRequestedForReference)
+    assertEquals(expectedDebugStack, viewModel.uiState.value.debugStack)
     watcher.cancel()
   }
 
@@ -236,4 +271,12 @@ class NotebookDebuggerTest {
     KernelSession(id = "fake-base", spaceId = "base", kernelId = "python3", serverSessionId = "fake-session-base")
 
   private val session = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+
+  /** A two-frame stack scripted for [watchForStopChainsStackTraceThenScopesThenVariablesForTheTopFrame]. */
+  private val topFrame = DebugStackFrame(id = 5, name = "<module>", line = 3, column = 1)
+  private val innerFrame = DebugStackFrame(id = 6, name = "helper", line = 10, column = 1)
+  private val localsScope = DebugScope(name = "Locals", variablesReference = 201, expensive = false)
+  private val localsVariables = listOf(DebugVariable(name = "x", value = "41", type = "int", variablesReference = 0))
+  private val expectedDebugStack =
+    DebugStack(frames = listOf(topFrame, innerFrame), groups = listOf(DebugVariableGroup("Locals", localsVariables)))
 }

@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugStop
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.notebookLeafOf
@@ -196,6 +197,16 @@ data class EditorUiState(
    * restarts, the same reasoning [breakpointsByCellId] is written down for.
    */
   val stoppedAt: DebugStop? = null,
+  /**
+   * [stoppedAt]'s own call stack and top-frame variables, chained on the same `Stopped` event -
+   * [NotebookDebugger.watchForStop]'s other half (P6a-8a). Kept apart from [stoppedAt] rather than
+   * merged into it: the gutter's stopped-line wash (P6a-7b-2) only ever reads [stoppedAt], and
+   * widening its contract for a panel it does not draw would couple the two for no reason.
+   *
+   * Null exactly when [stoppedAt] is - cleared on the same `Continued` event, live kernel state
+   * for the same reason [stoppedAt] itself is not persisted.
+   */
+  val debugStack: DebugStack? = null,
   /**
    * The find bar and what it found, or null while it is closed - `documentsearch:start` and
    * `documentsearch:end`. See [SearchState].
