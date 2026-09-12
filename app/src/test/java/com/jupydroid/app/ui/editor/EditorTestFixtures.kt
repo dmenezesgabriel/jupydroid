@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
@@ -13,6 +14,7 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceChange
+import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
@@ -149,6 +151,33 @@ internal class StaleSessionKernelGateway(
   }
 }
 
+/**
+ * Records the order [NotebookDebugger.startSession] sends its four port calls in - what
+ * [FakeKernelDebugger]'s own per-method recorders can't prove, since each is its own list.
+ */
+internal class RecordingKernelDebugger(private val fake: FakeKernelDebugger = FakeKernelDebugger()) :
+  KernelDebugger by fake {
+  val calls = mutableListOf<String>()
+
+  override suspend fun attach(session: KernelSession) {
+    calls += "attach"
+    fake.attach(session)
+  }
+
+  override suspend fun dumpCell(session: KernelSession, code: String): String {
+    calls += "dumpCell"
+    return fake.dumpCell(session, code)
+  }
+
+  override suspend fun setBreakpoints(session: KernelSession, codeId: String, lines: List<Int>) =
+    fake.setBreakpoints(session, codeId, lines).also { calls += "setBreakpoints" }
+
+  override suspend fun configurationDone(session: KernelSession) {
+    calls += "configurationDone"
+    fake.configurationDone(session)
+  }
+}
+
 /** Remembers which document each session was opened for, which a rename changes. */
 internal class RecordingConnectKernelGateway(private val fake: FakeKernelGateway = FakeKernelGateway()) :
   KernelGateway by fake {
@@ -216,10 +245,10 @@ internal fun TestScope.loadedEditor(
   openDocuments: OpenDocuments = OpenDocuments(),
   // Only the cases about a breakpoint surviving a rebuilt ViewModel pass a shared one.
   notebookBreakpoints: NotebookBreakpoints = NotebookBreakpoints(),
+  // Only the cases about the debug-session handshake pass a RecordingKernelDebugger.
+  debugger: KernelDebugger = FakeKernelDebugger(),
 ): EditorViewModel {
-  launch {
-    repository.saveNotebook(Notebook(notebookId, title, "python3", cells))
-  }
+  launch { repository.saveNotebook(Notebook(notebookId, title, "python3", cells)) }
   advanceUntilIdle()
   // No collector: uiState is a StateFlow, so .value is current without one - and a
   // collector that is never cancelled leaves runTest waiting on it.
@@ -234,6 +263,7 @@ internal fun TestScope.loadedEditor(
       activeCellRuns,
       openDocuments,
       notebookBreakpoints,
+      debugger,
     )
   advanceUntilIdle()
   return viewModel

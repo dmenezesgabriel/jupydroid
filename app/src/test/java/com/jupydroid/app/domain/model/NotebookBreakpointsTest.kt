@@ -66,4 +66,30 @@ class NotebookBreakpointsTest {
 
     assertEquals(listOf(Breakpoint(line = 7)), readBySomeoneElse.forCell("cell-1"))
   }
+
+  /** What a `setBreakpoints` reply does: overwrites a cell's list with the kernel's own answer. */
+  @Test
+  fun replaceOverwritesACellsWholeList() {
+    val breakpoints = NotebookBreakpoints()
+    breakpoints.toggle("cell-1", line = 3)
+
+    breakpoints.replace("cell-1", listOf(Breakpoint(line = 3, verified = true, codeId = "/tmp/1.py")))
+
+    assertEquals(
+      listOf(Breakpoint(line = 3, verified = true, codeId = "/tmp/1.py")),
+      breakpoints.forCell("cell-1"),
+    )
+  }
+
+  @Test
+  fun replaceLeavesOtherCellsAlone() {
+    val breakpoints = NotebookBreakpoints()
+    breakpoints.toggle("cell-1", line = 1)
+    breakpoints.toggle("cell-2", line = 5)
+
+    breakpoints.replace("cell-1", emptyList())
+
+    assertEquals(emptyList<Breakpoint>(), breakpoints.forCell("cell-1"))
+    assertEquals(listOf(Breakpoint(line = 5)), breakpoints.forCell("cell-2"))
+  }
 }

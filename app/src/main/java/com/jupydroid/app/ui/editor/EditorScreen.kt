@@ -41,6 +41,7 @@ import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -59,6 +60,8 @@ fun EditorScreen(
   /** Only listened to: a rename made in the browser beside this document moves it. */
   workspaceRepository: WorkspaceRepository,
   kernelGateway: KernelGateway,
+  /** DAP over the same kernel session - the handshake `EditorViewModel.debugger` sends. */
+  kernelDebugger: KernelDebugger,
   /** `notebook:export-to-format` - see [NotebookExport]. Not a kernel act. */
   notebookExporter: NotebookExporter,
   /** Where an exported file goes next, from the report that says it was written. */
@@ -142,6 +145,7 @@ fun EditorScreen(
       activeCellRuns,
       openDocuments,
       notebookBreakpoints,
+      kernelDebugger,
     )
   },
 ) {

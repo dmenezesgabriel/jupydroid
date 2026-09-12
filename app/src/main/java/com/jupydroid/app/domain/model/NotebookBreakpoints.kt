@@ -38,4 +38,9 @@ class NotebookBreakpoints {
     byCell[cellId] = updated
     return updated
   }
+
+  /** Overwrites [cellId]'s whole list - what a `setBreakpoints` reply does, not an add/remove. */
+  fun replace(cellId: String, breakpoints: List<Breakpoint>) {
+    byCell[cellId] = breakpoints
+  }
 }

@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
@@ -10,6 +11,7 @@ import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.FileNameTakenException
+import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -89,6 +91,8 @@ class EditorViewModel(
    * [debugger] cannot hold that state itself.
    */
   notebookBreakpoints: NotebookBreakpoints = NotebookBreakpoints(),
+  /** DAP over the notebook's kernel session - the handshake [debugger] sends; see [NotebookDebugger]. */
+  kernelDebugger: KernelDebugger = FakeKernelDebugger(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -136,7 +140,7 @@ class EditorViewModel(
   )
 
   /** Breakpoints in the gutter. Driven straight from the screen; see [NotebookDebugger]. */
-  val debugger = NotebookDebugger(_uiState, notebookBreakpoints)
+  val debugger = NotebookDebugger(_uiState, notebookBreakpoints, kernelDebugger)
 
   init {
     // Open before it has loaded, so a replace can never slip in between the read and the register
