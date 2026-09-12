@@ -96,5 +96,25 @@ class KernelDebugRepliesTest {
     )
   }
 
+  /**
+   * `hashSeed` arrives as a JSON number, not the string the reference's own type declares
+   * (`evidence/p6a-5-cell-code-id/`).
+   */
+  @Test
+  fun debugInfoHashParams_readsHashAndTmpFileFields() {
+    val body = fixture(
+      """{"hashMethod":"Murmur2","hashSeed":3339675911,
+         "tmpFilePrefix":"/tmp/ipykernel_1/","tmpFileSuffix":".py"}""",
+    )
+
+    val expected = DebugInfoHashParams(
+      hashMethod = "Murmur2",
+      hashSeed = 3339675911L,
+      tmpFilePrefix = "/tmp/ipykernel_1/",
+      tmpFileSuffix = ".py",
+    )
+    assertEquals(expected, debugInfoHashParams(body))
+  }
+
   private fun fixture(json: String): JsonObject = Json.parseToJsonElement(json).jsonObject
 }

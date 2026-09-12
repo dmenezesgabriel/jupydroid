@@ -11,6 +11,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 /**
  * A `debug_reply`'s body, or the failure it reports.
@@ -72,4 +73,29 @@ private fun JsonObject.string(key: String): String = get(key)?.jsonPrimitive?.co
 
 private fun JsonObject.int(key: String): Int = get(key)?.jsonPrimitive?.intOrNull ?: 0
 
+private fun JsonObject.long(key: String): Long = get(key)?.jsonPrimitive?.longOrNull ?: 0L
+
 private fun JsonObject.boolean(key: String): Boolean = get(key)?.jsonPrimitive?.booleanOrNull ?: false
+
+/**
+ * A `debugInfo` reply's hash/tmp-file fields - what [CellCodeId.codeId] needs to predict a cell's
+ * `dumpCell` path without asking the kernel. Kept outside [KernelDebugReplies] for the same
+ * function-count reason `string`/`int`/`boolean` are, above.
+ *
+ * `hashSeed` is read as a `Long`: the live kernel sends it as a plain JSON number
+ * (`3339675911`, i.e. `0xC70F6907`) rather than the string the reference's own
+ * `IDebugInfoResponse.hashSeed: string` declares (`evidence/p6a-5-cell-code-id/`).
+ */
+internal data class DebugInfoHashParams(
+  val hashMethod: String,
+  val hashSeed: Long,
+  val tmpFilePrefix: String,
+  val tmpFileSuffix: String,
+)
+
+internal fun debugInfoHashParams(body: JsonObject) = DebugInfoHashParams(
+  hashMethod = body.string("hashMethod"),
+  hashSeed = body.long("hashSeed"),
+  tmpFilePrefix = body.string("tmpFilePrefix"),
+  tmpFileSuffix = body.string("tmpFileSuffix"),
+)
