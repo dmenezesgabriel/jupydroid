@@ -18,7 +18,7 @@ Dependencies point inward: `ui → domain`, `data → domain`, `domain → nothi
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
 │ ui (Compose) — screens, ViewModels, state hoisting (UDF/MVVM)         │
-│   Explorer (+ Recents) · Editor (notebook) · FileEditor               │
+│   Explorer (+ Recents) · Editor (notebook) · FileEditor · Terminal    │
 │   collectAsStateWithLifecycle ← StateFlow                             │
 └───────────────▲──────────────────────────────────┬────────────────────┘
                 │ uses (domain types + ports)      │ drives
@@ -49,13 +49,13 @@ to depend on**, which is checkable:
 |---|---|---|
 | `domain/{model,port}` | the app's own types and its ports | no `android.*`, no other layer — **guard-tested** |
 | `data/{disk,fake,intent,space}` | adapters implementing ports | one file per adapter, named `<Mechanism><PortConcept>` |
-| `ui/{editor,explorer,fileeditor}` | screens and ViewModels | reads ports; never constructs an adapter |
+| `ui/{editor,explorer,fileeditor,terminal}` | screens and ViewModels | reads ports; never constructs an adapter |
 | `ui/shell` | the chrome that belongs to **no** screen — the activity bar and the side panels | drawn by `Navigation`, beside the panes rather than inside one; the *state* it moves stays at the root with `Navigation.kt`, which is what §4 already says about wiring that belongs to no screen |
 | `di` | `AppContainer`, the composition root | constructed once per process, in `JupydroidApplication` |
 | `glob`, `html`, `import`, `markdown`, `syntax`, `terminal` | **document and language logic** — a glob pattern as the regex it denotes, parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer, and the VT screen a shell writes into | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages*, not this app's domain; not `data/`, because they implement no port. JVM-testable, and every test for them is a plain unit test |
 | `richtext` | **mixed on purpose**: `RichBlock` is the model, `RichInlineString` renders it | the split is the point — the model is testable without Compose, and only the renderer imports it |
-| `theme` | Compose design tokens, the IntelliJ-derived palette | Compose throughout; `EditorPaletteTest` pins its contrast ratios |
-| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, the three `NavKey`s | the app shell and its navigation | see §4 |
+| `theme` | Compose design tokens, VS Code's resolved 2026 Dark/Light palette (`ColorRamp.kt`; chrome since P2u-1, syntax since P2u-2/P2u-3 — `EditorPalette` is now entirely VS Code's) | Compose throughout; `EditorPaletteTest` pins its contrast ratios |
+| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, the four `NavKey`s | the app shell and its navigation | see §4 |
 
 Measured, not asserted, and **re-counted rather than carried**: `glob` (0 of 2 files), `html`
 (0 of 3), `import` (0/1), `markdown` (0/2), `syntax` (0/6) and `terminal` (0/41) import `android.*`
@@ -159,10 +159,10 @@ ServerConnection(baseUrl, port, token)
 Navigation3 (`androidx.navigation3`), not Jetpack Navigation. Lives at the root package because
 it wires `ui/` screens together and belongs to none of them.
 
-**Three destinations, and there is no Home.** `Explorer`, `FileEditor`, `Editor` — declared as
-entries in `Navigation.kt` (`entry<Explorer>` at :123, `entry<FileEditor>` at :140,
-`entry<Editor>` at :150). The explorer is the first screen; the notebook-list Home it replaced
-was removed in X2h, and Recents became a section of the explorer.
+**Four destinations, and there is no Home.** `Explorer`, `FileEditor`, `Editor`, `Terminal` —
+declared as entries in `Navigation.kt` (`entry<Explorer>` at :285, `entry<FileEditor>` at :306,
+`entry<Editor>` at :322, `entry<Terminal>` at :351). The explorer is the first screen; the
+notebook-list Home it replaced was removed in X2h, and Recents became a section of the explorer.
 
 **One opener, not one per screen.** `rememberDocumentOpener` sends a `.ipynb` to the notebook
 editor and anything else to the plain one, and records the recent. That is the reference's own
@@ -172,9 +172,9 @@ its extension, and the file editor is the default for the rest.
 **Two panes pair on metadata, never on position.** `ListDetailSceneStrategy` puts the explorer in
 the list pane and whatever it opened in the detail, at ≥ 840dp. Which entry is which is declared
 when the entry providers are built — `ListDetailSceneStrategy.listPane()` on `Explorer`,
-`.detailPane()` on `Editor` and `FileEditor` — because `NavEntry` does not expose its key. "The
-last two entries" was the earliest rule and it is a montage, not a pairing: it put Recents beside
-the file browser, two surfaces neither of which opens the other.
+`.detailPane()` on `Editor`, `FileEditor` and `Terminal` — because `NavEntry` does not expose
+its key. "The last two entries" was the earliest rule and it is a montage, not a pairing: it put
+Recents beside the file browser, two surfaces neither of which opens the other.
 
 Both panes stay **separate `NavEntry`s**, which is why this is a scene strategy and not
 `NavigableListDetailPaneScaffold`; `docs/DECISIONS.md` has what that buys and what the swap cost.
