@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -26,7 +27,7 @@ import java.time.Instant
  * *about itself*. Same call as [NotebookKernelSession] and [NotebookSaveDebounce] before it.
  *
  * ```
- * NotebookCellRuns(uiState, gateway, session, scope, runs, persist = ::persist).runCell(cell)
+ * NotebookCellRuns(uiState, gateway, session, scope, runs, persist = ::persist, clock, debugger).runCell(cell)
  * ```
  */
 internal class NotebookCellRuns(
@@ -44,6 +45,8 @@ internal class NotebookCellRuns(
   private val persist: suspend () -> Unit,
   /** Injected so a test can assert on a run's duration without waiting for one. */
   private val clock: Clock,
+  /** Arms a cell's breakpoints before it runs, and reports where the kernel stops (P6a-7b). */
+  private val debugger: NotebookDebugger,
 ) {
   /** Set while an interrupt is in flight, so the stop is reported as cancelled and not as error. */
   private var interrupting: String? = null
@@ -164,9 +167,24 @@ internal class NotebookCellRuns(
     return !raised && !cancelled
   }
 
-  /** The cell's events, on a session [NotebookKernelSession] re-opens if its server has gone. */
+  /**
+   * The cell's events, on a session [NotebookKernelSession] re-opens if its server has gone.
+   *
+   * Breakpoints are armed **before** the cell executes - DAP requires a debug session attached
+   * ahead of `execute_request`, which is why [NotebookDebugger.startSession] runs first, inside
+   * the same [NotebookKernelSession.reopeningIfStale] block that resolves the session [KernelGateway.execute]
+   * itself uses. The debug-event watcher started beside it follows that same session for exactly
+   * as long as the execute flow is being collected - [Flow.onCompletion] is what cancels it the
+   * instant that stops being true, whether the cell finished or the run was interrupted.
+   */
   private fun eventsFor(cell: Cell): Flow<KernelEvent> = flow {
-    emitAll(session.reopeningIfStale { open -> kernelGateway.execute(open, cell.id, cell.source) })
+    emitAll(
+      session.reopeningIfStale { open ->
+        debugger.startSession(open, cell)
+        val watcher = scope.launch { debugger.watchForStop(open, cell) }
+        kernelGateway.execute(open, cell.id, cell.source).onCompletion { watcher.cancel() }
+      },
+    )
   }
 
   private fun now(): Instant = clock.instant()

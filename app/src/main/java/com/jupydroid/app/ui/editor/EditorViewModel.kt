@@ -102,9 +102,23 @@ class EditorViewModel(
   /** Set when this notebook's file is deleted, so [persist] stops putting it back. */
   private var notebookIsGone = false
 
+  /**
+   * Breakpoints in the gutter, and where the kernel stops once a run arms one. Driven straight
+   * from the screen; see [NotebookDebugger]. Built before [kernel] since [NotebookCellRuns] arms
+   * a cell's breakpoints before it runs.
+   */
+  val debugger = NotebookDebugger(_uiState, notebookBreakpoints, kernelDebugger)
+
   /** Run, interrupt and complete. Driven straight from the screen; see [NotebookKernel]. */
   val kernel =
-    NotebookKernel(_uiState, kernelGateway, viewModelScope, activeCellRuns, persist = { persist() })
+    NotebookKernel(
+      _uiState,
+      kernelGateway,
+      viewModelScope,
+      activeCellRuns,
+      persist = { persist() },
+      debugger = debugger,
+    )
 
   /** The cell menu and its undo history. Driven straight from the screen; see [NotebookCellEdits]. */
   val edits = NotebookCellEdits(_uiState, save)
@@ -138,9 +152,6 @@ class EditorViewModel(
     notebookId = { notebookId },
     persist = { persist() },
   )
-
-  /** Breakpoints in the gutter. Driven straight from the screen; see [NotebookDebugger]. */
-  val debugger = NotebookDebugger(_uiState, notebookBreakpoints, kernelDebugger)
 
   init {
     // Open before it has loaded, so a replace can never slip in between the read and the register

@@ -152,6 +152,23 @@ internal class StaleSessionKernelGateway(
 }
 
 /**
+ * Blocks [attach] until let go, so a test can prove a cell's debug session is armed **before**
+ * it executes - the reason [NotebookCellRuns.eventsFor] calls [NotebookDebugger.startSession]
+ * inside the same block that resolves the session [KernelGateway.execute] itself uses.
+ */
+internal class BlockingAttachKernelDebugger(private val fake: FakeKernelDebugger = FakeKernelDebugger()) :
+  KernelDebugger by fake {
+  private val attachable = CompletableDeferred<Unit>()
+
+  override suspend fun attach(session: KernelSession) {
+    attachable.await()
+    fake.attach(session)
+  }
+
+  fun letAttachProceed() = attachable.complete(Unit)
+}
+
+/**
  * Records the order [NotebookDebugger.startSession] sends its four port calls in - what
  * [FakeKernelDebugger]'s own per-method recorders can't prove, since each is its own list.
  */

@@ -2,10 +2,14 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.DebugStop
 import com.jupydroid.app.domain.model.NotebookBreakpoints
+import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelSession
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 
 /**
@@ -60,5 +64,27 @@ class NotebookDebugger(
     val updated = verified.map { Breakpoint(line = it.line, verified = it.verified, codeId = codeId) }
     store.replace(cell.id, updated)
     uiState.update { it.copy(breakpointsByCellId = it.breakpointsByCellId + (cell.id to updated)) }
+  }
+
+  /** [session]'s own `debug_event`s - a thin pass-through, since [NotebookCellRuns] holds no [KernelDebugger]. */
+  fun events(session: KernelSession): Flow<DebugEvent> = kernelDebugger.events(session)
+
+  /**
+   * Follows [session]'s debug events for as long as this is collected, reflecting a [DebugEvent.Stopped]
+   * thread's line into [EditorUiState.stoppedAt] and clearing it on [DebugEvent.Continued].
+   *
+   * The line comes from `stackTrace`'s own top frame - [DebugEvent.Stopped] carries only a thread
+   * id, not a line. **Runs until the caller cancels it**, the same shape as any other subscription
+   * onto a hot flow: [NotebookCellRuns] owns how long "for the length of this run" is.
+   */
+  suspend fun watchForStop(session: KernelSession, cell: Cell) {
+    events(session).collect { event -> uiState.update { it.copy(stoppedAt = resolvedStop(session, cell, event)) } }
+  }
+
+  private suspend fun resolvedStop(session: KernelSession, cell: Cell, event: DebugEvent): DebugStop? = when (event) {
+    is DebugEvent.Stopped ->
+      kernelDebugger.stackTrace(session, event.threadId).firstOrNull()
+        ?.let { DebugStop(cellId = cell.id, line = it.line, threadId = event.threadId) }
+    DebugEvent.Continued -> null
   }
 }

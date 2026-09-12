@@ -30,7 +30,7 @@ import java.time.Clock
  * have put the session in one object and a user of it in another.
  *
  * ```
- * val kernel = NotebookKernel(uiState, kernelGateway, viewModelScope, runs, persist = ::persist)
+ * val kernel = NotebookKernel(uiState, kernelGateway, viewModelScope, runs, persist = ::persist, debugger = debugger)
  * kernel.runCell(cell)
  * kernel.close(applicationScope)   // on the way out
  * ```
@@ -48,6 +48,8 @@ class NotebookKernel(
   private val persist: suspend () -> Unit,
   /** Injected so a test can assert on a run's duration without waiting for one. */
   private val clock: Clock = Clock.systemUTC(),
+  /** Arms a cell's breakpoints before it runs, and reports where the kernel stops; see [NotebookCellRuns]. */
+  private val debugger: NotebookDebugger,
 ) {
   /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
   private val session =
@@ -58,7 +60,7 @@ class NotebookKernel(
     ) { uiState.value.notebookId }
 
   private val runs =
-    NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, persist, clock)
+    NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, persist, clock, debugger)
 
   /**
    * `notebook:access-previous-history-entry` / `access-next-history-entry` - what the kernel has

@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.DebugStop
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.KernelEvent
@@ -182,6 +183,19 @@ data class EditorUiState(
    * [outputs]/[executionCounts] already use.
    */
   val breakpointsByCellId: Map<String, List<Breakpoint>> = emptyMap(),
+  /**
+   * Where the kernel is paused under the debugger, or null while nothing is stopped -
+   * [NotebookDebugger.watchForStop]'s own state, following a `debug_event` off [KernelDebugger][
+   * com.jupydroid.app.domain.port.KernelDebugger]'s `events`.
+   *
+   * **One field, not a per-cell map**, unlike [breakpointsByCellId]: the phone-scoped debugger
+   * handles one thread stopping at a time, the same reasoning [runningCellId] is derived from
+   * [executions] rather than stored as its own nullable id for the domain having only one.
+   *
+   * Not persisted, not seeded on load - a stop is live kernel state, gone the moment the process
+   * restarts, the same reasoning [breakpointsByCellId] is written down for.
+   */
+  val stoppedAt: DebugStop? = null,
   /**
    * The find bar and what it found, or null while it is closed - `documentsearch:start` and
    * `documentsearch:end`. See [SearchState].
