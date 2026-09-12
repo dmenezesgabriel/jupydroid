@@ -123,6 +123,6 @@ class BaseSpaceInstaller(
     const val INTERPRETER_PATH = "usr/bin/python3.12"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
-    const val BUNDLED_ROOTFS_VERSION = 5
+    const val BUNDLED_ROOTFS_VERSION = 6
   }
 }
