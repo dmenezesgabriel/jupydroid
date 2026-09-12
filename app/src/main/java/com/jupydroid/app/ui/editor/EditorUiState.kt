@@ -277,6 +277,9 @@ fun EditorUiState.after(event: KernelEvent): EditorUiState = when (event) {
   KernelEvent.Idle -> this
 }
 
+/** [EditorUiState.stoppedAt]'s line for [cellId], or null when nothing is stopped there. */
+fun EditorUiState.stoppedLineOf(cellId: String): Int? = stoppedAt?.takeIf { it.cellId == cellId }?.line
+
 fun EditorUiState.withSource(cellId: String, source: String): EditorUiState =
   copy(cells = cells.map { if (it.id == cellId) it.copy(source = source) else it }, dirty = true)
 

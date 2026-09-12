@@ -215,6 +215,22 @@ class NotebookDebuggerTest {
     )
   }
 
+  /** [EditorUiState.stoppedLineOf] is what the gutter reads (P6a-7b-2) - scoped to its own cell. */
+  @Test
+  fun stoppedLineOfNamesOnlyTheStoppedCell() = runTest {
+    val fake = FakeKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell, secondCodeCell), debugger = fake)
+    val watcher = launch { viewModel.debugger.watchForStop(session, codeCell) }
+    advanceUntilIdle()
+
+    fake.emit(session, DebugEvent.Stopped(threadId = 1))
+    advanceUntilIdle()
+
+    assertEquals(1, viewModel.uiState.value.stoppedLineOf(codeCell.id))
+    assertNull(viewModel.uiState.value.stoppedLineOf(secondCodeCell.id))
+    watcher.cancel()
+  }
+
   /** [RecordingKernelGateway] delegates `connect` to `FakeKernelGateway`, whose session is fixed. */
   private val runningSession =
     KernelSession(id = "fake-base", spaceId = "base", kernelId = "python3", serverSessionId = "fake-session-base")

@@ -103,6 +103,22 @@ data class EditorPalette(
    * P6a-6 can create is this colour, since nothing calls `setBreakpoints` until P6a-7a.
    */
   val breakpointUnverified: Color,
+  /**
+   * Behind the line the kernel is paused on - `editor.stackFrameHighlightBackground`
+   * (`callStackEditorContribution.ts:24`), the **top** stack frame's own id, not
+   * `editor.focusedStackFrameHighlightBackground` - this port never has more than one frame to
+   * highlight until P6a-8's call stack lets a user focus another. Unset in both 2026 themes, so
+   * this is the registered default, one value for both like [breakpointVerified].
+   *
+   * **Full line, edge to edge, the way JupyterLab's own `Decoration.line({ class:
+   * 'jp-DebuggerEditor-highlight' })` (`packages/debugger/src/handlers/editor.ts:154`) and VS
+   * Code's `isWholeLine` decoration both draw it** - not a gutter marker: P6a-6's breakpoint dot
+   * reuses the gutter because a *set* breakpoint is a fact about one column, where a *stop* is a
+   * fact about the whole line the kernel is standing on, which is what both references draw it
+   * as. Translucent so the syntax colours under it stay legible, the same reasoning
+   * [searchMatch]'s own doc carries.
+   */
+  val debugStoppedLine: Color,
   /** The "ran in 1.2 s" label. `JUPYTER.EXECUTION_TIME_COLOR`. */
   val executionTime: Color,
   /** Behind the bracket pair the caret is touching. `MATCHED_BRACE_ATTRIBUTES` background. */

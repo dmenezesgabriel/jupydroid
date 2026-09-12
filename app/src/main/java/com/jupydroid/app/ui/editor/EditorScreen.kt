@@ -476,6 +476,7 @@ private fun EditorContent(
               lineNumbersShown = state.lineNumbersShown,
               breakpoints = state.breakpointsByCellId[cell.id].orEmpty(),
               onGutterTap = { line -> onToggleBreakpoint(cell.id, line) },
+              stoppedLine = state.stoppedLineOf(cell.id),
               headingPrefix = headingPrefixes[cell.id].orEmpty(),
               // Per cell rather than sliced once for the list, unlike the numbers above: a cell's
               // matches depend only on that cell - see [searchHighlightOf].

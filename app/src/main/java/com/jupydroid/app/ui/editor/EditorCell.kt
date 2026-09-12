@@ -57,6 +57,8 @@ internal fun EditorCell(
   breakpoints: List<Breakpoint>,
   /** A tap in this cell's gutter, reporting the one-based line it hit. */
   onGutterTap: (line: Int) -> Unit,
+  /** Where the kernel is paused in this cell, one-based, or null - code cells only. See [NotebookDebugger]. */
+  stoppedLine: Int?,
   /** `toc:display-numbering`'s answer for this cell's heading, or `""` - see [MarkdownCell]. */
   headingPrefix: String,
   /** What the find bar found in this cell's **source** - see [CellSearchHighlight]. */
@@ -145,6 +147,7 @@ internal fun EditorCell(
             lineNumbersShown = lineNumbersShown,
             breakpoints = breakpoints,
             onGutterTap = onGutterTap,
+            stoppedLine = stoppedLine,
             search = search,
             autoClosingBrackets = autoClosingBrackets,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),

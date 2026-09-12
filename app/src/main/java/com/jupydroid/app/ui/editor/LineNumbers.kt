@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputScope
@@ -49,6 +50,11 @@ import com.jupydroid.app.theme.editorPalette
  * @param onGutterTap a tap landed in the gutter, reporting the **one-based** logical line it hit -
  *   `KernelDebugger.setBreakpoints`'s own numbering. Fires on press, matching both references'
  *   own `mousedown` handlers rather than waiting for a release.
+ * @param stoppedLine where the kernel is paused, one-based, or null while nothing is - see
+ *   [EditorPalette.debugStoppedLine]. Drawn full width, **before** the numbers/dots so those stay
+ *   legible over the wash, and before `padding(start = width)` shrinks this `drawBehind`'s own
+ *   size - the one reason this lives beside the gutter's geometry rather than in a modifier of
+ *   its own.
  */
 @Composable
 fun Modifier.lineNumbers(
@@ -58,6 +64,7 @@ fun Modifier.lineNumbers(
   width: Dp,
   breakpoints: List<Breakpoint> = emptyList(),
   onGutterTap: (line: Int) -> Unit = {},
+  stoppedLine: Int? = null,
 ): Modifier {
   if (width <= 0.dp) return this
   val starts = logicalLineStarts(text)
@@ -76,6 +83,7 @@ fun Modifier.lineNumbers(
     }
     .drawBehind {
       if (layout == null) return@drawBehind
+      stoppedLine?.let { drawStoppedLineBackground(it, starts, layout, palette, size.width) }
       numbers.forEachIndexed { index, number ->
         val top = layout.getLineTop(layout.getLineForOffset(starts[index]))
         val breakpoint = armed[index + 1]
@@ -89,6 +97,26 @@ fun Modifier.lineNumbers(
       }
     }
     .padding(start = width)
+}
+
+/**
+ * The whole of [line]'s row, edge to edge - every visual row a wrapped logical line spans, not
+ * only its first. [starts] are logical-line offsets, so this finds where the *next* logical line
+ * begins (or the text's own end) to know how far down the last visual row runs.
+ */
+private fun DrawScope.drawStoppedLineBackground(
+  line: Int,
+  starts: List<Int>,
+  layout: TextLayoutResult,
+  palette: EditorPalette,
+  width: Float,
+) {
+  val index = line - 1
+  if (index !in starts.indices) return
+  val lastOffset = if (index + 1 < starts.size) starts[index + 1] - 1 else layout.layoutInput.text.length
+  val top = layout.getLineTop(layout.getLineForOffset(starts[index]))
+  val bottom = layout.getLineBottom(layout.getLineForOffset(lastOffset.coerceAtLeast(starts[index])))
+  drawRect(color = palette.debugStoppedLine, topLeft = Offset(0f, top), size = Size(width, bottom - top))
 }
 
 /** A filled circle centred in the gutter, dim while [Breakpoint.verified] is false. */
