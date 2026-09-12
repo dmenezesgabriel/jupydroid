@@ -103,6 +103,59 @@ permission anyway: the tracee's own `execve` still meets the policy. That same d
 
 `useLegacyPackaging = true` is load-bearing: without it the libs stay inside the APK.
 
+### DNS cannot be fixed by redirecting a file, so `getaddrinfo()` is interposed instead (P7e-3)
+
+**musl's own resolver reads `/etc/resolv.conf` through a call no `LD_PRELOAD` can reach.**
+`__get_resolv_conf` (`src/network/resolvconf.c`) calls `__fopen_rb_ca`, which calls `sys_open` -
+a macro (`src/internal/syscall.h`) that inlines a raw `syscall(SYS_openat, AT_FDCWD, "/etc/resolv.conf",
+...)` instruction at the call site. There is no GOT/PLT entry for any function name here, so no
+preload can substitute a writable path - the same category of case `musl_at_shim.c` already
+documents for `lstat` (musl's own `fstatat` "turns exactly that call back into `SYS_lstat` ...
+interposing the function is a no-op here"), except there is no raw-syscall interposition available
+either, because the call was never a public function to begin with.
+
+**Measured three ways, not guessed, before any shim code was written**
+(`evidence/p7e-3b-interposition-probe/`): a Docker build against the exact musl 1.2.5 the rootfs
+ships showed a preloaded `fopen()` is never called when Python's `getaddrinfo` triggers the
+internal resolver; a sanity check on a caller that calls `fopen()` directly showed the same preload
+mechanism works fine, ruling out a mechanical failure; and musl's own source (above) explains why.
+A loopback DNS proxy on `127.0.0.1:53` was checked too - musl already falls back to that address
+when `resolv.conf` is unusable, so a service bound there would need no interposition at all - and
+ruled out directly: even the `shell` uid (2000), more privileged than an app's `untrusted_app`
+domain, gets `EACCES` binding UDP 53 (`ip_unprivileged_port_start` is 1024).
+
+**What does work: `getaddrinfo()` itself.** It is the public symbol external callers (CPython's
+`socketmodule.c`, among others) reach through ordinary PLT dispatch - the same category of call
+`musl_at_shim.c` already relies on for `unlink`/`mkdir`/etc. - confirmed the same way
+(`evidence/p7e-3b-interposition-probe/getaddrinfo_probe.c`). `tools/rootfs/getaddrinfo_shim.c`
+interposes it: for anything numeric, null, or a family it does not handle (IPv4/A-records only,
+deliberately - P7e-3 asked for pip's/jupyter's own need, not a general resolver), it falls through
+to musl's real `getaddrinfo`; otherwise it sends its own A-record query to nameservers named by
+`JUPYDROID_NAMESERVERS` - a `SpaceRuntime` environment variable sourced from Android's
+`ConnectivityManager` (`AndroidBaseSpace.androidDnsServerSource`), bypassing `/etc/resolv.conf`
+entirely rather than trying to make musl read a file it cannot be redirected to.
+
+**It never fabricates its own `struct addrinfo`.** musl's `freeaddrinfo` does not do a plain `free()`
+walk - it recovers a private, refcounted `struct aibuf` by pointer arithmetic
+(`(void *)((char *)p - offsetof(struct aibuf, ai))`, `src/network/freeaddrinfo.c`), so a hand-rolled
+struct would corrupt memory the moment a caller freed it. Once a hostname resolves, the shim hands
+the numeric address straight back to musl's *real* `getaddrinfo` with `AI_NUMERICHOST` set - a
+numeric-host lookup takes no file I/O at all, and the result is genuinely musl's own allocation, so
+`freeaddrinfo` needs no override here either. `AI_CANONNAME` is dropped rather than forwarded on
+that fallthrough: musl would report the numeric literal as the canonical name, which is not what a
+caller asking about the original hostname means by it, and nothing in pip's/jupyter's own path
+depends on `ai_canonname`.
+
+**Ships on both ABIs**, unlike `musl_at_shim.c`: the bug is real on the tablet, not an x86_64-only
+dead-code case - `evidence/p7e-pip-install/` is tablet evidence. Built and proven the same way as
+the other two preloads (`tools/rootfs/Dockerfile`'s `sigsys-builder` stage, `getaddrinfo_shim_probe.py`
+running a real DNS exchange against a fake server at build time), wired through
+`SpaceRuntime.PRELOADS` beside `libsigsys_report.so` and `libmusl_at_shim.so`.
+
+**TLS trust needed no shim at all**: the rootfs already ships a real CA bundle and both OpenSSL and
+musl's resolver honour `SSL_CERT_FILE`/`SSL_CERT_DIR` (`SpaceRuntime.environment()`), measured in
+P7e-0 (`openssl_cafile_env='SSL_CERT_FILE'`) before P7e-3 wrote a line.
+
 ### busybox is built here, not taken from Alpine, and one flag is why
 
 **Alpine's busybox cannot run a single applet in this app's process.** It is built with
