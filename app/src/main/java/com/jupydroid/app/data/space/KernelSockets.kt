@@ -28,7 +28,9 @@ import kotlin.time.Duration.Companion.seconds
  */
 class KernelSockets(
   private val opener: KernelSocketOpener,
-  private val lifecycle: KernelLifecycle,
+  // Not private: `RealKernelGateway` calls `connect`/`interrupt`/`restart` directly on the same
+  // lifecycle this uses to recover a silent socket, rather than each holding its own reference.
+  val lifecycle: KernelLifecycle,
   // Silent by default so the many tests that do not care about logging need not pass one; the
   // app wires the real thing in `AppContainer`. See [KernelLog] for what these lines are for.
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,

@@ -38,14 +38,7 @@ class DebugRequestFailedException(command: String, message: String?) :
  * inconsistent per-call checking (`service.ts` throws only for `initialize`), because silently
  * proceeding past a rejected `setBreakpoints` is a worse failure mode than a thrown exception.
  */
-class RealKernelDebugger(
-  opener: KernelSocketOpener,
-  private val lifecycle: KernelLifecycle,
-  // Silent by default so the many tests that do not care about logging need not pass one; the
-  // app wires the real thing in `AppContainer`. See [KernelLog] for what these lines are for.
-  private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
-) : KernelDebugger {
-  private val sockets = KernelSockets(opener, lifecycle, log)
+class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
   private val seqLock = Mutex()
   private val seqBySession = mutableMapOf<String, Int>()
 

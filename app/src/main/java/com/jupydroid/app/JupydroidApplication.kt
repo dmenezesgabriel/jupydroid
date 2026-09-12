@@ -12,6 +12,7 @@ import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
+import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeTerminalGateway
@@ -19,13 +20,16 @@ import com.jupydroid.app.data.intent.IntentDocumentSharer
 import com.jupydroid.app.data.space.BaseSpaceServer
 import com.jupydroid.app.data.space.JupyterServerLauncher
 import com.jupydroid.app.data.space.baseSpaceDir
+import com.jupydroid.app.data.space.baseSpaceKernelDebugger
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
+import com.jupydroid.app.data.space.baseSpaceKernelSockets
 import com.jupydroid.app.data.space.baseSpaceNotebookExporter
 import com.jupydroid.app.data.space.baseSpaceServer
 import com.jupydroid.app.data.space.baseSpaceServerLauncher
 import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -70,7 +74,11 @@ class JupydroidApplication : Application() {
     val space = SpaceBackedPorts(serverLauncher, this)
     val workspace = notebookWorkspace(this)
     migrateNotebooksOnce(workspace)
-    return AppContainer(
+    return containerFor(serverLauncher, space, workspace)
+  }
+
+  private fun containerFor(serverLauncher: JupyterServerLauncher, space: SpaceBackedPorts, workspace: File) =
+    AppContainer(
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
       // The same tree, walked rather than listed. Always real, like the sharer: searching needs no
@@ -81,6 +89,7 @@ class JupydroidApplication : Application() {
       // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
       recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
       kernelGateway = space.kernels,
+      kernelDebugger = space.debugger,
       notebookExporter = space.exporter,
       terminalGateway = space.terminals,
       // Always real, unlike the Space-backed three: sharing needs no Space, so it works on a device
@@ -94,25 +103,28 @@ class JupydroidApplication : Application() {
       terminalSettings = DiskTerminalSettingsRepository(filesDir),
       explorerSettings = DiskExplorerSettingsRepository(filesDir),
     )
-  }
 
   /**
-   * The three ports a running Space backs, or the fakes where none can run.
+   * The four ports a running Space backs, or the fakes where none can run.
    *
-   * A group rather than three unrelated fields, and named once it became a third: what they share
+   * A group rather than unrelated fields, and named once it became more than one: what they share
    * is the *condition* - a device with no runnable Space - and stating it in one place is what
-   * stops that having three chances to be got wrong. On an x86_64 emulator the runtime cannot work
+   * stops that having four chances to be got wrong. On an x86_64 emulator the runtime cannot work
    * at all (`evidence/step8.3/musl-is-arm64-only.txt`), and the UI is better served by fakes than
    * by controls that always fail.
    *
-   * **One server object for all three**, because `JupyterServerLauncher.start` begins with `stop()`
-   * - see [BaseSpaceServer], whose KDoc has named an export, a terminal and a language server as
-   * its clients since P1.
+   * **One server object for all four**, because `JupyterServerLauncher.start` begins with `stop()`
+   * - see [BaseSpaceServer], whose KDoc has named an export and a terminal as its clients since P1.
+   * [kernels] and [debugger] go one step further, sharing one `PerRunningServer<KernelSockets>`
+   * so a `debug_request` reuses the identical per-session socket `execute`/`complete`/`history`
+   * already share, rather than opening a second one (P6a-4).
    */
   private class SpaceBackedPorts(launcher: JupyterServerLauncher, application: Application) {
     private val space: BaseSpaceServer? = baseSpaceServer(application, launcher)
+    private val kernelSockets = space?.let(::baseSpaceKernelSockets)
 
-    val kernels: KernelGateway = space?.let(::baseSpaceKernelGateway) ?: FakeKernelGateway()
+    val kernels: KernelGateway = kernelSockets?.let(::baseSpaceKernelGateway) ?: FakeKernelGateway()
+    val debugger: KernelDebugger = kernelSockets?.let(::baseSpaceKernelDebugger) ?: FakeKernelDebugger()
     val exporter: NotebookExporter = space?.let(::baseSpaceNotebookExporter) ?: FakeNotebookExporter()
     val terminals: TerminalGateway = space?.let(::baseSpaceTerminalGateway) ?: FakeTerminalGateway()
   }

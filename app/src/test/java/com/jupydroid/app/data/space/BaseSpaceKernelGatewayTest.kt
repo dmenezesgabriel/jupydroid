@@ -84,7 +84,7 @@ class BaseSpaceKernelGatewayTest {
   fun connect_survivesASecondClientOfTheSpaceAskingForTheSameServer() = runTest {
     val launcher = RecordingServerLauncher()
     val space = BaseSpaceServer(installSpace = {}, launcher = launcher, log = recordingLog)
-    val gateway = BaseSpaceKernelGateway(space, { FakeKernelGateway() }, recordingLog)
+    val gateway = BaseSpaceKernelGateway(fakeSockets(space), { FakeKernelGateway() }, recordingLog)
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     PerRunningServer(space) { "an exporter for ${it.port}" }.get()
@@ -104,15 +104,19 @@ class BaseSpaceKernelGatewayTest {
 
   private val recordingLog = RecordingSpaceLifecycleLog()
 
-  private fun gateway(launcher: RecordingServerLauncher): KernelGateway = BaseSpaceKernelGateway(
-    server = BaseSpaceServer(
-      installSpace = {},
-      launcher = launcher,
+  private fun gateway(launcher: RecordingServerLauncher): KernelGateway {
+    val server = BaseSpaceServer(installSpace = {}, launcher = launcher, log = recordingLog)
+    return BaseSpaceKernelGateway(
+      sharedSockets = fakeSockets(server),
+      gatewayFor = { FakeKernelGateway() },
       log = recordingLog,
-    ),
-    gatewayFor = { FakeKernelGateway() },
-    log = recordingLog,
-  )
+    )
+  }
+
+  /** `gatewayFor` below never reads it - a placeholder is enough wherever `FakeKernelGateway` stands in. */
+  private fun fakeSockets(server: BaseSpaceServer): PerRunningServer<KernelSockets> = PerRunningServer(server) {
+    KernelSockets(ScriptedKernelSocketOpener(reply = { emptyList() }), FakeKernelLifecycle())
+  }
 
   private inner class RecordingServerLauncher(
     private val failWith: Exception? = null,

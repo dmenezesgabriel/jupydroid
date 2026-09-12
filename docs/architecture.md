@@ -99,6 +99,7 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | `WorkspaceSearcher` | find a query across the whole tree, and replace it there | `DiskWorkspaceSearcher` |
 | `RecentDocumentsRepository` | what was opened, persisted outside the workspace | `DiskRecentDocumentsRepository` |
 | `KernelGateway` | connect/execute/interrupt/restart/complete/history against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
+| `KernelDebugger` | DAP (`debug_request`/`debug_reply`) over the kernel's control channel - breakpoints, step/continue, call stack, variables | `RealKernelDebugger` over the same session's `KernelSockets`, behind `BaseSpaceKernelDebugger` |
 | `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
 | `EditorSettingsRepository` | the app-wide editor preferences | `DiskEditorSettingsRepository` |
 | `TerminalSettingsRepository` | the app-wide terminal preferences - the font size (P4j-3c) | `DiskTerminalSettingsRepository` |
@@ -110,11 +111,17 @@ Each port also has a `Fake…` in `data/fake/`, which is what `AppContainer`'s d
 tests get one for free, and an x86_64 device (where no Space can run) keeps the fake kernel so
 the UI still works.
 
-**Two clients of the Space's server, and one object that starts it.** `BaseSpaceServer` owns the
-lazy install-and-start, and `PerRunningServer` gives each client one instance per server -
-`BaseSpaceKernelGateway` and `BaseSpaceNotebookExporter` today, a terminal and a language server
-later. This is not layering for its own sake: `JupyterServerLauncher.start` begins with `stop()`,
-so a second starter would kill the kernel's server (`docs/DECISIONS.md`).
+**Multiple clients of the Space's server, and one object that starts it.** `BaseSpaceServer` owns
+the lazy install-and-start, and `PerRunningServer` gives each client one instance per server -
+`BaseSpaceKernelGateway` and `BaseSpaceNotebookExporter` each their own today, a terminal and a
+language server later. This is not layering for its own sake: `JupyterServerLauncher.start` begins
+with `stop()`, so a second starter would kill the kernel's server (`docs/DECISIONS.md`).
+
+**One of those instances is itself shared by two clients.** `BaseSpaceKernelGateway` and
+`BaseSpaceKernelDebugger` do not each build their own `PerRunningServer<KernelSockets>` - they are
+handed the *same* one, built once (`baseSpaceKernelSockets`), because a `debug_request` on the
+control channel reuses the identical per-session socket `execute`/`complete`/`history` already
+share rather than opening a second one (P6a-4).
 
 `Space` is a **first-class domain type** (`files/spaces/<id>/`), not a string. Named after
 SageMaker Studio rather than "environment", which would collide with the Python environments

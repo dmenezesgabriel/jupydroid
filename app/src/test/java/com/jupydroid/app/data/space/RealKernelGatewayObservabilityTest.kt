@@ -104,7 +104,7 @@ class RealKernelGatewayObservabilityTest {
   /** And a kernel that never answers is reported as that, rather than as nothing at all. */
   @Test
   fun aGreetingThatIsNeverAnsweredIsReportedAsTimedOut() = runTest {
-    val gateway = RealKernelGateway(neverGreets(), FakeKernelLifecycle(), log)
+    val gateway = RealKernelGateway(KernelSockets(neverGreets(), FakeKernelLifecycle(), log), log)
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }
@@ -121,7 +121,7 @@ class RealKernelGatewayObservabilityTest {
    */
   @Test
   fun theRecoveryRestartIsReported() = runTest {
-    val gateway = RealKernelGateway(neverGreets(), FakeKernelLifecycle(), log)
+    val gateway = RealKernelGateway(KernelSockets(neverGreets(), FakeKernelLifecycle(), log), log)
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }
@@ -142,7 +142,7 @@ class RealKernelGatewayObservabilityTest {
       reply = { listOf() },
       endAfter = JupyterSocketEvent.Ended(reason = "closed: 1006 gone", failed = false),
     )
-    val gateway = RealKernelGateway(opener, FakeKernelLifecycle(), log)
+    val gateway = RealKernelGateway(KernelSockets(opener, FakeKernelLifecycle(), log), log)
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }
@@ -151,8 +151,13 @@ class RealKernelGatewayObservabilityTest {
   }
 
   private fun gateway() = RealKernelGateway(
-    ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) }),
-    FakeKernelLifecycle(),
+    KernelSockets(
+      ScriptedKernelSocketOpener(reply = {
+        KernelFrames.successfulExecution(it)
+      }),
+      FakeKernelLifecycle(),
+      log,
+    ),
     log,
   )
 

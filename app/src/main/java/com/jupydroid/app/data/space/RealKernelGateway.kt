@@ -20,22 +20,22 @@ class KernelChannelException(reason: String) : IllegalStateException(reason)
  * The real [KernelGateway]: executions streamed off one long-lived socket per session.
  *
  * ```
- * RealKernelGateway(OkHttpKernelSocketOpener(conn), OkHttpKernelLifecycle(conn))
+ * RealKernelGateway(KernelSockets(OkHttpKernelSocketOpener(conn), OkHttpKernelLifecycle(conn)))
  *   .execute(session, cellId, "2 + 2")
  * ```
  *
- * Socket bookkeeping - one per session, opened lazily, reused across executions - lives in
- * [KernelSockets] rather than here, so a second client of the same session (a `debug_request` on
- * the control channel, once the debugger lands) can share it instead of opening another.
+ * [sockets] is taken rather than built here - a second client of the same session (a
+ * `debug_request` on the control channel) shares the identical instance instead of opening
+ * another socket, wired once at the composition root (`BaseSpaceKernelGateway`/
+ * `BaseSpaceKernelDebugger` behind one `PerRunningServer<KernelSockets>`).
  */
 class RealKernelGateway(
-  opener: KernelSocketOpener,
-  private val lifecycle: KernelLifecycle,
+  private val sockets: KernelSockets,
   // Silent by default so the many tests that do not care about logging need not pass one; the
   // app wires the real thing in `AppContainer`. See [KernelLog] for what these lines are for.
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) : KernelGateway {
-  private val sockets = KernelSockets(opener, lifecycle, log)
+  private val lifecycle: KernelLifecycle get() = sockets.lifecycle
 
   /**
    * Starts a kernel and binds a session to it. The session id is ours and identifies this

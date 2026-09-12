@@ -3,6 +3,7 @@ package com.jupydroid.app.di
 import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
+import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
@@ -18,6 +19,7 @@ import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
+import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -57,6 +59,8 @@ class AppContainer(
    */
   val recentDocuments: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
   val kernelGateway: KernelGateway = FakeKernelGateway(),
+  /** DAP over the same kernel session's control channel - breakpoints, step/continue, variables. */
+  val kernelDebugger: KernelDebugger = FakeKernelDebugger(),
   /**
    * The Space's shells - `terminal:create-new`, which JupyterLab adds to `'main'` as a
    * `MainAreaWidget` rather than to a panel (`packages/terminal-extension/src/index.ts:523-524`).

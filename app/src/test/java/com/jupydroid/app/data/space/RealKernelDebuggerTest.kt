@@ -26,7 +26,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
   override fun debugger(): KernelDebugger {
     lateinit var opener: ScriptedKernelSocketOpener
     opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
-    return RealKernelDebugger(opener, FakeKernelLifecycle())
+    return RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
   }
 
   /** `DebuggerSession.start()`'s own order (`session.ts:180-204`) - `attach` alone is not enough to start debugpy. */
@@ -34,7 +34,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
   fun attach_sendsInitializeThenAttachInOrder() = runTest {
     lateinit var opener: ScriptedKernelSocketOpener
     opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
-    val debugger = RealKernelDebugger(opener, FakeKernelLifecycle())
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
 
     debugger.attach(SESSION)
 
@@ -47,7 +47,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
     val opener = ScriptedKernelSocketOpener(
       reply = { parent -> listOf(KernelFrames.debugReply(parent, "initialize", success = false, message = "boom")) },
     )
-    val debugger = RealKernelDebugger(opener, FakeKernelLifecycle())
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
 
     val failure = runCatching { debugger.attach(SESSION) }
 
@@ -59,7 +59,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
   fun dumpCell_sendsTheCodeAsDapArguments() = runTest {
     lateinit var opener: ScriptedKernelSocketOpener
     opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
-    val debugger = RealKernelDebugger(opener, FakeKernelLifecycle())
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
 
     debugger.dumpCell(SESSION, "x = 1")
 
@@ -72,7 +72,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
   fun step_sendsTheDapCommandNameForEachSteppingCommand() = runTest {
     lateinit var opener: ScriptedKernelSocketOpener
     opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
-    val debugger = RealKernelDebugger(opener, FakeKernelLifecycle())
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
 
     debugger.step(SESSION, threadId = 1, command = SteppingCommand.NEXT)
     debugger.step(SESSION, threadId = 1, command = SteppingCommand.STEP_IN)
@@ -90,7 +90,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
         listOf(KernelFrames.debugReply(parent, "attach"), KernelFrames.debugEvent("stopped", stoppedBody))
       },
     )
-    val debugger = RealKernelDebugger(opener, FakeKernelLifecycle())
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
     val collected = mutableListOf<DebugEvent>()
     val collecting = launch { collected += debugger.events(SESSION).take(1).toList() }
     advanceUntilIdle()
@@ -106,7 +106,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
     val opener = ScriptedKernelSocketOpener(
       reply = { parent -> listOf(KernelFrames.debugReply(parent, "attach"), KernelFrames.debugEvent("continued")) },
     )
-    val debugger = RealKernelDebugger(opener, FakeKernelLifecycle())
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
     val collected = mutableListOf<DebugEvent>()
     val collecting = launch { collected += debugger.events(SESSION).take(1).toList() }
     advanceUntilIdle()

@@ -5,7 +5,6 @@ import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
-import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import kotlinx.coroutines.flow.Flow
 
@@ -13,20 +12,20 @@ import kotlinx.coroutines.flow.Flow
  * The kernel gateway for the base Space's server, and the bookkeeping that a server which can be
  * replaced under it forces.
  *
- * Starting the server is [BaseSpaceServer]'s job and building the gateway per server is
- * [PerRunningServer]'s; what is left here - and it is the whole reason this class still exists -
- * is that a *session* outlives neither.
+ * Starting the server is [BaseSpaceServer]'s job; [sharedSockets] is the one
+ * `PerRunningServer<KernelSockets>` this shares with `BaseSpaceKernelDebugger` - built from that
+ * server once, at the composition root - so both read the identical per-session socket rather
+ * than each opening their own. What is left here - and it is the whole reason this class still
+ * exists - is that a *session* outlives neither.
  *
  * ```
- * BaseSpaceKernelGateway(
- *   server = baseSpaceServer(context, baseSpaceServerLauncher(context))!!,
- *   gatewayFor = { RealKernelGateway(OkHttpKernelSocketOpener(it), OkHttpKernelLifecycle(it)) },
- * )
+ * val sockets = baseSpaceKernelSockets(server)
+ * BaseSpaceKernelGateway(sharedSockets = sockets, gatewayFor = { RealKernelGateway(it) })
  * ```
  */
 class BaseSpaceKernelGateway(
-  server: BaseSpaceServer,
-  gatewayFor: (ServerConnection) -> KernelGateway,
+  private val sharedSockets: PerRunningServer<KernelSockets>,
+  private val gatewayFor: (KernelSockets) -> KernelGateway,
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) : KernelGateway {
   /**
@@ -40,20 +39,17 @@ class BaseSpaceKernelGateway(
    */
   private val issuedSessions = mutableSetOf<String>()
 
-  // Clearing inside `build` rather than beside it: `PerRunningServer` calls it exactly once per
-  // server, so "a new gateway was built" and "nothing the old server issued carries over" cannot
-  // drift apart.
-  private val live = PerRunningServer(server) { connection ->
-    issuedSessions.clear()
-    gatewayFor(connection)
-  }
+  // The last KernelSockets this adapter itself saw, not a count of servers it started: `sockets`
+  // is shared with `BaseSpaceKernelDebugger`, either of which can be the one that rebuilds it on a
+  // new generation - so this reacts to a change it observes rather than one it necessarily caused.
+  private var trackedSockets: KernelSockets? = null
 
   /**
    * Starts a kernel and binds a session to it. The session id is ours and identifies this
    * client to the server; the kernel id is the server's.
    */
   override suspend fun connect(space: Space, documentPath: String): KernelSession =
-    live.get().connect(space, documentPath).also {
+    currentGateway().connect(space, documentPath).also {
       issuedSessions += it.id
       log.reached("kernel ${it.kernelId} ready for space ${space.id}")
     }
@@ -90,13 +86,23 @@ class BaseSpaceKernelGateway(
    */
   private suspend fun endingIfStillLive(session: KernelSession, end: suspend (KernelGateway) -> Unit) {
     if (!issuedSessions.remove(session.id)) return
-    live.liveOrNull()?.let { end(it) }
+    sharedSockets.liveOrNull()?.let { end(gatewayFor(it)) }
   }
 
   /** The running gateway, for a session it actually knows; [StaleKernelSessionException] if not. */
   private suspend fun known(session: KernelSession): KernelGateway {
-    val gateway = live.get()
+    val gateway = currentGateway()
     if (session.id !in issuedSessions) throw StaleKernelSessionException(session.id)
     return gateway
+  }
+
+  /** [issuedSessions] is cleared the moment a different [KernelSockets] shows up, from either side. */
+  private suspend fun currentGateway(): KernelGateway {
+    val sockets = sharedSockets.get()
+    if (sockets !== trackedSockets) {
+      issuedSessions.clear()
+      trackedSockets = sockets
+    }
+    return gatewayFor(sockets)
   }
 }

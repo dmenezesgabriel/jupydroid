@@ -40,7 +40,7 @@ class KernelGreetingRecoveryTest {
   @Test
   fun aGreetingThatIsNeverAnsweredRestartsTheKernel() = runTest {
     val lifecycle = FakeKernelLifecycle()
-    val gateway = RealKernelGateway(neverGreets(), lifecycle)
+    val gateway = RealKernelGateway(KernelSockets(neverGreets(), lifecycle))
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }
@@ -58,7 +58,7 @@ class KernelGreetingRecoveryTest {
   @Test
   fun theReplacementKernelIsGreetedOnceAndNoMore() = runTest {
     val opener = neverGreets()
-    val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
+    val gateway = RealKernelGateway(KernelSockets(opener, FakeKernelLifecycle()))
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }
@@ -80,7 +80,7 @@ class KernelGreetingRecoveryTest {
       reply = { KernelFrames.successfulExecution(it) },
       answerKernelInfo = { ask -> ask > 1 },
     )
-    val gateway = RealKernelGateway(opener, lifecycle)
+    val gateway = RealKernelGateway(KernelSockets(opener, lifecycle))
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     val events = gateway.execute(session, "cell-1", "2 + 2").toList()
@@ -100,7 +100,7 @@ class KernelGreetingRecoveryTest {
    */
   @Test
   fun aKernelThatAnswersNeitherGreetingFailsTheCell() = runTest {
-    val gateway = RealKernelGateway(neverGreets(), FakeKernelLifecycle())
+    val gateway = RealKernelGateway(KernelSockets(neverGreets(), FakeKernelLifecycle()))
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     val failure = runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }.exceptionOrNull()
@@ -120,7 +120,7 @@ class KernelGreetingRecoveryTest {
   @Test
   fun aRestartTheServerRefusesFailsTheCell() = runTest {
     val refused = KernelLifecycleException("POST api/kernels/kernel-1/restart failed: HTTP 500")
-    val gateway = RealKernelGateway(neverGreets(), FakeKernelLifecycle(failWith = refused))
+    val gateway = RealKernelGateway(KernelSockets(neverGreets(), FakeKernelLifecycle(failWith = refused)))
     val session = KernelSession(
       id = "session-1",
       spaceId = "base",
@@ -147,7 +147,7 @@ class KernelGreetingRecoveryTest {
   @Test
   fun typingDoesNotRestartTheKernel() = runTest {
     val lifecycle = FakeKernelLifecycle()
-    val gateway = RealKernelGateway(neverGreets(), lifecycle)
+    val gateway = RealKernelGateway(KernelSockets(neverGreets(), lifecycle))
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     // Cancelled the way the editor cancels it - by typing again - since a completion against a
@@ -162,7 +162,7 @@ class KernelGreetingRecoveryTest {
   @Test
   fun noRequestIsSentIntoAChannelThatAnsweredNeitherGreeting() = runTest {
     val opener = neverGreets()
-    val gateway = RealKernelGateway(opener, FakeKernelLifecycle())
+    val gateway = RealKernelGateway(KernelSockets(opener, FakeKernelLifecycle()))
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     runCatching { gateway.execute(session, "cell-1", "2 + 2").toList() }

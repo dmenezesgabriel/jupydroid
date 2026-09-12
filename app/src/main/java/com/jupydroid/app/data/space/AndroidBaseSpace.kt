@@ -3,7 +3,6 @@ package com.jupydroid.app.data.space
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
-import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.TerminalGateway
 import java.io.File
@@ -82,24 +81,6 @@ fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpac
 /** The exporter backed by the nbconvert endpoints of [server]'s `jupyter_server`. */
 fun baseSpaceNotebookExporter(server: BaseSpaceServer): NotebookExporter =
   BaseSpaceNotebookExporter(server) { OkHttpNotebookExporter(it) }
-
-/** The gateway backed by a real kernel in [server]'s Space. */
-fun baseSpaceKernelGateway(server: BaseSpaceServer): KernelGateway = BaseSpaceKernelGateway(
-  server = server,
-  gatewayFor = { connection ->
-    RealKernelGateway(
-      opener = OkHttpKernelSocketOpener(connection),
-      // The lifecycle gets the same log: a shutdown that found the session already gone is the
-      // one thing it reports rather than raises, and on device that line is the only account of it.
-      lifecycle = OkHttpKernelLifecycle(connection, log = LogcatSpaceLifecycleLog),
-      // The same tag the rest of the runtime reports under, so a stall is one filter to read:
-      // `adb logcat -s JupydroidSpace`. Without this the execute path is silent, which is why
-      // three sightings of the stall produced no diagnosis. See [KernelLog].
-      log = LogcatSpaceLifecycleLog,
-    )
-  },
-  log = LogcatSpaceLifecycleLog,
-)
 
 /** The terminals of [server]'s `jupyter_server`, over one socket per attached shell. */
 fun baseSpaceTerminalGateway(server: BaseSpaceServer): TerminalGateway = BaseSpaceTerminalGateway(
