@@ -75,7 +75,7 @@ No production line changed in P2z-f…P2z-j - the defects were in flows, fixture
 the harness - so the sweep's own result stands for the app, and every flow that did change was
 re-run green on the device its rule names, in the commit that changed it.
 
-**P4 is closed, and P7 comes before P5.** P7 is five gaps P2-P4 let through - the chrome that never got VS Code's *parts*, a breadcrumb only the notebook has, a Recents section that can only be emptied, a back arrow where two panes want a close, and a Space that cannot install a Python package - each measured before it was written down. **P7a-0, P7a-1, P7a-1b and P7a-2 are shipped**: the reference clone is re-based and re-verified, the rail and the side panels are drawn as *parts* rather than on the document's own colour, with a pixel oracle that fails on the frame the defect was found in - and **P7a-1b then found that the palette's next value was serving two reference ids at once**. `secondaryContainer` was `list.inactiveSelectionBackground` and had four consumers, only one of them a list; 2026 Light states that id at 60%, so honouring the alpha the plan set out to honour would have made the *search toggles'* wash translucent where the reference draws it opaque. The two ids were parted rather than folded harder - the explorer's open row is a **part** now and paints the `#E7E7E8` the reference does, the toggles and the two contextual bars took `inputOption.activeBackground`, which they had always cited - and a second pixel oracle was built for it, one that reads the colour inside a *named* node's own bounds and was shown red on both devices before it was shown green. **P7a-2 then gave each part the border id the reference states for it** - and found that the app drew one of the two, by accident: the rail's seam was a bare `VerticalDivider` whose `outlineVariant` happens to hold `panel.border`'s hex, and the side panel abutted the document with no `sideBar.border` at all. The oracle could not have said so, because `read_chrome_parts.py` discards a 1-2px band *on purpose* - a border is not a part - so the step began by teaching it to read the seams it throws away. **And reading the frames it captured is what found a defect no assertion in the repository could fail on**: the explorer drawing its own cancelled listing at the user as an error, two weeks old and fixed in its own commit. P7's own header says where it is and what is next. P4a-P4h are shipped - the parser (P4f), the ANSI ramp (P4g) and the
+**P4 and P7 are closed, and P6 comes before P5 too.** P7 is five gaps P2-P4 let through - the chrome that never got VS Code's *parts*, a breadcrumb only the notebook has, a Recents section that can only be emptied, a back arrow where two panes want a close, and a Space that cannot install a Python package - each measured before it was written down. **P7a-0, P7a-1, P7a-1b and P7a-2 are shipped**: the reference clone is re-based and re-verified, the rail and the side panels are drawn as *parts* rather than on the document's own colour, with a pixel oracle that fails on the frame the defect was found in - and **P7a-1b then found that the palette's next value was serving two reference ids at once**. `secondaryContainer` was `list.inactiveSelectionBackground` and had four consumers, only one of them a list; 2026 Light states that id at 60%, so honouring the alpha the plan set out to honour would have made the *search toggles'* wash translucent where the reference draws it opaque. The two ids were parted rather than folded harder - the explorer's open row is a **part** now and paints the `#E7E7E8` the reference does, the toggles and the two contextual bars took `inputOption.activeBackground`, which they had always cited - and a second pixel oracle was built for it, one that reads the colour inside a *named* node's own bounds and was shown red on both devices before it was shown green. **P7a-2 then gave each part the border id the reference states for it** - and found that the app drew one of the two, by accident: the rail's seam was a bare `VerticalDivider` whose `outlineVariant` happens to hold `panel.border`'s hex, and the side panel abutted the document with no `sideBar.border` at all. The oracle could not have said so, because `read_chrome_parts.py` discards a 1-2px band *on purpose* - a border is not a part - so the step began by teaching it to read the seams it throws away. **And reading the frames it captured is what found a defect no assertion in the repository could fail on**: the explorer drawing its own cancelled listing at the user as an error, two weeks old and fixed in its own commit. P7's own header says where it is and what is next. P4a-P4h are shipped - the parser (P4f), the ANSI ramp (P4g) and the
 buffer's own resize, fast path through the lazy catch-up a buffer switch can owe (P4h-1 through
 P4h-4) - and **P4i-1 through P4i-3 are shipped too**: the screen is reachable, a real shell on the
 tablet answers what is typed into it, it is drawn faithfully - a real device cell, the resolved
@@ -1678,6 +1678,24 @@ inferred from behaviour that was not looked at.
 
 ---
 
+# P6 — Debugger, Console, Settings, Launcher
+
+**Moved ahead of P5, by decision rather than a discovered constraint.** Nothing in P5 depends on
+P6 or the reverse - `LanguageServerPort` is a new process/stdio adapter and P6's four sub-steps
+each land on their own existing surface (the control channel, a new console screen, settings
+persistence, a launcher screen). Recorded here the same way route 2 is recorded below P5's own
+heading, so the next reader does not have to guess whether the reorder was a dependency or a
+priority call.
+
+| # | Sub-step | What settles it |
+|---|---|---|
+| **P6a** | **Debugger.** The kernelspec already declares `"metadata": {"debugger": true}` (`SpaceKernelSpec.kt`) and `debugpy==1.8.21` is in the lock file. Transport is `debug_request` / `debug_reply` on the **control** channel (`packages/services/src/kernel/messages.ts:1244`) carrying DAP; `packages/debugger/src/service.ts` is the protocol layer. The control channel is the one that has never stalled. **Phone scope:** breakpoints in a cell, step / continue, variables, call stack. Not the full DAP surface. |
+| **P6b** | **Console.** `packages/console-extension` — 21 commands. A REPL sharing the open notebook's kernel namespace; Enter runs, Shift+Enter newlines; `console:linebreak`, `console:inject`, `console:interaction-mode`, input history, clear transcript. **This is the sub-step that makes the `openNotebook` back-stack risk real** (see Open risks). |
+| **P6c** | **Settings.** `packages/settingregistry` is the model. Theme, accent, code font size, wrap, completion on/off, symbol row, autosave interval — and the persistence P2g's toggles need. |
+| **P6d** | **Launcher and onboarding.** `packages/launcher` — the surface that offers notebook / console / terminal / file per Space. Also the second top-level destination a navigation rail has been waiting for since U7. |
+
+---
+
 # P5 — LSP
 
 `jupyter-lsp>=2.0.0` is a **core JupyterLab dependency** (`pyproject.toml:45`), so this is parity,
@@ -1709,17 +1727,6 @@ cancellation.
 | **P5c** | Completion swapped over behind the existing popup. Same UI, better answers; the kernel-backed path stays as the fallback when no server is running. |
 | **P5d** | Diagnostics as cell gutter marks. A cell is a fragment, not a module — the virtual-document mapping in `packages/lsp/src/virtual/document.ts` is what makes `NameError`-shaped false positives avoidable, and it is read rather than approximated. |
 | **P5e** | Document symbols, feeding P2h's ToC for `.py` files and folding for both. |
-
----
-
-# P6 — Debugger, Console, Settings, Launcher
-
-| # | Sub-step | What settles it |
-|---|---|---|
-| **P6a** | **Debugger.** The kernelspec already declares `"metadata": {"debugger": true}` (`SpaceKernelSpec.kt`) and `debugpy==1.8.21` is in the lock file. Transport is `debug_request` / `debug_reply` on the **control** channel (`packages/services/src/kernel/messages.ts:1244`) carrying DAP; `packages/debugger/src/service.ts` is the protocol layer. The control channel is the one that has never stalled. **Phone scope:** breakpoints in a cell, step / continue, variables, call stack. Not the full DAP surface. |
-| **P6b** | **Console.** `packages/console-extension` — 21 commands. A REPL sharing the open notebook's kernel namespace; Enter runs, Shift+Enter newlines; `console:linebreak`, `console:inject`, `console:interaction-mode`, input history, clear transcript. **This is the sub-step that makes the `openNotebook` back-stack risk real** (see Open risks). |
-| **P6c** | **Settings.** `packages/settingregistry` is the model. Theme, accent, code font size, wrap, completion on/off, symbol row, autosave interval — and the persistence P2g's toggles need. |
-| **P6d** | **Launcher and onboarding.** `packages/launcher` — the surface that offers notebook / console / terminal / file per Space. Also the second top-level destination a navigation rail has been waiting for since U7. |
 
 ---
 
