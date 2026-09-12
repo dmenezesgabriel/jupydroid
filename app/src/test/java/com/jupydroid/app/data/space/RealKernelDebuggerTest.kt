@@ -67,6 +67,20 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
     assertTrue("must carry the cell's code, got $request", """"code":"x = 1"""" in request)
   }
 
+  /** P6a-5's own gate: predicting the codeId locally (`CellCodeId`) means a repeat needs no round trip. */
+  @Test
+  fun dumpCell_doesNotResendForUnchangedText() = runTest {
+    lateinit var opener: ScriptedKernelSocketOpener
+    opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
+
+    val first = debugger.dumpCell(SESSION, "x = 1")
+    val second = debugger.dumpCell(SESSION, "x = 1")
+
+    assertEquals(first, second)
+    assertEquals(listOf("debugInfo", "dumpCell"), debugCommandsSent(opener))
+  }
+
   /** `continue` is a Kotlin keyword - `step`'s own reason for existing - so its DAP mapping is worth pinning. */
   @Test
   fun step_sendsTheDapCommandNameForEachSteppingCommand() = runTest {

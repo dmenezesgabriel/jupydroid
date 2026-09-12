@@ -41,6 +41,7 @@ class DebugRequestFailedException(command: String, message: String?) :
 class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
   private val seqLock = Mutex()
   private val seqBySession = mutableMapOf<String, Int>()
+  private val dumpCache = CellDumpCache()
 
   override suspend fun attach(session: KernelSession) {
     sendDebugRequest(session, "initialize", initializeArgs(session))
@@ -51,8 +52,17 @@ class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
     sendDebugRequest(session, "configurationDone", buildJsonObject { })
   }
 
-  override suspend fun dumpCell(session: KernelSession, code: String): String =
-    KernelDebugReplies.sourcePath(sendDebugRequest(session, "dumpCell", buildJsonObject { put("code", code) }))
+  /**
+   * Sends the real DAP `dumpCell` request once per distinct [code] per session - [CellDumpCache]
+   * predicts the same `codeId` a `debugInfo` reply's own params would name, so a repeat needs no
+   * round trip (`evidence/p6a-5-cell-code-id/`).
+   */
+  override suspend fun dumpCell(session: KernelSession, code: String): String = dumpCache.sourcePathFor(
+    session,
+    code,
+    debugInfo = { sendDebugRequest(session, "debugInfo", buildJsonObject { }) },
+    dumpCell = { sendDebugRequest(session, "dumpCell", buildJsonObject { put("code", code) }) },
+  )
 
   override suspend fun setBreakpoints(
     session: KernelSession,
@@ -134,4 +144,32 @@ private fun SteppingCommand.dapCommand(): String = when (this) {
   SteppingCommand.STEP_IN -> "stepIn"
   SteppingCommand.STEP_OUT -> "stepOut"
   SteppingCommand.CONTINUE -> "continue"
+}
+
+/**
+ * What [RealKernelDebugger.dumpCell] would otherwise ask the kernel for on every call: a
+ * session's own `debugInfo` hash/tmp-file parameters, fetched once, and the real `sourcePath` a
+ * `dumpCell` reply named for a `codeId` [CellCodeId] already predicted - so a cell whose text has
+ * not changed needs neither request sent twice.
+ *
+ * Unsynchronized on purpose: a race on the very first `dumpCell`/`debugInfo` for a session costs
+ * one extra, harmless round trip (the kernel's own `dumpCell` is idempotent for identical code),
+ * not a wrong answer - not worth a second `Mutex` beside [RealKernelDebugger]'s own `seqLock`,
+ * which guards something a race on *would* corrupt.
+ */
+private class CellDumpCache {
+  private val hashParamsBySession = mutableMapOf<String, DebugInfoHashParams>()
+  private val dumpedPathsBySession = mutableMapOf<String, MutableMap<String, String>>()
+
+  suspend fun sourcePathFor(
+    session: KernelSession,
+    code: String,
+    debugInfo: suspend () -> JsonObject,
+    dumpCell: suspend () -> JsonObject,
+  ): String {
+    val params = hashParamsBySession.getOrPut(session.id) { debugInfoHashParams(debugInfo()) }
+    val codeId = CellCodeId.codeId(code, params.hashSeed, params.tmpFilePrefix, params.tmpFileSuffix)
+    return dumpedPathsBySession.getOrPut(session.id) { mutableMapOf() }
+      .getOrPut(codeId) { KernelDebugReplies.sourcePath(dumpCell()) }
+  }
 }
