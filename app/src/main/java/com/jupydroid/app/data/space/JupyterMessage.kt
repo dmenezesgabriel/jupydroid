@@ -63,14 +63,33 @@ object JupyterMessage {
     },
   )
 
-  private fun shellRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) = buildJsonObject {
-    put("channel", "shell")
-    put("header", header(msgType, msgId, sessionId))
-    put("parent_header", buildJsonObject { })
-    put("metadata", buildJsonObject { })
-    put("content", content)
-    put("buffers", buildJsonArray { })
-  }.toString()
+  /**
+   * A DAP request framed as a `debug_request` on the **control** channel - `debugpy`/`ipykernel`
+   * speak DAP wrapped in this envelope rather than DAP's own base protocol.
+   * `content: {seq, type:'request', command, arguments}`
+   * (`packages/services/src/kernel/messages.ts:1244`, the reference's own `IDebugRequestMsg`).
+   * [seq] is the caller's to track - JupyterLab's own session counts it per debug session,
+   * starting at 0 (`packages/debugger/src/session.ts:302`), and this builder only frames one
+   * request, so it takes what the caller is already counting rather than counting its own.
+   */
+  fun debugRequest(command: String, args: JsonObject, seq: Int, sessionId: String, msgId: String): String =
+    controlRequest("debug_request", sessionId, msgId, debugContent(command, args, seq))
+
+  private fun shellRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) =
+    request("shell", msgType, sessionId, msgId, content)
+
+  private fun controlRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) =
+    request("control", msgType, sessionId, msgId, content)
+
+  private fun request(channel: String, msgType: String, sessionId: String, msgId: String, content: JsonObject) =
+    buildJsonObject {
+      put("channel", channel)
+      put("header", header(msgType, msgId, sessionId))
+      put("parent_header", buildJsonObject { })
+      put("metadata", buildJsonObject { })
+      put("content", content)
+      put("buffers", buildJsonArray { })
+    }.toString()
 
   private fun header(msgType: String, msgId: String, sessionId: String) = buildJsonObject {
     put("msg_id", msgId)
@@ -86,6 +105,13 @@ object JupyterMessage {
     put("store_history", true)
     put("allow_stdin", false) // there is no terminal behind this kernel
     put("stop_on_error", true)
+  }
+
+  private fun debugContent(command: String, args: JsonObject, seq: Int) = buildJsonObject {
+    put("seq", seq)
+    put("type", "request")
+    put("command", command)
+    put("arguments", args)
   }
 
   private const val PROTOCOL_VERSION = "5.3"
