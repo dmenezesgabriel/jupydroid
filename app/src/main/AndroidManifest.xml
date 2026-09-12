@@ -11,6 +11,14 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
+      Read-only, granted at install with no runtime prompt: lets SpaceRuntime read the device's
+      current DNS servers via ConnectivityManager for tools/rootfs/getaddrinfo_shim.c (P7e-3c) -
+      musl's own resolver cannot be redirected to read them from a file
+      (evidence/p7e-3b-interposition-probe/).
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
       android:name is what makes the composition root one *per process*: MainActivity is
       relaunched on every rotation, and a container per activity instance was a jupyter_server
       per activity instance (evidence/p1g-one-container-per-process/).

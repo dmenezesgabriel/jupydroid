@@ -19,7 +19,11 @@ import java.io.File
  * SpaceRuntime(baseDir, nativeInterpreter).command("-m", "jupyter_server")
  * ```
  */
-class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: File) {
+class SpaceRuntime(
+  private val baseDir: File,
+  private val nativeInterpreter: File,
+  private val dnsServers: DnsServerSource = DnsServerSource { emptyList() },
+) {
   fun command(vararg args: String): List<String> = listOf(nativeInterpreter.path) + args
 
   fun environment(): Map<String, String> = mapOf(
@@ -52,7 +56,7 @@ class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: Fil
     // below - the bundle always ships, so there is no older-Space case to guard against.
     "SSL_CERT_FILE" to inBase("etc/ssl/certs/ca-certificates.crt"),
     "SSL_CERT_DIR" to inBase("etc/ssl/certs"),
-  ) + sigsysHandler()
+  ) + sigsysHandler() + dnsResolverShim()
 
   /**
    * Android refuses syscalls outside bionic's allowlist with SECCOMP_RET_TRAP, and an
@@ -84,6 +88,22 @@ class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: Fil
   }
 
   /**
+   * musl's own resolver cannot be redirected to a writable resolv.conf - it reads the real
+   * path through a raw inlined syscall no LD_PRELOAD can intercept
+   * (evidence/p7e-3b-interposition-probe/) - so [DnsServerSource]'s addresses go straight to
+   * `tools/rootfs/getaddrinfo_shim.c` as an environment variable instead of a file.
+   *
+   * Omitted, not blank, when there is nothing to report yet (e.g. no network observed since
+   * launch): a shim with no configured nameservers falls through to musl's own (broken) lookup,
+   * exactly as if this preload were absent, rather than querying an empty list forever.
+   */
+  private fun dnsResolverShim(): Map<String, String> {
+    if (!File(baseDir, GETADDRINFO_SHIM).isFile) return emptyMap()
+    val servers = dnsServers.current()
+    return if (servers.isEmpty()) emptyMap() else mapOf("JUPYDROID_NAMESERVERS" to servers.joinToString(","))
+  }
+
+  /**
    * A [ProcessBuilder] with Android's own environment replaced by the Space's.
    * Shared so the short-lived [PythonRunner] and the long-lived server launcher
    * cannot drift apart on how a Space process is set up.
@@ -104,8 +124,11 @@ class SpaceRuntime(private val baseDir: File, private val nativeInterpreter: Fil
     /** Built into the x86_64 image alone; see tools/rootfs/musl_at_shim.c. */
     const val AT_SHIM = "lib/libmusl_at_shim.so"
 
-    /** In load order: the reporter first, so it is armed before the shim's own calls run. */
-    val PRELOADS = listOf(SIGSYS_HANDLER, AT_SHIM)
+    /** Built into both ABIs - the bug it answers is real on the tablet too; see getaddrinfo_shim.c. */
+    const val GETADDRINFO_SHIM = "lib/libgetaddrinfo_shim.so"
+
+    /** In load order: the reporter first, so it is armed before the shims' own calls run. */
+    val PRELOADS = listOf(SIGSYS_HANDLER, AT_SHIM, GETADDRINFO_SHIM)
 
     /** In tmp/ because it always exists in the rootfs, unlike run/ before the server starts. */
     const val SIGSYS_LOG = "tmp/sigsys.log"

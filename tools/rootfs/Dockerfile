@@ -27,6 +27,14 @@ COPY musl_at_shim.c /tmp/musl_at_shim.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libmusl_at_shim.so /tmp/musl_at_shim.c \
  && strip /tmp/libmusl_at_shim.so
 
+# Ships on both ABIs: unlike the AT shim above, the bug this answers is real on the tablet too
+# (evidence/p7e-0-runtime-probe/). See getaddrinfo_shim.c for why this interposes getaddrinfo()
+# rather than redirecting a path, and evidence/p7e-3b-interposition-probe/ for the measurement
+# that ruled the simpler approach out.
+COPY getaddrinfo_shim.c /tmp/getaddrinfo_shim.c
+RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libgetaddrinfo_shim.so /tmp/getaddrinfo_shim.c \
+ && strip /tmp/libgetaddrinfo_shim.so
+
 # The console-script trampoline. Static, so it needs no loader and none of stage-app-artifacts.sh's
 # ELF surgery - the one shipped executable that is self-contained. See shebang_exec.c for why a
 # `#!/usr/bin/python3` script cannot be run any other way under `filesDir`.
@@ -141,6 +149,14 @@ print('kernel entry point OK')"
 
 # Diagnostic only, and inert unless LD_PRELOAD names it, so it costs 8 KB and nothing else.
 COPY --from=sigsys-builder /tmp/libsigsys_report.so /lib/libsigsys_report.so
+
+# Ships on both ABIs; see the note beside its build above.
+COPY --from=sigsys-builder /tmp/libgetaddrinfo_shim.so /lib/libgetaddrinfo_shim.so
+
+# Prove the shim resolves a real DNS exchange and leaves the numeric-literal fallthrough intact.
+COPY getaddrinfo_shim_probe.py /tmp/getaddrinfo_shim_probe.py
+RUN JUPYDROID_NAMESERVERS=127.0.0.1 LD_PRELOAD=/lib/libgetaddrinfo_shim.so python3 /tmp/getaddrinfo_shim_probe.py \
+ && rm -f /tmp/getaddrinfo_shim_probe.py
 
 # **The interposer ships in the x86_64 image alone**, because on arm64 musl already issues the
 # `*at` syscalls - the legacy four do not exist in that kernel ABI - so it would be dead code.

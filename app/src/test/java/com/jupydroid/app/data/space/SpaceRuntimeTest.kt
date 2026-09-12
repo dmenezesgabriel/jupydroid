@@ -193,4 +193,66 @@ class SpaceRuntimeTest {
 
     assertEquals("/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs", env["SSL_CERT_DIR"])
   }
+
+  /**
+   * musl's own resolver cannot be redirected (evidence/p7e-3b-interposition-probe/): this
+   * joins the other two preloads exactly like they join each other, filtered by presence alone.
+   */
+  @Test
+  fun environment_preloadsTheGetaddrinfoShimBesideTheOthersWhenTheRootfsHasIt() {
+    val installed = spaceWithHandler().apply { File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF") }
+
+    val preload = SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD")
+
+    assertEquals(
+      listOf("lib/libsigsys_report.so", "lib/libgetaddrinfo_shim.so").joinToString(" ") { File(installed, it).path },
+      preload,
+    )
+  }
+
+  @Test
+  fun environment_preloadsTheGetaddrinfoShimOnItsOwn() {
+    val installed = tempFolder.newFolder("space-with-getaddrinfo-shim-only").apply {
+      File(this, "lib").mkdirs()
+      File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF")
+    }
+
+    assertEquals(
+      File(installed, "lib/libgetaddrinfo_shim.so").path,
+      SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD"),
+    )
+  }
+
+  /** Sourced from Android's ConnectivityManager, bypassing /etc/resolv.conf entirely. */
+  @Test
+  fun environment_namesTheConfiguredNameserversWhenTheShimIsPresent() {
+    val installed = tempFolder.newFolder("space-with-shim-and-servers").apply {
+      File(this, "lib").mkdirs()
+      File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF")
+    }
+    val runtime = SpaceRuntime(installed, interpreter, dnsServers = DnsServerSource { listOf("8.8.8.8", "1.1.1.1") })
+
+    assertEquals("8.8.8.8,1.1.1.1", runtime.environment()["JUPYDROID_NAMESERVERS"])
+  }
+
+  /** No servers to report yet (e.g. no network observed since launch) - omitted, not blank. */
+  @Test
+  fun environment_omitsNameserversWhenNoneAreReported() {
+    val installed = tempFolder.newFolder("space-with-shim-and-no-servers").apply {
+      File(this, "lib").mkdirs()
+      File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF")
+    }
+    val runtime = SpaceRuntime(installed, interpreter, dnsServers = DnsServerSource { emptyList() })
+
+    assertFalse(runtime.environment().containsKey("JUPYDROID_NAMESERVERS"))
+  }
+
+  /** A Space extracted before the shim existed must not get nameservers a shim cannot use. */
+  @Test
+  fun environment_omitsNameserversWhenTheShimIsNotInTheRootfs() {
+    val installed = tempFolder.newFolder("space-without-getaddrinfo-shim")
+    val runtime = SpaceRuntime(installed, interpreter, dnsServers = DnsServerSource { listOf("8.8.8.8") })
+
+    assertFalse(runtime.environment().containsKey("JUPYDROID_NAMESERVERS"))
+  }
 }
