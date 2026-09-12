@@ -329,6 +329,7 @@ fun MainNavigation(
             documentSharer = appContainer.documentSharer,
             applicationScope = appContainer.applicationScope,
             activeCellRuns = appContainer.activeCellRuns,
+            notebookBreakpoints = appContainer.notebookBreakpoints,
             editorSettingsRepository = appContainer.editorSettings,
             outline = outline,
             // `toc:show-panel` where there is a side area to activate, and null where there is not -

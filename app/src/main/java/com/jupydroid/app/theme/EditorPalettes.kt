@@ -63,6 +63,11 @@ val DarkEditorPalette: EditorPalette =
     stripeError = Color(0xFFF48771),
     // `editorLineNumber.foreground`.
     lineNumber = Color(0xFF858889),
+    // `debugIcon.breakpointForeground` / `-UnverifiedForeground`, unset in 2026 Dark - the
+    // registered defaults apply, and both measure over the 1.4.11 non-text 3:1 floor on the cell
+    // surface (3.68:1, 4.66:1).
+    breakpointVerified = Color(0xFFE51400),
+    breakpointUnverified = Color(0xFF848484),
     // `descriptionForeground`. The cell status bar states no colour of its own in the reference
     // (`media/notebook.css` gives `.cell-statusbar-container` no `color` rule), so it inherits the
     // secondary-text role, which is the id `ColorRamp` already calls `onSurfaceVariant`.
@@ -116,6 +121,10 @@ val LightEditorPalette: EditorPalette =
     stripeError = Color(0xFFAD0707),
     // `editorLineNumber.foreground`.
     lineNumber = Color(0xFF606060),
+    // `debugIcon.breakpointForeground` / `-UnverifiedForeground`, unset in 2026 Light too - the
+    // same registered defaults, both over the 3:1 floor on the cell surface (4.55:1, 3.59:1).
+    breakpointVerified = Color(0xFFE51400),
+    breakpointUnverified = Color(0xFF848484),
     // `descriptionForeground` - see the dark palette's note.
     executionTime = Color(0xFF606060),
     // `editorBracketMatch.background`, which light shares with `editor.findMatchBackground`.

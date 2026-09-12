@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
@@ -52,6 +53,10 @@ internal fun EditorCell(
   hiddenBelow: Int,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean,
+  /** Breakpoints set on this cell, by line - code cells only. See [NotebookDebugger]. */
+  breakpoints: List<Breakpoint>,
+  /** A tap in this cell's gutter, reporting the one-based line it hit. */
+  onGutterTap: (line: Int) -> Unit,
   /** `toc:display-numbering`'s answer for this cell's heading, or `""` - see [MarkdownCell]. */
   headingPrefix: String,
   /** What the find bar found in this cell's **source** - see [CellSearchHighlight]. */
@@ -138,6 +143,8 @@ internal fun EditorCell(
             completionsAt = completionsAt,
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
+            breakpoints = breakpoints,
+            onGutterTap = onGutterTap,
             search = search,
             autoClosingBrackets = autoClosingBrackets,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),

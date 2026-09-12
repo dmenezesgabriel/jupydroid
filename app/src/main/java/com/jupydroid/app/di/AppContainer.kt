@@ -16,6 +16,7 @@ import com.jupydroid.app.data.space.ActivityTrackedTerminalGateway
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
+import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
@@ -114,6 +115,12 @@ class AppContainer(
 
   /** How many terminals this process has opened and not yet closed. Read by [idleServerStopper]. */
   val activeTerminals = ActiveTerminals()
+
+  /**
+   * Breakpoints set on any open notebook's cells, kept for the app's life rather than one
+   * notebook's `EditorViewModel` - see [NotebookBreakpoints]'s own doc for why.
+   */
+  val notebookBreakpoints = NotebookBreakpoints()
 
   val terminalGateway: TerminalGateway = ActivityTrackedTerminalGateway(terminalGateway, activeTerminals)
 

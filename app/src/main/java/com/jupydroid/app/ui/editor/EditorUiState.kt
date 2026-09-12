@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
@@ -167,6 +168,20 @@ data class EditorUiState(
    * fraction of a cell and a traceback names a line; the departure is `docs/DECISIONS.md`.
    */
   val lineNumbersShown: Boolean = true,
+  /**
+   * Breakpoints set on a code cell's lines, by cell id - [NotebookDebugger]'s own state.
+   *
+   * **Not on [Cell], and not persisted.** JupyterLab keeps a breakpoint in its own in-memory
+   * `DebuggerModel`, never in `.ipynb` - the same reasoning that keeps
+   * [WorkspaceEntry][com.jupydroid.app.domain.model.WorkspaceEntry]'s `updatedAt` off [Notebook]:
+   * a fact this sitting knows, not a fact about the file. What *does* survive [EditorViewModel]
+   * being rebuilt for the same notebook is [NotebookBreakpoints][com.jupydroid.app.domain.model.NotebookBreakpoints],
+   * which this is seeded from on load and written back to on every toggle.
+   *
+   * A cell with no entry here has no breakpoints - the same absence-means-empty shape
+   * [outputs]/[executionCounts] already use.
+   */
+  val breakpointsByCellId: Map<String, List<Breakpoint>> = emptyMap(),
   /**
    * The find bar and what it found, or null while it is closed - `documentsearch:start` and
    * `documentsearch:end`. See [SearchState].

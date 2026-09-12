@@ -10,6 +10,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.port.KernelEvent
@@ -213,6 +214,8 @@ internal fun TestScope.loadedEditor(
   activeCellRuns: ActiveCellRuns = ActiveCellRuns(),
   // Only the cases about the open-document registry pass one; the rest never read it.
   openDocuments: OpenDocuments = OpenDocuments(),
+  // Only the cases about a breakpoint surviving a rebuilt ViewModel pass a shared one.
+  notebookBreakpoints: NotebookBreakpoints = NotebookBreakpoints(),
 ): EditorViewModel {
   launch {
     repository.saveNotebook(Notebook(notebookId, title, "python3", cells))
@@ -230,6 +233,7 @@ internal fun TestScope.loadedEditor(
       applicationScope,
       activeCellRuns,
       openDocuments,
+      notebookBreakpoints,
     )
   advanceUntilIdle()
   return viewModel

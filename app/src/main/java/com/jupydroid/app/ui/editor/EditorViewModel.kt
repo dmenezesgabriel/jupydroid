@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
@@ -83,6 +84,11 @@ class EditorViewModel(
    * nothing.
    */
   private val openDocuments: OpenDocuments = OpenDocuments(),
+  /**
+   * Where a breakpoint outlives this ViewModel - see [NotebookBreakpoints]'s own doc for why
+   * [debugger] cannot hold that state itself.
+   */
+  notebookBreakpoints: NotebookBreakpoints = NotebookBreakpoints(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -129,6 +135,9 @@ class EditorViewModel(
     persist = { persist() },
   )
 
+  /** Breakpoints in the gutter. Driven straight from the screen; see [NotebookDebugger]. */
+  val debugger = NotebookDebugger(_uiState, notebookBreakpoints)
+
   init {
     // Open before it has loaded, so a replace can never slip in between the read and the register
     // and rewrite a file this editor is about to overwrite from stale memory. Until the cells are
@@ -143,6 +152,7 @@ class EditorViewModel(
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
+      debugger.seed(_uiState.value.cells)
     }
     // The rename that did not come from this screen - from the browser beside it, or from a folder
     // above it. `Context._onFileChanged` -> `_updatePath`, and without it the next debounced save

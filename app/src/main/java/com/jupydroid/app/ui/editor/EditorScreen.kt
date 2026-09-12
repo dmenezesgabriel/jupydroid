@@ -37,6 +37,7 @@ import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.MatchedLine
+import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
@@ -127,6 +128,8 @@ fun EditorScreen(
    * rewriting the file underneath it. Defaulted for a test that drives this screen alone.
    */
   openDocuments: OpenDocuments = remember { OpenDocuments() },
+  /** Where a breakpoint outlives this screen's `EditorViewModel`; see [NotebookBreakpoints]. */
+  notebookBreakpoints: NotebookBreakpoints = remember { NotebookBreakpoints() },
   modifier: Modifier = Modifier,
   viewModel: EditorViewModel = viewModel {
     EditorViewModel(
@@ -138,6 +141,7 @@ fun EditorScreen(
       applicationScope,
       activeCellRuns,
       openDocuments,
+      notebookBreakpoints,
     )
   },
 ) {
@@ -336,6 +340,7 @@ fun EditorScreen(
           onRunCell = viewModel.kernel::runCell,
           onStopCell = viewModel.kernel::stopRunningCell,
           onEditCell = viewModel::editCell,
+          onToggleBreakpoint = viewModel.debugger::toggle,
           completionsAt = viewModel.kernel::completionsAt,
           onCellAction = viewModel.edits::applyTo,
           onCellFocusChanged = viewModel::cellFocusChanged,
@@ -381,6 +386,8 @@ private fun EditorContent(
   onRunCell: (Cell) -> Unit,
   onStopCell: () -> Unit,
   onEditCell: (String, String) -> Unit,
+  /** A tap in a cell's gutter, reporting which cell and which one-based line it hit. */
+  onToggleBreakpoint: (String, Int) -> Unit,
   completionsAt: suspend (String, Int) -> CompletionResult,
   onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
@@ -463,6 +470,8 @@ private fun EditorContent(
               // One flag for the whole notebook and all three cell types, which is what the command
               // is: `toggleAllLineNumbers` writes code, markdown and raw together.
               lineNumbersShown = state.lineNumbersShown,
+              breakpoints = state.breakpointsByCellId[cell.id].orEmpty(),
+              onGutterTap = { line -> onToggleBreakpoint(cell.id, line) },
               headingPrefix = headingPrefixes[cell.id].orEmpty(),
               // Per cell rather than sliced once for the list, unlike the numbers above: a cell's
               // matches depend only on that cell - see [searchHighlightOf].

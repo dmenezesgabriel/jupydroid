@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
+import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
@@ -60,6 +61,10 @@ fun CodeCellField(
   input: FocusedCellInput? = null,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /** Breakpoints set on this cell, by line - see [NotebookDebugger]. Code cells only. */
+  breakpoints: List<Breakpoint> = emptyList(),
+  /** A tap in the gutter, reporting the one-based line it hit - see [Modifier.lineNumbers]. */
+  onGutterTap: (line: Int) -> Unit = {},
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
   /**
@@ -95,7 +100,7 @@ fun CodeCellField(
       state = state,
       // The gutter's width comes from the line *count*, so it never depends on the layout this
       // callback publishes - which is what keeps writing state from here out of a measure loop.
-      modifier = modifier.lineNumbers(state.text, layout, numberStyle, gutter),
+      modifier = modifier.lineNumbers(state.text, layout, numberStyle, gutter, breakpoints, onGutterTap),
       onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
       textStyle = codeStyle,
       interactionSource = interactions,

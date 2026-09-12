@@ -91,6 +91,18 @@ data class EditorPalette(
   val stripeError: Color,
   /** The gutter's line numbers. `LINE_NUMBERS_COLOR`. */
   val lineNumber: Color,
+  /**
+   * A breakpoint debugpy has armed - `debugIcon.breakpointForeground`
+   * (`workbench/contrib/debug/browser/breakpointEditorContribution.ts:874`). Unset in both 2026
+   * themes, so this is the registered default, one value for both.
+   */
+  val breakpointVerified: Color,
+  /**
+   * A breakpoint set in the gutter but not yet confirmed by a kernel - `debugIcon.
+   * breakpointUnverifiedForeground` (`breakpointEditorContribution.ts:876`). Every breakpoint
+   * P6a-6 can create is this colour, since nothing calls `setBreakpoints` until P6a-7a.
+   */
+  val breakpointUnverified: Color,
   /** The "ran in 1.2 s" label. `JUPYTER.EXECUTION_TIME_COLOR`. */
   val executionTime: Color,
   /** Behind the bracket pair the caret is touching. `MATCHED_BRACE_ATTRIBUTES` background. */
