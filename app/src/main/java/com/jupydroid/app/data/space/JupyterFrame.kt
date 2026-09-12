@@ -32,6 +32,9 @@ internal object JupyterFrame {
   fun ofType(frame: String, requestMsgId: String, msgType: String): JsonObject? =
     ours(frame, requestMsgId)?.takeIf { it.msgType() == msgType }
 
+  /** The decoded frame regardless of whose request it answers - for a `debug_event`, which has none. */
+  fun any(frame: String): JsonObject? = decode(frame)
+
   fun JsonObject.msgType(): String? = get("header")?.jsonObject?.get("msg_type")?.jsonPrimitive?.content
 
   /**

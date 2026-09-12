@@ -11,7 +11,7 @@ import com.jupydroid.app.domain.port.VerifiedBreakpoint
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
-/** Stub [KernelDebugger] with no debugpy behind it; replaced by the real one in P6a-3b. */
+/** Stub [KernelDebugger]; what `AppContainer` wires until P6a-4 shares `RealKernelDebugger` there. */
 class FakeKernelDebugger : KernelDebugger {
   /** Which sessions attached, so a test can tell "the command ran" from "it did nothing". */
   val attachedSessions = mutableListOf<KernelSession>()

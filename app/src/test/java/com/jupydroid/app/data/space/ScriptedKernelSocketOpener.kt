@@ -1,6 +1,8 @@
 package com.jupydroid.app.data.space
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -181,4 +183,23 @@ object KernelFrames {
     executeReply(parent),
     idle(parent),
   )
+
+  /** A `debug_reply` on the control channel - [success] false is the DAP-level failure a caller must see. */
+  fun debugReply(
+    parent: String,
+    command: String,
+    success: Boolean = true,
+    message: String? = null,
+    body: JsonObject = buildJsonObject { },
+  ): String {
+    val messageField = message?.let { ""","message":"$it"""" }.orEmpty()
+    return """{"channel":"control","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"debug_reply"},
+       "content":{"seq":0,"type":"response","request_seq":0,"success":$success,"command":"$command"$messageField,
+       "body":$body}}"""
+  }
+
+  /** A `debug_event` on iopub - no `parent_header`, since it answers no request (`session.ts:266`). */
+  fun debugEvent(event: String, body: JsonObject = buildJsonObject { }) =
+    """{"channel":"iopub","header":{"msg_type":"debug_event"},
+       "content":{"seq":0,"type":"event","event":"$event","body":$body}}"""
 }
