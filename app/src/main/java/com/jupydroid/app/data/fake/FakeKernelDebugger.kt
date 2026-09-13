@@ -72,17 +72,25 @@ class FakeKernelDebugger : KernelDebugger {
     stepRequests += threadId to command
   }
 
-  private val eventsBySession = mutableMapOf<KernelSession, MutableSharedFlow<DebugEvent>>()
+  /** Scripted per test; the default names no compound value, matching a leaf's own `variablesReference == 0`. */
+  var evaluateResult: DebugVariable = DebugVariable(name = "", value = "", type = null, variablesReference = 0)
 
-  private fun eventsFor(session: KernelSession) = eventsBySession.getOrPut(session) {
-    MutableSharedFlow(extraBufferCapacity = EVENT_BUFFER)
+  /** Every `(expression, frameId)` this session was asked to evaluate, in order. */
+  val evaluateRequests = mutableListOf<Pair<String, Int>>()
+
+  override suspend fun evaluate(session: KernelSession, expression: String, frameId: Int): DebugVariable {
+    evaluateRequests += expression to frameId
+    return evaluateResult.copy(name = expression)
   }
 
-  override fun events(session: KernelSession): Flow<DebugEvent> = eventsFor(session)
+  private val eventsBySession = mutableMapOf<KernelSession, MutableSharedFlow<DebugEvent>>()
+
+  override fun events(session: KernelSession): Flow<DebugEvent> =
+    eventsBySession.getOrPut(session) { MutableSharedFlow(extraBufferCapacity = EVENT_BUFFER) }
 
   /** Test-only: there is no kernel here to hit a breakpoint or resume on its own. */
   suspend fun emit(session: KernelSession, event: DebugEvent) {
-    eventsFor(session).emit(event)
+    eventsBySession.getOrPut(session) { MutableSharedFlow(extraBufferCapacity = EVENT_BUFFER) }.emit(event)
   }
 
   private companion object {

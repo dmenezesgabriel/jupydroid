@@ -93,6 +93,8 @@ internal fun NotebookActionsMenu(
   onExpandVariable: suspend (Int) -> List<DebugVariable>,
   /** [DebuggerPanel]'s own frame reselection (P6a-15) - [NotebookDebugger.selectFrame]. */
   onSelectFrame: suspend (Int) -> Unit,
+  /** [DebuggerPanel]'s own ad hoc expression (P6a-17) - [NotebookDebugger.evaluate]. */
+  onEvaluate: suspend (String) -> DebugVariable?,
   /**
    * The active cell's type, where the bar has no room to name it itself - see [labelsFitOnActionRow].
    *
@@ -253,6 +255,7 @@ internal fun NotebookActionsMenu(
       onDismiss = { debuggerOpen = false },
       onExpand = onExpandVariable,
       onSelectFrame = onSelectFrame,
+      onEvaluate = onEvaluate,
     )
     // In the same Box for the same reason, so it anchors to the button that was tapped.
     ExportPicker(

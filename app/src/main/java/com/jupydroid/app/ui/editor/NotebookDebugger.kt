@@ -12,7 +12,6 @@ import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.SteppingCommand
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
@@ -106,9 +105,6 @@ class NotebookDebugger(
     return true
   }
 
-  /** [session]'s own `debug_event`s - a thin pass-through, since [NotebookCellRuns] holds no [KernelDebugger]. */
-  fun events(session: KernelSession): Flow<DebugEvent> = kernelDebugger.events(session)
-
   /**
    * Which session [watchForStop] last saw stop, for [step] to resume - `null` while nothing is
    * stopped. A plain var rather than [uiState]'s own state, the same "remembered rather than
@@ -125,7 +121,7 @@ class NotebookDebugger(
    * flow: [NotebookCellRuns] owns how long "for the length of this run" is.
    */
   suspend fun watchForStop(session: KernelSession, cell: Cell) {
-    events(session).collect { event ->
+    kernelDebugger.events(session).collect { event ->
       val resolved = resolvedStop(session, cell, event)
       stoppedSession = resolved?.let { session }
       uiState.update { it.copy(stoppedAt = resolved?.first, debugStack = resolved?.second, stepping = false) }
@@ -171,6 +167,22 @@ class NotebookDebugger(
   suspend fun expand(variablesReference: Int): List<DebugVariable> {
     val session = stoppedSession ?: return emptyList()
     return kernelDebugger.variables(session, variablesReference)
+  }
+
+  /**
+   * An ad hoc expression, run against the top frame's own scope while stopped (P6a-17) - the same
+   * stopped session [expand]/[step] already resume on, since the panel that calls this has no
+   * session of its own either. Always the **top** frame, [resolvedStop]'s own default selection -
+   * this app tracks no "currently selected frame" of its own outside the panel's own local
+   * highlight state ([selectFrame] resolves a tap's own frame but does not remember it here), so
+   * there is nothing else to evaluate against. Answers nothing once nothing is stopped, the same
+   * "no-op when the precondition isn't met" shape [expand] itself already uses.
+   */
+  suspend fun evaluate(expression: String): DebugVariable? {
+    val session = stoppedSession
+    val frameId = uiState.value.debugStack?.frames?.firstOrNull()?.id
+    if (session == null || frameId == null) return null
+    return kernelDebugger.evaluate(session, expression, frameId)
   }
 
   /**

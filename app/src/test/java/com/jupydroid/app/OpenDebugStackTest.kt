@@ -29,7 +29,7 @@ class OpenDebugStackTest {
   fun whatWasPublishedIsWhatThePanelReads() {
     val open = OpenDebugStack()
 
-    open.publish(stack, expand = { emptyList() }, selectFrame = {})
+    open.publish(stack, expand = { emptyList() }, selectFrame = {}, evaluate = { null })
 
     assertEquals(stack, open.current)
   }
@@ -37,7 +37,7 @@ class OpenDebugStackTest {
   @Test
   fun closingTheDocumentEmptiesThePanel() {
     val open = OpenDebugStack()
-    open.publish(stack, expand = { emptyList() }, selectFrame = {})
+    open.publish(stack, expand = { emptyList() }, selectFrame = {}, evaluate = { null })
 
     open.clear()
 
@@ -48,7 +48,9 @@ class OpenDebugStackTest {
   @Test
   fun expandReachesTheDebuggerThatPublishedIt() = runTest {
     val open = OpenDebugStack()
-    open.publish(stack, expand = { ref -> listOf(DebugVariable("$ref", "0", "int", 0)) }, selectFrame = {})
+    open.publish(stack, expand = { ref ->
+      listOf(DebugVariable("$ref", "0", "int", 0))
+    }, selectFrame = {}, evaluate = { null })
 
     val children = open.expand(9)
 
@@ -59,7 +61,9 @@ class OpenDebugStackTest {
   @Test
   fun expandAnswersNothingOnceCleared() = runTest {
     val open = OpenDebugStack()
-    open.publish(stack, expand = { ref -> listOf(DebugVariable("$ref", "0", "int", 0)) }, selectFrame = {})
+    open.publish(stack, expand = { ref ->
+      listOf(DebugVariable("$ref", "0", "int", 0))
+    }, selectFrame = {}, evaluate = { null })
 
     open.clear()
 
@@ -71,7 +75,7 @@ class OpenDebugStackTest {
   fun selectFrameReachesTheDebuggerThatPublishedIt() = runTest {
     val open = OpenDebugStack()
     var selected: Int? = null
-    open.publish(stack, expand = { emptyList() }, selectFrame = { selected = it })
+    open.publish(stack, expand = { emptyList() }, selectFrame = { selected = it }, evaluate = { null })
 
     open.selectFrame(5)
 
@@ -83,11 +87,38 @@ class OpenDebugStackTest {
   fun selectFrameDoesNothingOnceCleared() = runTest {
     val open = OpenDebugStack()
     var selected: Int? = null
-    open.publish(stack, expand = { emptyList() }, selectFrame = { selected = it })
+    open.publish(stack, expand = { emptyList() }, selectFrame = { selected = it }, evaluate = { null })
 
     open.clear()
     open.selectFrame(5)
 
     assertNull(selected)
+  }
+
+  /** [OpenDebugStack.evaluate] reaches the debugger that published it (P6a-17), [expand]'s own shape. */
+  @Test
+  fun evaluateReachesTheDebuggerThatPublishedIt() = runTest {
+    val open = OpenDebugStack()
+    open.publish(
+      stack,
+      expand = { emptyList() },
+      selectFrame = {},
+      evaluate = { expression -> DebugVariable(expression, "42", "int", 0) },
+    )
+
+    val result = open.evaluate("6 * 7")
+
+    assertEquals(DebugVariable("6 * 7", "42", "int", 0), result)
+  }
+
+  /** Nothing left to call once the document has gone - [expandAnswersNothingOnceCleared]'s own shape. */
+  @Test
+  fun evaluateAnswersNothingOnceCleared() = runTest {
+    val open = OpenDebugStack()
+    open.publish(stack, expand = { emptyList() }, selectFrame = {}, evaluate = { DebugVariable("x", "1", "int", 0) })
+
+    open.clear()
+
+    assertNull(open.evaluate("x"))
   }
 }

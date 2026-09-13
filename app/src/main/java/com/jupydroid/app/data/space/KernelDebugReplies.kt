@@ -43,6 +43,18 @@ internal object KernelDebugReplies {
   fun variables(body: JsonObject): List<DebugVariable> =
     body["variables"]?.jsonArray.orEmpty().map { it.jsonObject.toVariable() }
 
+  /**
+   * An `evaluate` reply's body - `result`/`type`/`variablesReference`, DAP's own
+   * `EvaluateResponse` shape, folded into [DebugVariable] since [expression] is the only "name" an
+   * ad hoc expression's own answer has.
+   */
+  fun evaluated(body: JsonObject, expression: String) = DebugVariable(
+    name = expression,
+    value = body.string("result"),
+    type = body["type"]?.jsonPrimitive?.content,
+    variablesReference = body.int("variablesReference"),
+  )
+
   private fun bodyOrThrow(content: JsonObject): JsonObject {
     if (!content.boolean("success")) {
       throw DebugRequestFailedException(content.string("command"), content["message"]?.jsonPrimitive?.content)
@@ -57,13 +69,6 @@ internal object KernelDebugReplies {
 
   private fun JsonObject.toScope() =
     DebugScope(name = string("name"), variablesReference = int("variablesReference"), expensive = boolean("expensive"))
-
-  private fun JsonObject.toVariable() = DebugVariable(
-    name = string("name"),
-    value = string("value"),
-    type = get("type")?.jsonPrimitive?.content,
-    variablesReference = int("variablesReference"),
-  )
 }
 
 // Kept at file scope, not as object members: KernelDebugReplies was already at detekt's
@@ -76,6 +81,18 @@ private fun JsonObject.int(key: String): Int = get(key)?.jsonPrimitive?.intOrNul
 private fun JsonObject.long(key: String): Long = get(key)?.jsonPrimitive?.longOrNull ?: 0L
 
 private fun JsonObject.boolean(key: String): Boolean = get(key)?.jsonPrimitive?.booleanOrNull ?: false
+
+/**
+ * `variables`' own row shape - moved out of [KernelDebugReplies] once adding [KernelDebugReplies.evaluated]
+ * (P6a-17) pushed that object past detekt's own eleven-per-object cap, the same reason
+ * `string`/`int`/`boolean` already live here instead of as object members.
+ */
+private fun JsonObject.toVariable() = DebugVariable(
+  name = string("name"),
+  value = string("value"),
+  type = get("type")?.jsonPrimitive?.content,
+  variablesReference = int("variablesReference"),
+)
 
 /**
  * A `debugInfo` reply's hash/tmp-file fields - what [CellCodeId.codeId] needs to predict a cell's

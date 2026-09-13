@@ -44,11 +44,23 @@ class OpenDebugStack {
    */
   private var selectFrameInDebugger: suspend (Int) -> Unit = {}
 
+  /**
+   * An ad hoc expression's own answer (P6a-17), published alongside the others for the same
+   * reason - [NotebookDebugger.evaluate][com.jupydroid.app.ui.editor.NotebookDebugger.evaluate].
+   */
+  private var evaluateInDebugger: suspend (String) -> DebugVariable? = { null }
+
   /** The open notebook's own state, replacing whatever was there - including null. */
-  fun publish(stack: DebugStack?, expand: suspend (Int) -> List<DebugVariable>, selectFrame: suspend (Int) -> Unit) {
+  fun publish(
+    stack: DebugStack?,
+    expand: suspend (Int) -> List<DebugVariable>,
+    selectFrame: suspend (Int) -> Unit,
+    evaluate: suspend (String) -> DebugVariable?,
+  ) {
     current = stack
     expandVariable = expand
     selectFrameInDebugger = selectFrame
+    evaluateInDebugger = evaluate
   }
 
   /** [expandVariable], named for what the panel actually asks of it rather than what it stores. */
@@ -57,14 +69,18 @@ class OpenDebugStack {
   /** [selectFrameInDebugger], [expand]'s own shape. */
   suspend fun selectFrame(frameId: Int) = selectFrameInDebugger(frameId)
 
+  /** [evaluateInDebugger], [expand]'s own shape. */
+  suspend fun evaluate(expression: String): DebugVariable? = evaluateInDebugger(expression)
+
   /**
    * The document has gone, so the panel empties - [OpenDocumentOutline.clear]'s own reason,
-   * [DocumentOutline.jumpTo]'s own reason applied to [expandVariable]/[selectFrameInDebugger] too:
-   * nothing here should outlive the debugger that published it.
+   * [DocumentOutline.jumpTo]'s own reason applied to [expandVariable]/[selectFrameInDebugger]/
+   * [evaluateInDebugger] too: nothing here should outlive the debugger that published it.
    */
   fun clear() {
     current = null
     expandVariable = { emptyList() }
     selectFrameInDebugger = {}
+    evaluateInDebugger = { null }
   }
 }

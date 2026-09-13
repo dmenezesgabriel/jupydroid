@@ -2,14 +2,18 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.editor.EVALUATE_FIELD_TAG
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,6 +80,17 @@ class DebuggerSidePanelTest {
     compose.runOnIdle { org.junit.Assert.assertEquals(6, selected) }
   }
 
+  /** The side panel's own ad hoc expression (P6a-17) - [DebuggerPanelTest]'s own case. */
+  @Test
+  fun submittingAnExpressionShowsItsAnswer() {
+    show(stack(), onEvaluate = { expression -> DebugVariable(expression, "42", "int", 0) })
+
+    compose.onNodeWithTag(EVALUATE_FIELD_TAG).performTextInput("6 * 7")
+    compose.onNodeWithTag(EVALUATE_FIELD_TAG).performImeAction()
+
+    compose.onNodeWithText("6 * 7: int = 42").assertIsDisplayed()
+  }
+
   private fun stack() = DebugStack(
     frames = listOf(
       DebugStackFrame(id = 5, name = "<module>", line = 3, column = 1),
@@ -88,9 +103,12 @@ class DebuggerSidePanelTest {
     stack: DebugStack?,
     onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() },
     onSelectFrame: suspend (Int) -> Unit = {},
+    onEvaluate: suspend (String) -> DebugVariable? = { null },
   ) {
     compose.setContent {
-      JupyterDroidTheme { DebuggerSidePanel(stack = stack, onExpand = onExpand, onSelectFrame = onSelectFrame) }
+      JupyterDroidTheme {
+        DebuggerSidePanel(stack = stack, onExpand = onExpand, onSelectFrame = onSelectFrame, onEvaluate = onEvaluate)
+      }
     }
   }
 }

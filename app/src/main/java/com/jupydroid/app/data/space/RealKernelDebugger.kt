@@ -103,6 +103,11 @@ class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
     sendDebugRequest(session, command.dapCommand(), buildJsonObject { put("threadId", threadId) })
   }
 
+  override suspend fun evaluate(session: KernelSession, expression: String, frameId: Int): DebugVariable {
+    val reply = sendDebugRequest(session, "evaluate", evaluateArgs(expression, frameId))
+    return KernelDebugReplies.evaluated(reply, expression)
+  }
+
   /** `debug_event` has no `parent_header` - its own subscription onto the shared socket, not a reply. */
   override fun events(session: KernelSession): Flow<DebugEvent> = flow {
     emitAll(
@@ -113,20 +118,26 @@ class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
   }
 
   private suspend fun sendDebugRequest(session: KernelSession, command: String, args: JsonObject): JsonObject {
-    val seq = nextSeq(session)
+    val seq = nextSeq(seqLock, seqBySession, session)
     return sockets.socketFor(session).askOnce(
       request = { msgId -> JupyterMessage.debugRequest(command, args, seq, session.id, msgId) },
       readReply = KernelDebugReplies::of,
     )
   }
+}
 
-  /** JupyterLab's own `DebuggerSession._seq` (`session.ts:302`) - a plain per-session counter, ours to keep. */
-  private suspend fun nextSeq(session: KernelSession): Int = seqLock.withLock {
+/**
+ * JupyterLab's own `DebuggerSession._seq` (`session.ts:302`) - a plain per-session counter, ours to
+ * keep. Top-level rather than a member of [RealKernelDebugger] - [evaluate][RealKernelDebugger.evaluate]
+ * pushed that class past detekt's own eleven-per-class cap, the same reason [tolerating] already
+ * lives at file scope instead of as a private method.
+ */
+private suspend fun nextSeq(seqLock: Mutex, seqBySession: MutableMap<String, Int>, session: KernelSession): Int =
+  seqLock.withLock {
     val seq = seqBySession.getOrDefault(session.id, 0)
     seqBySession[session.id] = seq + 1
     seq
   }
-}
 
 /**
  * DAP's `initialize` arguments, mirroring JupyterLab's own (`session.ts:181-192`) except two
@@ -167,6 +178,17 @@ private fun setBreakpointsArgs(codeId: String, breakpoints: List<BreakpointReque
     },
   )
   put("sourceModified", false)
+}
+
+/**
+ * `context: "repl"` is debugpy's own convention for an ad hoc expression a person typed, distinct
+ * from `"watch"`/`"hover"` - confirmed against `vscode-jupyter`'s own `DebuggerVariables.evaluate`
+ * rather than guessed.
+ */
+private fun evaluateArgs(expression: String, frameId: Int) = buildJsonObject {
+  put("expression", expression)
+  put("frameId", frameId)
+  put("context", "repl")
 }
 
 private fun SteppingCommand.dapCommand(): String = when (this) {

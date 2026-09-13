@@ -65,6 +65,17 @@ abstract class KernelDebuggerContract {
     assertEquals(listOf(1, 2), result.map { it.line })
   }
 
+  /**
+   * An ad hoc expression's own answer has no variable name of its own - [DebugVariable.name] holds
+   * the expression itself, DAP's own `EvaluateResponse` having none (P6a-17).
+   */
+  @Test
+  fun evaluate_answersTheExpressionAsItsOwnName() = runTest {
+    val result = debugger().evaluate(SESSION, expression = "1 + 1", frameId = 1)
+
+    assertEquals("1 + 1", result.name)
+  }
+
   protected companion object {
     val SESSION = KernelSession(id = "dbg", spaceId = "base", kernelId = "python3", serverSessionId = "dbg-session")
   }

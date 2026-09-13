@@ -275,7 +275,12 @@ fun EditorScreen(
     // rather than once, since a stop (and a continue that clears it) can arrive at any time the
     // panel is on screen, not only when the editor entry is built.
     LaunchedEffect(debugPanel, state.debugStack) {
-      debugPanel.publish(state.debugStack, viewModel.debugger::expand, viewModel.debugger::selectFrame)
+      debugPanel.publish(
+        state.debugStack,
+        viewModel.debugger::expand,
+        viewModel.debugger::selectFrame,
+        viewModel.debugger::evaluate,
+      )
     }
     DisposableEffect(debugPanel) { onDispose { debugPanel.clear() } }
     // The title's row is not free on a phone, so it is not permanent either - see

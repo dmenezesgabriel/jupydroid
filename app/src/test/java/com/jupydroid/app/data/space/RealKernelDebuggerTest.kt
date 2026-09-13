@@ -147,6 +147,25 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
     assertTrue("must not carry any condition, got $request", """"condition"""" !in request)
   }
 
+  /**
+   * P6a-17's own gate: DAP's `evaluate` request carries the expression, the frame it runs against,
+   * and `context: "repl"` - debugpy's own convention for an ad hoc expression, confirmed against
+   * `vscode-jupyter`'s own `DebuggerVariables.evaluate` rather than guessed.
+   */
+  @Test
+  fun evaluate_sendsTheExpressionFrameIdAndReplContext() = runTest {
+    lateinit var opener: ScriptedKernelSocketOpener
+    opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
+
+    debugger.evaluate(SESSION, expression = "x + 1", frameId = 5)
+
+    val request = opener.sent.single { """"command":"evaluate"""" in it }
+    assertTrue("must carry the expression, got $request", """"expression":"x + 1"""" in request)
+    assertTrue("must carry the frame id, got $request", """"frameId":5""" in request)
+    assertTrue("must carry the repl context, got $request", """"context":"repl"""" in request)
+  }
+
   @Test
   fun dumpCell_sendsTheCodeAsDapArguments() = runTest {
     lateinit var opener: ScriptedKernelSocketOpener

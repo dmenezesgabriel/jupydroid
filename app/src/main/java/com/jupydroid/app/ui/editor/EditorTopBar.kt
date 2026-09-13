@@ -168,6 +168,8 @@ fun EditorTopBar(
   onExpandVariable: suspend (Int) -> List<DebugVariable> = { emptyList() },
   /** [DebuggerPanel]'s own frame reselection (P6a-15) - [NotebookDebugger.selectFrame]. */
   onSelectFrame: suspend (Int) -> Unit = {},
+  /** [DebuggerPanel]'s own ad hoc expression (P6a-17) - [NotebookDebugger.evaluate]. */
+  onEvaluate: suspend (String) -> DebugVariable? = { null },
   /** `documentsearch:start` - see [FindTopBar], which is what it puts up. */
   onFind: () -> Unit = {},
   /** `notebook:export-to-format` - what its picker is doing; see [NotebookActionsMenu]. */
@@ -273,6 +275,7 @@ fun EditorTopBar(
           onShowDebuggerPanel = onShowDebuggerPanel,
           onExpandVariable = onExpandVariable,
           onSelectFrame = onSelectFrame,
+          onEvaluate = onEvaluate,
           // Moved, not copied: null once the bar above carries the control itself.
           cellTypeInMenu = activeCellKind?.takeUnless { cellTypeOnBar },
           onChangeCellKind = onChangeCellKind,

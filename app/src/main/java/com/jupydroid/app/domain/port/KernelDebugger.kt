@@ -73,6 +73,16 @@ interface KernelDebugger {
 
   suspend fun step(session: KernelSession, threadId: Int, command: SteppingCommand)
 
+  /**
+   * Runs [expression] against [frameId]'s own scope while stopped there (P6a-17), DAP's own
+   * `evaluate` request with `context: "repl"` - debugpy's own convention for an ad hoc expression
+   * a person typed, distinct from `"watch"`/`"hover"` (confirmed against `vscode-jupyter`'s own
+   * `DebuggerVariables.evaluate`, `context: 'repl'`, rather than guessed). The answer is shaped
+   * like [DebugVariable] because it already is one DAP-side - [DebugVariable.name] holds
+   * [expression] itself, since an ad hoc result has no variable name of its own to report.
+   */
+  suspend fun evaluate(session: KernelSession, expression: String, frameId: Int): DebugVariable
+
   /** `debug_event` has no `parent_header` to correlate with a request - its own subscription, not a reply. */
   fun events(session: KernelSession): Flow<DebugEvent>
 }

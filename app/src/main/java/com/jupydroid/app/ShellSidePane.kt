@@ -86,6 +86,7 @@ fun ShellSidePane(
           stack = debugStack.current,
           onExpand = debugStack::expand,
           onSelectFrame = debugStack::selectFrame,
+          onEvaluate = debugStack::evaluate,
         )
         SidePanel.SEARCH ->
           SearchSidePanel(

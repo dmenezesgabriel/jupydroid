@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
@@ -18,6 +20,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -29,6 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.port.DebugVariable
@@ -61,12 +68,13 @@ fun DebuggerPanel(
   onDismiss: () -> Unit,
   onExpand: suspend (Int) -> List<DebugVariable>,
   onSelectFrame: suspend (Int) -> Unit,
+  onEvaluate: suspend (String) -> DebugVariable?,
   presentation: CellActionPresentation = currentCellActionPresentation(),
 ) {
   if (!expanded) return
   when (presentation) {
-    CellActionPresentation.MENU -> DebuggerMenu(stack, onDismiss, onExpand, onSelectFrame)
-    CellActionPresentation.SHEET -> DebuggerSheet(stack, onDismiss, onExpand, onSelectFrame)
+    CellActionPresentation.MENU -> DebuggerMenu(stack, onDismiss, onExpand, onSelectFrame, onEvaluate)
+    CellActionPresentation.SHEET -> DebuggerSheet(stack, onDismiss, onExpand, onSelectFrame, onEvaluate)
   }
 }
 
@@ -76,11 +84,12 @@ private fun DebuggerMenu(
   onDismiss: () -> Unit,
   onExpand: suspend (Int) -> List<DebugVariable>,
   onSelectFrame: suspend (Int) -> Unit,
+  onEvaluate: suspend (String) -> DebugVariable?,
 ) {
   DropdownMenu(expanded = true, onDismissRequest = onDismiss) {
     // No extra padding here - DebugStackRows carries its own per-row margin now (P6a-13), the
     // same split TableOfContentsPanel's own menu/sheet already keep with TableOfContentsRows.
-    DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame)
+    DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame, onEvaluate = onEvaluate)
   }
 }
 
@@ -92,6 +101,7 @@ private fun DebuggerSheet(
   onDismiss: () -> Unit,
   onExpand: suspend (Int) -> List<DebugVariable>,
   onSelectFrame: suspend (Int) -> Unit,
+  onEvaluate: suspend (String) -> DebugVariable?,
 ) {
   ModalBottomSheet(
     onDismissRequest = onDismiss,
@@ -100,7 +110,7 @@ private fun DebuggerSheet(
     Column(
       modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding(),
     ) {
-      DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame)
+      DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame, onEvaluate = onEvaluate)
     }
   }
 }
@@ -129,12 +139,18 @@ private fun DebuggerSheet(
  * [DebugStack] itself - the frame list is the same object across a reselection (only [groups]
  * changes), so keying on it does not lose the highlight when [onSelectFrame] answers, and a wholly
  * new stop (a fresh `frames` list) resets it back to the top frame without extra state to clear.
+ *
+ * **An ad hoc expression can be run against the top frame** (P6a-17) - [onEvaluate] is
+ * [NotebookDebugger.evaluate], the same "ask the debugger, keep no session here" shape [onExpand]
+ * already uses. Its own answer renders as one more variable-shaped row ([variableRowText]) rather
+ * than a second layout, since it already is one DAP-side.
  */
 @Composable
 internal fun DebugStackRows(
   stack: DebugStack?,
   onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() },
   onSelectFrame: suspend (Int) -> Unit = {},
+  onEvaluate: suspend (String) -> DebugVariable? = { null },
   modifier: Modifier = Modifier,
 ) {
   if (stack == null) {
@@ -158,6 +174,7 @@ internal fun DebugStackRows(
           .padding(horizontal = Spacing.md, vertical = Spacing.xs),
       )
     }
+    EvaluateRow(stack, onEvaluate)
     stack.groups.forEach { group ->
       Text(
         text = group.scope,
@@ -165,6 +182,46 @@ internal fun DebugStackRows(
         modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs).padding(top = Spacing.sm),
       )
       group.variables.forEach { variable -> VariableRow(variable, depth = 0, onExpand = onExpand) }
+    }
+  }
+}
+
+/**
+ * A single-line expression, submitted on the IME's own Done action - a debugger-scoped REPL of
+ * one line, not a persistent watch list this phone-scoped surface has no room for. Cleared on any
+ * change to [stack] - a fresh stop or a reselected frame alike - the same reason [VariableRow]'s
+ * own children reset on a new [remember] key: an answer from a scope the panel has since moved
+ * away from is stale, not merely old.
+ */
+@Composable
+private fun EvaluateRow(stack: DebugStack, onEvaluate: suspend (String) -> DebugVariable?) {
+  var expression by remember(stack) { mutableStateOf(TextFieldValue("")) }
+  var result by remember(stack) { mutableStateOf<DebugVariable?>(null) }
+  val scope = rememberCoroutineScope()
+  fun submit() {
+    val code = expression.text.trim()
+    if (code.isNotBlank()) scope.launch { result = onEvaluate(code) }
+  }
+  Column(modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)) {
+    OutlinedTextField(
+      value = expression,
+      onValueChange = { expression = it },
+      modifier = Modifier.fillMaxWidth().testTag(EVALUATE_FIELD_TAG),
+      singleLine = true,
+      label = { Text("Evaluate") },
+      placeholder = { Text("e.g. x + 1") },
+      // Same reason BreakpointConditionDialog's own field needs this: a Python expression is
+      // case-sensitive, and the IME's default sentence-capitalization would otherwise silently
+      // rewrite a lowercase identifier typed first.
+      keyboardOptions = KeyboardOptions(
+        capitalization = KeyboardCapitalization.None,
+        autoCorrectEnabled = false,
+        imeAction = ImeAction.Done,
+      ),
+      keyboardActions = KeyboardActions(onDone = { submit() }),
+    )
+    result?.let {
+      Text(text = variableRowText(it), style = codeTextStyle(), modifier = Modifier.padding(top = Spacing.xs))
     }
   }
 }
@@ -228,6 +285,9 @@ private fun variableRowText(variable: DebugVariable): String =
  * own text instead of restated at that row's own value.
  */
 private val DISCLOSURE_ICON_SIZE = 16.dp
+
+/** So an instrumented test can find [EvaluateRow]'s own field without depending on its label text. */
+const val EVALUATE_FIELD_TAG = "debugger-evaluate-field"
 
 /** One placeholder for "nothing is open" and "nothing has stopped" - [NoHeadingsPlaceholder]'s own shape. */
 @Composable

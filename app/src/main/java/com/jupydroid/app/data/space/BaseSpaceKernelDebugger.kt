@@ -34,51 +34,54 @@ class BaseSpaceKernelDebugger(
   private var trackedSockets: KernelSockets? = null
 
   override suspend fun attach(session: KernelSession) {
-    currentDebugger().attach(session)
+    resolveDebugger(null).attach(session)
     attachedSessions += session.id
   }
 
-  override suspend fun configurationDone(session: KernelSession) = known(session).configurationDone(session)
+  override suspend fun configurationDone(session: KernelSession) = resolveDebugger(session).configurationDone(session)
 
-  override suspend fun dumpCell(session: KernelSession, code: String): String = known(session).dumpCell(session, code)
+  override suspend fun dumpCell(session: KernelSession, code: String): String =
+    resolveDebugger(session).dumpCell(session, code)
 
   override suspend fun setBreakpoints(
     session: KernelSession,
     codeId: String,
     breakpoints: List<BreakpointRequest>,
-  ): List<VerifiedBreakpoint> = known(session).setBreakpoints(session, codeId, breakpoints)
+  ): List<VerifiedBreakpoint> = resolveDebugger(session).setBreakpoints(session, codeId, breakpoints)
 
   override suspend fun stackTrace(session: KernelSession, threadId: Int): List<DebugStackFrame> =
-    known(session).stackTrace(session, threadId)
+    resolveDebugger(session).stackTrace(session, threadId)
 
   override suspend fun scopes(session: KernelSession, frameId: Int): List<DebugScope> =
-    known(session).scopes(session, frameId)
+    resolveDebugger(session).scopes(session, frameId)
 
   override suspend fun variables(session: KernelSession, variablesReference: Int): List<DebugVariable> =
-    known(session).variables(session, variablesReference)
+    resolveDebugger(session).variables(session, variablesReference)
 
   override suspend fun step(session: KernelSession, threadId: Int, command: SteppingCommand) =
-    known(session).step(session, threadId, command)
+    resolveDebugger(session).step(session, threadId, command)
 
-  /** `known` is suspend, so the check happens once collection actually starts, inside this builder. */
+  override suspend fun evaluate(session: KernelSession, expression: String, frameId: Int): DebugVariable =
+    resolveDebugger(session).evaluate(session, expression, frameId)
+
+  /** `resolveDebugger` is suspend, so the check happens once collection actually starts, inside this builder. */
   override fun events(session: KernelSession): Flow<DebugEvent> = flow {
-    emitAll(known(session).events(session))
+    emitAll(resolveDebugger(session).events(session))
   }
 
-  /** The running debugger, for a session it actually knows; [StaleKernelSessionException] if not. */
-  private suspend fun known(session: KernelSession): KernelDebugger {
-    val debugger = currentDebugger()
-    if (session.id !in attachedSessions) throw StaleKernelSessionException(session.id)
-    return debugger
-  }
-
-  /** [attachedSessions] is cleared the moment a different [KernelSockets] shows up, from either side. */
-  private suspend fun currentDebugger(): KernelDebugger {
+  /**
+   * The running debugger for [sharedSockets]'s current [KernelSockets], resetting [attachedSessions]
+   * the moment a different one shows up from either side. [session] is `null` only for [attach]
+   * itself, the one call that has nothing yet to check attachment against; every other caller
+   * passes its own session and gets [StaleKernelSessionException] if it is not [attachedSessions].
+   */
+  private suspend fun resolveDebugger(session: KernelSession?): KernelDebugger {
     val sockets = sharedSockets.get()
     if (sockets !== trackedSockets) {
       attachedSessions.clear()
       trackedSockets = sockets
     }
+    if (session != null && session.id !in attachedSessions) throw StaleKernelSessionException(session.id)
     return debuggerFor(sockets)
   }
 }

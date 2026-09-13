@@ -2,8 +2,11 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugVariableGroup
@@ -110,6 +113,17 @@ class DebuggerPanelTest {
     compose.runOnIdle { org.junit.Assert.assertEquals(5, selected) }
   }
 
+  /** P6a-17's own gate: a submitted expression's own answer renders as one more variable row. */
+  @Test
+  fun submittingAnExpressionShowsItsAnswer() {
+    show(stack(), onEvaluate = { expression -> DebugVariable(expression, "42", "int", 0) })
+
+    compose.onNodeWithTag(EVALUATE_FIELD_TAG).performTextInput("6 * 7")
+    compose.onNodeWithTag(EVALUATE_FIELD_TAG).performImeAction()
+
+    compose.onNodeWithText("6 * 7: int = 42").assertIsDisplayed()
+  }
+
   private fun stack() = DebugStack(
     frames = listOf(DebugStackFrame(id = 6, name = "helper", line = 10, column = 1)),
     groups = listOf(DebugVariableGroup(scope = "Locals", variables = listOf(DebugVariable("x", "41", "int", 0)))),
@@ -136,6 +150,7 @@ class DebuggerPanelTest {
     presentation: CellActionPresentation = CellActionPresentation.SHEET,
     onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() },
     onSelectFrame: suspend (Int) -> Unit = {},
+    onEvaluate: suspend (String) -> DebugVariable? = { null },
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -146,6 +161,7 @@ class DebuggerPanelTest {
           presentation = presentation,
           onExpand = onExpand,
           onSelectFrame = onSelectFrame,
+          onEvaluate = onEvaluate,
         )
       }
     }
