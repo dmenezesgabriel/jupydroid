@@ -133,6 +133,18 @@ class NotebookDebugger(
   }
 
   /**
+   * Terminate (P6a-11): a kernel restart tears debugpy's own attached session, and any stop it
+   * was reporting, down with it - this app's own idea of "stopped" must go with it too, or the
+   * toolbar and the stopped-line wash would keep naming a stop the fresh kernel never had.
+   * `NotebookKernel.restart` is what actually replaces the process; this only clears what this
+   * collaborator owns, the same split [step]/[watchForStop] already keep.
+   */
+  fun clearStop() {
+    stoppedSession = null
+    uiState.update { it.copy(stoppedAt = null, debugStack = null, stepping = false) }
+  }
+
+  /**
    * `stackTrace -> scopes -> variables`, DAP's own dependency order (P6a-8a) - `null` on
    * [DebugEvent.Continued] or when a `Stopped` thread's stack came back empty. Only the **top**
    * frame's scopes/variables are fetched, matching JupyterLab's own default selection on a fresh

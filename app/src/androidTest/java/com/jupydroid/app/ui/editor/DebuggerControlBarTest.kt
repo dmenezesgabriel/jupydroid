@@ -82,6 +82,27 @@ class DebuggerControlBarTest {
     compose.onNodeWithContentDescription("Step out").assertIsEnabled()
   }
 
+  @Test
+  fun terminateFiresItsOwnCallbackOnce() {
+    showBar(stepping = false)
+
+    compose.onNodeWithContentDescription("Terminate").performClick()
+
+    compose.runOnIdle { assertEquals(listOf("terminate"), calls) }
+  }
+
+  /**
+   * Terminate is the escape hatch for a request stuck in flight - P6a-10's own tablet run needed
+   * exactly this to get free of a kernel that never answered. Gating it behind `stepping` would
+   * remove the one control meant to work when everything else is stuck.
+   */
+  @Test
+  fun terminateStaysEnabledWhileAStepIsInFlight() {
+    showBar(stepping = true)
+
+    compose.onNodeWithContentDescription("Terminate").assertIsEnabled()
+  }
+
   private fun showBar(stepping: Boolean) {
     compose.setContent {
       JupyterDroidTheme {
@@ -91,6 +112,7 @@ class DebuggerControlBarTest {
           onNext = { calls += "next" },
           onStepIn = { calls += "stepIn" },
           onStepOut = { calls += "stepOut" },
+          onTerminate = { calls += "terminate" },
         )
       }
     }

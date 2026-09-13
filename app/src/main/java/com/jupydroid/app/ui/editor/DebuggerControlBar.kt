@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -13,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * `next`/`stepIn`/`stepOut`/`continue` (P6a-9), shown only while
+ * `next`/`stepIn`/`stepOut`/`continue` (P6a-9) plus `terminate` (P6a-11), shown only while
  * [EditorUiState.stoppedAt] is non-null - [NotebookBar]'s own sibling, for the one state a
  * notebook being read never reaches on its own.
  *
@@ -27,6 +28,13 @@ import androidx.compose.ui.Modifier
  * departure rather than silently guessed: `SkipNext`/`ArrowDownward`/`ArrowUpward` are the closest
  * stock shapes standing in for step-over/step-into/step-out.
  *
+ * **Terminate reuses [Icons.Filled.Stop]**, the same glyph [NotebookBar]'s own Interrupt already
+ * draws - JupyterLab's own `terminate` command takes `stopIcon` too
+ * (`debugger.ts:150`/`index.ts:1258`). **Never disabled by [stepping]**: it is the escape hatch
+ * for a request stuck in flight - P6a-10's own tablet reproduction needed exactly this (a kernel
+ * restart) to get free of a debug session Interrupt alone could not touch, so the one control
+ * meant to work when everything else is stuck cannot be the one still waiting on it.
+ *
  * ```
  * DebuggerControlBar(stepping = state.stepping, onContinue = { … }, onNext = { … }, …)
  * ```
@@ -38,6 +46,7 @@ internal fun DebuggerControlBar(
   onNext: () -> Unit,
   onStepIn: () -> Unit,
   onStepOut: () -> Unit,
+  onTerminate: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   BottomAppBar(modifier = modifier.imePadding()) {
@@ -54,6 +63,9 @@ internal fun DebuggerControlBar(
     }
     IconButton(onClick = onStepOut, enabled = !stepping) {
       Icon(Icons.Filled.ArrowUpward, contentDescription = "Step out")
+    }
+    IconButton(onClick = onTerminate) {
+      Icon(Icons.Filled.Stop, contentDescription = "Terminate")
     }
   }
 }

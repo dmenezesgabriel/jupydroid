@@ -386,6 +386,28 @@ class NotebookDebuggerTest {
   }
 
   /**
+   * P6a-11's own gate: Terminate restarts the kernel, which tears debugpy's own state down with
+   * it - the debugger's own idea of "stopped" must go with it too, or the toolbar and the
+   * stopped-line wash would keep naming a stop that no longer exists on a fresh kernel.
+   */
+  @Test
+  fun clearStopResetsStoppedAtDebugStackAndStepping() = runTest {
+    val fake = FakeKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = fake)
+    val watcher = launch { viewModel.debugger.watchForStop(session, codeCell) }
+    advanceUntilIdle()
+    fake.emit(session, DebugEvent.Stopped(threadId = 7))
+    advanceUntilIdle()
+
+    viewModel.debugger.clearStop()
+
+    assertNull(viewModel.uiState.value.stoppedAt)
+    assertNull(viewModel.uiState.value.debugStack)
+    assertFalse(viewModel.uiState.value.stepping)
+    watcher.cancel()
+  }
+
+  /**
    * The toolbar's own entry point: [NotebookKernel.step] (through [NotebookCellRuns.step]) reaches
    * the same [NotebookDebugger.step] the tests above cover directly - proving the wiring, not the
    * behavior a second time.

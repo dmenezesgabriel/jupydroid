@@ -34,6 +34,10 @@ internal fun EditorBottomBars(
       onNext = { viewModel.kernel.step(SteppingCommand.NEXT) },
       onStepIn = { viewModel.kernel.step(SteppingCommand.STEP_IN) },
       onStepOut = { viewModel.kernel.step(SteppingCommand.STEP_OUT) },
+      onTerminate = {
+        viewModel.debugger.clearStop()
+        viewModel.kernel.restart()
+      },
     )
     EditorBottomBar.SYMBOLS -> SymbolRow(
       input = cellInput,

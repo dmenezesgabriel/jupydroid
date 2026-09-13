@@ -1,0 +1,48 @@
+appId: com.jupydroid.app
+---
+# P6a-11's own gate: Interrupt has zero effect on a kernel paused under the debugger (confirmed
+# live on the tablet during P6a-10's own investigation - eleven repeated interrupts over two
+# minutes never freed a genuinely stopped session). Terminate is the real escape hatch this row
+# adds - a kernel restart, wired through DebuggerControlBar's fifth button - and this flow drives
+# the exact scenario that used to take a manual kernel kill to get out of.
+#
+# TABLET ONLY (SM-X216B). On the x86_64 emulator MainActivity falls back to FakeKernelDebugger,
+# which never genuinely pauses anything for Terminate to free.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Debugger Step.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Debugger Step.ipynb"
+- assertVisible: "(?s).*y = x \\+ 1.*"
+- tapOn:
+    point: "39%,30%"
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Terminate"
+    timeout: 20000
+- takeScreenshot: 01-stopped-with-terminate-visible
+- tapOn: "Terminate"
+# The debugger toolbar is gone the instant Terminate is tapped - back to the ordinary kernel bar,
+# proving the app is not still waiting on anything from the kernel it just replaced.
+- assertNotVisible: "Terminate"
+- assertVisible: "Restart kernel"
+- takeScreenshot: 02-terminate-frees-the-toolbar-immediately
+# A fresh kernel comes up and the notebook is usable again - the same breakpoint (this app's own
+# state, untouched by Terminate) re-arms and stops it correctly, proving recovery is real and not
+# merely a UI reset over a kernel still stuck underneath.
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "Terminate"
+    timeout: 120000
+- takeScreenshot: 03-fresh-kernel-stops-again-after-terminate
