@@ -25,7 +25,19 @@ package com.jupydroid.app.domain.model
 class NotebookBreakpoints {
   private val byCell = mutableMapOf<String, List<Breakpoint>>()
 
+  /**
+   * Cells that have had a breakpoint at least once, kept even once [forCell] goes back to empty -
+   * P6a-10's own gate. debugpy keeps a line paused in its own memory until a `setBreakpoints` call
+   * tells it otherwise; a cell this app never armed can carry no such stale state, but one that was
+   * armed and then cleared can, so [NotebookDebugger][com.jupydroid.app.ui.editor.NotebookDebugger]
+   * still owes it a clearing round trip even with nothing left in [forCell].
+   */
+  private val everArmedCells = mutableSetOf<String>()
+
   fun forCell(cellId: String): List<Breakpoint> = byCell[cellId].orEmpty()
+
+  /** Whether [cellId] has ever carried a breakpoint, even if none does now. */
+  fun everArmed(cellId: String): Boolean = cellId in everArmedCells
 
   /** Adds a breakpoint at [line] if none is there yet, or removes it if one already is. */
   fun toggle(cellId: String, line: Int): List<Breakpoint> {
@@ -33,6 +45,7 @@ class NotebookBreakpoints {
     val updated = if (current.any { it.line == line }) {
       current.filterNot { it.line == line }
     } else {
+      everArmedCells += cellId
       current + Breakpoint(line = line)
     }
     byCell[cellId] = updated

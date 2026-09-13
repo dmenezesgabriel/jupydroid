@@ -55,6 +55,56 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
     assertEquals("attach must never follow a failed initialize", listOf("initialize"), debugCommandsSent(opener))
   }
 
+  /**
+   * P6a-10's own gate: debugpy keeps a debug session attached for the life of the kernel process,
+   * not this app's own session object, so a second `attach` after an earlier one already
+   * succeeded is rejected with exactly this message - not a real failure, since the kernel already
+   * has what `attach`'s own postcondition promises. Reproduced live on the tablet: disarming a
+   * breakpoint and re-running the cell it was on threw this, uncaught, before this fix.
+   */
+  @Test
+  fun attach_toleratesAnAlreadyStartedSession() = runTest {
+    lateinit var opener: ScriptedKernelSocketOpener
+    val alreadyStarted = "Invalid message: Session is already started"
+    opener = ScriptedKernelSocketOpener(
+      reply = { parent -> listOf(replyFailingOneCommand(opener, parent, "attach", alreadyStarted)) },
+    )
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
+
+    debugger.attach(SESSION)
+
+    assertEquals(listOf("initialize", "attach"), debugCommandsSent(opener))
+  }
+
+  /** A third run's own re-`initialize` gets the same tolerant treatment `attach` does. */
+  @Test
+  fun attach_toleratesAnAlreadyInitializedSession() = runTest {
+    lateinit var opener: ScriptedKernelSocketOpener
+    val alreadyInitialized = "Invalid message: Session is already initialized"
+    opener = ScriptedKernelSocketOpener(
+      reply = { parent -> listOf(replyFailingOneCommand(opener, parent, "initialize", alreadyInitialized)) },
+    )
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
+
+    debugger.attach(SESSION)
+
+    assertEquals(listOf("initialize", "attach"), debugCommandsSent(opener))
+  }
+
+  /** A genuinely different `attach` failure must still fail - only "already started" is tolerated. */
+  @Test
+  fun attach_stillThrowsForAnyOtherAttachFailure() = runTest {
+    lateinit var opener: ScriptedKernelSocketOpener
+    opener = ScriptedKernelSocketOpener(
+      reply = { parent -> listOf(replyFailingOneCommand(opener, parent, "attach", "boom")) },
+    )
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
+
+    val failure = runCatching { debugger.attach(SESSION) }
+
+    assertTrue(failure.exceptionOrNull() is DebugRequestFailedException)
+  }
+
   @Test
   fun dumpCell_sendsTheCodeAsDapArguments() = runTest {
     lateinit var opener: ScriptedKernelSocketOpener
@@ -161,6 +211,23 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
           put("verified", true)
         },
       )
+    }
+  }
+
+  /** Succeeds every command except `attach`, which fails with [attachFailureMessage] instead. */
+  /** Succeeds every command except [failingCommand], which fails with [failureMessage] instead. */
+  private fun replyFailingOneCommand(
+    opener: ScriptedKernelSocketOpener,
+    parent: String,
+    failingCommand: String,
+    failureMessage: String,
+  ): String {
+    val command = Json.parseToJsonElement(opener.sent.last()).jsonObject["content"]!!.jsonObject["command"]!!
+      .jsonPrimitive.content
+    return if (command == failingCommand) {
+      KernelFrames.debugReply(parent, command, success = false, message = failureMessage)
+    } else {
+      KernelFrames.debugReply(parent, command)
     }
   }
 

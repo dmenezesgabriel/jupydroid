@@ -51,8 +51,20 @@ class NotebookDebugger(
   /**
    * The debug-session handshake for [cell] on [session]: `attach -> dumpCell -> setBreakpoints ->
    * configurationDone`, [KernelDebugger]'s own four calls for readying one cell's breakpoints. A
-   * cell with none armed has nothing for a kernel to verify, so nothing is sent - the same reason
-   * JupyterLab's own debug session only ever arms lines a user actually marked.
+   * cell that has **never** carried a breakpoint has nothing for a kernel to verify or to clear,
+   * so nothing is sent - the same reason JupyterLab's own debug session only ever arms lines a
+   * user actually marked.
+   *
+   * **A cell disarmed back to empty still runs the handshake, sending an empty `setBreakpoints`
+   * (P6a-10).** debugpy keeps a breakpoint paused in its own process memory until told otherwise -
+   * skipping the round trip because *this app's* list is empty left a real kernel's own stale
+   * breakpoint armed forever, silently hanging every later run of that cell (found live on the
+   * tablet: a disarmed breakpoint's cell either hung on an unobserved `stopped` event, since
+   * nothing had attached to watch for it, or - on a kernel already attached this session - threw
+   * `DebugRequestFailedException: … "Session is already started"`). [NotebookBreakpoints.everArmed]
+   * is what remembers a cell needs this even once [store] itself has nothing left to send -
+   * ordinary state kept for the app's life, not this handshake's, for
+   * [NotebookBreakpoints]'s own reason.
    *
    * The reply is what turns [Breakpoint.verified] real: [store] and [uiState] are rewritten from
    * [KernelDebugger.setBreakpoints]'s own answer, not merely from what was asked for.
@@ -66,7 +78,7 @@ class NotebookDebugger(
    */
   suspend fun startSession(session: KernelSession, cell: Cell): Boolean {
     val armed = store.forCell(cell.id)
-    if (armed.isEmpty()) return false
+    if (armed.isEmpty() && !store.everArmed(cell.id)) return false
     kernelDebugger.attach(session)
     val codeId = kernelDebugger.dumpCell(session, cell.source)
     val verified = kernelDebugger.setBreakpoints(session, codeId, armed.map { it.line })

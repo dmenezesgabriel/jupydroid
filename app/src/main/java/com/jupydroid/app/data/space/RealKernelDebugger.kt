@@ -43,9 +43,21 @@ class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
   private val seqBySession = mutableMapOf<String, Int>()
   private val dumpCache = CellDumpCache()
 
+  /**
+   * debugpy keeps both `initialize` and `attach` state for the life of the **kernel process**, not
+   * this app's own session object - repeating either after an earlier one already succeeded (a
+   * later cell run, or a notebook reopened onto the same still-live kernel) is rejected with
+   * `"Invalid message: Session is already initialized"` / `"… already started"`, not a real
+   * failure: each call's own postcondition already holds. Reproduced live on the tablet (P6a-10):
+   * disarming a breakpoint and re-running the cell it was on threw the first, uncaught, and a
+   * third run threw the second - since
+   * [NotebookDebugger][com.jupydroid.app.ui.editor.NotebookDebugger] still has to attach on every
+   * run to send the clearing `setBreakpoints` a stale kernel-side breakpoint needs. Any other
+   * failure still throws - only these two specific, expected messages are tolerated.
+   */
   override suspend fun attach(session: KernelSession) {
-    sendDebugRequest(session, "initialize", initializeArgs(session))
-    sendDebugRequest(session, "attach", buildJsonObject { })
+    tolerating("already initialized") { sendDebugRequest(session, "initialize", initializeArgs(session)) }
+    tolerating("already started") { sendDebugRequest(session, "attach", buildJsonObject { }) }
   }
 
   override suspend fun configurationDone(session: KernelSession) {
@@ -144,6 +156,20 @@ private fun SteppingCommand.dapCommand(): String = when (this) {
   SteppingCommand.STEP_IN -> "stepIn"
   SteppingCommand.STEP_OUT -> "stepOut"
   SteppingCommand.CONTINUE -> "continue"
+}
+
+/**
+ * Runs [block], swallowing a [DebugRequestFailedException] whose own message names
+ * [alreadyDonePhrase] - debugpy's own way of saying the step [block] just repeated already
+ * happened for this kernel process, which is not a failure from the caller's side: the
+ * postcondition it asked for already holds. Any other failure still throws.
+ */
+private suspend inline fun tolerating(alreadyDonePhrase: String, block: () -> Unit) {
+  try {
+    block()
+  } catch (e: DebugRequestFailedException) {
+    if (e.message?.contains(alreadyDonePhrase, ignoreCase = true) != true) throw e
+  }
 }
 
 /**

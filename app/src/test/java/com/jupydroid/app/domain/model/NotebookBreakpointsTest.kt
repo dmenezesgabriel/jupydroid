@@ -1,6 +1,8 @@
 package com.jupydroid.app.domain.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -91,5 +93,37 @@ class NotebookBreakpointsTest {
 
     assertEquals(emptyList<Breakpoint>(), breakpoints.forCell("cell-1"))
     assertEquals(listOf(Breakpoint(line = 5)), breakpoints.forCell("cell-2"))
+  }
+
+  /**
+   * P6a-10's own gate: a kernel's own debugpy keeps a breakpoint until it is told otherwise, so
+   * disarming the last line on a cell that was ever armed must still be reported here - it is what
+   * tells [NotebookDebugger][com.jupydroid.app.ui.editor.NotebookDebugger] a clearing
+   * `setBreakpoints` is still owed, even once [forCell] itself has gone back to empty.
+   */
+  @Test
+  fun everArmedIsFalseForACellNeverToggled() {
+    assertFalse(NotebookBreakpoints().everArmed("cell-1"))
+  }
+
+  @Test
+  fun everArmedStaysTrueAfterTheLastBreakpointIsRemoved() {
+    val breakpoints = NotebookBreakpoints()
+    breakpoints.toggle("cell-1", line = 3)
+
+    breakpoints.toggle("cell-1", line = 3)
+
+    assertTrue(breakpoints.everArmed("cell-1"))
+    assertEquals(emptyList<Breakpoint>(), breakpoints.forCell("cell-1"))
+  }
+
+  @Test
+  fun everArmedIsIndependentPerCell() {
+    val breakpoints = NotebookBreakpoints()
+
+    breakpoints.toggle("cell-1", line = 1)
+
+    assertTrue(breakpoints.everArmed("cell-1"))
+    assertFalse(breakpoints.everArmed("cell-2"))
   }
 }

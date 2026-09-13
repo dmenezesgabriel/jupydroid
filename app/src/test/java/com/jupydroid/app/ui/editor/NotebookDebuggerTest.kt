@@ -348,6 +348,44 @@ class NotebookDebuggerTest {
   }
 
   /**
+   * P6a-10's own gate: debugpy keeps a breakpoint paused in its own memory until told otherwise,
+   * so disarming the only breakpoint a cell ever had must still send a **clearing**
+   * `setBreakpoints` next run - skipping the handshake entirely (as an always-empty cell does)
+   * would leave a real kernel's own stale breakpoint armed forever, hanging every future run of
+   * that cell with nothing in this app's own state saying why. Reproduced live on the tablet
+   * before this test was written: disarming a verified breakpoint and re-running the cell threw
+   * `DebugRequestFailedException: … "Session is already started"` on a kernel that had debugged it
+   * before, and hung indefinitely (a real, unobserved `stopped` event) on one that hadn't yet
+   * re-attached this session.
+   */
+  @Test
+  fun startSessionStillAttachesOnceDisarmedAfterBeingArmedBefore() = runTest {
+    val recorder = RecordingKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = recorder)
+    viewModel.debugger.toggle(codeCell.id, line = 2)
+    viewModel.debugger.startSession(session, codeCell)
+    viewModel.debugger.toggle(codeCell.id, line = 2)
+
+    val attached = viewModel.debugger.startSession(session, codeCell)
+
+    assertTrue("a cell that ever had a breakpoint must still attach to clear it", attached)
+    assertEquals(2, recorder.calls.count { it == "attach" })
+  }
+
+  @Test
+  fun startSessionSendsAnEmptySetBreakpointsOnceDisarmed() = runTest {
+    val fake = FakeKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = fake)
+    viewModel.debugger.toggle(codeCell.id, line = 2)
+    viewModel.debugger.startSession(session, codeCell)
+    viewModel.debugger.toggle(codeCell.id, line = 2)
+
+    viewModel.debugger.startSession(session, codeCell)
+
+    assertEquals(emptyList<Int>(), fake.breakpointsByCodeId.values.last())
+  }
+
+  /**
    * The toolbar's own entry point: [NotebookKernel.step] (through [NotebookCellRuns.step]) reaches
    * the same [NotebookDebugger.step] the tests above cover directly - proving the wiring, not the
    * behavior a second time.
