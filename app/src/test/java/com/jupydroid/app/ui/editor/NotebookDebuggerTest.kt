@@ -408,6 +408,33 @@ class NotebookDebuggerTest {
   }
 
   /**
+   * P6a-14's own gate: a compound variable's `variablesReference` fetches its children off the
+   * same stopped session [step] already resumes on - the debugger's own bookkeeping, not a fresh
+   * argument the panel would otherwise have no way to supply.
+   */
+  @Test
+  fun expandFetchesAVariablesReferencesChildrenOnTheStoppedSession() = runTest {
+    val fake = FakeKernelDebugger().apply { variablesByReference = mapOf(9 to listOf(childVariable)) }
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = fake)
+    val watcher = launch { viewModel.debugger.watchForStop(session, codeCell) }
+    advanceUntilIdle()
+    fake.emit(session, DebugEvent.Stopped(threadId = 7))
+    advanceUntilIdle()
+
+    val children = viewModel.debugger.expand(9)
+
+    assertEquals(listOf(childVariable), children)
+    watcher.cancel()
+  }
+
+  @Test
+  fun expandReturnsNothingWhenNothingIsStopped() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell))
+
+    assertEquals(emptyList<DebugVariable>(), viewModel.debugger.expand(9))
+  }
+
+  /**
    * The toolbar's own entry point: [NotebookKernel.step] (through [NotebookCellRuns.step]) reaches
    * the same [NotebookDebugger.step] the tests above cover directly - proving the wiring, not the
    * behavior a second time.
@@ -456,6 +483,9 @@ class NotebookDebuggerTest {
   private val innerFrame = DebugStackFrame(id = 6, name = "helper", line = 10, column = 1)
   private val localsScope = DebugScope(name = "Locals", variablesReference = 201, expensive = false)
   private val localsVariables = listOf(DebugVariable(name = "x", value = "41", type = "int", variablesReference = 0))
+
+  /** A leaf inside some compound variable's own `variablesReference` - [expand]'s own fixture. */
+  private val childVariable = DebugVariable(name = "0", value = "1", type = "int", variablesReference = 0)
   private val expectedDebugStack =
     DebugStack(frames = listOf(topFrame, innerFrame), groups = listOf(DebugVariableGroup("Locals", localsVariables)))
 }

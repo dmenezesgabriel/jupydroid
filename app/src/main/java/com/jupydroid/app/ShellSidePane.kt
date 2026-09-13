@@ -82,7 +82,7 @@ fun ShellSidePane(
       // window has no side area to collapse, and `SidePanel.showingAtOnePane` never answers null.
       when (showingPanel) {
         SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
-        SidePanel.DEBUGGER -> DebuggerSidePanel(stack = debugStack.current)
+        SidePanel.DEBUGGER -> DebuggerSidePanel(stack = debugStack.current, onExpand = debugStack::expand)
         SidePanel.SEARCH ->
           SearchSidePanel(
             searcher = appContainer.workspaceSearcher,

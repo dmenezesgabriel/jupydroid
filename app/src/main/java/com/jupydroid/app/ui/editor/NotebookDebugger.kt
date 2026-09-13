@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.model.DebugStop
 import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.DebugEvent
+import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.SteppingCommand
@@ -142,6 +143,18 @@ class NotebookDebugger(
   fun clearStop() {
     stoppedSession = null
     uiState.update { it.copy(stoppedAt = null, debugStack = null, stepping = false) }
+  }
+
+  /**
+   * A compound variable's own children (P6a-14), fetched lazily - [DebugVariable.variablesReference]
+   * is non-zero exactly when there is something here to fetch. Uses the same stopped session
+   * [step] already resumes on, since the panel that calls this has no session of its own to
+   * supply. Answers nothing once nothing is stopped, the same "no-op when the precondition isn't
+   * met" shape [step] itself already uses.
+   */
+  suspend fun expand(variablesReference: Int): List<DebugVariable> {
+    val session = stoppedSession ?: return emptyList()
+    return kernelDebugger.variables(session, variablesReference)
   }
 
   /**

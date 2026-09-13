@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.domain.model.DebugStack
+import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.DebugStackRows
 
@@ -35,10 +36,15 @@ import com.jupydroid.app.ui.editor.DebugStackRows
  * back from.
  *
  * @param stack the open notebook's own stop, or null while nothing that has one is open or stopped.
+ * @param onExpand a compound variable's own children (P6a-14) - [com.jupydroid.app.OpenDebugStack.expand].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DebuggerSidePanel(stack: DebugStack?, modifier: Modifier = Modifier) {
+fun DebuggerSidePanel(
+  stack: DebugStack?,
+  onExpand: suspend (Int) -> List<DebugVariable>,
+  modifier: Modifier = Modifier,
+) {
   Scaffold(
     modifier = modifier.fillMaxSize(),
     containerColor = chromePalette.sideBarBackground,
@@ -47,7 +53,7 @@ fun DebuggerSidePanel(stack: DebugStack?, modifier: Modifier = Modifier) {
     Column(
       modifier = Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState()),
     ) {
-      DebugStackRows(stack)
+      DebugStackRows(stack, onExpand = onExpand)
     }
   }
 }

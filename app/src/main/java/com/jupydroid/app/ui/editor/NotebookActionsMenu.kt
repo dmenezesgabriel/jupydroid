@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.port.DebugVariable
 
 /**
  * The notebook's overflow: everything the reference files under **View**, and - from P2j - under
@@ -88,6 +89,8 @@ internal fun NotebookActionsMenu(
   debugStack: DebugStack?,
   /** [onShowTableOfContentsPanel]'s own rule, for the debugger's side panel. */
   onShowDebuggerPanel: (() -> Unit)?,
+  /** [DebuggerPanel]'s own drill-down (P6a-14) - [NotebookDebugger.expand]. */
+  onExpandVariable: suspend (Int) -> List<DebugVariable>,
   /**
    * The active cell's type, where the bar has no room to name it itself - see [labelsFitOnActionRow].
    *
@@ -242,7 +245,12 @@ internal fun NotebookActionsMenu(
       numbering = tocNumbering,
     )
     // In the same Box for the same reason - see [TableOfContentsPanel]'s own comment just above.
-    DebuggerPanel(expanded = debuggerOpen, stack = debugStack, onDismiss = { debuggerOpen = false })
+    DebuggerPanel(
+      expanded = debuggerOpen,
+      stack = debugStack,
+      onDismiss = { debuggerOpen = false },
+      onExpand = onExpandVariable,
+    )
     // In the same Box for the same reason, so it anchors to the button that was tapped.
     ExportPicker(
       expanded = exportOpen,

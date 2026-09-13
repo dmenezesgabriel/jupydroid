@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugVariableGroup
@@ -56,19 +57,67 @@ class DebuggerPanelTest {
     compose.onNodeWithText("helper — line 10").assertDoesNotExist()
   }
 
+  /**
+   * P6a-14's own gate: tapping a compound variable (`variablesReference != 0`) fetches and shows
+   * its children, indented one step further - the same drill-down [DebugVariable.variablesReference]
+   * was always fetched for and then discarded, per `docs/PLAN.md`'s own Open risks entry.
+   */
+  @Test
+  fun aCompoundVariableExpandsOnTapToShowItsChildren() {
+    show(compoundStack(), onExpand = { listOf(DebugVariable("0", "1", "int", 0)) })
+
+    compose.onNodeWithText("items: list = […]").performClick()
+
+    compose.onNodeWithText("0: int = 1").assertIsDisplayed()
+  }
+
+  @Test
+  fun tappingAnExpandedVariableCollapsesItAgain() {
+    show(compoundStack(), onExpand = { listOf(DebugVariable("0", "1", "int", 0)) })
+    compose.onNodeWithText("items: list = […]").performClick()
+    compose.onNodeWithText("0: int = 1").assertIsDisplayed()
+
+    compose.onNodeWithText("items: list = […]").performClick()
+
+    compose.onNodeWithText("0: int = 1").assertDoesNotExist()
+  }
+
+  /** A leaf (`variablesReference == 0`) never fetches anything - there is nothing behind it. */
+  @Test
+  fun aLeafVariableDoesNotExpandOnTap() {
+    var calls = 0
+    show(stack(), onExpand = {
+      calls++
+      emptyList()
+    })
+
+    compose.onNodeWithText("x: int = 41").performClick()
+
+    compose.runOnIdle { org.junit.Assert.assertEquals(0, calls) }
+  }
+
   private fun stack() = DebugStack(
     frames = listOf(DebugStackFrame(id = 6, name = "helper", line = 10, column = 1)),
     groups = listOf(DebugVariableGroup(scope = "Locals", variables = listOf(DebugVariable("x", "41", "int", 0)))),
+  )
+
+  private fun compoundStack() = DebugStack(
+    frames = listOf(DebugStackFrame(id = 6, name = "helper", line = 10, column = 1)),
+    groups = listOf(
+      DebugVariableGroup(scope = "Locals", variables = listOf(DebugVariable("items", "[…]", "list", 5))),
+    ),
   )
 
   private fun show(
     stack: DebugStack?,
     expanded: Boolean = true,
     presentation: CellActionPresentation = CellActionPresentation.SHEET,
+    onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() },
   ) {
     compose.setContent {
       JupyterDroidTheme {
-        DebuggerPanel(expanded = expanded, stack = stack, onDismiss = {}, presentation = presentation)
+        DebuggerPanel(expanded = expanded, stack = stack, onDismiss = {
+        }, presentation = presentation, onExpand = onExpand)
       }
     }
   }

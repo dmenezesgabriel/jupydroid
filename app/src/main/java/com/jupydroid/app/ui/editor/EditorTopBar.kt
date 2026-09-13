@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.DocumentDismissAction
@@ -163,6 +164,8 @@ fun EditorTopBar(
   debugStack: DebugStack? = null,
   /** [onShowTableOfContentsPanel]'s own rule, for the debugger's side panel. */
   onShowDebuggerPanel: (() -> Unit)? = null,
+  /** [DebuggerPanel]'s own drill-down (P6a-14) - [NotebookDebugger.expand]. */
+  onExpandVariable: suspend (Int) -> List<DebugVariable> = { emptyList() },
   /** `documentsearch:start` - see [FindTopBar], which is what it puts up. */
   onFind: () -> Unit = {},
   /** `notebook:export-to-format` - what its picker is doing; see [NotebookActionsMenu]. */
@@ -266,6 +269,7 @@ fun EditorTopBar(
           onShowTableOfContentsPanel = onShowTableOfContentsPanel,
           debugStack = debugStack,
           onShowDebuggerPanel = onShowDebuggerPanel,
+          onExpandVariable = onExpandVariable,
           // Moved, not copied: null once the bar above carries the control itself.
           cellTypeInMenu = activeCellKind?.takeUnless { cellTypeOnBar },
           onChangeCellKind = onChangeCellKind,

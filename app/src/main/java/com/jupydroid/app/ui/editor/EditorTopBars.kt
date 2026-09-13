@@ -146,6 +146,7 @@ private fun DocumentTopBar(
     onShowTableOfContentsPanel = onShowTableOfContents,
     debugStack = state.debugStack,
     onShowDebuggerPanel = onShowDebugger,
+    onExpandVariable = viewModel.debugger::expand,
     titleCollapse = titleCollapse,
     // The document's own name is never a segment - it is on the row above. See [ancestorCrumbsFor].
     crumbs = ancestorCrumbsFor(state.notebookId, ROOT_LABEL),

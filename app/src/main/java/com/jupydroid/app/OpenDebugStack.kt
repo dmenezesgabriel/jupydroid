@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.DebugStack
+import com.jupydroid.app.domain.port.DebugVariable
 
 /**
  * Where the open notebook publishes its stop's call stack and variables, and the shell's side
@@ -28,13 +29,30 @@ class OpenDebugStack {
   var current by mutableStateOf<DebugStack?>(null)
     private set
 
+  /**
+   * Fetches a compound variable's own children (P6a-14) - [NotebookDebugger.expand][
+   * com.jupydroid.app.ui.editor.NotebookDebugger.expand], published alongside [current] the same
+   * way [DocumentOutline.jumpTo] travels with its own headings: the panel is in the list pane and
+   * owns no session of its own to ask a kernel with.
+   */
+  private var expandVariable: suspend (Int) -> List<DebugVariable> = { emptyList() }
+
   /** The open notebook's own state, replacing whatever was there - including null. */
-  fun publish(stack: DebugStack?) {
+  fun publish(stack: DebugStack?, expand: suspend (Int) -> List<DebugVariable>) {
     current = stack
+    expandVariable = expand
   }
 
-  /** The document has gone, so the panel empties - [OpenDocumentOutline.clear]'s own reason. */
+  /** [expandVariable], named for what the panel actually asks of it rather than what it stores. */
+  suspend fun expand(variablesReference: Int): List<DebugVariable> = expandVariable(variablesReference)
+
+  /**
+   * The document has gone, so the panel empties - [OpenDocumentOutline.clear]'s own reason,
+   * [DocumentOutline.jumpTo]'s own reason applied to [expandVariable] too: nothing here should
+   * outlive the debugger that published it.
+   */
   fun clear() {
     current = null
+    expandVariable = { emptyList() }
   }
 }

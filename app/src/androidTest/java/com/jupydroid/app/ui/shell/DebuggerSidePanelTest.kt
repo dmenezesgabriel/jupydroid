@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugVariableGroup
@@ -48,6 +49,22 @@ class DebuggerSidePanelTest {
     compose.onNodeWithText("Debugger").assertIsDisplayed()
   }
 
+  /** The side panel's own compound-variable drill-down (P6a-14) - [DebuggerPanelTest]'s own case. */
+  @Test
+  fun aCompoundVariableExpandsOnTapToShowItsChildren() {
+    val compound = DebugStack(
+      frames = listOf(DebugStackFrame(id = 5, name = "<module>", line = 3, column = 1)),
+      groups = listOf(
+        DebugVariableGroup(scope = "Locals", variables = listOf(DebugVariable("items", "[…]", "list", 5))),
+      ),
+    )
+    show(compound, onExpand = { listOf(DebugVariable("0", "1", "int", 0)) })
+
+    compose.onNodeWithText("items: list = […]").performClick()
+
+    compose.onNodeWithText("0: int = 1").assertIsDisplayed()
+  }
+
   private fun stack() = DebugStack(
     frames = listOf(
       DebugStackFrame(id = 5, name = "<module>", line = 3, column = 1),
@@ -56,7 +73,7 @@ class DebuggerSidePanelTest {
     groups = listOf(DebugVariableGroup(scope = "Locals", variables = listOf(DebugVariable("x", "41", "int", 0)))),
   )
 
-  private fun show(stack: DebugStack?) {
-    compose.setContent { JupyterDroidTheme { DebuggerSidePanel(stack = stack) } }
+  private fun show(stack: DebugStack?, onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() }) {
+    compose.setContent { JupyterDroidTheme { DebuggerSidePanel(stack = stack, onExpand = onExpand) } }
   }
 }
