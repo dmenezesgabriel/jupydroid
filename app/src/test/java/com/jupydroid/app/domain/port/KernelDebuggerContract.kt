@@ -60,7 +60,7 @@ abstract class KernelDebuggerContract {
     val debugger = debugger()
     val codeId = debugger.dumpCell(SESSION, "x = 1\ny = 2\n")
 
-    val result = debugger.setBreakpoints(SESSION, codeId, listOf(1, 2))
+    val result = debugger.setBreakpoints(SESSION, codeId, listOf(BreakpointRequest(1), BreakpointRequest(2)))
 
     assertEquals(listOf(1, 2), result.map { it.line })
   }

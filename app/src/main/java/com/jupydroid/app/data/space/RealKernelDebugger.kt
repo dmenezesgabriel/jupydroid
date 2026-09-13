@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
@@ -79,9 +80,9 @@ class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
   override suspend fun setBreakpoints(
     session: KernelSession,
     codeId: String,
-    lines: List<Int>,
+    breakpoints: List<BreakpointRequest>,
   ): List<VerifiedBreakpoint> {
-    val reply = sendDebugRequest(session, "setBreakpoints", setBreakpointsArgs(codeId, lines))
+    val reply = sendDebugRequest(session, "setBreakpoints", setBreakpointsArgs(codeId, breakpoints))
     return KernelDebugReplies.verifiedBreakpoints(reply)
   }
 
@@ -145,9 +146,26 @@ private fun initializeArgs(session: KernelSession) = buildJsonObject {
   put("locale", "en")
 }
 
-private fun setBreakpointsArgs(codeId: String, lines: List<Int>) = buildJsonObject {
+/**
+ * `condition` sent only when [BreakpointRequest.condition] is present and not blank - an empty
+ * string is the same as no condition to a caller clearing a text field, and DAP's own
+ * `SetBreakpointsArguments` treats the key's absence as "unconditional," not `condition: ""`.
+ */
+private fun setBreakpointsArgs(codeId: String, breakpoints: List<BreakpointRequest>) = buildJsonObject {
   put("source", buildJsonObject { put("path", codeId) })
-  put("breakpoints", buildJsonArray { lines.forEach { line -> add(buildJsonObject { put("line", line) }) } })
+  put(
+    "breakpoints",
+    buildJsonArray {
+      breakpoints.forEach { requested ->
+        add(
+          buildJsonObject {
+            put("line", requested.line)
+            requested.condition?.takeIf { it.isNotBlank() }?.let { put("condition", it) }
+          },
+        )
+      }
+    },
+  )
   put("sourceModified", false)
 }
 

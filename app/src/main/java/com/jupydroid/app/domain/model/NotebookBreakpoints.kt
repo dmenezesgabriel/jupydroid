@@ -56,4 +56,15 @@ class NotebookBreakpoints {
   fun replace(cellId: String, breakpoints: List<Breakpoint>) {
     byCell[cellId] = breakpoints
   }
+
+  /**
+   * Attaches [condition] to [cellId]'s breakpoint at [line] (P6a-16), replacing whatever condition
+   * it carried before - `null` clears it back to an ordinary breakpoint. A no-op, [toggle]'s own
+   * "nothing to touch" shape, when [line] carries no breakpoint at all.
+   */
+  fun setCondition(cellId: String, line: Int, condition: String?): List<Breakpoint> {
+    val updated = forCell(cellId).map { if (it.line == line) it.copy(condition = condition) else it }
+    byCell[cellId] = updated
+    return updated
+  }
 }

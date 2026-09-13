@@ -14,6 +14,7 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceChange
+import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
@@ -190,8 +191,8 @@ internal class RecordingKernelDebugger(private val fake: FakeKernelDebugger = Fa
     return fake.dumpCell(session, code)
   }
 
-  override suspend fun setBreakpoints(session: KernelSession, codeId: String, lines: List<Int>) =
-    fake.setBreakpoints(session, codeId, lines).also { calls += "setBreakpoints" }
+  override suspend fun setBreakpoints(session: KernelSession, codeId: String, breakpoints: List<BreakpointRequest>) =
+    fake.setBreakpoints(session, codeId, breakpoints).also { calls += "setBreakpoints" }
 
   override suspend fun configurationDone(session: KernelSession) {
     calls += "configurationDone"

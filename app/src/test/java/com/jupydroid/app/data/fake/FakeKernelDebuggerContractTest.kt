@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.fake
 
+import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelDebuggerContract
@@ -71,8 +72,8 @@ class FakeKernelDebuggerContractTest : KernelDebuggerContract() {
     val fake = FakeKernelDebugger()
     val codeId = fake.dumpCell(SESSION, "x = 1\ny = 2\n")
 
-    fake.setBreakpoints(SESSION, codeId, listOf(1, 2))
+    fake.setBreakpoints(SESSION, codeId, listOf(BreakpointRequest(1), BreakpointRequest(2)))
 
-    assertEquals(listOf(1, 2), fake.breakpointsByCodeId[codeId])
+    assertEquals(listOf(BreakpointRequest(1), BreakpointRequest(2)), fake.breakpointsByCodeId[codeId])
   }
 }

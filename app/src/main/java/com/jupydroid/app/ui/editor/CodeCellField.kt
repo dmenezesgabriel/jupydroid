@@ -65,6 +65,8 @@ fun CodeCellField(
   breakpoints: List<Breakpoint> = emptyList(),
   /** A tap in the gutter, reporting the one-based line it hit - see [Modifier.lineNumbers]. */
   onGutterTap: (line: Int) -> Unit = {},
+  /** A long-press on an armed line's gutter (P6a-16) - see [Modifier.lineNumbers]. */
+  onGutterLongPress: (line: Int) -> Unit = {},
   /** Where the kernel is paused in this cell, one-based, or null - see [Modifier.lineNumbers]. */
   stoppedLine: Int? = null,
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
@@ -102,7 +104,16 @@ fun CodeCellField(
       state = state,
       // The gutter's width comes from the line *count*, so it never depends on the layout this
       // callback publishes - which is what keeps writing state from here out of a measure loop.
-      modifier = modifier.lineNumbers(state.text, layout, numberStyle, gutter, breakpoints, onGutterTap, stoppedLine),
+      modifier = modifier.lineNumbers(
+        state.text,
+        layout,
+        numberStyle,
+        gutter,
+        breakpoints,
+        onGutterTap,
+        onGutterLongPress,
+        stoppedLine,
+      ),
       onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
       textStyle = codeStyle,
       interactionSource = interactions,

@@ -5,6 +5,13 @@ import kotlinx.coroutines.flow.Flow
 /** One requested breakpoint's answer: the line debugpy actually armed, and whether it took. */
 data class VerifiedBreakpoint(val line: Int, val verified: Boolean)
 
+/**
+ * One line to arm, DAP's own `SetBreakpointsArguments.breakpoints` element shape (P6a-16) -
+ * [condition] is a Python expression gating whether this line actually stops the kernel once
+ * armed, `null` for an ordinary breakpoint.
+ */
+data class BreakpointRequest(val line: Int, val condition: String? = null)
+
 /** One frame of a stopped call stack, `stackTrace`'s own shape (`id` is what `scopes` addresses). */
 data class DebugStackFrame(val id: Int, val name: String, val line: Int, val column: Int)
 
@@ -51,8 +58,12 @@ interface KernelDebugger {
    */
   suspend fun dumpCell(session: KernelSession, code: String): String
 
-  /** [codeId] is the path [dumpCell] returned for the cell these [lines] belong to. */
-  suspend fun setBreakpoints(session: KernelSession, codeId: String, lines: List<Int>): List<VerifiedBreakpoint>
+  /** [codeId] is the path [dumpCell] returned for the cell these [breakpoints] belong to. */
+  suspend fun setBreakpoints(
+    session: KernelSession,
+    codeId: String,
+    breakpoints: List<BreakpointRequest>,
+  ): List<VerifiedBreakpoint>
 
   suspend fun stackTrace(session: KernelSession, threadId: Int): List<DebugStackFrame>
 

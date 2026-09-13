@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# P6a-16's own gate: a condition attached to a breakpoint actually gates whether it stops the
+# kernel - a plain breakpoint on this fixture's own loop would stop at the first iteration
+# (i == 0); this flow proves debugpy skips i == 0, 1, 2 and only stops once "i == 3" is true.
+#
+# TABLET ONLY (SM-X216B). On the x86_64 emulator MainActivity falls back to FakeKernelDebugger,
+# which has no condition evaluator of its own to prove anything against.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Debugger Conditional Loop.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Debugger Conditional Loop.ipynb"
+- assertVisible: "(?s).*total \\+= i.*"
+# The same point every other debugger flow taps for its own target line - the breakpoint column's
+# own left edge does not move with a cell's indentation or line count.
+- tapOn:
+    point: "39%,33%"
+- longPressOn:
+    point: "39%,33%"
+- assertVisible: "Breakpoint condition"
+# "3 == i", not "i == 3": Maestro's own `inputText` capitalizes the first letter it types into an
+# empty field on this device (confirmed against the wire: a first attempt with "i == 3" reached
+# debugpy as the literal "I == 3", which named nothing and never once stopped the kernel) - a
+# quirk of Maestro's own input mechanism, not this app's (a real keystroke through the device's
+# own IME, driven by hand, sent the lowercase "i" untouched). Leading with a digit sidesteps it.
+- inputText: "3 == i"
+- tapOn: "Set"
+- assertNotVisible: "Breakpoint condition"
+- takeScreenshot: 01-condition-set-badge-visible
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Terminate"
+    timeout: 120000
+- tapOn: "Debugger"
+# debugpy's own real evaluation, not this app's own state: `total` is 0+1+2 (3), not 0 - the
+# value it would be if the condition were ignored and the kernel had simply stopped at i == 0.
+- assertVisible: "i: int = 3"
+- assertVisible: "total: int = 3"
+- takeScreenshot: 02-stopped-only-once-the-condition-became-true

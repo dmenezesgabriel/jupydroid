@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelDebuggerContract
@@ -103,6 +104,47 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
     val failure = runCatching { debugger.attach(SESSION) }
 
     assertTrue(failure.exceptionOrNull() is DebugRequestFailedException)
+  }
+
+  /** P6a-16's own gate: DAP's `setBreakpoints` request carries a per-line `condition` when one is set. */
+  @Test
+  fun setBreakpoints_sendsAConditionWhenOneIsSet() = runTest {
+    lateinit var opener: ScriptedKernelSocketOpener
+    opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
+    val codeId = debugger.dumpCell(SESSION, "x = 1")
+
+    debugger.setBreakpoints(SESSION, codeId, listOf(BreakpointRequest(line = 1, condition = "x > 10")))
+
+    val request = opener.sent.single { """"command":"setBreakpoints"""" in it }
+    assertTrue("must carry the condition, got $request", """"condition":"x > 10"""" in request)
+  }
+
+  /** An empty/blank condition must not reach the kernel as `condition: ""` - the same as none at all. */
+  @Test
+  fun setBreakpoints_omitsABlankCondition() = runTest {
+    lateinit var opener: ScriptedKernelSocketOpener
+    opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
+    val codeId = debugger.dumpCell(SESSION, "x = 1")
+
+    debugger.setBreakpoints(SESSION, codeId, listOf(BreakpointRequest(line = 1, condition = "  ")))
+
+    val request = opener.sent.single { """"command":"setBreakpoints"""" in it }
+    assertTrue("must not carry a blank condition, got $request", """"condition"""" !in request)
+  }
+
+  @Test
+  fun setBreakpoints_omitsConditionWhenNoneIsSet() = runTest {
+    lateinit var opener: ScriptedKernelSocketOpener
+    opener = ScriptedKernelSocketOpener(reply = { parent -> listOf(echoedDebugReply(opener, parent)) })
+    val debugger = RealKernelDebugger(KernelSockets(opener, FakeKernelLifecycle()))
+    val codeId = debugger.dumpCell(SESSION, "x = 1")
+
+    debugger.setBreakpoints(SESSION, codeId, listOf(BreakpointRequest(line = 1)))
+
+    val request = opener.sent.single { """"command":"setBreakpoints"""" in it }
+    assertTrue("must not carry any condition, got $request", """"condition"""" !in request)
   }
 
   @Test

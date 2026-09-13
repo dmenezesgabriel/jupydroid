@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -52,8 +53,12 @@ import com.jupydroid.app.theme.editorPalette
  * @param width from [gutterWidth]; passed in rather than computed here because the completion
  *   popup anchors against the same edge and the two must not disagree.
  * @param onGutterTap a tap landed in the gutter, reporting the **one-based** logical line it hit -
- *   `KernelDebugger.setBreakpoints`'s own numbering. Fires on press, matching both references'
- *   own `mousedown` handlers rather than waiting for a release.
+ *   `KernelDebugger.setBreakpoints`'s own numbering. Fires the moment the release resolves as an
+ *   ordinary tap rather than [onGutterLongPress]'s own precondition - see [detectGutterTap].
+ * @param onGutterLongPress a long-press landed on an *armed* line's gutter (P6a-16), reporting
+ *   that line - opens the condition editor, in place of [onGutterTap] for that one press rather
+ *   than beside it. Never fires for a line with no breakpoint: there is nothing yet to attach a
+ *   condition to, so a long hold there is still an ordinary tap (arms it), same as a quick one.
  * @param stoppedLine where the kernel is paused, one-based, or null while nothing is - see
  *   [EditorPalette.debugStoppedLine]. Drawn full width, **before** the numbers/dots so those stay
  *   legible over the wash, and before `padding(start = width)` shrinks this `drawBehind`'s own
@@ -68,6 +73,7 @@ fun Modifier.lineNumbers(
   width: Dp,
   breakpoints: List<Breakpoint> = emptyList(),
   onGutterTap: (line: Int) -> Unit = {},
+  onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
 ): Modifier {
   if (width <= 0.dp) return this
@@ -76,17 +82,36 @@ fun Modifier.lineNumbers(
   // Measured once per line count rather than per frame: a TextMeasurer's cache is small, and a
   // thirty-line cell would miss it on every draw.
   val numbers = remember(starts.size, style) { List(starts.size) { measurer.measure("${it + 1}", style) } }
+  // The condition badge (P6a-16) - IntelliJ's own convention for a conditional breakpoint
+  // (`XBreakpointUIUtil.withQuestionBadgeIfNeeded`): the base dot unchanged, a small question-mark
+  // badge overlaid near its corner, rather than a different glyph altogether.
+  val badgeStyle = style.copy(fontSize = style.fontSize * CONDITION_BADGE_SCALE)
+  val badge = remember(badgeStyle) { measurer.measure(CONDITION_BADGE_GLYPH, badgeStyle) }
   // The breakpoint column's own width - one row tall, VS Code's own `glyphMarginWidth` - measured
   // off the digits themselves so it shares their font metrics rather than a second measurement.
   val breakpointColumnPx = numbers.first().size.height
   val digitsPx = with(LocalDensity.current) { (width - NUMBER_GAP).roundToPx() }
   val widthPx = with(LocalDensity.current) { width.toPx() }
   val armed = remember(breakpoints) { breakpoints.associateBy { it.line } }
+  // Read inside the gesture through this rather than closing over `armed` directly, and kept out
+  // of the `pointerInput` key below on purpose: `onTap` toggles the very breakpoint a long-press
+  // is asking about, and keying on `armed` restarted this coroutine the instant that toggle's own
+  // recomposition produced a new map - killing every long-press mid-gesture, right after the tap
+  // that starts it disarmed the line. Found live on the tablet, not guessed: the dot vanished on
+  // press and the condition dialog never opened, for every hold, long or short.
+  val currentArmed = rememberUpdatedState(armed)
   val palette = editorPalette
 
   return this
     .pointerInput(widthPx, layout, starts) {
-      detectGutterTap(widthPx) { y -> layout?.let { onGutterTap(it.lineNumberAt(y, starts)) } }
+      detectGutterTap(
+        widthPx,
+        onTap = { y -> layout?.let { onGutterTap(it.lineNumberAt(y, starts)) } },
+        // Asked before `onTap` runs, so a long-press on a line that *was* armed still counts as
+        // one even though `onTap`'s own toggle disarms it in the same gesture.
+        wasArmed = { y -> layout?.let { currentArmed.value.containsKey(it.lineNumberAt(y, starts)) } == true },
+        onLongPress = { y -> layout?.let { onGutterLongPress(it.lineNumberAt(y, starts)) } },
+      )
     }
     .drawBehind {
       if (layout == null) return@drawBehind
@@ -99,6 +124,9 @@ fun Modifier.lineNumbers(
         drawText(number, topLeft = Offset(x, top))
         armed[index + 1]?.let { breakpoint ->
           drawBreakpointDot(breakpoint, palette, breakpointColumnPx, top, number.size.height.toFloat())
+          if (breakpoint.condition != null) {
+            drawConditionBadge(badge, breakpointColumnPx, top, number.size.height.toFloat())
+          }
         }
       }
     }
@@ -139,22 +167,63 @@ private fun DrawScope.drawBreakpointDot(
 }
 
 /**
- * Fires on **press**, mirroring JupyterLab's own `domEventHandlers: { mousedown }`
- * (`packages/debugger/src/handlers/editor.ts:230-236`) and VS Code's `onMouseDown`
- * (`breakpointEditorContribution.ts:257`) - neither reference waits for a release.
+ * A small "?" overlaid near the dot's own corner (P6a-16) - IntelliJ's own
+ * `withQuestionBadgeIfNeeded` badges the base icon rather than swapping it for a different one,
+ * so a conditional breakpoint still reads as a breakpoint first.
+ */
+private fun DrawScope.drawConditionBadge(badge: TextLayoutResult, columnWidthPx: Int, top: Float, rowHeight: Float) {
+  val x = (columnWidthPx - badge.size.width).toFloat().coerceAtLeast(0f)
+  val y = (top + rowHeight - badge.size.height).coerceAtLeast(top)
+  drawText(badge, topLeft = Offset(x, y))
+}
+
+/**
+ * Fires **exactly one** of [onTap] or [onLongPress] once the press resolves - never both.
+ *
+ * **This used to fire [onTap] on press**, mirroring JupyterLab's own `domEventHandlers: {
+ * mousedown }` (`packages/debugger/src/handlers/editor.ts:230-236`) and VS Code's `onMouseDown`
+ * (`breakpointEditorContribution.ts:257`). P6a-16 gave that up: a mouse's down and up are
+ * effectively simultaneous, so neither reference had to choose between them, but a touch long
+ * enough to be a long-press is, by definition, not simultaneous - firing [onTap] eagerly on press
+ * toggled the very breakpoint a long-press was asking to add a condition to, off, in the same
+ * gesture (found live on the tablet, not guessed: the dot vanished under every hold, and the
+ * dialog it opened was for a breakpoint that no longer existed). A quick tap still reads as
+ * instant to a human, since [onTap] now fires the moment the release itself is seen rather than
+ * waiting out the long-press timeout first.
  *
  * [PointerEventPass.Initial] runs ancestor-to-descendant, ahead of the field's own tap-to-place
  * pass - this codebase's established way of winning a gesture against a `BasicTextField`
  * (`TerminalPaneScreen.kt`'s `detectTerminalScrollDrag`). A tap outside the gutter is left
- * unconsumed, so placing the caret in the code still works exactly as before.
+ * unconsumed, so placing the caret in the code still works exactly as before. The release is
+ * tracked at that same pass, by [down]'s own pointer id, rather than through
+ * [androidx.compose.foundation.gestures.waitForUpOrCancellation] - that function's own default
+ * pass sees the field's own tap-to-place gesture consume the release first, so it never reported
+ * one at all. Classified from the release's own [PointerInputChange.uptimeMillis] against
+ * [down]'s, the events' own recorded timestamps, not a coroutine racing a wall-clock timer that a
+ * test harness's synchronization overhead can throw off.
+ *
+ * **[wasArmed] is asked once, at press**, before either callback runs: a long-press only ever
+ * means something on a line that already carries a breakpoint - there is nothing yet to attach a
+ * condition to on a bare one, so [onTap] (arming it) is what a long hold on a bare line still
+ * does.
  */
-private suspend fun PointerInputScope.detectGutterTap(widthPx: Float, onTap: (y: Float) -> Unit) {
+private suspend fun PointerInputScope.detectGutterTap(
+  widthPx: Float,
+  onTap: (y: Float) -> Unit,
+  wasArmed: (y: Float) -> Boolean,
+  onLongPress: (y: Float) -> Unit,
+) {
   awaitEachGesture {
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-    if (down.position.x <= widthPx) {
-      down.consume()
-      onTap(down.position.y)
+    if (down.position.x > widthPx) return@awaitEachGesture
+    down.consume()
+    val armed = wasArmed(down.position.y)
+    var change = down
+    while (change.pressed) {
+      change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
     }
+    val held = change.uptimeMillis - down.uptimeMillis >= viewConfiguration.longPressTimeoutMillis
+    if (armed && held) onLongPress(down.position.y) else onTap(down.position.y)
   }
 }
 
@@ -213,3 +282,7 @@ private val NUMBER_GAP = Spacing.sm
 
 /** A dot smaller than the row it sits in, so it reads as a mark rather than filling the gutter. */
 private const val DOT_SHRINK = 2.5f
+
+/** The condition badge's own glyph and size, relative to the line numbers' own font size. */
+private const val CONDITION_BADGE_GLYPH = "?"
+private const val CONDITION_BADGE_SCALE = 0.7f

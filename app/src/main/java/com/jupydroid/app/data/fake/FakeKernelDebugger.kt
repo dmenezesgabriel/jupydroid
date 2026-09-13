@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.fake
 
+import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
@@ -32,17 +33,17 @@ class FakeKernelDebugger : KernelDebugger {
   override suspend fun dumpCell(session: KernelSession, code: String): String =
     dumpedPaths.getOrPut(code) { "/fake/debug-cells/cell-${dumpedPaths.size}.py" }
 
-  /** Requested lines per [codeId], so a test can assert what was armed without a real debugpy. */
-  val breakpointsByCodeId = mutableMapOf<String, List<Int>>()
+  /** Requested breakpoints per [codeId], so a test can assert what was armed without a real debugpy. */
+  val breakpointsByCodeId = mutableMapOf<String, List<BreakpointRequest>>()
 
   /** Always verified: this fake never runs the line to find out whether debugpy could arm it. */
   override suspend fun setBreakpoints(
     session: KernelSession,
     codeId: String,
-    lines: List<Int>,
+    breakpoints: List<BreakpointRequest>,
   ): List<VerifiedBreakpoint> {
-    breakpointsByCodeId[codeId] = lines
-    return lines.map { VerifiedBreakpoint(line = it, verified = true) }
+    breakpointsByCodeId[codeId] = breakpoints
+    return breakpoints.map { VerifiedBreakpoint(line = it.line, verified = true) }
   }
 
   /** Scripted per test; the default is the single-frame stack every P6a-6/7b test already asserts against. */

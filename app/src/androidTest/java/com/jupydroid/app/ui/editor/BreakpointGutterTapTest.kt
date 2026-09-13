@@ -9,11 +9,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -35,7 +37,7 @@ class BreakpointGutterTapTest {
   @Test
   fun tappingTheGutterOfASingleLineCellReportsLineOne() {
     var tapped: Int? = null
-    setContent(CODE) { line -> tapped = line }
+    setContent(CODE, onGutterTap = { line -> tapped = line })
 
     compose.onNodeWithTag(FIELD_TAG).performTouchInput { click(Offset(insideGutterPx(), height / 2f)) }
 
@@ -45,7 +47,7 @@ class BreakpointGutterTapTest {
   @Test
   fun tappingTheSecondLineOfTheGutterReportsLineTwo() {
     var tapped: Int? = null
-    setContent(TWO_LINES) { line -> tapped = line }
+    setContent(TWO_LINES, onGutterTap = { line -> tapped = line })
 
     compose.onNodeWithTag(FIELD_TAG).performTouchInput {
       click(Offset(insideGutterPx(), height * 0.75f))
@@ -57,21 +59,91 @@ class BreakpointGutterTapTest {
   @Test
   fun tappingTheCodeItselfDoesNotArmABreakpoint() {
     var tapped: Int? = null
-    setContent(CODE) { line -> tapped = line }
+    setContent(CODE, onGutterTap = { line -> tapped = line })
 
     compose.onNodeWithTag(FIELD_TAG).performTouchInput { click(Offset(insideCodePx(), height / 2f)) }
 
     assertEquals(null, tapped)
   }
 
-  private fun setContent(text: String, onGutterTap: (Int) -> Unit) {
+  /**
+   * P6a-16's own gate: a long-press on an *armed* line's gutter is a distinct signal from an
+   * ordinary tap - it opens the condition editor rather than toggling the breakpoint a second time.
+   */
+  @Test
+  fun longPressingAnArmedLinesGutterReportsThatLine() {
+    var longPressed: Int? = null
+    setContent(CODE, breakpoints = listOf(Breakpoint(line = 1)), onGutterLongPress = { longPressed = it })
+
+    compose.onNodeWithTag(FIELD_TAG).performTouchInput { longClick(Offset(insideGutterPx(), height / 2f)) }
+
+    assertEquals(1, longPressed)
+  }
+
+  /**
+   * The regression this row's own gate found live on the tablet: an eager `onTap` fired on every
+   * press used to toggle the very breakpoint a long-press was adding a condition to, off, in the
+   * same gesture - the dot vanished under every hold and the dialog opened for a breakpoint that
+   * no longer existed. A long-press on an armed line must fire `onGutterLongPress` alone.
+   */
+  @Test
+  fun longPressingAnArmedLinesGutterDoesNotAlsoToggleIt() {
+    var tapped: Int? = null
+    setContent(CODE, breakpoints = listOf(Breakpoint(line = 1)), onGutterTap = { tapped = it })
+
+    compose.onNodeWithTag(FIELD_TAG).performTouchInput { longClick(Offset(insideGutterPx(), height / 2f)) }
+
+    assertEquals(null, tapped)
+  }
+
+  /** Nothing to attach a condition to on a line with no breakpoint - the long-press is a no-op. */
+  @Test
+  fun longPressingAnUnarmedLinesGutterReportsNothing() {
+    var longPressed: Int? = null
+    setContent(CODE, onGutterLongPress = { longPressed = it })
+
+    compose.onNodeWithTag(FIELD_TAG).performTouchInput { longClick(Offset(insideGutterPx(), height / 2f)) }
+
+    assertEquals(null, longPressed)
+  }
+
+  /** A long hold on a bare line is still an ordinary tap - it arms the line, same as a quick one. */
+  @Test
+  fun longPressingAnUnarmedLinesGutterStillArmsIt() {
+    var tapped: Int? = null
+    setContent(CODE, onGutterTap = { tapped = it })
+
+    compose.onNodeWithTag(FIELD_TAG).performTouchInput { longClick(Offset(insideGutterPx(), height / 2f)) }
+
+    assertEquals(1, tapped)
+  }
+
+  /** A quick tap toggles the breakpoint (already covered above) and never also reports a long-press. */
+  @Test
+  fun aQuickTapDoesNotReportALongPress() {
+    var longPressed: Int? = null
+    setContent(CODE, breakpoints = listOf(Breakpoint(line = 1)), onGutterLongPress = { longPressed = it })
+
+    compose.onNodeWithTag(FIELD_TAG).performTouchInput { click(Offset(insideGutterPx(), height / 2f)) }
+
+    assertEquals(null, longPressed)
+  }
+
+  private fun setContent(
+    text: String,
+    breakpoints: List<Breakpoint> = emptyList(),
+    onGutterTap: (Int) -> Unit = {},
+    onGutterLongPress: (Int) -> Unit = {},
+  ) {
     compose.setContent {
       JupyterDroidTheme {
         Box(modifier = Modifier.width(FIELD_WIDTH)) {
           CodeCellField(
             state = rememberTextFieldState(text),
             onSourceEdited = {},
+            breakpoints = breakpoints,
             onGutterTap = onGutterTap,
+            onGutterLongPress = onGutterLongPress,
             modifier = Modifier.testTag(FIELD_TAG),
           )
         }

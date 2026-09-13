@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
@@ -44,8 +45,8 @@ class BaseSpaceKernelDebugger(
   override suspend fun setBreakpoints(
     session: KernelSession,
     codeId: String,
-    lines: List<Int>,
-  ): List<VerifiedBreakpoint> = known(session).setBreakpoints(session, codeId, lines)
+    breakpoints: List<BreakpointRequest>,
+  ): List<VerifiedBreakpoint> = known(session).setBreakpoints(session, codeId, breakpoints)
 
   override suspend fun stackTrace(session: KernelSession, threadId: Int): List<DebugStackFrame> =
     known(session).stackTrace(session, threadId)

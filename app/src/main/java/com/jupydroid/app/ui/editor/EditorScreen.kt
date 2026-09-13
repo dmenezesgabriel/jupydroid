@@ -354,6 +354,7 @@ fun EditorScreen(
           onStopCell = viewModel.kernel::stopRunningCell,
           onEditCell = viewModel::editCell,
           onToggleBreakpoint = viewModel.debugger::toggle,
+          onSetCondition = viewModel.debugger::setCondition,
           completionsAt = viewModel.kernel::completionsAt,
           onCellAction = viewModel.edits::applyTo,
           onCellFocusChanged = viewModel::cellFocusChanged,

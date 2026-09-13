@@ -12,5 +12,14 @@ package com.jupydroid.app.domain.model
  *   `setBreakpoints` round trip answers for it.
  * @property codeId the path `dumpCell` returned for the cell this line belongs to, or `null`
  *   before that round trip has ever run for this cell.
+ * @property condition a Python expression gating whether this line actually stops the kernel
+ *   (P6a-16) - `null` for an ordinary breakpoint, DAP's own `SetBreakpointsArguments.condition`
+ *   otherwise. Never itself verified; [verified] still answers only whether debugpy armed the
+ *   *line*, since a condition's own syntax is not checked until the kernel evaluates it live.
  */
-data class Breakpoint(val line: Int, val verified: Boolean = false, val codeId: String? = null)
+data class Breakpoint(
+  val line: Int,
+  val verified: Boolean = false,
+  val codeId: String? = null,
+  val condition: String? = null,
+)

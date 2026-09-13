@@ -6,6 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.CompletionResult
@@ -24,6 +28,8 @@ internal fun EditorContent(
   onEditCell: (String, String) -> Unit,
   /** A tap in a cell's gutter, reporting which cell and which one-based line it hit. */
   onToggleBreakpoint: (String, Int) -> Unit,
+  /** A long-press on an armed line's gutter (P6a-16), confirmed through [BreakpointConditionDialog]. */
+  onSetCondition: (cellId: String, line: Int, condition: String?) -> Unit,
   completionsAt: suspend (String, Int) -> CompletionResult,
   onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
@@ -40,6 +46,10 @@ internal fun EditorContent(
   listState: LazyListState,
   modifier: Modifier = Modifier,
 ) {
+  // Which cell/line's condition is being edited, or null while the dialog is closed - ephemeral
+  // UI state, not something `EditorUiState` itself needs to carry: nothing outside this composable
+  // reads it, the same reason `settled`/`tocOpen`-shaped flags in this file's siblings stay local.
+  var conditionPrompt by remember { mutableStateOf<Pair<String, Int>?>(null) }
   when {
     state.error != null -> ErrorMessage(message = state.error, modifier = modifier)
     !state.loaded -> EmptyMessage("Loading…", modifier)
@@ -108,6 +118,7 @@ internal fun EditorContent(
               lineNumbersShown = state.lineNumbersShown,
               breakpoints = state.breakpointsByCellId[cell.id].orEmpty(),
               onGutterTap = { line -> onToggleBreakpoint(cell.id, line) },
+              onGutterLongPress = { line -> conditionPrompt = cell.id to line },
               stoppedLine = state.stoppedLineOf(cell.id),
               headingPrefix = headingPrefixes[cell.id].orEmpty(),
               // Per cell rather than sliced once for the list, unlike the numbers above: a cell's
@@ -121,5 +132,16 @@ internal fun EditorContent(
         }
       }
     }
+  }
+  conditionPrompt?.let { (cellId, line) ->
+    val existing = state.breakpointsByCellId[cellId]?.firstOrNull { it.line == line }?.condition
+    BreakpointConditionDialog(
+      currentCondition = existing,
+      onConfirm = { condition ->
+        onSetCondition(cellId, line, condition)
+        conditionPrompt = null
+      },
+      onDismiss = { conditionPrompt = null },
+    )
   }
 }

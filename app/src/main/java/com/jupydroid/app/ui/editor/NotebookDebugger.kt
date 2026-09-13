@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugStop
 import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.model.NotebookBreakpoints
+import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.domain.port.KernelDebugger
@@ -40,6 +41,17 @@ class NotebookDebugger(
   /** Arms [line] of [cellId] if it carries no breakpoint yet, or disarms it if it already does. */
   fun toggle(cellId: String, line: Int) {
     val updated = store.toggle(cellId, line)
+    uiState.update { it.copy(breakpointsByCellId = it.breakpointsByCellId + (cellId to updated)) }
+  }
+
+  /**
+   * Attaches [condition] to [cellId]'s breakpoint at [line] (P6a-16) - `null` clears it back to an
+   * ordinary breakpoint. Takes effect on the next [startSession], the same way editing which lines
+   * are armed already does; there is no live DAP call here; a stop already in progress keeps
+   * whichever condition the kernel was actually given.
+   */
+  fun setCondition(cellId: String, line: Int, condition: String?) {
+    val updated = store.setCondition(cellId, line, condition)
     uiState.update { it.copy(breakpointsByCellId = it.breakpointsByCellId + (cellId to updated)) }
   }
 
@@ -82,9 +94,13 @@ class NotebookDebugger(
     if (armed.isEmpty() && !store.everArmed(cell.id)) return false
     kernelDebugger.attach(session)
     val codeId = kernelDebugger.dumpCell(session, cell.source)
-    val verified = kernelDebugger.setBreakpoints(session, codeId, armed.map { it.line })
+    val requested = armed.map { BreakpointRequest(it.line, it.condition) }
+    val verified = kernelDebugger.setBreakpoints(session, codeId, requested)
     kernelDebugger.configurationDone(session)
-    val updated = verified.map { Breakpoint(line = it.line, verified = it.verified, codeId = codeId) }
+    val conditionsByLine = armed.associate { it.line to it.condition }
+    val updated = verified.map {
+      Breakpoint(line = it.line, verified = it.verified, codeId = codeId, condition = conditionsByLine[it.line])
+    }
     store.replace(cell.id, updated)
     uiState.update { it.copy(breakpointsByCellId = it.breakpointsByCellId + (cell.id to updated)) }
     return true
@@ -176,7 +192,7 @@ class NotebookDebugger(
     val stack = current.debugStack
     val frame = stack?.frames?.firstOrNull { it.id == frameId }
     if (stop == null || stack == null || frame == null) return
-    val groups = variableGroups(session, frameId)
+    val groups = variableGroups(kernelDebugger, session, frameId)
     uiState.update { it.copy(stoppedAt = stop.copy(line = frame.line), debugStack = stack.copy(groups = groups)) }
   }
 
@@ -196,12 +212,22 @@ class NotebookDebugger(
     val frames = kernelDebugger.stackTrace(session, stopped.threadId)
     return frames.firstOrNull()?.let { top ->
       val stop = DebugStop(cellId = cell.id, line = top.line, threadId = stopped.threadId)
-      stop to DebugStack(frames, variableGroups(session, top.id))
+      stop to DebugStack(frames, variableGroups(kernelDebugger, session, top.id))
     }
   }
+}
 
-  private suspend fun variableGroups(session: KernelSession, frameId: Int): List<DebugVariableGroup> =
-    kernelDebugger.scopes(session, frameId).map { scope ->
-      DebugVariableGroup(scope = scope.name, variables = kernelDebugger.variables(session, scope.variablesReference))
-    }
+/**
+ * `scopes -> variables` for one frame, top-level rather than a member of [NotebookDebugger] - a
+ * function [selectFrame][NotebookDebugger.selectFrame] also needs, and keeping it here rather
+ * than as an eleventh-plus member is what keeps that class at detekt's own eleven-per-class cap,
+ * the same reason [RealKernelDebugger][com.jupydroid.app.data.space.RealKernelDebugger]'s own
+ * `tolerating` lives at file scope instead of as a private method.
+ */
+private suspend fun variableGroups(
+  kernelDebugger: KernelDebugger,
+  session: KernelSession,
+  frameId: Int,
+): List<DebugVariableGroup> = kernelDebugger.scopes(session, frameId).map { scope ->
+  DebugVariableGroup(scope = scope.name, variables = kernelDebugger.variables(session, scope.variablesReference))
 }

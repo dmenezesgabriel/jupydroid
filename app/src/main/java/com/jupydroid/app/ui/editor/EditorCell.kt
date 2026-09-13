@@ -57,6 +57,8 @@ internal fun EditorCell(
   breakpoints: List<Breakpoint>,
   /** A tap in this cell's gutter, reporting the one-based line it hit. */
   onGutterTap: (line: Int) -> Unit,
+  /** A long-press on an armed line's gutter (P6a-16), reporting the one-based line it hit. */
+  onGutterLongPress: (line: Int) -> Unit,
   /** Where the kernel is paused in this cell, one-based, or null - code cells only. See [NotebookDebugger]. */
   stoppedLine: Int?,
   /** `toc:display-numbering`'s answer for this cell's heading, or `""` - see [MarkdownCell]. */
@@ -147,6 +149,7 @@ internal fun EditorCell(
             lineNumbersShown = lineNumbersShown,
             breakpoints = breakpoints,
             onGutterTap = onGutterTap,
+            onGutterLongPress = onGutterLongPress,
             stoppedLine = stoppedLine,
             search = search,
             autoClosingBrackets = autoClosingBrackets,

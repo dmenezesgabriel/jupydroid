@@ -126,4 +126,41 @@ class NotebookBreakpointsTest {
     assertTrue(breakpoints.everArmed("cell-1"))
     assertFalse(breakpoints.everArmed("cell-2"))
   }
+
+  /** P6a-16's own gate: a condition attaches to one line without disturbing the cell's others. */
+  @Test
+  fun setConditionAttachesAConditionToTheNamedLine() {
+    val breakpoints = NotebookBreakpoints()
+    breakpoints.toggle("cell-1", line = 1)
+    breakpoints.toggle("cell-1", line = 2)
+
+    val result = breakpoints.setCondition("cell-1", line = 2, condition = "x > 10")
+
+    assertEquals(listOf(Breakpoint(line = 1), Breakpoint(line = 2, condition = "x > 10")), result)
+    assertEquals(
+      listOf(Breakpoint(line = 1), Breakpoint(line = 2, condition = "x > 10")),
+      breakpoints.forCell("cell-1"),
+    )
+  }
+
+  @Test
+  fun setConditionOfNullClearsAnExistingCondition() {
+    val breakpoints = NotebookBreakpoints()
+    breakpoints.toggle("cell-1", line = 2)
+    breakpoints.setCondition("cell-1", line = 2, condition = "x > 10")
+
+    val result = breakpoints.setCondition("cell-1", line = 2, condition = null)
+
+    assertEquals(listOf(Breakpoint(line = 2)), result)
+  }
+
+  @Test
+  fun setConditionOnALineWithNoBreakpointChangesNothing() {
+    val breakpoints = NotebookBreakpoints()
+    breakpoints.toggle("cell-1", line = 1)
+
+    val result = breakpoints.setCondition("cell-1", line = 9, condition = "x > 10")
+
+    assertEquals(listOf(Breakpoint(line = 1)), result)
+  }
 }

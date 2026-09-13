@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugStop
 import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.model.NotebookBreakpoints
+import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
@@ -385,7 +386,7 @@ class NotebookDebuggerTest {
 
     viewModel.debugger.startSession(session, codeCell)
 
-    assertEquals(emptyList<Int>(), fake.breakpointsByCodeId.values.last())
+    assertEquals(emptyList<BreakpointRequest>(), fake.breakpointsByCodeId.values.last())
   }
 
   /**
