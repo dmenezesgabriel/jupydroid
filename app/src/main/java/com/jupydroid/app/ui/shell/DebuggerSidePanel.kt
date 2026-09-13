@@ -37,12 +37,14 @@ import com.jupydroid.app.ui.editor.DebugStackRows
  *
  * @param stack the open notebook's own stop, or null while nothing that has one is open or stopped.
  * @param onExpand a compound variable's own children (P6a-14) - [com.jupydroid.app.OpenDebugStack.expand].
+ * @param onSelectFrame a tapped frame's own id (P6a-15) - [com.jupydroid.app.OpenDebugStack.selectFrame].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DebuggerSidePanel(
   stack: DebugStack?,
   onExpand: suspend (Int) -> List<DebugVariable>,
+  onSelectFrame: suspend (Int) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
@@ -53,7 +55,7 @@ fun DebuggerSidePanel(
     Column(
       modifier = Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState()),
     ) {
-      DebugStackRows(stack, onExpand = onExpand)
+      DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame)
     }
   }
 }

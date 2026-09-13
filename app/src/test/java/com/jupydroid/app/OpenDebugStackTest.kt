@@ -29,7 +29,7 @@ class OpenDebugStackTest {
   fun whatWasPublishedIsWhatThePanelReads() {
     val open = OpenDebugStack()
 
-    open.publish(stack) { emptyList() }
+    open.publish(stack, expand = { emptyList() }, selectFrame = {})
 
     assertEquals(stack, open.current)
   }
@@ -37,7 +37,7 @@ class OpenDebugStackTest {
   @Test
   fun closingTheDocumentEmptiesThePanel() {
     val open = OpenDebugStack()
-    open.publish(stack) { emptyList() }
+    open.publish(stack, expand = { emptyList() }, selectFrame = {})
 
     open.clear()
 
@@ -48,7 +48,7 @@ class OpenDebugStackTest {
   @Test
   fun expandReachesTheDebuggerThatPublishedIt() = runTest {
     val open = OpenDebugStack()
-    open.publish(stack) { ref -> listOf(DebugVariable("$ref", "0", "int", 0)) }
+    open.publish(stack, expand = { ref -> listOf(DebugVariable("$ref", "0", "int", 0)) }, selectFrame = {})
 
     val children = open.expand(9)
 
@@ -59,10 +59,35 @@ class OpenDebugStackTest {
   @Test
   fun expandAnswersNothingOnceCleared() = runTest {
     val open = OpenDebugStack()
-    open.publish(stack) { ref -> listOf(DebugVariable("$ref", "0", "int", 0)) }
+    open.publish(stack, expand = { ref -> listOf(DebugVariable("$ref", "0", "int", 0)) }, selectFrame = {})
 
     open.clear()
 
     assertEquals(emptyList<DebugVariable>(), open.expand(9))
+  }
+
+  /** [OpenDebugStack.selectFrame] reaches the debugger that published it (P6a-15), [expand]'s own shape. */
+  @Test
+  fun selectFrameReachesTheDebuggerThatPublishedIt() = runTest {
+    val open = OpenDebugStack()
+    var selected: Int? = null
+    open.publish(stack, expand = { emptyList() }, selectFrame = { selected = it })
+
+    open.selectFrame(5)
+
+    assertEquals(5, selected)
+  }
+
+  /** Nothing left to call once the document has gone - [expandAnswersNothingOnceCleared]'s own shape. */
+  @Test
+  fun selectFrameDoesNothingOnceCleared() = runTest {
+    val open = OpenDebugStack()
+    var selected: Int? = null
+    open.publish(stack, expand = { emptyList() }, selectFrame = { selected = it })
+
+    open.clear()
+    open.selectFrame(5)
+
+    assertNull(selected)
   }
 }

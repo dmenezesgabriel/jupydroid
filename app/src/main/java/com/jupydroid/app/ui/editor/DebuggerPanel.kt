@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.port.DebugVariable
@@ -59,28 +60,39 @@ fun DebuggerPanel(
   stack: DebugStack?,
   onDismiss: () -> Unit,
   onExpand: suspend (Int) -> List<DebugVariable>,
+  onSelectFrame: suspend (Int) -> Unit,
   presentation: CellActionPresentation = currentCellActionPresentation(),
 ) {
   if (!expanded) return
   when (presentation) {
-    CellActionPresentation.MENU -> DebuggerMenu(stack, onDismiss, onExpand)
-    CellActionPresentation.SHEET -> DebuggerSheet(stack, onDismiss, onExpand)
+    CellActionPresentation.MENU -> DebuggerMenu(stack, onDismiss, onExpand, onSelectFrame)
+    CellActionPresentation.SHEET -> DebuggerSheet(stack, onDismiss, onExpand, onSelectFrame)
   }
 }
 
 @Composable
-private fun DebuggerMenu(stack: DebugStack?, onDismiss: () -> Unit, onExpand: suspend (Int) -> List<DebugVariable>) {
+private fun DebuggerMenu(
+  stack: DebugStack?,
+  onDismiss: () -> Unit,
+  onExpand: suspend (Int) -> List<DebugVariable>,
+  onSelectFrame: suspend (Int) -> Unit,
+) {
   DropdownMenu(expanded = true, onDismissRequest = onDismiss) {
     // No extra padding here - DebugStackRows carries its own per-row margin now (P6a-13), the
     // same split TableOfContentsPanel's own menu/sheet already keep with TableOfContentsRows.
-    DebugStackRows(stack, onExpand = onExpand)
+    DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame)
   }
 }
 
 /** `navigationBarsPadding` for [CellActionSheet]'s own reason: the sheet draws under the gesture bar otherwise. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DebuggerSheet(stack: DebugStack?, onDismiss: () -> Unit, onExpand: suspend (Int) -> List<DebugVariable>) {
+private fun DebuggerSheet(
+  stack: DebugStack?,
+  onDismiss: () -> Unit,
+  onExpand: suspend (Int) -> List<DebugVariable>,
+  onSelectFrame: suspend (Int) -> Unit,
+) {
   ModalBottomSheet(
     onDismissRequest = onDismiss,
     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -88,7 +100,7 @@ private fun DebuggerSheet(stack: DebugStack?, onDismiss: () -> Unit, onExpand: s
     Column(
       modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding(),
     ) {
-      DebugStackRows(stack, onExpand = onExpand)
+      DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame)
     }
   }
 }
@@ -109,25 +121,41 @@ private fun DebuggerSheet(stack: DebugStack?, onDismiss: () -> Unit, onExpand: s
  * `docs/PLAN.md` named for exactly this: [DebugVariable.variablesReference] was already fetched
  * from the kernel on every reply and then discarded. [onExpand] is [NotebookDebugger.expand] -
  * this composable owns no session of its own, so it asks the debugger for one instead of trying
- * to keep one. No per-frame reselection still, named on [DebugStack]'s own doc as the one gap
- * that remains.
+ * to keep one.
+ *
+ * **A frame other than the top one is selectable on tap** (P6a-15), closing [DebugStack]'s own
+ * other named gap: [onSelectFrame] is [NotebookDebugger.selectFrame], asked the same way [onExpand]
+ * is. The tapped row is tracked locally (`remember(stack.frames)`) rather than added to
+ * [DebugStack] itself - the frame list is the same object across a reselection (only [groups]
+ * changes), so keying on it does not lose the highlight when [onSelectFrame] answers, and a wholly
+ * new stop (a fresh `frames` list) resets it back to the top frame without extra state to clear.
  */
 @Composable
 internal fun DebugStackRows(
   stack: DebugStack?,
   onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() },
+  onSelectFrame: suspend (Int) -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   if (stack == null) {
     NotStoppedPlaceholder(modifier)
     return
   }
+  var selectedFrameId by remember(stack.frames) { mutableStateOf(stack.frames.firstOrNull()?.id) }
+  val scope = rememberCoroutineScope()
   Column(modifier = modifier) {
     stack.frames.forEach { frame ->
       Text(
         text = "${frame.name} — line ${frame.line}",
         style = MaterialTheme.typography.bodyMedium,
-        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        color = if (frame.id == selectedFrameId) MaterialTheme.colorScheme.primary else Color.Unspecified,
+        modifier = Modifier
+          .fillMaxWidth()
+          .clickable {
+            selectedFrameId = frame.id
+            scope.launch { onSelectFrame(frame.id) }
+          }
+          .padding(horizontal = Spacing.md, vertical = Spacing.xs),
       )
     }
     stack.groups.forEach { group ->

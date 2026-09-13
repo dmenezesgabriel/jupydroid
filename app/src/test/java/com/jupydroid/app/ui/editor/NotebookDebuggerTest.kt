@@ -11,9 +11,12 @@ import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
+import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.SteppingCommand
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -435,6 +438,65 @@ class NotebookDebuggerTest {
   }
 
   /**
+   * P6a-15's own gate: tapping a frame other than the top one re-chains `scopes -> variables` for
+   * *that* frame's own id - the named Open risks gap [DebugStack]'s own doc pointed at since P6a-8.
+   */
+  @Test
+  fun selectFrameAsksTheKernelForTheTappedFramesOwnScopes() = runTest {
+    val fake = twoFrameFake()
+    val recorder = RecordingKernelDebugger(fake)
+    val (viewModel, watcher) = stoppedAtInnerFrame(fake, recorder)
+    recorder.scopesRequestedForFrame.clear()
+
+    viewModel.debugger.selectFrame(innerFrame.id)
+
+    assertEquals(listOf(innerFrame.id), recorder.scopesRequestedForFrame)
+    watcher.cancel()
+  }
+
+  /** The stopped-line wash and the panel's variables both move to the tapped frame's own answer. */
+  @Test
+  fun selectFrameMovesTheStoppedLineAndVariablesToTheTappedFrame() = runTest {
+    val (viewModel, watcher) = stoppedAtInnerFrame(twoFrameFake())
+
+    viewModel.debugger.selectFrame(innerFrame.id)
+
+    val expectedStop = DebugStop(cellId = codeCell.id, line = innerFrame.line, threadId = 9)
+    assertEquals(expectedStop, viewModel.uiState.value.stoppedAt)
+    assertEquals(expectedDebugStack, viewModel.uiState.value.debugStack)
+    watcher.cancel()
+  }
+
+  @Test
+  fun selectFrameDoesNothingWhenNothingIsStopped() = runTest {
+    val fake = FakeKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = fake)
+
+    viewModel.debugger.selectFrame(5)
+
+    assertNull(viewModel.uiState.value.stoppedAt)
+    assertNull(viewModel.uiState.value.debugStack)
+  }
+
+  /** A tap naming a frame outside the current stack is ignored rather than clearing the stop. */
+  @Test
+  fun selectFrameDoesNothingForAFrameIdOutsideTheCurrentStack() = runTest {
+    val fake = FakeKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = fake)
+    val watcher = launch { viewModel.debugger.watchForStop(session, codeCell) }
+    advanceUntilIdle()
+    fake.emit(session, DebugEvent.Stopped(threadId = 7))
+    advanceUntilIdle()
+    val before = viewModel.uiState.value
+
+    viewModel.debugger.selectFrame(999)
+
+    assertEquals(before.stoppedAt, viewModel.uiState.value.stoppedAt)
+    assertEquals(before.debugStack, viewModel.uiState.value.debugStack)
+    watcher.cancel()
+  }
+
+  /**
    * The toolbar's own entry point: [NotebookKernel.step] (through [NotebookCellRuns.step]) reaches
    * the same [NotebookDebugger.step] the tests above cover directly - proving the wiring, not the
    * behavior a second time.
@@ -478,11 +540,33 @@ class NotebookDebuggerTest {
 
   private val session = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
 
-  /** A two-frame stack scripted for [watchForStopChainsStackTraceThenScopesThenVariablesForTheTopFrame]. */
+  /**
+   * A two-frame stack, scripted for [watchForStopChainsStackTraceThenScopesThenVariablesForTheTopFrame]
+   * and for [selectFrame]'s own tests below.
+   */
   private val topFrame = DebugStackFrame(id = 5, name = "<module>", line = 3, column = 1)
   private val innerFrame = DebugStackFrame(id = 6, name = "helper", line = 10, column = 1)
   private val localsScope = DebugScope(name = "Locals", variablesReference = 201, expensive = false)
   private val localsVariables = listOf(DebugVariable(name = "x", value = "41", type = "int", variablesReference = 0))
+
+  private fun twoFrameFake() = FakeKernelDebugger().apply {
+    stackFramesToReturn = listOf(topFrame, innerFrame)
+    scopesToReturn = listOf(localsScope)
+    variablesByReference = mapOf(201 to localsVariables)
+  }
+
+  /** Stops [codeCell] on [session] against [twoFrameFake]'s own stack, for [selectFrame]'s own tests. */
+  private suspend fun TestScope.stoppedAtInnerFrame(
+    fake: FakeKernelDebugger,
+    debugger: KernelDebugger = fake,
+  ): Pair<EditorViewModel, Job> {
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = debugger)
+    val watcher = launch { viewModel.debugger.watchForStop(session, codeCell) }
+    advanceUntilIdle()
+    fake.emit(session, DebugEvent.Stopped(threadId = 9))
+    advanceUntilIdle()
+    return viewModel to watcher
+  }
 
   /** A leaf inside some compound variable's own `variablesReference` - [expand]'s own fixture. */
   private val childVariable = DebugVariable(name = "0", value = "1", type = "int", variablesReference = 0)

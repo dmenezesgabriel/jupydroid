@@ -65,6 +65,17 @@ class DebuggerSidePanelTest {
     compose.onNodeWithText("0: int = 1").assertIsDisplayed()
   }
 
+  /** The side panel's own frame reselection (P6a-15) - [DebuggerPanelTest]'s own case. */
+  @Test
+  fun tappingANonTopFrameRowSelectsIt() {
+    var selected: Int? = null
+    show(stack(), onSelectFrame = { selected = it })
+
+    compose.onNodeWithText("helper — line 10").performClick()
+
+    compose.runOnIdle { org.junit.Assert.assertEquals(6, selected) }
+  }
+
   private fun stack() = DebugStack(
     frames = listOf(
       DebugStackFrame(id = 5, name = "<module>", line = 3, column = 1),
@@ -73,7 +84,13 @@ class DebuggerSidePanelTest {
     groups = listOf(DebugVariableGroup(scope = "Locals", variables = listOf(DebugVariable("x", "41", "int", 0)))),
   )
 
-  private fun show(stack: DebugStack?, onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() }) {
-    compose.setContent { JupyterDroidTheme { DebuggerSidePanel(stack = stack, onExpand = onExpand) } }
+  private fun show(
+    stack: DebugStack?,
+    onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() },
+    onSelectFrame: suspend (Int) -> Unit = {},
+  ) {
+    compose.setContent {
+      JupyterDroidTheme { DebuggerSidePanel(stack = stack, onExpand = onExpand, onSelectFrame = onSelectFrame) }
+    }
   }
 }

@@ -37,22 +37,34 @@ class OpenDebugStack {
    */
   private var expandVariable: suspend (Int) -> List<DebugVariable> = { emptyList() }
 
+  /**
+   * A tapped frame's own id (P6a-15), published alongside [current] and [expandVariable] for the
+   * same reason: the panel is in the list pane and owns no session of its own to ask a kernel
+   * with - [NotebookDebugger.selectFrame][com.jupydroid.app.ui.editor.NotebookDebugger.selectFrame].
+   */
+  private var selectFrameInDebugger: suspend (Int) -> Unit = {}
+
   /** The open notebook's own state, replacing whatever was there - including null. */
-  fun publish(stack: DebugStack?, expand: suspend (Int) -> List<DebugVariable>) {
+  fun publish(stack: DebugStack?, expand: suspend (Int) -> List<DebugVariable>, selectFrame: suspend (Int) -> Unit) {
     current = stack
     expandVariable = expand
+    selectFrameInDebugger = selectFrame
   }
 
   /** [expandVariable], named for what the panel actually asks of it rather than what it stores. */
   suspend fun expand(variablesReference: Int): List<DebugVariable> = expandVariable(variablesReference)
 
+  /** [selectFrameInDebugger], [expand]'s own shape. */
+  suspend fun selectFrame(frameId: Int) = selectFrameInDebugger(frameId)
+
   /**
    * The document has gone, so the panel empties - [OpenDocumentOutline.clear]'s own reason,
-   * [DocumentOutline.jumpTo]'s own reason applied to [expandVariable] too: nothing here should
-   * outlive the debugger that published it.
+   * [DocumentOutline.jumpTo]'s own reason applied to [expandVariable]/[selectFrameInDebugger] too:
+   * nothing here should outlive the debugger that published it.
    */
   fun clear() {
     current = null
     expandVariable = { emptyList() }
+    selectFrameInDebugger = {}
   }
 }

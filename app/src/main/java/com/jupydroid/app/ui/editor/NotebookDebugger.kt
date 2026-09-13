@@ -158,11 +158,34 @@ class NotebookDebugger(
   }
 
   /**
+   * A tap on a call-stack frame other than the top one (P6a-15), closing the gap [DebugStack]'s
+   * own doc named since P6a-8: re-chains `scopes -> variables` for [frameId] alone, replacing
+   * [EditorUiState.debugStack]'s groups and moving [EditorUiState.stoppedAt]'s line to that
+   * frame's own line - JupyterLab's own callstack model does the same
+   * (`packages/debugger/src/panels/callstack/model.ts`'s `set currentFrame`), since the gutter's
+   * stopped-line wash is "where the *selected* frame is", not only ever "where the top one is".
+   *
+   * A no-op, the same "nothing to do" shape [expand]/[step] already use, when nothing is stopped
+   * or [frameId] names no frame in the current stack - a stale tap from a stack that has since
+   * moved on must not invent a stop.
+   */
+  suspend fun selectFrame(frameId: Int) {
+    val session = stoppedSession ?: return
+    val current = uiState.value
+    val stop = current.stoppedAt
+    val stack = current.debugStack
+    val frame = stack?.frames?.firstOrNull { it.id == frameId }
+    if (stop == null || stack == null || frame == null) return
+    val groups = variableGroups(session, frameId)
+    uiState.update { it.copy(stoppedAt = stop.copy(line = frame.line), debugStack = stack.copy(groups = groups)) }
+  }
+
+  /**
    * `stackTrace -> scopes -> variables`, DAP's own dependency order (P6a-8a) - `null` on
    * [DebugEvent.Continued] or when a `Stopped` thread's stack came back empty. Only the **top**
-   * frame's scopes/variables are fetched, matching JupyterLab's own default selection on a fresh
-   * stop (`packages/debugger/src/panels/callstack/model.ts:31-44`) - [DebugStack]'s own doc names
-   * why refocusing another frame is not built here.
+   * frame's scopes/variables are fetched on a fresh stop, matching JupyterLab's own default
+   * selection (`packages/debugger/src/panels/callstack/model.ts:31-44`) - [selectFrame] is what
+   * refocuses another frame afterward.
    */
   private suspend fun resolvedStop(
     session: KernelSession,

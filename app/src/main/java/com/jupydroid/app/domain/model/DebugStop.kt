@@ -28,14 +28,14 @@ data class DebugStop(val cellId: String, val line: Int, val threadId: Int)
 data class DebugVariableGroup(val scope: String, val variables: List<DebugVariable>)
 
 /**
- * What P6a-8's panel renders for a stop: every frame of the call stack, and the **top** frame's
- * variables only, grouped by scope.
+ * What P6a-8's panel renders for a stop: every frame of the call stack, and one frame's variables,
+ * grouped by scope.
  *
- * **Only the top frame's variables** - [NotebookDebugger.watchForStop] chains `scopes`/`variables`
- * for `frames.first()` alone, matching JupyterLab's own default selection on a fresh stop
+ * **A fresh stop resolves the top frame's variables** - [NotebookDebugger.watchForStop] chains
+ * `scopes`/`variables` for `frames.first()` alone, matching JupyterLab's own default selection
  * (`packages/debugger/src/panels/callstack/model.ts:31-44`, which auto-selects `frames[0]`).
- * Tapping another frame to refocus [groups] onto it is not built - a documented gap in
- * `docs/PLAN.md`'s Open risks, not a silent omission.
+ * Tapping another frame afterward refocuses [groups] onto it - [NotebookDebugger.selectFrame]
+ * (P6a-15), closing the gap this doc used to name.
  *
  * ```
  * val stack = DebugStack(frames = kernelDebugger.stackTrace(session, threadId), groups = ...)

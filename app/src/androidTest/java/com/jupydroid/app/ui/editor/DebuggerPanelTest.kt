@@ -96,8 +96,30 @@ class DebuggerPanelTest {
     compose.runOnIdle { org.junit.Assert.assertEquals(0, calls) }
   }
 
+  /**
+   * P6a-15's own gate: a frame row other than the top one is tappable, and a tap reports that
+   * frame's own id - [DebugStack]'s named Open risks gap, closed.
+   */
+  @Test
+  fun tappingANonTopFrameRowSelectsIt() {
+    var selected: Int? = null
+    show(twoFrameStack(), onSelectFrame = { selected = it })
+
+    compose.onNodeWithText("<module> — line 3").performClick()
+
+    compose.runOnIdle { org.junit.Assert.assertEquals(5, selected) }
+  }
+
   private fun stack() = DebugStack(
     frames = listOf(DebugStackFrame(id = 6, name = "helper", line = 10, column = 1)),
+    groups = listOf(DebugVariableGroup(scope = "Locals", variables = listOf(DebugVariable("x", "41", "int", 0)))),
+  )
+
+  private fun twoFrameStack() = DebugStack(
+    frames = listOf(
+      DebugStackFrame(id = 6, name = "helper", line = 10, column = 1),
+      DebugStackFrame(id = 5, name = "<module>", line = 3, column = 1),
+    ),
     groups = listOf(DebugVariableGroup(scope = "Locals", variables = listOf(DebugVariable("x", "41", "int", 0)))),
   )
 
@@ -113,11 +135,18 @@ class DebuggerPanelTest {
     expanded: Boolean = true,
     presentation: CellActionPresentation = CellActionPresentation.SHEET,
     onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() },
+    onSelectFrame: suspend (Int) -> Unit = {},
   ) {
     compose.setContent {
       JupyterDroidTheme {
-        DebuggerPanel(expanded = expanded, stack = stack, onDismiss = {
-        }, presentation = presentation, onExpand = onExpand)
+        DebuggerPanel(
+          expanded = expanded,
+          stack = stack,
+          onDismiss = {},
+          presentation = presentation,
+          onExpand = onExpand,
+          onSelectFrame = onSelectFrame,
+        )
       }
     }
   }
