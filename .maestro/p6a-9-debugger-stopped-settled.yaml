@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# Part 2, run after a real `sleep` rather than a Maestro wait - see
+# p6a-7b-debugger-stopped-settled.yaml, which this mirrors, for the measurement behind that.
+#
+# TABLET ONLY (SM-X216B) - see p6a-9-debugger-arms-and-runs.yaml, which this continues.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "\\[\\*\\]:"
+- assertNotVisible: "42"
+- takeScreenshot: 04-stopped-at-line-2

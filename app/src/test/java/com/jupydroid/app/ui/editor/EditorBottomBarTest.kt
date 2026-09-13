@@ -12,7 +12,10 @@ import org.junit.Test
 class EditorBottomBarTest {
   @Test
   fun aNotebookBeingReadKeepsTheKernelBar() {
-    assertEquals(EditorBottomBar.KERNEL, editorBottomBar(selecting = false, mode = CellMode.COMMAND, searching = false))
+    assertEquals(
+      EditorBottomBar.KERNEL,
+      editorBottomBar(selecting = false, mode = CellMode.COMMAND, searching = false, stopped = false),
+    )
   }
 
   /**
@@ -21,7 +24,10 @@ class EditorBottomBarTest {
    */
   @Test
   fun aCellBeingTypedIntoGetsTheSymbolRow() {
-    assertEquals(EditorBottomBar.SYMBOLS, editorBottomBar(selecting = false, mode = CellMode.EDIT, searching = false))
+    assertEquals(
+      EditorBottomBar.SYMBOLS,
+      editorBottomBar(selecting = false, mode = CellMode.EDIT, searching = false, stopped = false),
+    )
   }
 
   /**
@@ -34,7 +40,10 @@ class EditorBottomBarTest {
    */
   @Test
   fun aMarkedRunGetsNeitherBar() {
-    assertEquals(EditorBottomBar.NONE, editorBottomBar(selecting = true, mode = CellMode.COMMAND, searching = false))
+    assertEquals(
+      EditorBottomBar.NONE,
+      editorBottomBar(selecting = true, mode = CellMode.COMMAND, searching = false, stopped = false),
+    )
   }
 
   /**
@@ -48,7 +57,7 @@ class EditorBottomBarTest {
   fun aNotebookBeingSearchedGetsNeitherBar() {
     assertEquals(
       EditorBottomBar.NONE,
-      editorBottomBar(selecting = false, mode = CellMode.COMMAND, searching = true),
+      editorBottomBar(selecting = false, mode = CellMode.COMMAND, searching = true, stopped = false),
     )
   }
 
@@ -59,6 +68,36 @@ class EditorBottomBarTest {
    */
   @Test
   fun markingBeatsEditingIfTheTwoEverDisagree() {
-    assertEquals(EditorBottomBar.NONE, editorBottomBar(selecting = true, mode = CellMode.EDIT, searching = false))
+    assertEquals(
+      EditorBottomBar.NONE,
+      editorBottomBar(selecting = true, mode = CellMode.EDIT, searching = false, stopped = false),
+    )
+  }
+
+  /**
+   * **A paused kernel (P6a-9b) beats every other state.** Unlike a marked run or a search, which
+   * the user chose and can leave at will, a breakpoint stop is the kernel itself demanding
+   * attention - both references surface their own debug toolbar the instant a session stops,
+   * regardless of what else was on screen (`packages/debugger-extension/src/index.ts:1170-1264`,
+   * every one of `debugContinue`/`next`/`stepIn`/`stepOut` gated on `hasStoppedThreads()` alone).
+   */
+  @Test
+  fun aStoppedKernelGetsTheDebuggerBarEvenWhileMarkingOrSearching() {
+    assertEquals(
+      EditorBottomBar.DEBUGGER,
+      editorBottomBar(selecting = false, mode = CellMode.COMMAND, searching = false, stopped = true),
+    )
+    assertEquals(
+      EditorBottomBar.DEBUGGER,
+      editorBottomBar(selecting = true, mode = CellMode.COMMAND, searching = false, stopped = true),
+    )
+    assertEquals(
+      EditorBottomBar.DEBUGGER,
+      editorBottomBar(selecting = false, mode = CellMode.COMMAND, searching = true, stopped = true),
+    )
+    assertEquals(
+      EditorBottomBar.DEBUGGER,
+      editorBottomBar(selecting = false, mode = CellMode.EDIT, searching = false, stopped = true),
+    )
   }
 }

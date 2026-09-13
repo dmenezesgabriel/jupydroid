@@ -10,6 +10,9 @@ enum class EditorBottomBar {
 
   /** Nothing, because the contextual bar at the top is what the notebook is being used for. */
   NONE,
+
+  /** [DebuggerControlBar]: `next`/`stepIn`/`stepOut`/`continue`, while a real kernel is paused. */
+  DEBUGGER,
 }
 
 /**
@@ -33,11 +36,23 @@ enum class EditorBottomBar {
  * list and `Scaffold` resolves the overflow by giving it zero height, which is the U6 defect
  * exactly (`evidence/u6-ime-layout/640dp/`, and [editorTopBarVisible] for its other half).
  *
+ * **A paused kernel beats all three (P6a-9b).** Unlike marking or searching, which the user chose
+ * and can leave at will, a breakpoint stop is the kernel itself demanding attention - both
+ * references surface their own debug toolbar the instant a session stops regardless of what else
+ * was on screen (`packages/debugger-extension/src/index.ts:1170-1264`, every one of
+ * `debugContinue`/`next`/`stepIn`/`stepOut` gated on `hasStoppedThreads()` alone).
+ *
  * ```
- * when (editorBottomBar(state.selecting, state.mode, state.search != null)) { … }
+ * when (editorBottomBar(state.selecting, state.mode, state.search != null, state.stoppedAt != null)) { … }
  * ```
  */
-internal fun editorBottomBar(selecting: Boolean, mode: CellMode, searching: Boolean): EditorBottomBar = when {
+internal fun editorBottomBar(
+  selecting: Boolean,
+  mode: CellMode,
+  searching: Boolean,
+  stopped: Boolean,
+): EditorBottomBar = when {
+  stopped -> EditorBottomBar.DEBUGGER
   // First, so the one state that cannot arise - entering edit mode deselects (`widget.ts:1925`) -
   // still has a defined answer rather than depending on which branch is written above the other.
   selecting || searching -> EditorBottomBar.NONE

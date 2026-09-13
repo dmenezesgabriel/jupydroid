@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.runtime.Composable
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.port.SteppingCommand
 
 /**
  * Which bar the notebook has along its bottom edge - one of two, or none.
@@ -25,8 +26,15 @@ internal fun EditorBottomBars(
   /** `notebook:close-and-shutdown`'s second half; the shutdown is the first. */
   onBack: () -> Unit,
 ) {
-  when (editorBottomBar(state.selecting, state.mode, state.search != null)) {
+  when (editorBottomBar(state.selecting, state.mode, state.search != null, state.stoppedAt != null)) {
     EditorBottomBar.NONE -> Unit
+    EditorBottomBar.DEBUGGER -> DebuggerControlBar(
+      stepping = state.stepping,
+      onContinue = { viewModel.kernel.step(SteppingCommand.CONTINUE) },
+      onNext = { viewModel.kernel.step(SteppingCommand.NEXT) },
+      onStepIn = { viewModel.kernel.step(SteppingCommand.STEP_IN) },
+      onStepOut = { viewModel.kernel.step(SteppingCommand.STEP_OUT) },
+    )
     EditorBottomBar.SYMBOLS -> SymbolRow(
       input = cellInput,
       accessKernelHistory = editorSettings.accessKernelHistory,
