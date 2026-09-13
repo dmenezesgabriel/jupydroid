@@ -53,7 +53,9 @@ fun DebuggerPanel(
 @Composable
 private fun DebuggerMenu(stack: DebugStack?, onDismiss: () -> Unit) {
   DropdownMenu(expanded = true, onDismissRequest = onDismiss) {
-    DebugStackRows(stack, modifier = Modifier.padding(Spacing.md))
+    // No extra padding here - DebugStackRows carries its own per-row margin now (P6a-13), the
+    // same split TableOfContentsPanel's own menu/sheet already keep with TableOfContentsRows.
+    DebugStackRows(stack)
   }
 }
 
@@ -68,7 +70,7 @@ private fun DebuggerSheet(stack: DebugStack?, onDismiss: () -> Unit) {
     Column(
       modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding(),
     ) {
-      DebugStackRows(stack, modifier = Modifier.padding(Spacing.md))
+      DebugStackRows(stack)
     }
   }
 }
@@ -78,8 +80,13 @@ private fun DebuggerSheet(stack: DebugStack?, onDismiss: () -> Unit) {
  * [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel] - the surfaces differ in
  * where they are drawn, never in what a stop looks like.
  *
- * Flat, undecorated rows: P6a-8's own phone scope has no per-frame reselection and no nested
- * variable expansion, both named as deferred gaps in `docs/PLAN.md`'s Open risks rather than
+ * **Padded and indented rather than bare `Text`** (P6a-13): every row carries the same
+ * `Spacing.md` horizontal margin [SearchSidePanel][com.jupydroid.app.ui.shell.SearchSidePanel]'s
+ * own rows already use, a variable sits one indent step (`Spacing.xl`) under its scope heading -
+ * [TableOfContentsRows]' own per-level indentation, applied at the one level this flat model has -
+ * and a value is drawn in [codeTextStyle], the same monospace this app already reserves for
+ * anything that is source rather than prose. No per-frame reselection and no nested variable
+ * expansion still - both named as deferred gaps in `docs/PLAN.md`'s Open risks rather than
  * dropped silently.
  */
 @Composable
@@ -89,14 +96,26 @@ internal fun DebugStackRows(stack: DebugStack?, modifier: Modifier = Modifier) {
     return
   }
   Column(modifier = modifier) {
-    stack.frames.forEach { frame -> Text(text = "${frame.name} — line ${frame.line}") }
+    stack.frames.forEach { frame ->
+      Text(
+        text = "${frame.name} — line ${frame.line}",
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+      )
+    }
     stack.groups.forEach { group ->
       Text(
         text = group.scope,
         style = MaterialTheme.typography.titleSmall,
-        modifier = Modifier.padding(top = Spacing.sm),
+        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs).padding(top = Spacing.sm),
       )
-      group.variables.forEach { variable -> Text(text = variableRowText(variable)) }
+      group.variables.forEach { variable ->
+        Text(
+          text = variableRowText(variable),
+          style = codeTextStyle(),
+          modifier = Modifier.padding(start = Spacing.xl, end = Spacing.md, top = Spacing.xs, bottom = Spacing.xs),
+        )
+      }
     }
   }
 }
