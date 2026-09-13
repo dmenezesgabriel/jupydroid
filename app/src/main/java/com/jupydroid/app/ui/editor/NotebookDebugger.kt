@@ -9,6 +9,7 @@ import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -80,6 +81,14 @@ class NotebookDebugger(
   fun events(session: KernelSession): Flow<DebugEvent> = kernelDebugger.events(session)
 
   /**
+   * Which session [watchForStop] last saw stop, for [step] to resume - `null` while nothing is
+   * stopped. A plain var rather than [uiState]'s own state, the same "remembered rather than
+   * applied now" shape [NotebookCellRuns.interrupting] already uses: a session is not domain
+   * state a screen renders, only bookkeeping for the next port call.
+   */
+  private var stoppedSession: KernelSession? = null
+
+  /**
    * Follows [session]'s debug events for as long as this is collected, reflecting a [DebugEvent.Stopped]
    * into [EditorUiState.stoppedAt]/[EditorUiState.debugStack] and clearing both on [DebugEvent.Continued].
    *
@@ -89,8 +98,26 @@ class NotebookDebugger(
   suspend fun watchForStop(session: KernelSession, cell: Cell) {
     events(session).collect { event ->
       val resolved = resolvedStop(session, cell, event)
-      uiState.update { it.copy(stoppedAt = resolved?.first, debugStack = resolved?.second) }
+      stoppedSession = resolved?.let { session }
+      uiState.update { it.copy(stoppedAt = resolved?.first, debugStack = resolved?.second, stepping = false) }
     }
+  }
+
+  /**
+   * Sends [command] for the thread [EditorUiState.stoppedAt] names, resuming or stepping a paused
+   * kernel - `next`/`stepIn`/`stepOut`/`continue` (P6a-9), all the same DAP round trip
+   * [KernelDebugger.step] already sends. Does nothing when nothing is stopped: there is no thread
+   * to resume, the same "no-op when the precondition isn't met" shape [NotebookCellRuns.stopRunningCell]
+   * already uses for Interrupt.
+   *
+   * Marks [EditorUiState.stepping] for the length of the round trip - [watchForStop] clears it once
+   * the kernel reports where it landed.
+   */
+  suspend fun step(command: SteppingCommand) {
+    val session = stoppedSession ?: return
+    val threadId = uiState.value.stoppedAt?.threadId ?: return
+    uiState.update { it.copy(stepping = true) }
+    kernelDebugger.step(session, threadId, command)
   }
 
   /**

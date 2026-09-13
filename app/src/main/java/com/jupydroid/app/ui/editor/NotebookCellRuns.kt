@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -137,6 +138,11 @@ internal class NotebookCellRuns(
     // apart from the user's own code raising.
     interrupting = running
     scope.launch { session.opened?.let { kernelGateway.interrupt(it) } }
+  }
+
+  /** Sends a step/continue command for whatever the debugger is currently stopped at (P6a-9). */
+  fun step(command: SteppingCommand) {
+    scope.launch { debugger.step(command) }
   }
 
   /**

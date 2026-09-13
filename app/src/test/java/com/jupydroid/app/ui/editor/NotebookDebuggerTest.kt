@@ -12,6 +12,7 @@ import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -291,6 +292,81 @@ class NotebookDebuggerTest {
       DebugStop(cellId = codeCell.id, line = 1, threadId = 3),
       viewModel.uiState.value.stoppedAt,
     )
+  }
+
+  /**
+   * P6a-9's own gate: nothing is stopped, so there is no thread to send a step/continue command
+   * for - mirrors [NotebookCellRuns.stopRunningCell]'s own "no-op when the precondition isn't
+   * met" shape for Interrupt.
+   */
+  @Test
+  fun stepDoesNothingWhenNothingIsStopped() = runTest {
+    val fake = FakeKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = fake)
+
+    viewModel.debugger.step(SteppingCommand.NEXT)
+
+    assertTrue(fake.stepRequests.isEmpty())
+  }
+
+  /** Sends the stopped thread's own id, for whichever command the toolbar asked for. */
+  @Test
+  fun stepSendsTheStoppedThreadsCommandToTheKernel() = runTest {
+    val fake = FakeKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = fake)
+    val watcher = launch { viewModel.debugger.watchForStop(session, codeCell) }
+    advanceUntilIdle()
+    fake.emit(session, DebugEvent.Stopped(threadId = 7))
+    advanceUntilIdle()
+
+    viewModel.debugger.step(SteppingCommand.STEP_IN)
+
+    assertEquals(listOf(7 to SteppingCommand.STEP_IN), fake.stepRequests)
+    watcher.cancel()
+  }
+
+  /**
+   * Disables the toolbar for the length of the round trip - a second tap before the kernel
+   * reports where it landed would send a stale command for a stop it has already left.
+   */
+  @Test
+  fun stepMarksSteppingUntilTheNextEventResolves() = runTest {
+    val fake = FakeKernelDebugger()
+    val viewModel = loadedEditor(cells = listOf(codeCell), debugger = fake)
+    val watcher = launch { viewModel.debugger.watchForStop(session, codeCell) }
+    advanceUntilIdle()
+    fake.emit(session, DebugEvent.Stopped(threadId = 7))
+    advanceUntilIdle()
+
+    viewModel.debugger.step(SteppingCommand.CONTINUE)
+    assertTrue(viewModel.uiState.value.stepping)
+
+    fake.emit(session, DebugEvent.Continued)
+    advanceUntilIdle()
+    assertFalse(viewModel.uiState.value.stepping)
+    watcher.cancel()
+  }
+
+  /**
+   * The toolbar's own entry point: [NotebookKernel.step] (through [NotebookCellRuns.step]) reaches
+   * the same [NotebookDebugger.step] the tests above cover directly - proving the wiring, not the
+   * behavior a second time.
+   */
+  @Test
+  fun kernelStepReachesTheDebuggerForARunThatIsStoppedMidExecution() = runTest {
+    val fake = FakeKernelDebugger()
+    val gateway = RecordingKernelGateway(runsUntilInterrupted = true)
+    val viewModel = loadedEditor(gateway = gateway, cells = listOf(codeCell), debugger = fake)
+    viewModel.debugger.toggle(codeCell.id, line = 1)
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+    fake.emit(runningSession, DebugEvent.Stopped(threadId = 3))
+    advanceUntilIdle()
+
+    viewModel.kernel.step(SteppingCommand.NEXT)
+    advanceUntilIdle()
+
+    assertEquals(listOf(3 to SteppingCommand.NEXT), fake.stepRequests)
   }
 
   /** [EditorUiState.stoppedLineOf] is what the gutter reads (P6a-7b-2) - scoped to its own cell. */

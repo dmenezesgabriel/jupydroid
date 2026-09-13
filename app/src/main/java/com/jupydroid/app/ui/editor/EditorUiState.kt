@@ -208,6 +208,13 @@ data class EditorUiState(
    */
   val debugStack: DebugStack? = null,
   /**
+   * A step/continue command is in flight - [NotebookDebugger.step]'s own guard against a second
+   * tap before the kernel reports where it landed, which would send a stale command for a stop
+   * already left behind. Cleared by [NotebookDebugger.watchForStop] the moment the next `Stopped`
+   * or `Continued` event resolves, the same way [stoppedAt] itself is written from that event.
+   */
+  val stepping: Boolean = false,
+  /**
    * The find bar and what it found, or null while it is closed - `documentsearch:start` and
    * `documentsearch:end`. See [SearchState].
    */

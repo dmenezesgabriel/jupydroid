@@ -5,6 +5,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -86,6 +87,9 @@ class NotebookKernel(
 
   /** @see NotebookCellRuns.stopRunningCell */
   fun stopRunningCell() = runs.stopRunningCell()
+
+  /** @see NotebookCellRuns.step */
+  fun step(command: SteppingCommand) = runs.step(command)
 
   /**
    * Restarts the kernel: a fresh interpreter, and every variable gone.
