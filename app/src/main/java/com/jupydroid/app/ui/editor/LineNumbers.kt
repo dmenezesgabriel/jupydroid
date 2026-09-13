@@ -27,10 +27,14 @@ import com.jupydroid.app.theme.editorPalette
 
 /**
  * Draws a line number beside every logical line of the text this modifier decorates, and
- * reserves the room they need. A line carrying a [Breakpoint] draws that instead of its number -
- * P6a-6's own reuse of "the existing line-number column" rather than a second gutter, named as a
- * departure in `docs/PLAN.md`.
+ * reserves the room they need. A line carrying a [Breakpoint] draws its dot in its **own** column,
+ * to the left of the numbers (P6a-12) - VS Code's own layout, a `glyphMarginWidth` one row tall
+ * sitting before the line-number margin (`editorOptions.ts`). This reverses P6a-6's own choice to
+ * reuse the number's column instead of spending the extra width; recorded as a reversal, not a
+ * silent change, once the number disappearing under an armed breakpoint measured out as the wrong
+ * trade after real use.
  *
+
  * Positions come from the field's own [layout] rather than from counting newlines, which is the
  * only way a wrapped line keeps one number: a line that takes two visual rows must not push the
  * next number two rows down.
@@ -72,6 +76,9 @@ fun Modifier.lineNumbers(
   // Measured once per line count rather than per frame: a TextMeasurer's cache is small, and a
   // thirty-line cell would miss it on every draw.
   val numbers = remember(starts.size, style) { List(starts.size) { measurer.measure("${it + 1}", style) } }
+  // The breakpoint column's own width - one row tall, VS Code's own `glyphMarginWidth` - measured
+  // off the digits themselves so it shares their font metrics rather than a second measurement.
+  val breakpointColumnPx = numbers.first().size.height
   val digitsPx = with(LocalDensity.current) { (width - NUMBER_GAP).roundToPx() }
   val widthPx = with(LocalDensity.current) { width.toPx() }
   val armed = remember(breakpoints) { breakpoints.associateBy { it.line } }
@@ -86,13 +93,12 @@ fun Modifier.lineNumbers(
       stoppedLine?.let { drawStoppedLineBackground(it, starts, layout, palette, size.width) }
       numbers.forEachIndexed { index, number ->
         val top = layout.getLineTop(layout.getLineForOffset(starts[index]))
-        val breakpoint = armed[index + 1]
-        if (breakpoint == null) {
-          // Right-aligned, so the digits line up with each other rather than with the code.
-          val x = (digitsPx - number.size.width).toFloat()
-          drawText(number, topLeft = Offset(x, top))
-        } else {
-          drawBreakpointDot(breakpoint, palette, digitsPx, top, number.size.height.toFloat())
+        // Right-aligned past the breakpoint column, so the digits line up with each other rather
+        // than with the code - always drawn now, whether or not the line carries a breakpoint.
+        val x = (digitsPx - number.size.width).toFloat()
+        drawText(number, topLeft = Offset(x, top))
+        armed[index + 1]?.let { breakpoint ->
+          drawBreakpointDot(breakpoint, palette, breakpointColumnPx, top, number.size.height.toFloat())
         }
       }
     }
@@ -119,17 +125,17 @@ private fun DrawScope.drawStoppedLineBackground(
   drawRect(color = palette.debugStoppedLine, topLeft = Offset(0f, top), size = Size(width, bottom - top))
 }
 
-/** A filled circle centred in the gutter, dim while [Breakpoint.verified] is false. */
+/** A filled circle centred in its own column (P6a-12), dim while [Breakpoint.verified] is false. */
 private fun DrawScope.drawBreakpointDot(
   breakpoint: Breakpoint,
   palette: EditorPalette,
-  digitsPx: Int,
+  columnWidthPx: Int,
   top: Float,
   rowHeight: Float,
 ) {
   val color = if (breakpoint.verified) palette.breakpointVerified else palette.breakpointUnverified
-  val radius = minOf(digitsPx.toFloat(), rowHeight) / DOT_SHRINK
-  drawCircle(color = color, radius = radius, center = Offset(digitsPx / 2f, top + rowHeight / 2f))
+  val radius = minOf(columnWidthPx.toFloat(), rowHeight) / DOT_SHRINK
+  drawCircle(color = color, radius = radius, center = Offset(columnWidthPx / 2f, top + rowHeight / 2f))
 }
 
 /**
@@ -167,22 +173,24 @@ private fun TextLayoutResult.lineNumberAt(y: Float, starts: List<Int>): Int {
 }
 
 /**
- * How far the code is pushed right to make room for the numbers, or **zero** when [shown] is
- * false - which is `notebook:toggle-all-cell-line-numbers` turned off.
+ * How far the code is pushed right to make room for the breakpoint column and the numbers, or
+ * **zero** when [shown] is false - which is `notebook:toggle-all-cell-line-numbers` turned off.
  *
  * The command flips one boolean for all three cell types at once
  * (`packages/notebook/src/actions.tsx:1792-1812`), so every field asks this the same way and the
  * caller supplies the one flag.
+ *
+ * **Includes the breakpoint column** (P6a-12) - one row tall, measured off the same digits so it
+ * shares their font metrics, sitting before them the way VS Code's own glyph margin sits before
+ * its line numbers.
  */
 @Composable
 fun gutterWidth(text: CharSequence, style: TextStyle, shown: Boolean = true): Dp {
   if (!shown) return 0.dp
   val measurer = rememberTextMeasurer()
   val lineCount = logicalLineStarts(text).size
-  val digits = remember(lineCount, style) {
-    measurer.measure("0".repeat(gutterDigits(lineCount)), style).size.width
-  }
-  return with(LocalDensity.current) { digits.toDp() } + NUMBER_GAP
+  val digits = remember(lineCount, style) { measurer.measure("0".repeat(gutterDigits(lineCount)), style) }
+  return with(LocalDensity.current) { digits.size.height.toDp() + digits.size.width.toDp() } + NUMBER_GAP
 }
 
 /**
