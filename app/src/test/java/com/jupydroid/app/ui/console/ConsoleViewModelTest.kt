@@ -114,6 +114,56 @@ class ConsoleViewModelTest {
     advanceUntilIdle()
   }
 
+  @Test
+  fun recallPreviousEntry_writesTheLastRunSourceIntoTheField() = runTest {
+    val viewModel = consoleViewModel(FakeKernelGateway())
+    viewModel.input.edit { insert(0, "1 + 1") }
+    viewModel.submit()
+    advanceUntilIdle()
+
+    viewModel.recallPreviousEntry()
+    advanceUntilIdle()
+
+    assertEquals("1 + 1", viewModel.input.text.toString())
+  }
+
+  @Test
+  fun recallNextEntry_returnsToWhatWasBeingTypedAtTheWalksEnd() = runTest {
+    val viewModel = consoleViewModel(FakeKernelGateway())
+    viewModel.input.edit { insert(0, "1 + 1") }
+    viewModel.submit()
+    advanceUntilIdle()
+
+    viewModel.input.edit { insert(0, "typing") }
+    viewModel.recallPreviousEntry()
+    advanceUntilIdle()
+    viewModel.recallNextEntry()
+    advanceUntilIdle()
+
+    assertEquals("typing", viewModel.input.text.toString())
+  }
+
+  @Test
+  fun inputEdited_endsTheWalkSoTheNextRecallStartsOverAtTheNewestEntry() = runTest {
+    val viewModel = consoleViewModel(FakeKernelGateway())
+    viewModel.input.edit { insert(0, "1 + 1") }
+    viewModel.submit()
+    advanceUntilIdle()
+    viewModel.input.edit { insert(0, "2 + 2") }
+    viewModel.submit()
+    advanceUntilIdle()
+
+    viewModel.recallPreviousEntry()
+    advanceUntilIdle()
+    // A genuine user edit, not the recall's own write - `sourceReported` ignores the latter.
+    viewModel.input.edit { insert(length, " # edited") }
+    viewModel.inputEdited(viewModel.input.text.toString())
+    viewModel.recallPreviousEntry()
+    advanceUntilIdle()
+
+    assertEquals("2 + 2", viewModel.input.text.toString())
+  }
+
   private fun consoleViewModel(gateway: KernelGateway): ConsoleViewModel {
     val session = NotebookKernelSession(gateway, SPACE, attachedTo = ATTACHED_SESSION) { "Analysis.ipynb" }
     return ConsoleViewModel(gateway, session)

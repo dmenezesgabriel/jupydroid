@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.ui.editor.ExecutionStatus
+import com.jupydroid.app.ui.editor.NotebookHistory
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.editor.kernelFailure
 import com.jupydroid.app.ui.editor.newCellId
@@ -32,11 +33,39 @@ import kotlinx.coroutines.launch
  */
 class ConsoleViewModel(private val kernelGateway: KernelGateway, private val session: NotebookKernelSession) :
   ViewModel() {
-  /** The draft the input row edits - P6b-6's own history walk will replace its text the same way. */
+  /** The draft the input row edits, and what a history walk (P6b-6) replaces the text of. */
   val input = TextFieldState()
+
+  /**
+   * `console:history-back`/`-forward`'s mobile stand-in - P6b-6.
+   *
+   * [NotebookHistory] is itself already modelled on `console/src/history.ts` line for line (its
+   * own doc comment), so this is the reference's own class returned to the surface it was written
+   * for, not a notebook feature being ported sideways. [session] and [kernelGateway] are exactly
+   * what it already takes; there was nothing Console-specific left to write.
+   */
+  private val history = NotebookHistory(session, kernelGateway, viewModelScope)
 
   private val _entries = MutableStateFlow<List<ConsoleEntry>>(emptyList())
   val entries = _entries.asStateFlow()
+
+  /** One step older per tap, oldest last - see [NotebookHistory.recallPrevious]. */
+  fun recallPreviousEntry() = history.recallPrevious(input.text.toString(), ::writeInput)
+
+  /** One step newer per tap, back to what was being typed at the walk's end. */
+  fun recallNextEntry() = history.recallNext(input.text.toString(), ::writeInput)
+
+  /**
+   * The field reported its text - [ConsoleInputRow]'s own debounced `onSourceEdited`.
+   *
+   * Ends a walk in progress unless this is the edit the walk itself made - see
+   * [NotebookHistory.sourceReported]. The same report also fires after [submit] clears the field,
+   * which is what ends a walk at a submission boundary without a second, explicit call: a fresh
+   * entry is exactly what a notebook cell losing focus already resets against.
+   */
+  fun inputEdited(source: String) = history.sourceReported(source)
+
+  private fun writeInput(text: String) = input.edit { replace(0, length, text) }
 
   /**
    * Submits [input]'s current text as a new entry and runs it.

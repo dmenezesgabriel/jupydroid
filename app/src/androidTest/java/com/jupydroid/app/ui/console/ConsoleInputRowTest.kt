@@ -18,6 +18,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.editor.RECALL_NEXT_ENTRY
+import com.jupydroid.app.ui.editor.RECALL_PREVIOUS_ENTRY
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -69,6 +71,60 @@ class ConsoleInputRowTest {
     assertFalse(submitted)
   }
 
+  /** P6b-6: `console:history-back`'s mobile stand-in - see `RECALL_PREVIOUS_ENTRY`. */
+  @Test
+  fun tappingRecallPreviousInvokesOnRecallPreviousEntry() {
+    var recalled = false
+    compose.setContent {
+      JupyterDroidTheme {
+        ConsoleInputRow(
+          state = TextFieldState(),
+          running = false,
+          onSubmit = {},
+          onRecallPreviousEntry = { recalled = true },
+        )
+      }
+    }
+
+    compose.onNodeWithContentDescription(RECALL_PREVIOUS_ENTRY).performClick()
+
+    assertTrue(recalled)
+  }
+
+  @Test
+  fun tappingRecallNextInvokesOnRecallNextEntry() {
+    var recalled = false
+    compose.setContent {
+      JupyterDroidTheme {
+        ConsoleInputRow(
+          state = TextFieldState(),
+          running = false,
+          onSubmit = {},
+          onRecallNextEntry = { recalled = true },
+        )
+      }
+    }
+
+    compose.onNodeWithContentDescription(RECALL_NEXT_ENTRY).performClick()
+
+    assertTrue(recalled)
+  }
+
+  /** Replaced rather than appended - `RawCellFieldTest.acceptsTypingAndReportsWhatWasTyped`'s own reason. */
+  @Test
+  fun typingReportsTheEditedSourceOnADebounce() {
+    var reported: String? = null
+    compose.setContent {
+      JupyterDroidTheme {
+        ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}, onSourceEdited = { reported = it })
+      }
+    }
+
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
+
+    compose.waitUntil(DEBOUNCE_TIMEOUT_MILLIS) { reported == "1 + 1" }
+  }
+
   @Test
   fun runIsDisabledWhileAnEntryIsRunning() {
     compose.setContent {
@@ -107,8 +163,33 @@ class ConsoleInputRowTest {
     }
   }
 
+  /**
+   * A second PNG rather than overwriting `EVIDENCE_FILE_NAME`: the row's shape changed with the
+   * history pair (P6b-6), and the P6b-4 screenshot documents what that row looked like then.
+   */
+  @Test
+  fun capturesTheHistoryButtonsScreenshotForEvidence() {
+    compose.setContent {
+      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState("1 + 1"), running = false, onSubmit = {}) }
+    }
+    compose.onNodeWithContentDescription(RECALL_PREVIOUS_ENTRY).assertIsDisplayed()
+
+    val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val file = File(context.getExternalFilesDir(null), HISTORY_EVIDENCE_FILE_NAME)
+    FileOutputStream(file).use { out -> bitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, out) }
+    assertEquals("expected a non-empty screenshot at ${file.absolutePath}", true, file.length() > 0)
+
+    val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+    automation.executeShellCommand("cp ${file.absolutePath} /sdcard/$HISTORY_EVIDENCE_FILE_NAME").use {
+      it.fileDescriptor.let { fd -> java.io.FileInputStream(fd).use { stream -> stream.readBytes() } }
+    }
+  }
+
   private companion object {
     private const val PNG_QUALITY = 100
     private const val EVIDENCE_FILE_NAME = "p6b-4-console-input-row.png"
+    private const val HISTORY_EVIDENCE_FILE_NAME = "p6b-6-console-input-row.png"
+    private const val DEBOUNCE_TIMEOUT_MILLIS = 5_000L
   }
 }
