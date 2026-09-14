@@ -137,4 +137,21 @@ class NotebookBackStackTest {
     fromTerminal.openNotebook("nb-1")
     assertEquals(listOf(Explorer, Explorer, Editor("nb-1")), fromTerminal)
   }
+
+  /**
+   * The same notebook, already open **beneath** whatever is on top, is promoted rather than
+   * duplicated - `docs/PLAN.md`'s own Open risks entry on `openNotebook`: `lastOrNull() == document`
+   * only ever checked the top, so a notebook one level deeper survived a swap of what sat above it
+   * and came back a second time on the next [openNotebook] for the same id. Two entries would then
+   * share one `contentKey` ([openNotebook]'s own doc comment), and popping either would clear
+   * `ViewModelStore`/`SaveableStateHolder` state the other was still relying on (P6b-0).
+   */
+  @Test
+  fun reopeningANotebookStackedBeneathSomethingElsePromotesItInstead() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Terminal("1"))
+
+    backStack.openNotebook("nb-1")
+
+    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
+  }
 }

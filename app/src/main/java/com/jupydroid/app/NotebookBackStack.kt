@@ -51,15 +51,21 @@ fun MutableList<NavKey>.openTerminal(name: String) {
 }
 
 /**
- * One document, revealed or replaced - never two.
+ * One document, revealed or replaced - never two, anywhere in the stack.
  *
  * Both document kinds swap each other, because the explorer opens both and a detail it cannot
  * swap would stack `[Explorer, FileEditor(a), Editor(b)]` - two entries for one pane, of which
- * only the last is ever drawn.
+ * only the last is ever drawn. [remove] closes the other half of that same guard (P6b-0,
+ * `docs/PLAN.md`'s own Open risks): `lastOrNull() == document` alone only ever checked the top, so
+ * a document already sitting one level deeper - a notebook still open beneath a terminal opened
+ * from it, say - survived a swap of whatever was stacked above it and came back a second time on
+ * the next open for that same id, sharing [openNotebook]'s own `contentKey` with the surviving
+ * original.
  */
 private fun MutableList<NavKey>.chooseDetailThatFitsTheSurface(opened: () -> NavKey) {
   val document = opened()
   if (lastOrNull() == document) return
+  remove(document)
   if (lastOrNull().isDocument()) removeAt(lastIndex)
   add(document)
 }
