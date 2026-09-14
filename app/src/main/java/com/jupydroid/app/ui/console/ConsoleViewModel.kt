@@ -68,6 +68,16 @@ class ConsoleViewModel(private val kernelGateway: KernelGateway, private val ses
   private fun writeInput(text: String) = input.edit { replace(0, length, text) }
 
   /**
+   * `console:clear` - drops every transcript entry, keeping the session exactly as it is.
+   *
+   * Unconditional, matching `CodeConsole.clear()` (`console/src/widget.ts:333-339`): a future
+   * `Output`/`Idle` for whatever was `RUNNING` folds into an id [withEntry] no longer finds and is
+   * silently dropped - the same fate the reference's own disposed cell gets once its id drops out
+   * of `_msgIdCells`.
+   */
+  fun clear() = _entries.update { emptyList() }
+
+  /**
    * Submits [input]'s current text as a new entry and runs it.
    *
    * A no-op on blank input, and a no-op while the last entry is still [ExecutionStatus.RUNNING] -

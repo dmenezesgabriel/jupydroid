@@ -164,6 +164,34 @@ class ConsoleViewModelTest {
     assertEquals("2 + 2", viewModel.input.text.toString())
   }
 
+  @Test
+  fun clear_dropsEveryEntry() = runTest {
+    val viewModel = consoleViewModel(FakeKernelGateway())
+    viewModel.input.edit { insert(0, "1 + 1") }
+    viewModel.submit()
+    advanceUntilIdle()
+
+    viewModel.clear()
+
+    assertTrue(viewModel.entries.value.isEmpty())
+  }
+
+  @Test
+  fun clear_keepsTheSessionSoTheNextSubmitRunsWithoutReconnecting() = runTest {
+    val gateway = FakeKernelGateway()
+    val viewModel = consoleViewModel(gateway)
+    viewModel.input.edit { insert(0, "1 + 1") }
+    viewModel.submit()
+    advanceUntilIdle()
+    viewModel.clear()
+
+    viewModel.input.edit { insert(0, "2 + 2") }
+    viewModel.submit()
+    advanceUntilIdle()
+
+    assertEquals("2 + 2", viewModel.entries.value.single().input)
+  }
+
   private fun consoleViewModel(gateway: KernelGateway): ConsoleViewModel {
     val session = NotebookKernelSession(gateway, SPACE, attachedTo = ATTACHED_SESSION) { "Analysis.ipynb" }
     return ConsoleViewModel(gateway, session)
