@@ -19,6 +19,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -47,6 +48,25 @@ class ConsoleInputRowTest {
     compose.onNodeWithContentDescription("Run").performClick()
 
     assertTrue(submitted)
+  }
+
+  /**
+   * P6b-5: `console:linebreak`'s equivalent. `PythonTypingRulesTest` already covers what a typed
+   * `\n` does to the buffer (carries and extends indent) - this is only the one thing that test
+   * altitude cannot see, that the same keystroke never reaches [onSubmit].
+   */
+  @Test
+  fun typingANewlineDoesNotInvokeOnSubmit() {
+    var submitted = false
+    compose.setContent {
+      JupyterDroidTheme {
+        ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = { submitted = true })
+      }
+    }
+
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("if True:\n")
+
+    assertFalse(submitted)
   }
 
   @Test
