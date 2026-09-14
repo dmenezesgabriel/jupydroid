@@ -52,10 +52,20 @@ internal val rawCell = Cell(id = "r1", kind = CellKind.RAW, source = "\\begin{eq
 internal class RecordingKernelGateway(
   private val raiseOn: String? = null,
   private val runsUntilInterrupted: Boolean = false,
-) : KernelGateway by FakeKernelGateway() {
+  private val delegate: KernelGateway = FakeKernelGateway(),
+) : KernelGateway by delegate {
   val executed = mutableListOf<String>()
   var interruptCount = 0
     private set
+
+  /** How many times a fresh kernel was actually asked for - what tells attaching apart from connecting. */
+  var connectCount = 0
+    private set
+
+  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+    connectCount++
+    return delegate.connect(space, documentPath)
+  }
 
   private val interrupted = CompletableDeferred<Unit>()
 

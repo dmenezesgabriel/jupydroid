@@ -72,6 +72,25 @@ class EditorViewModelTest {
     collector.cancel()
   }
 
+  /**
+   * P6b-9b: `attachConsole()` is `console:inject`'s own "find the tracked session and inject into
+   * it" (`console-extension/src/index.ts:1294-1338`) - the notebook hands a Console a session
+   * already open rather than making it ask the gateway for one of its own.
+   */
+  @Test
+  fun kernel_attachConsoleSharesTheOpenSessionWithoutReconnecting() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway)
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+    assertEquals(1, gateway.connectCount)
+
+    val consoleSession = viewModel.kernel.attachConsole()
+    consoleSession.reopeningIfStale { }
+
+    assertEquals("a pre-attached session must not connect again", 1, gateway.connectCount)
+  }
+
   @Test
   fun runCell_showsTheOutputTheKernelProduced() = runTest {
     val viewModel = loadedEditor()

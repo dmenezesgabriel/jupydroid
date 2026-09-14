@@ -74,6 +74,20 @@ class NotebookKernel(
    */
   val history = NotebookHistory(session, kernelGateway, scope)
 
+  /**
+   * A Console's own session, pre-attached to whatever kernel this notebook already has - P6b-9.
+   *
+   * `console:inject`'s own contract (`console-extension/src/index.ts:1294-1338`): find the session
+   * already tracked for this path and hand it over, never call `connect` a second time. A fresh
+   * [NotebookKernelSession] rather than [session] itself, because a Console lives in its own
+   * `ViewModelStore` entry - [attachedTo] is what lets its own copy skip the connect P6b-1 built it
+   * to skip, without the two screens sharing one mutable object across two independent lifecycles.
+   * `null` when this notebook has never opened a kernel of its own yet - the returned session then
+   * behaves exactly like a fresh one, and opens on whichever of the two runs something first.
+   */
+  fun attachConsole(): NotebookKernelSession =
+    NotebookKernelSession(kernelGateway, BASE_SPACE, attachedTo = session.opened) { uiState.value.notebookId }
+
   /** @see NotebookCellRuns.runCell */
   fun runCell(cell: Cell) = runs.runCell(cell)
 
