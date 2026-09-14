@@ -15,9 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.EditorSettings
-import com.jupydroid.app.domain.port.DebugVariable
 
 /**
  * The notebook's overflow: everything the reference files under **View**, and - from P2j - under
@@ -85,16 +83,13 @@ internal fun NotebookActionsMenu(
   onTableOfContentsHeadingSelected: (String) -> Unit,
   /** `toc:show-panel` where the shell has a side area - see [EditorTopBar]. Null where it has none. */
   onShowTableOfContentsPanel: (() -> Unit)?,
-  /** [DebuggerPanel]'s content - see [EditorTopBar]. */
-  debugStack: DebugStack?,
-  /** [onShowTableOfContentsPanel]'s own rule, for the debugger's side panel. */
+  /**
+   * [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel]'s own rule, for the
+   * debugger's side panel. Null where there is none - [DebuggerControlBar]'s own toggle is where
+   * a one-pane window reaches the call stack and variables instead, since it is that bar and not
+   * this menu that a paused kernel actually surfaces.
+   */
   onShowDebuggerPanel: (() -> Unit)?,
-  /** [DebuggerPanel]'s own drill-down (P6a-14) - [NotebookDebugger.expand]. */
-  onExpandVariable: suspend (Int) -> List<DebugVariable>,
-  /** [DebuggerPanel]'s own frame reselection (P6a-15) - [NotebookDebugger.selectFrame]. */
-  onSelectFrame: suspend (Int) -> Unit,
-  /** [DebuggerPanel]'s own ad hoc expression (P6a-17) - [NotebookDebugger.evaluate]. */
-  onEvaluate: suspend (String) -> DebugVariable?,
   /**
    * The active cell's type, where the bar has no room to name it itself - see [labelsFitOnActionRow].
    *
@@ -111,9 +106,6 @@ internal fun NotebookActionsMenu(
   // [TableOfContentsPanel] rather than closing it outright, the same two-step [CellActions]' own
   // heading-level picker already establishes.
   var tocOpen by remember { mutableStateOf(false) }
-  // [tocOpen]'s own reason: picking "Show call stack and variables" replaces this menu with
-  // [DebuggerPanel] rather than closing it outright.
-  var debuggerOpen by remember { mutableStateOf(false) }
   // The export picker, on its own flag for [tocOpen]'s reason: picking a format is a second step,
   // and `CellActionSurface` already cost a commit to learn that a row which opens something must
   // not also dismiss the surface it opened.
@@ -226,16 +218,19 @@ internal fun NotebookActionsMenu(
           onSettingsChanged(settings.copy(tocIncludeOutput = !settings.tocIncludeOutput))
         },
       )
-      // One row, two jobs, and which one is whether the shell has a side area - [SHOW_TABLE_OF_CONTENTS]'s
-      // own reasoning. Always offered, like that row: an empty stack draws [DebuggerPanel]'s own
-      // placeholder rather than the row being disabled.
-      DropdownMenuItem(
-        text = { Text(SHOW_DEBUGGER_PANEL) },
-        onClick = {
-          open = false
-          onShowDebuggerPanel?.invoke() ?: run { debuggerOpen = true }
-        },
-      )
+      // Only where the shell has a side area to activate - [SHOW_TABLE_OF_CONTENTS]'s own
+      // reasoning does not apply here the way it does there: a one-pane window has
+      // [DebuggerControlBar]'s own toggle for this instead, reachable only while a kernel is
+      // actually paused, so this menu has nothing to offer in that case at all.
+      if (onShowDebuggerPanel != null) {
+        DropdownMenuItem(
+          text = { Text(SHOW_DEBUGGER_PANEL) },
+          onClick = {
+            open = false
+            onShowDebuggerPanel()
+          },
+        )
+      }
     }
     // Same Box as "Notebook actions", so [TableOfContentsPanel]'s own `DropdownMenu` anchors to the
     // button that opened it rather than to wherever this composable happens to sit in the screen.
@@ -247,15 +242,6 @@ internal fun NotebookActionsMenu(
       onHeadingSelected = onTableOfContentsHeadingSelected,
       onDismiss = { tocOpen = false },
       numbering = tocNumbering,
-    )
-    // In the same Box for the same reason - see [TableOfContentsPanel]'s own comment just above.
-    DebuggerPanel(
-      expanded = debuggerOpen,
-      stack = debugStack,
-      onDismiss = { debuggerOpen = false },
-      onExpand = onExpandVariable,
-      onSelectFrame = onSelectFrame,
-      onEvaluate = onEvaluate,
     )
     // In the same Box for the same reason, so it anchors to the button that was tapped.
     ExportPicker(

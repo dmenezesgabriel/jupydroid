@@ -344,6 +344,7 @@ fun EditorScreen(
           editorSettings = editorSettings,
           cellInput = cellInput,
           onBack = onBack,
+          twoPane = twoPane,
         )
       },
     ) { innerPadding ->

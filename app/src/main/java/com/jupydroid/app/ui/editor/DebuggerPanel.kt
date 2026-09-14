@@ -4,8 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -15,14 +15,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,76 +41,44 @@ import com.jupydroid.app.theme.Spacing
 import kotlinx.coroutines.launch
 
 /**
- * `Show call stack and variables`, on whichever surface the window has room for -
- * [CellActionPresentation]'s own rule, reused for [TableOfContentsPanel]'s own reason: a
- * `ModalBottomSheet` anchored nowhere in particular is heavier than the job needs once there is
- * room for a `DropdownMenu` anchored to the button that opened it.
+ * The call stack and variables, docked directly above [DebuggerControlBar]'s own toggle - a
+ * Material 3 *standard* (non-modal) bottom sheet's own shape, not
+ * [androidx.compose.material3.ModalBottomSheet]'s: a paused kernel's data is meant to be glanced
+ * at while the control bar and the stopped line above stay reachable, never a blocking overlay a
+ * scrim puts the rest of the screen behind.
  *
  * **JupyterLab's own Debugger sidebar has no "show" command to mirror** - it registers on the
  * shell's *right* area (`packages/debugger-extension/src/index.ts:1357`) and is simply always
  * there once a debugger-capable kernel starts. This app has one side area
- * ([SidePanel.DEBUGGER][com.jupydroid.app.SidePanel]'s own doc), so this row gives it the same
- * explicit toggle every other panel here already has.
+ * ([SidePanel.DEBUGGER][com.jupydroid.app.SidePanel]'s own doc), so a one-pane window - which has
+ * none - gets this instead, toggled from [DebuggerControlBar] rather than a menu three taps deep:
+ * the same "a paused kernel beats all three" rule that bar's own doc already states for its
+ * step/continue controls applies to seeing why it paused.
  *
- * **Unlike [TableOfContentsPanel], a pick never dismisses this**: every row is read-only, so
- * there is nothing to choose and [onDismiss] is reached only the ordinary way, by tapping outside.
- *
- * Called unconditionally by [NotebookActionsMenu], inside the same `Box` its own button anchors
- * from - [expanded] is what decides whether anything renders.
+ * **One shape at every one-pane width**, unlike [CellActions]' own `MENU`/`SHEET` split: this has
+ * no button of its own to anchor a `DropdownMenu` to, and [fillMaxHeight] already bounds it the
+ * way a modal sheet's own height would, so there is nothing the split would still buy here.
  */
 @Composable
-fun DebuggerPanel(
-  expanded: Boolean,
+internal fun DebuggerVariablesSheet(
   stack: DebugStack?,
-  onDismiss: () -> Unit,
   onExpand: suspend (Int) -> List<DebugVariable>,
   onSelectFrame: suspend (Int) -> Unit,
   onEvaluate: suspend (String) -> DebugVariable?,
-  presentation: CellActionPresentation = currentCellActionPresentation(),
+  modifier: Modifier = Modifier,
 ) {
-  if (!expanded) return
-  when (presentation) {
-    CellActionPresentation.MENU -> DebuggerMenu(stack, onDismiss, onExpand, onSelectFrame, onEvaluate)
-    CellActionPresentation.SHEET -> DebuggerSheet(stack, onDismiss, onExpand, onSelectFrame, onEvaluate)
-  }
-}
-
-@Composable
-private fun DebuggerMenu(
-  stack: DebugStack?,
-  onDismiss: () -> Unit,
-  onExpand: suspend (Int) -> List<DebugVariable>,
-  onSelectFrame: suspend (Int) -> Unit,
-  onEvaluate: suspend (String) -> DebugVariable?,
-) {
-  DropdownMenu(expanded = true, onDismissRequest = onDismiss) {
-    // No extra padding here - DebugStackRows carries its own per-row margin now (P6a-13), the
-    // same split TableOfContentsPanel's own menu/sheet already keep with TableOfContentsRows.
-    DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame, onEvaluate = onEvaluate)
-  }
-}
-
-/** `navigationBarsPadding` for [CellActionSheet]'s own reason: the sheet draws under the gesture bar otherwise. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DebuggerSheet(
-  stack: DebugStack?,
-  onDismiss: () -> Unit,
-  onExpand: suspend (Int) -> List<DebugVariable>,
-  onSelectFrame: suspend (Int) -> Unit,
-  onEvaluate: suspend (String) -> DebugVariable?,
-) {
-  ModalBottomSheet(
-    onDismissRequest = onDismiss,
-    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-  ) {
-    Column(
-      modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding(),
-    ) {
+  Surface(tonalElevation = SHEET_ELEVATION, modifier = modifier.fillMaxWidth().fillMaxHeight(SHEET_HEIGHT_FRACTION)) {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
       DebugStackRows(stack, onExpand = onExpand, onSelectFrame = onSelectFrame, onEvaluate = onEvaluate)
     }
   }
 }
+
+/** Leaves the stopped line and the rest of the notebook visible above the sheet on any window. */
+private const val SHEET_HEIGHT_FRACTION = 0.4f
+
+/** [CellCompletions]' own `POPUP_ELEVATION` - the same "a surface drawn over the notebook" role. */
+private val SHEET_ELEVATION = 3.dp
 
 /**
  * The call stack and the top frame's variables, shared with

@@ -6,7 +6,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
@@ -287,26 +286,19 @@ class NotebookActionsMenuTest {
   }
 
   @Test
-  fun theNotebookMenuOffersTheDebugger() {
+  fun theDebuggerRowIsAbsentWithNoSidePanel() {
     showTopBar()
 
     compose.onNodeWithContentDescription("Notebook actions").performClick()
 
-    compose.onNodeWithText(SHOW_DEBUGGER_PANEL).assertIsDisplayed()
+    compose.onNodeWithText(SHOW_DEBUGGER_PANEL).assertDoesNotExist()
   }
 
-  /** With no shell panel to activate, the row opens [DebuggerPanel] - [SHOW_TABLE_OF_CONTENTS]'s own adaptation. */
-  @Test
-  fun theDebuggerRowOpensThePanel() {
-    showTopBar()
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-    compose.onNodeWithText(SHOW_DEBUGGER_PANEL).performClick()
-
-    compose.onNodeWithText("Not stopped").assertIsDisplayed()
-  }
-
-  /** [withASidePanelTheRowActivatesItAndOpensNoOverlay]'s own reasoning, for the debugger row. */
+  /**
+   * With no side panel to activate, [DebuggerControlBar]'s own toggle is where a stop is seen
+   * instead - reachable only while the kernel is actually paused, which this menu has no
+   * business knowing about at all.
+   */
   @Test
   fun withASidePanelTheDebuggerRowActivatesItAndOpensNoOverlay() {
     showTopBar(onShowDebuggerPanel = { debuggerPanelActivations++ })
@@ -415,7 +407,6 @@ class NotebookActionsMenuTest {
     settings: EditorSettings = EditorSettings(),
     tableOfContentsHeadings: List<TocHeading> = emptyList(),
     onShowTableOfContentsPanel: (() -> Unit)? = null,
-    debugStack: DebugStack? = null,
     onShowDebuggerPanel: (() -> Unit)? = null,
     exportState: ExportState = ExportState(offered = OFFERED_EXPORT_FORMATS),
   ) {
@@ -437,7 +428,6 @@ class NotebookActionsMenuTest {
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },
           onShowTableOfContentsPanel = onShowTableOfContentsPanel,
-          debugStack = debugStack,
           onShowDebuggerPanel = onShowDebuggerPanel,
           exportState = exportState,
           onExportPickerOpened = { exportPickerOpens++ },

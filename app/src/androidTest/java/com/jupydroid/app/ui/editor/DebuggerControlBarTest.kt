@@ -103,7 +103,29 @@ class DebuggerControlBarTest {
     compose.onNodeWithContentDescription("Terminate").assertIsEnabled()
   }
 
-  private fun showBar(stepping: Boolean) {
+  /**
+   * The call stack and variables toggle (the phone-narrow adaptation of
+   * [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel]) - absent by default, the
+   * same nullable-means-no-affordance rule [EditorTopBar]'s own `onShowTableOfContents` already
+   * uses, since a two-pane window shows this through the side panel instead and needs no toggle.
+   */
+  @Test
+  fun theVariablesToggleFiresItsOwnCallbackOnce() {
+    showBar(stepping = false, onToggleVariables = { calls += "toggleVariables" })
+
+    compose.onNodeWithContentDescription(SHOW_DEBUGGER_PANEL).performClick()
+
+    compose.runOnIdle { assertEquals(listOf("toggleVariables"), calls) }
+  }
+
+  @Test
+  fun theVariablesToggleIsAbsentWithNoCallbackGiven() {
+    showBar(stepping = false)
+
+    compose.onNodeWithContentDescription(SHOW_DEBUGGER_PANEL).assertDoesNotExist()
+  }
+
+  private fun showBar(stepping: Boolean, onToggleVariables: (() -> Unit)? = null) {
     compose.setContent {
       JupyterDroidTheme {
         DebuggerControlBar(
@@ -113,6 +135,7 @@ class DebuggerControlBarTest {
           onStepIn = { calls += "stepIn" },
           onStepOut = { calls += "stepOut" },
           onTerminate = { calls += "terminate" },
+          onToggleVariables = onToggleVariables,
         )
       }
     }

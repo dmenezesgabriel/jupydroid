@@ -39,9 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.EditorSettings
-import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.DocumentDismissAction
@@ -158,18 +156,11 @@ fun EditorTopBar(
    */
   onShowTableOfContentsPanel: (() -> Unit)? = null,
   /**
-   * `Show call stack and variables`'s content - [DebuggerPanel]/
-   * [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel]'s own state.
+   * [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel]'s own rule, for the
+   * debugger's side panel. Null where there is none - [DebuggerControlBar]'s own toggle is where
+   * a one-pane window reaches the call stack and variables instead.
    */
-  debugStack: DebugStack? = null,
-  /** [onShowTableOfContentsPanel]'s own rule, for the debugger's side panel. */
   onShowDebuggerPanel: (() -> Unit)? = null,
-  /** [DebuggerPanel]'s own drill-down (P6a-14) - [NotebookDebugger.expand]. */
-  onExpandVariable: suspend (Int) -> List<DebugVariable> = { emptyList() },
-  /** [DebuggerPanel]'s own frame reselection (P6a-15) - [NotebookDebugger.selectFrame]. */
-  onSelectFrame: suspend (Int) -> Unit = {},
-  /** [DebuggerPanel]'s own ad hoc expression (P6a-17) - [NotebookDebugger.evaluate]. */
-  onEvaluate: suspend (String) -> DebugVariable? = { null },
   /** `documentsearch:start` - see [FindTopBar], which is what it puts up. */
   onFind: () -> Unit = {},
   /** `notebook:export-to-format` - what its picker is doing; see [NotebookActionsMenu]. */
@@ -271,11 +262,7 @@ fun EditorTopBar(
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
           onShowTableOfContentsPanel = onShowTableOfContentsPanel,
-          debugStack = debugStack,
           onShowDebuggerPanel = onShowDebuggerPanel,
-          onExpandVariable = onExpandVariable,
-          onSelectFrame = onSelectFrame,
-          onEvaluate = onEvaluate,
           // Moved, not copied: null once the bar above carries the control itself.
           cellTypeInMenu = activeCellKind?.takeUnless { cellTypeOnBar },
           onChangeCellKind = onChangeCellKind,

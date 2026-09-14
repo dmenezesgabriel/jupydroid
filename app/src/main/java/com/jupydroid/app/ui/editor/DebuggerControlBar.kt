@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Stop
@@ -35,6 +36,11 @@ import androidx.compose.ui.Modifier
  * restart) to get free of a debug session Interrupt alone could not touch, so the one control
  * meant to work when everything else is stuck cannot be the one still waiting on it.
  *
+ * **[onToggleVariables] is null on a two-pane window**, the same rule [EditorTopBar]'s own
+ * `onShowTableOfContents` already states:
+ * [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel] shows the call stack and
+ * variables there instead, so a one-pane window is the only one with a surface to toggle at all.
+ *
  * ```
  * DebuggerControlBar(stepping = state.stepping, onContinue = { … }, onNext = { … }, …)
  * ```
@@ -47,6 +53,7 @@ internal fun DebuggerControlBar(
   onStepIn: () -> Unit,
   onStepOut: () -> Unit,
   onTerminate: () -> Unit,
+  onToggleVariables: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
 ) {
   BottomAppBar(modifier = modifier.imePadding()) {
@@ -66,6 +73,11 @@ internal fun DebuggerControlBar(
     }
     IconButton(onClick = onTerminate) {
       Icon(Icons.Filled.Stop, contentDescription = "Terminate")
+    }
+    if (onToggleVariables != null) {
+      IconButton(onClick = onToggleVariables) {
+        Icon(Icons.Filled.List, contentDescription = SHOW_DEBUGGER_PANEL)
+      }
     }
   }
 }

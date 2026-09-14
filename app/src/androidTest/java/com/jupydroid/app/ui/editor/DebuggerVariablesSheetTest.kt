@@ -18,53 +18,32 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The narrow adaptation of [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel], on
- * both presentations [CellActionPresentation]'s own rule offers - [TableOfContentsPanelTest]'s
- * own shape, since the width rule is tested once on the JVM and what needs a device is that each
- * branch renders here too.
+ * The one-pane adaptation of [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel] -
+ * a single non-modal surface docked above [DebuggerControlBar] (`EditorBottomBars`' own caller),
+ * not the old menu/sheet split [CellActionPresentation] drove: unlike a cell's own actions, this
+ * has no button of its own to anchor a `DropdownMenu` to and is never worth blocking the notebook
+ * or the controls underneath for, so one shape covers every one-pane width.
  */
 @RunWith(AndroidJUnit4::class)
-class DebuggerPanelTest {
+class DebuggerVariablesSheetTest {
   @get:Rule val compose = createComposeRule()
 
   @Test
-  fun theMenuShowsTheStack() = assertShowsTheStack(CellActionPresentation.MENU)
-
-  @Test
-  fun theSheetShowsTheStack() = assertShowsTheStack(CellActionPresentation.SHEET)
-
-  private fun assertShowsTheStack(presentation: CellActionPresentation) {
-    show(stack(), presentation = presentation)
+  fun showsTheStack() {
+    show(stack())
 
     compose.onNodeWithText("helper — line 10").assertIsDisplayed()
     compose.onNodeWithText("x: int = 41").assertIsDisplayed()
   }
 
   @Test
-  fun theMenuShowsAPlaceholderWithNothingStopped() = assertShowsAPlaceholder(CellActionPresentation.MENU)
-
-  @Test
-  fun theSheetShowsAPlaceholderWithNothingStopped() = assertShowsAPlaceholder(CellActionPresentation.SHEET)
-
-  private fun assertShowsAPlaceholder(presentation: CellActionPresentation) {
-    show(stack = null, presentation = presentation)
+  fun showsAPlaceholderWithNothingStopped() {
+    show(stack = null)
 
     compose.onNodeWithText("Not stopped").assertIsDisplayed()
   }
 
-  /** `expanded` is what a caller drives, and false renders nothing - [CellActionSurface]'s shape. */
-  @Test
-  fun collapsedRendersNothing() {
-    show(stack(), expanded = false)
-
-    compose.onNodeWithText("helper — line 10").assertDoesNotExist()
-  }
-
-  /**
-   * P6a-14's own gate: tapping a compound variable (`variablesReference != 0`) fetches and shows
-   * its children, indented one step further - the same drill-down [DebugVariable.variablesReference]
-   * was always fetched for and then discarded, per `docs/PLAN.md`'s own Open risks entry.
-   */
+  /** P6a-14's own gate, carried over verbatim: a compound variable expands and collapses on tap. */
   @Test
   fun aCompoundVariableExpandsOnTapToShowItsChildren() {
     show(compoundStack(), onExpand = { listOf(DebugVariable("0", "1", "int", 0)) })
@@ -74,35 +53,7 @@ class DebuggerPanelTest {
     compose.onNodeWithText("0: int = 1").assertIsDisplayed()
   }
 
-  @Test
-  fun tappingAnExpandedVariableCollapsesItAgain() {
-    show(compoundStack(), onExpand = { listOf(DebugVariable("0", "1", "int", 0)) })
-    compose.onNodeWithText("items: list = […]").performClick()
-    compose.onNodeWithText("0: int = 1").assertIsDisplayed()
-
-    compose.onNodeWithText("items: list = […]").performClick()
-
-    compose.onNodeWithText("0: int = 1").assertDoesNotExist()
-  }
-
-  /** A leaf (`variablesReference == 0`) never fetches anything - there is nothing behind it. */
-  @Test
-  fun aLeafVariableDoesNotExpandOnTap() {
-    var calls = 0
-    show(stack(), onExpand = {
-      calls++
-      emptyList()
-    })
-
-    compose.onNodeWithText("x: int = 41").performClick()
-
-    compose.runOnIdle { org.junit.Assert.assertEquals(0, calls) }
-  }
-
-  /**
-   * P6a-15's own gate: a frame row other than the top one is tappable, and a tap reports that
-   * frame's own id - [DebugStack]'s named Open risks gap, closed.
-   */
+  /** P6a-15's own gate, carried over verbatim: a non-top frame row is tappable and reports its id. */
   @Test
   fun tappingANonTopFrameRowSelectsIt() {
     var selected: Int? = null
@@ -113,7 +64,7 @@ class DebuggerPanelTest {
     compose.runOnIdle { org.junit.Assert.assertEquals(5, selected) }
   }
 
-  /** P6a-17's own gate: a submitted expression's own answer renders as one more variable row. */
+  /** P6a-17's own gate, carried over verbatim: a submitted expression's answer renders as a row. */
   @Test
   fun submittingAnExpressionShowsItsAnswer() {
     show(stack(), onEvaluate = { expression -> DebugVariable(expression, "42", "int", 0) })
@@ -146,19 +97,14 @@ class DebuggerPanelTest {
 
   private fun show(
     stack: DebugStack?,
-    expanded: Boolean = true,
-    presentation: CellActionPresentation = CellActionPresentation.SHEET,
     onExpand: suspend (Int) -> List<DebugVariable> = { emptyList() },
     onSelectFrame: suspend (Int) -> Unit = {},
     onEvaluate: suspend (String) -> DebugVariable? = { null },
   ) {
     compose.setContent {
       JupyterDroidTheme {
-        DebuggerPanel(
-          expanded = expanded,
+        DebuggerVariablesSheet(
           stack = stack,
-          onDismiss = {},
-          presentation = presentation,
           onExpand = onExpand,
           onSelectFrame = onSelectFrame,
           onEvaluate = onEvaluate,
