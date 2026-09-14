@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -20,6 +21,54 @@ class NotebookKernelSessionTest {
 
     assertEquals(session.open(), session.open())
     assertEquals(1, gateway.connectCount)
+  }
+
+  @Test
+  fun open_returnsThePreAttachedSessionWithoutConnecting() = runTest {
+    val gateway = StaleSessionKernelGateway(refusals = 0)
+    val attached = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+    val session = NotebookKernelSession(gateway, space, attachedTo = attached) { "Analysis.ipynb" }
+
+    assertEquals(attached, session.open())
+    assertEquals(0, gateway.connectCount)
+  }
+
+  @Test
+  fun constructingWithAttachedToReportsTheKernelArrived() {
+    val reported = mutableListOf<Boolean>()
+    val attached = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+
+    NotebookKernelSession(
+      StaleSessionKernelGateway(refusals = 0),
+      space,
+      onConnectedChanged = { reported += it },
+      attachedTo = attached,
+    ) { "Analysis.ipynb" }
+
+    assertEquals(listOf(true), reported)
+  }
+
+  @Test
+  fun reopeningIfStale_reconnectsAPreAttachedSessionThatProvesStale() = runTest {
+    val gateway = StaleSessionKernelGateway(refusals = 1)
+    val attached = KernelSession(id = "stale-attached", spaceId = "base", kernelId = "k0", serverSessionId = "ss0")
+    val session = NotebookKernelSession(gateway, space, attachedTo = attached) { "Analysis.ipynb" }
+
+    val events = session.reopeningIfStale { open -> gateway.execute(open, "c1", "2 + 2") }.toList()
+
+    assertEquals("the pre-attached session was never counted, only its replacement was", 1, gateway.connectCount)
+    assertTrue("expected the retry to produce the cell's events", events.isNotEmpty())
+  }
+
+  @Test
+  fun forget_handsBackThePreAttachedSessionAndLeavesNone() {
+    val attached = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+    val session = NotebookKernelSession(StaleSessionKernelGateway(refusals = 0), space, attachedTo = attached) {
+      "Analysis.ipynb"
+    }
+
+    assertEquals(attached, session.forget())
+    assertNull(session.opened)
   }
 
   @Test

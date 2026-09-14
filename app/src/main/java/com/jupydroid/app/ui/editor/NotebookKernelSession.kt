@@ -35,6 +35,18 @@ class NotebookKernelSession(
    */
   private val onConnectedChanged: (Boolean) -> Unit = {},
   /**
+   * A session this notebook did not open but already has - a Console sharing the same document's
+   * kernel (P6b-1). Given here rather than assigned after construction so [onConnectedChanged]
+   * still fires for it: [open]'s "arrived" report lives on [opened]'s setter, and the only way in
+   * that reaches the setter is an assignment, which a property initializer is not.
+   *
+   * `console:inject`'s own contract is the precedent (`console-extension/src/index.ts:1294-1337`):
+   * find the session already tracked for a path and run in it, never call `connect` a second time.
+   * [open] already returns [opened] without connecting once it is non-null, so handing this in is
+   * the whole of what sharing takes - nothing downstream needs to know a session arrived this way.
+   */
+  attachedTo: KernelSession? = null,
+  /**
    * Read when a session is opened rather than captured, because since X1b the notebook's id *is*
    * its path and a rename moves it.
    */
@@ -51,6 +63,10 @@ class NotebookKernelSession(
       field = value
       onConnectedChanged(value != null)
     }
+
+  init {
+    attachedTo?.let { opened = it }
+  }
 
   /**
    * The notebook's own path goes to the kernel, because that is what gives the kernel a working
