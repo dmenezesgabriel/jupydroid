@@ -97,11 +97,14 @@ class ConsoleTranscriptViewTest {
 
     val ENTRIES = listOf(
       ConsoleEntry(
+        id = "e1",
         input = "1 + 1",
         outputs = listOf(CellOutput.Stream(StreamName.STDOUT, "2\n")),
         status = ExecutionStatus.STOPPED_OK,
+        executionCount = 1,
       ),
       ConsoleEntry(
+        id = "e2",
         input = "raise ValueError('boom')",
         outputs = listOf(
           CellOutput.Error(
@@ -111,8 +114,10 @@ class ConsoleTranscriptViewTest {
           ),
         ),
         status = ExecutionStatus.STOPPED_ERROR,
+        executionCount = 2,
       ),
       ConsoleEntry(
+        id = "e3",
         input = "import time; time.sleep(9)",
         outputs = emptyList(),
         status = ExecutionStatus.RUNNING,

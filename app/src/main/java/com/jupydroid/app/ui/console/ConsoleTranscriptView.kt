@@ -3,7 +3,7 @@ package com.jupydroid.app.ui.console
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,25 +20,24 @@ import com.jupydroid.app.ui.editor.executionLabel
  * per [ConsoleEntry]'s own doc comment and JupyterLab's `CodeConsole`, which has no dedicated
  * transcript-cell type either - it reuses a full `CodeCell` per entry.
  *
- * `executionLabel`'s `count` is the entry's own position in [entries] (`index + 1`), since
- * [ConsoleEntry] carries no execution-count field yet - P6b-4's kernel wiring is what supplies a
- * real one, once a `ConsoleViewModel` exists to hold it.
+ * `executionLabel`'s count is [ConsoleEntry.executionCount] - the kernel's own count, not the
+ * entry's position in [entries]. P6b-4 is what gave `ConsoleEntry` that field to read.
  *
  * ```kotlin
- * ConsoleTranscript(listOf(ConsoleEntry("1 + 1", listOf(CellOutput.Stream(STDOUT, "2\n")), STOPPED_OK)))
+ * ConsoleTranscript(listOf(ConsoleEntry("e1", "1 + 1", listOf(CellOutput.Stream(STDOUT, "2\n")), STOPPED_OK, 1)))
  * ```
  */
 @Composable
 fun ConsoleTranscript(entries: List<ConsoleEntry>, modifier: Modifier = Modifier) {
   LazyColumn(modifier = modifier) {
-    itemsIndexed(entries) { index, entry -> ConsoleTranscriptEntry(entry, index + 1) }
+    items(entries, key = ConsoleEntry::id) { entry -> ConsoleTranscriptEntry(entry) }
   }
 }
 
 @Composable
-private fun ConsoleTranscriptEntry(entry: ConsoleEntry, count: Int) {
+private fun ConsoleTranscriptEntry(entry: ConsoleEntry) {
   Column(modifier = Modifier.padding(vertical = Spacing.sm)) {
-    executionLabel(CellKind.CODE, entry.status, count)?.let { prompt ->
+    executionLabel(CellKind.CODE, entry.status, entry.executionCount)?.let { prompt ->
       Text(text = prompt, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
     }
     Text(text = entry.input, style = codeSourceStyle())

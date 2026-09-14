@@ -15,20 +15,30 @@ import org.junit.Test
  */
 class ConsoleEntryTest {
   @Test
-  fun anEntryCarriesItsInputOutputsAndStatus() {
+  fun anEntryCarriesItsIdInputOutputsStatusAndExecutionCount() {
     val outputs = listOf(CellOutput.Stream(StreamName.STDOUT, "2\n"))
 
-    val entry = ConsoleEntry("1 + 1", outputs, ExecutionStatus.STOPPED_OK)
+    val entry = ConsoleEntry("e1", "1 + 1", outputs, ExecutionStatus.STOPPED_OK, executionCount = 1)
 
+    assertEquals("e1", entry.id)
     assertEquals("1 + 1", entry.input)
     assertEquals(outputs, entry.outputs)
     assertEquals(ExecutionStatus.STOPPED_OK, entry.status)
+    assertEquals(1, entry.executionCount)
+  }
+
+  /** A running entry has no count yet - see `executionLabel`'s own `[*]:` rule. */
+  @Test
+  fun executionCountDefaultsToNull() {
+    val entry = ConsoleEntry("e1", "2 + 2", emptyList(), ExecutionStatus.RUNNING)
+
+    assertEquals(null, entry.executionCount)
   }
 
   @Test
   fun twoEntriesWithEqualFieldsAreEqual() {
-    val first = ConsoleEntry("2 + 2", emptyList(), ExecutionStatus.RUNNING)
-    val second = ConsoleEntry("2 + 2", emptyList(), ExecutionStatus.RUNNING)
+    val first = ConsoleEntry("e1", "2 + 2", emptyList(), ExecutionStatus.RUNNING)
+    val second = ConsoleEntry("e1", "2 + 2", emptyList(), ExecutionStatus.RUNNING)
 
     assertEquals(first, second)
   }
