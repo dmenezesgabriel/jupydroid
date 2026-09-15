@@ -1,8 +1,10 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -60,6 +62,25 @@ abstract class EditorSettingsRepositoryContract {
     repository.update(EditorSettings(lineNumbersShown = false))
 
     assertFalse(repository.observeSettings().first().lineNumbersShown)
+  }
+
+  /**
+   * `codeFontSizeSp` defaults to [CodeFontSize.DEFAULT], which is `CodeText.size`'s own value -
+   * shipping this field changes no pixel until a user acts, the same reasoning
+   * `TerminalFontSize.DEFAULT` was given.
+   */
+  @Test
+  fun defaultsToTheSharedCodeFontSize() = runTest {
+    assertEquals(CodeFontSize.DEFAULT, repository().observeSettings().first().codeFontSizeSp)
+  }
+
+  @Test
+  fun remembersACodeFontSizeChange() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(codeFontSizeSp = 20))
+
+    assertEquals(20, repository.observeSettings().first().codeFontSizeSp)
   }
 
   @Test

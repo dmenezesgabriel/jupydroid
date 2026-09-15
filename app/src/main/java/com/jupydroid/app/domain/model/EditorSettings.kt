@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - four fields today.
+ * The app-wide editor preferences P6c grows - seven fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -65,4 +65,32 @@ data class EditorSettings(
    * **True by default**, matching what `EditorUiState.lineNumbersShown` always defaulted to.
    */
   val lineNumbersShown: Boolean = true,
+  /**
+   * `docs/PLAN.md`'s P6c-4 - a cell's own code font size, distinct from
+   * [com.jupydroid.app.domain.model.TerminalFontSize] because a cell is an editor concern where
+   * the terminal's own glyph size explicitly is not (see that object's own doc comment). Bounds
+   * live beside it in [CodeFontSize], clamped by the screen that writes here rather than by this
+   * repository - the same division [TerminalSettingsRepository][com.jupydroid.app.domain.port.TerminalSettingsRepository]
+   * draws for the terminal's own field.
+   *
+   * **Defaults to [CodeFontSize.DEFAULT]**, `CodeText.size`'s own value, so shipping this field
+   * changes no pixel until a user acts - `TerminalFontSize.DEFAULT`'s own reasoning.
+   */
+  val codeFontSizeSp: Int = CodeFontSize.DEFAULT,
 )
+
+/**
+ * `docs/PLAN.md` P6c-4's own bounds - measured on device against a real code cell rather than
+ * copied from [TerminalFontSize]'s 4-256sp/±2, which were themselves measured against a
+ * different surface (Termux's terminal, not a notebook cell). `STEP` of 1 matches the
+ * reference's own increment for this exact setting (`apputils:incr-font-size`/`decr-font-size`
+ * on the `code-font-size` key step by 1px every time, `ThemeManager._incrFontSize`,
+ * `packages/apputils/src/thememanager.ts:380-389` - unbounded there, since CSS imposes no limit
+ * a touch screen's own layout does).
+ */
+object CodeFontSize {
+  const val MIN = 8
+  const val MAX = 32
+  const val STEP = 1
+  const val DEFAULT = 14
+}
