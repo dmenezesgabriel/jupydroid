@@ -46,6 +46,8 @@ import com.jupydroid.app.ui.shell.trailingBorder
  *   two different pieces of its state.
  * @param onNewTerminal opens a shell rooted at the directory the explorer hands back - see
  *   `Navigation.kt`'s `rememberNewTerminal`.
+ * @param onOpenSettings opens the app-wide Settings screen - see `NotebookBackStack.kt`'s
+ *   `openSettings`.
  * @param debugStack the open notebook's stopped call stack - [SidePanel.DEBUGGER]'s own content;
  *   see [OpenDebugStack].
  */
@@ -65,6 +67,7 @@ fun ShellSidePane(
   onBrowseRequestHandled: () -> Unit,
   onRevealMatch: (MatchedLine) -> Unit,
   onNewTerminal: (String) -> Unit,
+  onOpenSettings: () -> Unit,
 ) {
   // **`sideBar.border`, drawn by the side bar itself** - the seam between this pane and the
   // document, which the reference states (`workbench/common/theme.ts:623`, *"on the side separating
@@ -120,6 +123,7 @@ fun ShellSidePane(
             onOpenFile = { file -> openDocument(file.path) },
             onOpenRecent = openDocument,
             onNewTerminal = onNewTerminal,
+            onOpenSettings = onOpenSettings,
             openDocumentPath = openDocumentPath,
             browseRequest = browseRequest,
             onBrowseRequestHandled = onBrowseRequestHandled,

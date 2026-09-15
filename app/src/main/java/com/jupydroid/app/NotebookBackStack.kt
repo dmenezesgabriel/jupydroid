@@ -67,6 +67,20 @@ fun MutableList<NavKey>.openConsole(notebookId: String) {
 }
 
 /**
+ * Opens the Settings screen - [openConsole]'s own shape, not [openNotebook]'s: it stacks on top of
+ * whatever is open rather than replacing it, since visiting Settings should not dispose the
+ * document beneath it, and a second tap reveals the one already on top rather than duplicating it.
+ *
+ * ```
+ * backStack.openSettings()   // [Explorer, Editor("nb-1")] -> [Explorer, Editor("nb-1"), Settings]
+ * ```
+ */
+fun MutableList<NavKey>.openSettings() {
+  if (lastOrNull() == Settings) return
+  add(Settings)
+}
+
+/**
  * One document, revealed or replaced - never two, anywhere in the stack.
  *
  * Both document kinds swap each other, because the explorer opens both and a detail it cannot
@@ -94,5 +108,11 @@ private fun MutableList<NavKey>.chooseDetailThatFitsTheSurface(opened: () -> Nav
 /**
  * Special-casing which kinds are documents is only true until the next document opens; when it
  * does, add it here - the rule is "anything a surface opens replaces the current detail".
+ *
+ * [Settings] is not a document, but it occupies the same detail slot [Console] does when stacked
+ * over one - swept here for the same reason: opening a real document must not leave it behind,
+ * orphaned two levels deep, the way a bare `removeAt` once left a notebook behind under an open
+ * Console (P6b-0).
  */
-private fun Any?.isDocument(): Boolean = this is Editor || this is FileEditor || this is Terminal || this is Console
+private fun Any?.isDocument(): Boolean =
+  this is Editor || this is FileEditor || this is Terminal || this is Console || this is Settings

@@ -204,4 +204,50 @@ class NotebookBackStackTest {
 
     assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
   }
+
+  /** Settings, opened with nothing else showing, pushes onto the bare browser. */
+  @Test
+  fun openingSettingsPushesItsScreen() {
+    val backStack = mutableListOf<NavKey>(Explorer)
+
+    backStack.openSettings()
+
+    assertEquals(listOf(Explorer, Settings), backStack)
+  }
+
+  @Test
+  fun openingSettingsAlreadyOnTopChangesNothing() {
+    val backStack = mutableListOf<NavKey>(Explorer, Settings)
+
+    backStack.openSettings()
+
+    assertEquals(listOf(Explorer, Settings), backStack)
+  }
+
+  /**
+   * Settings stacks on top of an open notebook rather than replacing it - [openConsole]'s own
+   * reason: visiting it should not dispose the document underneath, so Back has to return there.
+   */
+  @Test
+  fun openingSettingsStacksOnTopOfAnOpenNotebook() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
+
+    backStack.openSettings()
+
+    assertEquals(listOf(Explorer, Editor("nb-1"), Settings), backStack)
+  }
+
+  /**
+   * The generalised sweep [openConsole]'s own test proves for Console applies to Settings too:
+   * opening a different document while Settings sits on top must not leave the old notebook
+   * behind underneath it.
+   */
+  @Test
+  fun openingADifferentNotebookWhileSettingsIsOpenReplacesBothItAndTheDocumentBeneath() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Settings)
+
+    backStack.openNotebook("nb-2")
+
+    assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
+  }
 }

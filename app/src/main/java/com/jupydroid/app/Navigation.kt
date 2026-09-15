@@ -34,6 +34,7 @@ import com.jupydroid.app.ui.console.ConsoleViewModel
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
+import com.jupydroid.app.ui.settings.SettingsScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
@@ -317,6 +318,15 @@ fun MainNavigation(
             onBrowseRequestHandled = { browseRequest = null },
             onRevealMatch = { match -> revealRequest = match },
             onNewTerminal = newTerminal,
+            onOpenSettings = { backStack.openSettings() },
+          )
+        }
+        entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
+          SettingsScreen(
+            onBack = { backStack.removeLastOrNull() },
+            // The one width fact this screen reads, and it decides one thing: whether leaving it
+            // is drawn as going back or as closing it (`DocumentDismissAction`).
+            twoPane = twoPane,
           )
         }
         entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->

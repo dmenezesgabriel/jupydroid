@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# P6c-1: the app-wide Settings screen is reachable from the explorer's own bar, and Back returns
+# to it. Nothing below runs a cell, so the emulator - and its FakeKernelGateway - is enough; this
+# flow is sharded across both devices.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+- assertVisible: "Workspace"
+- takeScreenshot: 01-files-with-the-settings-icon
+
+- tapOn: "Settings"
+# `DocumentDismissAction`'s own rule, measured rather than assumed on both shards: "Back to files"
+# below two panes, "Close" beside one - `p6b-9d-console-shares-kernel.yaml`'s own precedent for
+# why this is not a single fixed string, since the tablet's current rotation draws the Files list
+# beside Settings and the dismiss icon reads "Close" there.
+- extendedWaitUntil:
+    visible: "Back to files|Close"
+    timeout: 5000
+- assertVisible: "Settings"
+- takeScreenshot: 02-settings-screen-open
+
+# The gear returns exactly where it opened from - P6c-1's own gate, and `NotebookBackStack.kt`'s
+# `openSettings` doc comment: it stacks on top rather than replacing, so Back has somewhere to
+# return to even with no document open.
+- tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 5000
+- assertVisible: "Files"
+- takeScreenshot: 03-back-to-files

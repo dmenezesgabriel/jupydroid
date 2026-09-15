@@ -77,6 +77,7 @@ class ShellSidePaneTest {
           onBrowseRequestHandled = {},
           onRevealMatch = {},
           onNewTerminal = {},
+          onOpenSettings = {},
         )
       }
     }
