@@ -12,8 +12,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+
+/**
+ * [SymbolRow]'s own handle for an external driver - `CONSOLE_INPUT_FIELD_TAG`'s own precedent.
+ * A Maestro flow cannot tell this row's `Tab` key apart from a soft keyboard's *own* Tab key by
+ * text alone: at least one real IME (Gboard) carries the identical accessible text "Tab"
+ * (`resource-id: com.google.android.inputmethod.latin:id/key_pos_tab`, found live on the
+ * physical tablet - `docs/PLAN.md`'s P6c-7), so `assertNotVisible: "Tab"` is not reliable once
+ * the keyboard is up.
+ */
+internal const val SYMBOL_ROW_TAG = "symbol_row"
 
 /**
  * The row of characters a Python keyboard does not have, above the soft keyboard.
@@ -55,7 +67,10 @@ internal fun SymbolRow(
   onRecallPreviousEntry: () -> Unit = {},
   onRecallNextEntry: () -> Unit = {},
 ) {
-  Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxWidth()) {
+  Surface(
+    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    modifier = modifier.fillMaxWidth().semantics { testTagsAsResourceId = true }.testTag(SYMBOL_ROW_TAG),
+  ) {
     Row(
       modifier = Modifier
         .fillMaxWidth()

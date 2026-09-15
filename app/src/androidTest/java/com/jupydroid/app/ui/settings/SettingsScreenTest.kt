@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
@@ -115,6 +116,24 @@ class SettingsScreenTest {
     compose.onNodeWithContentDescription(DECREASE_CODE_FONT_SIZE).assertIsNotEnabled()
   }
 
+  /** `docs/PLAN.md`'s P6c-7 - see `EditorSettings.symbolRowShown`. */
+  @Test
+  fun symbolRowRowShowsTheRepositorysCurrentValue() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(symbolRowShown = false)))
+
+    compose.onNodeWithText(SYMBOL_ROW).assertIsOff()
+  }
+
+  @Test
+  fun tappingSymbolRowWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(symbolRowShown = true))
+    startScreen(repository)
+
+    compose.onNodeWithText(SYMBOL_ROW).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().symbolRowShown }
+  }
+
   @Test
   fun wrapCodeLinesRowShowsTheRepositorysCurrentValue() {
     startScreen(FakeEditorSettingsRepository(EditorSettings(codeWrapEnabled = false)))
@@ -174,7 +193,7 @@ class SettingsScreenTest {
     val repository = FakeEditorSettingsRepository(EditorSettings(tocIncludeOutput = true))
     startScreen(repository)
 
-    compose.onNodeWithText(OUTPUT_HEADINGS).performClick()
+    compose.onNodeWithText(OUTPUT_HEADINGS).performScrollTo().performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().tocIncludeOutput }
   }

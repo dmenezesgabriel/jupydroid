@@ -43,7 +43,15 @@ internal fun EditorBottomBars(
   // leaves composition, so a toggle held here survives the same step that closed it when it lived
   // one level down - caught live on the tablet (`evidence/p6a-19/`), not guessed.
   var variablesOpen by remember { mutableStateOf(false) }
-  when (editorBottomBar(state.selecting, state.mode, state.search != null, state.stoppedAt != null)) {
+  when (
+    editorBottomBar(
+      state.selecting,
+      state.mode,
+      state.search != null,
+      state.stoppedAt != null,
+      editorSettings.symbolRowShown,
+    )
+  ) {
     EditorBottomBar.NONE -> Unit
     EditorBottomBar.DEBUGGER -> DebuggerBottomBar(
       state = state,

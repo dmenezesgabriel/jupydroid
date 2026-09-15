@@ -116,6 +116,9 @@ fun SettingsScreen(
       SettingsToggleRow(SHOW_LINE_NUMBERS, settings.lineNumbersShown) {
         update(settings.copy(lineNumbersShown = it))
       }
+      SettingsToggleRow(SYMBOL_ROW, settings.symbolRowShown) {
+        update(settings.copy(symbolRowShown = it))
+      }
       SettingsStepperRow(
         label = CODE_FONT_SIZE,
         valueSp = settings.codeFontSizeSp,
@@ -232,6 +235,9 @@ private val THEME_OPTIONS = listOf(
 
 /** `notebook:toggle-all-cell-line-numbers` - see `EditorSettings.lineNumbersShown`. */
 internal const val SHOW_LINE_NUMBERS = "Show line numbers"
+
+/** `docs/PLAN.md` P6c-7 - see `EditorSettings.symbolRowShown`. */
+internal const val SYMBOL_ROW = "Symbol row"
 
 /** `docs/PLAN.md` P6c-4 - see `EditorSettings.codeFontSizeSp`. */
 internal const val CODE_FONT_SIZE = "Code font size"
