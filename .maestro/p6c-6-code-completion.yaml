@@ -1,0 +1,133 @@
+appId: com.jupydroid.app
+---
+# P6c-6: the Settings screen's "Code completion" toggle actually stops the editor asking the
+# kernel for completions, and the choice survives a relaunch - not only the unit/instrumented
+# proof that the field persists and the gate stops the pipeline before it starts
+# (`EditorSettingsRepositoryContract`, `SettingsScreenTest`, `CellCompletionsGateTest`).
+#
+# The cell is RUN first, and that is not scene-setting: completion deliberately never starts a
+# kernel (`NotebookKernel.completionsAt`'s own `session.opened ?: return NONE` guard), so the
+# popup can only appear at all once a kernel session is already open - `step5-completion.yaml`'s
+# own precedent. `FakeKernelGateway.complete()` answers from a real BUILTINS list
+# (`data/fake/FakeKernelGateway.kt:82`, includes "print"), so this reaches a real (if fake)
+# completion path on the emulator too.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Code Completion.ipynb"
+- extendedWaitUntil:
+    visible: "1 \\+ 1"
+    timeout: 15000
+- tapOn: "Run cell"
+# "ran in" rather than a specific output value: FakeKernelGateway.execute() echoes the cell's own
+# source back as its output ("1 + 1", not "2"), so a real kernel and the fake one only agree on
+# the execution status label, not on what the cell printed. 180s: starting the base Space takes
+# seconds on first use on a real device - rootfs, jupyter_server, then a kernel -
+# `step5-completion.yaml`'s own budget for the identical first run.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- takeScreenshot: 01-kernel-answering
+
+- back
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Code completion"
+    timeout: 5000
+- takeScreenshot: 02-settings-completion-on
+
+- tapOn: "Code completion"
+- takeScreenshot: 03-settings-completion-off
+
+- tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Code Completion.ipynb"
+    timeout: 5000
+- tapOn: "Code Completion.ipynb"
+- extendedWaitUntil:
+    visible: ".*1 \\+ 1.*"
+    timeout: 15000
+# Re-run rather than trust the session opened at the top of this flow to have survived the
+# round trip through Settings - measured, not assumed: it does not, on this app's own "reveal
+# rather than reopen" navigation (`docs/architecture.md` §4), and completion deliberately never
+# opens a session on its own (`NotebookKernel.completionsAt`'s own guard), so a stale assumption
+# here would make the very next check pass or fail for the wrong reason.
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 60000
+# index 0: FakeKernelGateway.execute() echoes the source as output, so the cell's source and its
+# output both now show "1 + 1" - the source composes first, so index 0 is it.
+- tapOn:
+    text: ".*1 \\+ 1.*"
+    index: 0
+- pressKey: Enter
+- inputText: "pri"
+- extendedWaitUntil:
+    notVisible: "Completions"
+    timeout: 3000
+- takeScreenshot: 04-no-popup-while-disabled
+- assertNotVisible: "Completions"
+
+# Best-effort cleanup, not load-bearing: the next check's own query only depends on the token
+# immediately before its cursor ("pri", typed fresh below whatever is already there), which stays
+# unambiguous regardless of how many earlier lines this cell has accumulated. On a real kernel
+# the re-run this leads to answers a NameError for the undefined `pri` line(s) still on screen -
+# expected and harmless, since the completion check that follows depends on the popup only.
+- tapOn: "Undo cell operation"
+
+# The notebook's own dismiss icon (`EditorTopBar`'s "Back to notebooks"/"Close" - distinct from
+# Settings' and the file editor's own "Back to files") rather than the OS back gesture: the field
+# is still focused from typing, and how many back-presses that consumes before actually leaving
+# the notebook is not obvious or stable - measured, not assumed, on the first runs of this flow.
+- tapOn: "Back to notebooks|Close"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Code completion"
+    timeout: 5000
+- tapOn: "Code completion"
+- takeScreenshot: 05-settings-completion-back-on
+
+- tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Code Completion.ipynb"
+    timeout: 5000
+- tapOn: "Code Completion.ipynb"
+- extendedWaitUntil:
+    visible: ".*1 \\+ 1.*"
+    timeout: 15000
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 60000
+- tapOn:
+    text: ".*1 \\+ 1.*"
+    index: 0
+- pressKey: Enter
+- inputText: "pri"
+# Matched by contentDescription, never by the bare word - `step5-completion.yaml`'s own reason:
+# the Samsung keyboard offers "print" in its own suggestion bar too.
+- extendedWaitUntil:
+    visible: "Completions"
+    timeout: 15000
+- assertVisible: "Completion print"
+- takeScreenshot: 06-popup-while-enabled
+
+# The choice survives a relaunch - `EditorSettingsRepositoryContract`'s own
+# `remembersCompletionEnabledTurnedOff`, now asked of the real app. Left off across the relaunch
+# so the driver's own file-based check (`completionEnabled":false`) has something unambiguous.
+- tapOn: "Back to notebooks|Close"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Code completion"
+    timeout: 5000
+- tapOn: "Code completion"
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Code completion"
+    timeout: 5000
+- takeScreenshot: 07-settings-completion-off-after-relaunch

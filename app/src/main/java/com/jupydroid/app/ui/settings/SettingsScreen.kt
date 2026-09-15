@@ -128,6 +128,9 @@ fun SettingsScreen(
       SettingsToggleRow(AUTO_CLOSING_BRACKETS, settings.autoClosingBrackets) {
         update(settings.copy(autoClosingBrackets = it))
       }
+      SettingsToggleRow(CODE_COMPLETION, settings.completionEnabled) {
+        update(settings.copy(completionEnabled = it))
+      }
       SettingsToggleRow(KERNEL_HISTORY_ACCESS, settings.accessKernelHistory) {
         update(settings.copy(accessKernelHistory = it))
       }
@@ -244,6 +247,9 @@ internal const val WRAP_CODE_LINES = "Wrap code lines"
 
 /** `fileeditor:toggle-autoclosing-brackets-universal` - see `EditorSettings.autoClosingBrackets`. */
 internal const val AUTO_CLOSING_BRACKETS = "Auto-closing brackets"
+
+/** `docs/PLAN.md` P6c-6 - see `EditorSettings.completionEnabled`. */
+internal const val CODE_COMPLETION = "Code completion"
 
 /** `accessKernelHistory` - see `EditorSettings.accessKernelHistory`. */
 internal const val KERNEL_HISTORY_ACCESS = "Kernel history access"

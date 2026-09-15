@@ -378,6 +378,7 @@ fun EditorScreen(
           lineNumbersShown = editorSettings.lineNumbersShown,
           codeFontSizeSp = editorSettings.codeFontSizeSp,
           wrapEnabled = editorSettings.codeWrapEnabled,
+          completionEnabled = editorSettings.completionEnabled,
           tocNumbering = editorSettings.tocNumbering(),
           tocHeadings = tocHeadings,
           listState = listState,

@@ -70,6 +70,8 @@ fun CodeCellField(
   codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /** `docs/PLAN.md` P6c-5 - false scrolls the code horizontally instead of wrapping it. */
   wrapEnabled: Boolean = true,
+  /** `docs/PLAN.md` P6c-6 - false never asks the kernel for completions. */
+  completionEnabled: Boolean = true,
   /** Breakpoints set on this cell, by line - see [NotebookDebugger]. Code cells only. */
   breakpoints: List<Breakpoint> = emptyList(),
   /** A tap in the gutter, reporting the one-based line it hit - see [Modifier.lineNumbers]. */
@@ -97,7 +99,7 @@ fun CodeCellField(
   val codeStyle = codeSourceStyle(fontSize = codeFontSizeSp.sp)
   val numberStyle = codeStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
-  val completions by rememberCellCompletions(state, focused, completionsAt)
+  val completions by rememberCellCompletions(state, focused, completionsAt, enabled = completionEnabled)
   val searchStyles = searchMatchStyles()
   val searching = rememberUpdatedState(search)
   // The code a popup was already answered for, so accepting or dismissing one does not

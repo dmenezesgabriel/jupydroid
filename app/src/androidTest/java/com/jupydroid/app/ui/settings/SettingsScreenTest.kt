@@ -133,6 +133,23 @@ class SettingsScreenTest {
   }
 
   @Test
+  fun codeCompletionRowShowsTheRepositorysCurrentValue() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(completionEnabled = false)))
+
+    compose.onNodeWithText(CODE_COMPLETION).assertIsOff()
+  }
+
+  @Test
+  fun tappingCodeCompletionWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(completionEnabled = true))
+    startScreen(repository)
+
+    compose.onNodeWithText(CODE_COMPLETION).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().completionEnabled }
+  }
+
+  @Test
   fun tappingAutoClosingBracketsWritesTheRepository() {
     val repository = FakeEditorSettingsRepository(EditorSettings(autoClosingBrackets = true))
     startScreen(repository)
