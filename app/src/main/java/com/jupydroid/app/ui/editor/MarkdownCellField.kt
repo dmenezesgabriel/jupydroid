@@ -21,6 +21,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.sp
+import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.syntax.MarkdownSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.theme.editorPalette
@@ -63,6 +65,8 @@ fun MarkdownCellField(
   takesCaret: Boolean = false,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
   /** Whether this is the cell the caret is in - see [cellIsBeingEdited] and [cellEditorBox]. */
@@ -74,7 +78,8 @@ fun MarkdownCellField(
   val focused = interactions.collectIsFocusedAsState()
   val empty by remember { derivedStateOf { state.text.isEmpty() } }
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-  val numberStyle = codeSourceStyle().copy(color = editorPalette.lineNumber)
+  val sourceStyle = codeSourceStyle(fontSize = codeFontSizeSp.sp)
+  val numberStyle = sourceStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
   val searchStyles = searchMatchStyles()
   val searching = rememberUpdatedState(search)
@@ -109,7 +114,7 @@ fun MarkdownCellField(
       .focusRequester(caret)
       .lineNumbers(state.text, layout, numberStyle, gutter),
     onTextLayout = { getResult -> layout = getResult() },
-    textStyle = codeSourceStyle(),
+    textStyle = sourceStyle,
     interactionSource = interactions,
     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
     // No bracket matching: a parenthesis in prose is punctuation, not structure.

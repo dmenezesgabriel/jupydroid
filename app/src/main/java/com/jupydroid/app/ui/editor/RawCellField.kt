@@ -14,6 +14,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.sp
+import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.syntax.PlainText
 import com.jupydroid.app.theme.editorPalette
 
@@ -58,13 +60,15 @@ fun RawCellField(
   input: FocusedCellInput? = null,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
 ) {
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-  val sourceStyle = codeSourceStyle()
+  val sourceStyle = codeSourceStyle(fontSize = codeFontSizeSp.sp)
   val numberStyle = sourceStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
   val searchStyles = searchMatchStyles()

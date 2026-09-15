@@ -1,12 +1,18 @@
 package com.jupydroid.app.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -17,10 +23,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
@@ -75,6 +83,15 @@ fun SettingsScreen(
   fun update(changed: EditorSettings) {
     applicationScope.launch { editorSettingsRepository.update(changed) }
   }
+
+  // The clamp `TerminalPaneViewModel.changeFontSize` does for the terminal's own field - there is
+  // no ViewModel here, so this screen is where it has to live, the same division that function's
+  // own doc comment draws between "the store" and "the screen that computes what to store."
+  fun changeCodeFontSize(deltaSp: Int) {
+    val next = (settings.codeFontSizeSp + deltaSp).coerceIn(CodeFontSize.MIN, CodeFontSize.MAX)
+    if (next == settings.codeFontSizeSp) return
+    update(settings.copy(codeFontSizeSp = next))
+  }
   val themeSettings by themeSettingsRepository.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
   fun updateTheme(changed: ThemeOverride) {
     applicationScope.launch { themeSettingsRepository.update(ThemeSettings(override = changed)) }
@@ -99,6 +116,12 @@ fun SettingsScreen(
       SettingsToggleRow(SHOW_LINE_NUMBERS, settings.lineNumbersShown) {
         update(settings.copy(lineNumbersShown = it))
       }
+      SettingsStepperRow(
+        label = CODE_FONT_SIZE,
+        valueSp = settings.codeFontSizeSp,
+        onIncrease = { changeCodeFontSize(CodeFontSize.STEP) },
+        onDecrease = { changeCodeFontSize(-CodeFontSize.STEP) },
+      )
       SettingsToggleRow(AUTO_CLOSING_BRACKETS, settings.autoClosingBrackets) {
         update(settings.copy(autoClosingBrackets = it))
       }
@@ -133,6 +156,30 @@ private fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: 
     headlineContent = { Text(label) },
     trailingContent = { Switch(checked = checked, onCheckedChange = null) },
     modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+  )
+}
+
+/**
+ * One persisted numeric preference: a label and two `IconButton`s either side of its current
+ * value, each disabling itself at its own bound rather than disappearing -
+ * [com.jupydroid.app.ui.terminal.TerminalActionsMenu]'s own convention for the terminal's font
+ * size, the reference's own `isEnabled` gate read through a screen row instead of a menu one.
+ */
+@Composable
+private fun SettingsStepperRow(label: String, valueSp: Int, onIncrease: () -> Unit, onDecrease: () -> Unit) {
+  ListItem(
+    headlineContent = { Text(label) },
+    trailingContent = {
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onDecrease, enabled = valueSp > CodeFontSize.MIN) {
+          Icon(Icons.Filled.Remove, contentDescription = DECREASE_CODE_FONT_SIZE)
+        }
+        Text("${valueSp}sp")
+        IconButton(onClick = onIncrease, enabled = valueSp < CodeFontSize.MAX) {
+          Icon(Icons.Filled.Add, contentDescription = INCREASE_CODE_FONT_SIZE)
+        }
+      }
+    },
   )
 }
 
@@ -179,6 +226,15 @@ private val THEME_OPTIONS = listOf(
 
 /** `notebook:toggle-all-cell-line-numbers` - see `EditorSettings.lineNumbersShown`. */
 internal const val SHOW_LINE_NUMBERS = "Show line numbers"
+
+/** `docs/PLAN.md` P6c-4 - see `EditorSettings.codeFontSizeSp`. */
+internal const val CODE_FONT_SIZE = "Code font size"
+
+/** The decrease button's accessible label - see `SettingsStepperRow`. */
+internal const val DECREASE_CODE_FONT_SIZE = "Decrease code font size"
+
+/** The increase button's accessible label - see `SettingsStepperRow`. */
+internal const val INCREASE_CODE_FONT_SIZE = "Increase code font size"
 
 /** `fileeditor:toggle-autoclosing-brackets-universal` - see `EditorSettings.autoClosingBrackets`. */
 internal const val AUTO_CLOSING_BRACKETS = "Auto-closing brackets"

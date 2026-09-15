@@ -129,6 +129,29 @@ class EditorThemeTest {
   }
 
   /**
+   * `codeSourceStyle(fontSize = ...)` - the seam `docs/PLAN.md`'s P6c-4 resizes a cell's own
+   * editor through, the same seam [codeTextStyleOverridesTheSizeAndItsLineHeightTogether] pins for
+   * the terminal. Both the size/line-height pair and the source colour have to survive the
+   * override together, or a resized cell would read in the wrong colour.
+   */
+  @Test
+  fun codeSourceStyleOverridesTheSizeAndItsLineHeightTogether() {
+    lateinit var resized: TextStyle
+    lateinit var default: TextStyle
+    compose.setContent {
+      JupyterDroidTheme {
+        resized = codeSourceStyle(fontSize = 20.sp)
+        default = codeSourceStyle()
+      }
+    }
+
+    assertEquals(20.sp, resized.fontSize)
+    assertEquals(CodeText.lineHeightFor(20.sp), resized.lineHeight)
+    assertEquals(FontFamily.Monospace, resized.fontFamily)
+    assertEquals("the source colour survives the override", default.color, resized.color)
+  }
+
+  /**
    * The same failure shape one layer down: syntax spans that do not change with the theme would
    * mean the palette is not reaching the transformation at all, which a screenshot in one theme
    * cannot show.

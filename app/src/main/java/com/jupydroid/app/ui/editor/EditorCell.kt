@@ -53,6 +53,8 @@ internal fun EditorCell(
   hiddenBelow: Int,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean,
+  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  codeFontSizeSp: Int,
   /** Breakpoints set on this cell, by line - code cells only. See [NotebookDebugger]. */
   breakpoints: List<Breakpoint>,
   /** A tap in this cell's gutter, reporting the one-based line it hit. */
@@ -147,6 +149,7 @@ internal fun EditorCell(
             completionsAt = completionsAt,
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
+            codeFontSizeSp = codeFontSizeSp,
             breakpoints = breakpoints,
             onGutterTap = onGutterTap,
             onGutterLongPress = onGutterLongPress,
@@ -170,6 +173,7 @@ internal fun EditorCell(
             input = cellInput,
             takesCaret = markdownTakesCaret,
             lineNumbersShown = lineNumbersShown,
+            codeFontSizeSp = codeFontSizeSp,
             search = search,
             modifier = Modifier.fillMaxWidth(),
           )
@@ -181,6 +185,7 @@ internal fun EditorCell(
             onSourceEdited = onSourceEdited,
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
+            codeFontSizeSp = codeFontSizeSp,
             search = search,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
           )

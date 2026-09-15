@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
+import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.markdown.MarkdownDocument
 import com.jupydroid.app.markdown.withHeadingNumbered
 
@@ -56,6 +57,8 @@ fun MarkdownCell(
   editing: Boolean = false,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /**
    * `toc:display-numbering`'s answer for this cell's heading, or `""`. **In the document** and not
    * only in the panel, which is what that command's own label promises - the reference writes it
@@ -88,7 +91,7 @@ fun MarkdownCell(
   if (fold == null || !rendered) {
     MarkdownCellBody(
       state, source, rendered, onEditRequested, onSourceEdited, modifier,
-      input, takesCaret, editing, lineNumbersShown, headingPrefix, search,
+      input, takesCaret, editing, lineNumbersShown, codeFontSizeSp, headingPrefix, search,
     )
     return
   }
@@ -99,7 +102,7 @@ fun MarkdownCell(
     HeadingCollapser(fold = fold, onToggle = onToggleHeadingCollapse)
     MarkdownCellBody(
       state, source, rendered, onEditRequested, onSourceEdited, Modifier.weight(1f),
-      input, takesCaret, editing, lineNumbersShown, headingPrefix, search,
+      input, takesCaret, editing, lineNumbersShown, codeFontSizeSp, headingPrefix, search,
     )
   }
 }
@@ -122,6 +125,7 @@ private fun MarkdownCellBody(
   takesCaret: Boolean,
   editing: Boolean,
   lineNumbersShown: Boolean,
+  codeFontSizeSp: Int,
   headingPrefix: String,
   search: CellSearchHighlight,
 ) {
@@ -134,6 +138,7 @@ private fun MarkdownCellBody(
       input = input,
       takesCaret = takesCaret,
       lineNumbersShown = lineNumbersShown,
+      codeFontSizeSp = codeFontSizeSp,
       editing = editing,
     )
     return

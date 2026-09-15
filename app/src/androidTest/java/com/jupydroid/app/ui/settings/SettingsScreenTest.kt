@@ -1,15 +1,19 @@
 package com.jupydroid.app.ui.settings
 
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
+import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
@@ -67,6 +71,48 @@ class SettingsScreenTest {
     compose.onNodeWithText(SHOW_LINE_NUMBERS).performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().lineNumbersShown }
+  }
+
+  @Test
+  fun codeFontSizeRowShowsTheRepositorysCurrentValue() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(codeFontSizeSp = 16)))
+
+    compose.onNodeWithText("16sp").assertIsDisplayed()
+  }
+
+  @Test
+  fun tappingIncreaseCodeFontSizeWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(codeFontSizeSp = 16))
+    startScreen(repository)
+
+    compose.onNodeWithContentDescription(INCREASE_CODE_FONT_SIZE).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().codeFontSizeSp == 16 + CodeFontSize.STEP }
+  }
+
+  @Test
+  fun tappingDecreaseCodeFontSizeWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(codeFontSizeSp = 16))
+    startScreen(repository)
+
+    compose.onNodeWithContentDescription(DECREASE_CODE_FONT_SIZE).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().codeFontSizeSp == 16 - CodeFontSize.STEP }
+  }
+
+  /** `TerminalActionsMenu`'s own gate, read as disabled rather than hidden - see `SettingsStepperRow`. */
+  @Test
+  fun increaseCodeFontSizeIsDisabledAtTheMaximum() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(codeFontSizeSp = CodeFontSize.MAX)))
+
+    compose.onNodeWithContentDescription(INCREASE_CODE_FONT_SIZE).assertIsNotEnabled()
+  }
+
+  @Test
+  fun decreaseCodeFontSizeIsDisabledAtTheMinimum() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(codeFontSizeSp = CodeFontSize.MIN)))
+
+    compose.onNodeWithContentDescription(DECREASE_CODE_FONT_SIZE).assertIsNotEnabled()
   }
 
   @Test

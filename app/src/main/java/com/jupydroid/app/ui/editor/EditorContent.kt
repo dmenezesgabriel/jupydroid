@@ -40,6 +40,8 @@ internal fun EditorContent(
   autoClosingBrackets: Boolean,
   /** `notebook:toggle-all-cell-line-numbers` - app-wide and persisted since P6c-2. */
   lineNumbersShown: Boolean,
+  /** `docs/PLAN.md` P6c-4 - app-wide and persisted, see [codeSourceStyle]. */
+  codeFontSizeSp: Int,
   /** `toc:display-numbering` / `toc:display-h1-numbering` - see [MarkdownCell]. */
   tocNumbering: TocNumbering,
   /** Every heading in the notebook, numbered as one document - see [tableOfContentsHeadings]. */
@@ -118,6 +120,7 @@ internal fun EditorContent(
               // One flag for the whole notebook and all three cell types, which is what the command
               // is: `toggleAllLineNumbers` writes code, markdown and raw together.
               lineNumbersShown = lineNumbersShown,
+              codeFontSizeSp = codeFontSizeSp,
               breakpoints = state.breakpointsByCellId[cell.id].orEmpty(),
               onGutterTap = { line -> onToggleBreakpoint(cell.id, line) },
               onGutterLongPress = { line -> conditionPrompt = cell.id to line },

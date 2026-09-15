@@ -376,6 +376,7 @@ fun EditorScreen(
           cellInput = cellInput,
           autoClosingBrackets = editorSettings.autoClosingBrackets,
           lineNumbersShown = editorSettings.lineNumbersShown,
+          codeFontSizeSp = editorSettings.codeFontSizeSp,
           tocNumbering = editorSettings.tocNumbering(),
           tocHeadings = tocHeadings,
           listState = listState,

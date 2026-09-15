@@ -20,7 +20,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.sp
 import com.jupydroid.app.domain.model.Breakpoint
+import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
@@ -61,6 +63,8 @@ fun CodeCellField(
   input: FocusedCellInput? = null,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
+  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /** Breakpoints set on this cell, by line - see [NotebookDebugger]. Code cells only. */
   breakpoints: List<Breakpoint> = emptyList(),
   /** A tap in the gutter, reporting the one-based line it hit - see [Modifier.lineNumbers]. */
@@ -85,7 +89,7 @@ fun CodeCellField(
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-  val codeStyle = codeSourceStyle()
+  val codeStyle = codeSourceStyle(fontSize = codeFontSizeSp.sp)
   val numberStyle = codeStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
   val completions by rememberCellCompletions(state, focused, completionsAt)
