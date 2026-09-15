@@ -46,14 +46,20 @@ data class CellCompletions(val query: CompletionQuery, val result: CompletionRes
  * `collectLatest` is the whole cancellation story: a new keystroke cancels both the wait and any
  * request already in flight, which is why [com.jupydroid.app.data.space.RealKernelGateway.complete]
  * needs no timeout of its own.
+ *
+ * @param enabled `docs/PLAN.md`'s P6c-6 - false skips the pipeline entirely rather than running it
+ *   to completion and discarding the answer, [lineNumbers]'s own `if (width <= 0.dp) return this`
+ *   precedent for an early return ahead of other composable state.
  */
 @Composable
 fun rememberCellCompletions(
   state: TextFieldState,
   focused: State<Boolean>,
   completionsAt: suspend (code: String, cursorOffset: Int) -> CompletionResult,
+  enabled: Boolean = true,
 ): State<CellCompletions?> {
   val completions = remember { mutableStateOf<CellCompletions?>(null) }
+  if (!enabled) return completions
   // Read through rememberUpdatedState rather than keyed on: Kotlin compiles a bound callable
   // reference with invokedynamic, so `viewModel::completionsAt` is a new object every
   // recomposition. Keying on it restarted this effect on every keystroke, which cancelled the
