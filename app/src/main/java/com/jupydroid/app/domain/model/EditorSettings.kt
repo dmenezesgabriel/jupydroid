@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - nine fields today.
+ * The app-wide editor preferences P6c grows - ten fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -111,6 +111,16 @@ data class EditorSettings(
    * same reasoning [codeWrapEnabled]'s own default carries.
    */
   val completionEnabled: Boolean = true,
+  /**
+   * `docs/PLAN.md`'s P6c-7 - whether [com.jupydroid.app.ui.editor.SymbolRow] shows at all while a
+   * cell is being typed into.
+   *
+   * There is no reference command to depart from here: `SymbolRow` is itself a phone-only
+   * adaptation with no JupyterLab/IntelliJ counterpart (its own doc comment - "This is what
+   * edit-mode keys mean on a phone"). **True by default**, so shipping this field changes no
+   * pixel until a user turns it off - the same reasoning [codeWrapEnabled]'s own default carries.
+   */
+  val symbolRowShown: Boolean = true,
 )
 
 /**

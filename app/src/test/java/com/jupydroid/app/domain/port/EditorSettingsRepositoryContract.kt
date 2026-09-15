@@ -126,6 +126,26 @@ abstract class EditorSettingsRepositoryContract {
     assertFalse(repository.observeSettings().first().completionEnabled)
   }
 
+  /**
+   * `symbolRowShown` defaults to `true` - shipping this field changes no pixel until a user
+   * turns it off, the same reasoning `codeWrapEnabled`'s and `completionEnabled`'s own defaults
+   * carry. There is no reference command to depart from here: `SymbolRow` is itself a phone-only
+   * adaptation with no JupyterLab/IntelliJ counterpart.
+   */
+  @Test
+  fun defaultsToSymbolRowShown() = runTest {
+    assertTrue(repository().observeSettings().first().symbolRowShown)
+  }
+
+  @Test
+  fun remembersSymbolRowShownTurnedOff() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(symbolRowShown = false))
+
+    assertFalse(repository.observeSettings().first().symbolRowShown)
+  }
+
   @Test
   fun remembersEveryFieldOfAnUpdateAndNotOnlyTheFirst() = runTest {
     val repository = repository()
