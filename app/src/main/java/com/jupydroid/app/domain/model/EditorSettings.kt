@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - eight fields today.
+ * The app-wide editor preferences P6c grows - nine fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -91,6 +91,26 @@ data class EditorSettings(
    * user turns it off.
    */
   val codeWrapEnabled: Boolean = true,
+  /**
+   * `docs/PLAN.md`'s P6c-6 - whether a code cell's editor asks the kernel for completions at all.
+   *
+   * The reference has two unrelated settings here and only one is an on/off: `availableProviders`
+   * (`packages/completer-extension/schema/manager.json:1-50`) ranks each completion provider, and a
+   * negative rank disables it - `"CompletionProvider:kernel": 550` by default, filtered out once
+   * negative (`packages/completer-extension/src/index.ts:479-484`,
+   * `packages/completer/src/manager.ts:145-156`). This app has exactly one provider, the kernel, so
+   * a boolean is a faithful collapse of that ranked list rather than a simplification of it - the
+   * same collapse [com.jupydroid.app.domain.model.ThemeOverride] already is for the reference's
+   * open-ended theme registry. **Not** the reference's `autoCompletion` (default `false`,
+   * `packages/completer-extension/schema/manager.json:1-50`): that setting never gates the kernel
+   * request itself, only whether a single typed character auto-opens the popup versus requiring
+   * explicit Tab (`packages/completer/src/handler.ts:349-360`) - a trigger-mode concern this app has
+   * no Tab-invoke command to make sense of yet, and out of scope here.
+   *
+   * **True by default**, so shipping this field changes no pixel until a user turns it off - the
+   * same reasoning [codeWrapEnabled]'s own default carries.
+   */
+  val completionEnabled: Boolean = true,
 )
 
 /**

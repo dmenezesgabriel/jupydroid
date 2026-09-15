@@ -104,6 +104,28 @@ abstract class EditorSettingsRepositoryContract {
     assertFalse(repository.observeSettings().first().codeWrapEnabled)
   }
 
+  /**
+   * `completionEnabled` defaults to `true` - a faithful collapse of the reference's own ranked
+   * `availableProviders` list (`packages/completer-extension/schema/manager.json:1-50`,
+   * `"CompletionProvider:kernel": 550`) into one boolean, since this app has exactly one completion
+   * provider rather than a ranked set of them - the same collapse `ThemeOverride` already is for the
+   * reference's open-ended theme registry. Shipping this field changes no pixel until a user turns
+   * it off, the same reasoning `codeWrapEnabled`'s own default carries.
+   */
+  @Test
+  fun defaultsToCompletionEnabled() = runTest {
+    assertTrue(repository().observeSettings().first().completionEnabled)
+  }
+
+  @Test
+  fun remembersCompletionEnabledTurnedOff() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(completionEnabled = false))
+
+    assertFalse(repository.observeSettings().first().completionEnabled)
+  }
+
   @Test
   fun remembersEveryFieldOfAnUpdateAndNotOnlyTheFirst() = runTest {
     val repository = repository()
