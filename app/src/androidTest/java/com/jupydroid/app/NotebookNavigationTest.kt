@@ -127,6 +127,12 @@ class NotebookNavigationTest {
           ),
           importTitle = null,
           onImportConsumed = {},
+          // Pinned rather than measured: `currentWindowAdaptiveInfo()` reads the real window, and
+          // a physical tablet's own current rotation can put this on either side of the two-pane
+          // threshold, where `"Back to notebooks"` becomes `"Close"` instead (`DocumentDismissAction`).
+          // Found live: this flow failed on `SM-X216B` in landscape until pinned - `ConsoleNavigationTest`'s
+          // own fix for the identical cause (P6b-9c).
+          twoPane = false,
         )
       }
     }

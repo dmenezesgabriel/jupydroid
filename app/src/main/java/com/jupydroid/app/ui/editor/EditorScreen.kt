@@ -110,6 +110,12 @@ fun EditorScreen(
   onGoToFolder: (String) -> Unit,
   onBack: () -> Unit,
   /**
+   * `notebook:create-console` (P6b-9) - a Console session sharing this notebook's own kernel,
+   * handed the session `NotebookKernel.attachConsole()` mints so the caller can push it wherever a
+   * Console screen is reached from - see `MainNavigation`.
+   */
+  onOpenConsole: (NotebookKernelSession) -> Unit = {},
+  /**
    * Reports where the notebook lives *now*, because a rename moves it.
    *
    * The navigation key keeps the path the editor was opened under - replacing it would re-create
@@ -330,6 +336,7 @@ fun EditorScreen(
             twoPane = twoPane,
             titleCollapse = titleCollapse,
             onGoToFolder = onGoToFolder,
+            onOpenConsole = onOpenConsole,
           )
           // Under whichever bar is up rather than over the notebook: it says the *document* is
           // busy, and covering the document to say so would be the wrong trade. See [ExportStatus].
@@ -345,6 +352,7 @@ fun EditorScreen(
           cellInput = cellInput,
           onBack = onBack,
           twoPane = twoPane,
+          onOpenConsole = onOpenConsole,
         )
       },
     ) { innerPadding ->

@@ -45,6 +45,8 @@ internal fun EditorTopBars(
   titleCollapse: Float,
   /** A breadcrumb segment was tapped: browse that folder. See [EditorTopBar]. */
   onGoToFolder: (String) -> Unit,
+  /** `notebook:create-console` (P6b-9) - see [notebookKernelCommands]. */
+  onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ) {
   val head = state.cells.firstOrNull { it.id == state.selectedCellId }
   val searching = state.search
@@ -99,6 +101,7 @@ internal fun EditorTopBars(
       twoPane = twoPane,
       titleCollapse = titleCollapse,
       onGoToFolder = onGoToFolder,
+      onOpenConsole = onOpenConsole,
     )
   }
 }
@@ -123,6 +126,7 @@ private fun DocumentTopBar(
   twoPane: Boolean,
   titleCollapse: Float,
   onGoToFolder: (String) -> Unit,
+  onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ) {
   EditorTopBar(
     title = state.title,
@@ -162,7 +166,7 @@ private fun DocumentTopBar(
         // The name goes where the row cannot afford it and the status glyph stays - see
         // [labelsFitOnActionRow], and `docs/DECISIONS.md` for why that is the half kept.
         nameShown = labelsFitOnActionRow(),
-        commands = notebookKernelCommands(state, viewModel, onBack),
+        commands = notebookKernelCommands(state, viewModel, onBack, onOpenConsole),
       )
     },
   )

@@ -51,6 +51,22 @@ fun MutableList<NavKey>.openTerminal(name: String) {
 }
 
 /**
+ * Opens a Console for the notebook already showing - stacked on top of it, not through
+ * [chooseDetailThatFitsTheSurface]: the whole point is running against the same kernel while the
+ * notebook stays reachable on Back, so this never replaces what it is attached to. Revealed
+ * rather than duplicated on a second tap, [Console]'s own de-dupe rule.
+ *
+ * ```
+ * backStack.openConsole("nb-1")   // [Explorer, Editor("nb-1")] -> [Explorer, Editor("nb-1"), Console("nb-1")]
+ * ```
+ */
+fun MutableList<NavKey>.openConsole(notebookId: String) {
+  val console = Console(notebookId)
+  if (lastOrNull() == console) return
+  add(console)
+}
+
+/**
  * One document, revealed or replaced - never two, anywhere in the stack.
  *
  * Both document kinds swap each other, because the explorer opens both and a detail it cannot
@@ -66,7 +82,12 @@ private fun MutableList<NavKey>.chooseDetailThatFitsTheSurface(opened: () -> Nav
   val document = opened()
   if (lastOrNull() == document) return
   remove(document)
-  if (lastOrNull().isDocument()) removeAt(lastIndex)
+  // A loop, not a single check: a Console stacks a second document over its notebook
+  // (`openConsole`'s own doc comment), so unwinding to the surface before opening something else
+  // has to remove both, not just the one on top - a single `removeAt` left the notebook behind,
+  // `[Explorer, Editor("nb-1"), Editor("nb-2")]`, the exact two-documents-one-pane shape P6b-0
+  // exists to prevent - see `NotebookBackStackTest`'s own Console cases.
+  while (lastOrNull().isDocument()) removeAt(lastIndex)
   add(document)
 }
 
@@ -74,4 +95,4 @@ private fun MutableList<NavKey>.chooseDetailThatFitsTheSurface(opened: () -> Nav
  * Special-casing which kinds are documents is only true until the next document opens; when it
  * does, add it here - the rule is "anything a surface opens replaces the current detail".
  */
-private fun Any?.isDocument(): Boolean = this is Editor || this is FileEditor || this is Terminal
+private fun Any?.isDocument(): Boolean = this is Editor || this is FileEditor || this is Terminal || this is Console

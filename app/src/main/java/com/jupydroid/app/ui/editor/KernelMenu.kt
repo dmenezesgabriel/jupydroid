@@ -45,6 +45,8 @@ internal data class NotebookKernelCommands(
   val onRestartAndRunTo: () -> Unit = {},
   val onShutdown: () -> Unit = {},
   val onCloseAndShutdown: () -> Unit = {},
+  /** `notebook:create-console` (P6b-9) - a Console sharing this notebook's own kernel. */
+  val onOpenConsole: () -> Unit = {},
 )
 
 /**
@@ -57,6 +59,8 @@ internal fun notebookKernelCommands(
   state: EditorUiState,
   viewModel: EditorViewModel,
   onBack: () -> Unit,
+  /** Where a Console session `attachConsole()` mints goes next - see `MainNavigation` (P6b-9). */
+  onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ): NotebookKernelCommands = NotebookKernelCommands(
   notebookTitle = state.title,
   // Greyed rather than absent, so the menu's shape does not change under the thumb as the head
@@ -79,6 +83,7 @@ internal fun notebookKernelCommands(
   // The close is the shutdown's continuation rather than a second act, so it runs after the
   // session has actually ended - `notebook:close-and-shutdown` awaits it too.
   onCloseAndShutdown = { viewModel.kernel.shutdown(then = onBack) },
+  onOpenConsole = { onOpenConsole(viewModel.kernel.attachConsole()) },
 )
 
 /**
@@ -174,6 +179,16 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
       },
     )
     HorizontalDivider()
+    // `mainMenu.fileMenu.consoleCreators` (`notebook-extension/src/index.ts:1413-1417`) - its own
+    // group in the reference, filed apart from the ranged runs and apart from the two shutdowns.
+    DropdownMenuItem(
+      text = { Text(NEW_CONSOLE_FOR_NOTEBOOK) },
+      onClick = {
+        onDismiss()
+        commands.onOpenConsole()
+      },
+    )
+    HorizontalDivider()
     DropdownMenuItem(
       text = { Text("Shut Down Kernel") },
       onClick = {
@@ -232,6 +247,9 @@ internal const val RUN_SELECTED_AND_BELOW = "Run Selected Cell and All Below"
 
 /** `notebook:clear-all-cell-outputs` (`index.ts:3347`). */
 internal const val CLEAR_ALL_OUTPUTS = "Clear Outputs of All Cells"
+
+/** `notebook:create-console`'s own label (`notebook-extension/src/index.ts:1841`). */
+internal const val NEW_CONSOLE_FOR_NOTEBOOK = "New Console for Notebook"
 
 /** `notebook:restart-clear-output` (`index.ts:3246`). */
 internal const val RESTART_AND_CLEAR = "Restart Kernel and Clear Outputs of All Cells…"

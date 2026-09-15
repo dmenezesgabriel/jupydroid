@@ -32,6 +32,8 @@ internal fun EditorBottomBars(
   onBack: () -> Unit,
   /** Whether a side panel already shows the call stack and variables - see [DebuggerControlBar]. */
   twoPane: Boolean,
+  /** `notebook:create-console` (P6b-9) - see [notebookKernelCommands]. */
+  onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ) {
   // Held here rather than inside [DebuggerBottomBar] itself: a real step's own DAP shape sends
   // `Continued` before the next `Stopped` (`NotebookDebuggerTest.watchForStopClearsOnAContinuedEvent`),
@@ -78,7 +80,7 @@ internal fun EditorBottomBars(
       onRestartAndRunAll = viewModel.kernel::restartAndRunAll,
       // Everything behind the `⋮`, wired where the kernel indicator's copy is wired too - see
       // [notebookKernelCommands], which is what stops the two anchors from drifting apart.
-      commands = notebookKernelCommands(state, viewModel, onBack),
+      commands = notebookKernelCommands(state, viewModel, onBack, onOpenConsole),
     )
   }
 }

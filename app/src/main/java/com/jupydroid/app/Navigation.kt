@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -28,7 +29,10 @@ import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.ui.console.ConsoleScreen
+import com.jupydroid.app.ui.console.ConsoleViewModel
 import com.jupydroid.app.ui.editor.EditorScreen
+import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.trailingBorder
@@ -132,6 +136,15 @@ fun MainNavigation(
   // reported here instead. `_contextsForPath` does the same - it filters live contexts by their
   // current path, never by the one a widget was created with.
   var openNotebookId by remember { mutableStateOf<String?>(null) }
+  // The session `NotebookKernel.attachConsole()` minted for whichever notebook's Console was last
+  // opened - `outline`/`debugPanel`/`openDocuments`' own shape, the side channel a live object
+  // needs to flow between two `NavEntry`s that own separate `ViewModelStore`s. Plain `remember`,
+  // not saveable, for `openNotebookId`'s own reason: a `NotebookKernelSession` cannot survive a
+  // process death any more than an `EditorViewModel`'s own kernel connection can, so there is
+  // nothing this could round-trip through a Bundle. A Console entry restored without one composes
+  // no screen - the same silent gap every other holder here already leaves unaddressed rather than
+  // one this row invents a fallback for.
+  var consoleSession by remember { mutableStateOf<NotebookKernelSession?>(null) }
   val openDocument = rememberDocumentOpener(backStack, appContainer)
   val newTerminal = rememberNewTerminal(backStack, appContainer)
   // Where the browser has been asked to go from *outside* its own entry - the open document's
@@ -346,6 +359,10 @@ fun MainNavigation(
             // The one width fact this screen reads, and it decides one thing: whether leaving the
             // document is drawn as going back or as closing it (`DocumentDismissAction`).
             twoPane = twoPane,
+            onOpenConsole = { session ->
+              consoleSession = session
+              backStack.openConsole(editor.notebookId)
+            },
             onNotebookMoved = { moved -> openNotebookId = moved },
             // The same request the file editor takes, because the panel does not know - and should
             // not - which of the two a path opens: `docmanager:open` decides the editor from the
@@ -365,6 +382,18 @@ fun MainNavigation(
             twoPane = twoPane,
             terminalSettingsRepository = appContainer.terminalSettings,
           )
+        }
+        entry<Console>(metadata = ListDetailSceneStrategy.detailPane()) { console ->
+          // Null only when this entry was restored without the live session that opened it - see
+          // `consoleSession`'s own doc comment; there is nothing to compose against in that case.
+          consoleSession?.let { session ->
+            ConsoleScreen(
+              title = console.notebookId,
+              viewModel = viewModel { ConsoleViewModel(appContainer.kernelGateway, session) },
+              onBack = { backStack.removeLastOrNull() },
+              twoPane = twoPane,
+            )
+          }
         }
       },
     )

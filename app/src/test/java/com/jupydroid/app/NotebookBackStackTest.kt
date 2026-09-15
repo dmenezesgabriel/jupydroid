@@ -154,4 +154,54 @@ class NotebookBackStackTest {
 
     assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
   }
+
+  /**
+   * A Console stacks on top of the notebook it shares a kernel with, rather than replacing it -
+   * P6b-9's own reason to exist: Back has to return to the still-open notebook, not to the
+   * browser. [openConsole] is not [openNotebook]'s twin for that reason; it never goes through
+   * [chooseDetailThatFitsTheSurface] at all.
+   */
+  @Test
+  fun openingAConsolePushesItOnTopOfTheOpenNotebook() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
+
+    backStack.openConsole("nb-1")
+
+    assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1")), backStack)
+  }
+
+  @Test
+  fun openingTheConsoleAlreadyOnTopChangesNothing() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
+
+    backStack.openConsole("nb-1")
+
+    assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1")), backStack)
+  }
+
+  /**
+   * The generalised case [chooseDetailThatFitsTheSurface]'s single `if` could not answer: a
+   * Console stacks a *second* document on top of its notebook, so unwinding to the surface before
+   * opening something else has to remove both, not just the one on top. A single `removeAt` left
+   * the notebook behind - `[Explorer, Editor("nb-1"), Editor("nb-2")]`, two documents claiming one
+   * pane, the exact shape P6b-0 exists to prevent - which is why this loops now.
+   */
+  @Test
+  fun openingADifferentNotebookWhileAConsoleIsOpenReplacesBothItAndItsNotebook() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
+
+    backStack.openNotebook("nb-2")
+
+    assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
+  }
+
+  /** Reopening the notebook a Console is showing over promotes it and drops the Console. */
+  @Test
+  fun reopeningTheNotebookUnderAnOpenConsoleDropsTheConsole() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
+
+    backStack.openNotebook("nb-1")
+
+    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
+  }
 }
