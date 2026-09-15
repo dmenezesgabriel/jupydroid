@@ -42,8 +42,21 @@ enum class EditorBottomBar {
  * was on screen (`packages/debugger-extension/src/index.ts:1170-1264`, every one of
  * `debugContinue`/`next`/`stepIn`/`stepOut` gated on `hasStoppedThreads()` alone).
  *
+ * **`symbolRowShown` (P6c-7) answers what typing gets, not whether typing is what's
+ * happening.** `EditorSettings.symbolRowShown` is a Settings-screen preference, not a mode - so
+ * it is read only in the one branch it can change the answer of, the same way `stopped` is read
+ * before `selecting`/`searching` are.
+ *
  * ```
- * when (editorBottomBar(state.selecting, state.mode, state.search != null, state.stoppedAt != null)) { … }
+ * when (
+ *   editorBottomBar(
+ *     state.selecting,
+ *     state.mode,
+ *     state.search != null,
+ *     state.stoppedAt != null,
+ *     editorSettings.symbolRowShown,
+ *   )
+ * ) { … }
  * ```
  */
 internal fun editorBottomBar(
@@ -51,11 +64,12 @@ internal fun editorBottomBar(
   mode: CellMode,
   searching: Boolean,
   stopped: Boolean,
+  symbolRowShown: Boolean = true,
 ): EditorBottomBar = when {
   stopped -> EditorBottomBar.DEBUGGER
   // First, so the one state that cannot arise - entering edit mode deselects (`widget.ts:1925`) -
   // still has a defined answer rather than depending on which branch is written above the other.
   selecting || searching -> EditorBottomBar.NONE
-  mode == CellMode.EDIT -> EditorBottomBar.SYMBOLS
+  mode == CellMode.EDIT -> if (symbolRowShown) EditorBottomBar.SYMBOLS else EditorBottomBar.NONE
   else -> EditorBottomBar.KERNEL
 }

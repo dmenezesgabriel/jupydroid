@@ -31,6 +31,39 @@ class EditorBottomBarTest {
   }
 
   /**
+   * `symbolRowShown` is `true` by default - see `EditorBottomBarTest` above and
+   * `EditorSettings.symbolRowShown`'s own doc comment.
+   */
+  @Test
+  fun aCellBeingTypedIntoWithTheSymbolRowShownGetsTheSymbolRow() {
+    assertEquals(
+      EditorBottomBar.SYMBOLS,
+      editorBottomBar(
+        selecting = false,
+        mode = CellMode.EDIT,
+        searching = false,
+        stopped = false,
+        symbolRowShown = true,
+      ),
+    )
+  }
+
+  /** `docs/PLAN.md`'s P6c-7 - the Settings row that turns this off. */
+  @Test
+  fun aCellBeingTypedIntoWithTheSymbolRowHiddenGetsNoBar() {
+    assertEquals(
+      EditorBottomBar.NONE,
+      editorBottomBar(
+        selecting = false,
+        mode = CellMode.EDIT,
+        searching = false,
+        stopped = false,
+        symbolRowShown = false,
+      ),
+    )
+  }
+
+  /**
    * **And a marked run gets neither, which P2d-3 is what made necessary.** The contextual bar's Run
    * acts on the marked run and the kernel bar's acts on every cell, and until P2d-3 there was no
    * clash to have: both are a bare `PlayArrow`, and at 320dp they sat one above the other on the
