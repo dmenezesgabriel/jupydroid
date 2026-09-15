@@ -1,10 +1,14 @@
 package com.jupydroid.app.ui.console
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -49,7 +53,18 @@ fun ConsoleScreen(
     containerColor = editorPalette.editorBackground,
     topBar = {
       TopAppBar(
-        title = { Text(title) },
+        // A small label above the notebook's own name, so a Console reached from deep in the
+        // back-stack is not mistaken for that notebook's own editor - both references keep the
+        // two visually distinct (a separate tab kind in JupyterLab, a separate document type in
+        // VS Code's Interactive Window), which a phone with only one title row has to say in text
+        // instead. The notebook's name stays the larger, primary line: it is what a Console is
+        // *of*, and `docs/PLAN.md`'s own P6b-9 row already committed to naming it there.
+        title = {
+          Column {
+            Text("Console", style = MaterialTheme.typography.labelSmall)
+            Text(title, style = MaterialTheme.typography.titleMedium)
+          }
+        },
         // Not the bare "Back" `DocumentDismissAction`'s own KDoc warns against: a live-kernel
         // Maestro flow (P6b-9d) measured that string reaching the system navigation bar's own
         // back button instead of this one, which left the Console on screen. A distinct label
@@ -58,22 +73,31 @@ fun ConsoleScreen(
         navigationIcon = {
           DocumentDismissAction(twoPane = twoPane, backDescription = "Back to notebook", onDismiss = onBack)
         },
-        actions = { ConsoleActionsMenu(onClear = viewModel::clear) },
+        actions = {
+          ConsoleActionsMenu(onClear = viewModel::clear, onInterrupt = viewModel::interrupt, running = running)
+        },
       )
     },
     bottomBar = {
-      ConsoleInputRow(
-        state = viewModel.input,
-        running = running,
-        onSubmit = viewModel::submit,
-        onSourceEdited = viewModel::inputEdited,
-        onRecallPreviousEntry = viewModel::recallPreviousEntry,
-        onRecallNextEntry = viewModel::recallNextEntry,
-        // `TerminalExtraKeysRow`'s own rule: the bar docked below the content owns the keyboard's
-        // inset, so `Scaffold`'s own `padding` already reflects it and the content area does not
-        // pay for it twice.
-        modifier = Modifier.imePadding().navigationBarsPadding(),
-      )
+      Column(modifier = Modifier.fillMaxWidth()) {
+        // Separates the live input from the scrolled-back transcript above it - the reference's
+        // own `.jp-CodeConsole-input` box-shadow (`packages/console/style/base.css:79-89`, "matches
+        // the box shadow on the notebook toolbar"), adapted to a border since this app already
+        // prefers one over an inset shadow Compose cannot draw (`CellEditorBox.kt`'s own reasoning).
+        HorizontalDivider()
+        ConsoleInputRow(
+          state = viewModel.input,
+          running = running,
+          onSubmit = viewModel::submit,
+          onSourceEdited = viewModel::inputEdited,
+          onRecallPreviousEntry = viewModel::recallPreviousEntry,
+          onRecallNextEntry = viewModel::recallNextEntry,
+          // `TerminalExtraKeysRow`'s own rule: the bar docked below the content owns the
+          // keyboard's inset, so `Scaffold`'s own `padding` already reflects it and the content
+          // area does not pay for it twice.
+          modifier = Modifier.fillMaxWidth().imePadding().navigationBarsPadding(),
+        )
+      }
     },
   ) { padding ->
     ConsoleTranscript(entries = entries, modifier = Modifier.padding(padding).fillMaxSize())

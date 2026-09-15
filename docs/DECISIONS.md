@@ -5891,3 +5891,55 @@ refactor, because the notebook's own path through that lambda changed even thoug
 
 **This forbids** a second breadcrumb implementation, a second `onGoToFolder` branch, and giving this
 bar a collapsing region without the scroll state that would justify one.
+
+### `RowScope.weight` reads parent data off the direct child, not off whatever modifier a nested composable was handed (P6b-10)
+
+`ConsoleInputRow` passed `Modifier.weight(1f)` into `CodeCellField`'s own `modifier` parameter,
+which that composable applies three layers down - to the `BasicTextField` inside its own unmodified
+`Box` - not to the `Box` itself. `Row` reads `RowScope`-specific parent data off its *own* direct
+LayoutNode children; the `Box` CodeCellField composes to is that child, and it carried no weight
+modifier of its own, so `Row` measured it as an ordinary wrap-content child. An empty `BasicTextField`
+wraps to a few dp, so the field was reachable (tappable, editable, everything worked) and simply
+invisible - the input row's whole shape until now was two icon buttons close together and a run
+triangle floating in dead space, `evidence/p6b-9d-console-shares-kernel/05-console-shares-the-kernel.png`
+(taken before this was diagnosed) shows it plainly once looked at.
+
+**The fix is to give `weight` its own direct child**: `Box(Modifier.weight(1f)) { CodeCellField(modifier
+= Modifier.fillMaxWidth()...) }`. `fillMaxWidth` is not this bug's subject - it resolves through
+ordinary intrinsic-constraint propagation regardless of which LayoutNode carries it, which is why
+the notebook's own cells (`Modifier.fillMaxWidth().cellEditorBox(editing)`, stacked in a `Column`,
+never a `Row`) never hit this. Only `RowScope`/`ColumnScope`'s own parent-data modifiers (`weight`,
+`align`) are the ones that must land on the composable actually adjacent to the scope that reads
+them - a rule worth remembering **the next time `weight` is handed into a composable function that
+does not forward its own `modifier` parameter to its root node**, not just for this field.
+
+**A related, separate defect fixed in the same pass**: `CodeCellField`'s own chrome. The notebook's
+cells draw a border/background/padding around it (`CellEditorBox.kt`'s `Modifier.cellEditorBox`),
+applied by every cell caller, never by `CodeCellField` itself - so a caller that forgot it, as the
+Console did, got a bare `BasicTextField` with nothing drawn at all. Both defects had the identical
+symptom (an apparently missing field) and different causes; fixing only one would have left either
+a correctly-sized invisible box or a visibly-bordered sliver. `cellEditorBox` reused as-is rather
+than duplicated - it is `internal`, which in a single-module app means visible from `ui.console` on
+a plain import, not a visibility change.
+
+### Restart Kernel stays off the Console for now, and the reason is cross-object staleness, not effort (P6b-10)
+
+Both `vscode-jupyter` and JupyterLab keep Restart on the console/Interactive-Window's own primary
+toolbar (`packages/console-extension/schema/tracker.json:63-72`'s `ConsolePanel` toolbar, rank 10;
+VS Code's own `interactive/toolbar` menu, `package.json:949-985`) - unlike Interrupt, which neither
+reference exposes outside a menu or the palette. So Restart's absence here is a real gap and
+Interrupt's was the one worth closing this pass.
+
+The reason it is not simply added: `ConsoleViewModel` holds a `NotebookKernelSession` built by
+`NotebookKernel.attachConsole()`, which is a **second object**, merely constructed with `attachedTo
+= session.opened` - the notebook's own live `KernelSession` value at that moment, not a shared
+reference to the notebook's own session object. Calling `kernelGateway.restart(session.opened)` from
+the Console would genuinely restart the underlying kernel process (both objects resolve the same
+session id, so nothing breaks functionally), but the notebook's own `EditorUiState.kernelRestarting`/
+`kernelConnected` would never hear about it - no spinner, no "variables will be lost" warning, no
+staleness signal at all on the screen that actually owns the kernel's lifecycle. Restarting is also
+meant to sit behind a confirmation (`NotebookKernel.restart`'s own KDoc: "the caller is expected to
+have asked first"), which a Console-side call would need its own copy of.
+
+Both are solvable, but neither belongs to a UI-controls pass answering "is Interrupt reachable and
+is the input field visible" - they are their own sub-step, sized rather than folded in here.

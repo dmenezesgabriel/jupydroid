@@ -164,6 +164,38 @@ class ConsoleViewModelTest {
     assertEquals("2 + 2", viewModel.input.text.toString())
   }
 
+  /**
+   * `console:interrupt-kernel`'s mobile stand-in - `NotebookCellRuns.stopRunningCell`'s own
+   * pattern, applied to the entry this Console is running rather than to `runningCellId`: the
+   * kernel reports a `KeyboardInterrupt` either way, so [ExecutionStatus.CANCELLED] is recorded
+   * locally rather than read back off the output, exactly as the notebook's own Stop does.
+   */
+  @Test
+  fun interrupt_marksTheRunningEntryCancelled() = runTest {
+    val gateway = RecordingKernelGateway(runsUntilInterrupted = true)
+    val viewModel = consoleViewModel(gateway)
+    viewModel.input.edit { insert(0, "1 + 1") }
+    viewModel.submit()
+    advanceUntilIdle()
+
+    viewModel.interrupt()
+    advanceUntilIdle()
+
+    assertEquals(ExecutionStatus.CANCELLED, viewModel.entries.value.single().status)
+    assertEquals(1, gateway.interruptCount)
+  }
+
+  @Test
+  fun interrupt_doesNothingWhenNothingIsRunning() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = consoleViewModel(gateway)
+
+    viewModel.interrupt()
+    advanceUntilIdle()
+
+    assertEquals(0, gateway.interruptCount)
+  }
+
   @Test
   fun clear_dropsEveryEntry() = runTest {
     val viewModel = consoleViewModel(FakeKernelGateway())

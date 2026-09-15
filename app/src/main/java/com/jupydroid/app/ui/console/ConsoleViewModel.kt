@@ -49,6 +49,9 @@ class ConsoleViewModel(private val kernelGateway: KernelGateway, private val ses
   private val _entries = MutableStateFlow<List<ConsoleEntry>>(emptyList())
   val entries = _entries.asStateFlow()
 
+  /** The entry [interrupt] asked to stop, so its resolution reads as cancelled rather than raised. */
+  private var interrupting: String? = null
+
   /** One step older per tap, oldest last - see [NotebookHistory.recallPrevious]. */
   fun recallPreviousEntry() = history.recallPrevious(input.text.toString(), ::writeInput)
 
@@ -95,11 +98,24 @@ class ConsoleViewModel(private val kernelGateway: KernelGateway, private val ses
 
   private fun isRunning(): Boolean = _entries.value.lastOrNull()?.status == ExecutionStatus.RUNNING
 
+  /**
+   * `console:interrupt-kernel`'s mobile stand-in - `NotebookCellRuns.stopRunningCell`'s own
+   * pattern: the entry itself has no handle on the kernel's work, so this is how it is stopped.
+   * Does nothing when nothing is running, since the kernel may be busy with somebody else's cell.
+   */
+  fun interrupt() {
+    val running = _entries.value.lastOrNull()?.takeIf { it.status == ExecutionStatus.RUNNING } ?: return
+    interrupting = running.id
+    viewModelScope.launch { session.opened?.let { kernelGateway.interrupt(it) } }
+  }
+
   private suspend fun run(id: String, source: String) {
     session.reopeningIfStale { open -> kernelGateway.execute(open, id, source) }
       .catch { failure -> emit(kernelFailure(id, failure)) }
       .collect { event -> _entries.update { entries -> entries.after(id, event) } }
-    _entries.update { entries -> entries.resolved(id) }
+    val cancelled = interrupting == id
+    interrupting = null
+    _entries.update { entries -> entries.resolved(id, cancelled) }
   }
 }
 
@@ -110,10 +126,20 @@ private fun List<ConsoleEntry>.after(id: String, event: KernelEvent): List<Conso
   KernelEvent.Idle -> this
 }
 
-/** What `Idle` means once the flow has finished - `NotebookCellRuns.run`'s own raised/ok rule. */
-private fun List<ConsoleEntry>.resolved(id: String): List<ConsoleEntry> = withEntry(id) { entry ->
+/**
+ * What `Idle` means once the flow has finished - `NotebookCellRuns.run`'s own cancelled/raised/ok
+ * rule, [cancelled] taking priority since an interrupted run's own output is a `KeyboardInterrupt`
+ * that would otherwise read as [ExecutionStatus.STOPPED_ERROR].
+ */
+private fun List<ConsoleEntry>.resolved(id: String, cancelled: Boolean): List<ConsoleEntry> = withEntry(id) { entry ->
   val raised = entry.outputs.any { it is CellOutput.Error }
-  entry.copy(status = if (raised) ExecutionStatus.STOPPED_ERROR else ExecutionStatus.STOPPED_OK)
+  entry.copy(
+    status = when {
+      cancelled -> ExecutionStatus.CANCELLED
+      raised -> ExecutionStatus.STOPPED_ERROR
+      else -> ExecutionStatus.STOPPED_OK
+    },
+  )
 }
 
 private inline fun List<ConsoleEntry>.withEntry(

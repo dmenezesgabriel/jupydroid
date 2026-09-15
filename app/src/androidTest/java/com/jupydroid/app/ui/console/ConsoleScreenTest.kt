@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -17,11 +18,17 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.editor.NotebookKernelSession
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -72,6 +79,32 @@ class ConsoleScreenTest {
   }
 
   @Test
+  fun tappingInterruptKernelCancelsTheRunningEntry() {
+    val gateway = InterruptibleKernelGateway()
+    compose.setContent {
+      JupyterDroidTheme { ConsoleScreen(title = "Analysis.ipynb", viewModel = consoleViewModel(gateway), onBack = {}) }
+    }
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
+    compose.onNodeWithContentDescription("Run").performClick()
+
+    compose.onNodeWithContentDescription("Console actions").performClick()
+    compose.onNodeWithText(INTERRUPT_KERNEL).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { gateway.interruptCount == 1 }
+  }
+
+  @Test
+  fun interruptKernelIsDisabledWhileNothingIsRunning() {
+    compose.setContent {
+      JupyterDroidTheme { ConsoleScreen(title = "Analysis.ipynb", viewModel = consoleViewModel(), onBack = {}) }
+    }
+
+    compose.onNodeWithContentDescription("Console actions").performClick()
+
+    compose.onNodeWithText(INTERRUPT_KERNEL).assertIsNotEnabled()
+  }
+
+  @Test
   fun tappingClearRemovesTheTranscript() {
     compose.setContent {
       JupyterDroidTheme { ConsoleScreen(title = "Analysis.ipynb", viewModel = consoleViewModel(), onBack = {}) }
@@ -118,5 +151,30 @@ class ConsoleScreenTest {
     val ATTACHED_SESSION = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
     const val PNG_QUALITY = 100
     const val EVIDENCE_FILE_NAME = "p6b-9-console-screen.png"
+    const val TIMEOUT_MILLIS = 5_000L
+  }
+}
+
+/**
+ * Hangs `execute()` until [interrupt] is called, the androidTest source set's own copy of the JVM
+ * suite's `RecordingKernelGateway(runsUntilInterrupted = true)` - `StallingKernelGateway`'s own
+ * precedent for why a source-set-local double exists rather than an import: `src/androidTest`
+ * cannot see `src/test`.
+ */
+private class InterruptibleKernelGateway(private val fake: KernelGateway = FakeKernelGateway()) :
+  KernelGateway by fake {
+  private val interrupted = CompletableDeferred<Unit>()
+  var interruptCount = 0
+    private set
+
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
+    interrupted.await()
+    emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, code)))
+    emit(KernelEvent.Idle)
+  }
+
+  override suspend fun interrupt(session: KernelSession) {
+    interruptCount++
+    interrupted.complete(Unit)
   }
 }

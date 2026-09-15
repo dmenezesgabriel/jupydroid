@@ -8,12 +8,15 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -125,6 +128,23 @@ class ConsoleInputRowTest {
     compose.waitUntil(DEBOUNCE_TIMEOUT_MILLIS) { reported == "1 + 1" }
   }
 
+  /**
+   * The regression this function's own doc comment explains: `CodeCellField`'s modifier reaches
+   * the `BasicTextField` three layers down, not the node `RowScope.weight` reads parent data
+   * from, so a weight passed straight through measured to the field's own near-zero intrinsic
+   * width instead of filling the row - reachable but invisible, as
+   * `evidence/p6b-9d-console-shares-kernel/05-console-shares-the-kernel.png` shows.
+   */
+  @Test
+  fun theInputFieldFillsMostOfTheRowRatherThanItsOwnIntrinsicWidth() {
+    compose.setContent {
+      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+    }
+
+    val width = compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).getUnclippedBoundsInRoot().width
+    assertTrue("input field is only $width wide - the row's weight is not reaching it", width >= MIN_FIELD_WIDTH)
+  }
+
   @Test
   fun runIsDisabledWhileAnEntryIsRunning() {
     compose.setContent {
@@ -191,5 +211,8 @@ class ConsoleInputRowTest {
     private const val EVIDENCE_FILE_NAME = "p6b-4-console-input-row.png"
     private const val HISTORY_EVIDENCE_FILE_NAME = "p6b-6-console-input-row.png"
     private const val DEBOUNCE_TIMEOUT_MILLIS = 5_000L
+
+    /** Well below any real screen's available width, and well above the empty field's own few dp. */
+    private val MIN_FIELD_WIDTH = 200.dp
   }
 }

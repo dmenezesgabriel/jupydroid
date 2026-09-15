@@ -49,6 +49,14 @@ appId: com.jupydroid.app
     timeout: 30000
 - takeScreenshot: 05-console-shares-the-kernel
 
+# P6b-10: Interrupt Kernel is real now, reachable from the same overflow Clear already sat in -
+# disabled here since nothing is running, matching NotebookBar's own Interrupt.
+- tapOn: "Console actions"
+- assertVisible: "Interrupt Kernel"
+- assertVisible: "Clear Console Cells"
+- takeScreenshot: 05b-console-actions-menu
+- tapOn: "Clear Console Cells"
+
 # Dismissing returns to the notebook this Console was opened from - P6b-0's fix, on a live kernel
 # now rather than FakeKernelGateway. `42` is still on screen because a Console never disturbs the
 # notebook's own output. "Close", not "Back to notebook": measured on this device that its own
