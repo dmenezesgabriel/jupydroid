@@ -83,6 +83,27 @@ abstract class EditorSettingsRepositoryContract {
     assertEquals(20, repository.observeSettings().first().codeFontSizeSp)
   }
 
+  /**
+   * `codeWrapEnabled` defaults to `true` - a deliberate departure from the reference's own
+   * `codeCellConfig.lineWrap` default of `false`
+   * (`packages/notebook-extension/schema/tracker.json:699-706`), the same kind of departure
+   * `autoClosingBrackets` already is: horizontal drag-to-scroll is worse touch ergonomics than
+   * desktop's mouse wheel, so shipping this field changes no pixel until a user turns it off.
+   */
+  @Test
+  fun defaultsToCodeWrapEnabled() = runTest {
+    assertTrue(repository().observeSettings().first().codeWrapEnabled)
+  }
+
+  @Test
+  fun remembersCodeWrapEnabledTurnedOff() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(codeWrapEnabled = false))
+
+    assertFalse(repository.observeSettings().first().codeWrapEnabled)
+  }
+
   @Test
   fun remembersEveryFieldOfAnUpdateAndNotOnlyTheFirst() = runTest {
     val repository = repository()

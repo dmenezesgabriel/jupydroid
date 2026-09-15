@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - seven fields today.
+ * The app-wide editor preferences P6c grows - eight fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -77,6 +77,20 @@ data class EditorSettings(
    * changes no pixel until a user acts - `TerminalFontSize.DEFAULT`'s own reasoning.
    */
   val codeFontSizeSp: Int = CodeFontSize.DEFAULT,
+  /**
+   * `docs/PLAN.md`'s P6c-5 - whether a code cell's source wraps or scrolls horizontally.
+   * Markdown and raw cells carry no such field: the reference hardwires them to wrap
+   * (`packages/notebook/src/widget.ts:1335-1352`, `defaultEditorConfig.markdown/raw.lineWrap:
+   * true`, no toggle), so this one governs code only - [com.jupydroid.app.ui.editor.CodeCellField]
+   * and the plain file editor, which reuses it.
+   *
+   * **True by default**, departing from the reference's own `codeCellConfig.lineWrap` default of
+   * `false` (`packages/notebook-extension/schema/tracker.json:699-706`) - the same shape
+   * [autoClosingBrackets]'s own departure is: horizontal drag-to-scroll of source code is worse
+   * touch ergonomics than desktop's mouse wheel, so shipping this field changes no pixel until a
+   * user turns it off.
+   */
+  val codeWrapEnabled: Boolean = true,
 )
 
 /**
