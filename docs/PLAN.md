@@ -1691,7 +1691,7 @@ priority call.
 |---|---|---|
 | **P6a** | **Debugger.** The kernelspec already declares `"metadata": {"debugger": true}` (`SpaceKernelSpec.kt`) and `debugpy==1.8.21` is in the lock file. Transport is `debug_request` / `debug_reply` on the **control** channel (`packages/services/src/kernel/messages.ts:1244`) carrying DAP; `packages/debugger/src/service.ts` is the protocol layer. The control channel is the one that has never stalled. **Phone scope:** breakpoints in a cell, step / continue, variables, call stack. Not the full DAP surface. **P6a-0 through P6a-4 are shipped** - the sub-step table below is where this phase is up to. |
 | **P6b** | **Console.** `packages/console-extension` — 21 commands. A REPL sharing the open notebook's kernel namespace; Enter runs, Shift+Enter newlines; `console:linebreak`, `console:inject`, `console:interaction-mode`, input history, clear transcript. **This is the sub-step that makes the `openNotebook` back-stack risk real** (see Open risks). **SHIPPED — P6b-0 through P6b-9d** — see P6b's own sub-step table below P6a's. |
-| **P6c** | **Settings.** `packages/settingregistry` is the model. Theme, accent, code font size, wrap, completion on/off, symbol row, autosave interval — and the persistence P2g's toggles need. |
+| **P6c** | **Settings.** `packages/settingregistry` is the model, adapted to its own lighter Settings-menu shape rather than the full JSON schema editor. Theme, code font size, wrap, completion on/off, symbol row, autosave interval — and the persistence P2g's toggles need. **Sized into P6c-1 through P6c-9** — see P6c's own sub-step table below P6b's. |
 | **P6d** | **Launcher and onboarding.** `packages/launcher` — the surface that offers notebook / console / terminal / file per Space. Also the second top-level destination a navigation rail has been waiting for since U7. |
 
 **P6a's own sub-steps**, sized before any UI code is written - a port that reuses the kernel's
@@ -1766,6 +1766,38 @@ has no counterpart in a single-user phone app and nothing above asks for it.
 no Console-specific behavior beyond what the notebook editor and kernel picker already provide
 elsewhere in this app - not resequenced above, revisited only if a real gap surfaces once P6b-0
 through P6b-9 land.
+
+**P6c's own sub-steps**, sized the same way P6a's and P6b's were before any UI code is written.
+The reference's `packages/settingregistry` model is a schema-backed `IPlugin{composite, user}`
+store reached through a full JSON settings editor (`packages/settingeditor`) - the wrong surface
+for a phone, so this app adapts JupyterLab's own lighter alternative instead: the declarative
+Settings *menu* (`packages/mainmenu-extension`'s `Private.loadSettingsMenu`, `jupyter.lab.menus`
+schema entries), where each row is already a self-contained `isToggled`/`execute` command over
+one persisted value - `docmanager:toggle-autosave`, the theme submenu's
+`apputils:adaptive-theme`, `fileeditor`'s `toggleLineNumbers`/`toggleWordWrap`. That is the shape
+`SettingsScreen` copies: one flat list of rows, not a schema browser.
+
+**"Accent" is dropped** from the row's original wording - the reference has no accent-colour
+concept (`theme`, `adaptive-theme`, `preferred-light/dark-theme`, `code-font-size`,
+`ui-font-size1` are the whole of `apputils-extension/schema/themes.json`), and `theme/Theme.kt`
+already records dynamic colour as tried and rejected. **Of "the persistence P2g's toggles
+need,"** only `lineNumbersShown` (`EditorUiState.kt:172`, default `true`) is unpersisted app
+state; `outputsScrolled` round-trips through nbformat per-cell already and `autoClosingBrackets`
+was P2g's own first persisted setting. **Word wrap, completion on/off, symbol-row visibility and
+autosave have no runtime toggle at all today** - not a missing persisted flag but missing
+behaviour, so each gets its own sub-step rather than riding in with the persistence-only ones.
+
+| # | Sub-step | Rationale |
+|---|---|---|
+| **P6c-1** | Settings screen reachable with no document open. `FilesBar` (`ui/explorer/ExplorerScreen.kt:286`) is the app's only persistent, non-document-scoped bar - the rail/bottom-bar `SidePanel` slot stays reserved for P6d's Launcher. A new `Settings` `NavKey`, `detailPane()`, pushed by `openSettings()` - stacking like `Console` does, not folded into `isDocument()`'s document-swap rule, since Settings is not a document. Empty body; content starts in P6c-2. |
+| **P6c-2** | `lineNumbersShown` grows `EditorSettingsRepository` (sixth field, default `true`, matching today's runtime default) instead of living only in `EditorUiState`. The six now-persisted toggle rows (five existing `EditorSettings` fields plus this one) move out of `NotebookActionsMenu`'s View menu and into `SettingsScreen`, closing PLAN.md:364's "until P6c" deferral. |
+| **P6c-3** | Theme override - System / Light / Dark, adapting the reference's `adaptive-theme` + `preferred-light/dark-theme` triad into one tri-state choice read by `JupydroidTheme`, which today only follows `isSystemInDarkTheme()`. |
+| **P6c-4** | Editor code font size, mirroring `TerminalSettings`' stepper shape (`domain/model/TerminalSettings.kt`) with its own bounds and step measured on device, not copied from the terminal's 4-256sp/±2. |
+| **P6c-5** | Word wrap - measured on the tablet first: does the cell `BasicTextField` already wrap, or scroll horizontally? Only a genuine toggle becomes a setting; already-satisfied behaviour is written down as such rather than given a redundant flag. |
+| **P6c-6** | Completion on/off - a real gate in the trigger path (`CellCompletions`, the `KernelGateway.complete()` call site), since completion is unconditional today. |
+| **P6c-7** | Symbol row visibility, gating `EditorBottomBars`' unconditional `SymbolRow`. |
+| **P6c-8** | Autosave - the reference's `autosave` (bool) + `autosaveInterval` (seconds, default 120) pair. New behaviour (a periodic save trigger), since no autosave exists in any form today - grep across `app/src/main` for it returns nothing. |
+| **P6c-9** | Close two items already named against P6c: `kernelShutdown` becomes a setting (`docs/DECISIONS.md:388`), and the `dirty` indicator either renders somewhere or is dropped from the deliverable (Open risks, below). |
 
 ---
 
