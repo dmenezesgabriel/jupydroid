@@ -50,7 +50,14 @@ fun ConsoleScreen(
     topBar = {
       TopAppBar(
         title = { Text(title) },
-        navigationIcon = { DocumentDismissAction(twoPane = twoPane, backDescription = "Back", onDismiss = onBack) },
+        // Not the bare "Back" `DocumentDismissAction`'s own KDoc warns against: a live-kernel
+        // Maestro flow (P6b-9d) measured that string reaching the system navigation bar's own
+        // back button instead of this one, which left the Console on screen. A distinct label
+        // rather than a guess at why the tap missed - `EditorTopBar`'s "Back to notebooks" is the
+        // precedent, singular here since a Console names the one notebook it was opened from.
+        navigationIcon = {
+          DocumentDismissAction(twoPane = twoPane, backDescription = "Back to notebook", onDismiss = onBack)
+        },
         actions = { ConsoleActionsMenu(onClear = viewModel::clear) },
       )
     },

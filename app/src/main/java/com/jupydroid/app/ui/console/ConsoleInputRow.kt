@@ -11,6 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.RECALL_NEXT_ENTRY
 import com.jupydroid.app.ui.editor.RECALL_PREVIOUS_ENTRY
@@ -70,7 +72,12 @@ fun ConsoleInputRow(
     CodeCellField(
       state = state,
       onSourceEdited = onSourceEdited,
-      modifier = Modifier.weight(1f).testTag(CONSOLE_INPUT_FIELD_TAG),
+      // `RenameFileDialog`'s own reason: an empty field with no placeholder has nothing a Maestro
+      // flow can tap by visible text, unlike a notebook cell that always has `[ ]:` or a source
+      // line to land on.
+      modifier = Modifier.weight(1f)
+        .semantics { testTagsAsResourceId = true }
+        .testTag(CONSOLE_INPUT_FIELD_TAG),
       lineNumbersShown = false,
     )
     IconButton(onClick = onSubmit, enabled = !running) {

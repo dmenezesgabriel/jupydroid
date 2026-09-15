@@ -52,7 +52,7 @@ class ConsoleScreenTest {
       }
     }
 
-    compose.onNodeWithContentDescription("Back").performClick()
+    compose.onNodeWithContentDescription("Back to notebook").performClick()
 
     assertTrue(backTapped)
   }

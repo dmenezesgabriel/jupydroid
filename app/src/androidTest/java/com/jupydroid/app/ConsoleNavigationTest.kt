@@ -92,7 +92,7 @@ class ConsoleNavigationTest {
     compose.onNodeWithText(NEW_CONSOLE_FOR_NOTEBOOK).performClick()
     waitForTag(CONSOLE_INPUT_FIELD_TAG)
 
-    compose.onNodeWithContentDescription("Back").performClick()
+    compose.onNodeWithContentDescription("Back to notebook").performClick()
     waitForText(NOTEBOOK_SOURCE)
     compose.onNodeWithText(NOTEBOOK_SOURCE).assertIsDisplayed()
 
@@ -128,7 +128,7 @@ class ConsoleNavigationTest {
           // this physical tablet's own current rotation can put on either side of the two-pane
           // threshold - `EditorScreen`'s own `CellActionsTest` citation is why `MainNavigation`
           // takes this as a parameter at all. One-pane's own `DocumentDismissAction` labels are what
-          // this flow asserts on ("Back"/"Back to notebooks", not "Close").
+          // this flow asserts on ("Back to notebook"/"Back to notebooks", not "Close").
           twoPane = false,
         )
       }

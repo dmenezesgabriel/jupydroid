@@ -1,0 +1,63 @@
+appId: com.jupydroid.app
+---
+# P6b-9d: a Console shares the notebook's own kernel, against a real one.
+#
+# The claim P6b-9b/9c's tests could only make against FakeKernelGateway: `shared` is defined in
+# the notebook's own cell and read back from the Console with `+ 1`, so `43` can only appear if
+# the two are the same running kernel - two independent ones would raise NameError, the same
+# distinguishing move P1d's own `shutdown` flow makes for "gone" vs "never seen".
+#
+# TABLET ONLY (SM-X216B): the emulator's MainActivity falls back to FakeKernelGateway, which
+# holds no session and would echo `shared + 1` back as text rather than evaluate it.
+#
+# Seeded by scripts/p6b-9d-console-shares-kernel-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Console Kernel Share.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Console Kernel Share.ipynb"
+- extendedWaitUntil:
+    visible: "(?s).*shared = 21 \\* 2.*"
+    timeout: 30000
+- takeScreenshot: 01-notebook-open
+- tapOn: "Run cell"
+# Generous: the first run installs the Space and starts jupyter_server.
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 180000
+- takeScreenshot: 02-kernel-answering-in-the-notebook
+
+- tapOn: "Kernel actions"
+- assertVisible: "New Console for Notebook"
+- takeScreenshot: 03-kernel-menu
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible: "Console Kernel Share.ipynb"
+    timeout: 10000
+- takeScreenshot: 04-console-open
+
+- tapOn:
+    id: "console-input-field"
+- inputText: "shared + 1"
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible: "43"
+    timeout: 30000
+- takeScreenshot: 05-console-shares-the-kernel
+
+# Dismissing returns to the notebook this Console was opened from - P6b-0's fix, on a live kernel
+# now rather than FakeKernelGateway. `42` is still on screen because a Console never disturbs the
+# notebook's own output. "Close", not "Back to notebook": measured on this device that its own
+# current landscape rotation crosses `MainNavigation`'s two-pane width threshold, where
+# `DocumentDismissAction` draws a close (browser already on screen) rather than a back arrow - the
+# same fact `ConsoleNavigationTest` pins `twoPane = false` to avoid depending on for its own
+# assertions, which a Maestro flow driving the real installed app cannot do.
+- tapOn: "Close"
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 10000
+- takeScreenshot: 06-back-to-the-notebook
