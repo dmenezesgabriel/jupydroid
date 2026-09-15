@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
@@ -65,6 +66,8 @@ fun CodeCellField(
   lineNumbersShown: Boolean = true,
   /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
   codeFontSizeSp: Int = CodeFontSize.DEFAULT,
+  /** `docs/PLAN.md` P6c-5 - false scrolls the code horizontally instead of wrapping it. */
+  wrapEnabled: Boolean = true,
   /** Breakpoints set on this cell, by line - see [NotebookDebugger]. Code cells only. */
   breakpoints: List<Breakpoint> = emptyList(),
   /** A tap in the gutter, reporting the one-based line it hit - see [Modifier.lineNumbers]. */
@@ -98,6 +101,7 @@ fun CodeCellField(
   // The code a popup was already answered for, so accepting or dismissing one does not
   // immediately re-offer against the very text it just produced.
   var settled by remember { mutableStateOf<String?>(null) }
+  val scroll = remember { ScrollState(0) }
 
   reportCellEdits(state, onSourceEdited)
 
@@ -117,6 +121,7 @@ fun CodeCellField(
         onGutterTap,
         onGutterLongPress,
         stoppedLine,
+        horizontalScroll = if (wrapEnabled) null else scroll,
       ),
       onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
       textStyle = codeStyle,
@@ -133,7 +138,7 @@ fun CodeCellField(
     if (offered != null && layout != null) {
       CompletionPopup(
         completions = offered,
-        caret = caretRect(layout, offered.query.cursorOffset, gutter),
+        caret = caretRect(layout, offered.query.cursorOffset, gutter, scroll.value),
         onPick = { match ->
           applyCompletion(state, offered, match)
           settled = state.text.toString()
@@ -151,20 +156,25 @@ fun CodeCellField(
  * above the caret when there is no room below without covering the character being completed.
  *
  * [TextLayoutResult.getCursorRect] answers in the text's own coordinates, which start at the
- * gutter's right edge rather than at the cell's left.
+ * gutter's right edge rather than at the cell's left - and, once [scrollOffsetPx] is nonzero
+ * (`docs/PLAN.md` P6c-5, `wrapEnabled = false`), further right than where the code is actually
+ * drawn on screen.
  */
 @Composable
-private fun caretRect(layout: TextLayoutResult?, cursorOffset: Int, gutter: Dp): IntRect {
+private fun caretRect(layout: TextLayoutResult?, cursorOffset: Int, gutter: Dp, scrollOffsetPx: Int = 0): IntRect {
   val gutterPx = with(LocalDensity.current) { gutter.roundToPx() }
   val rect = layout?.getCursorRect(cursorOffset.coerceIn(0, layout.layoutInput.text.length))
-    ?: return IntRect(gutterPx, 0, gutterPx, 0)
+    ?: return IntRect(gutterPx, 0, gutterPx, 0).shiftedBy(scrollOffsetPx)
   return IntRect(
     left = gutterPx + rect.left.toInt(),
     top = rect.top.toInt(),
     right = gutterPx + rect.right.toInt(),
     bottom = rect.bottom.toInt(),
-  )
+  ).shiftedBy(scrollOffsetPx)
 }
+
+/** This rect translated [dxPx] left - the caret's own drift once its field has scrolled that far. */
+internal fun IntRect.shiftedBy(dxPx: Int): IntRect = IntRect(left - dxPx, top, right - dxPx, bottom)
 
 /** A cell with no kernel behind it still edits; it just has nothing to suggest. */
 private val NO_COMPLETIONS: suspend (String, Int) -> CompletionResult = { _, _ -> CompletionResult.NONE }

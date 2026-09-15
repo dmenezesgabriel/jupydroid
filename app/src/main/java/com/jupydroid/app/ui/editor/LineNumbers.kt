@@ -1,7 +1,9 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -64,6 +66,11 @@ import com.jupydroid.app.theme.editorPalette
  *   legible over the wash, and before `padding(start = width)` shrinks this `drawBehind`'s own
  *   size - the one reason this lives beside the gutter's geometry rather than in a modifier of
  *   its own.
+ * @param horizontalScroll `docs/PLAN.md`'s P6c-5 - null while the code wraps (the default
+ *   everywhere), or a [ScrollState] once it does not. Spliced in **after** [drawBehind] and
+ *   **before** `padding(start = width)`, so the numbers and [detectGutterTap]'s own hit-testing
+ *   stay pinned to the outer, unscrolled viewport while only the code past the gutter scrolls
+ *   beneath it.
  */
 @Composable
 fun Modifier.lineNumbers(
@@ -75,8 +82,9 @@ fun Modifier.lineNumbers(
   onGutterTap: (line: Int) -> Unit = {},
   onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
+  horizontalScroll: ScrollState? = null,
 ): Modifier {
-  if (width <= 0.dp) return this
+  if (width <= 0.dp) return thenHorizontalScroll(horizontalScroll)
   val starts = logicalLineStarts(text)
   val measurer = rememberTextMeasurer()
   // Measured once per line count rather than per frame: a TextMeasurer's cache is small, and a
@@ -130,8 +138,13 @@ fun Modifier.lineNumbers(
         }
       }
     }
+    .thenHorizontalScroll(horizontalScroll)
     .padding(start = width)
 }
+
+/** This modifier, scrollable once [scrollState] is given - `docs/PLAN.md`'s P6c-5. */
+private fun Modifier.thenHorizontalScroll(scrollState: ScrollState?): Modifier =
+  if (scrollState == null) this else horizontalScroll(scrollState)
 
 /**
  * The whole of [line]'s row, edge to edge - every visual row a wrapped logical line spans, not
