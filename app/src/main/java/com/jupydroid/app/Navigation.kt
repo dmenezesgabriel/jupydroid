@@ -324,6 +324,7 @@ fun MainNavigation(
         entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
           SettingsScreen(
             editorSettingsRepository = appContainer.editorSettings,
+            themeSettingsRepository = appContainer.themeSettings,
             applicationScope = appContainer.applicationScope,
             onBack = { backStack.removeLastOrNull() },
             // The one width fact this screen reads, and it decides one thing: whether leaving it

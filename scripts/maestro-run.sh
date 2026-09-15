@@ -45,6 +45,13 @@ EDITOR_SETTINGS_STORE="files/editor-settings.json"
 # and nothing on screen says why. `ExplorerSettingsRepository` reads its default once this is gone.
 EXPLORER_SETTINGS_STORE="files/explorer-settings.json"
 
+# The theme preference (P6c-3) - System/Light/Dark - cleared for the same reason as the two above,
+# sharpened again: a flow that leaves the device on Dark leaves every screenshot after it on that
+# device dark, and a screenshot oracle tuned against the light palette reads every one of them as
+# a failure with nothing on screen saying why. `ThemeSettingsRepository` reads its default once
+# this is gone.
+THEME_SETTINGS_STORE="files/theme-settings.json"
+
 # --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator and a
 # phone attached it picks one of its own accord and the fixture is on the other.
 MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
@@ -71,6 +78,7 @@ reset_notebooks() {
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$RECENTS_STORE\"' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$EDITOR_SETTINGS_STORE\"' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$EXPLORER_SETTINGS_STORE\"' || true"
+  "$ADB" shell "run-as $APP sh -c 'rm -f \"$THEME_SETTINGS_STORE\"' || true"
 }
 
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.

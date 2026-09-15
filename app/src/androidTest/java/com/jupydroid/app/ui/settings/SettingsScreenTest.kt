@@ -1,14 +1,20 @@
 package com.jupydroid.app.ui.settings
 
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.ThemeOverride
+import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -93,15 +99,54 @@ class SettingsScreenTest {
     compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().tocIncludeOutput }
   }
 
-  private fun startScreen(repository: EditorSettingsRepository) {
+  @Test
+  fun themeRowShowsTheRepositorysCurrentValue() {
+    startScreen(themeSettingsRepository = FakeThemeSettingsRepository(ThemeSettings(override = ThemeOverride.DARK)))
+
+    compose.onNodeWithText(THEME_DARK).assertIsSelected()
+    compose.onNodeWithText(THEME_LIGHT).assertIsNotSelected()
+    compose.onNodeWithText(THEME_SYSTEM).assertIsNotSelected()
+  }
+
+  @Test
+  fun tappingLightWritesTheThemeRepository() {
+    val repository = FakeThemeSettingsRepository(ThemeSettings(override = ThemeOverride.SYSTEM))
+    startScreen(themeSettingsRepository = repository)
+
+    compose.onNodeWithText(THEME_LIGHT).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().override == ThemeOverride.LIGHT }
+  }
+
+  @Test
+  fun tappingSystemAfterDarkWritesTheThemeRepository() {
+    val repository = FakeThemeSettingsRepository(ThemeSettings(override = ThemeOverride.DARK))
+    startScreen(themeSettingsRepository = repository)
+
+    compose.onNodeWithText(THEME_SYSTEM).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().override == ThemeOverride.SYSTEM }
+  }
+
+  private fun startScreen(
+    editorSettingsRepository: EditorSettingsRepository = FakeEditorSettingsRepository(),
+    themeSettingsRepository: ThemeSettingsRepository = FakeThemeSettingsRepository(),
+  ) {
     compose.setContent {
       JupyterDroidTheme {
-        SettingsScreen(editorSettingsRepository = repository, applicationScope = scope, onBack = {})
+        SettingsScreen(
+          editorSettingsRepository = editorSettingsRepository,
+          themeSettingsRepository = themeSettingsRepository,
+          applicationScope = scope,
+          onBack = {},
+        )
       }
     }
   }
 
   private fun EditorSettingsRepository.currentSettings(): EditorSettings = runBlocking { observeSettings().first() }
+
+  private fun ThemeSettingsRepository.currentSettings(): ThemeSettings = runBlocking { observeSettings().first() }
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L

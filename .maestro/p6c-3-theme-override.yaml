@@ -1,0 +1,40 @@
+appId: com.jupydroid.app
+---
+# P6c-3: the Settings screen's Theme row overrides the system's dark/light choice, and the choice
+# survives a relaunch. Nothing below runs a cell, so the emulator - and its FakeKernelGateway - is
+# enough; this flow is sharded across both devices the same way p6c-1-settings-screen.yaml is,
+# since the segmented row's own width differs between the emulator's one pane and the tablet's two.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 01-settings-theme-row
+
+- tapOn: "Light"
+- takeScreenshot: 02-theme-light
+
+- tapOn: "Dark"
+- takeScreenshot: 03-theme-dark
+
+- tapOn: "System"
+- takeScreenshot: 04-theme-system
+
+# The choice survives a relaunch - `DiskThemeSettingsRepository`'s own `survivesTheNextLaunch`
+# contract, now asked of the real app rather than a `TemporaryFolder`.
+- tapOn: "Dark"
+- takeScreenshot: 05-theme-dark-before-relaunch
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close"
+    timeout: 5000
+- takeScreenshot: 06-theme-dark-after-relaunch

@@ -10,6 +10,7 @@ import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
+import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.data.space.ActivityTrackedTerminalGateway
@@ -28,6 +29,7 @@ import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
+import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import kotlinx.coroutines.CoroutineScope
@@ -98,6 +100,8 @@ class AppContainer(
    * persists on every change (`viewContainerModel.ts:456-461`).
    */
   val explorerSettings: ExplorerSettingsRepository = FakeExplorerSettingsRepository(),
+  /** The app-wide theme preference - System/Light/Dark, `docs/PLAN.md`'s P6c-3. */
+  val themeSettings: ThemeSettingsRepository = FakeThemeSettingsRepository(),
   /**
    * For work that must finish after the screen that asked for it is gone - closing a notebook
    * flushes its last edit and closes its socket from here, because `viewModelScope` is already

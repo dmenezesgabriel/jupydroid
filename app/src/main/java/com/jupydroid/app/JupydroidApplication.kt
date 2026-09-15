@@ -9,6 +9,7 @@ import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
+import com.jupydroid.app.data.disk.DiskThemeSettingsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
@@ -102,6 +103,7 @@ class JupydroidApplication : Application() {
       editorSettings = DiskEditorSettingsRepository(filesDir),
       terminalSettings = DiskTerminalSettingsRepository(filesDir),
       explorerSettings = DiskExplorerSettingsRepository(filesDir),
+      themeSettings = DiskThemeSettingsRepository(filesDir),
     )
 
   /**

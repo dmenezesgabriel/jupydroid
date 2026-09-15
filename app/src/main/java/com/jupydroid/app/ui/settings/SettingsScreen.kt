@@ -9,6 +9,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -19,7 +22,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.ThemeOverride
+import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.DocumentDismissAction
 import kotlinx.coroutines.CoroutineScope
@@ -30,7 +36,7 @@ const val SETTINGS_SCREEN_TAG = "settings_screen"
 
 /**
  * The app-wide Settings screen - P6c-2's own six rows, every persisted [EditorSettings] toggle
- * that used to sit in `NotebookActionsMenu`'s View menu.
+ * that used to sit in `NotebookActionsMenu`'s View menu, plus P6c-3's theme row.
  *
  * **A `Switch` per row, not the View menu's flip-label text.** That convention existed because a
  * `DropdownMenuItem`'s toggled state carries no accessible label
@@ -39,19 +45,26 @@ const val SETTINGS_SCREEN_TAG = "settings_screen"
  * accessibility tree directly (`Role.Switch`, `assertIsOn`/`assertIsOff`), which is both this
  * platform's own idiom for a settings screen and the reference's: JupyterLab's Settings-menu rows
  * are exactly this shape - one label, one `isToggled` (`docmanager:toggle-autosave`,
- * `apputils:adaptive-theme`).
+ * `apputils:adaptive-theme`). The theme row is the one exception, since it is not binary - see
+ * [ThemeOverrideRow]'s own doc comment.
  *
  * Reached by [openSettings][com.jupydroid.app.openSettings], stacked over whatever document is
  * open rather than replacing it - see that function's own doc comment.
  *
  * ```
- * SettingsScreen(editorSettingsRepository, applicationScope, onBack = { backStack.removeLastOrNull() })
+ * SettingsScreen(
+ *   editorSettingsRepository,
+ *   themeSettingsRepository,
+ *   applicationScope,
+ *   onBack = { backStack.removeLastOrNull() },
+ * )
  * ```
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
   editorSettingsRepository: EditorSettingsRepository,
+  themeSettingsRepository: ThemeSettingsRepository,
   /** Writes must outlive this screen's own composition - a tap and a navigate-away can race. */
   applicationScope: CoroutineScope,
   onBack: () -> Unit,
@@ -61,6 +74,10 @@ fun SettingsScreen(
   val settings by editorSettingsRepository.observeSettings().collectAsStateWithLifecycle(EditorSettings())
   fun update(changed: EditorSettings) {
     applicationScope.launch { editorSettingsRepository.update(changed) }
+  }
+  val themeSettings by themeSettingsRepository.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
+  fun updateTheme(changed: ThemeOverride) {
+    applicationScope.launch { themeSettingsRepository.update(ThemeSettings(override = changed)) }
   }
 
   Scaffold(
@@ -78,6 +95,7 @@ fun SettingsScreen(
     },
   ) { padding ->
     Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())) {
+      ThemeOverrideRow(themeSettings.override, ::updateTheme)
       SettingsToggleRow(SHOW_LINE_NUMBERS, settings.lineNumbersShown) {
         update(settings.copy(lineNumbersShown = it))
       }
@@ -117,6 +135,47 @@ private fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: 
     modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
   )
 }
+
+/**
+ * The theme row: a label and three always-visible, mutually exclusive choices -
+ * `SingleChoiceSegmentedButtonRow`, Compose Material3's own widget for 2-5 such options, rather
+ * than a dropdown that hides the two choices not currently picked.
+ *
+ * Collapses the reference's `adaptive-theme` boolean plus its two named-theme strings
+ * (`apputils:adaptive-theme`, `packages/apputils-extension/schema/themes.json:123-153`) into one
+ * tri-state choice - see `ThemeOverride`'s own doc comment for why that is a faithful adaptation
+ * and not a simplification of behaviour.
+ */
+@Composable
+private fun ThemeOverrideRow(selected: ThemeOverride, onSelect: (ThemeOverride) -> Unit) {
+  ListItem(
+    headlineContent = { Text(THEME) },
+    supportingContent = {
+      SingleChoiceSegmentedButtonRow {
+        THEME_OPTIONS.forEachIndexed { index, (option, label) ->
+          SegmentedButton(
+            selected = selected == option,
+            onClick = { onSelect(option) },
+            shape = SegmentedButtonDefaults.itemShape(index = index, count = THEME_OPTIONS.size),
+            label = { Text(label) },
+          )
+        }
+      }
+    },
+  )
+}
+
+/** `apputils:adaptive-theme` - see `ThemeSettings.override`. */
+internal const val THEME = "Theme"
+internal const val THEME_SYSTEM = "System"
+internal const val THEME_LIGHT = "Light"
+internal const val THEME_DARK = "Dark"
+
+private val THEME_OPTIONS = listOf(
+  ThemeOverride.SYSTEM to THEME_SYSTEM,
+  ThemeOverride.LIGHT to THEME_LIGHT,
+  ThemeOverride.DARK to THEME_DARK,
+)
 
 /** `notebook:toggle-all-cell-line-numbers` - see `EditorSettings.lineNumbersShown`. */
 internal const val SHOW_LINE_NUMBERS = "Show line numbers"

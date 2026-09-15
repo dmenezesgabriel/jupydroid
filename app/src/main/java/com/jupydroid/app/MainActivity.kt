@@ -7,6 +7,7 @@ import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -14,7 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.ThemeSettings
+import com.jupydroid.app.domain.model.resolvesToDark
 import com.jupydroid.app.import.importTitleFrom
 import com.jupydroid.app.theme.JupyterDroidTheme
 
@@ -32,7 +36,8 @@ class MainActivity : ComponentActivity() {
     importTitle = importTitleFrom(intent)
     enableEdgeToEdge()
     setContent {
-      JupyterDroidTheme {
+      val themeSettings by appContainer.themeSettings.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
+      JupyterDroidTheme(darkTheme = themeSettings.override.resolvesToDark(isSystemInDarkTheme())) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
           MainNavigation(
             appContainer = appContainer,
