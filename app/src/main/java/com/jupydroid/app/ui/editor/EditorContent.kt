@@ -42,6 +42,8 @@ internal fun EditorContent(
   lineNumbersShown: Boolean,
   /** `docs/PLAN.md` P6c-4 - app-wide and persisted, see [codeSourceStyle]. */
   codeFontSizeSp: Int,
+  /** `docs/PLAN.md` P6c-5 - app-wide and persisted, code cells only. See [EditorCell]. */
+  wrapEnabled: Boolean,
   /** `toc:display-numbering` / `toc:display-h1-numbering` - see [MarkdownCell]. */
   tocNumbering: TocNumbering,
   /** Every heading in the notebook, numbered as one document - see [tableOfContentsHeadings]. */
@@ -121,6 +123,7 @@ internal fun EditorContent(
               // is: `toggleAllLineNumbers` writes code, markdown and raw together.
               lineNumbersShown = lineNumbersShown,
               codeFontSizeSp = codeFontSizeSp,
+              wrapEnabled = wrapEnabled,
               breakpoints = state.breakpointsByCellId[cell.id].orEmpty(),
               onGutterTap = { line -> onToggleBreakpoint(cell.id, line) },
               onGutterLongPress = { line -> conditionPrompt = cell.id to line },

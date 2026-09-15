@@ -116,6 +116,23 @@ class SettingsScreenTest {
   }
 
   @Test
+  fun wrapCodeLinesRowShowsTheRepositorysCurrentValue() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(codeWrapEnabled = false)))
+
+    compose.onNodeWithText(WRAP_CODE_LINES).assertIsOff()
+  }
+
+  @Test
+  fun tappingWrapCodeLinesWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(codeWrapEnabled = true))
+    startScreen(repository)
+
+    compose.onNodeWithText(WRAP_CODE_LINES).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().codeWrapEnabled }
+  }
+
+  @Test
   fun tappingAutoClosingBracketsWritesTheRepository() {
     val repository = FakeEditorSettingsRepository(EditorSettings(autoClosingBrackets = true))
     startScreen(repository)

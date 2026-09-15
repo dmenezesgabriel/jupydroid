@@ -377,6 +377,7 @@ fun EditorScreen(
           autoClosingBrackets = editorSettings.autoClosingBrackets,
           lineNumbersShown = editorSettings.lineNumbersShown,
           codeFontSizeSp = editorSettings.codeFontSizeSp,
+          wrapEnabled = editorSettings.codeWrapEnabled,
           tocNumbering = editorSettings.tocNumbering(),
           tocHeadings = tocHeadings,
           listState = listState,

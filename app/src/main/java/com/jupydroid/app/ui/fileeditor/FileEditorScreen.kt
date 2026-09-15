@@ -191,6 +191,7 @@ fun FileEditorScreen(
           typing = remember(state.name, editorSettings.autoClosingBrackets) {
             typingRulesFor(state.name, editorSettings.autoClosingBrackets)
           },
+          wrapEnabled = editorSettings.codeWrapEnabled,
           onLayoutMeasured = { layout = it },
           modifier = Modifier.fillMaxSize().verticalScroll(scroll),
         )

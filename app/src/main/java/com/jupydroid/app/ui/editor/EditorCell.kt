@@ -55,6 +55,8 @@ internal fun EditorCell(
   lineNumbersShown: Boolean,
   /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
   codeFontSizeSp: Int,
+  /** `docs/PLAN.md` P6c-5 - code cells only, see [CodeCellField]'s own parameter. */
+  wrapEnabled: Boolean,
   /** Breakpoints set on this cell, by line - code cells only. See [NotebookDebugger]. */
   breakpoints: List<Breakpoint>,
   /** A tap in this cell's gutter, reporting the one-based line it hit. */
@@ -150,6 +152,7 @@ internal fun EditorCell(
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
             codeFontSizeSp = codeFontSizeSp,
+            wrapEnabled = wrapEnabled,
             breakpoints = breakpoints,
             onGutterTap = onGutterTap,
             onGutterLongPress = onGutterLongPress,

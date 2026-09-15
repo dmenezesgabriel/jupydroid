@@ -122,6 +122,9 @@ fun SettingsScreen(
         onIncrease = { changeCodeFontSize(CodeFontSize.STEP) },
         onDecrease = { changeCodeFontSize(-CodeFontSize.STEP) },
       )
+      SettingsToggleRow(WRAP_CODE_LINES, settings.codeWrapEnabled) {
+        update(settings.copy(codeWrapEnabled = it))
+      }
       SettingsToggleRow(AUTO_CLOSING_BRACKETS, settings.autoClosingBrackets) {
         update(settings.copy(autoClosingBrackets = it))
       }
@@ -235,6 +238,9 @@ internal const val DECREASE_CODE_FONT_SIZE = "Decrease code font size"
 
 /** The increase button's accessible label - see `SettingsStepperRow`. */
 internal const val INCREASE_CODE_FONT_SIZE = "Increase code font size"
+
+/** `docs/PLAN.md` P6c-5 - see `EditorSettings.codeWrapEnabled`. */
+internal const val WRAP_CODE_LINES = "Wrap code lines"
 
 /** `fileeditor:toggle-autoclosing-brackets-universal` - see `EditorSettings.autoClosingBrackets`. */
 internal const val AUTO_CLOSING_BRACKETS = "Auto-closing brackets"

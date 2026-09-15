@@ -1,9 +1,11 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.OutputTransformation
@@ -112,17 +114,23 @@ fun CodeCellField(
       state = state,
       // The gutter's width comes from the line *count*, so it never depends on the layout this
       // callback publishes - which is what keeps writing state from here out of a measure loop.
-      modifier = modifier.lineNumbers(
-        state.text,
-        layout,
-        numberStyle,
-        gutter,
-        breakpoints,
-        onGutterTap,
-        onGutterLongPress,
-        stoppedLine,
-        horizontalScroll = if (wrapEnabled) null else scroll,
-      ),
+      // Wrapping off reaches the gutter through GutterOverlay below rather than through this
+      // chain - `docs/PLAN.md` P6c-5's own finding that a gutter scrolled inside the same
+      // modifiers as the field it decorates scrolls away with it (`evidence/p6c-5-word-wrap/`).
+      modifier = if (wrapEnabled) {
+        modifier.lineNumbers(
+          state.text,
+          layout,
+          numberStyle,
+          gutter,
+          breakpoints,
+          onGutterTap,
+          onGutterLongPress,
+          stoppedLine,
+        )
+      } else {
+        modifier.horizontalScroll(scroll).padding(start = gutter)
+      },
       onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
       textStyle = codeStyle,
       interactionSource = interactions,
@@ -134,6 +142,18 @@ fun CodeCellField(
         HighlightTransformation(highlighter, styles, focused, matched, searching, searchStyles)
       },
     )
+    if (!wrapEnabled) {
+      GutterOverlay(
+        text = state.text,
+        layout = layout,
+        style = numberStyle,
+        width = gutter,
+        breakpoints = breakpoints,
+        onGutterTap = onGutterTap,
+        onGutterLongPress = onGutterLongPress,
+        stoppedLine = stoppedLine,
+      )
+    }
     val offered = completions?.takeIf { it.query.code != settled }
     if (offered != null && layout != null) {
       CompletionPopup(

@@ -1,11 +1,12 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -66,11 +67,6 @@ import com.jupydroid.app.theme.editorPalette
  *   legible over the wash, and before `padding(start = width)` shrinks this `drawBehind`'s own
  *   size - the one reason this lives beside the gutter's geometry rather than in a modifier of
  *   its own.
- * @param horizontalScroll `docs/PLAN.md`'s P6c-5 - null while the code wraps (the default
- *   everywhere), or a [ScrollState] once it does not. Spliced in **after** [drawBehind] and
- *   **before** `padding(start = width)`, so the numbers and [detectGutterTap]'s own hit-testing
- *   stay pinned to the outer, unscrolled viewport while only the code past the gutter scrolls
- *   beneath it.
  */
 @Composable
 fun Modifier.lineNumbers(
@@ -82,9 +78,35 @@ fun Modifier.lineNumbers(
   onGutterTap: (line: Int) -> Unit = {},
   onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
-  horizontalScroll: ScrollState? = null,
 ): Modifier {
-  if (width <= 0.dp) return thenHorizontalScroll(horizontalScroll)
+  if (width <= 0.dp) return this
+  val metrics = rememberGutterMetrics(text, style, width, breakpoints)
+  return this
+    .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress)
+    .gutterDrawing(metrics, layout, stoppedLine)
+    .padding(start = width)
+}
+
+/** Everything [lineNumbers] and [GutterOverlay] both measure once, so neither keeps its own copy. */
+internal class GutterMetrics(
+  val starts: List<Int>,
+  val numbers: List<TextLayoutResult>,
+  val badge: TextLayoutResult,
+  val breakpointColumnPx: Int,
+  val digitsPx: Int,
+  val widthPx: Float,
+  val armed: Map<Int, Breakpoint>,
+  val currentArmed: State<Map<Int, Breakpoint>>,
+  val palette: EditorPalette,
+)
+
+@Composable
+internal fun rememberGutterMetrics(
+  text: CharSequence,
+  style: TextStyle,
+  width: Dp,
+  breakpoints: List<Breakpoint>,
+): GutterMetrics {
   val starts = logicalLineStarts(text)
   val measurer = rememberTextMeasurer()
   // Measured once per line count rather than per frame: a TextMeasurer's cache is small, and a
@@ -108,43 +130,53 @@ fun Modifier.lineNumbers(
   // that starts it disarmed the line. Found live on the tablet, not guessed: the dot vanished on
   // press and the condition dialog never opened, for every hold, long or short.
   val currentArmed = rememberUpdatedState(armed)
-  val palette = editorPalette
-
-  return this
-    .pointerInput(widthPx, layout, starts) {
-      detectGutterTap(
-        widthPx,
-        onTap = { y -> layout?.let { onGutterTap(it.lineNumberAt(y, starts)) } },
-        // Asked before `onTap` runs, so a long-press on a line that *was* armed still counts as
-        // one even though `onTap`'s own toggle disarms it in the same gesture.
-        wasArmed = { y -> layout?.let { currentArmed.value.containsKey(it.lineNumberAt(y, starts)) } == true },
-        onLongPress = { y -> layout?.let { onGutterLongPress(it.lineNumberAt(y, starts)) } },
-      )
-    }
-    .drawBehind {
-      if (layout == null) return@drawBehind
-      stoppedLine?.let { drawStoppedLineBackground(it, starts, layout, palette, size.width) }
-      numbers.forEachIndexed { index, number ->
-        val top = layout.getLineTop(layout.getLineForOffset(starts[index]))
-        // Right-aligned past the breakpoint column, so the digits line up with each other rather
-        // than with the code - always drawn now, whether or not the line carries a breakpoint.
-        val x = (digitsPx - number.size.width).toFloat()
-        drawText(number, topLeft = Offset(x, top))
-        armed[index + 1]?.let { breakpoint ->
-          drawBreakpointDot(breakpoint, palette, breakpointColumnPx, top, number.size.height.toFloat())
-          if (breakpoint.condition != null) {
-            drawConditionBadge(badge, breakpointColumnPx, top, number.size.height.toFloat())
-          }
-        }
-      }
-    }
-    .thenHorizontalScroll(horizontalScroll)
-    .padding(start = width)
+  return GutterMetrics(
+    starts, numbers, badge, breakpointColumnPx, digitsPx, widthPx, armed, currentArmed, editorPalette,
+  )
 }
 
-/** This modifier, scrollable once [scrollState] is given - `docs/PLAN.md`'s P6c-5. */
-private fun Modifier.thenHorizontalScroll(scrollState: ScrollState?): Modifier =
-  if (scrollState == null) this else horizontalScroll(scrollState)
+/** The tap/long-press gesture both [lineNumbers] and [GutterOverlay] hit-test with. */
+internal fun Modifier.gutterGestures(
+  metrics: GutterMetrics,
+  layout: TextLayoutResult?,
+  onGutterTap: (line: Int) -> Unit,
+  onGutterLongPress: (line: Int) -> Unit,
+): Modifier = pointerInput(metrics.widthPx, layout, metrics.starts) {
+  detectGutterTap(
+    metrics.widthPx,
+    onTap = { y -> layout?.let { onGutterTap(it.lineNumberAt(y, metrics.starts)) } },
+    // Asked before `onTap` runs, so a long-press on a line that *was* armed still counts as
+    // one even though `onTap`'s own toggle disarms it in the same gesture.
+    wasArmed = { y ->
+      layout?.let { metrics.currentArmed.value.containsKey(it.lineNumberAt(y, metrics.starts)) } == true
+    },
+    onLongPress = { y -> layout?.let { onGutterLongPress(it.lineNumberAt(y, metrics.starts)) } },
+  )
+}
+
+/** The numbers, the breakpoint marks and the stopped-line wash both [lineNumbers] and [GutterOverlay] paint. */
+internal fun Modifier.gutterDrawing(metrics: GutterMetrics, layout: TextLayoutResult?, stoppedLine: Int?): Modifier =
+  drawBehind {
+    if (layout == null) return@drawBehind
+    stoppedLine?.let { drawStoppedLineBackground(it, metrics.starts, layout, metrics.palette, size.width) }
+    metrics.numbers.forEachIndexed { index, number ->
+      val top = layout.getLineTop(layout.getLineForOffset(metrics.starts[index]))
+      // Right-aligned past the breakpoint column, so the digits line up with each other rather
+      // than with the code - always drawn now, whether or not the line carries a breakpoint.
+      val x = (metrics.digitsPx - number.size.width).toFloat()
+      drawText(number, topLeft = Offset(x, top))
+      metrics.armed[index + 1]?.let { breakpoint ->
+        drawBreakpointMark(
+          breakpoint,
+          metrics.badge,
+          metrics.palette,
+          metrics.breakpointColumnPx,
+          top,
+          number.size.height.toFloat(),
+        )
+      }
+    }
+  }
 
 /**
  * The whole of [line]'s row, edge to edge - every visual row a wrapped logical line spans, not
@@ -166,9 +198,15 @@ private fun DrawScope.drawStoppedLineBackground(
   drawRect(color = palette.debugStoppedLine, topLeft = Offset(0f, top), size = Size(width, bottom - top))
 }
 
-/** A filled circle centred in its own column (P6a-12), dim while [Breakpoint.verified] is false. */
-private fun DrawScope.drawBreakpointDot(
+/**
+ * A filled circle centred in its own column (P6a-12), dim while [Breakpoint.verified] is false,
+ * with a small "?" overlaid near its corner (P6a-16) once [Breakpoint.condition] is set -
+ * IntelliJ's own `withQuestionBadgeIfNeeded` badges the base icon rather than swapping it for a
+ * different one, so a conditional breakpoint still reads as a breakpoint first.
+ */
+private fun DrawScope.drawBreakpointMark(
   breakpoint: Breakpoint,
+  badge: TextLayoutResult,
   palette: EditorPalette,
   columnWidthPx: Int,
   top: Float,
@@ -177,17 +215,11 @@ private fun DrawScope.drawBreakpointDot(
   val color = if (breakpoint.verified) palette.breakpointVerified else palette.breakpointUnverified
   val radius = minOf(columnWidthPx.toFloat(), rowHeight) / DOT_SHRINK
   drawCircle(color = color, radius = radius, center = Offset(columnWidthPx / 2f, top + rowHeight / 2f))
-}
-
-/**
- * A small "?" overlaid near the dot's own corner (P6a-16) - IntelliJ's own
- * `withQuestionBadgeIfNeeded` badges the base icon rather than swapping it for a different one,
- * so a conditional breakpoint still reads as a breakpoint first.
- */
-private fun DrawScope.drawConditionBadge(badge: TextLayoutResult, columnWidthPx: Int, top: Float, rowHeight: Float) {
-  val x = (columnWidthPx - badge.size.width).toFloat().coerceAtLeast(0f)
-  val y = (top + rowHeight - badge.size.height).coerceAtLeast(top)
-  drawText(badge, topLeft = Offset(x, y))
+  if (breakpoint.condition != null) {
+    val x = (columnWidthPx - badge.size.width).toFloat().coerceAtLeast(0f)
+    val y = (top + rowHeight - badge.size.height).coerceAtLeast(top)
+    drawText(badge, topLeft = Offset(x, y))
+  }
 }
 
 /**
