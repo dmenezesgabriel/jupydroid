@@ -43,6 +43,25 @@ abstract class EditorSettingsRepositoryContract {
     assertFalse(repository().observeSettings().first().accessKernelHistory)
   }
 
+  /**
+   * `notebook:toggle-all-cell-line-numbers` - on by default, matching what `EditorUiState` always
+   * defaulted to before P6c-2 moved this field out of per-notebook ViewModel state and into the
+   * app-wide, persisted settings this repository owns.
+   */
+  @Test
+  fun defaultsToLineNumbersShown() = runTest {
+    assertTrue(repository().observeSettings().first().lineNumbersShown)
+  }
+
+  @Test
+  fun remembersLineNumbersShownTurnedOff() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(lineNumbersShown = false))
+
+    assertFalse(repository.observeSettings().first().lineNumbersShown)
+  }
+
   @Test
   fun remembersEveryFieldOfAnUpdateAndNotOnlyTheFirst() = runTest {
     val repository = repository()

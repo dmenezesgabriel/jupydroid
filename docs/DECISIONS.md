@@ -5943,3 +5943,38 @@ have asked first"), which a Console-side call would need its own copy of.
 
 Both are solvable, but neither belongs to a UI-controls pass answering "is Interrupt reachable and
 is the input field visible" - they are their own sub-step, sized rather than folded in here.
+
+### `lineNumbersShown` moves from per-notebook state into the persisted settings it was deliberately kept out of (P6c-2)
+
+P2g's own `EditorUiState.lineNumbersShown` doc comment argued *"per notebook and per sitting, not
+persisted, which is also the reference's: the command writes `notebook.editorConfig`, which
+belongs to the widget, and never the model."* That was a considered call at the time, not an
+oversight - and P6c-2 reverses it anyway, because the premise it rested on stopped holding once a
+Settings screen existed to persist it in: five other `EditorSettings` fields were already
+app-wide, and a sixth toggle living somewhere else for no reason but history was exactly the drift
+`docs/PLAN.md`'s P6c row exists to close. The reference's own `codeCellConfig` setting
+(`packages/notebook-extension/schema/tracker.json`) is genuinely a persisted, app-wide default too
+- `notebook.editorConfig` is a *per-widget override* of that default, which this app has no
+equivalent surface for (no widget-scoped view of a document that outlives the document itself), so
+collapsing the two into one app-wide value is not a departure from what the reference actually
+models, only from the widget/registry split this app never built.
+
+Nothing about the six rows' own values changed - `EditorSettingsRepositoryContract`'s new cases
+default `lineNumbersShown` to `true`, matching what `EditorUiState` always defaulted to, so no
+existing notebook's gutter changes state on upgrade.
+
+### A Settings screen's own toggles are `Switch` rows, not the View menu's flip-label text (P6c-2)
+
+`NotebookActionsMenu.kt`'s own `SHOW_LINE_NUMBERS` doc comment recorded why View-menu rows read
+`"Show line numbers"`/`"Hide line numbers"` rather than a fixed label with a check mark: a
+`DropdownMenuItem`'s toggled state lives on a semantics node carrying no label, so neither a
+Maestro flow nor an accessibility service can read it. That constraint is real, but it is a
+constraint of `DropdownMenuItem` specifically - once the same six toggles got a real screen of
+their own rather than a cramped overflow menu, the flip-label workaround stopped being the only
+option. `SettingsScreen.kt` gives each row a `ListItem` with a `Switch` in its trailing slot,
+`Modifier.toggleable(role = Role.Switch)` on the whole row so a tap anywhere reaches it and the
+merged semantics node reports `Role.Switch` plus its checked state directly - both platforms'
+actual idiom for this: Android's own Settings app, and JupyterLab's Settings-menu rows
+(`docmanager:toggle-autosave`, `apputils:adaptive-theme`), which are already exactly this shape -
+one fixed label, one `isToggled` - not the flip-label pair the View menu's own space constraint
+forced.

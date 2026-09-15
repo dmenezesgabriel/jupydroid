@@ -6,7 +6,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -66,102 +65,6 @@ class NotebookActionsMenuTest {
     assertEquals(listOf(false), headingsSetTo)
   }
 
-  /**
-   * The row **names what tapping will do** rather than carrying a check beside a fixed label.
-   *
-   * That is this app's own rule - `COLLAPSE_CODE`/`EXPAND_CODE` in [cellActionItems] - and here it
-   * is load-bearing rather than tidy: a toggled `DropdownMenuItem`'s state lives on a node
-   * Android's accessibility tree gives no label to, so a Maestro flow cannot read it
-   * (`docs/DECISIONS.md`). A label that flips is a label both trees can see.
-   */
-  @Test
-  fun theNotebookMenuOffersToHideTheGutterWhileItIsShown() {
-    showTopBar(lineNumbersShown = true)
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(HIDE_LINE_NUMBERS).assertIsDisplayed()
-  }
-
-  @Test
-  fun theNotebookMenuOffersToShowTheGutterOnceItIsHidden() {
-    showTopBar(lineNumbersShown = false)
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(SHOW_LINE_NUMBERS).assertIsDisplayed()
-  }
-
-  @Test
-  fun theRowAsksForTheToggle() {
-    showTopBar(lineNumbersShown = true)
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-    compose.onNodeWithText(HIDE_LINE_NUMBERS).performClick()
-
-    assertEquals(1, lineNumberToggles)
-  }
-
-  @Test
-  fun theNotebookMenuOffersToDisableBracketsWhileTheyAreOn() {
-    showTopBar(settings = EditorSettings(autoClosingBrackets = true))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(DISABLE_AUTO_CLOSING_BRACKETS).assertIsDisplayed()
-  }
-
-  @Test
-  fun theNotebookMenuOffersToEnableBracketsOnceTheyAreOff() {
-    showTopBar(settings = EditorSettings(autoClosingBrackets = false))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(ENABLE_AUTO_CLOSING_BRACKETS).assertIsDisplayed()
-  }
-
-  @Test
-  fun theBracketsRowAsksForTheToggle() {
-    showTopBar(settings = EditorSettings(autoClosingBrackets = true))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-    compose.onNodeWithText(DISABLE_AUTO_CLOSING_BRACKETS).performClick()
-
-    assertEquals(listOf(EditorSettings(autoClosingBrackets = false)), settingsWritten)
-  }
-
-  /**
-   * Off until asked for, so the row offers to turn it **on** - the reference's own default and its
-   * own instruction to the user (`docs/source/user/notebook.md:191`).
-   */
-  @Test
-  fun theNotebookMenuOffersToTurnKernelHistoryOnWhileItIsOff() {
-    showTopBar(settings = EditorSettings(accessKernelHistory = false))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(ENABLE_KERNEL_HISTORY).assertIsDisplayed()
-  }
-
-  @Test
-  fun theNotebookMenuOffersToTurnKernelHistoryOffOnceItIsOn() {
-    showTopBar(settings = EditorSettings(accessKernelHistory = true))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(DISABLE_KERNEL_HISTORY).assertIsDisplayed()
-  }
-
-  @Test
-  fun theKernelHistoryRowFlipsThatFieldAndNoOther() {
-    showTopBar(settings = EditorSettings(accessKernelHistory = false))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-    compose.onNodeWithText(ENABLE_KERNEL_HISTORY).performClick()
-
-    compose.runOnIdle { assertEquals(listOf(EditorSettings(accessKernelHistory = true)), settingsWritten) }
-  }
-
   @Test
   fun theNotebookMenuOffersTheTableOfContents() {
     showTopBar()
@@ -219,70 +122,6 @@ class NotebookActionsMenuTest {
     compose.onNodeWithContentDescription("Notebook actions").performClick()
 
     compose.onNodeWithText(SHOW_TABLE_OF_CONTENTS).assertIsDisplayed()
-  }
-
-  @Test
-  fun theNotebookMenuOffersToNumberTheHeadings() {
-    showTopBar()
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-    compose.onNodeWithText(SHOW_HEADING_NUMBERS).performClick()
-
-    compose.runOnIdle { assertEquals(listOf(EditorSettings(tocNumberHeaders = true)), settingsWritten) }
-  }
-
-  @Test
-  fun withNumbersOnTheRowOffersToTakeThemAway() {
-    showTopBar(settings = EditorSettings(tocNumberHeaders = true))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(HIDE_HEADING_NUMBERS).assertIsDisplayed()
-  }
-
-  /**
-   * The first-level row is the reference's own `isEnabled` read through this app's rule for a
-   * control that would do nothing: with nothing numbered, both of its states look identical.
-   */
-  @Test
-  fun theTopLevelRowIsOfferedOnlyWhileSomethingIsNumbered() {
-    showTopBar()
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(HIDE_TOP_LEVEL_NUMBER).assertDoesNotExist()
-    compose.onNodeWithText(SHOW_TOP_LEVEL_NUMBER).assertDoesNotExist()
-  }
-
-  @Test
-  fun theTopLevelRowFlipsWithItsOwnState() {
-    showTopBar(settings = EditorSettings(tocNumberHeaders = true, tocNumberingH1 = true))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-    compose.onNodeWithText(HIDE_TOP_LEVEL_NUMBER).performClick()
-
-    compose.runOnIdle {
-      assertEquals(listOf(EditorSettings(tocNumberHeaders = true, tocNumberingH1 = false)), settingsWritten)
-    }
-  }
-
-  @Test
-  fun theNotebookMenuOffersToLeaveOutWhatACellPrinted() {
-    showTopBar(settings = EditorSettings(tocIncludeOutput = true))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-    compose.onNodeWithText(HIDE_OUTPUT_HEADINGS).performClick()
-
-    compose.runOnIdle { assertEquals(listOf(EditorSettings(tocIncludeOutput = false)), settingsWritten) }
-  }
-
-  @Test
-  fun withThemLeftOutTheRowOffersToPutThemBack() {
-    showTopBar(settings = EditorSettings(tocIncludeOutput = false))
-
-    compose.onNodeWithContentDescription("Notebook actions").performClick()
-
-    compose.onNodeWithText(SHOW_OUTPUT_HEADINGS).assertIsDisplayed()
   }
 
   @Test
@@ -392,19 +231,13 @@ class NotebookActionsMenuTest {
   }
 
   private val headingsSetTo = mutableListOf<Boolean>()
-  private var lineNumberToggles = 0
   private val tableOfContentsSelections = mutableListOf<String>()
   private var tableOfContentsPanelActivations = 0
   private var debuggerPanelActivations = 0
   private var exportPickerOpens = 0
   private val exportedAs = mutableListOf<String>()
 
-  /** What the View menu asked to persist - one list for every toggle, as the menu writes them. */
-  private val settingsWritten = mutableListOf<EditorSettings>()
-
   private fun showTopBar(
-    lineNumbersShown: Boolean = true,
-    settings: EditorSettings = EditorSettings(),
     tableOfContentsHeadings: List<TocHeading> = emptyList(),
     onShowTableOfContentsPanel: (() -> Unit)? = null,
     onShowDebuggerPanel: (() -> Unit)? = null,
@@ -421,10 +254,6 @@ class NotebookActionsMenuTest {
           onRedo = {},
           onBack = {},
           onSetAllHeadingsCollapsed = { headingsSetTo += it },
-          lineNumbersShown = lineNumbersShown,
-          onToggleLineNumbers = { lineNumberToggles++ },
-          settings = settings,
-          onSettingsChanged = { settingsWritten += it },
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },
           onShowTableOfContentsPanel = onShowTableOfContentsPanel,

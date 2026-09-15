@@ -56,4 +56,13 @@ data class EditorSettings(
    * safer to overwrite, so this one is left where the reference put it.
    */
   val accessKernelHistory: Boolean = false,
+  /**
+   * `notebook:toggle-all-cell-line-numbers` - P6c-2 grew this repository with it rather than
+   * leaving it in `EditorUiState`, where it had been per notebook and per sitting since P2g: five
+   * other fields here were already app-wide and persisted, and a sixth toggle living somewhere
+   * else for no reason but history was the exact drift `docs/PLAN.md`'s P6c row existed to close.
+   *
+   * **True by default**, matching what `EditorUiState.lineNumbersShown` always defaulted to.
+   */
+  val lineNumbersShown: Boolean = true,
 )

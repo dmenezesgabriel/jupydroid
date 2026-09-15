@@ -1,0 +1,109 @@
+package com.jupydroid.app.ui.settings
+
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.theme.JupyterDroidTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * The six toggles P6c-2 moved out of `NotebookActionsMenu`'s View menu - each reads and writes
+ * [EditorSettingsRepository] directly, the same repository the notebook's own bars already share.
+ */
+@RunWith(AndroidJUnit4::class)
+class SettingsScreenTest {
+  @get:Rule val compose = createComposeRule()
+
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+  @Test
+  fun rowsShowTheRepositorysCurrentValues() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(autoClosingBrackets = false, tocNumberHeaders = true)))
+
+    compose.onNodeWithText(SHOW_LINE_NUMBERS).assertIsOn()
+    compose.onNodeWithText(AUTO_CLOSING_BRACKETS).assertIsOff()
+    compose.onNodeWithText(KERNEL_HISTORY_ACCESS).assertIsOff()
+    compose.onNodeWithText(HEADING_NUMBERS).assertIsOn()
+    // Only offered while there is numbering for it to refine - `NotebookActionsMenu`'s own rule.
+    compose.onNodeWithText(NUMBER_TOP_LEVEL_HEADINGS).assertIsOn()
+    compose.onNodeWithText(OUTPUT_HEADINGS).assertIsOn()
+  }
+
+  @Test
+  fun theTopLevelHeadingRowIsHiddenUntilHeadingNumbersIsOn() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(tocNumberHeaders = false))
+    startScreen(repository)
+    compose.onNodeWithText(NUMBER_TOP_LEVEL_HEADINGS).assertDoesNotExist()
+
+    compose.onNodeWithText(HEADING_NUMBERS).performClick()
+
+    compose.onNodeWithText(NUMBER_TOP_LEVEL_HEADINGS).assertIsOn()
+  }
+
+  @Test
+  fun tappingLineNumbersWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(lineNumbersShown = true))
+    startScreen(repository)
+
+    compose.onNodeWithText(SHOW_LINE_NUMBERS).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().lineNumbersShown }
+  }
+
+  @Test
+  fun tappingAutoClosingBracketsWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(autoClosingBrackets = true))
+    startScreen(repository)
+
+    compose.onNodeWithText(AUTO_CLOSING_BRACKETS).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().autoClosingBrackets }
+  }
+
+  @Test
+  fun tappingKernelHistoryAccessWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(accessKernelHistory = false))
+    startScreen(repository)
+
+    compose.onNodeWithText(KERNEL_HISTORY_ACCESS).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().accessKernelHistory }
+  }
+
+  @Test
+  fun tappingOutputHeadingsWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(tocIncludeOutput = true))
+    startScreen(repository)
+
+    compose.onNodeWithText(OUTPUT_HEADINGS).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().tocIncludeOutput }
+  }
+
+  private fun startScreen(repository: EditorSettingsRepository) {
+    compose.setContent {
+      JupyterDroidTheme {
+        SettingsScreen(editorSettingsRepository = repository, applicationScope = scope, onBack = {})
+      }
+    }
+  }
+
+  private fun EditorSettingsRepository.currentSettings(): EditorSettings = runBlocking { observeSettings().first() }
+
+  private companion object {
+    const val TIMEOUT_MILLIS = 5_000L
+  }
+}

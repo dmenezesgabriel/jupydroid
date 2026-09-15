@@ -153,24 +153,6 @@ data class EditorUiState(
    */
   val markdownTakingCaret: String? = null,
   /**
-   * Whether every cell draws a line-number gutter - `notebook:toggle-all-cell-line-numbers`.
-   *
-   * **One boolean for all three cell types**, because that is what the command is:
-   * `toggleAllLineNumbers` writes `code`, `markdown` and `raw` together and reads them as a
-   * conjunction (`packages/notebook/src/actions.tsx:1792-1812`). Three flags could disagree, and
-   * no command there can produce a disagreement.
-   *
-   * **Per notebook and per sitting, not persisted**, which is also the reference's: the command
-   * writes `notebook.editorConfig`, which belongs to the widget, and never the model. So it is a
-   * fact about this sitting, like [markdownBeingEdited] beside it.
-   *
-   * **Shown by default, departing from the reference**, whose `defaultEditorConfig` is
-   * `lineNumbers: false` on all three (`packages/notebook/src/widget.ts:1336-1355`) and whose
-   * shipped settings agree (`notebook-extension/schema/tracker.json:704,752,767`). A phone shows a
-   * fraction of a cell and a traceback names a line; the departure is `docs/DECISIONS.md`.
-   */
-  val lineNumbersShown: Boolean = true,
-  /**
    * Breakpoints set on a code cell's lines, by cell id - [NotebookDebugger]'s own state.
    *
    * **Not on [Cell], and not persisted.** JupyterLab keeps a breakpoint in its own in-memory

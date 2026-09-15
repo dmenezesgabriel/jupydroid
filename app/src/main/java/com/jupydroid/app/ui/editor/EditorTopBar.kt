@@ -39,7 +39,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.DocumentDismissAction
@@ -132,23 +131,12 @@ fun EditorTopBar(
   cellTypeOnBar: Boolean = false,
   /** `notebook:collapse-all-headings` / `expand-all-headings` - see [NotebookActionsMenu]. */
   onSetAllHeadingsCollapsed: (Boolean) -> Unit = {},
-  /** Whether the cells are drawing their gutters, which is what the View row is named from. */
-  lineNumbersShown: Boolean = true,
-  /** `notebook:toggle-all-cell-line-numbers` - see [NotebookActionsMenu]. */
-  onToggleLineNumbers: () -> Unit = {},
-  /**
-   * The persisted, app-wide preferences the View menu's toggles read and write - see
-   * [NotebookActionsMenu], which owns which row means which field.
-   *
-   * **Adaptation:** the reference files every one of these under Settings; this app has none until
-   * P6c, so they sit in View and move once P6c lands.
-   */
-  settings: EditorSettings = EditorSettings(),
-  onSettingsChanged: (EditorSettings) -> Unit = {},
   /** `toc:show-panel`'s content - every heading in the notebook; see [NotebookActionsMenu]. */
   tableOfContentsHeadings: List<TocHeading> = emptyList(),
   /** `toc:show-panel`'s pick on the overlay - jumps to the chosen heading's cell. */
   onTableOfContentsHeadingSelected: (String) -> Unit = {},
+  /** How the overlay numbers what it lists - see [NotebookActionsMenu]. */
+  tocNumbering: TocNumbering = TocNumbering(),
   /**
    * `toc:show-panel` where the shell has a side area: activates its panel, and nothing else -
    * `labShell.activateById(toc.id)` (`packages/toc-extension/src/index.ts:161-172`). Null where
@@ -255,12 +243,9 @@ fun EditorTopBar(
           onExportPickerDismissed = onExportPickerDismissed,
           onExportAs = onExportAs,
           onSetAllHeadingsCollapsed = onSetAllHeadingsCollapsed,
-          lineNumbersShown = lineNumbersShown,
-          onToggleLineNumbers = onToggleLineNumbers,
-          settings = settings,
-          onSettingsChanged = onSettingsChanged,
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = onTableOfContentsHeadingSelected,
+          tocNumbering = tocNumbering,
           onShowTableOfContentsPanel = onShowTableOfContentsPanel,
           onShowDebuggerPanel = onShowDebuggerPanel,
           // Moved, not copied: null once the bar above carries the control itself.

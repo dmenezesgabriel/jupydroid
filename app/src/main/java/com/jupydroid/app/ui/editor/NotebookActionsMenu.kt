@@ -15,7 +15,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.domain.model.EditorSettings
 
 /**
  * The notebook's overflow: everything the reference files under **View**, and - from P2j - under
@@ -63,24 +62,13 @@ internal fun NotebookActionsMenu(
   onExportPickerDismissed: () -> Unit,
   onExportAs: (String) -> Unit,
   onSetAllHeadingsCollapsed: (Boolean) -> Unit,
-  /**
-   * Per **notebook** and per sitting, which is why it is not in [settings]: the reference writes
-   * `notebook.editorConfig`, which belongs to the widget - see [EditorUiState.lineNumbersShown].
-   */
-  lineNumbersShown: Boolean,
-  onToggleLineNumbers: () -> Unit,
-  /**
-   * The persisted, app-wide preferences every other toggle here reads and writes.
-   *
-   * Whole rather than one boolean and one callback per row, which is what this was: four settings
-   * cost eight parameters at each of three layers, and each row's own
-   * `onSettingsChanged(settings.copy(x = !settings.x))` had to be written a layer away from the row
-   * that knew which field it meant. A fifth setting now costs a row and nothing else.
-   */
-  settings: EditorSettings,
-  onSettingsChanged: (EditorSettings) -> Unit,
   tableOfContentsHeadings: List<TocHeading>,
   onTableOfContentsHeadingSelected: (String) -> Unit,
+  /**
+   * How the overlay numbers what it lists - read-only here since P6c-2 moved the toggles that set
+   * it to `SettingsScreen`; this menu only ever displayed them, through [TableOfContentsPanel].
+   */
+  tocNumbering: TocNumbering,
   /** `toc:show-panel` where the shell has a side area - see [EditorTopBar]. Null where it has none. */
   onShowTableOfContentsPanel: (() -> Unit)?,
   /**
@@ -100,7 +88,6 @@ internal fun NotebookActionsMenu(
   /** `notebook:change-cell-to-{code,markdown,raw}`, from the row above. */
   onChangeCellKind: (CellKind) -> Unit = {},
 ) {
-  val tocNumbering = settings.tocNumbering()
   var open by remember { mutableStateOf(false) }
   // Its own flag rather than reusing [open]: picking "Table of contents" replaces this menu with
   // [TableOfContentsPanel] rather than closing it outright, the same two-step [CellActions]' own
@@ -157,29 +144,6 @@ internal fun NotebookActionsMenu(
           onSetAllHeadingsCollapsed(false)
         },
       )
-      DropdownMenuItem(
-        text = { Text(if (lineNumbersShown) HIDE_LINE_NUMBERS else SHOW_LINE_NUMBERS) },
-        onClick = {
-          open = false
-          onToggleLineNumbers()
-        },
-      )
-      DropdownMenuItem(
-        text = {
-          Text(if (settings.autoClosingBrackets) DISABLE_AUTO_CLOSING_BRACKETS else ENABLE_AUTO_CLOSING_BRACKETS)
-        },
-        onClick = {
-          open = false
-          onSettingsChanged(settings.copy(autoClosingBrackets = !settings.autoClosingBrackets))
-        },
-      )
-      DropdownMenuItem(
-        text = { Text(if (settings.accessKernelHistory) DISABLE_KERNEL_HISTORY else ENABLE_KERNEL_HISTORY) },
-        onClick = {
-          open = false
-          onSettingsChanged(settings.copy(accessKernelHistory = !settings.accessKernelHistory))
-        },
-      )
       // One row, two jobs, and which one is whether the shell has a side area. With one, this is
       // `toc:show-panel` exactly as the reference defines it - it *activates* the sidebar panel and
       // has no toggled state to name (`packages/toc-extension/src/index.ts:161-172`). Without one,
@@ -190,32 +154,6 @@ internal fun NotebookActionsMenu(
         onClick = {
           open = false
           onShowTableOfContentsPanel?.invoke() ?: run { tocOpen = true }
-        },
-      )
-      DropdownMenuItem(
-        text = { Text(if (tocNumbering.numberHeaders) HIDE_HEADING_NUMBERS else SHOW_HEADING_NUMBERS) },
-        onClick = {
-          open = false
-          onSettingsChanged(settings.copy(tocNumberHeaders = !settings.tocNumberHeaders))
-        },
-      )
-      // Only while there are numbers for it to change, which is the reference's own `isEnabled`
-      // read through this app's rule for a control that would do nothing: it gates the row on the
-      // option being supported, and here "unsupported" is simply nothing being numbered.
-      if (tocNumbering.numberHeaders) {
-        DropdownMenuItem(
-          text = { Text(if (tocNumbering.numberingH1) HIDE_TOP_LEVEL_NUMBER else SHOW_TOP_LEVEL_NUMBER) },
-          onClick = {
-            open = false
-            onSettingsChanged(settings.copy(tocNumberingH1 = !settings.tocNumberingH1))
-          },
-        )
-      }
-      DropdownMenuItem(
-        text = { Text(if (settings.tocIncludeOutput) HIDE_OUTPUT_HEADINGS else SHOW_OUTPUT_HEADINGS) },
-        onClick = {
-          open = false
-          onSettingsChanged(settings.copy(tocIncludeOutput = !settings.tocIncludeOutput))
         },
       )
       // Only where the shell has a side area to activate - [SHOW_TABLE_OF_CONTENTS]'s own
@@ -322,91 +260,13 @@ internal const val COLLAPSE_ALL_HEADINGS = "Collapse All Headings"
 internal const val EXPAND_ALL_HEADINGS = "Expand All Headings"
 
 /**
- * `notebook:toggle-all-cell-line-numbers`, as **two** labels rather than one and a check mark.
- *
- * The reference has one label - *"Show Line Numbers"* (`index.ts:4406`) - and shows the state as a
- * toggled menu item, because its View menu is a checkbox list. This app's menus are verb lists
- * (`COLLAPSE_CODE`/`EXPAND_CODE` in [cellActionItems]), and here that convention is load-bearing:
- * Android's accessibility tree keeps a `DropdownMenuItem`'s toggled state on a node that carries
- * no label, so a check mark is a state no Maestro flow can read (`docs/DECISIONS.md`). A label
- * that flips is one both trees can see.
- */
-internal const val SHOW_LINE_NUMBERS = "Show line numbers"
-
-/** The same command from the other side - see [SHOW_LINE_NUMBERS]. */
-internal const val HIDE_LINE_NUMBERS = "Hide line numbers"
-
-/**
- * `fileeditor:toggle-autoclosing-brackets-universal`, as two labels for the reason
- * [SHOW_LINE_NUMBERS] is: a flip-with-state label is one both the Compose and the accessibility
- * tree can read, where a check mark is not. This app's own convention, not the reference's - see
- * [EditorTopBar]'s `onToggleAutoClosingBrackets` for why the reference's own choice on this exact
- * row (a fixed label) is not repeated here.
- */
-internal const val ENABLE_AUTO_CLOSING_BRACKETS = "Enable auto-closing brackets"
-
-/** The same command from the other side - see [ENABLE_AUTO_CLOSING_BRACKETS]. */
-internal const val DISABLE_AUTO_CLOSING_BRACKETS = "Disable auto-closing brackets"
-
-/**
- * `accessKernelHistory` - the setting the two `notebook:access-*-history-entry` commands are gated
- * on, and with them the pair of keys [SymbolRow] draws.
- *
- * **Adaptation, and it is where rather than whether.** The reference puts this in Settings and
- * says so in its own user guide (`docs/source/user/notebook.md:191`); this app has no settings
- * screen until P6c, so it sits in View beside the other persisted toggles and moves with them.
- * Two labels rather than one and a check mark, for [SHOW_LINE_NUMBERS]'s reason.
- */
-internal const val ENABLE_KERNEL_HISTORY = "Enable kernel history access"
-
-/** The same setting from the other side - see [ENABLE_KERNEL_HISTORY]. */
-internal const val DISABLE_KERNEL_HISTORY = "Disable kernel history access"
-
-/**
  * `toc:show-panel` (`packages/toc-extension/src/index.ts:161-172`), and **one label rather than
- * two** - which departs from [SHOW_LINE_NUMBERS]' convention on purpose, because the reference's
- * command departs from a toggle: it activates the sidebar panel and declares no `isToggled`. Where
- * the shell has no side area the row opens [TableOfContentsPanel], whose pick dismisses it, so
- * there is no state to name on that side either.
+ * two** - because the reference's command departs from a toggle: it activates the sidebar panel
+ * and declares no `isToggled`. Where the shell has no side area the row opens
+ * [TableOfContentsPanel], whose pick dismisses it, so there is no state to name on that side
+ * either.
  */
 internal const val SHOW_TABLE_OF_CONTENTS = "Show table of contents"
-
-/**
- * `toc:display-numbering`, whose own label is *"Show heading number in the document"*
- * (`packages/toc-extension/src/index.ts:113`) - and "in the document" is the load-bearing half:
- * the number goes on the notebook's rendered heading as well as on the panel's row
- * (`packages/notebook/src/toc.ts:733-748`). Two labels rather than one and a check mark, for
- * [SHOW_LINE_NUMBERS]'s reason.
- *
- * **Adaptation:** the reference puts this on the ToC panel's own toolbar (`:260-306`). Here it is
- * on the View menu, because that is the only surface both presentations of the ToC share - a phone
- * gets the overlay, which has no toolbar to hang it from, and a 280dp pane header has no room for
- * a fourth control.
- */
-internal const val SHOW_HEADING_NUMBERS = "Show heading numbers"
-
-/** The same command from the other side - see [SHOW_HEADING_NUMBERS]. */
-internal const val HIDE_HEADING_NUMBERS = "Hide heading numbers"
-
-/**
- * `toc:display-h1-numbering`, *"Show first-level heading number"* (`index.ts:95`). Offered only
- * while something is numbered, which is that command's own `isEnabled` read through this app's
- * rule: with numbering off, both states of this row look identical on screen.
- */
-internal const val SHOW_TOP_LEVEL_NUMBER = "Number top-level headings"
-
-/** The same command from the other side - see [SHOW_TOP_LEVEL_NUMBER]. */
-internal const val HIDE_TOP_LEVEL_NUMBER = "Skip top-level heading numbers"
-
-/**
- * `toc:display-outputs-numbering`, *"Show output headings"* (`index.ts:139`) - whether a heading a
- * code cell **printed** is listed beside the ones its neighbours wrote. Two labels rather than the
- * reference's one, for [SHOW_LINE_NUMBERS]'s reason.
- */
-internal const val SHOW_OUTPUT_HEADINGS = "Show output headings"
-
-/** The same command from the other side - see [SHOW_OUTPUT_HEADINGS]. */
-internal const val HIDE_OUTPUT_HEADINGS = "Hide output headings"
 
 /**
  * One label, not two, for [SHOW_TABLE_OF_CONTENTS]'s own reason: [DebuggerPanel]'s row is read-only

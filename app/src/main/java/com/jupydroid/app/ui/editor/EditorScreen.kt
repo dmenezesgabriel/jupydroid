@@ -326,9 +326,8 @@ fun EditorScreen(
           EditorTopBars(
             state = state,
             viewModel = viewModel,
-            editorSettings = editorSettings,
-            onSettingsChanged = { changed -> applicationScope.launch { editorSettingsRepository.update(changed) } },
             tocHeadings = tocHeadings,
+            tocNumbering = editorSettings.tocNumbering(),
             onShowTableOfContents = onShowTableOfContents,
             onShowDebugger = onShowDebugger,
             onHeadingSelected = jumpToHeading,
@@ -376,6 +375,7 @@ fun EditorScreen(
           onMarkdownEditRequested = viewModel::markdownEditRequested,
           cellInput = cellInput,
           autoClosingBrackets = editorSettings.autoClosingBrackets,
+          lineNumbersShown = editorSettings.lineNumbersShown,
           tocNumbering = editorSettings.tocNumbering(),
           tocHeadings = tocHeadings,
           listState = listState,

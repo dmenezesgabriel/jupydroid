@@ -481,44 +481,4 @@ class EditorViewModelTest {
     assertEquals(1, viewModel.uiState.value.undoable.size)
     assertTrue(viewModel.uiState.value.redoable.isEmpty())
   }
-
-  /**
-   * `notebook:toggle-all-cell-line-numbers` - one boolean for all three cell types, and the
-   * command flips it rather than setting it (`packages/notebook/src/actions.tsx:1792-1812`, where
-   * the new value is `!(code && markdown && raw)`).
-   *
-   * **Shown to begin with, which is a departure and a deliberate one.** The reference's
-   * `defaultEditorConfig` is `lineNumbers: false` on all three (`widget.ts:1336-1355`) and its
-   * shipped settings agree (`notebook-extension/schema/tracker.json:704,752,767`). This app has
-   * drawn the gutter since Step 5 and keeps it: a phone shows a fraction of a cell, and a
-   * traceback names a line. See `docs/DECISIONS.md`.
-   */
-  @Test
-  fun lineNumbers_areShownUntilTheCommandHidesThem() = runTest {
-    val viewModel = loadedEditor()
-
-    assertTrue(viewModel.uiState.value.lineNumbersShown)
-
-    viewModel.toggleLineNumbers()
-    assertFalse(viewModel.uiState.value.lineNumbersShown)
-
-    viewModel.toggleLineNumbers()
-    assertTrue(viewModel.uiState.value.lineNumbersShown)
-  }
-
-  /**
-   * The gutter is the widget's, not the file's: `toggleAllLineNumbers` writes
-   * `notebook.editorConfig` and never the model, so nothing about the document changed and there
-   * is nothing to save. A toggle that dirtied the notebook would rewrite the file - and reorder
-   * Recents - for having been looked at.
-   */
-  @Test
-  fun lineNumbers_areNotAChangeToTheDocument() = runTest {
-    val viewModel = loadedEditor()
-
-    viewModel.toggleLineNumbers()
-
-    assertFalse(viewModel.uiState.value.dirty)
-    assertTrue(viewModel.uiState.value.undoable.isEmpty())
-  }
 }

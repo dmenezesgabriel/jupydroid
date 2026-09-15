@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.runtime.Composable
 import com.jupydroid.app.domain.model.Cell
-import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.ancestorCrumbsFor
 
@@ -29,10 +28,9 @@ import com.jupydroid.app.ui.ancestorCrumbsFor
 internal fun EditorTopBars(
   state: EditorUiState,
   viewModel: EditorViewModel,
-  editorSettings: EditorSettings,
-  /** One callback for every View-menu toggle, so this needs no scope and no repository. */
-  onSettingsChanged: (EditorSettings) -> Unit,
   tocHeadings: List<TocHeading>,
+  /** How the overlay numbers what it lists - see [NotebookActionsMenu]. */
+  tocNumbering: TocNumbering,
   /** `toc:show-panel` - null where the shell has no side area; see [EditorScreen]. */
   onShowTableOfContents: (() -> Unit)?,
   /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [EditorScreen]. */
@@ -91,9 +89,8 @@ internal fun EditorTopBars(
       // The head cell is already resolved above for [SelectionTopBar]; the document's bar names
       // its *type*, which is the reference's `cellType` item - see [CellTypeControl].
       head = head,
-      editorSettings = editorSettings,
-      onSettingsChanged = onSettingsChanged,
       tocHeadings = tocHeadings,
+      tocNumbering = tocNumbering,
       onShowTableOfContents = onShowTableOfContents,
       onShowDebugger = onShowDebugger,
       onHeadingSelected = onHeadingSelected,
@@ -113,9 +110,8 @@ private fun DocumentTopBar(
   viewModel: EditorViewModel,
   /** The selection's head, whose type the bar names. Null on a notebook with no active cell. */
   head: Cell?,
-  editorSettings: EditorSettings,
-  onSettingsChanged: (EditorSettings) -> Unit,
   tocHeadings: List<TocHeading>,
+  tocNumbering: TocNumbering,
   /** `toc:show-panel` - null where the shell has no side area; see [EditorScreen]. */
   onShowTableOfContents: (() -> Unit)?,
   /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [EditorScreen]. */
@@ -141,12 +137,9 @@ private fun DocumentTopBar(
     onChangeCellKind = { kind -> head?.let { viewModel.edits.applyTo(it.id, CellAction.ChangeKind(kind)) } },
     cellTypeOnBar = labelsFitOnActionRow(),
     onSetAllHeadingsCollapsed = viewModel.edits::setAllHeadingsCollapsed,
-    lineNumbersShown = state.lineNumbersShown,
-    onToggleLineNumbers = viewModel::toggleLineNumbers,
-    settings = editorSettings,
-    onSettingsChanged = onSettingsChanged,
     tableOfContentsHeadings = tocHeadings,
     onTableOfContentsHeadingSelected = onHeadingSelected,
+    tocNumbering = tocNumbering,
     onShowTableOfContentsPanel = onShowTableOfContents,
     onShowDebuggerPanel = onShowDebugger,
     titleCollapse = titleCollapse,
