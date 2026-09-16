@@ -61,6 +61,10 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: device-secrets
+        name: evidence proves the app, not the house it ran in
+        entry: python3 scripts/check_device_secrets.py
+        language: system
       - id: palette-consumers
         name: a palette states colours something draws
         entry: python3 scripts/check_palette_consumers.py
