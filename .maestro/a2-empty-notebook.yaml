@@ -38,7 +38,7 @@ appId: com.jupydroid.app
     timeout: 5000
 - tapOn: "New notebook"
 # No restart. This flow used to stop and relaunch here because audit A3 was open and a new
-# notebook did not reach Recents until the list was rebuilt; A3 was fixed in 5403bd9, and
+# notebook did not reach Recents until the list was rebuilt; A3 was fixed in e517e4a, and
 # a3-create-shows-up proves the row arrives on its own. The relaunch also had no settle, so it
 # raced the disk scan - a workaround that had outlived its reason and could only misfire.
 # `Untitled.ipynb` is the server's name for a new notebook, and waiting on it means the row is

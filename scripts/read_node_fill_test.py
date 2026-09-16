@@ -123,7 +123,7 @@ class ThisRepositoryTest(unittest.TestCase):
     """The defect P7a-1b exists to close, read off the frames it is visible in.
 
     **An oracle that cannot see the bug cannot be trusted to see the fix.** These two pairs were
-    captured at `eed75c28`, the commit before this step, and are committed rather than overwritten
+    captured at `b4a81e47`, the commit before this step, and are committed rather than overwritten
     by the run that proves the fix - `evidence/p7a-1b-toggle-wash/before-the-fix/README.md` says so
     in as many words. What they hold is a search toggle drawing its *on* wash from
     `list.inactiveSelectionBackground`, the id that belongs to the explorer's row, rather than from

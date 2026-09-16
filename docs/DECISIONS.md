@@ -2424,7 +2424,7 @@ pre-P2m-2 shape rather than against a number.
 **The invented word cost more than a word.** It was the only thing in front of a heading cell's
 collapser, so the collapser pushed it: two markdown cells in one frame started 48dp apart, measured
 on device at `evidence/p2n-gutter/before/gutter.txt` (`RAGGED by 48dp`) and visible since P2h in
-`git show b4f157b:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - P2o-2 renamed that flow
+`git show 0dd10c9:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - P2o-2 renamed that flow
 to `p2o-2-side-panel`, so the frame is in git history rather than in the tree. With the word gone
 the collapser takes the
 leading position instead, which is where the reference draws it anyway - `maybeCreateCollapseButton`
@@ -2945,7 +2945,7 @@ indicator (`cellRenderer.ts:148`), and `CellHeader` retired - the `⋮` to the c
 
 **Unlike the first time this was written down, the gutter was built before it was refused.** The
 frames are `evidence/p2v-1-run-gutter/` on the unreachable branch `p2v-declined-attempt`
-(`git show 74b9cd8:evidence/p2v-1-run-gutter/tablet/01-nothing-run-yet.png`), and they are the
+(`git show 60d8020:evidence/p2v-1-run-gutter/tablet/01-nothing-run-yet.png`), and they are the
 measurement this entry rests on rather than the arithmetic that preceded them:
 
 - **The width is not there, and a phone is where it is spent.** The column is 48dp and not the
@@ -4486,6 +4486,34 @@ The gate is the thing that has to be able to see it.
 
 ## Harness
 
+### History was rewritten once, before the first push, to take the device out of it
+
+Rule 2 asked for `logcat` as evidence, and 223 full-device dumps went in (249 MB at the tip,
+1.16 GB across history). `adb logcat` is the whole device's log, not this app's: read end to end
+they held the home Wi-Fi's BSSID and SSID (a BSSID geolocates a router), Samsung FCM push tokens,
+LAN addresses and every other app's activity. The tablet's serial was in 385 more files, and in
+five file names. A `.gitignore` could not help: every one of them was in the commits a push sends.
+
+So before the repository had a remote, `git filter-repo` rewrote all four branches once, on
+2026-09-16:
+
+- removed `evidence/*logcat*.txt`, `evidence/*/activities.txt`, the long-deleted
+  `tools/editor/node_modules/` and `prompt.md`;
+- replaced the serial with `TABLET_SERIAL`, in contents and in file names, from the gitignored
+  `.sensitive-strings.local`;
+- kept empty commits, so every branch has the commit count it had.
+
+Rehearsed first on a clone of the backup bundle and diffed against the old tip: only those paths
+and those replacements changed. Afterwards `git log --all -S` finds none of the markers in any
+commit. Nothing was lost: the original history is `~/backups/jupydroid-full-history-2026-09-16.bundle`,
+the dumps are back on disk as ignored files, and `.git/filter-repo/commit-map` maps every old SHA to
+its new one. SHAs quoted in files were remapped with it, except `evidence/rollback-to-91b2ae3/`,
+which is a directory name.
+
+**What it forbids:** committing a dump, or anything the dumps leaked. The `device-secrets`
+pre-commit gate enforces it (`scripts/check_device_secrets.py`). This is the one exception to "no
+rewriting history", and it was only affordable because nothing had been pushed yet.
+
 ### A `LazyColumn` composes past its own edge, so "visible" is not "on screen" (P2x-4d)
 
 `p2x-4-open-at-the-cell` asserted the matched cell was visible after the tap and **passed against a
@@ -5242,7 +5270,7 @@ own P4h-4 section.
 
 `useAlternateScreen`'s mutation table entry "entering the alternate screen does not blank it"
 survived P4h-3b's own whole-suite check (`docs/DECISIONS.md`'s entry above, same step), and a
-worktree check against `52ef8da` (P4h-2, before any of P4h-3's code existed) showed the identical
+worktree check against `c521599` (P4h-2, before any of P4h-3's code existed) showed the identical
 result - so this predates P4h-3 and touches no line P4h-3 wrote.
 
 **Read before changing anything: the shipped code was already correct.** `useAlternateScreen`'s
@@ -5473,7 +5501,7 @@ either, since it drives text through the semantics tree directly rather than a r
 `p4i-terminal-vi.yaml`'s `extendedWaitUntil: visible: "~"` (and `p4i-terminal-resize-driver.sh`'s
 own `count_vi_fill_lines`, a raw `adb exec-out uiautomator dump | grep -c 'text="~"'`) both failed
 repeatedly against a real, correctly-rendered `vi` screen - not intermittently, and not only
-against this phase's own code: reproduced against the untouched `fef3ace` build too, with
+against this phase's own code: reproduced against the untouched `d9eadff` build too, with
 `assertVisible`/`extendedWaitUntil` timing out for 30-60s over text a screenshot taken moments
 later shows plainly, and a raw `uiautomator dump` in the same state reporting every per-row
 `Text` node as `text=""`. Read alongside a REAL, working `count_vi_fill_lines` result from

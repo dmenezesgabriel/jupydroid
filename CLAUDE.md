@@ -97,6 +97,9 @@ is skipped "for speed". A step is only finished when all of them hold.
 - Capture **screenshots, snapshots and logs** of every flow into
   `evidence/<step>/` and commit them. `maestro.log` (and `logcat` where the step
   touches a process or the runtime) counts as evidence, not just PNGs.
+- **`logcat` is captured but never committed.** It is the whole device's log - home
+  Wi-Fi BSSID/SSID, push tokens, other apps - so `.gitignore` keeps it local and the
+  `device-secrets` gate refuses it. A README quotes the lines it cites.
 - **Look at the screenshots.** More than one flow in this repo's history has gone
   green against the wrong thing; a green log is only half the evidence.
 - Unit tests alone are never sufficient to close a step.
@@ -165,7 +168,8 @@ step runs this loop start to finish; no stage is skipped or reordered.
    screenshots, snapshots and logs into `evidence/<step>/`.
 5. **Commit semantically and atomically.** One coherent change per commit,
    conventional-commit subject. No complex git, no reverts, no rewriting
-   history. Every commit is fully functional — never broken mid-series.
+   history (the one exception, before the first push, is in `docs/DECISIONS.md`).
+   Every commit is fully functional — never broken mid-series.
 6. **Refactor rather than patch.** Band-aids layered on legacy code are worse
    than a clean rewrite. Favour clarity, idiom and discoverability; renaming or
    restructuring is preferred over working around a bad shape.
@@ -181,6 +185,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | file-length gate | ≤500 lines/file | `scripts/check-file-line-length.sh` |
 | maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
+| device-secrets gate | evidence proves the app, not the house it ran in | `scripts/check_device_secrets.py` (+ `_test.py`); local literals in gitignored `.sensitive-strings.local` |
 | monospace-home gate | what code looks like has one home | `scripts/check_monospace_home.py` (+ `_test.py`) |
 | busybox-seccomp gate | the shell asks Android for no syscall it refuses apps | `scripts/check_busybox_seccomp.py` (+ `_test.py`) |
 | shebang-exec gate | the console-script trampoline is the one that was built | `scripts/check_shebang_exec.py` (+ `_test.py`) |

@@ -9,7 +9,7 @@ appId: com.jupydroid.app
 # single caller, `CodeCell._updatePrompt` (`packages/cells/src/widget.ts:1693-1700`) - and a
 # heading cell's collapser was drawn in front of that word, so two markdown cells in one frame
 # started 48dp apart. Visible in
-# `git show b4f157b:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - P2o-2 renamed that
+# `git show 0dd10c9:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - P2o-2 renamed that
 # flow to `p2o-2-side-panel`, so the frame is in git history rather than in the tree - and
 # invisible to every assertion in the suite: the labels read the right words in the right cells.
 #
