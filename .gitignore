@@ -30,3 +30,14 @@ local.properties
 
 # Python bytecode from the maestro gate and its tests, which run out of scripts/.
 __pycache__/
+
+# Full-device dumps record the whole device, not this app: the home Wi-Fi BSSID/SSID, push
+# tokens, every other app's activity. They stay on disk as evidence and never reach the remote
+# (history was rewritten once to remove them, docs/DECISIONS.md).
+evidence/**/*logcat*.txt
+evidence/**/activities.txt
+evidence/**/dumpsys*.txt
+
+# Personal session prompt, and the local list of literals the device-secrets gate refuses.
+/prompt.md
+/.sensitive-strings.local
