@@ -2944,7 +2944,7 @@ indicator (`cellRenderer.ts:148`), and `CellHeader` retired - the `⋮` to the c
 (`notebookOptions.ts:162`), the duration to a foot status bar. **All four rows are declined.**
 
 **Unlike the first time this was written down, the gutter was built before it was refused.** The
-frames are `evidence/p2v-1-run-gutter/` on the unreachable branch `p2v-declined-attempt`
+frames are `evidence/p2v-1-run-gutter/` on the archive tag `archive/p2v-declined-attempt`
 (`git show 60d8020:evidence/p2v-1-run-gutter/tablet/01-nothing-run-yet.png`), and they are the
 measurement this entry rests on rather than the arithmetic that preceded them:
 
