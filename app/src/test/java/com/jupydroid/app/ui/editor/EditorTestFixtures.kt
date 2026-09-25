@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
@@ -19,6 +20,7 @@ import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
+import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import java.io.FileNotFoundException
 
 /**
  * The doubles and the seeded notebook every editor test opens.
@@ -326,6 +329,8 @@ internal fun TestScope.loadedEditor(
   notebookBreakpoints: NotebookBreakpoints = NotebookBreakpoints(),
   // Only the cases about the debug-session handshake pass a RecordingKernelDebugger.
   debugger: KernelDebugger = FakeKernelDebugger(),
+  // Only the autosave cases pass one; every other case reads the defaults a settings file ships.
+  editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
 ): EditorViewModel {
   launch { repository.saveNotebook(Notebook(notebookId, title, "python3", cells)) }
   advanceUntilIdle()
@@ -343,6 +348,42 @@ internal fun TestScope.loadedEditor(
       openDocuments,
       notebookBreakpoints,
       debugger,
+      editorSettings,
+    )
+  advanceUntilIdle()
+  return viewModel
+}
+
+/** Reads like the tree it was, refuses every write - the directory went while this was open. */
+internal class VanishedNotebookRepository(private val stillReadable: NotebookRepository = FakeNotebookRepository()) :
+  NotebookRepository by stillReadable {
+  override suspend fun saveNotebook(notebook: Notebook): Unit =
+    throw FileNotFoundException("${notebook.id}: open failed: ENOENT (No such file or directory)")
+}
+
+/**
+ * A notebook that loaded from a tree that then refused every write.
+ *
+ * Seeded through the plain repository and only *then* wrapped, because [loadedEditor] writes the
+ * fixture with the repository it is handed - a refusing one would fail the seed rather than the
+ * case.
+ */
+internal fun TestScope.editorWhoseWorkspaceWentAway(
+  editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
+): EditorViewModel {
+  val readable = FakeNotebookRepository()
+  launch { readable.saveNotebook(Notebook("nb-1", "Data", "python3", listOf(codeCell))) }
+  advanceUntilIdle()
+  val viewModel =
+    EditorViewModel(
+      notebookId = "nb-1",
+      notebookRepository = VanishedNotebookRepository(readable),
+      workspaceRepository = FakeWorkspaceRepository(),
+      kernelGateway = FakeKernelGateway(),
+      notebookExporter = FakeNotebookExporter(),
+      applicationScope = this,
+      activeCellRuns = ActiveCellRuns(),
+      editorSettings = editorSettings,
     )
   advanceUntilIdle()
   return viewModel

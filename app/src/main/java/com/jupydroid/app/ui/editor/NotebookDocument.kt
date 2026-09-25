@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.update
  */
 class NotebookDocument(
   private val uiState: MutableStateFlow<EditorUiState>,
-  private val save: NotebookSaveDebounce,
+  private val save: DocumentAutosave,
   private val notebookId: () -> String,
 ) : OpenDocument {
   override val path: String get() = notebookId()

@@ -25,7 +25,7 @@ import java.time.Instant
  * Split out of [NotebookKernel] the third time detekt counted its functions, and the split is the
  * one the class had grown into: *running cells* keeps a queue, a stop-in-flight and a clock, while
  * what is left next door - restart, shutdown, disconnect, completion - is what you ask the kernel
- * *about itself*. Same call as [NotebookKernelSession] and [NotebookSaveDebounce] before it.
+ * *about itself*. Same call as [NotebookKernelSession] and [DocumentAutosave] before it.
  *
  * ```
  * NotebookCellRuns(uiState, gateway, session, scope, runs, persist = ::persist, clock, debugger).runCell(cell)
@@ -42,8 +42,11 @@ internal class NotebookCellRuns(
    * [ActiveCellRuns] for why the kernel starting has to be part of it.
    */
   private val activeCellRuns: ActiveCellRuns,
-  /** Writing belongs to the document half; this only says when there is something to write. */
-  private val persist: suspend () -> Unit,
+  /**
+   * What a finished run does to the document - write it back, or mark it owed under
+   * `autosave: false`; this only says a run has something to commit.
+   */
+  private val checkpoint: suspend () -> Unit,
   /** Injected so a test can assert on a run's duration without waiting for one. */
   private val clock: Clock,
   /** Arms a cell's breakpoints before it runs, and reports where the kernel stops (P6a-7b). */
@@ -123,7 +126,7 @@ internal class NotebookCellRuns(
     if (rendering.isEmpty()) return
     val before = uiState.value.cells
     uiState.update { it.withMarkdownRendered(rendering) }
-    if (uiState.value.cells != before) persist()
+    if (uiState.value.cells != before) checkpoint()
   }
 
   /**
@@ -167,7 +170,7 @@ internal class NotebookCellRuns(
     uiState.update {
       if (cancelled) it.cancellingRun(cell.id, at = now()) else it.finishedRun(cell.id, at = now(), failed = raised)
     }
-    persist()
+    checkpoint()
     // A cancelled cell stops the queue too: the user asked for the run to stop, not for the
     // next cell to start.
     return !raised && !cancelled

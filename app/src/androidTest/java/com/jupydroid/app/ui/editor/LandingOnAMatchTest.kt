@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.MatchedLine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +67,7 @@ class LandingOnAMatchTest {
       LandingOnAMatch(
         reveal = reveal,
         state = state,
-        edits = NotebookCellEdits(uiState, NotebookSaveDebounce(scope) {}),
+        edits = NotebookCellEdits(uiState, DocumentAutosave(scope, MutableStateFlow(EditorSettings()), { false }) {}),
         listState = listState,
         onHandled = { handled += 1 },
       )

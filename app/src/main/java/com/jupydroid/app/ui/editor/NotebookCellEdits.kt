@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.update
  * What the notebook does to its own cells: the thirteen the cell menu offers, and taking one back.
  *
  * Split out of `EditorViewModel` on detekt's `TooManyFunctions`, which is how [NotebookKernel] and
- * [NotebookSaveDebounce] were found too - the answer to that rule is the object that wants to
+ * [DocumentAutosave] were found too - the answer to that rule is the object that wants to
  * exist, never a raised threshold.
  *
  * **The seam is the reference's own.** A cell operation and the text inside a cell are two
@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.update
 class NotebookCellEdits(
   private val uiState: MutableStateFlow<EditorUiState>,
   /** Writing belongs to the document half; this only says when there is something to write. */
-  private val save: NotebookSaveDebounce,
+  private val save: DocumentAutosave,
 ) {
   /**
    * Everything the cell menu offers, through one entry point - so a fifteenth action cannot reach

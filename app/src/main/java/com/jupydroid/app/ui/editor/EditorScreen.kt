@@ -153,6 +153,7 @@ fun EditorScreen(
       openDocuments,
       notebookBreakpoints,
       kernelDebugger,
+      editorSettingsRepository,
     )
   },
 ) {

@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.EditorSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -95,7 +96,10 @@ class CellOperationTest {
   @Test
   fun aMenuOnACellOutsideTheRunActsOnThatCellAlone() = runTest {
     val state = MutableStateFlow(markedRun("a", "b"))
-    val edits = NotebookCellEdits(state, NotebookSaveDebounce(TestScope(testScheduler)) {})
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
 
     edits.applyTo("c", CellAction.Delete)
 
@@ -120,7 +124,10 @@ class CellOperationTest {
   @Test
   fun aMenuOnACellInsideTheRunActsOnTheWholeRun() = runTest {
     val state = MutableStateFlow(markedRun("a", "b"))
-    val edits = NotebookCellEdits(state, NotebookSaveDebounce(TestScope(testScheduler)) {})
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
 
     edits.applyTo("a", CellAction.Delete)
 

@@ -3,13 +3,16 @@ package com.jupydroid.app.ui.editor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
+import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
@@ -18,7 +21,9 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -93,11 +98,25 @@ class EditorViewModel(
   notebookBreakpoints: NotebookBreakpoints = NotebookBreakpoints(),
   /** DAP over the notebook's kernel session - the handshake [debugger] sends; see [NotebookDebugger]. */
   kernelDebugger: KernelDebugger = FakeKernelDebugger(),
+  /**
+   * The `autosave`/`autosaveInterval` pair the save machinery reads - defaulted the way
+   * [openDocuments] is, so a test driving the editor alone reads the shipped defaults.
+   */
+  private val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
   private var notebook: Notebook? = null
-  private val save = NotebookSaveDebounce(viewModelScope) { persist() }
+
+  /**
+   * The settings the save machinery consults, as a `StateFlow` because the answers it needs are
+   * synchronous: `schedule()` gates at call time, and the run-end `checkpoint` lambda picks its
+   * branch on the current value.
+   */
+  private val settings = editorSettings.observeSettings()
+    .stateIn(viewModelScope, SharingStarted.Eagerly, EditorSettings())
+
+  private val save = DocumentAutosave(viewModelScope, settings, { _uiState.value.dirty }) { persist() }
 
   /** Set when this notebook's file is deleted, so [persist] stops putting it back. */
   private var notebookIsGone = false
@@ -116,7 +135,12 @@ class EditorViewModel(
       kernelGateway,
       viewModelScope,
       activeCellRuns,
-      persist = { persist() },
+      // `context.save()` when autosave is on, model-dirty when it is not: a run's outputs are a
+      // document change like any edit, so a notebook that ran unsaved owes a write - which is
+      // what `Context.model.dirty` says after `execute_request` answers.
+      checkpoint = {
+        if (settings.value.autosaveEnabled) persist() else _uiState.update { it.copy(dirty = true) }
+      },
       debugger = debugger,
     )
 
@@ -180,7 +204,12 @@ class EditorViewModel(
           // The file is gone, so nothing more goes to it. `SaveHandler.dispose()` clears its timer
           // and writes nothing; ours has to say so, because `onCleared` *does* write and a
           // farewell flush after a delete puts the notebook back.
-          is WorkspaceChange.Deleted -> if (change.path == notebookId) stopWriting()
+          is WorkspaceChange.Deleted ->
+            if (change.path == notebookId) {
+              notebookIsGone = true
+              save.discard()
+              _uiState.update { it.copy(gone = true) }
+            }
         }
       }
     }
@@ -275,18 +304,6 @@ class EditorViewModel(
   }
 
   /**
-   * The file is gone: nothing more is written to it, and the screen is told so it can close.
-   *
-   * `SaveHandler.dispose()` clears its timer and writes nothing; ours has to say so, because
-   * [onCleared] *does* write and a farewell flush after a delete puts the notebook back.
-   */
-  private fun stopWriting() {
-    notebookIsGone = true
-    save.cancelPending()
-    _uiState.update { it.copy(gone = true) }
-  }
-
-  /**
    * Takes on the id the repository moved the file to.
    *
    * `Context._updatePath`: the document did not change, only where it lives - so the id is
@@ -300,11 +317,31 @@ class EditorViewModel(
     _uiState.update { it.copy(title = notebookLeafOf(moved), notebookId = moved) }
   }
 
+  /**
+   * `docmanager:save`, run on the way out: the owed write is made first and the screen is let go
+   * only if it left nothing dirty - a failed save keeps the document open rather than following
+   * it off screen, which is what the reference's `saveBeforeClose` does on the same failure.
+   */
+  fun saveNow(onSaved: () -> Unit) {
+    viewModelScope.launch {
+      save.flush()
+      if (!_uiState.value.dirty) onSaved()
+    }
+  }
+
+  /**
+   * The close dialog's Discard: owed work is dropped - `SaveHandler.dispose()` clears its timer
+   * and writes nothing, so the close that follows must not flush it back.
+   */
+  fun discardChanges() {
+    save.discard()
+  }
+
   public override fun onCleared() {
     openDocuments.closed(document)
     val hadUnsavedWork = save.cancelPending()
     applicationScope.launch {
-      if (hadUnsavedWork) persist()
+      if (!save.discarded && (hadUnsavedWork || _uiState.value.dirty)) persist()
       kernel.close(applicationScope)
     }
   }

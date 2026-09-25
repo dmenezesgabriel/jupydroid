@@ -4,18 +4,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.model.withEditsApplied
+import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.syntax.syntaxForFile
-import com.jupydroid.app.ui.editor.NotebookSaveDebounce
+import com.jupydroid.app.ui.editor.DocumentAutosave
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -45,6 +50,8 @@ data class FileEditorUiState(
    * came from the field, and adopting it back would fight the caret.
    */
   val revision: Int = 0,
+  /** Edited since the last write. Cleared by the save, not by the edit - `EditorUiState.dirty`. */
+  val dirty: Boolean = false,
   /** The file was deleted, so the screen showing it should close - see `EditorUiState.gone`. */
   val gone: Boolean = false,
 )
@@ -78,6 +85,11 @@ class FileEditorViewModel(
    * arrangement every port on `AppContainer` has; a registry nobody reads costs nothing.
    */
   private val openDocuments: OpenDocuments = OpenDocuments(),
+  /**
+   * The `autosave`/`autosaveInterval` pair [save] reads - defaulted the way [openDocuments] is,
+   * so a test driving the editor alone reads the shipped defaults.
+   */
+  private val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
 ) : ViewModel(),
   OpenDocument {
   private val _uiState = MutableStateFlow(FileEditorUiState(path = filePath, name = notebookLeafOf(filePath)))
@@ -86,7 +98,12 @@ class FileEditorViewModel(
   /** Where this document lives now - read live by [OpenDocuments], so a rename moves it. */
   override val path: String get() = this.filePath
 
-  private val save = NotebookSaveDebounce(viewModelScope) { persist() }
+  private val settings = editorSettings.observeSettings()
+    .stateIn(viewModelScope, SharingStarted.Eagerly, EditorSettings())
+
+  private val save = DocumentAutosave(viewModelScope, settings, { _uiState.value.dirty && _uiState.value.loaded }) {
+    persist()
+  }
 
   /** Set when the file this editor is on is deleted; see [stopWriting]. */
   private var fileIsGone = false
@@ -133,13 +150,13 @@ class FileEditorViewModel(
    */
   private fun stopWriting() {
     fileIsGone = true
-    save.cancelPending()
+    save.discard()
     _uiState.update { it.copy(gone = true) }
   }
 
   /** Takes an edit from the field. Written back on a debounce, as a cell's source is. */
   fun edit(text: String) {
-    _uiState.update { it.copy(text = text) }
+    _uiState.update { it.copy(text = text, dirty = true) }
     save.schedule()
   }
 
@@ -160,14 +177,34 @@ class FileEditorViewModel(
    */
   override fun applyEdits(cell: Int?, edits: List<TextEdit>) {
     if (cell != null || edits.isEmpty()) return
-    _uiState.update { it.copy(text = it.text.withEditsApplied(edits), revision = it.revision + 1) }
+    _uiState.update { it.copy(text = it.text.withEditsApplied(edits), revision = it.revision + 1, dirty = true) }
     save.schedule()
+  }
+
+  /**
+   * `docmanager:save`, run on the way out: the owed write is made first and the screen is let go
+   * only if it left nothing dirty - a failed save keeps the document open, as the reference's
+   * `saveBeforeClose` keeps its widget open on the same failure.
+   */
+  fun saveNow(onSaved: () -> Unit) {
+    viewModelScope.launch {
+      save.flush()
+      if (!_uiState.value.dirty) onSaved()
+    }
+  }
+
+  /**
+   * The close dialog's Discard: owed work is dropped - `SaveHandler.dispose()` clears its timer
+   * and writes nothing, so the close that follows must not flush it back.
+   */
+  fun discardChanges() {
+    save.discard()
   }
 
   public override fun onCleared() {
     openDocuments.closed(this)
     val hadUnsavedWork = save.cancelPending()
-    if (hadUnsavedWork) applicationScope.launch { persist() }
+    if (!save.discarded && (hadUnsavedWork || _uiState.value.dirty)) applicationScope.launch { persist() }
     super.onCleared()
   }
 
@@ -187,7 +224,7 @@ class FileEditorViewModel(
     if (fileIsGone || !_uiState.value.loaded) return
     runCatching { workspaceRepository.writeText(filePath, _uiState.value.text) }
       .fold(
-        onSuccess = { _uiState.update { it.copy(error = null) } },
+        onSuccess = { _uiState.update { it.copy(error = null, dirty = false) } },
         onFailure = { failure -> _uiState.update { it.copy(error = failure.message) } },
       )
   }

@@ -99,7 +99,9 @@ fun FileEditorScreen(
   openDocuments: OpenDocuments = remember { OpenDocuments() },
   modifier: Modifier = Modifier,
   viewModel: FileEditorViewModel =
-    viewModel { FileEditorViewModel(path, workspaceRepository, applicationScope, openDocuments) },
+    viewModel {
+      FileEditorViewModel(path, workspaceRepository, applicationScope, openDocuments, editorSettingsRepository)
+    },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val editorSettings by editorSettingsRepository.observeSettings()

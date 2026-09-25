@@ -63,7 +63,7 @@ class FileEditorViewModelTest {
    * An edit reaches the disk, debounced.
    *
    * Same rule the notebook editor follows and for the same reason: a write per keystroke rewrites
-   * the file on every character. `NotebookSaveDebounce` is shared rather than reimplemented.
+   * the file on every character. `DocumentAutosave` is shared rather than reimplemented.
    */
   @Test
   fun anEditIsWrittenBack() = runTest {

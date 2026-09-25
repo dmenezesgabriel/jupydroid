@@ -141,7 +141,7 @@ fun EditorUiState.searchCounter(): String =
 /**
  * The find bar, driven straight from the screen - the collaborator beside [NotebookCellSelection].
  *
- * Nothing here is written to disk, so it takes no [NotebookSaveDebounce]: a search is a fact about
+ * Nothing here is written to disk, so it takes no [DocumentAutosave]: a search is a fact about
  * this sitting, and the reference's own model is disposed with the view.
  *
  * ```
@@ -157,7 +157,7 @@ class NotebookSearch(
    * (`Cell.headingCollapsed`, `Cell.sourceHidden`), so reaching a hidden match changes the document
    * even though searching does not.
    */
-  private val save: NotebookSaveDebounce,
+  private val save: DocumentAutosave,
 ) {
   /** `documentsearch:start`. */
   fun start() = uiState.update { it.withSearchOpened() }

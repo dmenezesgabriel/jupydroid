@@ -114,7 +114,7 @@ class WorkspaceSearchViewModel(private val searcher: WorkspaceSearcher, private 
     // superseded query started is dropped mid-flight, so one query's hits can never land under
     // another query's text. The reference gets the same from a `Delayer` plus a cancellation token.
     //
-    // **Not `NotebookSaveDebounce`**, which is the other debounce in this app: that one holds a
+    // **Not `DocumentAutosave`**, which is the other debounce in this app: that one holds a
     // *write* back and reports whether one is still owed on the way out. Nothing here is owed, and
     // what is needed instead - the superseded job cancelled and its partial results discarded - is
     // what `collectLatest` already is.

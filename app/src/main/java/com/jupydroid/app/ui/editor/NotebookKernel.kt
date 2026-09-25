@@ -18,7 +18,7 @@ import java.time.Clock
  * Split out of `EditorViewModel` because those are one responsibility and the document - load,
  * edit, rename, reshape, save - is a different one. detekt said so first (`TooManyFunctions` at
  * 11 of 11), and the answer to that is to find the object that wants to exist rather than raise
- * the threshold; it is the same call that produced [NotebookSaveDebounce].
+ * the threshold; it is the same call that produced [DocumentAutosave].
  *
  * It said so again when [shutdown] arrived, and the seam the second time was *running cells* -
  * a queue, a stop in flight and a clock, none of which the rest of this needs. That is
@@ -31,7 +31,7 @@ import java.time.Clock
  * have put the session in one object and a user of it in another.
  *
  * ```
- * val kernel = NotebookKernel(uiState, kernelGateway, viewModelScope, runs, persist = ::persist, debugger = debugger)
+ * val kernel = NotebookKernel(uiState, kernelGateway, viewModelScope, runs, checkpoint, debugger = debugger)
  * kernel.runCell(cell)
  * kernel.close(applicationScope)   // on the way out
  * ```
@@ -45,8 +45,11 @@ class NotebookKernel(
    * [ActiveCellRuns] for why the kernel starting has to be part of it.
    */
   private val activeCellRuns: ActiveCellRuns,
-  /** Writing belongs to the document half; this only says when there is something to write. */
-  private val persist: suspend () -> Unit,
+  /**
+   * What a finished run does to the document - write it, or mark it owed - decided by the
+   * `autosave` setting on the document half; this only says a run has something to commit.
+   */
+  private val checkpoint: suspend () -> Unit,
   /** Injected so a test can assert on a run's duration without waiting for one. */
   private val clock: Clock = Clock.systemUTC(),
   /** Arms a cell's breakpoints before it runs, and reports where the kernel stops; see [NotebookCellRuns]. */
@@ -61,7 +64,7 @@ class NotebookKernel(
     ) { uiState.value.notebookId }
 
   private val runs =
-    NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, persist, clock, debugger)
+    NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, checkpoint, clock, debugger)
 
   /**
    * `notebook:access-previous-history-entry` / `access-next-history-entry` - what the kernel has
