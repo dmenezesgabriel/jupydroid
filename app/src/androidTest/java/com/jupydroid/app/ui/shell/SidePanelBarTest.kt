@@ -38,13 +38,14 @@ class SidePanelBarTest {
 
   private val chosen = mutableListOf<SidePanel>()
 
-  /** `onePaneDestinations`, drawn - and the table of contents is **not** one of them. */
+  /** `onePaneDestinations` plus the Launcher - and the table of contents is **not** one of them. */
   @Test
-  fun theBarOffersFilesAndSearchAndNoOutline() {
+  fun theBarOffersFilesSearchAndLauncherAndNoOutline() {
     show(SidePanel.FILES)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
+    compose.onNodeWithContentDescription(NEW_LAUNCHER).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertDoesNotExist()
   }
 
@@ -103,7 +104,7 @@ class SidePanelBarTest {
    * so that the navigation items are equally distributed on the bar"*
    * (`androidx.compose.material3.ShortNavigationBar`'s KDoc, material3 1.4.0).
    *
-   * Two items therefore fill the bar between them, which is also what puts each within a thumb's
+   * Three items therefore fill the bar between them, which is also what puts each within a thumb's
    * reach of the edge it is nearest.
    */
   @Test
@@ -111,8 +112,8 @@ class SidePanelBarTest {
     showAt(PHONE)
 
     assertEquals(
-      "two items equally distributed sit at the bar's quarter points",
-      0.5f,
+      "three items equally distributed sit at the bar's sixth points",
+      1f / 3f,
       centreGapFraction(PHONE),
       TOLERANCE_FRACTION,
     )
@@ -126,25 +127,25 @@ class SidePanelBarTest {
    * **This is a defect the tablet found and the phone could not.** Measured at 800dp before the fix
    * (`evidence/p2y-bottom-navigation/800dp/`): each item was **396dp** wide with its centre at 198dp
    * and 602dp - a 24dp icon inside a tap target half the window across, and 404dp of dead bar
-   * between the two. The reference's own `calculateCenteredContentHorizontalPadding` puts two items
-   * in **50%** of the bar - `(100 - 10 * (itemsCount + 3)) / 2` percent of padding a side - so the
-   * group spans half the width and is centred in it.
+   * between the two. The reference's own `calculateCenteredContentHorizontalPadding` reserves
+   * `(100 - 10 * (itemsCount + 3)) / 2` percent of padding a side - **20%** a side for three items,
+   * so the group spans the middle 60% of the bar and stays centred in it.
    */
   @Test
   fun theItemsGroupInTheMiddleOnAMediumScreen() {
     showAt(TABLET_PORTRAIT)
 
-    // Two items in 50% of the bar puts their centres a **quarter** of it apart, against the half
-    // that spreading them puts between them - which is the whole difference the tablet exposed.
+    // Three items in the middle 60% of the bar puts their centres a **fifth** of it apart, against
+    // the third that spreading them puts between them - which is the difference the tablet exposed.
     assertEquals(
-      "two items grouped take half the bar between them",
-      0.25f,
+      "three items grouped take three fifths of the bar between them",
+      0.2f,
       centreGapFraction(TABLET_PORTRAIT),
       TOLERANCE_FRACTION,
     )
     val files = compose.onNodeWithContentDescription(FILES).getUnclippedBoundsInRoot()
-    val search = compose.onNodeWithContentDescription(SEARCH).getUnclippedBoundsInRoot()
-    val groupCentre = (files.left.value + search.right.value) / 2
+    val launcher = compose.onNodeWithContentDescription(NEW_LAUNCHER).getUnclippedBoundsInRoot()
+    val groupCentre = (files.left.value + launcher.right.value) / 2
 
     assertEquals("and the group is centred", TABLET_PORTRAIT.width.value / 2, groupCentre, 2f)
   }
@@ -152,7 +153,7 @@ class SidePanelBarTest {
   private fun show(selected: SidePanel) {
     compose.setContent {
       JupyterDroidTheme {
-        SidePanelBar(selected = selected, onChoose = { chosen += it })
+        SidePanelBar(selected = selected, onChoose = { chosen += it }, onOpenLauncher = {})
       }
     }
   }
@@ -181,7 +182,7 @@ class SidePanelBarTest {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
         JupyterDroidTheme {
-          SidePanelBar(selected = SidePanel.FILES, onChoose = { chosen += it })
+          SidePanelBar(selected = SidePanel.FILES, onChoose = { chosen += it }, onOpenLauncher = {})
         }
       }
     }

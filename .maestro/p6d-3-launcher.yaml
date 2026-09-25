@@ -1,0 +1,42 @@
+appId: com.jupydroid.app
+---
+# P6d-3: the Launcher, reached the way the reference reaches it - the `+` JupyterLab keeps on its
+# tab strip, on this shell's navigation chrome (the rail at two panes, the bottom bar at one) -
+# and its cards launching the documents they name.
+#
+# Runs on EITHER device: nothing below needs a kernel - the file card lands in the file editor,
+# the terminal card lands on the shell screen whether the Space's gateway answered or the fake
+# did. The launcher itself is what is under test.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+
+# The `+` - `launcher-extension`'s `addButtonEnabled` button, "New Launcher".
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible: "Python 3"
+    timeout: 15000
+# The sections in category-rank order, and the cwd line - `/` is the workspace root.
+- assertVisible: "Notebook"
+- assertVisible: "Console"
+- assertVisible: "Other"
+- assertVisible: "Terminal"
+- assertVisible: "/"
+- takeScreenshot: 01-launcher-cards
+
+# `fileeditor:create-new` end to end: the card creates the file AND opens it - the reference's
+# own two acts, `commands.execute('fileeditor:create-new', {cwd})` then the created widget.
+- tapOn: "Text File"
+- extendedWaitUntil:
+    visible: "untitled.txt"
+    timeout: 30000
+- takeScreenshot: 02-text-file-in-editor
+
+# The launched document replaced the launcher (`launcher.dispose()` in the reference's own
+# `createNew` callback), so Back lands on the browser - and the created file is its own row.
+- pressKey: back
+- extendedWaitUntil:
+    visible: "untitled.txt"
+    timeout: 10000
+- takeScreenshot: 03-back-at-the-browser

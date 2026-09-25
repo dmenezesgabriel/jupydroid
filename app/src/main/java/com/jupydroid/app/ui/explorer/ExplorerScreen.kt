@@ -124,6 +124,12 @@ fun ExplorerScreen(
   browseRequest: String? = null,
   /** The request has been acted on, so it is not replayed on the next recomposition. */
   onBrowseRequestHandled: () -> Unit = {},
+  /**
+   * Reports the directory this screen is showing, every time it changes - the launcher's `cwd`,
+   * which the reference keeps live (`ILauncher.cwd` is bound to the filebrowser's path), held by
+   * the navigation above both entries since neither can reach the other's ViewModel.
+   */
+  onBrowsedDirectory: (String) -> Unit = {},
   onBack: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
   viewModel: ExplorerViewModel =
@@ -165,6 +171,10 @@ fun ExplorerScreen(
     }
   }
   KeepTheListingFresh(refreshBothLists)
+
+  // The launcher's cwd - reported rather than pulled, since the launcher's own entry cannot reach
+  // this one's ViewModel (`browseRequest`'s doc comment is the same wiring in reverse).
+  LaunchedEffect(state.path) { onBrowsedDirectory(state.path) }
 
   // Consumed rather than merely read: without clearing it, a request satisfied once would re-fire
   // every time this screen recomposed and pin the browser to that folder.

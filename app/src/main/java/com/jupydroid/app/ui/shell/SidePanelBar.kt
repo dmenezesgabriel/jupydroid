@@ -1,6 +1,8 @@
 package com.jupydroid.app.ui.shell
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarArrangement
@@ -27,12 +29,13 @@ import com.jupydroid.app.theme.chromePalette
  * and its `'desktop' | 'mobile'` form factor (`packages/application/src/frontend.ts:28,44,120`) is
  * never assigned - which is the split `docs/DECISIONS.md` records under P2x-1e.
  *
- * **Two destinations rather than the rail's three**, which is [onePaneDestinations]' own rule, and
- * two is below Material's *"three to five destinations of equal importance"* - recorded in
- * `docs/DECISIONS.md` rather than padded.
+ * **Three destinations now** - the two panels of [onePaneDestinations] and the Launcher the rail
+ * shows beside them at two panes - which is Material's own floor of *"three to five destinations
+ * of equal importance"*. The launcher's item is an action rather than a marked panel: it opens a
+ * document, and a document is what is on screen once it answers, so nothing stays selected.
  *
  * ```
- * if (!twoPane) SidePanelBar(selected = showingPanel, onChoose = { sidePanel = it })
+ * if (!twoPane) SidePanelBar(selected = showingPanel, onChoose = { sidePanel = it }, onOpenLauncher = …)
  * ```
  *
  * @param selected the panel filling the pane. Never null, unlike the rail's: a collapsed area over
@@ -40,9 +43,17 @@ import com.jupydroid.app.theme.chromePalette
  *   is what guarantees the caller has one to pass.
  * @param onChoose reports the pick. **Not `SidePanel.chosen`'s toggle**: re-picking the showing
  *   panel here would collapse the only thing on screen, so the caller assigns rather than folds.
+ * @param onOpenLauncher the tab-strip `+` - `launcher-extension`'s `addButtonEnabled` button,
+ *   labelled *New Launcher* - drawn as a destination rather than a button because at one pane this
+ *   bar is where top-level reach belongs.
  */
 @Composable
-fun SidePanelBar(selected: SidePanel, onChoose: (SidePanel) -> Unit, modifier: Modifier = Modifier) {
+fun SidePanelBar(
+  selected: SidePanel,
+  onChoose: (SidePanel) -> Unit,
+  onOpenLauncher: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
   // **The bar measures itself**, rather than being told a width or asking the window. At one pane
   // the pane *is* the window, so its own constraints are the width the rule is about - and unlike
   // `currentWindowAdaptiveInfo()`, which reads the activity's window, a constraint is something a
@@ -72,9 +83,21 @@ fun SidePanelBar(selected: SidePanel, onChoose: (SidePanel) -> Unit, modifier: M
           modifier = Modifier.semantics { contentDescription = panel.label },
         )
       }
+      // `launcher:create` as the tab strip's `+` - JupyterLab's own reach point for a launcher,
+      // drawn last because the tab strip's add button sits after the last tab.
+      ShortNavigationBarItem(
+        selected = false,
+        onClick = onOpenLauncher,
+        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+        label = null,
+        modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER },
+      )
     }
   }
 }
+
+/** The `+` item's name - `launcher-extension`'s own "New Launcher" tooltip. */
+const val NEW_LAUNCHER = "New Launcher"
 
 /**
  * How the bar distributes its items at [barWidth] - and **the rule is the reference's own sentence**.

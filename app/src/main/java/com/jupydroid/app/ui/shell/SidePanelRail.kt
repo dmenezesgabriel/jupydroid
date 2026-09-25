@@ -1,5 +1,7 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -29,9 +31,17 @@ import com.jupydroid.app.theme.chromePalette
  * @param selected the panel on screen, or null when the area is collapsed - see `SidePanel.chosen`.
  * @param onChoose reports the pick as it was made. Whether picking the showing panel *collapses*
  *   the area is the caller's rule, not this one's, so that the two can be tested apart.
+ * @param onOpenLauncher the tab strip's `+` - `launcher-extension`'s `addButtonEnabled` button,
+ *   labelled *New Launcher*. A rail item and not a panel pick because the Launcher is a document:
+ *   it has no selected state to hold.
  */
 @Composable
-fun SidePanelRail(selected: SidePanel?, onChoose: (SidePanel) -> Unit, modifier: Modifier = Modifier) {
+fun SidePanelRail(
+  selected: SidePanel?,
+  onChoose: (SidePanel) -> Unit,
+  onOpenLauncher: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
   // **`activityBar.background`, stated.** Material's default here is `colorScheme.surface`, which
   // this app maps to `editor.background` - so the rail used to be the same field as the document
   // beside it, with only the divider between them (`evidence/p2u-1-chrome/after-tablet/`,
@@ -53,5 +63,15 @@ fun SidePanelRail(selected: SidePanel?, onChoose: (SidePanel) -> Unit, modifier:
         modifier = Modifier.semantics { contentDescription = panel.label },
       )
     }
+    // `launcher:create` as the tab strip's `+` - JupyterLab's own reach point for a launcher,
+    // after the panels the way the tab strip's add button sits after the last tab. Always
+    // unselected: it opens a document, and the document owns its selection state.
+    NavigationRailItem(
+      selected = false,
+      onClick = onOpenLauncher,
+      icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+      label = null,
+      modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER },
+    )
   }
 }

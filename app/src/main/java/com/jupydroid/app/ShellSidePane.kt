@@ -48,6 +48,10 @@ import com.jupydroid.app.ui.shell.trailingBorder
  *   `Navigation.kt`'s `rememberNewTerminal`.
  * @param onOpenSettings opens the app-wide Settings screen - see `NotebookBackStack.kt`'s
  *   `openSettings`.
+ * @param onOpenLauncher opens the Launcher - the bottom bar's third destination, which is a
+ *   document rather than a [SidePanel], so it is a callback here and not a `chosen`.
+ * @param onBrowsedDirectory where the explorer reports the directory it is showing - the
+ *   launcher's cwd, hoisted to the navigation above both entries.
  * @param debugStack the open notebook's stopped call stack - [SidePanel.DEBUGGER]'s own content;
  *   see [OpenDebugStack].
  */
@@ -68,6 +72,8 @@ fun ShellSidePane(
   onRevealMatch: (MatchedLine) -> Unit,
   onNewTerminal: (String) -> Unit,
   onOpenSettings: () -> Unit,
+  onOpenLauncher: () -> Unit,
+  onBrowsedDirectory: (String) -> Unit,
 ) {
   // **`sideBar.border`, drawn by the side bar itself** - the seam between this pane and the
   // document, which the reference states (`workbench/common/theme.ts:623`, *"on the side separating
@@ -127,6 +133,7 @@ fun ShellSidePane(
             openDocumentPath = openDocumentPath,
             browseRequest = browseRequest,
             onBrowseRequestHandled = onBrowseRequestHandled,
+            onBrowsedDirectory = onBrowsedDirectory,
             // No arrow at all: this is the first screen now, so there is nowhere to go back *to*.
             // Back still climbs the workspace while there is a parent - `filebrowser:go-up` - and
             // at the root it leaves the app, which is what nothing swallowing it means.
@@ -142,7 +149,7 @@ fun ShellSidePane(
     // nothing.
     //
     // Never `SidePanel.chosen`: re-picking here would collapse the only thing on screen.
-    if (!twoPane) SidePanelBar(selected = onePanePanel, onChoose = onChoosePanel)
+    if (!twoPane) SidePanelBar(selected = onePanePanel, onChoose = onChoosePanel, onOpenLauncher = onOpenLauncher)
   }
 }
 

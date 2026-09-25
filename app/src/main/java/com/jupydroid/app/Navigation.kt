@@ -34,6 +34,9 @@ import com.jupydroid.app.ui.console.ConsoleViewModel
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
+import com.jupydroid.app.ui.launcher.LaunchedDocument
+import com.jupydroid.app.ui.launcher.LauncherScreen
+import com.jupydroid.app.ui.launcher.LauncherViewModel
 import com.jupydroid.app.ui.settings.SettingsScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.trailingBorder
@@ -94,6 +97,34 @@ private fun rememberNewTerminal(backStack: MutableList<NavKey>, appContainer: Ap
   }
 }
 
+/**
+ * What a launched Launcher card leaves behind becomes the document it named.
+ *
+ * `docmanager:open`'s rule still applies to the file cards - [openDocument] decides the editor from
+ * the path alone and writes the recent - while terminal and console cards name their destination
+ * directly. The console's session travels beside the back stack the way the notebook console's
+ * does: it is a live object two `NavEntry`s share, so it is published through [onConsoleReady]
+ * rather than carried in the key.
+ */
+@Composable
+private fun rememberLaunchHandler(
+  backStack: MutableList<NavKey>,
+  openDocument: (String) -> Unit,
+  onConsoleReady: (NotebookKernelSession) -> Unit,
+): (LaunchedDocument) -> Unit = remember(backStack, openDocument, onConsoleReady) {
+  { launched ->
+    when (launched) {
+      is LaunchedDocument.CreatedNotebook -> openDocument(launched.path)
+      is LaunchedDocument.CreatedFile -> openDocument(launched.path)
+      is LaunchedDocument.OpenedTerminal -> backStack.openTerminal(launched.name)
+      is LaunchedDocument.CreatedConsole -> {
+        onConsoleReady(launched.session)
+        backStack.openConsole(launched.path)
+      }
+    }
+  }
+}
+
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun MainNavigation(
@@ -146,6 +177,11 @@ fun MainNavigation(
   // no screen - the same silent gap every other holder here already leaves unaddressed rather than
   // one this row invents a fallback for.
   var consoleSession by remember { mutableStateOf<NotebookKernelSession?>(null) }
+  // The directory the explorer is showing, reported up rather than pulled - the launcher's `cwd`,
+  // which the reference keeps bound to the filebrowser's path (`ILauncher.cwd` follows the browser
+  // widget's). Saveable so a rotation does not send the launcher back to the root the explorer
+  // left.
+  var browsedDirectory by rememberSaveable { mutableStateOf("") }
   val openDocument = rememberDocumentOpener(backStack, appContainer)
   val newTerminal = rememberNewTerminal(backStack, appContainer)
   // Where the browser has been asked to go from *outside* its own entry - the open document's
@@ -223,6 +259,11 @@ fun MainNavigation(
     if (twoPane) sidePanel = SidePanel.FILES else backStack.removeLastOrNull()
   }
 
+  // A hoisted lambda like `goToFolder`, for the same reason: the card-to-document mapping is the
+  // navigation's own, not the launcher's - and the `when` inside it must not count toward this
+  // function's complexity budget.
+  val openLaunched = rememberLaunchHandler(backStack, openDocument) { consoleSession = it }
+
   // **Back reaches the start destination before it leaves the app.** Android's own principle: the
   // start destination *"is also the last screen the user sees when they return to the launcher
   // after pressing the Back button"* (`developer.android.com/guide/navigation/principles`). The
@@ -259,6 +300,7 @@ fun MainNavigation(
       SidePanelRail(
         selected = sidePanel,
         onChoose = { sidePanel = sidePanel.chosen(it) },
+        onOpenLauncher = { backStack.openLauncher() },
         modifier = Modifier.trailingBorder(chromePalette.activityBarBorder),
       )
     }
@@ -319,6 +361,8 @@ fun MainNavigation(
             onRevealMatch = { match -> revealRequest = match },
             onNewTerminal = newTerminal,
             onOpenSettings = { backStack.openSettings() },
+            onOpenLauncher = { backStack.openLauncher() },
+            onBrowsedDirectory = { browsedDirectory = it },
           )
         }
         entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
@@ -394,6 +438,22 @@ fun MainNavigation(
             // shell is drawn as going back or as closing it (`DocumentDismissAction`).
             twoPane = twoPane,
             terminalSettingsRepository = appContainer.terminalSettings,
+          )
+        }
+        entry<Launcher>(metadata = ListDetailSceneStrategy.detailPane()) {
+          LauncherScreen(
+            cwd = browsedDirectory,
+            viewModel = viewModel {
+              LauncherViewModel(
+                appContainer.notebookRepository,
+                appContainer.workspaceRepository,
+                appContainer.terminalGateway,
+                appContainer.kernelGateway,
+              )
+            },
+            onLaunched = openLaunched,
+            onBack = { backStack.removeLastOrNull() },
+            twoPane = twoPane,
           )
         }
         entry<Console>(metadata = ListDetailSceneStrategy.detailPane()) { console ->

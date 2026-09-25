@@ -78,6 +78,8 @@ class ShellSidePaneTest {
           onRevealMatch = {},
           onNewTerminal = {},
           onOpenSettings = {},
+          onOpenLauncher = {},
+          onBrowsedDirectory = {},
         )
       }
     }

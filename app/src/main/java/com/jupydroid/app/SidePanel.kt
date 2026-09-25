@@ -93,10 +93,11 @@ internal fun SidePanel?.chosen(panel: SidePanel): SidePanel? = if (this == panel
  * meaning where the bar is drawn - the bar shows only when a panel *is* the window, and there is no
  * open document for an outline to belong to.
  *
- * **Two is below Material's floor** of *"three to five destinations of equal importance"*
- * (`developer.android.com/develop/ui/compose/components/navigation-bar`). Recorded in
- * `docs/DECISIONS.md` rather than padded to three: P6d's Launcher is the third destination this
- * app is actually waiting for.
+ * Two *panels* - the bar's third item is the Launcher, which this list cannot carry: it is a
+ * document, not a [SidePanel] (see this enum's own doc), so `SidePanelBar` draws it beside these
+ * rather than inside them. Three destinations is Material's own floor for a navigation bar -
+ * *"three to five destinations of equal importance"*
+ * (`developer.android.com/develop/ui/compose/components/navigation-bar`).
  */
 internal val onePaneDestinations: List<SidePanel> = listOf(SidePanel.FILES, SidePanel.SEARCH)
 

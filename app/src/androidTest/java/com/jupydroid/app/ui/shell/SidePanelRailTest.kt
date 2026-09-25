@@ -93,7 +93,7 @@ class SidePanelRailTest {
   private fun show(selected: SidePanel?) {
     compose.setContent {
       JupyterDroidTheme {
-        SidePanelRail(selected = selected, onChoose = { chosen += it })
+        SidePanelRail(selected = selected, onChoose = { chosen += it }, onOpenLauncher = {})
       }
     }
   }
