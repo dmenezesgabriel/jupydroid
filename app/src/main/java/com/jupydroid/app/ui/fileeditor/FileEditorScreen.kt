@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.fileeditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
@@ -36,6 +38,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.Breadcrumb
+import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.SaveBeforeCloseGate
@@ -144,7 +147,21 @@ fun FileEditorScreen(
       // defect that entry records cannot arise - checked on a device frame, not reasoned about.
       Column(modifier = Modifier.background(TopAppBarDefaults.topAppBarColors().containerColor)) {
         TopAppBar(
-          title = { Text(state.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+          title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Text(
+                state.name,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+              )
+              // `jp-mod-dirty`'s dot, on the document's own label - see [DirtyMarker]. The weight
+              // is the title's, so a name that ellipsizes cannot take the marker out with it.
+              if (state.dirty) {
+                DirtyMarker(modifier = Modifier.padding(start = Spacing.xs))
+              }
+            }
+          },
           navigationIcon = {
             // Beside a browser this is a *close*, and one home decides that for all three bars.
             DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = closeOrAsk)

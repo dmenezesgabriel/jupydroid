@@ -29,6 +29,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.CLOSE_DOCUMENT
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
+import com.jupydroid.app.ui.UNSAVED_CHANGES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -278,11 +279,59 @@ class EditorTopBarTest {
     compose.onAllNodesWithContentDescription(CLOSE_DOCUMENT).assertCountEquals(0)
   }
 
-  private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false, twoPane: Boolean = false) {
+  /**
+   * A dirty document is marked on its title: JupyterLab swaps the tab's close icon for the
+   * busy dot where `jp-mod-dirty` is on (`ui-components/style/icons.css:268-278`), and where a
+   * cell is dirty the `•` in warn colour (`notebook/style/base.css:110-118`). This bar has no
+   * tab strip - the title is the document's label here, so the `•` is what it carries.
+   */
+  @Test
+  fun aCleanDocumentCarriesNoDirtyMarker() {
+    showTopBar()
+
+    compose.onNodeWithContentDescription(UNSAVED_CHANGES).assertDoesNotExist()
+  }
+
+  @Test
+  fun aDirtyDocumentIsMarkedOnItsTitle() {
+    showTopBar(dirty = true)
+
+    compose.onNodeWithContentDescription(UNSAVED_CHANGES).assertIsDisplayed()
+  }
+
+  @Test
+  fun theMarkerSurvivesATitleThatTruncates() {
+    compose.setContent {
+      JupyterDroidTheme {
+        DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
+          EditorTopBar(
+            title = LONG_NAME,
+            dirty = true,
+            canUndo = true,
+            canRedo = true,
+            onRename = {},
+            onUndo = {},
+            onRedo = {},
+            onBack = {},
+          )
+        }
+      }
+    }
+
+    compose.onNodeWithContentDescription(UNSAVED_CHANGES).assertIsDisplayed()
+  }
+
+  private fun showTopBar(
+    canUndo: Boolean = false,
+    canRedo: Boolean = false,
+    twoPane: Boolean = false,
+    dirty: Boolean = false,
+  ) {
     compose.setContent {
       JupyterDroidTheme {
         EditorTopBar(
           title = "Intro to NumPy",
+          dirty = dirty,
           canUndo = canUndo,
           canRedo = canRedo,
           onRename = { renamed += it },

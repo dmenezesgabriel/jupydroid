@@ -126,6 +126,7 @@ private fun DocumentTopBar(
 ) {
   EditorTopBar(
     title = state.title,
+    dirty = state.dirty,
     canUndo = state.undoable.isNotEmpty(),
     canRedo = state.redoable.isNotEmpty(),
     onRename = viewModel::renameNotebook,

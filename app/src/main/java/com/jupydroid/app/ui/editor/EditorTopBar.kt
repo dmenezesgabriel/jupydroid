@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.Breadcrumb
+import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.ancestorCrumbsFor
@@ -102,6 +103,11 @@ private val TITLE_EDIT_ICON_SIZE = 18.dp
 @Composable
 fun EditorTopBar(
   title: String,
+  /**
+   * Whether the document has unsaved changes - `Context.dirty`, drawn as the `•` beside
+   * [title] that JupyterLab's `jp-mod-dirty` paints on the tab (see [DirtyMarker]).
+   */
+  dirty: Boolean = false,
   /** Whether there is a cell operation to take back; the button is shown either way, see below. */
   canUndo: Boolean,
   canRedo: Boolean,
@@ -191,7 +197,7 @@ fun EditorTopBar(
       .background(TopAppBarDefaults.topAppBarColors().containerColor)
       .windowInsetsPadding(TopAppBarDefaults.windowInsets),
   ) {
-    NotebookTitleStrip(title = title, onClick = { renameOpen = true }, collapse = titleCollapse)
+    NotebookTitleStrip(title = title, dirty = dirty, onClick = { renameOpen = true }, collapse = titleCollapse)
     // **One fraction collapses both rows**, because `titleCollapseFraction` takes the region's
     // height as an argument - so widening the region is a change to what [EditorScreen] passes it,
     // not a second fraction that could disagree with this one.
@@ -329,7 +335,7 @@ private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onR
  * unlike an `<input>` reached with a mouse this is a touch target.
  */
 @Composable
-private fun NotebookTitleStrip(title: String, onClick: () -> Unit, collapse: Float) {
+private fun NotebookTitleStrip(title: String, dirty: Boolean, onClick: () -> Unit, collapse: Float) {
   Row(
     modifier = Modifier
       .fillMaxWidth()
@@ -348,6 +354,11 @@ private fun NotebookTitleStrip(title: String, onClick: () -> Unit, collapse: Flo
       overflow = TextOverflow.Ellipsis,
       modifier = Modifier.weight(1f, fill = false),
     )
+    // The marker hugs the title rather than the row's end - it belongs to the *label*, the way
+    // `jp-mod-dirty`'s dot belongs to the tab's, and a title that ellipsizes must not take it out.
+    if (dirty) {
+      DirtyMarker(modifier = Modifier.padding(start = Spacing.xs))
+    }
     Spacer(modifier = Modifier.width(Spacing.sm))
     Icon(
       imageVector = Icons.Filled.Edit,
