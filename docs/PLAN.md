@@ -1962,9 +1962,15 @@ Measured, not speculative. Anything closed moves to `docs/DECISIONS.md`.
   rows for a 600 px IME inset and measures **13 rows at 18 px per row against an expected ~33** on
   `dev36`. The device disagreement is the interesting half - the same code satisfies it at the
   tablet's density and window - so the suspect is the test's own px-per-row arithmetic on a
-  320dp/160dpi emulator rather than the inset handling P4j-3b shipped. Not scheduled inside P7,
-  which is not a terminal phase; recorded so the next full `connectedDebugAndroidTest` does not
-  re-derive it. **`TerminalExtraKeysRowTest` is load-flaky under a full suite and is not this** -
+  320dp/160dpi emulator rather than the inset handling P4j-3b shipped. **And the measurement itself
+  is load-sensitive, not just device-sensitive**: P6c-9c's full-suite sweep measured **0 rows** on
+  the emulator under the 565-test run and **24 rows** on the same binary targeted alone - three
+  different answers (13, 0, 24) for one code path, which is what a probe mid-animation looks like
+  rather than a stable layout. Verified pre-existing: it fails identically on clean `HEAD` with the
+  P6c-9c changes stashed. Not scheduled inside P7, which is not a terminal phase; recorded so the
+  next full `connectedDebugAndroidTest` does not re-derive it. **When it is picked up: reproduce
+  under the same load the sweep ran, and measure whether the inset or the probe's timing is what
+  moves - fixing the assertion to the 0-row reading would hide whichever one is real.** **`TerminalExtraKeysRowTest` is load-flaky under a full suite and is not this** -
   its 5 s `waitUntil` is what gives way, not anything the app does. **Named as the class rather than
   as one test, because the row as first written named one method and a different one went red next
   time**: P7a-1's run lost `arrowAndNavigationKeysReachTheShellAsTheirOwnSequences`, and P7b's lost
@@ -1972,6 +1978,30 @@ Measured, not speculative. Anything closed moves to `docs/DECISIONS.md`.
   immediately after (P7b's: 8 tests, 1 failure, that one being `TerminalPaneScreenTest` above).
   A note that names a method cannot report the *next* method, which is how a recorded risk quietly
   reads as an unrecorded one.
+- **Three instrumented tests are red on the device each assumes something different about, none of
+  them application defects as far as the evidence reaches.** Found by P6c-9c's full
+  `connectedDebugAndroidTest` (565 tests sharded across both devices, the first whole-suite sweep
+  recorded since P7b) and **verified pre-existing - they fail identically on clean `HEAD` with the
+  step's changes stashed**, which the agreement demands be proven rather than assumed:
+  `DocumentOutlineNavigationTest.leavingTheNotebookEmptiesTheOutline` and
+  `OpenDocumentsNavigationTest.leavingTheNotebookClosesTheDocument` are red **only on the tablet**,
+  because both tap `contentDescription "Back to notebooks"` - the one-pane label `DocumentDismissAction`
+  draws, which at the tablet's 1280dp two-pane layout is `Close` instead. Green on the emulator's
+  one-pane in the same sweep, so the tests' pane assumption is the defect, not the dismiss; the fix
+  is deciding whether these drive the pane-appropriate label or pin the window, and the tablet's own
+  `DocumentDismissAction` path is already Maestro-covered, so there is no product gap hiding under
+  them. `ConsoleScriptProbeTest.usrLocalBinIsEmptyAndFirstOnThePath` is red **only on the tablet**:
+  the probe expects a pristine `usr/local/bin` and the device's Space already lists ~30 console
+  scripts there - either the test needs a fresh-provision fixture or the device's state drifted, and
+  which one is true has to be measured against the Space's own provisioning path, not guessed.
+  `ConsoleInputRowTest.theInputFieldFillsMostOfTheRowRatherThanItsOwnIntrinsicWidth` is red **only on
+  the emulator**: the input field measures **160.0dp** wide where the row's weight should fill most
+  of the row - deterministic across the sweep, a targeted re-run, and clean `HEAD`. Whether the row's
+  weight is genuinely not reaching the field or the test's ForcedSize environment does not hand the
+  weight room to act is the first thing to measure; the row is `ui/console/`, untouched by anything
+  in this sweep. **All three wants are reproduction under the same device state the sweep ran, and a
+  measurement that separates the assertion's assumption from the code's behaviour - no pinning to a
+  passing device and no workaround that makes the test stop asking its question.**
 - **`runCatching` inside a `launch` reports a cancellation as a failure, in eleven more places.**
   P7a-2 found and fixed the one that was *visible* - `ExplorerViewModel.goTo`, the only listing with
   a `cancel()` aimed at it, which drew *"StandaloneCoroutine was cancelled"* at the user
