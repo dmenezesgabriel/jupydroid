@@ -41,6 +41,11 @@ fun ConsoleScreen(
   onBack: () -> Unit,
   /** Whether a browser is drawn beside this document - see [DocumentDismissAction]. */
   twoPane: Boolean = false,
+  /**
+   * Where the arrow goes, named by the caller: "Back to notebook" for a Console sharing one,
+   * "Back to files" for a standalone one whose pop lands on the browser (P6d-5).
+   */
+  backDescription: String = "Back to notebook",
   modifier: Modifier = Modifier,
 ) {
   val entries by viewModel.entries.collectAsStateWithLifecycle()
@@ -71,7 +76,7 @@ fun ConsoleScreen(
         // rather than a guess at why the tap missed - `EditorTopBar`'s "Back to notebooks" is the
         // precedent, singular here since a Console names the one notebook it was opened from.
         navigationIcon = {
-          DocumentDismissAction(twoPane = twoPane, backDescription = "Back to notebook", onDismiss = onBack)
+          DocumentDismissAction(twoPane = twoPane, backDescription = backDescription, onDismiss = onBack)
         },
         actions = {
           ConsoleActionsMenu(onClear = viewModel::clear, onInterrupt = viewModel::interrupt, running = running)

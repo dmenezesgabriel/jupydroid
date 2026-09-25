@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# P6d-5: the launcher's Console card mints a standalone console on its own kernel.
+#
+# `21 * 2` -> `42` is p6b-9d's own distinguishing move: an answer only a real kernel produces -
+# on the x86_64 emulator FakeKernelGateway would echo `21 * 2` back as text, so the assertion
+# reads the kernel, not the input.
+#
+# TABLET ONLY (SM-X216B): no kernel runs on the emulator - see the driver.
+#
+# reset_notebooks seeds launcherSeen, so this is a returning user - and at this window the detail
+# area has already auto-filled with the Launcher (P6d-4), so the card is on screen on launch.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Console"
+    timeout: 30000
+- assertVisible: "Launcher"
+- takeScreenshot: 01-launcher-fill
+
+- tapOn:
+    id: "launcher-card-NEW_CONSOLE"
+- extendedWaitUntil:
+    visible: "Console 1"
+    timeout: 30000
+- takeScreenshot: 02-standalone-console
+
+- tapOn:
+    id: "console-input-field"
+- inputText: "21 * 2"
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- takeScreenshot: 03-console-answers-42

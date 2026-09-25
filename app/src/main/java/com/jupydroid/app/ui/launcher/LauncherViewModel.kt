@@ -31,8 +31,9 @@ sealed interface LaunchedDocument {
   /** `terminal:create-new` answered: the terminal's server-side name (`1`, `2`, …). */
   data class OpenedTerminal(val name: String) : LaunchedDocument
 
-  /** `console:create` answered: the standalone console's session and the path it was minted at. */
-  data class CreatedConsole(val session: NotebookKernelSession, val path: String) : LaunchedDocument
+  /** `console:create` answered: the standalone console's session, minted path and tab title. */
+  data class CreatedConsole(val session: NotebookKernelSession, val path: String, val title: String) :
+    LaunchedDocument
 }
 
 /**
@@ -46,6 +47,13 @@ class LauncherViewModel(
   private val workspaceRepository: WorkspaceRepository,
   private val terminalGateway: TerminalGateway,
   private val kernelGateway: KernelGateway,
+  /**
+   * `Private.count` (`packages/console/src/panel.ts:332`) - the console ordinal outlives a single
+   * launcher entry: each push owns a fresh ViewModel, and a per-VM counter would renumber a
+   * second minted console "Console 1" again. The caller supplies the holder its lifetime needs
+   * (`MainNavigation`'s composition, which is also what a test's `setContent` gets fresh).
+   */
+  private val consoleOrdinal: () -> Int,
 ) : ViewModel() {
 
   /**
@@ -101,14 +109,17 @@ class LauncherViewModel(
 
   /**
    * The standalone console - the reference's `console:create` mints the widget at
-   * `PathExt.join(cwd, 'console-<uuid>')` with its own `SessionContext`
-   * (`console-extension/src/index.ts`), so the kernel's working directory is [cwd] and the
-   * session belongs to the console alone, not to an open notebook.
+   * `PathExt.join(basePath, 'console-<count>-<uuid>')` named `Console <count>`
+   * (`packages/console/src/panel.ts:58-70,332`) with its own `SessionContext`, so the kernel's
+   * working directory is [cwd] and the session belongs to the console alone, not to an open
+   * notebook.
    */
   private suspend fun mintConsole(cwd: String): LaunchedDocument.CreatedConsole {
-    val path = if (cwd.isEmpty()) "console-${UUID.randomUUID()}" else "$cwd/console-${UUID.randomUUID()}"
+    val ordinal = consoleOrdinal()
+    val name = "console-$ordinal-${UUID.randomUUID()}"
+    val path = if (cwd.isEmpty()) name else "$cwd/$name"
     val session = NotebookKernelSession(kernelGateway, BASE_SPACE) { path }
     session.open()
-    return LaunchedDocument.CreatedConsole(session, path)
+    return LaunchedDocument.CreatedConsole(session, path, "Console $ordinal")
   }
 }

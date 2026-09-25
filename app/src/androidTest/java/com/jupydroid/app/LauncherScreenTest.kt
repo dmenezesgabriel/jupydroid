@@ -34,7 +34,7 @@ class LauncherScreenTest {
     FakeWorkspaceRepository(),
     FakeTerminalGateway(),
     FakeKernelGateway(),
-  )
+  ) { 1 }
 
   @Test
   fun showsTheCwdAndEverySectionInRankOrder() {

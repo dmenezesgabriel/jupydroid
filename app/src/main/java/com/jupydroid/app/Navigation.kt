@@ -41,6 +41,7 @@ import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Opening a document, wherever it was opened from: the right editor, and a line in Recents.
@@ -148,6 +149,11 @@ fun MainNavigation(
   // no screen - the same silent gap every other holder here already leaves unaddressed rather than
   // one this row invents a fallback for.
   var consoleSession by remember { mutableStateOf<NotebookKernelSession?>(null) }
+  // `Private.count` (`packages/console/src/panel.ts:332`) - how many consoles this composition has
+  // minted, so the second card is "Console 2". Hoisted beside `consoleSession` rather than inside
+  // the Launcher entry: a `viewModel {}` there is per-entry, and each launcher push would restart
+  // the numbering at "Console 1".
+  val consoleOrdinal = remember { AtomicInteger(0) }
   // The directory the explorer is showing, reported up rather than pulled - the launcher's `cwd`,
   // which the reference keeps bound to the filebrowser's path (`ILauncher.cwd` follows the browser
   // widget's). Saveable so a rotation does not send the launcher back to the root the explorer
@@ -441,6 +447,7 @@ fun MainNavigation(
                 appContainer.workspaceRepository,
                 appContainer.terminalGateway,
                 appContainer.kernelGateway,
+                consoleOrdinal = { consoleOrdinal.incrementAndGet() },
               )
             },
             onLaunched = openLaunched,
@@ -453,7 +460,8 @@ fun MainNavigation(
           // `consoleSession`'s own doc comment; there is nothing to compose against in that case.
           consoleSession?.let { session ->
             ConsoleScreen(
-              title = console.notebookId,
+              title = console.title,
+              backDescription = if (console.standalone) "Back to files" else "Back to notebook",
               viewModel = viewModel { ConsoleViewModel(appContainer.kernelGateway, session) },
               onBack = { backStack.removeLastOrNull() },
               twoPane = twoPane,

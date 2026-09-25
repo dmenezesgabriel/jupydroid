@@ -42,7 +42,14 @@ class LauncherViewModelTest {
       DiskWorkspaceRepository(workspace.root, UnconfinedTestDispatcher(testScheduler)),
     terminalGateway: FakeTerminalGateway = FakeTerminalGateway(),
     kernelGateway: RecordingKernelGateway = RecordingKernelGateway(),
-  ): LauncherViewModel = LauncherViewModel(notebookRepository, workspaceRepository, terminalGateway, kernelGateway)
+    // `Private.count`'s process-global counter, per-test here - the numbering assertions want a
+    // sequence no other test in this JVM has advanced.
+    consoleOrdinal: () -> Int = run {
+      var next = 0
+      { ++next }
+    },
+  ): LauncherViewModel =
+    LauncherViewModel(notebookRepository, workspaceRepository, terminalGateway, kernelGateway, consoleOrdinal)
 
   private fun card(command: LauncherCommand): LauncherItem = LAUNCHER_ITEMS.single { it.command == command }
 
@@ -121,7 +128,8 @@ class LauncherViewModelTest {
 
   /**
    * The console card mints its own kernel session - the reference's `console:create` gives the
-   * console a fresh `SessionContext` at `PathExt.join(cwd, 'console-<uuid>')`, and the kernel is
+   * console a fresh `SessionContext` at `PathExt.join(basePath, 'console-<count>-<uuid>')` and
+   * titles it `Console <count>` (`packages/console/src/panel.ts:58-70`), and the kernel is
    * connected at create time (`sessionContext.initialize()`), not on the first submission.
    */
   @Test
@@ -134,10 +142,29 @@ class LauncherViewModelTest {
     advanceUntilIdle()
 
     val console = launched as LaunchedDocument.CreatedConsole
-    assertTrue(console.path.startsWith("reports/console-"))
+    assertTrue("path ${console.path} wants reports/console-1-<uuid>", console.path.startsWith("reports/console-1-"))
+    assertEquals("Console 1", console.title)
     assertEquals(1, kernelGateway.connectCount)
     assertEquals(listOf(console.path), kernelGateway.connectedPaths)
     assertNotNull(console.session.opened)
+  }
+
+  /** `Private.count` (`panel.ts:332`) is a counter, not a random suffix: each mint numbers up. */
+  @Test
+  fun aSecondConsoleCardMintNumbersUp() = runTest {
+    val viewModel = viewModel()
+    var launched: LaunchedDocument? = null
+
+    viewModel.launch(card(LauncherCommand.NEW_CONSOLE), "") { launched = it }
+    advanceUntilIdle()
+    val first = launched as LaunchedDocument.CreatedConsole
+    viewModel.launch(card(LauncherCommand.NEW_CONSOLE), "") { launched = it }
+    advanceUntilIdle()
+    val second = launched as LaunchedDocument.CreatedConsole
+
+    assertTrue("path ${first.path} wants console-1-<uuid>", first.path.startsWith("console-1-"))
+    assertTrue("path ${second.path} wants console-2-<uuid>", second.path.startsWith("console-2-"))
+    assertEquals("Console 2", second.title)
   }
 
   /**

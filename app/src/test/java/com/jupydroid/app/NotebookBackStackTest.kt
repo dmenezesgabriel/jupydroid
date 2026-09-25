@@ -348,4 +348,55 @@ class NotebookBackStackTest {
     assertEquals(true, listOf<NavKey>(Explorer, Editor("nb-1"), Launcher).launcherIsClosable())
     assertEquals(true, listOf<NavKey>(Explorer, Launcher, Settings).launcherIsClosable())
   }
+
+  /**
+   * A Launcher-made Console is a document in its own right - `shell.add(panel, 'main')`
+   * (`console-extension/src/index.ts`), not [openConsole]'s stack-on-top - so it takes the detail
+   * the way a notebook does, the launcher that minted it included.
+   */
+  @Test
+  fun aStandaloneConsoleReplacesTheDetailIncludingTheLauncher() {
+    val backStack = mutableListOf<NavKey>(Explorer, Launcher)
+
+    backStack.openStandaloneConsole("console-1-x", "Console 1")
+
+    assertEquals(listOf(Explorer, Console("console-1-x", "Console 1", standalone = true)), backStack)
+  }
+
+  /**
+   * One console at a time. `entry<Console>` reads the *single* `consoleSession` holder, so a
+   * second Console entry anywhere in the stack would draw its screen against the newer kernel -
+   * the sweep is in both openers for that reason, not only the standalone's.
+   */
+  @Test
+  fun aStandaloneConsoleSweepsAnAttachedOne() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
+
+    backStack.openStandaloneConsole("console-1-x", "Console 1")
+
+    assertEquals(listOf(Explorer, Console("console-1-x", "Console 1", standalone = true)), backStack)
+  }
+
+  @Test
+  fun aSecondStandaloneConsoleReplacesTheFirst() {
+    val backStack =
+      mutableListOf<NavKey>(Explorer, Console("console-1-x", "Console 1", standalone = true))
+
+    backStack.openStandaloneConsole("console-2-y", "Console 2")
+
+    assertEquals(listOf(Explorer, Console("console-2-y", "Console 2", standalone = true)), backStack)
+  }
+
+  @Test
+  fun openingAnAttachedConsoleSweepsAStandaloneOneFromTheStack() {
+    val backStack = mutableListOf<NavKey>(
+      Explorer,
+      Editor("nb-1"),
+      Console("console-1-x", "Console 1", standalone = true),
+    )
+
+    backStack.openConsole("nb-1")
+
+    assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1")), backStack)
+  }
 }

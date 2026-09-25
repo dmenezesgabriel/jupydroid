@@ -56,6 +56,11 @@ fun MutableList<NavKey>.openTerminal(name: String) {
  * notebook stays reachable on Back, so this never replaces what it is attached to. Revealed
  * rather than duplicated on a second tap, [Console]'s own de-dupe rule.
  *
+ * The [removeAll] is [openStandaloneConsole]'s own constraint held globally: `entry<Console>`
+ * draws from the one `consoleSession` holder, so a Console deeper in the stack than the incoming
+ * one would keep composing against the newer session. JupyterLab tracks many consoles; this
+ * holder is why this app cannot (P6d-5, `docs/DECISIONS.md`).
+ *
  * ```
  * backStack.openConsole("nb-1")   // [Explorer, Editor("nb-1")] -> [Explorer, Editor("nb-1"), Console("nb-1")]
  * ```
@@ -63,7 +68,20 @@ fun MutableList<NavKey>.openTerminal(name: String) {
 fun MutableList<NavKey>.openConsole(notebookId: String) {
   val console = Console(notebookId)
   if (lastOrNull() == console) return
+  removeAll { it is Console }
   add(console)
+}
+
+/**
+ * Opens a standalone Console - the Launcher card's `console:create` (`console-extension`), added to
+ * the main area like any other document, so it *replaces* the detail through
+ * [chooseDetailThatFitsTheSurface] where the attached [openConsole] stacks. The sweep first is the
+ * single-holder rule on [Console] itself: explicit, because it must also reach a Console sitting
+ * under entries the detail-pop does not touch.
+ */
+fun MutableList<NavKey>.openStandaloneConsole(path: String, title: String) {
+  removeAll { it is Console }
+  chooseDetailThatFitsTheSurface { Console(path, title, standalone = true) }
 }
 
 /**

@@ -34,7 +34,7 @@ fun rememberLaunchHandler(
       is LaunchedDocument.OpenedTerminal -> backStack.openTerminal(launched.name)
       is LaunchedDocument.CreatedConsole -> {
         onConsoleReady(launched.session)
-        backStack.openConsole(launched.path)
+        backStack.openStandaloneConsole(launched.path, launched.title)
       }
     }
   }

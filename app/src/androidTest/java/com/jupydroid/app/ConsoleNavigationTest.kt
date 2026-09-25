@@ -3,6 +3,7 @@ package com.jupydroid.app
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
@@ -30,6 +31,9 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.console.CONSOLE_INPUT_FIELD_TAG
 import com.jupydroid.app.ui.editor.NEW_CONSOLE_FOR_NOTEBOOK
+import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
+import com.jupydroid.app.ui.launcher.LauncherCommand
+import com.jupydroid.app.ui.shell.NEW_LAUNCHER
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -103,6 +107,57 @@ class ConsoleNavigationTest {
     listingRow(NOTEBOOK_TITLE).assertIsDisplayed()
   }
 
+  /**
+   * `console:create` from the Launcher - a standalone Console titled `Console 1` on its own minted
+   * session (P6d-5). It replaces the detail rather than stacking on it, so Back leaves the shell
+   * on the browser and the dismiss label says files, not a notebook it is not attached to. The
+   * gateway is the fake's echo; the real kernel is the tablet Maestro flow's own evidence.
+   */
+  @Test
+  fun theLaunchersConsoleCardOpensAStandaloneConsole() {
+    startAppWithOneNotebook()
+
+    openLauncherConsoleCard()
+    waitForTag(CONSOLE_INPUT_FIELD_TAG)
+    compose.onNodeWithText("Console 1").assertIsDisplayed()
+
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
+    compose.onNodeWithContentDescription("Run").performClick()
+    waitForText("1 + 1")
+
+    compose.onNodeWithContentDescription("Back to files").performClick()
+    waitForText(NOTEBOOK_TITLE)
+    listingRow(NOTEBOOK_TITLE).assertIsDisplayed()
+  }
+
+  /**
+   * One console at a time - the single `consoleSession` holder's rule: a second card mints
+   * `Console 2` and sweeps the first, leaving no dead entry composing against the newer session.
+   * Two panes, because the rail's `+` is the reach point that exists while a document is open -
+   * at one pane the bar is the browser's own and the launcher cannot be reached until Back.
+   */
+  @Test
+  fun aSecondConsoleCardSweepsTheFirstStandalone() {
+    startAppWithOneNotebook(twoPane = true)
+
+    openLauncherConsoleCard()
+    waitForTag(CONSOLE_INPUT_FIELD_TAG)
+    compose.onNodeWithText("Console 1").assertIsDisplayed()
+
+    compose.onNodeWithContentDescription(NEW_LAUNCHER).performClick()
+    waitForTag("launcher-screen")
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}").performClick()
+
+    waitForText("Console 2")
+    compose.onAllNodesWithText("Console 1").assertCountEquals(0)
+  }
+
+  private fun openLauncherConsoleCard() {
+    compose.onNodeWithContentDescription(NEW_LAUNCHER).performClick()
+    waitForTag("launcher-screen")
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}").performClick()
+  }
+
   private fun openTheNotebook() {
     listingRow(NOTEBOOK_TITLE).performClick()
     waitForText(NOTEBOOK_SOURCE)
@@ -110,7 +165,7 @@ class ConsoleNavigationTest {
 
   private fun listingRow(title: String) = compose.onNode(hasText(title) and hasContentDescription("File"))
 
-  private fun startAppWithOneNotebook() {
+  private fun startAppWithOneNotebook(twoPane: Boolean = false) {
     val repository = DiskNotebookRepository(tempFolder.root)
     runBlocking {
       repository.saveNotebook(
@@ -130,9 +185,10 @@ class ConsoleNavigationTest {
           // Pinned rather than measured: `currentWindowAdaptiveInfo()` reads the real window, which
           // this physical tablet's own current rotation can put on either side of the two-pane
           // threshold - `EditorScreen`'s own `CellActionsTest` citation is why `MainNavigation`
-          // takes this as a parameter at all. One-pane's own `DocumentDismissAction` labels are what
-          // this flow asserts on ("Back to notebook"/"Back to notebooks", not "Close").
-          twoPane = false,
+          // takes this as a parameter at all. The tests default to one pane, whose own
+          // `DocumentDismissAction` labels are what they assert on ("Back to notebook", not
+          // "Close"); the sweep case wants the two-pane rail's reach instead.
+          twoPane = twoPane,
         )
       }
     }

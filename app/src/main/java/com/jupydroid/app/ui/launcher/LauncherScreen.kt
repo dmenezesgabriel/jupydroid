@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -100,7 +102,9 @@ fun LauncherScreen(
 ) {
   val error by viewModel.error.collectAsStateWithLifecycle()
   Scaffold(
-    modifier = modifier.fillMaxSize().testTag("launcher-screen"),
+    // `testTagsAsResourceId` is what the cards' LAUNCHER_CARD_TAGs ride to a Maestro flow - the
+    // same line TerminalPaneScreen sets for `console-input-field`'s own reachability.
+    modifier = modifier.fillMaxSize().semantics { testTagsAsResourceId = true }.testTag("launcher-screen"),
     containerColor = editorPalette.editorBackground,
     topBar = {
       TopAppBar(
