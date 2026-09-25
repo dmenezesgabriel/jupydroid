@@ -19,10 +19,12 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.shell.SEARCH_WORKSPACE_BOX
@@ -338,6 +340,7 @@ class SidePaneNavigationTest {
         JupyterDroidTheme {
           MainNavigation(
             appContainer = AppContainer(
+              launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
               notebookRepository = repository,
               workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
               workspaceSearcher = FakeWorkspaceSearcher(mapOf(SEARCHABLE_FILE to SEARCHED_LINE)),

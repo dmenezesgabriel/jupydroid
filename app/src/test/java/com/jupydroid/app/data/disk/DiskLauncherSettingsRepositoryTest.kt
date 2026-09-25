@@ -1,0 +1,58 @@
+package com.jupydroid.app.data.disk
+
+import com.jupydroid.app.domain.model.LauncherSettings
+import com.jupydroid.app.domain.port.LauncherSettingsRepository
+import com.jupydroid.app.domain.port.LauncherSettingsRepositoryContract
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.io.File
+
+/** The disk store owes the port's contract, plus what only a real filesystem can be asked. */
+class DiskLauncherSettingsRepositoryTest : LauncherSettingsRepositoryContract() {
+  @get:Rule val temp = TemporaryFolder()
+
+  private val stateDir: File get() = File(temp.root, "state")
+
+  override fun repository(): LauncherSettingsRepository = openStore()
+
+  private fun openStore() = DiskLauncherSettingsRepository(stateDir)
+
+  /**
+   * A first run survived is still a first run survived after the process dies - which is the whole
+   * reason this is a port and not a field on the navigation: without it every cold start would
+   * push the launcher again.
+   */
+  @Test
+  fun survivesTheNextLaunch() = runTest {
+    openStore().update(LauncherSettings(launcherSeen = true))
+
+    val reopened = openStore().observeSettings().first()
+
+    assertEquals(true, reopened.launcherSeen)
+  }
+
+  /** A store written by something else must not take the app down on launch. */
+  @Test
+  fun anUnreadableStoreReadsAsTheDefault() = runTest {
+    stateDir.mkdirs()
+    File(stateDir, LAUNCHER_SETTINGS_FILE_NAME).writeText("{ not json")
+
+    assertEquals(LauncherSettings(), openStore().observeSettings().first())
+  }
+
+  /**
+   * Its own file, beside `explorer-settings.json` and `theme-settings.json` rather than folded
+   * into either: whether the launcher has been shown is neither an explorer preference nor a theme.
+   */
+  @Test
+  fun keepsItsOwnFile() = runTest {
+    openStore().update(LauncherSettings(launcherSeen = true))
+
+    assertTrue(File(stateDir, LAUNCHER_SETTINGS_FILE_NAME).isFile)
+  }
+}

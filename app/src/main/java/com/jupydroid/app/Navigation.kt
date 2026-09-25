@@ -34,7 +34,6 @@ import com.jupydroid.app.ui.console.ConsoleViewModel
 import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
-import com.jupydroid.app.ui.launcher.LaunchedDocument
 import com.jupydroid.app.ui.launcher.LauncherScreen
 import com.jupydroid.app.ui.launcher.LauncherViewModel
 import com.jupydroid.app.ui.settings.SettingsScreen
@@ -97,34 +96,6 @@ private fun rememberNewTerminal(backStack: MutableList<NavKey>, appContainer: Ap
   }
 }
 
-/**
- * What a launched Launcher card leaves behind becomes the document it named.
- *
- * `docmanager:open`'s rule still applies to the file cards - [openDocument] decides the editor from
- * the path alone and writes the recent - while terminal and console cards name their destination
- * directly. The console's session travels beside the back stack the way the notebook console's
- * does: it is a live object two `NavEntry`s share, so it is published through [onConsoleReady]
- * rather than carried in the key.
- */
-@Composable
-private fun rememberLaunchHandler(
-  backStack: MutableList<NavKey>,
-  openDocument: (String) -> Unit,
-  onConsoleReady: (NotebookKernelSession) -> Unit,
-): (LaunchedDocument) -> Unit = remember(backStack, openDocument, onConsoleReady) {
-  { launched ->
-    when (launched) {
-      is LaunchedDocument.CreatedNotebook -> openDocument(launched.path)
-      is LaunchedDocument.CreatedFile -> openDocument(launched.path)
-      is LaunchedDocument.OpenedTerminal -> backStack.openTerminal(launched.name)
-      is LaunchedDocument.CreatedConsole -> {
-        onConsoleReady(launched.session)
-        backStack.openConsole(launched.path)
-      }
-    }
-  }
-}
-
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun MainNavigation(
@@ -182,8 +153,24 @@ fun MainNavigation(
   // widget's). Saveable so a rotation does not send the launcher back to the root the explorer
   // left.
   var browsedDirectory by rememberSaveable { mutableStateOf("") }
+
+  /**
+   * Whether the launcher on top of the stack got there by `maybeCreate` rather than by a tap.
+   *
+   * The fill is a *placeholder for an empty detail area* - and at one pane there is no detail area,
+   * so a window that narrows onto it pops it back to the panel the user was actually looking at
+   * (which is `aWindowThatNarrowsOntoSearchKeepsIt`'s contract: a rotation mid-search keeps the
+   * search). A launcher the user opened from the bar or rail is a real destination and survives,
+   * exactly as an open document does - the flag is the whole difference between the two.
+   */
+  val launcherIsFill = remember { mutableStateOf(false) }
+
   val openDocument = rememberDocumentOpener(backStack, appContainer)
   val newTerminal = rememberNewTerminal(backStack, appContainer)
+  val openLauncher: () -> Unit = {
+    launcherIsFill.value = false
+    backStack.openLauncher()
+  }
   // Where the browser has been asked to go from *outside* its own entry - the open document's
   // breadcrumb (P2w-1). Plain hoisted state rather than an `OpenDocumentOutline`-style holder,
   // because that one exists for something flowing **sideways** between two entries and this flows
@@ -245,6 +232,11 @@ fun MainNavigation(
     }
   }
 
+  // `maybeCreate` and the fill's provenance - extracted with the rest of the launcher lifecycle,
+  // for the same reason `openLaunched` below is: a lambda's branches count toward this function's
+  // complexity budget.
+  LauncherFillEffect(backStack, appContainer.launcherSettings, twoPane, launcherIsFill)
+
   // **A breadcrumb segment, and one copy of what it does.** JupyterLab's `this._model.cd(destination)`
   // (`packages/filebrowser/src/crumbs.ts:415`) - so the browser has to be *showing* for the
   // navigation to be visible, and which half of the shell that needs differs by layout. Beside the
@@ -300,7 +292,7 @@ fun MainNavigation(
       SidePanelRail(
         selected = sidePanel,
         onChoose = { sidePanel = sidePanel.chosen(it) },
-        onOpenLauncher = { backStack.openLauncher() },
+        onOpenLauncher = openLauncher,
         modifier = Modifier.trailingBorder(chromePalette.activityBarBorder),
       )
     }
@@ -361,7 +353,7 @@ fun MainNavigation(
             onRevealMatch = { match -> revealRequest = match },
             onNewTerminal = newTerminal,
             onOpenSettings = { backStack.openSettings() },
-            onOpenLauncher = { backStack.openLauncher() },
+            onOpenLauncher = openLauncher,
             onBrowsedDirectory = { browsedDirectory = it },
           )
         }
@@ -452,7 +444,7 @@ fun MainNavigation(
               )
             },
             onLaunched = openLaunched,
-            onBack = { backStack.removeLastOrNull() },
+            onBack = launcherDismiss(backStack, twoPane),
             twoPane = twoPane,
           )
         }
@@ -471,4 +463,7 @@ fun MainNavigation(
       },
     )
   }
+
+  // The lone-launcher back-swallow - after NavDisplay on purpose, see its KDoc.
+  LoneLauncherBackGuard(backStack, twoPane)
 }

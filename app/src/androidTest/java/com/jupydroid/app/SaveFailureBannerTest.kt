@@ -8,9 +8,11 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -70,6 +72,7 @@ class SaveFailureBannerTest {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = AppContainer(
+            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
             notebookRepository = VanishedNotebookRepository(readable),
             workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
           ),

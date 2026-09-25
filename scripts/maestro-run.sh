@@ -52,6 +52,12 @@ EXPLORER_SETTINGS_STORE="files/explorer-settings.json"
 # this is gone.
 THEME_SETTINGS_STORE="files/theme-settings.json"
 
+# The launcher bookkeeping (P6d-4) - whether the launcher has ever presented itself. **Seeded, not
+# cleared**, which is the sharpened form of the stores above: the default is "not seen", and a file
+# left absent would make every flow a first run - each one landing on a launcher it did not ask for
+# instead of the browser it seeded. The one flow that wants a first run deletes this itself.
+LAUNCHER_SETTINGS_STORE="files/launcher-settings.json"
+
 # --device explicitly: maestro does not honour ANDROID_SERIAL, so with both an emulator and a
 # phone attached it picks one of its own accord and the fixture is on the other.
 MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
@@ -79,6 +85,7 @@ reset_notebooks() {
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$EDITOR_SETTINGS_STORE\"' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$EXPLORER_SETTINGS_STORE\"' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$THEME_SETTINGS_STORE\"' || true"
+  "$ADB" shell "run-as $APP sh -c 'mkdir -p files && echo \"{\\\"launcherSeen\\\":true}\" > \"$LAUNCHER_SETTINGS_STORE\"' || true"
 }
 
 # Puts an .ipynb where DiskNotebookRepository will find it on the next launch.

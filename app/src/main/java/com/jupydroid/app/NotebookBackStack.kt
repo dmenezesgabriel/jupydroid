@@ -108,6 +108,15 @@ fun MutableList<NavKey>.openLauncher() {
 fun List<NavKey>.mainAreaIsEmpty(): Boolean = none { it.isDocument() }
 
 /**
+ * `main.title.closable = Array.from(labShell.widgets('main')).length > 1`
+ * (`launcher-extension/src/index.ts:126`) - a launcher that is the *only* thing in the main area
+ * gets no close affordance, because there is nothing beneath it to return to. The reference
+ * counts main widgets; the stack's equivalent is the detail-slot entries, the launcher itself
+ * included.
+ */
+fun List<NavKey>.launcherIsClosable(): Boolean = count { it.isDocument() } > 1
+
+/**
  * One document, revealed or replaced - never two, anywhere in the stack.
  *
  * Both document kinds swap each other, because the explorer opens both and a detail it cannot

@@ -1,0 +1,144 @@
+package com.jupydroid.app
+
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.test.espresso.Espresso
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
+import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.LauncherSettings
+import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.CLOSE_DOCUMENT
+import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
+import com.jupydroid.app.ui.launcher.LauncherCommand
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import java.io.File
+
+/**
+ * `maybeCreate` - `labShell.layoutModified.connect(() => if (labShell.isEmpty('main')) create())`
+ * (`launcher-extension/src/index.ts:147-157`) - and the first-run flag beside it. The reference
+ * fills an empty main area on every layout change; at two panes that is this app's rule too, and
+ * at one pane the push happens on the first run only (`docs/DECISIONS.md`, P6d).
+ *
+ * These are presence assertions on the navigation itself, which is what a JVM test cannot answer:
+ * whether the entry is on screen after a pop, not whether the stack changed.
+ */
+@RunWith(AndroidJUnit4::class)
+class LauncherAutoCreateTest {
+  @get:Rule val compose = createComposeRule()
+
+  @get:Rule val tempFolder = TemporaryFolder()
+
+  /** An empty main area draws a launcher, unprompted - `maybeCreate`'s own condition. */
+  @Test
+  fun theLauncherFillsAnEmptyMainAreaAtTwoPanes() {
+    startApp(twoPane = true, launcherSeen = true)
+
+    waitForTag("launcher-screen")
+    // The kernel card - "Python 3" is on two cards (Notebook and Console), so a count, not a node.
+    compose.onAllNodesWithText("Python 3").assertCountEquals(2)
+  }
+
+  /**
+   * Closing the last document is a `layoutModified` too - the launcher comes back the same way it
+   * first arrived, rather than leaving the detail area blank.
+   */
+  @Test
+  fun closingTheLastDocumentRefillsTheMainAreaAtTwoPanes() {
+    startApp(twoPane = true, launcherSeen = true)
+    waitForTag("launcher-screen")
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_TEXT_FILE.name}").performClick()
+    waitForText("untitled.txt")
+
+    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).performClick()
+
+    waitForTag("launcher-screen")
+    compose.onAllNodesWithText("Python 3").assertCountEquals(2)
+  }
+
+  /**
+   * `main.title.closable = widgets('main').length > 1` (index.ts:126): alone in the main area, the
+   * launcher gets no close affordance. And Back is swallowed rather than popping it - the pop
+   * would re-trigger `maybeCreate` and put it straight back, a whole-frame flicker.
+   */
+  @Test
+  fun aLoneLauncherCanNeitherBeClosedNorBackedOutOfAtTwoPanes() {
+    startApp(twoPane = true, launcherSeen = true)
+    waitForTag("launcher-screen")
+
+    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).assertDoesNotExist()
+    Espresso.pressBack()
+
+    compose.onNodeWithTag("launcher-screen").assertIsDisplayed()
+  }
+
+  /** The one-pane half of the decision: first run only, and the push is what marks it seen. */
+  @Test
+  fun theFirstRunPushesTheLauncherAtOnePaneAndMarksItSeen() {
+    val settings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = false))
+    startApp(twoPane = false, settings = settings)
+
+    waitForTag("launcher-screen")
+    runTest { assertEquals(true, settings.observeSettings().first().launcherSeen) }
+  }
+
+  /** A returning user lands on the browser - the flag, not the device, is what is asked. */
+  @Test
+  fun aReturningUserLandsOnFilesAtOnePane() {
+    startApp(twoPane = false, launcherSeen = true)
+
+    waitForText("report.txt")
+    compose.onNodeWithTag("launcher-screen").assertDoesNotExist()
+  }
+
+  private fun startApp(
+    twoPane: Boolean,
+    launcherSeen: Boolean = true,
+    settings: FakeLauncherSettingsRepository = FakeLauncherSettingsRepository(
+      LauncherSettings(launcherSeen = launcherSeen),
+    ),
+  ) {
+    val repository = DiskNotebookRepository(tempFolder.root)
+    File(tempFolder.root, "report.txt").writeText("a file for the listing")
+    compose.setContent {
+      JupyterDroidTheme {
+        MainNavigation(
+          appContainer = AppContainer(
+            notebookRepository = repository,
+            workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+            launcherSettings = settings,
+          ),
+          importTitle = null,
+          onImportConsumed = {},
+          twoPane = twoPane,
+        )
+      }
+    }
+  }
+
+  private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {
+    compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+  }
+
+  private fun waitForTag(tag: String) = compose.waitUntil(TIMEOUT_MILLIS) {
+    compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+  }
+
+  private companion object {
+    const val TIMEOUT_MILLIS = 5_000L
+  }
+}

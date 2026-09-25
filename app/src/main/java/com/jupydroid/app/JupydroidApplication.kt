@@ -6,6 +6,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
+import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
@@ -104,6 +105,7 @@ class JupydroidApplication : Application() {
       terminalSettings = DiskTerminalSettingsRepository(filesDir),
       explorerSettings = DiskExplorerSettingsRepository(filesDir),
       themeSettings = DiskThemeSettingsRepository(filesDir),
+      launcherSettings = DiskLauncherSettingsRepository(filesDir),
     )
 
   /**

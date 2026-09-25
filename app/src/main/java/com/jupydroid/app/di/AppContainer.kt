@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeServerLauncher
@@ -23,6 +24,7 @@ import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
@@ -102,6 +104,12 @@ class AppContainer(
   val explorerSettings: ExplorerSettingsRepository = FakeExplorerSettingsRepository(),
   /** The app-wide theme preference - System/Light/Dark, `docs/PLAN.md`'s P6c-3. */
   val themeSettings: ThemeSettingsRepository = FakeThemeSettingsRepository(),
+  /**
+   * The launcher bookkeeping - whether it has ever presented itself, which is what keeps the
+   * one-pane first-run push a once-only act (`docs/PLAN.md`'s P6d-4). At two panes the reference's
+   * `maybeCreate` fills an empty main area unconditionally and needs no flag.
+   */
+  val launcherSettings: LauncherSettingsRepository = FakeLauncherSettingsRepository(),
   /**
    * For work that must finish after the screen that asked for it is gone - closing a notebook
    * flushes its last edit and closes its socket from here, because `viewModelScope` is already

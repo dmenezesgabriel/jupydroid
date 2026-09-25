@@ -88,7 +88,13 @@ fun LauncherScreen(
   cwd: String,
   viewModel: LauncherViewModel,
   onLaunched: (LaunchedDocument) -> Unit,
-  onBack: () -> Unit,
+  /**
+   * How to leave, or `null` where there is nothing to leave to: the reference drops the close icon
+   * when the launcher is the only main-area widget (`main.title.closable` is
+   * `widgets('main').length > 1` - `launcher-extension/src/index.ts:126`). At one pane the arrow is
+   * navigation, not a close, and the caller always passes one.
+   */
+  onBack: (() -> Unit)?,
   twoPane: Boolean,
   modifier: Modifier = Modifier,
 ) {
@@ -100,7 +106,9 @@ fun LauncherScreen(
       TopAppBar(
         title = { Text("Launcher") },
         navigationIcon = {
-          DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = onBack)
+          onBack?.let { dismiss ->
+            DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = dismiss)
+          }
         },
       )
     },

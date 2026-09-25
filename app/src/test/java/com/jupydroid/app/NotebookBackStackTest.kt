@@ -334,4 +334,18 @@ class NotebookBackStackTest {
     assertEquals(false, listOf<NavKey>(Explorer, Editor("nb-1")).mainAreaIsEmpty())
     assertEquals(false, listOf<NavKey>(Explorer, Launcher, Settings).mainAreaIsEmpty())
   }
+
+  /**
+   * `main.title.closable = Array.from(labShell.widgets('main')).length > 1`
+   * (`launcher-extension/src/index.ts:126`) - a launcher that is the *only* thing in the main area
+   * gets no close affordance, because there is nothing beneath it to return to. The count is of
+   * main widgets, so a document or the Settings underneath it is what makes it closable.
+   */
+  @Test
+  fun aLauncherIsClosableOnlyWhileAnotherMainWidgetExists() {
+    assertEquals(false, listOf<NavKey>(Explorer).launcherIsClosable())
+    assertEquals(false, listOf<NavKey>(Explorer, Launcher).launcherIsClosable())
+    assertEquals(true, listOf<NavKey>(Explorer, Editor("nb-1"), Launcher).launcherIsClosable())
+    assertEquals(true, listOf<NavKey>(Explorer, Launcher, Settings).launcherIsClosable())
+  }
 }

@@ -11,9 +11,11 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
 import kotlinx.coroutines.runBlocking
@@ -120,6 +122,7 @@ class NotebookNavigationTest {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = AppContainer(
+            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
             notebookRepository = repository,
             // The list is the explorer since X2h, and it lists the *workspace* - the default fake
             // is empty, so without this there are no rows to tap and the test proves nothing.

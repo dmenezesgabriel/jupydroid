@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# `maybeCreate`: an empty main area fills itself with a launcher on every layout change, and a lone
+# launcher is not closable - `main.title.closable = widgets('main').length > 1`.
+- launchApp
+- assertVisible: "Launcher"
+- assertVisible: "Python 3"
+- assertNotVisible: "Close"
+- takeScreenshot: 01-auto-filled-launcher
+- tapOn: "Text File"
+- assertVisible: "untitled.txt"
+- takeScreenshot: 02-text-file-open
+- tapOn: "Close"
+- assertVisible: "Launcher"
+- assertNotVisible: "Close"
+- takeScreenshot: 03-refilled-after-close

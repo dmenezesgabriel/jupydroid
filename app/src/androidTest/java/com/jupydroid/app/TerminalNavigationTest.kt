@@ -11,7 +11,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import org.junit.Rule
@@ -59,6 +61,7 @@ class TerminalNavigationTest {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = AppContainer(
+            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
             notebookRepository = DiskNotebookRepository(temp.root),
             workspaceRepository = DiskWorkspaceRepository(temp.root),
             recentDocuments = DiskRecentDocumentsRepository(state.root, temp.root),

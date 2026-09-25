@@ -9,9 +9,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
 import kotlinx.coroutines.flow.first
@@ -135,6 +137,7 @@ class ExplorerNavigationTest {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = AppContainer(
+            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
             notebookRepository = repository,
             workspaceRepository = DiskWorkspaceRepository(temp.root),
             recentDocuments = recentDocuments,

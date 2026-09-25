@@ -8,9 +8,11 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -87,6 +89,7 @@ class OpenDocumentsNavigationTest {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = AppContainer(
+            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
             notebookRepository = repository,
             workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
           ),
