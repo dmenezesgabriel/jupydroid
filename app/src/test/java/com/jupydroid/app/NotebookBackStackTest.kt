@@ -250,4 +250,88 @@ class NotebookBackStackTest {
 
     assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
   }
+
+  /** The Launcher is a detail-pane destination: it pushes onto the bare browser. */
+  @Test
+  fun openingTheLauncherPushesIt() {
+    val backStack = mutableListOf<NavKey>(Explorer)
+
+    backStack.openLauncher()
+
+    assertEquals(listOf(Explorer, Launcher), backStack)
+  }
+
+  @Test
+  fun openingTheLauncherAlreadyOnTopChangesNothing() {
+    val backStack = mutableListOf<NavKey>(Explorer, Launcher)
+
+    backStack.openLauncher()
+
+    assertEquals(listOf(Explorer, Launcher), backStack)
+  }
+
+  /**
+   * Reaching the launcher stacks it on top of an open document rather than replacing it -
+   * `openSettings`'s own shape, since visiting it must not dispose the document underneath. The
+   * reference adds it as a main-area *tab* beside the open ones (`launcher:create`).
+   */
+  @Test
+  fun openingTheLauncherStacksOnTopOfAnOpenDocument() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
+
+    backStack.openLauncher()
+
+    assertEquals(listOf(Explorer, Editor("nb-1"), Launcher), backStack)
+  }
+
+  /**
+   * At most one Launcher ever exists (the reference's own rule, `maybeCreate`'s). A `data object`
+   * key shares `contentKey` across equal entries, so a second `Launcher` beneath anything stacked
+   * over it - `[Explorer, Launcher, Settings]` - must come forward rather than be duplicated, the
+   * same invariant P6b-0 gave documents.
+   */
+  @Test
+  fun openingTheLauncherWithOneDeeperInTheStackPromotesIt() {
+    val backStack = mutableListOf<NavKey>(Explorer, Launcher, Settings)
+
+    backStack.openLauncher()
+
+    assertEquals(listOf(Explorer, Settings, Launcher), backStack)
+  }
+
+  /**
+   * A document opened from the launcher replaces it in place - `add(item, 'main', {ref: id})` →
+   * `launcher.dispose()` (`launcher-extension/src/index.ts:95-106`). `Launcher` is in
+   * `isDocument()` for this: anything a surface opens sweeps the detail it was opened from.
+   */
+  @Test
+  fun openingANotebookReplacesTheLauncher() {
+    val backStack = mutableListOf<NavKey>(Explorer, Launcher)
+
+    backStack.openNotebook("nb-1")
+
+    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
+  }
+
+  /** The sweep reaches a launcher stacked *over* the open document, not only a lone one. */
+  @Test
+  fun openingAFileSweepsALauncherStackedOverTheOpenDocument() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Launcher)
+
+    backStack.openFile("a.py")
+
+    assertEquals(listOf(Explorer, FileEditor("a.py")), backStack)
+  }
+
+  /**
+   * `shell.isEmpty('main')` - the question `maybeCreate` asks. A lone browser is an empty main
+   * area; a Launcher, a document, or anything stacked in the detail slot is not.
+   */
+  @Test
+  fun theMainAreaIsEmptyOnlyWhenNoDetailEntryExists() {
+    assertEquals(true, listOf<NavKey>(Explorer).mainAreaIsEmpty())
+    assertEquals(false, listOf<NavKey>(Explorer, Launcher).mainAreaIsEmpty())
+    assertEquals(false, listOf<NavKey>(Explorer, Editor("nb-1")).mainAreaIsEmpty())
+    assertEquals(false, listOf<NavKey>(Explorer, Launcher, Settings).mainAreaIsEmpty())
+  }
 }

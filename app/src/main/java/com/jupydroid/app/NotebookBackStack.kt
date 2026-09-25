@@ -81,6 +81,33 @@ fun MutableList<NavKey>.openSettings() {
 }
 
 /**
+ * Opens the Launcher - [openSettings]'s own shape for the same reason: reaching it should not
+ * dispose the document beneath, and a second tap reveals the one already on top. The reference
+ * adds it as a main-area tab beside the open widgets (`launcher:create`).
+ *
+ * The extra [remove] over `openSettings`'s body is [openNotebook]'s invariant applied to a
+ * `data object`: equal keys share one `contentKey`, so a `Launcher` left deeper in the stack -
+ * `[Explorer, Launcher, Settings]` - would collide with a second push on one `ViewModelStore`.
+ * It is promoted to the top instead.
+ *
+ * ```
+ * backStack.openLauncher()   // [Explorer, Editor("nb-1")] -> [Explorer, Editor("nb-1"), Launcher]
+ * ```
+ */
+fun MutableList<NavKey>.openLauncher() {
+  if (lastOrNull() == Launcher) return
+  remove(Launcher)
+  add(Launcher)
+}
+
+/**
+ * `shell.isEmpty('main')` - the question the reference's `maybeCreate` asks before adding a
+ * launcher. A lone browser is an empty main area; a document, a launcher, or anything stacked in
+ * the detail slot is not.
+ */
+fun List<NavKey>.mainAreaIsEmpty(): Boolean = none { it.isDocument() }
+
+/**
  * One document, revealed or replaced - never two, anywhere in the stack.
  *
  * Both document kinds swap each other, because the explorer opens both and a detail it cannot
@@ -112,7 +139,12 @@ private fun MutableList<NavKey>.chooseDetailThatFitsTheSurface(opened: () -> Nav
  * [Settings] is not a document, but it occupies the same detail slot [Console] does when stacked
  * over one - swept here for the same reason: opening a real document must not leave it behind,
  * orphaned two levels deep, the way a bare `removeAt` once left a notebook behind under an open
- * Console (P6b-0).
+ * Console (P6b-0). [Launcher] likewise: a launched document replaces it in place - the reference's
+ * `add(item, 'main', {ref: id})` → `launcher.dispose()` (`launcher-extension/src/index.ts:95-106`).
  */
-private fun Any?.isDocument(): Boolean =
-  this is Editor || this is FileEditor || this is Terminal || this is Console || this is Settings
+private fun Any?.isDocument(): Boolean = this is Editor ||
+  this is FileEditor ||
+  this is Terminal ||
+  this is Console ||
+  this is Settings ||
+  this is Launcher
