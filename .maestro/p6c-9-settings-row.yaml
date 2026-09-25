@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# P6c-9b, part 1 of 4: the Settings screen's "Shut down kernel on close" row is real and writes
+# `kernelShutdown` on - `tracker.json`'s own setting (title "Shut down kernel", description
+# "...when closing a notebook", schema/tracker.json:741-746), one label here because this
+# screen's rows carry no description line.
+#
+# Bare `launchApp`: this part starts the process every later part pins, `p1d-part2`'s own shape.
+# TABLET ONLY - the row itself needs no kernel, but the gate it feeds does, and there is no point
+# in a two-device sweep of one flow's head.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element:
+      text: "Shut down kernel on close"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 01-shutdown-row-off
+- tapOn: "Shut down kernel on close"
+- takeScreenshot: 02-shutdown-row-on
+- tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Kernel Shutdown.ipynb"
+    timeout: 10000

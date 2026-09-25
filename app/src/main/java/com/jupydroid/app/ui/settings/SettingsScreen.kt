@@ -165,6 +165,9 @@ fun SettingsScreen(
         onIncrease = { changeAutosaveInterval(AutosaveInterval.STEP) },
         onDecrease = { changeAutosaveInterval(-AutosaveInterval.STEP) },
       )
+      SettingsToggleRow(SHUTDOWN_KERNEL_ON_CLOSE, settings.shutdownKernelOnClose) {
+        update(settings.copy(shutdownKernelOnClose = it))
+      }
       SettingsToggleRow(HEADING_NUMBERS, settings.tocNumberHeaders) {
         update(settings.copy(tocNumberHeaders = it))
       }
@@ -309,6 +312,13 @@ internal const val DECREASE_AUTOSAVE_INTERVAL = "Decrease autosave interval"
 
 /** The increase button's accessible label - see `SettingsStepperRow`. */
 internal const val INCREASE_AUTOSAVE_INTERVAL = "Increase autosave interval"
+
+/**
+ * `kernelShutdown`'s row - the schema's "Shut down kernel" with its own description folded in
+ * ("...when closing a notebook", `tracker.json:741-746`), since this screen's rows carry one
+ * label and "Shut down kernel" alone reads as an action that fires now.
+ */
+internal const val SHUTDOWN_KERNEL_ON_CLOSE = "Shut down kernel on close"
 
 /** `toc:display-numbering` - see `EditorSettings.tocNumberHeaders`. */
 internal const val HEADING_NUMBERS = "Heading numbers"

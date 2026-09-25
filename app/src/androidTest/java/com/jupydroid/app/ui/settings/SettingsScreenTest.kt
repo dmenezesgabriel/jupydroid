@@ -264,6 +264,24 @@ class SettingsScreenTest {
     compose.onNodeWithContentDescription(DECREASE_AUTOSAVE_INTERVAL).assertIsNotEnabled()
   }
 
+  /** `kernelShutdown` - the schema's own "Shut down kernel" - see `EditorSettings.shutdownKernelOnClose`. */
+  @Test
+  fun shutdownKernelOnCloseRowShowsTheRepositorysCurrentValue() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(shutdownKernelOnClose = true)))
+
+    compose.onNodeWithText(SHUTDOWN_KERNEL_ON_CLOSE).performScrollTo().assertIsOn()
+  }
+
+  @Test
+  fun tappingShutdownKernelOnCloseWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(shutdownKernelOnClose = false))
+    startScreen(repository)
+
+    compose.onNodeWithText(SHUTDOWN_KERNEL_ON_CLOSE).performScrollTo().performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().shutdownKernelOnClose }
+  }
+
   @Test
   fun themeRowShowsTheRepositorysCurrentValue() {
     startScreen(themeSettingsRepository = FakeThemeSettingsRepository(ThemeSettings(override = ThemeOverride.DARK)))

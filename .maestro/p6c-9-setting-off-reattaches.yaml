@@ -1,0 +1,61 @@
+appId: com.jupydroid.app
+---
+# P6c-9b, part 4 of 4 - the control arm, and the live-read claim besides. The row is toggled off
+# in the *same* process that has been running since part 1, so `NotebookKernel.close` must answer
+# from the setting as it is now (`kernelPreference.shutdownOnDispose`, read at dispose), not from
+# whatever the file said when the notebook opened.
+#
+# Then the notebook does what `notebook-session-reattaches.yaml` has always asserted: a second
+# run of the incrementing cell prints **44**, which only a kernel that stayed alive can compute -
+# a fresh kernel would NameError like part 3's did, and a stale saved output would read 43.
+#
+# `stopApp: false` throughout - `p1d-part2`'s own rule. TABLET ONLY: see part 2.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element:
+      text: "Shut down kernel on close"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Shut down kernel on close"
+- tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Session Reattaches.ipynb"
+    timeout: 10000
+- tapOn: "Session Reattaches.ipynb"
+- assertVisible: "Back to notebooks|Close"
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+# Cell 1 runs on BOTH visits, `notebook-session-reattaches`'s own trick: an increment reads the
+# kernel's memory and then moves it, so the reopen's answer is 44 - uncomputable by a fresh
+# kernel (part 3's NameError) and distinct from any output the first visit could have left (43).
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: "43"
+    timeout: 60000
+- takeScreenshot: 06-arm-b-carried-defined
+- tapOn: "Back to notebooks|Close"
+- extendedWaitUntil:
+    visible: "Session Reattaches.ipynb"
+    timeout: 10000
+- takeScreenshot: 07-closed-kernel-kept
+- tapOn: "Session Reattaches.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 30000
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: "44"
+    timeout: 120000
+- takeScreenshot: 08-same-kernel-still-remembers
