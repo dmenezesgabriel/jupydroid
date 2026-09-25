@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - ten fields today.
+ * The app-wide editor preferences P6c grows - twelve fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -121,6 +121,30 @@ data class EditorSettings(
    * pixel until a user turns it off - the same reasoning [codeWrapEnabled]'s own default carries.
    */
   val symbolRowShown: Boolean = true,
+  /**
+   * `docmanager:toggle-autosave` - whether a document's edits write themselves back, or wait to be
+   * asked at close time (`packages/docmanager-extension/schema/plugin.json:113-118`,
+   * `DocumentManager.autosave` at `packages/docmanager/src/manager.ts:96-126`).
+   *
+   * **True, the schema's own default**, and it governs the whole save path this app already had:
+   * `DocumentAutosave`'s debounced write and its interval poll are both `SaveHandler`'s job, so
+   * both stop here - the same "one flag governs the mechanism it names" shape [completionEnabled]
+   * already is for `rememberCellCompletions`.
+   */
+  val autosaveEnabled: Boolean = true,
+  /**
+   * `autosaveInterval` - seconds between the periodic "write if dirty" sweep
+   * (`packages/docmanager-extension/schema/plugin.json:119-124`,
+   * `SaveHandler._minInterval` at `docmanager/src/savehandler.ts:21-43`).
+   *
+   * **The schema's own 120.** This app writes 500ms after a burst of edits already, so the poll's
+   * real work is narrower than the reference's: it bounds how stale the file can get *while typing
+   * never pauses* (a debounce without a gap never fires) and retries a write that failed - both
+   * measured properties of `SaveHandler._save`, not conveniences. It is deliberately not the
+   * debounce's own delay: mapping it there would have shipped the reference's 120 as a hundredfold
+   * regression of the staleness bound a killable mobile process wants.
+   */
+  val autosaveIntervalSeconds: Int = AutosaveInterval.DEFAULT,
 )
 
 /**
@@ -137,4 +161,18 @@ object CodeFontSize {
   const val MAX = 32
   const val STEP = 1
   const val DEFAULT = 14
+}
+
+/**
+ * `docs/PLAN.md` P6c-8's own bounds - the reference's `autosaveInterval` is an unbounded number in
+ * a JSON schema editor, and a touch stepper needs edges. `MIN` of 5s is below which the poll is a
+ * chore the 500ms debounce already does better; `MAX` of 600s is the point past which "autosave"
+ * is a word for "writes when I close it", which [EditorSettings.autosaveEnabled] says directly.
+ * `DEFAULT` is the schema's own 120 (`docmanager-extension/schema/plugin.json:119-124`).
+ */
+object AutosaveInterval {
+  const val MIN = 5
+  const val MAX = 600
+  const val STEP = 5
+  const val DEFAULT = 120
 }

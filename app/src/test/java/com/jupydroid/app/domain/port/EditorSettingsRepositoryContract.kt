@@ -1,5 +1,6 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
 import kotlinx.coroutines.flow.first
@@ -144,6 +145,44 @@ abstract class EditorSettingsRepositoryContract {
     repository.update(EditorSettings(symbolRowShown = false))
 
     assertFalse(repository.observeSettings().first().symbolRowShown)
+  }
+
+  /**
+   * `docmanager:toggle-autosave` - on by default, the schema's own value
+   * (`packages/docmanager-extension/schema/plugin.json:113-118`). Shipping this field changes no
+   * behaviour until a user turns it off, the same reasoning `codeWrapEnabled`'s default carries.
+   */
+  @Test
+  fun defaultsToAutosaveOn() = runTest {
+    assertTrue(repository().observeSettings().first().autosaveEnabled)
+  }
+
+  @Test
+  fun remembersAutosaveTurnedOff() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(autosaveEnabled = false))
+
+    assertFalse(repository.observeSettings().first().autosaveEnabled)
+  }
+
+  /**
+   * `autosaveInterval` defaults to the schema's own 120 seconds
+   * (`packages/docmanager-extension/schema/plugin.json:119-124`) - how stale a document is allowed
+   * to get, the question `SaveHandler`'s timer answers (`docmanager/src/savehandler.ts:21-30`).
+   */
+  @Test
+  fun defaultsToTheReferenceAutosaveInterval() = runTest {
+    assertEquals(AutosaveInterval.DEFAULT, repository().observeSettings().first().autosaveIntervalSeconds)
+  }
+
+  @Test
+  fun remembersAnAutosaveIntervalChange() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(autosaveIntervalSeconds = 30))
+
+    assertEquals(30, repository.observeSettings().first().autosaveIntervalSeconds)
   }
 
   @Test
