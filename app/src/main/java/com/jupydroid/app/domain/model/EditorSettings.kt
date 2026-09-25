@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - twelve fields today.
+ * The app-wide editor preferences P6c grows - thirteen fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -145,6 +145,20 @@ data class EditorSettings(
    * regression of the staleness bound a killable mobile process wants.
    */
   val autosaveIntervalSeconds: Int = AutosaveInterval.DEFAULT,
+  /**
+   * `kernelShutdown` - whether leaving a notebook ends its kernel rather than only closing the
+   * socket (`packages/notebook-extension/schema/tracker.json:741-746`), read by the close the
+   * way `SessionContext.dispose()` reads `kernelPreference.shutdownOnDispose`
+   * (`packages/apputils/src/sessioncontext.tsx:690-698`): with it on, the ordinary close is the
+   * shutdown `notebook:shutdown-kernel` otherwise is.
+   *
+   * **False, the schema's own default**, and the reference's reasoning survives on a phone: a
+   * kernel is expensive to boot and cheap to keep, and the two-pane sweep closes documents the
+   * user only glanced at - shipping it on would destroy state nobody asked to lose. The live
+   * read also matches the reference, whose `updateTracker` pushes a flipped setting to widgets
+   * already open (`notebook-extension/src/index.ts:2467-2477`).
+   */
+  val shutdownKernelOnClose: Boolean = false,
 )
 
 /**

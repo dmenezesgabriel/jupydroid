@@ -185,6 +185,25 @@ abstract class EditorSettingsRepositoryContract {
     assertEquals(30, repository.observeSettings().first().autosaveIntervalSeconds)
   }
 
+  /**
+   * `kernelShutdown` - off by default, the schema's own value
+   * (`packages/notebook-extension/schema/tracker.json:741-746`): closing a notebook lets the
+   * kernel live, so reopening reattaches to it rather than booting a fresh interpreter.
+   */
+  @Test
+  fun defaultsToLeavingTheKernelRunning() = runTest {
+    assertFalse(repository().observeSettings().first().shutdownKernelOnClose)
+  }
+
+  @Test
+  fun remembersKernelShutdownTurnedOn() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(shutdownKernelOnClose = true))
+
+    assertTrue(repository.observeSettings().first().shutdownKernelOnClose)
+  }
+
   @Test
   fun remembersEveryFieldOfAnUpdateAndNotOnlyTheFirst() = runTest {
     val repository = repository()

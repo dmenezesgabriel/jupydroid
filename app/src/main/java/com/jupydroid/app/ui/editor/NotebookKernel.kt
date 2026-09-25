@@ -54,6 +54,13 @@ class NotebookKernel(
   private val clock: Clock = Clock.systemUTC(),
   /** Arms a cell's breakpoints before it runs, and reports where the kernel stops; see [NotebookCellRuns]. */
   private val debugger: NotebookDebugger,
+  /**
+   * `kernelShutdown`'s live read, consulted by [close] at the moment the document goes - the way
+   * `SessionContext` reads `kernelPreference.shutdownOnDispose` inside `dispose()` rather than
+   * once at construction. A provider and not a field value because a flipped setting reaches
+   * notebooks already open.
+   */
+  private val shutdownOnClose: () -> Boolean = { false },
 ) {
   /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
   private val session =
@@ -225,13 +232,21 @@ class NotebookKernel(
   /**
    * Closes the socket, on a scope that outlives the screen.
    *
-   * **Not a shutdown**, and that is deliberate: `SessionContext.dispose()` disposes the client
-   * connection and shuts the kernel down only when `shutdownOnDispose` is set, which defaults to
-   * false (`packages/apputils/src/sessioncontext.tsx:679-709`).
+   * **Not a shutdown, by default, and that is deliberate**: `SessionContext.dispose()` disposes
+   * the client connection and shuts the kernel down only when `shutdownOnDispose` is set, which
+   * defaults to false (`packages/apputils/src/sessioncontext.tsx:679-709`). The reference's
+   * `kernelShutdown` setting flips exactly this branch - the ordinary close then asks for the
+   * shutdown the ⋮ menu's own command used to be the only way to get, which [shutdownOnClose]
+   * is the live read of: the dispose asks again, not the open, so a setting flipped while the
+   * document sits open is honoured by the close that follows it.
    */
   fun close(on: CoroutineScope) {
     val open = session.forget() ?: return
-    on.launch { kernelGateway.disconnect(open) }
+    on.launch {
+      // shutdown() closes the socket first itself (`RealKernelGateway`'s own ordering), so the
+      // branch is one call either way.
+      if (shutdownOnClose()) kernelGateway.shutdown(open) else kernelGateway.disconnect(open)
+    }
   }
 
   private companion object {

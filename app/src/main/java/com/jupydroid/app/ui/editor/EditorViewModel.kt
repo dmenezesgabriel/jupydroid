@@ -142,6 +142,8 @@ class EditorViewModel(
         if (settings.value.autosaveEnabled) persist() else _uiState.update { it.copy(dirty = true) }
       },
       debugger = debugger,
+      // `kernelShutdown`, read the way `SessionContext` reads `kernelPreference` - at dispose.
+      shutdownOnClose = { settings.value.shutdownKernelOnClose },
     )
 
   /** The cell menu and its undo history. Driven straight from the screen; see [NotebookCellEdits]. */

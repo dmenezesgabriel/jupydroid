@@ -1,6 +1,8 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.domain.model.EditorSettings
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -97,5 +99,70 @@ class NotebookKernelShutdownTest {
     advanceUntilIdle()
 
     assertTrue("nothing to shut down is not a reason to stay on the screen", closed)
+  }
+
+  /**
+   * `kernelShutdown` turned on changes what *leaving* does: `SessionContext.dispose()` calls
+   * `sessionManager.shutdown` before disposing the session when `shutdownOnDispose` is set
+   * (`packages/apputils/src/sessioncontext.tsx:690-698`), so the ordinary close is now the
+   * shutdown the menu command used to own.
+   */
+  @Test
+  fun closingShutsDownTheKernelWhenTheSettingSaysSo() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(
+      gateway = gateway,
+      applicationScope = this,
+      editorSettings = FakeEditorSettingsRepository(EditorSettings(shutdownKernelOnClose = true)),
+    )
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertEquals("the setting turned the close into a shutdown", 1, gateway.shutDown.size)
+  }
+
+  /**
+   * The reference reads `kernelPreference.shutdownOnDispose` at dispose time, not at open
+   * (`sessioncontext.tsx:690`) - a setting flipped while the notebook sits open is the close's
+   * answer, exactly the way `updateTracker` pushes it to widgets already created
+   * (`notebook-extension/src/index.ts:2467-2477`).
+   */
+  @Test
+  fun theSettingIsReadWhenTheCloseHappens() = runTest {
+    val settings = FakeEditorSettingsRepository(EditorSettings(shutdownKernelOnClose = false))
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway, applicationScope = this, editorSettings = settings)
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+
+    settings.update(EditorSettings(shutdownKernelOnClose = true))
+    advanceUntilIdle()
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertEquals("flipped while the document was open, and the close honoured it", 1, gateway.shutDown.size)
+  }
+
+  /**
+   * `kernelShutdown` changes what the close does to a kernel, not whether a kernel was asked
+   * for: a notebook nobody ran still opens nothing to end.
+   */
+  @Test
+  fun closingWithTheSettingOnStillLeavesANotebookThatNeverRanAlone() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(
+      gateway = gateway,
+      applicationScope = this,
+      editorSettings = FakeEditorSettingsRepository(EditorSettings(shutdownKernelOnClose = true)),
+    )
+
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertTrue(gateway.shutDown.isEmpty())
+    assertTrue(gateway.disconnected.isEmpty())
   }
 }
