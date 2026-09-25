@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.ThemeOverride
@@ -92,6 +93,12 @@ fun SettingsScreen(
     if (next == settings.codeFontSizeSp) return
     update(settings.copy(codeFontSizeSp = next))
   }
+  fun changeAutosaveInterval(deltaSeconds: Int) {
+    val next = (settings.autosaveIntervalSeconds + deltaSeconds)
+      .coerceIn(AutosaveInterval.MIN, AutosaveInterval.MAX)
+    if (next == settings.autosaveIntervalSeconds) return
+    update(settings.copy(autosaveIntervalSeconds = next))
+  }
   val themeSettings by themeSettingsRepository.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
   fun updateTheme(changed: ThemeOverride) {
     applicationScope.launch { themeSettingsRepository.update(ThemeSettings(override = changed)) }
@@ -121,7 +128,12 @@ fun SettingsScreen(
       }
       SettingsStepperRow(
         label = CODE_FONT_SIZE,
-        valueSp = settings.codeFontSizeSp,
+        value = settings.codeFontSizeSp,
+        unit = "sp",
+        minimum = CodeFontSize.MIN,
+        maximum = CodeFontSize.MAX,
+        decreaseDescription = DECREASE_CODE_FONT_SIZE,
+        increaseDescription = INCREASE_CODE_FONT_SIZE,
         onIncrease = { changeCodeFontSize(CodeFontSize.STEP) },
         onDecrease = { changeCodeFontSize(-CodeFontSize.STEP) },
       )
@@ -137,6 +149,22 @@ fun SettingsScreen(
       SettingsToggleRow(KERNEL_HISTORY_ACCESS, settings.accessKernelHistory) {
         update(settings.copy(accessKernelHistory = it))
       }
+      SettingsToggleRow(AUTOSAVE_DOCUMENTS, settings.autosaveEnabled) {
+        update(settings.copy(autosaveEnabled = it))
+      }
+      // Stays visible with autosave off: the schema's own pair both show in its settings editor,
+      // and an interval set ahead of the toggle is still the interval it starts with.
+      SettingsStepperRow(
+        label = AUTOSAVE_INTERVAL,
+        value = settings.autosaveIntervalSeconds,
+        unit = "s",
+        minimum = AutosaveInterval.MIN,
+        maximum = AutosaveInterval.MAX,
+        decreaseDescription = DECREASE_AUTOSAVE_INTERVAL,
+        increaseDescription = INCREASE_AUTOSAVE_INTERVAL,
+        onIncrease = { changeAutosaveInterval(AutosaveInterval.STEP) },
+        onDecrease = { changeAutosaveInterval(-AutosaveInterval.STEP) },
+      )
       SettingsToggleRow(HEADING_NUMBERS, settings.tocNumberHeaders) {
         update(settings.copy(tocNumberHeaders = it))
       }
@@ -175,17 +203,27 @@ private fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: 
  * size, the reference's own `isEnabled` gate read through a screen row instead of a menu one.
  */
 @Composable
-private fun SettingsStepperRow(label: String, valueSp: Int, onIncrease: () -> Unit, onDecrease: () -> Unit) {
+private fun SettingsStepperRow(
+  label: String,
+  value: Int,
+  unit: String,
+  minimum: Int,
+  maximum: Int,
+  decreaseDescription: String,
+  increaseDescription: String,
+  onIncrease: () -> Unit,
+  onDecrease: () -> Unit,
+) {
   ListItem(
     headlineContent = { Text(label) },
     trailingContent = {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onDecrease, enabled = valueSp > CodeFontSize.MIN) {
-          Icon(Icons.Filled.Remove, contentDescription = DECREASE_CODE_FONT_SIZE)
+        IconButton(onClick = onDecrease, enabled = value > minimum) {
+          Icon(Icons.Filled.Remove, contentDescription = decreaseDescription)
         }
-        Text("${valueSp}sp")
-        IconButton(onClick = onIncrease, enabled = valueSp < CodeFontSize.MAX) {
-          Icon(Icons.Filled.Add, contentDescription = INCREASE_CODE_FONT_SIZE)
+        Text("$value$unit")
+        IconButton(onClick = onIncrease, enabled = value < maximum) {
+          Icon(Icons.Filled.Add, contentDescription = increaseDescription)
         }
       }
     },
@@ -259,6 +297,18 @@ internal const val CODE_COMPLETION = "Code completion"
 
 /** `accessKernelHistory` - see `EditorSettings.accessKernelHistory`. */
 internal const val KERNEL_HISTORY_ACCESS = "Kernel history access"
+
+/** `docmanager:toggle-autosave`'s own title - see `EditorSettings.autosaveEnabled`. */
+internal const val AUTOSAVE_DOCUMENTS = "Autosave documents"
+
+/** `autosaveInterval`'s title, `plugin.json:119-124` - see `EditorSettings.autosaveIntervalSeconds`. */
+internal const val AUTOSAVE_INTERVAL = "Autosave interval"
+
+/** The decrease button's accessible label - see `SettingsStepperRow`. */
+internal const val DECREASE_AUTOSAVE_INTERVAL = "Decrease autosave interval"
+
+/** The increase button's accessible label - see `SettingsStepperRow`. */
+internal const val INCREASE_AUTOSAVE_INTERVAL = "Increase autosave interval"
 
 /** `toc:display-numbering` - see `EditorSettings.tocNumberHeaders`. */
 internal const val HEADING_NUMBERS = "Heading numbers"

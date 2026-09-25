@@ -1,0 +1,52 @@
+appId: com.jupydroid.app
+---
+# P6c-8d: the Settings screen's "Autosave documents" switch and "Autosave interval" stepper write
+# docmanager's own pair (`packages/docmanager-extension/schema/plugin.json:113-124`) to disk, and
+# the choices survive a relaunch - not only `SettingsScreenTest`'s instrumented proof that the
+# rows read and write the repository.
+#
+# Runs no cell, so no device rule names a device this needs - sharded across both anyway,
+# `p6c-5-word-wrap.yaml`'s own precedent: the row's own width differs between the emulator's one
+# pane and the tablet's two.
+#
+# Left at the non-default pair (off, 110s) across the relaunch so the driver's own file-based
+# check has something unambiguous to read - `p6c-7-symbol-row-visibility.yaml`'s own reasoning.
+#
+# Scrolled to the *interval* row, not the switch: on the emulator's shorter window the scroll that
+# stops at "Autosave documents" still leaves the row below it clipped, and the switch is tapped by
+# text search which scrolls for itself.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element:
+      text: "Autosave interval"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Autosave documents"
+- assertVisible: "120s"
+- takeScreenshot: 01-settings-autosave-defaults
+
+- tapOn: "Autosave documents"
+- tapOn: "Decrease autosave interval"
+- tapOn: "Decrease autosave interval"
+- assertVisible: "110s"
+- takeScreenshot: 02-settings-autosave-off-interval-110
+
+# The choices survive a relaunch - `EditorSettingsRepositoryContract`'s own persistence tests,
+# now asked of the real app. The driver greps the file itself for the non-default pair besides:
+# `DiskEditorSettingsRepository.update` writes the in-memory `StateFlow` first, so a store that
+# never landed would still read back right while the process survives.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element:
+      text: "Autosave interval"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "110s"
+- takeScreenshot: 03-settings-autosave-off-after-relaunch

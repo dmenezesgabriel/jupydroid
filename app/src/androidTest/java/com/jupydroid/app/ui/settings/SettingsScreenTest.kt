@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
+import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.ThemeOverride
@@ -59,9 +60,9 @@ class SettingsScreenTest {
     startScreen(repository)
     compose.onNodeWithText(NUMBER_TOP_LEVEL_HEADINGS).assertDoesNotExist()
 
-    compose.onNodeWithText(HEADING_NUMBERS).performClick()
+    compose.onNodeWithText(HEADING_NUMBERS).performScrollTo().performClick()
 
-    compose.onNodeWithText(NUMBER_TOP_LEVEL_HEADINGS).assertIsOn()
+    compose.onNodeWithText(NUMBER_TOP_LEVEL_HEADINGS).performScrollTo().assertIsOn()
   }
 
   @Test
@@ -196,6 +197,71 @@ class SettingsScreenTest {
     compose.onNodeWithText(OUTPUT_HEADINGS).performScrollTo().performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().tocIncludeOutput }
+  }
+
+  /** `docmanager-extension/schema/plugin.json`'s `autosave` - see `EditorSettings.autosaveEnabled`. */
+  @Test
+  fun autosaveDocumentsRowShowsTheRepositorysCurrentValue() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(autosaveEnabled = false)))
+
+    compose.onNodeWithText(AUTOSAVE_DOCUMENTS).assertIsOff()
+  }
+
+  @Test
+  fun tappingAutosaveDocumentsWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(autosaveEnabled = true))
+    startScreen(repository)
+
+    compose.onNodeWithText(AUTOSAVE_DOCUMENTS).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().autosaveEnabled }
+  }
+
+  /** `autosaveInterval` - "Length of save interval in seconds", shown the way `16sp` is. */
+  @Test
+  fun autosaveIntervalRowShowsTheRepositorysCurrentValue() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(autosaveIntervalSeconds = 60)))
+
+    compose.onNodeWithText("60s").performScrollTo().assertIsDisplayed()
+  }
+
+  @Test
+  fun tappingIncreaseAutosaveIntervalWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(autosaveIntervalSeconds = 60))
+    startScreen(repository)
+
+    compose.onNodeWithContentDescription(INCREASE_AUTOSAVE_INTERVAL).performScrollTo().performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      repository.currentSettings().autosaveIntervalSeconds == 60 + AutosaveInterval.STEP
+    }
+  }
+
+  @Test
+  fun tappingDecreaseAutosaveIntervalWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(autosaveIntervalSeconds = 60))
+    startScreen(repository)
+
+    compose.onNodeWithContentDescription(DECREASE_AUTOSAVE_INTERVAL).performScrollTo().performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      repository.currentSettings().autosaveIntervalSeconds == 60 - AutosaveInterval.STEP
+    }
+  }
+
+  /** `TerminalActionsMenu`'s own gate, read as disabled rather than hidden - see `SettingsStepperRow`. */
+  @Test
+  fun increaseAutosaveIntervalIsDisabledAtTheMaximum() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(autosaveIntervalSeconds = AutosaveInterval.MAX)))
+
+    compose.onNodeWithContentDescription(INCREASE_AUTOSAVE_INTERVAL).assertIsNotEnabled()
+  }
+
+  @Test
+  fun decreaseAutosaveIntervalIsDisabledAtTheMinimum() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(autosaveIntervalSeconds = AutosaveInterval.MIN)))
+
+    compose.onNodeWithContentDescription(DECREASE_AUTOSAVE_INTERVAL).assertIsNotEnabled()
   }
 
   @Test
