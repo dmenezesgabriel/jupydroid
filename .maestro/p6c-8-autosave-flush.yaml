@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# P6c-8b, second half: `autosave: false` is still seeded, so the only writer that can put
+# `close_flushed` on disk is `FileEditorViewModel.onCleared`'s dirty flush - the debounce is
+# gated and the interval poll never arms before the close. Type, then take the document's own
+# dismiss ("Close" two-pane, "Back to files" one-pane), and the driver cats the file after.
+#
+# Self-contained on purpose: `maestro test`'s `launchApp` force-stops the process, so state never
+# survives between flows - the gate half is its own flow (`p6c-8-autosave-gate.yaml`) and this one
+# needs no state from it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+- tapOn: "autosave_gate.py"
+- assertVisible: "Back to files|Close"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 10000
+- tapOn: ".*the file editor.*"
+- tapOn:
+    point: "95%,25%"
+- pressKey: Enter
+- inputText: "print("
+- inputText: "'"
+- inputText: "close_flushed"
+- inputText: "'"
+- inputText: ")"
+- assertVisible: "(?s).*close_flushed.*"
+- takeScreenshot: 03-typed-before-close
+# The dismiss is the composable's own affordance - `DocumentDismissAction`, either arm.
+- tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 5000
+- takeScreenshot: 04-closed-back-to-files
