@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -46,6 +45,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.ROOT_LABEL
+import com.jupydroid.app.ui.SaveBeforeCloseGate
 import com.jupydroid.app.ui.ancestorCrumbsFor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -167,6 +167,20 @@ fun EditorScreen(
   // Remembered here rather than inside the Scaffold's slot, because [ExportReportSnackbar] posts
   // to it from outside that slot.
   val exportReports = remember { SnackbarHostState() }
+  // `saveBeforeClose` (`docmanager/src/dialogs.ts:155`): a dirty notebook asks before it leaves,
+  // whichever way out was taken - the dismiss on its bar (the lambda handed back), system Back,
+  // or close-and-shutdown, whose kernel question runs first and whose continuation is this same
+  // close. Declared *before* the contextual handlers below, whose states the gate's own Back
+  // handler stands down for. The `gone` path stays outside the gate: a deleted file has nothing
+  // a save could put back.
+  val closeOrAsk = SaveBeforeCloseGate(
+    dirty = state.dirty,
+    backAsks = state.backAsksToClose(),
+    title = state.title,
+    saveNow = viewModel::saveNow,
+    discardChanges = viewModel::discardChanges,
+    onClose = onBack,
+  )
   // Back in edit mode returns to command mode instead of leaving the notebook - the touch
   // analogue of `Escape`, which is what both references bind it to. Dropping focus is what
   // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
@@ -332,7 +346,7 @@ fun EditorScreen(
             onShowTableOfContents = onShowTableOfContents,
             onShowDebugger = onShowDebugger,
             onHeadingSelected = jumpToHeading,
-            onBack = onBack,
+            onBack = closeOrAsk,
             twoPane = twoPane,
             titleCollapse = titleCollapse,
             onGoToFolder = onGoToFolder,
@@ -350,7 +364,10 @@ fun EditorScreen(
           viewModel = viewModel,
           editorSettings = editorSettings,
           cellInput = cellInput,
-          onBack = onBack,
+          // `notebook:close-and-shutdown` awaits the kernel's end and then *closes* - so what it
+          // gets is the gated close, and a dirty notebook is asked the same question here that the
+          // dismiss asks, after the shutdown has already run (`index.ts:3189-3213`'s own order).
+          onBack = closeOrAsk,
           twoPane = twoPane,
           onOpenConsole = onOpenConsole,
         )
@@ -411,3 +428,10 @@ private fun LazyListState.isFullyVisible(index: Int): Boolean {
   return item.offset >= layoutInfo.viewportStartOffset &&
     item.offset + item.size <= layoutInfo.viewportEndOffset
 }
+
+/**
+ * Whether system Back reaches the close gate at all: the contextual handlers own it while any of
+ * their states is up, and as the later-registered callbacks they answer first - so a `dirty`
+ * flip while the find bar is held must not let this one overtake them.
+ */
+private fun EditorUiState.backAsksToClose(): Boolean = dirty && mode != CellMode.EDIT && !selecting && search == null

@@ -1,0 +1,9 @@
+appId: com.jupydroid.app
+---
+# One system-Back press, and nothing else.
+#
+# **Not a flow.** No driver runs this; it exists so the close-gate flows can press Back *again*
+# under `runFlow`'s `when:`. A hardware Back while the IME is up is the keyboard's to spend - it
+# hides itself and the app sees nothing - so the gate's own handler only ever answers a Back that
+# reaches it, and the caller retries under a condition instead of pressing blind.
+- back

@@ -38,6 +38,7 @@ import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.ROOT_LABEL
+import com.jupydroid.app.ui.SaveBeforeCloseGate
 import com.jupydroid.app.ui.ancestorCrumbsFor
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.PythonTypingRules
@@ -107,6 +108,18 @@ fun FileEditorScreen(
   val editorSettings by editorSettingsRepository.observeSettings()
     .collectAsStateWithLifecycle(EditorSettings())
 
+  // `saveBeforeClose` (`docmanager/src/dialogs.ts:155`): a dirty document asks before it leaves,
+  // whichever way out was taken - the dismiss here, system Back. The `gone` path stays outside
+  // the gate: a deleted file has nothing a save could put back.
+  val closeOrAsk = SaveBeforeCloseGate(
+    dirty = state.dirty,
+    backAsks = state.dirty,
+    title = state.name,
+    saveNow = viewModel::saveNow,
+    discardChanges = viewModel::discardChanges,
+    onClose = onBack,
+  )
+
   // Its file was deleted, so the screen goes with it - `deleteWidgets`, asked for by the document.
   LaunchedEffect(state.gone) { if (state.gone) onBack() }
 
@@ -134,7 +147,7 @@ fun FileEditorScreen(
           title = { Text(state.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
           navigationIcon = {
             // Beside a browser this is a *close*, and one home decides that for all three bars.
-            DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = onBack)
+            DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = closeOrAsk)
           },
         )
         // Ancestors only, and **absent** rather than blank at the root - P2w-1's three departures

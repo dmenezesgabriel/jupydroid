@@ -1,9 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P6c-8b, second half: `autosave: false` is still seeded, so the only writer that can put
-# `close_flushed` on disk is `FileEditorViewModel.onCleared`'s dirty flush - the debounce is
-# gated and the interval poll never arms before the close. Type, then take the document's own
-# dismiss ("Close" two-pane, "Back to files" one-pane), and the driver cats the file after.
+# P6c-8b, second half, as P6c-8c left it: `autosave: false` is still seeded, and the document's
+# own dismiss now meets the `saveBeforeClose` ask rather than leaving directly. The only writer
+# that can put `close_flushed` on disk is the dialog's Save - `saveNow`'s flush before the close -
+# which is the same owed-write-on-close contract, now answered instead of silent. Type, dismiss,
+# answer Save ("Close" two-pane, "Back to files" one-pane), and the driver cats the file after.
 #
 # Self-contained on purpose: `maestro test`'s `launchApp` force-stops the process, so state never
 # survives between flows - the gate half is its own flow (`p6c-8-autosave-gate.yaml`) and this one
@@ -28,8 +29,13 @@ appId: com.jupydroid.app
 - inputText: ")"
 - assertVisible: "(?s).*close_flushed.*"
 - takeScreenshot: 03-typed-before-close
-# The dismiss is the composable's own affordance - `DocumentDismissAction`, either arm.
+# The dismiss is the composable's own affordance - `DocumentDismissAction`, either arm - and a
+# dirty document is asked first, so the owed write goes through the dialog's Save.
 - tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- tapOn: "Save"
 - extendedWaitUntil:
     visible: "Files"
     timeout: 5000

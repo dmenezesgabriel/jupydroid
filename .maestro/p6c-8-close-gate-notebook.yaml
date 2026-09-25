@@ -1,0 +1,43 @@
+appId: com.jupydroid.app
+---
+# P6c-8c, the notebook arm: the same `saveBeforeClose` gate, reached by system Back while a cell
+# holds the caret - which is also the live proof of the gate's stand-down order: the first Back is
+# the IME's, the next leaves edit mode (`Escape`'s analogue), and only the one after that reaches
+# the ask. `p6c-8-back.yaml` retries under `notVisible` so the number of presses is the device's
+# to decide, not the flow's.
+#
+# `autosaveEnabled: false` is seeded by the driver, so the edit stays dirty until the answer.
+# The Save arm is the one taken, because it is the one with something to prove on disk: after it
+# the ipynb must carry `answer = 420` - the edit - which no other writer could have put there.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+- tapOn: "Close Gate.ipynb"
+- assertVisible: "Back to notebooks|Close"
+- extendedWaitUntil:
+    visible: "answer = 42"
+    timeout: 30000
+- takeScreenshot: 01-notebook-clean
+- tapOn: "answer = 42"
+- inputText: "0"
+- assertVisible: ".*answer = 420.*"
+- takeScreenshot: 02-cell-edited-and-dirty
+# IME's press, edit-mode's press, gate's press - the order is fixed, the count is not.
+- back
+- runFlow:
+    when:
+      notVisible: "Save your work"
+    file: p6c-8-back.yaml
+- runFlow:
+    when:
+      notVisible: "Save your work"
+    file: p6c-8-back.yaml
+- assertVisible: "Save your work"
+- assertVisible: 'Save changes in "Close Gate.ipynb" before closing?'
+- takeScreenshot: 03-system-back-asks-over-the-notebook
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 5000
+- takeScreenshot: 04-saved-then-closed
