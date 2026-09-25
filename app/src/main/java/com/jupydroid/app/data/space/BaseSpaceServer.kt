@@ -1,6 +1,6 @@
 package com.jupydroid.app.data.space
 
-import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
 import kotlinx.coroutines.sync.Mutex
@@ -74,9 +74,4 @@ class BaseSpaceServer(
     log.reached("starting jupyter_server")
     launcher.start(BASE_SPACE).also { log.reached("jupyter_server listening on ${it.baseUrl}") }
   }.onFailure { log.failed("base Space failed to come up", it) }.getOrThrow()
-
-  private companion object {
-    /** P3 introduces real Spaces; until then there is exactly one and it is this. */
-    val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
-  }
 }

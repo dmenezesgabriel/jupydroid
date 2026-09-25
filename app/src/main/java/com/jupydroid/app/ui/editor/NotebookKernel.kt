@@ -1,8 +1,8 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
-import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.SteppingCommand
@@ -247,10 +247,5 @@ class NotebookKernel(
       // branch is one call either way.
       if (shutdownOnClose()) kernelGateway.shutdown(open) else kernelGateway.disconnect(open)
     }
-  }
-
-  private companion object {
-    /** Step 17 introduces real Spaces; until then every notebook runs in the base one. */
-    val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
   }
 }

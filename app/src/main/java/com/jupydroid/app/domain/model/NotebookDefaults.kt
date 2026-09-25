@@ -32,3 +32,14 @@ const val DEFAULT_KERNEL_DISPLAY_NAME = "Python 3"
  * pass this and let the repository - like the server - do the incrementing.
  */
 const val UNTITLED_NOTEBOOK = "Untitled"
+
+/**
+ * [UNTITLED_NOTEBOOK] under a browsed directory - an empty directory is the workspace root, so it
+ * joins nothing. The explorer's New menu and the launcher card must name the same file.
+ *
+ * ```
+ * untitledNotebookIn("") == "Untitled"; untitledNotebookIn("reports") == "reports/Untitled"
+ * ```
+ */
+fun untitledNotebookIn(directory: String): String =
+  if (directory.isEmpty()) UNTITLED_NOTEBOOK else "$directory/$UNTITLED_NOTEBOOK"

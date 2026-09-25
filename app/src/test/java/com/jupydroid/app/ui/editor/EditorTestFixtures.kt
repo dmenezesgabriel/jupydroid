@@ -65,8 +65,12 @@ internal class RecordingKernelGateway(
   var connectCount = 0
     private set
 
+  /** The document paths each connect was asked for, in order - the cwd a kernel was born in. */
+  val connectedPaths = mutableListOf<String>()
+
   override suspend fun connect(space: Space, documentPath: String): KernelSession {
     connectCount++
+    connectedPaths += documentPath
     return delegate.connect(space, documentPath)
   }
 

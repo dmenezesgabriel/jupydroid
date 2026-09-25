@@ -3,9 +3,9 @@ package com.jupydroid.app.ui.explorer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
-import com.jupydroid.app.domain.model.UNTITLED_NOTEBOOK
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.domain.model.untitledNotebookIn
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -139,7 +139,7 @@ class ExplorerViewModel(
       NewItem.PYTHON_FILE -> workspaceRepository.createFile(directory, "py")
       NewItem.FOLDER -> workspaceRepository.createFolder(directory)
       NewItem.NOTEBOOK -> notebookRepository.createNotebook(
-        if (directory.isEmpty()) UNTITLED_NOTEBOOK else "$directory/$UNTITLED_NOTEBOOK",
+        untitledNotebookIn(directory),
         DEFAULT_KERNEL_ID,
       ).id
     }

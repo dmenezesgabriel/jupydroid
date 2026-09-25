@@ -10,3 +10,11 @@ data class KernelSpec(val id: String, val displayName: String)
  * The base Space is bundled with the app; user-created Spaces arrive in Step 17.
  */
 data class Space(val id: String, val name: String, val kernels: List<KernelSpec>)
+
+/**
+ * The one bundled Space - `files/spaces/base` - that every document runs against until P3
+ * introduces user-created ones. It used to be declared twice, as a private companion in both
+ * `NotebookKernel` and `BaseSpaceServer`; the launcher's standalone console (P6d) is the third
+ * answerer of "which Space", which is where one home stops being a preference.
+ */
+val BASE_SPACE = Space(id = "base", name = "Base", kernels = emptyList())
