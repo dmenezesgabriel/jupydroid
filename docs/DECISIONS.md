@@ -4484,6 +4484,53 @@ it is no longer read only from XML. The `colors.xml` duplication is unchanged an
 **This forbids** exempting a palette field from the gate because its consumer is awkward to see.
 The gate is the thing that has to be able to see it.
 
+### The Launcher is a document-area destination, reached like a panel and replacing like a tab (P6d)
+
+JupyterLab's Launcher is a `MainAreaWidget` added to `'main'` - the document area, not the side
+area (`packages/launcher-extension/src/index.ts:118`) - and `maybeCreate()` adds one whenever that
+area is empty and visible. This app has no tab strip, so the launcher is a `NavKey` in the detail
+pane: `Launcher` joins `isDocument()` so any document a surface opens sweeps it - the reference's
+`add(item, 'main', {ref: id})`/`launcher.dispose()` replacement - while `openLauncher()` itself
+stacks the way `openSettings` does, since *reaching* the launcher must not dispose the document
+beneath it. The `remove(Launcher); add(Launcher)` dedupe inside `openLauncher` is P6b-0's own
+invariant: a `data object` key shares `contentKey` across equal entries, and two `Launcher`
+entries would collide on one `ViewModelStore`.
+
+**Where `maybeCreate` does and does not fire** is the mobile half of the adaptation, decided with
+the user rather than guessed: at two panes the launcher fills an empty detail area every time (the
+reference's rule verbatim - a dead half-window is what it exists to prevent); at one pane it is
+pushed only on first run - the onboarding half of P6d's name - and thereafter is a bottom-bar
+destination, because the panel *is* the window at that width and Files is the phone's home.
+Persisted as `launcherSeen` on a `LauncherSettingsRepository` chain shaped like
+`ExplorerSettingsRepository`'s, because nothing lighter persists a value across process death.
+`reset_notebooks` seeds `{"launcherSeen":true}` so the flow suite stays returning-users; only the
+onboarding flow clears it.
+
+**The bars gain action items, not panels.** `SidePanelBar` reaches four items - Files, Search,
+Launcher, Terminal - the recorded fix for the below-floor two-destination bar (`docs/PLAN.md`'s
+own note that P6d's Launcher is the third destination), and the Terminal item is where the FilesBar
+"New terminal" icon's provisional reach moves (user's call: the launcher card alone would cost a
+tap on phones). These items *launch* - they push `Launcher`/`Terminal` keys - rather than
+switching `SidePanel`, and they are never `selected`, because the bar is only composed while
+`Explorer` is the top entry. The rail's launcher item is bottom-anchored, VS Code's activity-bar
+convention for affordances that are not view containers. `launcherIcon` maps to
+`Icons.AutoMirrored.Filled.OpenInNew` - the reference's SVG is literally that glyph.
+
+**One standalone console at a time.** The reference's `console:create` mints a session against a
+synthetic `console-<n>-<uuid>` path; ours does the same through `NotebookKernelSession` +
+`kernelGateway.connect`, but `MainNavigation`'s `consoleSession` holder has one slot, so a second
+open console would render under the first's session. `openStandaloneConsole` therefore sweeps
+existing `Console` entries before pushing - recorded as the phone-scope adaptation, not a defect.
+
+**Lone-launcher is non-closable**: `closable = widgets('main').length > 1` becomes "a dismiss
+affordance iff another document sits beneath it in the stack", and system Back is swallowed while
+a lone `Launcher` holds a two-pane detail area - otherwise `PopLatest` + the auto-push effect
+would pay a dispose/recreate on every press.
+
+**This forbids** adding the Launcher to `SidePanel`, auto-showing it on every one-pane cold start,
+keeping a second launcher-card-free reach point for terminals on the FilesBar, and letting two
+`Console` entries coexist in the stack.
+
 ## Harness
 
 ### History was rewritten once, before the first push, to take the device out of it
