@@ -75,15 +75,17 @@ fun Modifier.lineNumbers(
   style: TextStyle,
   width: Dp,
   breakpoints: List<Breakpoint> = emptyList(),
+  diagnostics: List<CellDiagnostic> = emptyList(),
   onGutterTap: (line: Int) -> Unit = {},
   onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
 ): Modifier {
   if (width <= 0.dp) return this
-  val metrics = rememberGutterMetrics(text, style, width, breakpoints)
+  val metrics = rememberGutterMetrics(text, style, width, breakpoints, diagnostics)
   return this
     .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress)
     .gutterDrawing(metrics, layout, stoppedLine)
+    .diagnosticSemantics(diagnostics)
     .padding(start = width)
 }
 
@@ -97,6 +99,8 @@ internal class GutterMetrics(
   val widthPx: Float,
   val armed: Map<Int, Breakpoint>,
   val currentArmed: State<Map<Int, Breakpoint>>,
+  /** Each line's worst diagnostic severity, the smallest LSP number on it, for the mark. */
+  val severity: Map<Int, Int>,
   val palette: EditorPalette,
 )
 
@@ -106,6 +110,7 @@ internal fun rememberGutterMetrics(
   style: TextStyle,
   width: Dp,
   breakpoints: List<Breakpoint>,
+  diagnostics: List<CellDiagnostic> = emptyList(),
 ): GutterMetrics {
   val starts = logicalLineStarts(text)
   val measurer = rememberTextMeasurer()
@@ -123,6 +128,10 @@ internal fun rememberGutterMetrics(
   val digitsPx = with(LocalDensity.current) { (width - NUMBER_GAP).roundToPx() }
   val widthPx = with(LocalDensity.current) { width.toPx() }
   val armed = remember(breakpoints) { breakpoints.associateBy { it.line } }
+  // The lowest severity number wins the mark: an error line also carrying warnings is an error.
+  val severity = remember(diagnostics) {
+    diagnostics.groupingBy { it.line }.fold(Int.MAX_VALUE) { worst, d -> minOf(worst, d.severity) }
+  }
   // Read inside the gesture through this rather than closing over `armed` directly, and kept out
   // of the `pointerInput` key below on purpose: `onTap` toggles the very breakpoint a long-press
   // is asking about, and keying on `armed` restarted this coroutine the instant that toggle's own
@@ -131,7 +140,8 @@ internal fun rememberGutterMetrics(
   // press and the condition dialog never opened, for every hold, long or short.
   val currentArmed = rememberUpdatedState(armed)
   return GutterMetrics(
-    starts, numbers, badge, breakpointColumnPx, digitsPx, widthPx, armed, currentArmed, editorPalette,
+    starts, numbers, badge, breakpointColumnPx, digitsPx, widthPx, armed, currentArmed, severity,
+    editorPalette,
   )
 }
 
@@ -165,16 +175,8 @@ internal fun Modifier.gutterDrawing(metrics: GutterMetrics, layout: TextLayoutRe
       // than with the code - always drawn now, whether or not the line carries a breakpoint.
       val x = (metrics.digitsPx - number.size.width).toFloat()
       drawText(number, topLeft = Offset(x, top))
-      metrics.armed[index + 1]?.let { breakpoint ->
-        drawBreakpointMark(
-          breakpoint,
-          metrics.badge,
-          metrics.palette,
-          metrics.breakpointColumnPx,
-          top,
-          number.size.height.toFloat(),
-        )
-      }
+      metrics.severity[index + 1]?.let { drawDiagnosticMark(it, metrics, top, number.size.height.toFloat()) }
+      metrics.armed[index + 1]?.let { drawBreakpointMark(it, metrics, top, number.size.height.toFloat()) }
     }
   }
 
@@ -204,21 +206,15 @@ private fun DrawScope.drawStoppedLineBackground(
  * IntelliJ's own `withQuestionBadgeIfNeeded` badges the base icon rather than swapping it for a
  * different one, so a conditional breakpoint still reads as a breakpoint first.
  */
-private fun DrawScope.drawBreakpointMark(
-  breakpoint: Breakpoint,
-  badge: TextLayoutResult,
-  palette: EditorPalette,
-  columnWidthPx: Int,
-  top: Float,
-  rowHeight: Float,
-) {
+private fun DrawScope.drawBreakpointMark(breakpoint: Breakpoint, metrics: GutterMetrics, top: Float, rowHeight: Float) {
+  val palette = metrics.palette
   val color = if (breakpoint.verified) palette.breakpointVerified else palette.breakpointUnverified
-  val radius = minOf(columnWidthPx.toFloat(), rowHeight) / DOT_SHRINK
-  drawCircle(color = color, radius = radius, center = Offset(columnWidthPx / 2f, top + rowHeight / 2f))
+  val radius = minOf(metrics.breakpointColumnPx.toFloat(), rowHeight) / DOT_SHRINK
+  drawCircle(color = color, radius = radius, center = Offset(metrics.breakpointColumnPx / 2f, top + rowHeight / 2f))
   if (breakpoint.condition != null) {
-    val x = (columnWidthPx - badge.size.width).toFloat().coerceAtLeast(0f)
-    val y = (top + rowHeight - badge.size.height).coerceAtLeast(top)
-    drawText(badge, topLeft = Offset(x, y))
+    val x = (metrics.breakpointColumnPx - metrics.badge.size.width).toFloat().coerceAtLeast(0f)
+    val y = (top + rowHeight - metrics.badge.size.height).coerceAtLeast(top)
+    drawText(metrics.badge, topLeft = Offset(x, y))
   }
 }
 

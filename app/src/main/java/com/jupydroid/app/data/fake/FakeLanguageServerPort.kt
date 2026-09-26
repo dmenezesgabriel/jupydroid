@@ -8,6 +8,7 @@ import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.PublishDiagnostics
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Stub [LanguageServerPort] - `AppContainer`'s default, so a device with no runnable Space
@@ -33,6 +34,12 @@ class FakeLanguageServerPort : LanguageServerPort {
 
   private val pushed = MutableSharedFlow<PublishDiagnostics>(extraBufferCapacity = 64)
   override val diagnostics: SharedFlow<PublishDiagnostics> = pushed
+
+  /**
+   * How many collectors are listening - the stream drops an emission nobody heard, so a test
+   * driving [emitDiagnostics] waits for this rather than racing the subscribe.
+   */
+  val diagnosticSubscriberCount: StateFlow<Int> = pushed.subscriptionCount
 
   /** What a server's `publishDiagnostics` would push - emits onto [diagnostics] for tests. */
   suspend fun emitDiagnostics(publishDiagnostics: PublishDiagnostics) {

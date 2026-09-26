@@ -28,8 +28,11 @@ class NotebookCompletion(
   private val session: NotebookKernelSession,
   private val kernelGateway: KernelGateway,
   private val languageServer: LanguageServerPort,
-  /** The notebook's workspace name - what the language server's one document is keyed on. */
-  private val notebookId: () -> String,
+  /**
+   * The notebook's one document under the language server, shared with the diagnostics watch -
+   * P5d-2b - so a `publishDiagnostics` range always maps against what the last sync sent.
+   */
+  private val document: NotebookLanguageDocument,
 ) {
   /**
    * What is offered for [code] with the caret at [cursorOffset] in the cell [cellId] names.
@@ -64,13 +67,12 @@ class NotebookCompletion(
     code: String,
     cursorOffset: Int,
   ): CompletionResult? = try {
-    val document = NotebookVirtualDocument(notebookId(), cells.withLiveSource(cellId, code))
-    val position = document.positionOf(cellId, cursorOffset) ?: return null
-    languageServer.changeDocument(BASE_SPACE, document.uri, document.text)
+    val synced = document.sync(cells.withLiveSource(cellId, code))
+    val position = synced.positionOf(cellId, cursorOffset) ?: return null
     toCompletionResult(
-      document,
+      synced,
       cellId,
-      languageServer.completion(BASE_SPACE, document.uri, position),
+      languageServer.completion(BASE_SPACE, synced.uri, position),
       code,
       cursorOffset,
     )

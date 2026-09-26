@@ -74,6 +74,8 @@ fun CodeCellField(
   completionEnabled: Boolean = true,
   /** Breakpoints set on this cell, by line - see [NotebookDebugger]. Code cells only. */
   breakpoints: List<Breakpoint> = emptyList(),
+  /** The language server's diagnostics on this cell, by line - see [NotebookDiagnostics]. */
+  diagnostics: List<CellDiagnostic> = emptyList(),
   /** A tap in the gutter, reporting the one-based line it hit - see [Modifier.lineNumbers]. */
   onGutterTap: (line: Int) -> Unit = {},
   /** A long-press on an armed line's gutter (P6a-16) - see [Modifier.lineNumbers]. */
@@ -126,6 +128,7 @@ fun CodeCellField(
           numberStyle,
           gutter,
           breakpoints,
+          diagnostics,
           onGutterTap,
           onGutterLongPress,
           stoppedLine,
@@ -151,6 +154,7 @@ fun CodeCellField(
         style = numberStyle,
         width = gutter,
         breakpoints = breakpoints,
+        diagnostics = diagnostics,
         onGutterTap = onGutterTap,
         onGutterLongPress = onGutterLongPress,
         stoppedLine = stoppedLine,

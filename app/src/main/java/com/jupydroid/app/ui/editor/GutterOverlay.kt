@@ -39,13 +39,14 @@ fun GutterOverlay(
   style: TextStyle,
   width: Dp,
   breakpoints: List<Breakpoint> = emptyList(),
+  diagnostics: List<CellDiagnostic> = emptyList(),
   onGutterTap: (line: Int) -> Unit = {},
   onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
   modifier: Modifier = Modifier,
 ) {
   if (width <= 0.dp) return
-  val metrics = rememberGutterMetrics(text, style, width, breakpoints)
+  val metrics = rememberGutterMetrics(text, style, width, breakpoints, diagnostics)
   val heightDp = with(LocalDensity.current) { (layout?.size?.height ?: 0).toDp() }
   Box(
     modifier
@@ -53,6 +54,7 @@ fun GutterOverlay(
       .height(heightDp)
       .background(editorPalette.cellBackground)
       .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress)
-      .gutterDrawing(metrics, layout, stoppedLine),
+      .gutterDrawing(metrics, layout, stoppedLine)
+      .diagnosticSemantics(diagnostics),
   )
 }

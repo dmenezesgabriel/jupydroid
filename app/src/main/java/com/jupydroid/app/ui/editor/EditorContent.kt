@@ -129,6 +129,8 @@ internal fun EditorContent(
               wrapEnabled = wrapEnabled,
               completionEnabled = completionEnabled,
               breakpoints = state.breakpointsByCellId[cell.id].orEmpty(),
+              // The language server's own marks - see [EditorUiState.diagnosticsByCellId].
+              diagnostics = state.diagnosticsByCellId[cell.id].orEmpty(),
               onGutterTap = { line -> onToggleBreakpoint(cell.id, line) },
               onGutterLongPress = { line -> conditionPrompt = cell.id to line },
               stoppedLine = state.stoppedLineOf(cell.id),

@@ -119,6 +119,22 @@ data class EditorPalette(
    * [searchMatch]'s own doc carries.
    */
   val debugStoppedLine: Color,
+  /**
+   * A diagnostic at severity **error** - `editorError.foreground`
+   * (`platform/theme/common/colors/editorColors.ts:70`), the squiggle foreground; the gutter
+   * mark this port draws where CodeMirror's lint gutter would put its icon. The 2026 themes
+   * leave it at the registered default.
+   */
+  val diagnosticError: Color,
+  /** A diagnostic at severity **warning** - `editorWarning.foreground` (`editorColors.ts:83`). */
+  val diagnosticWarning: Color,
+  /** A diagnostic at severity **information** - `editorInfo.foreground` (`editorColors.ts:96`). */
+  val diagnosticInformation: Color,
+  /**
+   * A diagnostic at severity **hint** - `editorHint.foreground` (`editorColors.ts:105`). Dark is
+   * registered translucent (0.7 alpha); the value here carries that alpha.
+   */
+  val diagnosticHint: Color,
   /** The "ran in 1.2 s" label. `JUPYTER.EXECUTION_TIME_COLOR`. */
   val executionTime: Color,
   /** Behind the bracket pair the caret is touching. `MATCHED_BRACE_ATTRIBUTES` background. */

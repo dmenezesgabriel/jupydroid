@@ -95,8 +95,18 @@ class NotebookKernel(
    * The language-server-first ask [completionsAt] delegates to - see [NotebookCompletion] for
    * the ordering and why it lives beside this class rather than in it.
    */
-  private val completion =
-    NotebookCompletion(session, kernelGateway, languageServer) { uiState.value.notebookId }
+  /**
+   * The notebook's one document under the language server (P5d-2b): completion syncs through
+   * it on every ask, and the diagnostics watch both keeps it synced with the cells and maps
+   * `publishDiagnostics` ranges back through its mirror - one truth for both feeds.
+   */
+  private val languageDocument = NotebookLanguageDocument(languageServer) { uiState.value.notebookId }
+
+  private val completion = NotebookCompletion(session, kernelGateway, languageServer, languageDocument)
+
+  /** `publishDiagnostics` as per-cell marks in state - see [NotebookDiagnostics]. */
+  private val diagnostics =
+    NotebookDiagnostics(uiState, languageServer, languageDocument, scope).also { it.start() }
 
   /**
    * A Console's own session, pre-attached to whatever kernel this notebook already has - P6b-9.

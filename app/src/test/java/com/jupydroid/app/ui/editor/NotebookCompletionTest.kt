@@ -42,7 +42,7 @@ class NotebookCompletionTest {
     gateway = RecordingCompletionGateway()
     server = RecordingLanguageServer()
     session = NotebookKernelSession(gateway, space) { "Analysis.ipynb" }
-    completion = NotebookCompletion(session, gateway, server) { "Analysis.ipynb" }
+    completion = NotebookCompletion(session, gateway, server, NotebookLanguageDocument(server) { "Analysis.ipynb" })
   }
 
   @Test

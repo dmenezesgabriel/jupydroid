@@ -62,6 +62,8 @@ internal fun EditorCell(
   completionEnabled: Boolean,
   /** Breakpoints set on this cell, by line - code cells only. See [NotebookDebugger]. */
   breakpoints: List<Breakpoint>,
+  /** The language server's diagnostics on this cell, by line - code cells only. See [NotebookDiagnostics]. */
+  diagnostics: List<CellDiagnostic>,
   /** A tap in this cell's gutter, reporting the one-based line it hit. */
   onGutterTap: (line: Int) -> Unit,
   /** A long-press on an armed line's gutter (P6a-16), reporting the one-based line it hit. */
@@ -158,6 +160,7 @@ internal fun EditorCell(
             wrapEnabled = wrapEnabled,
             completionEnabled = completionEnabled,
             breakpoints = breakpoints,
+            diagnostics = diagnostics,
             onGutterTap = onGutterTap,
             onGutterLongPress = onGutterLongPress,
             stoppedLine = stoppedLine,

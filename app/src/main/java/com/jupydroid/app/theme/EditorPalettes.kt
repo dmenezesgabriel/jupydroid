@@ -72,6 +72,13 @@ val DarkEditorPalette: EditorPalette =
     // `#ffff0033` (`callStackEditorContribution.ts:24`). VS Code's `#RRGGBBAA` becomes Compose's
     // `0xAARRGGBB` - see [LightEditorPalette.cellMultiSelected]'s note for the same swap.
     debugStoppedLine = Color(0x33FFFF00),
+    // `editorError.foreground` / `editorWarning.foreground` / `editorInfo.foreground` /
+    // `editorHint.foreground`, unset in 2026 Dark - the registered defaults apply, the hint's
+    // own 0.7 alpha carried in the value.
+    diagnosticError = Color(0xFFF14C4C),
+    diagnosticWarning = Color(0xFFCCA700),
+    diagnosticInformation = Color(0xFF59A4F9),
+    diagnosticHint = Color(0xB3EEEEEE),
     // `descriptionForeground`. The cell status bar states no colour of its own in the reference
     // (`media/notebook.css` gives `.cell-statusbar-container` no `color` rule), so it inherits the
     // secondary-text role, which is the id `ColorRamp` already calls `onSurfaceVariant`.
@@ -132,6 +139,12 @@ val LightEditorPalette: EditorPalette =
     // `editor.stackFrameHighlightBackground`, unset in 2026 Light too - the registered default
     // `#ffff6673`, transcribed the same way as dark's - see its note.
     debugStoppedLine = Color(0x73FFFF66),
+    // `editorError.foreground` / `editorWarning.foreground` / `editorInfo.foreground` /
+    // `editorHint.foreground`, unset in 2026 Light - the registered defaults apply.
+    diagnosticError = Color(0xFFE51400),
+    diagnosticWarning = Color(0xFFBF8803),
+    diagnosticInformation = Color(0xFF0063D3),
+    diagnosticHint = Color(0xFF6C6C6C),
     // `descriptionForeground` - see the dark palette's note.
     executionTime = Color(0xFF606060),
     // `editorBracketMatch.background`, which light shares with `editor.findMatchBackground`.

@@ -167,6 +167,12 @@ data class EditorUiState(
    */
   val breakpointsByCellId: Map<String, List<Breakpoint>> = emptyMap(),
   /**
+   * The language server's diagnostics per cell - `publishDiagnostics` mapped back through the
+   * notebook's virtual document ([NotebookDiagnostics]), keyed like [breakpointsByCellId]:
+   * cell id to the marks the gutter draws.
+   */
+  val diagnosticsByCellId: Map<String, List<CellDiagnostic>> = emptyMap(),
+  /**
    * Where the kernel is paused under the debugger, or null while nothing is stopped -
    * [NotebookDebugger.watchForStop]'s own state, following a `debug_event` off [KernelDebugger][
    * com.jupydroid.app.domain.port.KernelDebugger]'s `events`.
