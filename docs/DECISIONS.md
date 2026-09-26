@@ -6096,3 +6096,36 @@ calls `'main'`. Same class of fix as the `when:` ordering it sits beside: at two
 branch must be tried *before* a `notVisible` branch on the bar, because opening the terminal is
 what removes the bar - evaluate the wrong one second and a successful open reads as the other
 case.
+
+### The launcher's cards carry their own surface and bounds, and the brand letter bends where WCAG needs it (P6d polish)
+
+A user report - "a loose `/` on the launcher" - opened a contrast pass over the whole screen, and
+the audit found the launcher's card had never gotten the roles the rest of the app already maps.
+Four departures from the reference CSS, each measured rather than argued:
+
+- **`jp-Launcher-cwd` renders `cwd` verbatim, empty at the root.** The loose `/` was our own
+  `ifEmpty` fallback, not parity - the reference's h3 holds the path as-is and draws nothing when
+  it is empty (`launcher/src/widget.tsx`). The heading still earns its keep inside a folder, where
+  the path is where a new file lands; at the root it drew a stray breadcrumb.
+- **The card's edge is `outline`, not the CSS's `border-color2`.** The codebase's own mapping
+  already answers this one: `outline` is the component-bound role WCAG 1.4.11 asks 3:1 of, and
+  `border-color2` is a separator (`panel.border`, ~1.3:1) - `outlineVariant` stays where it
+  belongs, on the section rules. On the card the swap measures 3.5:1 dark / 3.5:1 light, and it
+  is what makes the card legible in dark, where the z2 shadow that does the work in light cannot
+  be seen at all.
+- **The card's fill is `cellBackground`, not `layout-color0`.** The same "content card on the
+  document surface" job a notebook cell already does - one step up from the page in dark, one
+  down in light, which is also why the card reads beside an editor-coloured page it once matched
+  exactly.
+- **The kernel letter is verbatim `#F37626` in dark and `#E2690B` in light.** The brand colour
+  measures 6.2:1 on the dark card but 2.71:1 on the light one - under the 3:1 floor even at the
+  letter's 52sp (large text). The light variant keeps the hue and clears 3.2:1; the console blue
+  `#0288D1` clears 3.7:1 on both and stays verbatim. Which side draws is decided by the card
+  surface's own luminance, not `isSystemInDarkTheme`, because the theme can be overridden.
+
+Two non-colour fixes came with it. The letter is a `Text` sized in **dp**, not sp - it is a
+decoration inside a fixed 68dp strip, and a font-scale setting must grow the label, not blow the
+glyph out of its tile - and it is `clearAndSetSemantics`'d so TalkBack announces the card's label
+rather than "P Python 3". The card itself also carries an explicit `contentDescription`, so the
+announcement does not depend on whether the clickable `Surface` happens to merge descendants in
+the Compose version in use.

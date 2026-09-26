@@ -49,12 +49,14 @@ class LauncherScreenTest {
   }
 
   @Test
-  fun showsTheRootCwdAsASlash() {
+  fun leavesTheRootCwdHeadingEmpty() {
     compose.setContent {
       LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}, onBack = {}, twoPane = false)
     }
 
-    compose.onNodeWithText("/").assertIsDisplayed()
+    // The reference renders the h3 with `cwd` verbatim - empty at the root. A bare "/" was our
+    // own fallback, and it read as a stray breadcrumb.
+    assertEquals(0, compose.onAllNodesWithText("/").fetchSemanticsNodes().size)
   }
 
   @Test
@@ -64,9 +66,10 @@ class LauncherScreenTest {
     }
 
     // Both kernel cards carry the kernelspec's label - "Python 3" twice - so the sections and
-    // their letter tiles are what tell a Notebook card from a Console one.
+    // their letter tiles are what tell a Notebook card from a Console one. The letter itself is
+    // decoration: it must not reach the semantics tree, or TalkBack reads "P Python 3".
     assertEquals(2, compose.onAllNodesWithText("Python 3").fetchSemanticsNodes().size)
-    assertEquals(2, compose.onAllNodesWithText("P").fetchSemanticsNodes().size)
+    assertEquals(0, compose.onAllNodesWithText("P").fetchSemanticsNodes().size)
     compose.onNodeWithText("Terminal").assertIsDisplayed()
     compose.onNodeWithText("Text File").assertIsDisplayed()
     compose.onNodeWithText("Markdown File").assertIsDisplayed()

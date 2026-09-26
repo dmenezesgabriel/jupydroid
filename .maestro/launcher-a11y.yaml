@@ -1,0 +1,122 @@
+appId: com.jupydroid.app
+---
+# Launcher accessibility polish: the root cwd is an empty heading, not a stray "/"; the card's
+# own surface and component-bound border carry the card where a z2 shadow cannot (dark); and the
+# letter tiles stay decorative in the semantics tree. Shot in BOTH themes, because the contrast
+# floors live there - the theme row makes the run's theme the flow's, not the device's, and the
+# flow restores System at the end. Kernel-free; either device can run it.
+#
+# Two orderings are deliberate:
+# - The folder is entered BEFORE the launcher that names it opens. At two panes an open launcher's
+#   cwd heading is the same "reports" string as the folder row, and a tap could land on either.
+# - Leaving the launcher is guarded on "Back to files" alone: at one pane the arrow is always
+#   drawn, while at two panes a *lone* launcher has no close at all (`main.title.closable`
+#   parity) and the Files pane is already beside it - there is nothing to leave.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close"
+    timeout: 5000
+- tapOn: "Dark"
+- tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 5000
+
+# Inside `reports/` the cwd heading earns its keep - the cwd is where a new file lands.
+- tapOn: "reports"
+- assertVisible: "Nested.ipynb"
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible: "Python 3"
+    timeout: 15000
+- assertVisible: "reports"
+- takeScreenshot: 01-launcher-dark-subdir
+- runFlow:
+    when:
+      visible: "Back to files"
+    commands:
+      - tapOn: "Back to files"
+      - extendedWaitUntil:
+          visible: "Nested.ipynb"
+          timeout: 5000
+
+# Back at the root in dark: the heading is empty - nothing drawn, no stray "/".
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 5000
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible: "Python 3"
+    timeout: 15000
+- assertVisible: "Notebook"
+- assertVisible: "Console"
+- assertVisible: "Other"
+- assertVisible: "Terminal"
+- assertNotVisible: "^/$"
+- takeScreenshot: 02-launcher-dark-root
+- runFlow:
+    when:
+      visible: "Back to files"
+    commands:
+      - tapOn: "Back to files"
+      - extendedWaitUntil:
+          visible: "Files"
+          timeout: 5000
+
+# Light side: the notebook letter is the deepened orange there (the verbatim brand measured
+# 2.71:1 on the light card), and the card reads on its own fill + border, not a shadow.
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close"
+    timeout: 5000
+- tapOn: "Light"
+- tapOn: "Back to files|Close"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 5000
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible: "Python 3"
+    timeout: 15000
+- assertNotVisible: "^/$"
+- takeScreenshot: 03-launcher-light-root
+- runFlow:
+    when:
+      visible: "Back to files"
+    commands:
+      - tapOn: "Back to files"
+      - extendedWaitUntil:
+          visible: "Files"
+          timeout: 5000
+
+# The subdir cwd in light - the launcher currently open shows the empty root heading, so the
+# folder row is the only "reports" on screen.
+- tapOn: "reports"
+- assertVisible: "Nested.ipynb"
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible: "Python 3"
+    timeout: 15000
+- assertVisible: "reports"
+- takeScreenshot: 04-launcher-light-subdir
+- runFlow:
+    when:
+      visible: "Back to files"
+    commands:
+      - tapOn: "Back to files"
+      - extendedWaitUntil:
+          visible: "Nested.ipynb"
+          timeout: 5000
+
+# Leave the theme as the device had it - the driver resets the workspace, not the theme.
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close"
+    timeout: 5000
+- tapOn: "System"

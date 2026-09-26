@@ -17,12 +17,12 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Python 3"
     timeout: 15000
-# The sections in category-rank order, and the cwd line - `/` is the workspace root.
+# The sections in category-rank order. The cwd heading is the workspace root here, which the
+# reference draws as an empty h3 - nothing visible to assert.
 - assertVisible: "Notebook"
 - assertVisible: "Console"
 - assertVisible: "Other"
 - assertVisible: "Terminal"
-- assertVisible: "/"
 - takeScreenshot: 01-launcher-cards
 
 # `fileeditor:create-new` end to end: the card creates the file AND opens it - the reference's
