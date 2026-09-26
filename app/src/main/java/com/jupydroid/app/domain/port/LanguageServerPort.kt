@@ -59,7 +59,11 @@ data class LanguageHover(val contents: LanguageMarkup, val range: LanguageRange?
  * [positionEncoding] names the unit [LanguagePosition.character] counts - declared
  * `utf-16`, the protocol default, unless the server negotiated otherwise.
  */
-data class LanguageCapabilities(val completionProvider: Boolean, val positionEncoding: String)
+data class LanguageCapabilities(
+  val completionProvider: Boolean,
+  val positionEncoding: String,
+  val hoverProvider: Boolean = false,
+)
 
 /**
  * One entry a `publishDiagnostics` carries: where, how bad, what it says. [severity] is the

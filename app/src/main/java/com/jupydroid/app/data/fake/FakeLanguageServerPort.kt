@@ -26,7 +26,11 @@ class FakeLanguageServerPort : LanguageServerPort {
   )
 
   /** What the fake's `initialize` reports - one completion provider, utf-16 offsets. */
-  var capabilitiesAnswer = LanguageCapabilities(completionProvider = true, positionEncoding = "utf-16")
+  var capabilitiesAnswer = LanguageCapabilities(
+    completionProvider = true,
+    positionEncoding = "utf-16",
+    hoverProvider = true,
+  )
 
   /** What `hover` answers, replaceable with null for a "nothing here" test. */
   var hoverAnswer: LanguageHover? = LanguageHover(

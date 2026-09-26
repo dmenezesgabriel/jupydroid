@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
@@ -32,6 +33,7 @@ import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.theme.editorPalette
+import kotlinx.coroutines.flow.drop
 
 /**
  * One cell's code editor.
@@ -131,6 +133,13 @@ fun CodeCellField(
 
   LaunchedEffect(symbolAsk) {
     if (symbolAsk > 0) hover = hoverAt(state.text.toString(), state.selection.end)
+  }
+
+  // VS Code's rule - `contentHoverController` cancels the hover on `onDidChangeModelContent`:
+  // text that changed under the answer means the answer no longer describes it. Same
+  // `state.text` watch `reportCellEdits` runs, minus the debounce - a stale card hides at once.
+  LaunchedEffect(state) {
+    snapshotFlow { state.text.toString() }.drop(1).collect { hover = null }
   }
 
   reportCellEdits(state, onSourceEdited)

@@ -61,3 +61,25 @@ appId: com.jupydroid.app
     timeout: 10000
 - assertNotVisible: "Symbol info"
 - takeScreenshot: 03-outside-tap-dismissed
+
+# An ask where nothing is defined answers nothing and draws no card: pylsp's own reply there
+# is `{"contents": ""}` (its hover.py's `if not definition`), which the wire reads as null -
+# the empty gray card it used to pop is the bug this guards (`StdioLanguageServerDeviceTest`'s
+# `nothing == null` asserts the same through the port). The comment keeps jedi honest: a
+# position inside `# nothing` has no symbol to describe.
+- tapOn:
+    point: "46%,41%"
+- eraseText
+- inputText: "# nothing"
+- tapOn:
+    point: "46%,41%"
+- tapOn:
+    text: "Cell actions"
+    index: 1
+- tapOn: "Cell menu Symbol info"
+# Animations settle first so the assert cannot pass on a reply still in flight - a card that
+# would wrongly appear has its full round-trip plus render time to show before the check.
+- waitForAnimationToEnd:
+    timeout: 15000
+- assertNotVisible: "Symbol info"
+- takeScreenshot: 04-off-symbol-no-card

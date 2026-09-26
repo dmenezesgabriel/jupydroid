@@ -36,6 +36,9 @@ internal class ScriptedLanguageServer(
   var completionItems: JsonElement = DEFAULT_COMPLETION_ITEMS,
   /** What `textDocument/hover` replies carry - the whole `result`, so a test can send null. */
   var hoverResult: JsonElement = DEFAULT_HOVER,
+
+  /** The `initialize` reply, replaceable for capability-gate tests (defaults advertise pylsp's). */
+  var initializeResult: JsonElement = INITIALIZE_RESULT,
 ) : Process() {
   /** Every frame the client sent, in arrival order - requests and notifications alike. */
   val received: MutableList<JsonObject> = Collections.synchronizedList(mutableListOf())
@@ -108,7 +111,7 @@ internal class ScriptedLanguageServer(
     when (method) {
       "initialize" -> {
         emitNotification()
-        reply(id, INITIALIZE_RESULT)
+        reply(id, initializeResult)
         serverRequestAfterInitialize?.let { emit(it) }
       }
       "textDocument/completion", "textDocument/hover" -> {
@@ -152,6 +155,7 @@ internal class ScriptedLanguageServer(
     val INITIALIZE_RESULT = buildJsonObject {
       putJsonObject("capabilities") {
         put("completionProvider", true)
+        put("hoverProvider", true)
         putJsonObject("textDocumentSync") {
           put("openClose", true)
           put("change", 2)

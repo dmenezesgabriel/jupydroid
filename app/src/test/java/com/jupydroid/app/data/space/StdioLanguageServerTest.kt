@@ -24,6 +24,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -68,6 +69,9 @@ class StdioLanguageServerTest {
     // `completionItem.documentationFormat` tells the server which markup a resolve may answer
     // in - pylsp picks markdown when we name it, its own docstring renderer's output.
     assertEquals(listOf("markdown", "plaintext"), documentationFormatsDeclaredIn(init))
+    // `hover.contentFormat` is the same declaration on the hover side - pylsp's `pylsp_hover`
+    // reads `textDocument.hover.contentFormat` to pick a markup kind, defaulting to markdown.
+    assertEquals(listOf("markdown", "plaintext"), hoverFormatsDeclaredIn(init))
     val server = servers.single()
     waitUntil { server.sent("initialized").isNotEmpty() }
     assertEquals(1, server.sent("initialized").size)
@@ -110,6 +114,26 @@ class StdioLanguageServerTest {
       listOf("x = 2\n", "x = 3\n"),
       changes.map { it.firstChange["text"]!!.jsonPrimitive.content },
     )
+  }
+
+  /**
+   * The same text twice is no change. Every ask syncs before it asks, and without this gate a
+   * hover makes `pylsp` re-analyze the document it already has - the ~600ms pyflakes round the
+   * P5e-0 probe measured, spent on a no-op. Versions still count only up on real edits, and a
+   * restarted server's fresh map sends the open again, which is why the dedupe lives on
+   * [RunningServer]'s state and not the caller's.
+   */
+  @Test
+  fun changeDocument_theSameText_sendsNothing() = runBlocking {
+    val languageServer = languageServer()
+    languageServer.openDocument(BASE_SPACE, URI, "python", "x = 1\n")
+    languageServer.changeDocument(BASE_SPACE, URI, "x = 1\n")
+    // A request's reply orders the channel: had a didChange gone out, it arrived before this.
+    languageServer.completion(BASE_SPACE, URI, LanguagePosition(0, 0))
+
+    val server = servers.single()
+    waitUntil { server.sent("textDocument/didOpen").isNotEmpty() }
+    assertTrue(server.sent("textDocument/didChange").isEmpty())
   }
 
   @Test
@@ -220,6 +244,45 @@ class StdioLanguageServerTest {
     val languageServer = languageServer { server }
 
     assertEquals(null, languageServer.hover(BASE_SPACE, URI, LanguagePosition(0, 0)))
+  }
+
+  /**
+   * pylsp's off-symbol answer is `{"contents": ""}` (`pylsp/plugins/hover.py`'s own
+   * `if not definition: return {"contents": ""}`), and a blank `{language, value}` MarkedString
+   * is the same nothing. Either shape must answer null - a hover with nothing to say is worth
+   * no popup, which is what the empty gray card it used to draw was not.
+   */
+  @Test
+  fun hover_blankContents_answersNull() = runBlocking {
+    val server = ScriptedLanguageServer().also(servers::add)
+    server.hoverResult = buildJsonObject { put("contents", "") }
+    val languageServer = languageServer { server }
+
+    assertEquals(null, languageServer.hover(BASE_SPACE, URI, LanguagePosition(0, 0)))
+
+    server.hoverResult = buildJsonObject {
+      putJsonObject("contents") {
+        put("language", "python")
+        put("value", "")
+      }
+    }
+    assertEquals(null, languageServer.hover(BASE_SPACE, URI, LanguagePosition(0, 0)))
+  }
+
+  /**
+   * `hoverProvider` absent or false is an ask never sent - LSP's own rule that an undeclared
+   * capability is an unsupported one. The scripted default advertises `true` like pylsp does.
+   */
+  @Test
+  fun hoverProvider_absentOrFalse_sendsNoRequest() = runBlocking {
+    val server = ScriptedLanguageServer().also(servers::add)
+    server.initializeResult = buildJsonObject {
+      putJsonObject("capabilities") { put("hoverProvider", false) }
+    }
+    val languageServer = languageServer { server }
+
+    assertEquals(null, languageServer.hover(BASE_SPACE, URI, LanguagePosition(0, 0)))
+    assertTrue(server.sent("textDocument/hover").isEmpty())
   }
 
   /**
@@ -381,6 +444,14 @@ class StdioLanguageServerTest {
 
   private val JsonObject.firstChange: JsonObject
     get() = getValue("params").jsonObject.getValue("contentChanges").jsonArray.first().jsonObject
+
+  /** The `hover.contentFormat` list an `initialize` frame declared, in order. */
+  private fun hoverFormatsDeclaredIn(init: JsonObject): List<String> =
+    init.getValue("params").jsonObject.getValue("capabilities").jsonObject
+      .getValue("textDocument").jsonObject
+      .getValue("hover").jsonObject
+      .getValue("contentFormat").jsonArray
+      .map { it.jsonPrimitive.content }
 
   /** The `completionItem.documentationFormat` list an `initialize` frame declared, in order. */
   private fun documentationFormatsDeclaredIn(init: JsonObject): List<String> =

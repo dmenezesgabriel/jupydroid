@@ -127,11 +127,10 @@ class StdioLanguageServerDeviceTest {
         hover.contents.value.contains("compute_total"),
       )
 
+      // pylsp's own off-symbol reply is `{"contents": ""}` (its hover.py), which the wire
+      // reads as nothing-to-show rather than an empty card.
       val nothing = languageServer.hover(BASE_SPACE, uri, LanguagePosition(line = 2, character = 0))
-      assertTrue(
-        "an empty line has no symbol to describe - got ${nothing?.contents?.value?.take(80)}",
-        nothing == null || nothing.contents.value.isBlank(),
-      )
+      assertEquals("an empty line has no symbol to describe", null, nothing)
     } finally {
       languageServer.stop(BASE_SPACE)
     }

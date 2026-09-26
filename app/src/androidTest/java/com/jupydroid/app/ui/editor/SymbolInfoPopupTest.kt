@@ -110,6 +110,23 @@ class SymbolInfoPopupTest {
     compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsNotDisplayed()
   }
 
+  /**
+   * VS Code's rule - `contentHoverController` cancels the hover on `onDidChangeModelContent`:
+   * text that changed under the answer means the answer no longer describes it, so the card
+   * leaves rather than keep quoting a symbol the source has since edited.
+   */
+  @Test
+  fun typingAfterwards_clearsTheCard() {
+    val asks = mutableIntStateOf(0)
+    val field = setContent(symbolAsk = asks)
+
+    compose.runOnIdle { asks.intValue = 1 }
+    compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsDisplayed()
+
+    compose.runOnIdle { field.edit { append(' ') } }
+    compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsNotDisplayed()
+  }
+
   private fun setContent(
     symbolAsk: MutableIntState,
     hoverAt: suspend (code: String, cursorOffset: Int) -> LanguageHover? = { _, _ -> HOVER },

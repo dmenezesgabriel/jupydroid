@@ -61,12 +61,15 @@ class StdioLanguageServer(
 
   override val diagnostics: SharedFlow<PublishDiagnostics> = _diagnostics
 
+  /** What one server was last told about a document - the text lets a sync skip a no-change. */
+  private data class SyncedDocument(val version: Int, val text: String)
+
   /** A live server plus the document state only it may see - versions live with the process. */
   private inner class RunningServer(
     val process: Process,
     val channel: JsonRpcChannel,
     val capabilities: LanguageCapabilities,
-    val documents: MutableMap<String, Int>,
+    val documents: MutableMap<String, SyncedDocument>,
   ) {
     /** Serializes didOpen/didChange/didClose so a version never goes out twice. */
     val documentLock = Mutex()
@@ -92,15 +95,19 @@ class StdioLanguageServer(
   override suspend fun changeDocument(space: Space, uri: String, text: String) {
     val server = serverFor(space)
     server.documentLock.withLock {
-      if (uri !in server.documents) {
+      val synced = server.documents[uri]
+      if (synced == null) {
         // `_sendChange`'s rule: a sync can never be the first frame a document hears.
         // pylsp speaks Python only, which is the language id an auto-open carries.
         openOn(server, uri, "python", text)
         return@withLock
       }
+      // Every ask syncs first, so this is the hot path: the text the diagnostics watch already
+      // sent goes out again unchanged, and pylsp re-analyzes the document it already has.
+      if (synced.text == text) return@withLock
       // The whole-text change at a version that only counts up - `sendFullTextChange`'s shape.
-      val version = (server.documents[uri] ?: 0) + 1
-      server.documents[uri] = version
+      val version = synced.version + 1
+      server.documents[uri] = SyncedDocument(version, text)
       server.channel.notify("textDocument/didChange", LspWire.didChangeParams(uri, version, text))
     }
   }
@@ -131,20 +138,29 @@ class StdioLanguageServer(
 
   private inner class PositionRequests {
     suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion> =
-      LspWire.completionItems(request(space, "textDocument/completion", uri, position)["result"])
+      LspWire.completionItems(request(serverFor(space), "textDocument/completion", uri, position)["result"])
 
-    suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover? =
-      LspMarkup.hoverFrom(request(space, "textDocument/hover", uri, position)["result"])
+    /**
+     * A server that never advertised `hoverProvider` is never asked - LSP's rule that an
+     * undeclared capability is an unsupported one. The scripted default's `true` is pylsp's.
+     */
+    suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover? {
+      val server = serverFor(space)
+      if (!server.capabilities.hoverProvider) return null
+      return LspMarkup.hoverFrom(request(server, "textDocument/hover", uri, position)["result"])
+    }
 
     /** One `TextDocumentPositionParams` request - the params every point-in-document method shares. */
-    private suspend fun request(space: Space, method: String, uri: String, position: LanguagePosition): JsonObject =
-      try {
-        serverFor(space)
-          .channel
-          .request(method, LspWire.positionParams(uri, position), requestTimeout)
-      } catch (e: TimeoutCancellationException) {
-        throw IllegalStateException("$method returned no reply within $requestTimeout", e)
-      }
+    private suspend fun request(
+      server: RunningServer,
+      method: String,
+      uri: String,
+      position: LanguagePosition,
+    ): JsonObject = try {
+      server.channel.request(method, LspWire.positionParams(uri, position), requestTimeout)
+    } catch (e: TimeoutCancellationException) {
+      throw IllegalStateException("$method returned no reply within $requestTimeout", e)
+    }
   }
 
   override suspend fun stop(space: Space) {
@@ -214,7 +230,7 @@ class StdioLanguageServer(
 
   private suspend fun openOn(server: RunningServer, uri: String, languageId: String, text: String) {
     if (uri in server.documents) return
-    server.documents[uri] = 0
+    server.documents[uri] = SyncedDocument(version = 0, text = text)
     server.channel.notify("textDocument/didOpen", LspWire.didOpenParams(uri, languageId, text))
   }
 

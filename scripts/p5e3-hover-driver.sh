@@ -57,4 +57,9 @@ grep -Fq 'compute_total\(values' "$OUT/maestro.log" &&
 grep -Fq 'Symbol info" is not visible' "$OUT/maestro.log" &&
   echo "PASS: the outside tap's dismissal was asserted in the flow" ||
   { echo "FAIL: the flow never checked the popup dismissed"; fail=1; }
+# The same `notVisible` assert fires twice: the outside-tap dismissal, then the off-symbol
+# ask (`# nothing` - a comment has no symbol) which must draw no card at all.
+[ "$(grep -Fc 'Symbol info" is not visible' "$OUT/maestro.log")" -ge 2 ] &&
+  echo "PASS: the off-symbol ask drew no card" ||
+  { echo "FAIL: the off-symbol ask was never asserted"; fail=1; }
 exit "$fail"

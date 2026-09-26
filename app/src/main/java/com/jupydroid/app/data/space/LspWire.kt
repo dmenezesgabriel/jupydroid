@@ -12,6 +12,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
@@ -20,6 +21,12 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+
+/** The markup kinds we declare wherever a server may answer markup - hover and resolve share the list. */
+private fun markupFormats(): JsonArray = buildJsonArray {
+  add("markdown")
+  add("plaintext")
+}
 
 /**
  * The JSON shapes LSP methods carry, kept off [StdioLanguageServer] so the adapter holds the
@@ -45,13 +52,12 @@ internal object LspWire {
           // docstring renderer emits markdown when the client names it. `snippetSupport` stays
           // undeclared on purpose: with `include_params` on, declaring it would put literal
           // `${1:}` placeholders into `insertText`, which nothing here tab-stops (P5e-0 probe).
-          putJsonObject("completionItem") {
-            putJsonArray("documentationFormat") {
-              add("markdown")
-              add("plaintext")
-            }
-          }
+          putJsonObject("completionItem") { put("documentationFormat", markupFormats()) }
         }
+        // `hover.contentFormat` is the same declaration on the hover side - pylsp's
+        // `pylsp_hover` reads it to pick a markup kind (defaulting to markdown when absent),
+        // so it's named rather than left to the server's default.
+        putJsonObject("hover") { put("contentFormat", markupFormats()) }
       }
       putJsonObject("general") { putJsonArray("positionEncodings") { add("utf-16") } }
     }
@@ -71,6 +77,9 @@ internal object LspWire {
         (completion as? JsonPrimitive)?.booleanOrNull != false,
       positionEncoding = result?.jsonObject?.get("positionEncoding")
         ?.jsonPrimitive?.contentOrNull ?: "utf-16",
+      // `hoverProvider` is a plain boolean, and LSP's rule that an undeclared capability is an
+      // unsupported one makes `!= true` the gate - pylsp answers `true` explicitly.
+      hoverProvider = (caps["hoverProvider"] as? JsonPrimitive)?.booleanOrNull == true,
     )
   }
 

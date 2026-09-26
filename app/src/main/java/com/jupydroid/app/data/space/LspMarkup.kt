@@ -18,8 +18,9 @@ import kotlinx.serialization.json.jsonPrimitive
  */
 internal object LspMarkup {
   /**
-   * A `textDocument/hover` reply's `result`. Null and an absent `contents` both answer "nothing
-   * here" - pylsp sends `null` off a symbol, and an empty hover is worth no popup.
+   * A `textDocument/hover` reply's `result`. Null, an absent `contents`, and blank contents all
+   * answer "nothing here" - pylsp's off-symbol reply is `{"contents": ""}` (its `hover.py`'s own
+   * `if not definition`), not a JSON `null` - and an empty hover is worth no popup.
    */
   fun hoverFrom(result: JsonElement?): LanguageHover? {
     val reply = result as? JsonObject ?: return null
@@ -45,7 +46,7 @@ internal object LspMarkup {
 
   /** `MarkupContent` (`{kind, value}`) or the `MarkedString` object (`{language, value}`). */
   private fun markupObject(contents: JsonObject): LanguageMarkup? {
-    val value = contents["value"]?.jsonPrimitive?.contentOrNull ?: return null
+    val value = contents["value"]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank) ?: return null
     val kind = contents["kind"]?.jsonPrimitive?.contentOrNull
     return when {
       kind != null -> LanguageMarkup(markupKindOf(kind), value)
@@ -55,8 +56,10 @@ internal object LspMarkup {
 
   /** One `MarkedString` as markdown text - a code span is its fence, a bare one passes through. */
   private fun markedString(item: JsonElement?): String? = when (item) {
-    is JsonObject -> item["value"]?.jsonPrimitive?.contentOrNull?.let { markedCode(item["language"], it) }
-    else -> item?.jsonPrimitive?.contentOrNull
+    is JsonObject -> item["value"]?.jsonPrimitive?.contentOrNull
+      ?.takeIf(String::isNotBlank)
+      ?.let { markedCode(item["language"], it) }
+    else -> item?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank)
   }
 
   private fun markedCode(language: JsonElement?, value: String): String =
