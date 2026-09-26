@@ -82,7 +82,39 @@ class CompletionPopupPositionTest {
     assertEquals(window.width - 280, at.x)
   }
 
-  private fun position(popup: IntSize, keyboard: Int, caret: IntRect = this.caret): IntOffset =
-    CompletionPopupPosition(caret = caret, bottomInset = keyboard)
-      .calculatePosition(anchor, window, LayoutDirection.Ltr, popup)
+  /**
+   * P5e-4: signature help prefers **above** - VS Code's `[ABOVE, BELOW]` preference
+   * (`parameterHintsWidget.ts:177`), which also keeps it clear of the completion list that
+   * takes the space below the caret for itself.
+   */
+  @Test
+  fun preferAbove_sitsAboveTheCaretWhenThereIsRoom() {
+    val at = position(popup = IntSize(280, 120), keyboard = 0, preferAbove = true)
+
+    // Caret top at 300, popup 120 tall: its bottom rests on the caret's top edge.
+    assertEquals(IntOffset(x = 120, y = 180), at)
+  }
+
+  /** No room above flips it below, just as `BELOW` is the second preference. */
+  @Test
+  fun preferAbove_flipsBelowTheCaretWhenTheSpaceAboveIsTaken() {
+    val at = position(
+      popup = IntSize(280, 340),
+      keyboard = 0,
+      preferAbove = true,
+      anchor = IntRect(left = 100, top = 100, right = 900, bottom = 160),
+    )
+
+    // Above the caret top (100) there is only 100px and the popup wants 340 - below it goes.
+    assertEquals(IntOffset(x = 120, y = 140), at)
+  }
+
+  private fun position(
+    popup: IntSize,
+    keyboard: Int,
+    caret: IntRect = this.caret,
+    preferAbove: Boolean = false,
+    anchor: IntRect = this.anchor,
+  ): IntOffset = CompletionPopupPosition(caret = caret, bottomInset = keyboard, preferAbove = preferAbove)
+    .calculatePosition(anchor, window, LayoutDirection.Ltr, popup)
 }

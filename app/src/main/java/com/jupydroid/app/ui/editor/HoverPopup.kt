@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.jupydroid.app.domain.port.LanguageHover
+import com.jupydroid.app.domain.port.LanguageMarkup
 import com.jupydroid.app.domain.port.LanguageMarkupKind
 import com.jupydroid.app.markdown.MarkdownDocument
 import com.jupydroid.app.theme.Spacing
@@ -63,22 +64,26 @@ internal fun HoverPopup(hover: LanguageHover, caret: IntRect, onDismiss: () -> U
           .verticalScroll(rememberScrollState())
           .padding(Spacing.md),
       ) {
-        HoverContent(hover)
+        MarkupBody(hover.contents)
       }
     }
   }
 }
 
-/** The marked-up payload, drawn: markdown through the document pipeline, plaintext verbatim. */
+/**
+ * A `LanguageMarkup` payload, drawn: markdown through the document pipeline, plaintext
+ * verbatim. Internal rather than private because the signature-help card renders the same
+ * `documentation` markup under its signature (`docs/PLAN.md` P5e-4).
+ */
 @Composable
-private fun HoverContent(hover: LanguageHover) {
-  when (hover.contents.kind) {
+internal fun MarkupBody(markup: LanguageMarkup) {
+  when (markup.kind) {
     LanguageMarkupKind.MARKDOWN -> {
-      val blocks = remember(hover.contents.value) { MarkdownDocument.parse(hover.contents.value) }
+      val blocks = remember(markup.value) { MarkdownDocument.parse(markup.value) }
       RichText(blocks)
     }
     LanguageMarkupKind.PLAINTEXT -> Text(
-      text = hover.contents.value,
+      text = markup.value,
       style = MaterialTheme.typography.bodySmall,
       color = MaterialTheme.colorScheme.onSurface,
     )

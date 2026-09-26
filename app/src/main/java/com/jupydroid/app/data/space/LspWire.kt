@@ -1,8 +1,6 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.port.LanguageCapabilities
-import com.jupydroid.app.domain.port.LanguageCompletion
-import com.jupydroid.app.domain.port.LanguageEdit
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageRange
 import kotlinx.serialization.json.JsonArray
@@ -70,11 +68,11 @@ internal object LspWire {
    */
   fun capabilitiesFrom(result: JsonElement?): LanguageCapabilities {
     val caps = result?.jsonObject?.get("capabilities") as? JsonObject ?: JsonObject(emptyMap())
-    val completion = caps["completionProvider"]
     return LanguageCapabilities(
-      completionProvider = completion != null &&
-        completion != JsonNull &&
-        (completion as? JsonPrimitive)?.booleanOrNull != false,
+      completionProvider = offered(caps["completionProvider"]),
+      // `signatureHelpProvider` takes the same boolean-or-options shape - pylsp's reply is
+      // the object form (`triggerCharacters: ["(", ",", "="]`, the P5e-0 probe's capture).
+      signatureHelpProvider = offered(caps["signatureHelpProvider"]),
       positionEncoding = result?.jsonObject?.get("positionEncoding")
         ?.jsonPrimitive?.contentOrNull ?: "utf-16",
       // `hoverProvider` is a plain boolean, and LSP's rule that an undeclared capability is an
@@ -82,6 +80,10 @@ internal object LspWire {
       hoverProvider = (caps["hoverProvider"] as? JsonPrimitive)?.booleanOrNull == true,
     )
   }
+
+  /** `true` or an options object both mean the feature is there - only absent-or-`false` is no. */
+  private fun offered(provider: JsonElement?): Boolean =
+    provider != null && provider != JsonNull && (provider as? JsonPrimitive)?.booleanOrNull != false
 
   /** A `didOpen`'s `textDocument` - uri, language id, initial version, and the whole text. */
   fun didOpenParams(uri: String, languageId: String, text: String): JsonObject = buildJsonObject {
@@ -117,38 +119,6 @@ internal object LspWire {
       put("character", position.character)
     }
   }
-
-  /** `CompletionItem[]` or `{isIncomplete, items}` - LSP allows either; pylsp sends the list. */
-  fun completionItems(result: JsonElement?): List<LanguageCompletion> {
-    val items = when (result) {
-      is JsonArray -> result
-      is JsonObject -> result["items"] as? JsonArray
-      else -> null
-    } ?: return emptyList()
-    return items.mapNotNull { (it as? JsonObject)?.let(::completionItem) }
-  }
-
-  /** `insertText`, else `textEdit.newText`, else `label` - LSP's own insertion precedence. */
-  private fun completionItem(item: JsonObject): LanguageCompletion? {
-    val label = item["label"]?.jsonPrimitive?.contentOrNull ?: return null
-    val edit = (item["textEdit"] as? JsonObject)?.let(::languageEdit)
-    return LanguageCompletion(
-      label = label,
-      insertText = item["insertText"]?.jsonPrimitive?.contentOrNull ?: edit?.newText ?: label,
-      detail = item["detail"]?.jsonPrimitive?.contentOrNull,
-      edit = edit,
-      kind = item["kind"]?.jsonPrimitive?.intOrNull,
-      sortText = item["sortText"]?.jsonPrimitive?.contentOrNull,
-    )
-  }
-
-  /** `textEdit` is a `TextEdit` (`{range, newText}`) or an `InsertReplaceEdit` (`{insert, replace}`). */
-  private fun languageEdit(edit: JsonObject): LanguageEdit? =
-    ((edit["range"] as? JsonObject) ?: (edit["insert"] as? JsonObject))
-      ?.let(::languageRange)
-      ?.let { range ->
-        edit["newText"]?.jsonPrimitive?.contentOrNull?.let { LanguageEdit(range, it) }
-      }
 
   internal fun languageRange(range: JsonObject): LanguageRange? =
     (range["start"] as? JsonObject)?.let(::languagePosition)?.let { start ->

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
+import com.jupydroid.app.domain.port.LanguageSignatureHelp
 
 /**
  * The notebook's own cell list, split out of [EditorScreen] for the same reason
@@ -35,6 +36,8 @@ internal fun EditorContent(
   completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
   /** `(cellId, code, cursorOffset)` - the "Symbol info" ask, P5e-3 - see [EditorCell]. */
   hoverAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageHover?,
+  /** `(cellId, code, cursorOffset)` - the signature-help ask, P5e-4 - see [EditorCell]. */
+  signatureHelpAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageSignatureHelp?,
   onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
   onToggleSelected: (String) -> Unit,
@@ -114,6 +117,7 @@ internal fun EditorContent(
               onSourceEdited = { source -> onEditCell(cell.id, source) },
               completionsAt = completionsAt,
               hoverAt = hoverAt,
+              signatureHelpAt = signatureHelpAt,
               // The ask can only answer while a session stands - `cellActionItems`'s own rule
               // about promising nothing that cannot come back.
               symbolInfoOffered = state.kernelConnected,

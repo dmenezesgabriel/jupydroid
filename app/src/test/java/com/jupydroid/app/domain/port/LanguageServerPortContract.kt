@@ -68,6 +68,22 @@ abstract class LanguageServerPortContract {
     assertTrue(hover!!.contents.value.isNotEmpty())
   }
 
+  /**
+   * `textDocument/signatureHelp` inside a call answers its `LanguageSignatureHelp` - P5e-4.
+   * Every implementation's default answers like the probe's `join`: the scripted server's
+   * canned reply and the fake's configured answer alike.
+   */
+  @Test
+  fun signatureHelp_insideACall_answers() = runBlocking {
+    val languageServer = languageServer()
+    languageServer.openDocument(BASE_SPACE, URI, LANGUAGE_ID, "import os\nos.path.join()\n")
+
+    val help = languageServer.signatureHelp(BASE_SPACE, URI, LanguagePosition(line = 1, character = 12))
+
+    assertTrue("a signature help answer carries the signatures it was asked about", help != null)
+    assertTrue(help!!.signatures.all { it.label.isNotEmpty() })
+  }
+
   /** The document verbs are a lifecycle, not calls that may throw: open, change, close. */
   @Test
   fun documentLifecycle_isAccepted() = runBlocking {

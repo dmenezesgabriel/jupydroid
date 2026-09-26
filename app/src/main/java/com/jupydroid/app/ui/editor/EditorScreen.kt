@@ -396,6 +396,7 @@ fun EditorScreen(
           onSetCondition = viewModel.debugger::setCondition,
           completionsAt = viewModel.kernel.asks::completionsAt,
           hoverAt = viewModel.kernel.asks::hoverAt,
+          signatureHelpAt = viewModel.kernel.asks::signatureHelpAt,
           onCellAction = viewModel.edits::applyTo,
           onCellFocusChanged = viewModel::cellFocusChanged,
           onToggleSelected = viewModel.selection::extendTo,

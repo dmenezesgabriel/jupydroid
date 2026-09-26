@@ -127,6 +127,9 @@ class EditorPaletteTest {
     "symbolIcon.functionForeground" to symbolCallable,
     "symbolIcon.classForeground" to symbolClasslike,
     "symbolIcon.variableForeground" to symbolMember,
+    // `editorHoverWidget.highlightForeground` registers to `list.highlightForeground`
+    // (`parameterHintsWidget.ts:367`), which both 2026 themes state.
+    "editorHoverWidget.highlightForeground" to signatureActiveParam,
   )
 
   private fun EditorPalette.surfaceByColourId(): Map<String, Color> = mapOf(
@@ -415,6 +418,8 @@ class EditorPaletteTest {
       "symbolIcon.functionForeground" to Color(0xFFB180D7),
       "symbolIcon.classForeground" to Color(0xFFEE9D28),
       "symbolIcon.variableForeground" to Color(0xFF75BEFF),
+      // `list.highlightForeground`, which 2026 Dark states - `2026-dark.json:68`.
+      "editorHoverWidget.highlightForeground" to Color(0xFF48A0C7),
     )
 
     /**
@@ -446,6 +451,8 @@ class EditorPaletteTest {
       "symbolIcon.functionForeground" to Color(0xFF652D90),
       "symbolIcon.classForeground" to Color(0xFFD67E00),
       "symbolIcon.variableForeground" to Color(0xFF007ACC),
+      // `list.highlightForeground`, which 2026 Light states - `2026-light.json:77`.
+      "editorHoverWidget.highlightForeground" to Color(0xFF0069CC),
     )
 
     /** `2026-dark.json`, resolved through its four-deep `include` chain. */

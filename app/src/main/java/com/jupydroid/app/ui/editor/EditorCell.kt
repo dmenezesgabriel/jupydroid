@@ -18,6 +18,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
+import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
@@ -52,6 +53,15 @@ internal fun EditorCell(
    * server or definition can respond, which the field then simply does not show.
    */
   hoverAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageHover? = NO_HOVER,
+  /**
+   * `(cellId, code, cursorOffset)` - the signature-help ask, P5e-4. Driven by typing like
+   * [completionsAt]: a `(` or `,` inside a call asks, and the card stays while the call does.
+   */
+  signatureHelpAt: suspend (
+    cellId: String,
+    code: String,
+    cursorOffset: Int,
+  ) -> LanguageSignatureHelp? = NO_SIGNATURE_HELP,
   /**
    * Whether a session can answer [CellAction.SymbolInfo], so the menu's row and this cell's
    * accessibility context menu only promise what can come back - `EditorUiState.kernelConnected`.
@@ -181,6 +191,7 @@ internal fun EditorCell(
             onSourceEdited = onSourceEdited,
             completionsAt = { code, cursorOffset -> completionsAt(cell.id, code, cursorOffset) },
             hoverAt = { code, cursorOffset -> hoverAt(cell.id, code, cursorOffset) },
+            signatureHelpAt = { code, cursorOffset -> signatureHelpAt(cell.id, code, cursorOffset) },
             symbolAsk = symbolAsk,
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
@@ -247,3 +258,6 @@ internal fun EditorCell(
 
 /** A cell whose caller never wired the ask has nothing to show - [NO_COMPLETIONS]'s own rule. */
 private val NO_HOVER: suspend (String, String, Int) -> LanguageHover? = { _, _, _ -> null }
+
+/** The same for signature help - [CodeCellField]'s own `NO_SIGNATURE_HELP` one level up. */
+private val NO_SIGNATURE_HELP: suspend (String, String, Int) -> LanguageSignatureHelp? = { _, _, _ -> null }

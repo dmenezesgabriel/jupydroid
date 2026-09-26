@@ -6,11 +6,13 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import java.io.ByteArrayInputStream
 import java.io.InputStream
@@ -36,6 +38,9 @@ internal class ScriptedLanguageServer(
   var completionItems: JsonElement = DEFAULT_COMPLETION_ITEMS,
   /** What `textDocument/hover` replies carry - the whole `result`, so a test can send null. */
   var hoverResult: JsonElement = DEFAULT_HOVER,
+
+  /** What `textDocument/signatureHelp` replies carry - the whole `result`, null sendable. */
+  var signatureHelpResult: JsonElement = DEFAULT_SIGNATURE_HELP,
 
   /** The `initialize` reply, replaceable for capability-gate tests (defaults advertise pylsp's). */
   var initializeResult: JsonElement = INITIALIZE_RESULT,
@@ -109,19 +114,28 @@ internal class ScriptedLanguageServer(
     val id = msg["id"]
     if (id != null && method in hangsOn) return
     when (method) {
-      "initialize" -> {
-        emitNotification()
-        reply(id, initializeResult)
-        serverRequestAfterInitialize?.let { emit(it) }
-      }
-      "textDocument/completion", "textDocument/hover" -> {
-        emitNotification()
-        reply(id, if (method == "textDocument/hover") hoverResult else completionResult())
-      }
+      "initialize" -> onInitialize(id)
+      "textDocument/completion", "textDocument/hover", "textDocument/signatureHelp" -> onDocumentAsk(method, id)
       "shutdown" -> reply(id, JsonNull)
       "exit" -> destroy()
       else -> if (id != null) reply(id, JsonNull)
     }
+  }
+
+  private fun onInitialize(id: JsonElement?) {
+    emitNotification()
+    reply(id, initializeResult)
+    serverRequestAfterInitialize?.let { emit(it) }
+  }
+
+  private fun onDocumentAsk(method: String, id: JsonElement?) {
+    emitNotification()
+    val result = when (method) {
+      "textDocument/hover" -> hoverResult
+      "textDocument/signatureHelp" -> signatureHelpResult
+      else -> completionResult()
+    }
+    reply(id, result)
   }
 
   /** The `{isIncomplete, items}` CompletionList shape pylsp itself answers with. */
@@ -156,6 +170,14 @@ internal class ScriptedLanguageServer(
       putJsonObject("capabilities") {
         put("completionProvider", true)
         put("hoverProvider", true)
+        // pylsp's real reply: an options object, not a boolean - `["(", ",", "="]` measured.
+        putJsonObject("signatureHelpProvider") {
+          putJsonArray("triggerCharacters") {
+            add("(")
+            add(",")
+            add("=")
+          }
+        }
         putJsonObject("textDocumentSync") {
           put("openClose", true)
           put("change", 2)
@@ -185,6 +207,40 @@ internal val DEFAULT_HOVER: JsonObject = buildJsonObject {
       put("character", 13)
     }
   }
+}
+
+/**
+ * The `textDocument/signatureHelp` payload the P5e-0 probe measured off real `pylsp`
+ * (`evidence/p5e-0-lsp-surface/`): one signature, string param labels, both actives 0.
+ */
+internal val DEFAULT_SIGNATURE_HELP: JsonObject = buildJsonObject {
+  putJsonArray("signatures") {
+    addJsonObject {
+      put("label", "join(path: LiteralString, /, *paths: LiteralString) -> LiteralString")
+      putJsonObject("documentation") {
+        put("kind", "markdown")
+        put("value", "")
+      }
+      putJsonArray("parameters") {
+        addJsonObject {
+          put("label", "path")
+          putJsonObject("documentation") {
+            put("kind", "markdown")
+            put("value", "")
+          }
+        }
+        addJsonObject {
+          put("label", "paths")
+          putJsonObject("documentation") {
+            put("kind", "markdown")
+            put("value", "")
+          }
+        }
+      }
+    }
+  }
+  put("activeSignature", 0)
+  put("activeParameter", 0)
 }
 
 /** A realistic `textDocument/completion` payload: a plain item and one carrying a `textEdit`. */

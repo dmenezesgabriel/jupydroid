@@ -106,8 +106,11 @@ class NotebookKernel(
   /** The "Symbol info" ask - `textDocument/hover` at the caret's virtual position (P5e-3). */
   private val hover = NotebookHover(session, languageServer, languageDocument)
 
-  /** The cell-level asks - completion and hover - [NotebookAsks] owns like [history] owns history. */
-  val asks = NotebookAsks(uiState, completion, hover)
+  /** The signature-help ask - `textDocument/signatureHelp` at the caret's virtual position (P5e-4). */
+  private val signatureHelp = NotebookSignatureHelp(session, languageServer, languageDocument)
+
+  /** The cell-level asks - completion, hover, signature help - [NotebookAsks] owns like [history]. */
+  val asks = NotebookAsks(uiState, completion, hover, signatureHelp)
 
   /** `publishDiagnostics` as per-cell marks in state - see [NotebookDiagnostics]. */
   private val diagnostics =

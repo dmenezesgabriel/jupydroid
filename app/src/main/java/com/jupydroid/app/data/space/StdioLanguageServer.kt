@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.port.LanguageCompletion
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerPort
+import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import com.jupydroid.app.domain.port.PublishDiagnostics
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -127,6 +128,10 @@ class StdioLanguageServer(
   override suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover? =
     positions.hover(space, uri, position)
 
+  /** @see LanguageServerPort.signatureHelp */
+  override suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp? =
+    positions.signatureHelp(space, uri, position)
+
   /**
    * The `TextDocumentPositionParams` asks - completion and hover share one wire shape:
    * params that name a document and a point in it, one request timeout, replies decoded at
@@ -138,7 +143,7 @@ class StdioLanguageServer(
 
   private inner class PositionRequests {
     suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion> =
-      LspWire.completionItems(request(serverFor(space), "textDocument/completion", uri, position)["result"])
+      LspCompletion.completionItems(request(serverFor(space), "textDocument/completion", uri, position)["result"])
 
     /**
      * A server that never advertised `hoverProvider` is never asked - LSP's rule that an
@@ -148,6 +153,16 @@ class StdioLanguageServer(
       val server = serverFor(space)
       if (!server.capabilities.hoverProvider) return null
       return LspMarkup.hoverFrom(request(server, "textDocument/hover", uri, position)["result"])
+    }
+
+    /**
+     * `hover`'s gate one method later: a server that never advertised `signatureHelpProvider`
+     * is never asked. The scripted default advertises the object form pylsp itself replies.
+     */
+    suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp? {
+      val server = serverFor(space)
+      if (!server.capabilities.signatureHelpProvider) return null
+      return LspSignatureHelp.signatureHelpFrom(request(server, "textDocument/signatureHelp", uri, position)["result"])
     }
 
     /** One `TextDocumentPositionParams` request - the params every point-in-document method shares. */
@@ -210,7 +225,7 @@ class StdioLanguageServer(
       val reply = channel.request("initialize", LspWire.initializeParams(), requestTimeout)
       RunningServer(process, channel, LspWire.capabilitiesFrom(reply["result"]), mutableMapOf()).also {
         channel.notify("initialized", buildJsonObject {})
-        drainStderr(process.errorStream)
+        drainStderr(process.errorStream, log)
         servers[space.id] = it
       }
     }.getOrElse {
@@ -218,14 +233,6 @@ class StdioLanguageServer(
       process.destroy()
       throw it
     }
-  }
-
-  /**
-   * stderr drains on its own daemon - a server's log may never occupy the protocol stream,
-   * and an undrained pipe buffer is a deadlock a `window/logMessage` flood could cause.
-   */
-  private fun drainStderr(stderr: InputStream) = thread(isDaemon = true, name = "lsp-stderr") {
-    BufferedReader(stderr.reader()).forEachLine { log.reached("lsp.stderr", mapOf("line" to it)) }
   }
 
   private suspend fun openOn(server: RunningServer, uri: String, languageId: String, text: String) {
@@ -238,4 +245,12 @@ class StdioLanguageServer(
   internal companion object {
     fun pylspIn(baseDir: File): File = File(baseDir, "usr/local/bin/pylsp")
   }
+}
+
+/**
+ * stderr drains on its own daemon - a server's log may never occupy the protocol stream,
+ * and an undrained pipe buffer is a deadlock a `window/logMessage` flood could cause.
+ */
+private fun drainStderr(stderr: InputStream, log: SpaceLifecycleLog) = thread(isDaemon = true, name = "lsp-stderr") {
+  BufferedReader(stderr.reader()).forEachLine { log.reached("lsp.stderr", mapOf("line" to it)) }
 }

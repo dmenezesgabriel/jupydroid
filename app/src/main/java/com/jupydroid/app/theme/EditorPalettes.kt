@@ -94,6 +94,9 @@ val DarkEditorPalette: EditorPalette =
     symbolCallable = Color(0xFFB180D7),
     symbolClasslike = Color(0xFFEE9D28),
     symbolMember = Color(0xFF75BEFF),
+    // `list.highlightForeground`, which 2026 Dark states itself (`2026-dark.json:68`) and
+    // `editorHoverWidget.highlightForeground` inherits.
+    signatureActiveParam = Color(0xFF48A0C7),
     syntax =
     SyntaxPalette(
       plain = Color(0xFFBBBEBF),
@@ -161,6 +164,8 @@ val LightEditorPalette: EditorPalette =
     symbolCallable = Color(0xFF652D90),
     symbolClasslike = Color(0xFFD67E00),
     symbolMember = Color(0xFF007ACC),
+    // `list.highlightForeground` (`2026-light.json:77`) - see the dark palette's note.
+    signatureActiveParam = Color(0xFF0069CC),
     syntax =
     SyntaxPalette(
       plain = Color(0xFF202020),

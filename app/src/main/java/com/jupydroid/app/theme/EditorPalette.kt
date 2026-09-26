@@ -179,6 +179,13 @@ data class EditorPalette(
    * `foreground` - the row's own text colour - so there is no fourth field.
    */
   val symbolMember: Color,
+  /**
+   * The active parameter inside a signature-help card - `editorHoverWidget.highlightForeground`,
+   * which `registerColor` defaults onto `list.highlightForeground`
+   * (`parameterHintsWidget.ts:367`). `.parameter.active` draws it bold in this colour
+   * (`parameterHints.css`), and both 2026 themes state the list value it resolves to.
+   */
+  val signatureActiveParam: Color,
   val syntax: SyntaxPalette,
 )
 

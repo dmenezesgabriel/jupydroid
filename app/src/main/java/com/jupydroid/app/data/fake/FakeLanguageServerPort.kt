@@ -6,8 +6,11 @@ import com.jupydroid.app.domain.port.LanguageCompletion
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageMarkup
 import com.jupydroid.app.domain.port.LanguageMarkupKind
+import com.jupydroid.app.domain.port.LanguageParameter
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerPort
+import com.jupydroid.app.domain.port.LanguageSignature
+import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import com.jupydroid.app.domain.port.PublishDiagnostics
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -35,6 +38,16 @@ class FakeLanguageServerPort : LanguageServerPort {
   /** What `hover` answers, replaceable with null for a "nothing here" test. */
   var hoverAnswer: LanguageHover? = LanguageHover(
     LanguageMarkup(LanguageMarkupKind.MARKDOWN, "```python\nprint(value, ...)\n```\n\nWrite to a stream."),
+  )
+
+  /** What `signatureHelp` answers - the probe-measured `join` reply by default. */
+  var signatureHelpAnswer: LanguageSignatureHelp? = LanguageSignatureHelp(
+    signatures = listOf(
+      LanguageSignature(
+        label = "join(path: LiteralString, /, *paths: LiteralString) -> LiteralString",
+        parameters = listOf(LanguageParameter("path"), LanguageParameter("paths")),
+      ),
+    ),
   )
 
   /** `didOpen`/`didChange` in arrival order, so a test sees the sync the server would have. */
@@ -76,6 +89,9 @@ class FakeLanguageServerPort : LanguageServerPort {
     completions
 
   override suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover? = hoverAnswer
+
+  override suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp? =
+    signatureHelpAnswer
 
   override suspend fun stop(space: Space) {
     stops++

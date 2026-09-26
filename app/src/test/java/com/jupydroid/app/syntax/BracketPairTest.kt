@@ -1,7 +1,9 @@
 package com.jupydroid.app.syntax
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** `|` marks the cursor; the expected offsets are into the source with that marker removed. */
@@ -70,10 +72,67 @@ class BracketPairTest {
     assertNull(matchIn("x = a)|"))
   }
 
+  /**
+   * P5e-4: the caret inside a call no `)` has closed yet is where signature help is worth
+   * asking - VS Code's `parameterHintsModel` asks at the caret inside the call's parens.
+   */
+  @Test
+  fun aCallStillOpen_isInside() {
+    assertTrue(insideIn("os.path.join(|"))
+    assertTrue(insideIn("join(path, sep='/', |"))
+    assertTrue(insideIn("join(path, |"))
+    assertTrue(insideIn("f(g(|)"))
+  }
+
+  /** A `)` behind the caret closed the call - nothing to hint. */
+  @Test
+  fun aCallAlreadyClosed_isNotInside() {
+    assertFalse(insideIn("join(path)|"))
+    assertFalse(insideIn("join()|"))
+    assertFalse(insideIn("answer = 42|"))
+    assertFalse(insideIn("|"))
+  }
+
+  /**
+   * `f(")", arg|` is the case the literal mask exists for: without it the string's `)` would
+   * eat the call's `(` and read the caret as outside a call it is plainly inside.
+   */
+  @Test
+  fun aCloserInsideAString_closesNoRealParen() {
+    assertTrue(insideIn("f(\")\", arg|"))
+    assertTrue(insideIn("f(')', arg|"))
+  }
+
+  /** Parens inside literals are punctuation, so they open no call either. */
+  @Test
+  fun parensInsideLiterals_openNoCall() {
+    assertFalse(insideIn("x = '(|'"))
+    assertFalse(insideIn("f(x)  # (|"))
+  }
+
+  /** A multi-line call is still one call - `join(path,\n  |` hints the same signature. */
+  @Test
+  fun aCallAcrossLines_isInside() {
+    assertTrue(insideIn("join(path,\n     |"))
+  }
+
+  /** A grouping paren is inside-unclosed too; the server answers nothing for it, which is fine. */
+  @Test
+  fun anyParenCounts_notJustCalls() {
+    assertTrue(insideIn("x = (1 + |"))
+  }
+
   private fun matchIn(marked: String): BracketPair? {
     val cursor = marked.indexOf('|')
     require(cursor >= 0) { "no cursor in \"$marked\"" }
     val source = marked.replace("|", "")
     return bracketPairAround(source, cursor, syntax.spansOf(source))
+  }
+
+  private fun insideIn(marked: String): Boolean {
+    val cursor = marked.indexOf('|')
+    require(cursor >= 0) { "no cursor in \"$marked\"" }
+    val source = marked.replace("|", "")
+    return insideUnclosedParen(source, cursor, syntax.spansOf(source))
   }
 }

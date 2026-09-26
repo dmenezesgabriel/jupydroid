@@ -51,6 +51,33 @@ private fun partnerOf(source: String, scan: IntProgression, same: Char, partner:
   return null
 }
 
+/**
+ * Is [cursor] inside a `(` that no `)` has closed yet - the shape that makes a signature-help
+ * ask worth a round trip (`docs/PLAN.md` P5e-4): VS Code's `parameterHintsModel` asks at the
+ * caret inside the call's parens, and it is the server that answers whether the callee has a
+ * signature, so a grouping `(` counts too.
+ *
+ * Backward depth counting over the same [literalMask] as [bracketPairAround]: `f(")", arg|`
+ * is inside, because the string's `)` closes nothing real.
+ */
+fun insideUnclosedParen(source: String, cursor: Int, spans: List<SyntaxSpan>): Boolean {
+  if (cursor !in 0..source.length) return false
+  val literal = literalMask(source.length, spans)
+  var depth = 0
+  // The first `(` at depth 0 walking back is the unclosed call - `inside` only ever turns
+  // on, so the scan can keep the rest of the prefix without that changing the answer.
+  var inside = false
+  for (i in cursor - 1 downTo 0) {
+    if (!literal[i]) {
+      when (source[i]) {
+        ')' -> depth++
+        '(' -> if (depth == 0) inside = true else depth--
+      }
+    }
+  }
+  return inside
+}
+
 /** Which offsets are inside a string or a comment, and so hold punctuation rather than structure. */
 private fun literalMask(length: Int, spans: List<SyntaxSpan>): BooleanArray {
   val mask = BooleanArray(length)

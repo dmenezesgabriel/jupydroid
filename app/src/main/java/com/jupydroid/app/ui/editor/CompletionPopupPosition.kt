@@ -21,9 +21,15 @@ import androidx.compose.ui.window.PopupPositionProvider
  * @param bottomInset how much of the window's bottom is spoken for - the keyboard, plus whatever
  *   the navigation bar takes. Passed in because `windowSize` does not shrink for the IME under
  *   edge-to-edge; the window stays full height and the keyboard sits on top of it.
+ * @param preferAbove try the space over the caret first - VS Code's `[ABOVE, BELOW]`
+ *   preference for parameter hints (`parameterHintsWidget.ts:177`), which also keeps that
+ *   card clear of the completion list that owns the space below.
  */
-internal class CompletionPopupPosition(private val caret: IntRect, private val bottomInset: Int) :
-  PopupPositionProvider {
+internal class CompletionPopupPosition(
+  private val caret: IntRect,
+  private val bottomInset: Int,
+  private val preferAbove: Boolean = false,
+) : PopupPositionProvider {
   override fun calculatePosition(
     anchorBounds: IntRect,
     windowSize: IntSize,
@@ -35,7 +41,13 @@ internal class CompletionPopupPosition(private val caret: IntRect, private val b
     // Above the caret's *top*, not its bottom, so the list never covers the character being
     // completed - which is the one piece of context that makes the matches make sense.
     val above = anchorBounds.top + caret.top - popupContentSize.height
-    val y = if (popupContentSize.height <= roomBelow) below else above
+    val roomAbove = anchorBounds.top + caret.top
+    val y = when {
+      preferAbove && popupContentSize.height <= roomAbove -> above
+      !preferAbove && popupContentSize.height <= roomBelow -> below
+      preferAbove -> below
+      else -> above
+    }
     return IntOffset(
       x = (anchorBounds.left + caret.left).coerceIn(0, maxOf(0, windowSize.width - popupContentSize.width)),
       // Pinned to the top when it fits neither way. Some of the list is out of reach either

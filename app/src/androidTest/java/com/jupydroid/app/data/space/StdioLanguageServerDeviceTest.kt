@@ -136,6 +136,37 @@ class StdioLanguageServerDeviceTest {
     }
   }
 
+  /**
+   * P5e-4: `textDocument/signatureHelp` inside `os.path.join(` makes the real `pylsp` answer
+   * jedi's signature - the reply the P5e-0 probe measured byte-for-byte
+   * (`evidence/p5e-0-lsp-surface/logcat-probe.txt`): label
+   * `join(path: LiteralString, /, *paths: LiteralString) -> LiteralString`, string-labeled
+   * `path`/`paths` parameters, `activeSignature`/`activeParameter` zero. A scripted server
+   * can only pretend to know a signature; this is the knowing.
+   */
+  @Test(timeout = 120_000)
+  fun signatureHelpInsideACall_answersTheSignature() = runBlocking {
+    val languageServer = baseSpaceLanguageServerPort(context)!!
+    try {
+      val capabilities = languageServer.capabilities(BASE_SPACE)
+      assertTrue("pylsp must declare signatureHelpProvider for P5e-4", capabilities.signatureHelpProvider)
+
+      val uri = "file:///home/jupydroid/p5e4-probe.py"
+      languageServer.openDocument(BASE_SPACE, uri, "python", "import os\nos.path.join(\"a\", \"b\")\n")
+
+      // `os.path.join(` ends at character 13 on line 1; 14 sits the caret inside the call,
+      // exactly where the probe asked and got `join(path…)`.
+      val help = languageServer.signatureHelp(BASE_SPACE, uri, LanguagePosition(line = 1, character = 14))
+
+      assertTrue("pylsp answered nothing inside os.path.join(", help != null)
+      val signature = help!!.signatures.first()
+      assertTrue("expected a join( signature - got ${signature.label}", signature.label.startsWith("join("))
+      assertEquals("path", signature.parameters.first().label)
+    } finally {
+      languageServer.stop(BASE_SPACE)
+    }
+  }
+
   /** Lazy means lazy: a port never called leaves no process behind to stop. */
   @Test(timeout = 60_000)
   fun stopOnANeverStartedServerIsANoOp() = runBlocking {

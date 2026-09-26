@@ -55,6 +55,40 @@ data class LanguageMarkup(val kind: LanguageMarkupKind, val value: String)
 data class LanguageHover(val contents: LanguageMarkup, val range: LanguageRange? = null)
 
 /**
+ * One parameter of a signature - `ParameterInformation`. [label] is the wire's string form,
+ * or the signature label's own substring when the server sent the `[start, end]` pair form;
+ * [labelRange] then names those offsets (end-exclusive), which is the only form a highlight
+ * can never re-derive wrong - VS Code's `getParameterLabelOffsets` uses them verbatim.
+ */
+data class LanguageParameter(
+  val label: String,
+  val labelRange: Pair<Int, Int>? = null,
+  val documentation: LanguageMarkup? = null,
+)
+
+/**
+ * One signature a `textDocument/signatureHelp` reply offers - `SignatureInformation`.
+ * [activeParameter] is the per-signature override LSP allows, which VS Code honours before
+ * the reply-level index (`signature.activeParameter ?? hints.activeParameter`).
+ */
+data class LanguageSignature(
+  val label: String,
+  val parameters: List<LanguageParameter> = emptyList(),
+  val documentation: LanguageMarkup? = null,
+  val activeParameter: Int? = null,
+)
+
+/**
+ * A `textDocument/signatureHelp` reply: the signatures the call offers, plus the server's own
+ * pick of the active signature and parameter - both optional on the wire, defaulting to 0.
+ */
+data class LanguageSignatureHelp(
+  val signatures: List<LanguageSignature>,
+  val activeSignature: Int = 0,
+  val activeParameter: Int = 0,
+)
+
+/**
  * The slice of `initialize`'s reply a caller may gate a feature on, grown as features land.
  * [positionEncoding] names the unit [LanguagePosition.character] counts - declared
  * `utf-16`, the protocol default, unless the server negotiated otherwise.
@@ -63,6 +97,12 @@ data class LanguageCapabilities(
   val completionProvider: Boolean,
   val positionEncoding: String,
   val hoverProvider: Boolean = false,
+  /**
+   * `signatureHelpProvider` is a boolean **or** an options object (`triggerCharacters`,
+   * which pylsp advertises `["(", ",", "="]`), so presence alone is not the test - only
+   * absent-or-false is a no, the same rule [completionProvider] already applies.
+   */
+  val signatureHelpProvider: Boolean = false,
 )
 
 /**
@@ -124,6 +164,13 @@ interface LanguageServerPort {
    * Null is a real answer, not a failure: the server says nothing where nothing is defined.
    */
   suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover?
+
+  /**
+   * `textDocument/signatureHelp` at [position] in the document at [uri] - `docs/PLAN.md`
+   * P5e-4. Null where the caret is inside no call the server knows - which is also what an
+   * empty `signatures` reply normalizes to.
+   */
+  suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp?
 
   /**
    * Every `textDocument/publishDiagnostics` a running server pushes, typed - the stream the

@@ -67,4 +67,19 @@ internal object LspMarkup {
 
   private fun markupKindOf(kind: String): LanguageMarkupKind =
     if (kind == "markdown") LanguageMarkupKind.MARKDOWN else LanguageMarkupKind.PLAINTEXT
+
+  /**
+   * `documentation` is `string | MarkupContent` wherever LSP carries it - signatures and
+   * their parameters included. A bare string renders as markdown (`parameterHintsWidget.ts`
+   * feeds docs through its markdown renderer, same as `MarkedString` here), and a blank
+   * `value` - pylsp's signature reply is `{"kind": "markdown", "value": ""}` - is no
+   * documentation at all: `parameterHints.css` `.docs.empty` is `display: none`.
+   */
+  fun documentationOf(element: JsonElement?): LanguageMarkup? = when (element) {
+    is JsonObject -> markupObject(element)
+    else ->
+      element?.jsonPrimitive?.contentOrNull
+        ?.takeIf(String::isNotBlank)
+        ?.let { LanguageMarkup(LanguageMarkupKind.MARKDOWN, it) }
+  }
 }

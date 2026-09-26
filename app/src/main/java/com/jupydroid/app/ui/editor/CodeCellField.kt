@@ -30,6 +30,7 @@ import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
+import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.theme.editorPalette
@@ -67,6 +68,12 @@ fun CodeCellField(
    * it is never invoked by typing: [symbolAsk] is the only trigger, which is the menu row's job.
    */
   hoverAt: suspend (code: String, cursorOffset: Int) -> LanguageHover? = NO_HOVER,
+  /**
+   * The signature-help ask - `textDocument/signatureHelp` at the caret (P5e-4). Like
+   * [completionsAt] it is driven by typing: a `(` or `,` inside a call asks, and the card
+   * stays while the call stays open.
+   */
+  signatureHelpAt: suspend (code: String, cursorOffset: Int) -> LanguageSignatureHelp? = NO_SIGNATURE_HELP,
   /**
    * The "Symbol info" request count - bumped by the surface that owns the menu, so one ask is
    * one number rather than a boolean a second tap could not flip back. `0` is "never asked".
@@ -116,6 +123,7 @@ fun CodeCellField(
   val numberStyle = codeStyle.copy(color = editorPalette.lineNumber)
   val gutter = gutterWidth(state.text, numberStyle, lineNumbersShown)
   val completions by rememberCellCompletions(state, focused, completionsAt, enabled = completionEnabled)
+  val signatureHelp by rememberCellSignatureHelp(state, focused, highlighter, signatureHelpAt)
   val searchStyles = searchMatchStyles()
   val searching = rememberUpdatedState(search)
   // The code a popup was already answered for, so accepting or dismissing one does not
@@ -224,6 +232,12 @@ fun CodeCellField(
         onDismiss = { hover = null },
       )
     }
+    signatureHelp?.let {
+      SignatureHelpPopup(
+        cellHelp = it,
+        caret = caretRect(layout, it.query.cursorOffset, gutter, scroll.value),
+      )
+    }
   }
 }
 
@@ -259,3 +273,6 @@ private val NO_COMPLETIONS: suspend (String, Int) -> CompletionResult = { _, _ -
 
 /** A field nobody wired the ask into still edits; "Symbol info" simply stays silent on it. */
 private val NO_HOVER: suspend (String, Int) -> LanguageHover? = { _, _ -> null }
+
+/** The same for signature help - a field with no server behind it asks nothing of anyone. */
+private val NO_SIGNATURE_HELP: suspend (String, Int) -> LanguageSignatureHelp? = { _, _ -> null }
