@@ -31,13 +31,20 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-- tapOn: "New terminal"
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
 - extendedWaitUntil:
     visible: "Terminal"
     timeout: 300000
 - waitForAnimationToEnd:
     timeout: 15000
 
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `p4i-terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
 - inputText: "echo SPACES a b c d e COMMAS x,y,z DOTS j.s.o.n"
 - pressKey: Enter
 - waitForAnimationToEnd:

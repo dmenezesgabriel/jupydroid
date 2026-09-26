@@ -12,12 +12,25 @@ appId: com.jupydroid.app
 # Not `clearState` - `p4i-terminal-tablet.yaml`'s own reason: wipes the already-installed Space.
 - launchApp
 - assertVisible: "Files"
-- tapOn: "New terminal"
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
 - extendedWaitUntil:
     visible: "Terminal"
     timeout: 120000
 
-- inputText: "sleep 30"
+- waitForAnimationToEnd:
+    timeout: 15000
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `p4i-terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
+# `&& echo survived` runs only if the sleep lasts the full half-minute - the driver's absence
+# check on `p4j2-survived.txt` is half of the interrupt proof (`docs/DECISIONS.md`'s P4j-3b
+# entry forbids gating on this canvas's `visible:` `Text` column, so the `^C` echo it used to
+# assert is a screenshot, not a gate).
+- inputText: "sleep 30 && echo survived > p4j2-survived.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 3000

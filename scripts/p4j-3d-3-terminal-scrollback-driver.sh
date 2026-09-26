@@ -37,14 +37,8 @@ rotate_to() { # rotate_to <0=portrait|1=landscape>
 restore_rotation() { "$ADB" shell settings put system accelerometer_rotation 1; }
 trap restore_rotation EXIT
 
-top_strip_differs() {
-  python3 -c "
-import sys
-sys.path.insert(0, '$ROOT/scripts')
-from terminal_content_extent import terminal_top_strip_differs
-print(terminal_top_strip_differs(sys.argv[1], sys.argv[2]))
-" "$1" "$2"
-}
+# `top_strip_differs` itself is the shared helper in `maestro-run.sh`, defaulting to the
+# single-pane x_range this driver's own portrait rotation already provides.
 
 reset_notebooks
 rotate_to 0 # portrait

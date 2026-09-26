@@ -132,6 +132,57 @@ seed_file() {
     { echo "fixture did not land at $remote"; exit 1; }
 }
 
+# Greps a file under the workspace root until it contains [needle], or [timeout] seconds pass.
+#
+# `docs/DECISIONS.md`'s P4j-3b entry forbids gating a flow's pass on `visible:` reading the
+# terminal canvas's per-row `Text` column - this device reports them as `text=""` run-to-run.
+# A command the flow typed can prove itself to a real shell instead, by writing its answer into
+# the workspace where `run-as` (the same access [seed_file] already uses) can read it back -
+# `p4i-terminal-tablet`'s own shape. On a timeout the file's own contents are dumped so the
+# evidence says what the shell *did* write.
+wait_for_workspace_text() {
+  local path="$1" needle="$2" timeout="${3:-30}" tries=0
+  local adb
+  mapfile -t adb < <(device_adb)
+  while [ "$tries" -lt "$timeout" ]; do
+    if "${adb[@]}" shell "run-as $APP grep -qF '$needle' \"$NOTEBOOK_DIR/$path\"" 2>/dev/null; then
+      echo "$path contains '$needle'"
+      return 0
+    fi
+    sleep 1
+    tries=$((tries + 1))
+  done
+  echo "timed out: $NOTEBOOK_DIR/$path never contained '$needle'" >&2
+  "${adb[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/$path\"" >&2 || true
+  return 1
+}
+
+# Asserts a path under the workspace root does NOT exist - `sleep 30 && echo survived > f`'s own
+# half of an interrupt proof: the file may only exist if the foreground command ran to the end.
+require_workspace_absent() {
+  local path="$1"
+  local adb
+  mapfile -t adb < <(device_adb)
+  if "${adb[@]}" shell "run-as $APP test -e \"$NOTEBOOK_DIR/$path\""; then
+    echo "unexpected: $NOTEBOOK_DIR/$path exists - the interrupted command ran to completion" >&2
+    return 1
+  fi
+  echo "$path absent, as an interrupted command leaves it"
+}
+
+# `terminal_content_extent.py`'s own helper, shared: whether the terminal's own topmost pixel
+# strip differs between two captures. [x1]/[x2] default to the single-pane span the module was
+# tuned on; two-pane captures pass the detail pane's own columns (700, 1900 on the tablet) -
+# `docs/DECISIONS.md`'s P4j-3c entry is the run that read a neighbour pane instead.
+top_strip_differs() {
+  python3 -c "
+import sys
+sys.path.insert(0, '$ROOT_DIR')
+from terminal_content_extent import terminal_top_strip_differs
+print(terminal_top_strip_differs(sys.argv[1], sys.argv[2], x_range=(int(sys.argv[3]), int(sys.argv[4]))))
+" "$1" "$2" "${3:-0}" "${4:-700}"
+}
+
 # The width the app actually runs at, in dp - the same number `WindowSizeClass` reads.
 #
 # Asked of the framework rather than computed, and that is the point. Every attempt to derive it

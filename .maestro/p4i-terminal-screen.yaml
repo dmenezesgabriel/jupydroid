@@ -3,20 +3,39 @@ appId: com.jupydroid.app
 # P4i sub-step 1's own gate: open a terminal, type, see it come back on screen. Runs on both
 # devices - the emulator's `FakeTerminalGateway` echoes what it is sent, which proves the UI flow;
 # only the tablet run (the terminal-tablet driver) proves a real shell answered.
-- launchApp:
-    clearState: true
+#
+# Not `clearState: true` - `p4i-terminal-tablet.yaml`'s own reason (it would wipe the installed
+# Space), and since P6d-4 a second one: it also wipes the seeded `launcherSeen`, so the launch
+# would land on the first-run launcher instead of the browser this asserts.
+- launchApp
 - assertVisible: "Files"
 - takeScreenshot: 01-the-workspace
 
-# The reach point: a second icon beside the New menu, since this app has no Launcher yet
-# (`docs/PLAN.md` P6d) - see `ExplorerScreen.kt`'s `FilesBar`.
-- tapOn: "New terminal"
+# The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
+# launcher's Terminal card at two (`docs/DECISIONS.md`, "The bars gain action items"). The card
+# half is checked first - a `when:` is evaluated where it sits, and after the bar's own tap the
+# bar itself is gone, so "not visible" would then describe the terminal screen too.
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
 - extendedWaitUntil:
     visible: "Terminal"
     timeout: 5000
 - takeScreenshot: 02-the-terminal-screen
 
-# Autofocused on composition (`TerminalPaneScreen.kt`'s `TerminalInputField`), so typing needs no
-# tap first.
+# `TerminalInputField` autofocuses on composition, but the tap below is still taken before typing:
+# a first inputText's leading keystrokes can still race the IME's own connection setup on a real
+# device (measured: `ech` of `echo` eaten, `p4i-terminal-tablet.yaml`'s own comment). A tap on the
+# field is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
 - inputText: "ls"
 - takeScreenshot: 03-typed-ls

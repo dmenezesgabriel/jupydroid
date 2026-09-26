@@ -112,6 +112,11 @@ capture() { # capture <suffix>
   "$ADB" shell ps -A -o PID,PPID,RSS,CMDLINE >"$EVIDENCE/ps-$1.txt" 2>/dev/null || true
 }
 
+# The same clean base every sibling driver takes - an emptied workspace (part 1's own marker is
+# the only file it should find) and a seeded `launcherSeen`, since at the portrait forced below a
+# first run would land on the Launcher rather than the `Files` the flow asserts.
+reset_notebooks
+
 rotate_to 0 # portrait: single-pane, full-width, the shape every pixel bound above assumes.
 
 # --- part 1: open a terminal, write a marker to disk, then background the app idle.

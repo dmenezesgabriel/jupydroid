@@ -57,7 +57,8 @@ appId: com.jupydroid.app
 
 # --- the terminal ---
 # A shell is not a file, but it occupies the same area, so what empties that area has one name.
-- tapOn: "New terminal"
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
 - extendedWaitUntil:
     visible: "Terminal"
     timeout: 120000
@@ -68,9 +69,14 @@ appId: com.jupydroid.app
 # once on a run where the hierarchy held no such string at all - the document area was already
 # empty and the wait was still deciding. What is unambiguous is that nothing occupies that area any
 # more, and the only thing that draws a Close is a document.
+#
+# Since P6d-4 the emptied area refills with the Launcher - so "Terminal" *text* is back on screen
+# the whole time, as the launcher's own Terminal card label. The assertion that survives the
+# refill is the card itself: a launcher card and an open terminal never share the detail area.
 - extendedWaitUntil:
     notVisible: "Close"
     timeout: 15000
-- assertNotVisible: "Terminal"
+- assertVisible:
+    id: "launcher-card-NEW_TERMINAL"
 - assertVisible: "Root.ipynb"
 - takeScreenshot: 06-the-shell-closed-and-the-browser-remains

@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
 
 /**
  * Settings is reachable from the explorer's own bar, and Back returns there - P6c-1's own gate.
- * `FilesBar`'s "New terminal" reach point (`TerminalNavigationTest`) is the precedent this mirrors.
+ * `TerminalNavigationTest`'s reach-then-Back shape is the precedent this mirrors.
  */
 @RunWith(AndroidJUnit4::class)
 class SettingsNavigationTest {

@@ -11,8 +11,21 @@ appId: com.jupydroid.app
 - assertVisible: "Files"
 - takeScreenshot: 01-the-workspace
 
-# The reach point: a second icon beside the New menu (`ExplorerScreen.kt`'s `FilesBar`).
-- tapOn: "New terminal"
+# The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
+# launcher's Terminal card at two (`docs/DECISIONS.md`, "The bars gain action items"). The card
+# half is checked first - a `when:` is evaluated where it sits, and after the bar's own tap the
+# bar itself is gone, so "not visible" would then describe the terminal screen too.
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
 # Generous: on the tablet this can still own installing the Space and starting jupyter_server on
 # the very first run - `p4i-terminal-tablet.yaml`'s own timeout.
 - extendedWaitUntil:
@@ -20,8 +33,13 @@ appId: com.jupydroid.app
     timeout: 120000
 - takeScreenshot: 02-the-terminal-screen
 
-# Autofocused on composition, no tap first needed - `TerminalInputField`'s invisible decorator
-# still owns real focus/IME, it just paints nothing, so what is on screen here is only
-# `TerminalCanvas`: no separate input box beneath it, the way there was through P4i.
+# `TerminalInputField`'s invisible decorator still owns real focus/IME - it just paints nothing,
+# so what is on screen here is only `TerminalCanvas`: no separate input box beneath it, the way
+# there was through P4i. It autofocuses on composition, but the tap below is still taken: a first
+# inputText's leading keystrokes can race the IME's own connection setup on a real device
+# (`p4i-terminal-tablet.yaml`'s measured finding), and a tap on the canvas - which *is* the field,
+# this flow's whole point - is a user's own deterministic focus move.
+- tapOn:
+    id: "terminal-input"
 - inputText: "ls"
 - takeScreenshot: 03-typed-ls

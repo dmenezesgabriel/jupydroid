@@ -357,7 +357,9 @@ fun MainNavigation(
             browseRequest = browseRequest,
             onBrowseRequestHandled = { browseRequest = null },
             onRevealMatch = { match -> revealRequest = match },
-            onNewTerminal = newTerminal,
+            // The bar's terminal item roots at the directory the explorer is showing - the same
+            // cwd the launcher's Terminal card gets, hoisted so both reads answer the same path.
+            onNewTerminal = { newTerminal(browsedDirectory) },
             onOpenSettings = { backStack.openSettings() },
             onOpenLauncher = openLauncher,
             onBrowsedDirectory = { browsedDirectory = it },

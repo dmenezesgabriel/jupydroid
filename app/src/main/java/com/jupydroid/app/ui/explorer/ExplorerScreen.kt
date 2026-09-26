@@ -91,14 +91,6 @@ fun ExplorerScreen(
   onOpenFile: (WorkspaceEntry) -> Unit,
   onOpenRecent: (String) -> Unit = {},
   /**
-   * Opens a shell rooted at the directory being browsed - `docs/PLAN.md`'s P4i, adapted: the
-   * reference reaches "New Terminal" from the Launcher or the File menu, and this app has
-   * neither yet, so the explorer's own bar is the provisional route. Takes the directory rather
-   * than reading it itself, since the caller above this screen is what actually opens one
-   * (`Navigation.kt`'s `rememberNewTerminal`) - this screen only knows *where*.
-   */
-  onNewTerminal: (String) -> Unit = {},
-  /**
    * Opens the app-wide Settings screen - P6c-1's own reach point. This bar is the one chrome
    * shown with no document open, so it is Settings' provisional home until P6d's Launcher exists;
    * `NotebookBackStack.kt`'s `openSettings` doc comment records why the rail is not it.
@@ -209,7 +201,6 @@ fun ExplorerScreen(
       FilesBar(
         onBack = onBack,
         onCreate = viewModel::create,
-        onNewTerminal = { onNewTerminal(state.path) },
         onOpenSettings = onOpenSettings,
       )
     },

@@ -15,6 +15,8 @@ import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
+import com.jupydroid.app.ui.launcher.LauncherCommand
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import org.junit.Rule
 import org.junit.Test
@@ -22,8 +24,9 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /**
- * The terminal is reachable from the explorer, and what is typed comes back on screen -
- * `docs/PLAN.md`'s P4i, sub-step 1's own gate. `AppContainer`'s default `FakeTerminalGateway`
+ * The terminal is reachable, and what is typed comes back on screen - `docs/PLAN.md`'s P4i,
+ * sub-step 1's own gate, on the reaches P6d-6 settled: the bottom bar's own item at one pane,
+ * the auto-filled launcher's Terminal card at two. `AppContainer`'s default `FakeTerminalGateway`
  * echoes back whatever it is sent, standing in for a real shell here exactly as it does in
  * [com.jupydroid.app.ui.terminal.TerminalPaneViewModelTest].
  */
@@ -56,7 +59,24 @@ class TerminalNavigationTest {
     waitForText("ls")
   }
 
-  private fun startApp() {
+  /**
+   * At two panes the reach is the auto-filled launcher's Terminal card - and **no** "New terminal"
+   * survives anywhere, the FilesBar's provisional icon included. P6d-6's half of the swap: the icon
+   * left in the same commit the bar item arrived, so a single tap target owns the name at every
+   * width.
+   */
+  @Test
+  fun atTwoPanesTheLauncherCardIsTheReach() {
+    startApp(twoPane = true)
+
+    compose.onNodeWithContentDescription("New terminal").assertDoesNotExist()
+    waitForTag("launcher-screen")
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_TERMINAL.name}").performClick()
+
+    waitForTag(TERMINAL_INPUT_TAG)
+  }
+
+  private fun startApp(twoPane: Boolean = false) {
     compose.setContent {
       JupyterDroidTheme {
         MainNavigation(
@@ -68,9 +88,9 @@ class TerminalNavigationTest {
           ),
           importTitle = null,
           onImportConsumed = {},
-          // Single pane: the explorer and the terminal share the window otherwise, and "opened"
-          // would already be true before the tap.
-          twoPane = false,
+          // Single pane by default: the explorer and the terminal share the window otherwise,
+          // and "opened" would already be true before the tap.
+          twoPane = twoPane,
         )
       }
     }

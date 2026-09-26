@@ -7,4 +7,18 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+# vi reflowed to the portrait grid - the on-screen witness to the same resize the file oracle
+# measures.
 - takeScreenshot: 02-vi-after-rotation
+# Back to a shell for the second size report: vi opens in normal mode and nothing was edited, so
+# `:q` leaves it; `:q!` would only matter for a buffer this flow never dirties.
+- inputText: ":q"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+# fd `0`, not the default `1` - under the `tee` pipe stdout is the pipe and an ioctl on it raises
+# `ENOTTY`; stdin stays the pty (see part 1's own comment).
+- inputText: "python3 -c 'import os;print(*os.get_terminal_size(0))' | tee size-2.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000

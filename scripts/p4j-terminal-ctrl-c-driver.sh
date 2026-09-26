@@ -32,4 +32,10 @@ mapfile -t adb < <(device_adb)
 "${adb[@]}" shell input keycombination 113 31
 
 run_flow "$ROOT/.maestro/p4j-terminal-ctrl-c-part2.yaml" "$EVIDENCE" || exit 1
+
+# The `echo interrupted` part2 typed reaches the shell at once only if the sleep actually died -
+# 20s is comfortably under the 30s the line would otherwise wait out. `survived` is the other
+# half: the `&&` branch ran only if the sleep saw its own end.
+wait_for_workspace_text "p4j2-after.txt" "interrupted" 20
+require_workspace_absent "p4j2-survived.txt"
 echo "P4j-2 gate passed: Ctrl-C reached a real shell and interrupted 'sleep 30'"

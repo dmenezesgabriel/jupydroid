@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarArrangement
@@ -29,13 +30,14 @@ import com.jupydroid.app.theme.chromePalette
  * and its `'desktop' | 'mobile'` form factor (`packages/application/src/frontend.ts:28,44,120`) is
  * never assigned - which is the split `docs/DECISIONS.md` records under P2x-1e.
  *
- * **Three destinations now** - the two panels of [onePaneDestinations] and the Launcher the rail
- * shows beside them at two panes - which is Material's own floor of *"three to five destinations
- * of equal importance"*. The launcher's item is an action rather than a marked panel: it opens a
- * document, and a document is what is on screen once it answers, so nothing stays selected.
+ * **Four destinations now** - the two panels of [onePaneDestinations] plus two *action* items -
+ * which is still inside Material's own band of *"three to five destinations of equal
+ * importance"*. Both actions launch rather than mark a panel: the Launcher opens a document, and
+ * the Terminal is where the FilesBar icon's provisional reach moved once P6d's launcher existed -
+ * a document, not a panel, so nothing stays selected for either one.
  *
  * ```
- * if (!twoPane) SidePanelBar(selected = showingPanel, onChoose = { sidePanel = it }, onOpenLauncher = …)
+ * if (!twoPane) SidePanelBar(selected = showingPanel, onChoose = { sidePanel = it }, …)
  * ```
  *
  * @param selected the panel filling the pane. Never null, unlike the rail's: a collapsed area over
@@ -46,12 +48,16 @@ import com.jupydroid.app.theme.chromePalette
  * @param onOpenLauncher the tab-strip `+` - `launcher-extension`'s `addButtonEnabled` button,
  *   labelled *New Launcher* - drawn as a destination rather than a button because at one pane this
  *   bar is where top-level reach belongs.
+ * @param onNewTerminal opens a shell - the reference's `terminal:create-new`, which it reaches
+ *   from a launcher card. At one pane the launcher is behind the `+`, so the bar carries the
+ *   second reach the decision named; at two the card is already on screen and the bar is not.
  */
 @Composable
 fun SidePanelBar(
   selected: SidePanel,
   onChoose: (SidePanel) -> Unit,
   onOpenLauncher: () -> Unit,
+  onNewTerminal: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   // **The bar measures itself**, rather than being told a width or asking the window. At one pane
@@ -84,7 +90,7 @@ fun SidePanelBar(
         )
       }
       // `launcher:create` as the tab strip's `+` - JupyterLab's own reach point for a launcher,
-      // drawn last because the tab strip's add button sits after the last tab.
+      // after the panels the way the tab strip's add button sits after the last tab.
       ShortNavigationBarItem(
         selected = false,
         onClick = onOpenLauncher,
@@ -92,12 +98,29 @@ fun SidePanelBar(
         label = null,
         modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER },
       )
+      // `terminal:create-new` - the other action destination. Last because it is the bar's own
+      // addition rather than a reach point either reference draws; the `+` keeps the tab strip's
+      // add-button place beside the panels.
+      ShortNavigationBarItem(
+        selected = false,
+        onClick = onNewTerminal,
+        icon = { Icon(Icons.Filled.Terminal, contentDescription = null) },
+        label = null,
+        modifier = Modifier.semantics { contentDescription = NEW_TERMINAL },
+      )
     }
   }
 }
 
 /** The `+` item's name - `launcher-extension`'s own "New Launcher" tooltip. */
 const val NEW_LAUNCHER = "New Launcher"
+
+/**
+ * The terminal item's name - the string the FilesBar's provisional icon already carried, kept so
+ * the one node answering for `terminal:create-new` keeps the same accessible name the flows and
+ * `TerminalNavigationTest` have always tapped.
+ */
+const val NEW_TERMINAL = "New terminal"
 
 /**
  * How the bar distributes its items at [barWidth] - and **the rule is the reference's own sentence**.

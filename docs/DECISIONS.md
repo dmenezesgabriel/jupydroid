@@ -5567,7 +5567,11 @@ Rotation's own gate (`p4i-terminal-resize-driver.sh`) still uses the accessibili
 was not migrated - out of scope here - so it remains exposed to the same flakiness; its own
 `count_vi_fill_lines` pipefail bug (a genuine zero-match `grep` aborting the script before its own
 `[ "$BEFORE" -gt 0 ]` check could explain why) was fixed in passing since it obscured this finding
-until fixed.
+until fixed. **P6d-6 later migrated every other surviving canvas-text gate** -
+`p4i-terminal-tablet`, `p4i-terminal-vi`, `p4i-terminal-background`, `p4j-3a-terminal-extra-keys`
+and `p4j-terminal-ctrl-c` now write their answers to the workspace via `tee` (keeping the visible
+output for the screenshot) and drivers poll the files through `run-as`; `p4i-terminal-resize`'s
+`count_vi_fill_lines` is the lone a11y oracle left.
 
 ### A pixel oracle tuned against one pane layout reads the wrong pane in another (P4j-3c)
 
@@ -6053,3 +6057,42 @@ actual idiom for this: Android's own Settings app, and JupyterLab's Settings-men
 (`docmanager:toggle-autosave`, `apputils:adaptive-theme`), which are already exactly this shape -
 one fixed label, one `isToggled` - not the flip-label pair the View menu's own space constraint
 forced.
+
+### The first `inputText` after a terminal opens races the field's IME connection, and `waitForAnimationToEnd` does not cover it (P6d-6)
+
+P6d-6 retargeted sixteen flows from the FilesBar's "New terminal" icon to the Launcher's
+`launcher-card-NEW_TERMINAL` card - a reach that leaves the terminal composing a beat later than
+the icon did. Five previously-green runs then lost the *leading characters* of their first typed
+line: `echo $((6*7))` arrived as `o $((6*7))`, `vi p4i-vi-marker.txt` as `arker.txt: not found`,
+`echo before-background` as `re-background: not found` - tail bytes landing while the head was
+eaten, which is the signature of `inputText` writing into a `BasicTextField` whose IME connection
+has not finished establishing, not of the shell misreading a complete line. The field autofocuses
+on composition, but focus and a usable IME connection are two events, and
+`waitForAnimationToEnd`/`sleep` only buy time for the first. A settled run then re-typed clean
+from the second command onward, which is why every flow's *first* `inputText` needed the fix and
+its later ones did not.
+
+**Fixed the way a user reaches the same field**: `tapOn: terminal-input` - a real tap on the
+full-screen invisible `BasicTextField`, which is the deterministic "I am here" that autofocus only
+approximates - inserted before the first `inputText` in every typing flow, and after each
+re-attach (`p4i-terminal-background` resumes into a recomposed field, so it taps again there).
+The card reach did not cause the race - the race was always there at whatever rate the old timing
+exposed; the new reach just shifted enough flows past the threshold to make it systematic rather
+than anecdotal, which is what made it diagnosable at all.
+
+**This forbids** writing `waitForAnimationToEnd` (or any fixed settle) and calling a terminal
+flow's first `inputText` safe - the tap is the fix, and any future typing flow should copy it the
+way it copies `id: "terminal-input"`, not re-derive it from a flake.
+
+### `assertNotVisible` on a generic label is wrong after the label's owner moves (P6d-6)
+
+`p7d-close-at-two-panes` ended with `assertNotVisible: "Terminal"` - true while the only
+*Terminal* on screen was the open document. P6d-4's auto-refill made it false without the
+terminal existing: closing the last document refills the detail area with a Launcher whose
+`NEW_TERMINAL` card's label is that same string, so the assertion failed on a run whose every
+step was correct. The fix is not a narrower string but asserting the actual oracle - the launcher
+card being back *is* the proof the terminal left, since they share the detail area the reference
+calls `'main'`. Same class of fix as the `when:` ordering it sits beside: at two panes the card
+branch must be tried *before* a `notVisible` branch on the bar, because opening the terminal is
+what removes the bar - evaluate the wrong one second and a successful open reads as the other
+case.

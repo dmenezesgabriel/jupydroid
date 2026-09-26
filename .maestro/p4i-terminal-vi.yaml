@@ -1,24 +1,48 @@
 appId: com.jupydroid.app
 ---
 # P4i-2's own closing gate: `vi` forces the alternate screen, a full redraw on entry, and its own
-# status line and `~` fill lines - none of which a shell prompt or an echoed keystroke can produce,
-# so `visible: "~"` is proof the Canvas actually drew what a real, unmodified program wrote, not
-# an artefact of typing. `docs/DECISIONS.md`'s own rule: an assertion must name something that
-# cannot appear in the prompt or the pty's own echo of the command line.
+# status line and `~` fill lines - none of which a shell prompt or an echoed keystroke can
+# produce. Two oracles stand in for what `extendedWaitUntil: visible: "~"` could not reliably
+# read (`docs/DECISIONS.md`'s own P4j-3b entry forbids gating on this canvas's `Text` column):
+# the driver's `terminal_top_strip_differs` proves the Canvas redrew a whole screen on entry,
+# and `vi`'s own `:wq` writes a buffer only a real, unmodified program processed - a keystroke
+# echoed to a shell never lands in a file.
 #
 # Not `clearState: true` - `p4i-terminal-tablet.yaml`'s own reason: the driver's `reset_notebooks`
 # + `seed_file` already put a clean workspace and the marker file in place, and `clearState` would
 # wipe both and the already-installed Space, forcing a full reinstall this flow does not need.
 - launchApp
 - assertVisible: "Files"
-- tapOn: "New terminal"
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
 - extendedWaitUntil:
     visible: "Terminal"
     timeout: 120000
 
+- waitForAnimationToEnd:
+    timeout: 15000
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `p4i-terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
+# The pre-vi baseline `terminal_top_strip_differs` compares against - a bare prompt's first rows.
+- takeScreenshot: 00-bare-prompt
 - inputText: "vi p4i-vi-marker.txt"
 - pressKey: Enter
-- extendedWaitUntil:
-    visible: "~"
-    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 15000
 - takeScreenshot: 01-vi-full-screen
+
+# vi opens in normal mode: `i` inserts, Esc leaves it, `:wq` writes and quits. If the `vi` line
+# itself never landed the shell would answer `not found` and every later keystroke types at a
+# prompt - the file the driver then looks for simply never exists.
+- inputText: "i"
+- inputText: "p4i-vi-wrote-this"
+- tapOn: "Esc"
+- inputText: ":wq"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-back-at-the-prompt

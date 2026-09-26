@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,12 +26,7 @@ import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun FilesBar(
-  onBack: (() -> Unit)?,
-  onCreate: (NewItem) -> Unit,
-  onNewTerminal: () -> Unit,
-  onOpenSettings: () -> Unit,
-) {
+internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onOpenSettings: () -> Unit) {
   TopAppBar(
     title = { Text("Files") },
     colors = sideBarTopAppBarColors(),
@@ -44,11 +38,6 @@ internal fun FilesBar(
       }
     },
     actions = {
-      // A second icon rather than a fourth item in NewMenu below - that menu's own KDoc already
-      // states parity with the reference's New widget, which offers no terminal.
-      IconButton(onClick = onNewTerminal) {
-        Icon(Icons.Filled.Terminal, contentDescription = "New terminal")
-      }
       NewMenu(onCreate = onCreate)
       IconButton(onClick = onOpenSettings) {
         Icon(Icons.Filled.Settings, contentDescription = "Settings")

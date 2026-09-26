@@ -16,5 +16,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 reset_notebooks
 
-run_flow "$ROOT/.maestro/p4j-3a-terminal-extra-keys.yaml" "$ROOT/evidence/p4j-3a-terminal-extra-keys"
-echo "P4j-3a gate passed: the row's Ctrl latch and Esc/Home/End taps reached a real shell"
+run_flow "$ROOT/.maestro/p4j-3a-terminal-extra-keys.yaml" "$ROOT/evidence/p4j-3a-terminal-extra-keys" || exit 1
+
+# The `echo interrupted` the flow typed *after* its Ctrl+C tap reaches the shell at once only if
+# the sleep actually died - 20s is comfortably under the 30s the line would otherwise wait out.
+wait_for_workspace_text "p4j3a-after.txt" "interrupted" 20
+# And the other half of it: a surviving sleep would have run its `&&` branch already by now.
+require_workspace_absent "p4j3a-survived.txt"
+# Esc's half: `vi` wrote `zqxvk` only because Esc left insert mode - otherwise `:wq` was buffer
+# text and the file simply does not exist.
+wait_for_workspace_text "p4j3a.txt" "zqxvk"
+echo "P4j-3a gate passed: Ctrl interrupted a real sleep, and Esc left a real vi's insert mode"

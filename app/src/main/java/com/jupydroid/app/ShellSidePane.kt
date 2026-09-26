@@ -44,8 +44,9 @@ import com.jupydroid.app.ui.shell.trailingBorder
  * @param onRevealMatch where a tapped search result puts the match, on its way to the editor that
  *   has to land on it. Separate from [openDocument] because the two are one act in the caller and
  *   two different pieces of its state.
- * @param onNewTerminal opens a shell rooted at the directory the explorer hands back - see
- *   `Navigation.kt`'s `rememberNewTerminal`.
+ * @param onNewTerminal opens a shell - the bottom bar's own item, already bound to the browsed
+ *   directory by `Navigation.kt`'s `rememberNewTerminal`. At two panes this callback is unread:
+ *   the bar is not drawn and the launcher's Terminal card is the reach.
  * @param onOpenSettings opens the app-wide Settings screen - see `NotebookBackStack.kt`'s
  *   `openSettings`.
  * @param onOpenLauncher opens the Launcher - the bottom bar's third destination, which is a
@@ -70,7 +71,7 @@ fun ShellSidePane(
   browseRequest: String?,
   onBrowseRequestHandled: () -> Unit,
   onRevealMatch: (MatchedLine) -> Unit,
-  onNewTerminal: (String) -> Unit,
+  onNewTerminal: () -> Unit,
   onOpenSettings: () -> Unit,
   onOpenLauncher: () -> Unit,
   onBrowsedDirectory: (String) -> Unit,
@@ -128,7 +129,6 @@ fun ShellSidePane(
             // `Nested.ipynb.ipynb` opened nothing.
             onOpenFile = { file -> openDocument(file.path) },
             onOpenRecent = openDocument,
-            onNewTerminal = onNewTerminal,
             onOpenSettings = onOpenSettings,
             openDocumentPath = openDocumentPath,
             browseRequest = browseRequest,
@@ -149,7 +149,14 @@ fun ShellSidePane(
     // nothing.
     //
     // Never `SidePanel.chosen`: re-picking here would collapse the only thing on screen.
-    if (!twoPane) SidePanelBar(selected = onePanePanel, onChoose = onChoosePanel, onOpenLauncher = onOpenLauncher)
+    if (!twoPane) {
+      SidePanelBar(
+        selected = onePanePanel,
+        onChoose = onChoosePanel,
+        onOpenLauncher = onOpenLauncher,
+        onNewTerminal = onNewTerminal,
+      )
+    }
   }
 }
 

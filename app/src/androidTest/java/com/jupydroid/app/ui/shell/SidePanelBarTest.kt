@@ -37,16 +37,35 @@ class SidePanelBarTest {
   @get:Rule val compose = createComposeRule()
 
   private val chosen = mutableListOf<SidePanel>()
+  private val terminals = mutableListOf<String>()
 
-  /** `onePaneDestinations` plus the Launcher - and the table of contents is **not** one of them. */
+  /** `onePaneDestinations` plus the Launcher and Terminal actions - and the outline is **not** one. */
   @Test
-  fun theBarOffersFilesSearchAndLauncherAndNoOutline() {
+  fun theBarOffersFilesSearchLauncherAndTerminalAndNoOutline() {
     show(SidePanel.FILES)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
     compose.onNodeWithContentDescription(NEW_LAUNCHER).assertIsDisplayed()
+    compose.onNodeWithContentDescription(NEW_TERMINAL).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertDoesNotExist()
+  }
+
+  /**
+   * The terminal item is where the FilesBar icon's reach moved - it *launches*, like the launcher's
+   * own item: a fresh `Terminal` key, never a panel pick, so `onChoose` hears nothing.
+   */
+  @Test
+  fun theTerminalItemAsksForAShellRatherThanAPanel() {
+    show(SidePanel.FILES)
+
+    compose.onNodeWithContentDescription(NEW_TERMINAL).performClick()
+
+    compose.runOnIdle {
+      assertEquals(listOf("terminal"), terminals)
+      assertEquals(emptyList<SidePanel>(), chosen)
+    }
+    compose.onNodeWithContentDescription(NEW_TERMINAL).assertIsNotSelected()
   }
 
   /**
@@ -104,7 +123,7 @@ class SidePanelBarTest {
    * so that the navigation items are equally distributed on the bar"*
    * (`androidx.compose.material3.ShortNavigationBar`'s KDoc, material3 1.4.0).
    *
-   * Three items therefore fill the bar between them, which is also what puts each within a thumb's
+   * Four items therefore fill the bar between them, which is also what puts each within a thumb's
    * reach of the edge it is nearest.
    */
   @Test
@@ -112,8 +131,8 @@ class SidePanelBarTest {
     showAt(PHONE)
 
     assertEquals(
-      "three items equally distributed sit at the bar's sixth points",
-      1f / 3f,
+      "four items equally distributed sit at the bar's eighth points",
+      1f / 4f,
       centreGapFraction(PHONE),
       TOLERANCE_FRACTION,
     )
@@ -128,24 +147,25 @@ class SidePanelBarTest {
    * (`evidence/p2y-bottom-navigation/800dp/`): each item was **396dp** wide with its centre at 198dp
    * and 602dp - a 24dp icon inside a tap target half the window across, and 404dp of dead bar
    * between the two. The reference's own `calculateCenteredContentHorizontalPadding` reserves
-   * `(100 - 10 * (itemsCount + 3)) / 2` percent of padding a side - **20%** a side for three items,
-   * so the group spans the middle 60% of the bar and stays centred in it.
+   * `(100 - 10 * (itemsCount + 3)) / 2` percent of padding a side - **15%** a side for four items,
+   * so the group spans the middle 70% of the bar and stays centred in it.
    */
   @Test
   fun theItemsGroupInTheMiddleOnAMediumScreen() {
     showAt(TABLET_PORTRAIT)
 
-    // Three items in the middle 60% of the bar puts their centres a **fifth** of it apart, against
-    // the third that spreading them puts between them - which is the difference the tablet exposed.
+    // Four items in the middle 70% of the bar puts their centres **0.175** of it apart, against
+    // the quarter that spreading them puts between them - which is the difference a wide bar
+    // exposes.
     assertEquals(
-      "three items grouped take three fifths of the bar between them",
-      0.2f,
+      "four items grouped take 70% of the bar between them",
+      0.175f,
       centreGapFraction(TABLET_PORTRAIT),
       TOLERANCE_FRACTION,
     )
     val files = compose.onNodeWithContentDescription(FILES).getUnclippedBoundsInRoot()
-    val launcher = compose.onNodeWithContentDescription(NEW_LAUNCHER).getUnclippedBoundsInRoot()
-    val groupCentre = (files.left.value + launcher.right.value) / 2
+    val terminal = compose.onNodeWithContentDescription(NEW_TERMINAL).getUnclippedBoundsInRoot()
+    val groupCentre = (files.left.value + terminal.right.value) / 2
 
     assertEquals("and the group is centred", TABLET_PORTRAIT.width.value / 2, groupCentre, 2f)
   }
@@ -153,7 +173,12 @@ class SidePanelBarTest {
   private fun show(selected: SidePanel) {
     compose.setContent {
       JupyterDroidTheme {
-        SidePanelBar(selected = selected, onChoose = { chosen += it }, onOpenLauncher = {})
+        SidePanelBar(
+          selected = selected,
+          onChoose = { chosen += it },
+          onOpenLauncher = {},
+          onNewTerminal = { terminals += "terminal" },
+        )
       }
     }
   }
@@ -182,7 +207,12 @@ class SidePanelBarTest {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
         JupyterDroidTheme {
-          SidePanelBar(selected = SidePanel.FILES, onChoose = { chosen += it }, onOpenLauncher = {})
+          SidePanelBar(
+            selected = SidePanel.FILES,
+            onChoose = { chosen += it },
+            onOpenLauncher = {},
+            onNewTerminal = { terminals += "terminal" },
+          )
         }
       }
     }
