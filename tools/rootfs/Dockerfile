@@ -147,6 +147,10 @@ assert hasattr(IPKernelApp, '_apply_curve_server_options'), 'curve options hook 
 assert 'pipe' in inspect.signature(__import__('ipykernel.iostream', fromlist=['IOPubThread']).IOPubThread.__init__).parameters;\
 print('kernel entry point OK')"
 
+# The same gate for the LSP server (P5a): pylsp starts over stdio - if it cannot
+# even import under musl, the Space's language features would fail on device.
+RUN pylsp --version
+
 # Diagnostic only, and inert unless LD_PRELOAD names it, so it costs 8 KB and nothing else.
 COPY --from=sigsys-builder /tmp/libsigsys_report.so /lib/libsigsys_report.so
 

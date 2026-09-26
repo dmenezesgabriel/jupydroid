@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# P5a: `pylsp` answering by name and over stdio in a real terminal.
+#
+# TABLET ONLY (SM-X216B). The emulator ships no rootfs, so its terminal has no shell and a green
+# run there would say nothing - `p7e-1-space-python-driver.sh`'s own rule.
+#
+# **The flow is not the oracle.** The terminal draws to a `Canvas`, so no Maestro assertion reads
+# a character off it. The flow redirects pylsp's output to files; this driver reads them back
+# with `run-as` and asserts - plus the trampoline link and the rootfs stamp, the two things a
+# screenshot of a terminal cannot show.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# shellcheck source=scripts/java-home.sh
+. "$ROOT/scripts/java-home.sh"
+# shellcheck source=scripts/maestro-run.sh
+. "$ROOT/scripts/maestro-run.sh"
+
+MODEL="$("$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell getprop ro.product.model | tr -d '\r')"
+case "$MODEL" in
+  SM_X216B|SM-X216B) ;;
+  *) echo "refused: P5a must run on the tablet (SM-X216B); this is '$MODEL'"; exit 1 ;;
+esac
+
+OUT="$ROOT/evidence/p5a-pylsp"
+WS="files/spaces/base/home/jupydroid"
+echo "=== pylsp by name and over stdio, on $MODEL ==="
+
+reset_notebooks
+run_flow "$ROOT/.maestro/p5a-pylsp.yaml" "$OUT"
+
+set +e
+read_ws() {
+  "$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell \
+    "run-as $APP sh -c 'test -f \"$WS/$1\" && cat \"$WS/$1\" || echo \"<absent>\"'" | tr -d '\r'
+}
+version="$(read_ws p5a-version.txt)"
+init="$(read_ws p5a-init.out)"
+{
+  echo "pylsp --version:"; echo "$version"; echo
+  echo "initialize over stdio:"; echo "$init"
+} | tee "$OUT/what-the-shell-parsed.txt"
+
+# The link chain and the stamp, read off the device - the claims the frames only show the effect
+# of: v7 is the rootfs that ships pylsp, and the `usr/local/bin` link is how a name reaches it.
+"$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell "run-as $APP sh -c '
+  echo rootfs-version:      \$(cat files/spaces/base/.jupydroid/rootfs-version)
+  echo usr/local/bin/pylsp: \$(readlink files/spaces/base/usr/local/bin/pylsp)
+  echo bin/shebang-exec:    \$(readlink files/spaces/base/bin/shebang-exec)
+'" | tr -d '\r' > "$OUT/the-links.txt"
+echo "--- the links ---"; cat "$OUT/the-links.txt"
+
+fail=0
+case "$version" in
+  *"pylsp v"*"rc=0"*) echo "PASS: pylsp --version ran by name" ;;
+  *) echo "FAIL: pylsp did not run by name: $version"; fail=1 ;;
+esac
+case "$init" in
+  *'"id":1'*"capabilities"*) echo "PASS: initialize got a capabilities reply" ;;
+  *) echo "FAIL: no capabilities reply: $init"; fail=1 ;;
+esac
+exit "$fail"

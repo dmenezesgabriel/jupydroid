@@ -1,0 +1,63 @@
+appId: com.jupydroid.app
+---
+# P5a: `pylsp` runs by name in the Space's shell and answers an LSP `initialize` over stdio.
+#
+# Route 2 in `docs/PLAN.md` ("P5 — LSP") is `python-lsp-server` as a direct stdio subprocess,
+# and the rootfs v7 bump is what puts its console script in `usr/bin`. `ConsoleScripts.relink()`
+# then links `usr/local/bin/pylsp` to the `bin/shebang-exec` trampoline, the same chain P7e-2
+# proved for `pip`.
+#
+# **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell. The
+# terminal draws to a `Canvas`, so nothing here is asserted by Maestro text - the flow redirects
+# what pylsp printed to files and the driver reads them back, the oracle
+# `evidence/p7e-1-space-python/the-link.txt` is.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 15000
+- takeScreenshot: 01-a-shell
+
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `p4i-terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+# The wait first: on a first-launch run the v7 rootfs is still extracting while the "Terminal"
+# title draws, and the field's semantics node lands after it - a bare tap raced it once already.
+- extendedWaitUntil:
+    visible:
+      id: "terminal-input"
+    timeout: 60000
+- tapOn:
+    id: "terminal-input"
+- inputText: "pylsp --version > p5a-version.txt 2>&1"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 20000
+- inputText: "echo rc=$? >> p5a-version.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: 02-pylsp-version
+
+# The route-2 premise, typed as one pipeline: a `Content-Length`-framed `initialize` on pylsp's
+# stdin gets a framed reply on its stdout. `timeout` is the safety net - pylsp may hold the pipe
+# open after answering, and the reply is in the file either way. `rc=` records which way it ended:
+# 0 means pylsp exited on stdin EOF, 124 means timeout killed it - P5b's adapter needs to know.
+- inputText: "printf 'Content-Length: 107\\r\\n\\r\\n%s' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"processId\":null,\"rootUri\":null,\"capabilities\":{}}}' | timeout 15 pylsp > p5a-init.out 2>&1"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 30000
+- inputText: "echo rc=$? >> p5a-init.out"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 8000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-initialize-answered
