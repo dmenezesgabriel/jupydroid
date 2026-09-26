@@ -1,9 +1,15 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.BASE_SPACE
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * What every [LanguageServerPort] must do, whoever implements it.
@@ -76,6 +82,29 @@ abstract class LanguageServerPortContract {
     assertTrue(items.isNotEmpty())
     languageServer.stop(BASE_SPACE)
   }
+
+  /**
+   * A `textDocument/publishDiagnostics` the server pushes arrives on [diagnostics] typed -
+   * uri, range, severity, message - rather than as raw frames each consumer parses again.
+   */
+  @Test
+  fun diagnostics_aServerPushArrivesOnTheFlow() = runBlocking {
+    val languageServer = languageServer()
+    languageServer.openDocument(BASE_SPACE, URI, LANGUAGE_ID, "x = 1\n")
+
+    // Subscribe before pushing: the stream is hot - a publication made while nothing
+    // listens is gone, which is also the signal's own semantics.
+    val received = async { languageServer.diagnostics.first { it.uri == URI } }
+    yield()
+    pushDiagnostics(URI)
+
+    val pushed = withTimeout(10.seconds) { received.await() }
+    assertEquals(URI, pushed.uri)
+    assertTrue(pushed.diagnostics.all { it.message.isNotEmpty() })
+  }
+
+  /** A server-side `publishDiagnostics` for [uri], however the implementation fakes one. */
+  protected abstract suspend fun pushDiagnostics(uri: String)
 
   protected companion object {
     const val URI = "file:///home/jupydroid/contract.py"

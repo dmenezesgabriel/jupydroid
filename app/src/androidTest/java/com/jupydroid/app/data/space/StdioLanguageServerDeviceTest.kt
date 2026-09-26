@@ -5,13 +5,17 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.port.LanguagePosition
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * **P5b: the adapter drives the real `pylsp` the rootfs ships.**
@@ -61,6 +65,31 @@ class StdioLanguageServerDeviceTest {
       assertTrue(
         "jedi offered nothing for `os.path.jo` - got ${items.map { it.label }}",
         items.any { it.label.startsWith("join") },
+      )
+    } finally {
+      languageServer.stop(BASE_SPACE)
+    }
+  }
+
+  /**
+   * P5d-2a: a `didOpen` carrying an undefined name makes the real `pylsp` push a
+   * `textDocument/publishDiagnostics` - pyflakes' own `undefined name` - arriving typed on the
+   * port's stream, never requested. A scripted server can only pretend to lint; this is the
+   * lint.
+   */
+  @Test(timeout = 120_000)
+  fun publishDiagnosticsFromRealPylsp_arrivesOnThePortStream() = runBlocking {
+    val languageServer = baseSpaceLanguageServerPort(context)!!
+    try {
+      val uri = "file:///home/jupydroid/p5d2-probe.py"
+      val received = async { languageServer.diagnostics.first { it.uri == uri } }
+      languageServer.openDocument(BASE_SPACE, uri, "python", "print(never_defined_lsp_name)\n")
+
+      val pushed = withTimeout(60.seconds) { received.await() }
+
+      assertTrue(
+        "pylsp reported nothing about the undefined name - got ${pushed.diagnostics}",
+        pushed.diagnostics.any { it.message.contains("never_defined_lsp_name") },
       )
     } finally {
       languageServer.stop(BASE_SPACE)

@@ -3,10 +3,15 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguagePosition
+import com.jupydroid.app.domain.port.PublishDiagnostics
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
@@ -237,6 +242,55 @@ class StdioLanguageServerTest {
     ask.cancelAndJoin()
 
     waitUntil { server.sent("$/cancelRequest").isNotEmpty() }
+  }
+
+  /**
+   * A `publishDiagnostics` the server pushes unprompted reaches the port's stream with its
+   * fields intact - uri, range, severity, code, source, message. The bridge exists so no
+   * consumer ever parses the raw frame again.
+   */
+  @Test
+  fun aPushedPublishDiagnostics_arrivesOnThePortStream() = runBlocking {
+    val server = ScriptedLanguageServer().also(servers::add)
+    val languageServer = languageServer { server }
+    languageServer.openDocument(BASE_SPACE, URI, "python", "x = 1\n")
+    val received = async { languageServer.diagnostics.first { it.uri == URI } }
+    yield()
+
+    server.pushNotification(publishDiagnosticsNotification(URI))
+
+    val pushed = withTimeout(5.seconds) { received.await() }
+    assertEquals(URI, pushed.uri)
+    val diagnostic = pushed.diagnostics.single()
+    assertEquals(1, diagnostic.severity)
+    assertEquals("F821", diagnostic.code)
+    assertEquals("pyflakes", diagnostic.source)
+    assertEquals("undefined name 'x'", diagnostic.message)
+    assertEquals(LanguagePosition(0, 6), diagnostic.range.start)
+    assertEquals(LanguagePosition(0, 7), diagnostic.range.end)
+  }
+
+  /** A notification of any other method is not the diagnostics stream's business. */
+  @Test
+  fun aPushedNotificationOfAnotherMethod_neverReachesTheStream() = runBlocking {
+    val server = ScriptedLanguageServer().also(servers::add)
+    val languageServer = languageServer { server }
+    languageServer.openDocument(BASE_SPACE, URI, "python", "x = 1\n")
+    val seen = mutableListOf<PublishDiagnostics>()
+    val watch = launch { languageServer.diagnostics.collect { seen += it } }
+    yield()
+
+    server.pushNotification(
+      buildJsonObject {
+        put("jsonrpc", "2.0")
+        put("method", "window/logMessage")
+        put("params", buildJsonObject { put("message", "hello") })
+      },
+    )
+
+    Thread.sleep(200)
+    watch.cancel()
+    assertTrue(seen.isEmpty())
   }
 
   private val JsonObject.textDocument: JsonObject

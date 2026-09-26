@@ -1,6 +1,7 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.Space
+import kotlinx.coroutines.flow.SharedFlow
 
 /**
  * A position the way LSP speaks it: zero-based [line], and [character] counted in the encoding
@@ -33,6 +34,22 @@ data class LanguageCompletion(
  * `utf-16`, the protocol default, unless the server negotiated otherwise.
  */
 data class LanguageCapabilities(val completionProvider: Boolean, val positionEncoding: String)
+
+/**
+ * One entry a `publishDiagnostics` carries: where, how bad, what it says. [severity] is the
+ * LSP `DiagnosticSeverity` number - 1 error, 2 warning, 3 information, 4 hint - normalized
+ * to 1 when the server omitted it, the protocol's own default.
+ */
+data class LanguageDiagnostic(
+  val range: LanguageRange,
+  val severity: Int,
+  val code: String? = null,
+  val source: String? = null,
+  val message: String,
+)
+
+/** A `textDocument/publishDiagnostics` push: every diagnostic the server reports for [uri]. */
+data class PublishDiagnostics(val uri: String, val diagnostics: List<LanguageDiagnostic>)
 
 /**
  * One language server per [Space] - `pylsp` over stdio today (route 2, `docs/PLAN.md` P5),
@@ -71,6 +88,13 @@ interface LanguageServerPort {
 
   /** `textDocument/completion` at [position] in the document at [uri]. */
   suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion>
+
+  /**
+   * Every `textDocument/publishDiagnostics` a running server pushes, typed - the stream the
+   * reference's `ILSPFeatureOptions`' diagnostic signal feeds a gutter from. Hot: a
+   * publication made while nothing listens is gone, which is also the signal's semantics.
+   */
+  val diagnostics: SharedFlow<PublishDiagnostics>
 
   /**
    * `shutdown` + `exit`, the process ended - P1's rule for a subprocess this app owns: it dies

@@ -5,6 +5,9 @@ import com.jupydroid.app.domain.port.LanguageCapabilities
 import com.jupydroid.app.domain.port.LanguageCompletion
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerPort
+import com.jupydroid.app.domain.port.PublishDiagnostics
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 
 /**
  * Stub [LanguageServerPort] - `AppContainer`'s default, so a device with no runnable Space
@@ -27,6 +30,14 @@ class FakeLanguageServerPort : LanguageServerPort {
   val closed = mutableListOf<String>()
   var stops = 0
     private set
+
+  private val pushed = MutableSharedFlow<PublishDiagnostics>(extraBufferCapacity = 64)
+  override val diagnostics: SharedFlow<PublishDiagnostics> = pushed
+
+  /** What a server's `publishDiagnostics` would push - emits onto [diagnostics] for tests. */
+  suspend fun emitDiagnostics(publishDiagnostics: PublishDiagnostics) {
+    pushed.emit(publishDiagnostics)
+  }
 
   override suspend fun capabilities(space: Space): LanguageCapabilities = capabilitiesAnswer
 

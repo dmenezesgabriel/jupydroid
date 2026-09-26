@@ -5,10 +5,17 @@ import com.jupydroid.app.domain.port.LanguageCapabilities
 import com.jupydroid.app.domain.port.LanguageCompletion
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerPort
+import com.jupydroid.app.domain.port.PublishDiagnostics
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -47,9 +54,13 @@ class StdioLanguageServer(
 ) : LanguageServerPort {
   private val startup = Mutex()
   private val servers = mutableMapOf<String, RunningServer>()
+  private val serverScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+  private val _diagnostics = MutableSharedFlow<PublishDiagnostics>(extraBufferCapacity = 64)
+
+  override val diagnostics: SharedFlow<PublishDiagnostics> = _diagnostics
 
   /** A live server plus the document state only it may see - versions live with the process. */
-  private class RunningServer(
+  private inner class RunningServer(
     val process: Process,
     val channel: JsonRpcChannel,
     val capabilities: LanguageCapabilities,
@@ -57,6 +68,16 @@ class StdioLanguageServer(
   ) {
     /** Serializes didOpen/didChange/didClose so a version never goes out twice. */
     val documentLock = Mutex()
+
+    /**
+     * `textDocument/publishDiagnostics` off this server's channel onto the port's stream - one
+     * job per server, so a stopped server's notifications die with it rather than emit forever.
+     */
+    val diagnosticsPump: Job = serverScope.launch {
+      channel.notifications.collect { frame ->
+        LspNotifications.publishDiagnosticsFrom(frame)?.let { _diagnostics.emit(it) }
+      }
+    }
   }
 
   override suspend fun capabilities(space: Space): LanguageCapabilities = serverFor(space).capabilities
@@ -114,6 +135,7 @@ class StdioLanguageServer(
         runCatching { server.channel.notify("exit", buildJsonObject {}) }
         server.process.waitFor(shutdownGrace.inWholeMilliseconds, TimeUnit.MILLISECONDS)
       }
+      server.diagnosticsPump.cancel()
       server.channel.close()
       if (server.process.isAlive) server.process.destroy()
     }
@@ -130,6 +152,7 @@ class StdioLanguageServer(
     // A dead server's channel and process are already gone; close/destroy is cheap and not
     // worth a graceful shutdown - `exit` only matters to a process still there to hear it.
     servers.remove(space.id)?.let {
+      it.diagnosticsPump.cancel()
       it.channel.close()
       it.process.destroy()
     }

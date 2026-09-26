@@ -81,6 +81,9 @@ internal class ScriptedLanguageServer(
   /** Everything the client sent so far - iterating [received] itself needs this lock's copy. */
   fun snapshot(): List<JsonObject> = synchronized(received) { received.toList() }
 
+  /** A server-pushed notification, the way `publishDiagnostics` arrives unasked. */
+  fun pushNotification(notification: JsonObject) = emit(notification)
+
   private fun serve() {
     try {
       while (true) {

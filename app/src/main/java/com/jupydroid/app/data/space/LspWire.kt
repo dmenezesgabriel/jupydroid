@@ -122,7 +122,7 @@ internal object LspWire {
         edit["newText"]?.jsonPrimitive?.contentOrNull?.let { LanguageEdit(range, it) }
       }
 
-  private fun languageRange(range: JsonObject): LanguageRange? =
+  internal fun languageRange(range: JsonObject): LanguageRange? =
     (range["start"] as? JsonObject)?.let(::languagePosition)?.let { start ->
       (range["end"] as? JsonObject)?.let(::languagePosition)?.let { LanguageRange(start, it) }
     }
