@@ -1850,9 +1850,10 @@ Space, lazy to first use and stopped with the Space (`evidence/p5b-language-serv
 `NotebookCompletion` asks it before the kernel (`evidence/p5c-language-completion/`), and it
 asks at a virtual position in a document the code cells share
 (`evidence/p5d1-virtual-document/`); the server's pushed diagnostics land on the same document
-and paint as gutter marks (`evidence/p5d2-diagnostics/`). **P5e-0's probe is run and the
-remaining gaps are scoped below** - every method `pylsp` 1.15.0 advertises was asked over the
-real channel and its raw reply measured (`evidence/p5e-0-lsp-surface/`).
+and paint as gutter marks (`evidence/p5d2-diagnostics/`). **P5e-0's probe is run, P5e-1
+shipped** - every method `pylsp` 1.15.0 advertises was asked over the real channel and its raw
+reply measured (`evidence/p5e-0-lsp-surface/`), and the gutter mark's tap now answers the
+line's findings in a detail card (`evidence/p5e1-diagnostic-detail/`).
 
 This **supersedes** 5.5's `complete_request` completion rather than duplicating it, and adds
 diagnostics, hover, signature help, document symbols and folding over one protocol. IntelliJ's
