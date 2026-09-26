@@ -71,7 +71,7 @@ abstract class KernelGatewayContract {
 
     val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), PREFIX, PREFIX.length)
 
-    assertTrue("completing \"$PREFIX\" must offer print, got $result", "print" in result.matches)
+    assertTrue("completing \"$PREFIX\" must offer print, got $result", result.matches.any { it.insert == "print" })
   }
 
   /** The caller splices a match into the code by this range, so out-of-bounds is a crash there. */

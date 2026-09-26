@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -67,7 +68,7 @@ class CellCompletionsGateTest {
 
   private companion object {
     const val QUERY = "pri"
-    val MATCHES = listOf("print")
+    val MATCHES = listOf(CompletionMatch("print", "print"))
     const val SETTLE_GRACE_MS = 600L
     const val REPORT_TIMEOUT_MS = 2_000L
   }

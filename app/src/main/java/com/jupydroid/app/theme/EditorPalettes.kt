@@ -89,6 +89,11 @@ val DarkEditorPalette: EditorPalette =
     // `90` is the whole of what separates them - see [EditorPalette.currentSearchMatch].
     searchMatch = Color(0x80276782),
     currentSearchMatch = Color(0x90276782),
+    // `symbolIcon.functionForeground` / `.classForeground` / `.variableForeground`, unset in
+    // 2026 Dark - the registered defaults (`symbolIcons.ts:64-69,14-19,119-124`).
+    symbolCallable = Color(0xFFB180D7),
+    symbolClasslike = Color(0xFFEE9D28),
+    symbolMember = Color(0xFF75BEFF),
     syntax =
     SyntaxPalette(
       plain = Color(0xFFBBBEBF),
@@ -152,6 +157,10 @@ val LightEditorPalette: EditorPalette =
     // `editor.findMatchHighlightBackground` and `editor.findMatchBackground`.
     searchMatch = Color(0x1A0069CC),
     currentSearchMatch = Color(0x400069CC),
+    // `symbolIcon.*` light defaults - see the dark palette's note.
+    symbolCallable = Color(0xFF652D90),
+    symbolClasslike = Color(0xFFD67E00),
+    symbolMember = Color(0xFF007ACC),
     syntax =
     SyntaxPalette(
       plain = Color(0xFF202020),

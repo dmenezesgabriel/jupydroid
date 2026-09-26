@@ -3,6 +3,7 @@ package com.jupydroid.app.data.fake
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
@@ -44,7 +45,11 @@ class FakeKernelGateway : KernelGateway {
     val start = identifierStartBefore(code, cursorOffset)
     val prefix = code.substring(start, cursorOffset)
     return CompletionResult(
-      matches = if (prefix.isEmpty()) emptyList() else BUILTINS.filter { it.startsWith(prefix) },
+      matches = if (prefix.isEmpty()) {
+        emptyList()
+      } else {
+        BUILTINS.filter { it.startsWith(prefix) }.map { CompletionMatch(it, it) }
+      },
       replacedStart = start,
       replacedEnd = cursorOffset,
     )

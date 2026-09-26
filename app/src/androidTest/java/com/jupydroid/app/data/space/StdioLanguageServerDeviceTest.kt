@@ -66,6 +66,11 @@ class StdioLanguageServerDeviceTest {
         "jedi offered nothing for `os.path.jo` - got ${items.map { it.label }}",
         items.any { it.label.startsWith("join") },
       )
+      // P5e-2: the row reads the signature-resolved label and is ordered/tinted by the server's
+      // own sortText/kind - the P5e-0 probe measured kind=3, sortText="ajoin" for this item.
+      val join = items.first { it.label.startsWith("join") }
+      assertEquals("pylsp must name join a function (CompletionItemKind 3)", 3, join.kind)
+      assertTrue("pylsp must send sortText for ordering - got ${join.sortText}", !join.sortText.isNullOrEmpty())
     } finally {
       languageServer.stop(BASE_SPACE)
     }

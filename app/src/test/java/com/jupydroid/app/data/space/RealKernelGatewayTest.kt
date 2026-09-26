@@ -226,7 +226,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
 
     val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), "x = pri", cursorOffset = 7)
 
-    assertEquals(listOf("print", "printf"), result.matches)
+    assertEquals(listOf("print", "printf"), result.matches.map { it.insert })
     assertEquals(4, result.replacedStart)
     assertEquals(7, result.replacedEnd)
   }
@@ -250,7 +250,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
 
     val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), "pri", cursorOffset = 3)
 
-    assertEquals(listOf("print"), result.matches)
+    assertEquals(listOf("print"), result.matches.map { it.insert })
   }
 
   /** A completion asked for while a cell is running arrives after the execution's own frames. */
@@ -268,7 +268,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
 
     val result = gateway.complete(gateway.connect(SPACE, "Analysis.ipynb"), "pri", cursorOffset = 3)
 
-    assertEquals(listOf("print"), result.matches)
+    assertEquals(listOf("print"), result.matches.map { it.insert })
   }
 
   @Test

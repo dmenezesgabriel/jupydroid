@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.data.space.JupyterFrame.content
+import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -26,7 +27,8 @@ internal object KernelCompletions {
     JupyterFrame.ofType(frame, requestMsgId, "complete_reply")?.let { reply ->
       val content = reply.content() ?: return@let CompletionResult.NONE
       CompletionResult(
-        matches = content.strings("matches"),
+        // A kernel's `matches` are bare strings: what the row shows is what accepting writes.
+        matches = content.strings("matches").map { CompletionMatch(it, it) },
         replacedStart = content.int("cursor_start"),
         replacedEnd = content.int("cursor_end"),
       )

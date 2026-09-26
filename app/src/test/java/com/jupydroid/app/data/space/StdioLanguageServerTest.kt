@@ -60,6 +60,9 @@ class StdioLanguageServerTest {
       .getValue("general").jsonObject
       .getValue("positionEncodings").jsonArray
     assertEquals("utf-16", encodings.single().jsonPrimitive.content)
+    // `completionItem.documentationFormat` tells the server which markup a resolve may answer
+    // in - pylsp picks markdown when we name it, its own docstring renderer's output.
+    assertEquals(listOf("markdown", "plaintext"), documentationFormatsDeclaredIn(init))
     val server = servers.single()
     waitUntil { server.sent("initialized").isNotEmpty() }
     assertEquals(1, server.sent("initialized").size)
@@ -162,6 +165,23 @@ class StdioLanguageServerTest {
     assertEquals("path.join", edited.edit!!.newText)
     assertEquals(3, edited.edit!!.range.start.character)
     assertEquals(9, edited.edit!!.range.end.character)
+  }
+
+  /**
+   * P5e-2: the row a user reads is the `label` (jedi signature-resolves it - `join(path,
+   * paths)`), the row's glyph comes from `kind`, and the list's order is `sortText`'s. A wire
+   * that dropped any of the three could only ever show bare insert text.
+   */
+  @Test
+  fun completion_itemCarryingKindAndSortText_exposesBoth() = runBlocking {
+    val items = languageServer().completion(BASE_SPACE, URI, LanguagePosition(0, 3))
+
+    val print = items.first { it.label == "print" }
+    assertEquals(3, print.kind)
+    assertEquals("aprint", print.sortText)
+    val edited = items.first { it.label == "os.path.join" }
+    assertEquals(null, edited.kind)
+    assertEquals(null, edited.sortText)
   }
 
   @Test
@@ -298,6 +318,15 @@ class StdioLanguageServerTest {
 
   private val JsonObject.firstChange: JsonObject
     get() = getValue("params").jsonObject.getValue("contentChanges").jsonArray.first().jsonObject
+
+  /** The `completionItem.documentationFormat` list an `initialize` frame declared, in order. */
+  private fun documentationFormatsDeclaredIn(init: JsonObject): List<String> =
+    init.getValue("params").jsonObject.getValue("capabilities").jsonObject
+      .getValue("textDocument").jsonObject
+      .getValue("completion").jsonObject
+      .getValue("completionItem").jsonObject
+      .getValue("documentationFormat").jsonArray
+      .map { it.jsonPrimitive.content }
 
   private fun waitUntil(condition: () -> Boolean) {
     val deadline = System.currentTimeMillis() + 5_000

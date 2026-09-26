@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.LanguageCompletion
@@ -90,11 +91,13 @@ private fun List<Cell>.withLiveSource(cellId: String, code: String) =
 /**
  * LSP items as the one [CompletionResult] the popup knows.
  *
- * A row is the text accepting it writes - `textEdit.newText`, else `insertText` - not the
- * `label` it was shown under, because those differ exactly when the label would splice wrong
- * (`np.ar` completing to `arange` must not insert `np.` again). The replaced span is the
- * edit's own range when an item carries one, and the identifier under the cursor when it does
- * not - the word range the reference computes for an edit-less item.
+ * A row's insert is `textEdit.newText`, else `insertText` - not the `label` it was shown
+ * under, because those differ exactly when the label would splice wrong (`np.ar` completing
+ * to `arange` must not insert `np.` again; `join(path, paths)` must not type its parameter
+ * list). Row order is the server's `sortText` before the label, `compareItems`' own rule.
+ * The replaced span is the edit's own range when an item carries one, and the identifier
+ * under the cursor when it does not - the word range the reference computes for an edit-less
+ * item.
  */
 private fun toCompletionResult(
   document: NotebookVirtualDocument,
@@ -103,7 +106,10 @@ private fun toCompletionResult(
   code: String,
   cursorOffset: Int,
 ): CompletionResult {
-  val matches = items.map { it.edit?.newText ?: it.insertText }.distinct()
+  val matches = items
+    .sortedBy { it.sortText ?: it.label }
+    .distinctBy { it.edit?.newText ?: it.insertText }
+    .map { CompletionMatch(insert = it.edit?.newText ?: it.insertText, label = it.label, kind = it.kind) }
   if (matches.isEmpty()) return CompletionResult.NONE
   val edit = items.firstNotNullOfOrNull { it.edit }
   val start = edit?.let { document.cellOffsetOf(cellId, it.range.start) }

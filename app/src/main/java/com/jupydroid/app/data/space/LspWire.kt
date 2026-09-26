@@ -39,7 +39,20 @@ internal object LspWire {
     put("workspaceFolders", JsonNull)
     putJsonObject("clientInfo") { put("name", "jupydroid") }
     putJsonObject("capabilities") {
-      putJsonObject("textDocument") { putJsonObject("completion") {} }
+      putJsonObject("textDocument") {
+        putJsonObject("completion") {
+          // Tells the server which markup a `completionItem/resolve` may answer in - pylsp's
+          // docstring renderer emits markdown when the client names it. `snippetSupport` stays
+          // undeclared on purpose: with `include_params` on, declaring it would put literal
+          // `${1:}` placeholders into `insertText`, which nothing here tab-stops (P5e-0 probe).
+          putJsonObject("completionItem") {
+            putJsonArray("documentationFormat") {
+              add("markdown")
+              add("plaintext")
+            }
+          }
+        }
+      }
       putJsonObject("general") { putJsonArray("positionEncodings") { add("utf-16") } }
     }
   }
@@ -111,6 +124,8 @@ internal object LspWire {
       insertText = item["insertText"]?.jsonPrimitive?.contentOrNull ?: edit?.newText ?: label,
       detail = item["detail"]?.jsonPrimitive?.contentOrNull,
       edit = edit,
+      kind = item["kind"]?.jsonPrimitive?.intOrNull,
+      sortText = item["sortText"]?.jsonPrimitive?.contentOrNull,
     )
   }
 

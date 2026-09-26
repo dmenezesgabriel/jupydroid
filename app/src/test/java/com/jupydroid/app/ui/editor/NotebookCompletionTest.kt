@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
@@ -65,8 +66,43 @@ class NotebookCompletionTest {
 
     val result = completion.at(cells("cell-1"), "cell-1", "pri", 3)
 
-    assertEquals(listOf("print", "property"), result.matches)
+    assertEquals(listOf("print", "property"), result.matches.map { it.insert })
     assertEquals(0, gateway.completionsAsked)
+  }
+
+  /**
+   * P5e-2: the row shows the `label` - signature-resolved by jedi's `resolve_at_most`, so
+   * `join(path, paths)` rather than bare `join` - and carries `kind` for the glyph; accepting
+   * it still splices `insertText`. The P5e-0 probe records pylsp answering exactly this shape.
+   */
+  @Test
+  fun aRow_showsTheLabel_carriesTheKind_andSplicesTheInsert() = runTest {
+    session.open()
+    server.completions =
+      listOf(LanguageCompletion(label = "join(path, paths)", insertText = "join", kind = 3, sortText = "ajoin"))
+
+    val result = completion.at(cells("cell-1"), "cell-1", "os.path.jo", 10)
+
+    assertEquals(
+      listOf(CompletionMatch(insert = "join", label = "join(path, paths)", kind = 3)),
+      result.matches,
+    )
+  }
+
+  /** `sortText` is the server's stated order; an item without one sorts by its label. */
+  @Test
+  fun rows_sortBySortText_fallingBackToTheLabel() = runTest {
+    session.open()
+    server.completions =
+      listOf(
+        LanguageCompletion(label = "zzz", insertText = "zzz", sortText = "b"),
+        LanguageCompletion(label = "mmm", insertText = "mmm"),
+        LanguageCompletion(label = "aaa", insertText = "aaa", sortText = "c"),
+      )
+
+    val result = completion.at(cells("cell-1"), "cell-1", "pri", 3)
+
+    assertEquals(listOf("zzz", "aaa", "mmm"), result.matches.map { it.insert })
   }
 
   @Test
@@ -127,7 +163,7 @@ class NotebookCompletionTest {
 
     val result = completion.at(cells("cell-1"), "cell-1", code, code.length)
 
-    assertEquals(listOf("join"), result.matches)
+    assertEquals(listOf("join"), result.matches.map { it.insert })
     assertEquals(23, result.replacedStart)
     assertEquals(25, result.replacedEnd)
   }
@@ -153,7 +189,7 @@ class NotebookCompletionTest {
 
     val result = completion.at(cells, "cell-2", "os.path.jo", 10)
 
-    assertEquals(listOf("join"), result.matches)
+    assertEquals(listOf("join"), result.matches.map { it.insert })
     assertEquals(8, result.replacedStart)
     assertEquals(10, result.replacedEnd)
   }
@@ -220,7 +256,7 @@ class NotebookCompletionTest {
 
     val result = completion.at(cells("cell-1"), "cell-1", "pa", 2)
 
-    assertEquals(listOf("path"), result.matches)
+    assertEquals(listOf("path"), result.matches.map { it.insert })
   }
 
   @Test
@@ -238,11 +274,11 @@ class NotebookCompletionTest {
   fun aServerThatCannotAnswer_leavesTheKernelItsTurn() = runTest {
     session.open()
     server.failure = IllegalStateException("pylsp exited")
-    gateway.answer = CompletionResult(listOf("println"), 0, 3)
+    gateway.answer = CompletionResult(listOf(CompletionMatch("println", "println")), 0, 3)
 
     val result = completion.at(cells("cell-1"), "cell-1", "pri", 3)
 
-    assertEquals(listOf("println"), result.matches)
+    assertEquals(listOf("println"), result.matches.map { it.insert })
     assertEquals(1, gateway.completionsAsked)
   }
 

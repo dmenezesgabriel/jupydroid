@@ -160,6 +160,25 @@ data class EditorPalette(
    * counter and its arrows, which this app has and which VS Code's find widget also has.
    */
   val currentSearchMatch: Color,
+  /**
+   * A completion row's kind glyph when the item is callable - `symbolIcon.functionForeground`,
+   * the value `.methodForeground` and `.constructorForeground` register identically
+   * (`editor/contrib/symbolIcons/browser/symbolIcons.ts:64-69,82-88,25-30`). The 2026 themes
+   * leave all three unset, so this is the registered default.
+   */
+  val symbolCallable: Color,
+  /**
+   * A kind glyph for a class-like completion - `symbolIcon.classForeground`, which
+   * `.enumeratorForeground` and `.eventForeground` share (`symbolIcons.ts:14-19,32-37,46-51`).
+   */
+  val symbolClasslike: Color,
+  /**
+   * A kind glyph for a member completion - `symbolIcon.variableForeground`, the value
+   * `.fieldForeground`, `.interfaceForeground` and `.enumeratorMemberForeground` register
+   * (`symbolIcons.ts:53-58,71-76,39-44,119-124`). Every other `symbolIcon.*` id inherits plain
+   * `foreground` - the row's own text colour - so there is no fourth field.
+   */
+  val symbolMember: Color,
   val syntax: SyntaxPalette,
 )
 

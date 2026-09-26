@@ -1,12 +1,14 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,14 +25,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.theme.EditorPalette
+import com.jupydroid.app.theme.LocalEditorPalette
 import com.jupydroid.app.theme.Spacing
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -98,7 +107,12 @@ private fun queryFor(state: TextFieldState): CompletionQuery? {
  * ```
  */
 @Composable
-fun CompletionPopup(completions: CellCompletions, caret: IntRect, onPick: (String) -> Unit, onDismiss: () -> Unit) {
+fun CompletionPopup(
+  completions: CellCompletions,
+  caret: IntRect,
+  onPick: (CompletionMatch) -> Unit,
+  onDismiss: () -> Unit,
+) {
   // The keyboard's height, plus whatever the navigation bar takes. `windowSize` does not shrink
   // for the IME under edge-to-edge, so the provider has to be told.
   val bottomInset = WindowInsets.ime.union(WindowInsets.navigationBars).getBottom(LocalDensity.current)
@@ -113,18 +127,8 @@ fun CompletionPopup(completions: CellCompletions, caret: IntRect, onPick: (Strin
       modifier = Modifier.semantics { contentDescription = "Completions" },
     ) {
       LazyColumn(modifier = Modifier.widthIn(max = MAX_WIDTH).heightIn(max = MAX_HEIGHT)) {
-        items(completions.result.matches, key = { it }) { match ->
-          Text(
-            text = match,
-            style = codeTextStyle(),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-              .clickable { onPick(match) }
-              .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-              // Named, not left as bare text: a soft keyboard offers its own suggestions with
-              // the very same words, and a test that matched "print" matched the IME's.
-              .semantics { contentDescription = "Completion $match" },
-          )
+        items(completions.result.matches, key = { it.insert }) { match ->
+          CompletionRow(match, onPick)
         }
       }
     }
@@ -132,19 +136,59 @@ fun CompletionPopup(completions: CellCompletions, caret: IntRect, onPick: (Strin
 }
 
 /**
- * Splices [match] into [state] over the range the kernel said it replaces.
+ * One offer: the kind glyph in its `symbolIcon.*` colour, then the server's `label` - which is
+ * what the row must read, signature parens and all, while [CompletionMatch.insert] stays the
+ * text accepting it writes.
+ */
+@Composable
+private fun CompletionRow(match: CompletionMatch, onPick: (CompletionMatch) -> Unit) {
+  val palette = LocalEditorPalette.current
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    modifier = Modifier
+      .clickable { onPick(match) }
+      .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+      // Named, not left as bare text: a soft keyboard offers its own suggestions with the very
+      // same words, and a test that matched "print" matched the IME's.
+      .semantics { contentDescription = "Completion ${match.label}" },
+  ) {
+    completionBadge(match.kind)?.let { badge ->
+      Text(
+        text = badge.letter,
+        style = codeTextStyle(),
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center,
+        color = badgeColour(palette, badge.family),
+        modifier = Modifier.width(BADGE_WIDTH),
+      )
+    }
+    Text(text = match.label, style = codeTextStyle(), color = MaterialTheme.colorScheme.onSurface)
+  }
+}
+
+/** The `symbolIcon.*` family colour - [PLAIN] is the registered `foreground` fallback. */
+private fun badgeColour(palette: EditorPalette, family: CompletionBadgeFamily): Color = when (family) {
+  CompletionBadgeFamily.CALLABLE -> palette.symbolCallable
+  CompletionBadgeFamily.CLASSLIKE -> palette.symbolClasslike
+  CompletionBadgeFamily.MEMBER -> palette.symbolMember
+  CompletionBadgeFamily.PLAIN -> palette.syntax.plain
+}
+
+/**
+ * Splices [match]'s *insert text* into [state] over the range the answer said it replaces -
+ * never the label, which carries the signature the user was only meant to read.
  *
  * Refuses when the code has moved on since the request, because the range is an offset into the
  * code that was asked about - applying it to anything else edits the wrong characters.
  */
-fun applyCompletion(state: TextFieldState, completions: CellCompletions, match: String) {
+fun applyCompletion(state: TextFieldState, completions: CellCompletions, match: CompletionMatch) {
   if (state.text.toString() != completions.query.code) return
   val start = completions.result.replacedStart
   val end = completions.result.replacedEnd
   if (start !in 0..end || end > state.text.length) return
   state.edit {
-    replace(start, end, match)
-    placeCursorBeforeCharAt(start + match.length)
+    replace(start, end, match.insert)
+    placeCursorBeforeCharAt(start + match.insert.length)
   }
 }
 
@@ -168,3 +212,6 @@ private val MAX_HEIGHT = 220.dp
  * sits over a cell that already has a background, so it needs a tonal step to separate from it.
  */
 private val POPUP_ELEVATION = 3.dp
+
+/** A monogram badge's column - wide enough for `M`, narrow enough to read as an icon. */
+private val BADGE_WIDTH = 16.dp

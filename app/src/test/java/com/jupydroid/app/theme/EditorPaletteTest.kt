@@ -120,7 +120,16 @@ class EditorPaletteTest {
     assertEquals("light chrome", LIGHT_CHROME, LightEditorPalette.chromeByColourId())
   }
 
-  private fun EditorPalette.chromeByColourId(): Map<String, Color> = mapOf(
+  private fun EditorPalette.chromeByColourId(): Map<String, Color> = surfaceByColourId() + mapOf(
+    // The three ids name a family each: `.method` and `.constructor` register the same value as
+    // `.function`, `.enumerator` and `.event` as `.class`, `.field`/`.interface`/`.enumeratorMember`
+    // as `.variable` (`symbolIcons.ts` - every other `symbolIcon.*` id inherits `foreground`).
+    "symbolIcon.functionForeground" to symbolCallable,
+    "symbolIcon.classForeground" to symbolClasslike,
+    "symbolIcon.variableForeground" to symbolMember,
+  )
+
+  private fun EditorPalette.surfaceByColourId(): Map<String, Color> = mapOf(
     "notebook.editorBackground" to editorBackground,
     "notebook.cellEditorBackground" to cellBackground,
     "notebook.selectedCellBackground" to cellMultiSelected,
@@ -402,6 +411,10 @@ class EditorPaletteTest {
       "editorBracketMatch.background" to Color(0x553994BC),
       "editor.findMatchHighlightBackground" to Color(0x80276782),
       "editor.findMatchBackground" to Color(0x90276782),
+      // Unset in both 2026 themes - the `symbolIcons.ts` registered defaults apply.
+      "symbolIcon.functionForeground" to Color(0xFFB180D7),
+      "symbolIcon.classForeground" to Color(0xFFEE9D28),
+      "symbolIcon.variableForeground" to Color(0xFF75BEFF),
     )
 
     /**
@@ -430,6 +443,9 @@ class EditorPaletteTest {
       "editorBracketMatch.background" to Color(0x400069CC),
       "editor.findMatchHighlightBackground" to Color(0x1A0069CC),
       "editor.findMatchBackground" to Color(0x400069CC),
+      "symbolIcon.functionForeground" to Color(0xFF652D90),
+      "symbolIcon.classForeground" to Color(0xFFD67E00),
+      "symbolIcon.variableForeground" to Color(0xFF007ACC),
     )
 
     /** `2026-dark.json`, resolved through its four-deep `include` chain. */

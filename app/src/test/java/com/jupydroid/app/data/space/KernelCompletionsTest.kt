@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.port.CompletionMatch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -9,7 +10,11 @@ class KernelCompletionsTest {
   fun of_readsTheMatchesAndTheRangeTheyReplace() {
     val result = KernelCompletions.of(KernelFrames.completeReply("m1", listOf("print", "printf"), 6, 9), "m1")
 
-    assertEquals(listOf("print", "printf"), result?.matches)
+    // A kernel's `matches` carry no label/kind distinction - each is its own display and insert.
+    assertEquals(
+      listOf(CompletionMatch("print", "print"), CompletionMatch("printf", "printf")),
+      result?.matches,
+    )
     assertEquals(6, result?.replacedStart)
     assertEquals(9, result?.replacedEnd)
   }
@@ -34,7 +39,7 @@ class KernelCompletionsTest {
 
     val result = KernelCompletions.of(frame, "m1")
 
-    assertEquals(emptyList<String>(), result?.matches)
+    assertEquals(emptyList<CompletionMatch>(), result?.matches)
   }
 
   /** One malformed frame must not take the channel down - every reader here is total. */

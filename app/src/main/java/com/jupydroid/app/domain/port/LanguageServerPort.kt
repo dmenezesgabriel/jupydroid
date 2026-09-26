@@ -26,6 +26,16 @@ data class LanguageCompletion(
   val insertText: String,
   val detail: String? = null,
   val edit: LanguageEdit? = null,
+  /**
+   * The LSP `CompletionItemKind` number - what tints the row's glyph. Null when the server
+   * omitted it; the P5e-0 probe measured pylsp sending `3` (Function) for `join`.
+   */
+  val kind: Int? = null,
+  /**
+   * The order the server stated the row in - pylsp emits things like `ajoin`, and VS Code's
+   * `compareItems` sorts on it before falling back to the label.
+   */
+  val sortText: String? = null,
 )
 
 /**

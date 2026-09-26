@@ -12,11 +12,30 @@ import kotlinx.coroutines.flow.Flow
  * without the range a caller has to guess how much of the line to drop - which is how a
  * completion turns into `np.np.arange`.
  */
-data class CompletionResult(val matches: List<String>, val replacedStart: Int, val replacedEnd: Int) {
+data class CompletionResult(val matches: List<CompletionMatch>, val replacedStart: Int, val replacedEnd: Int) {
   companion object {
     val NONE = CompletionResult(emptyList(), 0, 0)
   }
 }
+
+/**
+ * One row of a [CompletionResult] - what the user reads versus what accepting it writes, which
+ * differ exactly when a language server signature-resolves its labels: jedi answers `join(path,
+ * paths)` as the `label` while `insertText` stays `join` (the P5e-0 probe's measured reply).
+ * Splicing the label would type the parameter list, so the two are carried separately.
+ *
+ * [kind] is the LSP `CompletionItemKind` number (Method=2, Function=3, Variable=6, Class=7…),
+ * carried raw the way [LanguageDiagnostic.severity] carries its protocol number. It is null on
+ * the kernel path, where `matches` are bare strings with nothing to distinguish them by.
+ */
+data class CompletionMatch(
+  /** What accepting the row writes - `insertText`, or `textEdit.newText` when carried. */
+  val insert: String,
+  /** What the row shows - the server's `label`, which for a kernel match is the string itself. */
+  val label: String,
+  /** The LSP `CompletionItemKind`, or null when the answer came from the kernel. */
+  val kind: Int? = null,
+)
 
 /**
  * A live kernel that one notebook (or the Console REPL) is executing against.

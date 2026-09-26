@@ -169,6 +169,8 @@ internal val DEFAULT_COMPLETION_ITEMS: JsonArray = buildJsonArray {
     buildJsonObject {
       put("label", "print")
       put("insertText", "print")
+      put("kind", 3)
+      put("sortText", "aprint")
       put("detail", "built-in function")
     },
   )
