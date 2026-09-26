@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.withLock
  * rather than delegated through, because three more methods on [NotebookKernel] is a class about
  * two things; "the notebook's kernel" is still the one handle a screen holds to reach it.
  *
- * **It never opens a kernel**, which is [NotebookKernel.completionsAt]'s rule applied to the other
+ * **It never opens a kernel**, which is [NotebookAsks.completionsAt]'s rule applied to the other
  * read-only ask on the socket: tapping a key while typing must not boot a Python runtime - seconds
  * and ~143 MB - that the user never asked for by running a cell.
  *
@@ -113,7 +113,7 @@ class NotebookHistory(
   /**
    * Opens a session if there is none, moves the cursor with [step], and hands the entry to [into].
    *
-   * A failure is silence rather than a crash, which is [NotebookKernel.completionsAt]'s rule: a
+   * A failure is silence rather than a crash, which is [NotebookAsks.completionsAt]'s rule: a
    * socket dying is worth reporting while a cell runs and worth ignoring while somebody types.
    */
   @Suppress("SwallowedException") // a kernel that cannot say what it ran has nothing to offer, which is not an error

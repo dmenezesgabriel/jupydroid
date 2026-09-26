@@ -2,6 +2,7 @@ package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.LanguageMarkupKind
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.PublishDiagnostics
 import kotlinx.coroutines.Dispatchers
@@ -12,13 +13,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -163,8 +168,8 @@ class StdioLanguageServerTest {
     val edited = items.first { it.label == "os.path.join" }
     assertEquals("path.join", edited.insertText)
     assertEquals("path.join", edited.edit!!.newText)
-    assertEquals(3, edited.edit!!.range.start.character)
-    assertEquals(9, edited.edit!!.range.end.character)
+    assertEquals(3, edited.edit.range.start.character)
+    assertEquals(9, edited.edit.range.end.character)
   }
 
   /**
@@ -182,6 +187,64 @@ class StdioLanguageServerTest {
     val edited = items.first { it.label == "os.path.join" }
     assertEquals(null, edited.kind)
     assertEquals(null, edited.sortText)
+  }
+
+  /**
+   * P5e-3: `textDocument/hover` is a `TextDocumentPositionParams` request - same wire shape
+   * completion's - and its reply's `contents` arrives typed as [LanguageMarkup], with the
+   * `range` the server stated kept beside it.
+   */
+  @Test
+  fun hover_asksAtThePosition_andParsesTheMarkupContent() = runBlocking {
+    val server = ScriptedLanguageServer().also(servers::add)
+    val languageServer = languageServer { server }
+
+    val hover = languageServer.hover(BASE_SPACE, URI, LanguagePosition(line = 1, character = 4))
+
+    val request = server.sent("textDocument/hover").single()
+    val position = request.getValue("params").jsonObject.getValue("position").jsonObject
+    assertEquals(1, position.getValue("line").jsonPrimitive.intOrNull)
+    assertEquals(4, position.getValue("character").jsonPrimitive.intOrNull)
+    assertEquals(URI, request.textDocument["uri"]!!.jsonPrimitive.content)
+    assertEquals(LanguageMarkupKind.MARKDOWN, hover!!.contents.kind)
+    assertTrue(hover.contents.value.contains("compute_total"))
+    assertEquals(LanguagePosition(1, 0), hover.range!!.start)
+    assertEquals(LanguagePosition(1, 13), hover.range.end)
+  }
+
+  /** A null `result` - what the server answers where nothing is defined - is a null hover. */
+  @Test
+  fun hover_answeredNull_isNull() = runBlocking {
+    val server = ScriptedLanguageServer().also(servers::add)
+    server.hoverResult = JsonNull
+    val languageServer = languageServer { server }
+
+    assertEquals(null, languageServer.hover(BASE_SPACE, URI, LanguagePosition(0, 0)))
+  }
+
+  /**
+   * `contents` predates `MarkupContent`: LSP still allows a bare string, a `{language, value}`
+   * MarkedString, or a list of either. Each normalizes to one markdown payload - a language
+   * string becomes its fenced block - because nothing past this point knows the legacy shapes.
+   */
+  @Test
+  fun hover_legacyMarkedStringShapes_normalizeToOneMarkup() = runBlocking {
+    val server = ScriptedLanguageServer().also(servers::add)
+    server.hoverResult = buildJsonObject {
+      putJsonArray("contents") {
+        add("A function.")
+        addJsonObject {
+          put("language", "python")
+          put("value", "def f(x)")
+        }
+      }
+    }
+    val languageServer = languageServer { server }
+
+    val hover = languageServer.hover(BASE_SPACE, URI, LanguagePosition(0, 0))
+
+    assertEquals(LanguageMarkupKind.MARKDOWN, hover!!.contents.kind)
+    assertEquals("A function.\n\n```python\ndef f(x)\n```", hover.contents.value)
   }
 
   @Test

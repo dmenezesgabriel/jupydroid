@@ -164,6 +164,58 @@ class CellActionItemsTest {
     count = count,
   ).map { it.first }
 
+  // --- "Symbol info" (P5e-3) ---------------------------------------------------------------
+
+  /**
+   * The hover ask as a menu row - `docs/PLAN.md` P5e-3's "symbol info" affordance, a menu item
+   * rather than a text-selection-fighting long-press. It sits second, under the selection row,
+   * for the same reason VS Code's context menu leads with its info commands: this row asks
+   * about the code where every row below it edits the notebook.
+   */
+  @Test
+  fun aCodeCellWithASession_offersSymbolInfo() {
+    val items = cellActionItems(
+      Cell("c1", CellKind.CODE, "x = 1"),
+      canPaste = false,
+      selecting = false,
+      symbolInfo = true,
+    )
+    val labels = items.map { it.first }
+
+    assertEquals(CellAction.SymbolInfo, items.single { it.first == SYMBOL_INFO }.second)
+    assertTrue("Delete stays the last row", labels.last() == "Delete")
+    assertEquals("the ask leads the menu, under Select cells", 1, labels.indexOf(SYMBOL_INFO))
+  }
+
+  /**
+   * Offered only while there is a session to answer - the same rule [canPaste] already keeps:
+   * `cellActionItems`'s own words are that an item that silently does nothing teaches the user
+   * the menu lies, and a hover with no language server behind it could only ever do nothing.
+   */
+  @Test
+  fun noSession_offersNoSymbolInfoRow() {
+    val labels = cellActionItems(
+      Cell("c1", CellKind.CODE, "x = 1"),
+      canPaste = false,
+      selecting = false,
+    ).map { it.first }
+
+    assertFalse(labels.contains(SYMBOL_INFO))
+  }
+
+  /** The virtual document maps code cells only - a markdown cell's ask could never resolve. */
+  @Test
+  fun aMarkdownCell_offersNoSymbolInfoRow() {
+    val labels = cellActionItems(
+      Cell("c1", CellKind.MARKDOWN, "# notes"),
+      canPaste = false,
+      selecting = false,
+      symbolInfo = true,
+    ).map { it.first }
+
+    assertFalse(labels.contains(SYMBOL_INFO))
+  }
+
   // --- notebook:enable/disable/toggle-output-scrolling (P2g-2b) -----------------------------
 
   /**

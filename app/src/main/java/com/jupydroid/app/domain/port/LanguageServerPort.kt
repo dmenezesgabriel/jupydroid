@@ -38,6 +38,22 @@ data class LanguageCompletion(
   val sortText: String? = null,
 )
 
+/** Which markup a payload speaks - LSP's `MarkupKind`, spelled the way Kotlin spells enums. */
+enum class LanguageMarkupKind { MARKDOWN, PLAINTEXT }
+
+/**
+ * A `MarkupContent` pair - kind and text - which is also the shape every legacy `contents`
+ * form (MarkedString, MarkedString[]) is normalized into at the wire.
+ */
+data class LanguageMarkup(val kind: LanguageMarkupKind, val value: String)
+
+/**
+ * A `textDocument/hover` reply: what the symbol under the position is, marked up, and the
+ * range it covers when the server stated one. `contents` is the whole answer - pylsp fills it
+ * with a fenced signature block plus the docstring.
+ */
+data class LanguageHover(val contents: LanguageMarkup, val range: LanguageRange? = null)
+
 /**
  * The slice of `initialize`'s reply a caller may gate a feature on, grown as features land.
  * [positionEncoding] names the unit [LanguagePosition.character] counts - declared
@@ -98,6 +114,12 @@ interface LanguageServerPort {
 
   /** `textDocument/completion` at [position] in the document at [uri]. */
   suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion>
+
+  /**
+   * `textDocument/hover` at [position] in the document at [uri] - `docs/PLAN.md` P5e-3.
+   * Null is a real answer, not a failure: the server says nothing where nothing is defined.
+   */
+  suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover?
 
   /**
    * Every `textDocument/publishDiagnostics` a running server pushes, typed - the stream the

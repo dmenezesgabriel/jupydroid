@@ -34,6 +34,8 @@ import kotlin.concurrent.thread
 internal class ScriptedLanguageServer(
   /** What `textDocument/completion` replies carry; tests set their own when they need to. */
   var completionItems: JsonElement = DEFAULT_COMPLETION_ITEMS,
+  /** What `textDocument/hover` replies carry - the whole `result`, so a test can send null. */
+  var hoverResult: JsonElement = DEFAULT_HOVER,
 ) : Process() {
   /** Every frame the client sent, in arrival order - requests and notifications alike. */
   val received: MutableList<JsonObject> = Collections.synchronizedList(mutableListOf())
@@ -109,9 +111,9 @@ internal class ScriptedLanguageServer(
         reply(id, INITIALIZE_RESULT)
         serverRequestAfterInitialize?.let { emit(it) }
       }
-      "textDocument/completion" -> {
+      "textDocument/completion", "textDocument/hover" -> {
         emitNotification()
-        reply(id, completionResult())
+        reply(id, if (method == "textDocument/hover") hoverResult else completionResult())
       }
       "shutdown" -> reply(id, JsonNull)
       "exit" -> destroy()
@@ -159,6 +161,24 @@ internal class ScriptedLanguageServer(
         put("name", "scripted")
         put("version", "0.1")
       }
+    }
+  }
+}
+
+/** A realistic `textDocument/hover` payload: markdown `MarkupContent` and the range it covers. */
+internal val DEFAULT_HOVER: JsonObject = buildJsonObject {
+  putJsonObject("contents") {
+    put("kind", "markdown")
+    put("value", "```python\ncompute_total(values)\n```\n\nSum the values.")
+  }
+  putJsonObject("range") {
+    putJsonObject("start") {
+      put("line", 1)
+      put("character", 0)
+    }
+    putJsonObject("end") {
+      put("line", 1)
+      put("character", 13)
     }
   }
 }

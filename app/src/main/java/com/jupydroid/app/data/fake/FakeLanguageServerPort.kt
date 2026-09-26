@@ -3,6 +3,9 @@ package com.jupydroid.app.data.fake
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageCapabilities
 import com.jupydroid.app.domain.port.LanguageCompletion
+import com.jupydroid.app.domain.port.LanguageHover
+import com.jupydroid.app.domain.port.LanguageMarkup
+import com.jupydroid.app.domain.port.LanguageMarkupKind
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.PublishDiagnostics
@@ -24,6 +27,11 @@ class FakeLanguageServerPort : LanguageServerPort {
 
   /** What the fake's `initialize` reports - one completion provider, utf-16 offsets. */
   var capabilitiesAnswer = LanguageCapabilities(completionProvider = true, positionEncoding = "utf-16")
+
+  /** What `hover` answers, replaceable with null for a "nothing here" test. */
+  var hoverAnswer: LanguageHover? = LanguageHover(
+    LanguageMarkup(LanguageMarkupKind.MARKDOWN, "```python\nprint(value, ...)\n```\n\nWrite to a stream."),
+  )
 
   /** `didOpen`/`didChange` in arrival order, so a test sees the sync the server would have. */
   val opened = mutableListOf<String>()
@@ -62,6 +70,8 @@ class FakeLanguageServerPort : LanguageServerPort {
 
   override suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion> =
     completions
+
+  override suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover? = hoverAnswer
 
   override suspend fun stop(space: Space) {
     stops++

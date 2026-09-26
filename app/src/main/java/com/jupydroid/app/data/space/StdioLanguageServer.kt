@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageCapabilities
 import com.jupydroid.app.domain.port.LanguageCompletion
+import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.PublishDiagnostics
@@ -20,6 +21,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import java.io.BufferedReader
 import java.io.File
@@ -96,15 +98,11 @@ class StdioLanguageServer(
         openOn(server, uri, "python", text)
         return@withLock
       }
-      changeOn(server, uri, text)
+      // The whole-text change at a version that only counts up - `sendFullTextChange`'s shape.
+      val version = (server.documents[uri] ?: 0) + 1
+      server.documents[uri] = version
+      server.channel.notify("textDocument/didChange", LspWire.didChangeParams(uri, version, text))
     }
-  }
-
-  /** The whole-text change at a version that only counts up - `sendFullTextChange`'s shape. */
-  private suspend fun changeOn(server: RunningServer, uri: String, text: String) {
-    val version = (server.documents[uri] ?: 0) + 1
-    server.documents[uri] = version
-    server.channel.notify("textDocument/didChange", LspWire.didChangeParams(uri, version, text))
   }
 
   override suspend fun closeDocument(space: Space, uri: String) {
@@ -115,15 +113,38 @@ class StdioLanguageServer(
     }
   }
 
-  override suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion> {
-    val reply = try {
-      serverFor(space)
-        .channel
-        .request("textDocument/completion", LspWire.completionParams(uri, position), requestTimeout)
-    } catch (e: TimeoutCancellationException) {
-      throw IllegalStateException("textDocument/completion returned no reply within $requestTimeout", e)
-    }
-    return LspWire.completionItems(reply["result"])
+  override suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion> =
+    positions.completion(space, uri, position)
+
+  /** @see LanguageServerPort.hover */
+  override suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover? =
+    positions.hover(space, uri, position)
+
+  /**
+   * The `TextDocumentPositionParams` asks - completion and hover share one wire shape:
+   * params that name a document and a point in it, one request timeout, replies decoded at
+   * the wire objects. An inner class rather than loose methods because it uses [serverFor]
+   * and [requestTimeout], and a holder rather than the class's own scope so the
+   * position-ask shape stays greppable in one place (P5e-4's signature help lands here too).
+   */
+  private val positions = PositionRequests()
+
+  private inner class PositionRequests {
+    suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion> =
+      LspWire.completionItems(request(space, "textDocument/completion", uri, position)["result"])
+
+    suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover? =
+      LspMarkup.hoverFrom(request(space, "textDocument/hover", uri, position)["result"])
+
+    /** One `TextDocumentPositionParams` request - the params every point-in-document method shares. */
+    private suspend fun request(space: Space, method: String, uri: String, position: LanguagePosition): JsonObject =
+      try {
+        serverFor(space)
+          .channel
+          .request(method, LspWire.positionParams(uri, position), requestTimeout)
+      } catch (e: TimeoutCancellationException) {
+        throw IllegalStateException("$method returned no reply within $requestTimeout", e)
+      }
   }
 
   override suspend fun stop(space: Space) {
@@ -183,18 +204,18 @@ class StdioLanguageServer(
     }
   }
 
-  private suspend fun openOn(server: RunningServer, uri: String, languageId: String, text: String) {
-    if (uri in server.documents) return
-    server.documents[uri] = 0
-    server.channel.notify("textDocument/didOpen", LspWire.didOpenParams(uri, languageId, text))
-  }
-
   /**
    * stderr drains on its own daemon - a server's log may never occupy the protocol stream,
    * and an undrained pipe buffer is a deadlock a `window/logMessage` flood could cause.
    */
   private fun drainStderr(stderr: InputStream) = thread(isDaemon = true, name = "lsp-stderr") {
     BufferedReader(stderr.reader()).forEachLine { log.reached("lsp.stderr", mapOf("line" to it)) }
+  }
+
+  private suspend fun openOn(server: RunningServer, uri: String, languageId: String, text: String) {
+    if (uri in server.documents) return
+    server.documents[uri] = 0
+    server.channel.notify("textDocument/didOpen", LspWire.didOpenParams(uri, languageId, text))
   }
 
   /** The pylsp console script a rootfs [baseDir] carries at `usr/local/bin`. */

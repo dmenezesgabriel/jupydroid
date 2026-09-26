@@ -69,6 +69,10 @@ internal fun EditorUiState.applying(
   // left to `transformed` so a row that reaches the ViewModel by some route cannot record an
   // undo entry for having been tapped.
   action == CellAction.ChooseHeadingLevel -> this
+  // The hover ask is surface-answered too: [EditorCell] turns it into a popup beside the caret
+  // it asked about, so an action arriving here by any other route has nothing to change - the
+  // picker's own guard above, kept for exactly this reachability.
+  action == CellAction.SymbolInfo -> this
   else -> operated(action, head = selectedCellId, editor = editor)
 }
 
@@ -122,7 +126,7 @@ private val CellAction.takesWholeSections: Boolean
     is CellAction.Insert, is CellAction.InsertAbove, is CellAction.InsertHeading,
     is CellAction.ChangeKind, is CellAction.ChangeToHeading, CellAction.ChooseHeadingLevel,
     is CellAction.Merge, CellAction.Split, is CellAction.Move, CellAction.StartSelecting,
-    CellAction.Paste, CellAction.ClearOutputs, is CellAction.Fold,
+    CellAction.Paste, CellAction.ClearOutputs, is CellAction.Fold, CellAction.SymbolInfo,
     -> false
   }
 
@@ -147,8 +151,9 @@ private val CellAction.keepsTheRun: Boolean
     // than making this a fourth answer.
     is CellAction.Fold,
     is CellAction.Move, CellAction.ClearOutputs,
-    // Neither of the two that edit nothing: one asks for a run, the other for a picker.
-    CellAction.StartSelecting, CellAction.ChooseHeadingLevel,
+    // The three that edit nothing: a run, a picker, a hover - none of them a reason a marked
+    // run would stop being one.
+    CellAction.StartSelecting, CellAction.ChooseHeadingLevel, CellAction.SymbolInfo,
     -> true
 
     is CellAction.Insert, is CellAction.InsertAbove, is CellAction.InsertHeading,
@@ -184,9 +189,10 @@ private fun EditorUiState.transformed(
   // `withCellSplit` free of id generation like every other transform in the file.
   CellAction.Split -> withCellSplit(head, editor.caret, newIds = List(2) { newCellId() })
   is CellAction.Move -> withCellsMoved(cellIds, action.move)
-  // Both are answered by `applying` before they get here, neither being a document change at all.
-  // Kept as branches so the `when` stays exhaustive: a seventeenth action has to decide, not inherit.
-  CellAction.StartSelecting, CellAction.ChooseHeadingLevel -> this
+  // All three are answered by `applying` before they get here, none being a document change at
+  // all. Kept as branches so the `when` stays exhaustive: an eighteenth action has to decide,
+  // not inherit.
+  CellAction.StartSelecting, CellAction.ChooseHeadingLevel, CellAction.SymbolInfo -> this
   CellAction.Copy -> withCellsCopied(cellIds)
   CellAction.Cut -> withCellsCut(cellIds, replacementId = newCellId())
   CellAction.Paste -> withClipboardPasted(head, newIds = clipboard.map { newCellId() })

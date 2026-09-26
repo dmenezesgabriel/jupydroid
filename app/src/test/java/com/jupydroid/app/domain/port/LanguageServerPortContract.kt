@@ -51,6 +51,23 @@ abstract class LanguageServerPortContract {
     assertTrue(items.all { it.insertText.isNotEmpty() })
   }
 
+  /**
+   * `textDocument/hover` on a symbol the document carries answers its `LanguageHover` - P5e-3.
+   * Every implementation's default answers one: the scripted server's canned reply and the
+   * fake's configured answer alike, since a null answer would only say "nothing is here" about
+   * a document that plainly defines `x`.
+   */
+  @Test
+  fun hover_onADefinedName_answers() = runBlocking {
+    val languageServer = languageServer()
+    languageServer.openDocument(BASE_SPACE, URI, LANGUAGE_ID, "x = 1\n")
+
+    val hover = languageServer.hover(BASE_SPACE, URI, LanguagePosition(line = 0, character = 0))
+
+    assertTrue("a hover answer carries the markup it was asked about", hover != null)
+    assertTrue(hover!!.contents.value.isNotEmpty())
+  }
+
   /** The document verbs are a lifecycle, not calls that may throw: open, change, close. */
   @Test
   fun documentLifecycle_isAccepted() = runBlocking {

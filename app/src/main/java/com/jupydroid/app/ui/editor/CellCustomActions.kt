@@ -41,13 +41,24 @@ internal fun Modifier.cellCustomActions(
    * cell and deletes three.
    */
   count: Int,
+  /** Whether a session can answer [CellAction.SymbolInfo] - see [cellActionItems]'s own rule. */
+  symbolInfo: Boolean = false,
   onAction: (CellAction) -> Unit,
 ): Modifier {
   // Remembered against what the list is made of: rebuilding fifteen CustomAccessibilityAction
   // objects on every recomposition of every cell would allocate on each keystroke, and a changed
   // identity makes TalkBack re-read the menu it is sitting in.
-  val actions = remember(cell.kind, cell.sourceHidden, cell.outputsHidden, canPaste, selecting, count, onAction) {
-    cellActionItems(cell, canPaste, selecting, count)
+  val actions = remember(
+    cell.kind,
+    cell.sourceHidden,
+    cell.outputsHidden,
+    canPaste,
+    selecting,
+    count,
+    symbolInfo,
+    onAction,
+  ) {
+    cellActionItems(cell, canPaste, selecting, count, symbolInfo)
       // The one row that stands for six is expanded here rather than opening a picker: this menu
       // has no width to run out of and no fold, and a submenu is the worst shape to operate with
       // TalkBack. See [headingLevelItems].

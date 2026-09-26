@@ -141,7 +141,7 @@ class KernelGreetingRecoveryTest {
    * notebook onto. Restarting is a cost worth paying to save a cell and not worth paying to save
    * a completion popup, which has an answer for "the kernel cannot say": nothing.
    *
-   * The same rule that keeps typing from *starting* a runtime (`NotebookKernel.completionsAt`)
+   * The same rule that keeps typing from *starting* a runtime (`NotebookAsks.completionsAt`)
    * one step further on.
    */
   @Test

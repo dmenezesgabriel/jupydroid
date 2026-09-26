@@ -84,8 +84,13 @@ class NotebookCompletion(
   }
 }
 
-/** [cells] with [cellId]'s source replaced by the field's live [code] - the truth of the text. */
-private fun List<Cell>.withLiveSource(cellId: String, code: String) =
+/**
+ * [cells] with [cellId]'s source replaced by the field's live [code] - the truth of the text.
+ *
+ * Internal rather than private because every caret-driven ask needs it: [NotebookHover] must
+ * not sync `uiState`'s up-to-a-debounce-old copy either.
+ */
+internal fun List<Cell>.withLiveSource(cellId: String, code: String) =
   map { if (it.id == cellId) it.copy(source = code) else it }
 
 /**

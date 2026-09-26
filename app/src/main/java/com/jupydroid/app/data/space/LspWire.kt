@@ -97,7 +97,11 @@ internal object LspWire {
     putJsonObject("textDocument") { put("uri", uri) }
   }
 
-  fun completionParams(uri: String, position: LanguagePosition): JsonObject = buildJsonObject {
+  /**
+   * `TextDocumentPositionParams` - the params every point-in-document request shares
+   * (`completion`, `hover`, `definition`, …): which document, and where in it.
+   */
+  fun positionParams(uri: String, position: LanguagePosition): JsonObject = buildJsonObject {
     putJsonObject("textDocument") { put("uri", uri) }
     putJsonObject("position") {
       put("line", position.line)

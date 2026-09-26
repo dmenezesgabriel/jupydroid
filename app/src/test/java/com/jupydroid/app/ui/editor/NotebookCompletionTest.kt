@@ -27,7 +27,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * only when no server is running - behind the same [CompletionResult] the kernel path always
  * produced, so the popup and its splice do not change.
  *
- * The session gate is [NotebookKernel.completionsAt]'s own rule carried over: a notebook that
+ * The session gate is [NotebookAsks.completionsAt]'s own rule carried over: a notebook that
  * never ran a cell never asked for a Space, so typing there asks nothing of anyone.
  */
 class NotebookCompletionTest {

@@ -104,7 +104,7 @@ class LspSurfaceProbeTest {
   private suspend fun probeLanguageFeatures(channel: JsonRpcChannel, openDiagnostics: JsonObject) {
     val completions = channel.request(
       "textDocument/completion",
-      LspWire.completionParams(URI, LanguagePosition(12, 10)),
+      LspWire.positionParams(URI, LanguagePosition(12, 10)),
       60.seconds,
     )
     section("completion at os.path.jo|", completions.toString().take(1500))
@@ -138,7 +138,7 @@ class LspSurfaceProbeTest {
     val bigText = (1..80).joinToString("\n\n") { "def fn_$it(x):\n    return x + $it" }
     channel.notify("textDocument/didOpen", LspWire.didOpenParams(bigUri, "python", bigText))
     val completion = measureTimedValue {
-      channel.request("textDocument/completion", LspWire.completionParams(bigUri, LanguagePosition(2, 8)), 60.seconds)
+      channel.request("textDocument/completion", LspWire.positionParams(bigUri, LanguagePosition(2, 8)), 60.seconds)
     }
     section("completion inside ~${bigText.length}-char doc", "answered in ${completion.duration}")
     repeat(3) { round ->

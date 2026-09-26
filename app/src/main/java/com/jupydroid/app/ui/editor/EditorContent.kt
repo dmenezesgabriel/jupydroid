@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.LanguageHover
 
 /**
  * The notebook's own cell list, split out of [EditorScreen] for the same reason
@@ -32,6 +33,8 @@ internal fun EditorContent(
   onSetCondition: (cellId: String, line: Int, condition: String?) -> Unit,
   /** `(cellId, code, cursorOffset)` - the cell keys the language server's document (P5c). */
   completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
+  /** `(cellId, code, cursorOffset)` - the "Symbol info" ask, P5e-3 - see [EditorCell]. */
+  hoverAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageHover?,
   onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
   onToggleSelected: (String) -> Unit,
@@ -110,6 +113,10 @@ internal fun EditorContent(
               onStop = onStopCell,
               onSourceEdited = { source -> onEditCell(cell.id, source) },
               completionsAt = completionsAt,
+              hoverAt = hoverAt,
+              // The ask can only answer while a session stands - `cellActionItems`'s own rule
+              // about promising nothing that cannot come back.
+              symbolInfoOffered = state.kernelConnected,
               onCellAction = { action, editor -> onCellAction(cell.id, action, editor) },
               onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
               onToggleSelected = { onToggleSelected(cell.id) },

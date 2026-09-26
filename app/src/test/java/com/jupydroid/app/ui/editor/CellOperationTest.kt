@@ -68,6 +68,22 @@ class CellOperationTest {
     assertFalse(run.applying(CellAction.Split).selecting)
   }
 
+  /**
+   * **The hover ask is not an edit** - P5e-3. The surface that raised it answers it (the popup
+   * lives beside the caret it asked about, which is [EditorCell]'s scope), so a row that ever
+   * reached the operation must change nothing and record no undo entry - `ChooseHeadingLevel`'s
+   * own guard, which `applying` keeps for exactly this reachability.
+   */
+  @Test
+  fun symbolInfo_changesNothingAndRecordsNoUndo() {
+    val run = markedRun("a", "b")
+    val asked = run.applying(CellAction.SymbolInfo)
+
+    assertEquals(run.cells, asked.cells)
+    assertEquals(0, asked.undoable.size)
+    assertTrue("asking keeps the run, the way the picker's own ask does", asked.selecting)
+  }
+
   /** `NotebookActions.undo` ends on `deselectAll()`; ours has to as well, or the bar outlives it. */
   @Test
   fun undoClearsTheRunToo() {

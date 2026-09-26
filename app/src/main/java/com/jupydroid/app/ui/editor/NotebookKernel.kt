@@ -4,7 +4,6 @@ import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
-import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.SteppingCommand
@@ -103,6 +102,12 @@ class NotebookKernel(
   private val languageDocument = NotebookLanguageDocument(languageServer) { uiState.value.notebookId }
 
   private val completion = NotebookCompletion(session, kernelGateway, languageServer, languageDocument)
+
+  /** The "Symbol info" ask - `textDocument/hover` at the caret's virtual position (P5e-3). */
+  private val hover = NotebookHover(session, languageServer, languageDocument)
+
+  /** The cell-level asks - completion and hover - [NotebookAsks] owns like [history] owns history. */
+  val asks = NotebookAsks(uiState, completion, hover)
 
   /** `publishDiagnostics` as per-cell marks in state - see [NotebookDiagnostics]. */
   private val diagnostics =
@@ -232,20 +237,6 @@ class NotebookKernel(
       then()
     }
   }
-
-  /**
-   * What fits under the cursor in the cell [cellId] names - the language server's answer first,
-   * the kernel's when no server is running (P5c); see [NotebookCompletion].
-   *
-   * Uses the session the notebook already has and never opens one. Typing must not boot a
-   * Python runtime the user has not asked for by running a cell - `BaseSpaceKernelGateway`
-   * installs a Space and starts `jupyter_server` on first use, which is seconds and ~143 MB.
-   *
-   * A completion that fails is silence, not a crash: the socket dying is worth reporting when
-   * a cell is running, and worth ignoring when the user is only typing.
-   */
-  suspend fun completionsAt(cellId: String, code: String, cursorOffset: Int): CompletionResult =
-    completion.at(uiState.value.cells, cellId, code, cursorOffset)
 
   /**
    * Closes the socket, on a scope that outlives the screen.

@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.theme.editorPalette
@@ -58,6 +60,16 @@ fun CodeCellField(
   onSourceEdited: (String) -> Unit,
   modifier: Modifier = Modifier,
   completionsAt: suspend (code: String, cursorOffset: Int) -> CompletionResult = NO_COMPLETIONS,
+  /**
+   * The "Symbol info" ask - `textDocument/hover` at the caret (P5e-3). Unlike [completionsAt]
+   * it is never invoked by typing: [symbolAsk] is the only trigger, which is the menu row's job.
+   */
+  hoverAt: suspend (code: String, cursorOffset: Int) -> LanguageHover? = NO_HOVER,
+  /**
+   * The "Symbol info" request count - bumped by the surface that owns the menu, so one ask is
+   * one number rather than a boolean a second tap could not flip back. `0` is "never asked".
+   */
+  symbolAsk: Int = 0,
   highlighter: SyntaxHighlighter = remember { PythonSyntax() },
   /** `notebook:toggle-autoclosing-brackets`, universal - see [PythonTypingRules]. */
   autoClosingBrackets: Boolean = true,
@@ -111,7 +123,15 @@ fun CodeCellField(
   // `docs/PLAN.md` P5e-1. Derived visibility: when a republish leaves the line with no
   // findings, there is nothing left to show and the popup goes on its own.
   var detailLine by remember { mutableStateOf<Int?>(null) }
+  // The hover the last "Symbol info" ask returned - P5e-3. Null rather than stale on a miss:
+  // an answered-nothing clears whatever an earlier ask showed, so the popup never quotes a
+  // symbol the caret has since moved off.
+  var hover by remember { mutableStateOf<LanguageHover?>(null) }
   val scroll = remember { ScrollState(0) }
+
+  LaunchedEffect(symbolAsk) {
+    if (symbolAsk > 0) hover = hoverAt(state.text.toString(), state.selection.end)
+  }
 
   reportCellEdits(state, onSourceEdited)
 
@@ -188,6 +208,13 @@ fun CodeCellField(
     if (detail != null && anchor != null) {
       DiagnosticDetailPopup(detail.second, anchor) { detailLine = null }
     }
+    hover?.let {
+      HoverPopup(
+        hover = it,
+        caret = caretRect(layout, state.selection.end, gutter, scroll.value),
+        onDismiss = { hover = null },
+      )
+    }
   }
 }
 
@@ -220,3 +247,6 @@ internal fun IntRect.shiftedBy(dxPx: Int): IntRect = IntRect(left - dxPx, top, r
 
 /** A cell with no kernel behind it still edits; it just has nothing to suggest. */
 private val NO_COMPLETIONS: suspend (String, Int) -> CompletionResult = { _, _ -> CompletionResult.NONE }
+
+/** A field nobody wired the ask into still edits; "Symbol info" simply stays silent on it. */
+private val NO_HOVER: suspend (String, Int) -> LanguageHover? = { _, _ -> null }

@@ -40,10 +40,17 @@ internal fun cellActionItems(
    * `'Clear Cell Output'` and `'Collapse Selected Code'` have one form each (`:3365`, `:4741`).
    */
   count: Int = 1,
+  /**
+   * Whether a session is there to answer [SYMBOL_INFO] - the [canPaste] rule verbatim: an item
+   * that could only ever do nothing teaches the user the menu lies, and a hover with no
+   * language server behind it is exactly that.
+   */
+  symbolInfo: Boolean = false,
 ): List<Pair<String, CellAction>> {
   val several = count > 1
-  return selectingItems(selecting) + addingItems() + shapingItems(cell, several) +
-    clipboardItems(canPaste, several) + foldingItems(cell) + removingItems(several)
+  return selectingItems(selecting) + inspectingItems(cell, symbolInfo) + addingItems() +
+    shapingItems(cell, several) + clipboardItems(canPaste, several) + foldingItems(cell) +
+    removingItems(several)
 }
 
 /**
@@ -210,3 +217,9 @@ internal const val EXPAND_OUTPUTS = "Expand outputs"
 
 /** `notebook:toggle-output-scrolling` on its menu surface - see [foldingItems]. */
 internal const val ENABLE_OUTPUT_SCROLLING = "Enable output scrolling"
+
+/**
+ * P5e-3's row - what the surface asks the language server about the symbol under the caret.
+ * VS Code's own command is "Show or Focus Hover"; the phrase names what a user gets rather
+ * than the protocol verb, which is also how JupyterLab's inspector names it ("Contextual Help").
+ */

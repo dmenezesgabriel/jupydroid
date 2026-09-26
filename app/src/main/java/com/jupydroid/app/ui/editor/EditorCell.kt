@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,6 +17,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
@@ -44,6 +47,16 @@ internal fun EditorCell(
   onSourceEdited: (String) -> Unit,
   /** `(cellId, code, cursorOffset)` - the language server keeps one document per cell (P5c). */
   completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
+  /**
+   * `(cellId, code, cursorOffset)` - the "Symbol info" ask, P5e-3. Answers null where no
+   * server or definition can respond, which the field then simply does not show.
+   */
+  hoverAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageHover? = NO_HOVER,
+  /**
+   * Whether a session can answer [CellAction.SymbolInfo], so the menu's row and this cell's
+   * accessibility context menu only promise what can come back - `EditorUiState.kernelConnected`.
+   */
+  symbolInfoOffered: Boolean = false,
   onCellAction: (CellAction, CellEditorText) -> Unit,
   onFocusChanged: (Boolean) -> Unit,
   onToggleSelected: () -> Unit,
@@ -97,8 +110,19 @@ internal fun EditorCell(
   // than when the menu was built. Only Split reads it, and it is the one action that is not a pure
   // function of the document - see [CellEditorText]. Both surfaces dispatch through here, so the
   // accessibility context menu gets it too.
+  //
+  // **All but one**: `SymbolInfo` is answered here and not dispatched, because what it needs is
+  // the caret this cell owns and the popup the field draws - [ChooseHeadingLevel]'s own shape of
+  // a row the surface itself answers, so `CellEdits` never sees an ask that is not an edit. The
+  // token and not a boolean: a second tap must re-ask even with nothing else changed, and a
+  // remembered boolean that was already true would not.
+  var symbolAsk by remember { mutableIntStateOf(0) }
   val act: (CellAction) -> Unit = { action ->
-    onCellAction(action, CellEditorText(field.text.toString(), field.selection))
+    if (action == CellAction.SymbolInfo) {
+      symbolAsk++
+    } else {
+      onCellAction(action, CellEditorText(field.text.toString(), field.selection))
+    }
   }
   // The one rule both the stripe and the editor's border hang off - see [cellIsBeingEdited].
   val editing = cellIsBeingEdited(selected, mode)
@@ -118,6 +142,7 @@ internal fun EditorCell(
       selecting = mark != null,
       // What *this* cell's menu will act on: the whole run when it is in it, itself when not.
       count = if (mark?.checked == true) markedCount else 1,
+      symbolInfo = symbolInfoOffered,
       onAction = act,
     ),
   ) {
@@ -126,6 +151,7 @@ internal fun EditorCell(
       executionCount = executionCount,
       execution = execution,
       canPaste = canPaste,
+      symbolInfo = symbolInfoOffered,
       mark = mark,
       onToggleSelected = onToggleSelected,
       // One Run for both kinds now: `runCells` is what decides that a code cell reaches the kernel
@@ -154,6 +180,8 @@ internal fun EditorCell(
             state = field,
             onSourceEdited = onSourceEdited,
             completionsAt = { code, cursorOffset -> completionsAt(cell.id, code, cursorOffset) },
+            hoverAt = { code, cursorOffset -> hoverAt(cell.id, code, cursorOffset) },
+            symbolAsk = symbolAsk,
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
             codeFontSizeSp = codeFontSizeSp,
@@ -216,3 +244,6 @@ internal fun EditorCell(
     }
   }
 }
+
+/** A cell whose caller never wired the ask has nothing to show - [NO_COMPLETIONS]'s own rule. */
+private val NO_HOVER: suspend (String, String, Int) -> LanguageHover? = { _, _, _ -> null }

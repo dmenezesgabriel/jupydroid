@@ -101,6 +101,42 @@ class StdioLanguageServerDeviceTest {
     }
   }
 
+  /**
+   * P5e-3: `textDocument/hover` on a name the document defines makes the real `pylsp` answer
+   * its markdown - jedi's fenced signature plus docstring - typed through the port, and `null`
+   * where nothing is defined. A scripted server can only pretend to know a symbol; this is the
+   * knowing.
+   */
+  @Test(timeout = 120_000)
+  fun hoverOnADefinedName_answersItsMarkdown() = runBlocking {
+    val languageServer = baseSpaceLanguageServerPort(context)!!
+    try {
+      val uri = "file:///home/jupydroid/p5e3-probe.py"
+      languageServer.openDocument(
+        BASE_SPACE,
+        uri,
+        "python",
+        "def compute_total(values):\n    return sum(values)\n\ncompute_total([1, 2])\n",
+      )
+
+      val hover = languageServer.hover(BASE_SPACE, uri, LanguagePosition(line = 3, character = 4))
+
+      assertTrue("pylsp answered nothing for compute_total", hover != null)
+      assertTrue(
+        "expected the signature in the markup - got ${hover!!.contents.value.take(80)}",
+        hover.contents.value.contains("compute_total"),
+      )
+
+      val nothing = languageServer.hover(BASE_SPACE, uri, LanguagePosition(line = 2, character = 0))
+      assertTrue(
+        "an empty line has no symbol to describe - got ${nothing?.contents?.value?.take(80)}",
+        nothing == null || nothing.contents.value.isBlank(),
+      )
+    } finally {
+      languageServer.stop(BASE_SPACE)
+    }
+  }
+
   /** Lazy means lazy: a port never called leaves no process behind to stop. */
   @Test(timeout = 60_000)
   fun stopOnANeverStartedServerIsANoOp() = runBlocking {

@@ -119,6 +119,19 @@ sealed interface CellAction {
    */
   data object StartSelecting : CellAction
 
+  /**
+   * Asks the language server what the symbol under the caret is - `docs/PLAN.md` P5e-3's
+   * "symbol info" affordance.
+   *
+   * A [CellAction] although it edits nothing, for [StartSelecting]'s reason: it is what carries
+   * the row to the menu and the accessibility context menu alike. Answered by the surface that
+   * raised it - [EditorCell], which owns both the menu and the caret the ask needs - and never
+   * by [CellEdits], like [ChooseHeadingLevel] and for the same reason. The reference's gesture
+   * is a mouse hover we have no equivalent of; its inspector-panel route is a pane a compact
+   * surface has no room for, so the ask lives where the cell's other asks do.
+   */
+  data object SymbolInfo : CellAction
+
   data object Copy : CellAction
 
   data object Cut : CellAction

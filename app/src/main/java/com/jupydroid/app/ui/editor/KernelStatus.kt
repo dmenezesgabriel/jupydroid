@@ -17,7 +17,7 @@ enum class KernelStatus {
    * **A departure from the reference's `'unknown'`**, which is what `kernelDisplayStatus` returns
    * with no kernel: JupyterLab starts a session with the document, so having none there means
    * something went wrong. Here it is the resting state of every notebook being read, by design -
-   * typing must not boot a Python runtime (see [NotebookKernel.completionsAt]). The reference's own
+   * typing must not boot a Python runtime (see [NotebookAsks.completionsAt]). The reference's own
    * word for this condition is on the *name* rather than the status, `noKernelName` =
    * **"No Kernel"** (`packages/apputils/src/sessioncontext.tsx:675-677`), and that is the word used.
    */
