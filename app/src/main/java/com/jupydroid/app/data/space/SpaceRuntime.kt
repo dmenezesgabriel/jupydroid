@@ -115,6 +115,20 @@ class SpaceRuntime(
       environment().putAll(this@SpaceRuntime.environment() + extraEnv)
     }
 
+  /**
+   * A [ProcessBuilder] that execs [args] as given - with **no interpreter prefix** - under the
+   * Space environment. Console scripts such as `usr/local/bin/pylsp` must run this way: their
+   * `usr/local/bin` link resolves to `bin/shebang-exec`, a native trampoline ELF the kernel
+   * permits to execve, which reads the `#!` line itself. Pushing the script path through
+   * [command] would make it `python <path>` - argv[1] treated as a source file, which it is
+   * not (measured green at `LanguageServerDeviceTest` on the tablet).
+   */
+  fun execProcessBuilder(args: List<String>, extraEnv: Map<String, String> = emptyMap()): ProcessBuilder =
+    ProcessBuilder(args).apply {
+      environment().clear()
+      environment().putAll(this@SpaceRuntime.environment() + extraEnv)
+    }
+
   private fun inBase(relative: String): String = File(baseDir, relative).path
 
   private companion object {

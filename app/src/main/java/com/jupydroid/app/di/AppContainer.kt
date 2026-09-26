@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
@@ -18,12 +19,14 @@ import com.jupydroid.app.data.space.ActivityTrackedTerminalGateway
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -66,6 +69,12 @@ class AppContainer(
   val kernelGateway: KernelGateway = FakeKernelGateway(),
   /** DAP over the same kernel session's control channel - breakpoints, step/continue, variables. */
   val kernelDebugger: KernelDebugger = FakeKernelDebugger(),
+  /**
+   * The Space's `pylsp` over stdio - one process per Space, started on the port's first call and
+   * stopped beside the server (P5b). Its fake answers canned completions so the popup composes
+   * on a device with no Space.
+   */
+  val languageServer: LanguageServerPort = FakeLanguageServerPort(),
   /**
    * The Space's shells - `terminal:create-new`, which JupyterLab adds to `'main'` as a
    * `MainAreaWidget` rather than to a panel (`packages/terminal-extension/src/index.ts:523-524`).
@@ -147,7 +156,12 @@ class AppContainer(
     scope = applicationScope,
     cellsInFlight = activeCellRuns.inFlight,
     terminalsOpen = activeTerminals.open,
-    stopServer = { serverLauncher.stop() },
+    // P1's rule for a subprocess the Space owns: the language server dies with the Space too -
+    // backgrounded with nothing running, it must not keep ~60 MB of interpreter alive alone.
+    stopServer = {
+      serverLauncher.stop()
+      languageServer.stop(BASE_SPACE)
+    },
     grace = IDLE_STOP_GRACE,
   )
 

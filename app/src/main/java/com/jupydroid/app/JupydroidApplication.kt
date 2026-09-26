@@ -16,6 +16,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.intent.IntentDocumentSharer
@@ -25,6 +26,7 @@ import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
 import com.jupydroid.app.data.space.baseSpaceKernelSockets
+import com.jupydroid.app.data.space.baseSpaceLanguageServerPort
 import com.jupydroid.app.data.space.baseSpaceNotebookExporter
 import com.jupydroid.app.data.space.baseSpaceServer
 import com.jupydroid.app.data.space.baseSpaceServerLauncher
@@ -33,6 +35,7 @@ import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.TerminalGateway
 import java.io.File
@@ -92,6 +95,7 @@ class JupydroidApplication : Application() {
       recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
       kernelGateway = space.kernels,
       kernelDebugger = space.debugger,
+      languageServer = space.languageServer,
       notebookExporter = space.exporter,
       terminalGateway = space.terminals,
       // Always real, unlike the Space-backed three: sharing needs no Space, so it works on a device
@@ -129,6 +133,11 @@ class JupydroidApplication : Application() {
 
     val kernels: KernelGateway = kernelSockets?.let(::baseSpaceKernelGateway) ?: FakeKernelGateway()
     val debugger: KernelDebugger = kernelSockets?.let(::baseSpaceKernelDebugger) ?: FakeKernelDebugger()
+
+    // Off the space object, unlike the others: `pylsp` is a direct stdio process - it never
+    // passes through `jupyter_server`, so it shares only the condition, not the launcher's life.
+    val languageServer: LanguageServerPort =
+      baseSpaceLanguageServerPort(application) ?: FakeLanguageServerPort()
     val exporter: NotebookExporter = space?.let(::baseSpaceNotebookExporter) ?: FakeNotebookExporter()
     val terminals: TerminalGateway = space?.let(::baseSpaceTerminalGateway) ?: FakeTerminalGateway()
   }

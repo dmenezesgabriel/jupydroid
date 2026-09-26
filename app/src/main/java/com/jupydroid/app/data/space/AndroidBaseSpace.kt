@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
+import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.TerminalGateway
 import java.io.File
@@ -74,6 +75,29 @@ fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpac
   return BaseSpaceServer(
     installSpace = { baseSpaceInstaller(context).installIfNeeded() },
     launcher = launcher,
+    log = LogcatSpaceLifecycleLog,
+  )
+}
+
+/**
+ * The base Space's `pylsp` as the app's [LanguageServerPort] - stdio, route 2 of `docs/PLAN.md`'s
+ * P5: the console script execs straight through the `shebang-exec` trampoline ([SpaceRuntime]'s
+ * `execProcessBuilder`, which must not prefix the interpreter), no `jupyter_server` in between.
+ *
+ * Null where no Space can run, the same guard [baseSpaceServer] keeps. The process is lazier
+ * than the server's own: `installSpace` runs on the port's *first use*, so an app that only
+ * browses notebooks never pays for a Python runtime it did not ask for.
+ */
+fun baseSpaceLanguageServerPort(context: Context): LanguageServerPort? {
+  if (runCatching { deviceAbi() }.isFailure) return null
+  val runtime = baseSpaceRuntime(context)
+  return StdioLanguageServer(
+    installSpace = { baseSpaceInstaller(context).installIfNeeded() },
+    spawn = { installed ->
+      runtime.execProcessBuilder(listOf(StdioLanguageServer.pylspIn(installed.baseDir).path))
+        .directory(notebookWorkspaceIn(installed.baseDir))
+        .start()
+    },
     log = LogcatSpaceLifecycleLog,
   )
 }

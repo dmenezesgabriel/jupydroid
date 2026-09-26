@@ -1,0 +1,86 @@
+package com.jupydroid.app.data.space
+
+import android.os.Build
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.port.LanguagePosition
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * **P5b: the adapter drives the real `pylsp` the rootfs ships.**
+ *
+ * P5a proved the premises - the script execs and answers over stdio. This proves the thing
+ * P5c plugs into: [StdioLanguageServer] as the app composes it (`baseSpaceLanguageServerPort`
+ * does this same wiring), a full session through the port rather than raw frames -
+ * `initialize`, `didOpen`, a `textDocument/completion` jedi answers with real results, then
+ * `shutdown`/`exit` ending the process with nothing refused.
+ *
+ * ```
+ * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
+ *   -Pandroid.testInstrumentationRunnerArguments.class=com.jupydroid.app.data.space.StdioLanguageServerDeviceTest
+ * ```
+ */
+@RunWith(AndroidJUnit4::class)
+class StdioLanguageServerDeviceTest {
+  private val context = InstrumentationRegistry.getInstrumentation().targetContext
+  private val baseDir by lazy { baseSpaceDir(context) }
+
+  @Before
+  fun onlyWhereASpaceCanRun() {
+    assumeTrue(
+      "no rootfs ships for ${Build.SUPPORTED_ABIS.first()}, so there is no language server to run",
+      runCatching { SpaceAbi.of(Build.SUPPORTED_ABIS.first()) }.isSuccess,
+    )
+    runBlocking { baseSpaceInstaller(context).installIfNeeded() }
+  }
+
+  /**
+   * The whole session, one process: handshake declares completions, a document opens, a real
+   * `os.path.jo|` completion comes back naming `join`, and stop() leaves no interpreter behind.
+   * `pylsp --version` answered none of this - a server that starts and then does nothing is
+   * exactly the failure a port hides, so the port is what is tested.
+   */
+  @Test(timeout = 120_000)
+  fun thePortDrivesARealPylspSession() = runBlocking {
+    val languageServer = baseSpaceLanguageServerPort(context)!!
+    try {
+      val capabilities = languageServer.capabilities(BASE_SPACE)
+      assertTrue("pylsp must declare completionProvider for P5c", capabilities.completionProvider)
+
+      val uri = "file:///home/jupydroid/p5b-probe.py"
+      languageServer.openDocument(BASE_SPACE, uri, "python", "import os\nos.path.jo\n")
+      val items = languageServer.completion(BASE_SPACE, uri, LanguagePosition(line = 1, character = 10))
+
+      assertTrue(
+        "jedi offered nothing for `os.path.jo` - got ${items.map { it.label }}",
+        items.any { it.label.startsWith("join") },
+      )
+    } finally {
+      languageServer.stop(BASE_SPACE)
+    }
+  }
+
+  /** Lazy means lazy: a port never called leaves no process behind to stop. */
+  @Test(timeout = 60_000)
+  fun stopOnANeverStartedServerIsANoOp() = runBlocking {
+    val languageServer = baseSpaceLanguageServerPort(context)!!
+    languageServer.stop(BASE_SPACE)
+  }
+
+  /** No syscall was refused while the adapter ran a session - same bar P5a set. */
+  @Test
+  fun nothingWasRefusedWhileTheAdapterRan() {
+    assertEquals(
+      "seccomp refused a syscall other than mbind while pylsp ran",
+      emptyList<String>(),
+      seccompRefusalsIn(baseDir),
+    )
+  }
+}

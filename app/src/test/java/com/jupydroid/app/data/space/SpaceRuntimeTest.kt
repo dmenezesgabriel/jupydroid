@@ -138,6 +138,23 @@ class SpaceRuntimeTest {
     File(this, "lib/libsigsys_report.so").writeText("ELF")
   }
 
+  /**
+   * Console scripts (`usr/local/bin/pylsp`) are not Python source: their link resolves to the
+   * native `shebang-exec` trampoline, which execs on its own and reads the `#!` line. Running
+   * one through [SpaceRuntime.command] would produce `python <path>` and feed a shell script's
+   * path to the interpreter as argv - so the direct-exec builder must not prepend it, while
+   * keeping the same environment [SpaceRuntime.processBuilder] carries.
+   */
+  @Test
+  fun execProcessBuilder_execsTheScriptDirectlyUnderTheSpaceEnvironment() {
+    val builder = runtime.execProcessBuilder(listOf("$baseDir/usr/local/bin/pylsp", "--version"))
+
+    assertEquals("$baseDir/usr/local/bin/pylsp", builder.command().first())
+    assertFalse(builder.command().contains(interpreter.path))
+    assertEquals("$baseDir/usr", builder.environment()["PYTHONHOME"])
+    assertEquals(spaceShellIn(baseDir).path, builder.environment()["SHELL"])
+  }
+
   /** Android's own PATH would leak toybox into the Space; the rootfs supplies its own. */
   @Test
   fun environment_confinesPathToTheRootfs() {
