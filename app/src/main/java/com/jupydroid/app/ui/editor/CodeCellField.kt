@@ -163,20 +163,28 @@ fun CodeCellField(
       // chain - `docs/PLAN.md` P6c-5's own finding that a gutter scrolled inside the same
       // modifiers as the field it decorates scrolls away with it (`evidence/p6c-5-word-wrap/`).
       modifier = if (wrapEnabled) {
-        modifier.lineNumbers(
-          state.text,
-          layout,
-          numberStyle,
-          gutter,
-          breakpoints,
-          diagnostics,
-          onGutterTap,
-          onGutterLongPress,
-          stoppedLine,
-          onDiagnosticTap = { detailLine = it },
-        )
+        // The squiggle sits after `lineNumbers`: its own trailing `.padding(start = gutter)` makes
+        // this `drawBehind` the innermost one, so its draw scope starts at the code's left edge -
+        // the `TextLayoutResult` coordinates `drawSquiggleSpan` resolves, one-to-one.
+        modifier
+          .lineNumbers(
+            state.text,
+            layout,
+            numberStyle,
+            gutter,
+            breakpoints,
+            diagnostics,
+            onGutterTap,
+            onGutterLongPress,
+            stoppedLine,
+            onDiagnosticTap = { detailLine = it },
+          )
+          .diagnosticSquiggles(diagnostics, layout)
       } else {
-        modifier.horizontalScroll(scroll).padding(start = gutter)
+        modifier
+          .horizontalScroll(scroll)
+          .padding(start = gutter)
+          .diagnosticSquiggles(diagnostics, layout)
       },
       onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
       textStyle = codeStyle,

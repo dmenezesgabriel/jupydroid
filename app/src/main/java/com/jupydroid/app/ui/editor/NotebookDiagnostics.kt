@@ -76,9 +76,14 @@ class NotebookDiagnostics(
 private fun PublishDiagnostics.toCellLines(document: NotebookVirtualDocument): Map<String, List<CellDiagnostic>> =
   diagnostics.mapNotNull { diagnostic ->
     document.cellLineAt(diagnostic.range.start.line)?.let { cellLine ->
+      val start = document.cellOffsetOf(cellLine.cellId, diagnostic.range.start)
+        ?: return@mapNotNull null
       cellLine.cellId to
         CellDiagnostic(
           line = cellLine.line + 1,
+          start = start,
+          end = document.cellOffsetOfClamped(cellLine.cellId, diagnostic.range.end)
+            ?.coerceAtLeast(start) ?: start,
           severity = diagnostic.severity,
           code = diagnostic.code,
           source = diagnostic.source,

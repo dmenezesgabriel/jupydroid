@@ -76,11 +76,28 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
     return if (line in 0 until block.lines) cellOffset(block, line, position.character) else null
   }
 
-  /** The code-unit offset `line`/`character` sits at inside [block]'s source, clamped at the end. */
+  /**
+   * [position] clamped into [cellId]'s block rather than dropped when it lands outside it -
+   * the `end` half of a `publishDiagnostics` range, whose span may run onto the separator or
+   * into the next cell. Only the part the cell owns is underlined: the mark's line is already
+   * the range's *start* (CodeMirror's lint-gutter convention), so a stray end clamps to the
+   * cell's own last offset rather than underlining another cell's text.
+   */
+  fun cellOffsetOfClamped(cellId: String, position: LanguagePosition): Int? {
+    val block = blocks.firstOrNull { it.cellId == cellId } ?: return null
+    return when (val line = position.line - block.virtualStart) {
+      in Int.MIN_VALUE until 0 -> 0
+      in block.lines..Int.MAX_VALUE -> block.source.length
+      else -> cellOffset(block, line, position.character)
+    }
+  }
+
+  /** The code-unit offset `line`/`character` sits at inside [block]'s source, clamped at the line's end. */
   private fun cellOffset(block: Block, line: Int, character: Int): Int {
     var offset = 0
     repeat(line) { offset = block.source.indexOf('\n', offset) + 1 }
-    return (offset + character).coerceAtMost(block.source.length)
+    val lineEnd = block.source.indexOf('\n', offset).let { if (it < 0) block.source.length else it }
+    return (offset + character).coerceIn(offset, lineEnd)
   }
 
   /** Whose line [virtualLine] is - null on the separators and past the document's end. */

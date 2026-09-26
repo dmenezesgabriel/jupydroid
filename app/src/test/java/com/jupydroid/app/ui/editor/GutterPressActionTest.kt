@@ -67,7 +67,15 @@ class GutterPressActionTest {
   @Test
   fun `a diagnostic's attribution joins source and code, tolerating either missing`() {
     val diagnostic =
-      CellDiagnostic(line = 1, severity = SEVERITY_ERROR, code = "E305", source = "pyflakes", message = "m")
+      CellDiagnostic(
+        line = 1,
+        start = 0,
+        end = 1,
+        severity = SEVERITY_ERROR,
+        code = "E305",
+        source = "pyflakes",
+        message = "m",
+      )
     assertEquals("pyflakes · E305", attributionOf(diagnostic))
     assertEquals("pyflakes", attributionOf(diagnostic.copy(code = null)))
     assertNull(attributionOf(diagnostic.copy(source = null, code = null)))

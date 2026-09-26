@@ -55,6 +55,9 @@ class NotebookDiagnosticsTest {
     val flagged = uiState.value.diagnosticsByCellId.getValue("c2").single()
     assertEquals(1, flagged.line)
     assertEquals(1, flagged.severity)
+    // `undef_name` sits at offsets 6..15 inside "print(undef_name)" - the squiggle's span.
+    assertEquals(6, flagged.start)
+    assertEquals(15, flagged.end)
     assertEquals("undefined name 'undef_name'", flagged.message)
     assertEquals("F821", flagged.code)
     assertEquals("pyflakes", flagged.source)

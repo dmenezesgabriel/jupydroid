@@ -176,6 +176,8 @@ class DiagnosticMarkTapTest {
     val DIAGNOSTICS = listOf(
       CellDiagnostic(
         line = 2,
+        start = 15,
+        end = 28,
         severity = SEVERITY_ERROR,
         code = "E501",
         source = "pyflakes",

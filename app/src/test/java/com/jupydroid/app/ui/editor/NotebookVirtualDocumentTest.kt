@@ -107,6 +107,29 @@ class NotebookVirtualDocumentTest {
     assertNull(document.cellLineAt(99))
   }
 
+  @Test
+  fun cellOffsetOf_aVirtualPosition_isTheOffsetInsideTheCell() {
+    val document = documentOf(code("c1", "a\nb"), code("c2", "print(undef_name)"))
+
+    // c2 starts on virtual line 4 (2 cell lines + 2 separators); its (4, 6) is offset 6.
+    assertEquals(6, document.cellOffsetOf("c2", LanguagePosition(4, 6)))
+  }
+
+  @Test
+  fun cellOffsetOfClamped_aRangeEndingPastTheCell_clampsToTheCellsEnd() {
+    val document = documentOf(code("c1", "a\nb"), code("c2", "print(undef_name)"))
+
+    // A range whose end lands on a separator or a later cell underlines only what this
+    // cell owns - the CodeMirror lint gutter's own convention of the mark landing on the
+    // start line, so a stray `end` cannot wander into the next cell's text.
+    assertEquals(
+      "print(undef_name)".length,
+      document.cellOffsetOfClamped("c2", LanguagePosition(9, 3)),
+    )
+    assertEquals(6, document.cellOffsetOfClamped("c2", LanguagePosition(4, 6)))
+    assertNull(document.cellOffsetOfClamped("no-such-cell", LanguagePosition(0, 0)))
+  }
+
   private fun code(id: String, source: String) = Cell(id, CellKind.CODE, source)
 
   private fun documentOf(vararg cells: Cell) = NotebookVirtualDocument("Analysis.ipynb", cells.toList())

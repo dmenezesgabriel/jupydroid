@@ -19,7 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -39,20 +41,61 @@ import com.jupydroid.app.theme.editorPalette
  */
 
 /**
- * A severity-coloured square centred in the mark column - CodeMirror's lint-gutter icon's own
- * job (`@codemirror/lint` `lintGutter`), a shape a breakpoint's circle does not already say.
- * [LineNumbers.gutterDrawing] paints it **under** the dot: a line carrying both reads as the
- * breakpoint badged by its worst diagnostic, the same layered-marks vocabulary the condition
- * badge (`withQuestionBadgeIfNeeded`) uses rather than two columns.
+ * The mark's shape **is** the severity - `@codemirror/lint`'s own gutter vocabulary, since
+ * colour alone is the roughest reading a mark can get: error a circle, warning a triangle,
+ * information a square (`lintGutterTheme`'s `cm-lint-marker-{severity}` SVGs), hint a hollow
+ * square - the reference leaves hints unstyled in the gutter, but our mark is also the tap
+ * target the detail popup hangs off, so it keeps a weak outline rather than nothing.
+ * CodeMirror fills pale and strokes strong; a filled copy at [MARK_FILL_ALPHA] over the
+ * full-strength stroke is that same two-tone read against the cell's own background.
+ *
+ * The circle no longer collides with the breakpoint's: the mark is a bigger pale ring and
+ * the dot a smaller solid disc, so a line carrying both still reads as the breakpoint
+ * badged by its worst diagnostic - the layering this draw order (mark under dot) buys.
  */
 internal fun DrawScope.drawDiagnosticMark(severity: Int, metrics: GutterMetrics, top: Float, rowHeight: Float) {
   val half = minOf(metrics.breakpointColumnPx.toFloat(), rowHeight) / DIAGNOSTIC_SHRINK
-  drawRect(
-    color = severityColour(severity, metrics.palette),
-    topLeft = Offset(metrics.breakpointColumnPx / 2f - half, top + rowHeight / 2f - half),
-    size = Size(half * 2, half * 2),
-  )
+  val center = Offset(metrics.breakpointColumnPx / 2f, top + rowHeight / 2f)
+  val color = severityColour(severity, metrics.palette)
+  when (severity) {
+    SEVERITY_WARNING -> drawTriangleMark(center, half, color)
+    SEVERITY_INFORMATION -> drawSquareMark(center, half, color)
+    SEVERITY_HINT -> drawSquareMark(center, half * HINT_SHRINK, color, filled = false)
+    else -> drawCircleMark(center, half, color)
+  }
 }
+
+/** `cm-lint-marker-warning` - the triangle whose base reads heaviest at the row's foot. */
+private fun DrawScope.drawTriangleMark(center: Offset, half: Float, color: Color) {
+  val triangle = Path().apply {
+    moveTo(center.x, center.y - half)
+    lineTo(center.x + half, center.y + half)
+    lineTo(center.x - half, center.y + half)
+    close()
+  }
+  drawPath(triangle, color = color.copy(alpha = MARK_FILL_ALPHA))
+  drawPath(triangle, color = color, style = markStroke())
+}
+
+/**
+ * `cm-lint-marker-info` - the square the triangle and circle don't already claim; unfilled
+ * for a hint (CodeMirror leaves hints unstyled in the gutter, but our mark is also the tap
+ * target the detail popup hangs off, so it keeps a weak outline rather than nothing).
+ */
+private fun DrawScope.drawSquareMark(center: Offset, half: Float, color: Color, filled: Boolean = true) {
+  val topLeft = Offset(center.x - half, center.y - half)
+  val size = Size(half * 2, half * 2)
+  if (filled) drawRect(color = color.copy(alpha = MARK_FILL_ALPHA), topLeft = topLeft, size = size)
+  drawRect(color = color, topLeft = topLeft, size = size, style = markStroke())
+}
+
+/** `cm-lint-marker-error` - a pale ring the smaller solid breakpoint still reads inside. */
+private fun DrawScope.drawCircleMark(center: Offset, half: Float, color: Color) {
+  drawCircle(color = color.copy(alpha = MARK_FILL_ALPHA), radius = half, center = center)
+  drawCircle(color = color, radius = half, center = center, style = markStroke())
+}
+
+private fun DrawScope.markStroke(): Stroke = Stroke(width = MARK_STROKE.toPx())
 
 /** The palette colour an LSP severity number draws with; unknown numbers read as the default, error. */
 internal fun severityColour(severity: Int, palette: EditorPalette): Color = when (severity) {
@@ -153,8 +196,17 @@ private fun DiagnosticDetailRow(diagnostic: CellDiagnostic) {
   }
 }
 
-/** The diagnostic square is a fraction wider than the dot that may sit on it - it must peek out. */
+/** The mark is a fraction wider than the dot that may sit on it - it must peek out. */
 private const val DIAGNOSTIC_SHRINK = 2.0f
+
+/** CodeMirror's pale marker fill rendered as alpha of the severity colour. */
+private const val MARK_FILL_ALPHA = 0.4f
+
+/** CodeMirror's stroke-to-size ratio (6 on a 40-unit viewBox) ≈ a dp at mark size. */
+private val MARK_STROKE = 1.2.dp
+
+/** A hint's hollow square is smaller - the weak mark for the weak severity. */
+private const val HINT_SHRINK = 0.8f
 
 /** The square leading a detail row - the mark's own colour so the row reads as its expansion. */
 private val DETAIL_GLYPH = 10.dp
