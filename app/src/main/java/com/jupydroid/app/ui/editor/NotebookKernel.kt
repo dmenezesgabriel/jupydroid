@@ -1,10 +1,12 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +63,11 @@ class NotebookKernel(
    * notebooks already open.
    */
   private val shutdownOnClose: () -> Boolean = { false },
+  /**
+   * The Space's language server - P5c's completion source, asked before the kernel and lazily
+   * spawned by the port on the first ask. Faked where no Space can run, as [kernelGateway] is.
+   */
+  private val languageServer: LanguageServerPort = FakeLanguageServerPort(),
 ) {
   /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
   private val session =
@@ -83,6 +90,12 @@ class NotebookKernel(
    * rest of the kernel wants - and three more methods here is a class about two things.
    */
   val history = NotebookHistory(session, kernelGateway, scope)
+
+  /**
+   * The language-server-first ask [completionsAt] delegates to - see [NotebookCompletion] for
+   * the ordering and why it lives beside this class rather than in it.
+   */
+  private val completion = NotebookCompletion(session, kernelGateway, languageServer)
 
   /**
    * A Console's own session, pre-attached to whatever kernel this notebook already has - P6b-9.
@@ -210,7 +223,8 @@ class NotebookKernel(
   }
 
   /**
-   * What the kernel offers for the code under the cursor.
+   * What fits under the cursor in the cell [cellId] names - the language server's answer first,
+   * the kernel's when no server is running (P5c); see [NotebookCompletion].
    *
    * Uses the session the notebook already has and never opens one. Typing must not boot a
    * Python runtime the user has not asked for by running a cell - `BaseSpaceKernelGateway`
@@ -219,15 +233,8 @@ class NotebookKernel(
    * A completion that fails is silence, not a crash: the socket dying is worth reporting when
    * a cell is running, and worth ignoring when the user is only typing.
    */
-  @Suppress("SwallowedException") // a kernel that cannot answer has nothing to say, which is not an error
-  suspend fun completionsAt(code: String, cursorOffset: Int): CompletionResult {
-    val open = session.opened ?: return CompletionResult.NONE
-    return try {
-      kernelGateway.complete(open, code, cursorOffset)
-    } catch (e: IllegalStateException) {
-      CompletionResult.NONE
-    }
-  }
+  suspend fun completionsAt(cellId: String, code: String, cursorOffset: Int): CompletionResult =
+    completion.at(cellId, code, cursorOffset)
 
   /**
    * Closes the socket, on a scope that outlives the screen.

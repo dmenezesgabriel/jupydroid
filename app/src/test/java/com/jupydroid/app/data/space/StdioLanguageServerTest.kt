@@ -3,6 +3,9 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguagePosition
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -216,6 +219,23 @@ class StdioLanguageServerTest {
     }.exceptionOrNull()
 
     assertTrue("$failure", failure is IllegalStateException)
+    waitUntil { server.sent("$/cancelRequest").isNotEmpty() }
+  }
+
+  @Test
+  fun aRequestCancelledByItsCaller_sendsCancelRequest() = runBlocking {
+    val server = ScriptedLanguageServer().also(servers::add)
+    server.hangsOn += "textDocument/completion"
+    val languageServer = languageServer { server }
+
+    // `rememberCellCompletions` cancels the in-flight ask on the next keystroke - the server
+    // hears `$/cancelRequest` rather than finishing work nobody waits for (`lsp.late_reply`).
+    val ask = launch(Dispatchers.IO) {
+      runCatching { languageServer.completion(BASE_SPACE, URI, LanguagePosition(0, 0)) }
+    }
+    waitUntil { server.sent("textDocument/completion").isNotEmpty() }
+    ask.cancelAndJoin()
+
     waitUntil { server.sent("$/cancelRequest").isNotEmpty() }
   }
 

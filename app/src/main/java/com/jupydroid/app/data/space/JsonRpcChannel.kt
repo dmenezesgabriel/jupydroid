@@ -1,12 +1,13 @@
 package com.jupydroid.app.data.space
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 
 /**
@@ -56,8 +58,10 @@ internal class JsonRpcChannel(
 
   /**
    * One `method` call and its `result`, correlated by a fresh id until a reply, [timeout], or
-   * EOF. A timeout sends `$/cancelRequest` - the LSP cancellation convention - and throws
-   * `TimeoutCancellationException`; a server error reply throws `IllegalStateException`.
+   * EOF. A timeout throws `TimeoutCancellationException`; a server error reply throws
+   * `IllegalStateException`. Either way of walking away - the timeout, or the caller itself
+   * cancelled (`rememberCellCompletions` cancels on the next keystroke) - owes the server
+   * `$/cancelRequest`, the LSP cancellation convention.
    */
   suspend fun request(method: String, params: JsonObject, timeout: Duration = Duration.INFINITE): JsonObject {
     val id = nextId.getAndIncrement()
@@ -68,8 +72,10 @@ internal class JsonRpcChannel(
       val body = withTimeout(timeout) { reply.await() }
       body["error"]?.let { throw IllegalStateException("$method returned error: $it") }
       return body
-    } catch (e: TimeoutCancellationException) {
-      runCatching { cancel(id) }
+    } catch (e: CancellationException) {
+      // `TimeoutCancellationException` is a `CancellationException`, so this is both walks away
+      // in one catch. `NonCancellable` because this block may already be running cancelled.
+      withContext(NonCancellable) { runCatching { cancel(id) } }
       throw e
     } finally {
       pending.remove(id)

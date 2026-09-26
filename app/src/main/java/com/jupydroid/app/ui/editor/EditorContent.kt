@@ -30,7 +30,8 @@ internal fun EditorContent(
   onToggleBreakpoint: (String, Int) -> Unit,
   /** A long-press on an armed line's gutter (P6a-16), confirmed through [BreakpointConditionDialog]. */
   onSetCondition: (cellId: String, line: Int, condition: String?) -> Unit,
-  completionsAt: suspend (String, Int) -> CompletionResult,
+  /** `(cellId, code, cursorOffset)` - the cell keys the language server's document (P5c). */
+  completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
   onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
   onToggleSelected: (String) -> Unit,

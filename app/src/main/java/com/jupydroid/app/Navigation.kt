@@ -399,6 +399,7 @@ fun MainNavigation(
             workspaceRepository = appContainer.workspaceRepository,
             kernelGateway = appContainer.kernelGateway,
             kernelDebugger = appContainer.kernelDebugger,
+            languageServer = appContainer.languageServer,
             notebookExporter = appContainer.notebookExporter,
             documentSharer = appContainer.documentSharer,
             applicationScope = appContainer.applicationScope,

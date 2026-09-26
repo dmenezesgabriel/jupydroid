@@ -23,6 +23,17 @@ fun completionQueryAt(code: String, cursor: Int): CompletionQuery? {
   return if (nextIsMoreOfTheWord || typed.length < MIN_PREFIX) null else CompletionQuery(code, cursor)
 }
 
+/**
+ * The identifier ending at [cursor] as (start, endExclusive) code-unit offsets - the span a
+ * completion match with no `textEdit` of its own replaces (`NotebookCompletion`, P5c). Null
+ * when the cursor sits on no word, which makes the match a pure insertion.
+ */
+fun identifierSpanEndingAt(code: String, cursor: Int): Pair<Int, Int>? {
+  if (cursor !in 0..code.length) return null
+  val start = cursor - code.take(cursor).takeLastWhile { it.isIdentifierChar() }.length
+  return if (start == cursor) null else start to cursor
+}
+
 /** A dot is not one, which is what makes `np.ar` a question about `ar`. */
 private fun Char.isIdentifierChar(): Boolean = isLetterOrDigit() || this == '_'
 

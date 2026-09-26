@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
+import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.Notebook
@@ -16,6 +17,7 @@ import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -103,6 +105,11 @@ class EditorViewModel(
    * [openDocuments] is, so a test driving the editor alone reads the shipped defaults.
    */
   private val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
+  /**
+   * The Space's language server, asked for completions before the kernel (P5c) - defaulted the
+   * way [kernelDebugger] is, so a test driving the editor alone spawns nothing.
+   */
+  private val languageServer: LanguageServerPort = FakeLanguageServerPort(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -144,6 +151,7 @@ class EditorViewModel(
       debugger = debugger,
       // `kernelShutdown`, read the way `SessionContext` reads `kernelPreference` - at dispose.
       shutdownOnClose = { settings.value.shutdownKernelOnClose },
+      languageServer = languageServer,
     )
 
   /** The cell menu and its undo history. Driven straight from the screen; see [NotebookCellEdits]. */

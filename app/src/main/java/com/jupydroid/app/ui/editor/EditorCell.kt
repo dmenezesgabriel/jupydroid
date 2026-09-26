@@ -42,7 +42,8 @@ internal fun EditorCell(
   onRun: () -> Unit,
   onStop: () -> Unit,
   onSourceEdited: (String) -> Unit,
-  completionsAt: suspend (String, Int) -> CompletionResult,
+  /** `(cellId, code, cursorOffset)` - the language server keeps one document per cell (P5c). */
+  completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
   onCellAction: (CellAction, CellEditorText) -> Unit,
   onFocusChanged: (Boolean) -> Unit,
   onToggleSelected: () -> Unit,
@@ -150,7 +151,7 @@ internal fun EditorCell(
           CellKind.CODE -> CodeCellField(
             state = field,
             onSourceEdited = onSourceEdited,
-            completionsAt = completionsAt,
+            completionsAt = { code, cursorOffset -> completionsAt(cell.id, code, cursorOffset) },
             input = cellInput,
             lineNumbersShown = lineNumbersShown,
             codeFontSizeSp = codeFontSizeSp,
