@@ -99,7 +99,7 @@ class DiagnosticSquiggleDrawTest {
     assertTrue("the wave should span far more of the range than the dots", dotsExtent < waveExtent / 2)
   }
 
-  /** The mark's shape is the severity: warning's triangle is bottom-heavy, error's circle even. */
+  /** The mark's glyph is the severity: warning's triangle-! is bottom-heavy, error's circle-x even. */
   @Test
   fun aWarningMarkIsATriangle_anErrorMarkACircle() {
     setContent()

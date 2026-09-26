@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -10,6 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,9 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -41,61 +47,40 @@ import com.jupydroid.app.theme.editorPalette
  */
 
 /**
- * The mark's shape **is** the severity - `@codemirror/lint`'s own gutter vocabulary, since
- * colour alone is the roughest reading a mark can get: error a circle, warning a triangle,
- * information a square (`lintGutterTheme`'s `cm-lint-marker-{severity}` SVGs), hint a hollow
- * square - the reference leaves hints unstyled in the gutter, but our mark is also the tap
- * target the detail popup hangs off, so it keeps a weak outline rather than nothing.
- * CodeMirror fills pale and strokes strong; a filled copy at [MARK_FILL_ALPHA] over the
- * full-strength stroke is that same two-tone read against the cell's own background.
+ * The mark's glyph **is** the severity - a real icon rather than a geometric shape, since
+ * the hand-drawn circle/triangle/square set read as coloured blobs at gutter size while an
+ * outlined glyph reads as the sign it is. The vocabulary is VS Code's codicons (`error`,
+ * `warning`, `info`, `lightbulb`) drawn in Material's Outlined set - the subtle treatment
+ * neither VS Code nor IntelliJ can show, since they draw no per-line mark at all: CodeMirror's
+ * `lintGutter` does, so a mark stays, and its being the detail popup's tap target is the one
+ * reason it must.
  *
- * The circle no longer collides with the breakpoint's: the mark is a bigger pale ring and
- * the dot a smaller solid disc, so a line carrying both still reads as the breakpoint
- * badged by its worst diagnostic - the layering this draw order (mark under dot) buys.
+ * Drawn under the breakpoint's dot, so a line carrying both still reads as the breakpoint
+ * badged by its worst diagnostic - the layering this draw order buys.
  */
 internal fun DrawScope.drawDiagnosticMark(severity: Int, metrics: GutterMetrics, top: Float, rowHeight: Float) {
-  val half = minOf(metrics.breakpointColumnPx.toFloat(), rowHeight) / DIAGNOSTIC_SHRINK
+  val side = minOf(metrics.breakpointColumnPx.toFloat(), rowHeight) * MARK_ICON
   val center = Offset(metrics.breakpointColumnPx / 2f, top + rowHeight / 2f)
-  val color = severityColour(severity, metrics.palette)
-  when (severity) {
-    SEVERITY_WARNING -> drawTriangleMark(center, half, color)
-    SEVERITY_INFORMATION -> drawSquareMark(center, half, color)
-    SEVERITY_HINT -> drawSquareMark(center, half * HINT_SHRINK, color, filled = false)
-    else -> drawCircleMark(center, half, color)
+  val painter = metrics.markPainters[severity] ?: metrics.markPainters.getValue(SEVERITY_ERROR)
+  translate(center.x - side / 2f, center.y - side / 2f) {
+    with(painter) {
+      draw(Size(side, side), colorFilter = ColorFilter.tint(severityColour(severity, metrics.palette)))
+    }
   }
-}
-
-/** `cm-lint-marker-warning` - the triangle whose base reads heaviest at the row's foot. */
-private fun DrawScope.drawTriangleMark(center: Offset, half: Float, color: Color) {
-  val triangle = Path().apply {
-    moveTo(center.x, center.y - half)
-    lineTo(center.x + half, center.y + half)
-    lineTo(center.x - half, center.y + half)
-    close()
-  }
-  drawPath(triangle, color = color.copy(alpha = MARK_FILL_ALPHA))
-  drawPath(triangle, color = color, style = markStroke())
 }
 
 /**
- * `cm-lint-marker-info` - the square the triangle and circle don't already claim; unfilled
- * for a hint (CodeMirror leaves hints unstyled in the gutter, but our mark is also the tap
- * target the detail popup hangs off, so it keeps a weak outline rather than nothing).
+ * The glyph an LSP severity number draws with - VS Code's codicon vocabulary rendered in
+ * Material's Outlined set: `error` is the circle-x, `warning` the triangle, `info` the
+ * circle-i and a hint the `lightbulb` quick-fix wears. Unknown numbers read as the default,
+ * error - [severityColour]'s own fallback.
  */
-private fun DrawScope.drawSquareMark(center: Offset, half: Float, color: Color, filled: Boolean = true) {
-  val topLeft = Offset(center.x - half, center.y - half)
-  val size = Size(half * 2, half * 2)
-  if (filled) drawRect(color = color.copy(alpha = MARK_FILL_ALPHA), topLeft = topLeft, size = size)
-  drawRect(color = color, topLeft = topLeft, size = size, style = markStroke())
+internal fun severityIcon(severity: Int): ImageVector = when (severity) {
+  SEVERITY_WARNING -> Icons.Outlined.Warning
+  SEVERITY_INFORMATION -> Icons.Outlined.Info
+  SEVERITY_HINT -> Icons.Outlined.Lightbulb
+  else -> Icons.Outlined.Cancel
 }
-
-/** `cm-lint-marker-error` - a pale ring the smaller solid breakpoint still reads inside. */
-private fun DrawScope.drawCircleMark(center: Offset, half: Float, color: Color) {
-  drawCircle(color = color.copy(alpha = MARK_FILL_ALPHA), radius = half, center = center)
-  drawCircle(color = color, radius = half, center = center, style = markStroke())
-}
-
-private fun DrawScope.markStroke(): Stroke = Stroke(width = MARK_STROKE.toPx())
 
 /** The palette colour an LSP severity number draws with; unknown numbers read as the default, error. */
 internal fun severityColour(severity: Int, palette: EditorPalette): Color = when (severity) {
@@ -176,9 +161,14 @@ private fun DiagnosticDetailRow(diagnostic: CellDiagnostic) {
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
   ) {
-    Canvas(Modifier.size(DETAIL_GLYPH)) {
-      drawCircle(color = severityColour(diagnostic.severity, palette))
-    }
+    // The mark's own glyph leads the row, the way a VS Code marker hover leads with the
+    // severity icon - the row reads as the gutter mark's expansion rather than a new shape.
+    Icon(
+      imageVector = severityIcon(diagnostic.severity),
+      contentDescription = null,
+      tint = severityColour(diagnostic.severity, palette),
+      modifier = Modifier.size(DETAIL_GLYPH),
+    )
     Column(Modifier.padding(start = Spacing.sm)) {
       Text(
         text = "${severityName(diagnostic.severity)}: ${diagnostic.message}",
@@ -196,20 +186,15 @@ private fun DiagnosticDetailRow(diagnostic: CellDiagnostic) {
   }
 }
 
-/** The mark is a fraction wider than the dot that may sit on it - it must peek out. */
-private const val DIAGNOSTIC_SHRINK = 2.0f
+/**
+ * How much of the mark cell the glyph fills - Material's vectors draw their own padding
+ * into the 24-unit viewport, so a mark sized near the cell reads at the dot's own weight
+ * rather than larger than it.
+ */
+private const val MARK_ICON = 0.9f
 
-/** CodeMirror's pale marker fill rendered as alpha of the severity colour. */
-private const val MARK_FILL_ALPHA = 0.4f
-
-/** CodeMirror's stroke-to-size ratio (6 on a 40-unit viewBox) ≈ a dp at mark size. */
-private val MARK_STROKE = 1.2.dp
-
-/** A hint's hollow square is smaller - the weak mark for the weak severity. */
-private const val HINT_SHRINK = 0.8f
-
-/** The square leading a detail row - the mark's own colour so the row reads as its expansion. */
-private val DETAIL_GLYPH = 10.dp
+/** The glyph leading a detail row - the mark's own icon, tinted by severity. */
+private val DETAIL_GLYPH = 12.dp
 
 /** As wide as the completion popup and no wider - see `CellCompletions.MAX_WIDTH`'s reasoning. */
 private val DETAIL_MAX_WIDTH = 280.dp

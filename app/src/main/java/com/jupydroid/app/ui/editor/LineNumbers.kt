@@ -14,6 +14,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
@@ -106,6 +108,8 @@ internal class GutterMetrics(
   /** [severity] read inside a gesture - [currentArmed]'s own trap, and its own fix. */
   val currentSeverity: State<Map<Int, Int>>,
   val palette: EditorPalette,
+  /** Each severity's glyph ready to draw - `rememberVectorPainter` must run at composition. */
+  val markPainters: Map<Int, Painter>,
 )
 
 @Composable
@@ -147,9 +151,17 @@ internal fun rememberGutterMetrics(
   // the gesture coroutine reads its captured copy, and a mark pressed mid-update would answer
   // for a line that no longer carries it. The State keeps the read current without rekeying.
   val currentSeverity = rememberUpdatedState(severity)
+  // One painter per glyph, made here rather than inside `drawBehind`: `rememberVectorPainter`
+  // is composable, and the mark's draw pass is not.
+  val markPainters = mapOf(
+    SEVERITY_ERROR to rememberVectorPainter(severityIcon(SEVERITY_ERROR)),
+    SEVERITY_WARNING to rememberVectorPainter(severityIcon(SEVERITY_WARNING)),
+    SEVERITY_INFORMATION to rememberVectorPainter(severityIcon(SEVERITY_INFORMATION)),
+    SEVERITY_HINT to rememberVectorPainter(severityIcon(SEVERITY_HINT)),
+  )
   return GutterMetrics(
     starts, numbers, badge, breakpointColumnPx, digitsPx, widthPx, armed, currentArmed, severity,
-    currentSeverity, editorPalette,
+    currentSeverity, editorPalette, markPainters,
   )
 }
 
