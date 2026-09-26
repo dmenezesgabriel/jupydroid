@@ -43,6 +43,8 @@ fun GutterOverlay(
   onGutterTap: (line: Int) -> Unit = {},
   onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
+  /** A press on a diagnosed line's mark column, reporting that line - see [gutterPress]. */
+  onDiagnosticTap: (line: Int) -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   if (width <= 0.dp) return
@@ -53,7 +55,7 @@ fun GutterOverlay(
       .width(width)
       .height(heightDp)
       .background(editorPalette.cellBackground)
-      .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress)
+      .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress, onDiagnosticTap)
       .gutterDrawing(metrics, layout, stoppedLine)
       .diagnosticSemantics(diagnostics),
   )

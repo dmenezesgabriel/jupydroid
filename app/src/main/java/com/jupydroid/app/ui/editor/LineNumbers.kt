@@ -79,11 +79,13 @@ fun Modifier.lineNumbers(
   onGutterTap: (line: Int) -> Unit = {},
   onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
+  /** A press on a diagnosed line's mark column, reporting that line - see [gutterPress]. */
+  onDiagnosticTap: (line: Int) -> Unit = {},
 ): Modifier {
   if (width <= 0.dp) return this
   val metrics = rememberGutterMetrics(text, style, width, breakpoints, diagnostics)
   return this
-    .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress)
+    .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress, onDiagnosticTap)
     .gutterDrawing(metrics, layout, stoppedLine)
     .diagnosticSemantics(diagnostics)
     .padding(start = width)
@@ -101,6 +103,8 @@ internal class GutterMetrics(
   val currentArmed: State<Map<Int, Breakpoint>>,
   /** Each line's worst diagnostic severity, the smallest LSP number on it, for the mark. */
   val severity: Map<Int, Int>,
+  /** [severity] read inside a gesture - [currentArmed]'s own trap, and its own fix. */
+  val currentSeverity: State<Map<Int, Int>>,
   val palette: EditorPalette,
 )
 
@@ -139,9 +143,13 @@ internal fun rememberGutterMetrics(
   // that starts it disarmed the line. Found live on the tablet, not guessed: the dot vanished on
   // press and the condition dialog never opened, for every hold, long or short.
   val currentArmed = rememberUpdatedState(armed)
+  // `severity` is the same trap as `armed` above: a republished diagnostic rebuilds `metrics`,
+  // the gesture coroutine reads its captured copy, and a mark pressed mid-update would answer
+  // for a line that no longer carries it. The State keeps the read current without rekeying.
+  val currentSeverity = rememberUpdatedState(severity)
   return GutterMetrics(
     starts, numbers, badge, breakpointColumnPx, digitsPx, widthPx, armed, currentArmed, severity,
-    editorPalette,
+    currentSeverity, editorPalette,
   )
 }
 
@@ -151,16 +159,22 @@ internal fun Modifier.gutterGestures(
   layout: TextLayoutResult?,
   onGutterTap: (line: Int) -> Unit,
   onGutterLongPress: (line: Int) -> Unit,
+  onDiagnosticTap: (line: Int) -> Unit = {},
 ): Modifier = pointerInput(metrics.widthPx, layout, metrics.starts) {
   detectGutterTap(
     metrics.widthPx,
+    metrics.breakpointColumnPx.toFloat(),
     onTap = { y -> layout?.let { onGutterTap(it.lineNumberAt(y, metrics.starts)) } },
     // Asked before `onTap` runs, so a long-press on a line that *was* armed still counts as
     // one even though `onTap`'s own toggle disarms it in the same gesture.
     wasArmed = { y ->
       layout?.let { metrics.currentArmed.value.containsKey(it.lineNumberAt(y, metrics.starts)) } == true
     },
+    wasDiagnosed = { y ->
+      layout?.let { metrics.currentSeverity.value.containsKey(it.lineNumberAt(y, metrics.starts)) } == true
+    },
     onLongPress = { y -> layout?.let { onGutterLongPress(it.lineNumberAt(y, metrics.starts)) } },
+    onDiagnosticTap = { y -> layout?.let { onDiagnosticTap(it.lineNumberAt(y, metrics.starts)) } },
   )
 }
 
@@ -250,21 +264,29 @@ private fun DrawScope.drawBreakpointMark(breakpoint: Breakpoint, metrics: Gutter
  */
 private suspend fun PointerInputScope.detectGutterTap(
   widthPx: Float,
+  markColumnPx: Float,
   onTap: (y: Float) -> Unit,
   wasArmed: (y: Float) -> Boolean,
+  wasDiagnosed: (y: Float) -> Boolean,
   onLongPress: (y: Float) -> Unit,
+  onDiagnosticTap: (y: Float) -> Unit,
 ) {
   awaitEachGesture {
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
     if (down.position.x > widthPx) return@awaitEachGesture
     down.consume()
     val armed = wasArmed(down.position.y)
+    val diagnosed = wasDiagnosed(down.position.y)
     var change = down
     while (change.pressed) {
       change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
     }
     val held = change.uptimeMillis - down.uptimeMillis >= viewConfiguration.longPressTimeoutMillis
-    if (armed && held) onLongPress(down.position.y) else onTap(down.position.y)
+    when (gutterPress(armed, held, down.position.x <= markColumnPx, diagnosed)) {
+      GutterPress.EDIT_CONDITION -> onLongPress(down.position.y)
+      GutterPress.SHOW_DIAGNOSTICS -> onDiagnosticTap(down.position.y)
+      GutterPress.TOGGLE_BREAKPOINT -> onTap(down.position.y)
+    }
   }
 }
 
