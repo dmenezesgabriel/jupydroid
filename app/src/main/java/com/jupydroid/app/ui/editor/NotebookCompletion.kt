@@ -1,10 +1,10 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.LanguageCompletion
-import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerPort
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -28,18 +28,22 @@ class NotebookCompletion(
   private val session: NotebookKernelSession,
   private val kernelGateway: KernelGateway,
   private val languageServer: LanguageServerPort,
+  /** The notebook's workspace name - what the language server's one document is keyed on. */
+  private val notebookId: () -> String,
 ) {
   /**
    * What is offered for [code] with the caret at [cursorOffset] in the cell [cellId] names.
    *
-   * [cellId] is what the document is keyed on: one LSP text document per cell, synced whole on
-   * every ask - [LanguageServerPort.changeDocument] opens it on the first one, the reference's
-   * `_sendChange` rule.
+   * The ask goes to one virtual document per notebook (P5d-1): [cells] with [cellId]'s source
+   * substituted for [code], the field's live text, which `uiState` may still hold stale. It is
+   * synced whole on every ask - [LanguageServerPort.changeDocument] opens it on the first one,
+   * the reference's `_sendChange` rule - and the caret is asked at its virtual position, so
+   * `import os` in an earlier cell is what makes `os.path.jo` answerable in this one.
    */
   @Suppress("SwallowedException") // a kernel that cannot answer has nothing to say, which is not an error
-  suspend fun at(cellId: String, code: String, cursorOffset: Int): CompletionResult {
+  suspend fun at(cells: List<Cell>, cellId: String, code: String, cursorOffset: Int): CompletionResult {
     val open = session.opened ?: return CompletionResult.NONE
-    return viaLanguageServer(cellId, code, cursorOffset)
+    return viaLanguageServer(cells, cellId, code, cursorOffset)
       ?: try {
         kernelGateway.complete(open, code, cursorOffset)
       } catch (e: IllegalStateException) {
@@ -54,11 +58,19 @@ class NotebookCompletion(
    * a failure and is rethrown, because `collectLatest` cancels on the next keystroke.
    */
   @Suppress("TooGenericExceptionCaught", "SwallowedException")
-  private suspend fun viaLanguageServer(cellId: String, code: String, cursorOffset: Int): CompletionResult? = try {
-    val uri = cellDocumentUri(cellId)
-    languageServer.changeDocument(BASE_SPACE, uri, code)
+  private suspend fun viaLanguageServer(
+    cells: List<Cell>,
+    cellId: String,
+    code: String,
+    cursorOffset: Int,
+  ): CompletionResult? = try {
+    val document = NotebookVirtualDocument(notebookId(), cells.withLiveSource(cellId, code))
+    val position = document.positionOf(cellId, cursorOffset) ?: return null
+    languageServer.changeDocument(BASE_SPACE, document.uri, document.text)
     toCompletionResult(
-      languageServer.completion(BASE_SPACE, uri, positionAt(code, cursorOffset)),
+      document,
+      cellId,
+      languageServer.completion(BASE_SPACE, document.uri, position),
       code,
       cursorOffset,
     )
@@ -69,29 +81,9 @@ class NotebookCompletion(
   }
 }
 
-/** A document `file://` uri naming the cell - virtual under root, so it never touches a real path. */
-internal fun cellDocumentUri(cellId: String): String = "file:///jupyterdroid/cells/$cellId.py"
-
-/** The caret as LSP speaks it: zero-based line, character in the negotiated `utf-16` code units. */
-private fun positionAt(code: String, cursorOffset: Int): LanguagePosition {
-  val before = code.take(cursorOffset.coerceIn(0, code.length))
-  return LanguagePosition(
-    line = before.count { it == '\n' },
-    character = cursorOffset - (before.lastIndexOf('\n') + 1),
-  )
-}
-
-/** Where a line-and-character point sits in [code], as a code-unit offset - clamped at line end. */
-private fun offsetAt(code: String, position: LanguagePosition): Int {
-  var offset = 0
-  repeat(position.line) {
-    val newline = code.indexOf('\n', offset)
-    if (newline < 0) return code.length
-    offset = newline + 1
-  }
-  val lineEnd = code.indexOf('\n', offset).takeIf { it >= 0 } ?: code.length
-  return (offset + position.character).coerceAtMost(lineEnd)
-}
+/** [cells] with [cellId]'s source replaced by the field's live [code] - the truth of the text. */
+private fun List<Cell>.withLiveSource(cellId: String, code: String) =
+  map { if (it.id == cellId) it.copy(source = code) else it }
 
 /**
  * LSP items as the one [CompletionResult] the popup knows.
@@ -102,15 +94,23 @@ private fun offsetAt(code: String, position: LanguagePosition): Int {
  * edit's own range when an item carries one, and the identifier under the cursor when it does
  * not - the word range the reference computes for an edit-less item.
  */
-private fun toCompletionResult(items: List<LanguageCompletion>, code: String, cursorOffset: Int): CompletionResult {
+private fun toCompletionResult(
+  document: NotebookVirtualDocument,
+  cellId: String,
+  items: List<LanguageCompletion>,
+  code: String,
+  cursorOffset: Int,
+): CompletionResult {
   val matches = items.map { it.edit?.newText ?: it.insertText }.distinct()
   if (matches.isEmpty()) return CompletionResult.NONE
   val edit = items.firstNotNullOfOrNull { it.edit }
-  val (start, end) =
-    if (edit != null) {
-      offsetAt(code, edit.range.start) to offsetAt(code, edit.range.end)
+  val start = edit?.let { document.cellOffsetOf(cellId, it.range.start) }
+  val end = edit?.let { document.cellOffsetOf(cellId, it.range.end) }
+  val (replacedStart, replacedEnd) =
+    if (start != null && end != null) {
+      start to end
     } else {
       identifierSpanEndingAt(code, cursorOffset) ?: (cursorOffset to cursorOffset)
     }
-  return CompletionResult(matches, start, end)
+  return CompletionResult(matches, replacedStart, replacedEnd)
 }

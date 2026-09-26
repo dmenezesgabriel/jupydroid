@@ -95,7 +95,8 @@ class NotebookKernel(
    * The language-server-first ask [completionsAt] delegates to - see [NotebookCompletion] for
    * the ordering and why it lives beside this class rather than in it.
    */
-  private val completion = NotebookCompletion(session, kernelGateway, languageServer)
+  private val completion =
+    NotebookCompletion(session, kernelGateway, languageServer) { uiState.value.notebookId }
 
   /**
    * A Console's own session, pre-attached to whatever kernel this notebook already has - P6b-9.
@@ -234,7 +235,7 @@ class NotebookKernel(
    * a cell is running, and worth ignoring when the user is only typing.
    */
   suspend fun completionsAt(cellId: String, code: String, cursorOffset: Int): CompletionResult =
-    completion.at(cellId, code, cursorOffset)
+    completion.at(uiState.value.cells, cellId, code, cursorOffset)
 
   /**
    * Closes the socket, on a scope that outlives the screen.
