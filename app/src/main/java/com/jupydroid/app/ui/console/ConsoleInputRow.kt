@@ -21,6 +21,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.RECALL_NEXT_ENTRY
@@ -83,6 +84,9 @@ fun ConsoleInputRow(
   onSourceEdited: (String) -> Unit = {},
   onRecallPreviousEntry: () -> Unit = {},
   onRecallNextEntry: () -> Unit = {},
+  /** `fileeditor:toggle-…-universal` covers the Console - the notebook's own pair, passed down. */
+  autoClosingBrackets: Boolean = true,
+  indentUnit: IndentUnit = IndentUnit.SPACES_4,
   modifier: Modifier = Modifier,
 ) {
   Row(modifier = modifier.padding(vertical = Spacing.xs), verticalAlignment = Alignment.Bottom) {
@@ -108,6 +112,8 @@ fun ConsoleInputRow(
           .semantics { testTagsAsResourceId = true }
           .testTag(CONSOLE_INPUT_FIELD_TAG),
         lineNumbersShown = false,
+        autoClosingBrackets = autoClosingBrackets,
+        indentUnit = indentUnit,
       )
     }
     IconButton(onClick = onSubmit, enabled = !running) {

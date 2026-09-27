@@ -17,8 +17,10 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.KernelEvent
@@ -55,6 +57,7 @@ class ConsoleScreenTest {
           title = "Analysis.ipynb",
           viewModel = consoleViewModel(),
           onBack = { backTapped = true },
+          editorSettingsRepository = FakeEditorSettingsRepository(),
         )
       }
     }
@@ -67,7 +70,14 @@ class ConsoleScreenTest {
   @Test
   fun submittingInputRendersTheEntryInTheTranscript() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleScreen(title = "Analysis.ipynb", viewModel = consoleViewModel(), onBack = {}) }
+      JupyterDroidTheme {
+        ConsoleScreen(
+          title = "Analysis.ipynb",
+          viewModel = consoleViewModel(),
+          onBack = {},
+          editorSettingsRepository = FakeEditorSettingsRepository(),
+        )
+      }
     }
 
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
@@ -82,7 +92,14 @@ class ConsoleScreenTest {
   fun tappingInterruptKernelCancelsTheRunningEntry() {
     val gateway = InterruptibleKernelGateway()
     compose.setContent {
-      JupyterDroidTheme { ConsoleScreen(title = "Analysis.ipynb", viewModel = consoleViewModel(gateway), onBack = {}) }
+      JupyterDroidTheme {
+        ConsoleScreen(
+          title = "Analysis.ipynb",
+          viewModel = consoleViewModel(gateway),
+          onBack = {},
+          editorSettingsRepository = FakeEditorSettingsRepository(),
+        )
+      }
     }
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()
@@ -96,7 +113,14 @@ class ConsoleScreenTest {
   @Test
   fun interruptKernelIsDisabledWhileNothingIsRunning() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleScreen(title = "Analysis.ipynb", viewModel = consoleViewModel(), onBack = {}) }
+      JupyterDroidTheme {
+        ConsoleScreen(
+          title = "Analysis.ipynb",
+          viewModel = consoleViewModel(),
+          onBack = {},
+          editorSettingsRepository = FakeEditorSettingsRepository(),
+        )
+      }
     }
 
     compose.onNodeWithContentDescription("Console actions").performClick()
@@ -104,10 +128,44 @@ class ConsoleScreenTest {
     compose.onNodeWithText(INTERRUPT_KERNEL).assertIsNotEnabled()
   }
 
+  /**
+   * `fileeditor:toggle-autoclosing-brackets-universal` names the Console too
+   * (`commands.ts:552-575`), but this field ran `CodeCellField`'s default rules - a `(` with the
+   * setting off closed itself here while the notebook's stayed open. The same hole the symbol
+   * row had, fixed by the same plumbing.
+   */
+  @Test
+  fun aBracketStaysOpenWhenAutoClosingIsOff() {
+    val viewModel = consoleViewModel()
+    compose.setContent {
+      JupyterDroidTheme {
+        ConsoleScreen(
+          title = "Analysis.ipynb",
+          viewModel = viewModel,
+          onBack = {},
+          editorSettingsRepository = FakeEditorSettingsRepository(
+            EditorSettings(autoClosingBrackets = false),
+          ),
+        )
+      }
+    }
+
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("print(")
+
+    assertEquals("print(", viewModel.input.text.toString())
+  }
+
   @Test
   fun tappingClearRemovesTheTranscript() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleScreen(title = "Analysis.ipynb", viewModel = consoleViewModel(), onBack = {}) }
+      JupyterDroidTheme {
+        ConsoleScreen(
+          title = "Analysis.ipynb",
+          viewModel = consoleViewModel(),
+          onBack = {},
+          editorSettingsRepository = FakeEditorSettingsRepository(),
+        )
+      }
     }
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()
@@ -123,7 +181,14 @@ class ConsoleScreenTest {
   @Test
   fun capturesTheScreenScreenshotForEvidence() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleScreen(title = "Analysis.ipynb", viewModel = consoleViewModel(), onBack = {}) }
+      JupyterDroidTheme {
+        ConsoleScreen(
+          title = "Analysis.ipynb",
+          viewModel = consoleViewModel(),
+          onBack = {},
+          editorSettingsRepository = FakeEditorSettingsRepository(),
+        )
+      }
     }
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()

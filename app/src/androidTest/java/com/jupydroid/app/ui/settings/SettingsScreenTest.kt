@@ -17,6 +17,7 @@ import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
 import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
@@ -177,6 +178,26 @@ class SettingsScreenTest {
     compose.onNodeWithText(AUTO_CLOSING_BRACKETS).performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().autoClosingBrackets }
+  }
+
+  /** `indentUnit` - the schema's own five options as segments - see `EditorSettings.indentUnit`. */
+  @Test
+  fun indentUnitRowShowsTheRepositorysCurrentValue() {
+    startScreen(FakeEditorSettingsRepository(EditorSettings(indentUnit = IndentUnit.SPACES_2)))
+
+    compose.onNodeWithText(INDENT_UNIT).performScrollTo().assertIsDisplayed()
+    compose.onNodeWithText(IndentUnit.SPACES_2.option).assertIsSelected()
+    compose.onNodeWithText(IndentUnit.TAB.option).assertIsNotSelected()
+  }
+
+  @Test
+  fun tappingAnIndentUnitWritesTheRepository() {
+    val repository = FakeEditorSettingsRepository(EditorSettings(indentUnit = IndentUnit.SPACES_4))
+    startScreen(repository)
+
+    compose.onNodeWithText(IndentUnit.TAB.option).performScrollTo().performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().indentUnit == IndentUnit.TAB }
   }
 
   @Test

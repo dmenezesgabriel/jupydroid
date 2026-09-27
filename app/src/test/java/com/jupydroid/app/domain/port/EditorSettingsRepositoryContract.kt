@@ -3,6 +3,7 @@ package com.jupydroid.app.domain.port
 import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.IndentUnit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -145,6 +146,26 @@ abstract class EditorSettingsRepositoryContract {
     repository.update(EditorSettings(symbolRowShown = false))
 
     assertFalse(repository.observeSettings().first().symbolRowShown)
+  }
+
+  /**
+   * `indentUnit` - the schema's own `'4'`, its default
+   * (`packages/codemirror/src/extension.ts:707-720`): "The indentation is a `Tab` or the number
+   * of spaces." Shipping it changes no keystroke until a user picks otherwise - the typing paths
+   * it feeds already used four spaces.
+   */
+  @Test
+  fun defaultsToFourSpacesAsTheIndentUnit() = runTest {
+    assertEquals(IndentUnit.SPACES_4, repository().observeSettings().first().indentUnit)
+  }
+
+  @Test
+  fun remembersAnIndentUnitChange() = runTest {
+    val repository = repository()
+
+    repository.update(EditorSettings(indentUnit = IndentUnit.TAB))
+
+    assertEquals(IndentUnit.TAB, repository.observeSettings().first().indentUnit)
   }
 
   /**

@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
@@ -143,6 +144,7 @@ fun SettingsScreen(
       SettingsToggleRow(AUTO_CLOSING_BRACKETS, settings.autoClosingBrackets) {
         update(settings.copy(autoClosingBrackets = it))
       }
+      IndentUnitRow(settings.indentUnit) { update(settings.copy(indentUnit = it)) }
       SettingsToggleRow(CODE_COMPLETION, settings.completionEnabled) {
         update(settings.copy(completionEnabled = it))
       }
@@ -261,6 +263,36 @@ private fun ThemeOverrideRow(selected: ThemeOverride, onSelect: (ThemeOverride) 
     },
   )
 }
+
+/**
+ * The `indentUnit` row: five always-visible, mutually exclusive choices -
+ * `SingleChoiceSegmentedButtonRow`, the same widget [ThemeOverrideRow] reaches for, and still
+ * inside its documented 2-5 option range. The labels are the schema's own enum literals
+ * (`'Tab'`, `'1'`, `'2'`, `'4'`, `'8'` - `packages/codemirror/src/extension.ts:707-720`), which
+ * is why there is no `*_OPTION` constant block here: `IndentUnit.option` *is* the schema string,
+ * not a translation of it.
+ */
+@Composable
+private fun IndentUnitRow(selected: IndentUnit, onSelect: (IndentUnit) -> Unit) {
+  ListItem(
+    headlineContent = { Text(INDENT_UNIT) },
+    supportingContent = {
+      SingleChoiceSegmentedButtonRow {
+        IndentUnit.entries.forEachIndexed { index, option ->
+          SegmentedButton(
+            selected = selected == option,
+            onClick = { onSelect(option) },
+            shape = SegmentedButtonDefaults.itemShape(index = index, count = IndentUnit.entries.size),
+            label = { Text(option.option) },
+          )
+        }
+      }
+    },
+  )
+}
+
+/** `indentUnit`'s own title (`extension.ts:707`) - see `EditorSettings.indentUnit`. */
+internal const val INDENT_UNIT = "Indentation unit"
 
 /** `apputils:adaptive-theme` - see `ThemeSettings.override`. */
 internal const val THEME = "Theme"

@@ -1,5 +1,6 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.Space
 import kotlinx.coroutines.flow.SharedFlow
 
@@ -14,6 +15,31 @@ data class LanguageRange(val start: LanguagePosition, val end: LanguagePosition)
 
 /** A `CompletionItem.textEdit`: what accepting the match writes, and the range it replaces. */
 data class LanguageEdit(val range: LanguageRange, val newText: String)
+
+/**
+ * LSP's `FormattingOptions` - the one required field of `DocumentRangeFormattingParams`, so a
+ * `textDocument/rangeFormatting` cannot be sent without it. The editor's own indentation
+ * setting supplies it, the way VS Code sends `model.getOptions()`; [insertSpaces] is whether
+ * an indent is spaces at all, [tabSize] how many spaces one level means.
+ *
+ * Read by the shipped `pylsp` and ignored - autopep8 is configured off
+ * `pylsp.plugins.pycodestyle.*` (`_autopep8_config` in its plugin, which forwards no indent
+ * key). Sent anyway: it is required by the spec, and it is what a spec-conforming server is
+ * owed. [IndentUnit.formattingOptions] is where the user's setting lands on it.
+ */
+data class LanguageFormatOptions(val tabSize: Int, val insertSpaces: Boolean)
+
+/**
+ * The user's `indentUnit` as the `options` a `textDocument/rangeFormatting` carries:
+ * `insertSpaces` is the unit not being a tab, and `tabSize` is the unit's own width - or the
+ * reference's `tabSize` default of 4 for a tab unit (`extension.ts:963-972`), which is the
+ * display width a `\t` would stand for even when it is the thing being inserted.
+ */
+fun IndentUnit.formattingOptions(): LanguageFormatOptions =
+  LanguageFormatOptions(tabSize = spaces ?: TAB_DISPLAY_WIDTH, insertSpaces = this != IndentUnit.TAB)
+
+/** The schema's `tabSize` default - a tab's width in spaces, when the unit *is* the tab. */
+private const val TAB_DISPLAY_WIDTH = 4
 
 /**
  * One entry a `textDocument/completion` reply carries. [insertText] is the ordinary
@@ -115,6 +141,11 @@ data class LanguageCapabilities(
    * the test like [signatureHelpProvider]'s - pylsp replies a plain `true` (P5e-0 probe).
    */
   val definitionProvider: Boolean = false,
+  /**
+   * `documentRangeFormattingProvider` takes the same boolean-or-options shape
+   * (`DocumentRangeFormattingOptions` is only `workDoneProgress`) - pylsp's `true`, probed.
+   */
+  val documentRangeFormattingProvider: Boolean = false,
 )
 
 /**
@@ -190,6 +221,19 @@ interface LanguageServerPort {
    * normalize all of it to a location list - empty where nothing defines the symbol.
    */
   suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation>
+
+  /**
+   * `textDocument/rangeFormatting` for [range] in the document at [uri] - `docs/PLAN.md`
+   * P5e-6, the ask behind "Format cell". The caller's [options] are the editor's own
+   * indentation settings, sent per spec. Implementations normalize `null` and `[]` replies
+   * to an empty edit list - "already formatted" and "nothing to say" are the same answer.
+   */
+  suspend fun rangeFormatting(
+    space: Space,
+    uri: String,
+    range: LanguageRange,
+    options: LanguageFormatOptions,
+  ): List<LanguageEdit>
 
   /**
    * Every `textDocument/publishDiagnostics` a running server pushes, typed - the stream the

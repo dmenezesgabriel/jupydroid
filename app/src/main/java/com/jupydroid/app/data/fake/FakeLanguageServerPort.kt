@@ -3,6 +3,8 @@ package com.jupydroid.app.data.fake
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageCapabilities
 import com.jupydroid.app.domain.port.LanguageCompletion
+import com.jupydroid.app.domain.port.LanguageEdit
+import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageLocation
 import com.jupydroid.app.domain.port.LanguageMarkup
@@ -36,6 +38,7 @@ class FakeLanguageServerPort : LanguageServerPort {
     positionEncoding = "utf-16",
     hoverProvider = true,
     definitionProvider = true,
+    documentRangeFormattingProvider = true,
   )
 
   /** What `hover` answers, replaceable with null for a "nothing here" test. */
@@ -60,6 +63,16 @@ class FakeLanguageServerPort : LanguageServerPort {
    * somewhere a UI test can see.
    */
   var definitionAnswer: List<LanguageLocation>? = null
+
+  /**
+   * What `rangeFormatting` answers - the `TextEdit[]` a test scripts, `[]` ("already
+   * formatted") by default. [formattingAsks] records the range and options each call
+   * arrived with, so a test can assert the settings reached the wire.
+   */
+  var formattingAnswer: List<LanguageEdit> = emptyList()
+
+  /** Every `rangeFormatting` call, in arrival order - the (uri, range, options) triple. */
+  val formattingAsks = mutableListOf<Triple<String, LanguageRange, LanguageFormatOptions>>()
 
   /** `didOpen`/`didChange` in arrival order, so a test sees the sync the server would have. */
   val opened = mutableListOf<String>()
@@ -106,6 +119,16 @@ class FakeLanguageServerPort : LanguageServerPort {
 
   override suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation> =
     definitionAnswer ?: listOf(LanguageLocation(uri, PROBE_DEFINITION_RANGE))
+
+  override suspend fun rangeFormatting(
+    space: Space,
+    uri: String,
+    range: LanguageRange,
+    options: LanguageFormatOptions,
+  ): List<LanguageEdit> {
+    formattingAsks += Triple(uri, range, options)
+    return formattingAnswer
+  }
 
   override suspend fun stop(space: Space) {
     stops++

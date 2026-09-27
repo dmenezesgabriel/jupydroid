@@ -16,6 +16,7 @@ import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
@@ -104,6 +105,8 @@ internal fun EditorCell(
   outputSearch: List<CellSearchHighlight>,
   /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
   autoClosingBrackets: Boolean,
+  /** `indentUnit` - the level a `:` line adds; see `EditorSettings.indentUnit`. */
+  indentUnit: IndentUnit,
   cellInput: FocusedCellInput,
   /**
    * A definition jump waiting to be taken, or null - `EditorUiState.caretLanding` already
@@ -213,6 +216,7 @@ internal fun EditorCell(
             stoppedLine = stoppedLine,
             search = search,
             autoClosingBrackets = autoClosingBrackets,
+            indentUnit = indentUnit,
             caretLanding = caretLanding,
             onCaretLanded = onCaretLanded,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),

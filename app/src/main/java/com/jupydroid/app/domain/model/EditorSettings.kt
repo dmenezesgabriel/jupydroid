@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - thirteen fields today.
+ * The app-wide editor preferences P6c grows - fourteen fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -159,6 +159,17 @@ data class EditorSettings(
    * already open (`notebook-extension/src/index.ts:2467-2477`).
    */
   val shutdownKernelOnClose: Boolean = false,
+  /**
+   * `indentUnit` - what one level of indentation is, a `Tab` or a number of spaces
+   * (`packages/codemirror/src/extension.ts:707-720`, the schema's own five-value enum and `'4'`
+   * default). One setting feeding three places: `PythonTypingRules`'s block-open level and the
+   * symbol row's Tab key (which were both hardwired to four spaces), and the `options` a
+   * `textDocument/rangeFormatting` is required to carry (`IndentUnit.formattingOptions`).
+   *
+   * **The reference's `tabSize` beside it is deliberately absent** - it is the display width of
+   * a `\t`, which no Compose text field can express; see [IndentUnit]'s own doc.
+   */
+  val indentUnit: IndentUnit = IndentUnit.SPACES_4,
 )
 
 /**

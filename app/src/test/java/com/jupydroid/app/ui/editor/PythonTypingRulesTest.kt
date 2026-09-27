@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.insert
 import androidx.compose.ui.text.TextRange
+import com.jupydroid.app.domain.model.IndentUnit
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -149,11 +150,41 @@ class PythonTypingRulesTest {
     assertEquals("if x:\n    |", typing("if x:|", "\n", autoClosingBrackets = false))
   }
 
-  private fun typing(before: String, typed: String, autoClosingBrackets: Boolean = true): String {
+  // --- `indentUnit` - `packages/codemirror/src/extension.ts:707-720` (P5e-6) ------------------
+
+  /**
+   * The block-open level is the setting's own unit: `'2'` indents two spaces, not the default's
+   * four - the schema's `indentUnit.of(' '.repeat(value))`, read through the cell field's rules.
+   */
+  @Test
+  fun newline_addsTheSettingsOwnLevel() {
+    assertEquals("if x:\n  |", typing("if x:|", "\n", indentUnit = IndentUnit.SPACES_2))
+  }
+
+  @Test
+  fun newline_indentsWithATabWhenTheSettingAsksForOne() {
+    assertEquals("if x:\n\t|", typing("if x:|", "\n", indentUnit = IndentUnit.TAB))
+  }
+
+  /**
+   * A line already indented in tabs keeps them whatever the setting says: mixing the configured
+   * spaces under a tab is a `TabError`, so the document's own style wins over the unit here.
+   */
+  @Test
+  fun newline_keepsATabIndentedLinesTabs() {
+    assertEquals("\tif x:\n\t\t|", typing("\tif x:|", "\n", indentUnit = IndentUnit.SPACES_2))
+  }
+
+  private fun typing(
+    before: String,
+    typed: String,
+    autoClosingBrackets: Boolean = true,
+    indentUnit: IndentUnit = IndentUnit.SPACES_4,
+  ): String {
     val cursor = before.indexOf(CURSOR)
     require(cursor >= 0) { "no $CURSOR in \"$before\"" }
     val state = TextFieldState(before.replace(CURSOR, ""), TextRange(cursor))
-    val active = if (autoClosingBrackets) rules else PythonTypingRules(autoClosingBrackets = false)
+    val active = PythonTypingRules(autoClosingBrackets = autoClosingBrackets, indentUnit = indentUnit)
     state.edit {
       insert(selection.start, typed)
       with(active) { transformInput() }

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.sp
 import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.CodeFontSize
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
@@ -86,7 +87,11 @@ fun CodeCellField(
   highlighter: SyntaxHighlighter = remember { PythonSyntax() },
   /** `notebook:toggle-autoclosing-brackets`, universal - see [PythonTypingRules]. */
   autoClosingBrackets: Boolean = true,
-  typing: InputTransformation = remember(autoClosingBrackets) { PythonTypingRules(autoClosingBrackets) },
+  /** `indentUnit` - the level a `:` line adds - see [PythonTypingRules]. */
+  indentUnit: IndentUnit = IndentUnit.SPACES_4,
+  typing: InputTransformation = remember(autoClosingBrackets, indentUnit) {
+    PythonTypingRules(autoClosingBrackets, indentUnit)
+  },
   /** Null where no symbol row is on screen, which is every test that drives a field alone. */
   input: FocusedCellInput? = null,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */

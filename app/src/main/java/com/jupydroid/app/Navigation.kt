@@ -468,6 +468,7 @@ fun MainNavigation(
               viewModel = viewModel { ConsoleViewModel(appContainer.kernelGateway, session) },
               onBack = { backStack.removeLastOrNull() },
               twoPane = twoPane,
+              editorSettingsRepository = appContainer.editorSettings,
             )
           }
         }

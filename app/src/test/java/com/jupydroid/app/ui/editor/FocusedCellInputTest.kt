@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.text.TextRange
+import com.jupydroid.app.domain.model.IndentUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -148,6 +149,35 @@ class FocusedCellInputTest {
     input.indent()
 
     assertEquals("x = 1    ", state.text.toString())
+  }
+
+  /**
+   * The row's Tab key inserts the setting's own unit - `indentUnit`, the schema's `'Tab'` here -
+   * and not the four spaces it was hardwired to (`packages/codemirror/src/extension.ts:707-720`).
+   */
+  @Test
+  fun indentInsertsTheSettingsOwnUnit() {
+    val state = attached("x = 1")
+    input.indentUnit = IndentUnit.TAB
+
+    input.indent()
+
+    assertEquals("x = 1\t", state.text.toString())
+  }
+
+  /**
+   * The row's bracket keys honour `autoClosingBrackets` too: the rules instance [type] applies
+   * is built from the settings, so a `(` from the row and a `(` from the keyboard do the same
+   * thing when the user has pair-closing off - the regression this used to be.
+   */
+  @Test
+  fun aBracketFromTheRowStaysOpenWhenTheSettingIsOff() {
+    val state = attached("print")
+    input.autoClosingBrackets = false
+
+    input.type("(")
+
+    assertEquals("print(", state.text.toString())
   }
 
   @Test

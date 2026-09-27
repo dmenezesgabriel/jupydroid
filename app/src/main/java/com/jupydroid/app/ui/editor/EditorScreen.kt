@@ -170,6 +170,10 @@ fun EditorScreen(
     .collectAsStateWithLifecycle(EditorSettings())
   val focusManager = LocalFocusManager.current
   val cellInput = remember { FocusedCellInput() }
+  // Plain `var`s read at tap time, so they are set straight rather than remembered: the row's
+  // `type` builds its rules from these, and a stale pair is the bug they replaced.
+  cellInput.autoClosingBrackets = editorSettings.autoClosingBrackets
+  cellInput.indentUnit = editorSettings.indentUnit
   val listState = rememberLazyListState()
   val scope = rememberCoroutineScope()
   // Remembered here rather than inside the Scaffold's slot, because [ExportReportSnackbar] posts
@@ -404,6 +408,7 @@ fun EditorScreen(
           onMarkdownEditRequested = viewModel::markdownEditRequested,
           cellInput = cellInput,
           autoClosingBrackets = editorSettings.autoClosingBrackets,
+          indentUnit = editorSettings.indentUnit,
           lineNumbersShown = editorSettings.lineNumbersShown,
           codeFontSizeSp = editorSettings.codeFontSizeSp,
           wrapEnabled = editorSettings.codeWrapEnabled,

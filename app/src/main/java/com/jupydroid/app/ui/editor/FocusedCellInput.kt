@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.TextRange
+import com.jupydroid.app.domain.model.IndentUnit
 
 /**
  * The cell the symbol row types into: whichever one has the caret.
@@ -25,6 +26,20 @@ import androidx.compose.ui.text.TextRange
  */
 class FocusedCellInput {
   private var target by mutableStateOf<TextFieldState?>(null)
+
+  /**
+   * The user's two typing settings, published by the screen that owns this row - a `var` each
+   * rather than a constructor pair because the field asking is not the composable that knows:
+   * the screen reads `EditorSettings` and the row answers at call time. Defaults are the
+   * shipped behaviour, so a test driving one alone reads what the app always did.
+   *
+   * `autoClosingBrackets` here was the latent gap: the row's `type` used to build its rules
+   * with the default `true`, so a `(` from the row closed its pair even with the setting off -
+   * where the keyboard, running the field's own transformation, did not. Both settings now
+   * reach the same rules object at type time, which is what keeps the two honest.
+   */
+  var autoClosingBrackets: Boolean = true
+  var indentUnit: IndentUnit = IndentUnit.SPACES_4
 
   /** Whether any cell is focused, which is what decides if the row can do anything. */
   val isAttached: Boolean get() = target != null
@@ -55,14 +70,14 @@ class FocusedCellInput {
     val state = target ?: return
     state.edit {
       insert(selection.start, text)
-      with(rules) { transformInput() }
+      with(PythonTypingRules(autoClosingBrackets, indentUnit)) { transformInput() }
     }
   }
 
-  /** One indent level, which the rules define as four spaces on a space-indented line. */
+  /** One indent level - the setting's own [IndentUnit.text], `Tab` or a count of spaces. */
   fun indent() {
     val state = target ?: return
-    state.edit { insert(selection.start, FOUR_SPACES) }
+    state.edit { insert(selection.start, indentUnit.text) }
   }
 
   /**
@@ -98,11 +113,6 @@ class FocusedCellInput {
     state.edit {
       selection = TextRange((selection.start + by).coerceIn(0, length))
     }
-  }
-
-  private companion object {
-    val rules = PythonTypingRules()
-    const val FOUR_SPACES = "    "
   }
 }
 

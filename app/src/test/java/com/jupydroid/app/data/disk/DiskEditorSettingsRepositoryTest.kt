@@ -1,10 +1,12 @@
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.EditorSettingsRepositoryContract
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -34,6 +36,22 @@ class DiskEditorSettingsRepositoryTest : EditorSettingsRepositoryContract() {
     val reopened = openStore().observeSettings().first()
 
     assertFalse(reopened.autoClosingBrackets)
+  }
+
+  /**
+   * An `editor-settings.json` written before `indentUnit` existed reads as its default - the
+   * field's own contract: `ignoreUnknownKeys` covers fields it does not know, and a field it
+   * has never heard of falls to `EditorSettings`'s own default rather than refusing the file.
+   */
+  @Test
+  fun aStoreFromBeforeIndentUnit_readsAsTheDefault() = runTest {
+    stateDir.mkdirs()
+    File(stateDir, EDITOR_SETTINGS_FILE_NAME).writeText("""{"autoClosingBrackets": false}""")
+
+    val reopened = openStore().observeSettings().first()
+
+    assertFalse(reopened.autoClosingBrackets)
+    assertEquals(IndentUnit.SPACES_4, reopened.indentUnit)
   }
 
   /** A store written by something else must not take the app down on launch. */

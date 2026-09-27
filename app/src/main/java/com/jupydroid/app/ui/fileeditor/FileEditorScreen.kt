@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.rangeIn
 import com.jupydroid.app.domain.port.EditorSettingsRepository
@@ -220,8 +221,8 @@ fun FileEditorScreen(
           state = source,
           onSourceEdited = viewModel::edit,
           highlighter = state.syntax,
-          typing = remember(state.name, editorSettings.autoClosingBrackets) {
-            typingRulesFor(state.name, editorSettings.autoClosingBrackets)
+          typing = remember(state.name, editorSettings.autoClosingBrackets, editorSettings.indentUnit) {
+            typingRulesFor(state.name, editorSettings.autoClosingBrackets, editorSettings.indentUnit)
           },
           wrapEnabled = editorSettings.codeWrapEnabled,
           onLayoutMeasured = { layout = it },
@@ -242,12 +243,15 @@ fun FileEditorScreen(
  * universal - but never a prose one: indentation carries on either way, and there is nothing
  * bracket-related in prose for the setting to have an opinion about.
  */
-private fun typingRulesFor(fileName: String, autoClosingBrackets: Boolean): InputTransformation =
-  if (fileName.substringAfterLast('.', "").lowercase() in BRACKETED) {
-    PythonTypingRules(autoClosingBrackets)
-  } else {
-    InputTransformation { }
-  }
+private fun typingRulesFor(
+  fileName: String,
+  autoClosingBrackets: Boolean,
+  indentUnit: IndentUnit,
+): InputTransformation = if (fileName.substringAfterLast('.', "").lowercase() in BRACKETED) {
+  PythonTypingRules(autoClosingBrackets, indentUnit)
+} else {
+  InputTransformation { }
+}
 
 private val BRACKETED = setOf("py", "json", "ipynb")
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.delete
 import androidx.compose.foundation.text.input.insert
 import androidx.compose.ui.text.TextRange
+import com.jupydroid.app.domain.model.IndentUnit
 
 /**
  * The three edits a Python cell is expected to make on its own: carry the indent onto a new line,
@@ -23,9 +24,14 @@ import androidx.compose.ui.text.TextRange
  *   there (`packages/codemirror/src/extension.ts:637-644` vs the block-indent behaviour bound to
  *   the language, never to this flag) and must not move with it: a cell that closes nothing must
  *   still carry a block's indent onto the next line.
+ * @param indentUnit `indentUnit` - the level a `:` line adds (`:707-720`). Its own setting and
+ *   not part of [autoClosingBrackets]'s: the schema's `editorConfig` keeps them apart too.
  */
 @OptIn(ExperimentalFoundationApi::class)
-class PythonTypingRules(private val autoClosingBrackets: Boolean = true) : InputTransformation {
+class PythonTypingRules(
+  private val autoClosingBrackets: Boolean = true,
+  private val indentUnit: IndentUnit = IndentUnit.SPACES_4,
+) : InputTransformation {
   override fun TextFieldBuffer.transformInput() {
     val at = soleTypedCharOffset() ?: return
     val typed = charAt(at)
@@ -70,9 +76,13 @@ class PythonTypingRules(private val autoClosingBrackets: Boolean = true) : Input
     return start
   }
 
-  /** Four spaces under a tab-indented line is a `TabError`, so follow what the line already uses. */
+  /**
+   * A tab-indented line keeps its tabs whatever the setting says - a space unit under it is a
+   * `TabError` - and every other line gets the configured unit (`indentUnit.of`, the schema's
+   * own semantics: what an indent *is*, not a heuristic over the line).
+   */
   private fun indentUnitFor(indent: String): String =
-    if (indent.isNotEmpty() && indent.all { it == '\t' }) "\t" else FOUR_SPACES
+    if (indent.isNotEmpty() && indent.all { it == '\t' }) "\t" else indentUnit.text
 
   /** Drops the typed character and moves past the one already there, so `)` never doubles. */
   private fun TextFieldBuffer.stepOverPartner(at: Int) {
@@ -97,8 +107,6 @@ class PythonTypingRules(private val autoClosingBrackets: Boolean = true) : Input
   }
 
   private companion object {
-    const val FOUR_SPACES = "    "
-
     val QUOTES = setOf('\'', '"')
 
     /** A quote is its own partner, which is what makes step-over work for strings too. */

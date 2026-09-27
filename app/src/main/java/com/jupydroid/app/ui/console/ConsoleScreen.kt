@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.editor.ExecutionStatus
@@ -39,6 +41,8 @@ fun ConsoleScreen(
   title: String,
   viewModel: ConsoleViewModel,
   onBack: () -> Unit,
+  /** `fileeditor:toggle-…-universal` reaches the Console too - its field's rules come from here. */
+  editorSettingsRepository: EditorSettingsRepository,
   /** Whether a browser is drawn beside this document - see [DocumentDismissAction]. */
   twoPane: Boolean = false,
   /**
@@ -50,6 +54,10 @@ fun ConsoleScreen(
 ) {
   val entries by viewModel.entries.collectAsStateWithLifecycle()
   val running = entries.lastOrNull()?.status == ExecutionStatus.RUNNING
+  // The universal toggle's own scope: the notebook's cells, the file editor and this field all
+  // read the same pair, where this row used to compose `CodeCellField`'s defaults instead.
+  val editorSettings by editorSettingsRepository.observeSettings()
+    .collectAsStateWithLifecycle(EditorSettings())
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
@@ -97,6 +105,8 @@ fun ConsoleScreen(
           onSourceEdited = viewModel::inputEdited,
           onRecallPreviousEntry = viewModel::recallPreviousEntry,
           onRecallNextEntry = viewModel::recallNextEntry,
+          autoClosingBrackets = editorSettings.autoClosingBrackets,
+          indentUnit = editorSettings.indentUnit,
           // `TerminalExtraKeysRow`'s own rule: the bar docked below the content owns the
           // keyboard's inset, so `Scaffold`'s own `padding` already reflects it and the content
           // area does not pay for it twice.

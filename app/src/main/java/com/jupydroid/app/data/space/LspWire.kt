@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.port.LanguageCapabilities
+import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageRange
 import kotlinx.serialization.json.JsonArray
@@ -76,6 +77,9 @@ internal object LspWire {
       // `definitionProvider` takes the same boolean-or-options shape (`DefinitionOptions`
       // is only `workDoneProgress`) - pylsp's reply is the plain `true` the probe captured.
       definitionProvider = offered(caps["definitionProvider"]),
+      // `documentRangeFormattingProvider` - the same shape again (`workDoneProgress` alone),
+      // and pylsp's probe-measured `true`.
+      documentRangeFormattingProvider = offered(caps["documentRangeFormattingProvider"]),
       positionEncoding = result?.jsonObject?.get("positionEncoding")
         ?.jsonPrimitive?.contentOrNull ?: "utf-16",
       // `hoverProvider` is a plain boolean, and LSP's rule that an undeclared capability is an
@@ -122,6 +126,29 @@ internal object LspWire {
       put("character", position.character)
     }
   }
+
+  /**
+   * `DocumentRangeFormattingParams` - the document, the range, and the `options` object the
+   * spec requires: `tabSize`/`insertSpaces` from the editor's own indentation setting.
+   */
+  fun rangeFormattingParams(uri: String, range: LanguageRange, options: LanguageFormatOptions): JsonObject =
+    buildJsonObject {
+      putJsonObject("textDocument") { put("uri", uri) }
+      putJsonObject("range") {
+        putJsonObject("start") {
+          put("line", range.start.line)
+          put("character", range.start.character)
+        }
+        putJsonObject("end") {
+          put("line", range.end.line)
+          put("character", range.end.character)
+        }
+      }
+      putJsonObject("options") {
+        put("tabSize", options.tabSize)
+        put("insertSpaces", options.insertSpaces)
+      }
+    }
 
   internal fun languageRange(range: JsonObject): LanguageRange? =
     (range["start"] as? JsonObject)?.let(::languagePosition)?.let { start ->

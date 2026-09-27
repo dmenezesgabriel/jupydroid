@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
@@ -45,6 +46,8 @@ internal fun EditorContent(
   cellInput: FocusedCellInput,
   /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
   autoClosingBrackets: Boolean,
+  /** `indentUnit` - the level a `:` line adds; see [EditorSettings.indentUnit]. */
+  indentUnit: IndentUnit,
   /** `notebook:toggle-all-cell-line-numbers` - app-wide and persisted since P6c-2. */
   lineNumbersShown: Boolean,
   /** `docs/PLAN.md` P6c-4 - app-wide and persisted, see [codeSourceStyle]. */
@@ -153,6 +156,7 @@ internal fun EditorContent(
               search = state.searchHighlightOf(cell.id),
               outputSearch = state.outputSearchHighlightsOf(cell.id),
               autoClosingBrackets = autoClosingBrackets,
+              indentUnit = indentUnit,
               cellInput = cellInput,
               // A pending jump names exactly one cell, so the state's landing is filtered to it
               // before it is handed down - every other cell's field sees null and does nothing.

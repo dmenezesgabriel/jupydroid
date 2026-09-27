@@ -3,9 +3,12 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageCapabilities
 import com.jupydroid.app.domain.port.LanguageCompletion
+import com.jupydroid.app.domain.port.LanguageEdit
+import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageLocation
 import com.jupydroid.app.domain.port.LanguagePosition
+import com.jupydroid.app.domain.port.LanguageRange
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import com.jupydroid.app.domain.port.PublishDiagnostics
@@ -56,8 +59,6 @@ class StdioLanguageServer(
   private val shutdownGrace: Duration = 15.seconds,
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) : LanguageServerPort {
-  private val startup = Mutex()
-  private val servers = mutableMapOf<String, RunningServer>()
   private val serverScope = CoroutineScope(SupervisorJob() + ioDispatcher)
   private val _diagnostics = MutableSharedFlow<PublishDiagnostics>(extraBufferCapacity = 64)
 
@@ -98,15 +99,15 @@ class StdioLanguageServer(
     }
   }
 
-  override suspend fun capabilities(space: Space): LanguageCapabilities = serverFor(space).capabilities
+  override suspend fun capabilities(space: Space): LanguageCapabilities = pool.serverFor(space).capabilities
 
   override suspend fun openDocument(space: Space, uri: String, languageId: String, text: String) {
-    val server = serverFor(space)
+    val server = pool.serverFor(space)
     server.documentLock.withLock { server.open(uri, languageId, text) }
   }
 
   override suspend fun changeDocument(space: Space, uri: String, text: String) {
-    val server = serverFor(space)
+    val server = pool.serverFor(space)
     server.documentLock.withLock {
       val synced = server.documents[uri]
       if (synced == null) {
@@ -126,7 +127,7 @@ class StdioLanguageServer(
   }
 
   override suspend fun closeDocument(space: Space, uri: String) {
-    val server = serverFor(space)
+    val server = pool.serverFor(space)
     server.documentLock.withLock {
       if (server.documents.remove(uri) == null) return@withLock
       server.channel.notify("textDocument/didClose", LspWire.didCloseParams(uri))
@@ -148,25 +149,33 @@ class StdioLanguageServer(
   override suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation> =
     positions.definition(space, uri, position)
 
+  /** @see LanguageServerPort.rangeFormatting */
+  override suspend fun rangeFormatting(
+    space: Space,
+    uri: String,
+    range: LanguageRange,
+    options: LanguageFormatOptions,
+  ): List<LanguageEdit> = positions.rangeFormatting(space, uri, range, options)
+
   /**
    * The `TextDocumentPositionParams` asks - completion and hover share one wire shape:
    * params that name a document and a point in it, one request timeout, replies decoded at
-   * the wire objects. An inner class rather than loose methods because it uses [serverFor]
-   * and [requestTimeout], and a holder rather than the class's own scope so the
+   * the wire objects. An inner class rather than loose methods because it uses
+   * [ServerPool.serverFor] and [requestTimeout], and a holder rather than the class's own scope so the
    * position-ask shape stays greppable in one place (P5e-4's signature help lands here too).
    */
   private val positions = PositionRequests()
 
   private inner class PositionRequests {
     suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion> =
-      LspCompletion.completionItems(request(serverFor(space), "textDocument/completion", uri, position)["result"])
+      LspCompletion.completionItems(request(pool.serverFor(space), "textDocument/completion", uri, position)["result"])
 
     /**
      * A server that never advertised `hoverProvider` is never asked - LSP's rule that an
      * undeclared capability is an unsupported one. The scripted default's `true` is pylsp's.
      */
     suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover? {
-      val server = serverFor(space)
+      val server = pool.serverFor(space)
       if (!server.capabilities.hoverProvider) return null
       return LspMarkup.hoverFrom(request(server, "textDocument/hover", uri, position)["result"])
     }
@@ -176,7 +185,7 @@ class StdioLanguageServer(
      * is never asked. The scripted default advertises the object form pylsp itself replies.
      */
     suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp? {
-      val server = serverFor(space)
+      val server = pool.serverFor(space)
       if (!server.capabilities.signatureHelpProvider) return null
       return LspSignatureHelp.signatureHelpFrom(request(server, "textDocument/signatureHelp", uri, position)["result"])
     }
@@ -187,7 +196,7 @@ class StdioLanguageServer(
      * surfaces as such.
      */
     suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation> {
-      val server = serverFor(space)
+      val server = pool.serverFor(space)
       if (!server.capabilities.definitionProvider) return emptyList()
       log.reached(
         "lsp.ask",
@@ -201,21 +210,47 @@ class StdioLanguageServer(
       return locations
     }
 
+    /**
+     * The same gate one method further: `documentRangeFormattingProvider` absent is an ask
+     * never sent. `options` is the params' required field - the editor's own indentation
+     * setting, which the shipped pylsp's autopep8 plugin accepts and ignores (its config
+     * comes from `pylsp.plugins.pycodestyle.*`, not this object); a spec-conforming server
+     * would honour it, and the spec leaves no way to ask without it.
+     */
+    suspend fun rangeFormatting(
+      space: Space,
+      uri: String,
+      range: LanguageRange,
+      options: LanguageFormatOptions,
+    ): List<LanguageEdit> {
+      val server = pool.serverFor(space)
+      if (!server.capabilities.documentRangeFormattingProvider) return emptyList()
+      log.reached("lsp.ask", mapOf("method" to "rangeFormatting", "uri" to uri))
+      val edits =
+        LspFormatting.editsFrom(
+          request(server, "textDocument/rangeFormatting", LspWire.rangeFormattingParams(uri, range, options))["result"],
+        )
+      log.reached("lsp.answer", mapOf("method" to "rangeFormatting", "edits" to "${edits.size}"))
+      return edits
+    }
+
     /** One `TextDocumentPositionParams` request - the params every point-in-document method shares. */
     private suspend fun request(
       server: RunningServer,
       method: String,
       uri: String,
       position: LanguagePosition,
-    ): JsonObject = try {
-      server.channel.request(method, LspWire.positionParams(uri, position), requestTimeout)
+    ): JsonObject = request(server, method, LspWire.positionParams(uri, position))
+
+    private suspend fun request(server: RunningServer, method: String, params: JsonObject): JsonObject = try {
+      server.channel.request(method, params, requestTimeout)
     } catch (e: TimeoutCancellationException) {
       throw IllegalStateException("$method returned no reply within $requestTimeout", e)
     }
   }
 
   override suspend fun stop(space: Space) {
-    val server = startup.withLock { servers.remove(space.id) } ?: return
+    val server = pool.remove(space) ?: return
     log.reached("lsp.stop", mapOf("space" to space.id))
     withContext(ioDispatcher + NonCancellable) {
       withTimeoutOrNull(shutdownGrace) {
@@ -230,44 +265,60 @@ class StdioLanguageServer(
   }
 
   /**
-   * The running server for [space], starting one if needed - inside [startup], so a call made
-   * while the handshake is still in flight queues behind it exactly like the reference's
-   * `sendOpenWhenReady`, and a dead process respawns on the next call rather than in the
-   * background.
+   * The running servers, one per [Space] - the spawn/handshake/register half of the lifecycle,
+   * an inner class for the reason [PositionRequests] is one: it uses the class's own
+   * [installSpace]/[spawn]/[requestTimeout], and a named holder keeps the "which process does a
+   * Space have" logic greppable in one place.
    */
-  private suspend fun serverFor(space: Space): RunningServer = startup.withLock {
-    servers[space.id]?.takeIf { it.process.isAlive }?.let { return@withLock it }
-    // A dead server's channel and process are already gone; close/destroy is cheap and not
-    // worth a graceful shutdown - `exit` only matters to a process still there to hear it.
-    servers.remove(space.id)?.let {
-      it.diagnosticsPump.cancel()
-      it.channel.close()
-      it.process.destroy()
-    }
-    startServer(space)
-  }
+  private val pool = ServerPool()
 
-  /**
-   * Spawns, handshakes and registers a fresh server for [space] - called under [startup]'s
-   * lock, so at most one handshake per Space is ever in flight. A failed handshake leaves no
-   * half-open channel and no interpreter running.
-   */
-  private suspend fun startServer(space: Space): RunningServer {
-    val installed = installSpace()
-    val process = spawn(installed)
-    log.reached("lsp.start", mapOf("space" to space.id, "rootfs" to "${installed.version}"))
-    val channel = JsonRpcChannel(process.inputStream, process.outputStream, log)
-    return runCatching {
-      val reply = channel.request("initialize", LspWire.initializeParams(), requestTimeout)
-      RunningServer(process, channel, LspWire.capabilitiesFrom(reply["result"]), mutableMapOf()).also {
-        channel.notify("initialized", buildJsonObject {})
-        drainStderr(process.errorStream, log)
-        servers[space.id] = it
+  private inner class ServerPool {
+    private val startup = Mutex()
+    private val servers = mutableMapOf<String, RunningServer>()
+
+    /**
+     * The running server for [space], starting one if needed - inside [startup], so a call made
+     * while the handshake is still in flight queues behind it exactly like the reference's
+     * `sendOpenWhenReady`, and a dead process respawns on the next call rather than in the
+     * background.
+     */
+    suspend fun serverFor(space: Space): RunningServer = startup.withLock {
+      servers[space.id]?.takeIf { it.process.isAlive }?.let { return@withLock it }
+      // A dead server's channel and process are already gone; close/destroy is cheap and not
+      // worth a graceful shutdown - `exit` only matters to a process still there to hear it.
+      servers.remove(space.id)?.let {
+        it.diagnosticsPump.cancel()
+        it.channel.close()
+        it.process.destroy()
       }
-    }.getOrElse {
-      channel.close()
-      process.destroy()
-      throw it
+      startServer(space)
+    }
+
+    /** Out of the map without a shutdown - the caller owns the graceful `shutdown`/`exit` pair. */
+    suspend fun remove(space: Space): RunningServer? = startup.withLock { servers.remove(space.id) }
+
+    /**
+     * Spawns, handshakes and registers a fresh server for [space] - called under [startup]'s
+     * lock, so at most one handshake per Space is ever in flight. A failed handshake leaves no
+     * half-open channel and no interpreter running.
+     */
+    private suspend fun startServer(space: Space): RunningServer {
+      val installed = installSpace()
+      val process = spawn(installed)
+      log.reached("lsp.start", mapOf("space" to space.id, "rootfs" to "${installed.version}"))
+      val channel = JsonRpcChannel(process.inputStream, process.outputStream, log)
+      return runCatching {
+        val reply = channel.request("initialize", LspWire.initializeParams(), requestTimeout)
+        RunningServer(process, channel, LspWire.capabilitiesFrom(reply["result"]), mutableMapOf()).also {
+          channel.notify("initialized", buildJsonObject {})
+          drainStderr(process.errorStream, log)
+          servers[space.id] = it
+        }
+      }.getOrElse {
+        channel.close()
+        process.destroy()
+        throw it
+      }
     }
   }
 

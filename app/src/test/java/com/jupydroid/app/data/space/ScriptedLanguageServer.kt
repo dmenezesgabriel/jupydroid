@@ -49,6 +49,13 @@ internal class ScriptedLanguageServer(
    */
   var definitionResult: JsonElement? = null,
 
+  /**
+   * What `textDocument/rangeFormatting` replies carry - the whole `result`, so a test can
+   * send `[]`, `null`, or autopep8's own whole-document `TextEdit`. The empty array default
+   * is a real answer: "already formatted".
+   */
+  var formattingResult: JsonElement = buildJsonArray {},
+
   /** The `initialize` reply, replaceable for capability-gate tests (defaults advertise pylsp's). */
   var initializeResult: JsonElement = INITIALIZE_RESULT,
 ) : Process() {
@@ -123,7 +130,7 @@ internal class ScriptedLanguageServer(
     when (method) {
       "initialize" -> onInitialize(id)
       "textDocument/completion", "textDocument/hover", "textDocument/signatureHelp",
-      "textDocument/definition",
+      "textDocument/definition", "textDocument/rangeFormatting",
       -> onDocumentAsk(method, id, msg)
       "shutdown" -> reply(id, JsonNull)
       "exit" -> destroy()
@@ -143,6 +150,7 @@ internal class ScriptedLanguageServer(
       "textDocument/hover" -> hoverResult
       "textDocument/signatureHelp" -> signatureHelpResult
       "textDocument/definition" -> definitionResult ?: defaultDefinition(uriOf(msg))
+      "textDocument/rangeFormatting" -> formattingResult
       else -> completionResult()
     }
     reply(id, result)
@@ -185,6 +193,8 @@ internal class ScriptedLanguageServer(
         put("completionProvider", true)
         put("hoverProvider", true)
         put("definitionProvider", true)
+        // pylsp's own reply: a plain `true`, the P5e-0 probe's capture.
+        put("documentRangeFormattingProvider", true)
         // pylsp's real reply: an options object, not a boolean - `["(", ",", "="]` measured.
         putJsonObject("signatureHelpProvider") {
           putJsonArray("triggerCharacters") {
