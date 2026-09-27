@@ -153,6 +153,21 @@ data class EditorUiState(
    */
   val markdownTakingCaret: String? = null,
   /**
+   * Where a definition jump lands, or null while none is pending - `docs/PLAN.md` P5e-5.
+   *
+   * A consumed one-shot like [markdownTakingCaret]: [NotebookCellEdits.landOnDefinition] sets
+   * it, the target cell's own field applies the caret and the symbol flash the moment it is
+   * composed - the scroll is what brings it on screen - and `caretLanded` clears it, so a
+   * landing can never stale into a caret yank minutes later. Not persisted.
+   */
+  val caretLanding: DefinitionTarget? = null,
+  /**
+   * Definition asks that found nothing to jump to, counted rather than flagged - a miss is an
+   * event the screen reports once ("No definition found"), and only a counter makes the second
+   * miss a change. Not persisted, for [caretLanding]'s reason.
+   */
+  val noDefinitionFound: Int = 0,
+  /**
    * Breakpoints set on a code cell's lines, by cell id - [NotebookDebugger]'s own state.
    *
    * **Not on [Cell], and not persisted.** JupyterLab keeps a breakpoint in its own in-memory

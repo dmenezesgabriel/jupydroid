@@ -132,6 +132,18 @@ sealed interface CellAction {
    */
   data object SymbolInfo : CellAction
 
+  /**
+   * Asks the language server where the symbol under the caret is defined and jumps there -
+   * `docs/PLAN.md` P5e-5's "go to definition", the reference's `editor.action.goToDefinition`.
+   *
+   * A [CellAction] although it edits nothing, for [StartSelecting]'s reason: it is what carries
+   * the row to the menu and the accessibility context menu alike. Unlike [SymbolInfo] it is
+   * **not** surface-answered - the landing is notebook-level (reveal, select, scroll, a caret
+   * in another cell's field), so it dispatches through [EditorViewModel.cellAction] like every
+   * other action and arrives at the ask that way.
+   */
+  data object GoToDefinition : CellAction
+
   data object Copy : CellAction
 
   data object Cut : CellAction

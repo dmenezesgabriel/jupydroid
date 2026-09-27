@@ -134,6 +134,47 @@ class NotebookCellEdits(
   }
 
   /**
+   * Lands a definition jump on [target]'s cell: its collapsed ancestors opened and the cell
+   * made the active one, so the scroll and the caret are all that is left - the screen reads
+   * them off [EditorUiState.caretLanding] and the cell's own field applies them.
+   *
+   * Not undoable, for [revealCell]'s reason: being sent somewhere is not an operation anybody
+   * asked to take back. The selection is collapsed the way a press outside a marked run
+   * collapses it (`_evtMouseDown`'s rule, `widget.ts:3160-3167`) - a jump is to the one cell.
+   *
+   * ```
+   * edits.landOnDefinition(target)
+   * ```
+   */
+  fun landOnDefinition(target: DefinitionTarget) {
+    val before = uiState.value
+    if (before.cells.none { it.id == target.cellId }) return
+    val after = before.withCellRevealed(target.cellId)
+      .withSelectionCollapsed()
+      .withCellSelected(target.cellId)
+      .copy(caretLanding = target)
+    uiState.value = after
+    if (after.cells !== before.cells) save.schedule()
+  }
+
+  /**
+   * The landing's field has the caret - [EditorUiState.caretLanding] is a one-shot, consumed
+   * by whoever applies it so a second look at the state cannot yank the caret again.
+   */
+  fun caretLanded() {
+    uiState.update { it.copy(caretLanding = null) }
+  }
+
+  /**
+   * The ask came back with nothing to land on - an empty reply or locations that all point
+   * outside the virtual document. [EditorUiState.noDefinitionFound] is a counter and not a
+   * flag, so a second miss is a change the screen's snackbar sees again.
+   */
+  fun definitionMissed() {
+    uiState.update { it.copy(noDefinitionFound = it.noDefinitionFound + 1) }
+  }
+
+  /**
    * Takes back the last cell operation - `notebook:undo-cell-action`.
    *
    * Structural, never textual: [CellUndo] carries the rule that keeps the two undos apart, and it

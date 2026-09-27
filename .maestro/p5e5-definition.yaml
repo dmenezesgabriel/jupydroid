@@ -1,0 +1,102 @@
+appId: com.jupydroid.app
+---
+# P5e-5: "Go to definition" asks `textDocument/definition` at the caret's virtual position and
+# lands the caret where jedi says the name is defined - `docs/PLAN.md`'s P5e-5 row, VS Code's
+# `editor.action.goToDefinition` (`_openReference` in `goToCommands.ts`).
+#
+# The jump is cross-cell on purpose: the virtual document joins every code cell, so the `def`
+# and the call site are different cells whose offsets map through `NotebookVirtualDocument`.
+# Ten pads between them keep the def cell off the screen the use cell is scrolled to, so the
+# landing must scroll - `TextEditorSelectionRevealType.NearTopIfOutsideViewport` - and the
+# screenshot shows the arrived cell focused with its caret inside `compute_total`.
+#
+# Same scaffold as `p5e3-hover.yaml`: the warmup cell runs first because the ask is
+# session-gated - no kernel session, no language-server asks - and this must be the tablet:
+# the emulator's `FakeKernelGateway` never opens a Space, so no `pylsp` runs there to answer.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Go to Definition.ipynb"
+- extendedWaitUntil:
+    visible: ".*lsp_warmup.*"
+    timeout: 15000
+- tapOn: "Run cell"
+# `ran in` - the run's job is the open session the inspect rows' availability is gated on.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- takeScreenshot: 01-kernel-session-open
+
+# The call site, typed over the use cell's seed comment. It sits under ten pads on purpose -
+# past the fold, so the jump back has to scroll - and `tapOn` does not scroll to find what it
+# taps, so the scroll is its own step.
+- scrollUntilVisible:
+    element:
+      # matches-source: the scroll target is the cell's own text - the kernel's proof was `ran in`.
+      text: ".*use site.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: ".*use site.*"
+- eraseText
+# `inputText` leaves the caret at the end of what it typed, which is the end of the name - and
+# parso's `get_name_of_position` resolves a position *inclusive* of the name's end
+# (`start_pos <= position <= end_pos`), so no tap has to gamble on landing mid-word the way the
+# first version of this flow did (`pressKey` has no arrow keys to nudge one in).
+- inputText: "total = compute_total"
+- takeScreenshot: 02-caret-at-the-names-end
+
+# The use cell's own menu: its "Cell actions" is the *one* button that sits below `# pad 10`'s
+# text and above the call site's - every header carries the same description, and a single
+# `above:` is *not* unique: Maestro takes the first match in tree order, which is a pad cell's
+# button and asks `definition` on `# pad 10` (the first runs' `lsp.ask` at `34:8`). Pinned on
+# both sides, it can only be the use cell's.
+- tapOn:
+    text: "Cell actions"
+    below:
+      text: ".*pad 10.*"
+    above:
+      text: ".*total = compute_total.*"
+# The inspect rows lead the menu under "Select cells" - the jump first, for the reason VS
+# Code's context menu leads its navigation group with `editor.action.goToDefinition`.
+- tapOn: "Cell menu Go to definition"
+
+# The landing: jedi's Location[] maps back to the def cell, which scrolls into view - it was
+# off the screen the use cell sat on - with the field focused and the caret on the `def` line.
+# matches-source: the assertion *is* the source - the jump landed on the defining cell's own
+# text, which is exactly what go-to-definition promises.
+- extendedWaitUntil:
+    visible: ".*def compute_total.*"
+    timeout: 60000
+# matches-source: as above.
+- assertVisible: ".*def compute_total.*"
+- takeScreenshot: 03-landed-on-the-definition
+
+# An ask where nothing is defined answers nothing and jumps nowhere: the menu's other half,
+# VS Code's `MessageController.showMessage` - a comment has no symbol under it, which is also
+# what keeps jedi honest (a position inside `# pad 10` defines nothing). The IME is hidden
+# first so it cannot sit over the snackbar the miss raises.
+- hideKeyboard
+# Back down to the miss site: the jump left the def cell on screen, and `tapOn` does not
+# scroll to find what it taps, so pad-10 is scrolled to first the way the use cell was.
+- scrollUntilVisible:
+    element:
+      # matches-source: the miss site is a comment cell - its own source text is the anchor.
+      text: ".*pad 10.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: ".*pad 10.*"
+# Same two-sided pin: pad-10's button is the one below `# pad 9`'s text and above `# pad 10`'s.
+- tapOn:
+    text: "Cell actions"
+    below:
+      text: ".*pad 9.*"
+    above:
+      text: ".*pad 10.*"
+- tapOn: "Cell menu Go to definition"
+# A `Short` snackbar outlives a Maestro command by barely a second - the wait *is* the
+# assertion (it only returns once the text is on screen), and a second `assertVisible` just
+# races the auto-dismiss. `p2j-4-export` asserts its snackbar the same way.
+- extendedWaitUntil:
+    visible: "No definition found"
+    timeout: 30000
+- takeScreenshot: 04-no-definition-says-so

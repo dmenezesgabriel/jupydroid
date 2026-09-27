@@ -84,6 +84,30 @@ abstract class LanguageServerPortContract {
     assertTrue(help!!.signatures.all { it.label.isNotEmpty() })
   }
 
+  /**
+   * `textDocument/definition` on a name the document defines answers `Location`s - P5e-5.
+   * Every implementation's default answers one the probe's shape measured off real `pylsp`:
+   * the scripted server's canned reply and the fake's configured answer alike, since an empty
+   * answer would only say "nothing defines this" about a document that plainly defines
+   * `compute_total`.
+   */
+  @Test
+  fun definition_atADefinedName_answersALocationInTheDocument() = runBlocking {
+    val languageServer = languageServer()
+    languageServer.openDocument(
+      BASE_SPACE,
+      URI,
+      LANGUAGE_ID,
+      "def compute_total(items):\n    return sum(items)\n\ntotal = compute_total([1, 2])\n",
+    )
+
+    val locations = languageServer.definition(BASE_SPACE, URI, LanguagePosition(line = 3, character = 8))
+
+    assertTrue("a definition reply is the locations it was asked about", locations.isNotEmpty())
+    assertTrue(locations.all { it.uri.isNotEmpty() })
+    assertTrue(locations.all { it.range.start.line >= 0 })
+  }
+
   /** The document verbs are a lifecycle, not calls that may throw: open, change, close. */
   @Test
   fun documentLifecycle_isAccepted() = runBlocking {

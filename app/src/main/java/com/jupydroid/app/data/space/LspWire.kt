@@ -73,6 +73,9 @@ internal object LspWire {
       // `signatureHelpProvider` takes the same boolean-or-options shape - pylsp's reply is
       // the object form (`triggerCharacters: ["(", ",", "="]`, the P5e-0 probe's capture).
       signatureHelpProvider = offered(caps["signatureHelpProvider"]),
+      // `definitionProvider` takes the same boolean-or-options shape (`DefinitionOptions`
+      // is only `workDoneProgress`) - pylsp's reply is the plain `true` the probe captured.
+      definitionProvider = offered(caps["definitionProvider"]),
       positionEncoding = result?.jsonObject?.get("positionEncoding")
         ?.jsonPrimitive?.contentOrNull ?: "utf-16",
       // `hoverProvider` is a plain boolean, and LSP's rule that an undeclared capability is an

@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageCapabilities
 import com.jupydroid.app.domain.port.LanguageCompletion
 import com.jupydroid.app.domain.port.LanguageHover
+import com.jupydroid.app.domain.port.LanguageLocation
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
@@ -84,13 +85,24 @@ class StdioLanguageServer(
         LspNotifications.publishDiagnosticsFrom(frame)?.let { _diagnostics.emit(it) }
       }
     }
+
+    /**
+     * `didOpen` for a document this server has not heard of - called under [documentLock],
+     * so a version never goes out twice. A change to a never-opened uri opens it, which is
+     * the caller's check and this method's `in documents` guard together.
+     */
+    suspend fun open(uri: String, languageId: String, text: String) {
+      if (uri in documents) return
+      documents[uri] = SyncedDocument(version = 0, text = text)
+      channel.notify("textDocument/didOpen", LspWire.didOpenParams(uri, languageId, text))
+    }
   }
 
   override suspend fun capabilities(space: Space): LanguageCapabilities = serverFor(space).capabilities
 
   override suspend fun openDocument(space: Space, uri: String, languageId: String, text: String) {
     val server = serverFor(space)
-    server.documentLock.withLock { openOn(server, uri, languageId, text) }
+    server.documentLock.withLock { server.open(uri, languageId, text) }
   }
 
   override suspend fun changeDocument(space: Space, uri: String, text: String) {
@@ -100,7 +112,7 @@ class StdioLanguageServer(
       if (synced == null) {
         // `_sendChange`'s rule: a sync can never be the first frame a document hears.
         // pylsp speaks Python only, which is the language id an auto-open carries.
-        openOn(server, uri, "python", text)
+        server.open(uri, "python", text)
         return@withLock
       }
       // Every ask syncs first, so this is the hot path: the text the diagnostics watch already
@@ -131,6 +143,10 @@ class StdioLanguageServer(
   /** @see LanguageServerPort.signatureHelp */
   override suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp? =
     positions.signatureHelp(space, uri, position)
+
+  /** @see LanguageServerPort.definition */
+  override suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation> =
+    positions.definition(space, uri, position)
 
   /**
    * The `TextDocumentPositionParams` asks - completion and hover share one wire shape:
@@ -163,6 +179,26 @@ class StdioLanguageServer(
       val server = serverFor(space)
       if (!server.capabilities.signatureHelpProvider) return null
       return LspSignatureHelp.signatureHelpFrom(request(server, "textDocument/signatureHelp", uri, position)["result"])
+    }
+
+    /**
+     * The same gate one method further: a server that never advertised `definitionProvider`
+     * is never asked. An empty list is "nothing defines this" - the miss a go-to-definition
+     * surfaces as such.
+     */
+    suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation> {
+      val server = serverFor(space)
+      if (!server.capabilities.definitionProvider) return emptyList()
+      log.reached(
+        "lsp.ask",
+        mapOf("method" to "definition", "uri" to uri, "at" to "${position.line}:${position.character}"),
+      )
+      val locations = LspDefinition.locationsFrom(request(server, "textDocument/definition", uri, position)["result"])
+      log.reached(
+        "lsp.answer",
+        mapOf("method" to "definition", "found" to "${locations.size}", "uris" to locations.joinToString { it.uri }),
+      )
+      return locations
     }
 
     /** One `TextDocumentPositionParams` request - the params every point-in-document method shares. */
@@ -233,12 +269,6 @@ class StdioLanguageServer(
       process.destroy()
       throw it
     }
-  }
-
-  private suspend fun openOn(server: RunningServer, uri: String, languageId: String, text: String) {
-    if (uri in server.documents) return
-    server.documents[uri] = SyncedDocument(version = 0, text = text)
-    server.channel.notify("textDocument/didOpen", LspWire.didOpenParams(uri, languageId, text))
   }
 
   /** The pylsp console script a rootfs [baseDir] carries at `usr/local/bin`. */

@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.port.LanguagePosition
+import java.net.URI
 
 /**
  * One `file://` document standing for the notebook's code cells under the language server -
@@ -30,8 +31,16 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
   /** One code cell's claim on the document: where its first line sits and how many it owns. */
   private data class Block(val cellId: String, val source: String, val virtualStart: Int, val lines: Int)
 
-  /** The document `pylsp` sees - `python` is the language id the adapter's auto-open carries. */
-  val uri: String = "file:///jupyterdroid/notebooks/$notebookId.py"
+  /**
+   * The document `pylsp` sees - `python` is the language id the adapter's auto-open carries.
+   *
+   * Encoded, because a `Location` a server sends back is built *from the filesystem path*,
+   * which is always quoted - pylsp's `uris.urlunparse` `quote()`s it - so a title with a
+   * space would otherwise compare `!=` on every same-document location and drop it as
+   * off-document (the first `p5e5-definition` run's miss). `URI`'s empty authority is what
+   * keeps the `file:///` triple-slash rather than `file:/`.
+   */
+  val uri: String = URI("file", "", "/jupyterdroid/notebooks/$notebookId.py", null).toASCIIString()
 
   /** The whole text a `didOpen`/`didChange` sync sends. */
   val text: String

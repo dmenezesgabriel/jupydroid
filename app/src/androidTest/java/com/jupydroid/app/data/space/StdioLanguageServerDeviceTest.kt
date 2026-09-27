@@ -167,6 +167,43 @@ class StdioLanguageServerDeviceTest {
     }
   }
 
+  /**
+   * P5e-5: `textDocument/definition` on a call site makes the real `pylsp` answer jedi's
+   * `Location[]` - the reply the P5e-0 probe measured byte-for-byte
+   * (`evidence/p5e-0-lsp-surface/logcat-probe.txt`): one location back into the same
+   * document, its range covering the name in the `def` line (chars 4-17 there -
+   * `def compute_total`). A scripted server can only pretend to know where a name is
+   * defined; this is the knowing.
+   */
+  @Test(timeout = 120_000)
+  fun definitionOnACallSite_answersTheDefLine() = runBlocking {
+    val languageServer = baseSpaceLanguageServerPort(context)!!
+    try {
+      val capabilities = languageServer.capabilities(BASE_SPACE)
+      assertTrue("pylsp must declare definitionProvider for P5e-5", capabilities.definitionProvider)
+
+      val uri = "file:///home/jupydroid/p5e5-probe.py"
+      languageServer.openDocument(
+        BASE_SPACE,
+        uri,
+        "python",
+        "def compute_total(values):\n    return sum(values)\n\ncompute_total([1, 2])\n",
+      )
+
+      // Character 4 of line 3 is on `compute_total` - the call site a caret sits inside.
+      val locations = languageServer.definition(BASE_SPACE, uri, LanguagePosition(line = 3, character = 4))
+
+      assertTrue("pylsp answered no locations for compute_total", locations.isNotEmpty())
+      val target = locations.first()
+      assertEquals("the definition must point back into this document", uri, target.uri)
+      assertEquals(0, target.range.start.line)
+      assertEquals("the name in `def compute_total` starts at character 4", 4, target.range.start.character)
+      assertEquals("and ends at 17 - the probe's exact range", 17, target.range.end.character)
+    } finally {
+      languageServer.stop(BASE_SPACE)
+    }
+  }
+
   /** Lazy means lazy: a port never called leaves no process behind to stop. */
   @Test(timeout = 60_000)
   fun stopOnANeverStartedServerIsANoOp() = runBlocking {

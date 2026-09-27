@@ -41,8 +41,8 @@ internal fun Modifier.cellCustomActions(
    * cell and deletes three.
    */
   count: Int,
-  /** Whether a session can answer [CellAction.SymbolInfo] - see [cellActionItems]'s own rule. */
-  symbolInfo: Boolean = false,
+  /** Whether a session can answer the inspect rows - see [cellActionItems]'s own rule. */
+  inspection: Boolean = false,
   onAction: (CellAction) -> Unit,
 ): Modifier {
   // Remembered against what the list is made of: rebuilding fifteen CustomAccessibilityAction
@@ -55,10 +55,10 @@ internal fun Modifier.cellCustomActions(
     canPaste,
     selecting,
     count,
-    symbolInfo,
+    inspection,
     onAction,
   ) {
-    cellActionItems(cell, canPaste, selecting, count, symbolInfo)
+    cellActionItems(cell, canPaste, selecting, count, inspection)
       // The one row that stands for six is expanded here rather than opening a picker: this menu
       // has no width to run out of and no fold, and a submenu is the worst shape to operate with
       // TalkBack. See [headingLevelItems].

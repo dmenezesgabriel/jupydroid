@@ -6,8 +6,9 @@ import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * The notebook's position-asks - completion while typing, the "Symbol info" hover, and the
- * signature of the call the caret is inside - `docs/PLAN.md` P5d/P5e-3/P5e-4.
+ * The notebook's position-asks - completion while typing, the "Symbol info" hover, the
+ * signature of the call the caret is inside, and where that symbol is defined -
+ * `docs/PLAN.md` P5d/P5e-3/P5e-4/P5e-5.
  *
  * They read as one surface for the same reason [NotebookKernel.history] is its own object:
  * both are a cell's question about an offset, answered through the same session gate and the
@@ -27,6 +28,7 @@ class NotebookAsks(
   private val completion: NotebookCompletion,
   private val hover: NotebookHover,
   private val signatureHelp: NotebookSignatureHelp,
+  private val definition: NotebookDefinition,
 ) {
   /** @see NotebookCompletion.at */
   suspend fun completionsAt(cellId: String, code: String, cursorOffset: Int): CompletionResult =
@@ -39,4 +41,8 @@ class NotebookAsks(
   /** @see NotebookSignatureHelp.at */
   suspend fun signatureHelpAt(cellId: String, code: String, cursorOffset: Int): LanguageSignatureHelp? =
     signatureHelp.at(uiState.value.cells, cellId, code, cursorOffset)
+
+  /** @see NotebookDefinition.at */
+  suspend fun definitionAt(cellId: String, code: String, cursorOffset: Int): DefinitionTarget? =
+    definition.at(uiState.value.cells, cellId, code, cursorOffset)
 }

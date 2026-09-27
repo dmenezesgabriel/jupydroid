@@ -20,9 +20,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.sp
@@ -34,6 +37,7 @@ import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import com.jupydroid.app.syntax.PythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.theme.editorPalette
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
 
 /**
@@ -106,6 +110,15 @@ fun CodeCellField(
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
   /**
+   * A definition jump waiting to be taken, or null - `EditorUiState.caretLanding` filtered to
+   * this cell. VS Code's `_openReference` (`goToCommands.ts`): the caret takes the range's
+   * start, the field takes focus, and the target range flashes for a beat (`symbolHighlight`,
+   * 350 ms), so the jumped-to name is picked out of the line it landed in.
+   */
+  caretLanding: DefinitionTarget? = null,
+  /** Told once the landing was applied - clears the state's one-shot. */
+  onCaretLanded: () -> Unit = {},
+  /**
    * How the text came out, for a caller that has to put a *place in it* on screen.
    *
    * The field owns this - it is what `BasicTextField` measured - and a caller that guessed instead
@@ -138,6 +151,8 @@ fun CodeCellField(
   // symbol the caret has since moved off.
   var hover by remember { mutableStateOf<LanguageHover?>(null) }
   val scroll = remember { ScrollState(0) }
+  val landingFocus = remember { FocusRequester() }
+  val symbolFlash = definitionLandingFlash(state, caretLanding, landingFocus, onCaretLanded)
 
   LaunchedEffect(symbolAsk) {
     if (symbolAsk > 0) hover = hoverAt(state.text.toString(), state.selection.end)
@@ -154,6 +169,11 @@ fun CodeCellField(
 
   input.attachWhileFocused(state, focused.value)
 
+  // The field's own modifier: the focus requester a definition landing asks for is hoisted out
+  // of the wrap/no-wrap split, since both branches want the same one - and `symbolFlash` lands
+  // on the same `TextLayoutResult` coordinates `diagnosticSquiggles` draws in.
+  val fieldModifier = modifier.focusRequester(landingFocus)
+
   Box {
     BasicTextField(
       state = state,
@@ -166,7 +186,7 @@ fun CodeCellField(
         // The squiggle sits after `lineNumbers`: its own trailing `.padding(start = gutter)` makes
         // this `drawBehind` the innermost one, so its draw scope starts at the code's left edge -
         // the `TextLayoutResult` coordinates `drawSquiggleSpan` resolves, one-to-one.
-        modifier
+        fieldModifier
           .lineNumbers(
             state.text,
             layout,
@@ -180,11 +200,13 @@ fun CodeCellField(
             onDiagnosticTap = { detailLine = it },
           )
           .diagnosticSquiggles(diagnostics, layout)
+          .symbolFlash(symbolFlash, layout)
       } else {
-        modifier
+        fieldModifier
           .horizontalScroll(scroll)
           .padding(start = gutter)
           .diagnosticSquiggles(diagnostics, layout)
+          .symbolFlash(symbolFlash, layout)
       },
       onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
       textStyle = codeStyle,
@@ -275,6 +297,42 @@ private fun caretRect(layout: TextLayoutResult?, cursorOffset: Int, gutter: Dp, 
 
 /** This rect translated [dxPx] left - the caret's own drift once its field has scrolled that far. */
 internal fun IntRect.shiftedBy(dxPx: Int): IntRect = IntRect(left - dxPx, top, right - dxPx, bottom)
+
+/**
+ * `_openReference`'s three moves (`goToCommands.ts`) as the field-side effect they are:
+ * `Range.collapseToStart` for the caret, `.focus()` on the requester the caller hoisted,
+ * and the `symbolHighlight` mark that holds the target range for 350 ms. Answers the
+ * flash's live range so the field can draw it on the same `TextLayoutResult` coordinates
+ * `diagnosticSquiggles` uses. Its own composable rather than three more branches in
+ * [CodeCellField] - detekt counted them.
+ */
+@Composable
+private fun definitionLandingFlash(
+  state: TextFieldState,
+  caretLanding: DefinitionTarget?,
+  focusRequester: FocusRequester,
+  onCaretLanded: () -> Unit,
+): TextRange? {
+  var symbolFlash by remember { mutableStateOf<TextRange?>(null) }
+  LaunchedEffect(caretLanding) {
+    val landing = caretLanding ?: return@LaunchedEffect
+    state.edit { selection = TextRange(landing.offset.coerceIn(0, length)) }
+    focusRequester.requestFocus()
+    val text = state.text.toString()
+    val start = landing.offset.coerceIn(0, text.length)
+    symbolFlash = TextRange(start, landing.endOffset.coerceIn(start, text.length))
+    onCaretLanded()
+  }
+  LaunchedEffect(symbolFlash) {
+    if (symbolFlash == null) return@LaunchedEffect
+    delay(SYMBOL_FLASH_MILLIS)
+    symbolFlash = null
+  }
+  return symbolFlash
+}
+
+/** How long a definition's `symbolHighlight` mark stays on - `_openReference`, 350 ms. */
+private const val SYMBOL_FLASH_MILLIS = 350L
 
 /** A cell with no kernel behind it still edits; it just has nothing to suggest. */
 private val NO_COMPLETIONS: suspend (String, Int) -> CompletionResult = { _, _ -> CompletionResult.NONE }

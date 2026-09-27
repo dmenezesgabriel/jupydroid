@@ -42,14 +42,14 @@ fun CellActions(
   canPaste: Boolean,
   onDismiss: () -> Unit,
   onAction: (CellAction) -> Unit,
-  /** Whether a session can answer [CellAction.SymbolInfo] - see [cellActionItems]'s own rule. */
-  symbolInfo: Boolean = false,
+  /** Whether a session can answer the inspect rows - see [cellActionItems]'s own rule. */
+  inspection: Boolean = false,
   presentation: CellActionPresentation = currentCellActionPresentation(),
 ) {
   var pickingLevel by remember { mutableStateOf(false) }
   CellActionSurface(
     expanded = expanded && !pickingLevel,
-    items = cellActionItems(cell, canPaste, selecting = false, symbolInfo = symbolInfo).map { (label, action) ->
+    items = cellActionItems(cell, canPaste, selecting = false, inspection = inspection).map { (label, action) ->
       label to { if (action == CellAction.ChooseHeadingLevel) pickingLevel = true else onAction(action) }
     },
     // **The picker taking over is not a dismissal**, and forgetting that cost a red flow:

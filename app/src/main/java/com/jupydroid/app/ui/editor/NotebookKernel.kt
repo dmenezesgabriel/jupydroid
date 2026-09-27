@@ -109,8 +109,11 @@ class NotebookKernel(
   /** The signature-help ask - `textDocument/signatureHelp` at the caret's virtual position (P5e-4). */
   private val signatureHelp = NotebookSignatureHelp(session, languageServer, languageDocument)
 
-  /** The cell-level asks - completion, hover, signature help - [NotebookAsks] owns like [history]. */
-  val asks = NotebookAsks(uiState, completion, hover, signatureHelp)
+  /** The definition ask - `textDocument/definition` at the caret's virtual position (P5e-5). */
+  private val definition = NotebookDefinition(session, languageServer, languageDocument)
+
+  /** The cell-level asks - completion, hover, signature help, definition - [NotebookAsks] owns like [history]. */
+  val asks = NotebookAsks(uiState, completion, hover, signatureHelp, definition)
 
   /** `publishDiagnostics` as per-cell marks in state - see [NotebookDiagnostics]. */
   private val diagnostics =

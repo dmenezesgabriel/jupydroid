@@ -41,14 +41,14 @@ internal fun cellActionItems(
    */
   count: Int = 1,
   /**
-   * Whether a session is there to answer [SYMBOL_INFO] - the [canPaste] rule verbatim: an item
-   * that could only ever do nothing teaches the user the menu lies, and a hover with no
+   * Whether a session is there to answer the inspect rows - the [canPaste] rule verbatim: an
+   * item that could only ever do nothing teaches the user the menu lies, and an ask with no
    * language server behind it is exactly that.
    */
-  symbolInfo: Boolean = false,
+  inspection: Boolean = false,
 ): List<Pair<String, CellAction>> {
   val several = count > 1
-  return selectingItems(selecting) + inspectingItems(cell, symbolInfo) + addingItems() +
+  return selectingItems(selecting) + inspectingItems(cell, inspection) + addingItems() +
     shapingItems(cell, several) + clipboardItems(canPaste, several) + foldingItems(cell) +
     removingItems(several)
 }

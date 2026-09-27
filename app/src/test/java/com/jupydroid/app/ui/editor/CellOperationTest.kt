@@ -84,6 +84,97 @@ class CellOperationTest {
     assertTrue("asking keeps the run, the way the picker's own ask does", asked.selecting)
   }
 
+  /**
+   * **The definition ask is not an edit either** - P5e-5. It reaches the language server through
+   * [EditorViewModel.cellAction], which never dispatches it here, but a row that ever arrived by
+   * another route must change nothing and record no undo entry - [CellAction.SymbolInfo]'s own
+   * guard, kept for the same reachability.
+   */
+  @Test
+  fun goToDefinition_changesNothingAndRecordsNoUndo() {
+    val run = markedRun("a", "b")
+    val asked = run.applying(CellAction.GoToDefinition)
+
+    assertEquals(run.cells, asked.cells)
+    assertEquals(0, asked.undoable.size)
+    assertTrue("asking keeps the run, the way the hover ask does", asked.selecting)
+  }
+
+  /**
+   * A definition landing selects the target and arms its caret - `expandParent` on the
+   * active-cell change is the reference's reveal, and [EditorUiState.caretLanding] is what the
+   * scroll and the field read the rest off.
+   */
+  @Test
+  fun landOnDefinition_revealsSelectsAndArmsTheCaret() = runTest {
+    val hidden = EditorUiState(
+      cells = listOf(
+        Cell("h1", CellKind.MARKDOWN, "# Part", headingCollapsed = true),
+        Cell("a", CellKind.CODE, "def compute_total(items):\n    return sum(items)"),
+        Cell("b", CellKind.CODE, "total = compute_total([1, 2])"),
+      ),
+      loaded = true,
+      selectedCellId = "b",
+    )
+    val state = MutableStateFlow(hidden)
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.landOnDefinition(DefinitionTarget("a", 4, 17))
+
+    assertFalse("the collapsed section over the target is opened", state.value.cells[0].headingCollapsed)
+    assertEquals("a", state.value.selectedCellId)
+    assertEquals(DefinitionTarget("a", 4, 17), state.value.caretLanding)
+  }
+
+  /** A marked run collapses on the landing, the way a press outside it collapses one. */
+  @Test
+  fun landOnDefinition_dropsAMarkedRun() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.landOnDefinition(DefinitionTarget("c", 0, 4))
+
+    assertFalse(state.value.selecting)
+    assertEquals("c", state.value.selectedCellId)
+  }
+
+  /** A stale target is a no-op, as everywhere in this package. */
+  @Test
+  fun landOnDefinition_onACellThatHasGone_changesNothing() = runTest {
+    val before = markedRun("a", "b")
+    val state = MutableStateFlow(before)
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.landOnDefinition(DefinitionTarget("gone", 0, 4))
+
+    assertEquals(before, state.value)
+  }
+
+  /** The landing is a one-shot: consumed by the field that takes it, cleared for the next ask. */
+  @Test
+  fun caretLanded_clearsThePendingLanding() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.landOnDefinition(DefinitionTarget("c", 0, 4))
+    edits.caretLanded()
+
+    assertEquals(null, state.value.caretLanding)
+    assertEquals("c", state.value.selectedCellId)
+  }
+
   /** `NotebookActions.undo` ends on `deselectAll()`; ours has to as well, or the bar outlives it. */
   @Test
   fun undoClearsTheRunToo() {

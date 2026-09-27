@@ -63,10 +63,10 @@ internal fun EditorCell(
     cursorOffset: Int,
   ) -> LanguageSignatureHelp? = NO_SIGNATURE_HELP,
   /**
-   * Whether a session can answer [CellAction.SymbolInfo], so the menu's row and this cell's
-   * accessibility context menu only promise what can come back - `EditorUiState.kernelConnected`.
+   * Whether a session can answer the inspect rows, so the menu and this cell's accessibility
+   * context menu only promise what can come back - `EditorUiState.kernelConnected`.
    */
-  symbolInfoOffered: Boolean = false,
+  inspectionOffered: Boolean = false,
   onCellAction: (CellAction, CellEditorText) -> Unit,
   onFocusChanged: (Boolean) -> Unit,
   onToggleSelected: () -> Unit,
@@ -105,6 +105,14 @@ internal fun EditorCell(
   /** `notebook:toggle-autoclosing-brackets`, universal - code cells only, like the reference's. */
   autoClosingBrackets: Boolean,
   cellInput: FocusedCellInput,
+  /**
+   * A definition jump waiting to be taken, or null - `EditorUiState.caretLanding` already
+   * filtered to this cell, so it is non-null only where the jump lands. [CodeCellField] applies
+   * the caret and the flash, then [onCaretLanded] clears the state's one-shot.
+   */
+  caretLanding: DefinitionTarget? = null,
+  /** Told once the landing was applied - `NotebookCellEdits.caretLanded` under another name. */
+  onCaretLanded: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   // One text state per cell, owned here rather than inside the field: a cell has one source, and
@@ -152,7 +160,7 @@ internal fun EditorCell(
       selecting = mark != null,
       // What *this* cell's menu will act on: the whole run when it is in it, itself when not.
       count = if (mark?.checked == true) markedCount else 1,
-      symbolInfo = symbolInfoOffered,
+      inspection = inspectionOffered,
       onAction = act,
     ),
   ) {
@@ -161,7 +169,7 @@ internal fun EditorCell(
       executionCount = executionCount,
       execution = execution,
       canPaste = canPaste,
-      symbolInfo = symbolInfoOffered,
+      inspection = inspectionOffered,
       mark = mark,
       onToggleSelected = onToggleSelected,
       // One Run for both kinds now: `runCells` is what decides that a code cell reaches the kernel
@@ -205,6 +213,8 @@ internal fun EditorCell(
             stoppedLine = stoppedLine,
             search = search,
             autoClosingBrackets = autoClosingBrackets,
+            caretLanding = caretLanding,
+            onCaretLanded = onCaretLanded,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
           )
 

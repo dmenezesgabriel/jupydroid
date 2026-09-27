@@ -4,10 +4,12 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageCapabilities
 import com.jupydroid.app.domain.port.LanguageCompletion
 import com.jupydroid.app.domain.port.LanguageHover
+import com.jupydroid.app.domain.port.LanguageLocation
 import com.jupydroid.app.domain.port.LanguageMarkup
 import com.jupydroid.app.domain.port.LanguageMarkupKind
 import com.jupydroid.app.domain.port.LanguageParameter
 import com.jupydroid.app.domain.port.LanguagePosition
+import com.jupydroid.app.domain.port.LanguageRange
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LanguageSignature
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
@@ -33,6 +35,7 @@ class FakeLanguageServerPort : LanguageServerPort {
     completionProvider = true,
     positionEncoding = "utf-16",
     hoverProvider = true,
+    definitionProvider = true,
   )
 
   /** What `hover` answers, replaceable with null for a "nothing here" test. */
@@ -49,6 +52,14 @@ class FakeLanguageServerPort : LanguageServerPort {
       ),
     ),
   )
+
+  /**
+   * What `definition` answers, or null to answer the probe's shape at the asked uri -
+   * `compute_total` defined on line 4, the reply `evidence/p5e-0-lsp-surface/` captured off
+   * real `pylsp`. Pointing inside the asked document is what makes the fake's jumps land
+   * somewhere a UI test can see.
+   */
+  var definitionAnswer: List<LanguageLocation>? = null
 
   /** `didOpen`/`didChange` in arrival order, so a test sees the sync the server would have. */
   val opened = mutableListOf<String>()
@@ -93,7 +104,15 @@ class FakeLanguageServerPort : LanguageServerPort {
   override suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp? =
     signatureHelpAnswer
 
+  override suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation> =
+    definitionAnswer ?: listOf(LanguageLocation(uri, PROBE_DEFINITION_RANGE))
+
   override suspend fun stop(space: Space) {
     stops++
+  }
+
+  private companion object {
+    /** The `compute_total` name span real `pylsp` answered in `evidence/p5e-0-lsp-surface/`. */
+    val PROBE_DEFINITION_RANGE = LanguageRange(LanguagePosition(4, 4), LanguagePosition(4, 17))
   }
 }

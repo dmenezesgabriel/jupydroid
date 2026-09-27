@@ -42,6 +42,13 @@ internal class ScriptedLanguageServer(
   /** What `textDocument/signatureHelp` replies carry - the whole `result`, null sendable. */
   var signatureHelpResult: JsonElement = DEFAULT_SIGNATURE_HELP,
 
+  /**
+   * What `textDocument/definition` replies carry - the whole `result`, so a test can send
+   * `[]`, `null` or a foreign-uri `Location`. Null (the default) answers the probe's shape at
+   * the asked uri: one `Location` naming `compute_total`'s own `range`.
+   */
+  var definitionResult: JsonElement? = null,
+
   /** The `initialize` reply, replaceable for capability-gate tests (defaults advertise pylsp's). */
   var initializeResult: JsonElement = INITIALIZE_RESULT,
 ) : Process() {
@@ -115,7 +122,9 @@ internal class ScriptedLanguageServer(
     if (id != null && method in hangsOn) return
     when (method) {
       "initialize" -> onInitialize(id)
-      "textDocument/completion", "textDocument/hover", "textDocument/signatureHelp" -> onDocumentAsk(method, id)
+      "textDocument/completion", "textDocument/hover", "textDocument/signatureHelp",
+      "textDocument/definition",
+      -> onDocumentAsk(method, id, msg)
       "shutdown" -> reply(id, JsonNull)
       "exit" -> destroy()
       else -> if (id != null) reply(id, JsonNull)
@@ -128,15 +137,20 @@ internal class ScriptedLanguageServer(
     serverRequestAfterInitialize?.let { emit(it) }
   }
 
-  private fun onDocumentAsk(method: String, id: JsonElement?) {
+  private fun onDocumentAsk(method: String, id: JsonElement?, msg: JsonObject) {
     emitNotification()
     val result = when (method) {
       "textDocument/hover" -> hoverResult
       "textDocument/signatureHelp" -> signatureHelpResult
+      "textDocument/definition" -> definitionResult ?: defaultDefinition(uriOf(msg))
       else -> completionResult()
     }
     reply(id, result)
   }
+
+  /** The uri a `TextDocumentPositionParams` names - where the canned `Location` should point. */
+  private fun uriOf(msg: JsonObject): String = ((msg["params"] as? JsonObject)?.get("textDocument") as? JsonObject)
+    ?.get("uri")?.jsonPrimitive?.content ?: "file:///scripted.py"
 
   /** The `{isIncomplete, items}` CompletionList shape pylsp itself answers with. */
   private fun completionResult() = buildJsonObject {
@@ -170,6 +184,7 @@ internal class ScriptedLanguageServer(
       putJsonObject("capabilities") {
         put("completionProvider", true)
         put("hoverProvider", true)
+        put("definitionProvider", true)
         // pylsp's real reply: an options object, not a boolean - `["(", ",", "="]` measured.
         putJsonObject("signatureHelpProvider") {
           putJsonArray("triggerCharacters") {
@@ -186,6 +201,27 @@ internal class ScriptedLanguageServer(
       putJsonObject("serverInfo") {
         put("name", "scripted")
         put("version", "0.1")
+      }
+    }
+  }
+}
+
+/**
+ * The `textDocument/definition` payload the P5e-0 probe measured off real `pylsp`: a
+ * `Location[]` of one entry, `uri` the asked document's own, `range` naming `compute_total`'s
+ * definition span (`{4,4}`-`{4,17}`).
+ */
+internal fun defaultDefinition(uri: String): JsonArray = buildJsonArray {
+  addJsonObject {
+    put("uri", uri)
+    putJsonObject("range") {
+      putJsonObject("start") {
+        put("line", 4)
+        put("character", 4)
+      }
+      putJsonObject("end") {
+        put("line", 4)
+        put("character", 17)
       }
     }
   }

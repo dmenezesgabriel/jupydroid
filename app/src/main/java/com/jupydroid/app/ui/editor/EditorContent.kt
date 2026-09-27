@@ -59,6 +59,8 @@ internal fun EditorContent(
   tocHeadings: List<TocHeading>,
   /** Hoisted so P2h-2's click-to-jump can drive the same list a tap in the table of contents. */
   listState: LazyListState,
+  /** Told once a landing field took its caret - `NotebookCellEdits.caretLanded` wired through. */
+  onCaretLanded: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   // Which cell/line's condition is being edited, or null while the dialog is closed - ephemeral
@@ -118,9 +120,9 @@ internal fun EditorContent(
               completionsAt = completionsAt,
               hoverAt = hoverAt,
               signatureHelpAt = signatureHelpAt,
-              // The ask can only answer while a session stands - `cellActionItems`'s own rule
+              // The asks can only answer while a session stands - `cellActionItems`'s own rule
               // about promising nothing that cannot come back.
-              symbolInfoOffered = state.kernelConnected,
+              inspectionOffered = state.kernelConnected,
               onCellAction = { action, editor -> onCellAction(cell.id, action, editor) },
               onFocusChanged = { focused -> onCellFocusChanged(cell.id, focused) },
               onToggleSelected = { onToggleSelected(cell.id) },
@@ -152,6 +154,10 @@ internal fun EditorContent(
               outputSearch = state.outputSearchHighlightsOf(cell.id),
               autoClosingBrackets = autoClosingBrackets,
               cellInput = cellInput,
+              // A pending jump names exactly one cell, so the state's landing is filtered to it
+              // before it is handed down - every other cell's field sees null and does nothing.
+              caretLanding = state.caretLanding?.takeIf { it.cellId == cell.id },
+              onCaretLanded = onCaretLanded,
             )
           }
         }

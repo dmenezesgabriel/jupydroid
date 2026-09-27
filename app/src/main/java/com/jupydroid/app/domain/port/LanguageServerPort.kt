@@ -55,6 +55,13 @@ data class LanguageMarkup(val kind: LanguageMarkupKind, val value: String)
 data class LanguageHover(val contents: LanguageMarkup, val range: LanguageRange? = null)
 
 /**
+ * One `Location` a `textDocument/definition` reply carries: the document [uri] the definition
+ * lives in and the [range] that names it - the `targetSelectionRange`-or-`range` VS Code's
+ * `_openReference` reads when it jumps there.
+ */
+data class LanguageLocation(val uri: String, val range: LanguageRange)
+
+/**
  * One parameter of a signature - `ParameterInformation`. [label] is the wire's string form,
  * or the signature label's own substring when the server sent the `[start, end]` pair form;
  * [labelRange] then names those offsets (end-exclusive), which is the only form a highlight
@@ -103,6 +110,11 @@ data class LanguageCapabilities(
    * absent-or-false is a no, the same rule [completionProvider] already applies.
    */
   val signatureHelpProvider: Boolean = false,
+  /**
+   * `definitionProvider` answers `true` **or** a `DefinitionOptions` object, so presence is
+   * the test like [signatureHelpProvider]'s - pylsp replies a plain `true` (P5e-0 probe).
+   */
+  val definitionProvider: Boolean = false,
 )
 
 /**
@@ -171,6 +183,13 @@ interface LanguageServerPort {
    * empty `signatures` reply normalizes to.
    */
   suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp?
+
+  /**
+   * `textDocument/definition` at [position] in the document at [uri] - `docs/PLAN.md` P5e-5.
+   * LSP allows `Location`, `Location[]` or `LocationLink[]` and `null`; implementations
+   * normalize all of it to a location list - empty where nothing defines the symbol.
+   */
+  suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation>
 
   /**
    * Every `textDocument/publishDiagnostics` a running server pushes, typed - the stream the

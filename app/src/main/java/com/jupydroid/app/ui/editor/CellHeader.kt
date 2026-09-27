@@ -62,8 +62,8 @@ internal fun CellHeader(
   onRun: () -> Unit,
   onStop: () -> Unit,
   onCellAction: (CellAction) -> Unit,
-  /** Whether a session can answer [CellAction.SymbolInfo] - passed to [CellActions] untouched. */
-  symbolInfo: Boolean = false,
+  /** Whether a session can answer the inspect rows - passed to [CellActions] untouched. */
+  inspection: Boolean = false,
 ) {
   var menuOpen by remember { mutableStateOf(false) }
   val status = execution?.status ?: ExecutionStatus.NOT_STARTED
@@ -141,7 +141,7 @@ internal fun CellHeader(
         expanded = menuOpen,
         cell = cell,
         canPaste = canPaste,
-        symbolInfo = symbolInfo,
+        inspection = inspection,
         onDismiss = { menuOpen = false },
         onAction = onCellAction,
       )

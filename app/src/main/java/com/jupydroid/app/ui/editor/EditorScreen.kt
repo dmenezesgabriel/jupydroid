@@ -256,6 +256,7 @@ fun EditorScreen(
       // between two matches already in front of the reader must not yank the notebook.
       if (index >= 0 && !listState.isFullyVisible(index)) listState.animateScrollToItem(index)
     }
+    LandingOnDefinition(state, viewModel.edits, listState, exportReports)
     LandingOnAMatch(reveal, state, viewModel.edits, listState, onRevealHandled)
     // **A cell about to be typed into has to be on screen**, which is the reference's `_ensureFocus`
     // (`packages/notebook/src/widget.ts:2885-2905`) - see [cellBeingEditedIndex] for the rule and
@@ -397,7 +398,7 @@ fun EditorScreen(
           completionsAt = viewModel.kernel.asks::completionsAt,
           hoverAt = viewModel.kernel.asks::hoverAt,
           signatureHelpAt = viewModel.kernel.asks::signatureHelpAt,
-          onCellAction = viewModel.edits::applyTo,
+          onCellAction = viewModel::cellAction,
           onCellFocusChanged = viewModel::cellFocusChanged,
           onToggleSelected = viewModel.selection::extendTo,
           onMarkdownEditRequested = viewModel::markdownEditRequested,
@@ -410,6 +411,7 @@ fun EditorScreen(
           tocNumbering = editorSettings.tocNumbering(),
           tocHeadings = tocHeadings,
           listState = listState,
+          onCaretLanded = viewModel.edits::caretLanded,
           modifier = Modifier.weight(1f),
         )
       }
@@ -433,7 +435,7 @@ fun EditorScreen(
  * answer for that too; there is no loop, because the effect that asks is keyed on the match rather
  * than on the scroll.
  */
-private fun LazyListState.isFullyVisible(index: Int): Boolean {
+internal fun LazyListState.isFullyVisible(index: Int): Boolean {
   val item = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return false
   return item.offset >= layoutInfo.viewportStartOffset &&
     item.offset + item.size <= layoutInfo.viewportEndOffset
