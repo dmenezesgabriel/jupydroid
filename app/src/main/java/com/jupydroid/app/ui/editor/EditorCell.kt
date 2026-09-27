@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -132,17 +133,29 @@ internal fun EditorCell(
   // function of the document - see [CellEditorText]. Both surfaces dispatch through here, so the
   // accessibility context menu gets it too.
   //
-  // **All but one**: `SymbolInfo` is answered here and not dispatched, because what it needs is
+  // **All but two**: `SymbolInfo` is answered here and not dispatched, because what it needs is
   // the caret this cell owns and the popup the field draws - [ChooseHeadingLevel]'s own shape of
   // a row the surface itself answers, so `CellEdits` never sees an ask that is not an edit. The
   // token and not a boolean: a second tap must re-ask even with nothing else changed, and a
   // remembered boolean that was already true would not.
+  //
+  // `RenameSymbol` is the other one - the dialog it opens is prefilled from the identifier under
+  // this field's caret, which only the surface can read. Its confirmation dispatches
+  // [CellAction.RenameTo] through the same door every other action takes - and a tap with no
+  // identifier under the caret forwards through that door too, as the ask machine's "No result."
+  // miss. The text and caret are frozen at the tap: a field edit while the dialog is open cannot
+  // move the ask underneath it.
   var symbolAsk by remember { mutableIntStateOf(0) }
+  var renameAsk by remember { mutableStateOf<CellEditorText?>(null) }
   val act: (CellAction) -> Unit = { action ->
-    if (action == CellAction.SymbolInfo) {
-      symbolAsk++
-    } else {
-      onCellAction(action, CellEditorText(field.text.toString(), field.selection))
+    when (action) {
+      CellAction.SymbolInfo -> symbolAsk++
+      CellAction.RenameSymbol -> renameSymbolTapped(
+        CellEditorText(field.text.toString(), field.selection),
+        onIdentifier = { renameAsk = it },
+        onMiss = { onCellAction(action, it) },
+      )
+      else -> onCellAction(action, CellEditorText(field.text.toString(), field.selection))
     }
   }
   // The one rule both the stripe and the editor's border hang off - see [cellIsBeingEdited].
@@ -266,6 +279,19 @@ internal fun EditorCell(
     // about: the reference appends the button to the heading cell's own node (`widget.ts:2429`).
     if (hiddenBelow > 0) {
       HiddenCellsRow(count = hiddenBelow, onExpand = { act(CellAction.ToggleHeadingCollapse) })
+    }
+    // The dialog the "Rename symbol…" row opened: prefilled with the identifier under the
+    // frozen caret, confirming dispatches the ask with the same frozen text.
+    renameAsk?.let { asked ->
+      RenameSymbolDialog(
+        currentName = identifierSpanAt(asked.source, asked.caret.end)
+          ?.let { asked.source.substring(it.min, it.max) }.orEmpty(),
+        onConfirm = { name ->
+          renameAsk = null
+          onCellAction(CellAction.RenameTo(name), asked)
+        },
+        onDismiss = { renameAsk = null },
+      )
     }
   }
 }

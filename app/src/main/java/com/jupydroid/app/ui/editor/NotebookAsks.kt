@@ -31,6 +31,7 @@ class NotebookAsks(
   private val signatureHelp: NotebookSignatureHelp,
   private val definition: NotebookDefinition,
   private val format: NotebookFormat,
+  private val rename: NotebookRename,
 ) {
   /** @see NotebookCompletion.at */
   suspend fun completionsAt(cellId: String, code: String, cursorOffset: Int): CompletionResult =
@@ -57,10 +58,31 @@ class NotebookAsks(
    * the notebook dirty, and an ask alone must not.
    */
   suspend fun formatCell(cellId: String, code: String): String? {
+    modelCaughtUpTo(cellId, code)
+    return format.formatted(uiState.value.cells, cellId, code)
+  }
+
+  /**
+   * @see NotebookRename.renamed
+   *
+   * The model is brought up to the field's text before the ask - [formatCell]'s own rule, the
+   * same [modelCaughtUpTo] - so the apply's own gate ([NotebookCellEdits.cellsRenamed]'s
+   * `askedSources`) can tell "still the asked sources" from "moved since".
+   */
+  suspend fun renameSymbol(cellId: String, code: String, cursorOffset: Int, newName: String): RenameAnswer? {
+    modelCaughtUpTo(cellId, code)
+    return rename.renamed(uiState.value.cells, cellId, code, cursorOffset, newName)
+  }
+
+  /**
+   * `operated`'s Split rule, shared by the asks whose answers rewrite cells: the model is
+   * brought up to the field's text first, but only when it is actually behind - `withSource`
+   * marks the notebook dirty, and an ask alone must not.
+   */
+  private fun modelCaughtUpTo(cellId: String, code: String) {
     uiState.update { state ->
       val cell = state.cells.firstOrNull { it.id == cellId } ?: return@update state
       if (cell.source == code) state else state.withSource(cellId, code)
     }
-    return format.formatted(uiState.value.cells, cellId, code)
   }
 }

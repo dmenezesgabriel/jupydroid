@@ -187,11 +187,13 @@ class CellActionItemsTest {
 
     assertEquals(CellAction.GoToDefinition, items.single { it.first == GO_TO_DEFINITION }.second)
     assertEquals(CellAction.SymbolInfo, items.single { it.first == SYMBOL_INFO }.second)
+    assertEquals(CellAction.RenameSymbol, items.single { it.first == RENAME_SYMBOL }.second)
     assertEquals(CellAction.FormatCell, items.single { it.first == FORMAT_CELL }.second)
     assertTrue("Delete stays the last row", labels.last() == "Delete")
     assertEquals("the jump leads the menu, under Select cells", 1, labels.indexOf(GO_TO_DEFINITION))
     assertEquals("the hover ask is right under it", 2, labels.indexOf(SYMBOL_INFO))
-    assertEquals("format is the third ask row", 3, labels.indexOf(FORMAT_CELL))
+    assertEquals("rename leads the modification rows", 3, labels.indexOf(RENAME_SYMBOL))
+    assertEquals("format is the last ask row", 4, labels.indexOf(FORMAT_CELL))
   }
 
   /**
@@ -225,6 +227,35 @@ class CellActionItemsTest {
     assertFalse(labels.contains(GO_TO_DEFINITION))
     assertFalse(labels.contains(SYMBOL_INFO))
     assertFalse(labels.contains(FORMAT_CELL))
+  }
+
+  /**
+   * "Rename symbol" sits before "Format cell" - VS Code's own `1_modification` order:
+   * `RenameAction` at 1.1, the format command at 1.3 (`rename.ts`'s MenuGroup registration).
+   * And like its neighbours it is offered only with a session to answer it.
+   */
+  @Test
+  fun aSessionedCodeCell_offersRenameBeforeFormat() {
+    val labels = cellActionItems(
+      Cell("c1", CellKind.CODE, "x = 1"),
+      canPaste = false,
+      selecting = false,
+      inspection = true,
+    ).map { it.first }
+
+    val rename = labels.indexOf(RENAME_SYMBOL)
+    assertTrue(rename >= 0 && rename < labels.indexOf(FORMAT_CELL))
+  }
+
+  @Test
+  fun noSession_offersNoRenameEither() {
+    val labels = cellActionItems(
+      Cell("c1", CellKind.CODE, "x = 1"),
+      canPaste = false,
+      selecting = false,
+    ).map { it.first }
+
+    assertFalse(labels.contains(RENAME_SYMBOL))
   }
 
   // --- notebook:enable/disable/toggle-output-scrolling (P2g-2b) -----------------------------

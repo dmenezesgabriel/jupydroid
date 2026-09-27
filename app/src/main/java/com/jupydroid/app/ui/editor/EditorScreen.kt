@@ -262,6 +262,12 @@ fun EditorScreen(
     }
     LandingOnDefinition(state, viewModel.edits, listState, exportReports)
     LandingOnAMatch(reveal, state, viewModel.edits, listState, onRevealHandled)
+    // A rename the server refused - jedi's own "no symbol" or the slice guard's - said once
+    // per ask, where the definition miss is said: `notificationService` in the reference's
+    // `rename.ts`. The tick and not the message is the key, so a second same refusal is seen.
+    LaunchedEffect(state.renameOutcome) {
+      state.renameOutcome?.let { exportReports.showSnackbar(it.message) }
+    }
     // **A cell about to be typed into has to be on screen**, which is the reference's `_ensureFocus`
     // (`packages/notebook/src/widget.ts:2885-2905`) - see [cellBeingEditedIndex] for the rule and
     // for what its absence cost. Keyed on the cell and the mode rather than on the document, so

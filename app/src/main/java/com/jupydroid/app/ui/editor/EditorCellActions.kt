@@ -11,15 +11,19 @@ import kotlinx.coroutines.launch
  * cap (the same reason `TerminalGrid.clampedTopRow` is an extension), and everything the
  * asks need is already a public surface: [kernel]'s asks and [edits]' apply.
  *
- * [CellAction.GoToDefinition] and [CellAction.FormatCell] are asks, not [NotebookCellEdits]
- * transforms: each is answered by the language server asynchronously - one lands as a caret
- * jump, the other as a cell rewrite - so neither reaches [NotebookCellEdits.applyTo].
- * Everything else is a cell edit and goes there unchanged.
+ * [CellAction.GoToDefinition], [CellAction.FormatCell] and [CellAction.RenameTo] are asks, not
+ * [NotebookCellEdits] transforms: each is answered by the language server asynchronously - one
+ * lands as a caret jump, the other two as source rewrites - so none reaches
+ * [NotebookCellEdits.applyTo]. Everything else is a cell edit and goes there unchanged.
  */
 fun EditorViewModel.cellAction(cellId: String, action: CellAction, editor: CellEditorText) {
   when (action) {
     CellAction.GoToDefinition -> viewModelScope.launch { goToDefinition(cellId, editor) }
     CellAction.FormatCell -> viewModelScope.launch { formatCell(cellId, editor) }
+    is CellAction.RenameTo -> viewModelScope.launch { renameSymbol(cellId, action.newName, editor) }
+    // The surface forwards `RenameSymbol` only when the caret sat on no identifier - the
+    // reference's `resolveRenameLocation` miss, which its own notification words "No result.".
+    CellAction.RenameSymbol -> edits.renameFailed("No result.")
     else -> edits.applyTo(cellId, action, editor)
   }
 }
@@ -48,4 +52,20 @@ private suspend fun EditorViewModel.goToDefinition(cellId: String, editor: CellE
 private suspend fun EditorViewModel.formatCell(cellId: String, editor: CellEditorText) {
   val formatted = kernel.asks.formatCell(cellId, editor.source) ?: return
   edits.cellFormatted(cellId, formatted, expectedSource = editor.source)
+}
+
+/**
+ * `textDocument/rename` at the caret, landed as a rewrite of every cell the symbol touches -
+ * `editor.action.rename`'s `bulkEditService.apply`, which is the whole-workspace edit applied
+ * as one undoable unit. A [RenameAnswer.Refused] is a message, not silence: the server's own
+ * words reach the snackbar through [EditorUiState.renameOutcome], the way VS Code surfaces a
+ * provider refusal in a notification. A null ask - no session, a caret on no code cell - keeps
+ * the asks' shared rule of quiet.
+ */
+private suspend fun EditorViewModel.renameSymbol(cellId: String, newName: String, editor: CellEditorText) {
+  when (val answer = kernel.asks.renameSymbol(cellId, editor.source, editor.caret.end, newName)) {
+    null -> Unit
+    is RenameAnswer.Refused -> edits.renameFailed(answer.message)
+    is RenameAnswer.Renamed -> edits.cellsRenamed(cellId, answer.sources, answer.askedSources)
+  }
 }

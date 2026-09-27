@@ -124,11 +124,14 @@ class NotebookKernel(
   /** The format ask - `textDocument/rangeFormatting` over the cell's virtual block (P5e-6). */
   private val format = NotebookFormat(session, languageServer, languageDocument, formattingOptions)
 
+  /** The rename ask - `textDocument/rename` at the caret's virtual position (P5e-7). */
+  private val rename = NotebookRename(session, languageServer, languageDocument)
+
   /**
-   * The cell-level asks - completion, hover, signature help, definition, format -
+   * The cell-level asks - completion, hover, signature help, definition, format, rename -
    * [NotebookAsks] owns like [history].
    */
-  val asks = NotebookAsks(uiState, completion, hover, signatureHelp, definition, format)
+  val asks = NotebookAsks(uiState, completion, hover, signatureHelp, definition, format, rename)
 
   /** `publishDiagnostics` as per-cell marks in state - see [NotebookDiagnostics]. */
   private val diagnostics =

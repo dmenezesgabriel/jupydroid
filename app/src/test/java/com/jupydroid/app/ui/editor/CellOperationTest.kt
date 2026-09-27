@@ -117,6 +117,165 @@ class CellOperationTest {
   }
 
   /**
+   * **The rename ask is not an [applying] edit either** - P5e-7. The row is answered by the
+   * surface (its dialog needs the caret), and the dialog's `RenameTo` reaches the language
+   * server through [EditorViewModel.cellAction], so neither arriving here may change a cell -
+   * [CellAction.FormatCell]'s own guard, kept for the same reachability.
+   */
+  @Test
+  fun renameAsk_changesNothingAndRecordsNoUndo() {
+    val run = markedRun("a", "b")
+
+    val row = run.applying(CellAction.RenameSymbol)
+    val confirmed = run.applying(CellAction.RenameTo("summed"))
+
+    assertEquals(run.cells, row.cells)
+    assertEquals(run.cells, confirmed.cells)
+    assertEquals(0, row.undoable.size + confirmed.undoable.size)
+    assertTrue("asking keeps the run, the way the format ask does", confirmed.selecting)
+  }
+
+  /**
+   * The ask's apply half - P5e-7, `editor.action.rename`: every cell's new source lands as
+   * **one undoable operation** - the `bulkEditService.apply` of the reference, a single
+   * `transact` of the document - and the [EditorUiState.sourceRevisions] bump marks each
+   * rewritten cell's field to adopt it.
+   */
+  @Test
+  fun cellsRenamed_rewritesEveryTouchedCellAsOneUndo() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellsRenamed(
+      "a",
+      mapOf("a" to "def summed():\n    pass", "b" to "summed()"),
+      askedSources = mapOf("a" to "source of a", "b" to "source of b", "c" to "source of c"),
+    )
+
+    val after = state.value
+    assertEquals("def summed():\n    pass", after.cells.first { it.id == "a" }.source)
+    assertEquals("summed()", after.cells.first { it.id == "b" }.source)
+    assertEquals("source of c", after.cells.first { it.id == "c" }.source)
+    assertEquals(1, after.undoable.size)
+    assertEquals(setOf("a", "b"), after.sourceRevisions.keys)
+    assertTrue(after.dirty)
+  }
+
+  /** One undo puts every cell back at once - the transaction the rename answered as. */
+  @Test
+  fun cellsRenamed_undone_restoresEveryCellAtOnce() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellsRenamed(
+      "a",
+      mapOf("a" to "x = 1", "b" to "x"),
+      askedSources = mapOf("a" to "source of a", "b" to "source of b", "c" to "source of c"),
+    )
+    edits.undo()
+
+    assertEquals("source of a", state.value.cells.first { it.id == "a" }.source)
+    assertEquals("source of b", state.value.cells.first { it.id == "b" }.source)
+  }
+
+  /**
+   * The gate for a slow answer, [cellFormatted]'s own rule widened to the whole document: the
+   * reply was computed over [askedSources], so a cell that moved since - typing reported
+   * mid-ask, another operation - means its "unchanged" parts would still clobber newer text.
+   * The whole rename is dropped rather than half-applied.
+   */
+  @Test
+  fun cellsRenamed_afterACellMovedSinceTheAsk_changesNothing() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellsRenamed(
+      "a",
+      mapOf("a" to "x = 1", "b" to "x"),
+      askedSources = mapOf("a" to "source of a", "b" to "what the ask saw", "c" to "source of c"),
+    )
+
+    assertEquals("source of a", state.value.cells.first { it.id == "a" }.source)
+    assertEquals("source of b", state.value.cells.first { it.id == "b" }.source)
+    assertEquals(0, state.value.undoable.size)
+  }
+
+  /** An answer identical to every cell's own text is a no-op: no entry, no write. */
+  @Test
+  fun cellsRenamed_withTheSameSources_recordsNothing() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellsRenamed(
+      "a",
+      mapOf("a" to "source of a", "b" to "source of b"),
+      askedSources = mapOf("a" to "source of a", "b" to "source of b", "c" to "source of c"),
+    )
+
+    assertEquals(0, state.value.undoable.size)
+    assertFalse(state.value.dirty)
+  }
+
+  /**
+   * A cell that left the document between ask and answer is refused with the rest - the reply
+   * names a source for an id nobody holds, which is exactly the moved-since check.
+   */
+  @Test
+  fun cellsRenamed_withACellThatHasGone_changesNothing() = runTest {
+    val before = markedRun("a", "b")
+    val state = MutableStateFlow(before)
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellsRenamed(
+      "a",
+      mapOf("a" to "x", "gone" to "y"),
+      askedSources = mapOf("a" to "source of a", "gone" to "source of gone", "c" to "source of c"),
+    )
+
+    assertEquals(before.cells, state.value.cells)
+    assertEquals(0, state.value.undoable.size)
+  }
+
+  /**
+   * The menu-on-a-cell rule is [applyingFrom]'s own: asked on a cell outside a marked run, the
+   * run collapses onto that cell - the reference's `_evtMouseDown` rule, which a rename row
+   * takes no exception to.
+   */
+  @Test
+  fun cellsRenamed_onACellOutsideTheRun_collapsesOntoIt() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellsRenamed(
+      "c",
+      mapOf("c" to "renamed c"),
+      askedSources = mapOf("a" to "source of a", "b" to "source of b", "c" to "source of c"),
+    )
+
+    assertFalse(state.value.selecting)
+    assertEquals("c", state.value.selectedCellId)
+    assertEquals("renamed c", state.value.cells.first { it.id == "c" }.source)
+  }
+
+  /**
    * The ask's apply half - P5e-6, VS Code's `notebook.formatCell`: the cell's source lands as
    * **one undoable operation**, and the [EditorUiState.sourceRevisions] bump is what tells the
    * cell's own field to adopt it, the way split's rewrite is adopted.

@@ -141,14 +141,40 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
     blocks.firstOrNull { it.cellId == cellId }?.let { block ->
       cellSpan(block)?.let { span ->
         edits.takeIf { it.isNotEmpty() }
-          ?.let(::withEditsApplied)
+          ?.let { text.withEditsApplied(it) }
           ?.withCellSliceChecked(span)
       }
     }
 
+  /**
+   * Every code cell's source as [edits] leave it, keyed by cell id - the answer a
+   * `textDocument/rename` `WorkspaceEdit` gets (`docs/PLAN.md` P5e-7): pylsp returns one
+   * whole-document `TextEdit` whose `newText` carries the new name at every site, so all
+   * cells move together or not at all. Applying means splicing [edits] into this synced
+   * [text], then [reslicedSources]'s split-and-verify: a count that no longer matches the
+   * code cells, or a reconstruction that differs, is a refusal rather than a guess.
+   */
+  fun cellSourcesAfterEdits(edits: List<LanguageEdit>): Map<String, String>? {
+    val newText = edits.takeIf { it.isNotEmpty() }?.let { text.withEditsApplied(it) } ?: return null
+    return reslicedSources(newText)
+  }
+
+  /**
+   * [newText] - this document as the edits left it - split on the separator run and **verified**:
+   * the parts rebuild it byte-for-byte or the answer is a refusal rather than a guess at which
+   * cell a shifted blank line belongs to. Cells hold the answer's own text as-is: the trailing
+   * newline each separator consumed is not a cell's to keep.
+   */
+  private fun reslicedSources(newText: String): Map<String, String>? {
+    val parts = newText.split(SEPARATOR_RUN).takeIf { it.size == blocks.size } ?: return null
+    val sources = parts.dropLast(1) + parts.last().removeSuffix("\n")
+    return sources.takeIf { it.joinToString(SEPARATOR) { source -> "$source\n" } == newText }
+      ?.let { blocks.map(Block::cellId).zip(it).toMap() }
+  }
+
   /** The cell's own [text] span - [TextSpan.start] at its first line, [TextSpan.end] after its last. */
-  private fun cellSpan(block: Block): TextSpan? = virtualOffset(block.virtualStart, 0)?.let { start ->
-    virtualOffset(block.virtualStart + block.lines - 1, block.source.substringAfterLast('\n').length)
+  private fun cellSpan(block: Block): TextSpan? = text.virtualOffset(block.virtualStart, 0)?.let { start ->
+    text.virtualOffset(block.virtualStart + block.lines - 1, block.source.substringAfterLast('\n').length)
       ?.let { TextSpan(start, it) }
   }
 
@@ -167,44 +193,6 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
     return if (startsWith(prefix) && endsWith(suffix)) substring(span.start, length - suffix.length) else null
   }
 
-  /**
-   * [edits] spliced into [text], newest positions first so each pair is still true of the
-   * text before it - or null when a range names a spot the document does not have. A `null`
-   * here is what turns a malformed answer into a refusal rather than a misplaced splice.
-   */
-  private fun withEditsApplied(edits: List<LanguageEdit>): String? {
-    val located = edits.map { edit ->
-      virtualOffset(edit.range.start.line, edit.range.start.character)?.let { start ->
-        virtualOffset(edit.range.end.line, edit.range.end.character)
-          ?.takeIf { it >= start }
-          ?.let { Triple(start, it, edit.newText) }
-      }
-    }
-    if (null in located) return null
-    val applied = StringBuilder(text)
-    located.filterNotNull().sortedByDescending { it.first }
-      .forEach { (start, end, newText) -> applied.replace(start, end, newText) }
-    return applied.toString()
-  }
-
-  /**
-   * The offset in [text] a virtual `line`/`character` names - **strict**, unlike
-   * [cellOffset]'s clamp: an edit position past a line's end or past the document is a
-   * position the formatter's answer cannot be trusted to have meant, so it refuses.
-   * `character` may equal the line's own length - an end-exclusive position is still a spot.
-   */
-  private fun virtualOffset(line: Int, character: Int): Int? {
-    val offset = if (line >= 0 && character >= 0) {
-      generateSequence(0) { start -> text.indexOf('\n', start).takeIf { it >= 0 }?.inc() }
-        .drop(line)
-        .firstOrNull()
-    } else {
-      null
-    } ?: return null
-    val lineEnd = text.indexOf('\n', offset).let { if (it < 0) text.length else it }
-    return if (character <= lineEnd - offset) offset + character else null
-  }
-
   /** Whose line [virtualLine] is - null on the separators and past the document's end. */
   fun cellLineAt(virtualLine: Int): CellLine? {
     val block = blocks.firstOrNull { virtualLine in it.virtualStart until it.virtualStart + it.lines }
@@ -217,7 +205,49 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
 
     /** One block's trailing newline, plus the blank lines joining it to the next block. */
     const val SEPARATOR = "\n\n"
+
+    /** The run a cell's trailing newline and [SEPARATOR] form - what splits the parts. */
+    val SEPARATOR_RUN = Regex("\\n{3,}")
   }
 }
 
 private fun String.lineCount(): Int = count { it == '\n' } + 1
+
+/**
+ * [edits] spliced into this document text, newest positions first so each pair is still true
+ * of the text before it - or null when a range names a spot the document does not have. A
+ * `null` here is what turns a malformed answer into a refusal rather than a misplaced splice.
+ * File-level on `String` because it is pure text surgery: nothing it reads lives in the class.
+ */
+private fun String.withEditsApplied(edits: List<LanguageEdit>): String? {
+  val located = edits.map { edit ->
+    virtualOffset(edit.range.start.line, edit.range.start.character)?.let { start ->
+      virtualOffset(edit.range.end.line, edit.range.end.character)
+        ?.takeIf { it >= start }
+        ?.let { Triple(start, it, edit.newText) }
+    }
+  }
+  if (null in located) return null
+  val applied = StringBuilder(this)
+  located.filterNotNull().sortedByDescending { it.first }
+    .forEach { (start, end, newText) -> applied.replace(start, end, newText) }
+  return applied.toString()
+}
+
+/**
+ * The offset in this text a virtual `line`/`character` names - **strict**, unlike
+ * [NotebookVirtualDocument]'s cell-offset clamp: an edit position past a line's end or past
+ * the document is a position the answer cannot be trusted to have meant, so it refuses.
+ * `character` may equal the line's own length - an end-exclusive position is still a spot.
+ */
+private fun String.virtualOffset(line: Int, character: Int): Int? {
+  val offset = if (line >= 0 && character >= 0) {
+    generateSequence(0) { start -> indexOf('\n', start).takeIf { it >= 0 }?.inc() }
+      .drop(line)
+      .firstOrNull()
+  } else {
+    null
+  } ?: return null
+  val lineEnd = indexOf('\n', offset).let { if (it < 0) length else it }
+  return if (character <= lineEnd - offset) offset + character else null
+}

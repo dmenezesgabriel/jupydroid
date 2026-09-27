@@ -168,6 +168,12 @@ data class EditorUiState(
    */
   val noDefinitionFound: Int = 0,
   /**
+   * The last refused rename the screen reports - [RenameOutcome.tick] counted rather than
+   * flagged, for [noDefinitionFound]'s reason: a second refusal with the same message is
+   * still a change the snackbar must show. Not persisted, like the counter beside it.
+   */
+  val renameOutcome: RenameOutcome? = null,
+  /**
    * Breakpoints set on a code cell's lines, by cell id - [NotebookDebugger]'s own state.
    *
    * **Not on [Cell], and not persisted.** JupyterLab keeps a breakpoint in its own in-memory
@@ -303,6 +309,15 @@ fun EditorUiState.stoppedLineOf(cellId: String): Int? = stoppedAt?.takeIf { it.c
 
 fun EditorUiState.withSource(cellId: String, source: String): EditorUiState =
   copy(cells = cells.map { if (it.id == cellId) it.copy(source = source) else it }, dirty = true)
+
+/**
+ * Several cells' sources at once - a rename's whole-document answer ([NotebookCellEdits.cellsRenamed]),
+ * where each cell's new text lands together or the operation is no operation at all.
+ */
+fun EditorUiState.withSources(sources: Map<String, String>): EditorUiState = copy(
+  cells = cells.map { cell -> sources[cell.id]?.let { source -> cell.copy(source = source) } ?: cell },
+  dirty = true,
+)
 
 /**
  * Seeded from what was saved, so reopening a notebook shows the results it already had.

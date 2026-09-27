@@ -157,6 +157,28 @@ sealed interface CellAction {
    */
   data object FormatCell : CellAction
 
+  /**
+   * "Rename symbol" - `editor.action.rename`, `docs/PLAN.md` P5e-7, the `1_modification`
+   * group order 1.1 that puts it above Format (1.3) in the reference's context menu.
+   *
+   * Surface-answered like [SymbolInfo], and for its reason doubled: the dialog it opens is
+   * prefilled with the identifier under the caret, which is this cell's field's own
+   * knowledge - the shipped `pylsp` has no `prepareRename` to ask instead. Confirming the
+   * dialog dispatches [RenameTo], which is the action the ask machine ever sees.
+   *
+   * The one tap that does reach the machine is the surface's own miss: no identifier under
+   * the caret is `resolveRenameLocation`'s null, which VS Code words "No result." - the
+   * action arriving here is that report, not an edit.
+   */
+  data object RenameSymbol : CellAction
+
+  /**
+   * The rename dialog's confirmation - [RenameSymbol] resolved into the name to apply.
+   * Dispatched like [FormatCell] and for its reason: the answer is an asynchronous ask whose
+   * result lands as a document change, never something [CellEdits] transforms directly.
+   */
+  data class RenameTo(val newName: String) : CellAction
+
   data object Copy : CellAction
 
   data object Cut : CellAction

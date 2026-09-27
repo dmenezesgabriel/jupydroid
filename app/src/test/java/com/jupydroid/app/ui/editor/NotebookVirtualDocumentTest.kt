@@ -221,6 +221,85 @@ class NotebookVirtualDocumentTest {
     assertEquals("y = 2\n", document.cellSourceAfterEdits("c2", edits))
   }
 
+  // --- P5e-7: a rename's whole-document WorkspaceEdit, sliced back into cells -------------
+
+  /**
+   * The probe's own shape (`evidence/p5e-0-lsp-surface/`): pylsp answers
+   * `textDocument/rename` with one `TextEdit` spanning the whole document, `newText`
+   * carrying the new name at the `def` line and the call site alike - so both cells'
+   * sources come back, joined exactly the way [text] was built.
+   */
+  @Test
+  fun cellSourcesAfterEdits_theProbesRename_renamesBothCells() {
+    val document = documentOf(
+      code("c1", "def total(items):\n    return sum(items)"),
+      code("c2", "answer = total([1, 2])"),
+    )
+    val edits = listOf(
+      edit(0, 0, 5, 0, "def summed(items):\n    return sum(items)\n\n\nanswer = summed([1, 2])\n"),
+    )
+
+    assertEquals(
+      mapOf(
+        "c1" to "def summed(items):\n    return sum(items)",
+        "c2" to "answer = summed([1, 2])",
+      ),
+      document.cellSourcesAfterEdits(edits),
+    )
+  }
+
+  /** Markdown cells were never in the document, so no rename can claim them back. */
+  @Test
+  fun cellSourcesAfterEdits_markdownCells_haveNoSourceToRename() {
+    val document = documentOf(
+      code("c1", "x = 1"),
+      Cell("m1", CellKind.MARKDOWN, "# notes"),
+      code("c2", "y = x"),
+    )
+    val edits = listOf(edit(0, 0, 4, 0, "z = 1\n\n\ny = z\n"))
+
+    val sources = document.cellSourcesAfterEdits(edits)
+
+    assertEquals(setOf("c1", "c2"), sources?.keys)
+  }
+
+  /**
+   * The guard's whole reason to exist: an answer that rewrote a separator - cells merged,
+   * a blank line eaten - can never be sliced back without corrupting a cell, so it is
+   * refused rather than misapplied.
+   */
+  @Test
+  fun cellSourcesAfterEdits_anAnswerThatMovedASeparator_isRefused() {
+    val document = documentOf(code("c1", "x=1"), code("c2", "y=2"))
+
+    // A separator blank line went missing - the parts no longer number the cells.
+    assertNull(document.cellSourcesAfterEdits(listOf(edit(0, 0, 4, 0, "x=1\n\ny=2\n"))))
+    // The separator run grew - whether the extra blanks are c1's tail or c2's head is a guess.
+    assertNull(document.cellSourcesAfterEdits(listOf(edit(0, 0, 4, 0, "x=1\n\n\n\n\ny=2\n"))))
+    // An edit whose range reaches a line the document does not have is refused, not clamped.
+    assertNull(document.cellSourcesAfterEdits(listOf(edit(3, 0, 9, 0, "y = 2\n"))))
+  }
+
+  /** Nothing to apply is a refusal, not an empty map - an absent answer is not a rename. */
+  @Test
+  fun cellSourcesAfterEdits_noEdits_isNull() {
+    val document = documentOf(code("c1", "x=1"))
+
+    assertNull(document.cellSourcesAfterEdits(emptyList()))
+  }
+
+  /**
+   * The verification: sources that do not rebuild the edited text byte-for-byte - here a
+   * lost trailing newline - can only mean the split landed wrong.
+   */
+  @Test
+  fun cellSourcesAfterEdits_anAnswerWithoutTheTrailingNewline_isRefused() {
+    val document = documentOf(code("c1", "x=1"), code("c2", "y=2"))
+    val edits = listOf(edit(0, 0, 4, 0, "x = 1\n\n\ny = 2"))
+
+    assertNull(document.cellSourcesAfterEdits(edits))
+  }
+
   private fun edit(startLine: Int, startChar: Int, endLine: Int, endChar: Int, newText: String) =
     LanguageEdit(LanguageRange(LanguagePosition(startLine, startChar), LanguagePosition(endLine, endChar)), newText)
 

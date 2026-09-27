@@ -27,9 +27,12 @@ import kotlinx.coroutines.flow.update
  * ```
  */
 class NotebookCellEdits(
-  private val uiState: MutableStateFlow<EditorUiState>,
+  // `internal` rather than `private` so [cellsRenamed] and [renameFailed] can stay file-level
+  // extensions - the class sits at detekt's function cap, and a rename answer is still a cell
+  // edit, which keeps this file its home.
+  internal val uiState: MutableStateFlow<EditorUiState>,
   /** Writing belongs to the document half; this only says when there is something to write. */
-  private val save: DocumentAutosave,
+  internal val save: DocumentAutosave,
 ) {
   /**
    * Everything the cell menu offers, through one entry point - so a fifteenth action cannot reach
@@ -216,4 +219,40 @@ class NotebookCellEdits(
     uiState.update { it.redoneCellOperation() }
     save.schedule()
   }
+}
+
+/**
+ * Lands the rename's whole-document answer - `editor.action.rename` (P5e-7) applied as
+ * **one undoable operation**, the reference's `bulkEditService.apply` transaction: a Ctrl-Z
+ * after it restores every cell at once, which is what the shared undo entry is for.
+ * [recording] is the undoable half and [EditorUiState.sourceRevisions] the visible one -
+ * each rewritten cell's field adopts its new source exactly as a format's rewrite lands.
+ *
+ * [askedSources] is [NotebookCellEdits.cellFormatted]'s `expectedSource` gate widened to the
+ * whole document: the reply carries every code cell's new text, so a cell that moved mid-ask
+ * - typing reported in flight, another operation - is a different document than the server
+ * renamed, and even its *unchanged* parts would clobber newer text. Any difference drops the
+ * whole answer rather than half-applying it. An answer identical to every cell's own source
+ * is the no-op: no entry and no write.
+ *
+ * The menu-on-a-cell rule is `applyingFrom`'s own: asked on a cell outside a marked run,
+ * the run collapses onto that cell first.
+ */
+fun NotebookCellEdits.cellsRenamed(cellId: String, sources: Map<String, String>, askedSources: Map<String, String>) {
+  val before = uiState.value
+  val moved = sources.keys.any { id -> before.cells.firstOrNull { it.id == id }?.source != askedSources[id] }
+  val identical = before.cells.none { cell -> cell.id in sources && cell.source != sources[cell.id] }
+  if (moved || identical) return
+  val on = if (cellId in before.selectedCellIds) before else before.withSelectionCollapsed().withCellSelected(cellId)
+  uiState.value = on.withSources(sources).recording(before = before)
+  save.schedule()
+}
+
+/**
+ * The rename ask came back refused - the server's own message or the slice guard's, counted
+ * so the snackbar sees each one: [NotebookCellEdits.definitionMissed]'s own counter shape,
+ * carrying the words a bare count cannot.
+ */
+fun NotebookCellEdits.renameFailed(message: String) {
+  uiState.update { it.copy(renameOutcome = RenameOutcome((it.renameOutcome?.tick ?: 0) + 1, message)) }
 }

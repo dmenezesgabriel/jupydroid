@@ -6,11 +6,15 @@ import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.IndentUnit
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageEdit
 import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageLocation
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageRange
+import com.jupydroid.app.domain.port.LanguageServerException
+import com.jupydroid.app.domain.port.LanguageServerPort
+import com.jupydroid.app.domain.port.LanguageWorkspaceEdit
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -188,6 +192,131 @@ class EditorCellActionTest {
     val state = viewModel.uiState.value
     assertEquals("x=1 typed", state.cells.first { it.id == "c1" }.source)
     assertTrue(state.undoable.isEmpty())
+  }
+
+  /**
+   * P5e-7: the rename dialog's `RenameTo` answers with **every** cell's source rewritten - the
+   * `def` line and the call site land in one undoable operation, `bulkEditService.apply`'s own
+   * shape. Undo puts both back at once, the way a transaction rolls back.
+   */
+  @Test
+  fun cellAction_renameTo_renamesEveryCellUndoably() = runTest {
+    val languageServer = renamedServer("def summed(items):\n    return sum(items)\n\n\ntotal = summed([1, 2])\n")
+    val viewModel = loadedEditor(cells = definitionCells(), languageServer = languageServer)
+    viewModel.kernel.runCell(viewModel.uiState.value.cells.first { it.id == "c1" })
+    advanceUntilIdle()
+
+    viewModel.cellAction("c3", CellAction.RenameTo("summed"), askText())
+    advanceUntilIdle()
+
+    val state = viewModel.uiState.value
+    assertEquals("def summed(items):\n    return sum(items)", state.cells.first { it.id == "c1" }.source)
+    assertEquals("total = summed([1, 2])", state.cells.first { it.id == "c3" }.source)
+    assertEquals(LanguagePosition(4, 10), languageServer.renameAsks.single().position)
+    assertEquals(1, state.undoable.size)
+
+    viewModel.edits.undo()
+    assertEquals(
+      "def compute_total(items):\n    return sum(items)",
+      viewModel.uiState.value.cells.first { it.id == "c1" }.source,
+    )
+  }
+
+  /** A refusal is reported, not applied: the server's own message reaches the snackbar's state. */
+  @Test
+  fun cellAction_renameTo_withAServerError_reportsTheRefusal() = runTest {
+    val languageServer = RefusingRenameServer("no symbol to rename")
+    val viewModel = loadedEditor(cells = definitionCells(), languageServer = languageServer)
+    viewModel.kernel.runCell(viewModel.uiState.value.cells.first { it.id == "c1" })
+    advanceUntilIdle()
+
+    viewModel.cellAction("c3", CellAction.RenameTo("summed"), askText())
+    advanceUntilIdle()
+
+    val state = viewModel.uiState.value
+    assertEquals("def compute_total(items):\n    return sum(items)", state.cells.first { it.id == "c1" }.source)
+    assertEquals(RenameOutcome(1, "no symbol to rename"), state.renameOutcome)
+    assertTrue(state.undoable.isEmpty())
+  }
+
+  /** An empty `WorkspaceEdit` - nothing to rename - is reported as "No result.", once per ask. */
+  @Test
+  fun cellAction_renameTo_withNothingToRename_reportsNoResult() = runTest {
+    val viewModel = loadedEditor(
+      cells = definitionCells(),
+      languageServer = FakeLanguageServerPort().apply { renameAnswer = LanguageWorkspaceEdit(emptyMap()) },
+    )
+    viewModel.kernel.runCell(viewModel.uiState.value.cells.first { it.id == "c1" })
+    advanceUntilIdle()
+
+    viewModel.cellAction("c3", CellAction.RenameTo("x"), askText())
+    advanceUntilIdle()
+    viewModel.cellAction("c3", CellAction.RenameTo("x"), askText())
+    advanceUntilIdle()
+
+    assertEquals(RenameOutcome(2, "No result."), viewModel.uiState.value.renameOutcome)
+  }
+
+  /** The session gate's menu-facing half - no run means nothing is asked, like every ask. */
+  @Test
+  fun cellAction_renameTo_withoutASession_neverAsks() = runTest {
+    val languageServer = FakeLanguageServerPort()
+    val viewModel = loadedEditor(languageServer = languageServer)
+
+    viewModel.cellAction("c1", CellAction.RenameTo("x"), CellEditorText("print(1)", TextRange(1)))
+    advanceUntilIdle()
+
+    assertTrue(languageServer.renameAsks.isEmpty())
+    assertNull(viewModel.uiState.value.renameOutcome)
+    assertTrue(viewModel.uiState.value.undoable.isEmpty())
+  }
+
+  /**
+   * The row reaches the machine only on the surface's own miss - no identifier under the
+   * caret, the reference's `resolveRenameLocation` null - which it reports, not edits.
+   */
+  @Test
+  fun cellAction_renameSymbol_reportsNoResultWithoutEditing() = runTest {
+    val viewModel = loadedEditor(cells = definitionCells())
+
+    viewModel.cellAction("c3", CellAction.RenameSymbol, askText())
+    advanceUntilIdle()
+
+    assertEquals("total = compute_total([1, 2])", viewModel.uiState.value.cells.first { it.id == "c3" }.source)
+    assertTrue(viewModel.uiState.value.undoable.isEmpty())
+    assertEquals(RenameOutcome(1, "No result."), viewModel.uiState.value.renameOutcome)
+  }
+
+  /**
+   * The probe's own reply shape (`evidence/p5e-0-lsp-surface/`): one `TextEdit` spanning the
+   * synced document, `(0,0)` to past the last line - `(5,0)` for this fixture's
+   * `"def …\n    return …\n\n\ntotal = …\n"`.
+   */
+  private fun wholeDocumentEdit(newText: String) = LanguageEdit(
+    LanguageRange(LanguagePosition(0, 0), LanguagePosition(5, 0)),
+    newText,
+  )
+
+  /** The call-site cell's own text with the caret inside `compute_total`, as the field holds it. */
+  private fun askText() = CellEditorText("total = compute_total([1, 2])", TextRange(10))
+
+  /** A fake whose rename answer is the probe's one whole-document edit carrying [newText]. */
+  private fun renamedServer(newText: String) = FakeLanguageServerPort().apply {
+    renameAnswer = LanguageWorkspaceEdit(mapOf(URI to listOf(wholeDocumentEdit(newText))))
+  }
+
+  /**
+   * `pylsp` refusing - jedi's own reply to a name it cannot prove, at the port's boundary:
+   * a typed error reply, which the ask must carry to the snackbar rather than swallow.
+   */
+  private class RefusingRenameServer(private val message: String) : LanguageServerPort by FakeLanguageServerPort() {
+    override suspend fun rename(space: Space, uri: String, position: LanguagePosition, newName: String): Nothing =
+      throw LanguageServerException("textDocument/rename", -32802, message)
+  }
+
+  private companion object {
+    /** The synced virtual document's uri for `loadedEditor`'s "nb-1" notebook. */
+    val URI: String = NotebookVirtualDocument("nb-1", emptyList()).uri
   }
 
   /**

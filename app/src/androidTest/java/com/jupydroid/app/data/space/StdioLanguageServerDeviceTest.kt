@@ -245,6 +245,44 @@ class StdioLanguageServerDeviceTest {
     }
   }
 
+  /**
+   * P5e-7: `textDocument/rename` on a call site makes the real `pylsp` answer jedi's
+   * `WorkspaceEdit` - the reply the P5e-0 probe measured byte-for-byte
+   * (`evidence/p5e-0-lsp-surface/logcat-probe.txt`): `documentChanges` carrying ONE
+   * whole-document `TextEdit` whose `newText` holds the new name at the `def` line and the
+   * call site both. A scripted server can only pretend to rename; this is the rename.
+   */
+  @Test(timeout = 120_000)
+  fun renameOnACallSite_answersTheWholeDocumentEdit() = runBlocking {
+    val languageServer = baseSpaceLanguageServerPort(context)!!
+    try {
+      val capabilities = languageServer.capabilities(BASE_SPACE)
+      assertTrue("pylsp must declare renameProvider for P5e-7", capabilities.renameProvider)
+
+      val uri = "file:///home/jupydroid/p5e7-probe.py"
+      languageServer.openDocument(
+        BASE_SPACE,
+        uri,
+        "python",
+        "def compute_total(values):\n    return sum(values)\n\ncompute_total([1, 2])\n",
+      )
+
+      // Character 4 of line 3 is on `compute_total` - the call site a caret sits inside.
+      val edit = languageServer.rename(BASE_SPACE, uri, LanguagePosition(line = 3, character = 4), "summed")
+
+      // Flattened rather than `changes[uri]`: the reply's document uri is the server's own
+      // quoting of the opened one, which only has to round-trip inside the same `file://`.
+      val newTexts = edit.changes.values.flatten().map { it.newText }
+      assertTrue("pylsp answered no edits for compute_total", newTexts.isNotEmpty())
+      assertTrue(
+        "the one edit must rename the def and the call site - got ${newTexts.map { it.take(60) }}",
+        newTexts.any { it.contains("def summed") && it.contains("summed([1, 2])") },
+      )
+    } finally {
+      languageServer.stop(BASE_SPACE)
+    }
+  }
+
   /** Lazy means lazy: a port never called leaves no process behind to stop. */
   @Test(timeout = 60_000)
   fun stopOnANeverStartedServerIsANoOp() = runBlocking {

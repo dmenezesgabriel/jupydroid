@@ -4,7 +4,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 
 /**
- * The three session-ask rows - `docs/PLAN.md` P5e-3/P5e-5/P5e-6. Code cells only, because the
+ * The four session-ask rows - `docs/PLAN.md` P5e-3/P5e-5/P5e-6/P5e-7. Code cells only, because the
  * virtual document maps nothing else: a markdown or raw cell's ask could never resolve, so any
  * row there would be the lie [clipboardItems] refuses to print.
  *
@@ -12,8 +12,9 @@ import com.jupydroid.app.domain.model.CellKind
  * `editor.action.goToDefinition` heads the navigation group there (`editorContextMenu.ts`'s
  * `navigation` rank), before the peek rows and the hover. A jump is the stronger promise of
  * the asks - the hover says what the symbol is, this one takes you to it. "Format cell" sits
- * last of the three, which is the reference's own order too: `notebook.formatCell` is
- * registered in the `1_modification` group, under the navigation items.
+ * "Rename symbol" leads "Format cell", which is the reference's own order within its
+ * `1_modification` group: `RenameAction` at 1.1, the format command at 1.3
+ * (`src/vs/editor/contrib/rename/browser/rename.ts`).
  *
  * Right under the selection group, for the same reason it led there: the rows ask about the
  * code where every row below them edits the notebook, and an ask a phone menu buries under
@@ -25,6 +26,7 @@ internal fun inspectingItems(cell: Cell, inspection: Boolean): List<Pair<String,
     listOf(
       GO_TO_DEFINITION to CellAction.GoToDefinition,
       SYMBOL_INFO to CellAction.SymbolInfo,
+      RENAME_SYMBOL to CellAction.RenameSymbol,
       FORMAT_CELL to CellAction.FormatCell,
     )
   } else {
@@ -38,6 +40,13 @@ internal fun inspectingItems(cell: Cell, inspection: Boolean): List<Pair<String,
 internal const val GO_TO_DEFINITION = "Go to definition"
 
 internal const val SYMBOL_INFO = "Symbol info"
+
+/**
+ * P5e-7's row - `editor.action.rename`, "Rename Symbol" in the reference. The ellipsis is
+ * the platform's own mark for a row that asks again rather than acting - the dialog it opens
+ * wants the new name, the way [CHANGE_TO_HEADING]'s picker wants a level.
+ */
+internal const val RENAME_SYMBOL = "Rename symbol…"
 
 /**
  * P5e-6's row - `notebook.formatCell`, labelled "Format Cell" there
