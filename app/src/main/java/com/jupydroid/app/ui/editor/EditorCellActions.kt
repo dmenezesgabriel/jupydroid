@@ -9,15 +9,19 @@ import kotlinx.coroutines.launch
  *
  * An extension rather than a member - [EditorViewModel] is at detekt's `TooManyFunctions`
  * cap (the same reason `TerminalGrid.clampedTopRow` is an extension), and everything the
- * ask needs is already a public surface: [kernel]'s asks and [edits]' landing.
+ * asks need is already a public surface: [kernel]'s asks and [edits]' apply.
  *
- * [CellAction.GoToDefinition] is an ask, not an edit: it is answered by the language server
- * and lands as a caret jump, so it never reaches [NotebookCellEdits.applyTo]. Everything
- * else is a cell edit and goes there unchanged.
+ * [CellAction.GoToDefinition] and [CellAction.FormatCell] are asks, not [NotebookCellEdits]
+ * transforms: each is answered by the language server asynchronously - one lands as a caret
+ * jump, the other as a cell rewrite - so neither reaches [NotebookCellEdits.applyTo].
+ * Everything else is a cell edit and goes there unchanged.
  */
 fun EditorViewModel.cellAction(cellId: String, action: CellAction, editor: CellEditorText) {
-  if (action != CellAction.GoToDefinition) return edits.applyTo(cellId, action, editor)
-  viewModelScope.launch { goToDefinition(cellId, editor) }
+  when (action) {
+    CellAction.GoToDefinition -> viewModelScope.launch { goToDefinition(cellId, editor) }
+    CellAction.FormatCell -> viewModelScope.launch { formatCell(cellId, editor) }
+    else -> edits.applyTo(cellId, action, editor)
+  }
 }
 
 /**
@@ -30,4 +34,18 @@ fun EditorViewModel.cellAction(cellId: String, action: CellAction, editor: CellE
 private suspend fun EditorViewModel.goToDefinition(cellId: String, editor: CellEditorText) {
   val target = kernel.asks.definitionAt(cellId, editor.source, editor.caret.end)
   if (target != null) edits.landOnDefinition(target) else edits.definitionMissed()
+}
+
+/**
+ * `textDocument/rangeFormatting` over the cell's whole virtual block, landed as the cell's
+ * new source - VS Code's `notebook.formatCell`, which is a whole-document format there too
+ * (`formatDocumentWithSelectedProvider` on the cell's own model). A null answer - no
+ * session, no provider, an empty reply, an edit that reached past the cell - is silence,
+ * the asks' shared rule: a format that could not happen is not a message the user needs.
+ * [NotebookCellEdits.cellFormatted]'s own gate covers the last case of a cell that moved
+ * while the answer was in flight.
+ */
+private suspend fun EditorViewModel.formatCell(cellId: String, editor: CellEditorText) {
+  val formatted = kernel.asks.formatCell(cellId, editor.source) ?: return
+  edits.cellFormatted(cellId, formatted, expectedSource = editor.source)
 }

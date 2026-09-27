@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * The notebook's position-asks - completion while typing, the "Symbol info" hover, the
@@ -29,6 +30,7 @@ class NotebookAsks(
   private val hover: NotebookHover,
   private val signatureHelp: NotebookSignatureHelp,
   private val definition: NotebookDefinition,
+  private val format: NotebookFormat,
 ) {
   /** @see NotebookCompletion.at */
   suspend fun completionsAt(cellId: String, code: String, cursorOffset: Int): CompletionResult =
@@ -45,4 +47,20 @@ class NotebookAsks(
   /** @see NotebookDefinition.at */
   suspend fun definitionAt(cellId: String, code: String, cursorOffset: Int): DefinitionTarget? =
     definition.at(uiState.value.cells, cellId, code, cursorOffset)
+
+  /**
+   * @see NotebookFormat.formatted
+   *
+   * The model is brought up to the field's text before the ask - `operated`'s Split rule -
+   * so the apply's own gate ([NotebookCellEdits.cellFormatted]) can tell "still the asked
+   * source" from "moved since". Only when the model is actually behind: `withSource` marks
+   * the notebook dirty, and an ask alone must not.
+   */
+  suspend fun formatCell(cellId: String, code: String): String? {
+    uiState.update { state ->
+      val cell = state.cells.firstOrNull { it.id == cellId } ?: return@update state
+      if (cell.source == code) state else state.withSource(cellId, code)
+    }
+    return format.formatted(uiState.value.cells, cellId, code)
+  }
 }

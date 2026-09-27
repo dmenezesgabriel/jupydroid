@@ -101,6 +101,129 @@ class CellOperationTest {
   }
 
   /**
+   * **The format ask is not an [applying] edit either** - P5e-6. It reaches the language server
+   * through [EditorViewModel.cellAction] and lands through [NotebookCellEdits.cellFormatted],
+   * so a row arriving here by any other route has nothing to change -
+   * [CellAction.GoToDefinition]'s own guard, kept for the same reachability.
+   */
+  @Test
+  fun formatCell_changesNothingAndRecordsNoUndo() {
+    val run = markedRun("a", "b")
+    val asked = run.applying(CellAction.FormatCell)
+
+    assertEquals(run.cells, asked.cells)
+    assertEquals(0, asked.undoable.size)
+    assertTrue("asking keeps the run, the way the jump does", asked.selecting)
+  }
+
+  /**
+   * The ask's apply half - P5e-6, VS Code's `notebook.formatCell`: the cell's source lands as
+   * **one undoable operation**, and the [EditorUiState.sourceRevisions] bump is what tells the
+   * cell's own field to adopt it, the way split's rewrite is adopted.
+   */
+  @Test
+  fun cellFormatted_rewritesTheCellUndoably() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellFormatted("a", "formatted a", expectedSource = "source of a")
+
+    val after = state.value
+    assertEquals("formatted a", after.cells.first { it.id == "a" }.source)
+    assertEquals(1, after.undoable.size)
+    assertEquals(1, after.sourceRevisions.getValue("a"))
+    assertTrue(after.dirty)
+  }
+
+  /** The recorded entry puts back the text the ask was made over, so undo lands where the tap saw. */
+  @Test
+  fun cellFormatted_undone_restoresTheAskedText() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellFormatted("a", "formatted a", expectedSource = "source of a")
+    edits.undo()
+
+    assertEquals("source of a", state.value.cells.first { it.id == "a" }.source)
+  }
+
+  /**
+   * The gate for a slow answer: [expectedSource] is the text the ask synced and the reply was
+   * computed over, so a cell that moved since - typing that reported mid-ask, another
+   * operation - is a different document than the formatter rewrote. Its answer is dropped
+   * rather than clobbering the newer one.
+   */
+  @Test
+  fun cellFormatted_onACellThatMovedSinceTheAsk_changesNothing() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellFormatted("a", "formatted a", expectedSource = "what the ask saw")
+
+    assertEquals("source of a", state.value.cells.first { it.id == "a" }.source)
+    assertEquals(0, state.value.undoable.size)
+  }
+
+  /** An answer identical to the cell's own text is the formatter's no-op: no entry, no write. */
+  @Test
+  fun cellFormatted_withTheTextTheCellAlreadyHas_recordsNothing() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellFormatted("a", "source of a", expectedSource = "source of a")
+
+    assertEquals(0, state.value.undoable.size)
+    assertFalse(state.value.dirty)
+  }
+
+  /**
+   * The menu-on-a-cell rule is [applyingFrom]'s own: asked on a cell outside a marked run, the
+   * run collapses onto that cell - the reference's `_evtMouseDown` rule
+   * (`packages/notebook/src/widget.ts:3160-3167`), which a format row takes no exception to.
+   */
+  @Test
+  fun cellFormatted_onACellOutsideTheRun_collapsesOntoIt() = runTest {
+    val state = MutableStateFlow(markedRun("a", "b"))
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellFormatted("c", "formatted c", expectedSource = "source of c")
+
+    assertFalse(state.value.selecting)
+    assertEquals("c", state.value.selectedCellId)
+    assertEquals("formatted c", state.value.cells.first { it.id == "c" }.source)
+  }
+
+  /** A stale id is a no-op, as everywhere in this class. */
+  @Test
+  fun cellFormatted_onACellThatHasGone_changesNothing() = runTest {
+    val before = markedRun("a", "b")
+    val state = MutableStateFlow(before)
+    val edits = NotebookCellEdits(
+      state,
+      DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},
+    )
+
+    edits.cellFormatted("gone", "formatted", expectedSource = "gone")
+
+    assertEquals(before, state.value)
+  }
+
+  /**
    * A definition landing selects the target and arms its caret - `expandParent` on the
    * active-cell change is the reference's reveal, and [EditorUiState.caretLanding] is what the
    * scroll and the field read the rest off.

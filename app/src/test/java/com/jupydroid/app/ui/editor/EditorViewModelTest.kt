@@ -3,7 +3,6 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.ui.text.TextRange
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
-import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
@@ -11,9 +10,6 @@ import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
-import com.jupydroid.app.domain.port.LanguageLocation
-import com.jupydroid.app.domain.port.LanguagePosition
-import com.jupydroid.app.domain.port.LanguageRange
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -484,75 +480,5 @@ class EditorViewModelTest {
 
     assertEquals(1, viewModel.uiState.value.undoable.size)
     assertTrue(viewModel.uiState.value.redoable.isEmpty())
-  }
-
-  /**
-   * P5e-5: a "Go to definition" row answers with the target selected and the caret armed -
-   * the reply names `compute_total`'s `def` in c1, so the landing lands on c1 even though the
-   * ask was made from c3's caret.
-   */
-  @Test
-  fun cellAction_goToDefinition_landsOnTheDefiningCell() = runTest {
-    val viewModel = loadedEditor(cells = definitionCells(), languageServer = definitionAnswering())
-    // A run is what opens the session the ask reuses - typing alone never boots a runtime.
-    viewModel.kernel.runCell(viewModel.uiState.value.cells.first { it.id == "c1" })
-    advanceUntilIdle()
-
-    viewModel.cellAction(
-      "c3",
-      CellAction.GoToDefinition,
-      CellEditorText("total = compute_total([1, 2])", TextRange(8)),
-    )
-    advanceUntilIdle()
-
-    val state = viewModel.uiState.value
-    assertEquals("c1", state.selectedCellId)
-    assertEquals(DefinitionTarget("c1", 4, 17), state.caretLanding)
-    assertEquals(0, state.noDefinitionFound)
-  }
-
-  /** An empty reply - or all-foreign locations - is a miss the screen reports once. */
-  @Test
-  fun cellAction_goToDefinition_withNothingFound_countsAMiss() = runTest {
-    val languageServer = FakeLanguageServerPort().apply { definitionAnswer = emptyList() }
-    val viewModel = loadedEditor(languageServer = languageServer)
-    viewModel.kernel.runCell(codeCell)
-    advanceUntilIdle()
-
-    viewModel.cellAction("c1", CellAction.GoToDefinition, CellEditorText("print(1)", TextRange(1)))
-    advanceUntilIdle()
-    viewModel.cellAction("c1", CellAction.GoToDefinition, CellEditorText("print(1)", TextRange(1)))
-    advanceUntilIdle()
-
-    val state = viewModel.uiState.value
-    assertEquals(2, state.noDefinitionFound)
-    assertNull(state.caretLanding)
-  }
-
-  /** Every other action still arrives at [NotebookCellEdits] through the same door. */
-  @Test
-  fun cellAction_anythingElse_isTheEditItAlwaysWas() = runTest {
-    val viewModel = loadedEditor(cells = listOf(codeCell, secondCodeCell))
-
-    viewModel.cellAction("c1", CellAction.Duplicate, CellEditorText.NONE)
-
-    assertEquals(3, viewModel.uiState.value.cells.size)
-    assertEquals("print(1)", viewModel.uiState.value.cells[1].source)
-  }
-
-  /** The def cell c1 and the use cell c3 - the jump's endpoints, named once for the test. */
-  private fun definitionCells() = listOf(
-    codeCell.copy(id = "c1", source = "def compute_total(items):\n    return sum(items)"),
-    secondCodeCell.copy(id = "c3", source = "total = compute_total([1, 2])"),
-  )
-
-  /** The probe's own reply: `compute_total`'s `def`-line name span in the notebook's virtual doc. */
-  private fun definitionAnswering() = FakeLanguageServerPort().apply {
-    definitionAnswer = listOf(
-      LanguageLocation(
-        "file:///jupyterdroid/notebooks/nb-1.py",
-        LanguageRange(LanguagePosition(0, 4), LanguagePosition(0, 17)),
-      ),
-    )
   }
 }

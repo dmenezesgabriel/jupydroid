@@ -164,14 +164,16 @@ class CellActionItemsTest {
     count = count,
   ).map { it.first }
 
-  // --- the inspect rows (P5e-3 "Symbol info", P5e-5 "Go to definition") ----------------------
+  // --- the session-ask rows (P5e-3 "Symbol info", P5e-5 "Go to definition", P5e-6 "Format cell") ---
 
   /**
-   * The two asks as menu rows - `docs/PLAN.md` P5e-3's affordance and P5e-5's beside it. They
-   * lead under the selection row, jump first, for the reason VS Code's editor context menu
-   * leads its navigation group with `editor.action.goToDefinition` (`editorContextMenu.ts`):
-   * both rows ask about the code where every row below them edits the notebook, and the jump
-   * is the stronger promise of the two.
+   * The three asks as menu rows - `docs/PLAN.md` P5e-3's affordance, P5e-5's and P5e-6's beside
+   * it. They lead under the selection row, jump first, for the reason VS Code's editor context
+   * menu leads its navigation group with `editor.action.goToDefinition`
+   * (`editorContextMenu.ts`): all three ask about the code where every row below them edits the
+   * notebook, and the jump is the stronger promise. "Format cell" sits last of the three, which
+   * is also the reference's order - `notebook.formatCell` is registered in the `1_modification`
+   * group, under the navigation asks.
    */
   @Test
   fun aCodeCellWithASession_offersTheInspectRows() {
@@ -185,9 +187,11 @@ class CellActionItemsTest {
 
     assertEquals(CellAction.GoToDefinition, items.single { it.first == GO_TO_DEFINITION }.second)
     assertEquals(CellAction.SymbolInfo, items.single { it.first == SYMBOL_INFO }.second)
+    assertEquals(CellAction.FormatCell, items.single { it.first == FORMAT_CELL }.second)
     assertTrue("Delete stays the last row", labels.last() == "Delete")
     assertEquals("the jump leads the menu, under Select cells", 1, labels.indexOf(GO_TO_DEFINITION))
     assertEquals("the hover ask is right under it", 2, labels.indexOf(SYMBOL_INFO))
+    assertEquals("format is the third ask row", 3, labels.indexOf(FORMAT_CELL))
   }
 
   /**
@@ -205,6 +209,7 @@ class CellActionItemsTest {
 
     assertFalse(labels.contains(GO_TO_DEFINITION))
     assertFalse(labels.contains(SYMBOL_INFO))
+    assertFalse(labels.contains(FORMAT_CELL))
   }
 
   /** The virtual document maps code cells only - a markdown cell's ask could never resolve. */
@@ -219,6 +224,7 @@ class CellActionItemsTest {
 
     assertFalse(labels.contains(GO_TO_DEFINITION))
     assertFalse(labels.contains(SYMBOL_INFO))
+    assertFalse(labels.contains(FORMAT_CELL))
   }
 
   // --- notebook:enable/disable/toggle-output-scrolling (P2g-2b) -----------------------------

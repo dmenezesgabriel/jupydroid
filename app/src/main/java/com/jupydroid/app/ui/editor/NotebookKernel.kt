@@ -4,9 +4,12 @@ import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.SteppingCommand
+import com.jupydroid.app.domain.port.formattingOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -63,6 +66,12 @@ class NotebookKernel(
    */
   private val shutdownOnClose: () -> Boolean = { false },
   /**
+   * The `options` a `textDocument/rangeFormatting` must carry, read live at ask time the way
+   * [shutdownOnClose] reads its own setting - a flipped `indentUnit` reaches a format asked
+   * after it. Defaults to the schema's own `'4'` unit for a test driving the kernel alone.
+   */
+  private val formattingOptions: () -> LanguageFormatOptions = { IndentUnit.SPACES_4.formattingOptions() },
+  /**
    * The Space's language server - P5c's completion source, asked before the kernel and lazily
    * spawned by the port on the first ask. Faked where no Space can run, as [kernelGateway] is.
    */
@@ -112,8 +121,14 @@ class NotebookKernel(
   /** The definition ask - `textDocument/definition` at the caret's virtual position (P5e-5). */
   private val definition = NotebookDefinition(session, languageServer, languageDocument)
 
-  /** The cell-level asks - completion, hover, signature help, definition - [NotebookAsks] owns like [history]. */
-  val asks = NotebookAsks(uiState, completion, hover, signatureHelp, definition)
+  /** The format ask - `textDocument/rangeFormatting` over the cell's virtual block (P5e-6). */
+  private val format = NotebookFormat(session, languageServer, languageDocument, formattingOptions)
+
+  /**
+   * The cell-level asks - completion, hover, signature help, definition, format -
+   * [NotebookAsks] owns like [history].
+   */
+  val asks = NotebookAsks(uiState, completion, hover, signatureHelp, definition, format)
 
   /** `publishDiagnostics` as per-cell marks in state - see [NotebookDiagnostics]. */
   private val diagnostics =

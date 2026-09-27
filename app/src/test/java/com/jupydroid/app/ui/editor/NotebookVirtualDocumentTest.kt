@@ -2,7 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.port.LanguageEdit
 import com.jupydroid.app.domain.port.LanguagePosition
+import com.jupydroid.app.domain.port.LanguageRange
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -129,6 +131,98 @@ class NotebookVirtualDocumentTest {
     assertEquals(6, document.cellOffsetOfClamped("c2", LanguagePosition(4, 6)))
     assertNull(document.cellOffsetOfClamped("no-such-cell", LanguagePosition(0, 0)))
   }
+
+  // --- P5e-6: the range a format ask sends, and the slice its answer lands as -------------
+
+  /**
+   * A cell's format range is its whole block, `end` at the last line's own length - **not**
+   * the LSP-canonical exclusive `(lines, 0)`: autopep8's `pylsp_format_range` adds one to the
+   * end line before calling `fix_code`, so the canonical end would pull the first separator
+   * line into its `line_range`, let its blank-line fixes rewrite it, and trip the
+   * prefix/suffix guard into a no-op on the real server. Read off the shipped
+   * `autopep8_format.py`, not assumed.
+   */
+  @Test
+  fun rangeOf_aCell_isItsWholeBlock_endingOnItsLastLine() {
+    val document = documentOf(code("c1", "a\nb"), code("c2", "x\ny\nz"), code("c3", "last"))
+
+    assertEquals(LanguageRange(LanguagePosition(0, 0), LanguagePosition(1, 1)), document.rangeOf("c1"))
+    // c2 starts on virtual line 4 (2 cell lines + 2 separators), owns lines 4..6.
+    assertEquals(LanguageRange(LanguagePosition(4, 0), LanguagePosition(6, 1)), document.rangeOf("c2"))
+    assertEquals(LanguageRange(LanguagePosition(9, 0), LanguagePosition(9, 4)), document.rangeOf("c3"))
+  }
+
+  @Test
+  fun rangeOf_aCellOutsideTheDocument_isNull() {
+    val document = documentOf(code("c1", "a"), Cell("m1", CellKind.MARKDOWN, "# hi"))
+
+    assertNull(document.rangeOf("m1"))
+    assertNull(document.rangeOf("no-such-cell"))
+  }
+
+  /**
+   * The shipped formatter's own answer shape: `autopep8_format.py` returns one `TextEdit`
+   * covering the **whole** document even for a range ask, so applying it means verifying
+   * nothing outside the cell moved and slicing the cell's new lines out.
+   */
+  @Test
+  fun cellSourceAfterEdits_aWholeDocumentEdit_slicesTheCellsFormattedSource() {
+    val document = documentOf(code("c1", "x=1"), code("c2", "y=2"))
+    // text is "x=1\n\n\ny=2\n"; autopep8's whole-document edit ends at (len(splitlines),0) = (4,0).
+    val edits = listOf(edit(0, 0, 4, 0, "x=1\n\n\ny = 2\n"))
+
+    assertEquals("y = 2", document.cellSourceAfterEdits("c2", edits))
+  }
+
+  /**
+   * The guard's whole reason to exist: an answer that rewrote a separator or a different
+   * cell can never be spliced back without corrupting the notebook, so it is refused.
+   */
+  @Test
+  fun cellSourceAfterEdits_anEditThatMovedOutsideTheCell_isRefused() {
+    val document = documentOf(code("c1", "x=1"), code("c2", "y=2"))
+
+    // The formatter "fixed" c1 too - the prefix before c2 is no longer byte-identical.
+    assertNull(document.cellSourceAfterEdits("c2", listOf(edit(0, 0, 4, 0, "x = 1\n\n\ny = 2\n"))))
+    // One separator blank line went missing - same refusal from the other side.
+    assertNull(document.cellSourceAfterEdits("c2", listOf(edit(0, 0, 4, 0, "x=1\n\ny = 2\n"))))
+    // An edit whose range reaches a line the document does not have is refused, not clamped.
+    assertNull(document.cellSourceAfterEdits("c2", listOf(edit(3, 0, 9, 0, "y = 2\n"))))
+  }
+
+  /** More than one edit applies, both inside the cell. */
+  @Test
+  fun cellSourceAfterEdits_severalEdits_applyInOrder() {
+    val document = documentOf(code("c1", "x=1"), code("c2", "y=2\nz=3"))
+    // c2's block is virtual lines 3..4 (1 cell line + 2 separators); both edits sit inside it.
+    val edits = listOf(edit(3, 0, 3, 3, "y = 2"), edit(4, 0, 4, 3, "z = 3"))
+
+    assertEquals("y = 2\nz = 3", document.cellSourceAfterEdits("c2", edits))
+  }
+
+  /** Nothing to apply and nobody to apply it to are both a refusal. */
+  @Test
+  fun cellSourceAfterEdits_noEditsOrNoCell_isNull() {
+    val document = documentOf(code("c1", "x=1"))
+
+    assertNull(document.cellSourceAfterEdits("c1", emptyList()))
+    assertNull(document.cellSourceAfterEdits("m1", listOf(edit(0, 0, 1, 0, "x = 1\n"))))
+  }
+
+  /**
+   * A cell that grew a trailing blank line is still its own source - autopep8's
+   * end-of-file newline lands inside the cell's slice, not on a separator.
+   */
+  @Test
+  fun cellSourceAfterEdits_theLastCell_keepsItsOwnTrailingNewline() {
+    val document = documentOf(code("c1", "x=1"), code("c2", "y=2"))
+    val edits = listOf(edit(0, 0, 4, 0, "x=1\n\n\ny = 2\n\n"))
+
+    assertEquals("y = 2\n", document.cellSourceAfterEdits("c2", edits))
+  }
+
+  private fun edit(startLine: Int, startChar: Int, endLine: Int, endChar: Int, newText: String) =
+    LanguageEdit(LanguageRange(LanguagePosition(startLine, startChar), LanguagePosition(endLine, endChar)), newText)
 
   private fun code(id: String, source: String) = Cell(id, CellKind.CODE, source)
 

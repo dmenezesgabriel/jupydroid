@@ -175,6 +175,32 @@ class NotebookCellEdits(
   }
 
   /**
+   * Lands the formatter's answer on [cellId] - "Format cell" (P5e-6, VS Code's
+   * `notebook.formatCell`), applied as **one undoable operation**, which is what a Ctrl-Z
+   * after `editor.action.format` is there. [recording] is the undoable half and
+   * [EditorUiState.sourceRevisions] the visible one: the diff marks the cell in `rewrote`,
+   * and the cell's field adopts the new text through [adoptRewrittenSource] exactly as a
+   * split's own rewrite lands.
+   *
+   * [expectedSource] is the source the ask synced and the reply was computed over: a cell
+   * that has moved since - typing that reported mid-ask, another operation - is a different
+   * document than the formatter rewrote, so its answer is dropped rather than clobbering the
+   * newer text. An answer identical to the cell's own is the formatter's no-op: no entry and
+   * no write, since `withSource` would still have marked the notebook dirty for it.
+   *
+   * The menu-on-a-cell rule is `applyingFrom`'s own: asked on a cell outside a marked run,
+   * the run collapses onto that cell first.
+   */
+  fun cellFormatted(cellId: String, source: String, expectedSource: String) {
+    val before = uiState.value
+    val cell = before.cells.firstOrNull { it.id == cellId } ?: return
+    if (cell.source != expectedSource || cell.source == source) return
+    val on = if (cellId in before.selectedCellIds) before else before.withSelectionCollapsed().withCellSelected(cellId)
+    uiState.value = on.withSource(cellId, source).recording(before = before)
+    save.schedule()
+  }
+
+  /**
    * Takes back the last cell operation - `notebook:undo-cell-action`.
    *
    * Structural, never textual: [CellUndo] carries the rule that keeps the two undos apart, and it

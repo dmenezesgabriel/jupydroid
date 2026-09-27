@@ -144,6 +144,19 @@ sealed interface CellAction {
    */
   data object GoToDefinition : CellAction
 
+  /**
+   * Asks the language server to reformat this cell - `docs/PLAN.md` P5e-6's "format cell",
+   * VS Code's `notebook.formatCell` (labelled "Format Cell"), which formats the cell's own
+   * document with the selected formatter.
+   *
+   * A [CellAction] for [StartSelecting]'s reason: it is what carries the row to the menu and
+   * the accessibility context menu alike. And like [GoToDefinition] it is not surface-answered
+   * - the answer is an asynchronous ask whose result lands as a document change - so it
+   * dispatches through [EditorViewModel.cellAction] like every other action and arrives at the
+   * ask that way.
+   */
+  data object FormatCell : CellAction
+
   data object Copy : CellAction
 
   data object Cut : CellAction

@@ -2,7 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.port.LanguageEdit
 import com.jupydroid.app.domain.port.LanguagePosition
+import com.jupydroid.app.domain.port.LanguageRange
 import java.net.URI
 
 /**
@@ -109,13 +111,105 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
     return (offset + character).coerceIn(offset, lineEnd)
   }
 
+  /**
+   * The cell's whole block as the `range` a `textDocument/rangeFormatting` asks for - `end`
+   * at the last line's own length, **not** the LSP-canonical exclusive `(lines, 0)`. The
+   * shipped `pylsp` answers this through autopep8, whose `pylsp_format_range` adds one to the
+   * end line before calling `fix_code`: the canonical end would pull the first separator
+   * blank line into its `line_range`, let its blank-line fixes rewrite it, and trip
+   * [cellSourceAfterEdits]'s suffix guard into a no-op. Read off the rootfs's
+   * `autopep8_format.py`, not assumed.
+   */
+  fun rangeOf(cellId: String): LanguageRange? {
+    val block = blocks.firstOrNull { it.cellId == cellId } ?: return null
+    return LanguageRange(
+      LanguagePosition(block.virtualStart, 0),
+      LanguagePosition(block.virtualStart + block.lines - 1, block.source.substringAfterLast('\n').length),
+    )
+  }
+
+  /**
+   * [cellId]'s source as the formatter's [edits] leave it, or null when applying them is not
+   * safe - the answer [rangeOf]'s ask gets back. The shipped autopep8 plugin returns **one
+   * whole-document `TextEdit`** even for a range ask, so "apply" here means: splice the edits
+   * into this synced [text], verify everything *outside* the cell - the prefix before it and
+   * the suffix from its last line's end (its trailing newline, the separators and every later
+   * cell) - is byte-identical, then slice out the cell's new lines. Any touch past the block's
+   * own edges is a refusal, because the alternative is rewriting a cell nobody asked about.
+   */
+  fun cellSourceAfterEdits(cellId: String, edits: List<LanguageEdit>): String? =
+    blocks.firstOrNull { it.cellId == cellId }?.let { block ->
+      cellSpan(block)?.let { span ->
+        edits.takeIf { it.isNotEmpty() }
+          ?.let(::withEditsApplied)
+          ?.withCellSliceChecked(span)
+      }
+    }
+
+  /** The cell's own [text] span - [TextSpan.start] at its first line, [TextSpan.end] after its last. */
+  private fun cellSpan(block: Block): TextSpan? = virtualOffset(block.virtualStart, 0)?.let { start ->
+    virtualOffset(block.virtualStart + block.lines - 1, block.source.substringAfterLast('\n').length)
+      ?.let { TextSpan(start, it) }
+  }
+
+  /** [start] and [end] as `substring` bounds - [end] exclusive, at the last line's own end. */
+  private data class TextSpan(val start: Int, val end: Int)
+
+  /**
+   * This document (the formatted one) minus everything [span] does not cover - or null when
+   * the edits touched text outside it: the prefix before the cell and the suffix from its
+   * last line's end (its trailing newline, the separators and every later cell) must be
+   * byte-identical, because the alternative is rewriting a cell nobody asked about.
+   */
+  private fun String.withCellSliceChecked(span: TextSpan): String? {
+    val prefix = text.take(span.start)
+    val suffix = text.substring(span.end)
+    return if (startsWith(prefix) && endsWith(suffix)) substring(span.start, length - suffix.length) else null
+  }
+
+  /**
+   * [edits] spliced into [text], newest positions first so each pair is still true of the
+   * text before it - or null when a range names a spot the document does not have. A `null`
+   * here is what turns a malformed answer into a refusal rather than a misplaced splice.
+   */
+  private fun withEditsApplied(edits: List<LanguageEdit>): String? {
+    val located = edits.map { edit ->
+      virtualOffset(edit.range.start.line, edit.range.start.character)?.let { start ->
+        virtualOffset(edit.range.end.line, edit.range.end.character)
+          ?.takeIf { it >= start }
+          ?.let { Triple(start, it, edit.newText) }
+      }
+    }
+    if (null in located) return null
+    val applied = StringBuilder(text)
+    located.filterNotNull().sortedByDescending { it.first }
+      .forEach { (start, end, newText) -> applied.replace(start, end, newText) }
+    return applied.toString()
+  }
+
+  /**
+   * The offset in [text] a virtual `line`/`character` names - **strict**, unlike
+   * [cellOffset]'s clamp: an edit position past a line's end or past the document is a
+   * position the formatter's answer cannot be trusted to have meant, so it refuses.
+   * `character` may equal the line's own length - an end-exclusive position is still a spot.
+   */
+  private fun virtualOffset(line: Int, character: Int): Int? {
+    val offset = if (line >= 0 && character >= 0) {
+      generateSequence(0) { start -> text.indexOf('\n', start).takeIf { it >= 0 }?.inc() }
+        .drop(line)
+        .firstOrNull()
+    } else {
+      null
+    } ?: return null
+    val lineEnd = text.indexOf('\n', offset).let { if (it < 0) text.length else it }
+    return if (character <= lineEnd - offset) offset + character else null
+  }
+
   /** Whose line [virtualLine] is - null on the separators and past the document's end. */
   fun cellLineAt(virtualLine: Int): CellLine? {
     val block = blocks.firstOrNull { virtualLine in it.virtualStart until it.virtualStart + it.lines }
     return block?.let { CellLine(it.cellId, virtualLine - it.virtualStart) }
   }
-
-  private fun String.lineCount(): Int = count { it == '\n' } + 1
 
   private companion object {
     /** `blankLinesBetweenCells` in the reference - the gap that keeps two cells' lines apart. */
@@ -125,3 +219,5 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
     const val SEPARATOR = "\n\n"
   }
 }
+
+private fun String.lineCount(): Int = count { it == '\n' } + 1

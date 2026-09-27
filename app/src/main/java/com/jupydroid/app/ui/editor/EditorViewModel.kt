@@ -21,6 +21,7 @@ import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.formattingOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -151,6 +152,8 @@ class EditorViewModel(
       debugger = debugger,
       // `kernelShutdown`, read the way `SessionContext` reads `kernelPreference` - at dispose.
       shutdownOnClose = { settings.value.shutdownKernelOnClose },
+      // `indentUnit` as the FormattingOptions a range-format must carry - the same live read.
+      formattingOptions = { settings.value.indentUnit.formattingOptions() },
       languageServer = languageServer,
     )
 

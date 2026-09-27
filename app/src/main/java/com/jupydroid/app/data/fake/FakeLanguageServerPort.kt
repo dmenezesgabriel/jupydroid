@@ -74,6 +74,13 @@ class FakeLanguageServerPort : LanguageServerPort {
   /** Every `rangeFormatting` call, in arrival order - the (uri, range, options) triple. */
   val formattingAsks = mutableListOf<Triple<String, LanguageRange, LanguageFormatOptions>>()
 
+  /**
+   * Runs inside `rangeFormatting` before [formattingAnswer] is returned - a test's way to move
+   * the notebook mid-ask, which is the case the apply gate ([NotebookCellEdits.cellFormatted]'s
+   * `expectedSource`) exists to refuse.
+   */
+  var onFormattingAsk: () -> Unit = {}
+
   /** `didOpen`/`didChange` in arrival order, so a test sees the sync the server would have. */
   val opened = mutableListOf<String>()
   val changes = mutableListOf<String>()
@@ -127,6 +134,7 @@ class FakeLanguageServerPort : LanguageServerPort {
     options: LanguageFormatOptions,
   ): List<LanguageEdit> {
     formattingAsks += Triple(uri, range, options)
+    onFormattingAsk()
     return formattingAnswer
   }
 

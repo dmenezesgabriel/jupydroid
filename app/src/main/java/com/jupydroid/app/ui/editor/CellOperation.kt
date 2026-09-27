@@ -73,9 +73,10 @@ internal fun EditorUiState.applying(
   // it asked about, so an action arriving here by any other route has nothing to change - the
   // picker's own guard above, kept for exactly this reachability.
   action == CellAction.SymbolInfo -> this
-  // The definition ask reaches the language server through [EditorViewModel.cellAction], which
-  // never dispatches it here - the same guard for the same reachability reason.
-  action == CellAction.GoToDefinition -> this
+  // The definition and format asks reach the language server through
+  // [EditorViewModel.cellAction], which never dispatches either here - the same guard for the
+  // same reachability reason.
+  action == CellAction.GoToDefinition || action == CellAction.FormatCell -> this
   else -> operated(action, head = selectedCellId, editor = editor)
 }
 
@@ -130,7 +131,7 @@ private val CellAction.takesWholeSections: Boolean
     is CellAction.ChangeKind, is CellAction.ChangeToHeading, CellAction.ChooseHeadingLevel,
     is CellAction.Merge, CellAction.Split, is CellAction.Move, CellAction.StartSelecting,
     CellAction.Paste, CellAction.ClearOutputs, is CellAction.Fold, CellAction.SymbolInfo,
-    CellAction.GoToDefinition,
+    CellAction.GoToDefinition, CellAction.FormatCell,
     -> false
   }
 
@@ -155,10 +156,12 @@ private val CellAction.keepsTheRun: Boolean
     // than making this a fourth answer.
     is CellAction.Fold,
     is CellAction.Move, CellAction.ClearOutputs,
-    // The four that edit nothing: a run, a picker, a hover, a jump - none of them a reason a
-    // marked run would stop being one.
+    // The five that edit no structure: a run, a picker, a hover, a jump, a format - none of
+    // them a reason a marked run would stop being one. The format ask edits one cell's text
+    // through its own route and never reaches [operated], but a `notebook.formatCell` in the
+    // reference has no `deselectAll()` in it either.
     CellAction.StartSelecting, CellAction.ChooseHeadingLevel, CellAction.SymbolInfo,
-    CellAction.GoToDefinition,
+    CellAction.GoToDefinition, CellAction.FormatCell,
     -> true
 
     is CellAction.Insert, is CellAction.InsertAbove, is CellAction.InsertHeading,
@@ -194,11 +197,11 @@ private fun EditorUiState.transformed(
   // `withCellSplit` free of id generation like every other transform in the file.
   CellAction.Split -> withCellSplit(head, editor.caret, newIds = List(2) { newCellId() })
   is CellAction.Move -> withCellsMoved(cellIds, action.move)
-  // All three are answered by `applying` before they get here, none being a document change at
-  // all. Kept as branches so the `when` stays exhaustive: an eighteenth action has to decide,
-  // not inherit.
+  // All four are answered by `applying` before they get here, none being a change this
+  // transform can make. Kept as branches so the `when` stays exhaustive: a nineteenth action
+  // has to decide, not inherit.
   CellAction.StartSelecting, CellAction.ChooseHeadingLevel, CellAction.SymbolInfo,
-  CellAction.GoToDefinition,
+  CellAction.GoToDefinition, CellAction.FormatCell,
   -> this
   CellAction.Copy -> withCellsCopied(cellIds)
   CellAction.Cut -> withCellsCut(cellIds, replacementId = newCellId())

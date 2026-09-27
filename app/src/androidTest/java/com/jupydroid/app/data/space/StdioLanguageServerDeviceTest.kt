@@ -4,7 +4,10 @@ import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.LanguagePosition
+import com.jupydroid.app.domain.port.LanguageRange
+import com.jupydroid.app.domain.port.formattingOptions
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -199,6 +202,44 @@ class StdioLanguageServerDeviceTest {
       assertEquals(0, target.range.start.line)
       assertEquals("the name in `def compute_total` starts at character 4", 4, target.range.start.character)
       assertEquals("and ends at 17 - the probe's exact range", 17, target.range.end.character)
+    } finally {
+      languageServer.stop(BASE_SPACE)
+    }
+  }
+
+  /**
+   * P5e-6: `textDocument/rangeFormatting` over a sloppily-spaced document makes the real
+   * `pylsp` answer through autopep8 - which is the plan's named formatter, not black, and
+   * whose `pylsp_format_range` answers ONE whole-document `TextEdit` even for a range ask
+   * (the p5e6-format flow's `lsp.answer edits:1`). The cell-scoped slicing that makes a
+   * whole-document edit safe for one cell is `NotebookVirtualDocument`'s job and its own
+   * tests; what a scripted server cannot fake is autopep8 rewriting `x=1` to `x = 1` at all.
+   */
+  @Test(timeout = 120_000)
+  fun rangeFormattingOnSloppySpacing_answersAutopep8sWholeDocumentEdit() = runBlocking {
+    val languageServer = baseSpaceLanguageServerPort(context)!!
+    try {
+      val capabilities = languageServer.capabilities(BASE_SPACE)
+      assertTrue(
+        "pylsp must declare documentRangeFormattingProvider for P5e-6",
+        capabilities.documentRangeFormattingProvider,
+      )
+
+      val uri = "file:///home/jupydroid/p5e6-probe.py"
+      languageServer.openDocument(BASE_SPACE, uri, "python", "x=1\ny=2\n")
+
+      val edits = languageServer.rangeFormatting(
+        BASE_SPACE,
+        uri,
+        LanguageRange(LanguagePosition(0, 0), LanguagePosition(1, 3)),
+        IndentUnit.SPACES_4.formattingOptions(),
+      )
+
+      assertTrue("pylsp answered no edits for `x=1`", edits.isNotEmpty())
+      assertTrue(
+        "autopep8's answer must carry the E225 fix - got ${edits.map { it.newText.take(60) }}",
+        edits.any { it.newText.contains("x = 1") && it.newText.contains("y = 2") },
+      )
     } finally {
       languageServer.stop(BASE_SPACE)
     }
