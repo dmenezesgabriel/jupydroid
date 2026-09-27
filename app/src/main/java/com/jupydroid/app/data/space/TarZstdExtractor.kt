@@ -5,10 +5,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.compressors.zstandard.ZstdCompressorInputStream
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
-import java.util.zip.GZIPInputStream
 
 /** Opens the rootfs archive: an APK asset on device, a byte array in tests. */
 fun interface ArchiveSource {
@@ -16,23 +16,28 @@ fun interface ArchiveSource {
 }
 
 /**
- * Unpacks a `docker export | gzip` tarball into a directory.
+ * Unpacks a `docker export | zstd` tarball into a directory.
+ *
+ * zstd rather than gzip: decompressing the 82 MB arm64 tarball was ~9 s of
+ * single-threaded CPU on the tablet - the floor no write-side optimisation can
+ * go under (evidence/p8a-cold-path). Winlator's rootfs installer runs the same
+ * archive shape through the same two libraries.
  *
  * Nothing here sets an executable bit, and nothing needs to: the rootfs is only ever
  * read and `mmap`'d. The two files that are genuinely execve'd ship as APK native
  * libraries instead (docs/DECISIONS.md, "Exec model").
  *
  * ```
- * val written = TarGzExtractor().extract({ assets.open("spaces/base/rootfs-x86_64.tgz") }, baseDir)
+ * val written = TarZstdExtractor().extract({ assets.open("spaces/base/rootfs-arm64-v8a.tzst") }, baseDir)
  * ```
  */
-class TarGzExtractor(private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO) {
+class TarZstdExtractor(private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO) {
   /** Returns the number of entries written. */
   suspend fun extract(source: ArchiveSource, targetDir: File): Int = withContext(ioDispatcher) {
     targetDir.mkdirs()
     val root = targetDir.canonicalFile
     var written = 0
-    TarArchiveInputStream(GZIPInputStream(source.open().buffered())).use { tar ->
+    TarArchiveInputStream(ZstdCompressorInputStream(source.open().buffered())).use { tar ->
       while (true) {
         val entry = tar.nextEntry ?: break
         if (writeEntry(tar, entry, root)) written++

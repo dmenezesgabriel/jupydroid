@@ -83,7 +83,7 @@ class DiskWorkspaceRepositoryTest : WorkspaceRepositoryContract() {
    *
    * `resolve` canonicalises - which is right for refusing an escape and wrong for *acting*, since
    * the canonical path of a link is its target. Moving the target instead of the link is the same
-   * defect as `TarGzExtractor` writing through the stale loader symlink (docs/DECISIONS.md, residual
+   * defect as `TarZstdExtractor` writing through the stale loader symlink (docs/DECISIONS.md, residual
    * risks), which crash-looped the app.
    */
   @Test

@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import kotlinx.coroutines.test.runTest
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
+import org.apache.commons.compress.compressors.zstandard.ZstdCompressorOutputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -12,16 +13,15 @@ import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
-import java.util.zip.GZIPOutputStream
 
-class TarGzExtractorTest {
+class TarZstdExtractorTest {
   @get:Rule val tempFolder = TemporaryFolder()
 
-  private val extractor = TarGzExtractor()
+  private val extractor = TarZstdExtractor()
 
   @Test
   fun extract_writesRegularFilesAndDirectories() = runTest {
-    val archive = tarGz {
+    val archive = tarZst {
       directory("usr/bin")
       file("usr/bin/hello", "#!/bin/sh\n")
     }
@@ -36,7 +36,7 @@ class TarGzExtractorTest {
 
   @Test
   fun extract_recreatesSymlinksRatherThanCopyingTargets() = runTest {
-    val archive = tarGz {
+    val archive = tarZst {
       file("usr/lib/libz.so.1.2.13", "payload")
       symlink(name = "usr/lib/libz.so.1", target = "libz.so.1.2.13")
     }
@@ -52,7 +52,7 @@ class TarGzExtractorTest {
   /** Docker exports hardlink duplicate files; the rootfs must still contain the bytes. */
   @Test
   fun extract_materialisesHardLinks() = runTest {
-    val archive = tarGz {
+    val archive = tarZst {
       file("bin/first", "shared")
       hardlink(name = "bin/second", target = "bin/first")
     }
@@ -75,7 +75,7 @@ class TarGzExtractorTest {
     val target = tempFolder.newFolder("rootfs")
     val stale = File(target, "lib/ld-musl-aarch64.so.1").apply { parentFile!!.mkdirs() }
     Files.createSymbolicLink(stale.toPath(), File("/data/app/gone-on-update/lib/arm64/libloader.so").toPath())
-    val archive = tarGz { file("lib/ld-musl-aarch64.so.1", "fresh loader") }
+    val archive = tarZst { file("lib/ld-musl-aarch64.so.1", "fresh loader") }
 
     extractor.extract({ archive.inputStream() }, target)
 
@@ -86,7 +86,7 @@ class TarGzExtractorTest {
   /** A crafted archive must not be able to write outside the Space directory. */
   @Test
   fun extract_rejectsPathsEscapingTheTargetDirectory() = runTest {
-    val archive = tarGz { file("../escaped", "nope") }
+    val archive = tarZst { file("../escaped", "nope") }
     val target = tempFolder.newFolder("rootfs")
 
     try {
@@ -99,9 +99,9 @@ class TarGzExtractorTest {
 
   private fun File.isSymlink(): Boolean = Files.isSymbolicLink(toPath())
 
-  private fun tarGz(build: TarBuilder.() -> Unit): ByteArray {
+  private fun tarZst(build: TarBuilder.() -> Unit): ByteArray {
     val bytes = ByteArrayOutputStream()
-    TarArchiveOutputStream(GZIPOutputStream(bytes)).use { tar ->
+    TarArchiveOutputStream(ZstdCompressorOutputStream(bytes)).use { tar ->
       tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
       TarBuilder(tar).build()
     }

@@ -10,8 +10,8 @@ Citations are either a path in `reference/research_repos/…` or a path **inside
 rootfs**, readable without extracting:
 
 ```sh
-T=app/src/main/assets/spaces/base/rootfs-arm64-v8a.tgz
-tar -xzOf $T usr/lib/python3.12/site-packages/ipykernel/kernelapp.py | sed -n '605,620p'
+T=app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/ipykernel/kernelapp.py | sed -n '605,620p'
 ```
 
 ---
@@ -54,7 +54,7 @@ is not; `BaseSpaceInstaller.linkLoaderToNativeLibrary` points that path at the n
 every launch.
 
 **There is a second reason a rootfs file cannot be run, and P7e-1 is where it was measured.**
-`TarGzExtractor` sets **no executable bit** on anything it unpacks — deliberately, since the rootfs
+`TarZstdExtractor` sets **no executable bit** on anything it unpacks — deliberately, since the rootfs
 is otherwise only read and `mmap`'d — so everything under `filesDir` is mode `0600` and EACCES
 follows from the permission alone, without the SELinux rule ever being reached. The two are not
 interchangeable: for an ELF a symlink settles both at once, and for a *script* there is no ELF to
@@ -300,6 +300,25 @@ Environment variables rather than a `pip.conf`, for a reason that is ours rather
 `$HOME/.config/pip/pip.conf` — and the default `~/.local` user base — would both write into the
 file explorer's tree. **This forbids** installing into the system site-packages on purpose again,
 and shipping a `pip.conf` inside the workspace.
+
+### The rootfs archive is zstd, because the decoder was the floor (P8c-1)
+
+P8a measured rootfs extraction as the cold-start dominator; the `ExtractProbeDeviceTest`
+split showed `GZIPInputStream` decompression alone cost ~8.9 s — serial extract 12.0 s, and
+even parallel writers could only reach ~7.5 s because nothing goes under the codec's floor.
+So the archive format changed rather than the writer count: `zstd -19 -T0` produces
+`rootfs-<abi>.tzst`, `ZstdCompressorInputStream` (commons-compress + `zstd-jni`) reads it —
+the same pairing Winlator's `rootfs.tzst` installer ships, and the same library version
+line the build host already carried. No `--long`: its 128 MB decode window is not a
+bargain on a tablet for a ratio win that small.
+
+Result on the device it was slow on: the stage went 16.5 s → ~12.3 s and the APK payload
+82 MB → 56 MB. Write fan-out (measured 6.3 s) was *not* taken — it reorders a stream that
+carries links pointing at files listed later, a correctness hazard bought with ~2.7 s; it
+stays a recorded option if the stage still dominates after the other repairs.
+
+**This forbids** going back to gzip for this asset, and compressing `.tzst` in aapt — both
+are already excluded, the first by this entry and the second by `noCompress += "tzst"`.
 
 ---
 

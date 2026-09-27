@@ -13,6 +13,7 @@ androidxTestRunner = "1.7.0"
 androidxTestEspresso = "3.7.0"
 commonmark = "0.30.0"
 commonsCompress = "1.27.1"
+zstdJni = "1.5.7-9"
 jsoup = "1.23.1"
 coroutines = "1.10.2"
 detekt = "2.0.0-alpha.5"
@@ -72,6 +73,12 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 # tar reader for the rootfs archive: a docker export carries GNU long names, PAX
 # headers, symlinks and hardlinks, so hand-rolling USTAR parsing is not worth it.
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
+# zstd for the rootfs archive. Gzip decompression of the 82 MB arm64 tarball is ~9 s of
+# single-threaded CPU on the tablet (evidence/p8a-cold-path), and parallel file writes
+# cannot go under that floor - the codec has to change. Winlator's rootfs installer made
+# the same call: `.tzst` via this artifact plus commons-compress's Zstd* streams. The AAR
+# form (@aar in the app deps) carries the arm64-v8a native lib into the APK.
+zstd-jni = { module = "com.github.luben:zstd-jni", version.ref = "zstdJni" }
 # WebSocket client for the kernel channel. Android ships no WebSocket API and no
 # java.net.http (verified against android.jar for API 36), so a library is required.
 antlr-tool = { module = "org.antlr:antlr4", version.ref = "antlr" }

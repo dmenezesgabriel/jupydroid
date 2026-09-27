@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import kotlinx.coroutines.test.runTest
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
+import org.apache.commons.compress.compressors.zstandard.ZstdCompressorOutputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -12,7 +13,6 @@ import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
-import java.util.zip.GZIPOutputStream
 
 class BaseSpaceInstallerTest {
   @get:Rule val tempFolder = TemporaryFolder()
@@ -215,7 +215,7 @@ class BaseSpaceInstallerTest {
   /** Stands in for the real rootfs: the same shapes - a file, the shipped loader link, busybox. */
   private fun rootfsArchive(): ByteArray {
     val bytes = ByteArrayOutputStream()
-    TarArchiveOutputStream(GZIPOutputStream(bytes)).use { tar ->
+    TarArchiveOutputStream(ZstdCompressorOutputStream(bytes)).use { tar ->
       tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
       tar.putArchiveEntry(TarArchiveEntry("usr/bin/"))
       tar.closeArchiveEntry()

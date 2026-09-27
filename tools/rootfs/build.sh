@@ -3,15 +3,15 @@
 #
 #   tools/rootfs/build.sh [abi]      abi: x86_64 (default) | arm64-v8a
 #
-# Writes build/rootfs/rootfs-<abi>.tgz plus a manifest of what went in.
+# Writes build/rootfs/rootfs-<abi>.tzst plus a manifest of what went in.
 # The tarball is a build artifact, not a committed file: it is far too big for
 # git and is reproducible from the pinned Dockerfile + requirements.lock.
 #
-# .tgz, not .tar.gz: aapt special-cases the .gz extension and gunzips the asset at
-# build time, which would put a 182 MB raw tar in the APK. gzip rather than zstd
-# because the installer that unpacks
-# this on device (Step 8.2b) gets GZIPInputStream from the JDK, whereas zstd
-# would mean shipping a native decompressor to save a few MB of APK.
+# zstd rather than gzip (P8c-1): decompressing the gzip arm64 tarball was ~9 s of
+# single-threaded CPU on the tablet, the floor under every write-side optimisation
+# (evidence/p8a-cold-path). The decoder is zstd-jni via commons-compress, the same
+# pairing Winlator's rootfs installer ships - a native lib in the APK, which the old
+# comment's "save a few MB" trade-off now buys back in seconds of cold start.
 set -euo pipefail
 
 ABI="${1:-x86_64}"
@@ -23,7 +23,7 @@ esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT_DIR="$ROOT/build/rootfs"
-TARBALL="$OUT_DIR/rootfs-$ABI.tgz"
+TARBALL="$OUT_DIR/rootfs-$ABI.tzst"
 MANIFEST="$OUT_DIR/rootfs-$ABI.manifest.txt"
 IMAGE="jupydroid-rootfs:$ABI"
 
@@ -37,7 +37,9 @@ docker build --platform "$PLATFORM" -t "$IMAGE" "$ROOT/tools/rootfs"
 echo "==> exporting filesystem"
 CONTAINER="$(docker create --platform "$PLATFORM" "$IMAGE" /bin/true)"
 trap 'docker rm -f "$CONTAINER" >/dev/null 2>&1 || true' EXIT
-docker export "$CONTAINER" | gzip -9 > "$TARBALL"
+# -19 -T0: best ratio short of --ultra -22, multithreaded; no --long so the decoder's
+# window stays the level default (~8 MB) rather than a 128 MB buffer on the tablet.
+docker export "$CONTAINER" | zstd -19 -T0 > "$TARBALL"
 
 echo "==> recording manifest"
 {

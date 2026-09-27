@@ -13,7 +13,7 @@ import java.io.File
  *
  * **Safe to put user files in**, and that was checked rather than assumed: the bundled rootfs
  * archive carries `home/` and `home/jupydroid/` as bare directory entries with no files beneath
- * them, and `TarGzExtractor` never wipes its destination - so a rootfs version bump re-extracts
+ * them, and `TarZstdExtractor` never wipes its destination - so a rootfs version bump re-extracts
  * over the tree without touching a notebook.
  */
 fun notebookWorkspaceIn(baseDir: File): File = File(baseDir, WORKSPACE_RELATIVE)

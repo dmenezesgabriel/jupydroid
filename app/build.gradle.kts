@@ -62,9 +62,9 @@ android {
     }
 
     androidResources {
-        // The rootfs asset is already gzipped; recompressing it in the APK costs
-        // build time and buys nothing.
-        noCompress += "tgz"
+        // The rootfs asset is already zstd-compressed; recompressing it in the APK
+        // costs build time and buys nothing.
+        noCompress += "tzst"
     }
 }
 
@@ -115,6 +115,12 @@ dependencies {
     implementation(libs.commonmark)
     implementation(libs.jsoup)
     implementation(libs.commons.compress)
+    // @aar: the plain jar publishes no Android ABIs; the AAR carries arm64-v8a's libzstd-jni.
+    implementation("${libs.zstd.jni.get()}@aar")
+    // The jar (not the AAR) so JVM unit tests get linux-x86_64's bundled zstd for archives
+    // built in-test - the test fixtures' zstd bytes are produced with the same lib that
+    // reads them on device.
+    testImplementation(libs.zstd.jni)
     implementation(libs.antlr.runtime)
     // Tool-only: it generates the lexer at build time and is never packaged.
     antlrTool(libs.antlr.tool)

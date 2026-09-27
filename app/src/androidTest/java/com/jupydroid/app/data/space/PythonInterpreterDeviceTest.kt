@@ -89,7 +89,7 @@ class PythonInterpreterDeviceTest {
    * answerable.**
    *
    * `docs/PLAN.md` and `evidence/p7e-0-runtime-probe/README.md` read rc=126 as the W^X refusal on
-   * an ELF under `filesDir`. That is an over-attribution: [TarGzExtractor] writes **no executable
+   * an ELF under `filesDir`. That is an over-attribution: [TarZstdExtractor] writes **no executable
    * bit at all**, so EACCES is explained by mode 0600 on its own and the two causes were never
    * separated. They matter separately for `usr/bin/pip`, which is a *script* - there is no ELF to
    * point a symlink at, so P7e-2 is a `chmod` if the mode was the whole story and a different

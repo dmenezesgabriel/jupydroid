@@ -15,7 +15,7 @@ import java.io.File
  * tests can drive against a temp folder, with no Context in sight.
  */
 fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpaceInstaller = BaseSpaceInstaller(
-  archive = { context.assets.open("spaces/base/rootfs-${abi.androidAbi}.tgz") },
+  archive = { context.assets.open("spaces/base/rootfs-${abi.androidAbi}.tzst") },
   baseDir = baseSpaceDir(context),
   nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libloader.so"),
   nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),

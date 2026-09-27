@@ -31,7 +31,10 @@ case "$MODE" in
 esac
 [ -n "$LABEL" ] || { echo "usage: p8a-cold-path-driver.sh $MODE <label>" >&2; exit 2; }
 
-EVIDENCE="$ROOT/evidence/p8a-cold-path/$MODE-$LABEL"
+# The evidence root is a knob rather than a constant so the same harness re-measures a
+# repaired stage under its own step's directory (P8c-1 reran this under
+# evidence/p8c-1-extraction/).
+EVIDENCE="${P8A_EVIDENCE_ROOT:-$ROOT/evidence/p8a-cold-path}/$MODE-$LABEL"
 mkdir -p "$EVIDENCE"
 
 mapfile -t DEVICE_ADB < <(device_adb)

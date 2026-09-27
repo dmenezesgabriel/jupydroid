@@ -40,7 +40,7 @@ DOCKER_DIR="$ROOT/tools/rootfs"
 # makes the script run on a machine with no arm64 binfmt registered, which is otherwise a silent
 # prerequisite: `docker run --platform linux/arm64` fails with `exec format error`.
 PATCHELF_IMAGE="${PATCHELF_IMAGE:-jupydroid-rootfs:x86_64}"
-TARBALL="$ROOT/build/rootfs/rootfs-$ABI.tgz"
+TARBALL="$ROOT/build/rootfs/rootfs-$ABI.tzst"
 JNI_DIR="$ROOT/app/src/main/jniLibs/$ABI"
 ASSET_DIR="$ROOT/app/src/main/assets/spaces/base"
 
@@ -61,10 +61,10 @@ mkdir -p "$JNI_DIR" "$ASSET_DIR"
 # the 33 MB rootfs would be 33 MB that nothing can ever execute.
 if [ "$ABI" = "arm64-v8a" ]; then
   echo "==> staging rootfs asset"
-  cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tgz"
+  cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tzst"
 else
   echo "==> skipping rootfs asset for $ABI (no Space can run there)"
-  rm -f "$ASSET_DIR/rootfs-$ABI.tgz"
+  rm -f "$ASSET_DIR/rootfs-$ABI.tzst"
 fi
 
 echo "==> extracting the loader and the interpreter from the tarball"
@@ -72,7 +72,7 @@ echo "==> extracting the loader and the interpreter from the tarball"
 # image - so the bytes are the same - and reading it needs no emulation.
 STAGE_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGE_DIR"' EXIT
-tar -xzf "$TARBALL" -C "$STAGE_DIR" "$LOADER" "$INTERPRETER"
+zstd -dc "$TARBALL" | tar -x -C "$STAGE_DIR" "$LOADER" "$INTERPRETER"
 cp "$STAGE_DIR/$LOADER"      "$STAGE_DIR/libloader.so"
 cp "$STAGE_DIR/$INTERPRETER" "$STAGE_DIR/libpython3.so"
 
@@ -81,7 +81,7 @@ echo "==> building busybox (P4b-2: the one without FEATURE_SUID)"
 # sets CONFIG_FEATURE_SUID=y, so every applet dispatch calls setgid()/setuid() and Android's app
 # seccomp filter kills it with SIGSYS before it prints a byte. The Dockerfile builds one without
 # that flag; this takes it from that stage directly, so the ELF staged here is the fixed one even
-# when build/rootfs/*.tgz predates the fix.
+# when build/rootfs/*.tzst predates the fix.
 #
 # It is the applets, not this file, that make the shell work: the image ships 304 symlinks
 # pointing absolutely at /bin/busybox, and neither they nor the ELF is reachable on device.

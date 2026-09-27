@@ -33,7 +33,7 @@ internal class WorkspaceRoot(private val rootDir: File) {
    * and stats with `os.lstat` (`fileio.py:290-329`), and Winlator checks `isSymlink` before it
    * walks anything (`FileUtils.delete:114-119`). Reading and writing follow the link either way,
    * which is why this was invisible until something had to move a file. Same defect as
-   * `TarGzExtractor` writing through the stale loader symlink.
+   * `TarZstdExtractor` writing through the stale loader symlink.
    */
   fun fileAt(path: String): File {
     val root = rootDir.canonicalFile

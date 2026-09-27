@@ -23,7 +23,7 @@ data class InstalledSpace(
  *
  * ```
  * BaseSpaceInstaller(
- *   archive = { assets.open("spaces/base/rootfs-x86_64.tgz") },
+ *   archive = { assets.open("spaces/base/rootfs-arm64-v8a.tzst") },
  *   baseDir = File(filesDir, "spaces/base"),
  *   nativeLoader = File(applicationInfo.nativeLibraryDir, "libloader.so"),
  *   nativeInterpreter = File(applicationInfo.nativeLibraryDir, "libpython3.so"),
@@ -40,7 +40,7 @@ class BaseSpaceInstaller(
   private val nativeTrampoline: File,
   private val loaderLinkPath: String = SpaceAbi.ARM64.loaderLinkPath,
   private val bundledVersion: Int = BUNDLED_ROOTFS_VERSION,
-  private val extractor: TarGzExtractor = TarGzExtractor(),
+  private val extractor: TarZstdExtractor = TarZstdExtractor(),
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   suspend fun installIfNeeded(): InstalledSpace {
@@ -76,7 +76,7 @@ class BaseSpaceInstaller(
    *
    * The kernel never needed this - it is exec'd from [nativeInterpreter] directly
    * ([SpaceRuntime]) - but a terminal resolves the name through `PATH` and lands on the rootfs
-   * copy, which is refused twice over: it is an ELF under `filesDir`, and [TarGzExtractor]
+   * copy, which is refused twice over: it is an ELF under `filesDir`, and [TarZstdExtractor]
    * deliberately writes no executable bit. Both refusals are the *file's*, so a symlink settles
    * them: `execve` walks the link and runs its checks on the target, exactly as `bin/busybox`
    * relies on ([BusyBoxApplets]).
@@ -123,6 +123,6 @@ class BaseSpaceInstaller(
     const val INTERPRETER_PATH = "usr/bin/python3.12"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
-    const val BUNDLED_ROOTFS_VERSION = 7
+    const val BUNDLED_ROOTFS_VERSION = 8
   }
 }
