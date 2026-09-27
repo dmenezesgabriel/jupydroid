@@ -194,8 +194,16 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
     fi \
  && rm -f /tmp/at_shim_probe.py
 
-# The spike only has to answer whether this runs on Android; docs and bytecode
-# caches are pure bulk. One layer, so the export is smaller.
+# The strip drops docs and test trees - pure bulk - but NOT bytecode caches: on the
+# tablet, importing ipykernel.kernelapp costs 4.7 s cold without .pyc vs 1.3 s with
+# (P8c-3, measured on device). Shipping __pycache__ pays a few compressed MB for
+# seconds off every cold server/kernel/pylsp start.
+# checked-hash, not the default timestamp mode: the extractor writes files with
+# extraction-time mtimes, which mismatch the mtimes timestamp pyc record - so
+# every shipped cache would be invalidated and recompiled on first import anyway
+# (measured: no cold-start gain with timestamp pyc). Hash pyc validate on source
+# content instead, so an edited .py still recompiles as CPython intends.
+#
 # rfc3987-syntax is uninstalled after install, not excluded from the lock: pip
 # re-resolves jsonschema's format-nongpl extra for jupyter-events either way, and
 # an honest lock lists what was resolved. What we drop is the import cost -
@@ -208,7 +216,8 @@ RUN rm -rf /usr/share/man /usr/share/doc /var/cache/apk \
  && pip3 uninstall -y --break-system-packages rfc3987-syntax \
  && find / -xdev -type d -name __pycache__ -prune -exec rm -rf {} + \
  && find /usr/lib/python3* -xdev -type d -name test -prune -exec rm -rf {} + \
- && find /usr/lib/python3* -xdev -type d -name tests -prune -exec rm -rf {} +
+ && find /usr/lib/python3* -xdev -type d -name tests -prune -exec rm -rf {} + \
+ && python3 -m compileall -q --invalidation-mode checked-hash /usr/lib/python3.12
 
 RUN python3 -c "\
 import jupyter_events.logger;\

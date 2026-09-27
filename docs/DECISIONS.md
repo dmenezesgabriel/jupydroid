@@ -340,6 +340,24 @@ server.listening` went 4.4 s → 2.2 s warm (`evidence/p8c-2-server-boot/`).
 **This forbids** reinstating `rfc3987-syntax` or `rfc3987` (GPL — the reason the
 `format-nongpl` extra exists at all).
 
+### Bytecode ships in the image, `checked-hash` because extraction keeps no mtimes (P8c-3)
+
+The image once deleted every `__pycache__` as "pure bulk". Device measurement
+contradicted that: `ipykernel.kernelapp` imports in 4.70 s cold vs 1.30 s warm —
+~3.4 s of recompilation paid by *every* Python process (server, kernel, pylsp).
+`compileall` now runs in `tools/rootfs/Dockerfile` after the uninstall/strip so no
+stale cache survives, and the caches ship (~4,900 pyc, +16 MB compressed).
+
+Timestamp-mode pyc were tried first and measured **flat**: `TarZstdExtractor` gives
+files extraction-time mtimes, so each stored source-mtime mismatched and CPython
+recompiled anyway. `--invalidation-mode checked-hash` validates on source content —
+mtime-agnostic, and an edited `.py` inside the Space still recompiles, unlike
+`unchecked-hash`. Result: cold server boot 4.8→~2.3 s, kernel spawn ~2.9→~1.2 s,
+WS nudge ~2.7→~1.8 s (`evidence/p8c-3-kernel-boot/`).
+
+**This forbids** stripping `__pycache__` again, switching to `unchecked-hash`
+(silently ignores source edits), and relying on extractor mtimes for correctness.
+
 ---
 
 ## Protocol and behaviour
