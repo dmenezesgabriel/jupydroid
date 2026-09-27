@@ -56,6 +56,17 @@ internal class ScriptedLanguageServer(
    */
   var formattingResult: JsonElement = buildJsonArray {},
 
+  /**
+   * What `textDocument/rename` replies carry - the whole `result`, so a test can send `null`,
+   * an empty `documentChanges`, or a `changes` map. Null (the default) answers the probe's
+   * shape at the asked uri: one `TextDocumentEdit` whose whole-document `TextEdit` rewrites
+   * `compute_total` to the `newName` the params asked for.
+   */
+  var renameResult: JsonElement? = null,
+
+  /** Per-method `error` replies - a request listed there answers `error` instead of `result`. */
+  val errors: MutableMap<String, JsonObject> = mutableMapOf(),
+
   /** The `initialize` reply, replaceable for capability-gate tests (defaults advertise pylsp's). */
   var initializeResult: JsonElement = INITIALIZE_RESULT,
 ) : Process() {
@@ -127,13 +138,12 @@ internal class ScriptedLanguageServer(
     val method = msg.method ?: return
     val id = msg["id"]
     if (id != null && method in hangsOn) return
-    when (method) {
-      "initialize" -> onInitialize(id)
-      "textDocument/completion", "textDocument/hover", "textDocument/signatureHelp",
-      "textDocument/definition", "textDocument/rangeFormatting",
-      -> onDocumentAsk(method, id, msg)
-      "shutdown" -> reply(id, JsonNull)
-      "exit" -> destroy()
+    when {
+      id != null && method in errors -> replyError(id, errors.getValue(method))
+      method == "initialize" -> onInitialize(id)
+      method in DOCUMENT_ASK_METHODS -> onDocumentAsk(method, id, msg)
+      method == "shutdown" -> reply(id, JsonNull)
+      method == "exit" -> destroy()
       else -> if (id != null) reply(id, JsonNull)
     }
   }
@@ -151,6 +161,7 @@ internal class ScriptedLanguageServer(
       "textDocument/signatureHelp" -> signatureHelpResult
       "textDocument/definition" -> definitionResult ?: defaultDefinition(uriOf(msg))
       "textDocument/rangeFormatting" -> formattingResult
+      "textDocument/rename" -> renameResult ?: defaultRename(uriOf(msg), newNameOf(msg))
       else -> completionResult()
     }
     reply(id, result)
@@ -159,6 +170,21 @@ internal class ScriptedLanguageServer(
   /** The uri a `TextDocumentPositionParams` names - where the canned `Location` should point. */
   private fun uriOf(msg: JsonObject): String = ((msg["params"] as? JsonObject)?.get("textDocument") as? JsonObject)
     ?.get("uri")?.jsonPrimitive?.content ?: "file:///scripted.py"
+
+  /** The `newName` a `RenameParams` carries - what the canned rename should write. */
+  private fun newNameOf(msg: JsonObject): String = (msg["params"] as? JsonObject)
+    ?.get("newName")?.jsonPrimitive?.content ?: "renamed"
+
+  private fun replyError(id: JsonElement?, error: JsonObject) {
+    if (id == null) return
+    emit(
+      buildJsonObject {
+        put("jsonrpc", "2.0")
+        put("id", id)
+        put("error", error)
+      },
+    )
+  }
 
   /** The `{isIncomplete, items}` CompletionList shape pylsp itself answers with. */
   private fun completionResult() = buildJsonObject {
@@ -188,6 +214,16 @@ internal class ScriptedLanguageServer(
   private val JsonObject.method: String? get() = this["method"]?.jsonPrimitive?.content
 
   private companion object {
+    /** The `TextDocumentPositionParams`-shaped requests a canned result answers. */
+    val DOCUMENT_ASK_METHODS = setOf(
+      "textDocument/completion",
+      "textDocument/hover",
+      "textDocument/signatureHelp",
+      "textDocument/definition",
+      "textDocument/rangeFormatting",
+      "textDocument/rename",
+    )
+
     val INITIALIZE_RESULT = buildJsonObject {
       putJsonObject("capabilities") {
         put("completionProvider", true)
@@ -195,6 +231,7 @@ internal class ScriptedLanguageServer(
         put("definitionProvider", true)
         // pylsp's own reply: a plain `true`, the P5e-0 probe's capture.
         put("documentRangeFormattingProvider", true)
+        put("renameProvider", true)
         // pylsp's real reply: an options object, not a boolean - `["(", ",", "="]` measured.
         putJsonObject("signatureHelpProvider") {
           putJsonArray("triggerCharacters") {
@@ -235,6 +272,39 @@ internal fun defaultDefinition(uri: String): JsonArray = buildJsonArray {
       }
     }
   }
+}
+
+/**
+ * The `textDocument/rename` payload the P5e-0 probe measured off real `pylsp`
+ * (`evidence/p5e-0-lsp-surface/`): `documentChanges` of one `TextDocumentEdit` per document,
+ * its `edits` a single whole-document `TextEdit` covering (0,0) to past the last line. Here
+ * the document is three lines and the rewrite is `compute_total` becoming [newName].
+ */
+internal fun defaultRename(uri: String, newName: String): JsonObject = buildJsonObject {
+  putJsonArray("documentChanges") {
+    addJsonObject {
+      putJsonObject("textDocument") {
+        put("uri", uri)
+        put("version", 0)
+      }
+      putJsonArray("edits") { addJsonObject { putRenameEdit(newName) } }
+    }
+  }
+}
+
+/** The one whole-document `TextEdit` the probe's rename answer carries: (0,0) to past the end. */
+private fun kotlinx.serialization.json.JsonObjectBuilder.putRenameEdit(newName: String) {
+  putJsonObject("range") {
+    putJsonObject("start") {
+      put("line", 0)
+      put("character", 0)
+    }
+    putJsonObject("end") {
+      put("line", 4)
+      put("character", 0)
+    }
+  }
+  put("newText", "def $newName(items):\n    return sum(items)\n\ntotal = $newName([1, 2])\n")
 }
 
 /** A realistic `textDocument/hover` payload: markdown `MarkupContent` and the range it covers. */

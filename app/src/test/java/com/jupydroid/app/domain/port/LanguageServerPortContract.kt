@@ -108,6 +108,31 @@ abstract class LanguageServerPortContract {
     assertTrue(locations.all { it.range.start.line >= 0 })
   }
 
+  /**
+   * `textDocument/rename` on a name the document defines answers a `WorkspaceEdit` naming it -
+   * P5e-7. Every implementation's default answers like the probe's `documentChanges` reply:
+   * the scripted server's canned `TextDocumentEdit` and the fake's configured answer alike,
+   * since an empty answer would only say "nothing to change" about a document that plainly
+   * renames `compute_total`.
+   */
+  @Test
+  fun rename_atADefinedName_answersEditsForTheDocument() = runBlocking {
+    val languageServer = languageServer()
+    languageServer.openDocument(
+      BASE_SPACE,
+      URI,
+      LANGUAGE_ID,
+      "def compute_total(items):\n    return sum(items)\n\ntotal = compute_total([1, 2])\n",
+    )
+
+    val edit = languageServer.rename(BASE_SPACE, URI, LanguagePosition(line = 3, character = 8), "compute_sum")
+
+    assertTrue(
+      "a rename reply is the edits for the document it was asked about - got ${edit.changes.keys}",
+      edit.changes[URI].orEmpty().isNotEmpty(),
+    )
+  }
+
   /** The document verbs are a lifecycle, not calls that may throw: open, change, close. */
   @Test
   fun documentLifecycle_isAccepted() = runBlocking {

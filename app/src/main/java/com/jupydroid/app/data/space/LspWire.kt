@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.port.LanguageCapabilities
+import com.jupydroid.app.domain.port.LanguageEdit
 import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageRange
@@ -80,6 +81,9 @@ internal object LspWire {
       // `documentRangeFormattingProvider` - the same shape again (`workDoneProgress` alone),
       // and pylsp's probe-measured `true`.
       documentRangeFormattingProvider = offered(caps["documentRangeFormattingProvider"]),
+      // `renameProvider` - boolean or `RenameOptions` (`prepareProvider`) - pylsp's own
+      // reply is a plain `true`, the P5e-0 probe's capture.
+      renameProvider = offered(caps["renameProvider"]),
       positionEncoding = result?.jsonObject?.get("positionEncoding")
         ?.jsonPrimitive?.contentOrNull ?: "utf-16",
       // `hoverProvider` is a plain boolean, and LSP's rule that an undeclared capability is an
@@ -150,6 +154,15 @@ internal object LspWire {
       }
     }
 
+  /**
+   * `RenameParams` - the `TextDocumentPositionParams` every point-in-document ask shares,
+   * plus `newName`, the one field a rename adds to them.
+   */
+  fun renameParams(uri: String, position: LanguagePosition, newName: String): JsonObject = buildJsonObject {
+    positionParams(uri, position).forEach { (key, value) -> put(key, value) }
+    put("newName", newName)
+  }
+
   internal fun languageRange(range: JsonObject): LanguageRange? =
     (range["start"] as? JsonObject)?.let(::languagePosition)?.let { start ->
       (range["end"] as? JsonObject)?.let(::languagePosition)?.let { LanguageRange(start, it) }
@@ -159,4 +172,18 @@ internal object LspWire {
     pos["line"]?.jsonPrimitive?.intOrNull?.let { line ->
       pos["character"]?.jsonPrimitive?.intOrNull?.let { LanguagePosition(line, it) }
     }
+}
+
+/**
+ * One `TextEdit` - the leaf `range`/`newText` pair every edit-carrying reply shares:
+ * `rangeFormatting`'s `TextEdit[]` and `rename`'s `WorkspaceEdit` alike. An entry missing
+ * either half falls out rather than splice half an edit. File-level rather than an
+ * [LspWire] member the way [markupFormats] is - detekt's `TooManyFunctions` asked, and the
+ * leaves replies share do not belong to the params object.
+ */
+internal fun textEditFrom(element: JsonElement): LanguageEdit? {
+  val edit = element as? JsonObject
+  val range = (edit?.get("range") as? JsonObject)?.let(LspWire::languageRange)
+  val newText = edit?.get("newText")?.jsonPrimitive?.contentOrNull
+  return if (range != null && newText != null) LanguageEdit(range, newText) else null
 }

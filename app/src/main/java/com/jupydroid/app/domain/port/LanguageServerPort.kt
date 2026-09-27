@@ -146,6 +146,12 @@ data class LanguageCapabilities(
    * (`DocumentRangeFormattingOptions` is only `workDoneProgress`) - pylsp's `true`, probed.
    */
   val documentRangeFormattingProvider: Boolean = false,
+  /**
+   * `renameProvider` is a boolean **or** a `RenameOptions` object (`prepareProvider`), so
+   * presence is the test like the providers above it - pylsp replies a plain `true`, the
+   * P5e-0 probe's capture.
+   */
+  val renameProvider: Boolean = false,
 )
 
 /**
@@ -163,6 +169,18 @@ data class LanguageDiagnostic(
 
 /** A `textDocument/publishDiagnostics` push: every diagnostic the server reports for [uri]. */
 data class PublishDiagnostics(val uri: String, val diagnostics: List<LanguageDiagnostic>)
+
+/**
+ * A `WorkspaceEdit` reply (LSP 3.17), normalized to the one question a notebook asks of it:
+ * which documents the server wants rewritten, each value the `TextEdit`s for that document.
+ * `documentChanges`' `TextDocumentEdit`s and the legacy `changes` map both normalize into
+ * [changes]; resource operations (`create`/`rename`/`delete` files) are dropped at the wire,
+ * because a cell editor applies text edits and nothing else.
+ *
+ * Keeping the uri keys is what makes a rename reaching *outside* the asked document - an
+ * imported symbol's home in site-packages - visible to the caller rather than applied blind.
+ */
+data class LanguageWorkspaceEdit(val changes: Map<String, List<LanguageEdit>>)
 
 /**
  * One language server per [Space] - `pylsp` over stdio today (route 2, `docs/PLAN.md` P5),
@@ -234,6 +252,16 @@ interface LanguageServerPort {
     range: LanguageRange,
     options: LanguageFormatOptions,
   ): List<LanguageEdit>
+
+  /**
+   * `textDocument/rename` at [position] in the document at [uri] - `docs/PLAN.md` P5e-7, the
+   * ask behind "Rename symbol". The reply is a `WorkspaceEdit`: edits keyed by the document
+   * they rewrite, which is what lets a caller apply the asked document's edits and see - not
+   * silently apply - a rename reaching into files a notebook does not own. An absent
+   * `renameProvider` or an empty reply is an empty edit set, never an error; a server's
+   * `error` reply raises [LanguageServerException].
+   */
+  suspend fun rename(space: Space, uri: String, position: LanguagePosition, newName: String): LanguageWorkspaceEdit
 
   /**
    * Every `textDocument/publishDiagnostics` a running server pushes, typed - the stream the

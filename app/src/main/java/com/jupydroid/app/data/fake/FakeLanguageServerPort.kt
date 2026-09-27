@@ -15,6 +15,7 @@ import com.jupydroid.app.domain.port.LanguageRange
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LanguageSignature
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
+import com.jupydroid.app.domain.port.LanguageWorkspaceEdit
 import com.jupydroid.app.domain.port.PublishDiagnostics
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -32,13 +33,14 @@ class FakeLanguageServerPort : LanguageServerPort {
     LanguageCompletion(label = "property", insertText = "property"),
   )
 
-  /** What the fake's `initialize` reports - one completion provider, utf-16 offsets. */
+  /** What the fake's `initialize` reports - the providers pylsp itself advertises. */
   var capabilitiesAnswer = LanguageCapabilities(
     completionProvider = true,
     positionEncoding = "utf-16",
     hoverProvider = true,
     definitionProvider = true,
     documentRangeFormattingProvider = true,
+    renameProvider = true,
   )
 
   /** What `hover` answers, replaceable with null for a "nothing here" test. */
@@ -81,6 +83,26 @@ class FakeLanguageServerPort : LanguageServerPort {
    */
   var onFormattingAsk: () -> Unit = {}
 
+  /**
+   * What `rename` answers, or null to answer the probe's shape at the asked uri - one
+   * `TextEdit` rewriting the name, the reply `evidence/p5e-0-lsp-surface/` captured as a
+   * whole-document edit off real `pylsp`. [renameAsks] records the (uri, position, newName)
+   * each call arrived with.
+   */
+  var renameAnswer: LanguageWorkspaceEdit? = null
+
+  /** Every `rename` call, in arrival order - the (uri, position, newName) triple. */
+  val renameAsks = mutableListOf<RenameAsk>()
+
+  /** The (uri, position, newName) a `textDocument/rename` ask carries. */
+  data class RenameAsk(val uri: String, val position: LanguagePosition, val newName: String)
+
+  /**
+   * Runs inside `rename` before [renameAnswer] is returned - a test's way to move the notebook
+   * mid-ask, which is the case the apply gate exists to refuse.
+   */
+  var onRenameAsk: () -> Unit = {}
+
   /** `didOpen`/`didChange` in arrival order, so a test sees the sync the server would have. */
   val opened = mutableListOf<String>()
   val changes = mutableListOf<String>()
@@ -88,7 +110,11 @@ class FakeLanguageServerPort : LanguageServerPort {
   var stops = 0
     private set
 
-  private val pushed = MutableSharedFlow<PublishDiagnostics>(extraBufferCapacity = 64)
+  /**
+   * `internal` so [emitDiagnostics] - a file-level extension on detekt's `TooManyFunctions`
+   * count, the `TerminalGrid.clampedTopRow` answer - can emit what the fake was told.
+   */
+  internal val pushed = MutableSharedFlow<PublishDiagnostics>(extraBufferCapacity = 64)
   override val diagnostics: SharedFlow<PublishDiagnostics> = pushed
 
   /**
@@ -96,11 +122,6 @@ class FakeLanguageServerPort : LanguageServerPort {
    * driving [emitDiagnostics] waits for this rather than racing the subscribe.
    */
   val diagnosticSubscriberCount: StateFlow<Int> = pushed.subscriptionCount
-
-  /** What a server's `publishDiagnostics` would push - emits onto [diagnostics] for tests. */
-  suspend fun emitDiagnostics(publishDiagnostics: PublishDiagnostics) {
-    pushed.emit(publishDiagnostics)
-  }
 
   override suspend fun capabilities(space: Space): LanguageCapabilities = capabilitiesAnswer
 
@@ -138,6 +159,17 @@ class FakeLanguageServerPort : LanguageServerPort {
     return formattingAnswer
   }
 
+  override suspend fun rename(
+    space: Space,
+    uri: String,
+    position: LanguagePosition,
+    newName: String,
+  ): LanguageWorkspaceEdit {
+    renameAsks += RenameAsk(uri, position, newName)
+    onRenameAsk()
+    return renameAnswer ?: probeRename(uri, newName)
+  }
+
   override suspend fun stop(space: Space) {
     stops++
   }
@@ -146,4 +178,25 @@ class FakeLanguageServerPort : LanguageServerPort {
     /** The `compute_total` name span real `pylsp` answered in `evidence/p5e-0-lsp-surface/`. */
     val PROBE_DEFINITION_RANGE = LanguageRange(LanguagePosition(4, 4), LanguagePosition(4, 17))
   }
+}
+
+/** The whole-document range a `documentChanges` `TextEdit` spans - the probe's own shape. */
+private val PROBE_WHOLE_DOCUMENT_RANGE = LanguageRange(LanguagePosition(0, 0), LanguagePosition(15, 0))
+
+/**
+ * The probe's whole-document rename shape at the asked uri, for tests that set no answer -
+ * `defaultRename` in `ScriptedLanguageServer` is its wire-side twin. File-level, not a
+ * member: the fake sits at detekt's `TooManyFunctions` cap on port methods alone.
+ */
+private fun probeRename(uri: String, newName: String) = LanguageWorkspaceEdit(
+  mapOf(
+    uri to listOf(
+      LanguageEdit(PROBE_WHOLE_DOCUMENT_RANGE, "def $newName(items):\n    return items\n"),
+    ),
+  ),
+)
+
+/** What a server's `publishDiagnostics` would push - emits onto `diagnostics` for tests. */
+suspend fun FakeLanguageServerPort.emitDiagnostics(publishDiagnostics: PublishDiagnostics) {
+  pushed.emit(publishDiagnostics)
 }

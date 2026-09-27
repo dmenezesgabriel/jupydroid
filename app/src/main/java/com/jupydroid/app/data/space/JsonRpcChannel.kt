@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.port.LanguageServerException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -10,8 +11,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -70,7 +73,7 @@ internal class JsonRpcChannel(
     try {
       send(rpc(id, method, params))
       val body = withTimeout(timeout) { reply.await() }
-      body["error"]?.let { throw IllegalStateException("$method returned error: $it") }
+      body["error"]?.let { throw refusalOf(method, it) }
       return body
     } catch (e: CancellationException) {
       // `TimeoutCancellationException` is a `CancellationException`, so this is both walks away
@@ -90,6 +93,20 @@ internal class JsonRpcChannel(
    * call owes it this courtesy before walking away.
    */
   private suspend fun cancel(id: Int) = send(rpc(null, "$/cancelRequest", buildJsonObject { put("id", id) }))
+
+  /**
+   * An `error` reply as the typed refusal - the server's own `code`/`message` carried on
+   * [LanguageServerException] so a feature can toast what the server refused rather than
+   * re-parse the frame.
+   */
+  private fun refusalOf(method: String, error: JsonElement): LanguageServerException {
+    val errorObject = error as? JsonObject
+    return LanguageServerException(
+      method,
+      errorObject?.get("code")?.jsonPrimitive?.intOrNull,
+      errorObject?.get("message")?.jsonPrimitive?.contentOrNull,
+    )
+  }
 
   override fun close() {
     if (closed.getAndSet(true)) return

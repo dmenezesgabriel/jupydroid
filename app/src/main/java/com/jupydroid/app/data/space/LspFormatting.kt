@@ -3,9 +3,6 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.port.LanguageEdit
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * The `textDocument/rangeFormatting` reply: `TextEdit[]` or `null` (LSP 3.17) - `null` and
@@ -25,13 +22,6 @@ import kotlinx.serialization.json.jsonPrimitive
 internal object LspFormatting {
   fun editsFrom(result: JsonElement?): List<LanguageEdit> {
     val elements = result as? JsonArray ?: return emptyList()
-    return elements.mapNotNull(::editFrom)
-  }
-
-  private fun editFrom(element: JsonElement): LanguageEdit? {
-    val edit = element as? JsonObject
-    val range = (edit?.get("range") as? JsonObject)?.let(LspWire::languageRange)
-    val newText = edit?.get("newText")?.jsonPrimitive?.contentOrNull
-    return if (range != null && newText != null) LanguageEdit(range, newText) else null
+    return elements.mapNotNull(::textEditFrom)
   }
 }

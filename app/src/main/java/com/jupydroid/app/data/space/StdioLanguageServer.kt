@@ -11,6 +11,7 @@ import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageRange
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
+import com.jupydroid.app.domain.port.LanguageWorkspaceEdit
 import com.jupydroid.app.domain.port.PublishDiagnostics
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -157,6 +158,14 @@ class StdioLanguageServer(
     options: LanguageFormatOptions,
   ): List<LanguageEdit> = positions.rangeFormatting(space, uri, range, options)
 
+  /** @see LanguageServerPort.rename */
+  override suspend fun rename(
+    space: Space,
+    uri: String,
+    position: LanguagePosition,
+    newName: String,
+  ): LanguageWorkspaceEdit = positions.rename(space, uri, position, newName)
+
   /**
    * The `TextDocumentPositionParams` asks - completion and hover share one wire shape:
    * params that name a document and a point in it, one request timeout, replies decoded at
@@ -232,6 +241,32 @@ class StdioLanguageServer(
         )
       log.reached("lsp.answer", mapOf("method" to "rangeFormatting", "edits" to "${edits.size}"))
       return edits
+    }
+
+    /**
+     * The same gate one method further: `renameProvider` absent is an ask never sent. The
+     * `RenameParams` extend the position params with `newName`, so this one does not share
+     * the [request] convenience that only takes a position.
+     */
+    suspend fun rename(space: Space, uri: String, position: LanguagePosition, newName: String): LanguageWorkspaceEdit {
+      val server = pool.serverFor(space)
+      if (!server.capabilities.renameProvider) return LanguageWorkspaceEdit(emptyMap())
+      log.reached(
+        "lsp.ask",
+        mapOf("method" to "rename", "uri" to uri, "at" to "${position.line}:${position.character}"),
+      )
+      val edit = LspRename.workspaceEditFrom(
+        request(server, "textDocument/rename", LspWire.renameParams(uri, position, newName))["result"],
+      )
+      log.reached(
+        "lsp.answer",
+        mapOf(
+          "method" to "rename",
+          "uris" to edit.changes.keys.joinToString(),
+          "edits" to "${edit.changes.values.sumOf { it.size }}",
+        ),
+      )
+      return edit
     }
 
     /** One `TextDocumentPositionParams` request - the params every point-in-document method shares. */
