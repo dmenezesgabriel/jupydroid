@@ -196,10 +196,28 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 
 # The spike only has to answer whether this runs on Android; docs and bytecode
 # caches are pure bulk. One layer, so the export is smaller.
+# rfc3987-syntax is uninstalled after install, not excluded from the lock: pip
+# re-resolves jsonschema's format-nongpl extra for jupyter-events either way, and
+# an honest lock lists what was resolved. What we drop is the import cost -
+# building its Lark parser is ~1.7 s on the tablet, inside every serverapp import
+# (P8c-2). jsonschema wraps it in suppress(ImportError), so absent is a designed
+# state: the iri/iri-reference checkers simply are not registered, and nothing in
+# the lock nor the shipped event schemas uses those formats (uri stays via
+# rfc3986-validator). The RUN check below fails the image if that stops being true.
 RUN rm -rf /usr/share/man /usr/share/doc /var/cache/apk \
+ && pip3 uninstall -y --break-system-packages rfc3987-syntax \
  && find / -xdev -type d -name __pycache__ -prune -exec rm -rf {} + \
  && find /usr/lib/python3* -xdev -type d -name test -prune -exec rm -rf {} + \
  && find /usr/lib/python3* -xdev -type d -name tests -prune -exec rm -rf {} +
+
+RUN python3 -c "\
+import jupyter_events.logger;\
+import jsonschema._format as f;\
+checkers = f.draft7_format_checker.checkers;\
+assert 'uri' in checkers, 'uri format checker missing';\
+assert 'iri' not in checkers, 'iri checker should be absent with rfc3987-syntax gone';\
+assert 'iri-reference' not in checkers, 'iri-reference checker should be absent';\
+print('jupyter_events imports without rfc3987-syntax; uri checker intact')"
 
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
 # and on device it is not /root.

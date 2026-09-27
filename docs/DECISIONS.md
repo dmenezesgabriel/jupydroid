@@ -320,6 +320,26 @@ stays a recorded option if the stage still dominates after the other repairs.
 **This forbids** going back to gzip for this asset, and compressing `.tzst` in aapt — both
 are already excluded, the first by this entry and the second by `noCompress += "tzst"`.
 
+### `rfc3987-syntax` is uninstalled from the image, not removed from the lock (P8c-2)
+
+`-X importtime` on the tablet showed `import jupyter_server.serverapp` costing 3.05 s,
+of which ~2.0 s was `jupyter_events` → `jsonschema._format` → `rfc3987_syntax`. That
+last package exists only to power `iri`/`iri-reference` format checks — it builds a
+Lark parser at import (~1.7 s), and `jsonschema/_format.py` wraps its import in
+`suppress(ImportError)`, so its absence is upstream's own graceful path. The shipped
+event schemas use `uri` and `datetime` only; `uri` keeps its checker via
+`rfc3986-validator`.
+
+It is `pip uninstall`'d in `tools/rootfs/Dockerfile` rather than deleted from
+`requirements.lock`, because pip resolves `jsonschema[format-nongpl]` for
+`jupyter-events` and pulls it back either way — a lock must say what was resolved,
+not what we wish had been. A `RUN` gate fails the image if `jupyter_events` stops
+importing cleanly or `uri` loses its checker. Measured: `server.starting →
+server.listening` went 4.4 s → 2.2 s warm (`evidence/p8c-2-server-boot/`).
+
+**This forbids** reinstating `rfc3987-syntax` or `rfc3987` (GPL — the reason the
+`format-nongpl` extra exists at all).
+
 ---
 
 ## Protocol and behaviour
