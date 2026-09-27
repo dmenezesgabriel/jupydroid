@@ -272,4 +272,46 @@ class SpaceRuntimeTest {
 
     assertFalse(runtime.environment().containsKey("JUPYDROID_NAMESERVERS"))
   }
+
+  /**
+   * PEP 668's answer for this interpreter: installs ground in the Space's own user base,
+   * not the rootfs's site-packages. Measured on-device (P8a): bare `pip install` is
+   * refused by `EXTERNALLY-MANAGED` even with `--user`; with `PYTHONUSERBASE` + `PIP_USER`
+   * + `PIP_BREAK_SYSTEM_PACKAGES` the same command lands under `pkgs/` and imports from
+   * there, leaving `usr/lib/python3.12/site-packages` untouched.
+   */
+  @Test
+  fun environment_groundsPipInstallsInTheSpacesOwnUserBase() {
+    assertEquals(
+      "/data/data/com.jupydroid.app/files/spaces/base/pkgs",
+      runtime.environment()["PYTHONUSERBASE"],
+    )
+  }
+
+  /**
+   * The three flags the unflagged command stands in for: `--user` (ground in PYTHONUSERBASE),
+   * `--only-binary=:all:` (never start compiling under a phone), and `--break-system-packages`
+   * (the marker is Alpine's, and the user base is the managed answer - verified on-device,
+   * where `--user` alone is still refused).
+   */
+  @Test
+  fun environment_makesUserBinaryAndMarkerTolerantThePipDefaults() {
+    val env = runtime.environment()
+
+    assertEquals("1", env["PIP_USER"])
+    assertEquals(":all:", env["PIP_ONLY_BINARY"])
+    assertEquals("1", env["PIP_BREAK_SYSTEM_PACKAGES"])
+  }
+
+  /**
+   * A `--user` install drops console scripts in `pkgs/bin` - pip's own warning on-device was
+   * "which is not on PATH". It precedes the rootfs entries so a user's newer tool shadows the
+   * shipped one, the same precedence `~/.local/bin` takes over `/usr/bin` on a desktop.
+   */
+  @Test
+  fun environment_putsUserInstalledConsoleScriptsOnPathAheadOfTheRootfs() {
+    val path = runtime.environment().getValue("PATH").split(":")
+
+    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/pkgs/bin", path.first())
+  }
 }

@@ -47,7 +47,18 @@ class SpaceRuntime(
     // (`tools/rootfs/shebang_exec.c`) prefixes this onto an absolute shebang: `#!/usr/bin/python3`
     // becomes `<root>/usr/bin/python3`. One home for what a Space process sees, beside SHELL.
     "JUPYDROID_SPACE_ROOT" to baseDir.path,
-    "PATH" to listOf(inBase("usr/local/bin"), inBase("usr/bin"), inBase("bin")).joinToString(":"),
+    // PEP 668: Alpine marks this interpreter EXTERNALLY-MANAGED, so bare `pip install` is
+    // refused - and even `--user` is refused without `--break-system-packages` (measured
+    // on-device, P8a). The managed answer is the Space's own user base: PYTHONUSERBASE puts
+    // `pkgs/lib/...` on sys.path, PIP_USER makes installs ground there unflagged, and the
+    // three together are inherited by kernel, terminal, `%pip` and LSP alike.
+    "PYTHONUSERBASE" to inBase("pkgs"),
+    "PIP_USER" to "1",
+    "PIP_ONLY_BINARY" to ":all:",
+    "PIP_BREAK_SYSTEM_PACKAGES" to "1",
+    // pkgs/bin first, so a user's console script shadows the shipped one - the precedence
+    // ~/.local/bin takes over /usr/bin on a desktop.
+    "PATH" to listOf(inBase("pkgs/bin"), inBase("usr/local/bin"), inBase("usr/bin"), inBase("bin")).joinToString(":"),
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.
     // musl has no multiarch directories, so these two cover the whole rootfs.
     "LD_LIBRARY_PATH" to listOf(inBase("usr/lib"), inBase("lib")).joinToString(":"),
