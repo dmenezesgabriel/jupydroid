@@ -170,7 +170,12 @@ class RealTerminalGateway(
      */
     private fun publish(event: TerminalEvent) {
       if (events.tryEmit(event)) {
-        if (event is TerminalEvent.Ready) ready.complete(Unit)
+        if (event is TerminalEvent.Ready) {
+          // `setup` is the server's "this pty is live" mark - the cold path's own line between
+          // SOCKET_OPENED and the first output the user can see.
+          log.reached(TerminalLog.READY, mapOf("terminal" to name))
+          ready.complete(Unit)
+        }
         return
       }
       log.reached(
@@ -197,6 +202,9 @@ internal object TerminalLog {
   const val OPENED = "terminal.opened"
   const val CLOSED = "terminal.closed"
   const val SOCKET_OPENED = "terminal.socket.opened"
+
+  /** The server's `setup` frame - the moment an attached terminal is actually usable. */
+  const val READY = "terminal.ready"
   const val SOCKET_ENDED = "terminal.socket.ended"
 
   /** It printed and the buffer refused it, which loses a shell's output silently. */

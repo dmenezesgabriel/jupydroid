@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -175,5 +176,32 @@ class RealTerminalGatewayTest {
     assertEquals(2, opener.openCount)
   }
 
-  private fun gateway(opener: ScriptedTerminalSocketOpener) = RealTerminalGateway(opener, lifecycle)
+  /**
+   * The stage the cold-path measurement reads: `setup` is the server's "this pty is live"
+   * signal (`default.ts:301-307`), so it is the terminal's line between `SOCKET_OPENED` and the
+   * first output the user can see - and P8a needs it because a logcat timeline without it cannot
+   * say when a shell became usable.
+   */
+  @Test
+  fun attach_marksReadyWhenTheSetupFrameLands() = runTest {
+    val log = RecordingSpaceLifecycleLog()
+    val opener = ScriptedTerminalSocketOpener(setUpImmediately = false)
+    val gateway = gateway(opener, log)
+    val session = gateway.open()
+
+    coroutineScope {
+      val attached = launch { gateway.attach(session).collect { } }
+      yield()
+      assertFalse(TerminalLog.READY in log.stages)
+
+      opener.finishSetup()
+      yield()
+      assertTrue(TerminalLog.READY in log.stages)
+      assertEquals(session.name, log.fieldsOf(TerminalLog.READY)["terminal"])
+      attached.cancel()
+    }
+  }
+
+  private fun gateway(opener: ScriptedTerminalSocketOpener, log: SpaceLifecycleLog = SpaceLifecycleLog.Silent) =
+    RealTerminalGateway(opener, lifecycle, log)
 }

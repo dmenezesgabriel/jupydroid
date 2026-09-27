@@ -364,5 +364,9 @@ run_flow() {
   python3 "$ROOT_DIR/prune_stale_frames.py" "$out" "$(basename "$flow" .yaml)" ${stems[@]+"${stems[@]}"}
   cp "$run_dir/logs/device-logcat.txt" "$out/logcat.txt"
   record_device "$out"
+  # `get-serialno` and maestro's own banner write the real serial into the evidence - a local
+  # literal the device-secrets gate refuses. Scrubbed here, at write time, so no driver has to
+  # remember to do it at commit time (check_device_secrets.py for the incident class).
+  python3 "$ROOT_DIR/scrub_device_secrets.py" "$out"
   return "$status"
 }

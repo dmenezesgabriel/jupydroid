@@ -278,6 +278,29 @@ It is upstream behaviour rather than ours, so `step10-run-cell-real-kernel` asse
 `assertNotVisible: ".*MESSAGE TYPE.*"` after the run — instead of trusting that an ipykernel
 upgrade will keep it.
 
+### Packages land in the Space's own site, and pip is steered by environment, not flags (P8b)
+
+Alpine's Python ships `EXTERNALLY-MANAGED` (PEP 668), and PEP 668's own text settles the question
+users always ask next: the marker covers `pip install --user` too — *"packages in either location
+show up on the `sys.path` of `/usr/bin/python3`"* — so there is no polite way through. The flag
+is `--break-system-packages`, and without anything else it puts packages on the rootfs's own
+site-packages, which is the behaviour reported against `pandas`.
+
+The answer is the mechanism P3 already recorded for Spaces, applied to `base` a phase early:
+`PYTHONUSERBASE=<space>/pkgs` moves the user site inside the Space (stdlib `site.py` reads the
+variable directly; a venv stays impossible — `pyvenv.cfg` must sit beside `sys.executable`, which
+is a per-install path inside `nativeLibraryDir`), and pip is pointed at it by **environment**
+rather than by flags the user must remember: `PIP_USER=1`, `PIP_ONLY_BINARY=:all:` and
+`PIP_BREAK_SYSTEM_PACKAGES=1` in `SpaceRuntime.environment()`. Kernel, terminal, `%pip` and
+`pylsp` all inherit it, because each is a child of the Space env. `pkgs/bin` joins `PATH` so a
+`--user` install's console scripts resolve.
+
+Environment variables rather than a `pip.conf`, for a reason that is ours rather than pip's:
+`HOME` is the user's **visible** workspace (`notebookWorkspaceIn`, `home/jupydroid`), so
+`$HOME/.config/pip/pip.conf` — and the default `~/.local` user base — would both write into the
+file explorer's tree. **This forbids** installing into the system site-packages on purpose again,
+and shipping a `pip.conf` inside the workspace.
+
 ---
 
 ## Protocol and behaviour
@@ -4530,6 +4553,48 @@ would pay a dispose/recreate on every press.
 **This forbids** adding the Launcher to `SidePanel`, auto-showing it on every one-pane cold start,
 keeping a second launcher-card-free reach point for terminals on the FilesBar, and letting two
 `Console` entries coexist in the stack.
+
+### Many documents live in the stack; a tab is an ordering, not a screen (P8, planned)
+
+The references agree on the model and differ only on where it is drawn. JupyterLab's tabs are the
+main DockPanel's TabBar — `labShell.widgets('main')` *is* the tab list, and its "Open Tabs"
+sidebar section is a read of the same widgets (`running-extension/opentabs.ts`). VS Code's are
+one tab per editor input per group. Both carry the dirty mark on the tab (`jp-mod-dirty`,
+`docregistry/default.ts:544`; VS Code's dot) and a close affordance, at every window size —
+JupyterLab's `mode: 'single-document'` replaces the whole workbench rather than hiding a strip,
+so it is the rejected alternate for one pane, not the design.
+
+Ours maps it onto the back stack rather than beside it: document entries **stay** in the stack —
+each keeps its `contentKey`, hence its `ViewModelStore`, hence its kernel session — the strip is
+a projection of the stack's document entries, and activating a tab moves that entry to the top,
+which is also the reveal `openOrReveal` already promises. `onCleared` still runs only on a real
+close, and Back pops the active tab onto the previous one. `OpenDocuments`'s single slot and
+`chooseDetailThatFitsTheSurface`'s "never two documents" were the deliberate simplification this
+retires — `Console`'s one-session holder is a real constraint that survives and gets re-derived,
+not deleted.
+
+### The running panel is JupyterLab's "Sessions and Tabs", at its own rank (P8f, planned)
+
+`running-extension` registers one left-area panel at **rank 200** (`index.ts:121`) — between File
+Browser 100 and Command Palette 300, which is where `SidePanel.RUNNING` sits: FILES, RUNNING,
+SEARCH, TABLE_OF_CONTENTS, DEBUGGER. Its stock sections are **Open Tabs**
+(`labShell.widgets('main')`), **Kernel Sessions** (`GET /api/sessions`, per-row shutdown,
+"Shut Down All", "Shut Down Unused" for kernels with no connections — `kernels.tsx`), and
+**Terminals** (`GET /api/terminals`). `TerminalGateway.running()` already exists; the kernel half
+needs `GET /api/sessions`, which `KernelLifecycle` does not yet expose. A kernel shut down under
+an open notebook leaves the notebook showing "No Kernel", exactly as the reference's
+`selectKernel`-adjacent state does.
+
+### Kernel choice is `selectKernel`'s dialog and a `PATCH` on the session (P8g, planned)
+
+The picker's rows are enumerated in `sessioncontext.tsx` (`kernelOptions`, `:1598-1620`): start a
+new kernel per spec (preferred language first), **"No Kernel" — which shuts the current kernel
+down** (`:1452-1454`), and connect to an already-running kernel. `session.changeKernel` is
+`PATCH /api/sessions/<id>`, and `metadata.kernelspec` — which `NotebookFileMetadata` already
+round-trips — is where the choice persists. "Create a new environment" is vscode-jupyter's
+affordance, and in this architecture an environment **is** a Space: it lands with P3e's per-Space
+kernelspecs rather than as a second env model. **This forbids** a picker that invents kernels
+jupyter_server cannot name, and a kernelspec store parallel to the notebook's own metadata.
 
 ## Harness
 

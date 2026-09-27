@@ -1884,11 +1884,101 @@ cancellation.
 
 ---
 
-# P3 — Spaces
+# P8 — the workbench P2–P7 did not build
 
-**Last, not third.** The label is kept because it is cited elsewhere; the section sits here because
-P4-P6 need only the one base Space that already exists, and this is the largest unbuilt thing in the
-file. Nothing above it waits on it.
+**Four user-observed gaps, all ahead of P3.** The shell still holds one document at a time where
+both references hold many; there is nowhere to *see* a running kernel, let alone stop one the
+notebook it belongs to did not ask for; a notebook can run on only the one kernel the server
+defaults to; a `pip install` from the app's own terminal refuses without a flag and then lands on
+the *system* site-packages; and the first terminal and first cell of a session are slow on a path
+nobody has ever put a number to. The letter is next free; the work sits before P3 because the
+user asked for it there, and because P8b is the P3 package mechanism applied to `base` a phase
+early rather than a second design.
+
+## What the references settle
+
+**The rail item is JupyterLab's "Sessions and Tabs" sidebar, and its shape is fully specified.**
+`running-extension` adds one panel to the *left* area at rank 200
+(`packages/running-extension/src/index.ts:121`, between File Browser 100 and Command Palette 300 —
+`SidePanel`'s own doc already cites the table). The stock build wires three sections into it:
+**Open Tabs**, one row per `labShell.widgets('main')` and a tap reveals it
+(`opentabs.ts:56-80`); **Kernel Sessions**, one row per `GET /api/sessions` entry with a per-row
+shutdown, a section-level "Shut Down All", and "Shut Down Unused" for kernels with zero
+connections (`kernels.tsx`); **Terminals**, the same over `GET /api/terminals`
+(`terminal-extension/src/index.ts:406-407`). Our `TerminalGateway.running()` already exists; the
+kernel half needs `GET /api/sessions`, which `KernelLifecycle` does not yet expose — start /
+interrupt / restart / `shutdownSession` are its whole surface.
+
+**Tabs are a property of the main area, not of a document.** JupyterLab's tab bar is the
+DockPanel's own TabBar and the dirty mark is `jp-mod-dirty` on the tab
+(`docregistry/src/default.ts:544`) — the same state P6c-9c already draws as `DirtyMarker` on the
+bar. VS Code's editor groups are likewise one tab per input, dirty dot and close affordance, at
+every window size. JupyterLab's only alternate is `mode: 'single-document'`, which replaces the
+workbench chrome wholesale — it is a second shell, not a hidden strip, and it is not what either
+reference draws on a phone-width window by default.
+
+**The kernel picker is `selectKernel`'s dialog, and its rows are enumerated.**
+`apputils/sessioncontext.tsx:1398-1460` plus `kernelOptions` (`:1598-1620`): the groups are
+start-a-new-kernel-per-spec (preferred language first), **"No Kernel" — whose pick shuts the
+current kernel down** (`:1452-1454`), and connect-to-an-already-running kernel. The change itself
+is `session.changeKernel({id|name})` → `PATCH /api/sessions/<id>`, and the notebook's own
+`metadata.kernelspec` is where the choice persists — `NotebookFileMetadata` already round-trips
+it. vscode-jupyter's picker is where "create a new environment" lives rather than in JupyterLab;
+in this architecture an environment *is* a Space, so that affordance belongs to P3e's per-Space
+kernelspecs surfacing in this dialog — no second environment model is built for it.
+
+**Cold start has four stage boundaries and no numbers.** Install (version-stamped, a no-op when
+fresh) → `jupyter_server` up (runtime-file poll, `POLL_INTERVAL = 100 ms`,
+`JupyterServerLauncher.kt:103`) → `POST /api/sessions` → kernel WebSocket + first
+`execute_request`. A terminal adds `POST /api/terminals` and its own socket. `SpaceLifecycleLog`,
+`KernelLog` and the server's DEBUG log are the seams already in place; what is missing is the
+measurement, not the instrumentation. Nothing in P8c is scheduled ahead of P8a's table of what
+the stages actually cost on both devices.
+
+**The pip flag is Alpine's `EXTERNALLY-MANAGED`, and `--user` does not exempt it.** pip refuses
+any install outside a venv into an interpreter whose stdlib carries the marker — `pip install
+--user` included — which is why the flag the user passes is `--break-system-packages` and why
+packages land on the rootfs's own site-packages. The fix is P3's own mechanism pulled forward:
+`PYTHONUSERBASE=<space>/pkgs`, verified against the shipped `site.py` (`_getuserbase` reads it,
+`USER_SITE` lands on `sys.path`), plus the variables pip actually reads — `PIP_USER`,
+`PIP_ONLY_BINARY=:all:`, `PIP_BREAK_SYSTEM_PACKAGES` — set once in `SpaceRuntime.environment()`,
+which the kernel, the terminal, `%pip` and `pylsp` all inherit because every one of them is a
+child of the Space env. `pkgs/bin` joins `PATH` for the console scripts a `--user` install drops
+there. A `pip.conf` under `$HOME` was considered and rejected: `HOME` *is* the user's visible
+workspace (`notebookWorkspaceIn`, `home/jupydroid`), so a config file there is clutter in the
+explorer, and the default `~/.local` user base would write packages into that same visible tree.
+A venv stays rejected for P3's recorded reason — `pyvenv.cfg` must sit beside `sys.executable`,
+which is a per-install path inside `nativeLibraryDir`.
+
+## What is ours, and why
+
+**Many documents in the stack; a tab is an ordering, not a screen.** `OpenDocuments` is a
+single-slot holder whose own doc comment says tabs need the map; `NotebookBackStack`'s
+`chooseDetailThatFitsTheSurface` enforces "never two documents" because `ListDetailSceneStrategy`
+draws the *last* detail entry. Both relax together: document entries stay in the stack — each
+keeps its `contentKey`, its `ViewModelStore`, and therefore its kernel session — the strip is a
+projection of the stack's document entries, and activating a tab moves that entry to the top,
+which is also the reveal. `onCleared` still only runs on a real close, so a kernel socket is
+still closed exactly once, and Back pops the active tab onto the previous one for free. The
+single-document guards P6b-0 wrote (`openConsole`'s sweep, `openStandaloneConsole`'s, the
+one-deep detail invariant) are re-derived against the new invariant rather than deleted —
+`Console`'s one-session holder is a real constraint the multi-document stack does not remove.
+
+## The sub-steps
+
+| # | Sub-step | Gate |
+|---|---|---|
+| **P8a** — **SHIPPED** | **Measure the cold path.** Timestamped probes at every boundary already in the code — install done, runtime file appeared, session POSTed, kernel WS open, first `execute_request` answered; `POST /api/terminals` → attach → first prompt drawn — over `SpaceLifecycleLog`/logcat plus the server's own DEBUG log. Cold and warm, into `evidence/p8a-cold-path/`. (Tablet only: the emulator runs no Space — `SpaceAbi` is arm64-only and `FakeKernelGateway` would echo the cell's source, so there is nothing to time on it.) **Measured on the SM-X216B:** rootfs extraction ≈ **16.5 s cold / 0.2 s warm** (the stamp no-op); `jupyter_server` boot ≈ **4.4 s warm / 7.5 s cold** (its own log shows ~1 s inside `ServerApp` — the rest is interpreter+imports); kernel session POST+spawn ≈ **1.2–2.6 s**; kernel WS handshake ≈ **1.4–2.7 s** on loopback; the cell itself ≈ **0.1 s**; terminal attach ≈ **0.44 s** warm. | Every stage boundary carries a number; a fix without a stage it targets does not proceed. |
+| **P8b** | **Packages stop landing on the system site-packages.** `PYTHONUSERBASE=<base>/pkgs` + `PIP_USER`/`PIP_ONLY_BINARY`/`PIP_BREAK_SYSTEM_PACKAGES` + `pkgs/bin` on `PATH`, in `SpaceRuntime.environment()` — inherited by kernel, terminal, `%pip` and LSP at once. | Tablet: `pip install pandas` *unflagged* → lands in `files/spaces/base/pkgs/`, imports in a cell, `%pip` behaves the same, `usr/lib/python3.12/site-packages` verified byte-identical before and after. `evidence/p8b-space-packages/`. |
+| **P8c** | **Cold-start repairs, one numbered sub-step per stage P8a names.** Nothing here exists until the table does. | Each fix re-measures its own stage on the device it was slow on. |
+| **P8d** | **The document model.** `OpenDocuments` becomes the ordered map its doc already describes; `NotebookBackStack` keeps N document entries with reorder-to-activate; every `isDocument()`/sweep invariant re-derived; `architecture.md` §4's "One document at a time" rewritten. | JVM tests pin the new stack invariants (reveal, no duplicate `contentKey`, Console sweep); an instrumented test proves two open notebooks hold two live kernel sessions. |
+| **P8e** | **The tab strip** over the detail pane at both widths — icon, title, `jp-mod-dirty`'s dot, close; dirty close asks save/discard/cancel the reference's way; Launcher/Settings/Terminal/Console are tabs too. One-pane behavior decided from the references, not assumed — both draw a strip at every width, and `single-document` mode is recorded as the rejected alternate. | Maestro on both devices: open three documents, strip shows three, tap reveals, close leaves the rest; screenshots per flow in `evidence/p8e-tabs/`. |
+| **P8f** | **Sessions and Tabs panel.** `SidePanel.RUNNING` at JupyterLab's own rank position (between FILES and SEARCH); sections Open Tabs / Kernel Sessions / Terminals; `KernelLifecycle.sessions()` = `GET /api/sessions`; per-row shutdown and section-level "Shut Down All"; an open editor whose session died lands on "No Kernel" the way the reference's does. | Maestro on the tablet: run a cell → the session appears under Kernel Sessions → Shut Down → the kernel dies, the notebook stays open; `evidence/p8f-running-panel/`. |
+| **P8g** | **Kernel choice.** `GET /api/kernelspecs` on the port; `session.changeKernel` = `PATCH /api/sessions/<id>`; `KernelIndicator` becomes the picker shaped as `selectKernel`'s groups (start / No Kernel / connect-to-running); `metadata.kernelspec` written on change and honoured on open. Creating an *environment* stays in P3 — its per-Space kernelspecs are what this dialog will list. | Tablet: switch a running notebook's kernel → new session, metadata persisted, reopen honours it; `evidence/p8g-kernel-picker/`. |
+
+---
+
+
 
 The product's headline concept and entirely unbuilt. A **Space** is a project's environment
 (the SageMaker Studio term — "environment" would collide with the Python environments inside one).
@@ -1932,10 +2022,10 @@ compiling on a phone, which is the same gate `tools/rootfs/Dockerfile` already a
 | # | Sub-step | Gate |
 |---|---|---|
 | **P3a** | `SpaceConfig` (name, created, python version, requested packages, `extra: JsonObject`) + `SpaceRepository` port + `DiskSpaceRepository` scanning `files/spaces/`. Ids derived from the scan, Winlator-style. | Port contract test + JVM repository tests against a temp tree. |
-| **P3b** | `SpaceRuntime` takes a `Space`: per-Space `PYTHONUSERBASE`, `HOME`, `JUPYTER_RUNTIME_DIR`. | Regression test that two Spaces produce disjoint environments and disjoint runtime dirs. |
+| **P3b** | `SpaceRuntime` takes a `Space`: per-Space `PYTHONUSERBASE` (the mechanism itself already ships on `base` from P8b — this is its per-Space generalization), `HOME`, `JUPYTER_RUNTIME_DIR`. | Regression test that two Spaces produce disjoint environments and disjoint runtime dirs. |
 | **P3c** | Space list, create, rename, delete. Async with progress, as Winlator's are; delete asks first, like the explorer's. | Maestro on the tablet: create → it appears → delete → it is gone, with the directory checked over `run-as`. |
 | **P3d** | Packages: list installed, add, remove, over `pip --user`. Failures surface pip's own message **including the offending package name and the wheel tag it wanted**. | Tablet: install a pure-Python package into Space A, import it there, and show `ImportError` in Space B. That negative half is the point of the phase. |
-| **P3e** | **One server per Space, or one server with per-Space kernelspecs — decided by measurement.** A second `jupyter_server` costs about what the first does: RSS 77,156 KB ≈ 75 MiB, measured (`evidence/step18-lifecycle/README.md:12`). Kernelspecs are JSON we already write (`SpaceKernelSpec`), so one server advertising one kernelspec per Space is the cheaper candidate and is tried first. | RSS measured both ways on the tablet, into `evidence/p3-spaces/`. Whichever wins, the loser's numbers stay in the record. |
+| **P3e** | **One server per Space, or one server with per-Space kernelspecs — decided by measurement.** A second `jupyter_server` costs about what the first does: RSS 77,156 KB ≈ 75 MiB, measured (`evidence/step18-lifecycle/README.md:12`). Kernelspecs are JSON we already write (`SpaceKernelSpec`), so one server advertising one kernelspec per Space is the cheaper candidate and is tried first — and per-Space specs are exactly what the P8g kernel picker lists, which is how "new environment" reaches the user the vscode-jupyter way rather than through a second env model. | RSS measured both ways on the tablet, into `evidence/p3-spaces/`. Whichever wins, the loser's numbers stay in the record. |
 | **P3f** | Switching: the active Space roots the explorer and binds new notebooks. The binding persists in the notebook's own `metadata.kernelspec.name` — where Jupyter keeps it — not in an app-side table. | Maestro: a notebook created in Space A reopens against Space A after switching away and back. |
 | **P3g** | *(costed, not scheduled)* uv in `jniLibs`, patchelf'd like `libpython3.so`, selectable per Space. | — |
 
@@ -2088,6 +2178,5 @@ Measured, not speculative. Anything closed moves to `docs/DECISIONS.md`.
 
 Not scheduled, listed so nobody re-derives them: the remaining file viewers JupyterLab ships
 (`csvviewer`, `imageviewer`, `htmlviewer`, `markdownviewer`, `json-extension`, `pdf-extension`,
-`vega5`, `mermaid`, `mathjax`); `metadataform` / `celltags`; the running-sessions panel;
-`workspaces`; `logconsole`; and multi-kernel support beyond Python once a second kernel is worth
-installing into a Space.
+`vega5`, `mermaid`, `mathjax`); `metadataform` / `celltags`; `workspaces`; `logconsole`; and
+multi-kernel support beyond Python once a second kernel is worth installing into a Space.
