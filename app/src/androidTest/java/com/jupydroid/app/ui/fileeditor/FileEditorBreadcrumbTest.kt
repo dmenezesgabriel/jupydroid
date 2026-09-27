@@ -100,7 +100,7 @@ class FileEditorBreadcrumbTest {
     compose.onNodeWithText(ROOT).assertDoesNotExist()
   }
 
-  /** The document's own name is never a segment: it is on the bar above. See `ancestorCrumbsFor`. */
+  /** The document's own name is never a segment: it is the tab's label. See `ancestorCrumbsFor`. */
   @Test
   fun aNestedFileSaysWhichFolderItLivesIn() {
     open("$FOLDER/data.csv")
@@ -110,19 +110,16 @@ class FileEditorBreadcrumbTest {
   }
 
   /**
-   * **Under the bar carrying the name**, which is where `BreadcrumbsControl` sits relative to a tab
-   * title. This screen's single row *is* its name row, where the notebook has a title strip above
-   * its actions and puts the trail between the two.
+   * **Under the action row**, which is where `BreadcrumbsControl` sits relative to a tab title.
+   * The name is the tab's now, so this screen's bar draws no title and the trail is its second row.
    */
   @Test
-  fun theTrailSitsUnderTheRowCarryingTheName() {
+  fun theTrailSitsUnderTheActionRow() {
     open("$FOLDER/data.csv")
 
-    val name = compose.onNodeWithText("data.csv").getUnclippedBoundsInRoot()
     val back = compose.onNodeWithContentDescription(BACK).getUnclippedBoundsInRoot()
     val crumb = compose.onNodeWithText(FOLDER).getUnclippedBoundsInRoot()
 
-    assertTrue("the crumb at $crumb is not below the name at $name", crumb.top >= name.bottom)
     assertTrue("the crumb at $crumb is not below the back arrow at $back", crumb.top >= back.bottom)
   }
 

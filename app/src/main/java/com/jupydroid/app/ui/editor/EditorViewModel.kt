@@ -14,7 +14,6 @@ import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.EditorSettingsRepository
-import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.LanguageServerPort
@@ -174,7 +173,7 @@ class EditorViewModel(
    *
    * Registered from here rather than by itself, because the lifetime is this ViewModel's.
    */
-  val document = NotebookDocument(_uiState, save, notebookId = { notebookId })
+  val document = NotebookDocument(viewModelScope, _uiState, save, notebookId = { notebookId }, openedAs = notebookId)
 
   /**
    * `notebook:export-to-format`. Writes a file *beside* the notebook rather than to it, so it
@@ -257,67 +256,11 @@ class EditorViewModel(
   }
 
   /**
-   * Retitles the notebook, from the app bar.
-   *
-   * The dialog decides *whether* to rename - it reports nothing for a blank or unchanged title -
-   * so this writes whatever it is handed.
-   *
-   * ```
-   * viewModel.renameNotebook("Math notes")
-   * ```
-   */
-  fun renameNotebook(title: String) {
-    val current = notebook ?: return
-    // The in-memory copy has to move too. persist() writes `notebook.copy(cells = ...)`, so a
-    // rename that only reached the repository would be overwritten by the next keystroke.
-    val before = current.title
-    notebook = current.copy(title = title)
-    // `title` is a name; the bar shows names. `before` is the notebook's path, so rolling back
-    // has to take the leaf out of it again - see [applyRename].
-    _uiState.update { it.copy(title = title) }
-    viewModelScope.launch { applyRename(title, before) }
-  }
-
-  /**
-   * Adopts the new id, or puts the old name back when the repository refuses.
-   *
-   * X1b gave a rename the power to fail - the name is the file, so `a/b` is not a name and a name
-   * already taken would overwrite somebody else's notebook. Refusals arrive as exceptions, and an
-   * exception in a bare `viewModelScope.launch` is uncaught and fatal: typing a `/` into the
-   * rename dialog crashed the app.
-   *
-   * On success the id is adopted, which is `Context._updatePath` - the document did not change,
-   * only where it lives.
-   */
-  private suspend fun applyRename(title: String, before: String) {
-    runCatching { notebookRepository.renameNotebook(notebookId, title) }
-      .onSuccess { moved -> adopt(moved) }
-      .onFailure { failure ->
-        notebook = notebook?.copy(title = before)
-        // Only a taken name becomes a question, exactly as only a 409 does in `renameFile`.
-        val taken = if (failure is FileNameTakenException) title else null
-        _uiState.update { it.copy(title = notebookLeafOf(before), nameTaken = taken) }
-      }
-  }
-
-  /**
-   * Answers "already exists, overwrite?" - yes replaces the file, no keeps the current name.
-   *
-   * One method taking the answer rather than two named for the outcomes, because that is the shape
-   * the reference has: `shouldOverwrite(path): Promise<boolean>`, with `renameFile` acting on the
-   * boolean. The name comes from state, so there is no second copy to fall out of step.
-   */
-  fun answerOverwrite(accepted: Boolean) {
-    val taken = _uiState.value.nameTaken ?: return
-    _uiState.update { it.copy(nameTaken = null) }
-    if (!accepted) return
-    viewModelScope.launch {
-      runCatching { notebookRepository.overwriteNotebook(notebookId, taken) }.onSuccess { adopt(it) }
-    }
-  }
-
-  /**
    * Takes on the id the repository moved the file to.
+   *
+   * Reached only through `WorkspaceChange.Renamed`: renames ask the workspace layer - the tab
+   * strip's `docmanager:rename` equivalent and the browser's row alike - so they arrive here as
+   * change events, `Context._onFileChanged` style, and never through a method on this screen.
    *
    * `Context._updatePath`: the document did not change, only where it lives - so the id is
    * reassigned in place and everything the editor holds carries on.
@@ -331,24 +274,17 @@ class EditorViewModel(
   }
 
   /**
-   * `docmanager:save`, run on the way out: the owed write is made first and the screen is let go
-   * only if it left nothing dirty - a failed save keeps the document open rather than following
-   * it off screen, which is what the reference's `saveBeforeClose` does on the same failure.
+   * `docmanager:save`, run on the way out - the screen's close gate and the tab strip's both.
+   * Delegated to [document] so the two callers share the one flush-and-check rather than keeping
+   * a copy each.
    */
-  fun saveNow(onSaved: () -> Unit) {
-    viewModelScope.launch {
-      save.flush()
-      if (!_uiState.value.dirty) onSaved()
-    }
-  }
+  fun saveNow(onSaved: () -> Unit) = document.saveNow(onSaved)
 
   /**
    * The close dialog's Discard: owed work is dropped - `SaveHandler.dispose()` clears its timer
    * and writes nothing, so the close that follows must not flush it back.
    */
-  fun discardChanges() {
-    save.discard()
-  }
+  fun discardChanges() = document.discardChanges()
 
   public override fun onCleared() {
     openDocuments.closed(document)

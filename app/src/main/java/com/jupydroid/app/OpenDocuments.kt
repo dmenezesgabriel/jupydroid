@@ -3,9 +3,10 @@ package com.jupydroid.app
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateListOf
 import com.jupydroid.app.domain.model.TextEdit
+import kotlinx.coroutines.flow.StateFlow
 
 /**
- * A document a screen is showing, addressed the way a replace has to address it.
+ * A document a screen is showing, addressed the way a replace or a **close** has to address it.
  *
  * `ITextModelService`'s side of the seam: `BulkTextEdits` resolves a text model for **every**
  * resource it is about to edit, open or not (`bulkTextEdits.ts:227`), edits the models, and only
@@ -19,6 +20,13 @@ import com.jupydroid.app.domain.model.TextEdit
  * the same index `MatchedLine.cell` carries, and for the same reason it carries an index rather
  * than an id (see `MatchedLine`).
  *
+ * **The close half is the tab strip's** (P8e): a tab's dirty dot and `saveBeforeClose` have to
+ * reach a document whose screen may not even be composed - a tab beneath the top is out of
+ * composition while its ViewModel lives on, which is exactly what this registry already exists
+ * for. `dirty` is a [StateFlow] because the dot has to *follow* the save, and [saveNow]'s callback
+ * is the flush's own continuation - `context.save()` rejecting keeps the widget open
+ * (`widgetmanager.ts:353-365`), so the caller only learns of the close that may proceed.
+ *
  * Implemented by the ViewModels themselves rather than by an adapter around them: [path] has to be
  * read **live**, because a rename moves the file while the document carries on, and the ViewModel
  * is what learns of that (`Context._updatePath`).
@@ -26,6 +34,25 @@ import com.jupydroid.app.domain.model.TextEdit
 interface OpenDocument {
   /** Where this document lives **now** - see the interface docstring for why that word matters. */
   val path: String
+
+  /**
+   * Where it was opened - the path the *navigation key* still carries, immutable. A tab's key
+   * keeps it while [path] moves under a rename, so this is how the strip finds the document its
+   * key opened - the inverse of [OpenDocuments.at]'s lookup by live path.
+   */
+  val openedAs: String
+
+  /** Whether the document owes a write - `model.dirty`, live so a tab's dot follows the save. */
+  val dirty: StateFlow<Boolean>
+
+  /**
+   * `docmanager:save` on the way out: the owed write is made first and [onSaved] runs only if it
+   * left nothing dirty - a failed save keeps the document open, as `saveBeforeClose`'s does.
+   */
+  fun saveNow(onSaved: () -> Unit)
+
+  /** The close dialog's Discard - `SaveHandler.dispose()`: owed work dropped, nothing writes again. */
+  fun discardChanges()
 
   /** The text of the resource [cell] names, or null when this document has no such resource. */
   fun sourceOf(cell: Int?): String?
@@ -63,6 +90,13 @@ class OpenDocuments {
 
   /** The document open on [path], or null when nothing is - then the engine reads the file. */
   fun at(path: String): OpenDocument? = documents.firstOrNull { it.path == path }
+
+  /**
+   * The document opened under [path] - the *original* path, not the live one. A tab's key knows
+   * only where its document started, so this is the lookup that survives the document's own
+   * rename - including one that landed while its screen was out of composition.
+   */
+  fun openedUnder(path: String): OpenDocument? = documents.firstOrNull { it.openedAs == path }
 
   /**
    * A screen's document is ready. Registered **by identity**: a ViewModel is created once per

@@ -3,8 +3,14 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.withEditsApplied
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * This notebook seen as the document a **workspace** replace edits, rather than as the screen it is.
@@ -26,11 +32,38 @@ import kotlinx.coroutines.flow.update
  * ```
  */
 class NotebookDocument(
+  private val scope: CoroutineScope,
   private val uiState: MutableStateFlow<EditorUiState>,
   private val save: DocumentAutosave,
   private val notebookId: () -> String,
+  /** The id the editor opened under - unlike [path], it stays put through a rename. */
+  override val openedAs: String,
 ) : OpenDocument {
   override val path: String get() = notebookId()
+
+  /** Live, because the tab strip's dot has to follow the save rather than a snapshot of it. */
+  override val dirty: StateFlow<Boolean> =
+    uiState.map { it.dirty }.stateIn(scope, SharingStarted.Eagerly, initialValue = false)
+
+  /**
+   * `docmanager:save`, run on the way out: the owed write is made first and the close proceeds
+   * only if it left nothing dirty - a failed save keeps the document open rather than following
+   * it off screen, which is what the reference's `saveBeforeClose` does on the same failure.
+   */
+  override fun saveNow(onSaved: () -> Unit) {
+    scope.launch {
+      save.flush()
+      if (!uiState.value.dirty) onSaved()
+    }
+  }
+
+  /**
+   * The close dialog's Discard: owed work is dropped - `SaveHandler.dispose()` clears its timer
+   * and writes nothing, so the close that follows must not flush it back.
+   */
+  override fun discardChanges() {
+    save.discard()
+  }
 
   /**
    * One cell's source - a notebook's resources are its **cells**, and the notebook itself is not one.

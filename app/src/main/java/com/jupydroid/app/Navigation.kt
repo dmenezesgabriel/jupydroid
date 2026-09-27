@@ -10,10 +10,10 @@ import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneSt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -27,7 +27,6 @@ import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.MatchedLine
-import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.console.ConsoleScreen
@@ -39,64 +38,10 @@ import com.jupydroid.app.ui.launcher.LauncherScreen
 import com.jupydroid.app.ui.launcher.LauncherViewModel
 import com.jupydroid.app.ui.settings.SettingsScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
+import com.jupydroid.app.ui.shell.TabbedDocumentPane
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
-import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
-
-/**
- * Opening a document, wherever it was opened from: the right editor, and a line in Recents.
- *
- * **One opener rather than one per screen.** Home knew which of its rows was a notebook and the
- * explorer worked it out from the suffix, so the same rule lived in two places and only one of
- * them could record a recent. The reference has a single `docmanager:open` for the same reason -
- * the path decides the factory, and recents are recorded once, from the widget manager's
- * `activate-request` hook (`packages/docmanager/src/widgetmanager.ts:268-285`).
- *
- * A `.ipynb` goes to the notebook editor and anything else to the plain one, which is the
- * reference's own split: the notebook factory claims its extension and the file editor is the
- * default for the rest (`packages/fileeditor`).
- *
- * Recorded on [AppContainer.applicationScope], not on a screen's: the write must finish even if
- * the tap that caused it is the last thing that screen does.
- */
-@Composable
-private fun rememberDocumentOpener(backStack: MutableList<NavKey>, appContainer: AppContainer): (String) -> Unit =
-  remember(backStack, appContainer) {
-    { path ->
-      if (path.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
-        backStack.openNotebook(path)
-      } else {
-        backStack.openFile(path)
-      }
-      appContainer.applicationScope.launch { appContainer.recentDocuments.recordOpening(path) }
-    }
-  }
-
-/**
- * `terminal:create-new`, adapted: the reference reaches it from the Launcher tab or the File
- * menu, and this app has neither until `docs/PLAN.md`'s P6d gives it one. So this is the
- * explorer's own provisional reach point - a second icon beside the New notebook/file/folder
- * menu rather than a fourth item inside it, since that menu's own KDoc already states parity
- * with the reference's New widget (exactly three, none of them a terminal).
- *
- * A separate `rememberCoroutineScope` rather than [AppContainer.applicationScope]: opening a
- * terminal only matters while this screen exists to navigate away from, which is
- * `architecture.md`'s own line for what belongs on which scope - unlike recording a recent or
- * flushing an edit, nothing here has to outlive the composition that asked for it.
- */
-@Composable
-private fun rememberNewTerminal(backStack: MutableList<NavKey>, appContainer: AppContainer): (String) -> Unit {
-  val scope = rememberCoroutineScope()
-  return remember(backStack, appContainer, scope) {
-    { cwd ->
-      scope.launch {
-        val session = appContainer.terminalGateway.open(cwd.ifEmpty { null })
-        backStack.openTerminal(session.name)
-      }
-    }
-  }
-}
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -136,16 +81,46 @@ fun MainNavigation(
   // Saved rather than remembered, because a rotation is what most often brings the rail into range
   // in the first place, and `SidePanel?` round-trips through a Bundle unaided.
   var sidePanel by rememberSaveable { mutableStateOf<SidePanel?>(SidePanel.FILES) }
-  // Where each open notebook lives *now*, per entry. A navigation key keeps the path it was opened
+  // Where each open document lives *now*, per entry. A navigation key keeps the path it was opened
   // under, because replacing it would re-create the entry and discard the editor's state; a rename
   // is reported here instead, keyed by the entry's own key since many editors are open at once
   // (P8d). `_contextsForPath` does the same - it filters live contexts by their current path, never
-  // by the one a widget was created with.
-  val openNotebookPaths = remember { mutableStateMapOf<Editor, String>() }
+  // by the one a widget was created with. FileEditor keys join Editor's since P8e: the tab strip
+  // reads live paths for titles and dirty lookups.
+  val openDocumentPaths = remember { mutableStateMapOf<NavKey, String>() }
+  // The strip's tab order - **opening order**, not the stack's. The stack promotes an activated
+  // entry to its top because that is what the scene draws, but `activateById` never moves a tab:
+  // this list keeps the order the row is drawn in, reconciled against the stack each pass (closed
+  // entries drop out, new ones join at the end) - see `orderedAsOpened`.
+  val openTabOrder = remember { mutableStateListOf<NavKey>() }
+  val orderedTabs = backStack.mainAreaTabs().orderedAsOpened(openTabOrder)
+  LaunchedEffect(orderedTabs) {
+    openTabOrder.clear()
+    openTabOrder.addAll(orderedTabs)
+  }
+  // What a tab's label is *now* where the key's own title is not live: a terminal's shell reports
+  // its OSC title (`widget.ts:486-488` sends it to `title.label`, which is the tab), so the
+  // screen writes it here and the strip reads it ahead of the key's static "Terminal N". Keys a
+  // closed tab left behind drop out with the same reconcile that keeps the order honest.
+  val liveTabTitles = remember { mutableStateMapOf<NavKey, String>() }
+  LaunchedEffect(orderedTabs) { liveTabTitles.keys.retainAll(orderedTabs.toSet()) }
+  // One strip for the six detail entries, so an entry states its screen and nothing else - the
+  // strip's model is the stack and these four holders, identical for all six.
+  val tabbedPane: @Composable (@Composable () -> Unit) -> Unit = { content ->
+    TabbedDocumentPane(
+      backStack,
+      openDocuments,
+      openDocumentPaths,
+      orderedTabs,
+      liveTabTitles,
+      appContainer.workspaceRepository,
+      content,
+    )
+  }
   // The session `NotebookKernel.attachConsole()` minted for whichever notebook's Console was last
   // opened - `outline`/`debugPanel`/`openDocuments`' own shape, the side channel a live object
   // needs to flow between two `NavEntry`s that own separate `ViewModelStore`s. Plain `remember`,
-  // not saveable, for `openNotebookPaths`' own reason: a `NotebookKernelSession` cannot survive a
+  // not saveable, for `openDocumentPaths`' own reason: a `NotebookKernelSession` cannot survive a
   // process death any more than an `EditorViewModel`'s own kernel connection can, so there is
   // nothing this could round-trip through a Bundle. A Console entry restored without one composes
   // no screen - the same silent gap every other holder here already leaves unaddressed rather than
@@ -192,12 +167,11 @@ fun MainNavigation(
   var revealRequest by remember { mutableStateOf<MatchedLine?>(null) }
   // Which row the pane beside the browser belongs to, and **only while there is a pane beside it**.
   // In one window the browser is on screen exactly when nothing is open, so a marked row would
-  // point at a pane that is not there. The notebook's path comes from `openNotebookPaths` rather
+  // point at a pane that is not there. The document's path comes from `openDocumentPaths` rather
   // than from the key, because a rename moves the file and the key keeps the path it was opened
   // under - and now that several editors can sit in the stack, each reports its own.
   val openDocumentPath = when (val top = backStack.lastOrNull()) {
-    is Editor -> openNotebookPaths[top] ?: top.notebookId
-    is FileEditor -> top.path
+    is Editor, is FileEditor -> top.liveDocumentPath(openDocumentPaths)
     else -> null
   }.takeIf { twoPane }
   // The scene strategy measures the window for itself, so a caller that was *told* how many panes
@@ -377,110 +351,126 @@ fun MainNavigation(
           )
         }
         entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
-          SettingsScreen(
-            editorSettingsRepository = appContainer.editorSettings,
-            themeSettingsRepository = appContainer.themeSettings,
-            applicationScope = appContainer.applicationScope,
-            onBack = { backStack.removeLastOrNull() },
-            // The one width fact this screen reads, and it decides one thing: whether leaving it
-            // is drawn as going back or as closing it (`DocumentDismissAction`).
-            twoPane = twoPane,
-          )
+          tabbedPane {
+            SettingsScreen(
+              editorSettingsRepository = appContainer.editorSettings,
+              themeSettingsRepository = appContainer.themeSettings,
+              applicationScope = appContainer.applicationScope,
+              onBack = { backStack.removeLastOrNull() },
+              // The one width fact this screen reads, and it decides one thing: whether leaving it
+              // is drawn as going back or as closing it (`DocumentDismissAction`).
+              twoPane = twoPane,
+            )
+          }
         }
         entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
-          FileEditorScreen(
-            path = file.path,
-            workspaceRepository = appContainer.workspaceRepository,
-            applicationScope = appContainer.applicationScope,
-            editorSettingsRepository = appContainer.editorSettings,
-            onBack = { backStack.removeLastOrNull() },
-            // The one width fact this screen reads, and it decides one thing: whether leaving the
-            // document is drawn as going back or as closing it (`DocumentDismissAction`).
-            twoPane = twoPane,
-            onGoToFolder = goToFolder,
-            reveal = revealRequest,
-            onRevealHandled = { revealRequest = null },
-            openDocuments = openDocuments,
-          )
+          tabbedPane {
+            FileEditorScreen(
+              path = file.path,
+              workspaceRepository = appContainer.workspaceRepository,
+              applicationScope = appContainer.applicationScope,
+              editorSettingsRepository = appContainer.editorSettings,
+              onBack = { backStack.removeLastOrNull() },
+              // The one width fact this screen reads, and it decides one thing: whether leaving the
+              // document is drawn as going back or as closing it (`DocumentDismissAction`).
+              twoPane = twoPane,
+              onGoToFolder = goToFolder,
+              onFileMoved = { moved -> openDocumentPaths[file] = moved },
+              reveal = revealRequest,
+              onRevealHandled = { revealRequest = null },
+              openDocuments = openDocuments,
+            )
+          }
         }
         entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->
-          EditorScreen(
-            notebookId = editor.notebookId,
-            notebookRepository = appContainer.notebookRepository,
-            workspaceRepository = appContainer.workspaceRepository,
-            kernelGateway = appContainer.kernelGateway,
-            kernelDebugger = appContainer.kernelDebugger,
-            languageServer = appContainer.languageServer,
-            notebookExporter = appContainer.notebookExporter,
-            documentSharer = appContainer.documentSharer,
-            applicationScope = appContainer.applicationScope,
-            activeCellRuns = appContainer.activeCellRuns,
-            notebookBreakpoints = appContainer.notebookBreakpoints,
-            editorSettingsRepository = appContainer.editorSettings,
-            outline = outline,
-            // `toc:show-panel` where there is a side area to activate, and null where there is not -
-            // which is what puts the overlay up on a compact window instead.
-            onShowTableOfContents = { sidePanel = SidePanel.TABLE_OF_CONTENTS }.takeIf { twoPane },
-            debugPanel = debugPanel,
-            onShowDebugger = { sidePanel = SidePanel.DEBUGGER }.takeIf { twoPane },
-            onGoToFolder = goToFolder,
-            onBack = { backStack.removeLastOrNull() },
-            // The one width fact this screen reads, and it decides one thing: whether leaving the
-            // document is drawn as going back or as closing it (`DocumentDismissAction`).
-            twoPane = twoPane,
-            onOpenConsole = { session ->
-              consoleSession = session
-              backStack.openConsole(editor.notebookId)
-            },
-            onNotebookMoved = { moved -> openNotebookPaths[editor] = moved },
-            // The same request the file editor takes, because the panel does not know - and should
-            // not - which of the two a path opens: `docmanager:open` decides the editor from the
-            // path alone, and the match travels beside it either way.
-            reveal = revealRequest,
-            onRevealHandled = { revealRequest = null },
-            openDocuments = openDocuments,
-          )
+          tabbedPane {
+            EditorScreen(
+              notebookId = editor.notebookId,
+              notebookRepository = appContainer.notebookRepository,
+              workspaceRepository = appContainer.workspaceRepository,
+              kernelGateway = appContainer.kernelGateway,
+              kernelDebugger = appContainer.kernelDebugger,
+              languageServer = appContainer.languageServer,
+              notebookExporter = appContainer.notebookExporter,
+              documentSharer = appContainer.documentSharer,
+              applicationScope = appContainer.applicationScope,
+              activeCellRuns = appContainer.activeCellRuns,
+              notebookBreakpoints = appContainer.notebookBreakpoints,
+              editorSettingsRepository = appContainer.editorSettings,
+              outline = outline,
+              // `toc:show-panel` where there is a side area to activate, and null where there is not -
+              // which is what puts the overlay up on a compact window instead.
+              onShowTableOfContents = { sidePanel = SidePanel.TABLE_OF_CONTENTS }.takeIf { twoPane },
+              debugPanel = debugPanel,
+              onShowDebugger = { sidePanel = SidePanel.DEBUGGER }.takeIf { twoPane },
+              onGoToFolder = goToFolder,
+              onBack = { backStack.removeLastOrNull() },
+              // The one width fact this screen reads, and it decides one thing: whether leaving the
+              // document is drawn as going back or as closing it (`DocumentDismissAction`).
+              twoPane = twoPane,
+              onOpenConsole = { session ->
+                consoleSession = session
+                backStack.openConsole(editor.notebookId)
+              },
+              onNotebookMoved = { moved -> openDocumentPaths[editor] = moved },
+              // The same request the file editor takes, because the panel does not know - and should
+              // not - which of the two a path opens: `docmanager:open` decides the editor from the
+              // path alone, and the match travels beside it either way.
+              reveal = revealRequest,
+              onRevealHandled = { revealRequest = null },
+              openDocuments = openDocuments,
+            )
+          }
         }
         entry<Terminal>(metadata = ListDetailSceneStrategy.detailPane()) { terminal ->
-          TerminalPaneScreen(
-            session = TerminalSession(terminal.name),
-            terminalGateway = appContainer.terminalGateway,
-            onBack = { backStack.removeLastOrNull() },
-            // The one width fact this screen reads, and it decides one thing: whether leaving the
-            // shell is drawn as going back or as closing it (`DocumentDismissAction`).
-            twoPane = twoPane,
-            terminalSettingsRepository = appContainer.terminalSettings,
-          )
+          tabbedPane {
+            TerminalPaneScreen(
+              session = TerminalSession(terminal.name),
+              terminalGateway = appContainer.terminalGateway,
+              // `term.onTitleChange` → `title.label` - the tab, so the strip's map is what hears it.
+              onTitleChanged = { title ->
+                if (title == null) liveTabTitles.remove(terminal) else liveTabTitles[terminal] = title
+              },
+              onBack = { backStack.removeLastOrNull() },
+              // The one width fact this screen reads, and it decides one thing: whether leaving the
+              // shell is drawn as going back or as closing it (`DocumentDismissAction`).
+              twoPane = twoPane,
+              terminalSettingsRepository = appContainer.terminalSettings,
+            )
+          }
         }
         entry<Launcher>(metadata = ListDetailSceneStrategy.detailPane()) {
-          LauncherScreen(
-            cwd = browsedDirectory,
-            viewModel = viewModel {
-              LauncherViewModel(
-                appContainer.notebookRepository,
-                appContainer.workspaceRepository,
-                appContainer.terminalGateway,
-                appContainer.kernelGateway,
-                consoleOrdinal = { consoleOrdinal.incrementAndGet() },
-              )
-            },
-            onLaunched = openLaunched,
-            onBack = launcherDismiss(backStack, twoPane),
-            twoPane = twoPane,
-          )
+          tabbedPane {
+            LauncherScreen(
+              cwd = browsedDirectory,
+              viewModel = viewModel {
+                LauncherViewModel(
+                  appContainer.notebookRepository,
+                  appContainer.workspaceRepository,
+                  appContainer.terminalGateway,
+                  appContainer.kernelGateway,
+                  consoleOrdinal = { consoleOrdinal.incrementAndGet() },
+                )
+              },
+              onLaunched = openLaunched,
+              onBack = launcherDismiss(backStack, twoPane),
+              twoPane = twoPane,
+            )
+          }
         }
         entry<Console>(metadata = ListDetailSceneStrategy.detailPane()) { console ->
-          // Null only when this entry was restored without the live session that opened it - see
-          // `consoleSession`'s own doc comment; there is nothing to compose against in that case.
-          consoleSession?.let { session ->
-            ConsoleScreen(
-              title = console.title,
-              backDescription = if (console.standalone) "Back to files" else "Back to notebook",
-              viewModel = viewModel { ConsoleViewModel(appContainer.kernelGateway, session) },
-              onBack = { backStack.removeLastOrNull() },
-              twoPane = twoPane,
-              editorSettingsRepository = appContainer.editorSettings,
-            )
+          tabbedPane {
+            // Null only when this entry was restored without the live session that opened it - see
+            // `consoleSession`'s own doc comment; there is nothing to compose against in that case.
+            consoleSession?.let { session ->
+              ConsoleScreen(
+                backDescription = if (console.standalone) "Back to files" else "Back to notebook",
+                viewModel = viewModel { ConsoleViewModel(appContainer.kernelGateway, session) },
+                onBack = { backStack.removeLastOrNull() },
+                twoPane = twoPane,
+                editorSettingsRepository = appContainer.editorSettings,
+              )
+            }
           }
         }
       },

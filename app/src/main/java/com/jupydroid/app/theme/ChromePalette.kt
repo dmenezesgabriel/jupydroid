@@ -86,4 +86,37 @@ data class ChromePalette(
    * P7a-1b had to undo a fold: two ids on one field cannot follow a theme that parts them.
    */
   val sideBarBorder: Color,
+  /**
+   * Behind the main area's tab strip - `editorGroupHeader.tabsBackground`.
+   *
+   * The same hex as [activityBarBackground] in both default themes and stated separately anyway:
+   * the strip is a different part, and a theme may draw it a step down from the bar.
+   */
+  val tabStripBackground: Color,
+  /**
+   * The strip's own bottom edge - `editorGroupHeader.tabsBorder`, the border separating the strip
+   * from the editor group below it. Equal to [sideBarBorder] in both default themes.
+   */
+  val tabStripBorder: Color,
+  /**
+   * Behind the tab whose document is on screen - `tab.activeBackground`, which both default
+   * themes state as the editor's own background so the current tab reads as part of the page
+   * (JupyterLab does the same: `lm-mod-current` wears `--jp-layout-color1`, the main area's own).
+   */
+  val tabActiveBackground: Color,
+  /**
+   * Behind every tab but the current one - `tab.inactiveBackground`. Equal to
+   * [tabStripBackground] in both default themes, two ids.
+   */
+  val tabInactiveBackground: Color,
+  /**
+   * The 2px line across the top of the current tab - `tab.activeBorderTop`. 2026 Light states it
+   * **black**, the theme's own answer for marking the active tab against a white page.
+   */
+  val tabActiveBorderTop: Color,
+  /**
+   * Between one tab and the next - `tab.border`. Equal to [tabStripBorder] in both default themes,
+   * a different id, the rule [activityBarBorder]'s own note already records.
+   */
+  val tabBorder: Color,
 )

@@ -230,7 +230,7 @@ class ExplorerViewModel(
    * The split between the two refusals is the reference's: only a taken name becomes
    * `"%1" already exists, overwrite?`, everything else rethrows (`renameFile`,
    * `docmanager/src/dialogs.ts`). The name comes from the caller rather than out of the
-   * exception, the way `EditorViewModel.applyRename` keeps the title it asked for.
+   * exception, the way the tab strip's `TakenTabName` keeps the name it asked for.
    */
   private fun move(from: String, name: String, moving: suspend () -> String) {
     renamingPath = from

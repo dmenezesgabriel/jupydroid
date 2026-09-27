@@ -1,6 +1,7 @@
 package com.jupydroid.app
 
 import com.jupydroid.app.domain.model.TextEdit
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -18,6 +19,14 @@ class OpenDocumentsTest {
   private class FakeOpenDocument(override var path: String, private var text: String) : OpenDocument {
     var applied: List<TextEdit> = emptyList()
       private set
+
+    /** Nothing renames a fake: what it opened under is where it still lives. */
+    override val openedAs: String = path
+
+    // The strip's half of the contract - never asked of a document in this suite.
+    override val dirty = MutableStateFlow(false)
+    override fun saveNow(onSaved: () -> Unit) = onSaved()
+    override fun discardChanges() = Unit
 
     override fun sourceOf(cell: Int?): String? = text.takeIf { cell == null }
 

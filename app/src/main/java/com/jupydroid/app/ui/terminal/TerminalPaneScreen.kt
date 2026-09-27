@@ -16,7 +16,6 @@ import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -95,6 +94,13 @@ fun TerminalPaneScreen(
   // Read here, not inside the factory lambda below - `isSystemInDarkTheme` is itself composable
   // and the factory runs once, outside recomposition, the way `viewModel {}` always does.
   darkTheme: Boolean = isSystemInDarkTheme(),
+  /**
+   * The shell's OSC title, reported up to the tab that carries it - `term.onTitleChange` sets
+   * `this.title.label` in the reference (`packages/terminal/src/widget.ts:486-488`), and the
+   * label is the tab's, not a panel row's. Null means "no title set" and the caller falls back
+   * to "Terminal N".
+   */
+  onTitleChanged: (String?) -> Unit = {},
   viewModel: TerminalPaneViewModel = viewModel {
     val palette = if (darkTheme) TerminalPalette.VS_CODE_DARK else TerminalPalette.VS_CODE_LIGHT
     TerminalPaneViewModel(session, terminalGateway, terminalSettingsRepository, palette = palette)
@@ -102,6 +108,9 @@ fun TerminalPaneScreen(
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   KeepTheShellAttached(viewModel)
+  // `term.onTitleChange` → `title.label` (`packages/terminal/src/widget.ts:486-488`): the OSC title
+  // is a *tab* fact, reported up every time it lands rather than drawn on a panel row the tab took.
+  LaunchedEffect(state.title) { onTitleChanged(state.title) }
   // The one style [TerminalCanvas]'s glyphs and [terminalCellMetrics]'s own measurement share -
   // `docs/PLAN.md`'s P4j-3c - resolved once here rather than inside `TerminalCanvas`, which no
   // longer reads the setting itself.
@@ -122,7 +131,6 @@ fun TerminalPaneScreen(
     containerColor = editorPalette.editorBackground,
     topBar = {
       TerminalBar(
-        title = state.title,
         onBack = onBack,
         fontSizeSp = state.fontSizeSp,
         onIncreaseFontSize = { viewModel.changeFontSize(TerminalFontSize.STEP) },
@@ -203,7 +211,6 @@ fun TerminalPaneScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalBar(
-  title: String?,
   onBack: () -> Unit,
   fontSizeSp: Int,
   onIncreaseFontSize: () -> Unit,
@@ -215,7 +222,9 @@ fun TerminalBar(
   twoPane: Boolean = false,
 ) {
   TopAppBar(
-    title = { Text(title ?: "Terminal") },
+    // The tab above names it, and the OSC title goes there too - `onTitleChange` sets
+    // `this.title.label`, which is the tab's (`packages/terminal/src/widget.ts:486-488`).
+    title = {},
     navigationIcon = {
       // Beside a browser this is a *close*, and one home decides that for all three bars. The
       // label stays "Back" below two panes: a terminal is not a file, so there is no folder to

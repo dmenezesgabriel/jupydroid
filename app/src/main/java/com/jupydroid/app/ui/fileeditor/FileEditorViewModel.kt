@@ -20,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -97,6 +98,13 @@ class FileEditorViewModel(
 
   /** Where this document lives now - read live by [OpenDocuments], so a rename moves it. */
   override val path: String get() = this.filePath
+
+  /** The path the editor opened under - [filePath]'s first value, kept so a rename cannot hide it. */
+  override val openedAs: String = filePath
+
+  /** Live, because the tab strip's dot has to follow the save rather than a snapshot of it. */
+  override val dirty: StateFlow<Boolean> =
+    _uiState.map { it.dirty }.stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = false)
 
   private val settings = editorSettings.observeSettings()
     .stateIn(viewModelScope, SharingStarted.Eagerly, EditorSettings())
@@ -186,7 +194,7 @@ class FileEditorViewModel(
    * only if it left nothing dirty - a failed save keeps the document open, as the reference's
    * `saveBeforeClose` keeps its widget open on the same failure.
    */
-  fun saveNow(onSaved: () -> Unit) {
+  override fun saveNow(onSaved: () -> Unit) {
     viewModelScope.launch {
       save.flush()
       if (!_uiState.value.dirty) onSaved()
@@ -197,7 +205,7 @@ class FileEditorViewModel(
    * The close dialog's Discard: owed work is dropped - `SaveHandler.dispose()` clears its timer
    * and writes nothing, so the close that follows must not flush it back.
    */
-  fun discardChanges() {
+  override fun discardChanges() {
     save.discard()
   }
 

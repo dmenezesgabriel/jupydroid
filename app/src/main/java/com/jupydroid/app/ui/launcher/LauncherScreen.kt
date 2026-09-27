@@ -118,7 +118,8 @@ fun LauncherScreen(
     containerColor = editorPalette.editorBackground,
     topBar = {
       TopAppBar(
-        title = { Text("Launcher") },
+        // The tab above names it already - `title.label` is the strip's, not the panel's.
+        title = {},
         navigationIcon = {
           onBack?.let { dismiss ->
             DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = dismiss)

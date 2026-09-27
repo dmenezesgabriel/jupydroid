@@ -144,7 +144,7 @@ fun List<NavKey>.launcherIsClosable(): Boolean = count { it.isDocument() } > 1
  * beside its new twin, and equal keys share `contentKey` - one `ViewModelStore` between two
  * entries, the P6b-0 defect this has guarded since it was `lastOrNull() == document` alone.
  */
-private fun MutableList<NavKey>.openInMainArea(document: NavKey) {
+internal fun MutableList<NavKey>.openInMainArea(document: NavKey) {
   if (lastOrNull() == document) return
   remove(document)
   add(document)
@@ -153,9 +153,10 @@ private fun MutableList<NavKey>.openInMainArea(document: NavKey) {
 /**
  * Which kinds occupy the main area - the entries `mainAreaIsEmpty` and `launcherIsClosable` count
  * and a surface's Back can reveal. Special-casing kinds is only true until the next main-area
- * widget opens; when it does, add it here.
+ * widget opens; when it does, add it here. `internal` because the tab projection in
+ * `MainAreaTabs.kt` filters on the same roll.
  */
-private fun Any?.isDocument(): Boolean = this is Editor ||
+internal fun Any?.isDocument(): Boolean = this is Editor ||
   this is FileEditor ||
   this is Terminal ||
   this is Console ||

@@ -50,14 +50,6 @@ data class EditorUiState(
    */
   val saveFailure: String? = null,
   /**
-   * The name a rename asked for and could not have, or null when nothing is pending.
-   *
-   * Non-null puts the reference's question on screen - `"%1" already exists, overwrite?` - and it
-   * is set **only** for a name already taken. `renameFile` rethrows anything that is not a 409,
-   * so an invalid name is never offered an overwrite; it is simply not a name.
-   */
-  val nameTaken: String? = null,
-  /**
    * The file behind this notebook was deleted, so the screen showing it should close.
    *
    * `DocumentManager.deleteFile` closes every widget open on the path (`manager.ts:351-363`).

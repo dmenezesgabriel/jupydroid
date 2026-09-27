@@ -121,13 +121,18 @@ class EditorViewModelOpenDocumentTest {
     assertNull(open.at("nb-1"))
   }
 
-  /** The path is read live, so a rename moves the document - `Context._updatePath`. */
+  /**
+   * The path is read live, so a rename moves the document - `Context._updatePath`. The rename
+   * arrives the way a tab's or the browser's does: announced by the contents layer, not called
+   * on the screen.
+   */
   @Test
   fun aRenamedNotebookIsReachedByWhereItLivesNow() = runTest {
+    val workspace = AnnouncingWorkspaceRepository()
     val open = OpenDocuments()
-    val viewModel = loadedEditor(cells = cells, openDocuments = open)
+    val viewModel = loadedEditor(cells = cells, workspace = workspace, openDocuments = open)
 
-    viewModel.renameNotebook("Renamed")
+    workspace.announce("nb-1", "Renamed")
     advanceUntilIdle()
 
     assertNull(open.at("nb-1"))

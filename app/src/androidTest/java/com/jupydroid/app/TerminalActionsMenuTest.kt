@@ -112,7 +112,6 @@ class TerminalActionsMenuTest {
     compose.setContent {
       JupyterDroidTheme {
         TerminalBar(
-          title = "Terminal 1",
           onBack = {},
           fontSizeSp = fontSizeSp,
           onIncreaseFontSize = { increases++ },

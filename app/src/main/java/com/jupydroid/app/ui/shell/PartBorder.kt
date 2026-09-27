@@ -5,6 +5,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
@@ -42,6 +43,23 @@ internal fun Modifier.trailingBorder(colour: Color): Modifier = drawWithContent 
   val thickness = STROKE_THICKNESS.toPx()
   val left = if (layoutDirection == LayoutDirection.Rtl) 0f else size.width - thickness
   drawRect(colour, topLeft = Offset(left, 0f), size = Size(thickness, size.height))
+}
+
+/** [trailingBorder] for a part's bottom edge - `editorGroupHeader.tabsBorder`, the strip's own. */
+internal fun Modifier.bottomBorder(colour: Color): Modifier = drawWithContent {
+  drawContent()
+  val thickness = STROKE_THICKNESS.toPx()
+  drawRect(colour, topLeft = Offset(0f, size.height - thickness), size = Size(size.width, thickness))
+}
+
+/**
+ * [trailingBorder] for the line across the top of the current tab - `tab.activeBorderTop`,
+ * which JupyterLab draws as the same inset brand line (`tabs.css`'s `jp-mod-current::before`).
+ */
+internal fun Modifier.topBorder(colour: Color, thickness: Dp = STROKE_THICKNESS): Modifier = drawWithContent {
+  drawContent()
+  val height = thickness.toPx()
+  drawRect(colour, topLeft = Offset.Zero, size = Size(size.width, height))
 }
 
 /**

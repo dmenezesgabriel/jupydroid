@@ -4642,6 +4642,33 @@ Two edges the re-derivation changed, both measured on the tablet
   and Back returns to the document — the pop that used to close it would now also strand a
   `browseRequest` on an entry that was never shown.
 
+### The strip owns the name and keeps opening order; activation never moves a tab (P8e)
+
+The tab bar is drawn over every detail entry at every width (`lm-DockPanel-tabBar`, rejected
+`single-document` per the P8d reading). Three properties are read out of the reference source
+and are not up for re-litigation:
+
+- **Order is opening order, not stack order.** `shell.activateById` sets `currentWidget` and
+  nothing else (`application/src/shell.ts`), so a click must not reorder the strip — the stack
+  promotes the entry because its top is what the scene draws, and `orderedAsOpened` reconciles
+  the visible order beside it. A tab-switcher UX that shuffles tabs on click is the bug this
+  exists to forbid.
+- **The name lives on the tab, and only there.** `docmanager:rename` binds to
+  `[data-type="document-title"]` — the widget title's dataset, which Lumino renders onto the
+  tab's own DOM node — so a document tab carries rename (long press, the touch context menu),
+  and no panel draws its own title row underneath the strip. The terminal's OSC title lands
+  there too (`terminal/src/widget.ts:487`, `title.label = name`), reported into the strip
+  through `liveTabTitles` rather than drawn in the pane.
+- **Close selects a sibling, not the browser.** `TabBar._onTabCloseRequested` activates the
+  next tab in bar order (else the last survivor) — the file browser is not a main-area widget
+  and is only revealed when no tab remains. Dirty close is `saveBeforeClose`'s
+  Save/Discard/Cancel verbatim (`docmanager/src/dialogs.ts:155`).
+
+`OpenDocument.openedAs` exists for the one lookup the live-path map cannot answer: a rename that
+lands while the document's screen is out of composition moves `OpenDocument.path` before the map
+learns of it, and the key's own open-time path is the address that survives
+(`_contextsForPath` matches on *current* path for the same reason).
+
 ### The running panel is JupyterLab's "Sessions and Tabs", at its own rank (P8f, planned)
 
 `running-extension` registers one left-area panel at **rank 200** (`index.ts:121`) — between File

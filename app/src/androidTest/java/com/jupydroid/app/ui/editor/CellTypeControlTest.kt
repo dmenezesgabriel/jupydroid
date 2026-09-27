@@ -132,10 +132,8 @@ class CellTypeControlTest {
         DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(NARROWEST_WITH_ROOM)) {
           androidx.compose.foundation.layout.Column {
             EditorTopBar(
-              title = "Intro to NumPy",
               canUndo = true,
               canRedo = true,
-              onRename = {},
               onUndo = {},
               onRedo = {},
               onBack = {},
@@ -178,10 +176,8 @@ class CellTypeControlTest {
       JupyterDroidTheme {
         DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(NARROWEST_WITH_ROOM)) {
           EditorTopBar(
-            title = "Intro to NumPy",
             canUndo = true,
             canRedo = true,
-            onRename = {},
             onUndo = {},
             onRedo = {},
             onBack = {},
@@ -209,10 +205,8 @@ class CellTypeControlTest {
       JupyterDroidTheme {
         DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
           EditorTopBar(
-            title = "Intro to NumPy",
             canUndo = true,
             canRedo = true,
-            onRename = {},
             onUndo = {},
             onRedo = {},
             onBack = {},
@@ -272,10 +266,8 @@ class CellTypeControlTest {
     compose.setContent {
       JupyterDroidTheme {
         EditorTopBar(
-          title = "Intro to NumPy",
           canUndo = true,
           canRedo = true,
-          onRename = {},
           onUndo = {},
           onRedo = {},
           onBack = {},

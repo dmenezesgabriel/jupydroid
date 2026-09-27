@@ -1,0 +1,1 @@
+p8e notes fixture - a plain text document the file editor opens.

@@ -90,18 +90,28 @@ class ConsoleScriptProbeTest {
    * device rather than in the tarball.
    */
   @Test
-  fun usrLocalBinIsEmptyAndFirstOnThePath() {
+  fun usrLocalBinHoldsOnlyTrampolineLinksAndIsFirstOnThePath() {
     val localBin = File(baseDir, "usr/local/bin")
-    assertEquals(
-      "usr/local/bin already holds files; a trampoline link would not be shadowing cleanly",
-      emptyList<String>(),
-      localBin.list()?.toList().orEmpty().filterNot { it == "true" },
-    )
+    // The image ships this directory empty (`evidence/p7e-2a-console-scripts`); the *installed*
+    // space fills it, by design - `ConsoleScripts.relink` links every `#!` script in `usr/bin`
+    // here, each a relative link to `bin/shebang-exec` (P7e-2c). What this asserts is therefore
+    // the installed truth the emptiness probe stood in for: every entry is that link, so nothing
+    // shadows a real binary and nothing else was written past the trampoline.
+    val entries = localBin.list()?.toList().orEmpty().filterNot { it == "true" }
+    val notTrampoline = entries.filterNot { name ->
+      val link = File(localBin, name).toPath()
+      Files.isSymbolicLink(link) && Files.readSymbolicLink(link).toString() == "../../../bin/shebang-exec"
+    }
+    assertEquals("usr/local/bin holds an entry that is not the trampoline link", emptyList<String>(), notTrampoline)
 
     val path = runInSpace(shell, "-c", "echo \$PATH").output.trim()
+    // `pkgs/bin` leads since P8b - user installs first - so the shadowing claim is the *order*:
+    // usr/local/bin ahead of the usr/bin scripts it shadows.
+    val entriesOrder = path.split(":")
     assertTrue(
-      "PATH does not start with usr/local/bin: $path",
-      path.startsWith(File(baseDir, "usr/local/bin").path + ":"),
+      "usr/local/bin does not precede usr/bin on PATH: $path",
+      entriesOrder.indexOf(File(baseDir, "usr/local/bin").path) in 0 until
+        entriesOrder.indexOf(File(baseDir, "usr/bin").path),
     )
   }
 

@@ -39,8 +39,8 @@ internal fun EditorTopBars(
   onBack: () -> Unit,
   /** Whether a browser sits beside the notebook, which decides how [onBack] is drawn. */
   twoPane: Boolean,
-  /** See [titleCollapseFraction] - the document's bar is the only one of the three with a title. */
-  titleCollapse: Float,
+  /** See [collapsibleRegionFraction] - the document's bar is the only one of the three with a region to collapse. */
+  collapsibleRegion: Float,
   /** A breadcrumb segment was tapped: browse that folder. See [EditorTopBar]. */
   onGoToFolder: (String) -> Unit,
   /** `notebook:create-console` (P6b-9) - see [notebookKernelCommands]. */
@@ -96,7 +96,7 @@ internal fun EditorTopBars(
       onHeadingSelected = onHeadingSelected,
       onBack = onBack,
       twoPane = twoPane,
-      titleCollapse = titleCollapse,
+      collapsibleRegion = collapsibleRegion,
       onGoToFolder = onGoToFolder,
       onOpenConsole = onOpenConsole,
     )
@@ -120,16 +120,13 @@ private fun DocumentTopBar(
   onBack: () -> Unit,
   /** Whether a browser sits beside the notebook, which decides how [onBack] is drawn. */
   twoPane: Boolean,
-  titleCollapse: Float,
+  collapsibleRegion: Float,
   onGoToFolder: (String) -> Unit,
   onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ) {
   EditorTopBar(
-    title = state.title,
-    dirty = state.dirty,
     canUndo = state.undoable.isNotEmpty(),
     canRedo = state.redoable.isNotEmpty(),
-    onRename = viewModel::renameNotebook,
     onUndo = viewModel.edits::undo,
     onRedo = viewModel.edits::redo,
     onBack = onBack,
@@ -143,8 +140,8 @@ private fun DocumentTopBar(
     tocNumbering = tocNumbering,
     onShowTableOfContentsPanel = onShowTableOfContents,
     onShowDebuggerPanel = onShowDebugger,
-    titleCollapse = titleCollapse,
-    // The document's own name is never a segment - it is on the row above. See [ancestorCrumbsFor].
+    collapsibleRegion = collapsibleRegion,
+    // The document's own name is never a segment - it is the tab's label. See [ancestorCrumbsFor].
     crumbs = ancestorCrumbsFor(state.notebookId, ROOT_LABEL),
     onGoToFolder = onGoToFolder,
     onFind = viewModel.search::start,

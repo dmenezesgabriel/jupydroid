@@ -35,6 +35,12 @@ class ChromePaletteTest {
     assertEquals(Color(0xFF2C2D2E), DarkChromePalette.listInactiveSelectionBackground)
     assertEquals(Color(0xFF2A2B2C), DarkChromePalette.activityBarBorder)
     assertEquals(Color(0xFF2A2B2C), DarkChromePalette.sideBarBorder)
+    assertEquals(Color(0xFF191A1B), DarkChromePalette.tabStripBackground)
+    assertEquals(Color(0xFF2A2B2C), DarkChromePalette.tabStripBorder)
+    assertEquals(Color(0xFF121314), DarkChromePalette.tabActiveBackground)
+    assertEquals(Color(0xFF191A1B), DarkChromePalette.tabInactiveBackground)
+    assertEquals(Color(0xFF3994BC), DarkChromePalette.tabActiveBorderTop)
+    assertEquals(Color(0xFF2A2B2C), DarkChromePalette.tabBorder)
   }
 
   @Test
@@ -45,6 +51,13 @@ class ChromePaletteTest {
     assertEquals(Color(0x99DADADA), LightChromePalette.listInactiveSelectionBackground)
     assertEquals(Color(0xFFF0F1F2), LightChromePalette.activityBarBorder)
     assertEquals(Color(0xFFF0F1F2), LightChromePalette.sideBarBorder)
+    assertEquals(Color(0xFFFAFAFD), LightChromePalette.tabStripBackground)
+    assertEquals(Color(0xFFF0F1F2), LightChromePalette.tabStripBorder)
+    assertEquals(Color(0xFFFFFFFF), LightChromePalette.tabActiveBackground)
+    assertEquals(Color(0xFFFAFAFD), LightChromePalette.tabInactiveBackground)
+    // Black on a white page is the light theme's own answer for the current tab's top line.
+    assertEquals(Color(0xFF000000), LightChromePalette.tabActiveBorderTop)
+    assertEquals(Color(0xFFF0F1F2), LightChromePalette.tabBorder)
   }
 
   /**
@@ -78,6 +91,21 @@ class ChromePaletteTest {
     assertNotEquals(LightChromePalette.activityBarBackground, LightChromePalette.activityBarBorder)
     assertNotEquals(LightChromePalette.sideBarBackground, LightChromePalette.sideBarBorder)
     assertNotEquals(LightEditorPalette.editorBackground, LightChromePalette.sideBarBorder)
+  }
+
+  /**
+   * **The current tab is the page, the others are the strip.** `tab.activeBackground` resolves to
+   * `editor.background` and `tab.inactiveBackground` to `editorGroupHeader.tabsBackground` in both
+   * default themes - the reference's own way of drawing "this document" vs "still open". JupyterLab
+   * states the same relation: `lm-mod-current` wears the main area's `--jp-layout-color1` while its
+   * siblings wear `--jp-layout-color2`.
+   */
+  @Test
+  fun theCurrentTabIsThePageAndTheInactiveOnesAreTheStrip() {
+    assertEquals(DarkEditorPalette.editorBackground, DarkChromePalette.tabActiveBackground)
+    assertEquals(DarkChromePalette.tabStripBackground, DarkChromePalette.tabInactiveBackground)
+    assertEquals(LightEditorPalette.editorBackground, LightChromePalette.tabActiveBackground)
+    assertEquals(LightChromePalette.tabStripBackground, LightChromePalette.tabInactiveBackground)
   }
 
   /**

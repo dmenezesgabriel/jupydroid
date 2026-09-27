@@ -3,6 +3,8 @@ package com.jupydroid.app.ui.shell
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.withEditsApplied
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * A document that is open, remembering what was applied to it and where.
@@ -15,6 +17,14 @@ import com.jupydroid.app.domain.model.withEditsApplied
 class RecordingOpenDocument(override val path: String, private var text: String?) : OpenDocument {
   var applied: List<Pair<Int?, List<TextEdit>>> = emptyList()
     private set
+
+  /** Nothing renames a recording document: what it opened under is where it still lives. */
+  override val openedAs: String = path
+
+  // The close half of the contract - a clean document: these tests never ask it to leave.
+  override val dirty: StateFlow<Boolean> = MutableStateFlow(false)
+  override fun saveNow(onSaved: () -> Unit) = onSaved()
+  override fun discardChanges() = Unit
 
   override fun sourceOf(cell: Int?): String? = text.takeIf { cell == null }
 

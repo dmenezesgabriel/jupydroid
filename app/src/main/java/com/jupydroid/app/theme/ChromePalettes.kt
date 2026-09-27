@@ -28,6 +28,15 @@ internal val DarkChromePalette = ChromePalette(
   // high-contrast theme gets one from the registry - so the theme file is what makes them real.
   activityBarBorder = Color(0xFF2A2B2C),
   sideBarBorder = Color(0xFF2A2B2C),
+  // The tab strip's six ids - `editorGroupHeader.tabsBackground`, `tab.inactiveBackground`,
+  // `tab.activeBackground`, `tab.activeBorderTop`, `editorGroupHeader.tabsBorder`, `tab.border` -
+  // resolved the same way this file's other ids are.
+  tabStripBackground = Color(0xFF191A1B),
+  tabStripBorder = Color(0xFF2A2B2C),
+  tabActiveBackground = Color(0xFF121314),
+  tabInactiveBackground = Color(0xFF191A1B),
+  tabActiveBorderTop = Color(0xFF3994BC),
+  tabBorder = Color(0xFF2A2B2C),
 )
 
 /** 2026 Light's parts. Both ids are `#FAFAFD` here, a step *down* from a white page. */
@@ -42,4 +51,12 @@ internal val LightChromePalette = ChromePalette(
   // Both border ids again, `#F0F1F2FF` here (`2026-light.json:85,93`).
   activityBarBorder = Color(0xFFF0F1F2),
   sideBarBorder = Color(0xFFF0F1F2),
+  // The same six ids as the dark half. `tab.activeBorderTop` is the one the light theme states
+  // **black** - its own answer for marking the active tab on a white page.
+  tabStripBackground = Color(0xFFFAFAFD),
+  tabStripBorder = Color(0xFFF0F1F2),
+  tabActiveBackground = Color(0xFFFFFFFF),
+  tabInactiveBackground = Color(0xFFFAFAFD),
+  tabActiveBorderTop = Color(0xFF000000),
+  tabBorder = Color(0xFFF0F1F2),
 )

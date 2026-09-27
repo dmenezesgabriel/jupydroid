@@ -1,82 +1,51 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.Breadcrumb
-import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.app.ui.DocumentDismissAction
-import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.ancestorCrumbsFor
 
-/** Small enough to read as part of the title rather than as a button beside it. */
-private val TITLE_EDIT_ICON_SIZE = 18.dp
-
 /**
- * The notebook's app bar: the document's name on a row of its own, and its actions below.
+ * The notebook's app bar: its actions, with the breadcrumb trail above them.
  *
- * **Two rows, because the reference has two.** In single-document mode - the mode that shows one
- * document at a time, which is this app's shape - `LabShell.mode`'s setter shows a title panel
- * above the document (`packages/application/src/shell.ts:690-705`), and that panel holds the
- * document's name and nothing else: `#jp-title-panel` is a strip whose only child is an `<input>`
- * carrying the title (`packages/application/style/titlepanel.css:10-37`). The toolbar sits below
- * it. Sharing one row was measured and it does not fit: at 320dp the title drew **64dp of the
- * 175dp** `Heading Sections.ipynb` needs, and truncated to `Heading…` - the number is
- * `EditorTopBarTest.theWholeFileNameFitsAtTheNarrowestWidth`'s own failure message before this.
+ * **The document's name is not here - the tab owns it.** In tabbed mode the reference shows no
+ * title panel at all: `#jp-title-panel` exists only in `single-document` mode
+ * (`packages/application/src/shell.ts:690-705`), which P8e does not run - the name, the dirty
+ * dot and the rename affordance all live on the `lm-TabBar-tab` now, where
+ * `[data-type="document-title"]` puts them (`docmanager-extension/src/index.tsx:122`). What this
+ * bar keeps is what the reference's toolbar keeps: the actions and the kind of cell the caret is
+ * on.
  *
- * **The height is Material's own for this arrangement, not a stack that happens to add up.** A
- * 48dp title row over a 64dp action row is 112dp, which is `MediumTopAppBar`'s container height -
- * Material's two-row bar, with the same split. What differs is the order and the size: Material
- * puts the title *below* the actions at `headlineSmall`, the reference puts it above and smaller,
- * and it is the reference this app follows.
+ * **The breadcrumb is above the action row** (P2w-1), which is where `BreadcrumbsControl` sits
+ * relative to a tab title in VS Code, and it is **absent** on a document at the workspace root -
+ * see [ancestorCrumbsFor] for both departures. A tap navigates the file browser, which is
+ * JupyterLab's behaviour rather than VS Code's picker (`packages/filebrowser/src/crumbs.ts:415`).
+ * It collapses as the notebook scrolls, the way the title row it replaced did - see
+ * [collapsibleRegionFraction].
  *
  * Run All lives on [NotebookBar] now, not here. It is a kernel action like interrupt and restart,
  * it belongs beside them rather than alone at the far corner of the screen, and the bottom of a
  * phone is where a thumb already is.
- *
- * **The title is the rename target**, which is where JupyterLab puts it too - `docmanager:rename`
- * is on the document-title context menu, `"selector": "[data-type=\"document-title\"]"`
- * (`packages/docmanager-extension/schema/plugin.json:73-77`). A tap is the touch analogue of
- * that right-click, and the pencil beside it is what says so: a gesture with nothing on screen
- * announcing it is undiscoverable, which is the lesson the cell menu cost three attempts to
- * learn.
  *
  * **The active cell's type is here because the reference's toolbar carries it** - `cellType` at
  * rank 40 (`packages/notebook-extension/schema/panel.json`) - and it is on *this* bar rather than
@@ -84,12 +53,6 @@ private val TITLE_EDIT_ICON_SIZE = 18.dp
  * is asks the kernel nothing. Where the row has no width for it, it moves to the overflow the way
  * a `ReactiveToolbar` moves an item into its popup opener; see [CellTypeControl] and
  * [labelsFitOnActionRow].
- *
- * **The breadcrumb is between the two rows** (P2w-1), which is where `BreadcrumbsControl` sits
- * relative to a tab title in VS Code, and it is **absent** on a document at the workspace root -
- * see [ancestorCrumbsFor] for both departures. A tap navigates the file browser, which is
- * JupyterLab's behaviour rather than VS Code's picker (`packages/filebrowser/src/crumbs.ts:415`):
- * the re-base moved where this app takes its *presentation* from, never its behaviour.
  *
  * **Undo and redo are here and not on [NotebookBar]**, which is the split that bar states about
  * itself: it is what you ask the *kernel*. Taking back a cell operation is neither a kernel action
@@ -102,16 +65,9 @@ private val TITLE_EDIT_ICON_SIZE = 18.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditorTopBar(
-  title: String,
-  /**
-   * Whether the document has unsaved changes - `Context.dirty`, drawn as the `•` beside
-   * [title] that JupyterLab's `jp-mod-dirty` paints on the tab (see [DirtyMarker]).
-   */
-  dirty: Boolean = false,
   /** Whether there is a cell operation to take back; the button is shown either way, see below. */
   canUndo: Boolean,
   canRedo: Boolean,
-  onRename: (String) -> Unit,
   onUndo: () -> Unit,
   onRedo: () -> Unit,
   onBack: () -> Unit,
@@ -164,10 +120,10 @@ fun EditorTopBar(
   onExportPickerDismissed: () -> Unit = {},
   onExportAs: (String) -> Unit = {},
   /**
-   * How far the title's row has slid away as the notebook is read - see [titleCollapseFraction].
-   * `0f` at the top of the document, `1f` once the strip is gone and the notebook has its 48dp.
+   * How far the breadcrumb's row has slid away as the notebook is read - see
+   * [collapsibleRegionFraction]. `0f` at the top of the document, `1f` once the row is gone.
    */
-  titleCollapse: Float = 0f,
+  collapsibleRegion: Float = 0f,
   /**
    * Where the document lives, root first - [ancestorCrumbsFor]. **Empty draws no row at all**,
    * which is what a notebook at the workspace root gets.
@@ -185,8 +141,6 @@ fun EditorTopBar(
    */
   kernelIndicator: @Composable () -> Unit = {},
 ) {
-  var renameOpen by remember { mutableStateOf(false) }
-
   // **The insets are the Column's, and the bar below it is told to take none.** `TopAppBar`
   // consumes `TopAppBarDefaults.windowInsets` itself; left to do so under a strip that is now
   // above it, it padded the *second* row down by the status bar's height while the first row was
@@ -197,17 +151,11 @@ fun EditorTopBar(
       .background(TopAppBarDefaults.topAppBarColors().containerColor)
       .windowInsetsPadding(TopAppBarDefaults.windowInsets),
   ) {
-    NotebookTitleStrip(title = title, dirty = dirty, onClick = { renameOpen = true }, collapse = titleCollapse)
-    // **One fraction collapses both rows**, because `titleCollapseFraction` takes the region's
-    // height as an argument - so widening the region is a change to what [EditorScreen] passes it,
-    // not a second fraction that could disagree with this one.
     if (crumbs.isNotEmpty()) {
-      Breadcrumb(crumbs = crumbs, onGoTo = onGoToFolder, modifier = Modifier.collapsedBy(titleCollapse))
+      Breadcrumb(crumbs = crumbs, onGoTo = onGoToFolder, modifier = Modifier.collapsedBy(collapsibleRegion))
     }
     TopAppBar(
-      // The document's *name* is not here - it has the row above, which is what the reference's
-      // single-document mode does (`application/style/titlepanel.css:10-37`). What this slot holds
-      // is the space between the navigation icon and the actions, measured at **72dp at 320dp and
+      // The space between the navigation icon and the actions, measured at **72dp at 320dp and
       // 552dp at 800dp** (`evidence/p2o-3-two-pane-threshold/`), and the reference lays its toolbar
       // out left to right by rank - so `cellType` at 40 belongs here, well before the spacer at
       // 100. Empty again where there is no room for it; see [labelsFitOnActionRow].
@@ -261,17 +209,6 @@ fun EditorTopBar(
       },
     )
   }
-
-  if (renameOpen) {
-    RenameFileDialog(
-      currentTitle = title,
-      onConfirm = { renamed ->
-        renameOpen = false
-        onRename(renamed)
-      },
-      onDismiss = { renameOpen = false },
-    )
-  }
 }
 
 /**
@@ -288,8 +225,8 @@ fun EditorTopBar(
  * The descriptions are the reference's labels - *"Undo Cell Operation"*, in this app's sentence
  * case - so a screen reader and a Maestro flow address one string, as the cell menu already does.
  *
- * **The name goes on the button, not on the icon inside it**, which is the same call
- * [RenameableTitle] makes and here it is load-bearing rather than tidy. `enabled` lands on the
+ * **The name goes on the button, not on the icon inside it**, and here it is load-bearing
+ * rather than tidy: `enabled` lands on the
  * `IconButton`'s node; a `contentDescription` on the `Icon` lands on a *child* of it. Named on the
  * icon, the accessibility tree has the label and the state on two different nodes - measured, not
  * reasoned: the first version put "Undo cell operation" on a node reporting `enabled=true` with a
@@ -315,69 +252,11 @@ private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onR
 }
 
 /**
- * The document's name, on a row of its own, and the whole row is the rename target.
- *
- * **The reference's own shape, with two departures named.** `#jp-title-panel-title input` fills
- * the strip - `width: 100%`, transparent, borderless - so in JupyterLab the title *is* the field
- * and clicking anywhere on it starts the rename
- * (`packages/application/style/titlepanel.css:17-37`, `shell.ts` `TitleHandler`). Here the tap
- * opens [RenameFileDialog] instead of editing in place: a soft keyboard over an inline field at
- * the top of the screen leaves nothing to see what is being renamed, and the dialog is what every
- * other rename in this app already uses (`ui/RenameFileDialog.kt`).
- *
- * **The size is a Material role, not the reference's pixels.** The reference asks for
- * `calc(--jp-ui-font-size1 * 18 / 13)` = 18px against a 13px base, 1.38x. `titleMedium` is 16sp
- * against Material's 14sp body, and it is the role Material gives a title in a compact container -
- * stating a role rather than computing a size is what P2l-1 settled. What it costs is the weight:
- * the reference says `font-weight: normal` and `titleMedium` is 500.
- *
- * The height is Material's interactive minimum rather than the reference's 28px strip, because
- * unlike an `<input>` reached with a mouse this is a touch target.
- */
-@Composable
-private fun NotebookTitleStrip(title: String, dirty: Boolean, onClick: () -> Unit, collapse: Float) {
-  Row(
-    modifier = Modifier
-      .fillMaxWidth()
-      .collapsedBy(collapse)
-      .clickable(onClickLabel = "Rename notebook", onClick = onClick)
-      // The reference's own inset is `margin-left: 8px`; Material's horizontal margin for a bar's
-      // content is 16dp, and the row below this one is drawn by `TopAppBar` on that margin - so
-      // taking the reference's would step the two rows in and out by 8dp against each other.
-      .padding(horizontal = Spacing.lg),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(
-      text = title,
-      style = MaterialTheme.typography.titleMedium,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis,
-      modifier = Modifier.weight(1f, fill = false),
-    )
-    // The marker hugs the title rather than the row's end - it belongs to the *label*, the way
-    // `jp-mod-dirty`'s dot belongs to the tab's, and a title that ellipsizes must not take it out.
-    if (dirty) {
-      DirtyMarker(modifier = Modifier.padding(start = Spacing.xs))
-    }
-    Spacer(modifier = Modifier.width(Spacing.sm))
-    Icon(
-      imageVector = Icons.Filled.Edit,
-      // The whole row is one target, so the icon does not announce itself separately - naming
-      // it again would give a screen reader two things to say about one control.
-      contentDescription = null,
-      modifier = Modifier.size(TITLE_EDIT_ICON_SIZE),
-      tint = LocalContentColor.current,
-    )
-  }
-}
-
-/**
- * How a row of this bar gives its height back as the notebook is read - see [titleCollapseFraction].
+ * How a row of this bar gives its height back as the notebook is read - see
+ * [collapsibleRegionFraction].
  *
  * **Shrunk rather than hidden**, so the notebook slides under it instead of jumping when the last
  * pixel goes, and clipped because whatever is inside keeps its own height whatever the row's is.
- * One modifier because two rows collapse now and they must do it identically; before P2w-1 the
- * title strip spelled it inline.
  *
  * @param collapse `0f` whole, `1f` gone.
  */

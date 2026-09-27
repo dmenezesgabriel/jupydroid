@@ -408,4 +408,133 @@ class NotebookBackStackTest {
 
     assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1")), backStack)
   }
+
+  /**
+   * `labShell.widgets('main')` - the strip's whole model: every main-area entry in stack order.
+   * The browser is the list pane, never a tab, so it is the one kind the projection drops.
+   */
+  @Test
+  fun theTabListIsEveryMainAreaEntryInStackOrder() {
+    val backStack = mutableListOf<NavKey>(
+      Explorer,
+      Editor("nb-1"),
+      FileEditor("a.py"),
+      Terminal("1"),
+      Console("nb-1"),
+      Settings,
+      Launcher,
+    )
+
+    assertEquals(
+      listOf(Editor("nb-1"), FileEditor("a.py"), Terminal("1"), Console("nb-1"), Settings, Launcher),
+      backStack.mainAreaTabs(),
+    )
+  }
+
+  /**
+   * A tab's press is `shell.activateById` - the entry moves to the top, which is the same
+   * remove-then-add [openInMainArea] already does for a reveal. Nothing else in the stack moves.
+   */
+  @Test
+  fun activatingATabBringsItsEntryToTheTop() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), FileEditor("a.py"), Terminal("1"))
+
+    backStack.activateMainAreaTab(Editor("nb-1"))
+
+    assertEquals(listOf(Explorer, FileEditor("a.py"), Terminal("1"), Editor("nb-1")), backStack)
+  }
+
+  @Test
+  fun activatingTheTabAlreadyOnTopChangesNothing() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Terminal("1"))
+
+    backStack.activateMainAreaTab(Terminal("1"))
+
+    assertEquals(listOf(Explorer, Editor("nb-1"), Terminal("1")), backStack)
+  }
+
+  /**
+   * The order the strip draws is **opening order**, not stack order. `activateById` changes which
+   * widget is current and nothing else - `DockPanel._onTabActivateRequested` swaps `currentWidget`
+   * without touching the tab bar's model (`packages/application/src/shell.ts`), so a click must not
+   * move the tab it pressed. The stack still promotes the entry to its top, because the top is what
+   * the scene draws; the strip's projection is where activation stays invisible.
+   */
+  @Test
+  fun activatingATabDoesNotMoveItInTheStrip() {
+    var order = emptyList<NavKey>()
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("a.ipynb"), FileEditor("b.py"), Terminal("1"))
+    order = backStack.mainAreaTabs().orderedAsOpened(order)
+
+    backStack.activateMainAreaTab(Editor("a.ipynb"))
+    order = backStack.mainAreaTabs().orderedAsOpened(order)
+
+    assertEquals(Editor("a.ipynb"), backStack.last())
+    assertEquals(listOf(Editor("a.ipynb"), FileEditor("b.py"), Terminal("1")), order)
+  }
+
+  /**
+   * Revealing an open document promotes the stack entry but leaves its tab where it was opened -
+   * `openOrReveal` activates the widget that already exists (`manager.ts:481-503`), which is the
+   * same no-reorder the tab's own press gets. New tabs join at the end and closed ones leave.
+   */
+  @Test
+  fun revealingKeepsItsPlaceOpeningAppendsAndClosingDrops() {
+    var order = emptyList<NavKey>()
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("a.ipynb"), FileEditor("b.py"))
+    order = backStack.mainAreaTabs().orderedAsOpened(order)
+
+    backStack.openNotebook("a.ipynb")
+    order = backStack.mainAreaTabs().orderedAsOpened(order)
+    assertEquals(listOf(Editor("a.ipynb"), FileEditor("b.py")), order)
+
+    backStack.openTerminal("1")
+    order = backStack.mainAreaTabs().orderedAsOpened(order)
+    assertEquals(listOf(Editor("a.ipynb"), FileEditor("b.py"), Terminal("1")), order)
+
+    backStack.remove(FileEditor("b.py"))
+    order = backStack.mainAreaTabs().orderedAsOpened(order)
+    assertEquals(listOf(Editor("a.ipynb"), Terminal("1")), order)
+  }
+
+  /**
+   * Closing the **current** tab activates a surviving sibling - Lumino moves `currentIndex` to the
+   * next tab, or the previous one when the closed was last (`TabBar._onCloseRequest` re-selection).
+   * The browser is not a tab, so a stack that would land on it moves the sibling document up
+   * instead; closing a background tab changes nothing above it.
+   */
+  @Test
+  fun closingTheCurrentTabRevealsItsNeighbourNotTheBrowser() {
+    val backStack =
+      mutableListOf<NavKey>(Explorer, Editor("a.ipynb"), Editor("b.ipynb"), FileEditor("c.py"))
+    val order = listOf(Editor("a.ipynb"), Editor("b.ipynb"), FileEditor("c.py"))
+
+    backStack.closeMainAreaTab(FileEditor("c.py"), order)
+    assertEquals(Editor("b.ipynb"), backStack.last())
+
+    backStack.closeMainAreaTab(Editor("a.ipynb"), order)
+    assertEquals("a background tab closes quietly", Editor("b.ipynb"), backStack.last())
+
+    backStack.closeMainAreaTab(Editor("b.ipynb"), order)
+    assertEquals("the last tab leaves the browser", Explorer, backStack.last())
+  }
+
+  /**
+   * `title.label` - for a document it is `PathExt.basename(localPath)` (`docregistry/src/default.ts`),
+   * and a renamed notebook answers to its **live** path while the key keeps the one it opened under.
+   * The other kinds carry their own labels: the terminal's name, the console's `name || 'Console %1'`,
+   * the launcher's and settings' own nouns.
+   */
+  @Test
+  fun aTabTitleIsTheDocumentsBasenameOrTheKindsOwnLabel() {
+    val moved = mapOf<NavKey, String>(Editor("old.ipynb") to "new.ipynb")
+
+    assertEquals("nb-1.ipynb", Editor("nb-1.ipynb").mainAreaTabTitle(emptyMap()))
+    assertEquals("new.ipynb", Editor("old.ipynb").mainAreaTabTitle(moved))
+    assertEquals("a.py", FileEditor("dir/a.py").mainAreaTabTitle(emptyMap()))
+    assertEquals("Terminal 1", Terminal("1").mainAreaTabTitle(emptyMap()))
+    assertEquals("Console 2", Console("p", "Console 2").mainAreaTabTitle(emptyMap()))
+    assertEquals("Launcher", Launcher.mainAreaTabTitle(emptyMap()))
+    assertEquals("Settings", Settings.mainAreaTabTitle(emptyMap()))
+  }
 }

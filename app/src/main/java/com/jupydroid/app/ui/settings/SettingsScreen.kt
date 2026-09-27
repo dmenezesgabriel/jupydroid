@@ -112,7 +112,8 @@ fun SettingsScreen(
     containerColor = editorPalette.editorBackground,
     topBar = {
       TopAppBar(
-        title = { Text("Settings") },
+        // The tab above names it already - `title.label` is the strip's, not the panel's.
+        title = {},
         navigationIcon = {
           DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = onBack)
         },

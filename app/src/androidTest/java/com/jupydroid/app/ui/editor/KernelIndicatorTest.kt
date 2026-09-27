@@ -126,10 +126,8 @@ class KernelIndicatorTest {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
         JupyterDroidTheme {
           EditorTopBar(
-            title = "Intro to NumPy",
             canUndo = false,
             canRedo = false,
-            onRename = {},
             onUndo = {},
             onRedo = {},
             onBack = {},

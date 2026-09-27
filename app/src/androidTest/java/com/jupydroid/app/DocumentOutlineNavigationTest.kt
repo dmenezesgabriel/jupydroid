@@ -82,6 +82,10 @@ class DocumentOutlineNavigationTest {
           importTitle = null,
           onImportConsumed = {},
           outline = outline,
+          // Pinned narrow, the same pin OpenDocumentsNavigationTest carries: the dismiss this
+          // drives is "Back to notebooks" only at one pane - an unpinned test on the tablet's
+          // wide window would hunt for it beside a browser that never draws it.
+          twoPane = false,
         )
       }
     }

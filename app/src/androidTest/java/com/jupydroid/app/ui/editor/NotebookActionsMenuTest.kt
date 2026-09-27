@@ -246,10 +246,8 @@ class NotebookActionsMenuTest {
     compose.setContent {
       JupyterDroidTheme {
         EditorTopBar(
-          title = "Intro to NumPy",
           canUndo = false,
           canRedo = false,
-          onRename = {},
           onUndo = {},
           onRedo = {},
           onBack = {},

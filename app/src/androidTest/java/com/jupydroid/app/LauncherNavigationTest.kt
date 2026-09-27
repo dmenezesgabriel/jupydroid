@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -68,9 +69,9 @@ class LauncherNavigationTest {
     waitForTag("launcher-screen")
     compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_NOTEBOOK.name}").performClick()
 
-    // The created notebook is open in the editor - and it exists on disk, which the disk
-    // repository made true rather than a fake merely agreeing it did.
-    waitForText("Untitled.ipynb")
+    // The created notebook is open in the editor - named by its tab now, not a panel row - and
+    // it exists on disk, which the disk repository made true rather than a fake merely agreeing.
+    waitForTab("Untitled.ipynb")
     assertEquals(true, File(tempFolder.root, "Untitled.ipynb").exists())
   }
 
@@ -120,6 +121,10 @@ class LauncherNavigationTest {
 
   private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {
     compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+  }
+
+  private fun waitForTab(title: String) = compose.waitUntil(TIMEOUT_MILLIS) {
+    compose.onAllNodesWithContentDescription("Tab: $title").fetchSemanticsNodes().isNotEmpty()
   }
 
   private fun waitForTag(tag: String) = compose.waitUntil(TIMEOUT_MILLIS) {

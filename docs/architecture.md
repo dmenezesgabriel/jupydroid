@@ -216,7 +216,19 @@ than duplicated, because two equal keys would share one `contentKey`, one `ViewM
 `ViewModelStore`, so a document beneath the top stays alive — ViewModel, kernel session and all —
 the way a JupyterLab tab does, and Back reveals the next document instead of leaving the app.
 `OpenDocuments` is the matching registry: every live document, in open order, addressable by its
-current path.
+current path — or, through `openedAs`, by the path its stack entry opened it under, which is how
+a tab still finds its document when a rename lands while the screen is out of composition.
+
+**Every detail entry draws its own tab strip** (`TabbedDocumentPane`), because the scene strategy
+is the only thing that knows where the detail pane is at each width — and the strip's model is
+the stack: `mainAreaTabs` projects it, `orderedAsOpened` holds the visible order to *opening*
+order while the stack itself promotes the tapped entry, so a click activates without moving a
+tab (`activateById` changes `currentWidget`, nothing else). The tab owns `title.label` — the
+document's live basename, the terminal's OSC title, the launcher's and settings' nouns — so no
+panel draws a name row, and a document tab's long press is `docmanager:rename`: the shared
+`RenameFileDialog`, then `workspaceRepository.rename`, which the document adopts through its own
+`WorkspaceChange.Renamed` listener. A dirty tab's close is the reference's Save/Discard/Cancel
+gate, and closing the current tab reveals the sibling the bar would pick.
 
 **The shell has one side area, and an activity bar beside the whole thing.** `MainNavigation` draws
 a `SidePanelRail` next to `NavDisplay` — not inside a pane — because that is where JupyterLab's own

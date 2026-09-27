@@ -8,7 +8,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -68,7 +70,10 @@ class ConsoleNavigationTest {
     compose.onNodeWithText(NEW_CONSOLE_FOR_NOTEBOOK).performClick()
 
     waitForTag(CONSOLE_INPUT_FIELD_TAG)
-    compose.onNodeWithText(NOTEBOOK_TITLE).assertIsDisplayed()
+    // The title moved to the tab with P8e - the console's tab carries the notebook's name
+    // (`title.label`'s own home, `widget.ts`'s `title.label = name`), and the notebook's own tab
+    // has the same title, so the selected one is the console's.
+    compose.onNode(isSelected() and hasContentDescription("Tab: $NOTEBOOK_TITLE")).assertIsDisplayed()
 
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()
@@ -119,7 +124,8 @@ class ConsoleNavigationTest {
 
     openLauncherConsoleCard()
     waitForTag(CONSOLE_INPUT_FIELD_TAG)
-    compose.onNodeWithText("Console 1").assertIsDisplayed()
+    // The name is the tab's now (`title.label`), not a row in the panel.
+    compose.onNodeWithContentDescription("Tab: Console 1").assertIsDisplayed()
 
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()
@@ -142,14 +148,14 @@ class ConsoleNavigationTest {
 
     openLauncherConsoleCard()
     waitForTag(CONSOLE_INPUT_FIELD_TAG)
-    compose.onNodeWithText("Console 1").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Tab: Console 1").assertIsDisplayed()
 
     compose.onNodeWithContentDescription(NEW_LAUNCHER).performClick()
     waitForTag("launcher-screen")
     compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}").performClick()
 
-    waitForText("Console 2")
-    compose.onAllNodesWithText("Console 1").assertCountEquals(0)
+    waitForContentDescription("Tab: Console 2")
+    compose.onAllNodesWithContentDescription("Tab: Console 1").assertCountEquals(0)
   }
 
   private fun openLauncherConsoleCard() {
@@ -196,6 +202,10 @@ class ConsoleNavigationTest {
 
   private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {
     compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+  }
+
+  private fun waitForContentDescription(description: String) = compose.waitUntil(TIMEOUT_MILLIS) {
+    compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
   }
 
   private fun waitForTag(tag: String) = compose.waitUntil(TIMEOUT_MILLIS) {

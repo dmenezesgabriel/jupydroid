@@ -17,21 +17,21 @@ import org.junit.Test
  * be: it collapses as the content scrolls. The name is there when you are at the top of the
  * document, which is where you look for it, and the 48dp is the notebook's the rest of the time.
  */
-class NotebookTitleCollapseTest {
+class NotebookCollapsibleRegionTest {
   @Test
   fun atTheTopOfTheDocumentTheTitleIsWhole() {
-    assertEquals(0f, titleCollapseFraction(firstVisibleItem = 0, scrolledPx = 0, stripPx = 96f), 0f)
+    assertEquals(0f, collapsibleRegionFraction(firstVisibleItem = 0, scrolledPx = 0, stripPx = 96f), 0f)
   }
 
   @Test
   fun itSlidesAwayOverTheStripsOwnHeight() {
-    assertEquals(0.25f, titleCollapseFraction(0, scrolledPx = 24, stripPx = 96f), 0f)
-    assertEquals(0.5f, titleCollapseFraction(0, scrolledPx = 48, stripPx = 96f), 0f)
+    assertEquals(0.25f, collapsibleRegionFraction(0, scrolledPx = 24, stripPx = 96f), 0f)
+    assertEquals(0.5f, collapsibleRegionFraction(0, scrolledPx = 48, stripPx = 96f), 0f)
   }
 
   @Test
   fun pastTheStripsHeightItIsGoneRatherThanNegative() {
-    assertEquals(1f, titleCollapseFraction(0, scrolledPx = 500, stripPx = 96f), 0f)
+    assertEquals(1f, collapsibleRegionFraction(0, scrolledPx = 500, stripPx = 96f), 0f)
   }
 
   /**
@@ -40,7 +40,7 @@ class NotebookTitleCollapseTest {
    */
   @Test
   fun beyondTheFirstCellItStaysGoneWhateverTheOffsetSays() {
-    assertEquals(1f, titleCollapseFraction(firstVisibleItem = 3, scrolledPx = 0, stripPx = 96f), 0f)
+    assertEquals(1f, collapsibleRegionFraction(firstVisibleItem = 3, scrolledPx = 0, stripPx = 96f), 0f)
   }
 
   /**
@@ -49,6 +49,6 @@ class NotebookTitleCollapseTest {
    */
   @Test
   fun aStripWithNoHeightYetIsWhole() {
-    assertEquals(0f, titleCollapseFraction(0, scrolledPx = 40, stripPx = 0f), 0f)
+    assertEquals(0f, collapsibleRegionFraction(0, scrolledPx = 40, stripPx = 0f), 0f)
   }
 }

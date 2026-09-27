@@ -45,7 +45,6 @@ import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.editorPalette
-import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.SaveBeforeCloseGate
 import com.jupydroid.app.ui.ancestorCrumbsFor
@@ -224,13 +223,6 @@ fun EditorScreen(
   LaunchedEffect(state.notebookId) {
     if (state.notebookId.isNotEmpty()) onNotebookMoved(state.notebookId)
   }
-  state.nameTaken?.let { taken ->
-    OverwriteFileDialog(
-      name = taken,
-      onOverwrite = { viewModel.answerOverwrite(accepted = true) },
-      onDismiss = { viewModel.answerOverwrite(accepted = false) },
-    )
-  }
   // **The table of contents is not drawn here.** It is a sidebar panel of the shell's
   // (`shell.add(toc, 'left', { rank: 400 })`), which this entry cannot reach - so the headings are
   // published for it (see [outline]) and the notebook keeps its whole width. Where the shell has no
@@ -323,19 +315,18 @@ fun EditorScreen(
       )
     }
     DisposableEffect(debugPanel) { onDispose { debugPanel.clear() } }
-    // The title's row is not free on a phone, so it is not permanent either - see
-    // [titleCollapseFraction]. Derived from the list the cells are drawn from rather than from a
+    // The breadcrumb's row is not free on a phone, so it is not permanent either - see
+    // [collapsibleRegionFraction]. Derived from the list the cells are drawn from rather than from a
     // `nestedScroll` connection, so there is one answer to "where is the document" and not two.
-    // **Both collapsing rows, not just the title.** `titleCollapseFraction` takes the region's
-    // height as an argument, so a breadcrumb below the title widens what is passed rather than
-    // needing a second fraction - and without this the bar would lose ~96dp over 48dp of scroll.
+    // The region the fraction slides is now the crumbs alone - the title row that shared it moved
+    // to the tab strip (P8e), so a notebook at the workspace root has nothing left to collapse.
     val crumbs = ancestorCrumbsFor(state.notebookId, ROOT_LABEL)
     val rowHeight = LocalMinimumInteractiveComponentSize.current
-    val collapsingRows = if (crumbs.isEmpty()) 1 else 2
+    val collapsingRows = if (crumbs.isEmpty()) 0 else 1
     val stripPx = with(LocalDensity.current) { (rowHeight * collapsingRows).toPx() }
-    val titleCollapse by remember(listState, stripPx) {
+    val collapsibleRegion by remember(listState, stripPx) {
       derivedStateOf {
-        titleCollapseFraction(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, stripPx)
+        collapsibleRegionFraction(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, stripPx)
       }
     }
     Scaffold(
@@ -367,7 +358,7 @@ fun EditorScreen(
             onHeadingSelected = jumpToHeading,
             onBack = closeOrAsk,
             twoPane = twoPane,
-            titleCollapse = titleCollapse,
+            collapsibleRegion = collapsibleRegion,
             onGoToFolder = onGoToFolder,
             onOpenConsole = onOpenConsole,
           )

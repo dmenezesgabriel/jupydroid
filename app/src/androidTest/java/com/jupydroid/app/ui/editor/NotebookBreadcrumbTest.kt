@@ -35,19 +35,18 @@ class NotebookBreadcrumbTest {
   @get:Rule val compose = createComposeRule()
 
   /**
-   * **Between the title and the actions**, which is where `BreadcrumbsControl` sits relative to a
-   * tab title in VS Code (`parts/editor/breadcrumbsControl.ts`). Asserted at the narrowest window
-   * the app is driven at, because that is where a third row is hardest to afford.
+   * **Above the actions**, which is where `BreadcrumbsControl` sits relative to a tab title in VS
+   * Code (`parts/editor/breadcrumbsControl.ts`) - and since P8e the title itself is the tab's, so
+   * the trail is the first row this bar draws. Asserted at the narrowest window the app is driven
+   * at, because that is where a second row is hardest to afford.
    */
   @Test
-  fun theTrailSitsBetweenTheNameAndTheActions() {
+  fun theTrailSitsAboveTheActions() {
     showTopBar(crumbs = NESTED)
 
-    val title = compose.onNodeWithText(NESTED_NAME).getUnclippedBoundsInRoot()
     val crumb = compose.onNodeWithText(FOLDER).getUnclippedBoundsInRoot()
     val actions = compose.onNodeWithContentDescription(BACK).getUnclippedBoundsInRoot()
 
-    assertTrue("the folder crumb at $crumb is not below the title at $title", crumb.top >= title.bottom)
     assertTrue("the folder crumb at $crumb is not above the actions at $actions", crumb.bottom <= actions.top)
   }
 
@@ -97,11 +96,11 @@ class NotebookBreadcrumbTest {
   }
 
   /**
-   * **It collapses with the title, over one fraction and not two**, and lands where a notebook
-   * that never had a trail lands: collapsed, both bars are the action row alone.
+   * **It collapses over one fraction**, and lands where a notebook that never had a trail lands:
+   * collapsed, both bars are the action row alone.
    */
   @Test
-  fun theTrailGivesItsHeightBackWithTheTitle() {
+  fun theTrailGivesItsHeightBackAsTheNotebookIsRead() {
     showTopBar(crumbs = NESTED)
 
     val whole = actionRowTop(NESTED, collapse = 0f)
@@ -113,26 +112,23 @@ class NotebookBreadcrumbTest {
   }
 
   /**
-   * **What the third row costs, as a number.** P2q-2 settled the two-row bar at 112dp - a 48dp
-   * title strip over Material's 64dp action row (`docs/DECISIONS.md`) - and this pins what the
-   * trail adds to it, so the cost is measured rather than described.
+   * **What the second row costs, as a number.** Since P8e the bar is at most two rows - the trail
+   * over Material's 64dp action row, the same 112dp P2q-2 settled for the title strip it replaced
+   * (`docs/DECISIONS.md`) - and this pins the cost as measured rather than described.
    *
    * **Measured as a difference, not as a total**, because a total is not the same on two devices:
    * `EditorTopBar` consumes `TopAppBarDefaults.windowInsets`, and the status bar above it is 24dp
    * here and something else on the tablet. What each row *reserves* is the same everywhere.
    */
   @Test
-  fun theThirdRowsCostIsPinnedAgainstTheTwoRowBar() {
+  fun theSecondRowsCostIsPinnedAgainstTheOneRowBar() {
     showTopBar(crumbs = emptyList())
 
     val nothing = actionRowTop(emptyList(), collapse = 1f)
-    val titleOnly = actionRowTop(emptyList(), collapse = 0f)
-    val titleAndTrail = actionRowTop(NESTED, collapse = 0f)
+    val withTrail = actionRowTop(NESTED, collapse = 0f)
 
-    assertEquals("P2q-2's title strip is one interactive minimum", ROW, titleOnly - nothing)
-    assertEquals("the trail reserves the same again", ROW * 2, titleAndTrail - nothing)
-    assertEquals("so the two-row bar is P2q-2's 112dp", TWO_ROW_BAR, ACTION_ROW + (titleOnly - nothing))
-    assertEquals("and three rows are 160dp", TWO_ROW_BAR + ROW, ACTION_ROW + (titleAndTrail - nothing))
+    assertEquals("the trail reserves one interactive minimum", ROW, withTrail - nothing)
+    assertEquals("so the two-row bar is 112dp", TWO_ROW_BAR, ACTION_ROW + (withTrail - nothing))
   }
 
   /**
@@ -161,16 +157,14 @@ class NotebookBreadcrumbTest {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
         JupyterDroidTheme {
           EditorTopBar(
-            title = NESTED_NAME,
             canUndo = false,
             canRedo = false,
-            onRename = {},
             onUndo = {},
             onRedo = {},
             onBack = {},
             crumbs = shown.value,
+            collapsibleRegion = collapsed.floatValue,
             onGoToFolder = { browsed += it },
-            titleCollapse = collapsed.floatValue,
           )
         }
       }
@@ -181,19 +175,17 @@ class NotebookBreadcrumbTest {
     /** The emulator's own window, and the narrowest this app is driven at. */
     val COMPACT = DpSize(320.dp, 640.dp)
 
-    /** The browse fixture's own notebook, so the flow and this test name one document. */
-    const val NESTED_NAME = "Nested.ipynb"
     const val ROOT = "Workspace"
     const val FOLDER = "reports"
     const val BACK = "Back to notebooks"
 
-    /** Material's interactive minimum, which is what each collapsing row of this bar reserves. */
+    /** Material's interactive minimum, which is what the collapsing row of this bar reserves. */
     val ROW = 48.dp
 
     /** Material's own container height for a bar's action row, which this app has never changed. */
     val ACTION_ROW = 64.dp
 
-    /** P2q-2's measured two-row bar: a 48dp title strip over Material's 64dp action row. */
+    /** The measured two-row bar: a 48dp collapsible row over Material's 64dp action row. */
     val TWO_ROW_BAR = 112.dp
 
     /** What `ancestorCrumbsFor("reports/Nested.ipynb", ROOT_LABEL)` produces. */

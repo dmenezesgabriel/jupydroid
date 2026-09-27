@@ -54,7 +54,6 @@ class ConsoleScreenTest {
     compose.setContent {
       JupyterDroidTheme {
         ConsoleScreen(
-          title = "Analysis.ipynb",
           viewModel = consoleViewModel(),
           onBack = { backTapped = true },
           editorSettingsRepository = FakeEditorSettingsRepository(),
@@ -72,7 +71,6 @@ class ConsoleScreenTest {
     compose.setContent {
       JupyterDroidTheme {
         ConsoleScreen(
-          title = "Analysis.ipynb",
           viewModel = consoleViewModel(),
           onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
@@ -94,7 +92,6 @@ class ConsoleScreenTest {
     compose.setContent {
       JupyterDroidTheme {
         ConsoleScreen(
-          title = "Analysis.ipynb",
           viewModel = consoleViewModel(gateway),
           onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
@@ -115,7 +112,6 @@ class ConsoleScreenTest {
     compose.setContent {
       JupyterDroidTheme {
         ConsoleScreen(
-          title = "Analysis.ipynb",
           viewModel = consoleViewModel(),
           onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
@@ -140,7 +136,6 @@ class ConsoleScreenTest {
     compose.setContent {
       JupyterDroidTheme {
         ConsoleScreen(
-          title = "Analysis.ipynb",
           viewModel = viewModel,
           onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(
@@ -160,7 +155,6 @@ class ConsoleScreenTest {
     compose.setContent {
       JupyterDroidTheme {
         ConsoleScreen(
-          title = "Analysis.ipynb",
           viewModel = consoleViewModel(),
           onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
@@ -183,7 +177,6 @@ class ConsoleScreenTest {
     compose.setContent {
       JupyterDroidTheme {
         ConsoleScreen(
-          title = "Analysis.ipynb",
           viewModel = consoleViewModel(),
           onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),

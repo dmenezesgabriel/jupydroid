@@ -46,8 +46,8 @@ internal fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> 
     // **The row states its height and the crumbs no longer pad to it.** Intrinsic height made the
     // row 52dp - a 20dp label inside 16dp of padding - which is 4dp past the minimum it was
     // reaching for and, worse, a number `EditorScreen` cannot state when it works out how far the
-    // collapsing region has to slide (`titleCollapseFraction`). Material's interactive minimum is
-    // that number, and it is the same one the title strip above it already uses.
+    // collapsing region has to slide (`collapsibleRegionFraction`). Material's interactive minimum is
+    // that number.
     modifier = modifier
       .fillMaxWidth()
       .height(LocalMinimumInteractiveComponentSize.current)

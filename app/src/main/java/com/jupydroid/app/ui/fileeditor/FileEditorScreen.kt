@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.fileeditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -22,11 +21,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.OpenDocuments
@@ -39,7 +36,6 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.Breadcrumb
-import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.SaveBeforeCloseGate
@@ -98,6 +94,12 @@ fun FileEditorScreen(
   /** Consumed once, the way `browseRequest` is - see the `LaunchedEffect` below. */
   onRevealHandled: () -> Unit = {},
   /**
+   * This file moved - `EditorScreen.onNotebookMoved`'s counterpart, since the key keeps the path
+   * it was opened with and a rename moves the file underneath it. Reported up rather than into
+   * the key, so the tab strip and the browser's open-row marking can read where it lives now.
+   */
+  onFileMoved: (String) -> Unit = {},
+  /**
    * Where this document says it is open, so a workspace replace edits the model rather than the
    * file. Defaulted so a test driving this screen alone need not supply one.
    */
@@ -127,6 +129,10 @@ fun FileEditorScreen(
   // Its file was deleted, so the screen goes with it - `deleteWidgets`, asked for by the document.
   LaunchedEffect(state.gone) { if (state.gone) onBack() }
 
+  // `Context._updatePath` reported up: the key cannot carry a rename, so the map beside the stack
+  // does - the same effect `state.notebookId`'s is for the notebook editor.
+  LaunchedEffect(state.path) { onFileMoved(state.path) }
+
   Scaffold(
     modifier = modifier.fillMaxSize(),
     // **The page a document is drawn on, stated rather than inherited.** `Scaffold`'s default is
@@ -137,10 +143,9 @@ fun FileEditorScreen(
     // palette states its colours; it does not derive them from a Material role").
     containerColor = editorPalette.editorBackground,
     topBar = {
-      // **The trail is under the row carrying the name**, which is where `BreadcrumbsControl` sits
-      // relative to a tab title (`parts/editor/breadcrumbsControl.ts`). The notebook puts its own
-      // between a title strip and an action row because it has two (P2w-1); this screen's single
-      // row is both, so under it is the same position.
+      // **The trail is under the action row**, which is where `BreadcrumbsControl` sits relative
+      // to a tab title (`parts/editor/breadcrumbsControl.ts`) - and the tab is what carries the
+      // name now, so this screen's bar has no title of its own to repeat it.
       //
       // **The Column takes the bar's colour and the bar keeps its own insets.** `EditorTopBar` had
       // to hoist `TopAppBarDefaults.windowInsets` onto its Column because its `TopAppBar` was the
@@ -148,21 +153,9 @@ fun FileEditorScreen(
       // defect that entry records cannot arise - checked on a device frame, not reasoned about.
       Column(modifier = Modifier.background(TopAppBarDefaults.topAppBarColors().containerColor)) {
         TopAppBar(
-          title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-              Text(
-                state.name,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-              )
-              // `jp-mod-dirty`'s dot, on the document's own label - see [DirtyMarker]. The weight
-              // is the title's, so a name that ellipsizes cannot take the marker out with it.
-              if (state.dirty) {
-                DirtyMarker(modifier = Modifier.padding(start = Spacing.xs))
-              }
-            }
-          },
+          // The name is the tab's now - the reference keeps no `#jp-title-panel` in tabbed mode,
+          // so the bar's title slot stays empty the way the notebook's does.
+          title = {},
           navigationIcon = {
             // Beside a browser this is a *close*, and one home decides that for all three bars.
             DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = closeOrAsk)

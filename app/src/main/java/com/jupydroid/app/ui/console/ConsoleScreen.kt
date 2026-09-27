@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,7 +22,8 @@ import com.jupydroid.app.ui.editor.ExecutionStatus
 
 /**
  * The Console's own screen - P6b-9's first sub-step: [ConsoleTranscript] above, [ConsoleInputRow]
- * docked below, under a bar carrying the notebook's own title and [ConsoleActionsMenu]'s `Clear`.
+ * docked below, under a bar carrying only actions ([ConsoleActionsMenu]'s `Clear`) - the name
+ * is the tab's now, the way the reference keeps no title panel under a tab strip.
  *
  * No navigation yet - [viewModel] is handed in whole rather than built here, the same split
  * [TerminalPaneScreen][com.jupydroid.app.ui.terminal.TerminalPaneScreen] draws between the screen
@@ -32,13 +31,12 @@ import com.jupydroid.app.ui.editor.ExecutionStatus
  * are this sub-step's own two followers.
  *
  * ```kotlin
- * ConsoleScreen(title = notebookTitle, viewModel = consoleViewModel, onBack = { backStack.removeLastOrNull() })
+ * ConsoleScreen(viewModel = consoleViewModel, onBack = { backStack.removeLastOrNull() })
  * ```
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConsoleScreen(
-  title: String,
   viewModel: ConsoleViewModel,
   onBack: () -> Unit,
   /** `fileeditor:toggle-…-universal` reaches the Console too - its field's rules come from here. */
@@ -66,18 +64,10 @@ fun ConsoleScreen(
     containerColor = editorPalette.editorBackground,
     topBar = {
       TopAppBar(
-        // A small label above the notebook's own name, so a Console reached from deep in the
-        // back-stack is not mistaken for that notebook's own editor - both references keep the
-        // two visually distinct (a separate tab kind in JupyterLab, a separate document type in
-        // VS Code's Interactive Window), which a phone with only one title row has to say in text
-        // instead. The notebook's name stays the larger, primary line: it is what a Console is
-        // *of*, and `docs/PLAN.md`'s own P6b-9 row already committed to naming it there.
-        title = {
-          Column {
-            Text("Console", style = MaterialTheme.typography.labelSmall)
-            Text(title, style = MaterialTheme.typography.titleMedium)
-          }
-        },
+        // The tab above names this Console - both references keep it a distinct widget kind
+        // rather than a title row inside the document (a separate tab kind in JupyterLab, a
+        // separate document type in VS Code's Interactive Window), so nothing here repeats it.
+        title = {},
         // Not the bare "Back" `DocumentDismissAction`'s own KDoc warns against: a live-kernel
         // Maestro flow (P6b-9d) measured that string reaching the system navigation bar's own
         // back button instead of this one, which left the Console on screen. A distinct label
