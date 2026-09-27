@@ -1,9 +1,7 @@
 package com.jupydroid.app
 
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateListOf
 import com.jupydroid.app.domain.model.TextEdit
 
 /**
@@ -37,14 +35,14 @@ interface OpenDocument {
 }
 
 /**
- * Which document is open, so something that is not its screen can reach it by path.
+ * The documents open right now, so something that is not their screen can reach them by path.
  *
- * **One document, and that is a measurement rather than a simplification.**
- * `NotebookBackStack.chooseDetailThatFitsTheSurface` removes the current detail entry before adding
- * the next, so this app's back stack cannot hold two documents at once - the reference needs a map
- * because it has tabs and split editors, and this refuses both. If a surface ever opens a second
- * document, this becomes a map keyed by [OpenDocument.path] and nothing else about it changes;
- * `docs/PLAN.md`'s `openNotebook` back-stack risk is the other side of the same rule.
+ * **A map-shaped holder, because the back stack now holds every open document** (P8d -
+ * `NotebookBackStack` stacks rather than replaces, the way `shell.add(widget, 'main')` adds a
+ * tab). Order is open order - the order a tab strip would draw - and lookup is by each
+ * document's *live* [OpenDocument.path], because a rename moves the file while the document
+ * carries on: the reference's `_contextsForPath` filters contexts by their current path for the
+ * same reason.
  *
  * The same holder shape as [OpenDocumentOutline], for the same reason: the search panel and the
  * document are different `NavEntry`s, and every entry owns its own `ViewModelStore`
@@ -58,25 +56,31 @@ interface OpenDocument {
  */
 @Stable
 class OpenDocuments {
-  private var current by mutableStateOf<OpenDocument?>(null)
+  private val documents = mutableStateListOf<OpenDocument>()
+
+  /** Every open document, oldest first - the tab order, once there is a strip to draw it. */
+  val all: List<OpenDocument> get() = documents.toList()
 
   /** The document open on [path], or null when nothing is - then the engine reads the file. */
-  fun at(path: String): OpenDocument? = current?.takeIf { it.path == path }
+  fun at(path: String): OpenDocument? = documents.firstOrNull { it.path == path }
 
-  /** A screen's document is ready. Replaces whatever was there, because only one can be open. */
+  /**
+   * A screen's document is ready. Registered **by identity**: a ViewModel is created once per
+   * `NavEntry`, so a repeated call (a recomposition that re-runs `init`'s path, say) is not a
+   * second document.
+   */
   fun opened(document: OpenDocument) {
-    current = document
+    if (documents.none { it === document }) documents.add(document)
   }
 
   /**
    * A screen's document has gone.
    *
-   * **By identity, and the race is real**: `chooseDetailThatFitsTheSurface` adds the incoming
-   * document before the outgoing entry is disposed, so the old ViewModel's `onCleared` can run
-   * after the new one has registered. Clearing unconditionally there would empty the registry while
-   * a document was on screen.
+   * **By identity, and the race is real**: reordering entries to bring a document forward can run
+   * an outgoing ViewModel's `onCleared` after the incoming one has registered. Clearing
+   * unconditionally there would empty the registry while a document was on screen.
    */
   fun closed(document: OpenDocument) {
-    if (current === document) current = null
+    documents.remove(document)
   }
 }

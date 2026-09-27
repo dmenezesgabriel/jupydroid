@@ -37,6 +37,11 @@ fun rememberLaunchHandler(
         backStack.openStandaloneConsole(launched.path, launched.title)
       }
     }
+    // `add(item, 'main', {ref: launcherId})` -> `launcher.dispose()`
+    // (`launcher-extension/src/index.ts:95-106`): what a launcher card opens takes the launcher's
+    // place, so the launcher it came from goes - and only that one. A document opened from the
+    // browser is not a launch and leaves the launcher tab alone (P8d).
+    backStack.remove(Launcher)
   }
 }
 

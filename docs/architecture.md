@@ -209,10 +209,14 @@ The lifetime half matters as much as the identity half: because each entry owns 
 `ViewModelStore`, disposing an entry runs `EditorViewModel.onCleared`, which flushes the last
 edit and closes the kernel socket. Nothing closed a socket before this existed.
 
-**One document at a time.** `NotebookBackStack` reveals rather than reopens (JupyterLab's
-`openOrReveal`), and a *different* document replaces the open one instead of stacking. Both
-decorators key on `NavEntry.contentKey`, so two entries for one path would share a single
-`ViewModelStore` and a single `SaveableStateHolder` slot — a double tap is enough to cause it.
+**The back stack is the main area's tab list.** `NotebookBackStack` keeps every open document —
+`openOrReveal` semantics: a new document pushes, an already-open one is moved to the top rather
+than duplicated, because two equal keys would share one `contentKey`, one `ViewModelStore` and one
+`SaveableStateHolder` slot (a double tap is enough to reach it). Each entry owns a
+`ViewModelStore`, so a document beneath the top stays alive — ViewModel, kernel session and all —
+the way a JupyterLab tab does, and Back reveals the next document instead of leaving the app.
+`OpenDocuments` is the matching registry: every live document, in open order, addressable by its
+current path.
 
 **The shell has one side area, and an activity bar beside the whole thing.** `MainNavigation` draws
 a `SidePanelRail` next to `NavDisplay` — not inside a pane — because that is where JupyterLab's own

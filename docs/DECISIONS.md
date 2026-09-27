@@ -4611,7 +4611,7 @@ would pay a dispose/recreate on every press.
 keeping a second launcher-card-free reach point for terminals on the FilesBar, and letting two
 `Console` entries coexist in the stack.
 
-### Many documents live in the stack; a tab is an ordering, not a screen (P8, planned)
+### Many documents live in the stack; a tab is an ordering, not a screen (P8d)
 
 The references agree on the model and differ only on where it is drawn. JupyterLab's tabs are the
 main DockPanel's TabBar — `labShell.widgets('main')` *is* the tab list, and its "Open Tabs"
@@ -4621,14 +4621,26 @@ one tab per editor input per group. Both carry the dirty mark on the tab (`jp-mo
 JupyterLab's `mode: 'single-document'` replaces the whole workbench rather than hiding a strip,
 so it is the rejected alternate for one pane, not the design.
 
-Ours maps it onto the back stack rather than beside it: document entries **stay** in the stack —
-each keeps its `contentKey`, hence its `ViewModelStore`, hence its kernel session — the strip is
-a projection of the stack's document entries, and activating a tab moves that entry to the top,
-which is also the reveal `openOrReveal` already promises. `onCleared` still runs only on a real
-close, and Back pops the active tab onto the previous one. `OpenDocuments`'s single slot and
-`chooseDetailThatFitsTheSurface`'s "never two documents" were the deliberate simplification this
-retires — `Console`'s one-session holder is a real constraint that survives and gets re-derived,
-not deleted.
+Ours maps it onto the back stack rather than beside it, shipped as `openInMainArea`: document
+entries **stay** in the stack — each keeps its `contentKey`, hence its `ViewModelStore`, hence its
+kernel session — and activate is a move-to-top, which is also the reveal `openOrReveal` already
+promises. `onCleared` still runs only on a real close, and Back pops the active tab onto the
+previous one. `OpenDocuments`'s single slot and `chooseDetailThatFitsTheSurface`'s "never two
+documents" were the deliberate simplification this retired — the registry is now an ordered list
+(`all` is the open order the strip will draw), and `Console`'s one-session holder is a real
+constraint that survived and got re-derived, not deleted.
+
+Two edges the re-derivation changed, both measured on the tablet
+(`evidence/p8d-multi-document/`, two distinct `kernel.session.opened` ids):
+
+- **`launcher.dispose()` belongs to the launch, not the open.** `add(item,'main',{ref})` disposes
+  the *spawning* launcher (`launcher-extension/src/index.ts:95-106`), so `rememberLaunchHandler`
+  removes `Launcher` after a card's open — a document opened from the file browser leaves the
+  launcher tab alone. The old sweep could not tell those two apart.
+- **One pane promotes `Explorer`, it does not pop the document.** `[Explorer, Editor, Editor]`
+  is reachable there (a rotation carries the stack), so `goToFolder` brings the browser forward
+  and Back returns to the document — the pop that used to close it would now also strand a
+  `browseRequest` on an entry that was never shown.
 
 ### The running panel is JupyterLab's "Sessions and Tabs", at its own rank (P8f, planned)
 

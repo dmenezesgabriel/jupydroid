@@ -79,10 +79,9 @@ class OpenDocumentsTest {
   }
 
   /**
-   * **The swap race, and it is not hypothetical.** `chooseDetailThatFitsTheSurface` adds the new
-   * document before the outgoing entry is disposed, so the old ViewModel's `onCleared` can run
-   * *after* the new one has registered. Closing by identity is what keeps that from clearing the
-   * document that is actually on screen.
+   * **The swap race, and it is not hypothetical.** Reordering an entry to the top can run the old
+   * ViewModel's `onCleared` *after* another document has registered, so closing by identity is
+   * what keeps that from clearing the document that is actually on screen.
    */
   @Test
   fun aDocumentClosingAfterAnotherOpenedLeavesTheOpenOneAlone() {
@@ -94,20 +93,37 @@ class OpenDocumentsTest {
 
     open.closed(outgoing)
 
+    assertNull(open.at("a.py"))
     assertSame(incoming, open.at("b.py"))
   }
 
   /**
-   * One at a time, because the back stack refuses two: `chooseDetailThatFitsTheSurface` removes the
-   * current detail entry before adding the next (`NotebookBackStack.kt`).
+   * Many at once, because the back stack holds every open document (P8d): the registry answers
+   * each by its own live path, and reports them in the order they opened - the order P8e's tab
+   * strip draws.
    */
   @Test
-  fun aSecondDocumentReplacesTheFirstBecauseOnlyOneCanBeOpen() {
+  fun openDocumentsAreAllReachableInTheOrderTheyOpened() {
     val open = OpenDocuments()
-    open.opened(FakeOpenDocument("a.py", "cat"))
-    open.opened(FakeOpenDocument("b.py", "cat"))
+    val first = FakeOpenDocument("a.py", "cat")
+    val second = FakeOpenDocument("b.py", "cat")
+    open.opened(first)
+    open.opened(second)
 
-    assertNull(open.at("a.py"))
+    assertSame(first, open.at("a.py"))
+    assertSame(second, open.at("b.py"))
+    assertEquals(listOf(first, second), open.all)
+  }
+
+  /** Registering the same document twice is not a second document - identity, not path. */
+  @Test
+  fun aDocumentRegisteredTwiceIsStillOneEntry() {
+    val open = OpenDocuments()
+    val document = FakeOpenDocument("a.py", "cat")
+    open.opened(document)
+    open.opened(document)
+
+    assertEquals(listOf(document), open.all)
   }
 
   /** The registry hands the document over; what an edit *means* is the document's own business. */

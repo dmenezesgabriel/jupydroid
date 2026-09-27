@@ -10,6 +10,7 @@ import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneSt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -119,8 +120,8 @@ fun MainNavigation(
   /** [OpenDocumentOutline]'s own seam, crossed for the debugger's side panel - see [OpenDebugStack]. */
   debugPanel: OpenDebugStack = remember { OpenDebugStack() },
   /**
-   * Where the open document is reached by path, for something that is not its own screen - today,
-   * the search panel's replace (P2x-5).
+   * Where every open document is reached by path, for something that is not its own screen -
+   * today, the search panel's replace (P2x-5).
    *
    * Remembered here rather than owned by [AppContainer] for [OpenDocumentOutline]'s reason: it
    * holds a live ViewModel, and a process-scoped holder would outlive the composition that made it.
@@ -135,15 +136,16 @@ fun MainNavigation(
   // Saved rather than remembered, because a rotation is what most often brings the rail into range
   // in the first place, and `SidePanel?` round-trips through a Bundle unaided.
   var sidePanel by rememberSaveable { mutableStateOf<SidePanel?>(SidePanel.FILES) }
-  // Where the open notebook lives *now*. The navigation key keeps the path it was opened under,
-  // because replacing it would re-create the entry and discard the editor's state; a rename is
-  // reported here instead. `_contextsForPath` does the same - it filters live contexts by their
-  // current path, never by the one a widget was created with.
-  var openNotebookId by remember { mutableStateOf<String?>(null) }
+  // Where each open notebook lives *now*, per entry. A navigation key keeps the path it was opened
+  // under, because replacing it would re-create the entry and discard the editor's state; a rename
+  // is reported here instead, keyed by the entry's own key since many editors are open at once
+  // (P8d). `_contextsForPath` does the same - it filters live contexts by their current path, never
+  // by the one a widget was created with.
+  val openNotebookPaths = remember { mutableStateMapOf<Editor, String>() }
   // The session `NotebookKernel.attachConsole()` minted for whichever notebook's Console was last
   // opened - `outline`/`debugPanel`/`openDocuments`' own shape, the side channel a live object
   // needs to flow between two `NavEntry`s that own separate `ViewModelStore`s. Plain `remember`,
-  // not saveable, for `openNotebookId`'s own reason: a `NotebookKernelSession` cannot survive a
+  // not saveable, for `openNotebookPaths`' own reason: a `NotebookKernelSession` cannot survive a
   // process death any more than an `EditorViewModel`'s own kernel connection can, so there is
   // nothing this could round-trip through a Bundle. A Console entry restored without one composes
   // no screen - the same silent gap every other holder here already leaves unaddressed rather than
@@ -190,10 +192,11 @@ fun MainNavigation(
   var revealRequest by remember { mutableStateOf<MatchedLine?>(null) }
   // Which row the pane beside the browser belongs to, and **only while there is a pane beside it**.
   // In one window the browser is on screen exactly when nothing is open, so a marked row would
-  // point at a pane that is not there. The notebook's path comes from `openNotebookId` rather than
-  // from the key, because a rename moves the file and the key keeps the path it was opened under.
+  // point at a pane that is not there. The notebook's path comes from `openNotebookPaths` rather
+  // than from the key, because a rename moves the file and the key keeps the path it was opened
+  // under - and now that several editors can sit in the stack, each reports its own.
   val openDocumentPath = when (val top = backStack.lastOrNull()) {
-    is Editor -> openNotebookId
+    is Editor -> openNotebookPaths[top] ?: top.notebookId
     is FileEditor -> top.path
     else -> null
   }.takeIf { twoPane }
@@ -254,7 +257,15 @@ fun MainNavigation(
   // which is the reason `ShellSidePane` stopped being handed the width fact twice in P7a-2.
   val goToFolder: (String) -> Unit = { folder ->
     browseRequest = folder
-    if (twoPane) sidePanel = SidePanel.FILES else backStack.removeLastOrNull()
+    if (twoPane) {
+      sidePanel = SidePanel.FILES
+    } else {
+      // One pane, and the browser is only ever shown as the top entry: bring it forward rather
+      // than popping the document - since P8d the entries beneath are still-open tabs, so Back
+      // from the browser returns to the document exactly as activating a tab would.
+      backStack.remove(Explorer)
+      backStack.add(Explorer)
+    }
   }
 
   // A hoisted lambda like `goToFolder`, for the same reason: the card-to-document mapping is the
@@ -421,7 +432,7 @@ fun MainNavigation(
               consoleSession = session
               backStack.openConsole(editor.notebookId)
             },
-            onNotebookMoved = { moved -> openNotebookId = moved },
+            onNotebookMoved = { moved -> openNotebookPaths[editor] = moved },
             // The same request the file editor takes, because the panel does not know - and should
             // not - which of the two a path opens: `docmanager:open` decides the editor from the
             // path alone, and the match travels beside it either way.

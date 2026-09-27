@@ -9,6 +9,11 @@ import org.junit.Test
  *
  * The device half is `NotebookNavigationTest.tappingTheSameNotebookTwiceOpensOneEditor`; this is
  * the half that says what "already open" means when it is not the notebook on top.
+ *
+ * Since P8d the stack holds **every** open document, the way JupyterLab's main area holds every
+ * open tab: opening a second document pushes it, and opening one already in the stack moves it to
+ * the top rather than duplicating it - two equal keys would share one `contentKey`, one
+ * `ViewModelStore` and one `SaveableStateHolder` slot (P6b-0).
  */
 class NotebookBackStackTest {
   @Test
@@ -30,35 +35,34 @@ class NotebookBackStackTest {
   }
 
   /**
-   * A second notebook **replaces** the first rather than stacking on it.
-   *
-   * It used to push, which was unreachable on a phone - Explorer is not on screen while an editor
-   * is - and so never wrong. Two panes make it reachable: the list is beside the editor, and a
-   * stacked `[Explorer, Editor(a), Editor(b)]` would pair the *last two* entries and put a notebook
-   * where the list belongs. Replacing also disposes `Editor(a)`'s entry, which is what makes
-   * `EditorViewModel.onCleared` run and close its kernel socket.
+   * A second notebook **stacks**: both stay open, the way `shell.add(widget, 'main')` adds a tab
+   * rather than closing the current one. Keeping `Editor(a)`'s entry is also what keeps its
+   * ViewModel - and with it the kernel session - alive underneath.
    */
   @Test
-  fun openingADifferentNotebookReplacesTheOneOpen() {
+  fun openingADifferentNotebookKeepsTheOneOpen() {
     val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
 
     backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-1"), Editor("nb-2")), backStack)
   }
 
-  /** Only an editor is swapped out. Anything else below stays where it is. */
+  /**
+   * Reopening a document already in the stack **promotes** it to the top rather than duplicating
+   * it - the activate-half of `openOrReveal` (`packages/docmanager/src/manager.ts:481-503`), and
+   * the one thing a stack of tabs still cannot do: hold two equal keys.
+   */
   @Test
-  fun openingFromTheListLeavesTheListInPlace() {
-    val backStack = mutableListOf<NavKey>(Explorer)
+  fun reopeningAnOpenNotebookPromotesItToTheTop() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Editor("nb-2"))
 
     backStack.openNotebook("nb-1")
-    backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-2"), Editor("nb-1")), backStack)
   }
 
-  /** A plain file opens the same way a notebook does: one document, pushed onto the browser. */
+  /** A plain file opens the same way a notebook does: pushed onto whatever is open. */
   @Test
   fun openingAFilePushesItsEditor() {
     val backStack = mutableListOf<NavKey>(Explorer, Explorer)
@@ -77,33 +81,31 @@ class NotebookBackStackTest {
     assertEquals(listOf(Explorer, Explorer, FileEditor("data.csv")), backStack)
   }
 
-  /** A second file replaces the one open - the reference's `openOrReveal`, applied to files. */
   @Test
-  fun openingADifferentFileReplacesTheOneOpen() {
+  fun openingADifferentFileStacksOnTheOneOpen() {
     val backStack = mutableListOf<NavKey>(Explorer, Explorer, FileEditor("a.csv"))
 
     backStack.openFile("b.csv")
 
-    assertEquals(listOf(Explorer, Explorer, FileEditor("b.csv")), backStack)
+    assertEquals(listOf(Explorer, Explorer, FileEditor("a.csv"), FileEditor("b.csv")), backStack)
   }
 
   /**
-   * The two document kinds swap each other. The explorer can open both, and a detail it cannot
-   * swap would stack `[Explorer, FileEditor(a), Editor(b)]` - two entries claiming one pane, of
-   * which only the last is ever drawn.
+   * The two document kinds stack on each other - a notebook and a plain file are both main-area
+   * tabs, and neither closes the other.
    */
   @Test
-  fun openingANotebookReplacesAPlainFileAndViceVersa() {
+  fun openingANotebookStacksOnAPlainFileAndViceVersa() {
     val fromFile = mutableListOf<NavKey>(Explorer, Explorer, FileEditor("a.py"))
     fromFile.openNotebook("nb-1")
-    assertEquals(listOf(Explorer, Explorer, Editor("nb-1")), fromFile)
+    assertEquals(listOf(Explorer, Explorer, FileEditor("a.py"), Editor("nb-1")), fromFile)
 
     val fromNotebook = mutableListOf<NavKey>(Explorer, Explorer, Editor("nb-1"))
     fromNotebook.openFile("a.py")
-    assertEquals(listOf(Explorer, Explorer, FileEditor("a.py")), fromNotebook)
+    assertEquals(listOf(Explorer, Explorer, Editor("nb-1"), FileEditor("a.py")), fromNotebook)
   }
 
-  /** A terminal opens the same way: one document, pushed onto the browser. */
+  /** A terminal opens the same way: a document of its own kind, pushed onto the browser. */
   @Test
   fun openingATerminalPushesItsScreen() {
     val backStack = mutableListOf<NavKey>(Explorer)
@@ -115,27 +117,28 @@ class NotebookBackStackTest {
 
   /**
    * A second "new terminal" tap always opens a fresh session - two terminals never compare equal
-   * by name, since the server mints a new one every time - so it replaces rather than reveals.
+   * by name, since the server mints a new one every time - so it stacks, the way the reference's
+   * `terminal:create-new` adds a second tab rather than revealing the first.
    */
   @Test
-  fun openingASecondTerminalReplacesTheOneOpen() {
+  fun openingASecondTerminalStacksOnTheOneOpen() {
     val backStack = mutableListOf<NavKey>(Explorer, Terminal("1"))
 
     backStack.openTerminal("2")
 
-    assertEquals(listOf(Explorer, Terminal("2")), backStack)
+    assertEquals(listOf(Explorer, Terminal("1"), Terminal("2")), backStack)
   }
 
-  /** A terminal swaps a document exactly as the other two kinds swap each other. */
+  /** A terminal stacks on a document exactly as the other two kinds stack on each other. */
   @Test
-  fun openingATerminalReplacesAnEditorAndViceVersa() {
+  fun openingATerminalStacksOnAnEditorAndViceVersa() {
     val fromEditor = mutableListOf<NavKey>(Explorer, Explorer, Editor("nb-1"))
     fromEditor.openTerminal("1")
-    assertEquals(listOf(Explorer, Explorer, Terminal("1")), fromEditor)
+    assertEquals(listOf(Explorer, Explorer, Editor("nb-1"), Terminal("1")), fromEditor)
 
     val fromTerminal = mutableListOf<NavKey>(Explorer, Explorer, Terminal("1"))
     fromTerminal.openNotebook("nb-1")
-    assertEquals(listOf(Explorer, Explorer, Editor("nb-1")), fromTerminal)
+    assertEquals(listOf(Explorer, Explorer, Terminal("1"), Editor("nb-1")), fromTerminal)
   }
 
   /**
@@ -152,14 +155,13 @@ class NotebookBackStackTest {
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer, Terminal("1"), Editor("nb-1")), backStack)
   }
 
   /**
-   * A Console stacks on top of the notebook it shares a kernel with, rather than replacing it -
-   * P6b-9's own reason to exist: Back has to return to the still-open notebook, not to the
-   * browser. [openConsole] is not [openNotebook]'s twin for that reason; it never goes through
-   * [chooseDetailThatFitsTheSurface] at all.
+   * A Console stacks on top of the notebook it shares a kernel with - P6b-9's own reason to
+   * exist: Back has to return to the still-open notebook, not to the browser. [openConsole] is
+   * not [openNotebook]'s twin for that reason.
    */
   @Test
   fun openingAConsolePushesItOnTopOfTheOpenNotebook() {
@@ -180,29 +182,30 @@ class NotebookBackStackTest {
   }
 
   /**
-   * The generalised case [chooseDetailThatFitsTheSurface]'s single `if` could not answer: a
-   * Console stacks a *second* document on top of its notebook, so unwinding to the surface before
-   * opening something else has to remove both, not just the one on top. A single `removeAt` left
-   * the notebook behind - `[Explorer, Editor("nb-1"), Editor("nb-2")]`, two documents claiming one
-   * pane, the exact shape P6b-0 exists to prevent - which is why this loops now.
+   * A document opened while a Console shows leaves the console's whole stack beneath it: the
+   * console is a main-area widget like any other now, and so is the notebook it was attached to.
    */
   @Test
-  fun openingADifferentNotebookWhileAConsoleIsOpenReplacesBothItAndItsNotebook() {
+  fun openingADifferentNotebookWhileAConsoleIsOpenLeavesEverythingBeneath() {
     val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
 
     backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1"), Editor("nb-2")), backStack)
   }
 
-  /** Reopening the notebook a Console is showing over promotes it and drops the Console. */
+  /**
+   * Reopening the notebook a Console is stacked over promotes the notebook **past** the console -
+   * reveal moves it to the top, and the console stays open beneath, the way the reference keeps
+   * an attached console's tab when its notebook's is activated.
+   */
   @Test
-  fun reopeningTheNotebookUnderAnOpenConsoleDropsTheConsole() {
+  fun reopeningTheNotebookUnderAnOpenConsolePromotesItPastTheConsole() {
     val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer, Console("nb-1"), Editor("nb-1")), backStack)
   }
 
   /** Settings, opened with nothing else showing, pushes onto the bare browser. */
@@ -238,17 +241,16 @@ class NotebookBackStackTest {
   }
 
   /**
-   * The generalised sweep [openConsole]'s own test proves for Console applies to Settings too:
-   * opening a different document while Settings sits on top must not leave the old notebook
-   * behind underneath it.
+   * A document opened while Settings shows leaves both beneath - Settings is a main-area widget
+   * too, and the document it sat on is still an open tab.
    */
   @Test
-  fun openingADifferentNotebookWhileSettingsIsOpenReplacesBothItAndTheDocumentBeneath() {
+  fun openingANotebookWhileSettingsIsOpenLeavesBothBeneath() {
     val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Settings)
 
     backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Explorer, Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-1"), Settings, Editor("nb-2")), backStack)
   }
 
   /** The Launcher is a detail-pane destination: it pushes onto the bare browser. */
@@ -300,27 +302,28 @@ class NotebookBackStackTest {
   }
 
   /**
-   * A document opened from the launcher replaces it in place - `add(item, 'main', {ref: id})` →
-   * `launcher.dispose()` (`launcher-extension/src/index.ts:95-106`). `Launcher` is in
-   * `isDocument()` for this: anything a surface opens sweeps the detail it was opened from.
+   * The Launcher is a tab like any other main-area widget: opening a document **from the browser**
+   * does not close it - `launcher.dispose()` runs only when the launcher itself spawned the
+   * widget (`add(item, 'main', {ref: id})`, `launcher-extension/src/index.ts:95-106`), which is
+   * the launch handler's rule, not the opener's.
    */
   @Test
-  fun openingANotebookReplacesTheLauncher() {
+  fun openingANotebookFromTheListLeavesTheLauncherOpen() {
     val backStack = mutableListOf<NavKey>(Explorer, Launcher)
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer, Launcher, Editor("nb-1")), backStack)
   }
 
-  /** The sweep reaches a launcher stacked *over* the open document, not only a lone one. */
+  /** The launcher stays open even with documents stacked between. */
   @Test
-  fun openingAFileSweepsALauncherStackedOverTheOpenDocument() {
+  fun openingAFileLeavesALauncherStackedOverTheOpenDocument() {
     val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Launcher)
 
     backStack.openFile("a.py")
 
-    assertEquals(listOf(Explorer, FileEditor("a.py")), backStack)
+    assertEquals(listOf(Explorer, Editor("nb-1"), Launcher, FileEditor("a.py")), backStack)
   }
 
   /**
@@ -351,16 +354,19 @@ class NotebookBackStackTest {
 
   /**
    * A Launcher-made Console is a document in its own right - `shell.add(panel, 'main')`
-   * (`console-extension/src/index.ts`), not [openConsole]'s stack-on-top - so it takes the detail
-   * the way a notebook does, the launcher that minted it included.
+   * (`console-extension/src/index.ts`), not [openConsole]'s stack-on-top - and the launcher that
+   * minted it is disposed by the launch handler, not by this opener.
    */
   @Test
-  fun aStandaloneConsoleReplacesTheDetailIncludingTheLauncher() {
+  fun aStandaloneConsoleStacksOnTheDetail() {
     val backStack = mutableListOf<NavKey>(Explorer, Launcher)
 
     backStack.openStandaloneConsole("console-1-x", "Console 1")
 
-    assertEquals(listOf(Explorer, Console("console-1-x", "Console 1", standalone = true)), backStack)
+    assertEquals(
+      listOf(Explorer, Launcher, Console("console-1-x", "Console 1", standalone = true)),
+      backStack,
+    )
   }
 
   /**
@@ -374,7 +380,10 @@ class NotebookBackStackTest {
 
     backStack.openStandaloneConsole("console-1-x", "Console 1")
 
-    assertEquals(listOf(Explorer, Console("console-1-x", "Console 1", standalone = true)), backStack)
+    assertEquals(
+      listOf(Explorer, Editor("nb-1"), Console("console-1-x", "Console 1", standalone = true)),
+      backStack,
+    )
   }
 
   @Test

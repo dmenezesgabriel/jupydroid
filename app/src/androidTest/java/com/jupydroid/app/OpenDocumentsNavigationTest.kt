@@ -96,6 +96,10 @@ class OpenDocumentsNavigationTest {
           importTitle = null,
           onImportConsumed = {},
           openDocuments = open,
+          // Pinned for `NotebookNavigationTest`'s reason: a physical tablet's own rotation puts
+          // this on either side of the two-pane threshold, where "Back to notebooks" is "Close"
+          // instead (`DocumentDismissAction`).
+          twoPane = false,
         )
       }
     }
