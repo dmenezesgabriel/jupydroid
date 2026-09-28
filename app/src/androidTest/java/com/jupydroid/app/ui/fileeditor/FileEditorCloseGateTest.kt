@@ -26,6 +26,7 @@ import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.shell.TabbedDocumentPane
+import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -189,7 +190,8 @@ class FileEditorCloseGateTest {
           order.clear()
           order.addAll(tabs)
         }
-        TabbedDocumentPane(backStack, open, paths, tabs, liveTitles, repository, twoPane = false) {
+        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
+        TabbedDocumentPane(backStack, open, paths, tabs, liveTitles, repository, twoPane = false, closeTab) {
           FileEditorScreen(
             path = "notes.py",
             workspaceRepository = repository,

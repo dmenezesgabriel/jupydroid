@@ -59,7 +59,6 @@ import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.Settings
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.activateMainAreaTab
-import com.jupydroid.app.closeMainAreaTab
 import com.jupydroid.app.documentIn
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -72,7 +71,6 @@ import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
-import com.jupydroid.app.ui.SaveBeforeCloseDialog
 import kotlinx.coroutines.launch
 
 /**
@@ -123,28 +121,22 @@ fun TabbedDocumentPane(
    * closing is the tab's ✕, so the strip draws nothing there.
    */
   twoPane: Boolean = true,
+  /**
+   * The one act that empties a main-area slot - `application:close` - shared by the strip's ✕,
+   * the one-pane arrow and the Running panel's own close, which is why it is *handed in* from
+   * above: the Running panel lives outside this entry, so `rememberMainAreaCloseGate` owns the
+   * dirty ask where both can reach it.
+   */
+  onCloseTab: (NavKey) -> Unit,
   content: @Composable () -> Unit,
 ) {
-  // The dirty document a tab's close asked about - held here rather than inside a tab so the
-  // dialog outlives that tab's recomposition (its own ✕ is what opened the ask).
-  var closing by remember { mutableStateOf<PendingTabClose?>(null) }
-  // The tab a rename is being asked over - same "outlives the tab" reason as [closing].
+  // The tab a rename is being asked over - held here rather than inside a tab so the dialog
+  // outlives that tab's recomposition (its own long-press is what opened the ask).
   var renaming by remember { mutableStateOf<PendingTabRename?>(null) }
   // The rename the repository refused - `renameFile`'s 409 becomes `shouldOverwrite`, the dialog
   // below, and only then `overwrite` (`packages/docmanager/src/dialogs.ts`).
   var overwriting by remember { mutableStateOf<TakenTabName?>(null) }
   val scope = rememberCoroutineScope()
-
-  // One act empties a main-area slot, whichever control asked: `application:close` is the same
-  // command on the tab's ✕ as on the one-pane arrow, so both run this dirty-ask-then-close.
-  val closeTab: (NavKey) -> Unit = { key ->
-    val document = key.documentIn(openDocuments)
-    if (document != null && document.dirty.value) {
-      closing = PendingTabClose(key, document, key.tabTitle(openDocuments, openDocumentPaths))
-    } else {
-      backStack.closeMainAreaTab(key, tabs)
-    }
-  }
 
   Column(modifier = Modifier.fillMaxSize()) {
     MainAreaTabStrip(
@@ -154,33 +146,13 @@ fun TabbedDocumentPane(
       liveTabTitles = liveTabTitles,
       tabs = tabs,
       twoPane = twoPane,
-      onCloseTab = closeTab,
+      onCloseTab = onCloseTab,
       onRenameTab = { key ->
         val path = key.documentIn(openDocuments)?.path ?: key.liveDocumentPath(openDocumentPaths)
         path?.let { renaming = PendingTabRename(key, it) }
       },
     )
     Box(modifier = Modifier.weight(1f)) { content() }
-  }
-
-  // `saveBeforeClose` word for word (`docmanager/src/dialogs.ts:155`) - the same dialog the
-  // screens' own gate draws, asked on behalf of a tab whose document may not be on screen.
-  closing?.let { pending ->
-    SaveBeforeCloseDialog(
-      name = pending.title,
-      // The close is the flush's continuation: a save that cannot be made never runs the remove,
-      // so the document stays - `context.save()` rejecting in `widgetmanager.ts:353-365`.
-      onSave = {
-        closing = null
-        pending.document.saveNow { backStack.closeMainAreaTab(pending.key, tabs) }
-      },
-      onDiscard = {
-        closing = null
-        pending.document.discardChanges()
-        backStack.closeMainAreaTab(pending.key, tabs)
-      },
-      onCancel = { closing = null },
-    )
   }
 
   // `docmanager:rename` (`docmanager-extension/schema/plugin.json:75`, bound to the tab's own
@@ -219,9 +191,6 @@ fun TabbedDocumentPane(
     )
   }
 }
-
-/** What a tab's close is still deciding - the entry, its document, and the label the dialog names. */
-private class PendingTabClose(val key: NavKey, val document: OpenDocument, val title: String)
 
 /** The tab being renamed and where it lives now - the live path, so the dialog names it. */
 private class PendingTabRename(val key: NavKey, val path: String)
@@ -331,10 +300,6 @@ private fun upDestinationLabel(
       ?: beneath.mainAreaTabTitle(liveDocumentPaths)
     )
 }
-
-/** The path a tab names - a document's, live where the document registered, else the key's own. */
-private fun NavKey.tabTitle(openDocuments: OpenDocuments, liveDocumentPaths: Map<NavKey, String>): String =
-  documentIn(openDocuments)?.path?.substringAfterLast('/') ?: mainAreaTabTitle(liveDocumentPaths)
 
 /**
  * One `lm-TabBar-tab`: the kind's icon, the `title.label`, and the close icon that swaps for the

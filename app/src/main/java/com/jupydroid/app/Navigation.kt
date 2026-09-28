@@ -39,6 +39,7 @@ import com.jupydroid.app.ui.launcher.LauncherViewModel
 import com.jupydroid.app.ui.settings.SettingsScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.TabbedDocumentPane
+import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import java.util.concurrent.atomic.AtomicInteger
@@ -104,6 +105,13 @@ fun MainNavigation(
   // closed tab left behind drop out with the same reconcile that keeps the order honest.
   val liveTabTitles = remember { mutableStateMapOf<NavKey, String>() }
   LaunchedEffect(orderedTabs) { liveTabTitles.keys.retainAll(orderedTabs.toSet()) }
+  /**
+   * `application:close`'s dirty gate, mounted here rather than inside an entry - the Running
+   * panel's row close reaches it too, and the dialog must outlive whichever tab opened the ask.
+   * [orderedTabs] is the strip's opening order, so a current tab's close re-selects the sibling
+   * the eye expects.
+   */
+  val closeTab = rememberMainAreaCloseGate(backStack, orderedTabs, openDocuments, openDocumentPaths)
   // One strip for the six detail entries, so an entry states its screen and nothing else - the
   // strip's model is the stack and these four holders, identical for all six.
   val tabbedPane: @Composable (@Composable () -> Unit) -> Unit = { content ->
@@ -117,6 +125,7 @@ fun MainNavigation(
       // The one width fact the strip reads: below two panes it leads with the Up affordance,
       // because the document is the whole window there and leaving it goes back.
       twoPane = twoPane,
+      onCloseTab = closeTab,
       content,
     )
   }
