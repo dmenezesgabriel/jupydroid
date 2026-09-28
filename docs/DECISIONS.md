@@ -4692,6 +4692,41 @@ affordance, and in this architecture an environment **is** a Space: it lands wit
 kernelspecs rather than as a second env model. **This forbids** a picker that invents kernels
 jupyter_server cannot name, and a kernelspec store parallel to the notebook's own metadata.
 
+Shipped with one more fidelity the indicator flow made observable: `kernelDisplayName` resolves
+the **pending** name through the catalogue for as long as a connect or a `{name}` PATCH is out
+(`_pendingKernelName`, `sessioncontext.tsx:590-593`) — never for an `{id}` attach, whose model
+carries no name (`:938`). Without it the bar read `Kernel No Kernel: Starting` during the very
+startup the indicator exists to show.
+
+### A dialog row can draw fully and still be unreachable — two separate causes (P8g)
+
+The first tablet run of the kernel picker showed the last row, the running kernel the whole
+flow exists to attach to, **painted on screen while every reach failed**: `assertVisible`,
+`tapOn`, `scrollUntilVisible`, and a physical drag all moved nothing. Two distinct defects sat
+under that one symptom, and they were fixed separately because either alone reproduces it:
+
+- **The list never scrolled.** The body was a `Column`+`verticalScroll` capped by `heightIn`,
+  and the AlertDialog's text slot clipped at its own bound — the overflow drew inside the dialog
+  surface but produced no scroll range, so the node reported `scrollable=false` and no gesture
+  could move it. The fix is the `LazyColumn` bounded below the slot (260dp on the tablet's
+  ~414px slot), so overflow becomes a real scroll range and off-edge items compose by scrolling.
+- **`minimumInteractiveComponentSize` inflates the *semantics* bounds, not the layout.** A
+  `selectable` row shorter than 48dp gets padded to the touch minimum inside its semantics node
+  only; interior rows inflate into a neighbour unnoticed, but the last row's inflation crossed
+  the list's clip — reported not visible to accessibility while every pixel showed.
+  `heightIn(min = 48.dp)`
+  on the row makes layout bounds the same as the announced ones. **This forbids** any
+  `selectable`/`clickable` row in a scrollable dialog that relies on the semantic padding to
+  look tappable — the layout must meet the touch minimum itself.
+
+The third failure was the harness's, not the app's: **Maestro text selectors are
+`Regex.matches`, full-string, not substring** (`maestro/Filters.textMatches`). A running-kernel
+row is titled `P8g Provider.ipynb (28d1cb31)`, so `text: "P8g Provider.ipynb"` never matched it —
+the file-list row behind the dialog, whose text is exactly that, is what the earlier taps hit.
+Any flow that names a row carrying a generated suffix needs the trailing `.*`
+(`"P8g Provider\\.ipynb.*"` in `p8g-kernel-picker.yaml`), and an assert that goes red on a row
+visible in the screenshot should have its selector suspicion-checked before the layout is.
+
 ## Harness
 
 ### History was rewritten once, before the first push, to take the device out of it
