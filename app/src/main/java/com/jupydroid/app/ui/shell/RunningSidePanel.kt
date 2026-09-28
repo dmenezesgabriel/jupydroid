@@ -145,6 +145,7 @@ fun RunningSidePanel(
             icon = tabIcon(tab.key),
             label = tab.title,
             detail = null,
+            openDescription = "Open tab: ${tab.title}",
             shutdownDescription = "Close: ${tab.title}",
             onOpen = { onActivateTab(tab.key) },
             onShutdown = { onCloseTab(tab.key) },
@@ -170,6 +171,7 @@ fun RunningSidePanel(
             // List-mode's `(kernelIdPrefix)` detail - `kernels.tsx` renders the kernel id's
             // first segment beside the session's name.
             detail = session.kernelId?.let { "(${it.substringBefore('-')})" },
+            openDescription = "Open kernel session: ${session.name}",
             shutdownDescription = "Shut Down Kernel: ${session.name}",
             onOpen = { onOpenSession(session) },
             onShutdown = { viewModel.shutdownSession(session) },
@@ -195,6 +197,7 @@ fun RunningSidePanel(
             icon = Icons.Filled.Terminal,
             label = "terminals/${terminal.name}",
             detail = null,
+            openDescription = "Open terminal: terminals/${terminal.name}",
             shutdownDescription = "Shut Down: terminals/${terminal.name}",
             onOpen = { onOpenTerminal(terminal) },
             onShutdown = { viewModel.closeTerminal(terminal) },
@@ -278,13 +281,21 @@ private fun RunningRow(
   icon: ImageVector,
   label: String,
   detail: String?,
+  openDescription: String,
   shutdownDescription: String,
   onOpen: () -> Unit,
   onShutdown: () -> Unit,
 ) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
-    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(Spacing.sm),
+    // A clickable row names its act, not just its label - "p8f-kernel.ipynb" alone is also the
+    // tab's text and the browser's, so the section-qualified name is what a screen reader (and a
+    // flow) can address without ambiguity.
+    modifier = Modifier
+      .fillMaxWidth()
+      .semantics { contentDescription = openDescription }
+      .clickable(onClick = onOpen)
+      .padding(Spacing.sm),
   ) {
     Icon(
       imageVector = icon,

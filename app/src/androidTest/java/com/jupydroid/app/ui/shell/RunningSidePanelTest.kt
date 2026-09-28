@@ -62,12 +62,16 @@ class RunningSidePanelTest {
     compose.onNodeWithContentDescription("Refresh list").assertIsDisplayed()
   }
 
-  /** `opentabs.ts`'s `OpenTab.open()` - `labShell.activateById` for the tapped widget. */
+  /**
+   * `opentabs.ts`'s `OpenTab.open()` - `labShell.activateById` for the tapped widget. The row's
+   * accessible name carries the act ("Open tab: …"), because its bare label is also the tab's and
+   * the browser's text.
+   */
   @Test
   fun anOpenTabRowActivatesItsDocument() {
     show(tabs = listOf(RunningTab(Editor("a.ipynb"), "a.ipynb")))
 
-    compose.onNodeWithText("a.ipynb", substring = true).performClick()
+    compose.onNodeWithContentDescription("Open tab: a.ipynb").performClick()
 
     assertEquals(listOf<NavKey>(Editor("a.ipynb")), activated)
   }
@@ -93,7 +97,7 @@ class RunningSidePanelTest {
     show()
     awaitSessions(1)
 
-    compose.onNodeWithText("notes.ipynb", substring = true).performClick()
+    compose.onNodeWithContentDescription("Open kernel session: notes.ipynb").performClick()
 
     assertEquals("dir/notes.ipynb", opened.single().path)
   }
@@ -163,7 +167,7 @@ class RunningSidePanelTest {
     show()
     awaitTerminals(1)
 
-    compose.onNodeWithText("terminals/1").performClick()
+    compose.onNodeWithContentDescription("Open terminal: terminals/1").performClick()
 
     assertEquals(listOf(TerminalSession("1")), reattached)
   }
