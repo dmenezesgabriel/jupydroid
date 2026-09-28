@@ -145,6 +145,56 @@ class NotebookKernelSessionTest {
     assertEquals(listOf(true, false, true), reported)
   }
 
+  /**
+   * `SessionContext`'s answer to `session.disposed`: the session ended *elsewhere* - the Running
+   * panel's shutdown, the server forgetting it - and the notebook holding it lands on No Kernel
+   * rather than pointing at a session that is not there (`sessioncontext.tsx`'s `noKernelName`).
+   */
+  @Test
+  fun endIfMatches_forgetsTheSessionAndReportsTheKernelGone() = runTest {
+    val reported = mutableListOf<Boolean>()
+    val session = NotebookKernelSession(
+      StaleSessionKernelGateway(refusals = 0),
+      space,
+      onConnectedChanged = { reported += it },
+    ) { "Analysis.ipynb" }
+    val open = session.open()
+
+    session.endIfMatches(open.serverSessionId)
+
+    assertNull(session.opened)
+    assertEquals(listOf(true, false), reported)
+  }
+
+  @Test
+  fun endIfMatches_leavesASessionItIsNotAboutAlone() = runTest {
+    val reported = mutableListOf<Boolean>()
+    val session = NotebookKernelSession(
+      StaleSessionKernelGateway(refusals = 0),
+      space,
+      onConnectedChanged = { reported += it },
+    ) { "Analysis.ipynb" }
+    session.open()
+
+    session.endIfMatches("somebody else's")
+
+    assertEquals(listOf(true), reported)
+  }
+
+  @Test
+  fun endIfMatches_onNothingOpenReportsNothing() {
+    val reported = mutableListOf<Boolean>()
+    val session = NotebookKernelSession(
+      StaleSessionKernelGateway(refusals = 0),
+      space,
+      onConnectedChanged = { reported += it },
+    ) { "Analysis.ipynb" }
+
+    session.endIfMatches("fake-session-base")
+
+    assertEquals(emptyList<Boolean>(), reported)
+  }
+
   @Test
   fun forgettingReportsTheKernelGone() = runTest {
     val reported = mutableListOf<Boolean>()

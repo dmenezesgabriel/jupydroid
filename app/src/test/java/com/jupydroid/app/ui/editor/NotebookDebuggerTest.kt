@@ -535,9 +535,12 @@ class NotebookDebuggerTest {
     watcher.cancel()
   }
 
-  /** [RecordingKernelGateway] delegates `connect` to `FakeKernelGateway`, whose session is fixed. */
+  /**
+   * [RecordingKernelGateway] delegates `connect` to a fresh `FakeKernelGateway` per test, so the
+   * session under test is always its first mint - `fake-base-1` / `fake-session-base-1`.
+   */
   private val runningSession =
-    KernelSession(id = "fake-base", spaceId = "base", kernelId = "python3", serverSessionId = "fake-session-base")
+    KernelSession(id = "fake-base-1", spaceId = "base", kernelId = "python3", serverSessionId = "fake-session-base-1")
 
   private val session = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
 

@@ -99,4 +99,15 @@ class NotebookKernelSession(
 
   /** Hands back the open session and forgets it, for a caller that is closing the socket. */
   fun forget(): KernelSession? = opened.also { opened = null }
+
+  /**
+   * `session.disposed`'s landing - the session ended *elsewhere* (the Running panel's shutdown,
+   * the server forgetting it, the server being replaced), so this notebook's claim on it goes
+   * and the kernel indicator lands on "No Kernel" the way the reference's does
+   * (`sessioncontext.tsx`'s `noKernelName`). A session it is not about is left alone - the
+   * emission names one serverSessionId and only a match ends here.
+   */
+  fun endIfMatches(serverSessionId: String) {
+    if (opened?.serverSessionId == serverSessionId) forget()
+  }
 }

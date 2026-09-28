@@ -31,6 +31,7 @@ import com.jupydroid.app.DocumentOutline
 import com.jupydroid.app.OpenDebugStack
 import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.EditorSettings
@@ -40,6 +41,7 @@ import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -65,6 +67,11 @@ fun EditorScreen(
    * the way [openDocuments] is, for the tests that drive this screen alone.
    */
   languageServer: LanguageServerPort = FakeLanguageServerPort(),
+  /**
+   * The Running panel's "a session ended" feed, so its shutdown lands this notebook on No
+   * Kernel - `session.disposed`'s route in the reference (P8f). Defaulted as [languageServer] is.
+   */
+  kernelSessions: KernelSessions = FakeKernelSessions(),
   /** `notebook:export-to-format` - see [NotebookExport]. Not a kernel act. */
   notebookExporter: NotebookExporter,
   /** Where an exported file goes next, from the report that says it was written. */
@@ -162,6 +169,7 @@ fun EditorScreen(
       kernelDebugger,
       editorSettingsRepository,
       languageServer,
+      kernelSessions,
     )
   },
 ) {

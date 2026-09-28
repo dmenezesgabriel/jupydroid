@@ -4,6 +4,7 @@ import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
@@ -26,6 +27,7 @@ import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -339,6 +341,8 @@ internal fun TestScope.loadedEditor(
   editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
   // Only the cases about a language-server ask pass one; the rest spawn nothing anyway.
   languageServer: LanguageServerPort = FakeLanguageServerPort(),
+  // Only the "a session ended elsewhere" case passes one sharing the gateway's registry (P8f).
+  kernelSessions: KernelSessions = FakeKernelSessions(),
 ): EditorViewModel {
   launch { repository.saveNotebook(Notebook(notebookId, title, "python3", cells)) }
   advanceUntilIdle()
@@ -347,7 +351,7 @@ internal fun TestScope.loadedEditor(
   val viewModel =
     EditorViewModel(
       notebookId, repository, workspace, gateway, exporter, applicationScope, activeCellRuns,
-      openDocuments, notebookBreakpoints, debugger, editorSettings, languageServer,
+      openDocuments, notebookBreakpoints, debugger, editorSettings, languageServer, kernelSessions,
     )
   advanceUntilIdle()
   return viewModel

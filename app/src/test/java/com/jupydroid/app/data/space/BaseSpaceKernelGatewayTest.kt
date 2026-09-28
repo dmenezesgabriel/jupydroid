@@ -1,13 +1,17 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.StaleKernelSessionException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -84,7 +88,7 @@ class BaseSpaceKernelGatewayTest {
   fun connect_survivesASecondClientOfTheSpaceAskingForTheSameServer() = runTest {
     val launcher = RecordingServerLauncher()
     val space = BaseSpaceServer(installSpace = {}, launcher = launcher, log = recordingLog)
-    val gateway = BaseSpaceKernelGateway(fakeSockets(space), { FakeKernelGateway() }, recordingLog)
+    val gateway = BaseSpaceKernelGateway(fakeSockets(space), { FakeKernelGateway() }, log = recordingLog)
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
     PerRunningServer(space) { "an exporter for ${it.port}" }.get()
@@ -102,13 +106,76 @@ class BaseSpaceKernelGatewayTest {
     assertTrue("expected the kernel to be logged, got $stages", stages.any { it.contains("kernel") })
   }
 
+  /**
+   * P8f: a session this gateway minted is registered under the server's own session id, so the
+   * Running panel - which asks `GET api/sessions` and sees server ids, never client ones - can
+   * name it. The registry, not [issuedSessions], is what the panel shares.
+   */
+  @Test
+  fun connect_registersTheSessionUnderItsServerSessionId() = runTest {
+    val registry = KernelSessionRegistry()
+    val session = gateway(RecordingServerLauncher(), registry).connect(SPACE, "Analysis.ipynb")
+
+    assertEquals(session, registry.trackedBy(session.serverSessionId)?.kernelSession)
+    assertEquals("Analysis.ipynb", registry.trackedBy(session.serverSessionId)?.documentPath)
+  }
+
+  /**
+   * `disconnect` is *not* an end: the socket closes but the session stays on the server and in
+   * the registry, so the panel still lists it and a reopening tab still reattaches.
+   */
+  @Test
+  fun disconnect_keepsTheSessionRegistered() = runTest {
+    val registry = KernelSessionRegistry()
+    val gateway = gateway(RecordingServerLauncher(), registry)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.disconnect(session)
+
+    assertEquals(setOf(session.serverSessionId), registry.liveIds)
+  }
+
+  @Test
+  fun shutdown_emitsEndedForEveryHolderOfTheSession() = runTest {
+    val registry = KernelSessionRegistry()
+    val gateway = gateway(RecordingServerLauncher(), registry)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+    val heard = async { registry.ended.take(1).toList() }
+    advanceUntilIdle()
+
+    gateway.shutdown(session)
+
+    assertEquals(listOf(session.serverSessionId), heard.await())
+  }
+
+  /**
+   * The replaced-server cascade, told to the registry too: `issuedSessions` alone would leave the
+   * old rows tracked forever, and a notebook holding one would claim Idle on a dead kernel.
+   */
+  @Test
+  fun aReplacedServerEndsEverySessionItIssued() = runTest {
+    val registry = KernelSessionRegistry()
+    val gateway = gateway(RecordingServerLauncher(diesAfterFirstStart = true), registry)
+    val stranded = gateway.connect(SPACE, "Analysis.ipynb")
+    val heard = async { registry.ended.take(1).toList() }
+    advanceUntilIdle()
+
+    gateway.connect(SPACE, "Analysis.ipynb")
+
+    assertEquals(listOf(stranded.serverSessionId), heard.await())
+  }
+
   private val recordingLog = RecordingSpaceLifecycleLog()
 
-  private fun gateway(launcher: RecordingServerLauncher): KernelGateway {
+  private fun gateway(
+    launcher: RecordingServerLauncher,
+    registry: KernelSessionRegistry = KernelSessionRegistry(),
+  ): KernelGateway {
     val server = BaseSpaceServer(installSpace = {}, launcher = launcher, log = recordingLog)
     return BaseSpaceKernelGateway(
       sharedSockets = fakeSockets(server),
-      gatewayFor = { FakeKernelGateway() },
+      gatewayFor = { FakeKernelGateway(registry) },
+      registry = registry,
       log = recordingLog,
     )
   }

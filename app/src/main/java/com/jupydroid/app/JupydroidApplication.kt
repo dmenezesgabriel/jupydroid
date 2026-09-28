@@ -16,6 +16,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeTerminalGateway
@@ -25,6 +26,7 @@ import com.jupydroid.app.data.space.JupyterServerLauncher
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
+import com.jupydroid.app.data.space.baseSpaceKernelSessions
 import com.jupydroid.app.data.space.baseSpaceKernelSockets
 import com.jupydroid.app.data.space.baseSpaceLanguageServerPort
 import com.jupydroid.app.data.space.baseSpaceNotebookExporter
@@ -33,8 +35,10 @@ import com.jupydroid.app.data.space.baseSpaceServerLauncher
 import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -94,6 +98,7 @@ class JupydroidApplication : Application() {
       // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
       recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
       kernelGateway = space.kernels,
+      kernelSessions = space.sessions,
       kernelDebugger = space.debugger,
       languageServer = space.languageServer,
       notebookExporter = space.exporter,
@@ -131,7 +136,19 @@ class JupydroidApplication : Application() {
     private val space: BaseSpaceServer? = baseSpaceServer(application, launcher)
     private val kernelSockets = space?.let(::baseSpaceKernelSockets)
 
-    val kernels: KernelGateway = kernelSockets?.let(::baseSpaceKernelGateway) ?: FakeKernelGateway()
+    /**
+     * The sessions this process mints - shared by the gateway that mints them and the panel
+     * port that lists/ends them, real or fake, so a Running-panel shutdown reaches an open
+     * notebook on an emulator exactly as on the tablet (P8f).
+     */
+    private val sessionRegistry = KernelSessionRegistry()
+
+    val kernels: KernelGateway =
+      kernelSockets?.let { baseSpaceKernelGateway(it, sessionRegistry) } ?: FakeKernelGateway(sessionRegistry)
+
+    /** `GET`/`DELETE api/sessions`, over the same sockets and registry the gateway uses. */
+    val sessions: KernelSessions =
+      kernelSockets?.let { baseSpaceKernelSessions(it, sessionRegistry) } ?: FakeKernelSessions(sessionRegistry)
     val debugger: KernelDebugger = kernelSockets?.let(::baseSpaceKernelDebugger) ?: FakeKernelDebugger()
 
     // Off the space object, unlike the others: `pylsp` is a direct stdio process - it never

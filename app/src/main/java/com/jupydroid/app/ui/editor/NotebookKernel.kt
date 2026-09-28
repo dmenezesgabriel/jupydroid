@@ -1,11 +1,13 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.SteppingCommand
@@ -76,6 +78,12 @@ class NotebookKernel(
    * spawned by the port on the first ask. Faked where no Space can run, as [kernelGateway] is.
    */
   private val languageServer: LanguageServerPort = FakeLanguageServerPort(),
+  /**
+   * Where "the session ended elsewhere" arrives - `SessionContext`'s `session.disposed`
+   * subscription (`packages/apputils/src/sessioncontext.tsx`), which is what lands this
+   * notebook on No Kernel when the Running panel shuts its session down (P8f).
+   */
+  kernelSessions: KernelSessions = FakeKernelSessions(),
 ) {
   /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
   private val session =
@@ -84,6 +92,10 @@ class NotebookKernel(
       BASE_SPACE,
       onConnectedChanged = { connected -> uiState.update { it.copy(kernelConnected = connected) } },
     ) { uiState.value.notebookId }
+
+  init {
+    scope.launch { kernelSessions.ended.collect { session.endIfMatches(it) } }
+  }
 
   private val runs =
     NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, checkpoint, clock, debugger)

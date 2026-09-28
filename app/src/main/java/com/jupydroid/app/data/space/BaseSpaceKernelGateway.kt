@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelEvent
@@ -26,6 +27,13 @@ import kotlinx.coroutines.flow.Flow
 class BaseSpaceKernelGateway(
   private val sharedSockets: PerRunningServer<KernelSockets>,
   private val gatewayFor: (KernelSockets) -> KernelGateway,
+  /**
+   * Where minted sessions are announced and ended sessions announced *from* - shared with
+   * `BaseSpaceKernelSessions`, which is what lets the Running panel's per-row shutdown reach a
+   * notebook holding the session (P8f). Defaulted so a gateway driven alone tracks nothing it
+   * did not mint either.
+   */
+  private val registry: KernelSessionRegistry = KernelSessionRegistry(),
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) : KernelGateway {
   /**
@@ -51,6 +59,7 @@ class BaseSpaceKernelGateway(
   override suspend fun connect(space: Space, documentPath: String): KernelSession =
     currentGateway().connect(space, documentPath).also {
       issuedSessions += it.id
+      registry.register(it, documentPath)
       log.reached("kernel ${it.kernelId} ready for space ${space.id}")
     }
 
@@ -74,7 +83,13 @@ class BaseSpaceKernelGateway(
   override suspend fun disconnect(session: KernelSession) = endingIfStillLive(session) { it.disconnect(session) }
 
   /** Ending the session outright, which takes the kernel with it: `notebook:shutdown-kernel`. */
-  override suspend fun shutdown(session: KernelSession) = endingIfStillLive(session) { it.shutdown(session) }
+  override suspend fun shutdown(session: KernelSession) {
+    endingIfStillLive(session) { it.shutdown(session) }
+    // Whether or not the server was still there to ask, this process stopped holding the
+    // session - a stopped server's sessions ended with it. `ended` is what lands every other
+    // holder (a console sharing it, a panel listing it) on the truth.
+    registry.end(session.serverSessionId)
+  }
 
   /**
    * Runs [end] against the live gateway, and does nothing at all when this session is not one this
@@ -101,6 +116,9 @@ class BaseSpaceKernelGateway(
     val sockets = sharedSockets.get()
     if (sockets !== trackedSockets) {
       issuedSessions.clear()
+      // The replaced server's sessions went with it, and whoever still holds one lands on
+      // No Kernel now rather than at its next use - `runningChanged` over a generation gap.
+      registry.endAll()
       trackedSockets = sockets
     }
     return gatewayFor(sockets)

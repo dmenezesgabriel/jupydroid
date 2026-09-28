@@ -388,6 +388,7 @@ fun MainNavigation(
               workspaceRepository = appContainer.workspaceRepository,
               kernelGateway = appContainer.kernelGateway,
               kernelDebugger = appContainer.kernelDebugger,
+              kernelSessions = appContainer.kernelSessions,
               languageServer = appContainer.languageServer,
               notebookExporter = appContainer.notebookExporter,
               documentSharer = appContainer.documentSharer,
@@ -457,7 +458,9 @@ fun MainNavigation(
             // `consoleSession`'s own doc comment; there is nothing to compose against in that case.
             consoleSession?.let { session ->
               ConsoleScreen(
-                viewModel = viewModel { ConsoleViewModel(appContainer.kernelGateway, session) },
+                viewModel = viewModel {
+                  ConsoleViewModel(appContainer.kernelGateway, session, appContainer.kernelSessions)
+                },
                 editorSettingsRepository = appContainer.editorSettings,
               )
             }

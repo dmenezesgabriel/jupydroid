@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.CompletionMatch
@@ -10,17 +11,27 @@ import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.util.concurrent.atomic.AtomicInteger
 
-/** Stub [KernelGateway] echoing the code back; replaced by the real one in Step 10. */
-class FakeKernelGateway : KernelGateway {
+/**
+ * Stub [KernelGateway] echoing the code back; replaced by the real one in Step 10.
+ *
+ * It registers what it mints into [registry], so the Sessions and Tabs panel lists and shuts
+ * down sessions on a device with no Space exactly as on one with it (P8f) - which is also what
+ * keeps the emulator's "run → row appears → shut down → No Kernel" loop verifiable.
+ */
+class FakeKernelGateway(private val registry: KernelSessionRegistry = KernelSessionRegistry()) : KernelGateway {
+  /** Minted per connect, because a real server's session ids never collide - not even on reuse. */
+  private val issuedCount = AtomicInteger()
+
   override suspend fun connect(space: Space, documentPath: String): KernelSession = KernelSession(
-    id = "fake-${space.id}",
+    id = "fake-${space.id}-${issuedCount.incrementAndGet()}",
     spaceId = space.id,
     kernelId = space.kernels.firstOrNull()?.id ?: "python3",
     // A server session id shaped like the server's, so a caller that builds a URL from it
     // builds a plausible one. There is no server here to file it with.
-    serverSessionId = "fake-session-${space.id}",
-  )
+    serverSessionId = "fake-session-${space.id}-${issuedCount.get()}",
+  ).also { registry.register(it, documentPath) }
 
   override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
     // Recorded from inside the flow rather than from `execute`, because that is when the cell
@@ -75,6 +86,7 @@ class FakeKernelGateway : KernelGateway {
 
   override suspend fun shutdown(session: KernelSession) {
     shutDownSessions += session
+    registry.end(session.serverSessionId)
   }
 
   private fun identifierStartBefore(code: String, cursorOffset: Int): Int {

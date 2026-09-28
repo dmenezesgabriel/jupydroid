@@ -3,7 +3,9 @@ package com.jupydroid.app.ui.console
 import androidx.compose.foundation.text.input.insert
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.KernelEvent
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -222,6 +225,26 @@ class ConsoleViewModelTest {
     advanceUntilIdle()
 
     assertEquals("2 + 2", viewModel.entries.value.single().input)
+  }
+
+  /**
+   * P8f: the Running panel's shutdown ends the session the Console shares with its notebook, and
+   * the Console's own holder has to forget it too - kept, the next submit would run against a
+   * session the server already deleted rather than connecting a fresh one.
+   */
+  @Test
+  fun aSessionEndedFromTheRunningPanelIsForgotten() = runTest {
+    val registry = KernelSessionRegistry()
+    val gateway = FakeKernelGateway(registry)
+    val minted = gateway.connect(SPACE, "Analysis.ipynb")
+    val session = NotebookKernelSession(gateway, SPACE, attachedTo = minted) { "Analysis.ipynb" }
+    ConsoleViewModel(gateway, session, FakeKernelSessions(registry))
+    advanceUntilIdle() // the collector subscribes before the emit - `ended` replays nothing
+
+    FakeKernelSessions(registry).shutdown(minted.serverSessionId)
+    advanceUntilIdle()
+
+    assertNull("the shared session is gone - the next run reconnects", session.opened)
   }
 
   private fun consoleViewModel(gateway: KernelGateway): ConsoleViewModel {

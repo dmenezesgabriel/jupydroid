@@ -3,9 +3,11 @@ package com.jupydroid.app.ui.console
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.NotebookHistory
 import com.jupydroid.app.ui.editor.NotebookKernelSession
@@ -31,8 +33,20 @@ import kotlinx.coroutines.launch
  * viewModel.submit()
  * ```
  */
-class ConsoleViewModel(private val kernelGateway: KernelGateway, private val session: NotebookKernelSession) :
-  ViewModel() {
+class ConsoleViewModel(
+  private val kernelGateway: KernelGateway,
+  private val session: NotebookKernelSession,
+  /**
+   * Where "the session ended elsewhere" arrives (P8f): the session this Console shares is one
+   * the Running panel lists and can shut down, and keeping it would have the next [submit] run
+   * against a session the server deleted. `session.disposed`'s own subscription, by another name.
+   */
+  kernelSessions: KernelSessions = FakeKernelSessions(),
+) : ViewModel() {
+  init {
+    viewModelScope.launch { kernelSessions.ended.collect { session.endIfMatches(it) } }
+  }
+
   /** The draft the input row edits, and what a history walk (P6b-6) replaces the text of. */
   val input = TextFieldState()
 

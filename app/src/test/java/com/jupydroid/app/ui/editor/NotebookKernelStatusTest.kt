@@ -1,6 +1,9 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeKernelSessions
+import com.jupydroid.app.domain.model.KernelSessionRegistry
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -104,5 +107,29 @@ class NotebookKernelStatusTest {
 
     assertEquals(2, gateway.connectCount)
     assertEquals(KernelStatus.IDLE, viewModel.uiState.value.kernelStatus)
+  }
+
+  /**
+   * P8f: the Running panel's per-row shutdown lands the *open* notebook on No Kernel, exactly as
+   * `session.disposed` does in the reference (`sessioncontext.tsx`'s `noKernelName`) - the
+   * document stays open, and only its claim on a kernel goes. The fake pair share one registry
+   * here the way `SpaceBackedPorts`'s real pair do.
+   */
+  @Test
+  fun aSessionEndedFromTheRunningPanelLandsOnNoKernel() = runTest {
+    val registry = KernelSessionRegistry()
+    val kernelSessions = FakeKernelSessions(registry)
+    val viewModel = loadedEditor(
+      gateway = FakeKernelGateway(registry),
+      kernelSessions = kernelSessions,
+      applicationScope = this,
+    )
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+
+    kernelSessions.shutdown(kernelSessions.running().single().serverSessionId)
+    advanceUntilIdle()
+
+    assertEquals(KernelStatus.NO_KERNEL, viewModel.uiState.value.kernelStatus)
   }
 }

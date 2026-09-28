@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookExporter
@@ -20,12 +21,14 @@ import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.NotebookExporter
@@ -66,7 +69,20 @@ class AppContainer(
    * and folders too.
    */
   val recentDocuments: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
-  val kernelGateway: KernelGateway = FakeKernelGateway(),
+  /**
+   * One registry for [kernelGateway] and [kernelSessions], so the pair share their session
+   * bookkeeping by construction rather than by a call site remembering to pass it twice - the
+   * panel's shutdown is `session.disposed` to an open notebook only when the two halves see the
+   * same registry (P8f). Not a `val`: it is the pair's joint plumbing, not a port.
+   */
+  kernelSessionRegistry: KernelSessionRegistry = KernelSessionRegistry(),
+  val kernelGateway: KernelGateway = FakeKernelGateway(kernelSessionRegistry),
+  /**
+   * The Running panel's port - what sessions the server is holding, and `ended` for the ones
+   * that stop (P8f). Shares its registry with [kernelGateway] at the composition root, so a
+   * shutdown here is `session.disposed` to every notebook holding the session.
+   */
+  val kernelSessions: KernelSessions = FakeKernelSessions(kernelSessionRegistry),
   /** DAP over the same kernel session's control channel - breakpoints, step/continue, variables. */
   val kernelDebugger: KernelDebugger = FakeKernelDebugger(),
   /**

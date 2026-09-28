@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
+import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.EditorSettings
@@ -16,6 +17,7 @@ import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -110,6 +112,11 @@ class EditorViewModel(
    * way [kernelDebugger] is, so a test driving the editor alone spawns nothing.
    */
   private val languageServer: LanguageServerPort = FakeLanguageServerPort(),
+  /**
+   * Where "the session ended elsewhere" is heard - the Running panel's shutdown lands this
+   * notebook on No Kernel through it (P8f), the way `session.disposed` does in the reference.
+   */
+  kernelSessions: KernelSessions = FakeKernelSessions(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -154,6 +161,7 @@ class EditorViewModel(
       // `indentUnit` as the FormattingOptions a range-format must carry - the same live read.
       formattingOptions = { settings.value.indentUnit.formattingOptions() },
       languageServer = languageServer,
+      kernelSessions = kernelSessions,
     )
 
   /** The cell menu and its undo history. Driven straight from the screen; see [NotebookCellEdits]. */
