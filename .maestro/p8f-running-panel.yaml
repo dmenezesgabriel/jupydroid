@@ -1,0 +1,149 @@
+appId: com.jupydroid.app
+---
+# P8f, two panes: `jp-running-sessions` - the "Sessions and Tabs" side panel on the rail at the
+# reference's own rank-200 slot, listing the three things its sections are for: the open main-area
+# tabs (`labShell.widgets('main')`), the kernel sessions the server holds (`GET api/sessions`), and
+# the terminals (`GET api/terminals`). A row's tap opens what it names; a row's ✕ ends it - the tab
+# through the shared dirty gate, the session through `DELETE api/sessions/<id>`, the terminal
+# through `DELETE api/terminals/<name>` - and the section toolbar's bulk action asks first the way
+# `shutdown-all`'s `showDialog` does.
+#
+# Runs a real cell, so the TABLET is where this runs - the x86_64 emulator's FakeKernelGateway
+# echoes and would still draw the session row (the fakes share the registry), but "the kernel died
+# and the notebook saw it" is only real on arm64.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Files"
+
+# ---- the rail's second item opens the panel ----
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 10000
+- assertVisible: "Open Tabs"
+- assertVisible: "Terminals"
+- assertVisible: "Refresh list"
+# The launcher fill is a tab, so Open Tabs already has a row - `widgets('main')` holds it too.
+- assertVisible: "Open tab: Launcher"
+- takeScreenshot: 01-sections-and-launcher-row
+
+# ---- a run notebook is a Kernel Sessions row ----
+- tapOn: "Files"
+- tapOn: "p8f-kernel.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: p8f-kernel.ipynb"
+    timeout: 30000
+# Lazily connected - the session does not exist until something asks the kernel for work.
+- assertVisible: "Kernel Python 3: No Kernel"
+- tapOn: "Sessions and Tabs"
+- assertVisible: "Open tab: p8f-kernel.ipynb"
+- takeScreenshot: 02-open-tab-before-the-session
+- tapOn: "Run cell"
+# `text` is a whole-string regex (p8b's measured note), and the trailing `[\s\S]*` covers the
+# stdout newline the kernel sends after the answer.
+- extendedWaitUntil:
+    visible:
+      text: "p8f_kernel_total_42[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- assertVisible: "Kernel Python 3: Idle"
+- takeScreenshot: 03-cell-ran-kernel-idle
+
+# ---- the session row opens its document, then ends it ----
+# The panel is already open beside the document. The session row's tap is `docmanager:open`,
+# so it is observed by first putting a *different* tab on top - the launcher - then letting the
+# row bring the notebook back.
+- extendedWaitUntil:
+    visible: "Open kernel session: p8f-kernel.ipynb"
+    timeout: 15000
+- takeScreenshot: 04-kernel-session-listed
+- tapOn: "Open tab: Launcher"
+- extendedWaitUntil:
+    visible: "Notebook"
+    timeout: 10000
+- tapOn: "Open kernel session: p8f-kernel.ipynb"
+- extendedWaitUntil:
+    # matches-source: the row's job is to reveal the document - its own source is the marker
+    visible: ".*p8f_kernel_total_.*"
+    timeout: 10000
+- takeScreenshot: 05-session-row-reveals-its-document
+# `running:kernel-shut-down` - one `DELETE api/sessions/<id>`, no ask, and the open document hears
+# the `ended` the registry emits: the indicator lands on the reference's own `noKernelName`.
+- tapOn: "Shut Down Kernel: p8f-kernel.ipynb"
+- extendedWaitUntil:
+    notVisible: "Open kernel session: p8f-kernel.ipynb"
+    timeout: 10000
+- assertVisible: "Kernel Python 3: No Kernel"
+- takeScreenshot: 06-shutdown-lands-no-kernel
+
+# ---- a terminal is a Terminals row that outlives its tab ----
+- tapOn: "Open tab: Launcher"
+- extendedWaitUntil:
+    visible: "Terminal"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal 1"
+    timeout: 120000
+- takeScreenshot: 07-terminal-open
+# Two populated sections put Terminals below the fold, so fold them - the headers are the
+# accordion's own handles (`Section`'s title tap), which doubles as the collapse evidence.
+- tapOn: "Open Tabs"
+- tapOn: "Kernel Sessions"
+- takeScreenshot: 08-sections-folded
+# The panel is still up; the relist after `terminal:open` is the terminal port's own answer.
+- extendedWaitUntil:
+    visible: "Terminals"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "Open terminal: terminals/1"
+    timeout: 15000
+- takeScreenshot: 09-terminal-listed
+# `terminal:open` - the row's tap reactivates the terminal's tab. Shown by moving away first;
+# Open Tabs is still folded, so its row is reached by re-opening the fold.
+- tapOn: "Open Tabs"
+- tapOn: "Open tab: p8f-kernel.ipynb"
+- extendedWaitUntil:
+    # matches-source: moving back onto the notebook before the terminal row's reattach
+    visible: ".*p8f_kernel_total_.*"
+    timeout: 10000
+- tapOn: "Open Tabs"
+- tapOn: "Open terminal: terminals/1"
+- extendedWaitUntil:
+    visible: "Tab: Terminal 1"
+    timeout: 10000
+- takeScreenshot: 10-terminal-row-reattaches
+# `manager.shutdown(name)` on the row's own control - direct, the reference asks nothing.
+- tapOn: "Shut Down: terminals/1"
+- extendedWaitUntil:
+    notVisible: "Open terminal: terminals/1"
+    timeout: 10000
+- takeScreenshot: 11-terminal-shut-down
+
+# ---- the section toolbar's bulk close asks first, then closes each ----
+# Open Tabs is still folded from the terminal proof - open it to reach its toolbar.
+- tapOn: "Open Tabs"
+- tapOn: "Close All: Open Tabs"
+- extendedWaitUntil:
+    visible: "Are you sure you want to close all open tabs?"
+    timeout: 5000
+- takeScreenshot: 12-close-all-asks
+- tapOn: "Confirm Close All"
+# One close per tab through the shared gate - the run marked the notebook dirty, so its ask goes
+# through the same Save/Discard/Cancel the strip's own ✕ raises.
+- extendedWaitUntil:
+    visible: "Save changes in \"p8f-kernel.ipynb\" before closing?"
+    timeout: 5000
+- takeScreenshot: 13-dirty-close-through-the-gate
+- tapOn: "Discard"
+# Every document tab left; at two panes the empty main area refills with a launcher - the shell's
+# own resting state - so one row returns and it is that one.
+- extendedWaitUntil:
+    visible: "Open tab: Launcher"
+    timeout: 10000
+- assertNotVisible: "Open tab: p8f-kernel.ipynb"
+- assertNotVisible: "Open tab: Terminal 1"
+- takeScreenshot: 14-all-closed-fill-returned
