@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.ServerConnection
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
@@ -303,6 +304,85 @@ class OkHttpKernelLifecycleTest {
     assertTrue("200 is not 204 and must not pass, got $failure", failure.isFailure)
   }
 
+  // --- P8f: listing the server's sessions, which is what the running panel draws ---
+
+  /**
+   * `GET api/sessions` - `listSessions` (`packages/services/src/session/restapi.ts:86-89`), the
+   * call the running extension's session manager wraps in its `Poll`.
+   *
+   * Each model is `{id, name, path, type, kernel}` (`session/session.ts:381-390`): the panel
+   * needs the id to shut the session down, the path to open its document, and the kernel's
+   * id and name to say what it is.
+   */
+  @Test
+  fun sessions_listsWhatTheServerIsHolding() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 200, body = "[$KERNEL_SESSION_JSON]"))
+
+    val sessions = lifecycle().sessions()
+
+    assertEquals(
+      listOf(KernelSessionModel("session-1", "k1", "python3", "reports/Analysis.ipynb", "Analysis.ipynb", "notebook")),
+      sessions,
+    )
+    val request = takeRequest()
+    assertEquals("GET", request.method)
+    assertEquals("/api/sessions", request.target)
+    assertEquals("token secret-token", request.headers["Authorization"])
+  }
+
+  /** A server holding no sessions answers `[]`, which the panel draws as an empty section. */
+  @Test
+  fun sessions_answersAnEmptyListWhenNothingRuns() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 200, body = "[]"))
+
+    assertEquals(emptyList<KernelSessionModel>(), lifecycle().sessions())
+  }
+
+  /**
+   * `kernel` is nullable in the model (`session/session.ts:389`) - the server is entitled to
+   * report a session whose kernel is already gone, and dropping the row would hide something
+   * the running panel exists to show. The kernel fields come back null rather than failing the
+   * whole list, which is the difference between this and [start_failsWhenTheSessionCarriesNoKernel]:
+   * a session being *started* without a kernel is a failure, a session being *listed* without
+   * one is information.
+   */
+  @Test
+  fun sessions_keepsAKernelLessSessionVisible() = runTest {
+    val kernelLess = """[{"id":"session-2","name":"scratch.py","path":"scratch.py","type":"file","kernel":null}]"""
+    serverRule.server.enqueue(MockResponse(code = 200, body = kernelLess))
+
+    val sessions = lifecycle().sessions()
+
+    assertEquals(null, sessions.single().kernelId)
+    assertEquals(null, sessions.single().kernelName)
+    assertEquals("session-2", sessions.single().serverSessionId)
+  }
+
+  /** A row with no id cannot be shut down later - failing at the response, as `start` does. */
+  @Test
+  fun sessions_failsWhenARowCarriesNoId() = runTest {
+    val idLess = """[{"name":"Analysis.ipynb","path":"Analysis.ipynb","type":"notebook","kernel":{"id":"k1"}}]"""
+    serverRule.server.enqueue(MockResponse(code = 200, body = idLess))
+
+    val failure = runCatching { lifecycle().sessions() }
+
+    assertTrue("expected a failure, got $failure", failure.isFailure)
+  }
+
+  /** The status and body belong in the message, the same rule `POST` failures already keep. */
+  @Test
+  fun sessions_failsLoudlyWhenTheServerRefusesTheList() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 500, body = "boom"))
+
+    val failure = runCatching { lifecycle().sessions() }
+
+    assertTrue("expected a failure, got $failure", failure.isFailure)
+    assertTrue(
+      "the message must carry the status, was '${failure.exceptionOrNull()?.message}'",
+      failure.exceptionOrNull()?.message?.contains("500") == true,
+    )
+  }
+
   private fun takeRequest() = serverRule.server.takeRequest(TIMEOUT_SECONDS, TimeUnit.SECONDS)!!
 
   private fun lifecycle(server: MockWebServer = serverRule.server) = OkHttpKernelLifecycle(
@@ -318,5 +398,14 @@ class OkHttpKernelLifecycleTest {
 
     /** A session model as the server sends one back, for the tests that assert on the request. */
     const val KERNEL_SESSION = """{"id":"session-1","kernel":{"id":"k1","name":"python3"}}"""
+
+    /**
+     * A full `Session.IModel` row as `GET api/sessions` returns one
+     * (`session/session.ts:381-390`) - the POST-side [KERNEL_SESSION] above can stay minimal
+     * because `start` only reads two fields of it.
+     */
+    const val KERNEL_SESSION_JSON =
+      """{"id":"session-1","name":"Analysis.ipynb","path":"reports/Analysis.ipynb",""" +
+        """"type":"notebook","kernel":{"id":"k1","name":"python3"}}"""
   }
 }

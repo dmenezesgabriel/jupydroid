@@ -1,11 +1,14 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.ServerConnection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
@@ -67,6 +70,14 @@ interface KernelLifecycle {
   suspend fun restart(kernelId: String)
 
   /**
+   * Every session the server is holding: `GET api/sessions` - `listSessions`
+   * (`packages/services/src/session/restapi.ts:86-89`), the call the running extension's session
+   * manager wraps in its `Poll`. Each model is `Session.IModel` - `{id, name, path, type,
+   * kernel}` (`session/session.ts:381-390`) - with `kernel` nullable the way the model's is.
+   */
+  suspend fun sessions(): List<KernelSessionModel>
+
+  /**
    * Ends the session and, with it, its kernel: `DELETE api/sessions/<serverSessionId>`.
    *
    * A session the server no longer has is **not** an error - it is gone, which is the point of
@@ -102,6 +113,11 @@ class OkHttpKernelLifecycle(
       serverSessionId = session["id"]?.jsonPrimitive?.content
         ?: throw KernelLifecycleException("session for '$documentPath' has no id of its own; server said: $body"),
     )
+  }
+
+  override suspend fun sessions(): List<KernelSessionModel> {
+    val body = get("api/sessions")
+    return Json.parseToJsonElement(body).jsonArray.map { it.jsonObject.toSessionModel() }
   }
 
   override suspend fun interrupt(kernelId: String) {
@@ -152,6 +168,22 @@ class OkHttpKernelLifecycle(
     }
   }
 
+  private suspend fun get(path: String): String = withContext(ioDispatcher) {
+    val request = Request.Builder()
+      .url(connection.baseUrl + path)
+      .header("Authorization", "token ${connection.token}")
+      .get()
+      .build()
+
+    client.newCall(request).execute().use { response ->
+      val body = response.body?.string().orEmpty()
+      if (!response.isSuccessful) {
+        throw KernelLifecycleException("GET $path failed: HTTP ${response.code} $body")
+      }
+      body
+    }
+  }
+
   private suspend fun post(path: String, body: String = "{}"): String = withContext(ioDispatcher) {
     val request = Request.Builder()
       .url(connection.baseUrl + path)
@@ -181,6 +213,26 @@ class OkHttpKernelLifecycle(
     /** `raise web.HTTPError(410, "Kernel deleted before session")` - the server's own words. */
     const val KERNEL_DELETED_BEFORE_SESSION = 410
   }
+}
+
+/**
+ * One element of `GET api/sessions`' array. `id` is required - the row cannot be shut down
+ * without it - and `kernel` is read defensively because `Session.IModel` declares it nullable
+ * (`session/session.ts:389`): `jsonObject` would throw on `JsonNull`, which is a state the
+ * server is entitled to send.
+ */
+private fun JsonObject.toSessionModel(): KernelSessionModel {
+  val kernel = this["kernel"] as? JsonObject
+  fun required(field: String): String = this[field]?.jsonPrimitive?.content
+    ?: throw KernelLifecycleException("session row in GET api/sessions has no '$field'; row was: $this")
+  return KernelSessionModel(
+    serverSessionId = required("id"),
+    kernelId = kernel?.get("id")?.jsonPrimitive?.content,
+    kernelName = kernel?.get("name")?.jsonPrimitive?.content,
+    path = required("path"),
+    name = required("name"),
+    type = required("type"),
+  )
 }
 
 /**
