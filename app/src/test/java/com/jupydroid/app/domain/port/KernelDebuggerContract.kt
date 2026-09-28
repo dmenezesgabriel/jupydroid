@@ -77,6 +77,12 @@ abstract class KernelDebuggerContract {
   }
 
   protected companion object {
-    val SESSION = KernelSession(id = "dbg", spaceId = "base", kernelId = "python3", serverSessionId = "dbg-session")
+    val SESSION = KernelSession(
+      id = "dbg",
+      spaceId = "base",
+      kernelId = "python3",
+      kernelName = "python3",
+      serverSessionId = "dbg-session",
+    )
   }
 }

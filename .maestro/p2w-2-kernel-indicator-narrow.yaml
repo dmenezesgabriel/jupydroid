@@ -31,7 +31,7 @@ appId: com.jupydroid.app
 # The glyph and its whole description are still here; the kernel's name is not drawn beside it.
 # One node carries the name, the state and the click, which is why the narrow branch is assertable
 # at all - see `UndoRedo` for the rule and what its absence cost.
-- assertVisible: "Kernel Python 3: No Kernel"
+- assertVisible: "No Kernel"
 - assertNotVisible: "Python 3"
 - takeScreenshot: 01-the-status-stays-and-the-name-goes
 
@@ -44,7 +44,13 @@ appId: com.jupydroid.app
 - assertVisible: "Notebook actions"
 - takeScreenshot: 02-the-row-still-holds-everything-else
 
-# Pressable at 320dp, and it opens the same menu the wide window's does.
-- tapOn: "Kernel Python 3: No Kernel"
+# Pressable at 320dp, and the tap opens the picker the wide window's does - `kernelName` calls
+# `dialogs.selectKernel` (`toolbar/widget.tsx:155`), so the dialog is what comes up on both. The
+# `⋮` menu it used to open is still reachable, now from the bottom bar's "Kernel actions" alone.
+- tapOn: "No Kernel"
+- assertVisible: "Select Kernel"
+- takeScreenshot: 03-still-opens-the-picker
+- back
+- tapOn: "Kernel actions"
 - assertVisible: "Shut Down Kernel"
-- takeScreenshot: 03-still-opens-the-kernel-menu
+- takeScreenshot: 04-and-the-menu-is-still-the-overflows

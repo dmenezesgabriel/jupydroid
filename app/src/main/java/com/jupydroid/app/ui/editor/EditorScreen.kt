@@ -32,6 +32,7 @@ import com.jupydroid.app.OpenDebugStack
 import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeKernelSessions
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.EditorSettings
@@ -42,6 +43,7 @@ import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -72,6 +74,11 @@ fun EditorScreen(
    * Kernel - `session.disposed`'s route in the reference (P8f). Defaulted as [languageServer] is.
    */
   kernelSessions: KernelSessions = FakeKernelSessions(),
+  /**
+   * The kernelspec catalogue the picker lists and the saved `kernelspec.name` resolves through -
+   * `specsManager.specs` in the reference (P8g). Defaulted as [kernelSessions] is.
+   */
+  kernelSpecs: KernelSpecs = FakeKernelSpecs(),
   /** `notebook:export-to-format` - see [NotebookExport]. Not a kernel act. */
   notebookExporter: NotebookExporter,
   /** Where an exported file goes next, from the report that says it was written. */
@@ -170,6 +177,7 @@ fun EditorScreen(
       editorSettingsRepository,
       languageServer,
       kernelSessions,
+      kernelSpecs,
     )
   },
 ) {
@@ -365,10 +373,8 @@ fun EditorScreen(
             onShowTableOfContents = onShowTableOfContents,
             onShowDebugger = onShowDebugger,
             onHeadingSelected = jumpToHeading,
-            onBack = closeOrAsk,
             collapsibleRegion = collapsibleRegion,
             onGoToFolder = onGoToFolder,
-            onOpenConsole = onOpenConsole,
           )
           // Under whichever bar is up rather than over the notebook: it says the *document* is
           // busy, and covering the document to say so would be the wrong trade. See [ExportStatus].
@@ -426,6 +432,7 @@ fun EditorScreen(
         )
       }
     }
+    KernelPickerHost(state, viewModel.kernel)
     // Outside the Scaffold's slots because it draws nothing: it posts to [exportReports], which
     // the `snackbarHost` slot above is showing. See [ExportStatus].
     ExportReportSnackbar(
@@ -457,3 +464,31 @@ internal fun LazyListState.isFullyVisible(index: Int): Boolean {
  * flip while the find bar is held must not let this one overtake them.
  */
 private fun EditorUiState.backAsksToClose(): Boolean = dirty && mode != CellMode.EDIT && !selecting && search == null
+
+/**
+ * The `selectKernel` dialog and the condition that raises it - lifted out of [EditorScreen]
+ * because the branchcount the pair adds there is a complexity gate's worth on its own.
+ *
+ * `Context.initialize` -> `selectKernel` (`docregistry/src/context.ts:599-603`): a kernelspec the
+ * file names and the catalogue has never heard of opens the picker as soon as the document is
+ * ready, and again for each refused run (`cellexecutor.ts:69`). The owe
+ * [EditorUiState.kernelPickRequired] counts is the key rather than the groups: a second owe while
+ * the first is still up must still be a change. The dialog draws while its groups are in state -
+ * see [KernelPickerDialog] for the reference's shape.
+ */
+@Composable
+private fun KernelPickerHost(state: EditorUiState, kernel: NotebookKernel) {
+  LaunchedEffect(state.kernelPickRequired) {
+    if (state.kernelPickRequired > 0) kernel.picker.open()
+  }
+  state.kernelPicker?.let { groups ->
+    KernelPickerDialog(
+      groups = groups,
+      notebookTitle = state.title,
+      noKernel = !state.kernelConnected,
+      kernelDisplayName = state.kernelDisplayName,
+      onPick = kernel.picker::pick,
+      onDismiss = kernel.picker::dismiss,
+    )
+  }
+}

@@ -46,7 +46,14 @@ data class CompletionMatch(
  * *session* that owns that process, which is what `shutdown` addresses - `DELETE api/sessions/<id>`
  * takes the kernel with it, and no other id will do.
  */
-data class KernelSession(val id: String, val spaceId: String, val kernelId: String, val serverSessionId: String)
+data class KernelSession(
+  val id: String,
+  val spaceId: String,
+  val kernelId: String,
+  /** `kernel.name` in the session model - the kernelspec the kernel answers to. */
+  val kernelName: String,
+  val serverSessionId: String,
+)
 
 /** Events streamed from [KernelGateway.execute]; the UI drives Running/Idle and outputs from these. */
 sealed interface KernelEvent {
@@ -67,7 +74,18 @@ interface KernelGateway {
    * be started - which on the device is a read-only filesystem. JupyterLab reaches the same thing
    * by giving its session the document's path (`SessionContext({path, type: 'notebook'})`).
    */
-  suspend fun connect(space: Space, documentPath: String): KernelSession
+  suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice? = null): KernelSession
+
+  /**
+   * Rebinds [session] to another kernel - `SessionContext.changeKernel`
+   * (`packages/apputils/src/sessioncontext.tsx:956-960` over `PATCH api/sessions/<id>`).
+   *
+   * The returned session is the same *session* - `id` and `serverSessionId` are untouched - with
+   * a different kernel behind it: [KernelChoice.Spec] starts a fresh kernel from that spec (the
+   * server shuts the old one down), [KernelChoice.Running] joins one already running. The socket
+   * bound to the old kernel id goes with it; the next use opens one for the new kernel.
+   */
+  suspend fun changeKernel(session: KernelSession, kernel: KernelChoice): KernelSession
 
   suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent>
 

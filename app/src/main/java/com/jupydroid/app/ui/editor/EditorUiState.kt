@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugStop
+import com.jupydroid.app.domain.model.KernelPickGroup
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.KernelEvent
@@ -238,6 +239,35 @@ data class EditorUiState(
    * being true.
    */
   val kernelRestarting: Boolean = false,
+  /**
+   * Kernel picks this notebook is owed, counted rather than flagged - `startKernel` answering
+   * needsSelection (`sessioncontext.tsx:746-747`), which is the reference's cue to open
+   * `selectKernel` (`context.ts:599-603`). Owed when the persisted kernelspec resolves to
+   * nothing in the Space's catalogue, at load and again at each refused run: the picker is
+   * P8g-4's dialog, and only a counter makes the second owe a change it can see. Not persisted.
+   */
+  val kernelPickRequired: Int = 0,
+  /**
+   * `SessionContext.kernelDisplayName` (`sessioncontext.tsx`): the *live* kernel's spec
+   * `display_name`, falling back to its raw `kernel.name` when the catalogue does not know it -
+   * and `noKernelName` = "No Kernel" when nothing is bound. A notebook's saved
+   * `metadata.kernelspec` can name a kernelspec the Space does not have, so this is resolved at
+   * bind time rather than read off the file.
+   */
+  val kernelDisplayName: String = "No Kernel",
+  /**
+   * The `selectKernel` dialog's groups while it is open (`sessioncontext.tsx:1398-1460`),
+   * fetched fresh by [NotebookKernelPicker.open] each time it is asked for - the catalogue and
+   * the running kernels are the server's answers, so the list is built when the dialog is
+   * opened rather than kept. null is closed.
+   */
+  val kernelPicker: List<KernelPickGroup>? = null,
+  /**
+   * A kernel change is in flight (`_isChangingKernel`, `sessioncontext.tsx:1255`) - the PATCH is
+   * out, the new kernel has not answered. [kernelStatus] reads it as STARTING, the reference's
+   * own `kernelDisplayStatus` mapping (`:623-625`).
+   */
+  val kernelChanging: Boolean = false,
 )
 
 /**

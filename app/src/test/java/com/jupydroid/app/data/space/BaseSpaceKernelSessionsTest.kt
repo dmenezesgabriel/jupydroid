@@ -109,8 +109,13 @@ class BaseSpaceKernelSessionsTest {
     assertEquals(listOf("ss1"), heard.await())
   }
 
-  private fun session(serverSessionId: String) =
-    KernelSession(id = "c-$serverSessionId", spaceId = "base", kernelId = "k-$serverSessionId", serverSessionId)
+  private fun session(serverSessionId: String) = KernelSession(
+    id = "c-$serverSessionId",
+    spaceId = "base",
+    kernelId = "k-$serverSessionId",
+    kernelName = "python3",
+    serverSessionId,
+  )
 
   private fun server(launcher: ServerLauncher) = BaseSpaceServer(
     installSpace = {},

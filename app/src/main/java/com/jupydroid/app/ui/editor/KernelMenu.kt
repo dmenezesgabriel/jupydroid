@@ -43,6 +43,8 @@ internal data class NotebookKernelCommands(
   /** `notebook:restart-clear-output`: the restart's continuation, after the user has agreed. */
   val onRestartAndClear: () -> Unit = {},
   val onRestartAndRunTo: () -> Unit = {},
+  /** `notebook:change-kernel` - the same `selectKernel` the kernel-name button's tap is. */
+  val onPickKernel: () -> Unit = {},
   val onShutdown: () -> Unit = {},
   val onCloseAndShutdown: () -> Unit = {},
   /** `notebook:create-console` (P6b-9) - a Console sharing this notebook's own kernel. */
@@ -79,6 +81,7 @@ internal fun notebookKernelCommands(
   // is a document operation `NotebookCellEdits` owns.
   onRestartAndClear = { viewModel.kernel.restart(then = { viewModel.edits.clearAllOutputs() }) },
   onRestartAndRunTo = viewModel.kernel::restartAndRunTo,
+  onPickKernel = viewModel.kernel.picker::open,
   onShutdown = { viewModel.kernel.shutdown() },
   // The close is the shutdown's continuation rather than a second act, so it runs after the
   // session has actually ended - `notebook:close-and-shutdown` awaits it too.
@@ -189,6 +192,17 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
       },
     )
     HorizontalDivider()
+    // `kernelUser.changeKernel`, filed with the kernel's ends as the reference files it - its
+    // Kernel menu's order is the restarts, then this, then the two shutdowns
+    // (`mainmenu-extension` `kernelUser` group). It asks the same question the indicator's tap
+    // does, so the ellipsis the reference gives it is kept.
+    DropdownMenuItem(
+      text = { Text("Change Kernel…") },
+      onClick = {
+        onDismiss()
+        commands.onPickKernel()
+      },
+    )
     DropdownMenuItem(
       text = { Text("Shut Down Kernel") },
       onClick = {

@@ -17,6 +17,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -116,9 +117,9 @@ class MultiDocumentNavigationTest {
     val connectedPaths = mutableListOf<String>()
     val shutDownSessions get() = delegate.shutDownSessions
 
-    override suspend fun connect(space: Space, documentPath: String): KernelSession {
+    override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
       connectedPaths += documentPath
-      return delegate.connect(space, documentPath)
+      return delegate.connect(space, documentPath, kernel)
     }
   }
 

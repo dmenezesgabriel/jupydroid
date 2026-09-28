@@ -131,6 +131,39 @@ abstract class KernelGatewayContract {
   }
 
   /**
+   * A kernel picked at open is what the session runs - `kernel.name` in the started model
+   * (`session/session.ts:389`), which is also what the picker's row and the file's
+   * `metadata.kernelspec` are written from.
+   */
+  @Test
+  fun connect_startsTheKernelItWasAskedFor() = runTest {
+    val session = gateway().connect(SPACE, "Analysis.ipynb", KernelChoice.Spec("p8g"))
+
+    assertEquals("p8g", session.kernelName)
+  }
+
+  /**
+   * `SessionContext.changeKernel` (`sessioncontext.tsx:956-960` over `session/session.ts:169-190`):
+   * the **session** is patched, not replaced - its ids are what a caller keeps addressing it by,
+   * and the kernel behind it is a fresh one named by the choice.
+   */
+  @Test
+  fun changeKernel_keepsTheSessionAndBindsANewKernelOfTheNamedSpec() = runTest {
+    val gateway = gateway()
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    val changed = gateway.changeKernel(session, KernelChoice.Spec("p8g"))
+
+    assertEquals(session.id, changed.id)
+    assertEquals(session.serverSessionId, changed.serverSessionId)
+    assertEquals("p8g", changed.kernelName)
+    assertTrue(
+      "a *new* kernel, not the old one renamed - '${session.kernelId}' again",
+      changed.kernelId != session.kernelId,
+    )
+  }
+
+  /**
    * `notebook:shutdown-kernel`, and asserted here for the reason [restart_isAcceptedForALiveSession]
    * is: it emits nothing and changes nothing observable, so an implementation that quietly did
    * nothing would look identical to one that worked.

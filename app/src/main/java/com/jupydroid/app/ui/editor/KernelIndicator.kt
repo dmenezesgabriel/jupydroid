@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,16 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.jupydroid.app.domain.model.DEFAULT_KERNEL_DISPLAY_NAME
 import com.jupydroid.app.theme.Spacing
 
 /** The reference's own `circleIconProps.height`, `'24px'` (`apputils/src/toolbar/widget.tsx:210`). */
@@ -61,16 +55,17 @@ private val STATUS_GLYPH_SIZE = 24.dp
  * **The name is the *live* kernel's, not the file's.** A notebook's `metadata.kernelspec` can say
  * "Python 3.11 (conda)" and the Space still runs its own `python3`; `kernelDisplayName` resolves
  * through the spec manager for exactly that reason (`apputils/src/sessioncontext.tsx:584-603`), so
- * this takes [DEFAULT_KERNEL_DISPLAY_NAME] - the one constant that also writes the rootfs
- * kernelspec and a saved notebook's metadata.
+ * the state it is handed is resolved at bind time - a bound kernel's `display_name`, a specless
+ * one's raw name, "No Kernel" while nothing is bound.
  *
- * **Not a picker.** `KernelGateway` has no kernelspec listing and the Space has one kernel, so a
- * picker over one entry is chrome; the port it would need is P3's. What the tap opens is
- * [KernelMenu], the menu the bottom bar's `⋮` already anchors - the thing that says a kernel is
- * stuck is the thing you restart it from.
+ * **The tap is the picker, which is the reference's own wiring.** The `kernelName` toolbar item
+ * calls `dialogs.selectKernel` on click (`apputils/src/toolbar/widget.tsx:155`) - it does not
+ * open a menu. The restart-and-shutdown rows the old tap showed stay on the bottom bar's `⋮`,
+ * which anchors [KernelMenu] still, and that menu's own "Change Kernel…" row lands here too -
+ * `notebook:change-kernel` is the same act from either.
  *
  * ```
- * KernelIndicator(status = state.kernelStatus, notebookTitle = state.title, nameShown = wide, …)
+ * KernelIndicator(status = state.kernelStatus, nameShown = wide, onPickKernel = kernel.picker::open, …)
  * ```
  */
 @Composable
@@ -78,36 +73,40 @@ internal fun KernelIndicator(
   status: KernelStatus,
   /** Whether the row has the width to draw the kernel's name too - see [labelsFitOnActionRow]. */
   nameShown: Boolean,
-  /** What the menu this opens can do - see [NotebookKernelCommands], shared with [NotebookBar]. */
-  commands: NotebookKernelCommands = NotebookKernelCommands(),
-  kernelName: String = DEFAULT_KERNEL_DISPLAY_NAME,
+  /** `kernelName`'s click: `selectKernel` - the picker [NotebookKernelPicker] fills. */
+  onPickKernel: () -> Unit = {},
+  /**
+   * `sessionContext.kernelDisplayName` - the bound spec's `display_name`, or `noKernelName`'s
+   * "No Kernel" while none is (`sessioncontext.tsx`). Given rather than derived: the catalogue
+   * it resolves through lives a layer up.
+   */
+  kernelName: String = "No Kernel",
 ) {
-  var menuOpen by remember { mutableStateOf(false) }
-
-  // Boxed with its menu, which anchors to its parent layout node - the lesson [CellHeader],
-  // [NotebookBar], [NotebookActionsMenu] and [CellTypeControl] each record.
-  Box {
-    TextButton(
-      onClick = { menuOpen = true },
-      // Neutral, not the brand colour a `TextButton` defaults to - see this file's header.
-      colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
-      // **The name, the state and the click on one node**, which is [UndoRedo]'s rule and
-      // load-bearing here for its reason: a `contentDescription` on the child glyph would land one
-      // level below the node carrying the click, so a flow asking for the state could not press it.
-      // It is also all a narrow bar has to assert on, since the name is not drawn there.
-      modifier = Modifier
-        .minimumInteractiveComponentSize()
-        .semantics { contentDescription = "Kernel $kernelName: ${status.label()}" },
-    ) {
-      KernelStatusGlyph(status)
-      if (nameShown) {
-        Spacer(modifier = Modifier.width(Spacing.sm))
-        // `labelLarge`, Material's own role for a button's text, and [CellTypeControl]'s choice
-        // beside it on this row - `TopAppBar` would otherwise hand this slot a document title.
-        Text(text = kernelName, style = MaterialTheme.typography.labelLarge)
-      }
+  TextButton(
+    onClick = onPickKernel,
+    // Neutral, not the brand colour a `TextButton` defaults to - see this file's header.
+    colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
+    // **The name, the state and the click on one node**, which is [UndoRedo]'s rule and
+    // load-bearing here for its reason: a `contentDescription` on the child glyph would land one
+    // level below the node carrying the click, so a flow asking for the state could not press it.
+    // It is also all a narrow bar has to assert on, since the name is not drawn there.
+    modifier = Modifier
+      .minimumInteractiveComponentSize()
+      // `kernelName`'s accessible name is `kernelDisplayName` alone in the reference - "No
+      // Kernel" is already the whole of what it has to say, so the status word is not
+      // repeated after it.
+      .semantics {
+        contentDescription =
+          if (status == KernelStatus.NO_KERNEL) "No Kernel" else "Kernel $kernelName: ${status.label()}"
+      },
+  ) {
+    KernelStatusGlyph(status)
+    if (nameShown) {
+      Spacer(modifier = Modifier.width(Spacing.sm))
+      // `labelLarge`, Material's own role for a button's text, and [CellTypeControl]'s choice
+      // beside it on this row - `TopAppBar` would otherwise hand this slot a document title.
+      Text(text = kernelName, style = MaterialTheme.typography.labelLarge)
     }
-    KernelMenu(expanded = menuOpen, onDismiss = { menuOpen = false }, commands = commands)
   }
 }
 

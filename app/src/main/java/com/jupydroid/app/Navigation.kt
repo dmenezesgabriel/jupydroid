@@ -354,8 +354,7 @@ fun MainNavigation(
         backNavigationBehavior = BackNavigationBehavior.PopLatest,
         directive = directive,
       ),
-      entryProvider =
-      entryProvider {
+      entryProvider = entryProvider {
         entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
           ShellSidePane(
             showingPanel = showingPanel,
@@ -426,6 +425,7 @@ fun MainNavigation(
               kernelGateway = appContainer.kernelGateway,
               kernelDebugger = appContainer.kernelDebugger,
               kernelSessions = appContainer.kernelSessions,
+              kernelSpecs = appContainer.kernelSpecs,
               languageServer = appContainer.languageServer,
               notebookExporter = appContainer.notebookExporter,
               documentSharer = appContainer.documentSharer,

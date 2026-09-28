@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -151,6 +152,23 @@ class NotebookBarTest {
     compose.onNodeWithText(RESTART_AND_CLEAR).assertIsEnabled()
   }
 
+  /**
+   * `notebook:change-kernel` - a menu row over the same `selectKernel` the kernel-name button's
+   * tap is (`mainmenu-extension`'s `kernelUser.changeKernel`), filed with the shutdowns as the
+   * reference's Kernel menu files it. Never greyed and never confirmed: the picker it opens is
+   * the question.
+   */
+  @Test
+  fun changeKernelIsAnOverflowRowThatAsksWhichKernel() {
+    var asked = false
+    showBar(busy = false, onPickKernel = { asked = true })
+
+    compose.onNodeWithContentDescription("Kernel actions").performClick()
+    compose.onNodeWithText("Change Kernel…").performClick()
+
+    compose.runOnIdle { assertTrue("the picker was not asked for", asked) }
+  }
+
   @Test
   fun anIdleKernelOffersRunAllAndNotInterrupt() {
     showBar(busy = false)
@@ -159,7 +177,12 @@ class NotebookBarTest {
     compose.onNodeWithContentDescription("Interrupt kernel").assertIsNotEnabled()
   }
 
-  private fun showBar(busy: Boolean, onClearAllOutputs: () -> Unit = {}, canRestartAndRunTo: Boolean = true) {
+  private fun showBar(
+    busy: Boolean,
+    onClearAllOutputs: () -> Unit = {},
+    canRestartAndRunTo: Boolean = true,
+    onPickKernel: () -> Unit = {},
+  ) {
     compose.setContent {
       JupyterDroidTheme {
         NotebookBar(
@@ -174,6 +197,7 @@ class NotebookBarTest {
             onRestartAndClear = { restarts += "restart-and-clear" },
             onRestartAndRunTo = { restarts += "restart-and-run-to" },
             canRestartAndRunTo = canRestartAndRunTo,
+            onPickKernel = onPickKernel,
           ),
         )
       }

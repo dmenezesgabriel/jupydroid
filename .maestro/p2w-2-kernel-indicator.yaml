@@ -28,9 +28,11 @@ appId: com.jupydroid.app
 # **Nothing has run, so there is no kernel** - this app starts one lazily, where JupyterLab opens a
 # session with the document. The reference's own word for the condition is `noKernelName`
 # ("No Kernel", `packages/apputils/src/sessioncontext.tsx:675-677`), and it is on the name rather
-# than the status there too. The tablet is a wide window, so the kernel is named beside its glyph.
-- assertVisible: "Kernel Python 3: No Kernel"
-- assertVisible: "Python 3"
+# than the status there too. The tablet is a wide window, so the name is drawn beside its glyph -
+# and while nothing is bound the name *is* "No Kernel"; `kernelDisplayName` names the preferred
+# spec only once a session exists (`sessioncontext.tsx:584-603`).
+- assertVisible: "No Kernel"
+- assertNotVisible: "Python 3"
 - takeScreenshot: 01-no-kernel-until-something-runs
 
 # **Starting is the fourteen seconds**, and it is the state this indicator exists for: on a cold app
@@ -60,18 +62,20 @@ appId: com.jupydroid.app
 - assertVisible: "Kernel Python 3: Idle"
 - takeScreenshot: 04-idle-once-the-run-is-done
 
-# **Not a picker**: the Space has one kernelspec and `KernelGateway` cannot list them, so what the
-# tap opens is the kernel menu the bottom bar's overflow already anchors - the thing that says a
-# kernel is stuck is the thing you restart it from.
+# **The tap is the picker**, which is the reference's own wiring: `kernelName` calls
+# `dialogs.selectKernel` on click (`toolbar/widget.tsx:155`), it does not open a menu - the menu
+# the tap used to open still lives on the bottom bar's `⋮`, which is where "Shut Down Kernel" is
+# asked from below. P8g's own flow drives the picking; this one only proves the dialog came up.
 - tapOn: "Kernel Python 3: Idle"
-- assertVisible: "Shut Down Kernel"
-- assertVisible: "Restart Kernel and Clear Outputs of All Cells…"
-- takeScreenshot: 05-the-indicator-opens-the-kernel-menu
+- assertVisible: "Select Kernel"
+- takeScreenshot: 05-the-indicator-opens-the-picker
+- tapOn: "Cancel"
 
 # Shutting the kernel down puts the indicator back where it started, which is the round trip: the
 # state is derived from whether there is a session, not from whether a cell has ever run.
+- tapOn: "Kernel actions"
 - tapOn: "Shut Down Kernel"
 - extendedWaitUntil:
-    visible: "Kernel Python 3: No Kernel"
+    visible: "No Kernel"
     timeout: 20000
 - takeScreenshot: 06-back-to-no-kernel-after-a-shutdown

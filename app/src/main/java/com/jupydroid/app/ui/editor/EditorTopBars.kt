@@ -36,14 +36,10 @@ internal fun EditorTopBars(
   /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [EditorScreen]. */
   onShowDebugger: (() -> Unit)?,
   onHeadingSelected: (String) -> Unit,
-  /** `notebook:close-and-shutdown`'s second half - see [notebookKernelCommands]. */
-  onBack: () -> Unit,
   /** See [collapsibleRegionFraction] - the document's bar is the only one of the three with a region to collapse. */
   collapsibleRegion: Float,
   /** A breadcrumb segment was tapped: browse that folder. See [EditorTopBar]. */
   onGoToFolder: (String) -> Unit,
-  /** `notebook:create-console` (P6b-9) - see [notebookKernelCommands]. */
-  onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ) {
   val head = state.cells.firstOrNull { it.id == state.selectedCellId }
   val searching = state.search
@@ -93,10 +89,8 @@ internal fun EditorTopBars(
       onShowTableOfContents = onShowTableOfContents,
       onShowDebugger = onShowDebugger,
       onHeadingSelected = onHeadingSelected,
-      onBack = onBack,
       collapsibleRegion = collapsibleRegion,
       onGoToFolder = onGoToFolder,
-      onOpenConsole = onOpenConsole,
     )
   }
 }
@@ -115,10 +109,8 @@ private fun DocumentTopBar(
   /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [EditorScreen]. */
   onShowDebugger: (() -> Unit)?,
   onHeadingSelected: (String) -> Unit,
-  onBack: () -> Unit,
   collapsibleRegion: Float,
   onGoToFolder: (String) -> Unit,
-  onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ) {
   EditorTopBar(
     canUndo = state.undoable.isNotEmpty(),
@@ -143,15 +135,17 @@ private fun DocumentTopBar(
     onExportPickerOpened = viewModel.export::pickerOpened,
     onExportPickerDismissed = viewModel.export::pickerDismissed,
     onExportAs = viewModel.export::exportAs,
-    // The kernel indicator and the menu it opens - the same commands [EditorBottomBars] gives
-    // [NotebookBar]'s `⋮`, wired once because it is the same menu. See [KernelIndicator].
+    // The kernel indicator's tap is the picker's - `kernelName` calls `selectKernel`, it does
+    // not open a menu (`toolbar/widget.tsx:155`). The commands [EditorBottomBars] gives
+    // [NotebookBar]'s `⋮` still reach it from that side, `change-kernel`'s row included.
     kernelIndicator = {
       KernelIndicator(
         status = state.kernelStatus,
         // The name goes where the row cannot afford it and the status glyph stays - see
         // [labelsFitOnActionRow], and `docs/DECISIONS.md` for why that is the half kept.
         nameShown = labelsFitOnActionRow(),
-        commands = notebookKernelCommands(state, viewModel, onBack, onOpenConsole),
+        kernelName = state.kernelDisplayName,
+        onPickKernel = viewModel.kernel.picker::open,
       )
     },
   )

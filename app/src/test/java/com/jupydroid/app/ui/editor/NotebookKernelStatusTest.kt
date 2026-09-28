@@ -47,6 +47,22 @@ class NotebookKernelStatusTest {
     assertEquals(KernelStatus.IDLE, viewModel.uiState.value.kernelStatus)
   }
 
+  /**
+   * `_pendingKernelName` resolved through the catalogue (`sessioncontext.tsx:584-603`): while the
+   * connect is out, `kernelDisplayName` is the kernel *being started*, not `noKernelName` - "Kernel
+   * Python 3: Starting" is what the indicator announces then, not "Kernel No Kernel: Starting".
+   */
+  @Test
+  fun aStartingKernelIsNamedForWhatIsComingUp() = runTest {
+    val gateway = SlowToConnectKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway, applicationScope = this)
+
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+
+    assertEquals("Python 3", viewModel.uiState.value.kernelDisplayName)
+  }
+
   @Test
   fun aFinishedRunLeavesTheKernelIdle() = runTest {
     val viewModel = loadedEditor(applicationScope = this)

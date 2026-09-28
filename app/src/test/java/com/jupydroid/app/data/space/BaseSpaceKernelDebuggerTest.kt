@@ -105,8 +105,20 @@ class BaseSpaceKernelDebuggerTest {
 
   private companion object {
     val SPACE = Space(id = "base", name = "Base", kernels = emptyList())
-    val SESSION = KernelSession(id = "session-1", spaceId = "base", kernelId = "kernel-1", serverSessionId = "s-1")
+    val SESSION = KernelSession(
+      id = "session-1",
+      spaceId = "base",
+      kernelId = "kernel-1",
+      kernelName = "python3",
+      serverSessionId = "s-1",
+    )
     val STRANDED_SESSION =
-      KernelSession(id = "session-0", spaceId = "base", kernelId = "kernel-0", serverSessionId = "s-0")
+      KernelSession(
+        id = "session-0",
+        spaceId = "base",
+        kernelId = "kernel-0",
+        kernelName = "python3",
+        serverSessionId = "s-0",
+      )
   }
 }

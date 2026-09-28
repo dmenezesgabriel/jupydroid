@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelDebugger
+import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.domain.model.Breakpoint
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugStop
@@ -537,12 +538,17 @@ class NotebookDebuggerTest {
 
   /**
    * [RecordingKernelGateway] delegates `connect` to a fresh `FakeKernelGateway` per test, so the
-   * session under test is always its first mint - `fake-base-1` / `fake-session-base-1`.
+   * session under test is always its first mint.
    */
-  private val runningSession =
-    KernelSession(id = "fake-base-1", spaceId = "base", kernelId = "python3", serverSessionId = "fake-session-base-1")
+  private val runningSession = FakeKernelGateway.mints(sessionNumber = 1)
 
-  private val session = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+  private val session = KernelSession(
+    id = "s1",
+    spaceId = "base",
+    kernelId = "k1",
+    kernelName = "python3",
+    serverSessionId = "ss1",
+  )
 
   /**
    * A two-frame stack, scripted for [watchForStopChainsStackTraceThenScopesThenVariablesForTheTopFrame]

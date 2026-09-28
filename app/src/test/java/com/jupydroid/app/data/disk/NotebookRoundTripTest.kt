@@ -88,6 +88,21 @@ class NotebookRoundTripTest {
     assertEquals("python3", (kernelspec["name"] as JsonElement).toString().trim('"'))
   }
 
+  /**
+   * "Python 3" is only the shipped spec's display name: a notebook saved against a different
+   * kernel must not be written claiming one it never had - the same loss `kernelspecJson`'s
+   * own comment names, in miniature (P8g).
+   */
+  @Test
+  fun aKernelThatIsNotTheShippedOneClaimsNoDisplayName() {
+    val notebook = Notebook("nb", "New", "xeus-python", listOf(Cell("c1", CellKind.CODE, "x = 1")))
+
+    val kernelspec = notebook.toFileJson().jsonObject("metadata").jsonObject("kernelspec")
+
+    assertEquals(json(""""xeus-python""""), kernelspec["name"])
+    assertEquals(null, kernelspec["display_name"])
+  }
+
   /** A notebook written by a newer tool may carry keys nbformat 4 never had. */
   @Test
   fun keepsUnknownTopLevelKeys() {

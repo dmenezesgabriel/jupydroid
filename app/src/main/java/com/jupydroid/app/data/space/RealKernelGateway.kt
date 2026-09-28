@@ -2,6 +2,7 @@ package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
@@ -41,14 +42,28 @@ class RealKernelGateway(
    * Starts a kernel and binds a session to it. The session id is ours and identifies this
    * client to the server; the kernel id is the server's.
    */
-  override suspend fun connect(space: Space, documentPath: String): KernelSession {
-    val started = lifecycle.start(documentPath)
+  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
+    val started = lifecycle.start(documentPath, kernel)
     return KernelSession(
       id = UUID.randomUUID().toString(),
       spaceId = space.id,
       kernelId = started.kernelId,
+      kernelName = started.kernelName,
       serverSessionId = started.serverSessionId,
     ).also { log.reached(KernelLog.SESSION_OPENED, mapOf("kernelId" to it.kernelId, "sessionId" to it.id)) }
+  }
+
+  /**
+   * `PATCH api/sessions/<id>` keeps the session and binds another kernel to it - the returned
+   * model's `kernel.{id,name}` is the new truth. The socket was opened *for the old kernel id*,
+   * so it is closed with the change: `socketFor` keys on `session.id`, and the next ask opens
+   * one for the kernel now behind it.
+   */
+  override suspend fun changeKernel(session: KernelSession, kernel: KernelChoice): KernelSession {
+    val changed = lifecycle.changeKernel(session.serverSessionId, kernel)
+    sockets.close(session)
+    return session.copy(kernelId = changed.kernelId, kernelName = changed.kernelName)
+      .also { log.reached(KernelLog.SESSION_KERNEL_CHANGED, mapOf("kernelId" to it.kernelId, "sessionId" to it.id)) }
   }
 
   /**

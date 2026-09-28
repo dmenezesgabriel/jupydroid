@@ -33,6 +33,9 @@ package com.jupydroid.app.data.space
  */
 internal object KernelLog {
   const val SESSION_OPENED = "kernel.session.opened"
+
+  /** A `PATCH api/sessions` rebind: the session id survives, the kernel behind it changed. */
+  const val SESSION_KERNEL_CHANGED = "kernel.session.kernel.changed"
   const val SOCKET_OPENED = "kernel.socket.opened"
   const val SOCKET_CONNECTED = "kernel.socket.connected"
   const val SOCKET_ENDED = "kernel.socket.ended"

@@ -6,8 +6,10 @@ import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelSessions
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
@@ -18,6 +20,7 @@ import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -117,6 +120,12 @@ class EditorViewModel(
    * notebook on No Kernel through it (P8f), the way `session.disposed` does in the reference.
    */
   kernelSessions: KernelSessions = FakeKernelSessions(),
+  /**
+   * The Space's kernelspec catalogue - what the saved `kernelspec.name` is resolved through
+   * before a kernel is asked for, the way `specsManager.specs` feeds `getDefaultKernel`
+   * (`sessioncontext.tsx:1927`). Defaulted the way [kernelSessions] is.
+   */
+  private val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -162,6 +171,14 @@ class EditorViewModel(
       formattingOptions = { settings.value.indentUnit.formattingOptions() },
       languageServer = languageServer,
       kernelSessions = kernelSessions,
+      kernelSpecs = kernelSpecs,
+      // `kernelChanged` -> `_updateSpec` (`panel.ts:207,248-258`): a bound kernel is persisted
+      // as `metadata.kernelspec` - dirty, then the autosave writes it like any other edit.
+      onKernelBound = { bound, spec ->
+        notebook = notebook?.withKernelSpec(bound.kernelName, spec)
+        _uiState.update { it.copy(dirty = true) }
+        save.schedule()
+      },
     )
 
   /** The cell menu and its undo history. Driven straight from the screen; see [NotebookCellEdits]. */
@@ -211,6 +228,7 @@ class EditorViewModel(
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
+      seedKernelPreference()
       debugger.seed(_uiState.value.cells)
     }
     // The rename that did not come from this screen - from the browser beside it, or from a folder
@@ -233,6 +251,20 @@ class EditorViewModel(
         }
       }
     }
+  }
+
+  /**
+   * `Context._populate`'s second half (`docregistry/src/context.ts:587-603`): the saved
+   * `kernelspec.name`/`language_info.name` become the session's `kernelPreference`, resolved
+   * through the Space's catalogue before it ever reaches a connect. When it resolves to
+   * nothing - a kernelspec uninstalled since the file was written - the reference opens
+   * `selectKernel` right here; the owe is what [EditorUiState.kernelPickRequired] counts.
+   */
+  private suspend fun seedKernelPreference() {
+    val preference = notebook?.kernelPreference ?: return
+    kernel.kernelPreference = preference
+    if (kernelSpecs.specs(BASE_SPACE).preferredKernelName(preference) != null) return
+    _uiState.update { it.copy(kernelPickRequired = it.kernelPickRequired + 1) }
   }
 
   /**

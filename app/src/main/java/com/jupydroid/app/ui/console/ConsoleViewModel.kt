@@ -45,6 +45,9 @@ class ConsoleViewModel(
 ) : ViewModel() {
   init {
     viewModelScope.launch { kernelSessions.ended.collect { session.endIfMatches(it) } }
+    // `kernelChanged` beside `disposed`: the notebook may swap the kernel under the session this
+    // console shares (P8g) - the copy here follows the rebound or it would address a dead kernel.
+    viewModelScope.launch { kernelSessions.rebound.collect { session.rebindIfMatches(it) } }
   }
 
   /** The draft the input row edits, and what a history walk (P6b-6) replaces the text of. */

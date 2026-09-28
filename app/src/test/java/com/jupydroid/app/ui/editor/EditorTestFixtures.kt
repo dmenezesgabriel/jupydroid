@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
@@ -23,11 +24,13 @@ import com.jupydroid.app.domain.port.DebugScope
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.KernelSessions
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -72,10 +75,10 @@ internal class RecordingKernelGateway(
   /** The document paths each connect was asked for, in order - the cwd a kernel was born in. */
   val connectedPaths = mutableListOf<String>()
 
-  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
     connectCount++
     connectedPaths += documentPath
-    return delegate.connect(space, documentPath)
+    return delegate.connect(space, documentPath, kernel)
   }
 
   private val interrupted = CompletableDeferred<Unit>()
@@ -132,17 +135,30 @@ internal class RecordingKernelGateway(
 internal class SlowToConnectKernelGateway : KernelGateway by FakeKernelGateway() {
   private val connectable = CompletableDeferred<Unit>()
 
-  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
     connectable.await()
     return KernelSession(
       id = "slow-${space.id}",
       spaceId = space.id,
       kernelId = "kernel-1",
+      kernelName = "python3",
       serverSessionId = "server-session-1",
     )
   }
 
   fun letItConnect() = connectable.complete(Unit)
+}
+
+/** A PATCH that holds until released, the way [SlowToConnectKernelGateway] gates a connect. */
+internal class SlowToChangeKernelGateway : KernelGateway by FakeKernelGateway() {
+  private val changeable = CompletableDeferred<Unit>()
+
+  override suspend fun changeKernel(session: KernelSession, kernel: KernelChoice): KernelSession {
+    changeable.await()
+    return session.copy(kernelName = (kernel as? KernelChoice.Spec)?.name ?: session.kernelName)
+  }
+
+  fun letItChange() = changeable.complete(Unit)
 }
 
 /**
@@ -158,12 +174,13 @@ internal class StaleSessionKernelGateway(
 
   private var refused = 0
 
-  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
     connectCount++
     return KernelSession(
       id = "session-$connectCount",
       spaceId = space.id,
       kernelId = "kernel-$connectCount",
+      kernelName = "python3",
       serverSessionId = "server-session-$connectCount",
     )
   }
@@ -273,9 +290,9 @@ internal class RecordingConnectKernelGateway(private val fake: FakeKernelGateway
   KernelGateway by fake {
   val paths = mutableListOf<String>()
 
-  override suspend fun connect(space: Space, documentPath: String): KernelSession {
+  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
     paths += documentPath
-    return fake.connect(space, documentPath)
+    return fake.connect(space, documentPath, kernel)
   }
 }
 
@@ -343,15 +360,20 @@ internal fun TestScope.loadedEditor(
   languageServer: LanguageServerPort = FakeLanguageServerPort(),
   // Only the "a session ended elsewhere" case passes one sharing the gateway's registry (P8f).
   kernelSessions: KernelSessions = FakeKernelSessions(),
+  // Only the kernel-choice cases pass one (P8g); the default answers the Space's own list.
+  kernelSpecs: KernelSpecs = FakeKernelSpecs(),
+  // The notebook as it was saved - kernel metadata included. Default builds a bare one so the
+  // cases that predate kernelspec persistence read unchanged.
+  notebook: Notebook? = null,
 ): EditorViewModel {
-  launch { repository.saveNotebook(Notebook(notebookId, title, "python3", cells)) }
+  launch { repository.saveNotebook(notebook ?: Notebook(notebookId, title, "python3", cells)) }
   advanceUntilIdle()
   // No collector: uiState is a StateFlow, so .value is current without one - and a
   // collector that is never cancelled leaves runTest waiting on it.
   val viewModel =
     EditorViewModel(
       notebookId, repository, workspace, gateway, exporter, applicationScope, activeCellRuns,
-      openDocuments, notebookBreakpoints, debugger, editorSettings, languageServer, kernelSessions,
+      openDocuments, notebookBreakpoints, debugger, editorSettings, languageServer, kernelSessions, kernelSpecs,
     )
   advanceUntilIdle()
   return viewModel

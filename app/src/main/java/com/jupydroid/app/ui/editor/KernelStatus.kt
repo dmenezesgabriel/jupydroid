@@ -58,6 +58,9 @@ val EditorUiState.kernelStatus: KernelStatus
     // First, and deliberately: `restart` clears the abandoned run only once the gateway has
     // answered, so a rule that read the executions first would call a restarting kernel busy.
     kernelRestarting -> KernelStatus.RESTARTING
+    // `_isChangingKernel` → `'starting'` (`sessioncontext.tsx:623-625`): the PATCH is in
+    // flight and the session still reports its old kernel, so this ranks ahead of connected.
+    kernelChanging -> KernelStatus.STARTING
     kernelConnected -> if (kernelHasWork) KernelStatus.BUSY else KernelStatus.IDLE
     kernelHasWork -> KernelStatus.STARTING
     else -> KernelStatus.NO_KERNEL

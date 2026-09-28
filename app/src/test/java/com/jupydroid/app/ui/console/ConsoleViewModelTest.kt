@@ -8,6 +8,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
@@ -247,6 +248,26 @@ class ConsoleViewModelTest {
     assertNull("the shared session is gone - the next run reconnects", session.opened)
   }
 
+  /**
+   * P8g's `kernelChanged` beside P8f's `disposed`: the notebook whose session this Console shares
+   * can swap the kernel under it (`PATCH api/sessions` keeps the session id), and the copy held
+   * here has to follow - the old kernel id points at a process the server already shut down.
+   */
+  @Test
+  fun aKernelChangeOnTheSharedSessionIsTakenUp() = runTest {
+    val registry = KernelSessionRegistry()
+    val gateway = FakeKernelGateway(registry)
+    val minted = gateway.connect(SPACE, "Analysis.ipynb")
+    val session = NotebookKernelSession(gateway, SPACE, attachedTo = minted) { "Analysis.ipynb" }
+    ConsoleViewModel(gateway, session, FakeKernelSessions(registry))
+    advanceUntilIdle()
+
+    val changed = gateway.changeKernel(minted, KernelChoice.Spec("p8g"))
+    advanceUntilIdle()
+
+    assertEquals("the console now holds the rebound session", changed, session.opened)
+  }
+
   private fun consoleViewModel(gateway: KernelGateway): ConsoleViewModel {
     val session = NotebookKernelSession(gateway, SPACE, attachedTo = ATTACHED_SESSION) { "Analysis.ipynb" }
     return ConsoleViewModel(gateway, session)
@@ -254,7 +275,13 @@ class ConsoleViewModelTest {
 
   private companion object {
     val SPACE = Space(id = "base", name = "Base", kernels = emptyList())
-    val ATTACHED_SESSION = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+    val ATTACHED_SESSION = KernelSession(
+      id = "s1",
+      spaceId = "base",
+      kernelId = "k1",
+      kernelName = "python3",
+      serverSessionId = "ss1",
+    )
   }
 }
 

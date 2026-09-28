@@ -1,6 +1,10 @@
 package com.jupydroid.app.domain.model
 
+import com.jupydroid.app.domain.port.KernelPreference
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 /**
  * The three `cell_type`s nbformat 4 defines.
@@ -84,4 +88,43 @@ data class Notebook(
   val cells: List<Cell>,
   /** See [PreservedJson]: `language_info`, `widgets`, `authors` and anything a newer tool wrote. */
   val preserved: PreservedJson = JsonObject(emptyMap()),
-)
+) {
+  /** `metadata.language_info.name` - `NotebookModel.defaultKernelLanguage` (`model.ts:235-237`). */
+  val kernelLanguage: String?
+    get() = metadataString("language_info", "name")
+
+  /**
+   * `Context._populate`'s seed (`docregistry/src/context.ts:587-595`): `kernelspec.name` plus
+   * `language_info.name` - the two halves `getDefaultKernel` resolves a session's kernel from
+   * (P8g). [kernelId] is the name, already defaulted for a file that named none.
+   */
+  val kernelPreference: KernelPreference
+    get() = KernelPreference(name = kernelId, language = kernelLanguage)
+
+  /**
+   * `_updateSpec` (`notebook/panel.ts:248-258`): the kernel that binds is written as
+   * `metadata.kernelspec = {name, display_name, language}` - the object *replaced*, which is why
+   * a [spec] the catalogue lacks leaves only `name` behind rather than keeping the old kernel's
+   * display name to lie about the new one.
+   */
+  fun withKernelSpec(name: String, spec: KernelSpec?): Notebook {
+    val kernelspec = buildJsonObject {
+      put("name", name)
+      spec?.let {
+        put("display_name", it.displayName)
+        put("language", it.language)
+      }
+    }
+    return copy(
+      kernelId = name,
+      preserved = JsonObject(
+        preserved + ("metadata" to JsonObject(metadataObject() + ("kernelspec" to kernelspec))),
+      ),
+    )
+  }
+
+  private fun metadataObject(): JsonObject = preserved["metadata"] as? JsonObject ?: JsonObject(emptyMap())
+
+  private fun metadataString(section: String, key: String): String? =
+    (metadataObject()[section] as? JsonObject)?.get(key)?.jsonPrimitive?.content
+}

@@ -1,5 +1,7 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.ServerConnection
 import kotlinx.coroutines.test.runTest
@@ -62,7 +64,9 @@ class OkHttpKernelLifecycleTest {
    */
   @Test
   fun start_reattachesToTheKernelTheServerAlreadyHasForThatPath() = runTest {
-    val session = """{"id":"session-1","path":"Analysis.ipynb","kernel":{"id":"kernel-abc"}}"""
+    // `kernel.name` is always present beside `id` in a kernel model - `kernelspec_name` is
+    // stored on the kernel and echoed back (`services/kernels/kernelmanager.py:kernel_model`).
+    val session = """{"id":"session-1","path":"Analysis.ipynb","kernel":{"id":"kernel-abc","name":"python3"}}"""
     serverRule.server.enqueue(MockResponse(code = 201, body = session))
     serverRule.server.enqueue(MockResponse(code = 201, body = session))
     val lifecycle = lifecycle()
@@ -383,6 +387,154 @@ class OkHttpKernelLifecycleTest {
     )
   }
 
+  // --- P8g: choosing which kernel - the kernelspec list, and the two PATCH payloads ---
+
+  /**
+   * `GET api/kernelspecs`, the `KernelSpec.IManager.specs` feed the reference's picker is built
+   * from (`packages/apputils/src/sessioncontext.tsx:1657-1663`). The answer is
+   * `{default, kernelspecs: {name: {name, spec: {display_name, language, …}, resources}}}`
+   * (`services/kernelspecs/handlers.py:65-89`): the picker's row text and its language grouping
+   * live under `spec`, and `argv`/`env`/`resources` are the server's business, not ours.
+   */
+  @Test
+  fun kernelSpecs_listsWhatTheServerOffers() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 200, body = KERNELSPECS_JSON))
+
+    val specs = lifecycle().kernelSpecs()
+
+    assertEquals("python3", specs.default)
+    assertEquals(
+      listOf(
+        KernelSpec(name = "python3", displayName = "Python 3", language = "python"),
+        KernelSpec(name = "p8g", displayName = "P8g Python", language = "python"),
+      ),
+      specs.specs,
+    )
+    val request = takeRequest()
+    assertEquals("GET", request.method)
+    assertEquals("/api/kernelspecs", request.target)
+    assertEquals("token secret-token", request.headers["Authorization"])
+  }
+
+  /**
+   * The kernel a session starts with is a field of `POST api/sessions`' body - `kernel.name`
+   * reaches `create_session(kernel_name=…)` (`services/sessions/handlers.py:67-80`), which is
+   * also `sessionManager.startNew({kernel: model})`'s payload in the reference
+   * (`sessioncontext.tsx:983-988`).
+   */
+  @Test
+  fun start_asksForTheChosenKernelByName() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
+
+    lifecycle().start("Analysis.ipynb", KernelChoice.Spec("p8g"))
+
+    assertEquals(
+      """{"path":"Analysis.ipynb","type":"notebook","name":"Analysis.ipynb","kernel":{"name":"p8g"}}""",
+      takeRequest().body?.utf8(),
+    )
+  }
+
+  /**
+   * A kernel *id* in the same field attaches the new session to a kernel that is already
+   * running - the picker's "Connect to Existing" rows carry `{id}` (`sessioncontext.tsx:1716`),
+   * and the handler's `kernel_id` branch is what binds them (`handlers.py:67-77`).
+   */
+  @Test
+  fun start_canAttachToARunningKernelByItsId() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
+
+    lifecycle().start("Analysis.ipynb", KernelChoice.Running("kernel-abc"))
+
+    assertEquals(
+      """{"path":"Analysis.ipynb","type":"notebook","name":"Analysis.ipynb","kernel":{"id":"kernel-abc"}}""",
+      takeRequest().body?.utf8(),
+    )
+  }
+
+  /** The started session's kernel says what spec it is - `kernel.name` in the model. */
+  @Test
+  fun start_returnsTheKernelsNameBesideItsId() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
+
+    assertEquals("python3", lifecycle().start("Analysis.ipynb").kernelName)
+  }
+
+  /**
+   * `PATCH api/sessions/<id>` with `kernel.name` - `Session.ISessionConnection.changeKernel`'s
+   * request (`session/session.ts:169-190` over `restapi.ts:127-145`), which
+   * `SessionContext._changeKernel` sends when a session already exists (`sessioncontext.tsx:956-960`).
+   *
+   * The server starts the named kernel for the session, answers the *updated* model, and shuts
+   * the old kernel down itself (`handlers.py:patch` - `kernel_id` changed → `shutdown_kernel`).
+   * The session id does not change: it is the same session bound to a new kernel.
+   */
+  @Test
+  fun changeKernel_patchesTheSessionToStartTheNamedKernel() = runTest {
+    serverRule.server.enqueue(
+      MockResponse(
+        code = 200,
+        body = """{"id":"session-1","kernel":{"id":"kernel-new","name":"p8g"}}""",
+      ),
+    )
+
+    val changed = lifecycle().changeKernel("session-1", KernelChoice.Spec("p8g"))
+
+    assertEquals("kernel-new", changed.kernelId)
+    assertEquals("p8g", changed.kernelName)
+    assertEquals("session-1", changed.serverSessionId)
+    val request = takeRequest()
+    assertEquals("PATCH", request.method)
+    assertEquals("/api/sessions/session-1", request.target)
+    assertEquals("""{"kernel":{"name":"p8g"}}""", request.body?.utf8())
+  }
+
+  /**
+   * `kernel.id` instead: the picker's "Connect to Existing" rows send the running kernel's id
+   * (`optionForKernel`, `sessioncontext.tsx:1701-1718`), which the handler binds directly -
+   * `kernel id takes precedence over name` is its own comment.
+   */
+  @Test
+  fun changeKernel_patchesTheSessionOntoARunningKernelByItsId() = runTest {
+    serverRule.server.enqueue(
+      MockResponse(
+        code = 200,
+        body = """{"id":"session-1","kernel":{"id":"kernel-abc","name":"python3"}}""",
+      ),
+    )
+
+    val changed = lifecycle().changeKernel("session-1", KernelChoice.Running("kernel-abc"))
+
+    assertEquals("kernel-abc", changed.kernelId)
+    assertEquals("""{"kernel":{"id":"kernel-abc"}}""", takeRequest().body?.utf8())
+  }
+
+  /**
+   * 501 is the server's own answer for a kernelspec that could not be started
+   * (`handlers.py` - `"The '%s' kernel could not be started"`); 404 is a session nobody has.
+   * Neither is a silent no-op, the way `shutdownSession` already refuses to treat 200 as done.
+   */
+  @Test
+  fun changeKernel_failsLoudlyWhenTheKernelWillNotStart() = runTest {
+    serverRule.server.enqueue(
+      MockResponse(code = 501, body = """{"message":"The 'gone' kernel could not be started"}"""),
+    )
+
+    val failure = runCatching { lifecycle().changeKernel("session-1", KernelChoice.Spec("gone")) }
+
+    val message = failure.exceptionOrNull()?.message.orEmpty()
+    assertTrue("expected a failure, got $failure", failure.isFailure)
+    assertTrue("the message must carry the status, was '$message'", message.contains("501"))
+  }
+
+  @Test
+  fun changeKernel_failsLoudlyWhenTheSessionIsGone() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 404, body = "Session not found"))
+
+    val failure = runCatching { lifecycle().changeKernel("session-gone", KernelChoice.Spec("python3")) }
+
+    assertTrue("expected a failure, got $failure", failure.isFailure)
+  }
+
   private fun takeRequest() = serverRule.server.takeRequest(TIMEOUT_SECONDS, TimeUnit.SECONDS)!!
 
   private fun lifecycle(server: MockWebServer = serverRule.server) = OkHttpKernelLifecycle(
@@ -407,5 +559,16 @@ class OkHttpKernelLifecycleTest {
     const val KERNEL_SESSION_JSON =
       """{"id":"session-1","name":"Analysis.ipynb","path":"reports/Analysis.ipynb",""" +
         """"type":"notebook","kernel":{"id":"k1","name":"python3"}}"""
+
+    /**
+     * `GET api/kernelspecs`' shape (`kernelspecs/handlers.py:65-89`): `spec` is the kernel.json
+     * verbatim - `display_name` and `language` are the two fields the picker needs of it.
+     */
+    const val KERNELSPECS_JSON =
+      """{"default":"python3","kernelspecs":{""" +
+        """"python3":{"name":"python3","spec":{"argv":["python"],"display_name":"Python 3",""" +
+        """"language":"python","metadata":{"debugger":true}},"resources":{}},""" +
+        """"p8g":{"name":"p8g","spec":{"argv":["python"],"display_name":"P8g Python",""" +
+        """"language":"python"},"resources":{}}}}"""
   }
 }

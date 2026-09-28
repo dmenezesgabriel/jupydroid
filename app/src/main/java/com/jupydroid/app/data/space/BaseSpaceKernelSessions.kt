@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.KernelSessionRegistry
+import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.KernelSessions
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,6 +21,9 @@ class BaseSpaceKernelSessions(
   private val registry: KernelSessionRegistry,
 ) : KernelSessions {
   override val ended: SharedFlow<String> = registry.ended
+
+  /** `kernelChanged` to [ended]'s `disposed` - the gateway announces its own rebinds here. */
+  override val rebound: SharedFlow<KernelSession> = registry.rebound
 
   /**
    * `GET api/sessions`, plus the reconciliation the reference reaches through `runningChanged`:

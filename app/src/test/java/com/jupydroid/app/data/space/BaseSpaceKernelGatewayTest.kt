@@ -3,8 +3,10 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.StaleKernelSessionException
@@ -163,6 +165,49 @@ class BaseSpaceKernelGatewayTest {
     gateway.connect(SPACE, "Analysis.ipynb")
 
     assertEquals(listOf(stranded.serverSessionId), heard.await())
+  }
+
+  /**
+   * `PATCH api/sessions` keeps the session and swaps the kernel (`handlers.py:patch` shuts the
+   * old one down itself), so what the registry tracks - and what `rebound` announces to every
+   * other holder of the session - is the *returned* model, kernel id and all (P8g).
+   */
+  @Test
+  fun changeKernel_rebindsTheTrackedSessionAndAnnouncesIt() = runTest {
+    val registry = KernelSessionRegistry()
+    val gateway = gateway(RecordingServerLauncher(), registry)
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+    val heard = async { registry.rebound.take(1).toList() }
+    advanceUntilIdle()
+
+    val changed = gateway.changeKernel(session, KernelChoice.Spec("p8g"))
+
+    assertEquals(session.id, changed.id)
+    assertEquals(session.serverSessionId, changed.serverSessionId)
+    assertEquals("p8g", changed.kernelName)
+    assertEquals(changed, registry.trackedBy(session.serverSessionId)?.kernelSession)
+    assertEquals(listOf(changed), heard.await())
+  }
+
+  /** The P1c rule holds for a kernel change too: a session this gateway never issued is stale. */
+  @Test
+  fun changeKernel_refusesASessionTheLiveServerNeverIssued() = runTest {
+    val gateway = gateway(RecordingServerLauncher())
+    gateway.connect(SPACE, "Analysis.ipynb")
+    val foreign = KernelSession(
+      id = "stranger",
+      spaceId = "base",
+      kernelId = "k9",
+      kernelName = "python3",
+      serverSessionId = "ss-9",
+    )
+
+    val failure = runCatching { gateway.changeKernel(foreign, KernelChoice.Spec("p8g")) }
+
+    assertTrue(
+      "expected a stale session to be refused, got ${failure.exceptionOrNull()}",
+      failure.exceptionOrNull() is StaleKernelSessionException,
+    )
   }
 
   private val recordingLog = RecordingSpaceLifecycleLog()

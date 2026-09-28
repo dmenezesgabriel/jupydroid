@@ -1,13 +1,18 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.data.fake.FakeKernelSessions
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.IndentUnit
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelPreference
+import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.KernelSessions
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.SteppingCommand
@@ -83,18 +88,60 @@ class NotebookKernel(
    * subscription (`packages/apputils/src/sessioncontext.tsx`), which is what lands this
    * notebook on No Kernel when the Running panel shuts its session down (P8f).
    */
-  kernelSessions: KernelSessions = FakeKernelSessions(),
+  private val kernelSessions: KernelSessions = FakeKernelSessions(),
+  /**
+   * The Space's kernelspec catalogue - what a persisted preference is resolved against before it
+   * reaches the wire, and what a bound kernel's `display_name`/`language` are read from for the
+   * `_updateSpec` write (P8g).
+   */
+  private val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
+  /**
+   * `kernelChanged` -> `NotebookPanel._updateSpec` (`panel.ts:248-258`): told the session and the
+   * catalogue entry (or null) each time a kernel binds, so the document can persist
+   * `metadata.kernelspec`. Suspending because resolving the spec is a suspend ask.
+   */
+  private val onKernelBound: suspend (KernelSession, KernelSpec?) -> Unit = { _, _ -> },
 ) {
   /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
   private val session =
     NotebookKernelSession(
       kernelGateway,
       BASE_SPACE,
-      onConnectedChanged = { connected -> uiState.update { it.copy(kernelConnected = connected) } },
+      kernelSpecs,
+      onConnectedChanged = { connected ->
+        // `kernelDisplayName`'s no-kernel half: the spec the bound kernel resolved to goes
+        // with it, so the indicator lands on "No Kernel" rather than naming one that is gone.
+        uiState.update {
+          it.copy(kernelConnected = connected, kernelDisplayName = if (connected) it.kernelDisplayName else "No Kernel")
+        }
+      },
+      onBound = { bound ->
+        scope.launch {
+          val spec = kernelSpecs.specs(BASE_SPACE).named(bound.kernelName)
+          // `specs[kernel.name]?.display_name ?? kernel.name` - the reference's own derivation.
+          uiState.update { it.copy(kernelDisplayName = spec?.displayName ?: bound.kernelName) }
+          onKernelBound(bound, spec)
+        }
+      },
+      onPendingKernelName = { name ->
+        uiState.update { it.copy(kernelDisplayName = name) }
+      },
     ) { uiState.value.notebookId }
+
+  /**
+   * `SessionContext.kernelPreference`, seeded from the file once it loads
+   * (`Context._populate`, `docregistry/src/context.ts:587-595`) - written by the document half,
+   * which is the one that has read the notebook.
+   */
+  var kernelPreference: KernelPreference?
+    get() = session.kernelPreference
+    set(value) {
+      session.kernelPreference = value
+    }
 
   init {
     scope.launch { kernelSessions.ended.collect { session.endIfMatches(it) } }
+    scope.launch { kernelSessions.rebound.collect { session.rebindIfMatches(it) } }
   }
 
   private val runs =
@@ -160,8 +207,16 @@ class NotebookKernel(
    * `null` when this notebook has never opened a kernel of its own yet - the returned session then
    * behaves exactly like a fresh one, and opens on whichever of the two runs something first.
    */
-  fun attachConsole(): NotebookKernelSession =
-    NotebookKernelSession(kernelGateway, BASE_SPACE, attachedTo = session.opened) { uiState.value.notebookId }
+  fun attachConsole(): NotebookKernelSession = NotebookKernelSession(
+    kernelGateway,
+    BASE_SPACE,
+    kernelSpecs,
+    attachedTo = session.opened,
+    // The kernel the notebook prefers - seeded from its metadata, then kept in step with what
+    // it is bound to - is the console's preference too: a stale reconnect re-asks for it
+    // rather than the server's default.
+    kernelPreference = session.kernelPreference,
+  ) { uiState.value.notebookId }
 
   /** @see NotebookCellRuns.runCell */
   fun runCell(cell: Cell) = runs.runCell(cell)
@@ -176,6 +231,14 @@ class NotebookKernel(
 
   /** @see NotebookCellRuns.stopRunningCell */
   fun stopRunningCell() = runs.stopRunningCell()
+
+  /**
+   * The `selectKernel` dialog's kernel half - `notebook:change-kernel`, the kernel-name button's
+   * tap and the load-time pick all reach it. A collaborator the way [history] and [asks] are;
+   * see [NotebookKernelPicker]. The `shutdown` it delegates is this class's, because ending the
+   * session is the kernel's act even when the picker's "No Kernel" is what asked for it.
+   */
+  val picker = NotebookKernelPicker(uiState, session, kernelSpecs, kernelSessions, scope) { shutdown() }
 
   /** @see NotebookCellRuns.step */
   fun step(command: SteppingCommand) = runs.step(command)

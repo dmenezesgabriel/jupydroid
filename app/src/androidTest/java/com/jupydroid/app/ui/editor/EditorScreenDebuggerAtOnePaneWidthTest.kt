@@ -175,9 +175,8 @@ class EditorScreenDebuggerAtOnePaneWidthTest {
     const val NOTEBOOK_ID = "nb-1"
     val BREAKABLE_CELL = Cell(id = "c1", kind = CellKind.CODE, source = "print(1)")
 
-    /** [FakeKernelGateway.connect]'s own answer for `NotebookKernel`'s own `BASE_SPACE` - `"fake-base"`. */
-    val SESSION =
-      KernelSession(id = "fake-base", spaceId = "base", kernelId = "python3", serverSessionId = "fake-session-base")
+    /** [FakeKernelGateway.connect]'s own first answer for `NotebookKernel`'s own `BASE_SPACE`. */
+    val SESSION = FakeKernelGateway.mints(sessionNumber = 1)
 
     const val LOAD_TIMEOUT_MILLIS = 5_000L
   }

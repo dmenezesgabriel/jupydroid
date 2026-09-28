@@ -6,6 +6,7 @@ import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookExporter
@@ -29,6 +30,7 @@ import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.NotebookExporter
@@ -83,6 +85,11 @@ class AppContainer(
    * shutdown here is `session.disposed` to every notebook holding the session.
    */
   val kernelSessions: KernelSessions = FakeKernelSessions(kernelSessionRegistry),
+  /**
+   * The kernelspec catalogue the picker draws from (P8g) - `GET api/kernelspecs` while a server
+   * runs, the Space's own declared list while it does not. Answering never boots a runtime.
+   */
+  val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
   /** DAP over the same kernel session's control channel - breakpoints, step/continue, variables. */
   val kernelDebugger: KernelDebugger = FakeKernelDebugger(),
   /**

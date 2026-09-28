@@ -35,7 +35,7 @@ appId: com.jupydroid.app
     visible: "Tab: p8f-kernel.ipynb"
     timeout: 30000
 # Lazily connected - the session does not exist until something asks the kernel for work.
-- assertVisible: "Kernel Python 3: No Kernel"
+- assertVisible: "No Kernel"
 - tapOn: "Sessions and Tabs"
 - assertVisible: "Open tab: p8f-kernel.ipynb"
 - takeScreenshot: 02-open-tab-before-the-session
@@ -75,7 +75,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     notVisible: "Open kernel session: p8f-kernel.ipynb"
     timeout: 10000
-- assertVisible: "Kernel Python 3: No Kernel"
+- assertVisible: "No Kernel"
 - takeScreenshot: 06-shutdown-lands-no-kernel
 
 # ---- a terminal is a Terminals row that outlives its tab ----

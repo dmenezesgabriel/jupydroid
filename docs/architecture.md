@@ -131,7 +131,7 @@ living inside one.
 
 ```
 Space(id, name, kernels: List<KernelSpec>)
-KernelSpec(id, displayName)
+KernelSpec(name, displayName, language)
 
 Notebook(id, title, kernelId, cells: List<Cell>, preserved: PreservedJson)
 Cell(id, kind, source, outputs, executionCount,

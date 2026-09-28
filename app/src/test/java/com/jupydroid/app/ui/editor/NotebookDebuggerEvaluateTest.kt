@@ -21,7 +21,13 @@ import org.junit.Test
 class NotebookDebuggerEvaluateTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
-  private val session = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+  private val session = KernelSession(
+    id = "s1",
+    spaceId = "base",
+    kernelId = "k1",
+    kernelName = "python3",
+    serverSessionId = "ss1",
+  )
 
   @Test
   fun evaluateReturnsNothingWhenNothingIsStopped() = runTest {

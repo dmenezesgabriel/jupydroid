@@ -3,6 +3,7 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_DISPLAY_NAME
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.Notebook
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -54,7 +55,11 @@ private fun Notebook.kernelspecJson(): JsonObject = buildJsonObject {
   val preservedSpec = preserved.objectAt("metadata").objectAt("kernelspec")
   preservedSpec.forEach { (key, value) -> put(key, value) }
   put("name", kernelId)
-  if ("display_name" !in preservedSpec) put("display_name", DEFAULT_KERNEL_DISPLAY_NAME)
+  // The default is only the shipped spec's own display name: writing "Python 3" onto a kernel
+  // the file actually saved as "xeus-python" would be claiming a kernel it never had.
+  if ("display_name" !in preservedSpec && kernelId == DEFAULT_KERNEL_ID) {
+    put("display_name", DEFAULT_KERNEL_DISPLAY_NAME)
+  }
 }
 
 /**

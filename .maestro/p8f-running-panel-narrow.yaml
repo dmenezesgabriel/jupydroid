@@ -35,7 +35,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Tab: p8f-kernel.ipynb"
     timeout: 30000
-- assertVisible: "Kernel Python 3: No Kernel"
+- assertVisible: "No Kernel"
 - tapOn: "Run cell"
 # matches-source: the fake echoes the source - the row the run creates is the real claim here.
 # The `[\s\S]*` tails are load-bearing: `text` is a whole-string regex, so a bare substring never
@@ -98,7 +98,7 @@ appId: com.jupydroid.app
 # ---- `ended` lands on the open document as No Kernel ----
 - tapOn: "Open tab: p8f-kernel.ipynb"
 - extendedWaitUntil:
-    visible: "Kernel Python 3: No Kernel"
+    visible: "No Kernel"
     timeout: 10000
 - takeScreenshot: 06-shutdown-all-lands-no-kernel
 

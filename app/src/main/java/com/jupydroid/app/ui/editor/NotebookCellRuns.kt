@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelPickRequiredException
 import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -160,9 +161,12 @@ internal class NotebookCellRuns(
 
   private suspend fun run(cell: Cell): Boolean {
     uiState.update { it.startingRun(cell.id, at = now()) }
-    eventsFor(cell)
-      .catch { failure -> emit(kernelFailure(cell.id, failure)) }
-      .collect { event -> uiState.update { state -> state.after(event) } }
+    try {
+      eventsFor(cell).collect { event -> uiState.update { state -> state.after(event) } }
+    } catch (_: KernelPickRequiredException) {
+      uiState.update { it.withoutExecution(cell.id).copy(kernelPickRequired = it.kernelPickRequired + 1) }
+      return false
+    }
 
     val raised = uiState.value.outputs[cell.id].orEmpty().any { it is CellOutput.Error }
     val cancelled = interrupting == cell.id
@@ -201,6 +205,10 @@ internal class NotebookCellRuns(
         kernelGateway.execute(open, cell.id, cell.source).onCompletion { watcher?.cancel() }
       },
     )
+    // A kernel that cannot be picked is not a cell failure - it is the picker's cue, so it
+    // passes the failure lane by rather than landing as an error output the cell never earned.
+  }.catch { failure ->
+    if (failure is KernelPickRequiredException) throw failure else emit(kernelFailure(cell.id, failure))
   }
 
   private fun now(): Instant = clock.instant()

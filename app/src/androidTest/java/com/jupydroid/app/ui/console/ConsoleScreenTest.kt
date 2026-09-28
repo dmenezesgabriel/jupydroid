@@ -201,7 +201,13 @@ class ConsoleScreenTest {
 
   private companion object {
     val SPACE = Space(id = "base", name = "Base", kernels = emptyList())
-    val ATTACHED_SESSION = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+    val ATTACHED_SESSION = KernelSession(
+      id = "s1",
+      spaceId = "base",
+      kernelId = "k1",
+      kernelName = "python3",
+      serverSessionId = "ss1",
+    )
     const val PNG_QUALITY = 100
     const val EVIDENCE_FILE_NAME = "p6b-9-console-screen.png"
     const val TIMEOUT_MILLIS = 5_000L

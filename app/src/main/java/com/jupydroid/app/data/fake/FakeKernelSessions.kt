@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.KernelSessionRegistry
+import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.KernelSessions
 import kotlinx.coroutines.flow.SharedFlow
@@ -21,11 +22,14 @@ import kotlinx.coroutines.flow.SharedFlow
 class FakeKernelSessions(private val registry: KernelSessionRegistry = KernelSessionRegistry()) : KernelSessions {
   override val ended: SharedFlow<String> = registry.ended
 
+  /** The fake gateway rebinds through the shared registry, exactly like the real one's (P8g). */
+  override val rebound: SharedFlow<KernelSession> = registry.rebound
+
   override suspend fun running(): List<KernelSessionModel> = registry.all.map { tracked ->
     KernelSessionModel(
       serverSessionId = tracked.kernelSession.serverSessionId,
       kernelId = tracked.kernelSession.kernelId,
-      kernelName = tracked.kernelSession.kernelId,
+      kernelName = tracked.kernelSession.kernelName,
       path = tracked.documentPath,
       name = tracked.documentPath.substringAfterLast('/'),
       type = if (tracked.documentPath.endsWith(".ipynb")) "notebook" else "file",

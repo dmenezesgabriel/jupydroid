@@ -20,6 +20,13 @@ interface KernelSessions {
    */
   val ended: SharedFlow<String>
 
+  /**
+   * Sessions whose kernel was swapped under them - `kernelChanged` to [ended]'s `disposed`
+   * (`session/session.ts`). The emission carries the rebound [KernelSession] itself, so a holder
+   * matching on `serverSessionId` trades the old kernel id for the new one.
+   */
+  val rebound: SharedFlow<KernelSession>
+
   /** Every session the server is holding now - `GET api/sessions`, reconciled against [ended]. */
   suspend fun running(): List<KernelSessionModel>
 

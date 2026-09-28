@@ -1,6 +1,11 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.KernelChoice
+import com.jupydroid.app.domain.port.KernelPickRequiredException
+import com.jupydroid.app.domain.port.KernelPreference
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import kotlinx.coroutines.flow.toList
@@ -14,6 +19,21 @@ import org.junit.Test
 class NotebookKernelSessionTest {
   private val space = Space(id = "base", name = "Base", kernels = emptyList())
 
+  /** The catalogue `Private.getDefaultKernel` resolves against - python3, plus a second spec. */
+  private val catalogued = Space(
+    id = "base",
+    name = "Base",
+    kernels = listOf(
+      KernelSpec(name = "python3", displayName = "Python 3", language = "python"),
+      KernelSpec(name = "p8g", displayName = "P8g Julia", language = "julia"),
+    ),
+  )
+
+  /** Two specs sharing one language, so no single language match can stand in for a lost name. */
+  private val twoPythons = catalogued.copy(
+    kernels = catalogued.kernels + KernelSpec(name = "python3-conda", displayName = "Conda", language = "python"),
+  )
+
   @Test
   fun open_connectsOnceAndKeepsTheSameSession() = runTest {
     val gateway = StaleSessionKernelGateway(refusals = 0)
@@ -26,7 +46,13 @@ class NotebookKernelSessionTest {
   @Test
   fun open_returnsThePreAttachedSessionWithoutConnecting() = runTest {
     val gateway = StaleSessionKernelGateway(refusals = 0)
-    val attached = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+    val attached = KernelSession(
+      id = "s1",
+      spaceId = "base",
+      kernelId = "k1",
+      kernelName = "python3",
+      serverSessionId = "ss1",
+    )
     val session = NotebookKernelSession(gateway, space, attachedTo = attached) { "Analysis.ipynb" }
 
     assertEquals(attached, session.open())
@@ -36,7 +62,13 @@ class NotebookKernelSessionTest {
   @Test
   fun constructingWithAttachedToReportsTheKernelArrived() {
     val reported = mutableListOf<Boolean>()
-    val attached = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+    val attached = KernelSession(
+      id = "s1",
+      spaceId = "base",
+      kernelId = "k1",
+      kernelName = "python3",
+      serverSessionId = "ss1",
+    )
 
     NotebookKernelSession(
       StaleSessionKernelGateway(refusals = 0),
@@ -51,7 +83,13 @@ class NotebookKernelSessionTest {
   @Test
   fun reopeningIfStale_reconnectsAPreAttachedSessionThatProvesStale() = runTest {
     val gateway = StaleSessionKernelGateway(refusals = 1)
-    val attached = KernelSession(id = "stale-attached", spaceId = "base", kernelId = "k0", serverSessionId = "ss0")
+    val attached = KernelSession(
+      id = "stale-attached",
+      spaceId = "base",
+      kernelId = "k0",
+      kernelName = "python3",
+      serverSessionId = "ss0",
+    )
     val session = NotebookKernelSession(gateway, space, attachedTo = attached) { "Analysis.ipynb" }
 
     val events = session.reopeningIfStale { open -> gateway.execute(open, "c1", "2 + 2") }.toList()
@@ -62,7 +100,13 @@ class NotebookKernelSessionTest {
 
   @Test
   fun forget_handsBackThePreAttachedSessionAndLeavesNone() {
-    val attached = KernelSession(id = "s1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+    val attached = KernelSession(
+      id = "s1",
+      spaceId = "base",
+      kernelId = "k1",
+      kernelName = "python3",
+      serverSessionId = "ss1",
+    )
     val session = NotebookKernelSession(StaleSessionKernelGateway(refusals = 0), space, attachedTo = attached) {
       "Analysis.ipynb"
     }
@@ -108,6 +152,185 @@ class NotebookKernelSessionTest {
       failure.exceptionOrNull() is StaleKernelSessionException,
     )
     assertEquals("and no third attempt", 2, gateway.connectCount)
+  }
+
+  /**
+   * The kernelspec the notebook was saved with is `kernelPreference`
+   * (`sessioncontext.tsx`'s `SessionContext.IOptions`) - what `open` asks the server to start
+   * rather than leaving the choice to the server's default (P8g). Resolved through the Space's
+   * catalogue like `Private.getDefaultKernel`, so only a name the server actually has is sent.
+   */
+  @Test
+  fun open_startsTheKernelTheNotebookPrefers() = runTest {
+    val gateway = FakeKernelGateway()
+    val session = NotebookKernelSession(gateway, catalogued, kernelPreference = KernelPreference(name = "p8g")) {
+      "nb.ipynb"
+    }
+
+    val open = session.open()
+
+    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
+    assertEquals("p8g", open.kernelName)
+  }
+
+  /**
+   * `getDefaultKernel`'s language fallback (`sessioncontext.tsx:1940-1961`): the persisted name
+   * is gone from the catalogue - a kernelspec uninstalled since the notebook was last opened -
+   * and exactly one spec still speaks its language, so it stands in rather than asking.
+   */
+  @Test
+  fun open_resolvesAPreferenceWhoseSpecIsGoneThroughItsLanguage() = runTest {
+    val gateway = FakeKernelGateway()
+    val session = NotebookKernelSession(
+      gateway,
+      catalogued,
+      kernelPreference = KernelPreference(name = "xeus-python", language = "python"),
+    ) { "nb.ipynb" }
+
+    val open = session.open()
+
+    assertEquals(listOf(KernelChoice.Spec("python3")), gateway.connectsAskedFor)
+    assertEquals("python3", open.kernelName)
+  }
+
+  /**
+   * The other half of `getDefaultKernel`: a name nothing resolves - no exact match, no single
+   * language match - is owed to the *picker*, not the wire (`startKernel` answering
+   * needsSelection, `sessioncontext.tsx:746-747`). POSTing it would only 501 against
+   * `start_kernel_for_session`.
+   */
+  @Test
+  fun open_owesAPickWhenThePreferenceResolvesToNothing() = runTest {
+    val gateway = FakeKernelGateway()
+    val session = NotebookKernelSession(
+      gateway,
+      catalogued,
+      kernelPreference = KernelPreference(name = "xeus-python"),
+    ) { "nb.ipynb" }
+
+    val failure = runCatching { session.open() }.exceptionOrNull()
+
+    assertTrue("expected KernelPickRequiredException, got $failure", failure is KernelPickRequiredException)
+    assertEquals("xeus-python", (failure as KernelPickRequiredException).kernelName)
+    assertEquals(
+      "a spec the Space lacks must never reach the server",
+      emptyList<KernelChoice>(),
+      gateway.connectsAskedFor,
+    )
+  }
+
+  /** Same answer when the language matches *two* specs - no honest way to pick between them. */
+  @Test
+  fun open_owesAPickWhenItsLanguageMatchesMoreThanOneSpec() = runTest {
+    val gateway = FakeKernelGateway()
+    val session = NotebookKernelSession(
+      gateway,
+      twoPythons,
+      kernelPreference = KernelPreference(name = "xeus-python", language = "python"),
+    ) { "nb.ipynb" }
+
+    val failure = runCatching { session.open() }.exceptionOrNull()
+
+    assertTrue("expected KernelPickRequiredException, got $failure", failure is KernelPickRequiredException)
+    assertEquals(emptyList<KernelChoice>(), gateway.connectsAskedFor)
+  }
+
+  /**
+   * `_updateSpec`'s trigger (`notebook/panel.ts:207`): every bind - the first connect, a
+   * `changeKernel`, a rebind announced by another holder - is reported so the document can write
+   * `metadata.kernelspec`. The *session* reports rather than each caller, the same reason
+   * [NotebookKernelSession.onConnectedChanged] lives on the setter: a rebind arrives inside this
+   * object where no caller can see it.
+   */
+  @Test
+  fun everyBoundKernelIsReported() = runTest {
+    val bound = mutableListOf<String>()
+    val session = NotebookKernelSession(
+      FakeKernelGateway(),
+      catalogued,
+      onBound = { bound += it.kernelName },
+    ) { "nb.ipynb" }
+
+    session.open()
+    session.changeKernel(KernelChoice.Spec("p8g"))
+    session.rebindIfMatches(session.opened!!.copy(kernelId = "k9", kernelName = "r9"))
+
+    assertEquals(listOf("python3", "p8g", "r9"), bound)
+  }
+
+  /**
+   * `SessionContext.changeKernel`: the session is patched, not reconnected - its own id is
+   * untouched, the kernel behind it is the new one (P8g).
+   */
+  @Test
+  fun changeKernel_swapsTheKernelUnderTheSameSession() = runTest {
+    val gateway = FakeKernelGateway()
+    val session = NotebookKernelSession(gateway, space) { "Analysis.ipynb" }
+    val open = session.open()
+
+    session.changeKernel(KernelChoice.Spec("p8g"))
+
+    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.kernelChanges)
+    assertEquals(open.id, session.opened?.id)
+    assertEquals(open.serverSessionId, session.opened?.serverSessionId)
+    assertEquals("p8g", session.opened?.kernelName)
+  }
+
+  /** Picking a kernel with none running is a *start*, not a patch - `startNew` in the reference. */
+  @Test
+  fun changeKernel_connectsWithTheChoiceWhenNoSessionIsOpen() = runTest {
+    val gateway = FakeKernelGateway()
+    val session = NotebookKernelSession(gateway, space) { "Analysis.ipynb" }
+
+    session.changeKernel(KernelChoice.Spec("p8g"))
+
+    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
+    assertEquals("p8g", session.opened?.kernelName)
+  }
+
+  /**
+   * The picked spec becomes the preference a reconnect re-asks for: `_updateSpec` writes
+   * `kernel.name` to `metadata.kernelspec` in the reference (`notebook/panel.ts`), so what the
+   * notebook is bound to *is* what it prefers (P8g).
+   */
+  @Test
+  fun aChangedKernelIsWhatAReconnectReopensWith() = runTest {
+    val gateway = FakeKernelGateway()
+    val session = NotebookKernelSession(gateway, catalogued) { "Analysis.ipynb" }
+    session.open()
+    session.changeKernel(KernelChoice.Spec("p8g"))
+    session.forget()
+
+    session.open()
+
+    assertEquals(listOf(null, KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
+  }
+
+  /**
+   * `kernelChanged` beside `session.disposed`: another holder of the same session - the notebook
+   * whose kernel this console shares, the picker on a different document - patched it, and the
+   * rebound carries the new kernel id, so this copy swaps rather than pointing at a kernel the
+   * server already shut down (P8g).
+   */
+  @Test
+  fun rebindIfMatches_swapsTheKernelUnderTheOpenSession() = runTest {
+    val session = NotebookKernelSession(FakeKernelGateway(), space) { "Analysis.ipynb" }
+    val open = session.open()
+    val rebound = open.copy(kernelId = "k9", kernelName = "p8g")
+
+    session.rebindIfMatches(rebound)
+
+    assertEquals(rebound, session.opened)
+  }
+
+  @Test
+  fun rebindIfMatches_leavesASessionItIsNotAboutAlone() = runTest {
+    val session = NotebookKernelSession(FakeKernelGateway(), space) { "Analysis.ipynb" }
+    val open = session.open()
+
+    session.rebindIfMatches(open.copy(serverSessionId = "somebody else's", kernelId = "k9"))
+
+    assertEquals(open, session.opened)
   }
 
   @Test

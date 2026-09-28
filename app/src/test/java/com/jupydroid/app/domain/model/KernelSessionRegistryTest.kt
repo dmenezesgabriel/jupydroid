@@ -76,7 +76,39 @@ class KernelSessionRegistryTest {
     assertEquals(setOf("ss2"), registry.liveIds)
   }
 
+  /**
+   * `kernelChanged` beside `disposed` (`session/session.ts`): a `PATCH api/sessions` keeps the
+   * session's own id and swaps the kernel under it, so the tracked entry is *replaced*, not
+   * ended - and every other holder of the same session (a console sharing it) hears the rebound
+   * rather than discovering a stale kernel id on its next use.
+   */
+  @Test
+  fun rebindingASessionReplacesItAndAnnouncesTheNewKernel() = runTest {
+    val registry = KernelSessionRegistry()
+    registry.register(SESSION, "Analysis.ipynb")
+    val heard = async { registry.rebound.take(1).toList() }
+    advanceUntilIdle()
+    val rebound = SESSION.copy(kernelId = "k2", kernelName = "p8g")
+
+    registry.rebind(rebound)
+
+    assertEquals(rebound, registry.trackedBy(SESSION.serverSessionId)?.kernelSession)
+    assertEquals(
+      "the document the session was minted for stays with it",
+      "Analysis.ipynb",
+      registry.trackedBy(SESSION.serverSessionId)?.documentPath,
+    )
+    assertEquals(listOf(rebound), heard.await())
+    assertEquals(setOf("ss1"), registry.liveIds)
+  }
+
   private companion object {
-    val SESSION = KernelSession(id = "c1", spaceId = "base", kernelId = "k1", serverSessionId = "ss1")
+    val SESSION = KernelSession(
+      id = "c1",
+      spaceId = "base",
+      kernelId = "k1",
+      kernelName = "python3",
+      serverSessionId = "ss1",
+    )
   }
 }

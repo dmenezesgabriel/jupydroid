@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelGatewayContract
@@ -138,6 +139,54 @@ class RealKernelGatewayTest : KernelGatewayContract() {
 
     assertTrue("shutdown must close the socket", opener.closed)
     assertEquals(listOf(session.serverSessionId), lifecycle.shutDownSessions)
+  }
+
+  /**
+   * A picked kernel is `kernel.name` on the session POST (`handlers.py:67-80`), and the started
+   * model's `kernel.name` is what the session then carries - the picker row and the file's
+   * `metadata.kernelspec` are both written from it (P8g).
+   */
+  @Test
+  fun connect_startsTheSessionWithTheChosenKernel() = runTest {
+    val lifecycle = FakeKernelLifecycle()
+    val gateway = RealKernelGateway(KernelSockets(ScriptedKernelSocketOpener(reply = { emptyList() }), lifecycle))
+
+    val session = gateway.connect(SPACE, "Analysis.ipynb", KernelChoice.Spec("p8g"))
+
+    assertEquals(listOf(KernelChoice.Spec("p8g")), lifecycle.startedWith)
+    assertEquals("p8g", session.kernelName)
+  }
+
+  /**
+   * A kernel change binds a **different kernel id** (`handlers.py:patch` starts the named one and
+   * shuts the old down), while the session - and so the socket map's key - stays. The socket
+   * bound to the old kernel is stale, so it is closed and the next use opens one for the new id.
+   */
+  @Test
+  fun changeKernel_reopensTheSocketForTheNewKernel() = runTest {
+    val opener = ScriptedKernelSocketOpener(reply = { KernelFrames.successfulExecution(it) })
+    val gateway = RealKernelGateway(KernelSockets(opener, FakeKernelLifecycle()))
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+
+    val changed = gateway.changeKernel(session, KernelChoice.Spec("p8g"))
+    gateway.execute(changed, "cell-2", "3 + 3").toList()
+
+    assertEquals(2, opener.openCount)
+    assertEquals(changed.kernelId, opener.openedKernelId)
+    assertTrue("the old kernel's socket must be closed", opener.closed)
+  }
+
+  /** The change addresses the session's own id - `PATCH api/sessions/<serverSessionId>`. */
+  @Test
+  fun changeKernel_patchesTheServersOwnSessionId() = runTest {
+    val lifecycle = FakeKernelLifecycle(serverSessionId = "server-session-9")
+    val gateway = RealKernelGateway(KernelSockets(ScriptedKernelSocketOpener(reply = { emptyList() }), lifecycle))
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.changeKernel(session, KernelChoice.Spec("p8g"))
+
+    assertEquals(listOf("server-session-9" to KernelChoice.Spec("p8g")), lifecycle.kernelChanges)
   }
 
   /** The session id the server filed, never our own - they address different things. */

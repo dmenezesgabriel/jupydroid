@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
@@ -24,14 +25,51 @@ class FakeKernelGateway(private val registry: KernelSessionRegistry = KernelSess
   /** Minted per connect, because a real server's session ids never collide - not even on reuse. */
   private val issuedCount = AtomicInteger()
 
-  override suspend fun connect(space: Space, documentPath: String): KernelSession = KernelSession(
-    id = "fake-${space.id}-${issuedCount.incrementAndGet()}",
-    spaceId = space.id,
-    kernelId = space.kernels.firstOrNull()?.id ?: "python3",
-    // A server session id shaped like the server's, so a caller that builds a URL from it
-    // builds a plausible one. There is no server here to file it with.
-    serverSessionId = "fake-session-${space.id}-${issuedCount.get()}",
-  ).also { registry.register(it, documentPath) }
+  /** The `kernel` field of each [connect], so a preference's path through the call is assertable. */
+  val connectsAskedFor = mutableListOf<KernelChoice?>()
+
+  /** What [changeKernel] was asked for, in order - the picker's answer reaching the gateway. */
+  val kernelChanges = mutableListOf<KernelChoice>()
+
+  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
+    connectsAskedFor += kernel
+    val serial = issuedCount.incrementAndGet()
+    return KernelSession(
+      id = "fake-${space.id}-$serial",
+      spaceId = space.id,
+      kernelId = when (kernel) {
+        is KernelChoice.Running -> kernel.kernelId
+        else -> "fake-kernel-$serial"
+      },
+      kernelName = when (kernel) {
+        is KernelChoice.Spec -> kernel.name
+        is KernelChoice.Running -> kernel.kernelId
+        null -> space.kernels.firstOrNull()?.name ?: "python3"
+      },
+      // A server session id shaped like the server's, so a caller that builds a URL from it
+      // builds a plausible one. There is no server here to file it with.
+      serverSessionId = "fake-session-${space.id}-$serial",
+    ).also { registry.register(it, documentPath) }
+  }
+
+  /**
+   * The fake's [changeKernel]: `Spec` mints a fresh kernel id the way `PATCH api/sessions` would
+   * start one; `Running` binds the id it was handed. The rebind is announced on the shared
+   * [registry] - there is no `BaseSpaceKernelGateway` above this fake on a device with no Space,
+   * so the announcement is its own job here (P8g).
+   */
+  override suspend fun changeKernel(session: KernelSession, kernel: KernelChoice): KernelSession {
+    kernelChanges += kernel
+    val rebound = when (kernel) {
+      is KernelChoice.Spec -> session.copy(
+        kernelId = "fake-kernel-${issuedCount.incrementAndGet()}",
+        kernelName = kernel.name,
+      )
+      is KernelChoice.Running -> session.copy(kernelId = kernel.kernelId, kernelName = kernel.kernelId)
+    }
+    registry.rebind(rebound)
+    return rebound
+  }
 
   override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
     // Recorded from inside the flow rather than from `execute`, because that is when the cell
@@ -95,7 +133,20 @@ class FakeKernelGateway(private val registry: KernelSessionRegistry = KernelSess
     return start
   }
 
-  private companion object {
-    val BUILTINS = listOf("print", "range", "len", "sum", "sorted", "int", "input", "isinstance")
+  companion object {
+    private val BUILTINS = listOf("print", "range", "len", "sum", "sorted", "int", "input", "isinstance")
+
+    /**
+     * The session [connect] mints for `spaceId` on its `sessionNumber`-th call, so a fixture
+     * that must equal it (a [com.jupydroid.app.data.fake.FakeKernelDebugger.emit] key) reads the
+     * scheme instead of restating literals that can drift from it.
+     */
+    fun mints(sessionNumber: Int, spaceId: String = "base"): KernelSession = KernelSession(
+      id = "fake-$spaceId-$sessionNumber",
+      spaceId = spaceId,
+      kernelId = "fake-kernel-$sessionNumber",
+      kernelName = "python3",
+      serverSessionId = "fake-session-$spaceId-$sessionNumber",
+    )
   }
 }

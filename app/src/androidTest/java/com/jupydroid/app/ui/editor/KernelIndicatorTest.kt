@@ -101,27 +101,33 @@ class KernelIndicatorTest {
 
   @Test
   fun aNotebookThatHasNotRunSaysItHasNoKernel() {
-    showTopBar(WIDE, status = KernelStatus.NO_KERNEL)
+    showTopBar(WIDE, status = KernelStatus.NO_KERNEL, kernelName = "No Kernel")
 
-    compose.onNodeWithContentDescription("Kernel Python 3: No Kernel").assertIsDisplayed()
+    compose.onNodeWithContentDescription("No Kernel").assertIsDisplayed()
+    compose.onNodeWithText("No Kernel").assertIsDisplayed()
   }
 
   /**
-   * Not a picker - `KernelGateway` has no kernelspec listing and the Space has one kernel, so a
-   * picker over one entry is chrome. What the control opens is [KernelMenu], the menu the bottom
-   * bar's `⋮` already anchors: the thing that says a kernel is stuck is the thing you restart it
-   * from.
+   * The tap is the picker, which is the reference's own wiring: `kernelName` calls
+   * `dialogs.selectKernel` on click (`apputils/src/toolbar/widget.tsx:155`), it does not open a
+   * menu. The restart-and-shutdown rows it used to show still live on the bottom bar's `⋮`.
    */
   @Test
-  fun tappingTheIndicatorOpensTheKernelMenu() {
-    showTopBar(WIDE)
+  fun tappingTheIndicatorAsksWhichKernelToRun() {
+    var asked = false
+    showTopBar(WIDE, onPickKernel = { asked = true })
 
     compose.onNodeWithContentDescription(IDLE_DESCRIPTION).performClick()
 
-    compose.onNodeWithText("Shut Down Kernel").assertIsDisplayed()
+    assertTrue(asked)
   }
 
-  private fun showTopBar(size: DpSize, status: KernelStatus = KernelStatus.IDLE) {
+  private fun showTopBar(
+    size: DpSize,
+    status: KernelStatus = KernelStatus.IDLE,
+    kernelName: String = KERNEL_NAME,
+    onPickKernel: () -> Unit = {},
+  ) {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
         JupyterDroidTheme {
@@ -131,7 +137,12 @@ class KernelIndicatorTest {
             onUndo = {},
             onRedo = {},
             kernelIndicator = {
-              KernelIndicator(status = status, nameShown = size.width >= MEDIUM)
+              KernelIndicator(
+                status = status,
+                nameShown = size.width >= MEDIUM,
+                kernelName = kernelName,
+                onPickKernel = onPickKernel,
+              )
             },
           )
         }

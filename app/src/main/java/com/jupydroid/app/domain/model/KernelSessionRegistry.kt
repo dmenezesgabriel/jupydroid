@@ -26,9 +26,17 @@ data class TrackedKernelSession(val kernelSession: KernelSession, val documentPa
 class KernelSessionRegistry {
   private val tracked = LinkedHashMap<String, TrackedKernelSession>()
   private val _ended = MutableSharedFlow<String>(extraBufferCapacity = ENDED_BUFFER)
+  private val _rebound = MutableSharedFlow<KernelSession>(extraBufferCapacity = ENDED_BUFFER)
 
   /** The serverSessionIds of sessions that ended - one emission per session, ever. */
   val ended: SharedFlow<String> = _ended.asSharedFlow()
+
+  /**
+   * Sessions whose kernel was swapped under them - `kernelChanged` to [ended]'s `disposed`
+   * (`session/session.ts`). A `PATCH api/sessions` keeps the session id, so holders keep theirs
+   * too and only the kernel changes hands.
+   */
+  val rebound: SharedFlow<KernelSession> = _rebound.asSharedFlow()
 
   /** Every serverSessionId still tracked - the set `running()` reconciles its answer against. */
   val liveIds: Set<String> get() = tracked.keys.toSet()
@@ -52,6 +60,19 @@ class KernelSessionRegistry {
    */
   suspend fun end(serverSessionId: String): TrackedKernelSession? =
     tracked.remove(serverSessionId)?.also { _ended.emit(serverSessionId) }
+
+  /**
+   * The session's kernel changed - a `PATCH api/sessions`, which keeps the session's own id.
+   * The tracked entry is replaced rather than ended, and the rebound is announced so a second
+   * holder of the same session (a console sharing it) follows the new kernel rather than
+   * running against one the server has since shut down.
+   */
+  suspend fun rebind(session: KernelSession) {
+    val entry = tracked[session.serverSessionId]
+    if (entry?.kernelSession == session) return // re-announcing an unchanged binding is noise
+    if (entry != null) tracked[session.serverSessionId] = entry.copy(kernelSession = session)
+    _rebound.emit(session)
+  }
 
   /** The server itself went: everything it issued is dead, so say so for all of it. */
   suspend fun endAll() {

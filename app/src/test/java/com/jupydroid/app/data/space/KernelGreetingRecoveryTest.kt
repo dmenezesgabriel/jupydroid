@@ -125,6 +125,7 @@ class KernelGreetingRecoveryTest {
       id = "session-1",
       spaceId = "base",
       kernelId = "kernel-1",
+      kernelName = "python3",
       serverSessionId = "server-session-1",
     )
 

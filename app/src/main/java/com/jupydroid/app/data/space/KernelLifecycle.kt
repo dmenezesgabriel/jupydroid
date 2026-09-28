@@ -1,6 +1,9 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelSessionModel
+import com.jupydroid.app.domain.port.KernelSpecModels
 import com.jupydroid.app.domain.port.ServerConnection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -27,13 +30,16 @@ import java.io.IOException
  * queue behind the work it is meant to stop.
  */
 /**
- * What `POST api/sessions` hands back: the kernel to talk to, and the session that owns it.
+ * What `POST api/sessions` (and `PATCH api/sessions/<id>`'s kernel change) hands back: the
+ * kernel to talk to, and the session that owns it.
  *
  * Both, because they address different endpoints - `api/kernels/<kernelId>` for interrupt and
  * restart, `api/sessions/<serverSessionId>` for the shutdown that ends them both. Returning only
- * the kernel id is what P1d had to undo.
+ * the kernel id is what P1d had to undo. [kernelName] is the kernelspec the kernel answers to -
+ * `kernel.name` in the model - which is what a kernel *choice* displays and persists, while
+ * [kernelId] is the server's handle on the process.
  */
-data class StartedKernelSession(val kernelId: String, val serverSessionId: String)
+data class StartedKernelSession(val kernelId: String, val kernelName: String, val serverSessionId: String)
 
 interface KernelLifecycle {
   /**
@@ -62,7 +68,7 @@ interface KernelLifecycle {
    * lifecycle.start("reports/Analysis.ipynb")  // -> kernel-abc in session-1, reattaching if open
    * ```
    */
-  suspend fun start(documentPath: String): StartedKernelSession
+  suspend fun start(documentPath: String, kernel: KernelChoice? = null): StartedKernelSession
 
   suspend fun interrupt(kernelId: String)
 
@@ -76,6 +82,25 @@ interface KernelLifecycle {
    * kernel}` (`session/session.ts:381-390`) - with `kernel` nullable the way the model's is.
    */
   suspend fun sessions(): List<KernelSessionModel>
+
+  /**
+   * Rebinds the session to another kernel: `PATCH api/sessions/<serverSessionId>` with
+   * `{"kernel": …}` - `Session.ISessionConnection.changeKernel` (`session/session.ts:169-190`).
+   *
+   * The **session id is kept**: `SessionHandler.patch` only swaps fields, and when the kernel id
+   * changes it shuts the *old* kernel down itself. [KernelChoice.Spec] starts a new kernel from
+   * the named spec; [KernelChoice.Running] joins one already running - `kernel id takes
+   * precedence over name` is the handler's own comment.
+   */
+  suspend fun changeKernel(serverSessionId: String, kernel: KernelChoice): StartedKernelSession
+
+  /**
+   * `GET api/kernelspecs` - the `KernelSpec.IManager.specs` feed the picker's "Start Kernel"
+   * groups are built from (`sessioncontext.tsx:1657-1663`). The answer is
+   * `{default, kernelspecs: {<name>: {name, spec: {display_name, language, …}}}}`
+   * (`services/kernelspecs/handlers.py:65-89`); `argv`, `env` and `resources` stay the server's.
+   */
+  suspend fun kernelSpecs(): KernelSpecModels
 
   /**
    * Ends the session and, with it, its kernel: `DELETE api/sessions/<serverSessionId>`.
@@ -103,29 +128,47 @@ class OkHttpKernelLifecycle(
   // [shutdownSession]. Silent by default so the tests that do not read the log need not pass one.
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) : KernelLifecycle {
-  override suspend fun start(documentPath: String): StartedKernelSession {
-    val request = SessionStartRequest.forDocument(documentPath)
-    val body = post("api/sessions", Json.encodeToString(SessionStartRequest.serializer(), request))
-    val session = Json.parseToJsonElement(body).jsonObject
-    return StartedKernelSession(
-      kernelId = session["kernel"]?.jsonObject?.get("id")?.jsonPrimitive?.content
-        ?: throw KernelLifecycleException("session for '$documentPath' has no kernel id; server said: $body"),
-      serverSessionId = session["id"]?.jsonPrimitive?.content
-        ?: throw KernelLifecycleException("session for '$documentPath' has no id of its own; server said: $body"),
-    )
+  private val rest = SessionRest(connection, client, ioDispatcher)
+
+  override suspend fun start(documentPath: String, kernel: KernelChoice?): StartedKernelSession {
+    val request = SessionStartRequest.forDocument(documentPath, kernel)
+    val body = rest.post("api/sessions", Json.encodeToString(SessionStartRequest.serializer(), request))
+    return Json.parseToJsonElement(body).jsonObject.toStartedSession(documentPath)
   }
 
   override suspend fun sessions(): List<KernelSessionModel> {
-    val body = get("api/sessions")
+    val body = rest.get("api/sessions")
     return Json.parseToJsonElement(body).jsonArray.map { it.jsonObject.toSessionModel() }
   }
 
+  override suspend fun changeKernel(serverSessionId: String, kernel: KernelChoice): StartedKernelSession {
+    val body = rest.patch(
+      "api/sessions/$serverSessionId",
+      """{"kernel":${Json.encodeToString(KernelRef.serializer(), kernel.ref())}}""",
+    )
+    return Json.parseToJsonElement(body).jsonObject.toStartedSession(serverSessionId)
+  }
+
+  override suspend fun kernelSpecs(): KernelSpecModels {
+    val root = Json.parseToJsonElement(rest.get("api/kernelspecs")).jsonObject
+    val specs = root["kernelspecs"]?.jsonObject.orEmpty().map { (name, model) ->
+      val spec = model.jsonObject["spec"]?.jsonObject
+      KernelSpec(
+        name = name,
+        displayName = spec?.get("display_name")?.jsonPrimitive?.content
+          ?: throw KernelLifecycleException("kernelspec '$name' has no display_name; server said: $root"),
+        language = spec["language"]?.jsonPrimitive?.content.orEmpty(),
+      )
+    }
+    return KernelSpecModels(default = root["default"]?.jsonPrimitive?.content.orEmpty(), specs = specs)
+  }
+
   override suspend fun interrupt(kernelId: String) {
-    post("api/kernels/$kernelId/interrupt")
+    rest.post("api/kernels/$kernelId/interrupt")
   }
 
   override suspend fun restart(kernelId: String) {
-    post("api/kernels/$kernelId/restart")
+    rest.post("api/kernels/$kernelId/restart")
   }
 
   /**
@@ -168,7 +211,30 @@ class OkHttpKernelLifecycle(
     }
   }
 
-  private suspend fun get(path: String): String = withContext(ioDispatcher) {
+  private companion object {
+    fun sessionPath(serverSessionId: String) = "api/sessions/$serverSessionId"
+
+    /** `self.set_status(204)` in `SessionHandler.delete`, and the only status the client accepts. */
+    const val SESSION_DELETED = 204
+    const val SESSION_ALREADY_GONE = 404
+
+    /** `raise web.HTTPError(410, "Kernel deleted before session")` - the server's own words. */
+    const val KERNEL_DELETED_BEFORE_SESSION = 410
+  }
+}
+
+/**
+ * The verbs every lifecycle call shares: an authenticated JSON request against the server
+ * [connection] names, answered as a body string or a [KernelLifecycleException].
+ * [OkHttpKernelLifecycle.shutdownSession] keeps its own request because it reads the status
+ * code itself rather than treating "not successful" as an exception.
+ */
+private class SessionRest(
+  private val connection: ServerConnection,
+  private val client: OkHttpClient,
+  private val ioDispatcher: CoroutineDispatcher,
+) {
+  suspend fun get(path: String): String = withContext(ioDispatcher) {
     val request = Request.Builder()
       .url(connection.baseUrl + path)
       .header("Authorization", "token ${connection.token}")
@@ -184,34 +250,33 @@ class OkHttpKernelLifecycle(
     }
   }
 
-  private suspend fun post(path: String, body: String = "{}"): String = withContext(ioDispatcher) {
+  suspend fun post(path: String, body: String = "{}"): String = withContext(ioDispatcher) {
+    request(path, "POST", body)
+  }
+
+  suspend fun patch(path: String, body: String): String = withContext(ioDispatcher) {
+    request(path, "PATCH", body)
+  }
+
+  private fun request(path: String, method: String, body: String): String {
     val request = Request.Builder()
       .url(connection.baseUrl + path)
       .header("Authorization", "token ${connection.token}")
       // jupyter_server rejects a POST with no body, so every call sends at least an empty object.
-      .post(body.toRequestBody(JSON))
+      .method(method, body.toRequestBody(JSON))
       .build()
 
-    client.newCall(request).execute().use { response ->
-      val body = response.body?.string().orEmpty()
+    return client.newCall(request).execute().use { response ->
+      val answer = response.body?.string().orEmpty()
       if (!response.isSuccessful) {
-        throw KernelLifecycleException("POST $path failed: HTTP ${response.code} $body")
+        throw KernelLifecycleException("$method $path failed: HTTP ${response.code} $answer")
       }
-      body
+      answer
     }
   }
 
   private companion object {
     val JSON = "application/json".toMediaType()
-
-    fun sessionPath(serverSessionId: String) = "api/sessions/$serverSessionId"
-
-    /** `self.set_status(204)` in `SessionHandler.delete`, and the only status the client accepts. */
-    const val SESSION_DELETED = 204
-    const val SESSION_ALREADY_GONE = 404
-
-    /** `raise web.HTTPError(410, "Kernel deleted before session")` - the server's own words. */
-    const val KERNEL_DELETED_BEFORE_SESSION = 410
   }
 }
 
@@ -236,13 +301,47 @@ private fun JsonObject.toSessionModel(): KernelSessionModel {
 }
 
 /**
- * What `POST /api/sessions` is given. `kernel` is left out so the server picks its default.
+ * A session model into what a *start or change* needs to keep. Unlike [toSessionModel] this is
+ * strict about the kernel: a session that was asked to start one and reports none is a failure
+ * here, where the same null in a *list* row is just information (`session/session.ts:389` makes
+ * `kernel` nullable either way).
+ */
+private fun JsonObject.toStartedSession(context: String): StartedKernelSession {
+  val kernel = this["kernel"] as? JsonObject
+  fun required(field: String, of: JsonObject? = this): String = of?.get(field)?.jsonPrimitive?.content
+    ?: throw KernelLifecycleException(
+      "session for '$context' has no '$field' at the shape Session.IModel promises; server said: $this",
+    )
+  return StartedKernelSession(
+    kernelId = required("id", kernel),
+    kernelName = required("name", kernel),
+    serverSessionId = required("id"),
+  )
+}
+
+/** The `kernel` field of a session POST/PATCH: `{name}` for a spec, `{id}` for a running kernel. */
+@Serializable
+private data class KernelRef(val name: String? = null, val id: String? = null)
+
+private fun KernelChoice.ref(): KernelRef = when (this) {
+  is KernelChoice.Spec -> KernelRef(name = name)
+  is KernelChoice.Running -> KernelRef(id = kernelId)
+}
+
+/**
+ * What `POST /api/sessions` is given. `kernel` is left out so the server picks its default -
+ * `No kernel specified, using default kernel` is the handler's own comment.
  *
  * `path` and `type` are required and `name` is "not technically required, but is often assumed to
  * be nonempty, so we require it too" (`packages/services/src/session/session.ts:392-404`).
  */
 @Serializable
-private data class SessionStartRequest(val path: String, val type: String, val name: String) {
+private data class SessionStartRequest(
+  val path: String,
+  val type: String,
+  val name: String,
+  val kernel: KernelRef? = null,
+) {
   companion object {
     /**
      * Every field derived from the document's path, the way the reference's `Context` derives them.
@@ -250,12 +349,13 @@ private data class SessionStartRequest(val path: String, val type: String, val n
      * Spelled out rather than left to constructor defaults: kotlinx serialization omits a value
      * equal to its default, so defaulted fields would simply not be sent - and `type` is required.
      */
-    fun forDocument(path: String) = SessionStartRequest(
+    fun forDocument(path: String, kernel: KernelChoice? = null) = SessionStartRequest(
       path = path,
       // `type: ext === '.ipynb' ? 'notebook' : 'file'` (packages/docregistry/src/context.ts:86)
       type = if (path.endsWith(".ipynb")) "notebook" else "file",
       // `PathExt.basename(localPath)` - the document, without the folders above it.
       name = path.substringAfterLast('/'),
+      kernel = kernel?.ref(),
     )
   }
 }

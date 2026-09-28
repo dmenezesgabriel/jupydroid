@@ -35,7 +35,13 @@ class FakeKernelDebuggerContractTest : KernelDebuggerContract() {
   @Test
   fun eventsAreKeptPerSessionRatherThanShared() = runTest {
     val fake = FakeKernelDebugger()
-    val other = KernelSession(id = "other", spaceId = "base", kernelId = "python3", serverSessionId = "other-session")
+    val other = KernelSession(
+      id = "other",
+      spaceId = "base",
+      kernelId = "python3",
+      kernelName = "python3",
+      serverSessionId = "other-session",
+    )
     val collected = mutableListOf<DebugEvent>()
     val collecting = launch { collected += fake.events(SESSION).take(1).toList() }
     advanceUntilIdle()

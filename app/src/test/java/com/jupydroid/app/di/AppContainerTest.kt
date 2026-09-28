@@ -17,7 +17,7 @@ class AppContainerTest {
   private val space = Space(
     id = "base",
     name = "Base",
-    kernels = listOf(KernelSpec(id = "python3", displayName = "Python 3")),
+    kernels = listOf(KernelSpec(name = "python3", displayName = "Python 3", language = "python")),
   )
 
   @Test
@@ -60,7 +60,13 @@ class AppContainerTest {
   @Test
   fun fakeKernelGateway_executeEmitsIdle() = runTest {
     val gateway = FakeKernelGateway()
-    val session = KernelSession(id = "s1", spaceId = "base", kernelId = "python3", serverSessionId = "server-s1")
+    val session = KernelSession(
+      id = "s1",
+      spaceId = "base",
+      kernelId = "python3",
+      kernelName = "python3",
+      serverSessionId = "server-s1",
+    )
 
     val events = gateway.execute(session, cellId = "cell-1", code = "1 + 1").toList()
     assertTrue(events.last() is KernelEvent.Idle)
