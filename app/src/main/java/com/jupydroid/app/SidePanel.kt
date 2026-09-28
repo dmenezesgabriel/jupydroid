@@ -38,6 +38,16 @@ enum class SidePanel {
   FILES,
 
   /**
+   * `running:show-panel` - "Sessions and Tabs", the open documents beside the kernels and shells
+   * the server still holds (`packages/running-extension/src/index.ts:98-122`).
+   *
+   * Rank **200** puts it directly behind the file browser's 100 - the reference's own ranking,
+   * chosen "somewhat arbitrarily to give priority" to it (`index.ts:119-120`), and the reason it
+   * sits ahead of [SEARCH], which only VS Code ranks and at a looser granularity (sidebar order 1).
+   */
+  RUNNING,
+
+  /**
    * `workbench.view.search` - the workspace searched, where the find bar searches one document.
    *
    * Wired and empty as of P2x-2; the query box, the option toggles and the results tree are P2x-3.
@@ -91,15 +101,17 @@ internal fun SidePanel?.chosen(panel: SidePanel): SidePanel? = if (this == panel
  * already *in*, which is what `toc:show-panel` opens from the notebook's menu at this width
  * (`TableOfContentsPanel`). A destination for it would be a destination for something that has no
  * meaning where the bar is drawn - the bar shows only when a panel *is* the window, and there is no
- * open document for an outline to belong to.
+ * open document for an outline to belong to. [SidePanel.DEBUGGER] is out for the same reason -
+ * its call stack is a stopped document's, not a destination of its own.
  *
- * Two *panels* - the bar's third item is the Launcher, which this list cannot carry: it is a
- * document, not a [SidePanel] (see this enum's own doc), so `SidePanelBar` draws it beside these
- * rather than inside them. Three destinations is Material's own floor for a navigation bar -
- * *"three to five destinations of equal importance"*
- * (`developer.android.com/develop/ui/compose/components/navigation-bar`).
+ * Three *panels* - the bar's fourth and fifth items are the Launcher and a new terminal, which
+ * this list cannot carry: documents, not [SidePanel]s (see this enum's own doc), so `SidePanelBar`
+ * draws them beside these rather than inside them. Five items is Material's own ceiling for a
+ * navigation bar - *"three to five destinations of equal importance"*
+ * (`developer.android.com/develop/ui/compose/components/navigation-bar`) - and [RUNNING] is what
+ * brought the panel count up to the floor: Files and Search alone were two, below it.
  */
-internal val onePaneDestinations: List<SidePanel> = listOf(SidePanel.FILES, SidePanel.SEARCH)
+internal val onePaneDestinations: List<SidePanel> = listOf(SidePanel.FILES, SidePanel.RUNNING, SidePanel.SEARCH)
 
 /**
  * What a window that draws **one pane** is left showing, given the panel the rail was last on.

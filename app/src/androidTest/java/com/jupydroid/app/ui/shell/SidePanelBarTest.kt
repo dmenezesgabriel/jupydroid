@@ -41,10 +41,11 @@ class SidePanelBarTest {
 
   /** `onePaneDestinations` plus the Launcher and Terminal actions - and the outline is **not** one. */
   @Test
-  fun theBarOffersFilesSearchLauncherAndTerminalAndNoOutline() {
+  fun theBarOffersFilesRunningSearchLauncherAndTerminalAndNoOutline() {
     show(SidePanel.FILES)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SESSIONS_AND_TABS).assertIsDisplayed()
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
     compose.onNodeWithContentDescription(NEW_LAUNCHER).assertIsDisplayed()
     compose.onNodeWithContentDescription(NEW_TERMINAL).assertIsDisplayed()
@@ -80,6 +81,7 @@ class SidePanelBarTest {
     show(SidePanel.FILES)
 
     compose.onNodeWithText(FILES).assertDoesNotExist()
+    compose.onNodeWithText(SESSIONS_AND_TABS).assertDoesNotExist()
     compose.onNodeWithText(SEARCH).assertDoesNotExist()
   }
 
@@ -123,16 +125,17 @@ class SidePanelBarTest {
    * so that the navigation items are equally distributed on the bar"*
    * (`androidx.compose.material3.ShortNavigationBar`'s KDoc, material3 1.4.0).
    *
-   * Four items therefore fill the bar between them, which is also what puts each within a thumb's
-   * reach of the edge it is nearest.
+   * Five items therefore fill the bar between them - the reference's own ceiling for a bottom bar
+   * (*"three to five destinations of equal importance"*), which is also what puts each within a
+   * thumb's reach of the edge it is nearest.
    */
   @Test
   fun theItemsFillTheBarOnASmallScreen() {
     showAt(PHONE)
 
     assertEquals(
-      "four items equally distributed sit at the bar's eighth points",
-      1f / 4f,
+      "five items equally distributed sit at the bar's tenth points",
+      1f / 5f,
       centreGapFraction(PHONE),
       TOLERANCE_FRACTION,
     )
@@ -147,19 +150,19 @@ class SidePanelBarTest {
    * (`evidence/p2y-bottom-navigation/800dp/`): each item was **396dp** wide with its centre at 198dp
    * and 602dp - a 24dp icon inside a tap target half the window across, and 404dp of dead bar
    * between the two. The reference's own `calculateCenteredContentHorizontalPadding` reserves
-   * `(100 - 10 * (itemsCount + 3)) / 2` percent of padding a side - **15%** a side for four items,
-   * so the group spans the middle 70% of the bar and stays centred in it.
+   * `(100 - 10 * (itemsCount + 3)) / 2` percent of padding a side - **10%** a side for five items,
+   * so the group spans the middle 80% of the bar and stays centred in it.
    */
   @Test
   fun theItemsGroupInTheMiddleOnAMediumScreen() {
     showAt(TABLET_PORTRAIT)
 
-    // Four items in the middle 70% of the bar puts their centres **0.175** of it apart, against
-    // the quarter that spreading them puts between them - which is the difference a wide bar
+    // Five items in the middle 80% of the bar puts adjacent centres **0.16** of it apart, against
+    // the fifth that spreading them puts between them - which is the difference a wide bar
     // exposes.
     assertEquals(
-      "four items grouped take 70% of the bar between them",
-      0.175f,
+      "five items grouped take 80% of the bar between them",
+      0.16f,
       centreGapFraction(TABLET_PORTRAIT),
       TOLERANCE_FRACTION,
     )
@@ -184,18 +187,19 @@ class SidePanelBarTest {
   }
 
   /**
-   * How far apart the two items' centres sit, as a fraction of the bar's width.
+   * How far apart two *adjacent* items' centres sit, as a fraction of the bar's width - the first
+   * two of [onePaneDestinations], which are neighbours in every arrangement.
    *
    * **Scale-free on purpose**: it is the one number that separates the two arrangements without
    * depending on the component's own item padding, which is what a first pass at this assertion
-   * measured by accident - two items "filling" a 320dp bar read 312dp, the missing 8dp being the
-   * gap the bar puts between them.
+   * measured by accident - items "filling" a bar read as width minus the gap the bar puts between
+   * them.
    */
   private fun centreGapFraction(size: DpSize): Float {
     val files = compose.onNodeWithContentDescription(FILES).getUnclippedBoundsInRoot()
-    val search = compose.onNodeWithContentDescription(SEARCH).getUnclippedBoundsInRoot()
+    val running = compose.onNodeWithContentDescription(SESSIONS_AND_TABS).getUnclippedBoundsInRoot()
     val centreOf = { b: DpRect -> (b.left.value + b.right.value) / 2 }
-    return (centreOf(search) - centreOf(files)) / size.width.value
+    return (centreOf(running) - centreOf(files)) / size.width.value
   }
 
   /**
@@ -232,6 +236,7 @@ class SidePanelBarTest {
     const val TOLERANCE_FRACTION = 0.02f
 
     const val FILES = "Files"
+    const val SESSIONS_AND_TABS = "Sessions and Tabs"
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
   }

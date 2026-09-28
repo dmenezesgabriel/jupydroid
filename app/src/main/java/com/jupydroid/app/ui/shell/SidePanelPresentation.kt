@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
@@ -33,6 +34,9 @@ import com.jupydroid.app.theme.chromePalette
 internal val SidePanel.label: String
   get() = when (this) {
     SidePanel.FILES -> "Files"
+    // `jpTabLabel` - the tab's own name where the caption "Running Terminals and Kernels" is the
+    // longer form for tooltips (`running-extension/src/index.ts:101-105`).
+    SidePanel.RUNNING -> "Sessions and Tabs"
     SidePanel.SEARCH -> "Search"
     SidePanel.TABLE_OF_CONTENTS -> "Table of contents"
     SidePanel.DEBUGGER -> "Debugger"
@@ -42,6 +46,9 @@ internal val SidePanel.label: String
 internal val SidePanel.icon: ImageVector
   get() = when (this) {
     SidePanel.FILES -> Icons.Filled.Folder
+    // `ui-components:running` (`sidebar/running.svg`) is a circle holding a rounded square - the
+    // stop glyph - and `StopCircle` is Material's own drawing of exactly that shape.
+    SidePanel.RUNNING -> Icons.Filled.StopCircle
     // **Not** AutoMirrored, unlike the two below, and that is Material's own rule rather than an
     // omission: the magnifier is on its list of icons that keep their direction in a right-to-left
     // locale, which is why the icon set ships no mirrored variant of it to import.

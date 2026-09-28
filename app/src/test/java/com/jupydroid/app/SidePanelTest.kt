@@ -44,11 +44,15 @@ class SidePanelTest {
    * - The file browser is first in both: rank 100
    *   (`packages/filebrowser-extension/src/index.ts:676`), `order: 0`
    *   (`vscode/…/files/browser/explorerViewlet.ts:265`).
-   * - **Search is second, and only VS Code says so**: `order: 1` on the sidebar view container
-   *   (`vscode/…/search/browser/search.contribution.ts:59`), directly after the explorer's 0.
-   *   JupyterLab registers no search panel at all - `shell.add(…, 'left', …)` is called five times
-   *   in its whole tree and none of them is one.
-   * - **The table of contents is last, and only JupyterLab says so**: rank 400
+   * - **Sessions and Tabs is second, and only JupyterLab says so**: rank 200
+   *   (`packages/running-extension/src/index.ts:121`), directly after the file browser's 100.
+   *   VS Code has no running-sessions view container - its closest thing is the editor group's
+   *   "Open Editors" *view*, not a sidebar container of its own.
+   * - **Search is third, and only VS Code says so**: `order: 1` on the sidebar view container
+   *   (`vscode/…/search/browser/search.contribution.ts:59`). JupyterLab registers no search
+   *   panel at all - `shell.add(…, 'left', …)` is called five times in its whole tree and none
+   *   of them is one.
+   * - **The table of contents is last-but-one, and only JupyterLab says so**: rank 400
    *   (`packages/toc-extension/src/index.ts:309`). VS Code has no such container - its Outline is
    *   a view *inside* the explorer's (`vscode/…/outline/browser/outline.contribution.ts:26-38`).
    * - **The debugger is last of all (P6a-8b), and neither reference actually ranks it here**:
@@ -62,7 +66,13 @@ class SidePanelTest {
   @Test
   fun theOrderIsWhatTheTwoReferencesTogetherSay() {
     assertEquals(
-      listOf(SidePanel.FILES, SidePanel.SEARCH, SidePanel.TABLE_OF_CONTENTS, SidePanel.DEBUGGER),
+      listOf(
+        SidePanel.FILES,
+        SidePanel.RUNNING,
+        SidePanel.SEARCH,
+        SidePanel.TABLE_OF_CONTENTS,
+        SidePanel.DEBUGGER,
+      ),
       SidePanel.entries,
     )
   }
@@ -78,16 +88,17 @@ class SidePanelTest {
    * on it, and that is P2o-4's own argument rather than a shortening: Files is a screen you
    * navigate *to*, and the table of contents is a surface over the document you are already *in* -
    * which is why `toc:show-panel` opens an overlay from the notebook's own menu at this width
-   * (`TableOfContentsPanel`) and why it needs no destination beside it.
+   * (`TableOfContentsPanel`) and why it needs no destination beside it. The debugger is off it too -
+   * same reason: its stack belongs to a document that is open, and nothing is open there.
    *
-   * **Two is below Material's own floor** of *"three to five destinations of equal importance"*
-   * (`developer.android.com/develop/ui/compose/components/navigation-bar`), and that is recorded in
-   * `docs/DECISIONS.md` rather than glossed - a third item that is not a destination would satisfy
-   * the count by breaking the sentence it comes from.
+   * **Three destinations is Material's own floor** of *"three to five destinations of equal
+   * importance"* (`developer.android.com/develop/ui/compose/components/navigation-bar`), and
+   * Sessions and Tabs joining the bar (P8f) is what reaches it: Files and Search alone were two,
+   * which the note above recorded as a deliberate exception this panel now retires.
    */
   @Test
-  fun theBarOffersTheTwoPanelsThatAreDestinations() {
-    assertEquals(listOf(SidePanel.FILES, SidePanel.SEARCH), onePaneDestinations)
+  fun theBarOffersTheThreePanelsThatAreDestinations() {
+    assertEquals(listOf(SidePanel.FILES, SidePanel.RUNNING, SidePanel.SEARCH), onePaneDestinations)
   }
 
   /** And it is a sub-list of the rail's, in the rail's order - one rank order, not two. */
@@ -103,18 +114,21 @@ class SidePanelTest {
   @Test
   fun aOnePaneWindowKeepsAPanelTheBarCanLeave() {
     assertEquals(SidePanel.FILES, SidePanel.FILES.showingAtOnePane())
+    assertEquals(SidePanel.RUNNING, SidePanel.RUNNING.showingAtOnePane())
     assertEquals(SidePanel.SEARCH, SidePanel.SEARCH.showingAtOnePane())
   }
 
   /**
    * **P2x-2b's defect, narrowed rather than reopened.** A tablet rotated from 1280dp to 800dp with
    * the table of contents up used to keep drawing it with no rail to leave it by, and the browser
-   * could not be reached again without killing the app. The bar has no table-of-contents item, so
-   * that panel is still the one case that falls back - and the fall-back is the browser.
+   * could not be reached again without killing the app. The bar has no table-of-contents item -
+   * and no debugger item, a document-bound panel for the same reason - so those panels are still
+   * the cases that fall back, and the fall-back is the browser.
    */
   @Test
   fun aPanelWithNoItemOnTheBarFallsBackToTheBrowser() {
     assertEquals(SidePanel.FILES, SidePanel.TABLE_OF_CONTENTS.showingAtOnePane())
+    assertEquals(SidePanel.FILES, SidePanel.DEBUGGER.showingAtOnePane())
   }
 
   /**

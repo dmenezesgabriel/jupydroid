@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.MatchedLine
+import com.jupydroid.app.domain.port.KernelSessionModel
+import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.shell.DebuggerSidePanel
+import com.jupydroid.app.ui.shell.RunningSidePanel
 import com.jupydroid.app.ui.shell.SearchSidePanel
 import com.jupydroid.app.ui.shell.SidePanelBar
 import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
@@ -68,6 +72,23 @@ fun ShellSidePane(
   openDocuments: OpenDocuments,
   openDocument: (String) -> Unit,
   openDocumentPath: String?,
+  /**
+   * `labShell.widgets('main')` for [SidePanel.RUNNING]'s Open Tabs section, in the strip's own
+   * opening order. Built by the caller rather than read here, because the back stack it comes
+   * from is the navigation's, not this pane's.
+   */
+  openTabs: List<RunningTab>,
+  /** `labShell.activateById` for a tapped tab row. */
+  onActivateTab: (NavKey) -> Unit,
+  /**
+   * The shared `application:close` - `MainNavigation`'s close gate, so a row's ✕ asks the same
+   * dirty question the strip's would.
+   */
+  onCloseTab: (NavKey) -> Unit,
+  /** `running:kernel-open-session` - opens (or reveals) the document a session row names. */
+  onOpenSession: (KernelSessionModel) -> Unit,
+  /** `terminal:open` - reveals the terminal's tab or reattaches to the named shell. */
+  onOpenTerminal: (TerminalSession) -> Unit,
   browseRequest: String?,
   onBrowseRequestHandled: () -> Unit,
   onRevealMatch: (MatchedLine) -> Unit,
@@ -98,6 +119,16 @@ fun ShellSidePane(
           onSelectFrame = debugStack::selectFrame,
           onEvaluate = debugStack::evaluate,
         )
+        SidePanel.RUNNING ->
+          RunningSidePanel(
+            kernelSessions = appContainer.kernelSessions,
+            terminalGateway = appContainer.terminalGateway,
+            openTabs = openTabs,
+            onActivateTab = onActivateTab,
+            onCloseTab = onCloseTab,
+            onOpenSession = onOpenSession,
+            onOpenTerminal = onOpenTerminal,
+          )
         SidePanel.SEARCH ->
           SearchSidePanel(
             searcher = appContainer.workspaceSearcher,

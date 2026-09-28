@@ -28,14 +28,16 @@ class SidePanelRailTest {
 
   private val chosen = mutableListOf<SidePanel>()
 
-  /** Three items since P2x-2 - one per [SidePanel], which is what the rail iterates. */
+  /** Five items since P8f - one per [SidePanel], which is what the rail iterates. */
   @Test
   fun everyPanelIsOnTheRail() {
     show(SidePanel.FILES)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SESSIONS_AND_TABS).assertIsDisplayed()
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertIsDisplayed()
+    compose.onNodeWithContentDescription(DEBUGGER).assertIsDisplayed()
   }
 
   /** Which one is showing is the rail's own answer, and a screen reader's - `selected`, not a tint. */
@@ -76,6 +78,7 @@ class SidePanelRailTest {
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
     compose.onNodeWithContentDescription(FILES).assertIsNotSelected()
+    compose.onNodeWithContentDescription(SESSIONS_AND_TABS).assertIsNotSelected()
     compose.onNodeWithContentDescription(SEARCH).assertIsNotSelected()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertIsNotSelected()
   }
@@ -100,7 +103,9 @@ class SidePanelRailTest {
 
   private companion object {
     const val FILES = "Files"
+    const val SESSIONS_AND_TABS = "Sessions and Tabs"
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
+    const val DEBUGGER = "Debugger"
   }
 }

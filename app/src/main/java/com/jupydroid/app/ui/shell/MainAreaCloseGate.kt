@@ -1,10 +1,8 @@
 package com.jupydroid.app.ui.shell
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
@@ -26,6 +24,12 @@ import com.jupydroid.app.ui.SaveBeforeCloseDialog
  * dirty document is asked about first and the close is the flush's continuation - a save that
  * cannot be made never runs it, so the document stays (`widgetmanager.ts:353-365`).
  *
+ * Several asks can land in one pass - the Running panel's "Close All" is `widgets('main').forEach
+ * { it.close() }` (`opentabs.ts:82-86`), which the reference answers with one dialog per dirty
+ * widget at once. A phone has one modal surface, so the asks **queue** here instead: the first
+ * document's question is answered before the second's is shown, in the order the rows were closed.
+ * A repeated ask for a tab already queued is the same ask and does not join the queue again.
+ *
  * ```
  * val closeTab = rememberMainAreaCloseGate(backStack, tabs, openDocuments, openDocumentPaths)
  * TabbedDocumentPane(…, onCloseTab = closeTab) { … }
@@ -38,26 +42,28 @@ fun rememberMainAreaCloseGate(
   openDocuments: OpenDocuments,
   openDocumentPaths: Map<NavKey, String>,
 ): (NavKey) -> Unit {
-  var closing by remember { mutableStateOf<PendingTabClose?>(null) }
-  closing?.let { pending ->
+  val closing = remember { mutableStateListOf<PendingTabClose>() }
+  closing.firstOrNull()?.let { pending ->
     SaveBeforeCloseDialog(
       name = pending.title,
       onSave = {
-        closing = null
+        closing.remove(pending)
         pending.document.saveNow { backStack.closeMainAreaTab(pending.key, tabs) }
       },
       onDiscard = {
-        closing = null
+        closing.remove(pending)
         pending.document.discardChanges()
         backStack.closeMainAreaTab(pending.key, tabs)
       },
-      onCancel = { closing = null },
+      onCancel = { closing.remove(pending) },
     )
   }
   return { key ->
     val document = key.documentIn(openDocuments)
     if (document != null && document.dirty.value) {
-      closing = PendingTabClose(key, document, key.tabTitle(openDocuments, openDocumentPaths))
+      if (closing.none { it.key == key }) {
+        closing += PendingTabClose(key, document, key.tabTitle(openDocuments, openDocumentPaths))
+      }
     } else {
       backStack.closeMainAreaTab(key, tabs)
     }

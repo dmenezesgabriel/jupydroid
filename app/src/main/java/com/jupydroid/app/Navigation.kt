@@ -27,6 +27,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.MatchedLine
+import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.console.ConsoleScreen
@@ -112,6 +113,11 @@ fun MainNavigation(
    * the eye expects.
    */
   val closeTab = rememberMainAreaCloseGate(backStack, orderedTabs, openDocuments, openDocumentPaths)
+  // The Running panel's Open Tabs section - `labShell.widgets('main')` in the strip's own order,
+  // titled by the same `title.label` the strip draws.
+  val runningTabs = orderedTabs.map { tab ->
+    RunningTab(tab, tab.runningTabTitle(openDocuments, openDocumentPaths, liveTabTitles))
+  }
   // One strip for the six detail entries, so an entry states its screen and nothing else - the
   // strip's model is the stack and these four holders, identical for all six.
   val tabbedPane: @Composable (@Composable () -> Unit) -> Unit = { content ->
@@ -162,6 +168,21 @@ fun MainNavigation(
 
   val openDocument = rememberDocumentOpener(backStack, appContainer)
   val newTerminal = rememberNewTerminal(backStack, appContainer)
+
+  /**
+   * `running:kernel-open-session` - `docmanager:open` for a document row, `console:open` for a
+   * console one (`running-extension/src/kernels.tsx:260-264`). The console arm can only *reveal*:
+   * `entry<Console>` draws from the single `consoleSession` holder, so a console row with no tab
+   * already open cannot be synthesised into one - which is `openConsole`'s own constraint.
+   */
+  val openRunningSession: (KernelSessionModel) -> Unit = { session ->
+    if (session.type == "console") {
+      orderedTabs.filterIsInstance<Console>().firstOrNull { it.sessionPath == session.path }
+        ?.let(backStack::activateMainAreaTab)
+    } else {
+      openDocument(session.path)
+    }
+  }
   val openLauncher: () -> Unit = {
     launcherIsFill.value = false
     backStack.openLauncher()
@@ -351,6 +372,13 @@ fun MainNavigation(
             openDocuments = openDocuments,
             openDocument = openDocument,
             openDocumentPath = openDocumentPath,
+            openTabs = runningTabs,
+            onActivateTab = backStack::activateMainAreaTab,
+            // The same gate the strip's ✕ runs through - a panel row's close is the identical act.
+            onCloseTab = closeTab,
+            onOpenSession = openRunningSession,
+            // `terminal:open` - the stack's open-or-reveal reattaches to the named shell's socket.
+            onOpenTerminal = { backStack.openTerminal(it.name) },
             browseRequest = browseRequest,
             onBrowseRequestHandled = { browseRequest = null },
             onRevealMatch = { match -> revealRequest = match },

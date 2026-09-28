@@ -66,6 +66,7 @@ import com.jupydroid.app.launcherIsClosable
 import com.jupydroid.app.liveDocumentPath
 import com.jupydroid.app.mainAreaTabTitle
 import com.jupydroid.app.openedUnderPath
+import com.jupydroid.app.runningTabTitle
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.DirtyMarker
@@ -258,10 +259,9 @@ private fun MainAreaTabStrip(
             // Live wins over static, in both its forms: a document's current path (`title.label`
             // follows `context.path`) and a terminal's reported OSC title (`title.label` again -
             // `widget.ts:487`). A rename landed while the document sat in the background still
-            // renames its tab the same way.
-            title = document?.path?.substringAfterLast('/')
-              ?: liveTabTitles[tab]
-              ?: tab.mainAreaTabTitle(liveDocumentPaths),
+            // renames its tab the same way. Shared with the Running panel's Open Tabs row - it is
+            // the same `title.label`.
+            title = tab.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles),
             document = document,
             active = backStack.lastOrNull() == tab,
             // `main.title.closable = widgets('main').length > 1` - the lone launcher earns no close.
@@ -395,8 +395,12 @@ private fun MainAreaTab(
   }
 }
 
-/** `title.icon` - the kind's own glyph (its `filetype` SVG), in the Material equivalents the app draws. */
-private fun tabIcon(key: NavKey): ImageVector = when (key) {
+/**
+ * `title.icon` - the kind's own glyph (its `filetype` SVG), in the Material equivalents the app
+ * draws. `internal` because the Running panel's Open Tabs row wears the same one - `OpenTab.icon()`
+ * returns `widget.title.icon`, the strip's own property (`running-extension/src/opentabs.ts:110-112`).
+ */
+internal fun tabIcon(key: NavKey): ImageVector = when (key) {
   is Editor -> Icons.AutoMirrored.Filled.MenuBook
   is FileEditor -> Icons.AutoMirrored.Filled.InsertDriveFile
   is Terminal -> Icons.Filled.Terminal

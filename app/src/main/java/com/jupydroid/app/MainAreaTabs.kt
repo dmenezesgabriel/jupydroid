@@ -90,6 +90,25 @@ fun NavKey.mainAreaTabTitle(liveDocumentPaths: Map<NavKey, String>): String = wh
 }
 
 /**
+ * `title.label` resolved the way [mainAreaTabTitle] leaves it live: a document's **current** path
+ * (`title.label` follows `context.path` through a rename), then a terminal's reported OSC title,
+ * then the key's own static noun. The one resolution both the tab strip and the Running panel's
+ * Open Tabs rows draw, because the reference draws them from the same property -
+ * `OpenTab.label()` returns `TabBarSvg.titleLabel(this._widget.title)`, the strip's own value
+ * (`running-extension/src/opentabs.ts:113-115`).
+ */
+fun NavKey.runningTabTitle(
+  openDocuments: OpenDocuments,
+  liveDocumentPaths: Map<NavKey, String>,
+  liveTabTitles: Map<NavKey, String>,
+): String = documentIn(openDocuments)?.path?.substringAfterLast('/')
+  ?: liveTabTitles[this]
+  ?: mainAreaTabTitle(liveDocumentPaths)
+
+/** What an Open Tabs row acts on - the tab's key - and what it is called, resolved as the strip resolves it. */
+data class RunningTab(val key: NavKey, val title: String)
+
+/**
  * A tab's close - `TabBar.onCloseRequest`. Removing the entry is the whole act when it was not
  * current; when it was, the reference re-selects a surviving sibling (the next tab in the bar,
  * else the previous - `TabBar._onTabCloseRequested`'s currentIndex adjustment), never the file
