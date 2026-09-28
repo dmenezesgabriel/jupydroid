@@ -11,12 +11,12 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-files-with-the-settings-icon
 
 - tapOn: "Settings"
-# `DocumentDismissAction`'s own rule, measured rather than assumed on both shards: "Back to files"
-# below two panes, "Close" beside one - `p6b-9d-console-shares-kernel.yaml`'s own precedent for
-# why this is not a single fixed string, since the tablet's current rotation draws the Files list
-# beside Settings and the dismiss icon reads "Close" there.
+# `MainAreaTabStrip`'s own rule, measured rather than assumed on both shards: its "Back to files"
+# arrow below two panes, the tab's `Close tab: Settings` beside one - `p6b-9d-console-shares-kernel.yaml`'s
+# own precedent for why this is not a single fixed string, since the tablet's current rotation draws
+# the Files list beside Settings and closing is the strip's alone there (P8f).
 - extendedWaitUntil:
-    visible: "Back to files|Close"
+    visible: "Back to files|Close tab: Settings"
     timeout: 5000
 - assertVisible: "Settings"
 - takeScreenshot: 02-settings-screen-open
@@ -24,7 +24,7 @@ appId: com.jupydroid.app
 # The gear returns exactly where it opened from - P6c-1's own gate, and `NotebookBackStack.kt`'s
 # `openSettings` doc comment: it stacks on top rather than replacing, so Back has somewhere to
 # return to even with no document open.
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Workspace"
     timeout: 5000

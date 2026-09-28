@@ -19,7 +19,6 @@ import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +26,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -48,7 +46,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
-import com.jupydroid.app.ui.DocumentDismissAction
 
 /** What Maestro and Compose tests address - one tag per card, suffixed by its command. */
 const val LAUNCHER_CARD_TAG = "launcher-card"
@@ -94,20 +91,11 @@ private val UTILITY_ICON = 40.dp
  * label's first letter at 4em in the section's icon colour - which is what a kernelspec with no
  * icon_url is supposed to look like, and the user asked for the letter tile.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LauncherScreen(
   cwd: String,
   viewModel: LauncherViewModel,
   onLaunched: (LaunchedDocument) -> Unit,
-  /**
-   * How to leave, or `null` where there is nothing to leave to: the reference drops the close icon
-   * when the launcher is the only main-area widget (`main.title.closable` is
-   * `widgets('main').length > 1` - `launcher-extension/src/index.ts:126`). At one pane the arrow is
-   * navigation, not a close, and the caller always passes one.
-   */
-  onBack: (() -> Unit)?,
-  twoPane: Boolean,
   modifier: Modifier = Modifier,
 ) {
   val error by viewModel.error.collectAsStateWithLifecycle()
@@ -116,17 +104,10 @@ fun LauncherScreen(
     // same line TerminalPaneScreen sets for `console-input-field`'s own reachability.
     modifier = modifier.fillMaxSize().semantics { testTagsAsResourceId = true }.testTag("launcher-screen"),
     containerColor = editorPalette.editorBackground,
-    topBar = {
-      TopAppBar(
-        // The tab above names it already - `title.label` is the strip's, not the panel's.
-        title = {},
-        navigationIcon = {
-          onBack?.let { dismiss ->
-            DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = dismiss)
-          }
-        },
-      )
-    },
+    // No top bar at all: the tab above names it (`title.label` is the strip's, not a panel
+    // row's) and leaving it is the strip's own act - ✕ where the launcher is closable
+    // (`main.title.closable`, `launcher-extension/src/index.ts:126`), the arrow below two panes.
+    // The strip already consumed the status-bar insets, so the content needs no spacer either.
   ) { padding ->
     Column(
       modifier = Modifier

@@ -95,8 +95,9 @@ fun EditorScreen(
   /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [SidePanel.DEBUGGER]. */
   onShowDebugger: (() -> Unit)?,
   /**
-   * Whether a browser is drawn beside this notebook, which decides only how [onBack] is presented -
-   * see [DocumentDismissAction][com.jupydroid.app.ui.DocumentDismissAction].
+   * Whether a browser is drawn beside this notebook, which decides one thing here: whether the
+   * debugger's bottom bar carries a variables toggle - see [EditorBottomBars]. How the document
+   * is left is the tab strip's own act now (the ✕ at two panes, the arrow below).
    *
    * **A second reading of the width, and it is worth naming as one.** [onShowTableOfContents] is
    * null for the same underlying reason - there is no side area to activate - and the two are
@@ -179,11 +180,11 @@ fun EditorScreen(
   // to it from outside that slot.
   val exportReports = remember { SnackbarHostState() }
   // `saveBeforeClose` (`docmanager/src/dialogs.ts:155`): a dirty notebook asks before it leaves,
-  // whichever way out was taken - the dismiss on its bar (the lambda handed back), system Back,
-  // or close-and-shutdown, whose kernel question runs first and whose continuation is this same
-  // close. Declared *before* the contextual handlers below, whose states the gate's own Back
-  // handler stands down for. The `gone` path stays outside the gate: a deleted file has nothing
-  // a save could put back.
+  // whichever way out was taken - system Back (the handler the gate registers), the tab strip's
+  // own gated close, or close-and-shutdown, whose kernel question runs first and whose
+  // continuation is this same close. Declared *before* the contextual handlers below, whose
+  // states the gate's own Back handler stands down for. The `gone` path stays outside the gate:
+  // a deleted file has nothing a save could put back.
   val closeOrAsk = SaveBeforeCloseGate(
     dirty = state.dirty,
     backAsks = state.backAsksToClose(),
@@ -357,7 +358,6 @@ fun EditorScreen(
             onShowDebugger = onShowDebugger,
             onHeadingSelected = jumpToHeading,
             onBack = closeOrAsk,
-            twoPane = twoPane,
             collapsibleRegion = collapsibleRegion,
             onGoToFolder = onGoToFolder,
             onOpenConsole = onOpenConsole,

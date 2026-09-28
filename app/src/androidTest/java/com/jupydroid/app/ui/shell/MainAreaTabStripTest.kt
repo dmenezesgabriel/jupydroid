@@ -129,7 +129,7 @@ class MainAreaTabStripTest {
   private val paths = mutableStateMapOf<NavKey, String>()
   private val liveTitles = mutableStateMapOf<NavKey, String>()
 
-  private fun strip(vararg entries: NavKey) {
+  private fun strip(vararg entries: NavKey, twoPane: Boolean = true) {
     backStack = mutableStateListOf(Explorer, *entries)
     compose.setContent {
       JupyterDroidTheme {
@@ -141,7 +141,9 @@ class MainAreaTabStripTest {
           order.clear()
           order.addAll(tabs)
         }
-        TabbedDocumentPane(backStack, open, paths, tabs, liveTitles, workspace) { Text("the document") }
+        TabbedDocumentPane(backStack, open, paths, tabs, liveTitles, workspace, twoPane = twoPane) {
+          Text("the document")
+        }
       }
     }
   }
@@ -396,5 +398,79 @@ class MainAreaTabStripTest {
     compose.waitForIdle()
 
     tab("renamed.ipynb").assertIsDisplayed()
+  }
+
+  /**
+   * At one pane the strip leads with the Up affordance - the navigation icon Material gives a
+   * detail pane's top bar, and the tab row is where IntelliJ's own Back/Forward live
+   * (`EditorTabbedContainer`). The label names the **destination**: over the browser it is
+   * "Back to files", not the system bar's bare "Back" `evidence/u-flow-sweep/` collided with.
+   */
+  @Test
+  fun atOnePaneTheStripLeadsWithAnArrowThatNamesTheBrowser() {
+    strip(Editor("a.ipynb"), twoPane = false)
+
+    compose.onNodeWithContentDescription("Back to files").assertIsDisplayed()
+  }
+
+  /** Beside a browser there is nothing to go back to - closing is the tab's ✕, so no arrow. */
+  @Test
+  fun atTwoPanesTheStripDrawsNoArrow() {
+    strip(Editor("a.ipynb"), twoPane = true)
+
+    compose.onAllNodes(hasContentDescription("Back", substring = true)).assertCountEquals(0)
+  }
+
+  /**
+   * The arrow leaves the way the old pane dismiss did: the top entry is removed and whatever was
+   * beneath it shows - `closeMainAreaTab`, the very path the ✕ takes, because an arrow and a cross
+   * emptying the same area are the one act the reference calls `application:close`.
+   */
+  @Test
+  fun theArrowClosesTheTopDocumentAndRevealsWhatWasUnderIt() {
+    strip(Editor("a.ipynb"), twoPane = false)
+
+    compose.onNodeWithContentDescription("Back to files").performClick()
+
+    assertEquals(listOf(Explorer), backStack)
+  }
+
+  /**
+   * The destination names what is *actually* beneath: a Console over its notebook goes "Back to"
+   * that document, not to a canned label - the old per-screen strings were written by callers that
+   * could only guess what was under them.
+   */
+  @Test
+  fun overAnotherDocumentTheArrowNamesThatDocument() {
+    strip(Editor("a.ipynb"), Console("a.ipynb"), twoPane = false)
+
+    compose.onNodeWithContentDescription("Back to a.ipynb").assertIsDisplayed()
+  }
+
+  /** A dirty document asks before the arrow takes it away - the same `saveBeforeClose` the ✕ runs. */
+  @Test
+  fun theArrowOnADirtyDocumentAsksFirst() {
+    open.opened(FakeTabDocument("a.ipynb", isDirty = true))
+    strip(Editor("a.ipynb"), twoPane = false)
+
+    compose.onNodeWithContentDescription("Back to files").performClick()
+
+    compose.onNodeWithText("Save your work").assertIsDisplayed()
+    assertTrue("the ask, not the pop", backStack.contains(Editor("a.ipynb")))
+  }
+
+  /**
+   * `main.title.closable` rules the ✕, not the arrow: a lone launcher at one pane still gets the
+   * way back, because there *is* something beneath it here - the browser.
+   */
+  @Test
+  fun aLoneLauncherAtOnePaneStillDrawsTheArrow() {
+    strip(Launcher, twoPane = false)
+
+    compose.onNodeWithContentDescription("Back to files").assertIsDisplayed()
+
+    compose.onNodeWithContentDescription("Back to files").performClick()
+
+    assertEquals(listOf(Explorer), backStack)
   }
 }

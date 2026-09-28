@@ -74,8 +74,8 @@ appId: com.jupydroid.app
 # first version of this flow asserted "Pick A Few" - Maestro matches a whole node, the node reads
 # `Pick A Few.ipynb`, so it never matched and the `assertNotVisible` passed no matter what was on
 # screen. The title is also the wrong handle on a tablet, where the file list beside the document
-# shows the same name. `Back to notebooks` is on the notebook's bar and nowhere else.
-- assertNotVisible: "Back to notebooks"
+# shows the same name. `Back to files` is on the notebook's bar and nowhere else.
+- assertNotVisible: "Back to files"
 - takeScreenshot: 02-selection-started-on-the-first-cell
 # Three, not one: the run covers the anchor, the cell tapped, and everything between them. A
 # selection that were merely a set of tapped cells would say two here.
@@ -114,7 +114,7 @@ appId: com.jupydroid.app
 - tapOn: "Cell menu Extend to top"
 - waitForAnimationToEnd:
     timeout: 5000
-- assertVisible: "Back to notebooks"
+- assertVisible: "Back to files"
 - assertNotVisible: "1 cell selected"
 - takeScreenshot: 06-reaching-onto-the-anchor-ends-the-run
 # Two ways out, and both are asserted because both can leave more than they should.
@@ -131,7 +131,7 @@ appId: com.jupydroid.app
 - back
 - waitForAnimationToEnd:
     timeout: 5000
-- assertVisible: "Back to notebooks"
+- assertVisible: "Back to files"
 - assertNotVisible: "2 selected"
 - assertVisible: "alpha = 1"
 - takeScreenshot: 08-back-leaves-the-mode-and-not-the-notebook
@@ -144,7 +144,7 @@ appId: com.jupydroid.app
 - tapOn: "Deselect all cells"
 - waitForAnimationToEnd:
     timeout: 5000
-- assertVisible: "Back to notebooks"
+- assertVisible: "Back to files"
 - assertNotVisible: "1 cell selected"
 # Every cell has its own menu button back, which is what says the notebook is out of the mode
 # rather than merely showing a different bar.

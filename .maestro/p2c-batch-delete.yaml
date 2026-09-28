@@ -75,7 +75,7 @@ appId: com.jupydroid.app
 - assertNotVisible: "batch output"
 # The run is gone with the cells, so the notebook's own bar is back - `deleteCells` ends on
 # `deselectAll()` there too.
-- assertVisible: "Back to notebooks"
+- assertVisible: "Back to files"
 - assertNotVisible: "3 selected"
 - takeScreenshot: 03-three-gone-in-one-tap
 # One entry, not three: the batch is one `applying` call, which is the undoable unit.

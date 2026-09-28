@@ -250,7 +250,6 @@ class NotebookActionsMenuTest {
           canRedo = false,
           onUndo = {},
           onRedo = {},
-          onBack = {},
           onSetAllHeadingsCollapsed = { headingsSetTo += it },
           tableOfContentsHeadings = tableOfContentsHeadings,
           onTableOfContentsHeadingSelected = { tableOfContentsSelections += it },

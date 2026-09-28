@@ -79,7 +79,7 @@ appId: com.jupydroid.app
 # dump proved it - `jp-MarkdownHeadingCollapsed` on Part A, which had a screenshot's worth of time,
 # and nothing on Chapter one. Leaving the notebook is what a user does and what runs the flush, so
 # the kill below tests what it is here to test rather than the length of a timer.
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - waitForAnimationToEnd:
     timeout: 5000
 # stopApp is a real kill, so anything held only in the ViewModel is gone by the relaunch. Only the

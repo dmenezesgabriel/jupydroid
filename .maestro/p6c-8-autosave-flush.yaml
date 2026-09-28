@@ -4,7 +4,7 @@ appId: com.jupydroid.app
 # own dismiss now meets the `saveBeforeClose` ask rather than leaving directly. The only writer
 # that can put `close_flushed` on disk is the dialog's Save - `saveNow`'s flush before the close -
 # which is the same owed-write-on-close contract, now answered instead of silent. Type, dismiss,
-# answer Save ("Close" two-pane, "Back to files" one-pane), and the driver cats the file after.
+# answer Save (the tab's `Close tab:` two-pane, "Back to files" one-pane), and the driver cats the file after.
 #
 # Self-contained on purpose: `maestro test`'s `launchApp` force-stops the process, so state never
 # survives between flows - the gate half is its own flow (`p6c-8-autosave-gate.yaml`) and this one
@@ -14,7 +14,7 @@ appId: com.jupydroid.app
     timeout: 5000
 - assertVisible: "Files"
 - tapOn: "autosave_gate.py"
-- assertVisible: "Back to files|Close"
+- assertVisible: "Back to files|Close tab: autosave_gate.py"
 - extendedWaitUntil:
     visible: ".*the file editor.*"
     timeout: 10000
@@ -29,9 +29,9 @@ appId: com.jupydroid.app
 - inputText: ")"
 - assertVisible: "(?s).*close_flushed.*"
 - takeScreenshot: 03-typed-before-close
-# The dismiss is the composable's own affordance - `DocumentDismissAction`, either arm - and a
+# The dismiss is the strip's own affordance - either arm (`MainAreaTabStrip`) - and a
 # dirty document is asked first, so the owed write goes through the dialog's Save.
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: autosave_gate.py"
 - extendedWaitUntil:
     visible: "Save your work"
     timeout: 5000

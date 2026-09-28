@@ -37,7 +37,7 @@ appId: com.jupydroid.app
 
 # And the row it shares still holds everything it held before: five controls and the arrow, which
 # is 288dp of the window's 320dp. Nothing was pushed off to make room.
-- assertVisible: "Back to notebooks"
+- assertVisible: "Back to files"
 - assertVisible: "Undo cell operation"
 - assertVisible: "Redo cell operation"
 - assertVisible: "Find in notebook"

@@ -56,7 +56,7 @@ appId: com.jupydroid.app
     visible: "43"
     timeout: 60000
 - takeScreenshot: 01-carried-across-cells-in-one-session
-- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+- tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
                                # and a uiautomator dump carries both (evidence/u-flow-sweep/).
 # The browser's crumb, which the editor has none of: assert it before looking for a row, so a flow
 # still stuck in the editor fails here rather than against the title in the app bar. (This was

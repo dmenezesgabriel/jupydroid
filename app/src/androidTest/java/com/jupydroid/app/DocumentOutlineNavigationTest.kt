@@ -62,7 +62,7 @@ class DocumentOutlineNavigationTest {
     compose.onNodeWithText(TITLE).performClick()
     waitForText(HEADING_TEXT)
 
-    compose.onNodeWithContentDescription("Back to notebooks").performClick()
+    compose.onNodeWithContentDescription("Back to files").performClick()
     waitForText(WORKSPACE_SECTION)
 
     assertNull(outline.current)
@@ -82,9 +82,9 @@ class DocumentOutlineNavigationTest {
           importTitle = null,
           onImportConsumed = {},
           outline = outline,
-          // Pinned narrow, the same pin OpenDocumentsNavigationTest carries: the dismiss this
-          // drives is "Back to notebooks" only at one pane - an unpinned test on the tablet's
-          // wide window would hunt for it beside a browser that never draws it.
+          // Pinned narrow, the same pin OpenDocumentsNavigationTest carries: the strip's arrow
+          // reads "Back to files" only at one pane - an unpinned test on the tablet's wide
+          // window would hunt for it beside a browser that never draws it.
           twoPane = false,
         )
       }

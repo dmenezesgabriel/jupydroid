@@ -3,6 +3,7 @@ package com.jupydroid.app
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -16,7 +17,6 @@ import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.ui.CLOSE_DOCUMENT
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
 import com.jupydroid.app.ui.launcher.LauncherCommand
 import kotlinx.coroutines.flow.first
@@ -62,9 +62,12 @@ class LauncherAutoCreateTest {
     startApp(twoPane = true, launcherSeen = true)
     waitForTag("launcher-screen")
     compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_TEXT_FILE.name}").performClick()
-    waitForText("untitled.txt")
+    // The tab is what announces the open document - its title's home since P8e (`Tab: <name>` is
+    // a description, not a text node, so `waitForText` cannot see it).
+    waitForDescription("Tab: untitled.txt")
 
-    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).performClick()
+    // The tab's ✕ is the close now - no control survives inside the pane at two panes.
+    compose.onNodeWithContentDescription("Close tab: untitled.txt").performClick()
 
     waitForTag("launcher-screen")
     compose.onAllNodesWithText("Python 3").assertCountEquals(2)
@@ -80,7 +83,8 @@ class LauncherAutoCreateTest {
     startApp(twoPane = true, launcherSeen = true)
     waitForTag("launcher-screen")
 
-    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).assertDoesNotExist()
+    // The lone launcher's tab is `closable = widgets('main').length > 1` - no ✕ on it either.
+    compose.onAllNodesWithContentDescription("Close tab: Launcher").assertCountEquals(0)
     Espresso.pressBack()
 
     compose.onNodeWithTag("launcher-screen").assertIsDisplayed()
@@ -136,6 +140,10 @@ class LauncherAutoCreateTest {
 
   private fun waitForTag(tag: String) = compose.waitUntil(TIMEOUT_MILLIS) {
     compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+  }
+
+  private fun waitForDescription(description: String) = compose.waitUntil(TIMEOUT_MILLIS) {
+    compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
   }
 
   private companion object {

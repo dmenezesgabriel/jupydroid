@@ -36,9 +36,8 @@ internal fun EditorTopBars(
   /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [EditorScreen]. */
   onShowDebugger: (() -> Unit)?,
   onHeadingSelected: (String) -> Unit,
+  /** `notebook:close-and-shutdown`'s second half - see [notebookKernelCommands]. */
   onBack: () -> Unit,
-  /** Whether a browser sits beside the notebook, which decides how [onBack] is drawn. */
-  twoPane: Boolean,
   /** See [collapsibleRegionFraction] - the document's bar is the only one of the three with a region to collapse. */
   collapsibleRegion: Float,
   /** A breadcrumb segment was tapped: browse that folder. See [EditorTopBar]. */
@@ -95,7 +94,6 @@ internal fun EditorTopBars(
       onShowDebugger = onShowDebugger,
       onHeadingSelected = onHeadingSelected,
       onBack = onBack,
-      twoPane = twoPane,
       collapsibleRegion = collapsibleRegion,
       onGoToFolder = onGoToFolder,
       onOpenConsole = onOpenConsole,
@@ -118,8 +116,6 @@ private fun DocumentTopBar(
   onShowDebugger: (() -> Unit)?,
   onHeadingSelected: (String) -> Unit,
   onBack: () -> Unit,
-  /** Whether a browser sits beside the notebook, which decides how [onBack] is drawn. */
-  twoPane: Boolean,
   collapsibleRegion: Float,
   onGoToFolder: (String) -> Unit,
   onOpenConsole: (NotebookKernelSession) -> Unit = {},
@@ -129,8 +125,6 @@ private fun DocumentTopBar(
     canRedo = state.redoable.isNotEmpty(),
     onUndo = viewModel.edits::undo,
     onRedo = viewModel.edits::redo,
-    onBack = onBack,
-    twoPane = twoPane,
     activeCellKind = head?.kind,
     onChangeCellKind = { kind -> head?.let { viewModel.edits.applyTo(it.id, CellAction.ChangeKind(kind)) } },
     cellTypeOnBar = labelsFitOnActionRow(),

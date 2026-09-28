@@ -1,5 +1,9 @@
 package com.jupydroid.app.ui.fileeditor
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -7,14 +11,21 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.navigation3.runtime.NavKey
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.Explorer
+import com.jupydroid.app.FileEditor
+import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.mainAreaTabs
+import com.jupydroid.app.orderedAsOpened
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.shell.TabbedDocumentPane
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,10 +38,14 @@ import java.io.File
 import java.io.FileNotFoundException
 
 /**
- * The `saveBeforeClose` gate on the file editor's own ways out: the dismiss arrow and system
- * Back. A dirty document asks first (`docmanager/src/widgetmanager.ts:342-388`), a clean one just
- * leaves, and a save that cannot be made keeps the document open - `onClose` awaits
- * `context.save()` and a rejection is a close that never happens.
+ * The `saveBeforeClose` gate on the file editor's own ways out: the tab strip's close (✕ or the
+ * one-pane arrow - one act) and system Back. A dirty document asks first
+ * (`docmanager/src/widgetmanager.ts:342-388`), a clean one just leaves, and a save that cannot be
+ * made keeps the document open - `onClose` awaits `context.save()` and a rejection is a close
+ * that never happens.
+ *
+ * Drawn under the real `TabbedDocumentPane` for `EditorCloseGateTest`'s own reason: the close
+ * affordance lives on the strip now, and a bare screen has nothing to tap.
  *
  * Autosave is seeded **off** for every case, the way the p6c-8 Maestro flow seeds it: with it on
  * the debounce clears `dirty` in 500ms and the gate would be a race, not a state.
@@ -42,7 +57,10 @@ class FileEditorCloseGateTest {
   @get:Rule val temp = TemporaryFolder()
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-  private var left = 0
+  private val backStack = mutableStateListOf<NavKey>(Explorer, FileEditor("notes.py"))
+  private val open = OpenDocuments()
+  private val paths = mutableStateMapOf<NavKey, String>()
+  private val liveTitles = mutableStateMapOf<NavKey, String>()
   private lateinit var editor: FileEditorViewModel
 
   /** A tree that lost the directory under it - `FileEditorSaveFailureTest`'s own fake, mirrored. */
@@ -60,7 +78,7 @@ class FileEditorCloseGateTest {
 
     compose.onNodeWithContentDescription("Back to files").performClick()
 
-    assertEquals(1, left)
+    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
   }
 
   @Test
@@ -71,7 +89,7 @@ class FileEditorCloseGateTest {
     compose.onNodeWithContentDescription("Back to files").performClick()
 
     compose.onNodeWithText("Save your work").assertIsDisplayed()
-    assertEquals(0, left)
+    assertEquals(FileEditor("notes.py"), backStack.last())
   }
 
   @Test
@@ -82,7 +100,7 @@ class FileEditorCloseGateTest {
     Espresso.pressBack()
 
     compose.onNodeWithText("Save your work").assertIsDisplayed()
-    assertEquals(0, left)
+    assertEquals(FileEditor("notes.py"), backStack.last())
   }
 
   @Test
@@ -94,7 +112,7 @@ class FileEditorCloseGateTest {
     compose.onNodeWithText("Cancel").performClick()
 
     compose.onNodeWithText("Save your work").assertDoesNotExist()
-    assertEquals(0, left)
+    assertEquals(FileEditor("notes.py"), backStack.last())
   }
 
   /**
@@ -109,7 +127,7 @@ class FileEditorCloseGateTest {
 
     compose.onNodeWithText("Discard").performClick()
 
-    assertEquals(1, left)
+    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
     assertEquals("cat", File(temp.root, "notes.py").readText())
   }
 
@@ -126,7 +144,7 @@ class FileEditorCloseGateTest {
     compose.onNodeWithText("Save").performClick()
     compose.waitForIdle()
 
-    assertEquals(1, left)
+    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
     assertEquals("catx", File(temp.root, "notes.py").readText())
   }
 
@@ -140,7 +158,7 @@ class FileEditorCloseGateTest {
     compose.onNodeWithText("Save").performClick()
     compose.waitForIdle()
 
-    assertEquals(0, left)
+    assertEquals(FileEditor("notes.py"), backStack.last())
   }
 
   /**
@@ -160,18 +178,27 @@ class FileEditorCloseGateTest {
         "notes.py",
         repository,
         scope,
+        open,
         editorSettings = FakeEditorSettingsRepository(EditorSettings(autosaveEnabled = false)),
       )
     compose.setContent {
       JupyterDroidTheme {
-        FileEditorScreen(
-          path = "notes.py",
-          workspaceRepository = repository,
-          applicationScope = scope,
-          editorSettingsRepository = FakeEditorSettingsRepository(EditorSettings(autosaveEnabled = false)),
-          onBack = { left += 1 },
-          viewModel = editor,
-        )
+        val order = remember { mutableStateListOf<NavKey>() }
+        val tabs = backStack.mainAreaTabs().orderedAsOpened(order)
+        LaunchedEffect(tabs) {
+          order.clear()
+          order.addAll(tabs)
+        }
+        TabbedDocumentPane(backStack, open, paths, tabs, liveTitles, repository, twoPane = false) {
+          FileEditorScreen(
+            path = "notes.py",
+            workspaceRepository = repository,
+            applicationScope = scope,
+            editorSettingsRepository = FakeEditorSettingsRepository(EditorSettings(autosaveEnabled = false)),
+            onBack = { backStack.removeLastOrNull() },
+            viewModel = editor,
+          )
+        }
       }
     }
     compose.waitUntil(LOAD_TIMEOUT_MILLIS) {

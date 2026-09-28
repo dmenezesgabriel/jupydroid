@@ -50,7 +50,7 @@ appId: com.jupydroid.app
 # The code above stayed put: the swipe scrolled the *output's own* region, not the notebook list.
 - assertVisible: "(?s).*for i in range.*"
 - takeScreenshot: 02-bounded-swipe-scrolls-inside-the-output
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - scrollUntilVisible:
     element:
       text: "Unbounded Output.ipynb"

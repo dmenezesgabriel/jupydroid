@@ -1,16 +1,18 @@
 appId: com.jupydroid.app
 ---
-# P7d, the half only two panes can show: beside a browser a document is **closed**, not backed out
-# of.
+# P7d, re-pointed at the tab strip for P8f: beside a browser a document is **closed from its tab**,
+# and only from its tab.
 #
-# There is nothing to go back *to* here - the browser is already on screen - and what the arrow
-# would do is empty the document area. Both references name that act: `application:close`, labelled
-# *Close Tab* (`application-extension/src/index.tsx:309-310`), and a `Codicon.close` on the tab
-# itself in VS Code. Material draws the same distinction for the navigation slot: an arrow
-# navigates up, a cross dismisses.
+# There is nothing to go back *to* here - the browser is already on screen - and closing the
+# document is the `lm-TabBar-tab`'s ✕, which is where all three references keep it:
+# `application:close` is *Close Tab* on the tab (`application-extension/src/index.tsx:309-310`),
+# a `Codicon.close` on the tab in VS Code, `CloseTab` inside `EditorTabLabel` in IntelliJ. The
+# pane itself offers nothing: JupyterLab's in-document `TitleHandler` exists only in
+# `single-document` mode (`packages/application/src/shell.ts:690-705`), which this app has no
+# equivalent of, and a second ✕ inside it was the duplicate the strip made redundant.
 #
-# **All three surfaces**, because one `DocumentDismissAction` serves all three bars and a component
-# wired to two of them would pass a flow that only opened one.
+# **All three surfaces**, because the one strip serves all three bars' documents and a flow that
+# only opened one would pass with two of them still carrying the dead affordance.
 #
 # WIDE WINDOW (>= 840dp). Runs no cell: the notebook is opened and read, never executed, so
 # `FakeKernelGateway` is never asked anything.
@@ -24,10 +26,14 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: ".*this one is at the root.*"
     timeout: 20000
-- assertVisible: "Close"
-- assertNotVisible: "Back to notebooks"
-- takeScreenshot: 01-the-notebook-offers-close-not-back
-- tapOn: "Close"
+- assertVisible: "Close tab: Root.ipynb"
+# No arrow either - the browser it would go back to is already beside the document.
+# Anchored at "Back to", not "^Back": the system navigation bar's own button is named "Back"
+# and this tablet runs three-button navigation, so the bare anchor matches the navbar.
+# Every strip arrow's label begins with "Back to" (`upDestinationLabel`).
+- assertNotVisible: "^Back to"
+- takeScreenshot: 01-the-notebook-closes-from-its-tab
+- tapOn: "Close tab: Root.ipynb"
 - extendedWaitUntil:
     notVisible: ".*this one is at the root.*"
     timeout: 10000
@@ -45,10 +51,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: ".*the file editor.*"
     timeout: 20000
-- assertVisible: "Close"
+- assertVisible: "Close tab: file_editor.py"
 - assertNotVisible: "Back to files"
-- takeScreenshot: 03-the-plain-editor-offers-close-not-back
-- tapOn: "Close"
+- takeScreenshot: 03-the-plain-editor-closes-from-its-tab
+- tapOn: "Close tab: file_editor.py"
 - extendedWaitUntil:
     notVisible: ".*the file editor.*"
     timeout: 10000
@@ -56,25 +62,25 @@ appId: com.jupydroid.app
 - takeScreenshot: 04-the-file-closed-too
 
 # --- the terminal ---
-# A shell is not a file, but it occupies the same area, so what empties that area has one name.
+# A shell is not a file, but it occupies the same area, so what empties that area is still the tab.
 - tapOn:
     id: "launcher-card-NEW_TERMINAL"
+# The wait is the *tab*, not "Terminal" text - the launcher's own card label is "Terminal" too and
+# matched instantly while the shell was still spawning, so the assert below once ran against a
+# strip that held only the launcher's tab. The minted name is numbered, "Terminal 1"
+# (`terminal-manager` parity), so the match is a prefix.
 - extendedWaitUntil:
-    visible: "Terminal"
+    visible: "Tab: Terminal .*"
     timeout: 120000
-- assertVisible: "Close"
-- takeScreenshot: 05-the-terminal-offers-close-too
-- tapOn: "Close"
-# **The bar going is the oracle, not the shell's title.** `notVisible: "Terminal"` alone gave way
-# once on a run where the hierarchy held no such string at all - the document area was already
-# empty and the wait was still deciding. What is unambiguous is that nothing occupies that area any
-# more, and the only thing that draws a Close is a document.
-#
-# Since P6d-4 the emptied area refills with the Launcher - so "Terminal" *text* is back on screen
-# the whole time, as the launcher's own Terminal card label. The assertion that survives the
-# refill is the card itself: a launcher card and an open terminal never share the detail area.
+- assertVisible: "Close tab: Terminal .*"
+- takeScreenshot: 05-the-terminal-closes-from-its-tab-too
+- tapOn: "Close tab: Terminal .*"
+# **The tab strip's terminal entry going is the oracle, not the shell's title.** The bar used to be
+# that oracle, but the bar survives the close in the launcher's refill - what cannot survive is the
+# document's own tab. And since P6d-4 the emptied area refills with the Launcher, so "Terminal"
+# *text* is on screen the whole time as the launcher's own card label.
 - extendedWaitUntil:
-    notVisible: "Close"
+    notVisible: "Close tab: Terminal .*"
     timeout: 15000
 - assertVisible:
     id: "launcher-card-NEW_TERMINAL"

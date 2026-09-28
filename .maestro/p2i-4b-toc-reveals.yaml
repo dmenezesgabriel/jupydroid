@@ -51,7 +51,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 03-the-section-gave-way-to-the-jump
 # And the expansion is a persisted flag, so it outlives the screen - leaving the document is what
 # flushes the save debounce (`stopApp` is a force-stop, `docs/DECISIONS.md`).
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 # **Wait for the explorer before reaching into it.** `tapOn` locates a node and then taps where it
 # was: fired while the document is still on screen it can read the title strip - which carries this
 # same file name since P2q - and tap those coordinates after the explorer has replaced it, landing

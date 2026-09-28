@@ -18,8 +18,10 @@ import kotlinx.serialization.Serializable
  * `consoleSession` holder, so both openers sweep any Console already present before pushing (see
  * [MutableList.openStandaloneConsole]).
  *
- * [standalone] marks the minted kind, and the dismiss label is what needs it: an attached Console
- * goes "Back to notebook" while a standalone one goes to the browser like every other document.
+ * No "standalone" flag survives on the key: the one place that read it was the dismiss label,
+ * which the tab strip now derives from the entry actually beneath (`upDestinationLabel`) - an
+ * attached Console names its notebook, a minted one the browser, and the stack already knows
+ * which is which.
  */
 @Serializable
-data class Console(val sessionPath: String, val title: String = sessionPath, val standalone: Boolean = false) : NavKey
+data class Console(val sessionPath: String, val title: String = sessionPath) : NavKey

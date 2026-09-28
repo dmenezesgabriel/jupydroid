@@ -116,7 +116,7 @@ class TerminalExtraKeysRowTest {
     val gateway = RecordingTerminalGateway()
     compose.setContent {
       JupyterDroidTheme {
-        TerminalPaneScreen(session = TerminalSession("1"), terminalGateway = gateway, onBack = {})
+        TerminalPaneScreen(session = TerminalSession("1"), terminalGateway = gateway)
       }
     }
     compose.waitUntil(TIMEOUT_MILLIS) { gateway.attached }

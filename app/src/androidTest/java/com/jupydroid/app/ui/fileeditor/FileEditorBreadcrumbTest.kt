@@ -6,14 +6,12 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.ui.CLOSE_DOCUMENT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,29 +44,34 @@ class FileEditorBreadcrumbTest {
   private val browsedTo = mutableListOf<String>()
 
   /**
-   * Beside a browser the file is closed rather than backed out of - `application:close`, and the
-   * same rule the notebook's bar follows. Asserted on *this* bar as well as on
-   * [DocumentDismissAction][com.jupydroid.app.ui.DocumentDismissAction]'s own case, because a
-   * component that is right and wired to nothing passes both.
+   * The file editor draws **no** dismiss control and no bar for one to live on, at any width -
+   * leaving the document is the tab strip's own act: the ✕ beside a browser, the destination-named
+   * arrow below one pane (`MainAreaTabStrip`'s). The trail still sits where `BreadcrumbsControl`
+   * sits - under where the bar was - so the document still says which folder it lives in.
    */
   @Test
-  fun besideABrowserTheFileIsClosedRatherThanBackedOutOf() {
-    open("reports/data.csv", twoPane = true)
-
-    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).assertIsDisplayed()
-    compose.onAllNodesWithContentDescription("Back to files").assertCountEquals(0)
-  }
-
-  /** Below two panes the arrow stays, because there the file *is* the window. */
-  @Test
-  fun belowTwoPanesTheArrowStays() {
+  fun thereIsNoInPaneDismissAndNoBarForIt() {
     open("reports/data.csv")
 
-    compose.onNodeWithContentDescription("Back to files").assertIsDisplayed()
-    compose.onAllNodesWithContentDescription(CLOSE_DOCUMENT).assertCountEquals(0)
+    compose.onAllNodesWithContentDescription(BACK, substring = true).assertCountEquals(0)
+    compose.onNodeWithText(FOLDER).assertIsDisplayed()
   }
 
-  private fun open(path: String, twoPane: Boolean = false) {
+  /**
+   * At the root the editor has **no top chrome at all** - the crumb trail is the only thing it
+   * could have drawn, and a nested file is the only case it draws.
+   */
+  @Test
+  fun aRootFileDrawsNeitherBarNorTrail() {
+    open("data.csv")
+
+    compose.onAllNodesWithContentDescription(BACK, substring = true).assertCountEquals(0)
+    compose.onNodeWithText(ROOT).assertDoesNotExist()
+    // The document itself is on screen - the reclaimed row went to it, not to a gap.
+    compose.onNode(hasSetTextAction()).assertIsDisplayed()
+  }
+
+  private fun open(path: String) {
     File(temp.root, path).apply { parentFile?.mkdirs() }.writeText("value\n")
     compose.setContent {
       JupyterDroidTheme {
@@ -78,7 +81,6 @@ class FileEditorBreadcrumbTest {
           applicationScope = scope,
           editorSettingsRepository = FakeEditorSettingsRepository(),
           onBack = {},
-          twoPane = twoPane,
           onGoToFolder = { browsedTo += it },
         )
       }
@@ -110,17 +112,18 @@ class FileEditorBreadcrumbTest {
   }
 
   /**
-   * **Under the action row**, which is where `BreadcrumbsControl` sits relative to a tab title.
-   * The name is the tab's now, so this screen's bar draws no title and the trail is its second row.
+   * **Above the document itself**, which is where `BreadcrumbsControl` sits relative to the text
+   * it navigates - the trail is now the only row this screen's top carries, so "under the action
+   * row" reads as "over the field" here.
    */
   @Test
-  fun theTrailSitsUnderTheActionRow() {
+  fun theTrailSitsAboveTheDocument() {
     open("$FOLDER/data.csv")
 
-    val back = compose.onNodeWithContentDescription(BACK).getUnclippedBoundsInRoot()
     val crumb = compose.onNodeWithText(FOLDER).getUnclippedBoundsInRoot()
+    val field = compose.onNode(hasSetTextAction()).getUnclippedBoundsInRoot()
 
-    assertTrue("the crumb at $crumb is not below the back arrow at $back", crumb.top >= back.bottom)
+    assertTrue("the field at $field is not below the crumb at $crumb", field.top >= crumb.bottom)
   }
 
   /** The root crumb's path is the empty string, which is a target and not "no target". */
@@ -150,8 +153,8 @@ private const val ROOT = "Workspace"
 /** The same folder `p2w-1-breadcrumb`'s fixtures use, so the two trails are read the same way. */
 private const val FOLDER = "reports"
 
-/** `FileEditorScreen`'s own back arrow, labelled apart from the notebook's on purpose. */
-private const val BACK = "Back to files"
+/** Any dismiss control's label - the strip's destination-named arrows all begin with it. */
+private const val BACK = "Back"
 
 /** Long enough for a file read off disk, short enough to fail. */
 private const val LOAD_TIMEOUT_MILLIS = 5_000L

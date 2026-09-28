@@ -39,7 +39,7 @@ appId: com.jupydroid.app
 - tapOn: "Code completion"
 - takeScreenshot: 03-settings-completion-off
 
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Code Completion.ipynb"
     timeout: 5000
@@ -76,11 +76,11 @@ appId: com.jupydroid.app
 # expected and harmless, since the completion check that follows depends on the popup only.
 - tapOn: "Undo cell operation"
 
-# The notebook's own dismiss icon (`EditorTopBar`'s "Back to notebooks"/"Close" - distinct from
-# Settings' and the file editor's own "Back to files") rather than the OS back gesture: the field
+# The notebook's own dismiss (the strip's "Back to files" arrow at one pane, or its tab's ✕ at
+# two) rather than the OS back gesture: the field
 # is still focused from typing, and how many back-presses that consumes before actually leaving
 # the notebook is not obvious or stable - measured, not assumed, on the first runs of this flow.
-- tapOn: "Back to notebooks|Close"
+- tapOn: "Back to files|Close tab: Code Completion.ipynb"
 - tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Code completion"
@@ -88,7 +88,7 @@ appId: com.jupydroid.app
 - tapOn: "Code completion"
 - takeScreenshot: 05-settings-completion-back-on
 
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Code Completion.ipynb"
     timeout: 5000
@@ -116,7 +116,7 @@ appId: com.jupydroid.app
 # The choice survives a relaunch - `EditorSettingsRepositoryContract`'s own
 # `remembersCompletionEnabledTurnedOff`, now asked of the real app. Left off across the relaunch
 # so the driver's own file-based check (`completionEnabled":false`) has something unambiguous.
-- tapOn: "Back to notebooks|Close"
+- tapOn: "Back to files|Close tab: Code Completion.ipynb"
 - tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Code completion"

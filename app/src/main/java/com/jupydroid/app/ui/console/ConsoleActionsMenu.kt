@@ -17,7 +17,7 @@ import androidx.compose.runtime.setValue
 /**
  * The Console's overflow - `TerminalActionsMenu`'s own precedent: a menu rather than bare icons,
  * because `Icons.Filled.Clear` is the glyph `NotebookBar` had to retire from Interrupt the moment a
- * second cross (`DocumentDismissAction`'s Close, at two panes) could sit on the same bar - a text
+ * second cross (the in-pane Close the tab strip since took over) could sit on the same bar - a text
  * row carries no such ambiguity.
  *
  * **Interrupt Kernel sits here rather than on the bar itself, matching both references**: neither

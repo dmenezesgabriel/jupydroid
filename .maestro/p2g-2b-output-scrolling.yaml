@@ -47,7 +47,7 @@ appId: com.jupydroid.app
 # A fold keeps the run - none of the three has a `deselectAll()` - so the bar is still up.
 - assertVisible: "2 selected"
 - takeScreenshot: 03-enabled-on-both
-# Deselect before leaving: the notebook's own bar - and the "Back to notebooks" control on it - is
+# Deselect before leaving: the notebook's own bar - and the "Back to files" control on it - is
 # gone while a run is marked, which is the same surface split `p2c-selection` records.
 - tapOn: "Deselect all cells"
 - waitForAnimationToEnd:
@@ -55,7 +55,7 @@ appId: com.jupydroid.app
 # Leave the document before anything that could kill the app: writes are held for 500 ms
 # (`NotebookSaveDebounce`) and only flushed from `onCleared`, not from a `stopApp`
 # (`docs/DECISIONS.md`).
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - waitForAnimationToEnd:
     timeout: 5000
 
@@ -90,6 +90,6 @@ appId: com.jupydroid.app
 - tapOn: "Deselect all cells"
 - waitForAnimationToEnd:
     timeout: 5000
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - waitForAnimationToEnd:
     timeout: 5000

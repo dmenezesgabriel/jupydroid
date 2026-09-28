@@ -30,7 +30,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 02-created-in-the-browsed-directory
 
 # The row, then the editor. "Back to files" is the FileEditor's own arrow - the notebook editor
-# labels its arrow "Back to notebooks" - so seeing it proves the `.py` did NOT open as a notebook,
+# labels its arrow "Back to files" - so seeing it proves the `.py` did NOT open as a notebook,
 # which is the confusion this step exists to have closed.
 - tapOn: "untitled.py"
 - extendedWaitUntil:

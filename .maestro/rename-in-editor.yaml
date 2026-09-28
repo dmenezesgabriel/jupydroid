@@ -34,7 +34,7 @@ appId: com.jupydroid.app
 - tapOn:
     text: "Rename Me Here.ipynb"
     above:
-      text: "Back to notebooks"
+      text: "Back to files"
 - assertVisible: "Rename notebook"
 - takeScreenshot: 02-dialog-from-the-title
 # No tap and no erase: the dialog opens focused with only the *stem* selected
@@ -54,7 +54,7 @@ appId: com.jupydroid.app
 # with it when it closes, so hideKeyboard has none to hide - and on Android it is a system BACK,
 # which popped the editor. The next `tapOn: "Back"` then matched the *system* navigation bar's
 # back button, whose contentDescription is also "Back", and left the app for the launcher.
-- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+- tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
                                # and a uiautomator dump carries both (evidence/u-flow-sweep/).
 # The browser's crumb, which the editor has none of: assert it before looking for a row, so a flow
 # still stuck in the editor fails here rather than against the title in the app bar. (This was

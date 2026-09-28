@@ -37,7 +37,7 @@ appId: com.jupydroid.app
 
 # A plain file counts as a document too - X2c gave `.py` an editor, and the reference records
 # whatever the document manager opened, not whatever was a notebook.
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - assertVisible: "data.csv"
 - tapOn: "data.csv"
 - assertVisible: ".*region,amount.*"

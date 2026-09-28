@@ -136,7 +136,6 @@ class CellTypeControlTest {
               canRedo = true,
               onUndo = {},
               onRedo = {},
-              onBack = {},
               activeCellKind = WIDEST_LABEL,
               cellTypeOnBar = true,
             )
@@ -180,7 +179,6 @@ class CellTypeControlTest {
             canRedo = true,
             onUndo = {},
             onRedo = {},
-            onBack = {},
             activeCellKind = WIDEST_LABEL,
             cellTypeOnBar = true,
           )
@@ -209,7 +207,6 @@ class CellTypeControlTest {
             canRedo = true,
             onUndo = {},
             onRedo = {},
-            onBack = {},
             activeCellKind = WIDEST_LABEL,
             cellTypeOnBar = false,
           )
@@ -270,7 +267,6 @@ class CellTypeControlTest {
           canRedo = true,
           onUndo = {},
           onRedo = {},
-          onBack = {},
           activeCellKind = WIDEST_LABEL,
           onChangeCellKind = onChangeCellKind,
           cellTypeOnBar = cellTypeOnBar,

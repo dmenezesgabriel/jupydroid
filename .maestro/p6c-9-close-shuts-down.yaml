@@ -16,7 +16,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - tapOn: "Kernel Shutdown.ipynb"
-- assertVisible: "Back to notebooks|Close"
+- assertVisible: "Back to files|Close tab: Kernel Shutdown.ipynb"
 - tapOn:
     text: "Run cell"
     index: 0
@@ -28,7 +28,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 03-carried-defined-on-a-live-kernel
 # A clean close: the run's own autosave persist left nothing dirty, so no save-before-close
 # dialog stands between the dismiss and the kernel ending (P6c-8c's gate asks only for dirty).
-- tapOn: "Back to notebooks|Close"
+- tapOn: "Back to files|Close tab: Kernel Shutdown.ipynb"
 - extendedWaitUntil:
     visible: "Kernel Shutdown.ipynb"
     timeout: 10000

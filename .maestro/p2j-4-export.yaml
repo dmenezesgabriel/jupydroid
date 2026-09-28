@@ -52,7 +52,7 @@ appId: com.jupydroid.app
     timeout: 120000
 - takeScreenshot: 04-exported
 - tapOn:
-    text: "Back to notebooks"
+    text: "Back to files"
 - waitForAnimationToEnd:
     timeout: 5000
 # The workspace is one tree, so an export lands where the explorer already looks.

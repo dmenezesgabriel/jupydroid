@@ -43,7 +43,7 @@ appId: com.jupydroid.app
 - tapOn: "Symbol row"
 - takeScreenshot: 03-settings-symbol-row-off
 
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Symbol Row Visibility.ipynb"
     timeout: 5000
@@ -68,7 +68,7 @@ appId: com.jupydroid.app
 - tapOn: "Symbol row"
 - takeScreenshot: 05-settings-symbol-row-back-on
 
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Symbol Row Visibility.ipynb"
     timeout: 5000

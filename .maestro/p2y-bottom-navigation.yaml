@@ -67,7 +67,7 @@ appId: com.jupydroid.app
     text: "^Files$"
 - takeScreenshot: 02-no-bar-over-the-notebook
 # --- 2. and it reaches search, which had no route at this width ------------------------------------
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - assertVisible: "Workspace"
 - assertVisible:
     text: "^Search$"

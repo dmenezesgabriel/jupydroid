@@ -19,7 +19,7 @@ appId: com.jupydroid.app
     timeout: 5000
 - assertVisible: "Files"
 - tapOn: "close_gate.py"
-- assertVisible: "Back to files|Close"
+- assertVisible: "Back to files|Close tab: close_gate.py"
 - extendedWaitUntil:
     visible: ".*the file editor.*"
     timeout: 10000
@@ -32,7 +32,7 @@ appId: com.jupydroid.app
 - assertVisible: "(?s).*unsaved_line.*"
 - takeScreenshot: 02-edited-and-dirty
 # The document's own dismiss - the gate's first exit.
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: close_gate.py"
 - extendedWaitUntil:
     visible: "Save your work"
     timeout: 5000
@@ -75,7 +75,7 @@ appId: com.jupydroid.app
 - inputText: "dialog_saved"
 - assertVisible: "(?s).*dialog_saved.*"
 - takeScreenshot: 07-edited-a-second-time
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: close_gate.py"
 - extendedWaitUntil:
     visible: "Save your work"
     timeout: 5000

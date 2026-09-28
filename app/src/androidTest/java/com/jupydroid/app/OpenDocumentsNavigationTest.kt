@@ -76,7 +76,8 @@ class OpenDocumentsNavigationTest {
     compose.onNodeWithText(TITLE).performClick()
     waitForText(CELL_SOURCE)
 
-    compose.onNodeWithContentDescription("Back to notebooks").performClick()
+    // The strip's one-pane arrow - the browser is what sits beneath the notebook.
+    compose.onNodeWithContentDescription("Back to files").performClick()
     waitForText(WORKSPACE_SECTION)
 
     assertNull(open.at(TITLE))
@@ -97,8 +98,8 @@ class OpenDocumentsNavigationTest {
           onImportConsumed = {},
           openDocuments = open,
           // Pinned for `NotebookNavigationTest`'s reason: a physical tablet's own rotation puts
-          // this on either side of the two-pane threshold, where "Back to notebooks" is "Close"
-          // instead (`DocumentDismissAction`).
+          // this on either side of the two-pane threshold, where the strip's "Back to files"
+          // arrow disappears instead (`MainAreaTabStrip`).
           twoPane = false,
         )
       }

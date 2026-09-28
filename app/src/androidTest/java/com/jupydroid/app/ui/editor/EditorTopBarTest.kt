@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.ui.CLOSE_DOCUMENT
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -98,29 +97,20 @@ class EditorTopBarTest {
   }
 
   /**
-   * Beside a browser the notebook is closed rather than backed out of - `application:close`, which
-   * the reference labels *Close Tab* (`application-extension/src/index.tsx:309-310`). The bar is
-   * where a user reaches it, so it is asserted here as well as on [DocumentDismissAction]'s own
-   * case: a component that is right and wired to nothing passes both.
+   * The bar is actions and nothing else: leaving the document is the tab strip's own act - the
+   * ✕ beside a browser, the destination-named arrow below one pane - which is where JupyterLab's
+   * tabbed mode, VS Code and IntelliJ all keep it. The arrow's own cases are
+   * [MainAreaTabStripTest][com.jupydroid.app.ui.shell.MainAreaTabStripTest]'s; this asserts only
+   * that none leaked back here.
    */
   @Test
-  fun besideABrowserTheNotebookIsClosedRatherThanBackedOutOf() {
-    showTopBar(twoPane = true)
-
-    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).assertIsDisplayed()
-    compose.onAllNodesWithContentDescription("Back to notebooks").assertCountEquals(0)
-  }
-
-  /** And below two panes it is still the arrow, because there the notebook *is* the window. */
-  @Test
-  fun belowTwoPanesTheArrowStays() {
+  fun theBarHasNoDismissControl() {
     showTopBar()
 
-    compose.onNodeWithContentDescription("Back to notebooks").assertIsDisplayed()
-    compose.onAllNodesWithContentDescription(CLOSE_DOCUMENT).assertCountEquals(0)
+    compose.onAllNodesWithContentDescription("Back", substring = true).assertCountEquals(0)
   }
 
-  private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false, twoPane: Boolean = false) {
+  private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false) {
     compose.setContent {
       JupyterDroidTheme {
         EditorTopBar(
@@ -128,9 +118,7 @@ class EditorTopBarTest {
           canRedo = canRedo,
           onUndo = { undos++ },
           onRedo = { redos++ },
-          onBack = {},
           onFind = { finds++ },
-          twoPane = twoPane,
         )
       }
     }

@@ -342,7 +342,6 @@ class SettingsScreenTest {
           editorSettingsRepository = editorSettingsRepository,
           themeSettingsRepository = themeSettingsRepository,
           applicationScope = scope,
-          onBack = {},
         )
       }
     }

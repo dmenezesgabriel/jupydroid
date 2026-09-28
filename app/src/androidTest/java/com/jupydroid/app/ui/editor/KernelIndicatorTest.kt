@@ -130,7 +130,6 @@ class KernelIndicatorTest {
             canRedo = false,
             onUndo = {},
             onRedo = {},
-            onBack = {},
             kernelIndicator = {
               KernelIndicator(status = status, nameShown = size.width >= MEDIUM)
             },

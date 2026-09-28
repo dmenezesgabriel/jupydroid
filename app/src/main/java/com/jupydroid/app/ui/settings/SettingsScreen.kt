@@ -10,7 +10,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -20,7 +19,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -37,7 +35,6 @@ import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.theme.editorPalette
-import com.jupydroid.app.ui.DocumentDismissAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -62,23 +59,15 @@ const val SETTINGS_SCREEN_TAG = "settings_screen"
  * open rather than replacing it - see that function's own doc comment.
  *
  * ```
- * SettingsScreen(
- *   editorSettingsRepository,
- *   themeSettingsRepository,
- *   applicationScope,
- *   onBack = { backStack.removeLastOrNull() },
- * )
+ * SettingsScreen(editorSettingsRepository, themeSettingsRepository, applicationScope)
  * ```
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
   editorSettingsRepository: EditorSettingsRepository,
   themeSettingsRepository: ThemeSettingsRepository,
   /** Writes must outlive this screen's own composition - a tap and a navigate-away can race. */
   applicationScope: CoroutineScope,
-  onBack: () -> Unit,
-  twoPane: Boolean = false,
   modifier: Modifier = Modifier,
 ) {
   val settings by editorSettingsRepository.observeSettings().collectAsStateWithLifecycle(EditorSettings())
@@ -110,15 +99,9 @@ fun SettingsScreen(
     // The document's own background, not a Material role - every other document screen in this
     // tree already follows this rule (`docs/DECISIONS.md`).
     containerColor = editorPalette.editorBackground,
-    topBar = {
-      TopAppBar(
-        // The tab above names it already - `title.label` is the strip's, not the panel's.
-        title = {},
-        navigationIcon = {
-          DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = onBack)
-        },
-      )
-    },
+    // No top bar at all: the tab above names it (`title.label` is the strip's, not a panel
+    // row's) and leaving it is the strip's own act - the ✕ at two panes, the arrow below. The
+    // strip already consumed the status-bar insets, so the content needs no spacer either.
   ) { padding ->
     Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())) {
       ThemeOverrideRow(themeSettings.override, ::updateTheme)

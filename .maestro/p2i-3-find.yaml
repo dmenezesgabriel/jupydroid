@@ -47,7 +47,7 @@ appId: com.jupydroid.app
 - tapOn: "Find in notebook"
 # The bar has been replaced: the box is up, the notebook's own controls are not.
 - assertVisible: "Find"
-- assertNotVisible: "Back to notebooks"
+- assertNotVisible: "Back to files"
 # Nothing typed, nothing found - `-/-` (`packages/documentsearch/src/searchview.tsx:345-351`).
 - assertVisible: "Matches -/-"
 - takeScreenshot: 02-the-find-bar-with-nothing-typed
@@ -63,6 +63,6 @@ appId: com.jupydroid.app
 # `documentsearch:end` - the bar goes and the notebook's own comes back.
 - tapOn: "Close search"
 - assertNotVisible: "Find"
-- assertVisible: "Back to notebooks"
+- assertVisible: "Back to files"
 - assertVisible: "Velocity = 0"
 - takeScreenshot: 05-the-notebooks-own-bar-is-back

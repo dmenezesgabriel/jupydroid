@@ -34,7 +34,7 @@ appId: com.jupydroid.app
 - assertVisible: "18sp"
 - takeScreenshot: 03-settings-increased
 
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Code Font Size.ipynb"
     timeout: 5000

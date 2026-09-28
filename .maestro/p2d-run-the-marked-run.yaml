@@ -59,6 +59,6 @@ appId: com.jupydroid.app
 # `runSelected` deselects before it runs, so the contextual bar is gone and the notebook's own is
 # back. Named by a control only that bar has - a count assertion alone would pass on a bar that had
 # simply changed its number (docs/DECISIONS.md, on titles being the wrong handle).
-- assertVisible: "Back to notebooks"
+- assertVisible: "Back to files"
 - assertNotVisible: "2 selected"
 - takeScreenshot: 03-the-run-ran-and-the-selection-went

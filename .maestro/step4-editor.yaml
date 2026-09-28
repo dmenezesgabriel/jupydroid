@@ -32,7 +32,7 @@ appId: com.jupydroid.app
       text: "answer = 42"
 - assertVisible: "Markdown cell here"
 - takeScreenshot: 02-editor-cells
-- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+- tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
                                # and a uiautomator dump carries both (evidence/u-flow-sweep/).
 # Home comes back scrolled to the top, so the row needs finding again for the same reason.
 - scrollUntilVisible:

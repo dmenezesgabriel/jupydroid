@@ -114,6 +114,9 @@ fun MainNavigation(
       orderedTabs,
       liveTabTitles,
       appContainer.workspaceRepository,
+      // The one width fact the strip reads: below two panes it leads with the Up affordance,
+      // because the document is the whole window there and leaving it goes back.
+      twoPane = twoPane,
       content,
     )
   }
@@ -351,15 +354,13 @@ fun MainNavigation(
           )
         }
         entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
+          // No onBack, no width fact: leaving a document is the strip's own act now - the ✕ at
+          // two panes, the destination-named arrow below - so a screen states only its content.
           tabbedPane {
             SettingsScreen(
               editorSettingsRepository = appContainer.editorSettings,
               themeSettingsRepository = appContainer.themeSettings,
               applicationScope = appContainer.applicationScope,
-              onBack = { backStack.removeLastOrNull() },
-              // The one width fact this screen reads, and it decides one thing: whether leaving it
-              // is drawn as going back or as closing it (`DocumentDismissAction`).
-              twoPane = twoPane,
             )
           }
         }
@@ -371,9 +372,6 @@ fun MainNavigation(
               applicationScope = appContainer.applicationScope,
               editorSettingsRepository = appContainer.editorSettings,
               onBack = { backStack.removeLastOrNull() },
-              // The one width fact this screen reads, and it decides one thing: whether leaving the
-              // document is drawn as going back or as closing it (`DocumentDismissAction`).
-              twoPane = twoPane,
               onGoToFolder = goToFolder,
               onFileMoved = { moved -> openDocumentPaths[file] = moved },
               reveal = revealRequest,
@@ -405,8 +403,9 @@ fun MainNavigation(
               onShowDebugger = { sidePanel = SidePanel.DEBUGGER }.takeIf { twoPane },
               onGoToFolder = goToFolder,
               onBack = { backStack.removeLastOrNull() },
-              // The one width fact this screen reads, and it decides one thing: whether leaving the
-              // document is drawn as going back or as closing it (`DocumentDismissAction`).
+              // The one width fact this screen still reads, and it decides one thing now: whether
+              // the debugger's bottom bar carries a variables toggle (a side panel already shows
+              // it at two panes). How the document is left is the strip's own act.
               twoPane = twoPane,
               onOpenConsole = { session ->
                 consoleSession = session
@@ -431,10 +430,6 @@ fun MainNavigation(
               onTitleChanged = { title ->
                 if (title == null) liveTabTitles.remove(terminal) else liveTabTitles[terminal] = title
               },
-              onBack = { backStack.removeLastOrNull() },
-              // The one width fact this screen reads, and it decides one thing: whether leaving the
-              // shell is drawn as going back or as closing it (`DocumentDismissAction`).
-              twoPane = twoPane,
               terminalSettingsRepository = appContainer.terminalSettings,
             )
           }
@@ -453,8 +448,6 @@ fun MainNavigation(
                 )
               },
               onLaunched = openLaunched,
-              onBack = launcherDismiss(backStack, twoPane),
-              twoPane = twoPane,
             )
           }
         }
@@ -464,10 +457,7 @@ fun MainNavigation(
             // `consoleSession`'s own doc comment; there is nothing to compose against in that case.
             consoleSession?.let { session ->
               ConsoleScreen(
-                backDescription = if (console.standalone) "Back to files" else "Back to notebook",
                 viewModel = viewModel { ConsoleViewModel(appContainer.kernelGateway, session) },
-                onBack = { backStack.removeLastOrNull() },
-                twoPane = twoPane,
                 editorSettingsRepository = appContainer.editorSettings,
               )
             }

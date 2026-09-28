@@ -69,7 +69,7 @@ appId: com.jupydroid.app
 - assertNotVisible: "Table of contents Part A"
 - takeScreenshot: 03-the-pick-dismissed-the-overlay
 # --- 1. and Files is one tap away ---------------------------------------------------------
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - assertVisible: "Workspace"
 - assertVisible: "Files"
 # --- 3. the bar is here, and the outline is still not on it ---------------------------------

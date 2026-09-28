@@ -16,7 +16,7 @@ appId: com.jupydroid.app
 - assertVisible: "Files"
 # ---- Arm 1: the file editor's own bar ----
 - tapOn: "marker_file.py"
-- assertVisible: "Back to files|Close"
+- assertVisible: "Back to files|Close tab: marker_file.py"
 - extendedWaitUntil:
     visible: ".*the file editor.*"
     timeout: 10000
@@ -34,7 +34,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 02-file-editor-dirty
 # Discard is how the arm leaves: the dialog the dismiss raises is itself the proof the marker was
 # telling the truth, and answering it keeps the flow self-contained.
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: marker_file.py"
 - extendedWaitUntil:
     visible: "Save your work"
     timeout: 5000
@@ -45,7 +45,7 @@ appId: com.jupydroid.app
     timeout: 10000
 # ---- Arm 2: the notebook's title strip ----
 - tapOn: "Dirty Marker.ipynb"
-- assertVisible: "Back to notebooks|Close"
+- assertVisible: "Back to files|Close tab: Dirty Marker.ipynb"
 - extendedWaitUntil:
     visible: "marker_probe = 1"
     timeout: 10000
@@ -59,7 +59,7 @@ appId: com.jupydroid.app
     visible: "Unsaved changes"
     timeout: 10000
 - takeScreenshot: 05-notebook-dirty
-- tapOn: "Back to notebooks|Close"
+- tapOn: "Back to files|Close tab: Dirty Marker.ipynb"
 - extendedWaitUntil:
     visible: "Save your work"
     timeout: 5000

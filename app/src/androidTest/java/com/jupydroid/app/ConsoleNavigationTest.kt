@@ -103,11 +103,13 @@ class ConsoleNavigationTest {
     compose.onNodeWithText(NEW_CONSOLE_FOR_NOTEBOOK).performClick()
     waitForTag(CONSOLE_INPUT_FIELD_TAG)
 
-    compose.onNodeWithContentDescription("Back to notebook").performClick()
+    // The strip's arrow names the entry actually beneath: this Console sits over its notebook,
+    // so the destination is the document's own name rather than a canned "notebook".
+    compose.onNodeWithContentDescription("Back to $NOTEBOOK_TITLE").performClick()
     waitForText(NOTEBOOK_SOURCE)
     compose.onNodeWithText(NOTEBOOK_SOURCE).assertIsDisplayed()
 
-    compose.onNodeWithContentDescription("Back to notebooks").performClick()
+    compose.onNodeWithContentDescription("Back to files").performClick()
     waitForText(NOTEBOOK_TITLE)
     listingRow(NOTEBOOK_TITLE).assertIsDisplayed()
   }
@@ -191,9 +193,9 @@ class ConsoleNavigationTest {
           // Pinned rather than measured: `currentWindowAdaptiveInfo()` reads the real window, which
           // this physical tablet's own current rotation can put on either side of the two-pane
           // threshold - `EditorScreen`'s own `CellActionsTest` citation is why `MainNavigation`
-          // takes this as a parameter at all. The tests default to one pane, whose own
-          // `DocumentDismissAction` labels are what they assert on ("Back to notebook", not
-          // "Close"); the sweep case wants the two-pane rail's reach instead.
+          // takes this as a parameter at all. The tests default to one pane, whose strip arrow is
+          // what they assert on ("Back to <destination>"); the sweep case wants the two-pane rail's
+          // reach instead.
           twoPane = twoPane,
         )
       }

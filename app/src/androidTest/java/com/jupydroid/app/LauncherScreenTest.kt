@@ -39,7 +39,7 @@ class LauncherScreenTest {
   @Test
   fun showsTheCwdAndEverySectionInRankOrder() {
     compose.setContent {
-      LauncherScreen(cwd = "reports", viewModel = viewModel(), onLaunched = {}, onBack = {}, twoPane = false)
+      LauncherScreen(cwd = "reports", viewModel = viewModel(), onLaunched = {})
     }
 
     compose.onNodeWithText("reports").assertIsDisplayed()
@@ -51,7 +51,7 @@ class LauncherScreenTest {
   @Test
   fun leavesTheRootCwdHeadingEmpty() {
     compose.setContent {
-      LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}, onBack = {}, twoPane = false)
+      LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {})
     }
 
     // The reference renders the h3 with `cwd` verbatim - empty at the root. A bare "/" was our
@@ -62,7 +62,7 @@ class LauncherScreenTest {
   @Test
   fun showsKernelCardsAsLetterTiles() {
     compose.setContent {
-      LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}, onBack = {}, twoPane = false)
+      LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {})
     }
 
     // Both kernel cards carry the kernelspec's label - "Python 3" twice - so the sections and
@@ -80,7 +80,7 @@ class LauncherScreenTest {
   fun tappingACardLaunchesItsCommand() {
     val viewModel = viewModel()
     compose.setContent {
-      LauncherScreen(cwd = "reports", viewModel = viewModel, onLaunched = {}, onBack = {}, twoPane = false)
+      LauncherScreen(cwd = "reports", viewModel = viewModel, onLaunched = {})
     }
 
     compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_TEXT_FILE.name}").performClick()

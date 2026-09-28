@@ -11,7 +11,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.TerminalFontSize
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.ui.CLOSE_DOCUMENT
 import com.jupydroid.app.ui.terminal.DECREASE_TERMINAL_FONT_SIZE
 import com.jupydroid.app.ui.terminal.INCREASE_TERMINAL_FONT_SIZE
 import com.jupydroid.app.ui.terminal.TerminalBar
@@ -87,36 +86,24 @@ class TerminalActionsMenuTest {
   private var decreases = 0
 
   /**
-   * Beside a browser the shell is closed rather than backed out of, exactly as both documents are -
-   * a terminal is not a file, but it is a thing occupying the document area, and what empties that
-   * area has one name.
+   * The bar is the shell's own actions and nothing else - a terminal is not a file, but it is a
+   * thing occupying the document area, and what empties that area is the tab strip's ✕, the one
+   * place the reference keeps it. The one-pane arrow's cases are `MainAreaTabStripTest`'s.
    */
   @Test
-  fun besideABrowserTheShellIsClosedRatherThanBackedOutOf() {
-    showBar(twoPane = true)
-
-    compose.onNodeWithContentDescription(CLOSE_DOCUMENT).assertIsDisplayed()
-    compose.onAllNodesWithContentDescription("Back").assertCountEquals(0)
-  }
-
-  /** Below two panes the arrow stays, because there the shell *is* the window. */
-  @Test
-  fun belowTwoPanesTheArrowStays() {
+  fun theBarHasNoDismissControl() {
     showBar()
 
-    compose.onNodeWithContentDescription("Back").assertIsDisplayed()
-    compose.onAllNodesWithContentDescription(CLOSE_DOCUMENT).assertCountEquals(0)
+    compose.onAllNodesWithContentDescription("Back", substring = true).assertCountEquals(0)
   }
 
-  private fun showBar(fontSizeSp: Int = TerminalFontSize.DEFAULT, twoPane: Boolean = false) {
+  private fun showBar(fontSizeSp: Int = TerminalFontSize.DEFAULT) {
     compose.setContent {
       JupyterDroidTheme {
         TerminalBar(
-          onBack = {},
           fontSizeSp = fontSizeSp,
           onIncreaseFontSize = { increases++ },
           onDecreaseFontSize = { decreases++ },
-          twoPane = twoPane,
         )
       }
     }

@@ -21,12 +21,12 @@ appId: com.jupydroid.app
     direction: DOWN
     timeout: 10000
 - tapOn: "Shut down kernel on close"
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Session Reattaches.ipynb"
     timeout: 10000
 - tapOn: "Session Reattaches.ipynb"
-- assertVisible: "Back to notebooks|Close"
+- assertVisible: "Back to files|Close tab: Session Reattaches.ipynb"
 - tapOn:
     text: "Run cell"
     index: 0
@@ -43,7 +43,7 @@ appId: com.jupydroid.app
     visible: "43"
     timeout: 60000
 - takeScreenshot: 06-arm-b-carried-defined
-- tapOn: "Back to notebooks|Close"
+- tapOn: "Back to files|Close tab: Session Reattaches.ipynb"
 - extendedWaitUntil:
     visible: "Session Reattaches.ipynb"
     timeout: 10000

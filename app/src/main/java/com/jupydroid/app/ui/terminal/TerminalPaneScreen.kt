@@ -60,7 +60,6 @@ import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
-import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
 import kotlinx.coroutines.flow.drop
@@ -75,19 +74,13 @@ const val TERMINAL_INPUT_TAG = "terminal-input"
  * to the system's own dark/light theme, and a cell measured on this device rather than restated.
  *
  * ```
- * TerminalPaneScreen(session = TerminalSession("1"), terminalGateway, onBack = { backStack.removeLastOrNull() })
+ * TerminalPaneScreen(session = TerminalSession("1"), terminalGateway)
  * ```
  */
 @Composable
 fun TerminalPaneScreen(
   session: TerminalSession,
   terminalGateway: TerminalGateway,
-  onBack: () -> Unit,
-  /**
-   * Whether a browser is drawn beside this shell, which decides only how [onBack] is presented -
-   * see [DocumentDismissAction].
-   */
-  twoPane: Boolean = false,
   modifier: Modifier = Modifier,
   /** The terminal's own font-size setting - `docs/PLAN.md`'s P4j-3c. */
   terminalSettingsRepository: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
@@ -131,11 +124,9 @@ fun TerminalPaneScreen(
     containerColor = editorPalette.editorBackground,
     topBar = {
       TerminalBar(
-        onBack = onBack,
         fontSizeSp = state.fontSizeSp,
         onIncreaseFontSize = { viewModel.changeFontSize(TerminalFontSize.STEP) },
         onDecreaseFontSize = { viewModel.changeFontSize(-TerminalFontSize.STEP) },
-        twoPane = twoPane,
       )
     },
     // `docs/PLAN.md`'s P4j-3a - `EditorBottomBars`/`SymbolRow`'s own slot, so this row carries its
@@ -210,27 +201,12 @@ fun TerminalPaneScreen(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TerminalBar(
-  onBack: () -> Unit,
-  fontSizeSp: Int,
-  onIncreaseFontSize: () -> Unit,
-  onDecreaseFontSize: () -> Unit,
-  /**
-   * Whether a browser is drawn beside this shell, which decides only how [onBack] is presented -
-   * see [DocumentDismissAction]. A parameter and never a measurement here (`PaneDirective.kt:31-38`).
-   */
-  twoPane: Boolean = false,
-) {
+fun TerminalBar(fontSizeSp: Int, onIncreaseFontSize: () -> Unit, onDecreaseFontSize: () -> Unit) {
   TopAppBar(
     // The tab above names it, and the OSC title goes there too - `onTitleChange` sets
-    // `this.title.label`, which is the tab's (`packages/terminal/src/widget.ts:486-488`).
+    // `this.title.label`, which is the tab's (`packages/terminal/src/widget.ts:486-488`). No
+    // navigation icon either: leaving is the strip's own act, the ✕ or the one-pane arrow.
     title = {},
-    navigationIcon = {
-      // Beside a browser this is a *close*, and one home decides that for all three bars. The
-      // label stays "Back" below two panes: a terminal is not a file, so there is no folder to
-      // name - the same reason P7 declined to give this screen a breadcrumb.
-      DocumentDismissAction(twoPane = twoPane, backDescription = "Back", onDismiss = onBack)
-    },
     actions = {
       TerminalActionsMenu(
         fontSizeSp = fontSizeSp,

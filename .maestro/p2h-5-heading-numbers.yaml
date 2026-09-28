@@ -51,7 +51,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 04-top-level-back
 # Persisted and app-wide, which is what makes it a setting rather than a view state: leave the
 # document first, because stopApp is a force-stop and would test the save debounce instead.
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - stopApp
 - launchApp
 - waitForAnimationToEnd:

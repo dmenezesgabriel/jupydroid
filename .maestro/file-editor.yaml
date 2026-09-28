@@ -10,7 +10,7 @@ appId: com.jupydroid.app
 - assertVisible: "Files"
 - tapOn: "file_editor.py"
 # "Back to files" is the FileEditor's own toolbar action - the notebook editor labels its back
-# arrow "Back to notebooks" (see explorer-browse), so seeing it proves the file did NOT open as a
+# arrow "Back to files" (see explorer-browse), so seeing it proves the file did NOT open as a
 # notebook. The content itself is one node spanning the whole file, hence the spanning regex.
 - assertVisible: "Back to files"
 - extendedWaitUntil:

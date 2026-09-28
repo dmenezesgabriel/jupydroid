@@ -35,7 +35,7 @@ appId: com.jupydroid.app
 - tapOn: "Wrap code lines"
 - takeScreenshot: 03-settings-wrap-off
 
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Word Wrap.ipynb"
     timeout: 5000
@@ -66,7 +66,7 @@ appId: com.jupydroid.app
 - tapOn: "Wrap code lines"
 - takeScreenshot: 06-settings-wrap-back-on
 
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Word Wrap.ipynb"
     timeout: 5000

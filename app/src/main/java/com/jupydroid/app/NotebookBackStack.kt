@@ -81,7 +81,7 @@ fun MutableList<NavKey>.openConsole(notebookId: String) {
  */
 fun MutableList<NavKey>.openStandaloneConsole(path: String, title: String) {
   removeAll { it is Console }
-  openInMainArea(Console(path, title, standalone = true))
+  openInMainArea(Console(path, title))
 }
 
 /**

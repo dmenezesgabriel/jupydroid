@@ -13,7 +13,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,7 +35,6 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.Breadcrumb
-import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.SaveBeforeCloseGate
 import com.jupydroid.app.ui.ancestorCrumbsFor
@@ -70,12 +68,11 @@ fun FileEditorScreen(
    * bar of its own to put a second one on.
    */
   editorSettingsRepository: EditorSettingsRepository,
-  onBack: () -> Unit,
   /**
-   * Whether a browser is drawn beside this file, which decides only how [onBack] is presented -
-   * see [DocumentDismissAction]. A parameter and never a measurement here (`PaneDirective.kt:31-38`).
+   * `fileeditor:close`'s effect - pops this entry. The gate below asks first when dirty; who
+   * draws the affordance is the tab strip's own business (✕, or the arrow below two panes).
    */
-  twoPane: Boolean = false,
+  onBack: () -> Unit,
   /**
    * A breadcrumb segment was tapped: browse that folder (`""` is the workspace root).
    *
@@ -115,9 +112,11 @@ fun FileEditorScreen(
     .collectAsStateWithLifecycle(EditorSettings())
 
   // `saveBeforeClose` (`docmanager/src/dialogs.ts:155`): a dirty document asks before it leaves,
-  // whichever way out was taken - the dismiss here, system Back. The `gone` path stays outside
-  // the gate: a deleted file has nothing a save could put back.
-  val closeOrAsk = SaveBeforeCloseGate(
+  // whichever way out was taken - the gate's own system-Back handler, or the tab strip's gated
+  // close. The lambda it hands back has no consumer now that the dismiss lives on the strip; the
+  // call stays for the handler. The `gone` path stays outside the gate: a deleted file has
+  // nothing a save could put back.
+  SaveBeforeCloseGate(
     dirty = state.dirty,
     backAsks = state.dirty,
     title = state.name,
@@ -143,28 +142,13 @@ fun FileEditorScreen(
     // palette states its colours; it does not derive them from a Material role").
     containerColor = editorPalette.editorBackground,
     topBar = {
-      // **The trail is under the action row**, which is where `BreadcrumbsControl` sits relative
-      // to a tab title (`parts/editor/breadcrumbsControl.ts`) - and the tab is what carries the
-      // name now, so this screen's bar has no title of its own to repeat it.
-      //
-      // **The Column takes the bar's colour and the bar keeps its own insets.** `EditorTopBar` had
-      // to hoist `TopAppBarDefaults.windowInsets` onto its Column because its `TopAppBar` was the
-      // *second* row and padded itself down by the status bar; here it is still the first, so the
-      // defect that entry records cannot arise - checked on a device frame, not reasoned about.
+      // **The trail is all this screen's top carries** - `BreadcrumbsControl`'s own spot under a
+      // tab title (`parts/editor/breadcrumbsControl.ts`), and the tab is what carries the name
+      // and the close now, so there is no action row above it at all. Ancestors only, and
+      // **absent** rather than blank at the root - P2w-1's departures, argued in
+      // [ancestorCrumbsFor]. The status-bar insets are already consumed by the tab strip above
+      // this pane (`MainAreaTabStrip`), so a crumbs-only Column needs none of its own.
       Column(modifier = Modifier.background(TopAppBarDefaults.topAppBarColors().containerColor)) {
-        TopAppBar(
-          // The name is the tab's now - the reference keeps no `#jp-title-panel` in tabbed mode,
-          // so the bar's title slot stays empty the way the notebook's does.
-          title = {},
-          navigationIcon = {
-            // Beside a browser this is a *close*, and one home decides that for all three bars.
-            DocumentDismissAction(twoPane = twoPane, backDescription = "Back to files", onDismiss = closeOrAsk)
-          },
-        )
-        // Ancestors only, and **absent** rather than blank at the root - P2w-1's three departures
-        // from VS Code, argued once in [ancestorCrumbsFor] and inherited here rather than
-        // re-decided. This bar does not collapse, so `EditorTopBar`'s own scroll arithmetic is not
-        // copied with it.
         val crumbs = ancestorCrumbsFor(path, ROOT_LABEL)
         if (crumbs.isNotEmpty()) {
           Breadcrumb(crumbs = crumbs, onGoTo = onGoToFolder)

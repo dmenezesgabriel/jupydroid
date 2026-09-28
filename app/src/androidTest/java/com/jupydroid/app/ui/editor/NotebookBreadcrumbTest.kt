@@ -45,7 +45,7 @@ class NotebookBreadcrumbTest {
     showTopBar(crumbs = NESTED)
 
     val crumb = compose.onNodeWithText(FOLDER).getUnclippedBoundsInRoot()
-    val actions = compose.onNodeWithContentDescription(BACK).getUnclippedBoundsInRoot()
+    val actions = compose.onNodeWithContentDescription(FIND_ACTION).getUnclippedBoundsInRoot()
 
     assertTrue("the folder crumb at $crumb is not above the actions at $actions", crumb.bottom <= actions.top)
   }
@@ -134,15 +134,16 @@ class NotebookBreadcrumbTest {
   /**
    * Where the action row starts, with [crumbs] drawn and the bar [collapse]d that far.
    *
-   * Read off the back arrow rather than off a tagged container: the arrow is a node the app draws
-   * for its own reasons, so it cannot drift from what is on screen, and only *differences* between
-   * two of these are asserted - see [theThirdRowsCostIsPinnedAgainstTheTwoRowBar].
+   * Read off the Find action rather than off a tagged container: it is a node the app draws for
+   * its own reasons, so it cannot drift from what is on screen, and only *differences* between
+   * two of these are asserted. (It used to be read off the back arrow, which is the tab strip's
+   * own node now and is simply not drawn on this bar.)
    */
   private fun actionRowTop(crumbs: List<Pair<String, String>>, collapse: Float): Dp {
     shown.value = crumbs
     collapsed.floatValue = collapse
     compose.waitForIdle()
-    return compose.onNodeWithContentDescription(BACK).getUnclippedBoundsInRoot().top
+    return compose.onNodeWithContentDescription(FIND_ACTION).getUnclippedBoundsInRoot().top
   }
 
   private val browsed = mutableListOf<String>()
@@ -161,7 +162,6 @@ class NotebookBreadcrumbTest {
             canRedo = false,
             onUndo = {},
             onRedo = {},
-            onBack = {},
             crumbs = shown.value,
             collapsibleRegion = collapsed.floatValue,
             onGoToFolder = { browsed += it },
@@ -177,7 +177,6 @@ class NotebookBreadcrumbTest {
 
     const val ROOT = "Workspace"
     const val FOLDER = "reports"
-    const val BACK = "Back to notebooks"
 
     /** Material's interactive minimum, which is what the collapsing row of this bar reserves. */
     val ROW = 48.dp

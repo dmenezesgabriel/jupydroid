@@ -57,7 +57,8 @@ class NotebookNavigationTest {
 
     compose.onNodeWithText(ALPHA_TITLE).performClick()
     waitForText(ALPHA_SOURCE)
-    compose.onNodeWithContentDescription("Back to notebooks").performClick()
+    // The strip's one-pane arrow - the browser is the entry beneath this notebook.
+    compose.onNodeWithContentDescription("Back to files").performClick()
     waitForText(BETA_TITLE)
 
     compose.onNodeWithText(BETA_TITLE).performClick()
@@ -96,7 +97,8 @@ class NotebookNavigationTest {
     compose.mainClock.autoAdvance = true
     waitForText(ALPHA_SOURCE)
 
-    compose.onNodeWithContentDescription("Back to notebooks").performClick()
+    // The strip's one-pane arrow, named for what sits beneath the notebook - the browser.
+    compose.onNodeWithContentDescription("Back to files").performClick()
 
     // One Back is enough only if one entry was pushed; a second editor would still be on screen.
     waitForText(BETA_TITLE)
@@ -132,7 +134,8 @@ class NotebookNavigationTest {
           onImportConsumed = {},
           // Pinned rather than measured: `currentWindowAdaptiveInfo()` reads the real window, and
           // a physical tablet's own current rotation can put this on either side of the two-pane
-          // threshold, where `"Back to notebooks"` becomes `"Close"` instead (`DocumentDismissAction`).
+          // threshold, where the strip's `"Back to files"` arrow disappears instead
+          // (`MainAreaTabStrip`).
           // Found live: this flow failed on `SM-X216B` in landscape until pinned - `ConsoleNavigationTest`'s
           // own fix for the identical cause (P6b-9c).
           twoPane = false,

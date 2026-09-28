@@ -48,7 +48,7 @@ appId: com.jupydroid.app
 
 # Back returns to the folder it was opened from, not to Recents: the explorer is still an entry
 # underneath.
-- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+- tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
 - assertVisible: "Nested.ipynb"
 - takeScreenshot: 06-back-to-the-folder
 

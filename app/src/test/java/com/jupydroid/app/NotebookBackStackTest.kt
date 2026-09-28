@@ -364,7 +364,7 @@ class NotebookBackStackTest {
     backStack.openStandaloneConsole("console-1-x", "Console 1")
 
     assertEquals(
-      listOf(Explorer, Launcher, Console("console-1-x", "Console 1", standalone = true)),
+      listOf(Explorer, Launcher, Console("console-1-x", "Console 1")),
       backStack,
     )
   }
@@ -381,7 +381,7 @@ class NotebookBackStackTest {
     backStack.openStandaloneConsole("console-1-x", "Console 1")
 
     assertEquals(
-      listOf(Explorer, Editor("nb-1"), Console("console-1-x", "Console 1", standalone = true)),
+      listOf(Explorer, Editor("nb-1"), Console("console-1-x", "Console 1")),
       backStack,
     )
   }
@@ -389,11 +389,11 @@ class NotebookBackStackTest {
   @Test
   fun aSecondStandaloneConsoleReplacesTheFirst() {
     val backStack =
-      mutableListOf<NavKey>(Explorer, Console("console-1-x", "Console 1", standalone = true))
+      mutableListOf<NavKey>(Explorer, Console("console-1-x", "Console 1"))
 
     backStack.openStandaloneConsole("console-2-y", "Console 2")
 
-    assertEquals(listOf(Explorer, Console("console-2-y", "Console 2", standalone = true)), backStack)
+    assertEquals(listOf(Explorer, Console("console-2-y", "Console 2")), backStack)
   }
 
   @Test
@@ -401,7 +401,7 @@ class NotebookBackStackTest {
     val backStack = mutableListOf<NavKey>(
       Explorer,
       Editor("nb-1"),
-      Console("console-1-x", "Console 1", standalone = true),
+      Console("console-1-x", "Console 1"),
     )
 
     backStack.openConsole("nb-1")

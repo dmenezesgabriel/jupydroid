@@ -69,9 +69,9 @@ internal fun NotebookBar(
       // `stopIcon` (`apputils/src/toolbar/widget.tsx:50`) and that icon is `M6 6h12v12H6z`
       // (`ui-components/style/icons/toolbar/stop.svg`) - a filled square, never a cross. This drew
       // `Icons.Filled.Clear` until P7d, which was a parity gap on its own and became an ambiguity
-      // the moment a *second* cross appeared on the same screen: at two panes the notebook's own
-      // navigation slot is now a Close (`DocumentDismissAction`), so one glyph meant both "stop
-      // what the kernel is doing" and "close this document".
+      // the moment a *second* cross appeared on the same screen: the document close that sat in the
+      // navigation slot before the tab strip took it over shared the glyph, so one cross meant both
+      // "stop what the kernel is doing" and "close this document".
       Icon(Icons.Filled.Stop, contentDescription = "Interrupt kernel")
     }
     IconButton(onClick = { confirming = RestartRequest.RESTART }) {

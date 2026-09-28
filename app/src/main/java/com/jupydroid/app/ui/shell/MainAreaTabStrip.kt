@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -49,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.Console
 import com.jupydroid.app.Editor
+import com.jupydroid.app.Explorer
 import com.jupydroid.app.FileEditor
 import com.jupydroid.app.Launcher
 import com.jupydroid.app.OpenDocument
@@ -111,6 +114,15 @@ fun TabbedDocumentPane(
    */
   liveTabTitles: Map<NavKey, String>,
   workspaceRepository: WorkspaceRepository,
+  /**
+   * Whether a browser is drawn beside the document, which decides one thing: whether the strip
+   * leads with the Up affordance. Below two panes the document *is* the window and leaving it
+   * goes back to what was underneath - Material's navigation icon on the detail pane's top bar,
+   * which this strip is, and the same place IntelliJ keeps its Back/Forward arrows
+   * (`EditorTabbedContainer`'s toolbar). Beside a browser there is nothing to go back *to* and
+   * closing is the tab's ✕, so the strip draws nothing there.
+   */
+  twoPane: Boolean = true,
   content: @Composable () -> Unit,
 ) {
   // The dirty document a tab's close asked about - held here rather than inside a tab so the
@@ -123,6 +135,17 @@ fun TabbedDocumentPane(
   var overwriting by remember { mutableStateOf<TakenTabName?>(null) }
   val scope = rememberCoroutineScope()
 
+  // One act empties a main-area slot, whichever control asked: `application:close` is the same
+  // command on the tab's ✕ as on the one-pane arrow, so both run this dirty-ask-then-close.
+  val closeTab: (NavKey) -> Unit = { key ->
+    val document = key.documentIn(openDocuments)
+    if (document != null && document.dirty.value) {
+      closing = PendingTabClose(key, document, key.tabTitle(openDocuments, openDocumentPaths))
+    } else {
+      backStack.closeMainAreaTab(key, tabs)
+    }
+  }
+
   Column(modifier = Modifier.fillMaxSize()) {
     MainAreaTabStrip(
       backStack = backStack,
@@ -130,14 +153,8 @@ fun TabbedDocumentPane(
       liveDocumentPaths = openDocumentPaths,
       liveTabTitles = liveTabTitles,
       tabs = tabs,
-      onCloseTab = { key ->
-        val document = key.documentIn(openDocuments)
-        if (document != null && document.dirty.value) {
-          closing = PendingTabClose(key, document, key.tabTitle(openDocuments, openDocumentPaths))
-        } else {
-          backStack.closeMainAreaTab(key, tabs)
-        }
-      },
+      twoPane = twoPane,
+      onCloseTab = closeTab,
       onRenameTab = { key ->
         val path = key.documentIn(openDocuments)?.path ?: key.liveDocumentPath(openDocumentPaths)
         path?.let { renaming = PendingTabRename(key, it) }
@@ -225,6 +242,7 @@ private fun MainAreaTabStrip(
   liveDocumentPaths: Map<NavKey, String>,
   liveTabTitles: Map<NavKey, String>,
   tabs: List<NavKey>,
+  twoPane: Boolean,
   onCloseTab: (NavKey) -> Unit,
   onRenameTab: (NavKey) -> Unit,
 ) {
@@ -245,32 +263,73 @@ private fun MainAreaTabStrip(
     // share and never grows. Below the floor the row overflows and the scroll takes over.
     val share = if (tabs.isEmpty()) TAB_MAX_WIDTH else maxWidth / tabs.size
     val tabWidth = share.coerceIn(TAB_MIN_WIDTH, TAB_MAX_WIDTH)
-    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-      tabs.forEach { tab ->
-        val document = tab.documentIn(openDocuments)
-        MainAreaTab(
-          key = tab,
-          // Live wins over static, in both its forms: a document's current path (`title.label`
-          // follows `context.path`) and a terminal's reported OSC title (`title.label` again -
-          // `widget.ts:487`). A rename landed while the document sat in the background still
-          // renames its tab the same way.
-          title = document?.path?.substringAfterLast('/')
-            ?: liveTabTitles[tab]
-            ?: tab.mainAreaTabTitle(liveDocumentPaths),
-          document = document,
-          active = backStack.lastOrNull() == tab,
-          // `main.title.closable = widgets('main').length > 1` - the lone launcher earns no close.
-          closable = tab !is Launcher || backStack.launcherIsClosable(),
-          // `docmanager:rename` only exists for what has a path (`document-title` tabs).
-          renameable = tab.openedUnderPath() != null,
-          width = tabWidth,
-          onActivate = { backStack.activateMainAreaTab(tab) },
-          onClose = { onCloseTab(tab) },
-          onRename = { onRenameTab(tab) },
-        )
+    Row(modifier = Modifier.fillMaxWidth()) {
+      // The one-pane Up affordance - fixed ahead of the scrollable tabs so it never scrolls
+      // away, and present only while something sits beneath to return to. Its label names the
+      // destination rather than saying "Back", which is the system bar's own button
+      // (`evidence/u-flow-sweep/`).
+      if (!twoPane && backStack.size > 1) {
+        IconButton(onClick = { onCloseTab(backStack.last()) }) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = upDestinationLabel(
+              backStack.dropLast(1).lastOrNull(),
+              openDocuments,
+              liveDocumentPaths,
+              liveTabTitles,
+            ),
+          )
+        }
+      }
+      Row(modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
+        tabs.forEach { tab ->
+          val document = tab.documentIn(openDocuments)
+          MainAreaTab(
+            key = tab,
+            // Live wins over static, in both its forms: a document's current path (`title.label`
+            // follows `context.path`) and a terminal's reported OSC title (`title.label` again -
+            // `widget.ts:487`). A rename landed while the document sat in the background still
+            // renames its tab the same way.
+            title = document?.path?.substringAfterLast('/')
+              ?: liveTabTitles[tab]
+              ?: tab.mainAreaTabTitle(liveDocumentPaths),
+            document = document,
+            active = backStack.lastOrNull() == tab,
+            // `main.title.closable = widgets('main').length > 1` - the lone launcher earns no close.
+            closable = tab !is Launcher || backStack.launcherIsClosable(),
+            // `docmanager:rename` only exists for what has a path (`document-title` tabs).
+            renameable = tab.openedUnderPath() != null,
+            width = tabWidth,
+            onActivate = { backStack.activateMainAreaTab(tab) },
+            onClose = { onCloseTab(tab) },
+            onRename = { onRenameTab(tab) },
+          )
+        }
       }
     }
   }
+}
+
+/**
+ * What the one-pane arrow says it returns to - the entry **beneath** the top, named the way the
+ * tabs name themselves: the browser is "files", a document its live title, a terminal its OSC
+ * title or "Terminal N". Destination-named because bare "Back" is the system bar's own button
+ * and TalkBack deserves "back to *what*" (`DocumentDismissAction`'s old labels, moved here with
+ * the affordance).
+ */
+private fun upDestinationLabel(
+  beneath: NavKey?,
+  openDocuments: OpenDocuments,
+  liveDocumentPaths: Map<NavKey, String>,
+  liveTabTitles: Map<NavKey, String>,
+): String = when (beneath) {
+  null -> "Back"
+  Explorer -> "Back to files"
+  else -> "Back to " + (
+    beneath.documentIn(openDocuments)?.path?.substringAfterLast('/')
+      ?: liveTabTitles[beneath]
+      ?: beneath.mainAreaTabTitle(liveDocumentPaths)
+    )
 }
 
 /** The path a tab names - a document's, live where the document registered, else the key's own. */

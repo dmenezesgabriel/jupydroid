@@ -22,7 +22,7 @@ appId: com.jupydroid.app
 - assertVisible: "At Root.ipynb"
 - assertNotVisible: "Workspace"
 - takeScreenshot: 02-at-the-root-there-is-no-trail
-- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+- tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
 
 # The notebook inside a folder says so, on a row between its name and its actions.
 - tapOn: "reports"

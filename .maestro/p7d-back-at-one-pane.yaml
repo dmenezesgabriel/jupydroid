@@ -3,8 +3,14 @@ appId: com.jupydroid.app
 # P7d's other half, and it is not decoration: a width rule proved on one width is proved by half.
 #
 # Below two panes the document *is* the window, so leaving it goes back to what was underneath and
-# the arrow stays - named for where it goes, never bare "Back", because the system navigation bar
-# answers to that string too (`evidence/u-flow-sweep/`).
+# the arrow stays - on the **tab strip** now, since P8f (`MainAreaTabStrip`'s leading affordance),
+# where IntelliJ keeps its own navigation arrows on the tab row (`EditorTabbedContainer`). It is
+# named for the entry actually beneath - "Back to files" over the browser - never bare "Back",
+# because the system navigation bar answers to that string too (`evidence/u-flow-sweep/`).
+#
+# `^Close$` is anchored on purpose since P8f: the tab strip's ✕ reads "Close tab: <title>", which an
+# unanchored "Close" would match - the claim is that no *pane-level* close exists, and a bare
+# "Close" is exactly what that affordance was.
 #
 # ONE PANE (<840dp). Runs no cell.
 - launchApp
@@ -16,10 +22,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: ".*this one is at the root.*"
     timeout: 20000
-- assertVisible: "Back to notebooks"
-- assertNotVisible: "Close"
+- assertVisible: "Back to files"
+- assertNotVisible: "^Close$"
 - takeScreenshot: 01-the-notebook-keeps-its-arrow
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - extendedWaitUntil:
     visible: "file_editor.py"
     timeout: 10000
@@ -30,7 +36,7 @@ appId: com.jupydroid.app
     visible: ".*the file editor.*"
     timeout: 20000
 - assertVisible: "Back to files"
-- assertNotVisible: "Close"
+- assertNotVisible: "^Close$"
 - takeScreenshot: 03-the-plain-editor-keeps-its-arrow
 - tapOn: "Back to files"
 - extendedWaitUntil:

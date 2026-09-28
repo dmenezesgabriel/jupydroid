@@ -89,18 +89,6 @@ fun LauncherFillEffect(
 }
 
 /**
- * `main.title.closable = widgets('main').length > 1` (`launcher-extension/src/index.ts:126`):
- * alone in the main area at two panes there is nothing beneath to return to, so a lone launcher
- * draws no close affordance. At one pane the arrow is navigation, not a close, and is always drawn.
- */
-fun launcherDismiss(backStack: MutableList<NavKey>, twoPane: Boolean): (() -> Unit)? =
-  if (twoPane && !backStack.launcherIsClosable()) {
-    null
-  } else {
-    { backStack.removeLastOrNull() }
-  }
-
-/**
  * `closable = false`'s other half: with no close affordance drawn, Back is the one remaining way
  * the lone launcher could leave - and letting it pop would only re-trigger the fill, a whole-frame
  * flicker. Called *after* NavDisplay so its handler wins the gesture over the display's own, which

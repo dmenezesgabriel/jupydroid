@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -32,7 +33,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,22 +48,23 @@ import java.io.FileOutputStream
 class ConsoleScreenTest {
   @get:Rule val compose = createComposeRule()
 
+  /**
+   * The Console's bar carries its own actions and nothing else - leaving is the tab strip's act
+   * (the ✕, or the destination-named arrow below two panes), which is `MainAreaTabStripTest`'s
+   * surface now. This asserts only that no dismiss control leaked back onto the bar.
+   */
   @Test
-  fun tappingBackInvokesOnBack() {
-    var backTapped = false
+  fun theBarCarriesNoDismissControl() {
     compose.setContent {
       JupyterDroidTheme {
         ConsoleScreen(
           viewModel = consoleViewModel(),
-          onBack = { backTapped = true },
           editorSettingsRepository = FakeEditorSettingsRepository(),
         )
       }
     }
 
-    compose.onNodeWithContentDescription("Back to notebook").performClick()
-
-    assertTrue(backTapped)
+    compose.onAllNodesWithContentDescription("Back", substring = true).assertCountEquals(0)
   }
 
   @Test
@@ -72,7 +73,6 @@ class ConsoleScreenTest {
       JupyterDroidTheme {
         ConsoleScreen(
           viewModel = consoleViewModel(),
-          onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
         )
       }
@@ -93,7 +93,6 @@ class ConsoleScreenTest {
       JupyterDroidTheme {
         ConsoleScreen(
           viewModel = consoleViewModel(gateway),
-          onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
         )
       }
@@ -113,7 +112,6 @@ class ConsoleScreenTest {
       JupyterDroidTheme {
         ConsoleScreen(
           viewModel = consoleViewModel(),
-          onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
         )
       }
@@ -137,7 +135,6 @@ class ConsoleScreenTest {
       JupyterDroidTheme {
         ConsoleScreen(
           viewModel = viewModel,
-          onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(
             EditorSettings(autoClosingBrackets = false),
           ),
@@ -156,7 +153,6 @@ class ConsoleScreenTest {
       JupyterDroidTheme {
         ConsoleScreen(
           viewModel = consoleViewModel(),
-          onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
         )
       }
@@ -178,7 +174,6 @@ class ConsoleScreenTest {
       JupyterDroidTheme {
         ConsoleScreen(
           viewModel = consoleViewModel(),
-          onBack = {},
           editorSettingsRepository = FakeEditorSettingsRepository(),
         )
       }

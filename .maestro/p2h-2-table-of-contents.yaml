@@ -62,7 +62,7 @@ appId: com.jupydroid.app
 - assertVisible: "Chapter one"
 - takeScreenshot: 04-jumped-back-to-chapter-one
 # The empty case, on a notebook with no headings at all.
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - scrollUntilVisible:
     element:
       text: "Empty Notebook.ipynb"

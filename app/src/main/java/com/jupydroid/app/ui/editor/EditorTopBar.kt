@@ -22,7 +22,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.ui.Breadcrumb
-import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.ancestorCrumbsFor
 
 /**
@@ -70,12 +69,6 @@ fun EditorTopBar(
   canRedo: Boolean,
   onUndo: () -> Unit,
   onRedo: () -> Unit,
-  onBack: () -> Unit,
-  /**
-   * Whether a browser is drawn beside this notebook, which decides only how [onBack] is presented -
-   * see [DocumentDismissAction]. Passed in for the reason [cellTypeOnBar] is.
-   */
-  twoPane: Boolean = false,
   /**
    * What the active cell is, for the control that names it - see [CellTypeControl]. Null on a
    * notebook with no active cell, which draws nothing rather than a control about nothing.
@@ -166,17 +159,9 @@ fun EditorTopBar(
       },
       // Already taken by the Column that holds both rows, just above.
       windowInsets = WindowInsets(0, 0, 0, 0),
-      navigationIcon = {
-        // Named for where it goes, not for the gesture. "Back" is also the system navigation
-        // bar's button, and a `uiautomator` dump has both - so five Maestro flows meaning this
-        // arrow have been tapping the system one and passing anyway, because before the modal
-        // back of U2 the two did the same thing. They stopped agreeing, which is how it was
-        // found (`evidence/u-flow-sweep/`). A destination-naming label is also what TalkBack
-        // wants: "Back" leaves a screen reader to guess back to what.
-        //
-        // Beside a browser it is a *close* instead, and one home decides that for all three bars.
-        DocumentDismissAction(twoPane = twoPane, backDescription = "Back to notebooks", onDismiss = onBack)
-      },
+      // No navigationIcon: leaving the document is the tab strip's own act - the ✕ beside a
+      // browser, the destination-named arrow below one pane (see `MainAreaTabStrip`). The bar
+      // itself is actions only, which is what the reference's `jp-NotebookPanel-toolbar` is too.
       actions = {
         UndoRedo(canUndo, canRedo, onUndo, onRedo)
         // On the bar rather than in the View menu, and that is what it is: searching is neither a

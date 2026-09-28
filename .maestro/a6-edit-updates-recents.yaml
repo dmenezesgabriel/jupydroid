@@ -36,7 +36,7 @@ appId: com.jupydroid.app
 # never left the editor - and then matched "Updated At" against the *app bar title* and failed
 # looking for a timestamp that was never on screen. Dismiss, then use the app's own Back button.
 - hideKeyboard
-- tapOn: "Back to notebooks"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
+- tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
                                # and a uiautomator dump carries both (evidence/u-flow-sweep/).
 # The browser's crumb, which the editor has none of: assert it before looking for a row, so a flow
 # still in the editor fails here rather than against the title in the app bar.

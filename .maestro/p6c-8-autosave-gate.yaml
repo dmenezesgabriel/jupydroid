@@ -21,9 +21,9 @@ appId: com.jupydroid.app
 # The workspace is the first screen since X2h - there is no "Browse files" to tap.
 - assertVisible: "Files"
 - tapOn: "autosave_gate.py"
-# Two-pane draws a Close X where one-pane draws a labelled arrow - `DocumentDismissAction` owns
-# the fork and the `|` pattern is `p6c-5-word-wrap.yaml`'s own.
-- assertVisible: "Back to files|Close"
+# Two-pane draws the tab's ✕ where one-pane draws the strip's labelled arrow -
+# `MainAreaTabStrip` owns the fork and the `|` pattern is `p6c-5-word-wrap.yaml`'s own.
+- assertVisible: "Back to files|Close tab: autosave_gate.py"
 - extendedWaitUntil:
     visible: ".*the file editor.*"
     timeout: 10000

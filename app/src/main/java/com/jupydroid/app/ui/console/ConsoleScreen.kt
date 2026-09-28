@@ -17,7 +17,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.theme.editorPalette
-import com.jupydroid.app.ui.DocumentDismissAction
 import com.jupydroid.app.ui.editor.ExecutionStatus
 
 /**
@@ -31,23 +30,15 @@ import com.jupydroid.app.ui.editor.ExecutionStatus
  * are this sub-step's own two followers.
  *
  * ```kotlin
- * ConsoleScreen(viewModel = consoleViewModel, onBack = { backStack.removeLastOrNull() })
+ * ConsoleScreen(viewModel = consoleViewModel)
  * ```
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConsoleScreen(
   viewModel: ConsoleViewModel,
-  onBack: () -> Unit,
   /** `fileeditor:toggle-…-universal` reaches the Console too - its field's rules come from here. */
   editorSettingsRepository: EditorSettingsRepository,
-  /** Whether a browser is drawn beside this document - see [DocumentDismissAction]. */
-  twoPane: Boolean = false,
-  /**
-   * Where the arrow goes, named by the caller: "Back to notebook" for a Console sharing one,
-   * "Back to files" for a standalone one whose pop lands on the browser (P6d-5).
-   */
-  backDescription: String = "Back to notebook",
   modifier: Modifier = Modifier,
 ) {
   val entries by viewModel.entries.collectAsStateWithLifecycle()
@@ -68,14 +59,10 @@ fun ConsoleScreen(
         // rather than a title row inside the document (a separate tab kind in JupyterLab, a
         // separate document type in VS Code's Interactive Window), so nothing here repeats it.
         title = {},
-        // Not the bare "Back" `DocumentDismissAction`'s own KDoc warns against: a live-kernel
-        // Maestro flow (P6b-9d) measured that string reaching the system navigation bar's own
-        // back button instead of this one, which left the Console on screen. A distinct label
-        // rather than a guess at why the tap missed - `EditorTopBar`'s "Back to notebooks" is the
-        // precedent, singular here since a Console names the one notebook it was opened from.
-        navigationIcon = {
-          DocumentDismissAction(twoPane = twoPane, backDescription = backDescription, onDismiss = onBack)
-        },
+        // No navigation icon - leaving is the strip's own act, and the arrow there names the
+        // destination itself (`upDestinationLabel`), which is P6b-9d's fix carried up a level:
+        // a bare "Back" label here kept reaching the system navigation bar's own button in
+        // `uiautomator` dumps (`evidence/u-flow-sweep/`).
         actions = {
           ConsoleActionsMenu(onClear = viewModel::clear, onInterrupt = viewModel::interrupt, running = running)
         },

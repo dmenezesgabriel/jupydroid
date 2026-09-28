@@ -25,7 +25,7 @@ appId: com.jupydroid.app
     visible: ".*NameError.*"
     timeout: 120000
 - takeScreenshot: 05-a-fresh-kernel-never-saw-it
-- tapOn: "Back to notebooks|Close"
+- tapOn: "Back to files|Close tab: Kernel Shutdown.ipynb"
 - extendedWaitUntil:
     visible: "Kernel Shutdown.ipynb"
     timeout: 10000

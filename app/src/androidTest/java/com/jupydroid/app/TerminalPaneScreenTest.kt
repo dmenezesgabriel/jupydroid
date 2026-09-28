@@ -56,7 +56,7 @@ class TerminalPaneScreenTest {
     compose.setContent {
       JupyterDroidTheme {
         cell = terminalCellMetrics()
-        TerminalPaneScreen(session = session, terminalGateway = gateway, onBack = {}, viewModel = viewModel)
+        TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)
       }
     }
     val rowsWithoutIme = settledRows(viewModel)

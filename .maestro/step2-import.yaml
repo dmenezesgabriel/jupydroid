@@ -9,11 +9,11 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Intro to NumPy.ipynb"
     timeout: 10000
-- assertVisible: "Back to notebooks"
+- assertVisible: "Back to files"
 - takeScreenshot: 05-imported
 # Leaving it puts it in the browser, in both sections: the listing has the file, and Recents has
 # it because opening is what recents record.
-- tapOn: "Back to notebooks"
+- tapOn: "Back to files"
 - extendedWaitUntil:
     visible: "Workspace"
     timeout: 10000

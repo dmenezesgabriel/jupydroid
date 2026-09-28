@@ -20,7 +20,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-shutdown-row-off
 - tapOn: "Shut down kernel on close"
 - takeScreenshot: 02-shutdown-row-on
-- tapOn: "Back to files|Close"
+- tapOn: "Back to files|Close tab: Settings"
 - extendedWaitUntil:
     visible: "Kernel Shutdown.ipynb"
     timeout: 10000
