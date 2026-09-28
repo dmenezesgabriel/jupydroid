@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -119,8 +120,11 @@ class BaseSpaceInstaller(
      * The image's one real interpreter ELF, which `usr/bin/python3` and `usr/bin/python` both
      * point at. **It must name the same file `tools/rootfs/stage-app-artifacts.sh` stages as
      * `libpython3.so`** - the link is only right because the two are the same bytes.
+     *
+     * The version comes from [BUNDLED_PYTHON_VERSION] rather than being spelled again: it is the
+     * same fact a Space's own `pythonVersion` records, and one of the two would go stale.
      */
-    const val INTERPRETER_PATH = "usr/bin/python3.12"
+    const val INTERPRETER_PATH = "usr/bin/python$BUNDLED_PYTHON_VERSION"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
     const val BUNDLED_ROOTFS_VERSION = 9

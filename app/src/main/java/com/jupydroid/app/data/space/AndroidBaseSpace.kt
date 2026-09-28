@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -42,7 +43,7 @@ fun androidDnsServerSource(context: Context): DnsServerSource = DnsServerSource 
   link?.dnsServers?.mapNotNull { it.hostAddress }.orEmpty()
 }
 
-fun baseSpaceDir(context: Context): File = File(context.filesDir, "spaces/base")
+fun baseSpaceDir(context: Context): File = File(spacesDir(context), BASE_SPACE.id)
 
 /**
  * Where notebooks live: the kernel's `HOME`, which is also the server's root and the repository's.
