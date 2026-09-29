@@ -25,7 +25,9 @@ case "$MODEL" in
   *) echo "refused: P7e-1 must run on the tablet (SM-X216B); this is '$MODEL'"; exit 1 ;;
 esac
 
-OUT="$ROOT/evidence/p7e-1-space-python"
+# EVIDENCE_ROOT lets a later step re-run this gate and keep the artefacts under its own
+# name, which is how a step that changes no pixel evidences itself (`p7a-1b`'s own note).
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/p7e-1-space-python}"
 echo "=== the Space's python3, on $MODEL ==="
 
 reset_notebooks

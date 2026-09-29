@@ -45,7 +45,9 @@ FIXTURE="$ROOT/.maestro/fixtures/p1d-shutdown.ipynb"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-EVIDENCE="$ROOT/evidence/p1d-shutdown-kernel"
+# EVIDENCE_ROOT lets a later step re-run this gate and keep the artefacts under its own
+# name, which is how a step that changes no pixel evidences itself (`p7a-1b`'s own note).
+EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/p1d-shutdown-kernel}"
 mkdir -p "$EVIDENCE"
 RUN_DIR="files/spaces/base/run"
 
