@@ -58,7 +58,7 @@ class NotebookBreakpoints {
   }
 
   /**
-   * Attaches [condition] to [cellId]'s breakpoint at [line] (P6a-16), replacing whatever condition
+   * Attaches [condition] to [cellId]'s breakpoint at [line], replacing whatever condition
    * it carried before - `null` clears it back to an ordinary breakpoint. A no-op, [toggle]'s own
    * "nothing to touch" shape, when [line] carries no breakpoint at all.
    */

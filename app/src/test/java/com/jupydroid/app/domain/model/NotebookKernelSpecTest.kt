@@ -10,7 +10,7 @@ import org.junit.Test
  * `NotebookPanel._updateSpec` (`packages/notebook/src/panel.ts:248-258`): a kernel that binds
  * writes `metadata.kernelspec = {name, display_name, language}` - the whole object, not a merge,
  * the way `setMetadata` replaces the key. That is what makes reopening the file honour the kernel
- * the user picked (P8g).
+ * the user picked.
  */
 class NotebookKernelSpecTest {
   private val spec = KernelSpec(name = "p8g", displayName = "P8g Julia", language = "julia")

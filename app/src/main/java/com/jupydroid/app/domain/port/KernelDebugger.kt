@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 data class VerifiedBreakpoint(val line: Int, val verified: Boolean)
 
 /**
- * One line to arm, DAP's own `SetBreakpointsArguments.breakpoints` element shape (P6a-16) -
+ * One line to arm, DAP's own `SetBreakpointsArguments.breakpoints` element shape -
  * [condition] is a Python expression gating whether this line actually stops the kernel once
  * armed, `null` for an ordinary breakpoint.
  */
@@ -74,7 +74,7 @@ interface KernelDebugger {
   suspend fun step(session: KernelSession, threadId: Int, command: SteppingCommand)
 
   /**
-   * Runs [expression] against [frameId]'s own scope while stopped there (P6a-17), DAP's own
+   * Runs [expression] against [frameId]'s own scope while stopped there, DAP's own
    * `evaluate` request with `context: "repl"` - debugpy's own convention for an ad hoc expression
    * a person typed, distinct from `"watch"`/`"hover"` (confirmed against `vscode-jupyter`'s own
    * `DebuggerVariables.evaluate`, `context: 'repl'`, rather than guessed). The answer is shaped

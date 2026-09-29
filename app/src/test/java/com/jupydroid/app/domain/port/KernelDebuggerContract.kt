@@ -53,7 +53,7 @@ abstract class KernelDebuggerContract {
   /**
    * DAP's own guarantee: `setBreakpoints`'s response array corresponds element-for-element to the
    * request's - not a detail this port may drop, since [VerifiedBreakpoint.verified] is exactly
-   * what a gutter dot (P6a-6) reads per line.
+   * what a gutter dot reads per line.
    */
   @Test
   fun setBreakpoints_returnsOneResultPerRequestedLineInOrder() = runTest {
@@ -67,7 +67,7 @@ abstract class KernelDebuggerContract {
 
   /**
    * An ad hoc expression's own answer has no variable name of its own - [DebugVariable.name] holds
-   * the expression itself, DAP's own `EvaluateResponse` having none (P6a-17).
+   * the expression itself, DAP's own `EvaluateResponse` having none.
    */
   @Test
   fun evaluate_answersTheExpressionAsItsOwnName() = runTest {

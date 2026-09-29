@@ -96,7 +96,7 @@ data class Notebook(
   /**
    * `Context._populate`'s seed (`docregistry/src/context.ts:587-595`): `kernelspec.name` plus
    * `language_info.name` - the two halves `getDefaultKernel` resolves a session's kernel from
-   * (P8g). [kernelId] is the name, already defaulted for a file that named none.
+   * [kernelId] is the name, already defaulted for a file that named none.
    */
   val kernelPreference: KernelPreference
     get() = KernelPreference(name = kernelId, language = kernelLanguage)

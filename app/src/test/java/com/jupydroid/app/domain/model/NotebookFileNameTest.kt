@@ -10,7 +10,7 @@ import org.junit.Test
  * What a notebook may be called, once its name *is* its file.
  *
  * The rule is JupyterLab's, read out of
- * `reference/research_repos/jupyterlab/packages/docmanager/src/dialogs.ts`:
+ * `jupyterlab@7f0e6906 packages/docmanager/src/dialogs.ts`:
  *
  * ```ts
  * // Disallows "/", "\", and ":" in file names, as well as names with zero length.

@@ -11,8 +11,8 @@ import org.junit.Test
  * What every [KernelGateway] must do, whoever implements it.
  *
  * Run against the fake and the real one alike: a port whose implementations agree only by
- * inspection is a port that will drift, and the fake is what the whole UI is built on until
- * Step 10.5 swaps it out.
+ * inspection is a port that will drift, and the fake is what the whole UI runs against on a
+ * device with no Space.
  *
  * Deliberately structural. Assertions live at the level both can honestly satisfy - an
  * execution reports its count, produces output, and ends idle - not at the level of what a
@@ -195,7 +195,7 @@ abstract class KernelGatewayContract {
   protected companion object {
     val SPACE = Space(id = "base", name = "Base", kernels = emptyList())
 
-    /** The plan's own gate for Step 5.5, and short enough that every kernel agrees on it. */
+    /** Short enough that every kernel agrees on the completion it produces. */
     const val PREFIX = "pri"
   }
 }

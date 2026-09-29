@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
  *
  * `RecentsManager`'s job (`packages/docmanager/src/recents.ts`), which is deliberately *not* the
  * notebook repository's: a recent is a record of an act, where a listing is a record of a tree.
- * Conflating them is what made a notebook inside a folder invisible to Recents before X2h - the
+ * Conflating them is what once made a notebook inside a folder invisible to Recents - the
  * old list was `rootDir.listFiles()`, so where a document lived decided whether it could be found.
  *
  * ```

@@ -16,8 +16,8 @@ package com.jupydroid.app.domain.model
  *
  * Beside [SearchQuery] in `domain/model`, because it is a rule *about* a [SearchQuery] and the two
  * are read together. **Its only caller today is the notebook's find bar**, in `ui/editor`, and that
- * is said plainly rather than left to look like a shared home earning its keep: P2x-1c moved it
- * here so `DiskWorkspaceSearcher` could substitute across a workspace, and P2x-1e took that
+ * is said plainly rather than left to look like a shared home earning its keep: it moved here so
+ * `DiskWorkspaceSearcher` could substitute across a workspace, and a later step took that
  * replace off the port again once the reference showed replace goes through the editor-model stack
  * rather than the filesystem (see `WorkspaceSearcher`). Public for the one cross-package caller.
  *

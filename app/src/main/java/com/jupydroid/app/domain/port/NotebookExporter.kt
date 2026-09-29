@@ -18,8 +18,8 @@ data class ExportFormat(val name: String, val outputMimeType: String)
  * beside the document and `respond_zip` then packs both
  * (`jupyter_server/nbconvert/handlers.py:38-65`). The same notebook to `html` is not a zip, since
  * that exporter inlines images as data URIs. So the shape depends on the format *and* on the
- * notebook, and only the headers know. Measured on the tablet:
- * `evidence/p2j-2-export-formats/`.
+ * notebook, and only the headers know, which is why the media type comes off the response rather
+ * than off the extension.
  */
 data class ExportedDocument(val fileName: String, val mediaType: String, val bytes: ByteArray) {
   // ByteArray identity would make two identical exports unequal, which is not what a test of an
@@ -45,7 +45,7 @@ class NotebookExportException(val format: String?, reason: String) :
  * `notebook:export-to-format`, over the server's nbconvert endpoints.
  *
  * A port rather than a call site because conversion is a **server-side algorithm** and this app
- * may not re-implement one (`docs/DECISIONS.md`): nbconvert runs in the Space, and what reaches
+ * may not re-implement one: nbconvert runs in the Space, and what reaches
  * Kotlin is bytes and a filename.
  *
  * ```

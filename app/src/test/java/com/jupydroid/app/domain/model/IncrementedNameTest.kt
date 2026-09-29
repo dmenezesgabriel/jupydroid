@@ -46,7 +46,7 @@ class IncrementedNameTest {
     assertEquals("Report1", incrementedName("Report") { it == "Report" })
   }
 
-  /** `insert` is the server's own parameter; a duplicate uses it, which is what X2 will want. */
+  /** `insert` is the server's own parameter; a duplicate uses it. */
   @Test
   fun anInsertGoesBeforeTheCounter() {
     assertEquals("Report-Copy1", incrementedName("Report", insert = "-Copy") { it in setOf("Report", "Report-Copy") })

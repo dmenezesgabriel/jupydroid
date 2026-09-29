@@ -9,7 +9,7 @@ import org.junit.Test
 
 /**
  * What every [TerminalSettingsRepository] must do, whoever implements it - one field today, the
- * font size `docs/PLAN.md`'s P4j-3c adds.
+ * font size.
  *
  * Clamping to [TerminalFontSize]'s bounds is the stepper's job (`TerminalPaneViewModel`), not the
  * repository's: this stores whatever it is given, the same division [EditorSettingsRepository]

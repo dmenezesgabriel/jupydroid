@@ -13,7 +13,7 @@ import java.time.Instant
 /**
  * What every [WorkspaceRepository] must do, whoever implements it.
  *
- * The workspace is the directory the kernel calls `HOME` and the server calls `root_dir` (X1a), so
+ * The workspace is the directory the kernel calls `HOME` and the server calls `root_dir`, so
  * this is a *shared* tree: a notebook writes into it, the user browses it, and neither owns it.
  * That shapes the contract more than any preference of ours.
  *
@@ -158,7 +158,7 @@ abstract class WorkspaceRepositoryContract {
 
   /**
    * An nbconvert export is not always text: a notebook with an image output converted to
-   * `markdown` comes back as a **zip** (`evidence/p2j-2-export-formats/`), and a zip written
+   * `markdown` comes back as a **zip**, and a zip written
    * through a `String` is a corrupt zip.
    */
   @Test
@@ -321,7 +321,7 @@ abstract class WorkspaceRepositoryContract {
    *
    * `PathExt.join(this._model.path, newName)` (`listing.ts:2621`), and `Context._rename` replaces
    * only the last segment. Renaming a notebook inside a folder to the root was a real defect once
-   * (X2a), which is why this is a contract test and not a detail of one implementation.
+   * which is why this is a contract test and not a detail of one implementation.
    */
   @Test
   fun renamingInsideAFolderStaysInThatFolder() = runTest {
@@ -361,7 +361,7 @@ abstract class WorkspaceRepositoryContract {
    *
    * `isValidFileName` disallows `/`, `\`, `:` and a leading dot. Winlator strips the reserved
    * characters instead (`StringUtils.clearReservedChars`), which hands back a file the user never
-   * named; X1b settled that we follow JupyterLab here.
+   * named; we follow JupyterLab here.
    */
   @Test
   fun anInvalidNameIsRefused() = runTest {

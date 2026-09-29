@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * The app-wide editor preferences, persisted - `notebook:toggle-autoclosing-brackets` (and its
- * universal sibling `fileeditor:toggle-autoclosing-brackets-universal`) today, grown by P6c
+ * universal sibling `fileeditor:toggle-autoclosing-brackets-universal`) today, grown
  * rather than replaced.
  *
  * A port with one implementation, kept because a uniform port surface beats case-by-case

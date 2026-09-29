@@ -2,7 +2,7 @@ package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.Notebook
 
-/** Persistence for notebooks. Disk-backed impl arrives in Step 3; fakes feed Steps 1-2. */
+/** Persistence for one notebook, as nbformat JSON. `DiskNotebookRepository` is the real one. */
 interface NotebookRepository {
   suspend fun createNotebook(title: String, kernelId: String): Notebook
 

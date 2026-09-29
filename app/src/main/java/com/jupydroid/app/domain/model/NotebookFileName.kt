@@ -4,7 +4,7 @@ package com.jupydroid.app.domain.model
  * The rule for what a file may be called - a notebook, a `.py`, or a folder.
  *
  * Taken from JupyterLab rather than invented
- * (`reference/research_repos/jupyterlab/packages/docmanager/src/dialogs.ts`, `isValidFileName`):
+ * (`jupyterlab@7f0e6906 packages/docmanager/src/dialogs.ts`, `isValidFileName`):
  * a name must have nonzero length and must not contain `/`, `\` or `:`.
  *
  * ```
@@ -39,7 +39,7 @@ fun isValidFileName(name: String): Boolean {
  * `PathExt.join(this._model.path, newName)` (`packages/filebrowser/src/listing.ts:2621`) - and
  * `isValidFileName` refuses `/`, `\` and `:` in a name (`packages/docmanager/src/dialogs.ts:257`)
  * so a name can never carry a folder of its own. Without this a rename moves a notebook to the
- * root, silently, and X2a made notebooks in folders reachable for the first time.
+ * root, silently, before notebooks in folders were reachable at all.
  *
  * ```
  * idBeside("reports/Draft", "Final")   // "reports/Final"

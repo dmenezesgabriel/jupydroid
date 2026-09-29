@@ -13,7 +13,7 @@ package com.jupydroid.app.domain.model
  * (`searchmodel.ts:295-311`).
  *
  * **Here rather than in `ui/editor/`, where it was written, because it is a port's parameter
- * type** (P2x-1): `WorkspaceSearcher.search` takes one, and `domain` imports nothing project-local
+ * type**: `WorkspaceSearcher.search` takes one, and `domain` imports nothing project-local
  * outside `domain.model` - the same relationship [WorkspaceEntry] has to `WorkspaceRepository`.
  * Two surfaces read it now, the notebook's find bar and the workspace search, which is what makes
  * one home a rule rather than a preference (CLAUDE.md, "One home per kind of logic").

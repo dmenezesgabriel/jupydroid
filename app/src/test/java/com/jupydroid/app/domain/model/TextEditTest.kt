@@ -5,8 +5,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * A document changed at the ranges a search found - the half of replace that P2x-1e took off the
- * port and P2x-5 gives a home of its own.
+ * A document changed at the ranges a search found - the half of replace that is deliberately not
+ * on the `WorkspaceSearcher` port, and has a home of its own.
  *
  * The reference builds one `ResourceTextEdit` per match and applies them sorted by where they start
  * (`replaceService.ts:196-203`), which is what [withEditsApplied] is; whether the document still

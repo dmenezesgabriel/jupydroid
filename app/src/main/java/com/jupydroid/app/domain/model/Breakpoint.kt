@@ -13,7 +13,7 @@ package com.jupydroid.app.domain.model
  * @property codeId the path `dumpCell` returned for the cell this line belongs to, or `null`
  *   before that round trip has ever run for this cell.
  * @property condition a Python expression gating whether this line actually stops the kernel
- *   (P6a-16) - `null` for an ordinary breakpoint, DAP's own `SetBreakpointsArguments.condition`
+ *   `null` for an ordinary breakpoint, DAP's own `SetBreakpointsArguments.condition`
  *   otherwise. Never itself verified; [verified] still answers only whether debugpy armed the
  *   *line*, since a condition's own syntax is not checked until the kernel evaluates it live.
  */

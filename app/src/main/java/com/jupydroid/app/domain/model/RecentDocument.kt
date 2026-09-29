@@ -6,7 +6,7 @@ package com.jupydroid.app.domain.model
  * A recent is *not* a file that changed - it is a document a person opened, which is what
  * `RecentsManager` records (`packages/docmanager/src/recents.ts`) and why the list survives a
  * kernel writing into the workspace behind it. The path is the identity, as it is everywhere else
- * since X1b (`Contents.IModel.path`, suffix included).
+ * as it is in JupyterLab (`Contents.IModel.path`, suffix included).
  *
  * [kind] separates a folder from a document because the reference does: `addRecent` records the
  * containing directory alongside the document (`docmanager/src/widgetmanager.ts:418-422`), and a

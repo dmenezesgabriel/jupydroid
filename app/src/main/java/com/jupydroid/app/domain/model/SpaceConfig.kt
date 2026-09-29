@@ -25,7 +25,7 @@ const val SPACE_ID_PREFIX: String = "space-"
  * @property name what a row shows; a rename writes this and never moves the directory, so a
  *   notebook path, a running kernel and a server root all survive it.
  * @property created when the Space was made - the one field nothing but [SpaceRepository] writes.
- * @property requestedPackages what was asked for by name, which is not what is installed: P3d adds
+ * @property requestedPackages what was asked for by name, which is not what is installed: a later
  *   and removes these, and pip's own answer is the record of what landed.
  * @property extra anything a later version of the app puts in `config.json` that this one does not
  *   model, kept verbatim so writing cannot shred it. `Container.extraData` is the same nested

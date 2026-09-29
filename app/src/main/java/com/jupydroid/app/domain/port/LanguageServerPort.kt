@@ -54,7 +54,7 @@ data class LanguageCompletion(
   val edit: LanguageEdit? = null,
   /**
    * The LSP `CompletionItemKind` number - what tints the row's glyph. Null when the server
-   * omitted it; the P5e-0 probe measured pylsp sending `3` (Function) for `join`.
+   * omitted it; a probe measured pylsp sending `3` (Function) for `join`.
    */
   val kind: Int? = null,
   /**
@@ -138,7 +138,7 @@ data class LanguageCapabilities(
   val signatureHelpProvider: Boolean = false,
   /**
    * `definitionProvider` answers `true` **or** a `DefinitionOptions` object, so presence is
-   * the test like [signatureHelpProvider]'s - pylsp replies a plain `true` (P5e-0 probe).
+   * the test like [signatureHelpProvider]'s - pylsp replies a plain `true`, measured.
    */
   val definitionProvider: Boolean = false,
   /**
@@ -149,7 +149,7 @@ data class LanguageCapabilities(
   /**
    * `renameProvider` is a boolean **or** a `RenameOptions` object (`prepareProvider`), so
    * presence is the test like the providers above it - pylsp replies a plain `true`, the
-   * P5e-0 probe's capture.
+   * measured against it.
    */
   val renameProvider: Boolean = false,
 )
@@ -183,7 +183,7 @@ data class PublishDiagnostics(val uri: String, val diagnostics: List<LanguageDia
 data class LanguageWorkspaceEdit(val changes: Map<String, List<LanguageEdit>>)
 
 /**
- * One language server per [Space] - `pylsp` over stdio today (route 2, `docs/PLAN.md` P5),
+ * One language server per [Space] - `pylsp` over **stdio** today,
  * shaped so the reference's `jupyter-lsp` websocket route (route 1) stays a swap behind it.
  *
  * The surface mirrors `ILSPConnection` (`packages/lsp/src/connection.ts`), the boundary
@@ -221,28 +221,28 @@ interface LanguageServerPort {
   suspend fun completion(space: Space, uri: String, position: LanguagePosition): List<LanguageCompletion>
 
   /**
-   * `textDocument/hover` at [position] in the document at [uri] - `docs/PLAN.md` P5e-3.
+   * `textDocument/hover` at [position] in the document at [uri].
    * Null is a real answer, not a failure: the server says nothing where nothing is defined.
    */
   suspend fun hover(space: Space, uri: String, position: LanguagePosition): LanguageHover?
 
   /**
-   * `textDocument/signatureHelp` at [position] in the document at [uri] - `docs/PLAN.md`
-   * P5e-4. Null where the caret is inside no call the server knows - which is also what an
+   * `textDocument/signatureHelp` at [position] in the document at [uri].
+   * Null where the caret is inside no call the server knows - which is also what an
    * empty `signatures` reply normalizes to.
    */
   suspend fun signatureHelp(space: Space, uri: String, position: LanguagePosition): LanguageSignatureHelp?
 
   /**
-   * `textDocument/definition` at [position] in the document at [uri] - `docs/PLAN.md` P5e-5.
+   * `textDocument/definition` at [position] in the document at [uri].
    * LSP allows `Location`, `Location[]` or `LocationLink[]` and `null`; implementations
    * normalize all of it to a location list - empty where nothing defines the symbol.
    */
   suspend fun definition(space: Space, uri: String, position: LanguagePosition): List<LanguageLocation>
 
   /**
-   * `textDocument/rangeFormatting` for [range] in the document at [uri] - `docs/PLAN.md`
-   * P5e-6, the ask behind "Format cell". The caller's [options] are the editor's own
+   * `textDocument/rangeFormatting` for [range] in the document at [uri] - the ask behind
+   * "Format cell". The caller's [options] are the editor's own
    * indentation settings, sent per spec. Implementations normalize `null` and `[]` replies
    * to an empty edit list - "already formatted" and "nothing to say" are the same answer.
    */
@@ -254,8 +254,8 @@ interface LanguageServerPort {
   ): List<LanguageEdit>
 
   /**
-   * `textDocument/rename` at [position] in the document at [uri] - `docs/PLAN.md` P5e-7, the
-   * ask behind "Rename symbol". The reply is a `WorkspaceEdit`: edits keyed by the document
+   * `textDocument/rename` at [position] in the document at [uri] - the ask behind
+   * "Rename symbol". The reply is a `WorkspaceEdit`: edits keyed by the document
    * they rewrite, which is what lets a caller apply the asked document's edits and see - not
    * silently apply - a rename reaching into files a notebook does not own. An absent
    * `renameProvider` or an empty reply is an empty edit set, never an error; a server's

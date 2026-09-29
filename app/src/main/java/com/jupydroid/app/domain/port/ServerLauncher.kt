@@ -9,7 +9,7 @@ import com.jupydroid.app.domain.model.Space
  */
 data class ServerConnection(val baseUrl: String, val port: Int, val token: String = "")
 
-/** Owns the jupyter_server process for a [Space]. Rootfs launcher lands in Step 8. */
+/** Owns the jupyter_server process for a [Space]. `JupyterServerLauncher` is the real one. */
 interface ServerLauncher {
   suspend fun start(space: Space): ServerConnection
 

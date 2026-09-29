@@ -39,7 +39,7 @@ class KernelSessionRegistryTest {
   }
 
   /**
-   * The replaced-server case: `jupyter_server` stopped behind the app's back (P1c) means every
+   * The replaced-server case: `jupyter_server` stopped behind the app's back means every
    * session it issued is dead, and every notebook still holding one deserves to hear it - the
    * cascade, not one row at a time.
    */

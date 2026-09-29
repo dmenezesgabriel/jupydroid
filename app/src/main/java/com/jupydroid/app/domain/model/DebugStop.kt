@@ -12,7 +12,7 @@ import com.jupydroid.app.domain.port.DebugVariable
  * @property cellId the cell whose debug session stopped - the one [NotebookDebugger.startSession]
  *   armed, since this port never debugs more than one cell at a time.
  * @property line **one-based**, [com.jupydroid.app.domain.port.DebugStackFrame]'s own line.
- * @property threadId carried through so a later step/continue command (P6a-9) knows which thread
+ * @property threadId carried through so a later step/continue command knows which thread
  *   to resume.
  */
 data class DebugStop(val cellId: String, val line: Int, val threadId: Int)
@@ -35,7 +35,7 @@ data class DebugVariableGroup(val scope: String, val variables: List<DebugVariab
  * `scopes`/`variables` for `frames.first()` alone, matching JupyterLab's own default selection
  * (`packages/debugger/src/panels/callstack/model.ts:31-44`, which auto-selects `frames[0]`).
  * Tapping another frame afterward refocuses [groups] onto it - [NotebookDebugger.selectFrame]
- * (P6a-15), closing the gap this doc used to name.
+ *, closing the gap this doc used to name.
  *
  * ```
  * val stack = DebugStack(frames = kernelDebugger.stackTrace(session, threadId), groups = ...)

@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide editor preferences P6c grows - fourteen fields today.
+ * The app-wide editor preferences - fourteen fields today.
  *
  * `notebook:toggle-autoclosing-brackets` writes the settings registry there
  * (`packages/notebook-extension/src/index.ts:2223-2246`), and its universal sibling
@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
  *
  * **On by default**, departing from the reference's own `default: false`
  * (`packages/codemirror/src/extension.ts:636-644`) - on a soft keyboard `(` and `)` are two trips
- * through the symbol row. See `docs/DECISIONS.md`.
+ * through the symbol row.
  */
 /**
  * The two numbering fields are `toc:display-numbering` and `toc:display-h1-numbering`, at the
@@ -57,16 +57,15 @@ data class EditorSettings(
    */
   val accessKernelHistory: Boolean = false,
   /**
-   * `notebook:toggle-all-cell-line-numbers` - P6c-2 grew this repository with it rather than
-   * leaving it in `EditorUiState`, where it had been per notebook and per sitting since P2g: five
-   * other fields here were already app-wide and persisted, and a sixth toggle living somewhere
-   * else for no reason but history was the exact drift `docs/PLAN.md`'s P6c row existed to close.
+   * `notebook:toggle-all-cell-line-numbers`. It lives here rather than in `EditorUiState`, where
+   * it had been per notebook and per sitting: five other fields here were already app-wide and
+   * persisted, and a sixth toggle living somewhere else for no reason but history is drift.
    *
    * **True by default**, matching what `EditorUiState.lineNumbersShown` always defaulted to.
    */
   val lineNumbersShown: Boolean = true,
   /**
-   * `docs/PLAN.md`'s P6c-4 - a cell's own code font size, distinct from
+   * A cell's own code font size, distinct from
    * [com.jupydroid.app.domain.model.TerminalFontSize] because a cell is an editor concern where
    * the terminal's own glyph size explicitly is not (see that object's own doc comment). Bounds
    * live beside it in [CodeFontSize], clamped by the screen that writes here rather than by this
@@ -78,7 +77,7 @@ data class EditorSettings(
    */
   val codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /**
-   * `docs/PLAN.md`'s P6c-5 - whether a code cell's source wraps or scrolls horizontally.
+   * Whether a code cell's source wraps or scrolls horizontally.
    * Markdown and raw cells carry no such field: the reference hardwires them to wrap
    * (`packages/notebook/src/widget.ts:1335-1352`, `defaultEditorConfig.markdown/raw.lineWrap:
    * true`, no toggle), so this one governs code only - [com.jupydroid.app.ui.editor.CodeCellField]
@@ -92,7 +91,7 @@ data class EditorSettings(
    */
   val codeWrapEnabled: Boolean = true,
   /**
-   * `docs/PLAN.md`'s P6c-6 - whether a code cell's editor asks the kernel for completions at all.
+   * Whether a code cell's editor asks the kernel for completions at all.
    *
    * The reference has two unrelated settings here and only one is an on/off: `availableProviders`
    * (`packages/completer-extension/schema/manager.json:1-50`) ranks each completion provider, and a
@@ -112,7 +111,7 @@ data class EditorSettings(
    */
   val completionEnabled: Boolean = true,
   /**
-   * `docs/PLAN.md`'s P6c-7 - whether [com.jupydroid.app.ui.editor.SymbolRow] shows at all while a
+   * Whether [com.jupydroid.app.ui.editor.SymbolRow] shows at all while a
    * cell is being typed into.
    *
    * There is no reference command to depart from here: `SymbolRow` is itself a phone-only
@@ -173,7 +172,7 @@ data class EditorSettings(
 )
 
 /**
- * `docs/PLAN.md` P6c-4's own bounds - measured on device against a real code cell rather than
+ * Bounds measured on device against a real code cell rather than
  * copied from [TerminalFontSize]'s 4-256sp/±2, which were themselves measured against a
  * different surface (Termux's terminal, not a notebook cell). `STEP` of 1 matches the
  * reference's own increment for this exact setting (`apputils:incr-font-size`/`decr-font-size`
@@ -189,7 +188,7 @@ object CodeFontSize {
 }
 
 /**
- * `docs/PLAN.md` P6c-8's own bounds - the reference's `autosaveInterval` is an unbounded number in
+ * Bounds: the reference's `autosaveInterval` is an unbounded number in
  * a JSON schema editor, and a touch stepper needs edges. `MIN` of 5s is below which the poll is a
  * chore the 500ms debounce already does better; `MAX` of 600s is the point past which "autosave"
  * is a word for "writes when I close it", which [EditorSettings.autosaveEnabled] says directly.

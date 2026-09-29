@@ -7,7 +7,7 @@ import org.junit.Test
  * What "recent" means, which is JupyterLab's answer and not ours.
  *
  * Recents is a **history of documents opened**, not a scan of a directory - and that distinction is
- * the whole point of X2h. `RecentsManager.addRecent`
+ * the whole point. `RecentsManager.addRecent`
  * (`packages/docmanager/src/recents.ts:94-110`) removes any entry already holding the path, then
  * `unshift`s the new one at the front; `_setRecents` (`:186-201`) slices the result to
  * `maximalRecentsLength`, whose default is **10**

@@ -8,14 +8,14 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Finds a query across the whole workspace.
  *
- * `ISearchService.textSearch`, and **only** that. P2x-1c bundled `IReplaceService.replace` in here
+ * `ISearchService.textSearch`, and **only** that. An earlier draft bundled `IReplaceService.replace` here
  * too, on the argument that they are one feature; reading the reference retired it. VS Code keeps
  * them apart because they need different machinery: search walks files, and replace goes through
  * the *editor model* stack - `ReplaceService.replace` builds `ResourceTextEdit`s and hands them to
  * `IBulkEditService` (`replaceService.ts:115-118`), which resolves a text model for every resource,
  * open or not (`bulkTextEdits.ts:227`), edits the models, and only then saves
  * (`replaceService.ts:136`). A replace that wrote files behind an open document's back could not
- * reach that, and `WorkspaceSearcher` is the wrong owner for it. P2x-5 gives it its own home.
+ * reach that, and `WorkspaceSearcher` is the wrong owner for it; it has its own home.
  *
  * **Beside [WorkspaceRepository] rather than inside it.** The repository answers what is *at* a
  * path; this answers which paths hold something, which is a different question with a different

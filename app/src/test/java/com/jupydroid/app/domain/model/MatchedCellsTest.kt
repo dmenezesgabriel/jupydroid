@@ -5,13 +5,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * A notebook matched as the cells it is, rather than as the JSON it is stored in - P2x-4.
+ * A notebook matched as the cells it is, rather than as the JSON it is stored in.
  *
  * The reference holds a notebook's matches per **cell**: `INotebookCellMatchNoModel` is
  * `{ index, contentResults, webviewResults }`
  * (`vscode/…/search/common/searchNotebookHelpers.ts:18-22`). This is the `index` plus
  * `contentResults` half; outputs are `webviewResults` and are not searched here - see
- * `docs/DECISIONS.md`.
+ * `GAP-001` in `docs/architecture.md` §11.
  */
 class MatchedCellsTest {
   private fun notebookOf(vararg sources: String) = Notebook(

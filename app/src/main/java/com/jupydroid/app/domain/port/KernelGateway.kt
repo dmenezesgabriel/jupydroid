@@ -21,7 +21,7 @@ data class CompletionResult(val matches: List<CompletionMatch>, val replacedStar
 /**
  * One row of a [CompletionResult] - what the user reads versus what accepting it writes, which
  * differ exactly when a language server signature-resolves its labels: jedi answers `join(path,
- * paths)` as the `label` while `insertText` stays `join` (the P5e-0 probe's measured reply).
+ * paths)` as the `label` while `insertText` stays `join` - a probe against pylsp measured that reply.
  * Splicing the label would type the parameter list, so the two are carried separately.
  *
  * [kind] is the LSP `CompletionItemKind` number (Method=2, Function=3, Variable=6, Class=7…),
@@ -64,7 +64,7 @@ sealed interface KernelEvent {
   data object Idle : KernelEvent
 }
 
-/** Talks to a real jupyter_server kernel; swapped behind the port in Step 10. */
+/** Talks to a jupyter_server kernel. `RealKernelGateway` is the real one, `FakeKernelGateway` echoes. */
 interface KernelGateway {
   /**
    * Starts a kernel for the document at [documentPath] and binds a session to it.

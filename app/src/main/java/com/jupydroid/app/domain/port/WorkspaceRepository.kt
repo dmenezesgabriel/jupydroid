@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Reads the directory the kernel, the server and the app all share.
  *
- * Since X1a that is one tree - the kernel's `HOME`, the server's `--ServerApp.root_dir` and the
+ * It is one tree - the kernel's `HOME`, the server's `--ServerApp.root_dir` and the
  * notebook repository's root - so a notebook can `open('data.csv')` on a file the user can see.
  * This is what lets the user see it back.
  *
@@ -75,8 +75,8 @@ interface WorkspaceRepository {
   /**
    * Replaces the file at [path] with [bytes], creating it when it is not there.
    *
-   * The byte form of [writeText], and P2j is why it exists: an nbconvert export of a notebook
-   * with an image output comes back as a **zip** (`evidence/p2j-2-export-formats/`), and the
+   * The byte form of [writeText], and export is why it exists: an nbconvert export of a notebook
+   * with an image output comes back as a **zip**, and the
    * shape depends on the format *and* on the notebook, so nothing that writes an export may
    * assume text.
    */

@@ -8,7 +8,7 @@ import org.junit.Test
 /**
  * What every [NotebookExporter] must do, whoever implements it.
  *
- * The shapes are the ones the tablet actually returned (`evidence/p2j-2-export-formats/`), so an
+ * The shapes are the ones the tablet actually returned, so an
  * implementation that passes this has agreed with the device rather than with a guess.
  */
 abstract class NotebookExporterContract {

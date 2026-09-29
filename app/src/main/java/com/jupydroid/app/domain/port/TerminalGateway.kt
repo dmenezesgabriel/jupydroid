@@ -34,7 +34,7 @@ sealed interface TerminalEvent {
 
   /**
    * Terminal, and [reason] always says why - the shell exited (`["disconnect", 1]`), or the socket
-   * went. There is no bare "closed": a shell that vanishes with no reason is the failure P4b spent
+   * went. There is no bare "closed": a shell that vanishes with no reason is the failure that once
    * two commits diagnosing.
    */
   data class Ended(val reason: String) : TerminalEvent
@@ -57,7 +57,7 @@ interface TerminalGateway {
    * JupyterLab's launcher sends and what its file browser overrides for "Open Terminal Here"
    * (`packages/terminal-extension/src/index.ts:489-514`, `cwd: item.path`). Relative rather than
    * absolute because that is what the handler resolves and what the app already speaks; it works
-   * because the server's cwd is its root_dir (`docs/DECISIONS.md`).
+   * because the server's cwd is its root_dir.
    */
   suspend fun open(cwd: String? = null): TerminalSession
 

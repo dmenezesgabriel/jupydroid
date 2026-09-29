@@ -32,11 +32,11 @@ data class KernelSpecModels(val default: String, val specs: List<KernelSpec>) {
 }
 
 /**
- * What a Space can run - the kernelspec catalogue the kernel picker is drawn from (P8g).
+ * What a Space can run - the kernelspec catalogue the kernel picker is drawn from.
  *
  * Asked per [Space] because the catalogue is a property of the Space's rootfs, not of the app:
  * `jupyter kernelspec install` into `<space>/usr/share/jupyter/kernels/` adds a row, which is
- * exactly what per-Space environments arrive as in P3.
+ * exactly what a per-Space environment is.
  */
 interface KernelSpecs {
   /**

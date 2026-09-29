@@ -3,14 +3,14 @@ package com.jupydroid.app.domain.model
 /**
  * A document changed at the ranges a search found.
  *
- * This is the half of replace that `WorkspaceSearcher` deliberately does not carry. P2x-1e took
+ * This is the half of replace that `WorkspaceSearcher` deliberately does not carry. It was taken
  * `replaceAll` off the port because the reference replaces through the *editor model* stack rather
  * than through the filesystem: `IReplaceService.replace` builds one `ResourceTextEdit` per match
  * from **the matches already on screen** and hands them to `IBulkEditService`
  * (`replaceService.ts:115-118`). So the shape a replace needs is not "a query and a file" but
  * "a range and what goes in it", which is what lives here.
  *
- * **Not what P2x-1e deleted.** `textWithMatchesReplaced` and `ReplacedText` came off the port
+ * **Not what was deleted.** `textWithMatchesReplaced` and `ReplacedText` came off the port
  * because they took a *query* and re-ran the search, so a file changed in between would have been
  * rewritten against matches nobody saw. These take the matches themselves and refuse when the
  * document has moved on, which is the opposite arrangement.

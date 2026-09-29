@@ -29,7 +29,7 @@ abstract class NotebookRepositoryContract {
    * An edit is written where it can be read back, which is all a save owes.
    *
    * This used to assert the edit also moved the notebook to the top of Recents. That ordering was
-   * a property of Recents-as-a-scan and went with it in X2h; when a file was last written is now
+   * a property of Recents-as-a-scan and went with it; when a file was last written is now
    * `WorkspaceEntry.updatedAt`, and `WorkspaceRepositoryContract` holds every implementation to it.
    */
   @Test
@@ -63,10 +63,10 @@ abstract class NotebookRepositoryContract {
 
   /**
    * A rename answers with the **new** id, because it moves the file and the old one stops naming
-   * anything - the contract every implementation owes since X1b, fake and disk alike.
+   * anything - the contract every implementation owes, fake and disk alike.
    *
    * This used to assert the renamed notebook then sat at the top of Recents. That ordering was a
-   * property of Recents-as-a-scan and went with it in X2h; when a file was last written is now
+   * property of Recents-as-a-scan and went with it; when a file was last written is now
    * `WorkspaceEntry.updatedAt`, where `WorkspaceRepositoryContract` holds every implementation to
    * it. What is owed *here* is that the id moves, which is what the rest of the app resolves.
    */

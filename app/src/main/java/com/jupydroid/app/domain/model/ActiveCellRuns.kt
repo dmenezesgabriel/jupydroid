@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.update
  * **The moment matters, and it is the whole reason this exists rather than a counter inside the
  * gateway.** A run begins at the tap and the kernel starting is part of it: installing the Space,
  * starting `jupyter_server` and starting the kernel took fourteen seconds on the tablet before the
- * cell's first byte went anywhere (`evidence/p1c-app-death-backstop/`). A count that only rises
+ * cell's first byte went anywhere. A count that only rises
  * when output starts arriving says "nothing is running" for exactly the stretch that is slowest to
  * lose - which is how P1c's backstop came to kill a cell it was written to protect.
  *

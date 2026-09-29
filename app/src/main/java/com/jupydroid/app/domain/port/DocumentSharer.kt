@@ -19,8 +19,8 @@ interface DocumentSharer {
    * apps that can receive [mediaType].
    *
    * [mediaType] is the server's own rather than one derived from the extension, because the two
-   * disagree: a `markdown` export of a notebook with an image is `application/zip` named `.zip`
-   * (`evidence/p2j-2-export-formats/`).
+   * disagree: a `markdown` export of a notebook with an image is `application/zip` named `.zip`,
+   * measured on the tablet rather than assumed.
    */
   fun share(path: String, mediaType: String)
 }

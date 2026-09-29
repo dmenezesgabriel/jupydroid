@@ -16,7 +16,7 @@ import org.junit.Test
  *
  * One boolean today - `notebook:toggle-autoclosing-brackets`, universal across the notebook and
  * the plain file editor (`fileeditor:toggle-autoclosing-brackets-universal`,
- * `packages/fileeditor-extension/src/commands.ts:552-575`) - grown by P6c rather than replaced,
+ * `packages/fileeditor-extension/src/commands.ts:552-575`) - grown rather than replaced,
  * the way [RecentDocumentsRepository]'s port is.
  */
 abstract class EditorSettingsRepositoryContract {
@@ -25,7 +25,8 @@ abstract class EditorSettingsRepositoryContract {
   /**
    * Auto-closing brackets is on until told otherwise, matching what this app has always done -
    * a departure from the reference's own `default: false`
-   * (`packages/codemirror/src/extension.ts:636-644`), recorded in `docs/DECISIONS.md`.
+   * (`packages/codemirror/src/extension.ts:636-644`): on a soft keyboard `(` and `)` are two trips
+   * through the symbol row.
    */
   @Test
   fun defaultsToAutoClosingBracketsOn() = runTest {
@@ -39,8 +40,8 @@ abstract class EditorSettingsRepositoryContract {
    * feature, enable kernel history access in the notebook settings"*
    * (`docs/source/user/notebook.md:191`).
    *
-   * The first field here that keeps a reference default rather than departing from it - see
-   * `docs/DECISIONS.md` for why the two beside it do not.
+   * The first field here that keeps a reference default rather than departing from it; the two
+   * beside it depart because a soft keyboard changes the cost of the thing being defaulted.
    */
   @Test
   fun defaultsToKernelHistoryAccessOff() = runTest {
@@ -49,7 +50,7 @@ abstract class EditorSettingsRepositoryContract {
 
   /**
    * `notebook:toggle-all-cell-line-numbers` - on by default, matching what `EditorUiState` always
-   * defaulted to before P6c-2 moved this field out of per-notebook ViewModel state and into the
+   * defaulted to before this field moved out of per-notebook ViewModel state and into the
    * app-wide, persisted settings this repository owns.
    */
   @Test

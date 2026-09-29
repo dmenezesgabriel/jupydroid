@@ -27,7 +27,7 @@ abstract class LanguageServerPortContract {
     val capabilities = languageServer().capabilities(BASE_SPACE)
 
     // Every implementation states the capability surface honestly; the stub and the fake
-    // both declare completion support, which is the feature P5c plugs into.
+    // both declare completion support.
     assertTrue(capabilities.completionProvider)
   }
 
@@ -52,7 +52,7 @@ abstract class LanguageServerPortContract {
   }
 
   /**
-   * `textDocument/hover` on a symbol the document carries answers its `LanguageHover` - P5e-3.
+   * `textDocument/hover` on a symbol the document carries answers its `LanguageHover`.
    * Every implementation's default answers one: the scripted server's canned reply and the
    * fake's configured answer alike, since a null answer would only say "nothing is here" about
    * a document that plainly defines `x`.
@@ -69,7 +69,7 @@ abstract class LanguageServerPortContract {
   }
 
   /**
-   * `textDocument/signatureHelp` inside a call answers its `LanguageSignatureHelp` - P5e-4.
+   * `textDocument/signatureHelp` inside a call answers its `LanguageSignatureHelp`.
    * Every implementation's default answers like the probe's `join`: the scripted server's
    * canned reply and the fake's configured answer alike.
    */
@@ -85,7 +85,7 @@ abstract class LanguageServerPortContract {
   }
 
   /**
-   * `textDocument/definition` on a name the document defines answers `Location`s - P5e-5.
+   * `textDocument/definition` on a name the document defines answers `Location`s.
    * Every implementation's default answers one the probe's shape measured off real `pylsp`:
    * the scripted server's canned reply and the fake's configured answer alike, since an empty
    * answer would only say "nothing defines this" about a document that plainly defines
@@ -109,8 +109,8 @@ abstract class LanguageServerPortContract {
   }
 
   /**
-   * `textDocument/rename` on a name the document defines answers a `WorkspaceEdit` naming it -
-   * P5e-7. Every implementation's default answers like the probe's `documentChanges` reply:
+   * `textDocument/rename` on a name the document defines answers a `WorkspaceEdit` naming it.
+   * Every implementation's default answers like pylsp's measured `documentChanges` reply:
    * the scripted server's canned `TextDocumentEdit` and the fake's configured answer alike,
    * since an empty answer would only say "nothing to change" about a document that plainly
    * renames `compute_total`.

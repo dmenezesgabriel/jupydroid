@@ -4,7 +4,7 @@ import com.jupydroid.app.domain.model.TerminalSettings
 import kotlinx.coroutines.flow.Flow
 
 /**
- * The app-wide terminal preferences, persisted - `docs/PLAN.md` P4j-3c's font-size setting today,
+ * The app-wide terminal preferences, persisted - the font-size setting today,
  * grown the way [EditorSettingsRepository] is rather than folded into it (`domain/model/TerminalSettings.kt`).
  *
  * ```

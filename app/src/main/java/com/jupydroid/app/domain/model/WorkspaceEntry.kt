@@ -12,7 +12,7 @@ enum class WorkspaceEntryKind {
 /**
  * One thing in the workspace: a file or a directory, named by its path from the workspace root.
  *
- * The path is the identity, as it is for a notebook since X1b and as it is in JupyterLab, where a
+ * The path is the identity, as it is for a notebook and as it is in JupyterLab, where a
  * document is addressed by path throughout (`Contents.IModel.path`).
  *
  * @property name what the row shows - the last segment of [path]

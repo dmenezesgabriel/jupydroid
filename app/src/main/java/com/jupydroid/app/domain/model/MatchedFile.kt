@@ -29,7 +29,7 @@ data class MatchedFile(val path: String, val matches: List<MatchedLine>)
  * @property range where the match is **within [text]**, not within the file.
  * @property cell which cell of a notebook this is in, **zero-based** - `INotebookCellMatchNoModel`'s
  *   own `index` (`search/common/searchNotebookHelpers.ts:18-22`). Null in a plain file, which is
- *   every match there was before P2x-4.
+ *   every match a document-wide search would find.
  *
  *   **The index and not the cell's id, and that is a measurement rather than a preference.** The
  *   reference falls back to `rawCell#${index}` wherever there is no live cell model to ask
@@ -69,7 +69,7 @@ fun matchedLinesIn(text: String, regex: Regex): List<MatchedLine> = text.split("
  * default (`packages/notebook/src/searchprovider.ts:229-243`) and this app cannot yet land on an
  * output match from outside the notebook: what text an output shows is decided by
  * `ui/editor/RenderedOutput`, which `data` may not import, and `SearchHit.outputAt` indexes the
- * *rendered* outputs rather than the stored ones. `docs/DECISIONS.md` carries it.
+ * *rendered* outputs rather than the stored ones - see `GAP-001` in `docs/architecture.md` §11.
  *
  * ```
  * matchedCellsIn(notebook, Regex("cat"))   // [MatchedLine(1, "print(cat)", 6..8, cell = 1)]
