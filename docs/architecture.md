@@ -98,6 +98,7 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | `WorkspaceRepository` | list/read/write/rename/delete in the shared tree, and a change stream | `DiskWorkspaceRepository` |
 | `WorkspaceSearcher` | find a query across the whole tree, and replace it there | `DiskWorkspaceSearcher` |
 | `RecentDocumentsRepository` | what was opened, persisted outside the workspace | `DiskRecentDocumentsRepository` |
+| `SpaceRepository` | the Spaces on this device - list/create/rename/delete, as directories under `files/spaces/` (P3a) | `DiskSpaceRepository`, scanning the tree on every call |
 | `KernelGateway` | connect/execute/interrupt/restart/complete/history against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
 | `KernelDebugger` | DAP (`debug_request`/`debug_reply`) over the kernel's control channel - breakpoints, step/continue, call stack, variables | `RealKernelDebugger` over the same session's `KernelSockets`, behind `BaseSpaceKernelDebugger` |
 | `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
@@ -132,6 +133,13 @@ living inside one.
 ```
 Space(id, name, kernels: List<KernelSpec>)
 KernelSpec(name, displayName, language)
+
+// What a person configured about a Space, as against what its rootfs advertises - `Space` is the
+// identity a kernel and a server are keyed by, this is `files/spaces/<id>/config.json`. The id is
+// the directory's own name and is deliberately NOT in the file: the scan is the only source of it,
+// which is what makes `space-2` unable to disagree with the directory called `space-2`.
+SpaceConfig(id, name, created: Instant, pythonVersion,
+            requestedPackages: List<String>, extra: JsonObject)
 
 Notebook(id, title, kernelId, cells: List<Cell>, preserved: PreservedJson)
 Cell(id, kind, source, outputs, executionCount,

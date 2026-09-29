@@ -278,6 +278,48 @@ It is upstream behaviour rather than ours, so `step10-run-cell-real-kernel` asse
 `assertNotVisible: ".*MESSAGE TYPE.*"` after the run — instead of trusting that an ipykernel
 upgrade will keep it.
 
+### A Space is a directory, and its id comes from the scan (P3a)
+
+`SpaceRepository`'s whole model is Winlator's: containers are **enumerated off disk**, each from
+its own directory name, and `maxContainerId` is recomputed by that scan rather than stored
+(`container/ContainerManager.java:44-64`, `:98`). Two consequences are inherited on purpose - a gap
+is never filled, and deleting the highest id hands it back - and `SpaceConfigTest` pins both so a
+later "fix" has to argue with the reference rather than with a test nobody wrote down a reason for.
+
+**The id is `space-<n>`, not a slug of the name.** A Space's directory is what a kernel, a
+`jupyter_server` root and an open document all stand in, so a rename that moved it would have to
+move them too. The name lives in `config.json`; a rename writes one field and touches nothing else.
+Two Spaces may therefore share a name, exactly as two of the reference's containers may
+(`duplicateContainer` names a copy rather than refusing one).
+
+**The id is not stored in the file.** The reference writes `data.put("id", id)` in `saveData`
+(`Container.java:288`) and then has no `case "id"` in `loadData`'s key switch (`:314-388`) - the
+directory wins, and the stored copy is vestigial. Ours simply does not write it, so the two cannot
+disagree at all. `Notebook`/`NotebookFile` already split this way, the id coming from the path.
+
+**A directory with no readable `config.json` is still a Space**, read as `defaultSpaceConfig` - and
+this is not a tolerance, it is the normal case: every installed device has `files/spaces/base/`
+without a config, because the rootfs extraction made the directory and nothing has ever written one
+beside it. That is what lets P3a ship with no migration and no `BUNDLED_ROOTFS_VERSION` bump. The
+fallback is **field by field**, not whole-file: the first draft read a config missing
+`pythonVersion` as wholly default and so lost its *name*, which `DiskSpaceRepositoryTest`'s
+`aConfigStatingOnlySomeFieldsKeepsTheOnesItStates` now refuses. It is the same rule `EditorSettings`
+states for its own store - every stored field carries a default.
+
+**`extra` is a nested object, not nbformat-style retention.** `Container.extraData` is a named
+`JSONObject` round-tripped verbatim (`Container.java:370-373`, `:306`), and `config.json` is *ours*.
+`Notebook`'s parse-twice `PreservedJson` exists because nbformat is an **open** format that says so
+in its own types (every interface in `packages/nbformat/src/index.ts` extends `PartialJSONObject`);
+inventing that obligation for a file we define would be a second mechanism for one job.
+
+**`delete` refuses `base` in the repository, not in the screen.** It holds the 268 MiB rootfs every
+other Space shares and every open document runs against, and there is no undo. A screen can decline
+to draw the control; only the port can stop a second caller.
+
+**This forbids** storing an id inside `config.json`, deriving a directory name from a Space's name,
+moving a directory on rename, deleting `base` through any path, and reading a partially-stated
+config as wholly default.
+
 ### Packages land in the Space's own site, and pip is steered by environment, not flags (P8b)
 
 Alpine's Python ships `EXTERNALLY-MANAGED` (PEP 668), and PEP 668's own text settles the question
