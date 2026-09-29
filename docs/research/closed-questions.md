@@ -53,3 +53,20 @@ T=app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst
 zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server/services/kernels/connection/channels.py \
   | sed -n '155,170p;288,295p'
 ```
+
+### CLOSED-006 — Can `stty size` confirm the terminal resize reached the shell?
+
+**No — not in this rootfs.** `stty size` answers from a fixed default here rather than from a live
+`ioctl`, so it reports `25 80` whatever the pty is actually set to. An apparent 79-vs-80 column gap
+was chased on that reading and turned out to be the reply, not the pty: a genuine `ioctl` and a
+temporary probe both agree the pty, the local grid and the wire `set_size` were at the same value
+throughout.
+
+What proves a resize instead is `vi`'s own reflow — a full-screen program redrawing to the new
+width.
+
+### CLOSED-007 — Can a terminal re-attach replay only what was missed?
+
+**No.** terminado's `read_buffer` replays the **whole session**, not the tail since the client left.
+So a re-attach clears the local screen first and lets the replay rebuild it, rather than appending a
+second copy of everything to what is already drawn.

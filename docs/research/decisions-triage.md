@@ -25,8 +25,8 @@ The triage rule, applied entry by entry
 | Editor | 32 | no |
 | Architecture and UI | 116 | no |
 | Harness | 11 | **yes** |
-| Licences | prose | no |
-| Closed by measurement | 41 | partly — 5 preamble bullets are `CLOSED-001`–`005` |
+| Licences | prose | **yes** |
+| Closed by measurement | 41 + 5 bullets | **yes** |
 
 ## Runtime — 14 entries
 
@@ -68,3 +68,39 @@ eleven small files.
 | A layout assertion in dp measures the component's padding by accident | same |
 | A one-pane defect can need the tablet, not the phone | same |
 | The emulator the suite runs on is 320dp wide **and** density 160 | same |
+
+## Licences — prose, no entries
+
+| Source | Destination |
+|---|---|
+| the whole section | [ADR-0018](../adr/0018-transcribe-under-permissive-licences-clean-room-otherwise.md), summarised in `cross-cutting.md` §8.4. The clone commands moved to `docs/README.md` with the nine pinned SHAs |
+
+## Closed by measurement — 41 entries and 5 preamble bullets
+
+**The section was misnamed.** Five preamble bullets were genuine negative results; the 41 `###`
+entries below them were a mix of testing lessons, Compose gotchas, terminal-emulator implementation
+notes and a few real decisions.
+
+**The implementation notes were deleted rather than converted, and that is the rule working rather
+than a shortcut.** [ADR-0001](../adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)
+says a shipped mechanism's durable residue is an ADR *or a code comment*. Each of these was checked
+against the tree first and found already stated, usually in more detail, in the KDoc of the file it
+describes — for example `terminal/RowRing.kt`'s `resize` KDoc carries the transcript-clamp reasoning
+in full. Deleting the copy removes a second, staler statement of one fact.
+
+| Source entries | Destination |
+|---|---|
+| the 5 preamble bullets | `CLOSED-001`–`005` |
+| `stty size` answers from a fixed default in this rootfs | `CLOSED-006` |
+| terminado's `read_buffer` replays the whole session | `CLOSED-007` |
+| A live terminal's count cannot live inside the gateway that opened it | [ADR-0019](../adr/0019-an-activity-counter-lives-where-its-lifetime-matches.md) |
+| The ramp lives in `terminal/`, beside `REFERENCE`, not in `theme/EditorPalette` | [ADR-0020](../adr/0020-the-terminals-colour-ramp-lives-in-terminal.md) |
+| Restart Kernel stays off the Console for now | `GAP-009` in `architecture.md` §11 — an open gap, not a decision taken |
+| A giant multi-line `Text` cannot be asserted on · A `Canvas` carries no semantics of its own · Maestro cannot read the terminal's text · a pixel oracle reads the wrong pane · a seeding driver must not `clearState` · the first `inputText` races the IME connection · `assertNotVisible` on a generic label · a swipe starting on the keyboard · a differential that prints deltas | `cross-cutting.md` §8.6, *What a test here cannot do* |
+| An assertion that cannot fail · A caption is a claim · A change to shared chrome owes a re-run · A gate that reads prose | `cross-cutting.md` §8.6, the four standing rules |
+| The device gate needed a third kind of evidence, twice over | same — it is the "a green log is only half the evidence" rule |
+| `imePadding` pulls a sibling's height budget negative · `RowScope.weight` reads the direct child · `key(state.redraw)` was load-bearing · the IME inset was spent twice | `cross-cutting.md` §8.7, *Compose and Android gotchas* |
+| `RowRing.resize` clamps the transcript · a resize's cursor left unclamped · the dispatch guard decides when the alternate screen reflows · `GridCursor.clamped` is the shared tail · the resize-then-switch branch the differential excludes · a re-entry to the alternate screen was already blanking | **deleted** — already stated in `terminal/RowRing.kt`, `terminal/ScreenBuffers.kt` and `terminal/GridCursor.kt` |
+| The termcap table stops at what `DeviceControlStringTest` exercises · a malformed hex pair is skipped, not thrown · an anchor moved by a refactor is re-pointed | **deleted** — already stated in `terminal/DeviceControlString.kt` |
+| The terminal's own foreground/background/cursor are resolved | **deleted** — already stated in `terminal/TerminalPalette.kt`; the rule is ADR-0020 |
+| The reach point is a second icon, not a fourth item in New · the corner scale is transcribed · the plain file editor takes the notebook's breadcrumb · `lineNumbersShown` moves into persisted settings · a Settings screen's toggles are `Switch` rows · the launcher's cards carry their own surface | **deleted** — each already stated in the file it describes (`ui/shell/SearchOptionToggles.kt`, `ui/Breadcrumb.kt`, `domain/model/EditorSettings.kt`, and the launcher's own composables) |

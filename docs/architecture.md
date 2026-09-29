@@ -184,6 +184,9 @@ grep -rln "^Status: superseded" docs/adr/     # decisions that have been replace
 | [0015](adr/0015-rewrite-history-once-to-take-the-device-out-of-it.md) | Rewrite history once, before the first push, to take the device out of it | accepted |
 | [0016](adr/0016-name-every-gate-task-explicitly.md) | Name every gate task explicitly; never rely on an aggregate | accepted |
 | [0017](adr/0017-prune-stale-evidence-frames-from-a-per-flow-manifest.md) | Prune stale evidence frames from a per-flow manifest | accepted |
+| [0018](adr/0018-transcribe-under-permissive-licences-clean-room-otherwise.md) | Transcribe under permissive licences; clean-room everything else | accepted |
+| [0019](adr/0019-an-activity-counter-lives-where-its-lifetime-matches.md) | An activity counter lives wherever its lifetime matches the question | accepted |
+| [0020](adr/0020-the-terminals-colour-ramp-lives-in-terminal.md) | The terminal's colour ramp lives in `terminal/`, beside the code it serves | accepted |
 
 ## 10. Quality requirements
 
@@ -246,6 +249,23 @@ press *in the editor*. Ours has only the second.
 true today by grep and unguarded by any test —
 [§5.4](architecture/building-blocks.md). Extending `ArchitectureGuardTest` would go green immediately,
 which is exactly what a regression gate is for.
+
+### GAP-009 — Restart Kernel is not reachable from the Console
+
+Both `vscode-jupyter` and JupyterLab keep Restart on the console's own primary toolbar — unlike
+Interrupt, which neither exposes outside a menu or the palette — so its absence here is a real parity
+gap.
+
+It is not simply added because of cross-object staleness, not effort. `ConsoleViewModel` holds a
+`NotebookKernelSession` built by `NotebookKernel.attachConsole()`, which is a **second object**,
+merely constructed with the notebook's own live session *value* at that moment rather than a shared
+reference to it. A Console-side `restart` would genuinely restart the kernel process — both objects
+resolve the same session id — but the notebook's own `kernelRestarting`/`kernelConnected` state would
+never hear about it: no spinner, no "variables will be lost" warning, no staleness signal at all on
+the screen that owns the kernel's lifecycle. Restart is also meant to sit behind a confirmation,
+which a Console-side call would need its own copy of.
+
+Both are solvable; neither is a control-placement change.
 
 ### GAP-008 — The local gate does not compile `androidTest`
 

@@ -87,8 +87,13 @@ What may be copied is decided per reference, and it is load-bearing rather than 
 | sora-editor | LGPL-2.1 | **clean-room only**; a fork would stay LGPL-2.1, which answers the fork question with "no" |
 | Callisto | proprietary | **clean-room only** |
 
-One attribution point per file is the form this repo uses. The app carries no `NOTICE` file because
-it ships no `LICENSE` of its own yet.
+One attribution point per file is the form this repo uses, and a transcribed file names its upstream
+project and **pinned SHA** rather than a `reference/…` path. The app carries no `NOTICE` file because
+it ships no `LICENSE` of its own yet — a gap to close before publication, not a claim that none is
+needed.
+
+The decision and what it forbids are
+[ADR-0018](../adr/0018-transcribe-under-permissive-licences-clean-room-otherwise.md).
 
 busybox is built here rather than taken from Alpine, for a seccomp reason rather than a licence one —
 [ADR-0006](../adr/0006-build-busybox-here-with-suid-compiled-out.md).
@@ -154,11 +159,35 @@ Each of these passed against the wrong thing before it was written down.
 | **A layout assertion in dp measures the component's padding by accident** | "Two items fill the bar" read 312dp of 320dp and failed, the missing 8dp being `NavigationBar`'s own item gap. Assert the *relationship* the rule is about — the fraction of the bar between the two items' centres is 0.500 and 0.250, scale-free and padding-free |
 | **The 320dp emulator is not the only narrow device** | The one-pane windows here are two: the phone emulator at 320dp, and **the tablet rotated to portrait** at 800dp, which is above Material's 600dp boundary and which the phone cannot reach. A one-pane feature owes its second width a run before it is called shipped, exactly as a two-pane one owes the tablet |
 | **The emulator is 320dp wide *and* density 160**, and only the first is deliberate | A density-dependent assertion that passes there may not pass anywhere else |
+| **A giant multi-line `Text` cannot be asserted on** | Maestro full-matches a node's text, so a node carrying many lines matches nothing you can write |
+| **A `Canvas` carries no semantics of its own** | Nothing drawn on a canvas is in the semantics tree. A transparent `Text` per row is what makes the terminal readable to a test — and to TalkBack |
+| **Maestro's `visible:` and `extendedWaitUntil` cannot reliably read the terminal's text** | It is drawn, not composed. A pixel oracle reads it instead — and a pixel oracle tuned against one pane layout reads the wrong pane in another, so it takes the layout as a parameter |
+| **A seeding driver must not `clearState` after it seeds** | It throws away exactly what it just set up. The seed goes last, or the state goes with it |
+| **The first `inputText` after a terminal opens races the field's IME connection** | `waitForAnimationToEnd` does not cover it — the animation is over before the connection exists |
+| **`assertNotVisible` on a generic label is wrong once the label's owner moves** | The label reappears somewhere legitimate and the assertion fails, or it never appears and the assertion proves nothing. Assert on something the owner uniquely carries |
+| **A swipe that starts on the soft keyboard never reaches this app at all** | The gesture is consumed before it arrives. Start it above the keyboard |
+| **A differential that prints deltas measures neither side's baseline** | Two implementations can differ from each other identically at every step and both be wrong. Print both sides, not the gap |
 
 Each flow that cannot assert its own landing **says so in its own header** and names the two things
 that can. That is the working agreement's *"a green log is only half the evidence"* made concrete.
 
-## 8.7 Logging and observability
+## 8.7 Compose and Android gotchas, measured here
+
+Each of these cost a debugging session and none is obvious from the API.
+
+- **`imePadding` on a shared ancestor pulls a sibling's own height budget negative.** Two children
+  cannot each ask the same ancestor for the keyboard's height; the second one gets a negative
+  constraint. Spend the inset once, at the node that owns it.
+- **`RowScope.weight` reads parent data off the *direct* child**, not off whatever modifier a nested
+  composable was handed. A weight passed down through a wrapper silently does nothing.
+- **`key(...)` around a value that looks like churn can be load-bearing.** Removing a `key` on a
+  redraw token stopped a `Canvas` from recomposing at all; it looked like a pointless allocation and
+  was the only thing forcing the frame.
+- **`currentWindowAdaptiveInfo()` reads the *activity's* window**, which `DeviceConfigurationOverride`
+  does not change. Window width is a **parameter**, never measured inside a composable, or a test
+  that "forces a width" drives one branch twice while appearing to cover both.
+
+## 8.8 Logging and observability
 
 Structured JSON when logging for debugging or observability; plain text only for user-facing CLI
 output. `logcat` is captured as evidence but **never committed** — it is the whole device's log, and
