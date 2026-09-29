@@ -70,3 +70,23 @@ width.
 **No.** terminado's `read_buffer` replays the **whole session**, not the tail since the client left.
 So a re-attach clears the local screen first and lets the replay rebuild it, rather than appending a
 second copy of everything to what is already drawn.
+
+### CLOSED-008 — Does staging arm64 artefacts need an emulated arm64 container?
+
+**No.** The staging script once ran `patchelf` inside the **target-ABI** image, so staging arm64 on an
+x86_64 host needed `binfmt_misc` registered — an undocumented prerequisite that fails as
+`exec format error`.
+
+`patchelf` rewrites ELF headers and never executes the binary, so an x86_64 `patchelf` edits an aarch64
+ELF correctly. Measured: the loader it produces is **byte-identical by sha256** to one staged the old way.
+
+The ELFs now come from the tarball — which *is* a `docker export` of that image, so the bytes are the
+same — and `patchelf` runs in a host-architecture container. The script's old comment justified the old
+shape as editing *"binaries against the same libc that produced them"*, which is not what `patchelf`
+does; the real reason for a container is that the host needs no `patchelf` installed, and that is kept.
+
+### CLOSED-009 — Does a pseudoterminal work inside an Android app process?
+
+**Yes.** Probed on the device before the terminal was designed, so the phase's shape rested on a
+measurement rather than on hope. Nothing about `openpty`/`forkpty` under the app's seccomp filter needed a
+workaround.

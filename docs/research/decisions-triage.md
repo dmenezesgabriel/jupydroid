@@ -22,7 +22,7 @@ The triage rule, applied entry by entry
 |---|---|---|
 | Runtime | 14 | **yes** |
 | Protocol and behaviour | 28 | **yes** |
-| Editor | 32 | no |
+| Editor | 26 | **yes** |
 | Architecture and UI | 116 | no |
 | Harness | 11 | **yes** |
 | Licences | prose | **yes** |
@@ -133,3 +133,23 @@ across five files that all cite each other.
 | The table of contents is a panel where there is room · folds its own tree · Heading numbers go in the document · A heading a cell printed is an entry | [ADR-0037](../adr/0037-the-table-of-contents-is-two-presentations-of-one-derived-tree.md) |
 | A pty echoes, so "type X, read X back" proves nothing | `cross-cutting.md` §8.6, *What a test here cannot do* |
 | One `jupyter_server` per instrumentation run | same |
+
+## Editor — 26 entries
+
+The palette cluster is nine entries about one thing and becomes three ADRs; the search cluster is eight
+and becomes two. One entry was found **superseded** and is recorded as such rather than carried.
+
+| Source entry | Destination |
+|---|---|
+| The lexer is generated, never hand-written | [ADR-0038](../adr/0038-the-lexer-is-generated-never-hand-written.md) |
+| A Compose-native cell editor, not a WebView · Markdown renders natively — no WebView, no HTML · ANSI handling today is a stripper, not an emulator | [ADR-0039](../adr/0039-a-compose-native-cell-editor-not-a-webview.md) — the third becomes its Consequences: there are two ANSI paths on purpose, a regex stripper for tracebacks and a full VT emulator for the terminal |
+| The presentation reference is VS Code; the behaviour reference stays JupyterLab | [ADR-0040](../adr/0040-the-presentation-reference-is-vs-code-behaviour-stays-jupyterlab.md) |
+| The default VS Code theme is 2026 Dark / 2026 Light, not Dark Modern · The palette swap must be measured against the **cell** · Parity with the 2026 themes outranks the contrast floor | [ADR-0041](../adr/0041-parity-with-the-resolved-themes-outranks-the-contrast-floor.md) |
+| A search match is a wash · A link takes the string colour · The palette states its colours · One editor font, whatever the cell holds | [ADR-0042](../adr/0042-a-search-match-is-a-wash-and-the-palette-states-its-colours.md) |
+| **A match is drawn with its own foreground** | **superseded** by ADR-0042. It decided an opaque fill with a restated foreground — IntelliJ's backgrounds, JupyterLab's structure — and the wash replaced it. Its measurement (a keyword at 3.16:1 inside a match) is kept as ADR-0042's Context, because it is why the superseded decision was reasonable at the time |
+| A search query is a regular expression · Typing a query finds and counts · A match in rendered prose is counted and not lit · A replacement is two steps · The `output` filter searches what it can also show | [ADR-0043](../adr/0043-every-search-is-a-regex-and-typing-finds-without-moving.md) |
+| The find bar takes the notebook's bar · Reaching a cell reveals it - in two strengths · A `LazyColumn` needs the IME inset | [ADR-0044](../adr/0044-reaching-a-cell-reveals-it-in-two-strengths.md) |
+| A shell is reached through a path named `sh` | [ADR-0045](../adr/0045-a-shell-is-reached-through-a-path-named-sh.md) |
+| Staging needs no emulation, and patchelf never cared about the target architecture | `CLOSED-008` |
+| A pseudoterminal works on the device | `CLOSED-009` |
+| An emulator with a hardware keyboard cannot prove a phone's layout (and `wm size` is not a geometry) · A one-second `assembleDebug` looks exactly like a stale APK | `cross-cutting.md` §8.6, *What a test here cannot do* |
