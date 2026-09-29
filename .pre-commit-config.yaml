@@ -71,6 +71,15 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      # A comment cites something that still resolves in a fresh clone (ADR-0001). The baseline
+      # file is what let this land green on a tree where 507 files carried a retired citation;
+      # it only ever shrinks, and nothing may be added to it.
+      - id: doc-citations
+        name: a comment cites what still resolves
+        entry: python3 scripts/check_doc_citations.py
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: ktlint-check
         name: ktlint format check
         entry: scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck

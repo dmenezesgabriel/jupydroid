@@ -62,6 +62,48 @@ def without_comments(source: str) -> str:
     return "".join(out)
 
 
+
+def comments_only(source: str) -> str:
+    """Kotlin source with its *code* blanked to spaces and only its comments left.
+
+    The complement of [without_comments], sharing its scanner so the two cannot disagree about where
+    a comment starts. Offsets and line numbers are the ones [source] had, which is what lets a gate
+    report a line.
+
+    ```
+    comments_only('// why\\nval c = palette.cell')   # '// why\\n                   '
+    ```
+
+    Args:
+        source: the contents of one `.kt` file.
+
+    Returns:
+        The same text with every non-comment character replaced by a space, the same length as what
+        went in.
+    """
+    out: list[str] = []
+    at, end = 0, len(source)
+    while at < end:
+        rest = source[at:]
+        if rest.startswith("//"):
+            was = at
+            at = source.find("\n", at)
+            at = end if at < 0 else at
+            out.append(source[was:at])
+        elif rest.startswith("/*"):
+            was = at
+            at = _past_block_comment(source, at)
+            out.append(source[was:at])
+        elif rest.startswith('"""') or source[at] in '"\'':
+            was = at
+            at = _past_literal(source, at)
+            out.append(_blanked(source[was:at]))
+        else:
+            out.append("\n" if source[at] == "\n" else " ")
+            at += 1
+    return "".join(out)
+
+
 def _blanked(comment: str) -> str:
     """One comment as the whitespace that stands in for it, its own newlines kept."""
     return "".join("\n" if char == "\n" else " " for char in comment)
