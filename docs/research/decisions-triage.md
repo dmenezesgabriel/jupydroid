@@ -2,7 +2,8 @@
 
 `docs/DECISIONS.md` held 228 entries under 7 themes, with no ids, no dates and no status field. This
 file is the audit trail for splitting it, so that nothing was dropped silently and the pass is
-reviewable. It is deleted once the migration is complete and the source file is gone.
+reviewable. `docs/DECISIONS.md` is now gone, and this file is the record of where its 228 entries went. It is kept
+until the code sweep that removes the last citations of it is finished, then deleted with them.
 
 The triage rule, applied entry by entry
 ([ADR-0001](../adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)):
@@ -23,7 +24,7 @@ The triage rule, applied entry by entry
 | Runtime | 14 | **yes** |
 | Protocol and behaviour | 28 | **yes** |
 | Editor | 26 | **yes** |
-| Architecture and UI | 116 | no |
+| Architecture and UI | 107 | **yes** |
 | Harness | 11 | **yes** |
 | Licences | prose | **yes** |
 | Closed by measurement | 41 + 5 bullets | **yes** |
@@ -153,3 +154,41 @@ and becomes two. One entry was found **superseded** and is recorded as such rath
 | Staging needs no emulation, and patchelf never cared about the target architecture | `CLOSED-008` |
 | A pseudoterminal works on the device | `CLOSED-009` |
 | An emulator with a hardware keyboard cannot prove a phone's layout (and `wm size` is not a geometry) · A one-second `assembleDebug` looks exactly like a stale APK | `cross-cutting.md` §8.6, *What a test here cannot do* |
+
+## Architecture and UI — 107 entries
+
+The largest section, and the one where clustering matters most. Twenty ADRs, two gaps, five testing limits,
+one supersession, and the rest deleted as duplicates of code comments — each verified against the tree first.
+
+| Source entries | Destination |
+|---|---|
+| The two-pane layout is `ListDetailSceneStrategy` · The breakpoints, so 840dp is not a magic number · Window width is a parameter | [ADR-0047](../adr/0047-two-panes-start-at-expanded-and-the-scene-strategy-keeps-every-entry.md) |
+| Touch rules, and the two that cost something to learn · A touch target is reserved space | [ADR-0048](../adr/0048-touch-rules-measured-on-device.md) |
+| A gap has a name · Material's type scale is taken whole · Code is drawn at one size | [ADR-0049](../adr/0049-a-gap-has-a-name-and-the-type-scale-is-taken-whole.md) |
+| Reads may hit the repository · `notebook:trust` is inert here | [ADR-0050](../adr/0050-reads-hit-the-repository-server-side-algorithms-do-not.md) |
+| An export is named by the server · The export menu offers what was measured · The format list is fetched when the picker opens · An export lands beside the notebook · A file leaves the app through a grant | [ADR-0051](../adr/0051-an-export-is-named-by-the-server-and-the-menu-offers-what-was-measured.md) |
+| Kernel history is the kernel's · access is off by default · the history keys go on the symbol row · a history walk belongs to the cell it started in | [ADR-0052](../adr/0052-kernel-history-is-the-kernels-and-a-walk-belongs-to-its-cell.md) |
+| A cell at rest carries no mark · The editor's border is the cell's boundary · The prompt is the reference's · The document's name has a row of its own · The heading caret belongs to the heading | [ADR-0053](../adr/0053-a-cell-at-rest-carries-no-mark-and-the-editor-border-is-the-boundary.md) |
+| The side panel reads a model the document publishes · The table of contents is a sidebar panel of the shell · 840dp stays, and the rail is what settles it | [ADR-0054](../adr/0054-the-shell-has-one-side-area-and-the-activity-bar-sits-beside-it.md) |
+| **One pane grows no navigation bar (P2o-4)** | **superseded** by ADR-0055. Its reasoning — two destinations is below Material's floor — is kept as that ADR's Context, because it is why the earlier decision was reasonable. What overturned it was a measured gap: the 600–840dp band would have had neither control |
+| The bar is drawn wherever the shell draws one pane · two destinations · drawn over the panel · items carry no visible text · does not collapse · a one-pane window keeps a panel · Back reaches the start destination · the bar's arrangement | [ADR-0055](../adr/0055-the-bottom-bar-is-drawn-wherever-the-shell-draws-one-pane.md) |
+| The bar names the active cell's type · The overflow is the toolbar's popup opener · The kernel indicator is right of Find | [ADR-0056](../adr/0056-the-notebooks-action-row-is-a-reactive-toolbar.md) |
+| The cell keeps its header strip, and VS Code's run gutter is declined | [ADR-0057](../adr/0057-the-cell-keeps-its-header-strip-and-the-run-gutter-is-declined.md) |
+| The chrome ramp is VS Code's · The notebook's breadcrumb is ancestors only | [ADR-0058](../adr/0058-the-breadcrumb-is-ancestors-only-and-the-chrome-ramp-is-vs-codes.md) |
+| Many documents live in the stack · The strip owns the name · The Launcher is a document-area destination | [ADR-0059](../adr/0059-many-documents-live-in-the-stack-and-a-tab-is-an-ordering.md) |
+| The glob language is transcribed · The three things a workspace walk declines · A notebook is searched as its cells · The fourth kind of file · VS Code searches a closed notebook as JSON | [ADR-0060](../adr/0060-workspace-search-transcribes-the-glob-language-and-declines-three-files.md) |
+| Replace across files goes through the editor's model · The open-document registry is one document · A replace-all empties the tree · An undo brings the results back · The undo sits beside the report · `truncateValue` is declined · `find_replace` reads as refresh · Replace All is drawn disabled | [ADR-0061](../adr/0061-replace-across-files-goes-through-the-open-documents-model.md) |
+| The activity bar's order takes both references · A one-pane window draws the browser | [ADR-0062](../adr/0062-the-activity-bars-order-takes-both-references.md) |
+| Kernel choice is `selectKernel`'s dialog and a `PATCH` | [ADR-0063](../adr/0063-kernel-choice-is-a-dialog-and-a-patch-on-the-session.md) |
+| A file's name is its identity | [ADR-0064](../adr/0064-a-files-name-is-its-identity.md) |
+| The kernel's name goes before its status does · Active kernel states are solid · The indicator can read *Idle* for a stopped kernel | [ADR-0065](../adr/0065-the-kernel-indicator-shows-status-first-and-solid-means-active.md) |
+| A transcription of an algorithm is diffed against it, not reviewed against it | [ADR-0046](../adr/0046-a-transcription-is-diffed-against-its-source-not-reviewed.md) |
+| Cell outputs are not searched from the workspace panel | `GAP-001` |
+| The indicator can read *Idle* — the server-generation signal | `GAP-010` |
+| The running panel is JupyterLab's "Sessions and Tabs" | `GAP-011` |
+| A dialog row can draw fully and still be unreachable — the `AlertDialog` scroll range and `minimumInteractiveComponentSize` inflating semantics bounds | `cross-cutting.md` §8.7, *Compose and Android gotchas* |
+| Maestro text selectors are `Regex.matches`, full-string | `cross-cutting.md` §8.6, *What a test here cannot do* |
+| One object owns the Space's server · `SearchQuery` lives in `domain/model` | `architecture/building-blocks.md` §5.3, which already states both |
+| A listing in flight could overwrite where the browser had just gone · A `LaunchedEffect` must not be keyed on what it changes | **deleted** — already stated in `Navigation.kt` |
+| The option toggles are drawn as type · A toggle's on state is a wash · A toggle is walked at once · The replace toggle · The search panel is one scrolling surface · A glob heading is drawn and cleared · The details open focused · Opening a result lands on the match · The cell is named in the row's label | **deleted** — already stated in `ui/shell/SearchSidePanel.kt`, `ui/shell/SearchScopeBoxes.kt`, `ui/shell/SearchResults.kt` (lines 202-216 carry the rule with its `searchResultsView.ts` citation and the one-based/zero-based note) and `domain/model/MatchedFile.kt` |
+| the 26-entry terminal-emulator cluster — storage and parser are two steps · a selection takes a wide character whole · `TerminalGrid` is three classes · `RowText` is the seam · `decodeEffect` reads two bits · `CharacterWidthRanges` is packed · DEC Special Graphics `d` and `h` · SGR is P4f-2's · `58` and `59` are parsed and thrown away · a final byte is swallowed · the differential's state dump · the screen is three classes · two `ESC` sequences · two P4f-3b behaviours · an erase blanks to the colours in force · a mode "save" · the scrollback belongs to the main screen · backspace tests `>` · exactly two C0 controls · `RefScreen` reports what the notices carried · the colour defaults are a constructor argument · `OSC 104` is fixed · a wrapped clipboard payload · a part draws its own border · a palette-consumer gate that reads comments | **deleted** — each verified present, usually in more detail, in the KDoc of the file it describes: `terminal/EscapeParser.kt`, `terminal/GridReflow.kt`, `terminal/TerminalScreen.kt`, `terminal/ScreenBuffers.kt`, `terminal/SelectiveErasing.kt`, `terminal/SavedCursor.kt`, `terminal/TerminalPalette.kt`, `terminal/TerminalColors.kt`, `terminal/OperatingSystemCommand.kt`, `terminal/CharacterWidthRanges.kt`, `terminal/TerminalRow.kt`, `terminal/LineDrawingCharset.kt` and `test/.../CellStyleTest.kt`. The gate-reads-comments entry is already `cross-cutting.md` §8.6's fourth standing rule |

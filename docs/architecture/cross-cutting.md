@@ -172,6 +172,7 @@ Each of these passed against the wrong thing before it was written down.
 | **An emulator with a hardware keyboard cannot prove a phone's layout** | A flow green on `dev36` failed on the tablet, and the assertion was not what was wrong: opening a markdown editor takes the caret, the soft keyboard comes up, and it covered the cell the frame compared against. `dev36` has a hardware keyboard, so nothing ever came up. Any flow that opens an editor and then looks *below* it must `hideKeyboard` |
 | **`wm size` is not a geometry on its own** | It sets the *natural* orientation's resolution, so `1080x2400` on an auto-rotated tablet came out `2400x1080` — a landscape two-pane shell, which is not the layout being measured. A driver that overrides the window must also lock rotation and restore it on exit |
 | **A one-second `assembleDebug` looks exactly like a stale APK** | Gradle's build cache returns a previously-compiled variant in about a second, indistinguishable from "nothing was rebuilt" in the log. For a **before/after** pair that difference is the whole evidence: a `before` frame captured from an `after` APK is green, identical to its neighbour, and worthless. A paired capture **verifies the artefact first** — `unzip -p app-debug.apk classesN.dex \| strings \| grep -c <symbol the change deletes>`, which is the only thing standing between a cached build and a fabricated pair |
+| **Maestro text selectors are `Regex.matches` — full-string, never substring** | `maestro/Filters.textMatches`. A row titled `Provider.ipynb (28d1cb31)` is not matched by `text: "Provider.ipynb"`, and the tap lands on whatever *is* an exact match — in one case the file-list row behind the dialog. A row carrying a generated suffix needs the trailing `.*`. **An assertion that goes red on a row visible in the screenshot should have its selector suspicion-checked before the layout is** |
 
 Each flow that cannot assert its own landing **says so in its own header** and names the two things
 that can. That is the working agreement's *"a green log is only half the evidence"* made concrete.
@@ -188,6 +189,16 @@ Each of these cost a debugging session and none is obvious from the API.
 - **`key(...)` around a value that looks like churn can be load-bearing.** Removing a `key` on a
   redraw token stopped a `Canvas` from recomposing at all; it looked like a pointless allocation and
   was the only thing forcing the frame.
+- **An `AlertDialog`'s text slot clips at its own bound, so a `Column` + `verticalScroll` inside it produces
+  no scroll range.** The overflow draws inside the dialog surface, the node reports `scrollable=false`, and no
+  gesture — nor `scrollUntilVisible` — can move it. A `LazyColumn` bounded below the slot turns overflow into a
+  real scroll range and lets off-edge items compose by scrolling.
+- **`minimumInteractiveComponentSize` inflates the *semantics* bounds, not the layout.** A `selectable` row
+  shorter than 48dp is padded to the touch minimum **inside its semantics node only**. Interior rows inflate
+  into a neighbour unnoticed; the last row's inflation crosses the list's clip and is reported **not visible to
+  accessibility while every pixel shows**. `heightIn(min = 48.dp)` on the row makes the layout bounds the same
+  as the announced ones. **This forbids** any `selectable`/`clickable` row in a scrollable dialog that relies on
+  the semantic padding to look tappable.
 - **`currentWindowAdaptiveInfo()` reads the *activity's* window**, which `DeviceConfigurationOverride`
   does not change. Window width is a **parameter**, never measured inside a composable, or a test
   that "forces a width" drives one branch twice while appearing to cover both.

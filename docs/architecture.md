@@ -212,6 +212,26 @@ grep -rln "^Status: superseded" docs/adr/     # decisions that have been replace
 | [0043](adr/0043-every-search-is-a-regex-and-typing-finds-without-moving.md) | Every search is a regex, and typing finds without moving the notebook | accepted |
 | [0044](adr/0044-reaching-a-cell-reveals-it-in-two-strengths.md) | Reaching a cell reveals it, in two strengths, and the search bar takes the notebook's | accepted |
 | [0045](adr/0045-a-shell-is-reached-through-a-path-named-sh.md) | A shell is reached through a path named `sh`, and all 304 applets with it | accepted |
+| [0046](adr/0046-a-transcription-is-diffed-against-its-source-not-reviewed.md) | A transcription of an algorithm is diffed against its source, not reviewed | accepted |
+| [0047](adr/0047-two-panes-start-at-expanded-and-the-scene-strategy-keeps-every-entry.md) | Two panes start at expanded, and the scene strategy keeps every entry an entry | accepted |
+| [0048](adr/0048-touch-rules-measured-on-device.md) | Touch rules, and the four that cost something to learn | accepted |
+| [0049](adr/0049-a-gap-has-a-name-and-the-type-scale-is-taken-whole.md) | A gap has a name, and Material's type scale is taken whole where its colours are not | accepted |
+| [0050](adr/0050-reads-hit-the-repository-server-side-algorithms-do-not.md) | Reads may hit the repository; server-side algorithms may not be re-implemented | accepted |
+| [0051](adr/0051-an-export-is-named-by-the-server-and-the-menu-offers-what-was-measured.md) | An export is named by the server, and the menu offers what was measured | accepted |
+| [0052](adr/0052-kernel-history-is-the-kernels-and-a-walk-belongs-to-its-cell.md) | Kernel history is the kernel's, and a walk belongs to the cell it started in | accepted |
+| [0053](adr/0053-a-cell-at-rest-carries-no-mark-and-the-editor-border-is-the-boundary.md) | A cell at rest carries no mark, and the editor's border is the cell's boundary | accepted |
+| [0054](adr/0054-the-shell-has-one-side-area-and-the-activity-bar-sits-beside-it.md) | The shell has one side area, and the activity bar sits beside the whole thing | accepted |
+| [0055](adr/0055-the-bottom-bar-is-drawn-wherever-the-shell-draws-one-pane.md) | The bottom bar is drawn wherever the shell draws one pane | accepted |
+| [0056](adr/0056-the-notebooks-action-row-is-a-reactive-toolbar.md) | The notebook's action row is a `ReactiveToolbar`, and the overflow is its popup opener | accepted |
+| [0057](adr/0057-the-cell-keeps-its-header-strip-and-the-run-gutter-is-declined.md) | The cell keeps its header strip, and VS Code's run gutter is declined | accepted |
+| [0058](adr/0058-the-breadcrumb-is-ancestors-only-and-the-chrome-ramp-is-vs-codes.md) | The breadcrumb is ancestors only, and the chrome ramp is VS Code's | accepted |
+| [0059](adr/0059-many-documents-live-in-the-stack-and-a-tab-is-an-ordering.md) | Many documents live in the back stack; a tab is an ordering, not a screen | accepted |
+| [0060](adr/0060-workspace-search-transcribes-the-glob-language-and-declines-three-files.md) | Workspace search transcribes the glob language and declines three kinds of file | accepted |
+| [0061](adr/0061-replace-across-files-goes-through-the-open-documents-model.md) | Replace across files goes through the open document's model, not the filesystem | accepted |
+| [0062](adr/0062-the-activity-bars-order-takes-both-references.md) | The activity bar's order takes both references, and neither could state it alone | accepted |
+| [0063](adr/0063-kernel-choice-is-a-dialog-and-a-patch-on-the-session.md) | Kernel choice is `selectKernel`'s dialog and a `PATCH` on the session | accepted |
+| [0064](adr/0064-a-files-name-is-its-identity.md) | A file's name is its identity | accepted |
+| [0065](adr/0065-the-kernel-indicator-shows-status-first-and-solid-means-active.md) | The kernel indicator keeps its status when the name goes, and solid means active | accepted |
 
 ## 10. Quality requirements
 
@@ -274,6 +294,27 @@ press *in the editor*. Ours has only the second.
 true today by grep and unguarded by any test —
 [§5.4](architecture/building-blocks.md). Extending `ArchitectureGuardTest` would go green immediately,
 which is exactly what a regression gate is for.
+
+### GAP-010 — No server-generation signal reaches the editor
+
+The kernel indicator can read *Idle* for a kernel the idle stopper has already stopped, for exactly one
+window: backgrounded past the grace, returned, nothing run yet. It corrects itself on the next run — the
+stale session is refused, `NotebookKernelSession.reopeningIfStale` drops it, and the status falls to
+`STARTING` ([ADR-0065](adr/0065-the-kernel-indicator-shows-status-first-and-solid-means-active.md)).
+
+The honest fix is a **server-generation signal reaching the editor**, which `BaseSpaceServer` already
+counts. That is a new port surface rather than a UI patch, which is why it is recorded here.
+
+### GAP-011 — The running panel has no kernel half
+
+JupyterLab's `running-extension` registers one left-area panel at **rank 200** — between File Browser 100
+and Command Palette 300, which is where `SidePanel.RUNNING` sits. Its stock sections are **Open Tabs**
+(`labShell.widgets('main')`), **Kernel Sessions** (`GET /api/sessions`, per-row shutdown, "Shut Down All",
+"Shut Down Unused" for kernels with no connections), and **Terminals** (`GET /api/terminals`).
+
+`TerminalGateway.running()` already exists; the kernel half needs `GET /api/sessions`, which the kernel
+lifecycle does not yet expose. A kernel shut down under an open notebook leaves the notebook showing "No
+Kernel", exactly as the reference's own `selectKernel`-adjacent state does.
 
 ### GAP-009 — Restart Kernel is not reachable from the Console
 
