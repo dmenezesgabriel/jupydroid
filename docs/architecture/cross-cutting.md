@@ -8,79 +8,48 @@ had moved by the time it was next read. A symbol name survives a refactor; `Spac
 
 ## 8.1 The exec model
 
-This is the single most load-bearing constraint in the app, and everything in `data/space/` is shaped
-by it.
+**The single most load-bearing constraint in the app.** A `targetSdk 36` app cannot `execve` anything
+under `filesDir`: AOSP's SELinux policy removed `execute_no_trans` from app data files and kept
+`execute`, so `dlopen()` and `mmap(PROT_EXEC)` are allowed and `execve()` is not.
 
-**A `targetSdk 36` app cannot `execve` anything under `filesDir`.** AOSP's SELinux policy removed
-`execute_no_trans` from app data files and kept `execute`:
+So **anything that must be executed ships in `jniLibs/<abi>/` and is reached through a symlink from
+the rootfs**, because the platform extracts `jniLibs` with SELinux context `apk_data_file`, where
+execution is permitted. Four ELFs ship this way and four rootfs paths are relinked into
+`nativeLibraryDir` on **every launch**, because that directory moves on every app update:
 
-| Operation on a file in `filesDir`, targetSdk ≥ 29 | Allowed? |
-|---|---|
-| `execve()` — needs `execute_no_trans` | **blocked** |
-| `dlopen()` / `mmap(PROT_EXEC)` — needs `execute` | allowed |
-
-**So anything that must be executed ships in `jniLibs/<abi>/` and is reached through a symlink from
-the rootfs.** Android extracts `jniLibs` to `/data/app/…/lib/<abi>/` with SELinux context
-`apk_data_file`, where execution is permitted; the kernel resolves the symlink and checks the
-*target's* context.
-
-Four ELFs ship this way, and four rootfs paths are relinked into `nativeLibraryDir` on every launch,
-because that directory moves on every app update:
-
-| Rootfs path | Native library | Why |
+| Rootfs path | Native library | Reached by |
 |---|---|---|
-| `lib/ld-musl-<arch>.so.1` (`SpaceAbi.loaderLinkPath`) | `libloader.so` | every ELF's `PT_INTERP` names it |
+| `lib/ld-musl-<arch>.so.1` (`SpaceAbi.loaderLinkPath`) | `libloader.so` | every ELF's `PT_INTERP` |
 | `bin/busybox` (`BusyBoxApplets`) | `libbusybox.so` | the shell and its applet links |
-| `usr/bin/python3.12` (`BaseSpaceInstaller.INTERPRETER_PATH`) | `libpython3.so` | so the *shell* can run `python3`; the kernel never needed it, being exec'd from `nativeLibraryDir` directly |
-| `bin/shebang-exec` (`ConsoleScripts`) | `libshebang.so` | a `#!` console script cannot be exec'd out of `filesDir` either, so `pip`, `jupyter`, `ipython`, `pylsp` and the rest link from `usr/local/bin` to a trampoline that reads the shebang the kernel will not and execs the interpreter |
+| `usr/bin/python3.12` (`BaseSpaceInstaller.INTERPRETER_PATH`) | `libpython3.so` | the shell running `python3` |
+| `bin/shebang-exec` (`ConsoleScripts`) | `libshebang.so` | `usr/local/bin/{pip,jupyter,ipython,pylsp,…}` |
 
-`libloader.so` and `libpython3.so` are patched at build time by `tools/rootfs/stage-app-artifacts.sh`:
+A `#!` script has no ELF to point a symlink at, so `bin/shebang-exec` reads the shebang the kernel
+will not and execs the interpreter. `SpaceRuntime` sets `PATH` to
+`pkgs/bin:usr/local/bin:usr/bin:bin` under the Space root, which is why the trampoline is reached
+from `usr/local/bin` and not from `bin/`, where the image's own names would shadow it.
 
-```
-patchelf --set-interpreter /data/data/com.jupydroid.app/files/spaces/base/lib/ld-musl-aarch64.so.1 \
-         --set-rpath      /data/data/com.jupydroid.app/files/spaces/base/usr/lib:…/lib \
-         libpython3.so
-```
-
-`PT_INTERP` names a **rootfs** path because `/data/data/<pkg>` is stable and `nativeLibraryDir` is
-not; `BaseSpaceInstaller.linkLoaderToNativeLibrary` points that path at the native library on every
-launch.
-
-**The trampoline is `bin/shebang-exec`, not `bin/python3`, and `PATH` order is why.**
-`SpaceRuntime` sets `PATH` to `pkgs/bin:usr/local/bin:usr/bin:bin` under the Space root, so a name in
-`bin/` is shadowed by the one the image ships and would never be reached. `shebang-exec` is **static**,
-which makes it the one shipped ELF `stage-app-artifacts.sh` does not patch.
-
-**There is a second reason a rootfs file cannot be run, and the two are not interchangeable.**
-`TarZstdExtractor` sets **no executable bit** on anything it unpacks — deliberately, since the rootfs
-is otherwise only read and `mmap`'d — so EACCES can follow from the permission alone without the
-SELinux rule ever being reached. Which one binds was measured rather than reasoned about:
-`PythonInterpreterDeviceTest.aScriptUnderFilesDirIsRefusedEvenWithItsExecutableBitSet` writes a script
-into `filesDir`, `chmod 0755`s it, and it is **still refused, rc=126**. So the table above is the
-binding rule and a permission fix reaches nothing. For an ELF a symlink settles both at once; for a
-*script* there is no ELF to point at, which is what the trampoline exists for.
-
-**This forbids:** proot, chroot, `LD_PRELOAD` exec interceptors, `/system/bin/linker64` tricks, a
-targetSdk downgrade, and the NDK — nothing is compiled here, we ship prebuilt ELFs. It also means
-**every new tool costs an ABI-sized ELF in `jniLibs/`**.
-
-A targetSdk downgrade to 28 is what Winlator and Termux do; it lands an app in SELinux's
-`untrusted_app_27` domain, which still carries `execute_no_trans`, and would make the whole rootfs
-executable. It is declined on **distribution**, not on technology: Google Play requires existing apps
-to target API 35+ and new apps and updates API 36, so at 28 this app could not be published or
-updated there. Termux and Winlator both ship off-Play.
+The decision, the options weighed, and what it forbids — proot, chroot, `LD_PRELOAD` exec
+interceptors, a `targetSdk` downgrade and the NDK — are in
+[ADR-0002](../adr/0002-ship-executables-in-jnilibs-and-reach-them-by-symlink.md). Why the userland is
+musl and why only arm64 ships a runtime is
+[ADR-0003](../adr/0003-musl-not-glibc-and-arm64-only-at-runtime.md).
 
 ## 8.2 Sandbox fidelity — SIGSYS
 
-Android's app seccomp filter refuses a syscall with `SECCOMP_RET_TRAP`, which raises **SIGSYS**.
-Nothing in a musl process handles SIGSYS, so the default action — terminate — applied. The kernel has
-*already* made the refused call return `-ENOSYS` by the time the signal is delivered, so a handler
-that reports and **returns** is enough: numpy and scipy then import and compute correctly, under
-threads and BLAS. The full measurement is in
-[`../research/android-sandbox-fidelity.md`](../research/android-sandbox-fidelity.md).
+Android's app seccomp filter refuses a syscall with `SECCOMP_RET_TRAP`, which raises **SIGSYS**, and
+an unhandled SIGSYS terminates the process. The kernel has *already* made the refused call return
+`-ENOSYS` by the time the signal is delivered, so `tools/rootfs/sigsys_report.c` installs a handler
+that reports and **returns** — and numpy and scipy then import and compute correctly, in-process,
+under threads and BLAS.
 
-Residual: a refused syscall that a package genuinely *needs* is still fatal. Bounded and observable,
-because refusals are reported.
+Three preloads ship, wired through `SpaceRuntime.PRELOADS`: `libsigsys_report.so`,
+`libmusl_at_shim.so` (arm64-absent syscalls musl still issues) and `libgetaddrinfo_shim.so`
+([ADR-0005](../adr/0005-interpose-getaddrinfo-rather-than-redirect-resolv-conf.md)).
+
+The decision is [ADR-0004](../adr/0004-handle-sigsys-and-return.md); the full reasoning, including
+the argument it overturned, is [`../research/android-sandbox-fidelity.md`](../research/android-sandbox-fidelity.md).
+Residual risk is `GAP-003`.
 
 ## 8.3 Which reference answers which question
 
@@ -120,6 +89,9 @@ What may be copied is decided per reference, and it is load-bearing rather than 
 
 One attribution point per file is the form this repo uses. The app carries no `NOTICE` file because
 it ships no `LICENSE` of its own yet.
+
+busybox is built here rather than taken from Alpine, for a seccomp reason rather than a licence one —
+[ADR-0006](../adr/0006-build-busybox-here-with-suid-compiled-out.md).
 
 ## 8.5 Design tokens
 
