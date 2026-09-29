@@ -181,6 +181,9 @@ grep -rln "^Status: superseded" docs/adr/     # decisions that have been replace
 | [0012](adr/0012-ship-the-rootfs-as-zstd.md) | Ship the rootfs as zstd, because the decoder was the floor | accepted |
 | [0013](adr/0013-ship-bytecode-invalidated-by-checked-hash.md) | Ship bytecode in the image, invalidated by `checked-hash` | accepted |
 | [0014](adr/0014-uninstall-rfc3987-syntax-from-the-image.md) | Uninstall `rfc3987-syntax` from the image, rather than removing it from the lock | accepted |
+| [0015](adr/0015-rewrite-history-once-to-take-the-device-out-of-it.md) | Rewrite history once, before the first push, to take the device out of it | accepted |
+| [0016](adr/0016-name-every-gate-task-explicitly.md) | Name every gate task explicitly; never rely on an aggregate | accepted |
+| [0017](adr/0017-prune-stale-evidence-frames-from-a-per-flow-manifest.md) | Prune stale evidence frames from a per-flow manifest | accepted |
 
 ## 10. Quality requirements
 
@@ -243,6 +246,23 @@ press *in the editor*. Ours has only the second.
 true today by grep and unguarded by any test —
 [§5.4](architecture/building-blocks.md). Extending `ArchitectureGuardTest` would go green immediately,
 which is exactly what a regression gate is for.
+
+### GAP-008 — The local gate does not compile `androidTest`
+
+Measured, not reasoned about: an instrumented test file with an unresolved reference survived the
+whole documented gate — `ktlintCheck`, the three named source-set checks, `detekt`, `lintDebug`,
+`testDebugUnitTest`, `assembleDebug` — with `BUILD SUCCESSFUL`. The next `connectedDebugAndroidTest`
+failed at `compileDebugAndroidTestKotlin` with `Unresolved reference`.
+
+**Every task in that list stops short of the source set.** `assembleDebug` compiles `main`;
+`testDebugUnitTest` compiles `test`; `ktlintAndroidTestSourceSetCheck` is a *formatter*, and a
+formatter parses without resolving. The pre-commit hooks inherit the gap, since they run the same
+tasks.
+
+The cost is bounded: a broken instrumented test cannot reach a device, so it fails loudly at the next
+`connectedDebugAndroidTest` rather than passing quietly. But it fails **after** a 7-minute device run
+has been queued, and a commit can carry it. `compileDebugAndroidTestKotlin` is the one task that
+closes it, and it takes seconds.
 
 ### GAP-007 — The execution stall is parked, not closed
 

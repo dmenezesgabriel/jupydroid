@@ -24,7 +24,7 @@ The triage rule, applied entry by entry
 | Protocol and behaviour | 36 | no |
 | Editor | 32 | no |
 | Architecture and UI | 116 | no |
-| Harness | 11 | no |
+| Harness | 11 | **yes** |
 | Licences | prose | no |
 | Closed by measurement | 41 | partly — 5 preamble bullets are `CLOSED-001`–`005` |
 
@@ -49,3 +49,22 @@ The triage rule, applied entry by entry
 
 Dates on these ADRs are the date the decision first appeared in `DECISIONS.md`, recovered with
 `git log --format=%cs -S'<phrase>' --reverse -- docs/DECISIONS.md`, not the date of the migration.
+
+## Harness — 11 entries
+
+Mostly testing lessons rather than decisions, so most consolidate into one place instead of becoming
+eleven small files.
+
+| Source entry | Destination |
+|---|---|
+| History was rewritten once, before the first push, to take the device out of it | [ADR-0015](../adr/0015-rewrite-history-once-to-take-the-device-out-of-it.md) |
+| `ktlintCheck` never checked a `.kt` file, because the plugin was waiting for a plugin AGP 9 made unnecessary | [ADR-0016](../adr/0016-name-every-gate-task-explicitly.md) |
+| Evidence is a directory, and `run_flow` used to only ever add to it | [ADR-0017](../adr/0017-prune-stale-evidence-frames-from-a-per-flow-manifest.md) |
+| The local gate does not compile `androidTest`, and it went green over a file that would not build | `GAP-008` in `architecture.md` §11 — it records an open gap, not a decision taken |
+| A `LazyColumn` composes past its own edge, so "visible" is not "on screen" | `cross-cutting.md` §8.6, *What a test here cannot do* |
+| Where the editor is scrolled to is a thing no Maestro flow can assert | same |
+| A lazy list is what a two-pane test cannot lay out, and a `Column` was hiding it | same |
+| A scroll action inside a `waitUntil` hangs the whole instrumentation | same |
+| A layout assertion in dp measures the component's padding by accident | same |
+| A one-pane defect can need the tablet, not the phone | same |
+| The emulator the suite runs on is 320dp wide **and** density 160 | same |

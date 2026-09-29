@@ -136,6 +136,27 @@ Four rules earned the hard way, each of which has silently passed a gate here be
   exists so every gate strips comments the same way.
 - **A change to shared chrome owes the flows that draw it a re-run.** One panel row added 48dp above
   two others, and a flow that had been red for weeks went unnoticed because nothing re-asked.
+- **A gate whose task list is discovered rather than declared can stop covering things silently** —
+  [ADR-0016](../adr/0016-name-every-gate-task-explicitly.md).
+- **Evidence is a directory, and a renamed screenshot leaves its predecessor behind** —
+  [ADR-0017](../adr/0017-prune-stale-evidence-frames-from-a-per-flow-manifest.md).
+
+### What a test here cannot do
+
+Each of these passed against the wrong thing before it was written down.
+
+| Limit | Why, and what sees it instead |
+|---|---|
+| **`assertVisible` on a matched cell does not prove the notebook scrolled to it** | A `LazyColumn` composes and keeps a margin beyond its own viewport, and a composed-but-clipped item is still in the semantics tree. What sees it is the **other end** of the notebook: `assertNotVisible` on a cell that is on screen exactly when the landing did not happen |
+| **Where the editor is scrolled to is not assertable by Maestro at all** | The editor is one node carrying the whole file, so any text in it matches at any scroll position. The gutter is not an escape either — line numbers are *drawn* by `Modifier.lineNumbers`, not composed as nodes. What sees it is the screenshot, and an instrumented test reading the node's own `VerticalScrollAxisRange` |
+| **A lazy list in a forced-size two-pane test lays out 0×0** | `currentWindowAdaptiveInfo()` reads the *activity's* window, which `DeviceConfigurationOverride` does not change. A `Column` overflows a parent with no room and its children still exist; a `LazyColumn` composes only what fits, so the rows stop existing. Host the panel on its own where it has a window to be laid out in |
+| **A scroll action inside a `waitUntil` hangs the whole instrumentation** | `performScrollToNode` synchronises on idleness, and while a walk is in flight a `LinearProgressIndicator` is animating, so idle never arrives. The hazard is the action, not the loop. `ui/ScrollUntilFound.kt` is the shape that works |
+| **A layout assertion in dp measures the component's padding by accident** | "Two items fill the bar" read 312dp of 320dp and failed, the missing 8dp being `NavigationBar`'s own item gap. Assert the *relationship* the rule is about — the fraction of the bar between the two items' centres is 0.500 and 0.250, scale-free and padding-free |
+| **The 320dp emulator is not the only narrow device** | The one-pane windows here are two: the phone emulator at 320dp, and **the tablet rotated to portrait** at 800dp, which is above Material's 600dp boundary and which the phone cannot reach. A one-pane feature owes its second width a run before it is called shipped, exactly as a two-pane one owes the tablet |
+| **The emulator is 320dp wide *and* density 160**, and only the first is deliberate | A density-dependent assertion that passes there may not pass anywhere else |
+
+Each flow that cannot assert its own landing **says so in its own header** and names the two things
+that can. That is the working agreement's *"a green log is only half the evidence"* made concrete.
 
 ## 8.7 Logging and observability
 
