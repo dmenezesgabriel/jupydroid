@@ -37,7 +37,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `TerminalCanvas` draws batched-run glyphs rather than plain `Text` rows - `docs/PLAN.md`'s
+ * `TerminalCanvas` draws batched-run glyphs rather than plain `Text` rows
  * P4i-2d. Background colour rather than glyph ink is what these sample: a glyph's edges
  * anti-alias, a full-cell background rect does not, so it is the pixel a test can actually pin.
  */

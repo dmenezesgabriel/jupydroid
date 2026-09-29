@@ -9,7 +9,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * A cell's ask for the language server to rename the symbol under the caret -
- * `textDocument/rename`, `docs/PLAN.md` P5e-7, VS Code's `editor.action.rename` read through
+ * `textDocument/rename`, VS Code's `editor.action.rename` read through
  * the notebook's one virtual document.
  *
  * The session gate is the asks' shared rule: a notebook that never ran a cell never asked for

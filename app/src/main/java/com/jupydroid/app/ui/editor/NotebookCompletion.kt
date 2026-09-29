@@ -11,7 +11,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * A cell's ask for what fits under the cursor: the Space's language server first, the kernel
- * only when no server is running - `docs/PLAN.md` P5c, behind the same [CompletionResult] the
+ * only when no server is running, behind the same [CompletionResult] the
  * kernel path always produced, so the popup and [applyCompletion] do not change.
  *
  * The session gate is the rule this ask always had: a notebook that never ran a cell never

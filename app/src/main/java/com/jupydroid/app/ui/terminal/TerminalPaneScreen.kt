@@ -69,7 +69,7 @@ import kotlin.math.abs
 const val TERMINAL_INPUT_TAG = "terminal-input"
 
 /**
- * A shell, reachable, typeable and drawn faithfully - `docs/PLAN.md`'s P4i, sub-steps 1 and 2:
+ * A shell, reachable, typeable and drawn faithfully, sub-steps 1 and 2:
  * batched-run glyphs and a block cursor on a real [TerminalCanvas], the VS Code palette resolved
  * to the system's own dark/light theme, and a cell measured on this device rather than restated.
  *
@@ -217,7 +217,7 @@ fun TerminalBar(fontSizeSp: Int, onIncreaseFontSize: () -> Unit, onDecreaseFontS
 }
 
 /**
- * Attaches while the screen is at least visible, and cancels the moment it is not - `docs/PLAN.md`'s
+ * Attaches while the screen is at least visible, and cancels the moment it is not
  * P4i-3b. `ExplorerScreen.KeepTheListingFresh` is this codebase's own precedent for a
  * lifecycle-gated collection, but on `STARTED` here rather than its `RESUMED`, a deliberate
  * departure: `RESUMED` is right for a periodic poll that should skip a wakeup nobody is

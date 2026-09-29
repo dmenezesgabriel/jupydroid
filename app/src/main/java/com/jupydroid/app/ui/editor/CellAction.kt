@@ -134,7 +134,7 @@ sealed interface CellAction {
 
   /**
    * Asks the language server where the symbol under the caret is defined and jumps there -
-   * `docs/PLAN.md` P5e-5's "go to definition", the reference's `editor.action.goToDefinition`.
+   * "go to definition", the reference's `editor.action.goToDefinition`.
    *
    * A [CellAction] although it edits nothing, for [StartSelecting]'s reason: it is what carries
    * the row to the menu and the accessibility context menu alike. Unlike [SymbolInfo] it is
@@ -145,7 +145,7 @@ sealed interface CellAction {
   data object GoToDefinition : CellAction
 
   /**
-   * Asks the language server to reformat this cell - `docs/PLAN.md` P5e-6's "format cell",
+   * Asks the language server to reformat this cell - "format cell",
    * VS Code's `notebook.formatCell` (labelled "Format Cell"), which formats the cell's own
    * document with the selected formatter.
    *
@@ -158,7 +158,7 @@ sealed interface CellAction {
   data object FormatCell : CellAction
 
   /**
-   * "Rename symbol" - `editor.action.rename`, `docs/PLAN.md` P5e-7, the `1_modification`
+   * "Rename symbol" - `editor.action.rename`, the `1_modification`
    * group order 1.1 that puts it above Format (1.3) in the reference's context menu.
    *
    * Surface-answered like [SymbolInfo], and for its reason doubled: the dialog it opens is

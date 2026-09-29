@@ -293,7 +293,7 @@ fun MainNavigation(
   // **The activity bar is beside the whole shell, not inside the side area.** The reference's
   // `hboxPanel` holds `leftHandler.sideBar` next to the split that contains both the panel and the
   // document area (`packages/application/src/shell.ts:468-477`), which is what lets the area
-  // collapse to the bar alone. `docs/PLAN.md` said "the left edge of the list pane"; reading the
+  // collapse to the bar alone. An earlier plan row said "the left edge of the list pane"; reading the
   // shell corrected it.
   //
   // Only where there is room for two panes: the bar on a compact window is P2o-4's, and a rail

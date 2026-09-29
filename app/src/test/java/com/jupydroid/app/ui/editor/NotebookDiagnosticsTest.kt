@@ -20,7 +20,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * `docs/PLAN.md` P5d-2b: `publishDiagnostics` publications mapped back through the mirror into
+ * `publishDiagnostics` publications mapped back through the mirror into
  * per-cell marks, and the mirror kept synced with the cells while a kernel session exists -
  * the same gate [NotebookCompletion] keeps, so watching never boots a runtime either.
  *

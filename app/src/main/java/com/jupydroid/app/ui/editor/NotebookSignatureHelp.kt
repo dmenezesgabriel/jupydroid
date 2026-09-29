@@ -8,7 +8,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * A cell's ask for the signature of the call the caret is inside - `textDocument/signatureHelp`
- * against the notebook's one virtual document, `docs/PLAN.md` P5e-4.
+ * against the notebook's one virtual document.
  *
  * [NotebookHover]'s own contract one method over: the same session gate (typing alone never
  * boots a runtime), the same virtual position (an earlier cell's `import os` is what makes

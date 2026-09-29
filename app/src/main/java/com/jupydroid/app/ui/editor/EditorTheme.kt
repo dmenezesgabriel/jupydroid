@@ -204,7 +204,7 @@ fun symbolKeyStyle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFa
  * that looks like code; rendered prose is prose that happens to contain code. P2l-3b settled the
  * second and P2s the first.
  *
- * @param fontSize [CodeText.size] for every cell; `docs/PLAN.md` P6c-4's own font-size setting
+ * @param fontSize [CodeText.size] for every cell; its own font-size setting
  *   (`EditorSettings.codeFontSizeSp`) is the one caller that overrides it, resizing
  *   [CodeCellField], [RawCellField] and [MarkdownCellField] together the way `notebook:toggle-all-
  *   cell-line-numbers` already moves all three.

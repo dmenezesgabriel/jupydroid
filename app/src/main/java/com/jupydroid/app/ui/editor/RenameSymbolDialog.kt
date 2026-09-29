@@ -22,7 +22,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 internal const val RENAME_SYMBOL_FIELD_TAG = "rename-symbol-field"
 
 /**
- * The dialog "Rename symbol…" opens - `docs/PLAN.md` P5e-7, `editor.action.rename`.
+ * The dialog "Rename symbol…" opens, `editor.action.rename`.
  *
  * VS Code's own surface is an inline input beside the symbol, prefill-selected and committed
  * on Enter (`renameWidget.ts`); a compact surface's equivalent is the dialog [RenameFileDialog]

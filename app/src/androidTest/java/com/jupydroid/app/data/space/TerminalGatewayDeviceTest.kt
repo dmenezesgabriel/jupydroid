@@ -86,7 +86,7 @@ class TerminalGatewayDeviceTest {
    * The output is accumulated rather than read one frame at a time because a pty splits wherever
    * the read landed, and because the shell's prompt is in the same stream ahead of the answer.
    *
-   * **The command is arithmetic and not `echo ok`, because a pty echoes.** `docs/PLAN.md` asks for
+   * **The command is arithmetic and not `echo ok`, because a pty echoes.** An earlier plan row asked for
    * `send("echo ok\n")` -> `ok`, and that gate is hollow: a terminal in canonical mode echoes the
    * typed line back before any program sees it, so `"ok"` arrives inside the echo of the command
    * whether or not a shell ever ran. Measured, on the first green run of this test - the captured

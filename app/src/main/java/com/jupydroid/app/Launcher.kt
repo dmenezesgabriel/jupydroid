@@ -4,7 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 /**
- * The Launcher - `docs/PLAN.md`'s P6d.
+ * The Launcher.
  *
  * A `MainAreaWidget` in the reference, added to `'main'` rather than to a panel
  * (`packages/launcher-extension/src/index.ts:118`) - so it is a detail-pane key here, never a

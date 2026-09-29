@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * `publishDiagnostics` as per-cell marks on [EditorUiState] - `docs/PLAN.md` P5d-2b, the
+ * `publishDiagnostics` as per-cell marks on [EditorUiState], the
  * JupyterLab lint gutter's own data path cut to what the notebook's gutter draws.
  *
  * Two feeds converge here. The first keeps [NotebookLanguageDocument] synced with the cells:

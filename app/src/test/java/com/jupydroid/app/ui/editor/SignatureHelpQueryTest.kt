@@ -7,7 +7,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * `docs/PLAN.md` P5e-4: when a signature-help ask is worth a round trip - VS Code's
+ * When a signature-help ask is worth a round trip - VS Code's
  * `parameterHintsModel` semantics. From hidden, only a trigger char asks - pylsp's measured
  * `triggerCharacters` are `(`, `,`, `=` - and only inside a call still open. While the hints
  * are up, every content change inside the call re-asks.

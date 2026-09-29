@@ -24,7 +24,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /**
- * The terminal is reachable, and what is typed comes back on screen - `docs/PLAN.md`'s P4i,
+ * The terminal is reachable, and what is typed comes back on screen,
  * sub-step 1's own gate, on the reaches P6d-6 settled: the bottom bar's own item at one pane,
  * the auto-filled launcher's Terminal card at two. `AppContainer`'s default `FakeTerminalGateway`
  * echoes back whatever it is sent, standing in for a real shell here exactly as it does in

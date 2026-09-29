@@ -8,7 +8,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * A cell's ask for the language server to reformat it - `textDocument/rangeFormatting` over
- * the cell's whole virtual block, `docs/PLAN.md` P5e-6, VS Code's `notebook.formatCell`
+ * the cell's whole virtual block, VS Code's `notebook.formatCell`
  * ("Format Cell") read through the notebook's one document.
  *
  * The session gate is the asks' shared rule: a notebook that never ran a cell never asked for

@@ -22,7 +22,7 @@ import org.junit.Test
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * `docs/PLAN.md` P5e-6: a cell's format ask - `textDocument/rangeFormatting` over the cell's
+ * A cell's format ask - `textDocument/rangeFormatting` over the cell's
  * whole virtual block, answered (by the shipped `pylsp`) as **one whole-document `TextEdit`**
  * and sliced back to the cell's own source through the prefix/suffix guard.
  *

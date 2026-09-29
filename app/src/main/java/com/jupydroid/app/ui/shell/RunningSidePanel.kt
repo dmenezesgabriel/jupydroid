@@ -70,7 +70,7 @@ import kotlin.time.Duration.Companion.seconds
  * `Poll{interval: 10s, standby: 'when-hidden'}`, where "hidden" is simply not being on the rail.
  *
  * What is *not* here, on purpose: the reference's list/tree switch and "Shut Down Unused" (they
- * group kernels by spec over `GET api/kernels`, which is not in the contract - `docs/PLAN.md`),
+ * group kernels by spec over `GET api/kernels`, which is not in the contract),
  * per-row confirmations (the reference's `Item.shutdown` asks nothing), and synthesising a console
  * from a session row (the single `consoleSession` holder cannot - a console row reveals its tab
  * where one is open, the way `console:open` does).

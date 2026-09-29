@@ -10,7 +10,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * The `contents` shapes a `textDocument/hover` reply may carry - `docs/PLAN.md` P5e-3.
+ * The `contents` shapes a `textDocument/hover` reply may carry.
  *
  * Kept off [LspWire] for the same reason the wire is off the adapter: one home per kind of
  * shape, and these are the five `MarkedString`/`MarkupContent` spellings LSP allows where

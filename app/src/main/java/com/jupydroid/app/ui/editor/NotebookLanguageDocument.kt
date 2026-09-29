@@ -9,7 +9,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * The notebook's **one** document under the language server, kept synced - `docs/PLAN.md`
+ * The notebook's **one** document under the language server, kept synced
  * P5d-2b, the owner side of P5d-1's [NotebookVirtualDocument].
  *
  * Everything the server is asked (completion today, symbols next) and everything the server

@@ -17,7 +17,7 @@ import com.jupydroid.app.theme.chromePalette
  *
  * **Beside the whole shell, not inside the side area**, which is where the reference puts it:
  * `hboxPanel` holds `leftHandler.sideBar` next to the split that contains *both* the panel and the
- * document area (`packages/application/src/shell.ts:468-477`). `docs/PLAN.md` said "at the left edge
+ * document area (`packages/application/src/shell.ts:468-477`). An earlier plan row said "at the left edge
  * of the list pane"; reading the shell corrected it, and the correction is what lets the area
  * collapse to the bar alone while the document keeps the width.
  *

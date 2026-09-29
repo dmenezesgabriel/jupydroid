@@ -146,7 +146,7 @@ data class EditorUiState(
    */
   val markdownTakingCaret: String? = null,
   /**
-   * Where a definition jump lands, or null while none is pending - `docs/PLAN.md` P5e-5.
+   * Where a definition jump lands, or null while none is pending.
    *
    * A consumed one-shot like [markdownTakingCaret]: [NotebookCellEdits.landOnDefinition] sets
    * it, the target cell's own field applies the caret and the symbol flash the moment it is

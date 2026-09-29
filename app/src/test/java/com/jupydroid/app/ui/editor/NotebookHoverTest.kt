@@ -21,7 +21,7 @@ import org.junit.Test
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * `docs/PLAN.md` P5e-3: a cell's "Symbol info" ask, answered by the Space's language server
+ * A cell's "Symbol info" ask, answered by the Space's language server
  * at the caret's **virtual** position - the same document P5c completions and P5d-2b
  * diagnostics already share, so `import os` in an earlier cell is what makes `os.path`'s
  * hover answerable in this one.

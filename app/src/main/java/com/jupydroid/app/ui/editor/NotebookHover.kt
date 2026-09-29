@@ -8,7 +8,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * A cell's ask for what the symbol under the caret is - `textDocument/hover` against the
- * notebook's one virtual document, `docs/PLAN.md` P5e-3.
+ * notebook's one virtual document.
  *
  * The session gate is [NotebookCompletion]'s own rule: a notebook that never ran a cell never
  * asked for a Space, so a "Symbol info" row there must not boot one. Unlike a completion there

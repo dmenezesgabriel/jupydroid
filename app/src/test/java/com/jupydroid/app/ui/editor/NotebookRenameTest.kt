@@ -23,7 +23,7 @@ import org.junit.Test
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * `docs/PLAN.md` P5e-7: a cell's rename ask - `textDocument/rename` at the caret's virtual
+ * A cell's rename ask - `textDocument/rename` at the caret's virtual
  * position, answered (by the shipped `pylsp`) as a `WorkspaceEdit.documentChanges` carrying
  * **one whole-document `TextEdit`** - the `def` line and every call site inside one `newText` -
  * and resliced into per-cell sources through the reconstruction guard.

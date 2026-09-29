@@ -8,7 +8,7 @@ data class SignatureHelpQuery(val code: String, val cursorOffset: Int)
 
 /**
  * What to ask the language server about, or null when the caret is nowhere worth asking
- * about - `docs/PLAN.md` P5e-4, VS Code's `parameterHintsModel` semantics.
+ * about, VS Code's `parameterHintsModel` semantics.
  *
  * While the hints are hidden only a *typed* trigger char asks - `onTypeHint` checks the last
  * char of the inserted text, which is why [typedChar] rides beside the caret rather than

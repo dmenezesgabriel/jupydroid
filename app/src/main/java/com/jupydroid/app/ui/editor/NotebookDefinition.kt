@@ -15,7 +15,7 @@ data class DefinitionTarget(val cellId: String, val offset: Int, val endOffset: 
 
 /**
  * A cell's ask for where the symbol under the caret is defined - `textDocument/definition`
- * against the notebook's one virtual document, `docs/PLAN.md` P5e-5.
+ * against the notebook's one virtual document.
  *
  * The session gate is [NotebookHover]'s own rule: a notebook that never ran a cell never asked
  * for a Space, so a "Go to definition" row there must not boot one. The answer is read with

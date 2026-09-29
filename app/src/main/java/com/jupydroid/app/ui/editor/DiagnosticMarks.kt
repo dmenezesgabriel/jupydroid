@@ -42,7 +42,7 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
 /**
- * How a cell's language-server diagnostics appear in the gutter - `docs/PLAN.md` P5d-2b, kept
+ * How a cell's language-server diagnostics appear in the gutter, kept
  * beside rather than inside [LineNumbers.kt], which sits at the file's own function budget.
  */
 
@@ -117,7 +117,7 @@ internal fun diagnosticMarkRect(layout: TextLayoutResult, starts: List<Int>, lin
 }
 
 /**
- * What the mark has to say once it is tapped - `docs/PLAN.md` P5e-1.
+ * What the mark has to say once it is tapped.
  *
  * VS Code answers this content on the marker's hover (`editor.contrib.hover`'s
  * `markerHoverParticipant`): severity, the message, and who raised it. A tap on the square is

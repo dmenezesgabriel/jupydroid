@@ -106,7 +106,7 @@ class TerminalPaneViewModel(
   private var hasAttachedBefore = false
 
   /**
-   * Collects [terminalGateway]'s events for as long as this call is not cancelled - `docs/PLAN.md`'s
+   * Collects [terminalGateway]'s events for as long as this call is not cancelled
    * P4i-3b. No longer launched for the caller in `init`: `TerminalPaneScreen`'s own
    * `repeatOnLifecycle(Lifecycle.State.STARTED)` is what decides when, so backgrounding cancels this
    * (closing the socket - `TerminalGateway.attach`'s own KDoc) and coming back calls it again, which

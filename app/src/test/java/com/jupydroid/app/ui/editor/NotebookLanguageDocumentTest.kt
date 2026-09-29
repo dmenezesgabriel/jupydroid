@@ -12,7 +12,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * `docs/PLAN.md` P5d-2b: the notebook's **one** document under the language server - every
+ * The notebook's **one** document under the language server - every
  * code cell joined whole, synced on every ask and every connected edit, and kept as the mirror
  * (`synced`) that `publishDiagnostics` ranges map back through. Syncing this twice would make
  * the server see two documents; sharing one mirror is what makes a diagnostic drawn from the

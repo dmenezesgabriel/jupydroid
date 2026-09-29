@@ -22,7 +22,7 @@ import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * `textDocument/rangeFormatting` over [StdioLanguageServer] - `docs/PLAN.md` P5e-6, its own
+ * `textDocument/rangeFormatting` over [StdioLanguageServer], its own
  * file the way [StdioLanguageServerDefinitionTest] is: the scripted doubles and the
  * `languageServer` scaffold are the same ones [StdioLanguageServerTest] uses, and the 500-line
  * file gate is what keeps them apart.

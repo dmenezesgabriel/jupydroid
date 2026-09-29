@@ -58,7 +58,7 @@ data class CellSignatureHelp(val query: SignatureHelpQuery, val help: LanguageSi
 
 /**
  * Asks [signatureHelpAt] about the call the caret is inside, and answers null the rest of the
- * time - VS Code's `parameterHintsModel`, `docs/PLAN.md` P5e-4.
+ * time - VS Code's `parameterHintsModel`.
  *
  * `collectLatest` is the cancellation story the completions pipeline already runs: a new
  * keystroke cancels the debounce and any ask in flight, so a stale reply can never overwrite
@@ -151,7 +151,7 @@ private fun regexOffsets(signatureLabel: String, parameterLabel: String): Pair<I
 }
 
 /**
- * The signature card, drawn - `docs/PLAN.md` P5e-4, VS Code's `parameterHintsWidget` with a
+ * The signature card, drawn, VS Code's `parameterHintsWidget` with a
  * finger.
  *
  * Anchored **above** the caret first (the widget's own `[ABOVE, BELOW]` preference, which

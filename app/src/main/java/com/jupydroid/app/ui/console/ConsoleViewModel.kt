@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
  *
  * [submit] is `console:run-forced`'s mobile stand-in: there is no Shift+Enter here to force a run
  * with, so a dedicated action replaces the reference's Enter/Shift+Enter split rather than porting
- * it (`docs/PLAN.md`'s own P6b-4 design decision). [session] is handed in already attached to the
+ * it (a design decision). [session] is handed in already attached to the
  * open notebook's kernel (P6b-1) - this class neither builds nor owns one.
  *
  * ```kotlin

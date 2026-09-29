@@ -23,7 +23,7 @@ import org.junit.Test
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * `docs/PLAN.md` P5c: the popup's source is the Space's language server first and the kernel
+ * The popup's source is the Space's language server first and the kernel
  * only when no server is running - behind the same [CompletionResult] the kernel path always
  * produced, so the popup and its splice do not change.
  *

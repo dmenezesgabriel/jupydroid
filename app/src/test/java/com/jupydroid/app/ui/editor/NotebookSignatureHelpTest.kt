@@ -21,7 +21,7 @@ import org.junit.Test
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * `docs/PLAN.md` P5e-4: a cell's signature-help ask, answered by the Space's language server
+ * A cell's signature-help ask, answered by the Space's language server
  * at the caret's **virtual** position - [NotebookHover]'s own contract one method over, so
  * `import os` in an earlier cell is what makes `os.path.join(` answerable in this one.
  *

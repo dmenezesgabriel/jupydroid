@@ -20,7 +20,7 @@ import org.junit.Test
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * `docs/PLAN.md` P5e-5: a cell's definition ask, answered by the Space's language server at
+ * A cell's definition ask, answered by the Space's language server at
  * the caret's **virtual** position and mapped back through the same virtual document -
  * `def compute_total` in an earlier cell is what makes `compute_total` jumpable in this one.
  *

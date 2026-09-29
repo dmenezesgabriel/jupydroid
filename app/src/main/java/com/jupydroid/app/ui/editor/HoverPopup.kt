@@ -29,7 +29,7 @@ import com.jupydroid.app.markdown.MarkdownDocument
 import com.jupydroid.app.theme.Spacing
 
 /**
- * What "Symbol info" asked for, shown - `docs/PLAN.md` P5e-3.
+ * What "Symbol info" asked for, shown.
  *
  * VS Code's `editor.contrib.hover` widget rendered with a finger: the server's markdown -
  * jedi sends a fenced signature block, then the docstring - through the same

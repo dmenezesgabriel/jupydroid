@@ -11,7 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * `docs/PLAN.md` P5d-1: one `file://` document stands for the notebook's code cells under the
+ * One `file://` document stands for the notebook's code cells under the
  * language server - the reference's `VirtualDocument` (`packages/lsp/src/virtual/document.ts`)
  * cut to what a Python-only notebook needs. Cells join with two blank lines between them, the
  * reference's `blankLinesBetweenCells`, and the (cell, line) <-> virtual line map is what lets

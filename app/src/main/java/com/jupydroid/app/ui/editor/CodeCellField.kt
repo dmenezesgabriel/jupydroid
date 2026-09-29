@@ -185,7 +185,7 @@ fun CodeCellField(
       // The gutter's width comes from the line *count*, so it never depends on the layout this
       // callback publishes - which is what keeps writing state from here out of a measure loop.
       // Wrapping off reaches the gutter through GutterOverlay below rather than through this
-      // chain - `docs/PLAN.md` P6c-5's own finding that a gutter scrolled inside the same
+      // chain - its own finding that a gutter scrolled inside the same
       // modifiers as the field it decorates scrolls away with it.
       modifier = if (wrapEnabled) {
         // The squiggle sits after `lineNumbers`: its own trailing `.padding(start = gutter)` makes
