@@ -24,7 +24,7 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * The plain file editor says where its file lives (P7b) - the trail the notebook has had since
+ * The plain file editor says where its file lives - the trail the notebook has had since
  * P2w-1, on the other document this app opens.
  *
  * Instrumented rather than JVM for the reason [com.jupydroid.app.ui.editor.NotebookBreadcrumbTest]

@@ -36,13 +36,13 @@ enum class EditorBottomBar {
  * list and `Scaffold` resolves the overflow by giving it zero height, which is the U6 defect
  * exactly (and [editorTopBarVisible] for its other half).
  *
- * **A paused kernel beats all three (P6a-9b).** Unlike marking or searching, which the user chose
+ * **A paused kernel beats all three.** Unlike marking or searching, which the user chose
  * and can leave at will, a breakpoint stop is the kernel itself demanding attention - both
  * references surface their own debug toolbar the instant a session stops regardless of what else
  * was on screen (`packages/debugger-extension/src/index.ts:1170-1264`, every one of
  * `debugContinue`/`next`/`stepIn`/`stepOut` gated on `hasStoppedThreads()` alone).
  *
- * **`symbolRowShown` (P6c-7) answers what typing gets, not whether typing is what's
+ * **`symbolRowShown` answers what typing gets, not whether typing is what's
  * happening.** `EditorSettings.symbolRowShown` is a Settings-screen preference, not a mode - so
  * it is read only in the one branch it can change the answer of, the same way `stopped` is read
  * before `selecting`/`searching` are.

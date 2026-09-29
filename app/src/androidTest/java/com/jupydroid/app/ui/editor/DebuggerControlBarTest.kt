@@ -13,7 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The debugger's step/continue toolbar (P6a-9b) - [NotebookBar]'s own sibling for the one state a
+ * The debugger's step/continue toolbar - [NotebookBar]'s own sibling for the one state a
  * notebook being read never reaches on its own: a real kernel paused under the debugger.
  */
 @RunWith(AndroidJUnit4::class)

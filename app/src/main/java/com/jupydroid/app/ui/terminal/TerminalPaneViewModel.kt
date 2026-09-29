@@ -118,7 +118,7 @@ class TerminalPaneViewModel(
    * this was cancelled - appending that onto an emulator that already drew it once duplicated the
    * screen (`docs/DECISIONS.md`). `ESC[H` homes the cursor,
    * `ESC[2J` blanks the visible screen and `ESC[3J` forgets the scrollback - all three already
-   * `terminal/`'s own (P4f/P4h), reused rather than a new "clear" primitive invented for this.
+   * `terminal/`'s own, reused rather than a new "clear" primitive invented for this.
    *
    * ```
    * lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { viewModel.attach() }
@@ -243,7 +243,7 @@ class TerminalPaneViewModel(
    *
    * **The alternate screen** (`vi`, `less`, `htop`) **carries no scrollback at all** - Termux's
    * own `doScroll` redirects a drag there to Up/Down arrow keystrokes instead, reusing
-   * [terminalKeystroke]'s own encoding (a hardware key's, P4j-2) rather than a second one -
+   * [terminalKeystroke]'s own encoding (a hardware key's) rather than a second one -
    * 4. `ScreenBuffers.isAlternateLive` is already public through
    * [emulator]'s own `screen.buffers` - no new delegate property needed on [TerminalScreen].
    *

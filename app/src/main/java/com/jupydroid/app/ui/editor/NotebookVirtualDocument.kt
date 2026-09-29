@@ -10,7 +10,7 @@ import java.net.URI
 /**
  * One `file://` document standing for the notebook's code cells under the language server -
  * 1, the reference's `VirtualDocument`
- * (`reference/research_repos/jupyterlab/packages/lsp/src/virtual/document.ts`) cut to what a
+ * (`jupyterlab@7f0e6906 packages/lsp/src/virtual/document.ts`) cut to what a
  * Python-only notebook needs: no foreign-language extraction, no editor maps - the cells'
  * sources joined whole, and the (cell, line) <-> virtual line map the answer positions and
  * `publishDiagnostics` ranges both travel.

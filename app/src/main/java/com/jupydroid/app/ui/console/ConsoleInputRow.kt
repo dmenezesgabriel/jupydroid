@@ -33,7 +33,7 @@ import com.jupydroid.app.ui.editor.cellRunIcon
 const val CONSOLE_INPUT_FIELD_TAG = "console-input-field"
 
 /**
- * Where a Console entry is typed and run - P6b-4b.
+ * Where a Console entry is typed and run.
  *
  * `Enter` is left doing exactly what [CodeCellField] already does with it - insert a newline - and
  * [onSubmit] is the dedicated action standing in for `Shift Enter`, per the design decision

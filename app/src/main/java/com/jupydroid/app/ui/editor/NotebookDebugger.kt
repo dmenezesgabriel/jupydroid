@@ -17,8 +17,8 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 
 /**
- * The gutter half of the debugger (P6a-6), plus the handshake that gets a cell's breakpoints in
- * front of a real kernel (P6a-7a). Beside [NotebookKernel]/[NotebookCellEdits] on
+ * The gutter half of the debugger, plus the handshake that gets a cell's breakpoints in
+ * front of a real kernel. Beside [NotebookKernel]/[NotebookCellEdits] on
  * [EditorViewModel], and following the same split: this only touches
  * [EditorUiState.breakpointsByCellId], nothing else a cell operation or a run cares about.
  *
@@ -44,7 +44,7 @@ class NotebookDebugger(
   }
 
   /**
-   * Attaches [condition] to [cellId]'s breakpoint at [line] (P6a-16) - `null` clears it back to an
+   * Attaches [condition] to [cellId]'s breakpoint at [line] - `null` clears it back to an
    * ordinary breakpoint. Takes effect on the next [startSession], the same way editing which lines
    * are armed already does; there is no live DAP call here; a stop already in progress keeps
    * whichever condition the kernel was actually given.
@@ -67,8 +67,9 @@ class NotebookDebugger(
    * so nothing is sent - the same reason JupyterLab's own debug session only ever arms lines a
    * user actually marked.
    *
-   * **A cell disarmed back to empty still runs the handshake, sending an empty `setBreakpoints`
-   * (P6a-10).** debugpy keeps a breakpoint paused in its own process memory until told otherwise -
+   * **A cell disarmed back to empty still runs the handshake, sending an empty
+   * `setBreakpoints`.** debugpy keeps a breakpoint paused in its own process memory until told
+   * otherwise -
    * skipping the round trip because *this app's* list is empty left a real kernel's own stale
    * breakpoint armed forever, silently hanging every later run of that cell (found live on the
    * tablet: a disarmed breakpoint's cell either hung on an unobserved `stopped` event, since
@@ -130,7 +131,7 @@ class NotebookDebugger(
 
   /**
    * Sends [command] for the thread [EditorUiState.stoppedAt] names, resuming or stepping a paused
-   * kernel - `next`/`stepIn`/`stepOut`/`continue` (P6a-9), all the same DAP round trip
+   * kernel - `next`/`stepIn`/`stepOut`/`continue`, all the same DAP round trip
    * [KernelDebugger.step] already sends. Does nothing when nothing is stopped: there is no thread
    * to resume, the same "no-op when the precondition isn't met" shape [NotebookCellRuns.stopRunningCell]
    * already uses for Interrupt.
@@ -146,7 +147,7 @@ class NotebookDebugger(
   }
 
   /**
-   * Terminate (P6a-11): a kernel restart tears debugpy's own attached session, and any stop it
+   * Terminate: a kernel restart tears debugpy's own attached session, and any stop it
    * was reporting, down with it - this app's own idea of "stopped" must go with it too, or the
    * toolbar and the stopped-line wash would keep naming a stop the fresh kernel never had.
    * `NotebookKernel.restart` is what actually replaces the process; this only clears what this
@@ -158,7 +159,7 @@ class NotebookDebugger(
   }
 
   /**
-   * A compound variable's own children (P6a-14), fetched lazily - [DebugVariable.variablesReference]
+   * A compound variable's own children, fetched lazily - [DebugVariable.variablesReference]
    * is non-zero exactly when there is something here to fetch. Uses the same stopped session
    * [step] already resumes on, since the panel that calls this has no session of its own to
    * supply. Answers nothing once nothing is stopped, the same "no-op when the precondition isn't
@@ -170,7 +171,7 @@ class NotebookDebugger(
   }
 
   /**
-   * An ad hoc expression, run against the top frame's own scope while stopped (P6a-17) - the same
+   * An ad hoc expression, run against the top frame's own scope while stopped - the same
    * stopped session [expand]/[step] already resume on, since the panel that calls this has no
    * session of its own either. Always the **top** frame, [resolvedStop]'s own default selection -
    * this app tracks no "currently selected frame" of its own outside the panel's own local
@@ -186,7 +187,7 @@ class NotebookDebugger(
   }
 
   /**
-   * A tap on a call-stack frame other than the top one (P6a-15), closing the gap [DebugStack]'s
+   * A tap on a call-stack frame other than the top one, closing the gap [DebugStack]'s
    * own doc named since P6a-8: re-chains `scopes -> variables` for [frameId] alone, replacing
    * [EditorUiState.debugStack]'s groups and moving [EditorUiState.stoppedAt]'s line to that
    * frame's own line - JupyterLab's own callstack model does the same
@@ -209,7 +210,7 @@ class NotebookDebugger(
   }
 
   /**
-   * `stackTrace -> scopes -> variables`, DAP's own dependency order (P6a-8a) - `null` on
+   * `stackTrace -> scopes -> variables`, DAP's own dependency order - `null` on
    * [DebugEvent.Continued] or when a `Stopped` thread's stack came back empty. Only the **top**
    * frame's scopes/variables are fetched on a fresh stop, matching JupyterLab's own default
    * selection (`packages/debugger/src/panels/callstack/model.ts:31-44`) - [selectFrame] is what

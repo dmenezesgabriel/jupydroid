@@ -67,7 +67,7 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
       // screenshot is what raised it: the reference's own
       // control is an `HTMLSelect` drawn in `--jp-ui-font-color0` like the rest of its toolbar,
       // and this app spends brand blue on exactly two things - the active cell's collapser and the
-      // editor being typed into (P2m-1, P2m-2). A fifth control in the bar wearing that colour
+      // editor being typed into. A fifth control in the bar wearing that colour
       // would be the only coloured thing in the row and would spend the one signal those two rely
       // on. The caret is what says it is pressable, which is Material's own menu-button
       // affordance.

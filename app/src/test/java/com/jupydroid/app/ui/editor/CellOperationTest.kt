@@ -69,7 +69,7 @@ class CellOperationTest {
   }
 
   /**
-   * **The hover ask is not an edit** - P5e-3. The surface that raised it answers it (the popup
+   * **The hover ask is not an edit**. The surface that raised it answers it (the popup
    * lives beside the caret it asked about, which is [EditorCell]'s scope), so a row that ever
    * reached the operation must change nothing and record no undo entry - `ChooseHeadingLevel`'s
    * own guard, which `applying` keeps for exactly this reachability.
@@ -85,7 +85,7 @@ class CellOperationTest {
   }
 
   /**
-   * **The definition ask is not an edit either** - P5e-5. It reaches the language server through
+   * **The definition ask is not an edit either**. It reaches the language server through
    * [EditorViewModel.cellAction], which never dispatches it here, but a row that ever arrived by
    * another route must change nothing and record no undo entry - [CellAction.SymbolInfo]'s own
    * guard, kept for the same reachability.
@@ -101,7 +101,7 @@ class CellOperationTest {
   }
 
   /**
-   * **The format ask is not an [applying] edit either** - P5e-6. It reaches the language server
+   * **The format ask is not an [applying] edit either**. It reaches the language server
    * through [EditorViewModel.cellAction] and lands through [NotebookCellEdits.cellFormatted],
    * so a row arriving here by any other route has nothing to change -
    * [CellAction.GoToDefinition]'s own guard, kept for the same reachability.
@@ -117,7 +117,7 @@ class CellOperationTest {
   }
 
   /**
-   * **The rename ask is not an [applying] edit either** - P5e-7. The row is answered by the
+   * **The rename ask is not an [applying] edit either**. The row is answered by the
    * surface (its dialog needs the caret), and the dialog's `RenameTo` reaches the language
    * server through [EditorViewModel.cellAction], so neither arriving here may change a cell -
    * [CellAction.FormatCell]'s own guard, kept for the same reachability.
@@ -136,7 +136,7 @@ class CellOperationTest {
   }
 
   /**
-   * The ask's apply half - P5e-7, `editor.action.rename`: every cell's new source lands as
+   * The ask's apply half, `editor.action.rename`: every cell's new source lands as
    * **one undoable operation** - the `bulkEditService.apply` of the reference, a single
    * `transact` of the document - and the [EditorUiState.sourceRevisions] bump marks each
    * rewritten cell's field to adopt it.
@@ -276,7 +276,7 @@ class CellOperationTest {
   }
 
   /**
-   * The ask's apply half - P5e-6, VS Code's `notebook.formatCell`: the cell's source lands as
+   * The ask's apply half, VS Code's `notebook.formatCell`: the cell's source lands as
    * **one undoable operation**, and the [EditorUiState.sourceRevisions] bump is what tells the
    * cell's own field to adopt it, the way split's rewrite is adopted.
    */

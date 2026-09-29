@@ -24,7 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The notebook's breadcrumb (P2w-1): where a nested document lives, and the way back to its folder.
+ * The notebook's breadcrumb: where a nested document lives, and the way back to its folder.
  *
  * Instrumented rather than JVM because every question here is about *layout* - which row is above
  * which, whether a row is drawn at all, and what three rows cost. The segmenting itself is

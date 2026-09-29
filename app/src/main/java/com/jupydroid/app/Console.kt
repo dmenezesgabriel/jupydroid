@@ -4,9 +4,9 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 /**
- * A Console - either sharing [sessionPath]'s kernel, which is what a notebook's Kernel menu opens
- * (P6b-9), or a standalone one a Launcher card mints at `console-<count>-<uuid>` under the browsed
- * directory (P6d-5, the reference's `console:create`).
+ * A Console - either sharing [sessionPath]'s kernel, which is what a notebook's Kernel menu opens,
+ * or a standalone one a Launcher card mints at `console-<count>-<uuid>` under the browsed
+ * directory (the reference's `console:create`).
  *
  * Keyed by the session path - `sessionContext.path`'s own identity - so two taps on the same
  * console reveal the one already open rather than stacking a second. [title] is the reference's

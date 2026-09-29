@@ -157,7 +157,7 @@ class NotebookKernelSessionTest {
   /**
    * The kernelspec the notebook was saved with is `kernelPreference`
    * (`sessioncontext.tsx`'s `SessionContext.IOptions`) - what `open` asks the server to start
-   * rather than leaving the choice to the server's default (P8g). Resolved through the Space's
+   * rather than leaving the choice to the server's default. Resolved through the Space's
    * catalogue like `Private.getDefaultKernel`, so only a name the server actually has is sent.
    */
   @Test
@@ -260,7 +260,7 @@ class NotebookKernelSessionTest {
 
   /**
    * `SessionContext.changeKernel`: the session is patched, not reconnected - its own id is
-   * untouched, the kernel behind it is the new one (P8g).
+   * untouched, the kernel behind it is the new one.
    */
   @Test
   fun changeKernel_swapsTheKernelUnderTheSameSession() = runTest {
@@ -291,7 +291,7 @@ class NotebookKernelSessionTest {
   /**
    * The picked spec becomes the preference a reconnect re-asks for: `_updateSpec` writes
    * `kernel.name` to `metadata.kernelspec` in the reference (`notebook/panel.ts`), so what the
-   * notebook is bound to *is* what it prefers (P8g).
+   * notebook is bound to *is* what it prefers.
    */
   @Test
   fun aChangedKernelIsWhatAReconnectReopensWith() = runTest {
@@ -310,7 +310,7 @@ class NotebookKernelSessionTest {
    * `kernelChanged` beside `session.disposed`: another holder of the same session - the notebook
    * whose kernel this console shares, the picker on a different document - patched it, and the
    * rebound carries the new kernel id, so this copy swaps rather than pointing at a kernel the
-   * server already shut down (P8g).
+   * server already shut down.
    */
   @Test
   fun rebindIfMatches_swapsTheKernelUnderTheOpenSession() = runTest {

@@ -11,7 +11,7 @@ import org.junit.Test
 
 /**
  * Where the open notebook hands its stop to the shell's side panel - [OpenDocumentOutline]'s own
- * seam, and (P6a-14) the same "a live callback travels with the data" shape [DocumentOutline.jumpTo]
+ * seam, and the same "a live callback travels with the data" shape [DocumentOutline.jumpTo]
  * already established, so a compound variable can be expanded from a pane that owns no session.
  */
 class OpenDebugStackTest {

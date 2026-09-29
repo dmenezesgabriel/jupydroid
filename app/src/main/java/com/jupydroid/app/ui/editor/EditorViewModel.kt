@@ -67,7 +67,7 @@ class EditorViewModel(
    * document on a tablet, and the reference's open document learns of it from the contents layer
    * rather than from that browser (`Context._onFileChanged`, `docregistry/src/context.ts:93`).
    *
-   * **And to put an export beside it** (P2j), which is a file the notebook is not - see
+   * **And to put an export beside it**, which is a file the notebook is not - see
    * [NotebookExport].
    */
   private val workspaceRepository: WorkspaceRepository,
@@ -111,13 +111,13 @@ class EditorViewModel(
    */
   private val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
   /**
-   * The Space's language server, asked for completions before the kernel (P5c) - defaulted the
+   * The Space's language server, asked for completions before the kernel - defaulted the
    * way [kernelDebugger] is, so a test driving the editor alone spawns nothing.
    */
   private val languageServer: LanguageServerPort = FakeLanguageServerPort(),
   /**
    * Where "the session ended elsewhere" is heard - the Running panel's shutdown lands this
-   * notebook on No Kernel through it (P8f), the way `session.disposed` does in the reference.
+   * notebook on No Kernel through it, the way `session.disposed` does in the reference.
    */
   kernelSessions: KernelSessions = FakeKernelSessions(),
   /**

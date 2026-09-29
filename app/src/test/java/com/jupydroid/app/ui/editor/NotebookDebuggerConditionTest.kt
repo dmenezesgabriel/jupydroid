@@ -11,7 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * A breakpoint's own condition (P6a-16), split out of [NotebookDebuggerTest] once it crossed the
+ * A breakpoint's own condition, split out of [NotebookDebuggerTest] once it crossed the
  * file-length gate - a file-length split, not a change in responsibility. Still
  * [NotebookDebugger]'s own [NotebookDebugger.setCondition] and [NotebookDebugger.startSession]
  * behavior, not a different collaborator.

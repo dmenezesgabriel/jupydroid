@@ -188,7 +188,7 @@ class SidePaneNavigationTest {
    * rail is drawn only where there are two panes. Between them, a tablet rotated to portrait -
    * 1280dp landscape is two panes, 800dp portrait is one - used to draw the table of contents in
    * the list pane with no rail to switch away from it, and the file browser could not be reached
-   * again without killing the app (P2x-2b).
+   * again without killing the app.
    *
    * **P2y narrows this rather than reopening it.** The bar the narrowed window now lands on can
    * leave Files and Search, so those two survive - see the case below. The table of contents has no

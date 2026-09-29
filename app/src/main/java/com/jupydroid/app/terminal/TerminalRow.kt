@@ -5,7 +5,7 @@ package com.jupydroid.app.terminal
  * characters written over it, and a [CellStyle].
  *
  * Transcribed from `terminal-emulator/src/main/java/com/termux/terminal/TerminalRow.java`
- * (`reference/research_repos/termux-app`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`,
+ * (`termux-app@3df69d1d`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`,
  * Apache 2.0 under that repository's `LICENSE.md` exception).
  *
  * **The reference's `setChar` is one 117-line method and this one is nine**, because the shape it

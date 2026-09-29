@@ -71,12 +71,12 @@ fun EditorScreen(
   languageServer: LanguageServerPort = FakeLanguageServerPort(),
   /**
    * The Running panel's "a session ended" feed, so its shutdown lands this notebook on No
-   * Kernel - `session.disposed`'s route in the reference (P8f). Defaulted as [languageServer] is.
+   * Kernel - `session.disposed`'s route in the reference. Defaulted as [languageServer] is.
    */
   kernelSessions: KernelSessions = FakeKernelSessions(),
   /**
    * The kernelspec catalogue the picker lists and the saved `kernelspec.name` resolves through -
-   * `specsManager.specs` in the reference (P8g). Defaulted as [kernelSessions] is.
+   * `specsManager.specs` in the reference. Defaulted as [kernelSessions] is.
    */
   kernelSpecs: KernelSpecs = FakeKernelSpecs(),
   /** `notebook:export-to-format` - see [NotebookExport]. Not a kernel act. */
@@ -131,7 +131,7 @@ fun EditorScreen(
   onGoToFolder: (String) -> Unit,
   onBack: () -> Unit,
   /**
-   * `notebook:create-console` (P6b-9) - a Console session sharing this notebook's own kernel,
+   * `notebook:create-console` - a Console session sharing this notebook's own kernel,
    * handed the session `NotebookKernel.attachConsole()` mints so the caller can push it wherever a
    * Console screen is reached from - see `MainNavigation`.
    */
@@ -336,7 +336,7 @@ fun EditorScreen(
     // [collapsibleRegionFraction]. Derived from the list the cells are drawn from rather than from a
     // `nestedScroll` connection, so there is one answer to "where is the document" and not two.
     // The region the fraction slides is now the crumbs alone - the title row that shared it moved
-    // to the tab strip (P8e), so a notebook at the workspace root has nothing left to collapse.
+    // to the tab strip, so a notebook at the workspace root has nothing left to collapse.
     val crumbs = ancestorCrumbsFor(state.notebookId, ROOT_LABEL)
     val rowHeight = LocalMinimumInteractiveComponentSize.current
     val collapsingRows = if (crumbs.isEmpty()) 0 else 1

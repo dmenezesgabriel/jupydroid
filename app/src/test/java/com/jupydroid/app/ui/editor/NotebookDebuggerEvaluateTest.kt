@@ -14,7 +14,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * An ad hoc expression, run against the top frame while stopped (P6a-17) - split out of
+ * An ad hoc expression, run against the top frame while stopped - split out of
  * [NotebookDebuggerTest] once it crossed the file-length gate, [NotebookDebuggerConditionTest]'s
  * own reason. Still [NotebookDebugger.evaluate], not a different collaborator.
  */

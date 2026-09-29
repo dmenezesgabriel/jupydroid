@@ -192,8 +192,8 @@ class AppContainer(
     /**
      * Half a minute of being left alone, then the server goes. Chosen on the measurement rather
      * than on taste: bringing it back costs ~1-3 s of server + kernel start and ~7 s tap to
-     * answer on the tablet, against ~130 MB held by a server nobody is using
-     * (`evidence/step18-lifecycle/`). P1b's own
+     * answer on the tablet, against ~130 MB held by a server nobody is using.
+     * P1b's own
      * timeouts already cover the app that is *open* and idle; this one is for the app that is
      * left.
      */

@@ -358,9 +358,9 @@ internal fun TestScope.loadedEditor(
   editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
   // Only the cases about a language-server ask pass one; the rest spawn nothing anyway.
   languageServer: LanguageServerPort = FakeLanguageServerPort(),
-  // Only the "a session ended elsewhere" case passes one sharing the gateway's registry (P8f).
+  // Only the "a session ended elsewhere" case passes one sharing the gateway's registry.
   kernelSessions: KernelSessions = FakeKernelSessions(),
-  // Only the kernel-choice cases pass one (P8g); the default answers the Space's own list.
+  // Only the kernel-choice cases pass one; the default answers the Space's own list.
   kernelSpecs: KernelSpecs = FakeKernelSpecs(),
   // The notebook as it was saved - kernel metadata included. Default builds a bare one so the
   // cases that predate kernelspec persistence read unchanged.

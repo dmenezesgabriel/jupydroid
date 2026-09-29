@@ -4,7 +4,7 @@ package com.jupydroid.app.terminal
  * `wcwidth(3)` for Unicode 15: how many columns a code point advances the cursor by.
  *
  * Transcribed from `terminal-emulator/src/main/java/com/termux/terminal/WcWidth.java`
- * (`reference/research_repos/termux-app`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`).
+ * (`termux-app@3df69d1d`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`).
  * That module is **Apache 2.0** under `termux-app/LICENSE.md`'s explicit exception to the
  * repository's GPLv3, inherited from Jack Palevich's Android Terminal Emulator.
  *

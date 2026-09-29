@@ -137,7 +137,7 @@ class SymbolRowTest {
     compose.onNodeWithTag(SYMBOL_ROW_TAG).assertIsDisplayed()
   }
 
-  // --- notebook:access-*-history-entry (P2k-4) ----------------------------------------------
+  // --- notebook:access-*-history-entry ----------------------------------------------
 
   /**
    * **Absent, not disabled**, while `accessKernelHistory` is off - this app's own rule that a

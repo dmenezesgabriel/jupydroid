@@ -51,12 +51,12 @@ internal fun EditorCell(
   /** `(cellId, code, cursorOffset)` - the language server keeps one document per cell (P5c). */
   completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
   /**
-   * `(cellId, code, cursorOffset)` - the "Symbol info" ask, P5e-3. Answers null where no
+   * `(cellId, code, cursorOffset)` - the "Symbol info" ask. Answers null where no
    * server or definition can respond, which the field then simply does not show.
    */
   hoverAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageHover? = NO_HOVER,
   /**
-   * `(cellId, code, cursorOffset)` - the signature-help ask, P5e-4. Driven by typing like
+   * `(cellId, code, cursorOffset)` - the signature-help ask. Driven by typing like
    * [completionsAt]: a `(` or `,` inside a call asks, and the card stays while the call does.
    */
   signatureHelpAt: suspend (

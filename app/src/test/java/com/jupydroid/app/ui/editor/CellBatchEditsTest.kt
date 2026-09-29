@@ -191,7 +191,7 @@ class CellBatchEditsTest {
     assertFalse(hidden.cells.any { it.sourceHidden })
   }
 
-  // --- notebook:enable/disable/toggle-output-scrolling (P2g-2b) -----------------------------
+  // --- notebook:enable/disable/toggle-output-scrolling -----------------------------
 
   /**
    * `isOutputScrollingEnabled` is **all-of**, not head-of: true only when every selected code

@@ -33,7 +33,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * The Console's input row - P6b-4b. `ConsoleViewModelTest` already covers what `submit()` does;
+ * The Console's input row. `ConsoleViewModelTest` already covers what `submit()` does;
  * this is only whether a tap actually reaches it and whether Run is offered while running.
  */
 @RunWith(AndroidJUnit4::class)
@@ -185,7 +185,7 @@ class ConsoleInputRowTest {
 
   /**
    * A second PNG rather than overwriting `EVIDENCE_FILE_NAME`: the row's shape changed with the
-   * history pair (P6b-6), and the P6b-4 screenshot documents what that row looked like then.
+   * history pair, and the P6b-4 screenshot documents what that row looked like then.
    */
   @Test
   fun capturesTheHistoryButtonsScreenshotForEvidence() {

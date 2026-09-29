@@ -34,7 +34,7 @@ class TableOfContentsHeadingsTest {
     loaded = true,
   )
 
-  // --- the table of contents (P2h-1) -------------------------------------------------------
+  // --- the table of contents -------------------------------------------------------
 
   /**
    * `NotebookToCModel.getHeadings()` walks the notebook's cells and emits a **flat list**, one
@@ -80,7 +80,7 @@ class TableOfContentsHeadingsTest {
     assertEquals(listOf(TocHeading("h", 1, "Top")), tied.tableOfContentsHeadings())
   }
 
-  // --- headings a code cell printed (P2h-6) -------------------------------------------------
+  // --- headings a code cell printed -------------------------------------------------
 
   private fun htmlOutput(html: String) = CellOutput.DisplayData(
     mimeBundle = mapOf("text/html" to JsonPrimitive(html)),

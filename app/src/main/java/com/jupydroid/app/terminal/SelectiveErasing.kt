@@ -15,7 +15,7 @@ package com.jupydroid.app.terminal
  * upstream tests only `0` and `1`.
  *
  * **A selective erase clears the pending wrap whatever its parameter**, where ED and EL clear it
- * only for a parameter they understood (P4f-3c). That is not a regularisation: the reference
+ * only for a parameter they understood. That is not a regularisation: the reference
  * assigns `mAboutToAutoWrap = false` *before* its switch here and *after* it there.
  *
  * ```

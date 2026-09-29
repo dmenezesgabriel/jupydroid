@@ -13,7 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `notebook:create-console` (P6b-9) - filed in the Kernel menu beside the two shutdown commands,
+ * `notebook:create-console` - filed in the Kernel menu beside the two shutdown commands,
  * `NotebookBarShutdownTest`'s own precedent, since this app has no separate File menu the
  * reference's `mainMenu.fileMenu.consoleCreators` files it under.
  */

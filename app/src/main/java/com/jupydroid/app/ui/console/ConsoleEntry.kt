@@ -4,7 +4,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.ui.editor.ExecutionStatus
 
 /**
- * One submitted input in the Console's transcript, and what the kernel did with it - P6b-2.
+ * One submitted input in the Console's transcript, and what the kernel did with it.
  *
  * Reuses [CellOutput]/[ExecutionStatus] exactly as the notebook's own cells do, since
  * `KernelGateway.execute` already produces both and a Console entry needs nothing more than a

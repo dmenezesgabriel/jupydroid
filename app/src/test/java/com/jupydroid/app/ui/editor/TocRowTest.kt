@@ -93,7 +93,7 @@ class TocRowTest {
     )
   }
 
-  // --- the numbers on a row (P2h-5) --------------------------------------------------------
+  // --- the numbers on a row --------------------------------------------------------
 
   @Test
   fun aRowCarriesItsNumberWhenNumberingIsOn() {

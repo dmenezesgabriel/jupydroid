@@ -69,12 +69,12 @@ fun CodeCellField(
   modifier: Modifier = Modifier,
   completionsAt: suspend (code: String, cursorOffset: Int) -> CompletionResult = NO_COMPLETIONS,
   /**
-   * The "Symbol info" ask - `textDocument/hover` at the caret (P5e-3). Unlike [completionsAt]
+   * The "Symbol info" ask - `textDocument/hover` at the caret. Unlike [completionsAt]
    * it is never invoked by typing: [symbolAsk] is the only trigger, which is the menu row's job.
    */
   hoverAt: suspend (code: String, cursorOffset: Int) -> LanguageHover? = NO_HOVER,
   /**
-   * The signature-help ask - `textDocument/signatureHelp` at the caret (P5e-4). Like
+   * The signature-help ask - `textDocument/signatureHelp` at the caret. Like
    * [completionsAt] it is driven by typing: a `(` or `,` inside a call asks, and the card
    * stays while the call stays open.
    */
@@ -128,7 +128,7 @@ fun CodeCellField(
    *
    * The field owns this - it is what `BasicTextField` measured - and a caller that guessed instead
    * would be guessing wrong the moment a line wraps. `FileEditorScreen` reads it to scroll a search
-   * match into view (P2x-3f); everything else takes the default and never hears about layout.
+   * match into view; everything else takes the default and never hears about layout.
    */
   onLayoutMeasured: (TextLayoutResult) -> Unit = {},
 ) {
@@ -151,7 +151,7 @@ fun CodeCellField(
   // `docs/PLAN.md` P5e-1. Derived visibility: when a republish leaves the line with no
   // findings, there is nothing left to show and the popup goes on its own.
   var detailLine by remember { mutableStateOf<Int?>(null) }
-  // The hover the last "Symbol info" ask returned - P5e-3. Null rather than stale on a miss:
+  // The hover the last "Symbol info" ask returned. Null rather than stale on a miss:
   // an answered-nothing clears whatever an earlier ask showed, so the popup never quotes a
   // symbol the caret has since moved off.
   var hover by remember { mutableStateOf<LanguageHover?>(null) }

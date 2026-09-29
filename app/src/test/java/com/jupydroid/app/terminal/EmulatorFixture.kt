@@ -170,7 +170,7 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
    * What must hold of the screen after every write, from `TerminalTestCase.assertInvariants`.
    *
    * **Rows are checked through `rowAt` rather than over the ring's slots**, which is where the
-   * reference indexes `mLines` directly. `RowRing` keeps its slots private on purpose (P4e-4), and
+   * reference indexes `mLines` directly. `RowRing` keeps its slots private on purpose, and
    * every *live* row - the screen plus the transcript - is reachable by external index, so the
    * "one row object in two places" check still has everything it can meaningfully catch.
    *

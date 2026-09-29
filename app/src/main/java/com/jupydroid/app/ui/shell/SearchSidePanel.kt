@@ -86,7 +86,7 @@ fun SearchSidePanel(
     // over a list needs it most.
     // **One scrolling surface, box included**, which is where this departs from the reference and
     // why: `searchView` keeps its widgets fixed above a scrolling tree, but it has no soft keyboard
-    // taking half the view. With the glob boxes open (P2x-3e) the fixed chrome here is about 290dp,
+    // taking half the view. With the glob boxes open the fixed chrome here is about 290dp,
     // and an IME leaves less than that - measured on the tablet, with the tree composed, correct
     // and **zero pixels tall**. A reader scrolls the panel; the box comes back the same way.
     LazyColumn(modifier = Modifier.padding(padding).fillMaxSize().imePadding()) {

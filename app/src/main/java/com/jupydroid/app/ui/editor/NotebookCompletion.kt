@@ -38,7 +38,7 @@ class NotebookCompletion(
   /**
    * What is offered for [code] with the caret at [cursorOffset] in the cell [cellId] names.
    *
-   * The ask goes to one virtual document per notebook (P5d-1): [cells] with [cellId]'s source
+   * The ask goes to one virtual document per notebook: [cells] with [cellId]'s source
    * substituted for [code], the field's live text, which `uiState` may still hold stale. It is
    * synced whole on every ask - [LanguageServerPort.changeDocument] opens it on the first one,
    * the reference's `_sendChange` rule - and the caret is asked at its virtual position, so

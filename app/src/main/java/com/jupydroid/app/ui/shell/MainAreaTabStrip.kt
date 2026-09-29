@@ -83,7 +83,7 @@ import kotlinx.coroutines.launch
  * whole window, and only the entry's own content lands in both places without the shell measuring
  * the layout twice. Every detail entry wraps itself in this, which is also what makes
  * "Launcher/Settings/Terminal/Console are tabs too" free: they are already entries on the stack,
- * and the stack is the strip's model (P8d).
+ * and the stack is the strip's model.
  *
  * The reference draws the strip at every width (`docs/PLAN.md` P8e rejected `single-document`
  * mode on that reading), so no `twoPane` branch exists here.

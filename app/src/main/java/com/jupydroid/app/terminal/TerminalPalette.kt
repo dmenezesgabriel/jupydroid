@@ -12,7 +12,7 @@ package com.jupydroid.app.terminal
  * from a theme file. Here the palette is a constructor argument, because this app's ANSI ramp is
  * **theme-dependent** - VS Code registers `terminal.ansiGreen` as `#107C10` light and `#0DBC79`
  * dark - and `terminal/` may not reach into `theme/` to ask which. [VS_CODE_DARK] and
- * [VS_CODE_LIGHT] are that ramp, resolved (P4g); [REFERENCE] is what the differential compares
+ * [VS_CODE_LIGHT] are that ramp, resolved; [REFERENCE] is what the differential compares
  * against and stays Termux's own scheme.
  *
  * **The cube and the greys are generated, not transcribed.** They are arithmetic - six levels per
@@ -135,13 +135,13 @@ class TerminalPalette(private val defaults: IntArray) {
     val REFERENCE: TerminalPalette = TerminalPalette(defaultsWithAnsi(ANSI))
 
     /**
-     * VS Code's ANSI ramp, dark theme (P4g), with its own foreground/background/cursor (P4i-2a).
+     * VS Code's ANSI ramp, dark theme, with its own foreground/background/cursor.
      * Picking this over [VS_CODE_LIGHT] for the active theme is the composition root's decision,
      * not `terminal/`'s - see the class KDoc for why `terminal/` cannot make that choice itself.
      *
      * **The three dynamic slots, resolved rather than left [REFERENCE]'s placeholders.**
      * `terminal.foreground` is registered non-null (`terminalColorRegistry.ts:19-24`,
-     * `reference/research_repos/vscode`) and neither `2026-dark.json` nor its `dark_modern.json`
+     * `vscode@3f3380c6`) and neither `2026-dark.json` nor its `dark_modern.json`
      * include overrides it, so it stays that file's own `#CCCCCC` (`dark_modern.json:114`).
      * `terminal.background` and `terminalCursor.foreground` register `null` and are resolved at
      * runtime by `TerminalInstanceColorProvider.getBackgroundColor` /

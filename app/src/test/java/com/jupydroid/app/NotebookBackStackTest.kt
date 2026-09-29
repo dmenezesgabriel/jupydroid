@@ -13,7 +13,7 @@ import org.junit.Test
  * Since P8d the stack holds **every** open document, the way JupyterLab's main area holds every
  * open tab: opening a second document pushes it, and opening one already in the stack moves it to
  * the top rather than duplicating it - two equal keys would share one `contentKey`, one
- * `ViewModelStore` and one `SaveableStateHolder` slot (P6b-0).
+ * `ViewModelStore` and one `SaveableStateHolder` slot.
  */
 class NotebookBackStackTest {
   @Test
@@ -147,7 +147,7 @@ class NotebookBackStackTest {
    * only ever checked the top, so a notebook one level deeper survived a swap of what sat above it
    * and came back a second time on the next [openNotebook] for the same id. Two entries would then
    * share one `contentKey` ([openNotebook]'s own doc comment), and popping either would clear
-   * `ViewModelStore`/`SaveableStateHolder` state the other was still relying on (P6b-0).
+   * `ViewModelStore`/`SaveableStateHolder` state the other was still relying on.
    */
   @Test
   fun reopeningANotebookStackedBeneathSomethingElsePromotesItInstead() {

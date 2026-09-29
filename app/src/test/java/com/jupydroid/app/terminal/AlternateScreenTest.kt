@@ -53,7 +53,7 @@ class AlternateScreenTest {
    * which is the one case `useAlternateScreen` deliberately skips the blank for. Found as a mutation
    * survivor while widening P4h-3b's differential - confirmed to predate P4h-3 entirely, so this is
    * `docs/DECISIONS.md`'s "A resize followed by a buffer switch..." entry's own sibling gap, not a
-   * behaviour change - `evidence/p4-terminal/a-resize-then-a-buffer-switch-reaches-p4h-4s-gap.md`.
+   * behaviour change.
    */
   @Test
   fun reenteringTheAlternateScreenBlanksContentAnEarlierSessionLeft() {

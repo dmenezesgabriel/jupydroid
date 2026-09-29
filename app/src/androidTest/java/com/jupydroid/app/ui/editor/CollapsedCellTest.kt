@@ -82,7 +82,7 @@ class CollapsedCellTest {
   }
 
   /**
-   * `notebook:enable/disable/toggle-output-scrolling` (P2g-2b), beside the other two collapses -
+   * `notebook:enable/disable/toggle-output-scrolling`, beside the other two collapses -
    * and unlike them, the same row whatever the cell's own `outputsScrolled` is, which is the
    * reference's own choice for this exact surface (`CellActionItems.foldingItems`).
    */

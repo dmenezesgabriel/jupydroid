@@ -63,7 +63,7 @@ class NotebookKernelSession(
   private val onPendingKernelName: (String) -> Unit = {},
   /**
    * A session this notebook did not open but already has - a Console sharing the same document's
-   * kernel (P6b-1). Given here rather than assigned after construction so [onConnectedChanged]
+   * kernel. Given here rather than assigned after construction so [onConnectedChanged]
    * still fires for it: [open]'s "arrived" report lives on [opened]'s setter, and the only way in
    * that reaches the setter is an assignment, which a property initializer is not.
    *
@@ -116,7 +116,7 @@ class NotebookKernelSession(
   /**
    * The notebook's own path goes to the kernel, because that is what gives the kernel a working
    * directory - so a cell writing `data.csv` writes it beside the notebook, which is the whole
-   * point of the workspace being the kernel's `HOME` (X1a). The kernel keeps the directory it
+   * point of the workspace being the kernel's `HOME`. The kernel keeps the directory it
    * started in if the file is later renamed - a process's cwd is fixed once it is running - which
    * is what happens in the reference too, where a rename retitles the session and leaves the
    * running kernel where it was.

@@ -35,7 +35,7 @@ import com.jupydroid.app.ui.ancestorCrumbsFor
  * bar keeps is what the reference's toolbar keeps: the actions and the kind of cell the caret is
  * on.
  *
- * **The breadcrumb is above the action row** (P2w-1), which is where `BreadcrumbsControl` sits
+ * **The breadcrumb is above the action row**, which is where `BreadcrumbsControl` sits
  * relative to a tab title in VS Code, and it is **absent** on a document at the workspace root -
  * see [ancestorCrumbsFor] for both departures. A tap navigates the file browser, which is
  * JupyterLab's behaviour rather than VS Code's picker (`packages/filebrowser/src/crumbs.ts:415`).

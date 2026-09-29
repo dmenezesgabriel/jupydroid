@@ -316,7 +316,7 @@ class ExplorerViewModelTest {
 
   /**
    * **A poll that started before a navigation must not land on top of it** - found on the tablet,
-   * where the notebook's breadcrumb (P2w-1) is the first thing that navigates this browser from
+   * where the notebook's breadcrumb is the first thing that navigates this browser from
    * outside it. Coming back into composition restarts `KeepTheListingFresh`, which calls
    * [ExplorerViewModel.refresh] at once; that re-lists whatever path is on screen, and it was
    * racing the crumb's own `goTo`. Two listings, whichever finished last winning, and the frame

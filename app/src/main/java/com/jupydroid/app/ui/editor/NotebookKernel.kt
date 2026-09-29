@@ -86,13 +86,13 @@ class NotebookKernel(
   /**
    * Where "the session ended elsewhere" arrives - `SessionContext`'s `session.disposed`
    * subscription (`packages/apputils/src/sessioncontext.tsx`), which is what lands this
-   * notebook on No Kernel when the Running panel shuts its session down (P8f).
+   * notebook on No Kernel when the Running panel shuts its session down.
    */
   private val kernelSessions: KernelSessions = FakeKernelSessions(),
   /**
    * The Space's kernelspec catalogue - what a persisted preference is resolved against before it
    * reaches the wire, and what a bound kernel's `display_name`/`language` are read from for the
-   * `_updateSpec` write (P8g).
+   * `_updateSpec` write.
    */
   private val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
   /**
@@ -163,7 +163,7 @@ class NotebookKernel(
    * the ordering and why it lives beside this class rather than in it.
    */
   /**
-   * The notebook's one document under the language server (P5d-2b): completion syncs through
+   * The notebook's one document under the language server: completion syncs through
    * it on every ask, and the diagnostics watch both keeps it synced with the cells and maps
    * `publishDiagnostics` ranges back through its mirror - one truth for both feeds.
    */
@@ -197,7 +197,7 @@ class NotebookKernel(
     NotebookDiagnostics(uiState, languageServer, languageDocument, scope).also { it.start() }
 
   /**
-   * A Console's own session, pre-attached to whatever kernel this notebook already has - P6b-9.
+   * A Console's own session, pre-attached to whatever kernel this notebook already has.
    *
    * `console:inject`'s own contract (`console-extension/src/index.ts:1294-1338`): find the session
    * already tracked for this path and hand it over, never call `connect` a second time. A fresh

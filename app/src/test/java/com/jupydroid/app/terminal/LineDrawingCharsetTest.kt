@@ -6,7 +6,7 @@ import org.junit.Test
 /**
  * The DEC Special Graphics set, and the three positions where this repository's two references
  * disagree - each settled against `vttest`'s own character-set page rather than by preference
- * (`reference/research_repos/jediterm/core/tests/resources/testData/vttest/Test3_Characters/1`).
+ * (`jediterm@377b76e6 core/tests/resources/testData/vttest/Test3_Characters/1`).
  */
 class LineDrawingCharsetTest {
   private val charset = LineDrawingCharset()

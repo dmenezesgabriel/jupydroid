@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
  * the same index `MatchedLine.cell` carries, and for the same reason it carries an index rather
  * than an id (see `MatchedLine`).
  *
- * **The close half is the tab strip's** (P8e): a tab's dirty dot and `saveBeforeClose` have to
+ * **The close half is the tab strip's**: a tab's dirty dot and `saveBeforeClose` have to
  * reach a document whose screen may not even be composed - a tab beneath the top is out of
  * composition while its ViewModel lives on, which is exactly what this registry already exists
  * for. `dirty` is a [StateFlow] because the dot has to *follow* the save, and [saveNow]'s callback

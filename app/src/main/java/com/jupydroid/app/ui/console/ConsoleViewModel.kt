@@ -20,12 +20,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Runs what is typed into the Console against the notebook's own kernel session - P6b-4a.
+ * Runs what is typed into the Console against the notebook's own kernel session.
  *
  * [submit] is `console:run-forced`'s mobile stand-in: there is no Shift+Enter here to force a run
  * with, so a dedicated action replaces the reference's Enter/Shift+Enter split rather than porting
  * it (a design decision). [session] is handed in already attached to the
- * open notebook's kernel (P6b-1) - this class neither builds nor owns one.
+ * open notebook's kernel - this class neither builds nor owns one.
  *
  * ```kotlin
  * val viewModel = ConsoleViewModel(kernelGateway, session)
@@ -37,7 +37,7 @@ class ConsoleViewModel(
   private val kernelGateway: KernelGateway,
   private val session: NotebookKernelSession,
   /**
-   * Where "the session ended elsewhere" arrives (P8f): the session this Console shares is one
+   * Where "the session ended elsewhere" arrives: the session this Console shares is one
    * the Running panel lists and can shut down, and keeping it would have the next [submit] run
    * against a session the server deleted. `session.disposed`'s own subscription, by another name.
    */
@@ -46,7 +46,7 @@ class ConsoleViewModel(
   init {
     viewModelScope.launch { kernelSessions.ended.collect { session.endIfMatches(it) } }
     // `kernelChanged` beside `disposed`: the notebook may swap the kernel under the session this
-    // console shares (P8g) - the copy here follows the rebound or it would address a dead kernel.
+    // console shares - the copy here follows the rebound or it would address a dead kernel.
     viewModelScope.launch { kernelSessions.rebound.collect { session.rebindIfMatches(it) } }
   }
 
@@ -54,7 +54,7 @@ class ConsoleViewModel(
   val input = TextFieldState()
 
   /**
-   * `console:history-back`/`-forward`'s mobile stand-in - P6b-6.
+   * `console:history-back`/`-forward`'s mobile stand-in.
    *
    * [NotebookHistory] is itself already modelled on `console/src/history.ts` line for line (its
    * own doc comment), so this is the reference's own class returned to the surface it was written

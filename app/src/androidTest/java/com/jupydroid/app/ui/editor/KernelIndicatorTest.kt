@@ -19,7 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The kernel indicator (P2w-2): which kernel the notebook runs on, and what it is doing.
+ * The kernel indicator: which kernel the notebook runs on, and what it is doing.
  *
  * Instrumented rather than JVM because every question here is about *placement* - which control
  * the indicator sits between, whether its name is drawn at a given width, and whether there is

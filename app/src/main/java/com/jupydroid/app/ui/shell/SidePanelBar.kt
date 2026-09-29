@@ -80,7 +80,7 @@ fun SidePanelBar(
           // **No label, which is the rail's rule and the reference's own.** VS Code's activity bar
           // is icon-only in all three of its positions, and this app already had the rule for the
           // rail: the name goes on the *item* so a screen reader and a Maestro flow address one
-          // string (P2b). Measured before it was chosen: `ExplorerScreen` titles itself "Files" and
+          // string. Measured before it was chosen: `ExplorerScreen` titles itself "Files" and
           // `SearchSidePanel` "Search", and a labelled item directly below either one would put
           // that string on screen twice - `onNodeWithText` throws on two matches and `tapOn` picks
           // one of them. The departure from Material's "labels recommended" is in

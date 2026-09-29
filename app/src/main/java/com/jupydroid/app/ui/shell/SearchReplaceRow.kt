@@ -58,7 +58,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  *   `evidence/p2x-5-replace-all/` it read as **refresh**, next to a query box whose own leading icon
  *   is the magnifier it is built from. An action that rewrites files may not be drawn as the one
  *   glyph that means "do it again, harmlessly". Where [SearchOptionToggles] answered a missing
- *   codicon by drawing its letters (P2x-3d), the answer for an action is the control Material gives
+ *   codicon by drawing its letters, the answer for an action is the control Material gives
  *   type: a `TextButton`.
  * - **The row.** A label inline would take the box the 100dp it needs, and this panel spends
  *   **height** rather than width - the same trade the chevron's own column made above and the one

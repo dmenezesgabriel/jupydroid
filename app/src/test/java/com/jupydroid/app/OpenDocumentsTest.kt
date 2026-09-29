@@ -107,7 +107,7 @@ class OpenDocumentsTest {
   }
 
   /**
-   * Many at once, because the back stack holds every open document (P8d): the registry answers
+   * Many at once, because the back stack holds every open document: the registry answers
    * each by its own live path, and reports them in the order they opened - the order P8e's tab
    * strip draws.
    */

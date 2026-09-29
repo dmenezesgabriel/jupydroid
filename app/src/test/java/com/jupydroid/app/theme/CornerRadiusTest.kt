@@ -14,7 +14,7 @@ import org.junit.Test
  * number is still the number the reference states - and a transcribed number drifting silently is
  * not hypothetical here. `ColorRamp.LightGray4` held `#DADADA` for months where the reference
  * states `#DADADA99`, and every test over it passed, because they asserted membership rather than
- * value (P7a-1b, `docs/DECISIONS.md`).
+ * value (`docs/DECISIONS.md`).
  *
  * Two of the values are **off** Material's 4dp grid - 2 and 6 - which is why this scale is a
  * second file rather than more steps on [Spacing]. They answer to different references.

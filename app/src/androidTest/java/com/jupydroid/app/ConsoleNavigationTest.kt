@@ -116,7 +116,7 @@ class ConsoleNavigationTest {
 
   /**
    * `console:create` from the Launcher - a standalone Console titled `Console 1` on its own minted
-   * session (P6d-5). It replaces the detail rather than stacking on it, so Back leaves the shell
+   * session. It replaces the detail rather than stacking on it, so Back leaves the shell
    * on the browser and the dismiss label says files, not a notebook it is not attached to. The
    * gateway is the fake's echo; the real kernel is the tablet Maestro flow's own evidence.
    */

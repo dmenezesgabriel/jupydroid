@@ -128,7 +128,7 @@ class PythonTypingRulesTest {
     assertEquals("say \"", state.text.toString())
   }
 
-  // --- notebook:toggle-autoclosing-brackets, universal (P2g-3) -----------------------------
+  // --- notebook:toggle-autoclosing-brackets, universal -----------------------------
 
   /**
    * `autoClosingBrackets = false` gates [closePair] and [stepOverPartner] only.
@@ -150,7 +150,7 @@ class PythonTypingRulesTest {
     assertEquals("if x:\n    |", typing("if x:|", "\n", autoClosingBrackets = false))
   }
 
-  // --- `indentUnit` - `packages/codemirror/src/extension.ts:707-720` (P5e-6) ------------------
+  // --- `indentUnit` - `packages/codemirror/src/extension.ts:707-720` ------------------
 
   /**
    * The block-open level is the setting's own unit: `'2'` indents two spaces, not the default's

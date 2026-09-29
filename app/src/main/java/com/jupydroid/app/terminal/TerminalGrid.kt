@@ -22,7 +22,7 @@ data class GridCursor(val row: Int, val column: Int) {
  * ring of [RowRing] slots that also holds what has scrolled off the top.
  *
  * Transcribed from `terminal-emulator/src/main/java/com/termux/terminal/TerminalBuffer.java`
- * (`reference/research_repos/termux-app`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`,
+ * (`termux-app@3df69d1d`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`,
  * Apache 2.0 under that repository's `LICENSE.md` exception).
  *
  * **Named `TerminalGrid`, not `TerminalBuffer`**: `read_buffer` is already terminado's in this
@@ -122,7 +122,7 @@ class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
   /**
    * Resize the screen. `TerminalBuffer.resize`'s own guard (`:204`) - the column count unchanged
    * and the new row count no larger than the ring's *current* capacity - is [RowRing.resize]'s
-   * pure index arithmetic (P4h-1). Everything else rebuilds through [GridReflow] (P4h-2): a column
+   * pure index arithmetic. Everything else rebuilds through [GridReflow]: a column
    * change, or a grow of a ring shaped like the alternate screen (`totalRows == screenRows`, which
    * fails the guard's second half even though its columns never move - `ScreenBuffers` is what
    * builds a ring that shape).

@@ -23,7 +23,7 @@ package com.jupydroid.app.data.space
  *
  * A stall shows as `EXECUTE_REQUEST` with no `FRAME_RECEIVED` after it (nothing came back), or
  * with frames whose `subscribers` is `0` (it came back and was thrown away). Those are opposite
- * defects and the sightings that predate this log could not tell them apart, P0.
+ * defects and the sightings that predate this log could not tell them apart.
  *
  * **The ordering is itself worth reading.** On every device capture so far [EXECUTE_REQUEST]
  * precedes [SOCKET_CONNECTED]: the app hands the frame to OkHttp before the handshake finishes,

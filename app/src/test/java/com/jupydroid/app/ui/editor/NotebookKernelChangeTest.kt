@@ -22,7 +22,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * `notebook:change-kernel` - the picker's answer landing on the session (P8g).
+ * `notebook:change-kernel` - the picker's answer landing on the session.
  *
  * The reference's `SessionContextDialogs.selectKernel` hands the choice to
  * `sessionContext.changeKernel`, which patches the session that exists rather than ending it
@@ -113,7 +113,7 @@ class NotebookKernelChangeTest {
    * `Context._populate` seeds `kernelPreference` from the saved document's
    * `defaultKernelName`/`defaultKernelLanguage` (`docregistry/src/context.ts:587-595`), so the
    * first connect of a reopened notebook asks for the kernelspec it was last saved with rather
-   * than the server's default (P8g).
+   * than the server's default.
    */
   @Test
   fun theKernelAFileWasSavedWithIsWhatAFirstRunAsksFor() = runTest {

@@ -11,7 +11,7 @@ import org.junit.Test
  * / `testCursorHorizontalPositionAbsolute`, the ANSI.SYS halves of its two save/restore tests, and
  * `UnicodeInputTest`'s `testWideCharacterDeletion` / `testWideCharOverwriting` are transcribed here
  * (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). The halves that set a left or right
- * margin need `CSI ? 69 h` (P4f-4) and DECSLRM (P4f-5) and go with those.
+ * margin need `CSI ? 69 h` and DECSLRM and go with those.
  *
  * The cases upstream covers only in passing - the clamps, the absent and zero parameters, CNL/CPL,
  * VPA/VPR/HPR, CHT/CBT and the tab clears - had their **expectations read off the reference

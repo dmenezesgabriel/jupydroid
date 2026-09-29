@@ -34,7 +34,7 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
 /**
- * The glyph every cell's Run control draws - **outlined, not filled** (P2v-1).
+ * The glyph every cell's Run control draws - **outlined, not filled**.
  *
  * A filled triangle at rest reads as "playing"; outlined reads as available, which is what an
  * idle control means (ADR-0057). A value rather
@@ -177,7 +177,7 @@ private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () ->
     strokeWidth = SPINNER_STROKE,
   )
   IconButton(onClick = onStop) {
-    // The real glyph now that material-icons-extended is a dependency (X2a). It was a drawn Box
+    // The real glyph now that material-icons-extended is a dependency. It was a drawn Box
     // only because importing the whole icon set for one square was the worse trade; that reason
     // is gone. The button around it still reserves 48dp, which `CellTouchTargetTest` pins.
     Icon(

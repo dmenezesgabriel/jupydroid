@@ -68,7 +68,7 @@ fun MainNavigation(
   debugPanel: OpenDebugStack = remember { OpenDebugStack() },
   /**
    * Where every open document is reached by path, for something that is not its own screen -
-   * today, the search panel's replace (P2x-5).
+   * today, the search panel's replace.
    *
    * Remembered here rather than owned by [AppContainer] for [OpenDocumentOutline]'s reason: it
    * holds a live ViewModel, and a process-scoped holder would outlive the composition that made it.
@@ -85,8 +85,8 @@ fun MainNavigation(
   var sidePanel by rememberSaveable { mutableStateOf<SidePanel?>(SidePanel.FILES) }
   // Where each open document lives *now*, per entry. A navigation key keeps the path it was opened
   // under, because replacing it would re-create the entry and discard the editor's state; a rename
-  // is reported here instead, keyed by the entry's own key since many editors are open at once
-  // (P8d). `_contextsForPath` does the same - it filters live contexts by their current path, never
+  // is reported here instead, keyed by the entry's own key since many editors are open at once.
+  // `_contextsForPath` does the same - it filters live contexts by their current path, never
   // by the one a widget was created with. FileEditor keys join Editor's since P8e: the tab strip
   // reads live paths for titles and dirty lookups.
   val openDocumentPaths = remember { mutableStateMapOf<NavKey, String>() }
@@ -188,7 +188,7 @@ fun MainNavigation(
     backStack.openLauncher()
   }
   // Where the browser has been asked to go from *outside* its own entry - the open document's
-  // breadcrumb (P2w-1). Plain hoisted state rather than an `OpenDocumentOutline`-style holder,
+  // breadcrumb. Plain hoisted state rather than an `OpenDocumentOutline`-style holder,
   // because that one exists for something flowing **sideways** between two entries and this flows
   // down from their common parent: the editor asks here, and here is already above the browser.
   var browseRequest by remember { mutableStateOf<String?>(null) }
@@ -215,7 +215,7 @@ fun MainNavigation(
   // the browser and nothing else, because the rail is drawn only `if (twoPane)` below while
   // `sidePanel` is `rememberSaveable`. A tablet rotated to portrait (1280dp landscape is two panes,
   // 800dp portrait is one) kept drawing the panel it had with no rail to switch away from it and no
-  // way back to the files but killing the app (P2x-2b). The bottom bar leaves Files and Search, so
+  // way back to the files but killing the app. The bottom bar leaves Files and Search, so
   // only the table of contents still falls back - it has no item there, and its own route at this
   // width is the overlay the notebook's menu opens.
   //
@@ -312,7 +312,7 @@ fun MainNavigation(
       //
       // **And it is `activityBar.border` now, not whatever `outlineVariant` happened to be.** The
       // divider took `DividerDefaults.color`, which resolves to `panel.border` - the same hex as
-      // this id in both default themes, a different id, and nothing holding it (P7a-2).
+      // this id in both default themes, a different id, and nothing holding it.
       SidePanelRail(
         selected = sidePanel,
         onChoose = { sidePanel = sidePanel.chosen(it) },

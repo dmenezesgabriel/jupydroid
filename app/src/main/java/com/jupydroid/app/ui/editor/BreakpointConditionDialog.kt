@@ -18,7 +18,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 
 /**
- * A breakpoint's own condition (P6a-16), reached by a long-press on an armed line's gutter dot -
+ * A breakpoint's own condition, reached by a long-press on an armed line's gutter dot -
  * [RenameFileDialog][com.jupydroid.app.ui.RenameFileDialog]'s own shape (a single `OutlinedTextField`
  * inside an `AlertDialog`, focused the moment it opens), applied to a Python expression instead of
  * a file name.

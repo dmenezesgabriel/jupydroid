@@ -109,7 +109,7 @@ fun ExplorerScreen(
   /**
    * A folder this screen has been asked to browse from outside its own entry, or null.
    *
-   * The open document's breadcrumb is the one caller (P2w-1). It cannot reach this
+   * The open document's breadcrumb is the one caller. It cannot reach this
    * `ExplorerViewModel` - a different `NavEntry` owns it - so the request arrives from the
    * navigation above both, which is the same route `docmanager:open` takes in reverse.
    */
@@ -379,7 +379,7 @@ private fun EntryRow(
       }
       // `list.inactiveSelectionBackground`, stated by the side bar this row is drawn in rather
       // than borrowed from `secondaryContainer` - which also served the search toggles and two
-      // contextual bars, and could not stay opaque for them and translucent here (P7a-1b).
+      // contextual bars, and could not stay opaque for them and translucent here.
       .background(if (isOpen) chromePalette.listInactiveSelectionBackground else Color.Transparent)
       // Long press for the row's own actions, which is the touch equivalent of the reference's
       // right-click context menu (`filebrowser-extension`) and of Winlator's per-row menu - and is

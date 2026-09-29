@@ -178,7 +178,7 @@ class NotebookCellEdits(
   }
 
   /**
-   * Lands the formatter's answer on [cellId] - "Format cell" (P5e-6, VS Code's
+   * Lands the formatter's answer on [cellId] - "Format cell" (VS Code's
    * `notebook.formatCell`), applied as **one undoable operation**, which is what a Ctrl-Z
    * after `editor.action.format` is there. [recording] is the undoable half and
    * [EditorUiState.sourceRevisions] the visible one: the diff marks the cell in `rewrote`,
@@ -222,7 +222,7 @@ class NotebookCellEdits(
 }
 
 /**
- * Lands the rename's whole-document answer - `editor.action.rename` (P5e-7) applied as
+ * Lands the rename's whole-document answer - `editor.action.rename` applied as
  * **one undoable operation**, the reference's `bulkEditService.apply` transaction: a Ctrl-Z
  * after it restores every cell at once, which is what the shared undo entry is for.
  * [recording] is the undoable half and [EditorUiState.sourceRevisions] the visible one -

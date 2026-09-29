@@ -95,7 +95,7 @@ class CellActionsTest {
     compose.onNodeWithContentDescription("Cell menu Paste below").assertDoesNotExist()
   }
 
-  // --- the heading-level picker (P2f-3) ---------------------------------------------------
+  // --- the heading-level picker ---------------------------------------------------
 
   @Test
   fun theMenuTurnsOneRowIntoTheSixLevels() {

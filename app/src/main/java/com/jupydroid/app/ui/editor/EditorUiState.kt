@@ -201,8 +201,8 @@ data class EditorUiState(
   val stoppedAt: DebugStop? = null,
   /**
    * [stoppedAt]'s own call stack and top-frame variables, chained on the same `Stopped` event -
-   * [NotebookDebugger.watchForStop]'s other half (P6a-8a). Kept apart from [stoppedAt] rather than
-   * merged into it: the gutter's stopped-line wash (P6a-7b-2) only ever reads [stoppedAt], and
+   * [NotebookDebugger.watchForStop]'s other half. Kept apart from [stoppedAt] rather than
+   * merged into it: the gutter's stopped-line wash only ever reads [stoppedAt], and
    * widening its contract for a panel it does not draw would couple the two for no reason.
    *
    * Null exactly when [stoppedAt] is - cleared on the same `Continued` event, live kernel state

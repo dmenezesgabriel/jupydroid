@@ -31,7 +31,7 @@ class FocusedCellInputTest {
     input.type(":")
   }
 
-  // --- what a history entry does to the field (P2k-4) ---------------------------------------
+  // --- what a history entry does to the field ---------------------------------------
 
   /** `updateEditor` replaces the whole source (`packages/notebook/src/history.ts:224`). */
   @Test

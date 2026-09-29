@@ -137,7 +137,7 @@ class NotebookNavigationTest {
           // threshold, where the strip's `"Back to files"` arrow disappears instead
           // (`MainAreaTabStrip`).
           // Found live: this flow failed on `SM-X216B` in landscape until pinned - `ConsoleNavigationTest`'s
-          // own fix for the identical cause (P6b-9c).
+          // own fix for the identical cause.
           twoPane = false,
         )
       }

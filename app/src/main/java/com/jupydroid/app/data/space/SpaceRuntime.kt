@@ -49,7 +49,7 @@ class SpaceRuntime(
     "JUPYDROID_SPACE_ROOT" to baseDir.path,
     // PEP 668: Alpine marks this interpreter EXTERNALLY-MANAGED, so bare `pip install` is
     // refused - and even `--user` is refused without `--break-system-packages` (measured
-    // on-device, P8a). The managed answer is the Space's own user base: PYTHONUSERBASE puts
+    // on-device). The managed answer is the Space's own user base: PYTHONUSERBASE puts
     // `pkgs/lib/...` on sys.path, PIP_USER makes installs ground there unflagged, and the
     // three together are inherited by kernel, terminal, `%pip` and LSP alike.
     "PYTHONUSERBASE" to inBase("pkgs"),

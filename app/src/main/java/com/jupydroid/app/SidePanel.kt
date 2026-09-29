@@ -58,7 +58,7 @@ enum class SidePanel {
   TABLE_OF_CONTENTS,
 
   /**
-   * The call stack and variables of wherever the open notebook's debugger last stopped (P6a-8b).
+   * The call stack and variables of wherever the open notebook's debugger last stopped.
    *
    * **A departure from both references' own placement, forced by this app having one side area.**
    * JupyterLab's own Debugger is not among the ranked panels above at all - it registers on the

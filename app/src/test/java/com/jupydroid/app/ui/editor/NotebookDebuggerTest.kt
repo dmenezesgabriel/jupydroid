@@ -29,7 +29,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The debugger's own first visible slice (P6a-6): a breakpoint toggled in the gutter, kept for as
+ * The debugger's own first visible slice: a breakpoint toggled in the gutter, kept for as
  * long as the app runs rather than for as long as the ViewModel that toggled it does. The
  * handshake itself is P6a-7a, and wiring it into Run plus reflecting a stop is P6a-7b.
  */
@@ -94,7 +94,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * The handshake itself (P6a-7a): what a cell about to run under the debugger sends, in the
+   * The handshake itself: what a cell about to run under the debugger sends, in the
    * order DAP requires - attach before dumpCell, dumpCell before the setBreakpoints it names a
    * source for, setBreakpoints before configurationDone tells the kernel setup is finished.
    */
@@ -133,7 +133,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * Stop detection (P6a-7b): a `Stopped` debug event resolves to the kernel's own top stack
+   * Stop detection: a `Stopped` debug event resolves to the kernel's own top stack
    * frame's line - `Stopped` alone carries only a thread id, not a line - and reaches
    * [EditorUiState.stoppedAt] for as long as [NotebookDebugger.watchForStop] is being collected.
    */
@@ -201,7 +201,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * Wired into Run (P6a-7b): a cell's debug session is armed **before** it executes - proved by
+   * Wired into Run: a cell's debug session is armed **before** it executes - proved by
    * blocking `attach` and finding the kernel has not been asked to run anything yet.
    */
   @Test

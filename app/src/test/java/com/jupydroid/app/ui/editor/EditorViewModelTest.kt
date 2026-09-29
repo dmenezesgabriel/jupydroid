@@ -155,7 +155,7 @@ class EditorViewModelTest {
     assertEquals(null, viewModel.uiState.value.runningCellId)
   }
 
-  // --- Step 7.1: outputs survive closing the notebook ---
+  // --.1: outputs survive closing the notebook ---
 
   @Test
   fun uiState_showsOutputsSavedByAPreviousSession() = runTest {
@@ -183,7 +183,7 @@ class EditorViewModelTest {
     assertEquals(1, reread.executionCount)
   }
 
-  // --- Step 5.3: editing a cell ---
+  // --.3: editing a cell ---
 
   @Test
   fun editCell_updatesTheSourceAndMarksTheNotebookDirty() = runTest {

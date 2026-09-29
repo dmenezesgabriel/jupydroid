@@ -52,7 +52,7 @@ class SelectiveErasingTest {
 
   /**
    * **A selective erase clears the pending wrap whatever its parameter**, where ED and EL clear it
-   * only for a parameter they understood (P4f-3c). The reference assigns `mAboutToAutoWrap = false`
+   * only for a parameter they understood. The reference assigns `mAboutToAutoWrap = false`
    * *before* its switch rather than after, so the asymmetry P4f-3c transcribed does not apply here.
    * Expectations off `RefScreen`.
    */

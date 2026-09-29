@@ -121,7 +121,7 @@ class MarkdownDocumentTest {
     assertTrue("got $inlines", inlines.any { it is RichInline.SoftLineBreak })
   }
 
-  // --- heading level, which is what a collapsible section is keyed on (P2f) -------------
+  // --- heading level, which is what a collapsible section is keyed on -------------
 
   /**
    * `MarkdownCell.headingInfo` returns the **lowest-numbered** heading found in the cell -

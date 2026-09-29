@@ -160,7 +160,7 @@ class CellHeadingsTest {
     assertEquals(listOf("h1", "h1b", "c"), collapsed.cellsOnScreen.map { it.id })
   }
 
-  // --- insert a heading (P2f-4) -----------------------------------------------------------
+  // --- insert a heading -----------------------------------------------------------
 
   /**
    * `insertSameLevelHeadingAbove` inserts at the active cell's own index (`actions.tsx:1183-1201`),
@@ -239,7 +239,7 @@ class CellHeadingsTest {
     notebook.copy(selectedCellId = cellId).withHeadingInserted(reach, "new")
       .cells.single { it.id == "new" }.source
 
-  // --- change a cell to a heading (P2f-3) -------------------------------------------------
+  // --- change a cell to a heading -------------------------------------------------
 
   /**
    * `Private.setMarkdownHeader` replaces `^#+\s*` - or, failing that, `^\s*` - with
@@ -342,7 +342,7 @@ class CellHeadingsTest {
       .withCellsHeadingLevel(listOf("x"), level)
       .cells.single().source
 
-  // --- collapse all / expand all (P2f-2) --------------------------------------------------
+  // --- collapse all / expand all --------------------------------------------------
 
   /**
    * `collapseAllHeadings` sets every heading and nothing else - it filters on
@@ -409,7 +409,7 @@ class CellHeadingsTest {
     )
   }
 
-  // --- a collapsed heading behaves as its section (P2f-5) ---------------------------------
+  // --- a collapsed heading behaves as its section ---------------------------------
 
   /**
    * `Private.selectedCells` adds a collapsed heading's children to the operand

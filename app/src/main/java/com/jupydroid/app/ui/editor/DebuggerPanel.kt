@@ -85,27 +85,27 @@ private val SHEET_ELEVATION = 3.dp
  * [DebuggerSidePanel][com.jupydroid.app.ui.shell.DebuggerSidePanel] - the surfaces differ in
  * where they are drawn, never in what a stop looks like.
  *
- * **Padded and indented rather than bare `Text`** (P6a-13): every row carries the same
+ * **Padded and indented rather than bare `Text`**: every row carries the same
  * `Spacing.md` horizontal margin [SearchSidePanel][com.jupydroid.app.ui.shell.SearchSidePanel]'s
  * own rows already use, a variable sits one indent step (`Spacing.xl`) under its scope heading -
  * [TableOfContentsRows]' own per-level indentation, applied at the one level this flat model has -
  * and a value is drawn in [codeTextStyle], the same monospace this app already reserves for
  * anything that is source rather than prose.
  *
- * **A compound variable expands on tap** (P6a-14), closing the Open risks entry
+ * **A compound variable expands on tap**, closing the Open risks entry
  * `docs/PLAN.md` named for exactly this: [DebugVariable.variablesReference] was already fetched
  * from the kernel on every reply and then discarded. [onExpand] is [NotebookDebugger.expand] -
  * this composable owns no session of its own, so it asks the debugger for one instead of trying
  * to keep one.
  *
- * **A frame other than the top one is selectable on tap** (P6a-15), closing [DebugStack]'s own
+ * **A frame other than the top one is selectable on tap**, closing [DebugStack]'s own
  * other named gap: [onSelectFrame] is [NotebookDebugger.selectFrame], asked the same way [onExpand]
  * is. The tapped row is tracked locally (`remember(stack.frames)`) rather than added to
  * [DebugStack] itself - the frame list is the same object across a reselection (only [groups]
  * changes), so keying on it does not lose the highlight when [onSelectFrame] answers, and a wholly
  * new stop (a fresh `frames` list) resets it back to the top frame without extra state to clear.
  *
- * **An ad hoc expression can be run against the top frame** (P6a-17) - [onEvaluate] is
+ * **An ad hoc expression can be run against the top frame** - [onEvaluate] is
  * [NotebookDebugger.evaluate], the same "ask the debugger, keep no session here" shape [onExpand]
  * already uses. Its own answer renders as one more variable-shaped row ([variableRowText]) rather
  * than a second layout, since it already is one DAP-side.

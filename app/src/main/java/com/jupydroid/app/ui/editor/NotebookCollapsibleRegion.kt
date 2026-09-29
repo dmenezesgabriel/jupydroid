@@ -5,7 +5,7 @@ package com.jupydroid.app.ui.editor
  *
  * **A second row on the bar is not free, and this is what it costs on a phone.** The region was
  * the title strip while the document's name lived there - `#jp-title-panel` in the reference's
- * single-document mode - and is the breadcrumb row now that the tab carries the name (P8e).
+ * single-document mode - and is the breadcrumb row now that the tab carries the name.
  * Either way the arithmetic is the same: a 48dp row under the bar is 48dp of notebook, and at
  * 320dp that was measured to be enough to put a fourth cell's source under the bottom bar
  * (`p2b-split`, `p2c-batch-delete`, `p2f-4-insert-heading`, `p2i-4-next-previous`).

@@ -108,7 +108,7 @@ class EditorBottomBarTest {
   }
 
   /**
-   * **A paused kernel (P6a-9b) beats every other state.** Unlike a marked run or a search, which
+   * **A paused kernel beats every other state.** Unlike a marked run or a search, which
    * the user chose and can leave at will, a breakpoint stop is the kernel itself demanding
    * attention - both references surface their own debug toolbar the instant a session stops,
    * regardless of what else was on screen (`packages/debugger-extension/src/index.ts:1170-1264`,

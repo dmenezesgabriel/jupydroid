@@ -34,7 +34,7 @@ import com.jupydroid.app.theme.editorPalette
 /**
  * Draws a line number beside every logical line of the text this modifier decorates, and
  * reserves the room they need. A line carrying a [Breakpoint] draws its dot in its **own** column,
- * to the left of the numbers (P6a-12) - VS Code's own layout, a `glyphMarginWidth` one row tall
+ * to the left of the numbers - VS Code's own layout, a `glyphMarginWidth` one row tall
  * sitting before the line-number margin (`editorOptions.ts`). This reverses P6a-6's own choice to
  * reuse the number's column instead of spending the extra width; recorded as a reversal, not a
  * silent change, once the number disappearing under an armed breakpoint measured out as the wrong
@@ -60,7 +60,7 @@ import com.jupydroid.app.theme.editorPalette
  * @param onGutterTap a tap landed in the gutter, reporting the **one-based** logical line it hit -
  *   `KernelDebugger.setBreakpoints`'s own numbering. Fires the moment the release resolves as an
  *   ordinary tap rather than [onGutterLongPress]'s own precondition - see [detectGutterTap].
- * @param onGutterLongPress a long-press landed on an *armed* line's gutter (P6a-16), reporting
+ * @param onGutterLongPress a long-press landed on an *armed* line's gutter, reporting
  *   that line - opens the condition editor, in place of [onGutterTap] for that one press rather
  *   than beside it. Never fires for a line with no breakpoint: there is nothing yet to attach a
  *   condition to, so a long hold there is still an ordinary tap (arms it), same as a quick one.
@@ -125,7 +125,7 @@ internal fun rememberGutterMetrics(
   // Measured once per line count rather than per frame: a TextMeasurer's cache is small, and a
   // thirty-line cell would miss it on every draw.
   val numbers = remember(starts.size, style) { List(starts.size) { measurer.measure("${it + 1}", style) } }
-  // The condition badge (P6a-16) - IntelliJ's own convention for a conditional breakpoint
+  // The condition badge - IntelliJ's own convention for a conditional breakpoint
   // (`XBreakpointUIUtil.withQuestionBadgeIfNeeded`): the base dot unchanged, a small question-mark
   // badge overlaid near its corner, rather than a different glyph altogether.
   val badgeStyle = style.copy(fontSize = style.fontSize * CONDITION_BADGE_SCALE)
@@ -227,8 +227,8 @@ private fun DrawScope.drawStoppedLineBackground(
 }
 
 /**
- * A filled circle centred in its own column (P6a-12), dim while [Breakpoint.verified] is false,
- * with a small "?" overlaid near its corner (P6a-16) once [Breakpoint.condition] is set -
+ * A filled circle centred in its own column, dim while [Breakpoint.verified] is false,
+ * with a small "?" overlaid near its corner once [Breakpoint.condition] is set -
  * IntelliJ's own `withQuestionBadgeIfNeeded` badges the base icon rather than swapping it for a
  * different one, so a conditional breakpoint still reads as a breakpoint first.
  */
@@ -324,7 +324,7 @@ private fun TextLayoutResult.lineNumberAt(y: Float, starts: List<Int>): Int {
  * (`packages/notebook/src/actions.tsx:1792-1812`), so every field asks this the same way and the
  * caller supplies the one flag.
  *
- * **Includes the breakpoint column** (P6a-12) - one row tall, measured off the same digits so it
+ * **Includes the breakpoint column** - one row tall, measured off the same digits so it
  * shares their font metrics, sitting before them the way VS Code's own glyph margin sits before
  * its line numbers.
  */

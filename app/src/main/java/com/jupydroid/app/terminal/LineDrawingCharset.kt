@@ -6,7 +6,7 @@ package com.jupydroid.app.terminal
  * The state is `TerminalEmulator`'s `mUseLineDrawingG0` / `mUseLineDrawingG1` /
  * `mUseLineDrawingUsesG0` (termux-app `3df69d1da197dd9bd71a3bafd902dffd720576b4`, Apache 2.0 under
  * that repository's `LICENSE.md` exception); the shape is JediTerm's `GraphicSetState`
- * (`reference/research_repos/jediterm`, Apache 2.0 at the reader's option per its `README.md`),
+ * (`jediterm@377b76e6`, Apache 2.0 at the reader's option per its `README.md`),
  * which keeps the designation apart from the parser. Two graphic sets rather than ISO 2022's four:
  * that is the whole of what `ESC ( C` and `ESC ) C` can designate here, as it is upstream.
  *

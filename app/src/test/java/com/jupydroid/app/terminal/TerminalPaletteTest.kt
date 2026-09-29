@@ -6,7 +6,7 @@ import org.junit.Test
 /**
  * The three dynamic slots (foreground, background, cursor) [TerminalPalette.VS_CODE_DARK] and
  * [TerminalPalette.VS_CODE_LIGHT] answer for their own surface, rather than
- * [TerminalPalette.REFERENCE]'s black-on-white placeholders - P4i-2a, `TerminalPalette.kt`'s own
+ * [TerminalPalette.REFERENCE]'s black-on-white placeholders, `TerminalPalette.kt`'s own
  * KDoc: "P4i replaces them once the screen exists to answer for its own surface."
  *
  * Values are VS Code's own, walked through its runtime fallback rather than a single theme file:
@@ -15,7 +15,7 @@ import org.junit.Test
  * (`#CCCCCC`, unchanged through `2026-dark.json`) and `light_modern.json:133` (`#3B3B3B`, unchanged
  * through `2026-light.json`). `terminal.background` and `terminalCursor.foreground` are registered
  * `null` (`:18,25`) and resolved by `TerminalInstanceColorProvider.getBackgroundColor` /
- * `xtermTerminal.ts:1095-1096` (`reference/research_repos/vscode`): a cursor foreground falls back
+ * `xtermTerminal.ts:1095-1096` (`vscode@3f3380c6`): a cursor foreground falls back
  * to the terminal's own foreground, and a background - this app's terminal being its own screen
  * rather than an embedded panel, so the reference's "Editor location" branch is the fitting one -
  * falls back to `editor.background`. Dark states its own `terminal.background`/`terminalCursor.foreground`

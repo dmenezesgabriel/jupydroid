@@ -4,7 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 /**
- * The app-wide Settings screen - P6c-1.
+ * The app-wide Settings screen.
  *
  * A singleton, not a document: there is exactly one, it carries no id, and
  * [MutableList.openSettings] reveals it rather than reopening it. Reached from

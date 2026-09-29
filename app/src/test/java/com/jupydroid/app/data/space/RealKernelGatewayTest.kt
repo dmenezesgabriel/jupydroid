@@ -93,7 +93,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     assertEquals(session.id, opener.openedSessionId)
   }
 
-  // --- Step 10.4b: one socket per session, not per execution ---
+  // --.4b: one socket per session, not per execution ---
 
   /** A socket per cell means a WebSocket handshake on every run, and a connection count that churns. */
   @Test
@@ -259,7 +259,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     assertEquals(KernelEvent.Idle, events.last())
   }
 
-  // --- Step 5.5a: completion over the same socket ---
+  // --.5a: completion over the same socket ---
 
   @Test
   fun complete_returnsTheMatchesAndTheRangeFromTheKernelsReply() = runTest {
@@ -446,7 +446,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     assertTrue("expected the request to fail, got $failure", failure.isFailure)
   }
 
-  // --- Step 10.4a: kernel lifecycle over REST ---
+  // --.4a: kernel lifecycle over REST ---
 
   @Test
   fun connect_startsARealKernelAndBindsTheSessionToIt() = runTest {

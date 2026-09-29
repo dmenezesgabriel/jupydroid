@@ -41,7 +41,7 @@ import com.jupydroid.app.ui.editor.searchMatchStyles
  * the code needs to show a match in.
  *
  * **A `LazyListScope` extension rather than a composable owning a list**, and that is a measurement
- * rather than a style: with the glob boxes open (P2x-3e) the panel's fixed chrome is about 290dp,
+ * rather than a style: with the glob boxes open the panel's fixed chrome is about 290dp,
  * and a soft keyboard leaves less than that - so a tree in a list of its own was measured with
  * **zero height**, composed and correct and impossible to reach. The reference has no keyboard to
  * inset for and keeps its widgets fixed above a scrolling tree; here the whole panel scrolls as one

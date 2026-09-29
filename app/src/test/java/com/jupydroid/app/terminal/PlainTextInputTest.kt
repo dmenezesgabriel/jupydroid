@@ -9,12 +9,12 @@ import org.junit.Test
  * Eight of `UnicodeInputTest`'s eleven cases, plus `TerminalTest`'s `testNormalization`, `testBel`,
  * `testAutomargins` and the first half of `testTab` (termux-app `3df69d1d`, Apache 2.0 - see
  * [TerminalGrid]). **The rest of those classes drive escape sequences and go with the step that
- * adds them**: `testWideCharacterDeletion` and `testWideCharOverwriting` need `CSI D` (P4f-3b),
- * `testWideCharacterWithoutWrapping` needs `CSI ? 7 l` (P4f-4), and `testLineDrawing` is in
- * `EscapeDispatchTest` (P4f-3a) - `LineDrawingCharsetTest` covers the table itself here.
+ * adds them**: `testWideCharacterDeletion` and `testWideCharOverwriting` need `CSI D`,
+ * `testWideCharacterWithoutWrapping` needs `CSI ? 7 l`, and `testLineDrawing` is in
+ * `EscapeDispatchTest` - `LineDrawingCharsetTest` covers the table itself here.
  * `testTab`'s second line needs SGR and is in `EscapeSequenceTest`, which has one.
  *
- * `ScreenBufferTest`'s two selection cases are here as well (P4f-3b). `TerminalGridTest` already
+ * `ScreenBufferTest`'s two selection cases are here as well. `TerminalGridTest` already
  * covers [GridSelection] at the grid level; what these add is the join, driven end to end - that
  * the emulator's writes land where a selection reads them, wrap flag included.
  *

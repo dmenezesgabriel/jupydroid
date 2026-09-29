@@ -16,7 +16,7 @@ import androidx.navigation3.runtime.NavKey
  * state the second still needs. A double tap is enough to cause it, because Recents is still on
  * screen and still hittable while the transition runs.
  *
- * **A different notebook stacks rather than replacing** (P8d). The back stack is the main area's
+ * **A different notebook stacks rather than replacing**. The back stack is the main area's
  * tab list: every open document keeps its entry, so its ViewModel - and its kernel session - stays
  * alive while another document is on top, and Back reveals the previous document the way closing
  * a tab reveals the neighbour. The single-document swap this replaced existed because a stacked
@@ -59,7 +59,7 @@ fun MutableList<NavKey>.openTerminal(name: String) {
  * The [removeAll] is [openStandaloneConsole]'s own constraint held globally: `entry<Console>`
  * draws from the one `consoleSession` holder, so a Console deeper in the stack than the incoming
  * one would keep composing against the newer session. JupyterLab tracks many consoles; this
- * holder is why this app cannot (P6d-5, `docs/DECISIONS.md`).
+ * holder is why this app cannot (`docs/DECISIONS.md`).
  *
  * ```
  * backStack.openConsole("nb-1")   // [Explorer, Editor("nb-1")] -> [Explorer, Editor("nb-1"), Console("nb-1")]

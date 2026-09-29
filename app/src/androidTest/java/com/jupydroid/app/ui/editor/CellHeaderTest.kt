@@ -167,7 +167,7 @@ class CellHeaderTest {
     assertEquals(1, toggled)
   }
 
-  // --- the prompt, and what may precede it (P2n) --------------------------------------
+  // --- the prompt, and what may precede it --------------------------------------
 
   /**
    * **Nothing is ever in front of a code cell's prompt**, so every bracket in a document starts at

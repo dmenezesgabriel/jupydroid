@@ -236,7 +236,7 @@ private fun List<ResourceEdits>.asUndo(): ReplaceUndo =
 /**
  * One file's matches split into the resources they are actually in - the file, or its cells.
  *
- * A notebook's matches each name a cell (P2x-4a), and one cell is one resource with one text to
+ * A notebook's matches each name a cell, and one cell is one resource with one text to
  * validate and rewrite; a plain file's name none, and the file is the single resource. Grouping is
  * what turns `MatchedFile` into what `ResourceTextEdit` addresses.
  */

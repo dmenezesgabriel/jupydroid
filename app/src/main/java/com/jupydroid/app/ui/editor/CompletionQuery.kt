@@ -25,7 +25,7 @@ fun completionQueryAt(code: String, cursor: Int): CompletionQuery? {
 
 /**
  * The identifier ending at [cursor] as (start, endExclusive) code-unit offsets - the span a
- * completion match with no `textEdit` of its own replaces (`NotebookCompletion`, P5c). Null
+ * completion match with no `textEdit` of its own replaces (`NotebookCompletion`). Null
  * when the cursor sits on no word, which makes the match a pure insertion.
  */
 fun identifierSpanEndingAt(code: String, cursor: Int): Pair<Int, Int>? {

@@ -135,7 +135,7 @@ class JupydroidApplication : Application() {
    * - see [BaseSpaceServer], whose KDoc has named an export and a terminal as its clients since P1.
    * [kernels] and [debugger] go one step further, sharing one `PerRunningServer<KernelSockets>`
    * so a `debug_request` reuses the identical per-session socket `execute`/`complete`/`history`
-   * already share, rather than opening a second one (P6a-4).
+   * already share, rather than opening a second one.
    */
   private class SpaceBackedPorts(launcher: JupyterServerLauncher, application: Application) {
     private val space: BaseSpaceServer? = baseSpaceServer(application, launcher)
@@ -144,7 +144,7 @@ class JupydroidApplication : Application() {
     /**
      * The sessions this process mints - shared by the gateway that mints them and the panel
      * port that lists/ends them, real or fake, so a Running-panel shutdown reaches an open
-     * notebook on an emulator exactly as on the tablet (P8f).
+     * notebook on an emulator exactly as on the tablet.
      */
     private val sessionRegistry = KernelSessionRegistry()
 

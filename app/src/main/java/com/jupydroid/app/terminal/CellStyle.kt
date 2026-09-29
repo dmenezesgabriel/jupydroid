@@ -4,7 +4,7 @@ package com.jupydroid.app.terminal
  * One cell's effects, foreground and background packed into a single `Long`.
  *
  * Transcribed from `terminal-emulator/src/main/java/com/termux/terminal/TextStyle.java`
- * (`reference/research_repos/termux-app`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`,
+ * (`termux-app@3df69d1d`, commit `3df69d1da197dd9bd71a3bafd902dffd720576b4`,
  * Apache 2.0 under that repository's `LICENSE.md` exception).
  *
  * **Named `CellStyle`, not `TextStyle`:** `TextStyle` already resolves to Compose's in eighteen

@@ -36,9 +36,9 @@ import com.jupydroid.app.ui.editor.DebugStackRows
  * back from.
  *
  * @param stack the open notebook's own stop, or null while nothing that has one is open or stopped.
- * @param onExpand a compound variable's own children (P6a-14) - [com.jupydroid.app.OpenDebugStack.expand].
- * @param onSelectFrame a tapped frame's own id (P6a-15) - [com.jupydroid.app.OpenDebugStack.selectFrame].
- * @param onEvaluate an ad hoc expression's own answer (P6a-17) - [com.jupydroid.app.OpenDebugStack.evaluate].
+ * @param onExpand a compound variable's own children - [com.jupydroid.app.OpenDebugStack.expand].
+ * @param onSelectFrame a tapped frame's own id - [com.jupydroid.app.OpenDebugStack.selectFrame].
+ * @param onEvaluate an ad hoc expression's own answer - [com.jupydroid.app.OpenDebugStack.evaluate].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

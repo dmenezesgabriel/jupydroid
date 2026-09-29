@@ -55,7 +55,7 @@ class SidePanelTest {
    * - **The table of contents is last-but-one, and only JupyterLab says so**: rank 400
    *   (`packages/toc-extension/src/index.ts:309`). VS Code has no such container - its Outline is
    *   a view *inside* the explorer's (`vscode/…/outline/browser/outline.contribution.ts:26-38`).
-   * - **The debugger is last of all (P6a-8b), and neither reference actually ranks it here**:
+   * - **The debugger is last of all, and neither reference actually ranks it here**:
    *   JupyterLab's own Debugger sits on the shell's *right* area
    *   (`packages/debugger-extension/src/index.ts:1357`), a second side area this app does not
    *   have, and VS Code's left-side "Run and Debug" (order 3) sits after Source Control, which
@@ -93,7 +93,7 @@ class SidePanelTest {
    *
    * **Three destinations is Material's own floor** of *"three to five destinations of equal
    * importance"* (`developer.android.com/develop/ui/compose/components/navigation-bar`), and
-   * Sessions and Tabs joining the bar (P8f) is what reaches it: Files and Search alone were two,
+   * Sessions and Tabs joining the bar is what reaches it: Files and Search alone were two,
    * which the note above recorded as a deliberate exception this panel now retires.
    */
   @Test

@@ -30,7 +30,7 @@ class OpenDebugStack {
     private set
 
   /**
-   * Fetches a compound variable's own children (P6a-14) - [NotebookDebugger.expand][
+   * Fetches a compound variable's own children - [NotebookDebugger.expand][
    * com.jupydroid.app.ui.editor.NotebookDebugger.expand], published alongside [current] the same
    * way [DocumentOutline.jumpTo] travels with its own headings: the panel is in the list pane and
    * owns no session of its own to ask a kernel with.
@@ -38,14 +38,14 @@ class OpenDebugStack {
   private var expandVariable: suspend (Int) -> List<DebugVariable> = { emptyList() }
 
   /**
-   * A tapped frame's own id (P6a-15), published alongside [current] and [expandVariable] for the
+   * A tapped frame's own id, published alongside [current] and [expandVariable] for the
    * same reason: the panel is in the list pane and owns no session of its own to ask a kernel
    * with - [NotebookDebugger.selectFrame][com.jupydroid.app.ui.editor.NotebookDebugger.selectFrame].
    */
   private var selectFrameInDebugger: suspend (Int) -> Unit = {}
 
   /**
-   * An ad hoc expression's own answer (P6a-17), published alongside the others for the same
+   * An ad hoc expression's own answer, published alongside the others for the same
    * reason - [NotebookDebugger.evaluate][com.jupydroid.app.ui.editor.NotebookDebugger.evaluate].
    */
   private var evaluateInDebugger: suspend (String) -> DebugVariable? = { null }

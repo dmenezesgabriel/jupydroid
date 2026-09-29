@@ -88,7 +88,7 @@ class EditorThemeTest {
    * [MarkdownCellFieldTest.aMarkdownSourceLaysOutLikeARawCellsSource] measures the layout the two
    * fields actually produce; this pins the rule they produce it from, and pins the pair that is
    * easy to confuse - `codeSourceStyle` takes the **code** size, `richTextCodeStyle` inherits the
-   * **prose** size (P2l-3b). The two happen to coincide at 14sp today, which is exactly why the
+   * **prose** size. The two happen to coincide at 14sp today, which is exactly why the
    * line height is what this asserts on.
    */
   @Test

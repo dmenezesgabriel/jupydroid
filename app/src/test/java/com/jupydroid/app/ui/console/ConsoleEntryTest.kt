@@ -7,7 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * The Console transcript's own entry, one per submitted input - P6b-2.
+ * The Console transcript's own entry, one per submitted input.
  *
  * Reuses [CellOutput]/[ExecutionStatus] exactly as the notebook's own cells do, since
  * `KernelGateway.execute` already produces both; JupyterLab's own `CodeConsole` (`packages/console/src/widget.ts`)

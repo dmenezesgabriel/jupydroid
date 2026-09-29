@@ -26,7 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Submitting input and running it through the notebook's shared kernel session - P6b-4a.
+ * Submitting input and running it through the notebook's shared kernel session.
  *
  * Against [FakeKernelGateway]/[RecordingKernelGateway], the same doubles `EditorViewModelTest`
  * runs a cell's own execution against - a Console entry runs exactly the way a cell does, through

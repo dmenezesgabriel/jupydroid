@@ -258,7 +258,7 @@ class CellActionItemsTest {
     assertFalse(labels.contains(RENAME_SYMBOL))
   }
 
-  // --- notebook:enable/disable/toggle-output-scrolling (P2g-2b) -----------------------------
+  // --- notebook:enable/disable/toggle-output-scrolling -----------------------------
 
   /**
    * One fixed label whatever the state, which is the reference's own choice for this exact

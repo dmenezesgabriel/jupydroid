@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * `next`/`stepIn`/`stepOut`/`continue` (P6a-9) plus `terminate` (P6a-11), shown only while
+ * `next`/`stepIn`/`stepOut`/`continue` plus `terminate`, shown only while
  * [EditorUiState.stoppedAt] is non-null - [NotebookBar]'s own sibling, for the one state a
  * notebook being read never reaches on its own.
  *
