@@ -132,7 +132,7 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
     // thumb as the head moves. **A flow cannot see that greying**, and no amount of semantics here
     // makes it: Compose's merged test tree carries the disabled state onto the label, and Android's
     // accessibility tree - which is what Maestro reads - keeps it on a clickable node that has no
-    // label, one level above. Measured on device three ways (`evidence/p2d-2-ranged-runs/`). So the
+    // label, one level above. Measured on device three ways. So the
     // state is asserted by `NotebookBarRangedRunsTest` and the flow proves it by *behaviour*: a
     // dead row leaves this menu open, because [onRun] is what closes it.
     DropdownMenuItem(

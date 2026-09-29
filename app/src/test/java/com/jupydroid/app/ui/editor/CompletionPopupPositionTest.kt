@@ -14,8 +14,7 @@ import org.junit.Test
  * It used to be `Popup(offset = caretBottom)` - a raw offset with no knowledge of either. On a
  * cell near the bottom of the notebook that put a 220dp list **behind the keyboard**: with `co`
  * typed on the tablet, `compile`, `complex`, `continue` and `copyright` were readable and
- * `%code_wrap` and everything under it were drawn over the keys
- * (`evidence/u6-completion-popup/01-behind-the-keyboard.png`).
+ * `%code_wrap` and everything under it were drawn over the keys.
  *
  * A `PopupPositionProvider` is the seam Compose offers for this, and it is a pure function of
  * four inputs - which is why the rules can be argued here rather than only looked at.

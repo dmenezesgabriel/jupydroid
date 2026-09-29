@@ -157,7 +157,7 @@ private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () ->
   // instead, which says "claimed, waiting" without promising either.
   //
   // Found by looking at the evidence: every queued cell had a spinner and a Stop button
-  // (evidence/u4-execution-status/02-queued-and-running.png, before this).
+  // (before this).
   if (status == ExecutionStatus.QUEUED) {
     IconButton(onClick = onRun, enabled = false) {
       Icon(cellRunIcon, contentDescription = "Run cell")

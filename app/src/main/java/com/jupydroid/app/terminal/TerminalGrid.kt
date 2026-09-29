@@ -176,7 +176,6 @@ class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
     // allocates, and its `bottom` can exceed the screen - so `CSI ? 6 h`, `CSI 3;4 r`,
     // `CSI 1;1;4;4;1 $ r` on four rows walks off the screen and throws. Clamped, which is the
     // smallest change that makes the region defined and a no-op wherever the reference works.
-    // See `evidence/p4-terminal/deccara-past-the-last-row.md`.
     for (row in top until minOf(bottom, screenRows)) {
       val line = ring.rowAt(row)
       val from = if (rectangular || row == top) left else leftMargin

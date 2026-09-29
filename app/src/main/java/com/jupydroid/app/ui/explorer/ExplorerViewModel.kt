@@ -93,8 +93,8 @@ class ExplorerViewModel(
     // while a `goTo` was on its way somewhere else - and whichever finished last wrote the state.
     // Cancelling settles the order, and [browsing] is what stops a poll launched in between from
     // re-listing the directory we are leaving. Found on the tablet, where P2w-1's breadcrumb is
-    // the first thing that navigates this browser from outside it
-    // (`evidence/p2w-1-breadcrumb-wide/`); `aListingAlreadyInFlightDoesNotOverwriteWhereWeJustWent`
+    // the first thing that navigates this browser from outside it;
+    // `aListingAlreadyInFlightDoesNotOverwriteWhereWeJustWent`
     // is the pin.
     browsing = path
     listing?.cancel()
@@ -112,7 +112,7 @@ class ExplorerViewModel(
           // `withContext(ioDispatcher)` (`:39`), which raises the cancellation when its block
           // *finishes* - by then the newer listing has written a clean state and this `copy` puts
           // the banner back on top of it. Found by looking at a frame the flow that captured it
-          // had reported green (`evidence/p7a-2-part-borders/the-banner-a-flow-passed-over/`).
+          // had reported green.
           if (failure is CancellationException) throw failure
           _uiState.value = _uiState.value.copy(error = failure.message ?: "could not open '$path'")
         }

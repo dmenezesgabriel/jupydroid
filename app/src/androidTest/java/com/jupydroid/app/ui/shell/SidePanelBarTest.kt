@@ -146,8 +146,8 @@ class SidePanelBarTest {
    * medium screens ... its `arrangement` should be `ShortNavigationBarArrangement.Centered`, so that
    * the navigation items are distributed grouped on the center of the bar"*.
    *
-   * **This is a defect the tablet found and the phone could not.** Measured at 800dp before the fix
-   * (`evidence/p2y-bottom-navigation/800dp/`): each item was **396dp** wide with its centre at 198dp
+   * **This is a defect the tablet found and the phone could not.** Measured at 800dp before the fix:
+   * each item was **396dp** wide with its centre at 198dp
    * and 602dp - a 24dp icon inside a tap target half the window across, and 404dp of dead bar
    * between the two. The reference's own `calculateCenteredContentHorizontalPadding` reserves
    * `(100 - 10 * (itemsCount + 3)) / 2` percent of padding a side - **10%** a side for five items,

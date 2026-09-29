@@ -165,7 +165,7 @@ class TerminalPaneViewModelTest {
    * (`terminado/management.py`'s own comment: "historical messages for reconnection", a
    * `deque(maxlen=1000)`, not an incremental log) - so appending a re-attach's events straight
    * onto an emulator that already drew them once duplicated the screen
-   * (`evidence/p4i-terminal-background/`, `docs/DECISIONS.md`). A re-attach clears the screen and
+   * (`docs/DECISIONS.md`). A re-attach clears the screen and
    * scrollback first, so the replay becomes the sole source of truth instead of stacking onto
    * what backgrounding already left behind - provable against a fake by pushing the same content
    * twice, once per attach, the shape a real replay actually takes.

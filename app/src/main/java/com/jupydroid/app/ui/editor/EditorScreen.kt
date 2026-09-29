@@ -231,7 +231,7 @@ fun EditorScreen(
   // and the kernel bar came back while the field still held the caret, which left **the soft
   // keyboard up** over the selection bar with nothing to type into - and on a 320dp phone that hid
   // every cell but the first two, so the run could not be extended at all. Caught by the flow, not
-  // by a test: no Compose test has an IME (`evidence/p2c-multi-select/`, the run before this).
+  // by a test: no Compose test has an IME (the run before this).
   LaunchedEffect(state.selecting) { if (state.selecting) focusManager.clearFocus() }
   // The file behind this notebook was deleted, so there is nothing left to show: the reference
   // closes the widget from the manager (`deleteWidgets`), and this is the same close asked for by
@@ -261,7 +261,7 @@ fun EditorScreen(
       // `editor.revealPosition(…)` (`:625-641`). The first alone is not the rule and measuring is
       // what said so - `inViewport` is true of a cell showing five pixels above the soft keyboard,
       // so a match the arrows had just been asked for stayed cut in half at the bottom edge
-      // (`evidence/p2i-4-next-previous/`, the run before this). The second step is what makes the
+      // (the run before this). The second step is what makes the
       // *match* readable rather than merely present, and with a cell-sized list item the equivalent
       // is asking for the whole cell.
       //
@@ -354,7 +354,7 @@ fun EditorScreen(
       // (see [editorBottomBar]), and without this the `LazyColumn` lays out to the full window and
       // draws its lower half behind the keyboard: measured at `viewport=0..987` on the tablet with
       // the IME up, which made a match the arrows had just been sent to report as visible while
-      // being under the keys (`evidence/p2i-4-next-previous/`, two runs before this).
+      // being under the keys (two runs before this).
       modifier = Modifier.fillMaxSize().then(if (state.search != null) Modifier.imePadding() else Modifier),
       // **The page a document is drawn on, stated rather than inherited.** `Scaffold`'s default is
       // `colorScheme.background`, which this app maps onto `editor.background` - the right colour

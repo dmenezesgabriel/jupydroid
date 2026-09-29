@@ -15,7 +15,7 @@ import org.junit.Test
  * `TerminalEmulator.isCursorEnabled` and `TerminalEmulator.paste`.
  *
  * Everything upstream never exercises had its **expectations read off the reference itself**
- * (`evidence/p4-terminal/emulator-differential.md`, "The oracle the expectations came from").
+ * ("The oracle the expectations came from").
  */
 class ScreenModesTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)

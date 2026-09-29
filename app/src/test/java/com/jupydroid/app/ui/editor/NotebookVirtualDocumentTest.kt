@@ -224,7 +224,7 @@ class NotebookVirtualDocumentTest {
   // --- P5e-7: a rename's whole-document WorkspaceEdit, sliced back into cells -------------
 
   /**
-   * The probe's own shape (`evidence/p5e-0-lsp-surface/`): pylsp answers
+   * The probe's own shape: pylsp answers
    * `textDocument/rename` with one `TextEdit` spanning the whole document, `newText`
    * carrying the new name at the `def` line and the call site alike - so both cells'
    * sources come back, joined exactly the way [text] was built.

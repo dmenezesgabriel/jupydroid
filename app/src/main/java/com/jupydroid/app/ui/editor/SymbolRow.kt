@@ -84,7 +84,7 @@ internal fun SymbolRow(
       SymbolKey(label = "Tab", onClick = input::indent)
       // Second and third rather than last, and that is a measurement rather than a preference:
       // at the end of the row both were off the right edge of the editor pane on the tablet, the
-      // second one entirely (`evidence/p2k-4-kernel-history/04-…`, before this). The row scrolls,
+      // second one entirely (before this). The row scrolls,
       // so nothing was broken - but these are two keys somebody turned a setting on to reach, and
       // putting them where every tap costs a swipe first is the row's frequency ordering read
       // backwards. Nobody who leaves the setting off pays for the position.

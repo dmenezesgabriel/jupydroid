@@ -186,7 +186,7 @@ fun CodeCellField(
       // callback publishes - which is what keeps writing state from here out of a measure loop.
       // Wrapping off reaches the gutter through GutterOverlay below rather than through this
       // chain - `docs/PLAN.md` P6c-5's own finding that a gutter scrolled inside the same
-      // modifiers as the field it decorates scrolls away with it (`evidence/p6c-5-word-wrap/`).
+      // modifiers as the field it decorates scrolls away with it.
       modifier = if (wrapEnabled) {
         // The squiggle sits after `lineNumbers`: its own trailing `.padding(start = gutter)` makes
         // this `drawBehind` the innermost one, so its draw scope starts at the code's left edge -

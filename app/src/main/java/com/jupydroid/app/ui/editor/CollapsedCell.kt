@@ -33,7 +33,7 @@ internal const val COLLAPSED_OUTPUTS = "Collapsed outputs"
  * **`minimumInteractiveComponentSize` is the adaptation, and it is the one thing here the
  * reference does not supply.** `.jp-Placeholder-content` is `padding: 4px 6px`
  * (`packages/cells/style/placeholder.css:26-34`), which is a mouse target; this row measured
- * **288x32dp** on device (`evidence/p2l-4-touch-targets/before/`), 16dp under Material's minimum.
+ * **288x32dp** on device, 16dp under Material's minimum.
  * Compose expands the *hit area* of any clickable out to 48dp on its own, which is why the
  * suite's own touch-target assertion was green against it - but that expansion loses to a
  * neighbour's direct hit

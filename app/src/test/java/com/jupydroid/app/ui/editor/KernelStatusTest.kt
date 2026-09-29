@@ -23,8 +23,7 @@ class KernelStatusTest {
 
   /**
    * The fourteen seconds. A run is in flight - the cell says RUNNING from the tap - but the socket
-   * is not open yet, because opening it is what installs the Space and starts the server
-   * (`evidence/p1c-app-death-backstop/`).
+   * is not open yet, because opening it is what installs the Space and starts the server.
    */
   @Test
   fun aRunWithNoSocketYetIsStarting() {

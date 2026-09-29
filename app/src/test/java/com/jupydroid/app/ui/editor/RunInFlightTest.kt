@@ -12,7 +12,7 @@ import org.junit.Test
  * A run is in flight from the moment it is asked for, and the kernel starting is part of it.
  *
  * **This is the regression test for a measured device failure**
- * (`evidence/p1c-app-death-backstop/`, the run of 2026-08-14). The backstop read a count that only
+ * (the run of 2026-08-14). The backstop read a count that only
  * rose once the execute flow was being collected - which is *after* the Space is installed, the
  * server started and the kernel started. The tablet's server log has the arithmetic: the cell's
  * `execute_request` went out at 01:22:49, fourteen seconds after the app was backgrounded, and the

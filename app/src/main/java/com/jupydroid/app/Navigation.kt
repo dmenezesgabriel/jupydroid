@@ -348,7 +348,7 @@ fun MainNavigation(
       // value differs and never finds one - the list alone still lays out as two panes - so
       // `getPreviousDestinationIndex` returns -1, `previousEntries` comes back empty, and the scene
       // pops *every* entry. Measured on the tablet: back from a notebook left the app for the home
-      // screen (`evidence/p1e-list-detail-scene/`). `PopLatest` pops exactly one, which is what
+      // screen. `PopLatest` pops exactly one, which is what
       // `TwoPaneScene.previousEntries = entries.dropLast(1)` did.
       sceneStrategy = rememberListDetailSceneStrategy(
         backNavigationBehavior = BackNavigationBehavior.PopLatest,

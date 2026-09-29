@@ -15,7 +15,7 @@ import org.junit.runner.RunWith
  * relaunches on every rotation (`not-handles={CONFIG_ORIENTATION}`), so each rotation built a
  * second container with a second `ServerLauncher`. Reopening a notebook then started a **second
  * `jupyter_server`**, both children of the app, and the app-death backstop was left holding a
- * launcher with no process (`evidence/p1g-one-container-per-process/`).
+ * launcher with no process.
  */
 @RunWith(AndroidJUnit4::class)
 class CompositionRootTest {

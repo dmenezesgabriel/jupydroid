@@ -58,7 +58,7 @@ class TerminalInputFieldTest {
 
   /**
    * The case the old KDoc said was "not sent at all": an edit that is neither a pure append nor a
-   * shortened prefix. Measured on the tablet (`evidence/p4m-terminal-input/edit-pairs.md`) - an IME
+   * shortened prefix. Measured on the tablet - an IME
    * that rewrites a token mid-line produces exactly this, and the old mapping dropped it silently,
    * so the shell and the field drifted apart. The general form deletes back to the common prefix
    * and retypes the divergent tail, which is what any line-editor-to-pty bridge does.

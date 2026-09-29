@@ -78,7 +78,7 @@ class ChromePaletteTest {
    *
    * The rail and the side panel were drawn as parts by P7a-1 and then abutted the document with
    * nothing between them: `sideBar.border` is stated in both 2026 themes and this app drew it
-   * nowhere (`evidence/p7a-2-part-borders/before-the-fix/`, the seam at x662 reading NOT DRAWN).
+   * nowhere (the seam at x662 reading NOT DRAWN).
    * Equality above says each border is the resolved value; this says it is a *separator* - if a
    * border ever collapsed onto the surface it divides, the seam would vanish and every equality
    * assertion here would still hold.

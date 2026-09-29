@@ -236,8 +236,7 @@ private fun MainAreaTabStrip(
     Row(modifier = Modifier.fillMaxWidth()) {
       // The one-pane Up affordance - fixed ahead of the scrollable tabs so it never scrolls
       // away, and present only while something sits beneath to return to. Its label names the
-      // destination rather than saying "Back", which is the system bar's own button
-      // (`evidence/u-flow-sweep/`).
+      // destination rather than saying "Back", which is the system bar's own button.
       if (!twoPane && backStack.size > 1) {
         IconButton(onClick = { onCloseTab(backStack.last()) }) {
           Icon(

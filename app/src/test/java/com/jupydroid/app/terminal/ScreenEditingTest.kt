@@ -15,7 +15,7 @@ import org.junit.Test
  *
  * The parameters upstream never exercises - `ED 1`, `ED 2`, `EL 1`, `EL 2` and ICH's cap - had
  * their **expectations read off the reference itself**
- * (`evidence/p4-terminal/emulator-differential.md`, "The oracle the expectations came from").
+ * ("The oracle the expectations came from").
  */
 class ScreenEditingTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)
@@ -220,7 +220,7 @@ class ScreenEditingTest {
    * identical, clear it. `CursorAndScreenTest.testClearingOfAutowrap` covers only the six that
    * clear, and the differential cannot see this either: it needs a filled row, then IL, then a
    * printable character, in that order, which its random alphabet did not draw in 12,000 steps
-   * (`evidence/p4-terminal/emulator-differential.md`, "the two the script did not reach").
+   * ("the two the script did not reach").
    */
   @Test
   fun insertLinesLeavesThePendingWrapWhereDeleteLinesAndInsertCharactersClearIt() {

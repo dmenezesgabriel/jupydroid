@@ -29,8 +29,8 @@ import org.junit.runner.RunWith
  * merged semantics tree carries a `DropdownMenuItem`'s disabled state onto its label, so
  * `assertIsNotEnabled` here sees it. Android's accessibility tree - which is what Maestro reads -
  * does not: it keeps the state on a clickable node one level up that has no label, so a flow
- * naming the row always matches an enabled `TextView`. Measured three ways on the tablet
- * (`evidence/p2d-2-ranged-runs/`). The flow proves the same fact by behaviour instead.
+ * naming the row always matches an enabled `TextView`. Measured three ways on the tablet.
+ * The flow proves the same fact by behaviour instead.
  */
 @RunWith(AndroidJUnit4::class)
 class NotebookBarRangedRunsTest {

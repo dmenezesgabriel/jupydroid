@@ -154,7 +154,7 @@ class CellRestructureTest {
    * **And it does not ask for the caret**, which is the difference between a tap and a command.
    * Measured rather than reasoned: with the field requesting focus for having been composed, a run
    * changed to markdown put the soft keyboard up over a notebook nobody was typing in, and two
-   * editors raced for the caret (`evidence/p2e-3-change-to-markdown/`). The reference ends
+   * editors raced for the caret. The reference ends
    * `changeCellType` in command mode.
    */
   @Test

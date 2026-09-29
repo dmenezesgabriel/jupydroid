@@ -154,8 +154,7 @@ internal class NotebookCellRuns(
    *
    * The whole of it counts as a run in flight, **opening the kernel included**: on a cold app that
    * is the Space installing, the server starting and the kernel starting, and P1c's backstop must
-   * not read "nothing is running" through the slowest part of a run
-   * (`evidence/p1c-app-death-backstop/`).
+   * not read "nothing is running" through the slowest part of a run.
    */
   private suspend fun execute(cell: Cell): Boolean = activeCellRuns.whileRunning { run(cell) }
 

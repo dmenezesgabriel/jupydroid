@@ -149,7 +149,7 @@ fun EditorTopBar(
     }
     TopAppBar(
       // The space between the navigation icon and the actions, measured at **72dp at 320dp and
-      // 552dp at 800dp** (`evidence/p2o-3-two-pane-threshold/`), and the reference lays its toolbar
+      // 552dp at 800dp**, and the reference lays its toolbar
       // out left to right by rank - so `cellType` at 40 belongs here, well before the spacer at
       // 100. Empty again where there is no room for it; see [labelsFitOnActionRow].
       title = {
@@ -215,8 +215,8 @@ fun EditorTopBar(
  * `IconButton`'s node; a `contentDescription` on the `Icon` lands on a *child* of it. Named on the
  * icon, the accessibility tree has the label and the state on two different nodes - measured, not
  * reasoned: the first version put "Undo cell operation" on a node reporting `enabled=true` with a
- * disabled parent one level up, and a flow asking for the disabled control could not find it
- * (`evidence/p2a-undo-cell-operation/`). One node carries both now.
+ * disabled parent one level up, and a flow asking for the disabled control could not find it.
+ * One node carries both now.
  */
 @Composable
 private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onRedo: () -> Unit) {

@@ -67,7 +67,7 @@ class SelectionTopBarTest {
   /**
    * All four `notebook:extend-marked-cells-*` are overflow rows rather than buttons, and that is a
    * measurement: with four arrows on the bar the count wrapped to three lines at 360dp
-   * (`evidence/p2c-multi-select/x86_64/`, before this). A tick on the cell is the extend gesture a
+   * (before this). A tick on the cell is the extend gesture a
    * touch user reaches for anyway.
    */
   @Test

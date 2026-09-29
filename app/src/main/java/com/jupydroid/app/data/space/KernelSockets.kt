@@ -79,8 +79,8 @@ class KernelSockets(
 /**
  * One session's socket, and whether it is connected yet.
  *
- * [connected] is the fix for the execution stall, four sightings and one diagnosis
- *. `onSubscription` runs the instant a
+ * [connected] is the fix for the execution stall, four sightings and one diagnosis.
+ * `onSubscription` runs the instant a
  * collector attaches, which is long before OkHttp has finished the handshake; the frame was
  * queued and flushed on open, reaching `jupyter_server` before its own `open()` had associated
  * the session, and dropped. The kernel then sent its startup statuses and nothing else.
@@ -217,8 +217,8 @@ class SessionSocket(
    * to retry kernelInfo rather than give up after one timeout"
    * (`packages/services/src/kernel/default.ts:1589-1591`), so the greeting was put on
    * `jupyter_server`'s own 0.5 s nudge cadence for up to the server's 60 s and measured on the
-   * tablet: **2 stalls in 80 runs**, both trails showing 120 asks and not one `kernel_info_reply`
-   *. What arrives during a stall is iopub
+   * tablet: **2 stalls in 80 runs**, both trails showing 120 asks and not one `kernel_info_reply`.
+   * What arrives during a stall is iopub
    * traffic parented to the *server's* nudges while the shell channel delivers nothing at all, so
    * asking that channel again is asking a channel that is not carrying replies. The 60 s only
    * bought a cell a minute in Queued ahead of a request it lost anyway.

@@ -37,7 +37,7 @@ import com.jupydroid.app.domain.model.Cell
  * **Two controls beside the title, and the number was measured rather than chosen.** The first
  * version put the four `extend-marked-cells-*` reaches on the bar as arrows: at 360dp that is a
  * navigation icon and four actions, 240dp of the 360, and the count wrapped to three lines reading
- * `3 / select / ed` (`evidence/p2c-multi-select/x86_64/`, before this). So all four reaches went
+ * `3 / select / ed` (before this). So all four reaches went
  * into the overflow, where they also read as one family, and what is left on the bar is the pair a
  * touch user actually reaches for - a tick on a cell is the extend gesture here, and Select all is
  * the one command with no per-cell equivalent at all.

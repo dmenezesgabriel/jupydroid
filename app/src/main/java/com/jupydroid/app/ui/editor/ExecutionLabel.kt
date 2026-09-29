@@ -24,7 +24,7 @@ import java.util.Locale
  *
  * The words "markdown" and "raw" that used to sit here were this app's own, and they cost more
  * than a word: a heading cell's collapser was drawn in front of one, so two markdown cells in the
- * same frame started 48dp apart (`evidence/p2n-gutter/before/gutter.txt`).
+ * same frame started 48dp apart.
  */
 internal fun executionLabel(kind: CellKind, status: ExecutionStatus, count: Int?): String? = when {
   kind != CellKind.CODE -> null

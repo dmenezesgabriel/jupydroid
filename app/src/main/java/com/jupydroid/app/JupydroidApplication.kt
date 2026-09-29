@@ -54,8 +54,8 @@ import java.io.File
  * It used to hang off `MainActivity`, and the platform relaunches that activity on every rotation
  * (`Checking to restart …: not-handles={CONFIG_ORIENTATION}`). Each relaunch built another
  * container with another `ServerLauncher`, so reopening a notebook started a **second
- * `jupyter_server`** beside the first - measured, both children of the app
- * (`evidence/p1g-one-container-per-process/`). The process-wide lifecycle observer P1c needs has
+ * `jupyter_server`** beside the first - measured, both children of the app.
+ * The process-wide lifecycle observer P1c needs has
  * the same shape of problem from the other side: registered per activity it is never removed, and
  * the leaked one is what kept the backstop working at all.
  *
@@ -128,7 +128,7 @@ class JupydroidApplication : Application() {
    * A group rather than unrelated fields, and named once it became more than one: what they share
    * is the *condition* - a device with no runnable Space - and stating it in one place is what
    * stops that having four chances to be got wrong. On an x86_64 emulator the runtime cannot work
-   * at all (`evidence/step8.3/musl-is-arm64-only.txt`), and the UI is better served by fakes than
+   * at all, and the UI is better served by fakes than
    * by controls that always fail.
    *
    * **One server object for all four**, because `JupyterServerLauncher.start` begins with `stop()`

@@ -25,8 +25,7 @@ import com.jupydroid.app.domain.model.CellKind
  * command mode first, with the reason in the code: *"Switch to command mode to avoid entering
  * Markdown cell in edit mode if the document was in edit mode"* (`packages/notebook/src/toc.ts:681-684`).
  * One helper for both put a heading's `## Part A` on screen as an editor where the reader had asked
- * for a heading - green against every assertion, and the screenshot is what said otherwise
- * (`evidence/p2i-4b-toc-reveals/`).
+ * for a heading - green against every assertion, and the screenshot is what said otherwise.
  *
  * The parent-expanding half also corrects a reading recorded in P2h: the table of contents' jump
  * treated a hidden heading as unreachable, on the grounds that the reference does not solve it

@@ -288,7 +288,7 @@ class EditorCellActionTest {
   }
 
   /**
-   * The probe's own reply shape (`evidence/p5e-0-lsp-surface/`): one `TextEdit` spanning the
+   * The probe's own reply shape: one `TextEdit` spanning the
    * synced document, `(0,0)` to past the last line - `(5,0)` for this fixture's
    * `"def …\n    return …\n\n\ntotal = …\n"`.
    */

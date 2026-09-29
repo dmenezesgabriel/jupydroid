@@ -34,7 +34,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * inputs, and that is a measurement rather than a preference.** `searchWidget.ts:434` puts the
  * button left of the search *and* replace inputs, in a workbench sidebar; here the query box is
  * 336dp and its three option toggles already leave 192dp including the magnifier - about 144dp of
- * query text, measured on the tablet (`evidence/p2x-3-search-options/`). A fourth leading column
+ * query text, measured on the tablet. A fourth leading column
  * takes that to ~96dp, roughly eleven characters. Disclosing the row from the start of the row it
  * discloses costs height instead, which this panel has: it is one scrolling surface already
  * ([SearchSidePanel]).

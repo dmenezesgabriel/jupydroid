@@ -302,8 +302,7 @@ class ScrollRegionTest {
    * **The two controls are the reference's** - what it does when the margin does not interfere -
    * and the first case is **ours**, because the reference has no answer there: it throws. It wraps
    * into the margin region and the cursor stops at the margin rather than two columns on, which is
-   * the same rule that governs every other write. Expectations off `RefScreen` for the controls;
-   * see `evidence/p4-terminal/wide-character-outside-the-right-margin.md`.
+   * the same rule that governs every other write. Expectations off `RefScreen` for the controls;.
    */
   @Test
   fun aWideCharacterRightOfTheRightMarginWrapsRatherThanThrowing() {

@@ -130,7 +130,7 @@ internal class RecordingKernelGateway(
 /**
  * A kernel that takes its time coming up, which on a device is the ordinary case: installing the
  * Space, starting `jupyter_server` and starting the kernel is the slow part of a run, and the
- * tablet measured fourteen seconds of it (`evidence/p1c-app-death-backstop/`).
+ * tablet measured fourteen seconds of it.
  */
 internal class SlowToConnectKernelGateway : KernelGateway by FakeKernelGateway() {
   private val connectable = CompletableDeferred<Unit>()

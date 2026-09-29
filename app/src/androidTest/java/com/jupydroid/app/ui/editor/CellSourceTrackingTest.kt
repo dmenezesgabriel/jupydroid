@@ -101,7 +101,7 @@ class CellSourceTrackingTest {
    * changes its type, so a [CodeCellField] became a [MarkdownCellField] over the same
    * `TextFieldState` in the same frame the rewrite arrived. With the counter seeded inside the
    * field, the new one started already up to date and adopted nothing: the model held `## title`
-   * and the editor showed the text from before (`evidence/p2f-3-change-to-heading/`).
+   * and the editor showed the text from before.
    *
    * It is anchored on the state now, which is what [adoptRewrittenSource]'s call site expresses -
    * the cell owns one text state however it is being shown, so the cell is what tracks it.

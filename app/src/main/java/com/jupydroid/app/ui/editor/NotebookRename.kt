@@ -15,7 +15,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * The session gate is the asks' shared rule: a notebook that never ran a cell never asked for
  * a Space, so the row must not boot one. What comes back is a `WorkspaceEdit` - the shipped
  * `pylsp` answers with `documentChanges` carrying **one whole-document `TextEdit`**, the `def`
- * line and every call site inside a single `newText` (`evidence/p5e-0-lsp-surface/`) - so
+ * line and every call site inside a single `newText` - so
  * [NotebookVirtualDocument.cellSourcesAfterEdits] is the boundary: it splices the edits into
  * what the last sync sent, reslices on the cell separators, and verifies the parts rebuild the
  * edited text byte-for-byte, because the alternative is rewriting a cell the answer never

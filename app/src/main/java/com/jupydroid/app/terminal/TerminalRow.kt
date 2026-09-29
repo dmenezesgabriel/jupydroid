@@ -12,8 +12,7 @@ package com.jupydroid.app.terminal
  * has upstream is past this project's ceiling of 20 lines and complexity 15; [RowText] carries
  * the half of it that is about the char array rather than about the cell. The behaviour is
  * unchanged, and that was measured rather than reviewed: 12,000 scripted operations against the
- * Java, byte-identical state after every one
- * (`evidence/p4-terminal/row-differential.md`).
+ * Java, byte-identical state after every one.
  *
  * ```
  * val row = TerminalRow(columns = 80, style = CellStyle.NORMAL)

@@ -18,7 +18,7 @@ import java.io.File
  *
  * **The driver cannot ask this.** `adb shell content read` runs as the shell user with no URI
  * grant, and the provider is `exported="false"` - so it is denied, correctly, whether the
- * configuration is right or wrong. Measured: `evidence/p2j-5-share-export/`.
+ * configuration is right or wrong.
  */
 @RunWith(AndroidJUnit4::class)
 class IntentDocumentSharerTest {

@@ -39,7 +39,7 @@ import androidx.compose.ui.semantics.semantics
  *
  * This app drew it in its own header strip instead - a row above the heading, beside the Run
  * control, with nothing connecting it to what it folds
- * (`evidence/p2f-1-heading-collapse/01-expanded.png`, before P2n-3).
+ * (before P2n-3).
  *
  * **IntelliJ is empty for this and it was checked**, so nobody searches it again: everything under
  * `notebooks/` that collapses collapses *outputs* (`CollapsingComponent`,
@@ -64,7 +64,7 @@ import androidx.compose.ui.semantics.semantics
 internal fun HeadingCollapser(fold: HeadingFold, onToggle: () -> Unit, modifier: Modifier = Modifier) {
   // **Centred on the heading's own first line, not on the cell.** Top-aligned inside its 48dp
   // button the caret sat 10dp below the heading's line centre - measured on device, 316 against
-  // 306 (`evidence/p2n-gutter/`, before this). A box exactly one heading line tall puts the icon
+  // 306 (before this). A box exactly one heading line tall puts the icon
   // where the reference's `calc(0.3 * <level font size>)` puts it, and it tracks the level the way
   // the reference's six rules do because it reads the same [headingStyle] the heading is drawn in.
   //

@@ -14,7 +14,7 @@ import java.nio.file.Files
  * which on device resolves against Android's root rather than the Space. Repairing only `bin/sh`
  * would leave a shell in which `ls`, `cat`, `grep` and `vi` are all *not found* - and the obvious
  * gate would not catch it, because `echo` is an ash builtin.
- * Measured in `evidence/p4-terminal/busybox-dispatch.md`.
+ *
  */
 class BusyBoxAppletsTest {
   @get:Rule val tempFolder = TemporaryFolder()

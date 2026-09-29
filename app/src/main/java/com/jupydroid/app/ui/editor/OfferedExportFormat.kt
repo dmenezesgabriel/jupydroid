@@ -11,7 +11,7 @@ data class OfferedExportFormat(val id: String, val label: String)
  * `packages/notebook-extension/src/index.ts:5550-5558`).
  *
  * **Four rows out of the fourteen the server lists, and every departure was measured** on the
- * tablet against the shipped rootfs (`evidence/p2j-2-export-formats/`):
+ * tablet against the shipped rootfs:
  *
  * - `asciidoc`, `latex`, `pdf` and `rst` are gone because they cannot work: each routes every
  *   markdown cell through `convert_pandoc` and there is no pandoc in the rootfs. `webpdf` wants

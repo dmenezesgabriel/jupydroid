@@ -7,7 +7,7 @@ import org.junit.Test
 /**
  * When the app bar has to give the notebook its 64dp back.
  *
- * Measured, not guessed (`evidence/u6-ime-layout/640dp/`): on a phone in landscape - 640x320dp -
+ * Measured, not guessed: on a phone in landscape - 640x320dp -
  * the status bar, the app bar, the symbol row and the keyboard add up to more than the window,
  * so `Scaffold` handed the cell list **zero height** and a `uiautomator` dump of a notebook being
  * typed into contained no cell at all.

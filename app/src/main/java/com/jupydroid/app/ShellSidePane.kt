@@ -100,8 +100,8 @@ fun ShellSidePane(
   // **`sideBar.border`, drawn by the side bar itself** - the seam between this pane and the
   // document, which the reference states (`workbench/common/theme.ts:623`, *"on the side separating
   // to the editor"*) and this app drew nowhere until P7a-2: the panel's band ended at x661 and the
-  // page's began at x662 with no column between them
-  // (`evidence/p7a-2-part-borders/before-the-fix/`). Only beside two panes, because at one pane
+  // page's began at x662 with no column between them.
+  // Only beside two panes, because at one pane
   // this pane *is* the window and its trailing edge is the screen's.
   val separated = if (twoPane) Modifier.trailingBorder(chromePalette.sideBarBorder) else Modifier
   Column(modifier = Modifier.fillMaxSize().then(separated)) {

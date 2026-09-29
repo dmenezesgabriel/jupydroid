@@ -64,7 +64,7 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
     TextButton(
       onClick = { open = true },
       // **Neutral, not the brand colour a `TextButton` defaults to.** Two reasons, and the
-      // screenshot is what raised it (`evidence/p2r-cell-type-on-the-bar/`): the reference's own
+      // screenshot is what raised it: the reference's own
       // control is an `HTMLSelect` drawn in `--jp-ui-font-color0` like the rest of its toolbar,
       // and this app spends brand blue on exactly two things - the active cell's collapser and the
       // editor being typed into (P2m-1, P2m-2). A fifth control in the bar wearing that colour

@@ -62,7 +62,7 @@ fun ConsoleScreen(
         // No navigation icon - leaving is the strip's own act, and the arrow there names the
         // destination itself (`upDestinationLabel`), which is P6b-9d's fix carried up a level:
         // a bare "Back" label here kept reaching the system navigation bar's own button in
-        // `uiautomator` dumps (`evidence/u-flow-sweep/`).
+        // `uiautomator` dumps.
         actions = {
           ConsoleActionsMenu(onClear = viewModel::clear, onInterrupt = viewModel::interrupt, running = running)
         },

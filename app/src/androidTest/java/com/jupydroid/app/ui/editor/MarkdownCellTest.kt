@@ -105,8 +105,7 @@ class MarkdownCellTest {
    * **And a cell unrendered by a command does not.** `changeCellType` unrenders every cell it
    * visits and ends in command mode (`packages/notebook/src/actions.tsx:3308-3314`), so a run
    * changed to markdown composes several of these at once - each one asking for the caret was the
-   * soft keyboard coming up over a notebook nobody was typing in
-   * (`evidence/p2e-3-change-to-markdown/`).
+   * soft keyboard coming up over a notebook nobody was typing in.
    */
   @Test
   fun anEditorNobodyAskedForLeavesTheCaretAlone() {
@@ -183,7 +182,7 @@ class MarkdownCellTest {
    *
    * It used to sit in this app's own header strip, a row above the heading and beside the Run
    * control, with nothing connecting it to what it folds
-   * (`evidence/p2f-1-heading-collapse/01-expanded.png`, before this).
+   * (before this).
    *
    * IntelliJ is empty for this question and it was checked: everything under `notebooks/` that
    * collapses collapses *outputs* (`CollapsingComponent`,
@@ -323,7 +322,7 @@ class MarkdownCellTest {
    * **What the caret's absence buys, measured rather than asserted in prose**: a heading's open
    * source starts at the same x as a cell that never had a caret, so every editor in the document
    * runs to one left bound while it is being typed into. This is the invariant P2n spent itself
-   * establishing (`evidence/p2n-gutter/`), read here at the state P2n could not reach.
+   * establishing, read here at the state P2n could not reach.
    */
   @Test
   fun anOpenHeadingsSourceStartsWhereProseDoes() {

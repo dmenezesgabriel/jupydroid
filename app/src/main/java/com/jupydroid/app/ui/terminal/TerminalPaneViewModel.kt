@@ -116,7 +116,7 @@ class TerminalPaneViewModel(
    * necessary.** terminado's own `read_buffer` (`management.py`: `deque(maxlen=1000)`, "historical
    * messages for reconnection") replays the *whole* session so far, not only what changed while
    * this was cancelled - appending that onto an emulator that already drew it once duplicated the
-   * screen (`evidence/p4i-terminal-background/`, `docs/DECISIONS.md`). `ESC[H` homes the cursor,
+   * screen (`docs/DECISIONS.md`). `ESC[H` homes the cursor,
    * `ESC[2J` blanks the visible screen and `ESC[3J` forgets the scrollback - all three already
    * `terminal/`'s own (P4f/P4h), reused rather than a new "clear" primitive invented for this.
    *

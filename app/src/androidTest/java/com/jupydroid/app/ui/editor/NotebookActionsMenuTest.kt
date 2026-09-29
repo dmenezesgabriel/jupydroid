@@ -183,7 +183,7 @@ class NotebookActionsMenuTest {
 
   /**
    * Four rows, and every one of them was measured converting on the tablet
-   * (`evidence/p2j-2-export-formats/`) - see [OFFERED_EXPORT_FORMATS].
+   * - see [OFFERED_EXPORT_FORMATS].
    */
   @Test
   fun theExportPickerOffersTheFormatsThisDeviceCanConvert() {

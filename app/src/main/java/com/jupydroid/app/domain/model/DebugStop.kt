@@ -34,8 +34,8 @@ data class DebugVariableGroup(val scope: String, val variables: List<DebugVariab
  * **A fresh stop resolves the top frame's variables** - [NotebookDebugger.watchForStop] chains
  * `scopes`/`variables` for `frames.first()` alone, matching JupyterLab's own default selection
  * (`packages/debugger/src/panels/callstack/model.ts:31-44`, which auto-selects `frames[0]`).
- * Tapping another frame afterward refocuses [groups] onto it - [NotebookDebugger.selectFrame]
- *, closing the gap this doc used to name.
+ * Tapping another frame afterward refocuses [groups] onto it - [NotebookDebugger.selectFrame],
+ * closing the gap this doc used to name.
  *
  * ```
  * val stack = DebugStack(frames = kernelDebugger.stackTrace(session, threadId), groups = ...)

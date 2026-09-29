@@ -1,6 +1,5 @@
 # Files still carrying citations ADR-0001 retired. This list only ever shrinks;
 # nothing may be added to it. Regenerate after a sweep with --write-baseline.
-app/src/androidTest/java/com/jupydroid/app/CompositionRootTest.kt
 app/src/androidTest/java/com/jupydroid/app/ConsoleNavigationTest.kt
 app/src/androidTest/java/com/jupydroid/app/ExplorerNavigationTest.kt
 app/src/androidTest/java/com/jupydroid/app/LauncherAutoCreateTest.kt
@@ -13,7 +12,6 @@ app/src/androidTest/java/com/jupydroid/app/TerminalExtraKeysRowTest.kt
 app/src/androidTest/java/com/jupydroid/app/TerminalNavigationTest.kt
 app/src/androidTest/java/com/jupydroid/app/TerminalPaneScreenTest.kt
 app/src/androidTest/java/com/jupydroid/app/TwoPaneLayoutTest.kt
-app/src/androidTest/java/com/jupydroid/app/data/intent/IntentDocumentSharerTest.kt
 app/src/androidTest/java/com/jupydroid/app/data/space/BusyBoxAppletsDeviceTest.kt
 app/src/androidTest/java/com/jupydroid/app/data/space/ConsoleScriptDeviceTest.kt
 app/src/androidTest/java/com/jupydroid/app/data/space/ConsoleScriptProbeTest.kt
@@ -50,22 +48,17 @@ app/src/androidTest/java/com/jupydroid/app/ui/editor/EditorThemeTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/EditorTopBarTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/HiddenCellsRowTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/KernelIndicatorTest.kt
-app/src/androidTest/java/com/jupydroid/app/ui/editor/LandingOnAMatchTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/LineNumberGutterTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/MarkdownCellFieldTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/MarkdownCellTest.kt
-app/src/androidTest/java/com/jupydroid/app/ui/editor/NotebookActionsMenuTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/NotebookBarOpenConsoleTest.kt
-app/src/androidTest/java/com/jupydroid/app/ui/editor/NotebookBarRangedRunsTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/NotebookBarShutdownTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/NotebookBreadcrumbTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/RichTableTest.kt
-app/src/androidTest/java/com/jupydroid/app/ui/editor/SelectionTopBarTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/editor/SymbolRowTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/explorer/ExplorerScreenTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/fileeditor/FileEditorAdoptsAReplacementTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/fileeditor/FileEditorBreadcrumbTest.kt
-app/src/androidTest/java/com/jupydroid/app/ui/fileeditor/FileEditorRevealTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/settings/SettingsScreenTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/shell/DebuggerSidePanelTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/shell/MainAreaTabStripTest.kt
@@ -102,7 +95,6 @@ app/src/main/java/com/jupydroid/app/data/space/AndroidBaseSpace.kt
 app/src/main/java/com/jupydroid/app/data/space/BaseSpaceKernelGateway.kt
 app/src/main/java/com/jupydroid/app/data/space/BaseSpaceServer.kt
 app/src/main/java/com/jupydroid/app/data/space/BaseSpaceTerminalGateway.kt
-app/src/main/java/com/jupydroid/app/data/space/BusyBoxApplets.kt
 app/src/main/java/com/jupydroid/app/data/space/JsonRpcChannel.kt
 app/src/main/java/com/jupydroid/app/data/space/JupyterServerLauncher.kt
 app/src/main/java/com/jupydroid/app/data/space/KernelLifecycle.kt
@@ -166,7 +158,6 @@ app/src/main/java/com/jupydroid/app/ui/editor/ActionRowPlacement.kt
 app/src/main/java/com/jupydroid/app/ui/editor/BreakpointConditionDialog.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellAction.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellActionItems.kt
-app/src/main/java/com/jupydroid/app/ui/editor/CellActions.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellEditorBox.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellFolds.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellFrame.kt
@@ -175,14 +166,11 @@ app/src/main/java/com/jupydroid/app/ui/editor/CellInspectItems.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellOperation.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellReveal.kt
-app/src/main/java/com/jupydroid/app/ui/editor/CellScrollTarget.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellSignatureHelp.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellSourceTracking.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellStripe.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CellTypeControl.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CodeCellField.kt
-app/src/main/java/com/jupydroid/app/ui/editor/CollapsedCell.kt
-app/src/main/java/com/jupydroid/app/ui/editor/CompletionPopupPosition.kt
 app/src/main/java/com/jupydroid/app/ui/editor/CompletionQuery.kt
 app/src/main/java/com/jupydroid/app/ui/editor/DebuggerControlBar.kt
 app/src/main/java/com/jupydroid/app/ui/editor/DebuggerPanel.kt
@@ -194,19 +182,14 @@ app/src/main/java/com/jupydroid/app/ui/editor/EditorContent.kt
 app/src/main/java/com/jupydroid/app/ui/editor/EditorScreen.kt
 app/src/main/java/com/jupydroid/app/ui/editor/EditorTheme.kt
 app/src/main/java/com/jupydroid/app/ui/editor/EditorTopBar.kt
-app/src/main/java/com/jupydroid/app/ui/editor/EditorTopBarVisibility.kt
 app/src/main/java/com/jupydroid/app/ui/editor/EditorTopBars.kt
 app/src/main/java/com/jupydroid/app/ui/editor/EditorUiState.kt
 app/src/main/java/com/jupydroid/app/ui/editor/EditorViewModel.kt
-app/src/main/java/com/jupydroid/app/ui/editor/ExecutionLabel.kt
 app/src/main/java/com/jupydroid/app/ui/editor/FindTopBar.kt
-app/src/main/java/com/jupydroid/app/ui/editor/GutterOverlay.kt
 app/src/main/java/com/jupydroid/app/ui/editor/HeadingCollapser.kt
 app/src/main/java/com/jupydroid/app/ui/editor/HoverPopup.kt
 app/src/main/java/com/jupydroid/app/ui/editor/KernelIndicator.kt
 app/src/main/java/com/jupydroid/app/ui/editor/KernelMenu.kt
-app/src/main/java/com/jupydroid/app/ui/editor/KernelStatus.kt
-app/src/main/java/com/jupydroid/app/ui/editor/LandingOnAMatch.kt
 app/src/main/java/com/jupydroid/app/ui/editor/LineNumbers.kt
 app/src/main/java/com/jupydroid/app/ui/editor/MarkdownCell.kt
 app/src/main/java/com/jupydroid/app/ui/editor/MarkdownCellField.kt
@@ -230,13 +213,11 @@ app/src/main/java/com/jupydroid/app/ui/editor/NotebookRename.kt
 app/src/main/java/com/jupydroid/app/ui/editor/NotebookReplace.kt
 app/src/main/java/com/jupydroid/app/ui/editor/NotebookSignatureHelp.kt
 app/src/main/java/com/jupydroid/app/ui/editor/NotebookVirtualDocument.kt
-app/src/main/java/com/jupydroid/app/ui/editor/OfferedExportFormat.kt
 app/src/main/java/com/jupydroid/app/ui/editor/RawCellField.kt
 app/src/main/java/com/jupydroid/app/ui/editor/RenameSymbolDialog.kt
 app/src/main/java/com/jupydroid/app/ui/editor/SearchHit.kt
 app/src/main/java/com/jupydroid/app/ui/editor/SelectionTopBar.kt
 app/src/main/java/com/jupydroid/app/ui/editor/SignatureHelpQuery.kt
-app/src/main/java/com/jupydroid/app/ui/editor/SymbolRow.kt
 app/src/main/java/com/jupydroid/app/ui/editor/TableOfContentsPanel.kt
 app/src/main/java/com/jupydroid/app/ui/editor/TocNumbering.kt
 app/src/main/java/com/jupydroid/app/ui/explorer/ExplorerBar.kt
@@ -289,12 +270,10 @@ app/src/test/java/com/jupydroid/app/data/space/BaseSpaceKernelDebuggerTest.kt
 app/src/test/java/com/jupydroid/app/data/space/BaseSpaceKernelGatewayTest.kt
 app/src/test/java/com/jupydroid/app/data/space/BaseSpaceServerTest.kt
 app/src/test/java/com/jupydroid/app/data/space/BaseSpaceTerminalGatewayTest.kt
-app/src/test/java/com/jupydroid/app/data/space/BusyBoxAppletsTest.kt
 app/src/test/java/com/jupydroid/app/data/space/ConsoleScriptsTest.kt
 app/src/test/java/com/jupydroid/app/data/space/JupyterServerLifecycleArgsTest.kt
 app/src/test/java/com/jupydroid/app/data/space/JupyterServerTerminalShellTest.kt
 app/src/test/java/com/jupydroid/app/data/space/JupyterServerWorkingDirTest.kt
-app/src/test/java/com/jupydroid/app/data/space/LspRenameTest.kt
 app/src/test/java/com/jupydroid/app/data/space/NbConvertResponseTest.kt
 app/src/test/java/com/jupydroid/app/data/space/OkHttpKernelLifecycleTest.kt
 app/src/test/java/com/jupydroid/app/data/space/OkHttpNotebookExporterTest.kt
@@ -343,7 +322,6 @@ app/src/test/java/com/jupydroid/app/ui/editor/CellEditsTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/CellHeadingsTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/CellOperationTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/CellRestructureTest.kt
-app/src/test/java/com/jupydroid/app/ui/editor/CellRevealTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/CellRunIconTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/CellRunRangeTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/CellStripeTest.kt
@@ -353,14 +331,11 @@ app/src/test/java/com/jupydroid/app/ui/editor/CompletionPopupPositionTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/EditorBottomBarTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/EditorCellActionTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/EditorTestFixtures.kt
-app/src/test/java/com/jupydroid/app/ui/editor/EditorTopBarVisibilityTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/EditorViewModelOpenDocumentTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/EditorViewModelTest.kt
-app/src/test/java/com/jupydroid/app/ui/editor/ExecutionLabelTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/FocusedCellInputTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/GutterPressActionTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/KernelStatusGlyphTest.kt
-app/src/test/java/com/jupydroid/app/ui/editor/KernelStatusTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/MarkdownEditingTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookCompletionTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookDebuggerConditionTest.kt
@@ -368,7 +343,6 @@ app/src/test/java/com/jupydroid/app/ui/editor/NotebookDebuggerEvaluateTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookDebuggerTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookDefinitionTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookDiagnosticsTest.kt
-app/src/test/java/com/jupydroid/app/ui/editor/NotebookExportTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookFormatTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookHistoryTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookHoverTest.kt
@@ -382,7 +356,6 @@ app/src/test/java/com/jupydroid/app/ui/editor/NotebookSignatureHelpTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/NotebookVirtualDocumentTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/OfferedExportFormatTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/PythonTypingRulesTest.kt
-app/src/test/java/com/jupydroid/app/ui/editor/RunInFlightTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/SearchHitTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/SignatureHelpQueryTest.kt
 app/src/test/java/com/jupydroid/app/ui/editor/StaleSessionReconnectTest.kt
@@ -394,7 +367,6 @@ app/src/test/java/com/jupydroid/app/ui/explorer/RecentsViewModelTest.kt
 app/src/test/java/com/jupydroid/app/ui/shell/WorkspaceReplaceAllTest.kt
 app/src/test/java/com/jupydroid/app/ui/shell/WorkspaceReplaceTest.kt
 app/src/test/java/com/jupydroid/app/ui/terminal/TerminalGridSizeTest.kt
-app/src/test/java/com/jupydroid/app/ui/terminal/TerminalInputFieldTest.kt
 app/src/test/java/com/jupydroid/app/ui/terminal/TerminalKeyEncodingTest.kt
 app/src/test/java/com/jupydroid/app/ui/terminal/TerminalPaneViewModelFixture.kt
 app/src/test/java/com/jupydroid/app/ui/terminal/TerminalPaneViewModelTest.kt

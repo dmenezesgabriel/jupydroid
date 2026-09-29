@@ -99,7 +99,7 @@ class FileEditorRevealTest {
    * and the half a Maestro assertion cannot see, because the editor is one node carrying the whole
    * file and any text in it matches at any scroll position. The first run of
    * `p2x-3-open-at-the-match` went green with the editor sitting on line 1, and the screenshot is
-   * what said so (`evidence/p2x-3-open-at-the-match/`).
+   * what said so.
    */
   @Test
   fun theMatchIsScrolledOnToTheScreen() {

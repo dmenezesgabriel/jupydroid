@@ -320,8 +320,7 @@ class ExplorerViewModelTest {
    * outside it. Coming back into composition restarts `KeepTheListingFresh`, which calls
    * [ExplorerViewModel.refresh] at once; that re-lists whatever path is on screen, and it was
    * racing the crumb's own `goTo`. Two listings, whichever finished last winning, and the frame
-   * showed the browser still standing in the folder the crumb had just left
-   * (`evidence/p2w-1-breadcrumb-wide/`).
+   * showed the browser still standing in the folder the crumb had just left.
    */
   @Test
   fun aListingAlreadyInFlightDoesNotOverwriteWhereWeJustWent() = runTest {
@@ -344,8 +343,8 @@ class ExplorerViewModelTest {
    *
    * `runCatching` catches `CancellationException` like any other throwable, so cancelling the
    * in-flight listing wrote its own cancellation into the state as a failure: the browser drew
-   * *"StandaloneCoroutine was cancelled"* in `colorScheme.error` across the top of the file list
-   * (`evidence/p7a-2-part-borders/the-banner-a-flow-passed-over/`). Every assertion above holds
+   * *"StandaloneCoroutine was cancelled"* in `colorScheme.error` across the top of the file list.
+   * Every assertion above holds
    * while that banner is up, because none of them reads `error` - it was found by looking at a
    * frame the flow it belongs to had reported green.
    *

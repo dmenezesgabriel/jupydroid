@@ -54,8 +54,7 @@ fun CellActions(
     },
     // **The picker taking over is not a dismissal**, and forgetting that cost a red flow:
     // [CellActionSurface] dismisses after *every* choice, so the row that opens the second step
-    // opened it and closed it in the same frame - the whole menu simply went away
-    // (`evidence/p2f-3-change-to-heading/`).
+    // opened it and closed it in the same frame - the whole menu simply went away.
     onDismiss = { if (!pickingLevel) onDismiss() },
     presentation = presentation,
   )

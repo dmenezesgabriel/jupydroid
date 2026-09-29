@@ -87,7 +87,7 @@ class NotebookExportTest {
   }
 
   /**
-   * A markdown export of a notebook with an image is a zip (`evidence/p2j-2-export-formats/`), so
+   * A markdown export of a notebook with an image is a zip, so
    * nothing on this path may go through a `String`.
    */
   @Test

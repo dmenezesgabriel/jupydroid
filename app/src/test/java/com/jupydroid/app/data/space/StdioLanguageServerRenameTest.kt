@@ -121,7 +121,7 @@ class StdioLanguageServerRenameTest {
   /**
    * The ask and its answer both reach `JupydroidSpace` - the same `lsp.ask`/`lsp.answer`
    * pair definition and rangeFormatting already log, so a device run shows the rename round
-   * trip in `evidence/p5e7-rename/`.
+   * trip.
    */
   @Test
   fun rename_reachesTheLifecycleLog_askedAndAnswered() = runBlocking {

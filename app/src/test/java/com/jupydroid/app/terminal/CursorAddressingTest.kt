@@ -15,7 +15,7 @@ import org.junit.Test
  *
  * The cases upstream covers only in passing - the clamps, the absent and zero parameters, CNL/CPL,
  * VPA/VPR/HPR, CHT/CBT and the tab clears - had their **expectations read off the reference
- * itself** (`evidence/p4-terminal/emulator-differential.md`, "The oracle the expectations came
+ * itself** ("The oracle the expectations came
  * from").
  */
 class CursorAddressingTest {

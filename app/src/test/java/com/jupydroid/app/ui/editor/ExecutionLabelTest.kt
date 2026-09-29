@@ -51,7 +51,7 @@ class ExecutionLabelTest {
    * A skipped cell must not read as one nobody ran, which is the whole reason [ExecutionStatus]
    * has a `SKIPPED` at all. Caught in this step's own evidence: the state was being tracked
    * correctly and drawn as `[ ]`, so on screen it was still the state it was meant to replace
-   * (`evidence/u4-execution-status/03-finished-failed-and-skipped.png`, before this).
+   * (before this).
    *
    * `[-]` is ours. Jupyter has no notation for it, because Jupyter's Run All does not stop.
    */
@@ -68,7 +68,7 @@ class ExecutionLabelTest {
    *
    * The word "markdown" was this app's own, and it cost more than a word: it was the only thing
    * in front of a heading cell's collapser, so the collapser pushed it and two markdown cells in
-   * one frame started 48dp apart (`evidence/p2n-gutter/before/gutter.txt`).
+   * one frame started 48dp apart.
    */
   @Test
   fun aMarkdownCellHasNoPromptAtAll() {

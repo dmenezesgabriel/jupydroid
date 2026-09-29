@@ -177,8 +177,7 @@ class CellHeaderTest {
    * absolutely positioned child *of the prompt* (`packages/cells/src/widget.ts:2386-2408`,
    * `packages/cells/style/widget.css:154-168`).
    *
-   * Measured ragged before this: two markdown labels 48dp apart in one frame
-   * (`evidence/p2n-gutter/before/gutter.txt`).
+   * Measured ragged before this: two markdown labels 48dp apart in one frame.
    */
   @Test
   fun everyCodePromptInOneFrameStartsAtTheSameX() {

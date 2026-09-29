@@ -20,7 +20,7 @@ import java.io.File
  * Alpine's busybox sets `CONFIG_FEATURE_SUID`, so each dispatch calls `setgid`/`setuid`
  * (`libbb/appletlib.c:965`), both refused to apps by bionic's `SECCOMP_BLOCKLIST_APP.TXT`, and the
  * shell was killed by SIGSYS about seven milliseconds after exec having printed nothing - which
- * `run-as` could never show. Measured in `evidence/p4-terminal/busybox-under-app-seccomp.md`.
+ * `run-as` could never show.
  *
  * [runInSpace] is what keeps that: it starts the child from the instrumented test, in the app
  * process, and P7e-1 moved it there so [PythonInterpreterDeviceTest] could not grow a second copy

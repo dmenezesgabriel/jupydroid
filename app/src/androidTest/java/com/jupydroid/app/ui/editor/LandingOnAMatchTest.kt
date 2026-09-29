@@ -39,8 +39,7 @@ import org.junit.runner.RunWith
  * A `LaunchedEffect` keyed on the cells the landing itself changes gets cancelled the moment it
  * changes them - Compose cancels a running effect when a key changes - so the scroll died
  * mid-animation and the request was never reported handled. On the tablet that read as a notebook
- * sitting on cell one while `assertVisible` on the match was green
- * (`evidence/p2x-4-open-at-the-cell/`).
+ * sitting on cell one while `assertVisible` on the match was green.
  */
 @RunWith(AndroidJUnit4::class)
 class LandingOnAMatchTest {

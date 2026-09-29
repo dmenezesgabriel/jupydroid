@@ -26,8 +26,8 @@ import com.jupydroid.app.domain.model.MatchedLine
  * restarts itself: Compose cancels a `LaunchedEffect`'s coroutine the moment a key changes, which
  * killed `animateScrollToItem` mid-flight and left the request unhandled, so the retry saw
  * `landedOn` already set and did nothing. Measured on the tablet, and **only the screenshot said
- * so** - the flow's `assertVisible` on the match was green against a notebook sitting on cell one
- * (`evidence/p2x-4-open-at-the-cell/`). `loaded` flips once and never again, which is exactly the
+ * so** - the flow's `assertVisible` on the match was green against a notebook sitting on cell one.
+ * `loaded` flips once and never again, which is exactly the
  * "the cells are here now" this needs.
  *
  * Landed **once per request** whatever recomposes afterwards - the defect `FileEditorScreen`

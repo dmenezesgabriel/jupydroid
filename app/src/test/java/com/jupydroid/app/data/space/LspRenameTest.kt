@@ -16,7 +16,7 @@ import org.junit.Test
 /**
  * The `textDocument/rename` reply - a `WorkspaceEdit` (LSP 3.17) - parsed by [LspRename].
  *
- * What the shipped `pylsp` answers is captured in `evidence/p5e-0-lsp-surface/logcat-probe.txt`:
+ * What the shipped `pylsp` answers is.txt`:
  * `documentChanges` with one `TextDocumentEdit` per document, its `edits` carrying a single
  * whole-document `TextEdit` whose `newText` rewrites every occurrence at once. The legacy
  * `changes` map is the fallback the spec keeps for servers that do not send `documentChanges`.

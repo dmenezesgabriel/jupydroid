@@ -41,7 +41,7 @@ internal fun EditorBottomBars(
   // answers something other than DEBUGGER for exactly one recomposition - tearing down
   // [DebuggerBottomBar] and, with it, a `remember` owned there. [EditorBottomBars] itself never
   // leaves composition, so a toggle held here survives the same step that closed it when it lived
-  // one level down - caught live on the tablet (`evidence/p6a-19/`), not guessed.
+  // one level down - caught live on the tablet, not guessed.
   var variablesOpen by remember { mutableStateOf(false) }
   when (
     editorBottomBar(

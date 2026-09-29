@@ -27,7 +27,7 @@ enum class KernelStatus {
    * A run is in flight and the socket is not open yet.
    *
    * On a cold app this is the Space installing, `jupyter_server` starting and the kernel starting -
-   * **fourteen seconds** on the tablet (`evidence/p1c-app-death-backstop/`), during which nothing
+   * **fourteen seconds** on the tablet, during which nothing
    * on screen used to say a kernel was coming up.
    */
   STARTING,

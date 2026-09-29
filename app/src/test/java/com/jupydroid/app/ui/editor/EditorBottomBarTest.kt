@@ -67,7 +67,7 @@ class EditorBottomBarTest {
    * **And a marked run gets neither, which P2d-3 is what made necessary.** The contextual bar's Run
    * acts on the marked run and the kernel bar's acts on every cell, and until P2d-3 there was no
    * clash to have: both are a bare `PlayArrow`, and at 320dp they sat one above the other on the
-   * same screen (`evidence/p2d-3-run-the-marked-run/`). Dropping the kernel bar is P2c's own rule
+   * same screen. Dropping the kernel bar is P2c's own rule
    * followed through - *one* surface acts on the run, which is why the cell's `⋮` is already hidden
    * while it is up - and none of what the kernel bar offers is what somebody picking cells is doing.
    */

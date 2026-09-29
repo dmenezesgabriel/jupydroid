@@ -343,8 +343,8 @@ private fun TerminalInputField(
     state = state,
     // A terminal is not a text field and the IME must not treat it as one: on this repo's tablet
     // (a Samsung), Gboard's automatic quote-completion was measured inserting a `'` the user never
-    // typed into `python3 -c 'import json, sys'`, and the diff below faithfully forwarded it
-    // (`evidence/p4m-terminal-input/edit-pairs.md`). `autoCorrectEnabled = false` alone clears only
+    // typed into `python3 -c 'import json, sys'`, and the diff below faithfully forwarded it.
+    // `autoCorrectEnabled = false` alone clears only
     // `TYPE_TEXT_FLAG_AUTO_CORRECT`. `KeyboardType.Password` is the Compose lever for the inputType
     // the reference uses for exactly this - `TerminalView.onCreateInputConnection` sets
     // `TYPE_TEXT_VARIATION_VISIBLE_PASSWORD | TYPE_TEXT_FLAG_NO_SUGGESTIONS` for Samsung keyboards
@@ -404,7 +404,7 @@ internal fun reportTerminalKeystroke(
  * then type whatever [to] adds past that prefix. A pure append sends no DELs and a pure deletion
  * sends no text, so the two easy cases fall out of the one rule; the case P4j-1 left unsent - an
  * edit that rewrites a token mid-line - is now a delete-and-retype rather than a silent drop that
- * drifts the field and the shell apart (`evidence/p4m-terminal-input/edit-pairs.md`, where a
+ * drifts the field and the shell apart (where a
  * Samsung IME's quote-completion was measured doing exactly that). [TerminalInputField] also asks
  * the IME not to rewrite the buffer in the first place (`KeyboardType.Password`); this is the
  * backstop for whatever still gets through.

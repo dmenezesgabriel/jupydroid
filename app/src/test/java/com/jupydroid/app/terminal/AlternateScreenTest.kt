@@ -13,7 +13,7 @@ import org.junit.Test
  * by name (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]).
  *
  * The seven the reference covers only incidentally had their **expectations read off the reference
- * itself** (`evidence/p4-terminal/emulator-differential.md`, "The oracle the expectations came
+ * itself** ("The oracle the expectations came
  * from"): that `47` and `1047` do what `1049` does, that `1048` does not switch, that a second
  * entry changes nothing, that a saved cursor belongs to the buffer it was saved in, that the main
  * screen's scrollback survives a session in the alternate one, and that a reset inside the

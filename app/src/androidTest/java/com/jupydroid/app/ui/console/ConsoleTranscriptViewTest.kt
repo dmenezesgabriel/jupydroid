@@ -67,7 +67,7 @@ class ConsoleTranscriptViewTest {
   }
 
   /**
-   * Real on-device evidence: a PNG of the fixture transcript, pulled into `evidence/p6b-3/`.
+   * Real on-device evidence: a PNG of the fixture transcript.
    *
    * Written first to the app's own external-files dir (writable with no permission grant), then
    * `cp`'d to `/sdcard` **as the shell user**, via `UiAutomation.executeShellCommand` -

@@ -44,7 +44,7 @@ fun SidePanelRail(
 ) {
   // **`activityBar.background`, stated.** Material's default here is `colorScheme.surface`, which
   // this app maps to `editor.background` - so the rail used to be the same field as the document
-  // beside it, with only the divider between them (`evidence/p2u-1-chrome/after-tablet/`,
+  // beside it, with only the divider between them (
   // measured at y=900). The reference draws the bar a step off the page.
   NavigationRail(modifier = modifier, containerColor = chromePalette.activityBarBackground) {
     SidePanel.entries.forEach { panel ->
@@ -56,7 +56,7 @@ fun SidePanelRail(
         // 20px icon and no text (`--jp-private-sidebar-tab-width: 32px`,
         // `packages/application/style/sidepanel.css:10,41-44`). Measured before it
         // was chosen: "Table of contents" is wider than the rail and spilled across the panel
-        // beside it (`evidence/p2o-2-side-panel/`, the run before this). Material allows a rail
+        // beside it (the run before this). Material allows a rail
         // item with no label, and the name is still on the item for a screen reader and a flow.
         // The name on the item rather than on the icon inside it, which is the rule a flow cost
         // this project in P2b: a screen reader and a Maestro flow address one string.

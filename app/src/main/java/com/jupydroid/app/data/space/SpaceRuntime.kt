@@ -41,7 +41,7 @@ class SpaceRuntime(
     //   - and `IPython/utils/_process_common.py:86-90` passes it as `Popen(executable=...)` for the
     //     *capture* escape, `files = !ls`. Unset, that stays None and CPython falls back to the
     //     absolute `/bin/sh`, which does not exist on Android - so the command runs nowhere and the
-    //     cell gets an empty string. Measured: `evidence/p4-terminal/shell-escapes.md`.
+    //     cell gets an empty string.
     "SHELL" to spaceShellIn(baseDir).path,
     // The rootfs is not mounted at `/` on the device, so the console-script trampoline
     // (`tools/rootfs/shebang_exec.c`) prefixes this onto an absolute shebang: `#!/usr/bin/python3`
@@ -71,8 +71,8 @@ class SpaceRuntime(
 
   /**
    * Android refuses syscalls outside bionic's allowlist with SECCOMP_RET_TRAP, and an
-   * unhandled SIGSYS terminates the process - the whole reason `import numpy` used to die
-   *. The handler reports the syscall and
+   * unhandled SIGSYS terminates the process - the whole reason `import numpy` used to die.
+   * The handler reports the syscall and
    * returns, leaving in place the ENOSYS the kernel already set.
    *
    * Omitted rather than dangling when absent, so a Space extracted by an older version

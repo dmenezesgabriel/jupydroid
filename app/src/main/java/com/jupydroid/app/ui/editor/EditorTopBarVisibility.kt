@@ -10,7 +10,7 @@ import androidx.window.core.layout.WindowSizeClass
  * A phone in landscape is 320dp tall. Status bar, app bar, symbol row and keyboard add up to more
  * than that, and `Scaffold` resolves the overflow by handing the cell list **zero height** - so a
  * notebook being typed into showed no cell at all, and a `uiautomator` dump of that state
- * contained none (`evidence/u6-ime-layout/640dp/`). Nothing about it says "wrong"; it is simply
+ * contained none. Nothing about it says "wrong"; it is simply
  * what fits, which is why only a screenshot on a short window could find it.
  *
  * The bar goes only while a cell is being edited, which is the only time the keyboard is there to

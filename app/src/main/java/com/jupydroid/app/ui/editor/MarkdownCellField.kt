@@ -96,8 +96,7 @@ fun MarkdownCellField(
   // **Conditional since P2e-3**, which gave this field a second way to appear. `changeCellType`
   // unrenders every cell it visits (`actions.tsx:3308-3312`) and ends in command mode, so a run
   // changed to markdown composed several of these at once - each asking for the caret, one of them
-  // winning it, and the soft keyboard up over a notebook nobody was typing in
-  // (`evidence/p2e-3-change-to-markdown/`).
+  // winning it, and the soft keyboard up over a notebook nobody was typing in.
   LaunchedEffect(takesCaret) { if (takesCaret) caret.requestFocus() }
 
   BasicTextField(

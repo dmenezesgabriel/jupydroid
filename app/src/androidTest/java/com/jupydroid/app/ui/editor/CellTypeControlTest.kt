@@ -119,7 +119,7 @@ class CellTypeControlTest {
    * whole one.
    *
    * **What it measured**: "Markdown" at `labelLarge` draws **73.3dp**, on both devices. The action
-   * row has 72dp free at 320dp (`evidence/p2o-3-two-pane-threshold/320dp/hierarchy.xml`), so the
+   * row has 72dp free at 320dp, so the
    * label alone does not fit there before the caret and the button's padding are counted - which
    * is [labelsFitOnActionRow]'s threshold arrived at from a measurement rather than an estimate.
    *

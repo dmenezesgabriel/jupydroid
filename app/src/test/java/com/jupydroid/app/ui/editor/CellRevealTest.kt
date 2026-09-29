@@ -55,8 +55,7 @@ class CellRevealTest {
    * **An ordinary reveal leaves prose rendered**, which is the whole of the line between the two:
    * a jump from the table of contents is somebody asking to *read* a heading, and the reference
    * forces command mode first to make sure it stays that way (`toc.ts:681-684`). One helper for
-   * both put `## Part A` on screen as an editor, green against every assertion
-   * (`evidence/p2i-4b-toc-reveals/`).
+   * both put `## Part A` on screen as an editor, green against every assertion.
    */
   @Test
   fun anOrdinaryRevealLeavesProseAsProse() {

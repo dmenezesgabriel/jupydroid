@@ -19,7 +19,7 @@ import org.junit.Test
  * stops a server on the client's behalf, so a death is always news.
  *
  * On the tablet the un-handled version is a websocket upgrade answered 404 by a server that never
- * heard of that kernel (`evidence/p1c-app-death-backstop/stale-session-404.txt`).
+ * heard of that kernel.
  */
 class StaleSessionReconnectTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()

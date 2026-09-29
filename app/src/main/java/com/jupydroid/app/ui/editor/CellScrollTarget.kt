@@ -13,7 +13,7 @@ import com.jupydroid.app.domain.model.Cell
  *
  * **This is not only about inserted cells, and it should not be.** Insertion is where its absence
  * showed - a heading inserted at the end of a section landed below the fold and behind the symbol
- * row, so the command looked like it had done nothing (`evidence/p2f-4-insert-heading/`) - but the
+ * row, so the command looked like it had done nothing - but the
  * reference's rule is about *entering edit mode* wherever the cell is, and a narrower one would
  * leave the same hole for split, paste and undo to fall into.
  *

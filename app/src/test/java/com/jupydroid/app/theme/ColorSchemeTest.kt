@@ -13,7 +13,7 @@ import org.junit.Test
  * so anything reaching for an unset role got a colour from a different design system. The FAB
  * did exactly that: `FloatingActionButton` defaults to `primaryContainer`, which nothing had
  * set, so it sat on Home in baseline purple next to an editor drawn in Darcula
- * (`evidence/u2-cell-mode/05-back-still-leaves.png`, before this).
+ * (before this).
  *
  * Enumerating the roles is the point. Fixing only the FAB would have left the same bug waiting
  * in every role no screen happens to use yet - and U5 is about to add a bottom bar and a bottom

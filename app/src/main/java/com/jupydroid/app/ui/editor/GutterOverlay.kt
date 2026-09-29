@@ -20,7 +20,7 @@ import com.jupydroid.app.theme.editorPalette
  * 5. Once a code cell can scroll horizontally, a gutter reached by chaining
  * `Modifier.horizontalScroll` into the same chain [lineNumbers] uses scrolled away with the code
  * instead of staying beside it - measured on a real device, not assumed
- * (`evidence/p6c-5-word-wrap/05-scrolled-toward-the-marker.png`, captured before this existed: the
+ * (captured before this existed: the
  * translation a scroll modifier applies to its own placement reaches every draw call in the same
  * chain, including ones textually declared before it). A sibling `Box`, outside the scrolled
  * field's own layout entirely, cannot inherit that translation - it draws and hit-tests

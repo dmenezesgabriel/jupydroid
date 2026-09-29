@@ -38,7 +38,7 @@ import kotlin.time.measureTimedValue
  * `rename`, `codeAction`, `completionItem/resolve` - plus the fields a completion item
  * actually carries, what a whole-text `didChange` costs at a small and a large document,
  * and how long a diagnostic takes to arrive after one. The dump lands in
- * `files/lsp-probe.txt`, harvested into `evidence/p5e-0-lsp-surface/`.
+ * `files/lsp-probe.txt`.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \

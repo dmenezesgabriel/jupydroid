@@ -13,7 +13,7 @@ import androidx.compose.ui.window.PopupPositionProvider
  * The popup used to be placed with a raw `Popup(offset = …)`, which knows nothing about the
  * window or the keyboard. On a cell near the bottom of a notebook that drew a 220dp list
  * **behind the keyboard**: half the matches were readable and the rest were painted over the
- * keys (`evidence/u6-completion-popup/`). A `PopupPositionProvider` is handed exactly what is
+ * keys. A `PopupPositionProvider` is handed exactly what is
  * needed to decide - where the anchor is in the window, how big the window is, and how big the
  * popup turned out to be.
  *

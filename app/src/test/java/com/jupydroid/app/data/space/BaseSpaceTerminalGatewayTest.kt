@@ -31,8 +31,8 @@ class BaseSpaceTerminalGatewayTest {
    * **Listing must not boot a runtime**, which is the one call a screen makes before the user has
    * asked for anything.
    *
-   * Seven seconds and ~130 MB to answer a question whose honest answer is "none"
-   *: a server that is not running holds no terminals, and a
+   * Seven seconds and ~130 MB to answer a question whose honest answer is "none":
+   * a server that is not running holds no terminals, and a
    * freshly started one would have said the same.
    */
   @Test
