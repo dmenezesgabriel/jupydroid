@@ -5,7 +5,7 @@
 before anyone read one end to end. `adb logcat` is not this app's log - it is the whole device's:
 the home Wi-Fi's BSSID and SSID (a BSSID alone geolocates a router through public wardriving
 databases), Samsung's FCM push tokens, and every other app's activity. Before the first push to a
-remote, history was rewritten once to take them out (`docs/DECISIONS.md`); this gate is what keeps
+remote, history was rewritten once to take them out (ADR-0015); this gate is what keeps
 the next dump from undoing that.
 
 **Three kinds of refusal**, because each covers what the others cannot:

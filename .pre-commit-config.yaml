@@ -52,7 +52,7 @@ repos:
       # **The source sets are named, and that is the repair rather than a detail.** `ktlintCheck`
       # is an aggregate over whatever tasks the plugin happened to register, so when it registered
       # none for Kotlin it resolved to the `.kts` build scripts and reported "Passed" for months
-      # (`docs/DECISIONS.md`). Named explicitly, a plugin that stops seeing a source set fails with
+      # (ADR-0016). Named explicitly, a plugin that stops seeing a source set fails with
       # "Task not found" instead of passing quietly. `ktlintCheck` stays first so the scripts are
       # still covered.
       - id: monospace-home

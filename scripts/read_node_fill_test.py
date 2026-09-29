@@ -131,7 +131,7 @@ class ThisRepositoryTest(unittest.TestCase):
     """
 
     #: `content-desc` of the toggle in its *on* state - what a tap would do, which is this app's
-    #: own state readout (`docs/DECISIONS.md`, and the flow's note on why not "Match case").
+    #: own state readout (ADR-0036, and the flow's note on why not "Match case").
     ON_TOGGLE = "Ignore case"
     BEFORE = pathlib.Path("evidence/p7a-1b-toggle-wash/before-the-fix")
 

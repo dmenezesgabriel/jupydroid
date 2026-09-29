@@ -18,8 +18,15 @@ search and replace, and the table of contents. The server's lifecycle is built t
 when it is idle or the app is left, comes back on the next run, and a kernel can be ended on purpose
 from the kernel menu.
 
-What is *not* built is in [`docs/backlog.md`](docs/backlog.md); the known gaps are
+What is *not* built is in [`docs/backlog.md`](docs/backlog.md) — the Space system's runtime and UI, and
+whatever the next cold-path measurement names. The eleven measured gaps are
 [`docs/architecture.md` §11](docs/architecture.md).
+
+Test and flow counts are **produced, not stored**, because a stored one drifted repeatedly:
+
+```sh
+scripts/count-tests.sh
+```
 
 Kotlin + Jetpack Compose, `com.jupydroid.app`, AGP 9, compileSdk 37, minSdk 32, targetSdk 36.
 The runtime is **arm64-only**; on x86_64 the app runs against a fake kernel for UI work.

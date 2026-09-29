@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Whether a named region of a captured frame is filled with the colour the reference resolves.
 
-`docs/PLAN.md`'s P7a-1b. `read_node_fill.py` says what a region *is* filled with; this says whether
+`read_node_fill.py` says what a region *is* filled with; this says whether
 that is right, so the drivers fail on a regression instead of printing a hex for a human to compare
 - the same split `read_chrome_parts.py` and `check_chrome_parts.py` stand either side of, and for
 the same reason: half of a measurement's job is to be run on the build *before* the fix.

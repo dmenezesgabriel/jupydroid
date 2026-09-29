@@ -12,7 +12,7 @@ and is disclosed by a chevron in a column of its own - so what it has left is a 
 and the chevron's cost to the row is what the placement decision turns on.
 
 **A measurement, not a gate.** It prints what it found and exits 0; the decision it informs is
-recorded in `docs/DECISIONS.md` with these numbers beside it.
+recorded in an ADR with these numbers beside it.
 
     adb shell uiautomator dump /sdcard/ui.xml && adb shell cat /sdcard/ui.xml > ui.xml
     adb shell wm density | python3 scripts/read_search_box_width.py ui.xml
@@ -36,7 +36,8 @@ BOX_LABEL = "Search the workspace"
 #: `REPLACE_IN_WORKSPACE_BOX` - named apart from the find bar's for the same reason (P2x-5e).
 REPLACE_BOX_LABEL = "Replace across the workspace"
 #: Both names of each toggle, because a toggle here says what a **tap will do** rather than what is
-#: currently true (`docs/DECISIONS.md`) - so an enabled Match Case is on screen as "Ignore case".
+#: currently true (ADR-0036 on the labels that do not flip) - so an enabled Match Case is on screen
+#: as "Ignore case".
 TOGGLE_LABELS = (
     "Match case",
     "Ignore case",

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """How far down a terminal screenshot's own thin glyph strokes extend.
 
-`docs/PLAN.md`'s P4j-3b: `vi`'s own fill-line count is the resize oracle - `stty size`
-is proven unreliable in this rootfs (`docs/DECISIONS.md`). The accessibility-text version
+`vi`'s own fill-line count is the resize oracle, because `stty size` answers from a fixed
+default in this rootfs rather than a live `ioctl` (CLOSED-006). The accessibility-text version
 of that oracle (`grep -c 'text="~"'` over a `uiautomator dump`, `p4i-terminal-resize-driver.
 sh`'s own `count_vi_fill_lines`) proved unreliable on this device independent of anything
 `TerminalCanvas` draws - reproduced with and without this phase's own fix
-(`docs/DECISIONS.md`'s own P4j-3b entry). This reads the screenshot's own pixels instead:
+(`docs/architecture/cross-cutting.md` §8.6). This reads the screenshot's own pixels instead:
 `codeTextStyle`'s 14sp monospace strokes are a handful of pixels thick at any real device's
 density, and every UI chrome element below the terminal - the extra-keys row, a soft
 keyboard's own key glyphs - draws noticeably thicker ones, which is the gap this module uses
@@ -15,7 +15,7 @@ to know where the terminal's own content ends rather than assuming a fixed scree
 **Ink is read against the terminal's own background, not an absolute brightness** - a device
 run switched from `TerminalPalette.VS_CODE_LIGHT` to `VS_CODE_DARK` between two captures this
 module was measured against, which inverted which end of the scale text sits on
-(`docs/DECISIONS.md`'s own P4j-3b entry). Sampling the background once and comparing every
+(`docs/architecture/cross-cutting.md` §8.6). Sampling the background once and comparing every
 candidate pixel's *contrast* against it is what keeps this working in either theme.
 
 **A measurement, not a gate**, the same footing `read_pane_widths.py` stands on: a driver
@@ -75,7 +75,7 @@ def terminal_row_spacing_px(
 ) -> int:
     """The pixel distance between consecutive terminal rows' own ink - `codeTextStyle`'s cell
     height rendered, not a layout number either capture carries, so two screenshots at different
-    font sizes (`docs/PLAN.md`'s P4j-3c) compare directly against each other. `0` if fewer than
+    font sizes (the terminal's font-size setting) compare directly against each other. `0` if fewer than
     two rows of ink are found to compare - one capture with nothing drawn, or only one row.
 
     Reuses [_ink_bands] and [terminal_content_bottom_y]'s own thin-glyph filter, so a soft
@@ -109,7 +109,7 @@ def terminal_top_strip_differs(
 ) -> bool:
     """Whether the terminal's own topmost strip of pixels differs between two captures.
 
-    `docs/PLAN.md`'s P4j-3d-3's own proof that a gesture-scrollback drag moved *something*,
+    Gesture scrollback's own proof that a gesture-scrollback drag moved *something*,
     without needing to read what either capture says: [content_top_y] to
     `content_top_y + strip_height` sits just below the app bar - one row's own height, at any
     real device's density this app ships for - and is nowhere near `TerminalExtraKeysRow` or a

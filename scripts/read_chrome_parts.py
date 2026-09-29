@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Which colour each vertical part of the shell is actually drawn in, read off a screenshot.
 
-`docs/PLAN.md`'s P7a. VS Code draws the workbench as parts a step apart: `activityBar.background`
+VS Code draws the workbench as parts a step apart: `activityBar.background`
 and `sideBar.background` resolve to `#191A1B` in 2026 Dark and `editor.background` to `#121314`,
 with a 1px `panel.border` between them. This app drew all three on the page's own colour, and
 **no assertion in the repository could fail on it** - a colour is not something a Maestro flow
@@ -10,7 +10,8 @@ can read. Reading the frame's own pixels is what turns that into something a dri
 **The mode down a column, never one pixel of it.** A row label, a breadcrumb or an icon puts
 foreground ink in a column that is otherwise a part's background; sampling a single scanline
 reads whichever of the two that row happened to hit, which is how a pixel oracle in this
-repository has already been wrong twice (`docs/DECISIONS.md`, P4j-3c and P4j-3d-3). Text is a
+repository has already been wrong twice - a pixel oracle tuned against one pane layout reads the
+wrong pane in another (`docs/architecture/cross-cutting.md` §8.6). Text is a
 minority of any column it appears in, so the mode is the part behind it.
 
 **Bands narrower than [_MIN_PART_WIDTH] are not parts.** A 1-2px seam between two parts is a

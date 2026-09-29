@@ -65,7 +65,7 @@ class TerminalContentBottomYTest(unittest.TestCase):
         self.assertEqual(93, terminal_content_bottom_y(path, content_top_y=_CONTENT_TOP))
 
     def test_stops_at_a_thicker_band_rather_than_counting_it(self) -> None:
-        """A soft keyboard's own key glyphs are taller than a terminal stroke - `docs/PLAN.md`'s
+        """A soft keyboard's own key glyphs are taller than a terminal stroke - the
         own P4j-3b finding - so the last *thin* row before one is the answer, not the thick one."""
         rows = {30: (10, 13), 31: (10, 13)}
         rows.update({y: (10, 13) for y in range(60, 75)})  # a 15px-tall band: keyboard-sized
@@ -87,7 +87,7 @@ class TerminalContentBottomYTest(unittest.TestCase):
         )
 
     def test_finds_light_ink_on_a_dark_background_too(self) -> None:
-        """A device run switched themes mid-investigation (`docs/DECISIONS.md`'s own P4j-3b
+        """A device run switched themes mid-investigation (the
         entry): `VS_CODE_DARK`'s light-on-dark text must count exactly as `VS_CODE_LIGHT`'s
         dark-on-light does, since a driver cannot know which theme a capture was taken in."""
         path = self._painted_path({30: (10, 13), 31: (10, 13)}, background=_DARK_BG, ink=_DARK_INK)
@@ -103,7 +103,7 @@ class TerminalContentBottomYTest(unittest.TestCase):
 
 
 class TerminalRowSpacingPxTest(unittest.TestCase):
-    """`docs/PLAN.md`'s P4j-3c: the terminal's own font-size setting, read as the pixel distance
+    """The terminal's own font-size setting, read as the pixel distance
     between consecutive rows' own ink - `codeTextStyle`'s cell height rendered, so two captures at
     different sizes compare directly against each other rather than against a layout number
     neither capture carries."""
@@ -153,7 +153,7 @@ class TerminalRowSpacingPxTest(unittest.TestCase):
 
 
 class TerminalTopStripDiffersTest(unittest.TestCase):
-    """`docs/PLAN.md`'s P4j-3d-3: gesture scrollback's own proof that a drag moved *something* -
+    """Gesture scrollback's own proof that a drag moved *something* -
     a fixed strip just below the app bar, compared pixel-for-pixel between two captures, rather
     than a distant-column ink search. Two things that search tried and both were device-measured
     false positives, not guessed: `TerminalExtraKeysRow`'s own button-label ink reaches whatever

@@ -6,11 +6,11 @@ file of a four-deep chain: `2026-dark.json` includes `dark_modern.json` includes
 includes `dark_vs.json`, and the outermost overrides most of what it inherits - 725 lines against
 Dark Modern's 133. Reading any single file gives the wrong colour, and the difference is not
 cosmetic: `editor.background` is `#121314` resolved and `#1F1F1F` in Dark Modern alone.
-`docs/DECISIONS.md`, "The default VS Code theme is 2026 Dark / 2026 Light, not Dark Modern".
+ADR-0041: the default VS Code theme is 2026 Dark / 2026 Light, not Dark Modern.
 
 A measurement, not a gate: nothing in the build fails on its output. It exists so a value
 transcribed into `theme/ColorRamp.kt` can be checked against its origin instead of argued about,
-and so the contrast table in `docs/DECISIONS.md` can be reproduced.
+and so ADR-0041's contrast measurements can be reproduced.
 
 ```sh
 cd reference/research_repos/vscode/extensions/theme-defaults/themes

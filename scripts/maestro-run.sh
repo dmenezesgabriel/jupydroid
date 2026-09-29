@@ -134,7 +134,7 @@ seed_file() {
 
 # Greps a file under the workspace root until it contains [needle], or [timeout] seconds pass.
 #
-# `docs/DECISIONS.md`'s P4j-3b entry forbids gating a flow's pass on `visible:` reading the
+# `docs/architecture/cross-cutting.md` §8.6 forbids gating a flow's pass on `visible:` reading the
 # terminal canvas's per-row `Text` column - this device reports them as `text=""` run-to-run.
 # A command the flow typed can prove itself to a real shell instead, by writing its answer into
 # the workspace where `run-as` (the same access [seed_file] already uses) can read it back -
@@ -173,7 +173,7 @@ require_workspace_absent() {
 # `terminal_content_extent.py`'s own helper, shared: whether the terminal's own topmost pixel
 # strip differs between two captures. [x1]/[x2] default to the single-pane span the module was
 # tuned on; two-pane captures pass the detail pane's own columns (700, 1900 on the tablet) -
-# `docs/DECISIONS.md`'s P4j-3c entry is the run that read a neighbour pane instead.
+# A pixel oracle tuned against one pane layout reads the wrong pane in another - §8.6 again.
 top_strip_differs() {
   python3 -c "
 import sys

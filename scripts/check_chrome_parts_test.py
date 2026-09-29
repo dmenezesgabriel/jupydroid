@@ -117,7 +117,7 @@ class ThisRepositoryTest(unittest.TestCase):
     """The gate run over this repository's own frames, in both directions.
 
     The captured frames must pass and the pre-fix frames must fail. Only the pair says anything:
-    a gate that cannot see the bug cannot be trusted to see the fix (`docs/DECISIONS.md`, P7a-1b).
+    a gate that cannot see the bug cannot be trusted to see the fix.
     """
 
     def test_the_captured_two_pane_frames_hold(self) -> None:
@@ -131,7 +131,7 @@ class ThisRepositoryTest(unittest.TestCase):
         """Non-vacuity, from the other side: the gate has to fail the frames P7a-1 shipped.
 
         `evidence/p7a-2-part-borders/before-the-fix/` is kept for exactly this - a gate that cannot
-        see the bug cannot be trusted to see the fix (`docs/DECISIONS.md`, P7a-1b).
+        see the bug cannot be trusted to see the fix.
         """
         root = pathlib.Path(__file__).resolve().parent.parent
         before = root / "evidence/p7a-2-part-borders/before-the-fix/two-pane"

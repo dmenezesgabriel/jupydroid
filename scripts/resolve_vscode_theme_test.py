@@ -170,7 +170,7 @@ class SyntaxScopeTest(unittest.TestCase):
 
         `notebook.cellEditorBackground` resolves to `sideBar.background`, not to the page, and on
         that surface 2026 Light's `constant.numeric` is under WCAG AA. It is kept, because parity
-        with the reference outranks the floor - `docs/DECISIONS.md`, "Parity with the 2026 themes
+        with the reference outranks the floor - ADR-0041, "Parity with the resolved VS Code themes
         outranks the contrast floor". Pinned here so the *scope* of the shortfall stays one role:
         if a second role ever drops under, this fails and the decision gets re-taken deliberately.
         """
@@ -201,7 +201,7 @@ class ContrastRatioTest(unittest.TestCase):
             contrast_ratio("#6e7781", "#FFFFFF"), contrast_ratio("#FFFFFF", "#6e7781"), places=6)
 
     def test_the_tightest_measured_pair_is_reproduced(self) -> None:
-        """2026 Light's `comment` on `editor.background` - the value `docs/DECISIONS.md` cites."""
+        """2026 Light's `comment` on `editor.background` - the value ADR-0041 cites."""
         self.assertAlmostEqual(4.55, contrast_ratio("#6e7781", "#FFFFFF"), places=2)
 
     def test_an_eight_digit_hex_ignores_its_alpha(self) -> None:

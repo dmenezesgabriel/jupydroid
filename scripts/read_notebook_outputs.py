@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""What a notebook's cells printed, as plain text - `docs/PLAN.md`'s P7e-0 needs the answer itself.
+"""What a notebook's cells printed, as plain text - a runtime probe needs the answer itself.
 
 A screenshot of a traceback is a picture of an answer; P7e-3 onward is written *from* these
 strings, so they are read out of the saved nbformat rather than transcribed off a frame. Only the

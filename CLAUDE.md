@@ -32,8 +32,8 @@
 ## Structure
 
 - Prefer small focused modules over god files.
-- **One home per kind of logic** (the greppable test), and `docs/architecture.md` is the
-  full contract for what lives where:
+- **One home per kind of logic** (the greppable test), and `docs/architecture/building-blocks.md` is
+  the full contract for what lives where:
   - **Domain** (`domain/model/`, `domain/port/`): the app's own types and its ports.
     Pure Kotlin — no `android.*`, no import of `data`/`ui`/`di`. Enforced by
     `ArchitectureGuardTest`, not by review.
@@ -157,22 +157,30 @@ is skipped "for speed". A step is only finished when all of them hold.
 The rules above say *what* must hold. This says *in what order* to work. Every
 step runs this loop start to finish; no stage is skipped or reordered.
 
-1. **Size the step.** Read the step's entry in `docs/PLAN.md`. If it is too big to
-   close in one functional commit, break it into sub-steps *before* writing any code.
-2. **Research before acting.** Read `docs/PLAN.md`, the reference codebases
-   (`reference/`, `reference/research_repos/`) and the web. Decisions are made on
-   evidence — never on guesswork or assumption.
+1. **Size the step.** Find the next item with `grep -n "open ← next" docs/backlog.md`, and read its
+   PRD in `docs/prd/JD-NNN-*.md` — writing it from `docs/prd/_TEMPLATE.md` if it has none. If a task is
+   too big to close in one functional commit, split it in the PRD *before* writing any code.
+2. **Research before acting.** Read the relevant ADRs (`grep -rn "ADR-0022" docs/ app/src/`), the
+   reference codebases and the web. `docs/architecture/cross-cutting.md` §8.3 says which reference is
+   authoritative for which question; `docs/research/closed-questions.md` says what is already closed.
+   Decisions are made on evidence — never on guesswork or assumption.
 3. **TDD.** Failing test first, then the minimal implementation, then refactor
    (rule 1).
 4. **Interact with the real app.** Maestro flows on the device rule 2 names:
    screenshots, snapshots and logs into `evidence/<step>/`.
 5. **Commit semantically and atomically.** One coherent change per commit,
    conventional-commit subject. No complex git, no reverts, no rewriting
-   history (the one exception, before the first push, is in `docs/DECISIONS.md`).
-   Every commit is fully functional — never broken mid-series.
+   history (the one exception, before the first push, is `docs/adr/0015-*`).
+   Every commit is fully functional — never broken mid-series. Gate results go in the **commit
+   body**, never in a doc.
 6. **Refactor rather than patch.** Band-aids layered on legacy code are worse
    than a clean rewrite. Favour clarity, idiom and discoverability; renaming or
    restructuring is preferred over working around a bad shape.
+7. **Close the documents.** A comment states its fact so it stands alone, then cites an `ADR-NNNN`, a
+   path in `app/src/`, a path inside the shipped rootfs, an upstream project at a **pinned SHA**, a
+   spec or issue URL, or a test name — never a step code, `docs/backlog.md`, a `JD-NNN`,
+   `evidence/<step>/` or `reference/…` (`scripts/check_doc_citations.py` is the gate). A non-trivial
+   decision becomes an ADR. **When the item ships, delete its PRD** — see `docs/adr/0001-*`.
 
 ## Tooling
 
@@ -203,7 +211,7 @@ JAVA_HOME=<jdk> ./gradlew \
 
 **The source sets are named on purpose.** `ktlintCheck` alone is an aggregate over whatever tasks
 the plugin registered, and for months it registered none for Kotlin - so it checked the `.kts`
-build scripts and reported success (`docs/DECISIONS.md`). Named, a plugin that stops seeing a
+build scripts and reported success (`docs/adr/0016-*`). Named, a plugin that stops seeing a
 source set fails with "Task not found" instead of passing quietly.
 
 And `python3 -m unittest discover -s scripts -p '*_test.py'`

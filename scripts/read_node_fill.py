@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """What colour a *named* region of the screen is actually filled with, read off a frame.
 
-`docs/PLAN.md`'s P7a-1b. The step moves two colours: the explorer's open row becomes
+Two colours moved when the chrome palette was re-sourced: the explorer's open row becomes
 `list.inactiveSelectionBackground` - translucent in 2026 Light, so it paints `#E7E7E8` over the
 side bar rather than the `#DADADA` the ramp used to hand it - and the search toggles' on-wash
 becomes `inputOption.activeBackground`, the id they always cited. **Neither is something a Maestro
 assertion can read**, which is exactly how P7a-1's own defect survived a green suite
-(`scripts/read_chrome_parts.py`, and `docs/DECISIONS.md` on P2u-1).
+(`scripts/read_chrome_parts.py`, and ADR-0058).
 
 **Why not `read_chrome_parts.py`.** That one reads *columns*, because a part spans the window's
 full height. These two regions are a list row and a 48dp square - neither is a column, and both are
@@ -22,12 +22,13 @@ naming a file the fixture could rename.
 
 **An ambiguous match is refused, not resolved.** Asking for a value several nodes carry and
 measuring whichever came first is how an oracle reports a number nobody can trace; this repository
-has had two pixel oracles be wrong already (`docs/DECISIONS.md`, P4j-3c and P4j-3d-3).
+has had two pixel oracles be wrong already (`docs/architecture/cross-cutting.md` §8.6).
 
 **The mode inside the bounds, never one pixel of it.** A row carries an icon and a label and a
 toggle carries its glyph, so a sampled pixel reads whichever of ink and ground it happened to land
-on - the way a pixel oracle in this repository has already been wrong twice (`docs/DECISIONS.md`,
-P4j-3c and P4j-3d-3). Ink is a minority of any region drawn around it, so the mode is the fill.
+on - the way a pixel oracle in this repository has already been wrong twice
+(`docs/architecture/cross-cutting.md` §8.6). Ink is a minority of any region drawn around it, so the
+mode is the fill.
 
 **The two captures are reconciled, not assumed equal.** A dump and a frame come from different
 tools; where they disagree on scale the bounds are scaled by the ratio, and where they disagree on

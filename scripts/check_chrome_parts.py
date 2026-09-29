@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Whether a captured frame draws the shell's parts the way the resolved reference does.
 
-`docs/PLAN.md`'s P7a. `read_chrome_parts.py` says what a frame *is* drawn in; this says whether
+`read_chrome_parts.py` says what a frame *is* drawn in; this says whether
 that is right, so `p7a-chrome-parts-driver.sh` fails on a regression instead of printing bands for
 a human to compare.
 
@@ -37,7 +37,7 @@ from read_chrome_parts import chrome_bands, part_seams
 _UNAMBIGUOUS_FRAME = "the-file-browser"
 #: The frame with a document in it. Where the shell draws **one** pane that document *is* the
 #: window - the side panel is popped and the activity bar is deliberately not drawn over a document
-#: (`docs/DECISIONS.md`, "The bar is drawn over the panel and never over a document") - so the frame
+#: (ADR-0055: the bar is drawn over the panel and never over a document) - so the frame
 #: carries no part to check and is context rather than evidence. Beside two panes it carries the
 #: rail, and is checked.
 _DOCUMENT_FRAME = "a-document"

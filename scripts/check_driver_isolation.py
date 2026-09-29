@@ -77,7 +77,7 @@ DEFINES_THE_FALLBACK = re.compile(r"command -v adb")
 # asserting a width its own picture does not have.
 #
 # `p2o-4-one-pane-side-panels-driver.sh` established the fix and `p2y-bottom-navigation` follows
-# it - read the width off the framework and put it in the path - and P2y-d's `docs/DECISIONS.md`
+# it - read the width off the framework and put it in the path - and ADR-0055's own
 # entry states it as the rule while only two of six drivers obeyed it. This is that rule with a
 # gate under it.
 #
