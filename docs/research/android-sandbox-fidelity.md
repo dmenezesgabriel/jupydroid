@@ -1,7 +1,8 @@
-# Environment fidelity: what the sandbox actually costs
+# Android sandbox fidelity: what it actually costs a Linux userland
 
-Recorded 2026-08-04, after Steps 8.3–8.7. **This file is the reasoning, not the rule** — the
-constraints it settles live in `docs/DECISIONS.md`, and if the two ever disagree, that one wins.
+Recorded 2026-08-04. **This file is the reasoning, not the rule** — the constraint it settles is
+stated in [`../architecture/cross-cutting.md` §8.2](../architecture/cross-cutting.md), and if the two
+ever disagree, that one wins.
 
 The document reaches a conclusion that overturns the argument it started from. The conclusion is
 first, and the superseded argument is kept below it in §4 because the AOSP and precedent research
@@ -174,8 +175,8 @@ The runtime keeps the architecture Step 8 proved: musl rootfs, interpreter exec'
 Stated plainly so it is not discovered later:
 
 - **It only fixes refusals the caller tolerates.** A package that genuinely *needs* a refused
-  syscall still fails, and no handler can change that. This is a live risk, tracked in
-  `docs/PLAN.md`.
+  syscall still fails, and no handler can change that. This is a live risk, tracked as `GAP-003`
+  in [`../architecture.md` §11](../architecture.md).
 - **The handler must log every distinct refusal**, as shipped behaviour and not merely as a
   diagnostic. Silently swallowing them would trade loud deaths for quiet wrong answers, which is
   a worse failure mode than the one being fixed.

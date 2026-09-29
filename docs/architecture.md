@@ -1,400 +1,244 @@
 # JupyterDroid — Architecture
 
-Offline Jupyter notebook app for Android. This document is the contract for **what lives
-where**. Everything in it is derived from the tree rather than from intent; where a rule is
-enforced by a test, §5 says which, and where it is only true today, §5 says that too.
+An [arc42](https://arc42.org/overview) description of the system. Sections 5, 6 and 8 are large
+enough to live in their own files under `architecture/`.
 
-What is settled and why is `docs/DECISIONS.md`; what gets built next is `docs/PLAN.md`.
+This document and everything under [`adr/`](adr/) are **durable**: they describe decisions and
+non-trivial knowledge, and they hold true with `reference/` absent from disk — which, in every clone,
+it is. Ephemeral work lives in [`backlog.md`](backlog.md) and `prd/` and is deleted when it ships; see
+[ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md).
 
-Source material: `reference/xeus-android/FEASIBILITY.md`, `reference/xeus-android/STUDY_CASES.md`.
-
----
-
-## 1. Layers
-
-Pragmatic hexagonal + UDF/MVVM in a **single `:app` module** (no premature modularity).
-Dependencies point inward: `ui → domain`, `data → domain`, `domain → nothing`.
-
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│ ui (Compose) — screens, ViewModels, state hoisting (UDF/MVVM)         │
-│   Explorer (+ Recents) · Editor (notebook) · FileEditor · Terminal    │
-│   collectAsStateWithLifecycle ← StateFlow                             │
-└───────────────▲──────────────────────────────────┬────────────────────┘
-                │ uses (domain types + ports)      │ drives
-┌───────────────┴──────────────────────────────────▼────────────────────┐
-│ domain (pure Kotlin, zero android.* imports — guard-tested)           │
-│   model/  — Space, KernelSpec, Notebook, Cell, CellOutput, …          │
-│   port/   — NotebookRepository, WorkspaceRepository, KernelGateway, … │
-└───────▲───────────────────────────────────────┬───────────────────────┘
-        │ implemented by                        │ implemented by
-┌───────┴───────────────────────────────────────▼───────────────────────┐
-│ data — adapters over ports                                            │
-│   fake/   FakeNotebookRepository, FakeKernelGateway, …                │
-│   disk/   DiskNotebookRepository · DiskWorkspaceRepository · …        │
-│   space/  rootfs installer, jupyter_server launcher, kernel WebSocket │
-└───────────────────────────────────────────────────────────────────────┘
-┌───────────────────────────────────────────────────────────────────────┐
-│ di — AppContainer: manual composition root, one per *process*         │
-└───────────────────────────────────────────────────────────────────────┘
-```
-
-### Where each package goes, and why
-
-Those four are not the whole tree. Ten packages sit under `com.jupydroid.app` — plus the root
-itself, which holds the app shell — and the rule that places them is **what a package is allowed
-to depend on**, which is checkable:
-
-| Package | What it is | Placement rule |
-|---|---|---|
-| `domain/{model,port}` | the app's own types and its ports | no `android.*`, no other layer — **guard-tested** |
-| `data/{disk,fake,intent,space}` | adapters implementing ports | one file per adapter, named `<Mechanism><PortConcept>` |
-| `ui/{editor,explorer,fileeditor,terminal}` | screens and ViewModels | reads ports; never constructs an adapter |
-| `ui/shell` | the chrome that belongs to **no** screen — the activity bar and the side panels | drawn by `Navigation`, beside the panes rather than inside one; the *state* it moves stays at the root with `Navigation.kt`, which is what §4 already says about wiring that belongs to no screen |
-| `di` | `AppContainer`, the composition root | constructed once per process, in `JupydroidApplication` |
-| `glob`, `html`, `import`, `markdown`, `syntax`, `terminal` | **document and language logic** — a glob pattern as the regex it denotes, parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer, and the VT screen a shell writes into | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages*, not this app's domain; not `data/`, because they implement no port. JVM-testable, and every test for them is a plain unit test |
-| `richtext` | **mixed on purpose**: `RichBlock` is the model, `RichInlineString` renders it | the split is the point — the model is testable without Compose, and only the renderer imports it |
-| `theme` | Compose design tokens, VS Code's resolved 2026 Dark/Light palette (`ColorRamp.kt`; chrome since P2u-1, syntax since P2u-2/P2u-3 — `EditorPalette` is now entirely VS Code's) | Compose throughout; `EditorPaletteTest` pins its contrast ratios |
-| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, the four `NavKey`s | the app shell and its navigation | see §4 |
-
-Measured, not asserted, and **re-counted rather than carried**: `glob` (0 of 2 files), `html`
-(0 of 3), `import` (0/1), `markdown` (0/2), `syntax` (0/6) and `terminal` (0/41) import `android.*`
-or `androidx.*`; `theme` imports one in 7 of 7; `richtext` in 1 of 2. That 1 is `RichInlineString.kt`, and it is the
-only file in those eight packages that touches Compose besides `theme`. `terminal` joined them in
-P4e and is the one departure the reference forced a choice on: Termux's `TerminalEmulator` imports
-`android.util.Base64` on its OSC path, where `java.util.Base64` does the same job. Two of these numbers had
-drifted before P2x-1b touched the sentence - `markdown` gained `HeadingNumbering.kt` and `theme`
-gained two files - which is what a measurement stated in prose costs when nothing counts it. And
-`terminal` **drifted the same way immediately**: it read 0/9 through P4f-1, which added six files,
-0/18 through P4f-3a, which added three more, 0/21 through P4f-3b, 0/22 through P4f-3c, 0/23
-through P4f-4a, which added three, 0/26 through P4f-4b, which added `ScreenBuffers.kt`, 0/27 through P4f-5a, which added `ScrollMargins.kt`, 0/28 through P4f-5b, which added `SelectiveErasing.kt`, 0/29 through P4f-5c, which added `RectangularAreas.kt`, 0/30 through P4f-5e, which added `RectangularAttributes.kt` and `RowStyles.kt`, 0/32 through P4f-6a, which added `TerminalReplies.kt` and `TerminalReporting.kt`. **That 32 was already stale by the time this row was next touched** - `git ls-tree` at the P4f-6a commit reads 34, not 32, a drift this measurement inherited rather than caused. Corrected here rather than carried: 0/34 through P4f-6a, 0/36 through P4f-6b-1, which added `OperatingSystemCommand.kt` and `WindowTitle.kt`, 0/39 through P4f-6b-2, which added `TerminalPalette.kt`, `TerminalColors.kt` and `ColorCommands.kt`, 0/40 through P4f-6b-3, which added `ClipboardCommand.kt`, and 0/41 through P4f-6c, which added `DeviceControlString.kt`. Test files are not this row's denominator - it counts `app/src/main/` only. **Both of the departures the reference forces are now taken and neither cost a line of `android.*`**: `TerminalColors.java` imports `android.graphics.Color` for a perceived-brightness helper only its theme file calls, which is not transcribed; `android.util.Base64` on the `OSC 52` path goes to `java.util.Base64` - the strict decoder, matching the reference's own shim rather than the initially-tried `getMimeDecoder()` (`docs/DECISIONS.md`).
-The zero itself is no longer prose - `ArchitectureGuardTest` has covered this row since P4f-1, so
-what can go stale here is the denominator, not the claim.
-
-**The practical test for a new file:** if it needs Compose it belongs in `ui/` or `theme/`; if
-it implements a port it belongs in `data/`; if it is one of the app's own nouns it belongs in
-`domain/`; and if it is neither — a parser, a format, a language — it gets a package of its own
-beside `syntax/` and stays free of `android.*`.
-
-### Rules
-
-- **domain** imports nothing project-local and no `android.*`. It may use kotlinx-coroutines
-  `Flow` and `java.time`.
-- **ui** reads ports through the container or constructor injection; it never constructs a
-  `data` implementation directly.
-- **data** implements the ports.
-- The rootfs and the `jupyter_server` process are **adapters behind ports** — nothing outside
-  `data` knows a process exists. The cell editor is Compose-native and lives in `ui`; the
-  per-cell CodeMirror WebViews an earlier version of this document described were retired on
-  measurement (`docs/DECISIONS.md`).
-
-## 2. Ports (domain)
-
-Defined in `domain/port/`; each is contract-tested and has a real implementation.
-
-| Port | Purpose | Real impl |
-|---|---|---|
-| `NotebookRepository` | read/write one notebook | `DiskNotebookRepository` over nbformat JSON |
-| `WorkspaceRepository` | list/read/write/rename/delete in the shared tree, and a change stream | `DiskWorkspaceRepository` |
-| `WorkspaceSearcher` | find a query across the whole tree, and replace it there | `DiskWorkspaceSearcher` |
-| `RecentDocumentsRepository` | what was opened, persisted outside the workspace | `DiskRecentDocumentsRepository` |
-| `SpaceRepository` | the Spaces on this device - list/create/rename/delete, as directories under `files/spaces/` (P3a) | `DiskSpaceRepository`, scanning the tree on every call |
-| `KernelGateway` | connect/execute/interrupt/restart/complete/history against a kernel session | `RealKernelGateway` over the kernel WebSocket, behind `BaseSpaceKernelGateway` |
-| `KernelDebugger` | DAP (`debug_request`/`debug_reply`) over the kernel's control channel - breakpoints, step/continue, call stack, variables | `RealKernelDebugger` over the same session's `KernelSockets`, behind `BaseSpaceKernelDebugger` |
-| `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
-| `EditorSettingsRepository` | the app-wide editor preferences | `DiskEditorSettingsRepository` |
-| `TerminalSettingsRepository` | the app-wide terminal preferences - the font size (P4j-3c) | `DiskTerminalSettingsRepository` |
-| `ExplorerSettingsRepository` | the app-wide explorer preferences - whether Recents is collapsed (P7c) | `DiskExplorerSettingsRepository` |
-| `NotebookExporter` | list nbconvert's formats, convert one notebook | `OkHttpNotebookExporter` over the server's nbconvert endpoints, behind `BaseSpaceNotebookExporter` |
-| `DocumentSharer` | offer a workspace file to another app | `IntentDocumentSharer` → `FileProvider` + `ACTION_SEND` |
-
-Each port also has a `Fake…` in `data/fake/`, which is what `AppContainer`'s defaults are —
-tests get one for free, and an x86_64 device (where no Space can run) keeps the fake kernel so
-the UI still works.
-
-**Multiple clients of the Space's server, and one object that starts it.** `BaseSpaceServer` owns
-the lazy install-and-start, and `PerRunningServer` gives each client one instance per server -
-`BaseSpaceKernelGateway` and `BaseSpaceNotebookExporter` each their own today, a terminal and a
-language server later. This is not layering for its own sake: `JupyterServerLauncher.start` begins
-with `stop()`, so a second starter would kill the kernel's server (`docs/DECISIONS.md`).
-
-**One of those instances is itself shared by two clients.** `BaseSpaceKernelGateway` and
-`BaseSpaceKernelDebugger` do not each build their own `PerRunningServer<KernelSockets>` - they are
-handed the *same* one, built once (`baseSpaceKernelSockets`), because a `debug_request` on the
-control channel reuses the identical per-session socket `execute`/`complete`/`history` already
-share rather than opening a second one (P6a-4).
-
-`Space` is a **first-class domain type** (`files/spaces/<id>/`), not a string. Named after
-SageMaker Studio rather than "environment", which would collide with the Python environments
-living inside one.
-
-## 3. Data model (domain)
-
-```
-Space(id, name, kernels: List<KernelSpec>)
-KernelSpec(name, displayName, language)
-
-// What a person configured about a Space, as against what its rootfs advertises - `Space` is the
-// identity a kernel and a server are keyed by, this is `files/spaces/<id>/config.json`. The id is
-// the directory's own name and is deliberately NOT in the file: the scan is the only source of it,
-// which is what makes `space-2` unable to disagree with the directory called `space-2`.
-SpaceConfig(id, name, created: Instant, pythonVersion,
-            requestedPackages: List<String>, extra: JsonObject)
-
-Notebook(id, title, kernelId, cells: List<Cell>, preserved: PreservedJson)
-Cell(id, kind, source, outputs, executionCount,
-     sourceHidden, outputsHidden, preserved: PreservedJson)
-CellKind { CODE, MARKDOWN }
-
-// Deliberately NOT on Notebook: when it was last written is a fact about the file.
-// It is WorkspaceEntry.updatedAt, read off the file's mtime — the reference's
-// `last_modified`. PreservedJson is nbformat's open-format remainder, kept verbatim.
-WorkspaceEntry(path, name, kind, updatedAt: Instant, …)
-RecentDocument(path, title, openedAt)
-
-CellOutput (sealed)
-  Stream(name: StreamName, text)             // stdout/stderr
-  Error(name, value, traceback)
-  DisplayData(mimeBundle)                     // mime -> payload
-  ExecuteResult(mimeBundle, executionCount)
-  ClearOutput
-
-KernelSession(id, spaceId, kernelId)
-KernelEvent (sealed)
-  ExecutionCount(cellId, count)
-  Output(cellId, output: CellOutput)
-  Idle                                         // kernel done with this cell
-CompletionResult(matches, replacedStart, replacedEnd)
-
-ServerConnection(baseUrl, port, token)
-```
-
-## 4. Navigation
-
-Navigation3 (`androidx.navigation3`), not Jetpack Navigation. Lives at the root package because
-it wires `ui/` screens together and belongs to none of them.
-
-**Four destinations, and there is no Home.** `Explorer`, `FileEditor`, `Editor`, `Terminal` —
-declared as entries in `Navigation.kt` (`entry<Explorer>` at :285, `entry<FileEditor>` at :306,
-`entry<Editor>` at :322, `entry<Terminal>` at :351). The explorer is the first screen; the
-notebook-list Home it replaced was removed in X2h, and Recents became a section of the explorer.
-
-**One opener, not one per screen.** `rememberDocumentOpener` sends a `.ipynb` to the notebook
-editor and anything else to the plain one, and records the recent. That is the reference's own
-split — a single `docmanager:open` where the path picks the factory, the notebook factory claims
-its extension, and the file editor is the default for the rest.
-
-**Two panes pair on metadata, never on position.** `ListDetailSceneStrategy` puts the explorer in
-the list pane and whatever it opened in the detail, at ≥ 840dp. Which entry is which is declared
-when the entry providers are built — `ListDetailSceneStrategy.listPane()` on `Explorer`,
-`.detailPane()` on `Editor`, `FileEditor` and `Terminal` — because `NavEntry` does not expose
-its key. "The last two entries" was the earliest rule and it is a montage, not a pairing: it put
-Recents beside the file browser, two surfaces neither of which opens the other.
-
-Both panes stay **separate `NavEntry`s**, which is why this is a scene strategy and not
-`NavigableListDetailPaneScaffold`; `docs/DECISIONS.md` has what that buys and what the swap cost.
-Two knobs are set rather than defaulted, and both are load-bearing: the directive is forced to one
-partition when the caller says one pane (the test seam), and `BackNavigationBehavior.PopLatest`
-pops one entry where the default popped every one of them.
-
-**Each document gets its own ViewModel *and* its own lifetime.** Two entry decorators, in this
-order (`Navigation.kt`, the `entryDecorators` argument):
-
-```kotlin
-entryDecorators = listOf(
-  rememberSaveableStateHolderNavEntryDecorator(),
-  rememberViewModelStoreNavEntryDecorator(),
-)
-```
-
-`NavDisplay`'s default is the saveable-state decorator **alone**, which leaves the
-`ViewModelStoreOwner` inside an entry as the Activity — so `viewModel {}` keys on the class name
-and hands the second notebook the first one's ViewModel, id and all. That was defect D1. Order is
-load-bearing: `decorateEntry` folds right, so the ViewModel decorator must sit inside the
-saveable one, which is where it reads its `SavedStateRegistryOwner` from.
-
-The lifetime half matters as much as the identity half: because each entry owns a
-`ViewModelStore`, disposing an entry runs `EditorViewModel.onCleared`, which flushes the last
-edit and closes the kernel socket. Nothing closed a socket before this existed.
-
-**The back stack is the main area's tab list.** `NotebookBackStack` keeps every open document —
-`openOrReveal` semantics: a new document pushes, an already-open one is moved to the top rather
-than duplicated, because two equal keys would share one `contentKey`, one `ViewModelStore` and one
-`SaveableStateHolder` slot (a double tap is enough to reach it). Each entry owns a
-`ViewModelStore`, so a document beneath the top stays alive — ViewModel, kernel session and all —
-the way a JupyterLab tab does, and Back reveals the next document instead of leaving the app.
-`OpenDocuments` is the matching registry: every live document, in open order, addressable by its
-current path — or, through `openedAs`, by the path its stack entry opened it under, which is how
-a tab still finds its document when a rename lands while the screen is out of composition.
-
-**Every detail entry draws its own tab strip** (`TabbedDocumentPane`), because the scene strategy
-is the only thing that knows where the detail pane is at each width — and the strip's model is
-the stack: `mainAreaTabs` projects it, `orderedAsOpened` holds the visible order to *opening*
-order while the stack itself promotes the tapped entry, so a click activates without moving a
-tab (`activateById` changes `currentWidget`, nothing else). The tab owns `title.label` — the
-document's live basename, the terminal's OSC title, the launcher's and settings' nouns — so no
-panel draws a name row, and a document tab's long press is `docmanager:rename`: the shared
-`RenameFileDialog`, then `workspaceRepository.rename`, which the document adopts through its own
-`WorkspaceChange.Renamed` listener. A dirty tab's close is the reference's Save/Discard/Cancel
-gate, and closing the current tab reveals the sibling the bar would pick.
-
-**The shell has one side area, and an activity bar beside the whole thing.** `MainNavigation` draws
-a `SidePanelRail` next to `NavDisplay` — not inside a pane — because that is where JupyterLab's own
-`leftHandler.sideBar` sits, beside the split that holds both the panel and the document area. One
-`SidePanel` shows at a time (Files, Table of contents), the list pane draws whichever is chosen, and
-choosing the showing one collapses the area: the directive drops to one partition and the notebook
-takes the width. The rail is only drawn where there is room for two panes.
-
-**One thing crosses between the panes, and it is a published model.** The shell's side panel is in
-the list pane and a notebook's headings are derived in the detail pane's `EditorViewModel`, which
-the panel cannot reach — so `EditorScreen` publishes a `DocumentOutline` into an
-`OpenDocumentOutline` that `MainNavigation` remembers, and clears it when the entry is disposed.
-That is JupyterLab's own arrangement, `TableOfContentsPanel.model` assigned from
-`labShell.currentChanged`. It is **remembered rather than on the container** because the container
-outlives the activity and the published jump closes over a composition's `LazyListState`;
-`docs/DECISIONS.md` has the rest.
-
-**Work that outlives the screen** goes on `AppContainer.applicationScope`, not `viewModelScope`:
-recording a recent, and flushing a notebook's last edit while its screen is being disposed. By
-then `viewModelScope` is already cancelled. An external scope belongs to something longer-lived
-than a screen, which is what a composition root is.
-
-**The container is the process's, not the activity's.** `JupydroidApplication` owns it and
-`MainActivity` reads it. That is not a preference: the platform relaunches the activity on every
-rotation, and while the container hung off the activity each relaunch built a second one - and a
-second `ServerLauncher`, which reopening a notebook turned into a second `jupyter_server`
-(`evidence/p1g-one-container-per-process/`). `CompositionRootTest` recreates the activity and
-asserts the container survives.
-
-**State that belongs to the app rather than to a screen or a port** also lives on the container,
-and there is exactly one shape of it. `ActiveCellRuns` (`domain/model/`) counts the runs in flight
-across every open notebook: `NotebookKernel` moves it, `IdleServerStopper` (`data/space/`,
-driven by `JupydroidApplication` from `ProcessLifecycleOwner`) reads it before stopping the
-server. It is
-in `domain` because both `ui` and `di` touch it and `ui ↛ data` — a counter of the app's own runs
-is one of the app's own nouns, even though nothing serialises it.
-
-## 5. Dependency rules — what is enforced, and what is only true
-
-`ArchitectureGuardTest` enforces the domain layer's purity, and only that. The other two rules
-hold today — checked by grep, zero hits each — with nothing keeping them true.
-
-| Rule | Status |
+| Section | Where |
 |---|---|
-| `domain` imports no `android.*` | **enforced** — `ArchitectureGuardTest.domainLayer_hasSources_withZeroAndroidImports` |
-| `domain` imports no `data`/`ui`/`di` | **enforced** — `ArchitectureGuardTest.domainLayer_doesNotImportOtherLayers` |
-| `ui` never imports `data` | true today, **unguarded** |
-| `data` never imports `ui` | true today, **unguarded** |
-| `AppContainer` is the only place that constructs implementations | true today, **unguarded** (`JupydroidApplication` builds the container; nothing else builds an adapter) |
-
-Extending the guard to the last three is a code change and is tracked as an open risk in
-`docs/PLAN.md`. It would go green immediately, which is the point of a regression gate.
-
-## 6. Deliberate simplifications
-
-- One module, manual DI, constructor injection defaulting to fakes — no DI framework, no
-  multi-module Gradle split until a real boundary appears.
-- Recents is a history of what was *opened*, persisted outside the workspace and validated
-  against it — not a scan of a directory, so it survives files moving.
-- `KernelEvent.Idle` is the kernel-busy signal: the ViewModel derives Running/Idle from the
-  event stream, so Run All and per-cell busy indicators need no extra state.
-- The workspace is read from disk directly rather than through the server's Contents API — it
-  is faster and works before the server is up. Server-side *algorithms* (checkpoints, notebook
-  trust, nbconvert) are not re-implemented; see `docs/DECISIONS.md`.
+| 1–4, 7, 9–11 | this file |
+| 5 Building block view | [`architecture/building-blocks.md`](architecture/building-blocks.md) |
+| 6 Runtime view | [`architecture/runtime-views.md`](architecture/runtime-views.md) |
+| 8 Crosscutting concepts, 12 Glossary | [`architecture/cross-cutting.md`](architecture/cross-cutting.md) |
 
 ---
 
-## Appendix A — the original Step-1 wireframes
+## 1. Introduction and goals
 
-**Historical.** These are the sketches the project started from, kept for intent. The shipped UI
-has diverged: the file **Explorer** replaced the Home/Recents screen (Recents is a section of it),
-the cell editor is Compose-native rather than CodeMirror, and cell actions hang off a `⋮` button
-on the cell header rather than a long press — a long press on a cell is `BasicTextField`'s text
-selection. Console, Workspace-as-a-screen and Settings are **not built**; see `docs/PLAN.md`
-P4/P6.
+JupyterDroid is an **offline JupyterLab client for Android that runs the real stack on the device**:
+stock `jupyter_server` and `ipykernel` in a bundled musl (Alpine) rootfs on loopback, driven by a
+Compose-native UI. No remote server, ever.
 
-### A.1 Home — Recent
+A user opens a notebook, taps Run, and a real CPython kernel executes the cell on the tablet. The
+same filesystem is the kernel's `HOME`, the server's `--ServerApp.root_dir` and the app's workspace,
+so nothing has to be synchronised.
+
+**Parity is not a matter of taste.** JupyterLab's `packages/notebook-extension/src/index.ts` declares
+99 command ids, 96 of them `notebook:*`; `filebrowser-extension` 36, `console-extension` 21,
+`terminal-extension` 11, `documentsearch-extension` 5, `toc-extension` 5. Those lists are the
+specification. A behaviour that cannot be reached on a phone is **adapted, never invented**, and the
+adaptation is written down beside what it departs from.
+
+### Quality goals
+
+| Goal | What it means here |
+|---|---|
+| **Fidelity** | The real `jupyter_server` and the real `ipykernel`, not a re-implementation. What the notebook shows is what the kernel actually sent |
+| **Offline** | The whole product runs on the device. No account, no service, no network dependency for anything but installing a package |
+| **Parity** | JupyterLab's behaviour and VS Code's presentation, adapted to touch — with every adaptation stated |
+| **Mobile-native** | A Compose UI that is a phone and tablet app, not a webview of a desktop one. Every tap target reserves 48dp |
+| **Openness of the format** | nbformat is an open format, so a writer that rebuilds a notebook is a shredder. Unknown fields round-trip verbatim |
+
+### Out of scope
+
+Listed so nobody re-derives them, with no commitment to build them: the remaining file viewers
+JupyterLab ships (`csvviewer`, `imageviewer`, `htmlviewer`, `markdownviewer`, `json-extension`,
+`pdf-extension`, `vega5`, `mermaid`, `mathjax`); `metadataform` / `celltags`; `workspaces`;
+`logconsole`; and multi-kernel support beyond Python, until a second kernel is worth installing into
+a Space.
+
+A remote-server mode is not deferred — it is refused. It would make every constraint in
+[§8.1](architecture/cross-cutting.md) optional and the product a different one.
+
+## 2. Constraints
+
+### Technical
+
+- **Nothing under `filesDir` can be executed.** Everything executable ships in `jniLibs/<abi>/` and
+  is reached through a symlink. This is the constraint the whole runtime is shaped by —
+  [§8.1](architecture/cross-cutting.md). It forbids proot, chroot, `LD_PRELOAD` exec interceptors, a
+  targetSdk downgrade, and the NDK.
+- **arm64 only, at runtime.** Only arm64 ships a rootfs; on x86_64 the app falls back to
+  `FakeKernelGateway`, which echoes a cell's source back as its output. Anything that runs a cell is
+  verified on the arm64 tablet.
+- **Kotlin + Jetpack Compose**, `com.jupydroid.app`, AGP 9, compileSdk 37, minSdk 32, targetSdk 36.
+- **Single `:app` module**, manual DI through `di/AppContainer`. No DI framework.
+- **Domain is pure Kotlin**, zero `android.*` — enforced by `ArchitectureGuardTest`.
+- **Nothing is compiled from source at build time**; the rootfs and the four ELFs are prebuilt
+  artifacts, built by `tools/rootfs/build.sh` and `tools/rootfs/stage-app-artifacts.sh`.
+- **No code is vendored from any reference.** What may be transcribed and what is clean-room only is
+  decided per licence — [§8.4](architecture/cross-cutting.md).
+- **Strict test-first development** with a per-step evidence gate — `CLAUDE.md`.
+
+### Organisational
+
+- Study material lives in `reference/`, which is **gitignored**. No durable document and no code
+  comment may depend on it ([ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)).
+- Every step closes with Maestro flows on a real device, with screenshots and logs committed under
+  `evidence/<step>/`.
+
+### Tooling and gates
+
+ktlint · detekt · Android Lint · pre-commit · JUnit · Compose UI test · Maestro · plus the project's
+own Python gates in `scripts/` (file length, Maestro output assertions, device secrets, monospace
+home, busybox seccomp, shebang exec, palette consumers, driver isolation, doc citations).
+
+## 3. Context and scope
+
 ```
-┌──────────────────────────────┐
-│ JupyterDroid            [ ＋ ] │
-│                              │
-│  Recents                     │
-│  ◗ Untitled.ipynb      5m ago │
-│  ◗ Analysis.ipynb  Yesterday │
-│  ◗ scratch.py         3d ago │
-│                              │
-│  (empty state)               │
-│  "No recent notebooks yet."  │
-│                              │
-│  long-press row → rename/    │
-│  delete (Step 2)             │
-└──────────────────────────────┘
+┌────────────────────────────── Android device ──────────────────────────────┐
+│                                                                            │
+│  ┌──────────────────────┐        ┌──────────────────────────────────────┐  │
+│  │ JupyterDroid (Compose)│       │ Space — musl rootfs in filesDir      │  │
+│  │  Explorer · Editor    │       │                                      │  │
+│  │  FileEditor · Terminal│◄─────►│  jupyter_server  (127.0.0.1, token)  │  │
+│  └──────────┬───────────┘  HTTP  │        │                             │  │
+│             │             + WS   │        ├─ ipykernel   (subprocess)   │  │
+│             │                    │        ├─ terminado → busybox ash    │  │
+│             │                    │        └─ pylsp      (stdio)         │  │
+│             │                    └──────────────────┬───────────────────┘  │
+│             │   one shared filesystem               │                      │
+│             └───────────────────────────────────────┘                      │
+│                  notebooks · data · outputs                                │
+└────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                        only for installing packages
+                                     ▼
+                                  PyPI
 ```
 
-### A.2 Editor — cells
-```
-┌──────────────────────────────┐
-│ ◀ Untitled.ipynb   [Run all] │
-│ ┌──────────────────────────┐ │
-│ │ In [1]:  2 + 2           │ │   code cell, self-sizing
-│ │                          │ │   editor (CodeMirror 6)
-│ │ Out[1]:  4               │ │   output area under the cell
-│ └──────────────────────────┘ │
-│ ┌──────────────────────────┐ │
-│ │ In [2]:  import numpy    │ │
-│ │          np.arange(3)    │ │
-│ │                          │ │
-│ └──────────────────────────┘ │
-│                              │
-│ long-press cell → run,       │
-│ insert above/below, move,    │
-│ duplicate, delete, collapse  │
-└──────────────────────────────┘
+| Partner | Interface | Why |
+|---|---|---|
+| `jupyter_server` | HTTP + WebSocket on loopback, token-authenticated | sessions, kernels, nbconvert, terminado |
+| `ipykernel` | the Jupyter wire protocol over the session's WebSocket | executes cells; DAP rides the control channel |
+| `pylsp` | LSP over stdio | diagnostics, completion, hover, definition, format, rename |
+| Android platform | `FileProvider` + `ACTION_SEND`, `ProcessLifecycleOwner` | sharing a document out; knowing the app was left |
+| PyPI | HTTPS, through the rootfs's own CA bundle and a `getaddrinfo` shim | `%pip install` |
+
+## 4. Solution strategy
+
+| Problem | Approach | Where |
+|---|---|---|
+| Android forbids executing files in `filesDir` | ship executables as `jniLibs` ELFs; relink four rootfs paths into `nativeLibraryDir` on every launch | [§8.1](architecture/cross-cutting.md) |
+| A `#!` script has no ELF to point a symlink at | a static trampoline reads the shebang and execs the interpreter | [§8.1](architecture/cross-cutting.md) |
+| Android's seccomp filter kills a musl process on a refused syscall | handle SIGSYS and return; the kernel has already made the call return `-ENOSYS` | [§8.2](architecture/cross-cutting.md) |
+| Re-implementing Jupyter would lose fidelity | run the **real** server and kernel, and speak their protocol | [§6.3](architecture/runtime-views.md) |
+| A device cannot run a Space at all (x86_64), and tests need no process | every port has a `Fake…`, which is also what the container defaults to | [§5.3](architecture/building-blocks.md) |
+| Two clients would each start the server, and starting it stops it first | one `BaseSpaceServer`, and `PerRunningServer` per client | [§5.3](architecture/building-blocks.md) |
+| A rotation rebuilt the whole object graph, and with it a second server | the container is the **process's**, not the activity's | [§6.2](architecture/runtime-views.md) |
+| A phone has one pane and a tablet two | `ListDetailSceneStrategy` at ≥ 840dp; panes pair on metadata, never on position | [§6.1](architecture/runtime-views.md) |
+
+## 7. Deployment view
+
+One APK. Three kinds of artifact reach the device inside it.
+
+| Artifact | Where in the APK | Where at runtime |
+|---|---|---|
+| Compose app | `classes.dex` | — |
+| `rootfs-<abi>.tzst` | `assets/spaces/base/` | unpacked once into `filesDir/spaces/base/` by `BaseSpaceInstaller` |
+| `libloader.so`, `libpython3.so`, `libbusybox.so`, `libshebang.so` | `jniLibs/<abi>/` | extracted by the platform to `/data/app/…/lib/<abi>/`, the only place execution is permitted |
+
+The rootfs asset and the ELFs are **build artifacts, not committed files**:
+
+```sh
+tools/rootfs/build.sh arm64-v8a
+tools/rootfs/stage-app-artifacts.sh arm64-v8a
+./gradlew :app:assembleDebug
 ```
 
-### A.3 Console — REPL sharing the notebook's kernel
-```
-┌──────────────────────────────┐
-│ Console                      │
-│ >>> 1 + 1                    │
-│ 2                            │
-│ >>> import numpy as np       │
-│ >>> np.arange(4)             │
-│ array([0, 1, 2, 3])          │
-│ ────────────────────────────  │
-│ ⌨ type here  (Enter = run,  │
-│    Shift+Enter = newline)    │
-└──────────────────────────────┘
+`nativeLibraryDir` moves on every app update, so `BaseSpaceInstaller` repairs the four rootfs
+symlinks into it on **every launch**, not only on install.
+
+x86_64 ships three of the four ELFs and no rootfs, so the app installs and the UI runs against fakes.
+
+## 9. Architectural decisions
+
+One decision per file in [`adr/`](adr/), MADR-named `NNNN-title-with-dashes.md`. This section is the
+index and nothing more; the decision itself is always in the ADR.
+
+```sh
+grep -rn "ADR-0001" docs/ app/src/ tools/     # everything about one decision
+grep -rln "^Status: superseded" docs/adr/     # decisions that have been replaced
 ```
 
-### A.4 Workspace — files
-```
-┌──────────────────────────────┐
-│ Workspace             [⤓ zip] │
-│  notebooks/                  │
-│    Untitled.ipynb            │
-│  data/                       │
-│    stocks.csv                │
-│  output/                     │
-│    figure.png                │
-│                              │
-│  [＋ Data]  [＋ Folder]      │
-└──────────────────────────────┘
-```
+| ADR | Title | Status |
+|---|---|---|
+| [0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md) | Separate documents by lifetime, not by topic | accepted |
 
-### A.5 Settings
-```
-┌──────────────────────────────┐
-│ Settings                     │
-│ Theme            [ Dark   ▾ ]│
-│ Accent           [ Violet ▾ ]│
-│ Editor font size  [   14   ] │
-│ Wrap lines            [✓]    │
-│ Code completion      [✓]     │
-│ Symbol bar           [✓]     │
-│ Background autosave  [✓]     │
-│ ──────────────────────────── │
-│ Spaces                       │
-│  ◗ base (bundled, default)   │
-└──────────────────────────────┘
-```
+## 10. Quality requirements
+
+| Quality | Scenario | How it is held |
+|---|---|---|
+| Fidelity | A cell's output renders as the kernel sent it — stream, traceback with ANSI, PNG, `text/html`, tables | `KernelOutputs` maps the wire shapes; instrumented tests render each |
+| Format safety | A notebook written by another tool round-trips without loss | unknown fields ride as `PreservedJson`; a duplicated cell keeps them |
+| Responsiveness | The server is not started until something needs it, and stops when the app is left | `BaseSpaceServer` is lazy; `IdleServerStopper` reads `ActiveCellRuns` |
+| Layer purity | `domain` never gains an `android.*` import | `ArchitectureGuardTest`, per commit |
+| Contrast | Every foreground/background pair meets its floor | `EditorPaletteTest` |
+| Reachability | Every action is reachable at phone width, not only on a tablet | Maestro flows run narrow and wide |
+| Documentation integrity | No code comment cites something that will be deleted | `scripts/check_doc_citations.py` |
+
+## 11. Risks and technical debt
+
+Measured, not speculative. A gap closes by being fixed and re-measured, not by being re-described.
+
+### GAP-001 — Workspace search does not reach a notebook's outputs
+
+`webviewResults` is the third field of `INotebookCellMatchNoModel` and only the other two are built.
+Three things hold it shut, and only the first is a preference: JupyterLab's own `output` filter is off
+by default while VS Code's is on but hidden unless a notebook is open; `SearchHit.outputAt` indexes
+the **rendered** outputs (`renderedOutputsOf`), which drop `ClearOutput`, so a disk-side raw index
+would name a different output from the one drawn; and the rule for *which* outputs have searchable
+text lives in `ui/editor/`, which `data/` may not import. The prerequisite is one home for that rule,
+and it carries a real design question with it — the mime ranking that makes `text/plain` lose to
+`text/html`.
+
+### GAP-002 — Workspace search matches line by line, so a pattern spanning lines finds nothing
+
+The reference decides multiline from the pattern itself (`isMultilineRegexSource` onto
+`IPatternInfo.isMultiline`). Ours is bounded on purpose: a result row *is* a line, so matching over
+the whole file would count hits no row could draw, and `matchedLinesIn` says so. The cost is a real
+parity gap — `def foo\n    return` is a search a user can reasonably type. Closing it means a result
+row that spans lines, which is a presentation problem before it is a matching one.
+
+### GAP-003 — A refused syscall that a package genuinely needs is still fatal
+
+`mbind` was tolerable; nothing guarantees the next one is. Bounded and observable, because refusals
+are reported — [§8.2](architecture/cross-cutting.md).
+
+### GAP-004 — `PythonTypingRules` reads the line as text, not as tokens
+
+A block opener with a trailing comment (`if x:  # note`) gets no extra indent level. Fixing it means
+asking the lexer where the comment starts, a dependency the transformation does not otherwise have.
+Replacing a selection is likewise left alone rather than wrapped in the typed bracket: wrapping is a
+separate feature, and half-doing it leaves an unmatched closer.
+
+### GAP-005 — There is no command-mode way to move the selection head
+
+Focus is what selects a cell here (`EditorViewModel.cellFocusChanged`), so aiming a head-relative
+command — `run-all-above`, `run-all-below`, `restart-and-run-to-selected`, and every heading command —
+means tapping into a cell, taking the keyboard, and dismissing it again. JupyterLab has both halves:
+`_evtMouseDown` sets `activeCellIndex` on a press anywhere in a cell and enters edit mode only for a
+press *in the editor*. Ours has only the second.
+
+### GAP-006 — Three dependency rules hold only by convention
+
+`ui ↛ data`, `data ↛ ui`, and "`AppContainer` is the only place that constructs implementations" are
+true today by grep and unguarded by any test —
+[§5.4](architecture/building-blocks.md). Extending `ArchitectureGuardTest` would go green immediately,
+which is exactly what a regression gate is for.
+
+### GAP-007 — The execution stall is parked, not closed
+
+Reproducible and understood as far as the frames go; the request never reached the kernel, and the
+server's own log cannot say why ([CLOSED-005](research/closed-questions.md)). Everything needed to
+restart the investigation is in [`research/execution-stall.md`](research/execution-stall.md).
+
+---
+
+## 12. Glossary
+
+In [`architecture/cross-cutting.md`](architecture/cross-cutting.md).

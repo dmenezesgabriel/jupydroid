@@ -1,0 +1,55 @@
+# Closed questions
+
+A question that was **measured and answered "no"**, so nobody spends a session re-investigating it.
+Each entry states what was asked, what was measured, and what the answer forbids.
+
+This is not a decision register — a decision that forbids an alternative is an
+[ADR](../adr/0000-template.md). This is the negative result: the thing we looked for and did not
+find, or found and rejected on evidence.
+
+An entry is **re-opened only by new evidence**, and re-opening means editing the entry to say what
+changed. Ids are never reused.
+
+```sh
+grep -n '^### CLOSED-' docs/research/closed-questions.md
+```
+
+---
+
+### CLOSED-001 — Do orphaned Space processes leak across app death?
+
+**No.** The `jupyter_server` and kernel are ordinary children of the app process; `am force-stop` and
+`am kill` take them with it. Nothing survives app death, so the app needs no reaper and no PID file.
+
+### CLOSED-002 — Should a cell execution time out?
+
+**No.** `ExecutionOutcome.TimedOut` was implemented, exercised and retired. A cell that runs for an
+hour is a cell, not a failure; stopping one is the user's job, through interrupt. Re-adding a timeout
+would make a long-running computation indistinguishable from a hung kernel, which is the thing the
+kernel status indicator already answers.
+
+### CLOSED-003 — Was sending `execute_request` before the socket connected the cause of the execution stall?
+
+**No, though it was a real race.** It was removed anyway, because JupyterLab does not do it either.
+With the ordering correct, 24 of 50 runs still stalled — so the race existed and was not the cause.
+
+### CLOSED-004 — Does retrying `kernel_info_request` on the server's own 0.5 s cadence fix the execution stall?
+
+**No.** Measured over 80 tablet runs: 120 asks over 60 s, not one reply, while iopub delivered
+throughout. Reverted to the reference's shape. The measurement is in
+`evidence/kernel-observability/seventh-sighting/`.
+
+### CLOSED-005 — Will the server's own DEBUG log explain the execution stall?
+
+**No, and it cannot.** The server's nudge is satisfied by a **control** reply alone
+(`jupyter_server/services/kernels/connection/channels.py:158-164` and `:291-292` in the shipped
+rootfs), so a kernel with a dead shell channel looks healthy to it and the log says nothing. See
+[`execution-stall.md`](execution-stall.md).
+
+Read that file from the shipped rootfs without extracting it:
+
+```sh
+T=app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server/services/kernels/connection/channels.py \
+  | sed -n '155,170p;288,295p'
+```
