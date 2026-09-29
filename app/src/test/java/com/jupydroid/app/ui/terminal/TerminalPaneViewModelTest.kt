@@ -24,7 +24,7 @@ import org.junit.Test
  * back whatever it is given as `Output`, so it stands in for a real shell that types back what it
  * was sent.
  *
- * [TerminalPaneViewModelScrollbackTest] is the sibling for `docs/PLAN.md`'s P4j-3d - gesture
+ * [TerminalPaneViewModelScrollbackTest] is the sibling for gesture
  * scrollback and the alternate-screen redirect - split out once this file crossed the 500-line
  * file-length gate; both share [RecordingGateway] and the rest of `TerminalPaneViewModelFixture.kt`.
  */

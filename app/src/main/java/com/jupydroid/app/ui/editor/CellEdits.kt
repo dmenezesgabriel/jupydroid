@@ -118,7 +118,7 @@ fun EditorUiState.withOutputsCleared(cellIds: List<String>): EditorUiState = cle
  * The same transaction as [withOutputsCleared] with one difference, and it is only the operand:
  * that one filters on `isSelectedOrActive` and this one walks every cell. **So it touches the
  * selection not at all** - neither has a `deselectAll()` in it, which puts them with `move` and the
- * collapses (`docs/DECISIONS.md`).
+ * collapses.
  */
 fun EditorUiState.withAllOutputsCleared(): EditorUiState = clearingOutputsOf(cells.map { it.id }.toSet())
 

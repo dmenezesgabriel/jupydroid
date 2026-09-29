@@ -119,7 +119,7 @@ class DiskRecentDocumentsRepositoryTest : RecentDocumentsRepositoryContract() {
   /**
    * The store lives outside the workspace, and that is not an implementation detail.
    *
-   * The workspace is the kernel's `HOME` and the server's `root_dir` (X1a), shared with any other
+   * The workspace is the kernel's `HOME` and the server's `root_dir`, shared with any other
    * Jupyter client - so a bookkeeping file there would appear in the explorer's own listing and in
    * an `ls` from a cell. The reference keeps recents in `IStateDB`, which is client state, and not
    * in the Contents API. Same reasoning that kept X1a's migration stamp out of the rootfs `home`.

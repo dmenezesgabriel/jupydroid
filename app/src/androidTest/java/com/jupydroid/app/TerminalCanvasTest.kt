@@ -150,7 +150,7 @@ class TerminalCanvasTest {
   }
 
   /**
-   * `docs/PLAN.md`'s P4j-3b: the keyboard opening genuinely shrinks the grid, rather than
+   * the keyboard opening genuinely shrinks the grid, rather than
    * `TerminalCanvas` adding the IME's own inset back to cancel the shrink out (P4i-3a's own
    * compensation, retired - `docs/DECISIONS.md`'s P4j-3b entry). A synthetic `WindowInsetsCompat`
    * dispatched onto the activity's `decorView` stands in for a real keyboard - the headless
@@ -190,7 +190,7 @@ class TerminalCanvasTest {
   }
 
   /**
-   * `docs/PLAN.md`'s P4j-3c: the terminal's own font-size setting reaches [TerminalCanvas] through
+   * the terminal's own font-size setting reaches [TerminalCanvas] through
    * a `textStyle` parameter, plumbed into [com.jupydroid.app.ui.terminal.terminalCellMetrics]'s
    * existing seam - so a larger size must measure a wider cell, not merely accept the parameter.
    */
@@ -224,7 +224,7 @@ class TerminalCanvasTest {
   }
 
   /**
-   * `docs/PLAN.md`'s P4j-3d-2: [TerminalCanvas]'s new `topRow` parameter actually shifts which
+   * [TerminalCanvas]'s new `topRow` parameter actually shifts which
    * external rows it draws, not merely accepted and ignored. `key(topRow)` remounts the subtree
    * the same way [theCursorIsDrawnOnlyWhileDectcemIsSet] already does, since `TerminalCanvas` has
    * no `State` of its own to recompose from a parameter change alone.

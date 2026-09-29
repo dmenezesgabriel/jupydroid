@@ -80,7 +80,7 @@ val chromePalette: ChromePalette
  *
  * **Two mappings depart from what `docs/PLAN.md` first named, and measurement is why** - both
  * recorded in `docs/DECISIONS.md`, "The chrome ramp is VS Code's, and two roles are not the id the
- * plan named (P2u-1)":
+ * plan named":
  *
  * - `primary` is `textLink.foreground`, not `button.background`. VS Code splits what Material
  *   fuses - one value is a fill under `button.foreground`, the other is the accent drawn *on* a

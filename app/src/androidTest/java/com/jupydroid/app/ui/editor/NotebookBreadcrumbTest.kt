@@ -114,7 +114,7 @@ class NotebookBreadcrumbTest {
   /**
    * **What the second row costs, as a number.** Since P8e the bar is at most two rows - the trail
    * over Material's 64dp action row, the same 112dp P2q-2 settled for the title strip it replaced
-   * (`docs/DECISIONS.md`) - and this pins the cost as measured rather than described.
+   * - and this pins the cost as measured rather than described.
    *
    * **Measured as a difference, not as a total**, because a total is not the same on two devices:
    * `EditorTopBar` consumes `TopAppBarDefaults.windowInsets`, and the status bar above it is 24dp

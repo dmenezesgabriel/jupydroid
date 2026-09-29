@@ -134,7 +134,7 @@ private const val EXCLUDE_EXAMPLE = "e.g. *.py, src/**/exclude"
 
 /**
  * The `…`, named for what a tap will do rather than by `aria-expanded` - the rule every toggle in
- * this app follows (`docs/DECISIONS.md`), and the reference's own label is the one-string
+ * this app follows, and the reference's own label is the one-string
  * *"Toggle Search Details"* only because a browser has `aria-expanded` to carry the state.
  */
 internal const val SHOW_SEARCH_DETAILS = "Show search details"

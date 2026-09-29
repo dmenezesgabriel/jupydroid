@@ -112,7 +112,7 @@ class EditorThemeTest {
 
   /**
    * `codeTextStyle(fontSize = ...)` - the seam the terminal's own font-size setting
-   * (`docs/PLAN.md` P4j-3c) resizes glyphs through. Every other call site keeps the no-arg default,
+   * resizes glyphs through. Every other call site keeps the no-arg default,
    * asserted by [aCellsSourceTakesTheCodeLineHeightWhereRenderedCodeTakesTheProseSize] above still
    * naming [CodeText.size]/[CodeText.lineHeight] unchanged.
    */
@@ -129,7 +129,7 @@ class EditorThemeTest {
   }
 
   /**
-   * `codeSourceStyle(fontSize = ...)` - the seam `docs/PLAN.md`'s P6c-4 resizes a cell's own
+   * `codeSourceStyle(fontSize = ...)` - the seam 4 resizes a cell's own
    * editor through, the same seam [codeTextStyleOverridesTheSizeAndItsLineHeightTogether] pins for
    * the terminal. Both the size/line-height pair and the source colour have to survive the
    * override together, or a resized cell would read in the wrong colour.

@@ -56,8 +56,8 @@ class MarkdownSyntaxTest {
    * with the `>` a separate capture (`extensions/markdown-basics/syntaxes/markdown.tmLanguage.json`,
    * `/repository/blockquote`).
    *
-   * Ours marked the `>` alone until P2u-2c. It was invisible while [SyntaxKind.QUOTE] drew in the
-   * string colour - a quote body that looked plain looked like prose, which it is - and P2u-2b
+   * Ours once marked the `>` alone. It was invisible while [SyntaxKind.QUOTE] drew in the
+   * string colour - a quote body that looked plain looked like prose, which it is - and the palette re-base
    * gave it a colour of its own, at which point one green chevron above plain text was obviously
    * not what VS Code draws.
    */

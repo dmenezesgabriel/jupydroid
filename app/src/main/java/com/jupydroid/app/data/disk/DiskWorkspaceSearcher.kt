@@ -95,7 +95,7 @@ class DiskWorkspaceSearcher(
    * A notebook, read as the cells it is - the skip P2x-1d put in, lifted.
    *
    * **A notebook this app cannot read is declined rather than thrown on**, which makes it the
-   * fourth kind of file a walk passes over (`docs/DECISIONS.md`). `readNotebook` raises for JSON
+   * fourth kind of file a walk passes over. `readNotebook` raises for JSON
    * that is not an object and for a `cell_type` outside nbformat's three, and one such file in a
    * workspace must not end the walk over every other - the reference swallows a serializer's
    * failure per file for the same reason (`extHostNotebook.ts:555-558`, `catch (e) { return; }`).

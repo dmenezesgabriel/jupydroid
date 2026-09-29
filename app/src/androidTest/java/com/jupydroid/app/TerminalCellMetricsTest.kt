@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 /**
  * [terminalCellMetrics] measures a real glyph on this device rather than restating
  * [TerminalEmulator.DEFAULT_CELL_WIDTH_PIXELS]/`HEIGHT_PIXELS` (13 by 15, the reference's own
- * test-suite constant, never a real device's) - `docs/PLAN.md`'s P4i-2c. Needs real font
+ * test-suite constant, never a real device's) - 2c. Needs real font
  * rendering, which only runs instrumented in this project (no Robolectric - `EditorThemeTest`'s
  * own reason).
  */

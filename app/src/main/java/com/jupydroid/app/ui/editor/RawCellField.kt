@@ -77,7 +77,7 @@ fun RawCellField(
   reportCellEdits(state, onSourceEdited)
   // The symbol row is on screen in edit mode whatever the cell is, so this field has to be
   // reachable from it - the omission that left it inert in a markdown cell through the whole of
-  // P2b (`docs/DECISIONS.md`).
+  // P2b.
   input.attachWhileFocused(state, focused.value)
 
   BasicTextField(

@@ -28,7 +28,7 @@ class CellStripeTest {
    * `.jp-Cell.jp-mod-active` (`packages/notebook/style/base.css:108-110`); the cell node itself is
    * `background: transparent; border: none` (`packages/cells/style/widget.css:18-24`). The
    * reference answers "where does this cell end" with the editor's own border, not with a gutter
-   * mark - see `docs/DECISIONS.md`.
+   * mark.
    */
   @Test
   fun anUnselectedCellIsNotMarkedAtAll() {

@@ -32,7 +32,7 @@ class CodeTextTest {
 
   /**
    * [CodeText.lineHeightFor] at a size other than [CodeText.size] - the seam the terminal's own
-   * font-size setting (`docs/PLAN.md` P4j-3c) resizes glyphs through, so a second, undertested copy
+   * font-size setting resizes glyphs through, so a second, undertested copy
    * of the ratio is not what proves it.
    */
   @Test

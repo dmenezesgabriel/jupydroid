@@ -12,7 +12,7 @@ import org.junit.Test
  * `kernel_info_request` first, then the cell - which is what a Jupyter client is supposed to do.
  *
  * Read out of the reference rather than reasoned about
- * (`reference/research_repos/jupyterlab/packages/services/src/kernel/default.ts`,
+ * (`jupyterlab@7f0e6906 packages/services/src/kernel/default.ts`,
  * `_updateConnectionStatus`), where the comment is about our exact symptom:
  *
  * > Send a kernel info request to make sure we send at least one message to get kernel status

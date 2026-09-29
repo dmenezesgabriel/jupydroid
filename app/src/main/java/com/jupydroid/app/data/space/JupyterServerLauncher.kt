@@ -154,8 +154,7 @@ internal fun jupyterServerArgs(rootDir: File, token: String, shell: File): List<
   // Unix domain sockets rather than TCP for the kernel transport. Everything here
   // is one app on one device, so kernels need no ports and no network stack at all.
   // It also avoids jupyter_client validating the kernel IP against every local
-  // interface, which it does via psutil.net_if_addrs() - that segfaults on Android
-  // (evidence/step8.5/psutil-segfault.txt).
+  // interface, which it does via psutil.net_if_addrs() - that segfaults on Android.
   "--KernelManager.transport=ipc",
   "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
   // P4c: terminado spawns *this* shell, rather than whatever a PATH search turns up. Unpinned,

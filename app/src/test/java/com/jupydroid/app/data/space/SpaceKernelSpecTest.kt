@@ -78,7 +78,7 @@ class SpaceKernelSpecTest {
   /**
    * Tells "the request never reached the kernel" from "the kernel received it and never
    * replied" - two causes with two different fixes, and no sighting of the execution stall
-   * has ever been able to tell them apart (`docs/PLAN.md` P0).
+   * has ever been able to tell them apart.
    *
    * `--log-level` is traitlets' own alias for `Application.log_level`
    * (`traitlets/config/application.py`, `aliases = {"log-level": "Application.log_level"}`), and

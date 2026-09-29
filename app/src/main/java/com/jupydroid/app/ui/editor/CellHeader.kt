@@ -37,7 +37,7 @@ import com.jupydroid.app.theme.editorPalette
  * The glyph every cell's Run control draws - **outlined, not filled** (P2v-1).
  *
  * A filled triangle at rest reads as "playing"; outlined reads as available, which is what an
- * idle control means (`docs/DECISIONS.md`, "The cell keeps its header strip"). A value rather
+ * idle control means (ADR-0057). A value rather
  * than an inline argument so `CellRunIconTest` has something to pin - without it the departure
  * back to filled is a one-token edit no gate would see.
  *

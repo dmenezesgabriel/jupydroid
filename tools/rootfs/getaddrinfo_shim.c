@@ -1,14 +1,15 @@
 /*
  * A minimal DNS resolver behind getaddrinfo(), because musl's own resolver reads
  * /etc/resolv.conf through a raw inlined syscall that no LD_PRELOAD can intercept
- * (evidence/p7e-3b-interposition-probe/): __get_resolv_conf calls __fopen_rb_ca, which calls
+ * Measured three ways before a line of this was written (ADR-0005): __get_resolv_conf calls
+ * __fopen_rb_ca, which calls
  * sys_open, a macro that expands to `syscall(SYS_openat, ...)` at the call site - there is no
  * GOT/PLT entry for any function name to replace.
  *
  * getaddrinfo() itself has no such problem: it is the public symbol external callers (CPython's
  * socketmodule.c, among others) reach through ordinary PLT dispatch, the same category of call
  * musl_at_shim.c already relies on for unlink/mkdir/etc. - and that is measured too, not assumed
- * (evidence/p7e-3b-interposition-probe/getaddrinfo_probe.c).
+ * Confirmed by a probe built against the exact musl the rootfs ships.
  *
  * **Never fabricates a struct addrinfo of its own.** musl's freeaddrinfo() does not do a plain
  * free() walk - it recovers a private `struct aibuf` (refcount, lock, slot) from the addrinfo
@@ -19,7 +20,7 @@
  * so freeaddrinfo needs no override here either.
  *
  * IPv4 (A records) only, deliberately: the minimum that answers pip's/jupyter's own need
- * (P7e-3), not a general resolver. AAAA is a real gap; add it only once a measurement - not a
+ * not a general resolver. AAAA is a real gap; add it only once a measurement - not a
  * guess - shows it is needed.
  *
  * Nameservers come from JUPYDROID_NAMESERVERS (comma-separated dotted-quad addresses), set by

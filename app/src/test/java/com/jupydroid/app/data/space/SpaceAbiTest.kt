@@ -30,7 +30,7 @@ class SpaceAbiTest {
   /**
    * The emulator case, and the reason it must be a clean rejection rather than a crash:
    * Android's x86_64 seccomp filter kills musl startup, so there is no Space to run there
-   * however the rootfs is built (evidence/step8.3/musl-is-arm64-only.txt).
+   * however the rootfs is built.
    */
   @Test
   fun of_rejectsX86_64BecauseNoSpaceCanRunThere() {

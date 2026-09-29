@@ -32,7 +32,7 @@ import java.io.File
  * `maybeCreate` - `labShell.layoutModified.connect(() => if (labShell.isEmpty('main')) create())`
  * (`launcher-extension/src/index.ts:147-157`) - and the first-run flag beside it. The reference
  * fills an empty main area on every layout change; at two panes that is this app's rule too, and
- * at one pane the push happens on the first run only (`docs/DECISIONS.md`, P6d).
+ * at one pane the push happens on the first run only.
  *
  * These are presence assertions on the navigation itself, which is what a JVM test cannot answer:
  * whether the entry is on screen after a pop, not whether the stack changed.

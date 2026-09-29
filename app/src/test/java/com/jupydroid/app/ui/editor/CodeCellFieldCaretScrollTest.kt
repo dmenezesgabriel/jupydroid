@@ -5,7 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * `docs/PLAN.md`'s P6c-5: once a code cell can scroll horizontally, the completion popup's own
+ * once a code cell can scroll horizontally, the completion popup's own
  * caret rect has to move with it - [CompletionPopupPositionTest] already proves the popup itself
  * is a pure function of its anchor, so the anchor it is handed must already carry the live scroll
  * offset rather than the field's unscrolled layout position.

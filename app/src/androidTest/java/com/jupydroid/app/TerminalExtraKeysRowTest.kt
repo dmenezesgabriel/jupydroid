@@ -26,7 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `docs/PLAN.md`'s P4j-3a: the row a touchscreen terminal needs that a soft keyboard cannot
+ * the row a touchscreen terminal needs that a soft keyboard cannot
  * produce on its own - `SymbolRowTest`'s own shape, composing [TerminalPaneScreen] directly
  * against a recording fake exactly as [TerminalHardwareKeyTest] does, since this row's keys must
  * reach a real shell the same way a hardware key already does.

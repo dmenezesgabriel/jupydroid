@@ -62,7 +62,7 @@ class AppContainer(
   val workspaceRepository: WorkspaceRepository = FakeWorkspaceRepository(),
   /**
    * The same tree again, asked which files hold something rather than what is at a path - a
-   * different question with a different shape, so a port of its own (P2x-1).
+   * different question with a different shape, so a port of its own.
    */
   val workspaceSearcher: WorkspaceSearcher = FakeWorkspaceSearcher(),
   /**
@@ -75,18 +75,18 @@ class AppContainer(
    * One registry for [kernelGateway] and [kernelSessions], so the pair share their session
    * bookkeeping by construction rather than by a call site remembering to pass it twice - the
    * panel's shutdown is `session.disposed` to an open notebook only when the two halves see the
-   * same registry (P8f). Not a `val`: it is the pair's joint plumbing, not a port.
+   * same registry. Not a `val`: it is the pair's joint plumbing, not a port.
    */
   kernelSessionRegistry: KernelSessionRegistry = KernelSessionRegistry(),
   val kernelGateway: KernelGateway = FakeKernelGateway(kernelSessionRegistry),
   /**
    * The Running panel's port - what sessions the server is holding, and `ended` for the ones
-   * that stop (P8f). Shares its registry with [kernelGateway] at the composition root, so a
+   * that stop. Shares its registry with [kernelGateway] at the composition root, so a
    * shutdown here is `session.disposed` to every notebook holding the session.
    */
   val kernelSessions: KernelSessions = FakeKernelSessions(kernelSessionRegistry),
   /**
-   * The kernelspec catalogue the picker draws from (P8g) - `GET api/kernelspecs` while a server
+   * The kernelspec catalogue the picker draws from - `GET api/kernelspecs` while a server
    * runs, the Space's own declared list while it does not. Answering never boots a runtime.
    */
   val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
@@ -94,7 +94,7 @@ class AppContainer(
   val kernelDebugger: KernelDebugger = FakeKernelDebugger(),
   /**
    * The Space's `pylsp` over stdio - one process per Space, started on the port's first call and
-   * stopped beside the server (P5b). Its fake answers canned completions so the popup composes
+   * stopped beside the server. Its fake answers canned completions so the popup composes
    * on a device with no Space.
    */
   val languageServer: LanguageServerPort = FakeLanguageServerPort(),
@@ -109,7 +109,7 @@ class AppContainer(
   terminalGateway: TerminalGateway = FakeTerminalGateway(),
   /**
    * `notebook:export-to-format`, over the Space's own nbconvert - a **server-side algorithm**,
-   * which this app may not re-implement (`docs/DECISIONS.md`).
+   * which this app may not re-implement.
    *
    * Its fake offers the six formats the shipped rootfs actually converts, so a device with no
    * Space draws the same menu and only the conversion is missing.
@@ -138,7 +138,7 @@ class AppContainer(
   val themeSettings: ThemeSettingsRepository = FakeThemeSettingsRepository(),
   /**
    * The launcher bookkeeping - whether it has ever presented itself, which is what keeps the
-   * one-pane first-run push a once-only act (`docs/PLAN.md`'s P6d-4). At two panes the reference's
+   * one-pane first-run push a once-only act. At two panes the reference's
    * `maybeCreate` fills an empty main area unconditionally and needs no flag.
    */
   val launcherSettings: LauncherSettingsRepository = FakeLauncherSettingsRepository(),

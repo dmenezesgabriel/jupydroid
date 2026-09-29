@@ -13,7 +13,7 @@ import java.nio.file.Files
  * `bin/ls`, `usr/bin/awk` and the rest - every one of them the same *absolute*
  * `-> /bin/busybox`. On device that resolves against Android's root rather than the Space, so all
  * 304 dangle; and the ELF underneath them could not be `execve`'d out of `filesDir` even if they
- * did (docs/DECISIONS.md, "Exec model").
+ * did (ADR-0002).
  *
  * **Repairing `bin/sh` alone is not enough, and the obvious gate hides it.** A shell whose `ls`,
  * `cat`, `grep` and `vi` are all *not found* still answers `sh -c 'echo ok'`, because `echo` is an

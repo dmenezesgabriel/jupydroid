@@ -7,19 +7,19 @@ import androidx.compose.ui.graphics.Color
  *
  * **Two references meet in this file, and which one answers is per value.** The syntax colours
  * are VS Code's, transcribed from the **resolved** `2026-dark.json` / `2026-light.json` read out
- * of `reference/research_repos/vscode` at `3f3380c668d`. Everything above `syntax` - the
+ * of `vscode` at `3f3380c668d`. Everything above `syntax` - the
  * surfaces, the stripes, the search and bracket highlights - is still IntelliJ's until P2u-3
  * re-sources it onto VS Code's `notebook.*` colour ids. `theme/Theme.kt` states the same split
  * from the chrome's side.
  *
  * **Resolved is the whole trap.** `2026-dark.json` is the outermost file of a four-deep `include`
  * chain and overrides most of what it inherits; reading any single file gives the wrong colour
- * (`docs/DECISIONS.md`, "The default VS Code theme is 2026 Dark / 2026 Light, not Dark Modern").
+ * (ADR-0041).
  * Every syntax value below is reproducible per role:
  *
  * ```sh
  * python3 scripts/resolve_vscode_theme.py \
- *   reference/research_repos/vscode/extensions/theme-defaults/themes/2026-dark.json --role keyword
+ *   <your vscode clone>/extensions/theme-defaults/themes/2026-dark.json --role keyword
  * ```
  *
  * **Parity is the rule, and it outranks the contrast floor.** Every syntax value below is the

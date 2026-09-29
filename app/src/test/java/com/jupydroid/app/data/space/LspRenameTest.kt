@@ -24,7 +24,7 @@ import org.junit.Test
 class LspRenameTest {
   @Test
   fun documentChanges_parseToEditsKeyedByUri() {
-    // The probe's own shape (`evidence/p5e-0-lsp-surface/`): one TextDocumentEdit, one
+    // The probe's own shape: one TextDocumentEdit, one
     // whole-document TextEdit spanning (0,0) to past the last line.
     val edit = LspRename.workspaceEditFrom(
       buildJsonObject {

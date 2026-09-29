@@ -20,7 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `docs/PLAN.md`'s P4j-3c: the terminal's own overflow, `terminal:increase-font`/
+ * the terminal's own overflow, `terminal:increase-font`/
  * `terminal:decrease-font` (`terminal-extension/src/index.ts:64-66`).
  *
  * Drives [TerminalBar] rather than [com.jupydroid.app.ui.terminal.TerminalActionsMenu] on its

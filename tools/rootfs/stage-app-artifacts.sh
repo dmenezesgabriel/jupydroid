@@ -87,12 +87,13 @@ echo "==> building busybox (P4b-2: the one without FEATURE_SUID)"
 # pointing absolutely at /bin/busybox, and neither they nor the ELF is reachable on device.
 # BaseSpaceInstaller points bin/busybox at this library and makes the applets relative to it, and
 # busybox reads its applet from the basename of the path it was reached by - which is why the
-# applets are not pointed here directly (evidence/p4-terminal/busybox-dispatch.md).
+# applets are not pointed here directly: busybox dispatches on the basename of the path it is
+# reached by, so each applet needs its own name (ADR-0045).
 docker buildx build --platform "$PLATFORM" --target busybox-artifact \
   --output "type=local,dest=$STAGE_DIR/busybox-out" "$DOCKER_DIR"
 cp "$STAGE_DIR/busybox-out/busybox" "$STAGE_DIR/libbusybox.so"
 
-echo "==> building the console-script trampoline (P7e-2)"
+echo "==> building the console-script trampoline"
 # Same exception, same reason: static, so the ELF is what ships - no PT_INTERP edit below touches
 # it. See shebang_exec.c for why `pip`, `jupyter` and 29 other `#!` scripts cannot run otherwise.
 docker buildx build --platform "$PLATFORM" --target shebang-artifact \
@@ -103,7 +104,7 @@ echo "==> repointing PT_INTERP and RPATH"
 # The stock PT_INTERP is /$LOADER, an absolute path that on Android resolves against the device
 # root, not the rootfs. Repoint it at the rootfs's on-device location, where the installer symlinks
 # it on into nativeLibraryDir - the only place an ELF interpreter may live
-# (evidence/step8.3/musl-runs.txt). The loader itself is not patched: it *is* the interpreter.
+# The loader itself is not patched: it *is* the interpreter.
 docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" -v "$STAGE_DIR:/out" "$PATCHELF_IMAGE" sh -euc "
   # libshebang.so is deliberately absent: it is static, so it has no PT_INTERP or rpath to set.
   for elf in /out/libpython3.so /out/libbusybox.so; do

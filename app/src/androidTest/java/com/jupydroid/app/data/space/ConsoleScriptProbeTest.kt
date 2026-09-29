@@ -21,7 +21,7 @@ import java.nio.file.Files
  * [PythonInterpreterDeviceTest.aScriptUnderFilesDirIsRefusedEvenWithItsExecutableBitSet] already
  * settled that SELinux refuses to `execve` it whatever its mode. The design is a native trampoline
  * reached by name through `usr/local/bin`, which reads the shebang and execs the interpreter - the
- * fourth use of the pattern `docs/DECISIONS.md` "Exec model" already runs three times. These
+ * fourth use of the pattern ADR-0002 already runs three times. These
  * assertions pin the three facts that design turns on, so a platform change that breaks one goes
  * red here.
  *
@@ -92,9 +92,9 @@ class ConsoleScriptProbeTest {
   @Test
   fun usrLocalBinHoldsOnlyTrampolineLinksAndIsFirstOnThePath() {
     val localBin = File(baseDir, "usr/local/bin")
-    // The image ships this directory empty (`evidence/p7e-2a-console-scripts`); the *installed*
+    // The image ships this directory empty; the *installed*
     // space fills it, by design - `ConsoleScripts.relink` links every `#!` script in `usr/bin`
-    // here, each a relative link to `bin/shebang-exec` (P7e-2c). What this asserts is therefore
+    // here, each a relative link to `bin/shebang-exec`. What this asserts is therefore
     // the installed truth the emptiness probe stood in for: every entry is that link, so nothing
     // shadows a real binary and nothing else was written past the trampoline.
     val entries = localBin.list()?.toList().orEmpty().filterNot { it == "true" }

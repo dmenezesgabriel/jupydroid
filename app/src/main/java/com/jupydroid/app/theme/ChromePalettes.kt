@@ -5,12 +5,12 @@ import androidx.compose.ui.graphics.Color
 /**
  * The two [ChromePalette]s, resolved from VS Code's default themes.
  *
- * Read out of `reference/research_repos/vscode` at `3f3380c668d`, and **resolved** rather than read
+ * Read out of `vscode` at `3f3380c668d`, and **resolved** rather than read
  * from one file - `2026-dark.json` is the outermost of a four-deep `include` chain
- * (`docs/DECISIONS.md`, "The default VS Code theme is 2026 Dark / 2026 Light, not Dark Modern"):
+ * (ADR-0041):
  *
  * ```sh
- * cd reference/research_repos/vscode/extensions/theme-defaults/themes
+ * cd <your vscode clone>/extensions/theme-defaults/themes
  * python3 ../../../../../../scripts/resolve_vscode_theme.py 2026-dark.json --color sideBar.background
  * ```
  *

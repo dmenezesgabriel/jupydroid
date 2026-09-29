@@ -1,7 +1,7 @@
 /*
  * Names the syscalls Android's app seccomp filter refuses.
  *
- * Step 8.7 left "a refused syscall, not yet named": numpy's import dies with exit 159
+ * The problem this closes: numpy's import dies with exit 159
  * (128+31 = SIGSYS) inside the app process and runs fine under run-as. faulthandler
  * cannot help - it installs handlers for SIGSEGV/SIGFPE/SIGABRT/SIGBUS/SIGILL, and
  * SIGSYS is not among them. But bionic's filter traps rather than kills

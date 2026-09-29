@@ -2,7 +2,8 @@
  * Routes the four legacy syscalls musl issues on x86_64 to the `*at` forms Android allows.
  *
  * **Measured, not guessed.** With the rootfs staged on the x86_64 emulator, jupyter_server
- * starts and listens - which already disproves evidence/step8.3/musl-is-arm64-only.txt, written
+ * starts and listens - which already disproves the earlier reading that the filter kills musl on
+ * x86_64 too, written
  * before sigsys_report.c existed - and libsigsys_report.so names exactly four refusals, all
  * arch=0xc000003e (AUDIT_ARCH_X86_64):
  *

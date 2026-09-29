@@ -16,7 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `docs/PLAN.md`'s P6c-5: `wrapEnabled` has to actually change how a long line lays out, not
+ * `wrapEnabled` has to actually change how a long line lays out, not
  * merely compile - [CodeCellFieldFontSizeTest]'s own precedent for proving a layout parameter
  * against the field's own [TextLayoutResult] rather than assuming.
  */

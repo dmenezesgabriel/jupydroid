@@ -37,7 +37,7 @@ data class EditorPalette(
    * Behind `` `code` `` in **rendered** prose, inline or fenced - `textPreformat.background`.
    *
    * **It was called `cellSelectionBackground` and described as "the selected cell's surface", and
-   * nothing had drawn a selected cell with it for a long time** (P2u-3d). It covers a fenced block
+   * nothing had drawn a selected cell with it for a long time**. It covers a fenced block
    * as well as an inline span, which is why it is not called `inlineCode…`: the reference's rule is
    * on `code`, and `pre code` resets only its padding.
    *
@@ -197,7 +197,7 @@ data class EditorPalette(
  *
  * ```sh
  * python3 scripts/resolve_vscode_theme.py \
- *   reference/research_repos/vscode/extensions/theme-defaults/themes/2026-light.json --role number
+ *   <your vscode clone>/extensions/theme-defaults/themes/2026-light.json --role number
  * ```
  *
  * A *scope* rather than a colour id, because a token colour is not a workbench colour. VS Code

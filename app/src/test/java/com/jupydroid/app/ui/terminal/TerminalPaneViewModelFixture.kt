@@ -16,7 +16,7 @@ import kotlinx.coroutines.test.TestScope
 /**
  * What [TerminalPaneViewModelTest] and [TerminalPaneViewModelScrollbackTest] both need to drive a
  * [TerminalPaneViewModel] without a real [TerminalGateway] - split out once the first of those two
- * files crossed the 500-line file-length gate (`docs/PLAN.md`'s P4j-3d-4).
+ * files crossed the 500-line file-length gate.
  */
 internal const val ESC = "\u001B"
 

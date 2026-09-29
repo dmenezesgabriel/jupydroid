@@ -14,7 +14,7 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * P1c's decision half: when the app goes away, the server should stop - but a
  * backgrounded computation must be allowed to finish. The gate
- * (`evidence/p1c-app-death-backstop/`) backgrounds the app mid-run and shows the
+ * backgrounds the app mid-run and shows the
  * cell completes, then backgrounds it idle and shows the server stops; both halves
  * are this class's contract.
  */

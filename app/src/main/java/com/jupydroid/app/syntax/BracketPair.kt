@@ -53,7 +53,7 @@ private fun partnerOf(source: String, scan: IntProgression, same: Char, partner:
 
 /**
  * Is [cursor] inside a `(` that no `)` has closed yet - the shape that makes a signature-help
- * ask worth a round trip (`docs/PLAN.md` P5e-4): VS Code's `parameterHintsModel` asks at the
+ * ask worth a round trip: VS Code's `parameterHintsModel` asks at the
  * caret inside the call's parens, and it is the server that answers whether the callee has a
  * signature, so a grouping `(` counts too.
  *

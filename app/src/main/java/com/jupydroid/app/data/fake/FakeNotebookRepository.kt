@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.Instant
 
 /**
- * In-memory [NotebookRepository] feeding the UI until the disk impl lands (Step 3).
+ * In-memory [NotebookRepository] feeding the UI until the disk impl lands.
  *
  * [written] is this fake's stand-in for a file's mtime, which is where the disk one gets
  * `updatedAt`. Every mutation stamps it, because on disk every mutation writes the file - a fake

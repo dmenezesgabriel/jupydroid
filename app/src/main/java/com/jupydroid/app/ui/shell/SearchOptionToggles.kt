@@ -81,7 +81,7 @@ fun SearchOptionToggles(query: SearchQuery, onOptionChanged: (SearchQuery) -> Un
  *
  * **And the wash is not the accessible state.** Android's tree keeps a toggled state on a node that
  * carries no label, so what says which way this is set is the label itself, flipped - the rule every
- * toggle in this app follows since the export picker (`docs/DECISIONS.md`). [label] is therefore
+ * toggle in this app follows since the export picker. [label] is therefore
  * what a *tap will do*, never what is currently true.
  *
  * Shared with [SearchReplaceRow]'s preserve-case toggle rather than copied: the reference draws

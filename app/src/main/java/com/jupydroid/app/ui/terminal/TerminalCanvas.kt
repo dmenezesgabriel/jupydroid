@@ -25,7 +25,7 @@ import com.jupydroid.app.terminal.TerminalRow
 import com.jupydroid.app.ui.editor.codeTextStyle
 
 /**
- * The grid [emulator] holds, drawn as batched-run glyphs on a `Canvas` - `docs/PLAN.md`'s P4i-2d,
+ * The grid [emulator] holds, drawn as batched-run glyphs on a `Canvas` - 2d,
  * replacing `TerminalPaneScreen`'s plain `Text`-per-row stand-in. Mirrors `TerminalRenderer.render`'s
  * own run-batching loop (termux-app `3df69d1d`, Apache 2.0 - see `TerminalGrid`'s own citation): a
  * run boundary is a style change, not a character change, so equal-styled neighbours draw in one
@@ -37,10 +37,10 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * has no state of its own to observe it by.
  *
  * The cell size is [terminalCellMetrics]'s real device measurement. [onGridSizeChanged] reports how
- * many whole cells this composable's own measured area holds - `docs/PLAN.md`'s P4i-3a - through a
+ * many whole cells this composable's own measured area holds - through a
  * `BoxWithConstraints` rather than a self-sized `Box`, since the grid this now draws is driven by
  * the container's real size instead of dictating it. **The IME genuinely shrinks it now -
- * `docs/PLAN.md`'s P4j-3b**: `imePadding()` sits on this composable's own `BoxWithConstraints`, the
+ * 3b**: `imePadding()` sits on this composable's own `BoxWithConstraints`, the
  * same rule `TerminalExtraKeysRow`/`SymbolRow`/`NotebookBar` each already follow (their own inset,
  * not an ancestor's or a sibling's) - so a keyboard opening is just another size change, read by
  * the same [LaunchedEffect] that already answers a rotation, the way Termux's own
@@ -88,11 +88,11 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * ```
  *
  * @param textStyle [codeTextStyle]'s own default for every other caller; the terminal's own
- *   font-size setting (`docs/PLAN.md` P4j-3c) is what `TerminalPaneScreen` resolves and passes
+ *   font-size setting is what `TerminalPaneScreen` resolves and passes
  *   here instead, one style shared by both [terminalCellMetrics]'s measurement and the glyphs
  *   themselves so the two can never drift apart.
  * @param topRow the external row this draws at its own top edge - `0` is the live screen
- *   (every existing caller's default), negative is scrollback (`docs/PLAN.md`'s P4j-3d-2). The
+ *   (every existing caller's default), negative is scrollback. The
  *   cursor is drawn only at `topRow == 0`: its own row is always among the *live* screen's
  *   external rows, so scrolling away from `0` moves it out of the window this draws, the same
  *   side effect Termux's own `TerminalRenderer.render` gets for free from iterating

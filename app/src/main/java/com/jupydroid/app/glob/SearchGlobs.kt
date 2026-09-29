@@ -68,7 +68,7 @@ private val SEARCH_EXCLUDE_DEFAULT = listOf(
  *
  * The reference's *"Use Exclude Settings and Ignore Files"* toggle
  * (`userDisabledExcludesAndIgnoreFiles`) is not modelled: there is no settings screen to disable
- * yet, and P6c is where one arrives.
+ * yet.
  */
 val DEFAULT_EXCLUDED_GLOBS: List<PathGlob> = (FILES_EXCLUDE_DEFAULT + SEARCH_EXCLUDE_DEFAULT).map { PathGlob(it) }
 

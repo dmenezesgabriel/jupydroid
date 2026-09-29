@@ -20,7 +20,7 @@ import org.junit.Test
  * **What the constants are held to did change, at P2u-2.** The syntax colours are VS Code's and
  * are pinned by *equality* to the resolved 2026 themes; the contrast floor that used to gate them
  * is gone, because parity and the floor disagree on one value and parity won
- * (`docs/DECISIONS.md`, "Parity with the 2026 themes outranks the contrast floor"). Everything
+ * (ADR-0041). Everything
  * this app chose for itself - the two search-match foregrounds, the active editor border - is
  * still held to its WCAG floor below, and P2u-3 brings the surfaces onto the same footing.
  */
@@ -92,7 +92,7 @@ class EditorPaletteTest {
    *
    * ```sh
    * python3 scripts/resolve_vscode_theme.py \
-   *   reference/research_repos/vscode/extensions/theme-defaults/themes/2026-dark.json --role number
+   *   <your vscode clone>/extensions/theme-defaults/themes/2026-dark.json --role number
    * ```
    *
    * The app's *own* foregrounds are still held to AA - see the two search-match tests below. Those

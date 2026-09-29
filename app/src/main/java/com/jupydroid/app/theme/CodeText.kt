@@ -44,7 +44,7 @@ object CodeText {
 
   /**
    * [lineHeight]'s own ratio, exposed for a size other than [size] - the terminal's own font-size
-   * setting (`docs/PLAN.md` P4j-3c) resizes its glyphs through this rather than restating
+   * setting resizes its glyphs through this rather than restating
    * `1.3077` a second time undertested.
    */
   fun lineHeightFor(size: TextUnit): TextUnit = (size.value * REFERENCE_LINE_HEIGHT_RATIO).roundToInt().sp

@@ -64,7 +64,7 @@ fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher = JupyterSe
  * The base Space's server, brought up on first use - or null where no Space can run.
  *
  * Null rather than a throwing object, so the caller decides: on an x86_64 emulator the runtime
- * cannot work at all (evidence/step8.3/musl-is-arm64-only.txt) and the UI is better served by the
+ * cannot work at all and the UI is better served by the
  * fakes than by controls that always fail.
  *
  * **One per process, and shared by every client of the Space**, because

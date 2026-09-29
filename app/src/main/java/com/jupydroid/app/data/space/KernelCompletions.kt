@@ -12,7 +12,7 @@ import kotlinx.serialization.json.jsonPrimitive
  *
  * The reply's shape is the protocol's, verified against JupyterLab's own message types rather
  * than assumed: `matches`, plus the `cursor_start`/`cursor_end` range those matches replace
- * (`reference/research_repos/jupyterlab/packages/services/src/kernel/messages.ts:866-878`).
+ * (`jupyterlab@7f0e6906 packages/services/src/kernel/messages.ts:866-878`).
  *
  * Total, like every other reader here: a frame belonging to somebody else, of the wrong type,
  * or unparseable is null rather than an exception, because a shared kernel's shell channel

@@ -13,7 +13,7 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * **`pip install` grounds in the Space's own user base** (P8b), not the rootfs's
+ * **`pip install` grounds in the Space's own user base**, not the rootfs's
  * site-packages.
  *
  * The user's report was exact: Alpine ships this interpreter with the PEP 668

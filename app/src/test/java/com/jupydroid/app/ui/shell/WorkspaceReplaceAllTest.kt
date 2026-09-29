@@ -24,7 +24,7 @@ import org.junit.Test
  * thing about the tests.
  *
  * `SearchView.replaceAll` (`searchView.ts:812-853`) with the tree left out. VS Code answers both
- * halves of this panel - JupyterLab registers no workspace search at all (`docs/DECISIONS.md`).
+ * halves of this panel - JupyterLab registers no workspace search at all.
  */
 class WorkspaceReplaceAllTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()

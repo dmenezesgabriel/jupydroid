@@ -10,7 +10,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * `docs/PLAN.md`'s P4j-3d - gesture scrollback: [TerminalPaneViewModel.scrollBy]'s clamped,
+ * gesture scrollback: [TerminalPaneViewModel.scrollBy]'s clamped,
  * remainder-carrying row arithmetic (3d-3), the reset-to-live-on-new-output rule Termux's own
  * `TerminalView.onScreenUpdated` takes by default (3d-3), and the alternate screen's own redirect
  * to arrow keystrokes instead of a scroll (3d-4). Split out of `TerminalPaneViewModelTest.kt` once
@@ -21,7 +21,7 @@ class TerminalPaneViewModelScrollbackTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
   /**
-   * `docs/PLAN.md`'s P4j-3d-3: sub-cell drag distance is not lost between calls - Termux's own
+   * sub-cell drag distance is not lost between calls - Termux's own
    * `mScrollRemainder`. Two 4px drags over a 10px cell move nothing on their own; a third pushes
    * the accumulated 12px total past one whole cell, landing exactly one row.
    */
@@ -88,7 +88,7 @@ class TerminalPaneViewModelScrollbackTest {
    * Termux's own `TerminalView.onScreenUpdated` default path: no text selection, no auto-scroll
    * lock exist in this app to carve an exception out for, so any new output while scrolled back
    * snaps straight back to the live screen - a named simplification of the reference, not a
-   * silent omission (`docs/PLAN.md`).
+   * silent omission.
    */
   @Test
   fun newOutputWhileScrolledBackSnapsBackToTheLiveScreen() = runTest {
@@ -109,7 +109,7 @@ class TerminalPaneViewModelScrollbackTest {
   }
 
   /**
-   * `docs/PLAN.md`'s P4j-3d-4: the alternate screen (`vi`, `less`, `htop`) carries no scrollback
+   * the alternate screen (`vi`, `less`, `htop`) carries no scrollback
    * at all, so a drag there is Termux's own `doScroll`'s special case - redirected to Up/Down
    * arrow keystrokes instead of a `topRow` move. `ScreenBuffers.isAlternateLive` is already public
    * through `TerminalScreen.buffers` - no new delegate property needed, the plan row's own

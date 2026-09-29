@@ -54,7 +54,7 @@ class SpaceRuntimeTest {
   /**
    * Every Space process, not just the one being debugged. Android refuses some syscalls
    * with SECCOMP_RET_TRAP, and an unhandled SIGSYS terminates the process - which is the
-   * only reason `import numpy` used to be fatal (evidence/step8.7). The handler turns the
+   * only reason `import numpy` used to be fatal. The handler turns the
    * refusal back into the ENOSYS the kernel already returned. Setting it here rather than
    * per-launcher is what makes the server, the kernel and every future subprocess behave
    * the same; a Space where only some processes survive a refusal is the worst outcome.
@@ -176,7 +176,7 @@ class SpaceRuntimeTest {
    * Unset, `executable` stays None and CPython falls back to the absolute `/bin/sh`, which does
    * not exist on Android - so the command runs nowhere and the cell gets an empty string back.
    * Measured before this was set: `getoutput repr: ''` for `echo` itself, while `!echo`, which
-   * takes the pexpect path and searches `PATH`, worked (`evidence/p4-terminal/shell-escapes.md`).
+   * takes the pexpect path and searches `PATH`, worked.
    *
    * The same variable is what `jupyter_server_terminals` consults before falling back to
    * `which("sh")`, and what pexpect resolves for the printing escape - so one setting decides
@@ -212,7 +212,7 @@ class SpaceRuntimeTest {
   }
 
   /**
-   * musl's own resolver cannot be redirected (evidence/p7e-3b-interposition-probe/): this
+   * musl's own resolver cannot be redirected: this
    * joins the other two preloads exactly like they join each other, filtered by presence alone.
    */
   @Test
@@ -275,7 +275,7 @@ class SpaceRuntimeTest {
 
   /**
    * PEP 668's answer for this interpreter: installs ground in the Space's own user base,
-   * not the rootfs's site-packages. Measured on-device (P8a): bare `pip install` is
+   * not the rootfs's site-packages. Measured on-device: bare `pip install` is
    * refused by `EXTERNALLY-MANAGED` even with `--user`; with `PYTHONUSERBASE` + `PIP_USER`
    * + `PIP_BREAK_SYSTEM_PACKAGES` the same command lands under `pkgs/` and imports from
    * there, leaving `usr/lib/python3.12/site-packages` untouched.

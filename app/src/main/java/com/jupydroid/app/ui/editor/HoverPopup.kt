@@ -73,7 +73,7 @@ internal fun HoverPopup(hover: LanguageHover, caret: IntRect, onDismiss: () -> U
 /**
  * A `LanguageMarkup` payload, drawn: markdown through the document pipeline, plaintext
  * verbatim. Internal rather than private because the signature-help card renders the same
- * `documentation` markup under its signature (`docs/PLAN.md` P5e-4).
+ * `documentation` markup under its signature.
  */
 @Composable
 internal fun MarkupBody(markup: LanguageMarkup) {

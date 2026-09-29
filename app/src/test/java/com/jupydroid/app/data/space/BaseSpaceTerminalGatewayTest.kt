@@ -32,7 +32,7 @@ class BaseSpaceTerminalGatewayTest {
    * asked for anything.
    *
    * Seven seconds and ~130 MB to answer a question whose honest answer is "none"
-   * (`evidence/p1c-app-death-backstop/`): a server that is not running holds no terminals, and a
+   *: a server that is not running holds no terminals, and a
    * freshly started one would have said the same.
    */
   @Test

@@ -135,7 +135,7 @@ class KernelOutputsTest {
   /**
    * The other half of completion. JupyterLab's KernelFutureHandler is only done once *both*
    * the shell execute_reply and the iopub idle have arrived, in either order
-   * (reference/research_repos/jupyterlab/packages/services/src/kernel/future.ts:14-17).
+   * (jupyterlab@7f0e6906 packages/services/src/kernel/future.ts:14-17).
    * The two travel on separate channels with no ordering guarantee between them, so idle
    * alone would truncate output still in flight and reply alone would end the cell early.
    */

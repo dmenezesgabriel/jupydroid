@@ -23,7 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `docs/PLAN.md`'s P4j-2: a hardware Ctrl+C reaches the shell as the SIGINT byte, not the letter
+ * a hardware Ctrl+C reaches the shell as the SIGINT byte, not the letter
  * `c`, and an arrow key reaches it as a cursor-motion escape rather than moving
  * `BasicTextField`'s own caret - `TerminalGateway.send`'s own KDoc names `"\u0003"` as Ctrl-C. A device-real check:
  * `performKeyInput` dispatches through the same `onPreviewKeyEvent` a physical or bluetooth

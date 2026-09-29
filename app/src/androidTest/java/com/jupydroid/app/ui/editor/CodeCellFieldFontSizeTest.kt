@@ -11,7 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `docs/PLAN.md`'s P6c-4: `codeFontSizeSp` has to actually resize what is drawn, not merely
+ * `codeFontSizeSp` has to actually resize what is drawn, not merely
  * compile - the same claim [com.jupydroid.app.TerminalCanvasTest.aLargerTextStyleMeasuresAWiderCell]
  * measures for the terminal's own field. `onLayoutMeasured` is [CodeCellField]'s own hook for
  * exactly this - `FileEditorScreen` already reads it to scroll a search match into view.

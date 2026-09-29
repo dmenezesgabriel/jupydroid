@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.SharedFlow
  *
  * Sharing the registry is the fidelity, not a convenience - it is what makes a per-row shutdown
  * on the emulator reach an open notebook the way `session.disposed` does against a real server,
- * so the panel's whole loop (run → row → shut down → No Kernel) is testable there (P8f).
+ * so the panel's whole loop (run → row → shut down → No Kernel) is testable there.
  *
  * ```
  * val registry = KernelSessionRegistry()

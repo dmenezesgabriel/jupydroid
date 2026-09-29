@@ -41,7 +41,7 @@ class OkHttpKernelLifecycleTest {
 
     assertEquals("kernel-abc", started.kernelId)
     // The session's own id, not the kernel's: `DELETE api/sessions/<id>` addresses this one, and
-    // reading `kernel.id` for it would delete a session that does not exist (P1d).
+    // reading `kernel.id` for it would delete a session that does not exist.
     assertEquals("session-1", started.serverSessionId)
     val request = takeRequest()
     assertEquals("POST", request.method)
@@ -266,7 +266,7 @@ class OkHttpKernelLifecycleTest {
    * 404 is **not** a failure: the session is gone, which is what the caller asked for.
    *
    * The reference `console.warn`s and returns (`restapi.ts:65-70`), and the reason it can happen
-   * here is ours as well as theirs - `jupyter_server` culls an idle kernel on its own (P1b), so a
+   * here is ours as well as theirs - `jupyter_server` culls an idle kernel on its own, so a
    * notebook left open across the cull would ask to shut down a session the server has already
    * forgotten.
    */

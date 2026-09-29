@@ -33,7 +33,7 @@ import org.junit.Test
  * `SearchView`'s half of `searchView.ts` with the tree left out: the box is read on a delay, the
  * walk it starts replaces the one before it, and the completion says whether what is on screen is
  * everything. VS Code answers both halves of this - JupyterLab registers no workspace search at
- * all (`docs/DECISIONS.md`, "The activity bar's order takes both references").
+ * all (ADR-0062).
  */
 class WorkspaceSearchViewModelTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()

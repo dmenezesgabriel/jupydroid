@@ -23,7 +23,7 @@ internal const val RECENTS_FILE_NAME = "recent-documents.json"
  * The recents list, held in [stateDir] and validated against the workspace it points into.
  *
  * **[stateDir] is not the workspace, and that is the design.** The workspace is the kernel's `HOME`
- * and the server's `root_dir` (X1a), shared with any other Jupyter client - a bookkeeping file
+ * and the server's `root_dir`, shared with any other Jupyter client - a bookkeeping file
  * there would show up in the explorer's own listing and in an `ls` from a cell. The reference keeps
  * recents in `IStateDB` under `docmanager:recents` (`recents.ts:288`), which is client state and
  * not a Contents API file, and X1a kept its migration stamp out of the rootfs `home` for the same

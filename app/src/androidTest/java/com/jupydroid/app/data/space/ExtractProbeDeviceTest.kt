@@ -29,7 +29,7 @@ import kotlin.time.TimeSource
  * ceiling of the obvious fix, measured before it is built.
  *
  * The gzip run measured decompress+walk 8.9 s, serial 12.0 s, fan-out 7.5-8.2 s
- * (evidence/p8c-1-extraction): the codec was the floor, so the archive is now zstd.
+ *: the codec was the floor, so the archive is now zstd.
  * The parallel probe's 13308 counts files only; the serial 15237 counts every tar
  * entry including directories and links.
  *

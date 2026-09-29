@@ -20,12 +20,12 @@ fun interface ArchiveSource {
  *
  * zstd rather than gzip: decompressing the 82 MB arm64 tarball was ~9 s of
  * single-threaded CPU on the tablet - the floor no write-side optimisation can
- * go under (evidence/p8a-cold-path). Winlator's rootfs installer runs the same
+ * go under. Winlator's rootfs installer runs the same
  * archive shape through the same two libraries.
  *
  * Nothing here sets an executable bit, and nothing needs to: the rootfs is only ever
  * read and `mmap`'d. The two files that are genuinely execve'd ship as APK native
- * libraries instead (docs/DECISIONS.md, "Exec model").
+ * libraries instead (ADR-0002).
  *
  * ```
  * val written = TarZstdExtractor().extract({ assets.open("spaces/base/rootfs-arm64-v8a.tzst") }, baseDir)

@@ -31,7 +31,7 @@ class BaseSpaceKernelGateway(
   /**
    * Where minted sessions are announced and ended sessions announced *from* - shared with
    * `BaseSpaceKernelSessions`, which is what lets the Running panel's per-row shutdown reach a
-   * notebook holding the session (P8f). Defaulted so a gateway driven alone tracks nothing it
+   * notebook holding the session. Defaulted so a gateway driven alone tracks nothing it
    * did not mint either.
    */
   private val registry: KernelSessionRegistry = KernelSessionRegistry(),
@@ -95,7 +95,7 @@ class BaseSpaceKernelGateway(
  * the process that knew about it. The gateway is the only party that knows a server was
  * replaced, so it is the one that can say so - the alternative is what the tablet measured
  * before this existed: a websocket upgrade answered `404 Not Found` for a kernel id the fresh
- * server never issued (`evidence/p1c-app-death-backstop/stale-session-404.txt`).
+ * server never issued.
  */
 private class IssuedSessions(
   private val sharedSockets: PerRunningServer<KernelSockets>,

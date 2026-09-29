@@ -33,7 +33,7 @@ import kotlin.time.Duration.Companion.seconds
  * `200 []` proves only that the extension loaded; it would look identical if terminado were about
  * to spawn Android's own shell out of a `PATH` search with `-l` appended. That is the same shape
  * of hollow gate P4b caught, where `sh -c 'echo ok'` passed while all 304 applets were broken
- * (`evidence/p4-terminal/busybox-dispatch.md`). So the terminal is actually **created**, and the
+ *. So the terminal is actually **created**, and the
  * argv of the process behind it is read back.
  *
  * **Instrumented, and the first test here that starts a real `jupyter_server`.** It starts one

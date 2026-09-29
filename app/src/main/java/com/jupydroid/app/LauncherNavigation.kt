@@ -52,7 +52,7 @@ fun rememberLaunchHandler(
  * last document is the layout change that empties it.
  *
  * At one pane there is no empty main area to fill - the browser *is* the window - so the push
- * happens on the first run only (`docs/DECISIONS.md`, P6d) and `launcherSeen` is what makes
+ * happens on the first run only and `launcherSeen` is what makes
  * "once" survive a restart. Setting the flag on the two-pane fill too is deliberate: the launcher
  * has already presented itself there, and a rotation to one pane must not count that presentation
  * as still owed.

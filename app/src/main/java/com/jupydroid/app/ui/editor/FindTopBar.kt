@@ -224,7 +224,7 @@ private fun ReplaceRow(
  *
  * Flip labels rather than check marks, this app's convention throughout its menus - Android's
  * accessibility tree keeps a `DropdownMenuItem`'s toggled state on a node that carries no label,
- * so a check mark is a state no Maestro flow can read (`docs/DECISIONS.md`).
+ * so a check mark is a state no Maestro flow can read.
  */
 @Composable
 private fun SearchOptionsMenu(
@@ -336,7 +336,7 @@ private fun FindBox(query: SearchQuery, onQueryChanged: (SearchQuery) -> Unit, f
  * **Deliberately not [FIND_BOX]'s string**, and that is a harness rule rather than a preference: a
  * flow closing the bar asserts the box is gone, and Maestro matches whole nodes - so two controls
  * that mean the same thing must not be spelled the same way, or the assertion is answered by the
- * icon that just came back (`docs/DECISIONS.md`).
+ * icon that just came back.
  */
 internal const val FIND_ACTION = "Find in notebook"
 

@@ -25,7 +25,7 @@ import com.jupydroid.app.ui.editor.symbolKeyStyle
 
 /**
  * The row a touchscreen terminal needs that a soft keyboard cannot produce on its own -
- * `docs/PLAN.md`'s P4j-3a, `SymbolRow`'s own shape (`Surface`/scrolling `Row`/`imePadding`/
+ * 3a, `SymbolRow`'s own shape (`Surface`/scrolling `Row`/`imePadding`/
  * `navigationBarsPadding`) generalised rather than rebuilt, talking to [TerminalPaneViewModel]
  * the way `SymbolRow` talks to `FocusedCellInput`.
  *

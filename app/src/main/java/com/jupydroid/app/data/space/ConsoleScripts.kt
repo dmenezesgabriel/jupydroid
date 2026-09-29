@@ -20,8 +20,7 @@ import java.nio.file.Path
  * times.** A name resolves to a native library Android *will* exec (it lives in `nativeLibraryDir`,
  * context `apk_data_file`): `usr/local/bin/pip` -> `bin/shebang-exec` -> `libshebang.so`. `PATH` is
  * `usr/local/bin:usr/bin:bin` ([SpaceRuntime]), so the link shadows the real `usr/bin/pip` without
- * touching it, and `usr/local/bin` is empty in the image
- * (`evidence/p7e-2a-console-scripts/README.md`).
+ * touching it, and `usr/local/bin` is empty in the image.
  *
  * **One maintained link, not 32.** Only `bin/shebang-exec` is repointed on an app update, because
  * `nativeLibraryDir` moves; the `usr/local/bin` links are *relative* and can never go stale, the

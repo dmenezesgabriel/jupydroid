@@ -84,7 +84,7 @@ private fun JsonObject.boolean(key: String): Boolean = get(key)?.jsonPrimitive?.
 
 /**
  * `variables`' own row shape - moved out of [KernelDebugReplies] once adding [KernelDebugReplies.evaluated]
- * (P6a-17) pushed that object past detekt's own eleven-per-object cap, the same reason
+ * pushed that object past detekt's own eleven-per-object cap, the same reason
  * `string`/`int`/`boolean` already live here instead of as object members.
  */
 private fun JsonObject.toVariable() = DebugVariable(
@@ -101,7 +101,7 @@ private fun JsonObject.toVariable() = DebugVariable(
  *
  * `hashSeed` is read as a `Long`: the live kernel sends it as a plain JSON number
  * (`3339675911`, i.e. `0xC70F6907`) rather than the string the reference's own
- * `IDebugInfoResponse.hashSeed: string` declares (`evidence/p6a-5-cell-code-id/`).
+ * `IDebugInfoResponse.hashSeed: string` declares.
  */
 internal data class DebugInfoHashParams(
   val hashMethod: String,

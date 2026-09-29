@@ -50,7 +50,7 @@ import org.junit.runner.RunWith
  * the message above it.
  *
  * VS Code answers for both halves of this panel, JupyterLab registering no workspace search at all
- * (`docs/DECISIONS.md`, "The activity bar's order takes both references").
+ * (ADR-0062).
  */
 @RunWith(AndroidJUnit4::class)
 class SearchSidePanelTest {
@@ -240,7 +240,7 @@ class SearchSidePanelTest {
   /**
    * **A toggle says which way it is now by changing its name**, not by a check mark: Android's
    * accessibility tree keeps a toggled state on a node that carries no label, so a mark is a state
-   * no flow and no screen reader can read (`docs/DECISIONS.md`). Every toggle in this app has two
+   * no flow and no screen reader can read. Every toggle in this app has two
    * labels for that reason, and these three already have theirs in `ui/editor/FindTopBar.kt`.
    */
   @Test

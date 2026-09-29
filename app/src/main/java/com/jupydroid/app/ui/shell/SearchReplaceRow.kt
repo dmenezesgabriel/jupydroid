@@ -113,7 +113,7 @@ private fun ReplaceChevron(shown: Boolean, onToggleShown: () -> Unit) {
       .semantics { contentDescription = if (shown) HIDE_REPLACE else SHOW_REPLACE },
   ) {
     // The shape says which way the row is, so the label says what a tap will *do*, which is this
-    // app's rule for every toggle (`docs/DECISIONS.md`).
+    // app's rule for every toggle.
     Icon(if (shown) Icons.Filled.ExpandMore else Icons.Filled.KeyboardArrowRight, contentDescription = null)
   }
 }

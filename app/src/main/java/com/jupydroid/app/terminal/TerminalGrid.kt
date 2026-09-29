@@ -220,7 +220,7 @@ class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
 /**
  * [current] shifted by [deltaRows] rows, clamped to what this grid can actually show - no
  * further down than the live screen (`0`), no further up than [TerminalGrid.activeTranscriptRows]
- * - the gesture-scrollback viewport's own arithmetic (`docs/PLAN.md`'s P4j-3d-1). Termux's own
+ * - the gesture-scrollback viewport's own arithmetic. Termux's own
  * `TerminalView.doScroll`: `Math.min(0, Math.max(-activeTranscriptRows, mTopRow + delta))`.
  *
  * [current] need not already be in range - a stale value (e.g. after a resize shrinks

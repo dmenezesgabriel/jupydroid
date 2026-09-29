@@ -5,7 +5,7 @@ import org.junit.Test
 
 /**
  * Fixtures captured from one real kernel's live `debug_info`/`dumpCell` replies
- * (`evidence/p6a-5-cell-code-id/`) - the row's own gate is a parity test against a live reply,
+ * - the row's own gate is a parity test against a live reply,
  * not a value invented or copied from the reference's own tests (none exist there with a real
  * numeric hash, see the evidence README).
  */

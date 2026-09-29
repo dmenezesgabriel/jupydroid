@@ -97,7 +97,7 @@ fun SettingsScreen(
   Scaffold(
     modifier = modifier.fillMaxSize().testTag(SETTINGS_SCREEN_TAG),
     // The document's own background, not a Material role - every other document screen in this
-    // tree already follows this rule (`docs/DECISIONS.md`).
+    // tree already follows this rule.
     containerColor = editorPalette.editorBackground,
     // No top bar at all: the tab above names it (`title.label` is the strip's, not a panel
     // row's) and leaving it is the strip's own act - the ✕ at two panes, the arrow below. The

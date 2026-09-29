@@ -56,7 +56,7 @@ class NotebookCellEdits(
    * filtering on `isSelectedOrActive` (`packages/notebook/src/actions.tsx:1851-1870`). Routing it
    * through [applyTo] would have meant inventing a cell for it to be asked from.
    *
-   * Undoable like the selection-scoped one, and by the same adaptation - see `docs/DECISIONS.md`.
+   * Undoable like the selection-scoped one, and by the same adaptation.
    */
   fun clearAllOutputs() {
     uiState.update { it.withAllOutputsCleared().recording(before = it) }

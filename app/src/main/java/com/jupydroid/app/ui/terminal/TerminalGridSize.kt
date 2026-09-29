@@ -7,7 +7,7 @@ private const val MINIMUM_CELLS = 2
 
 /**
  * How many whole [cell]-sized glyphs fit in [containerPixels] - the layout-driven half of
- * `docs/PLAN.md`'s P4i-3a, kept a pure function of two sizes so it needs no `BoxWithConstraints`
+ * 3a, kept a pure function of two sizes so it needs no `BoxWithConstraints`
  * of its own to test. A partial cell at the edge draws nothing, so a remainder is dropped rather
  * than rounded up; a container too small for even [MINIMUM_CELLS] still gets that many, matching
  * the floor [com.jupydroid.app.terminal.TerminalEmulator.resize] itself enforces.

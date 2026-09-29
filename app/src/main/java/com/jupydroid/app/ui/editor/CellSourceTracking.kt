@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.drop
  * because they belong to two different things.
  *
  * **[adoptRewrittenSource] belongs to the cell and [reportCellEdits] to the field**, and that split
- * is not tidiness: a cell owns *one* text state however it is being shown (`docs/DECISIONS.md`),
+ * is not tidiness: a cell owns *one* text state however it is being shown,
  * while the field over it is composed, disposed and *replaced* - a change of type swaps
  * [CodeCellField] for [MarkdownCellField] over the same state. Both halves used to live in the
  * field, and P2f-3 is what proved that wrong: `change-cell-to-heading` is the first command that

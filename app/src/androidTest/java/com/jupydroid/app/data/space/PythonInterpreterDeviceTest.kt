@@ -13,10 +13,10 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * **The Space's shell can run the Space's Python** (P7e-1).
+ * **The Space's shell can run the Space's Python**.
  *
  * Before this step it could not: `python3 --version` answered *Permission denied* with **rc=126**
- * on the tablet (`evidence/p7e-0-runtime-probe/`), while `command -v python3` resolved fine. The
+ * on the tablet, while `command -v python3` resolved fine. The
  * kernel was never affected - it is exec'd from `nativeLibraryDir` directly - so nothing in the
  * notebook suite could see this, and nothing did.
  *

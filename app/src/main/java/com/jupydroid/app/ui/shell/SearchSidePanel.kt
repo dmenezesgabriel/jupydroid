@@ -43,7 +43,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  *
  * The box, then whatever the last finished walk has to say, then what it found grouped by file.
  * VS Code answers for **both** halves of this panel: JupyterLab registers no workspace search at
- * all (`docs/DECISIONS.md`, "The activity bar's order takes both references").
+ * all (ADR-0062).
  *
  * **The same chrome as the two panels beside it** - a `Scaffold` and a `TopAppBar`, for the reason
  * `TableOfContentsSidePanel`'s own doc gives: the bar is also what pads the panel out of the status
@@ -201,7 +201,7 @@ internal fun PanelMessage(text: String, color: Color = MaterialTheme.colorScheme
  * which is the same word, eight dp above. VS Code has both too, but its view title is small
  * upper-case chrome at the far edge of a workbench, not the line directly over the field. Two
  * controls that mean the same thing must not be spelled the same way here - a flow closing the
- * panel asserts the box is gone, and Maestro matches whole nodes (`docs/DECISIONS.md`). The
+ * panel asserts the box is gone, and Maestro matches whole nodes. The
  * magnifier takes over what the placeholder was for, and the name a screen reader hears is
  * [SEARCH_WORKSPACE_BOX] - the reference giving its box an aria-label of its own is the same split
  * (`searchWidget.ts:291`).
@@ -253,6 +253,6 @@ internal const val RESULTS_ARE_A_SUBSET =
  * What the box answers to - see [SearchBox] for why it is not the placeholder's string.
  *
  * Deliberately not `SidePanel.SEARCH.label`: a flow that closes the panel asserts the box is gone,
- * and two controls a tap apart must not be spelled the same way (`docs/DECISIONS.md`).
+ * and two controls a tap apart must not be spelled the same way.
  */
 internal const val SEARCH_WORKSPACE_BOX = "Search the workspace"

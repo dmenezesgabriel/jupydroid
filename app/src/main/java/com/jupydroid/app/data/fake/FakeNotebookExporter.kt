@@ -10,7 +10,7 @@ import com.jupydroid.app.domain.port.NotebookExporter
  *
  * **Its defaults are the tablet's own measurement**, not an invention: the six formats
  * `GET /api/nbconvert` listed *and converted* on the shipped rootfs, with the mime types it
- * reported (`evidence/p2j-2-export-formats/`). So an x86_64 emulator - which has no rootfs at all
+ * reported. So an x86_64 emulator - which has no rootfs at all
  * and falls back to the fakes - draws the same menu with the same rows as the tablet, and a flow
  * about the *menu* is worth running there.
  *

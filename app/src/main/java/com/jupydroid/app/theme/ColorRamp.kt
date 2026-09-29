@@ -6,12 +6,12 @@ import androidx.compose.ui.graphics.Color
  * The app's raw chrome ramps - every hex value the Material scheme draws with, dark and light.
  *
  * The values are transcribed from VS Code's **resolved** default themes, `2026-dark.json` and
- * `2026-light.json`, read out of `reference/research_repos/vscode` at `3f3380c668d`. Each position
+ * `2026-light.json`, read out of `vscode` at `3f3380c668d`. Each position
  * below names the colour id it came from, so a value can be checked against its origin instead of
  * argued about:
  *
  * ```sh
- * cd reference/research_repos/vscode/extensions/theme-defaults/themes
+ * cd <your vscode clone>/extensions/theme-defaults/themes
  * python3 ../../../../../../scripts/resolve_vscode_theme.py 2026-dark.json --color editor.background
  * ```
  *

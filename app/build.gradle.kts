@@ -12,12 +12,12 @@ android {
     namespace = "com.jupydroid.app"
     // 37 because `adaptive-*:1.3.0` refuses to be consumed below it (`checkDebugAarMetadata`:
     // "requires libraries and applications that depend on it to compile against version 37 or
-    // later"), which is what P1e actually cost - the BOM drift was the smaller half.
+    // later"), which is what the adaptive-navigation3 bump actually cost - the BOM drift was the smaller half.
     //
     // **`targetSdk` deliberately stays at 36**, and nothing here changes runtime behaviour.
     // compileSdk says which APIs may be *called*; targetSdk is what opts the app into new
     // behaviour, and 36 is the number the whole exec model is arranged around
-    // (`docs/DECISIONS.md`, "Exec model").
+    // (ADR-0002: everything executable ships in jniLibs and is reached through a symlink).
     compileSdk = 37
     defaultConfig {
         applicationId = "com.jupydroid.app"
@@ -25,7 +25,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        // The Compose test deps have been declared since Step 1 with nothing to run; this is
+        // The Compose test deps were declared long before anything ran against them; this is
         // what lets androidTest actually execute (first used by CellHeaderTest).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,7 +52,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
         jniLibs {
-            // The whole exec model depends on this (docs/PLAN.md, "Exec model"):
+            // The whole exec model depends on this (ADR-0002):
             // only files extracted to /data/app/.../lib/<abi>/ get the apk_data_file
             // SELinux context that permits execve. Left at the modern default the
             // libs stay inside the APK, nativeLibraryDir points into it, and nothing
@@ -97,8 +97,9 @@ dependencies {
     // Arch Components
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    // P1c: process-wide lifecycle events. Neither runtime-compose nor viewmodel-compose gives
-    // ON_STOP for the whole process; ProcessLifecycleOwner is the only one that does.
+    // Process-wide lifecycle events, for the idle server stopper (ADR-0024). Neither
+    // runtime-compose nor viewmodel-compose gives ON_STOP for the whole process;
+    // ProcessLifecycleOwner is the only one that does.
     implementation(libs.androidx.lifecycle.process)
 
     // Compose
@@ -106,7 +107,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive)
-    // `ListDetailSceneStrategy`, which replaced the hand-written `TwoPaneSceneStrategy` in P1e.
+    // `ListDetailSceneStrategy`, which replaced a hand-written scene strategy (ADR-0047).
     // It pulls `adaptive-layout` and `adaptive-navigation` with it, and pins the whole family at
     // 1.3.0 rather than the BOM's 1.2.0 - see the catalog entry for why that is the price.
     implementation(libs.androidx.compose.material3.adaptive.navigation3)
@@ -136,7 +137,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
 
-    // nbformat JSON persistence (Step 3)
+    // nbformat JSON persistence
     implementation(libs.kotlinx.serialization.json)
 
     // Instrumented tests: jUnit rules and runners

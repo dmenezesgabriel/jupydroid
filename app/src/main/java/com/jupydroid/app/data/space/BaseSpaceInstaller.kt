@@ -65,7 +65,7 @@ class BaseSpaceInstaller(
    * The archive ships `/lib64/<loader>` pointing inside the rootfs, but a rootfs file
    * cannot be execve'd at targetSdk 36. python3's PT_INTERP is baked with this stable
    * `/data/data/<pkg>` path, so redirect it at the native library, which can be
-   * (docs/DECISIONS.md, "Exec model").
+   * (ADR-0002).
    */
   private suspend fun linkLoaderToNativeLibrary() {
     require(nativeLoader.exists()) { "loader missing at '$nativeLoader'; is useLegacyPackaging on?" }
@@ -73,7 +73,7 @@ class BaseSpaceInstaller(
   }
 
   /**
-   * Gives the Space's *shell* a `python3` it can actually run (P7e-1).
+   * Gives the Space's *shell* a `python3` it can actually run.
    *
    * The kernel never needed this - it is exec'd from [nativeInterpreter] directly
    * ([SpaceRuntime]) - but a terminal resolves the name through `PATH` and lands on the rootfs

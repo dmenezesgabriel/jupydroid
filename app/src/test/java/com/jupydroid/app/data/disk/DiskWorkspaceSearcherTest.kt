@@ -69,7 +69,7 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
   }
 
   /**
-   * **A notebook is searched as the cells it is** - the skip P2x-1d put in, lifted (P2x-4b).
+   * **A notebook is searched as the cells it is** - the skip P2x-1d put in, lifted.
    *
    * The hit names its cell, zero-based, which is `INotebookCellMatchNoModel.index`
    * (`search/common/searchNotebookHelpers.ts:18-22`).
@@ -101,7 +101,7 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
   /**
    * **A base64 image output is not reported.** It is not source, and P2x-4 searches
    * `contentResults` only - `webviewResults` needs a home for "what text an output shows" that
-   * `data` is allowed to read (`docs/DECISIONS.md`).
+   * `data` is allowed to read.
    */
   @Test
   fun theInsideOfAnOutputIsNotReported() = runTest {
@@ -129,7 +129,7 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
 
   /**
    * **A notebook this app cannot read is passed over**, which makes it the fourth kind of file a
-   * walk declines - see `docs/DECISIONS.md`. `Json.readNotebook` throws for JSON that is not an
+   * walk declines. `Json.readNotebook` throws for JSON that is not an
    * object and for a `cell_type` outside nbformat's three, and one unreadable file in a workspace
    * must not end the walk over every other.
    */

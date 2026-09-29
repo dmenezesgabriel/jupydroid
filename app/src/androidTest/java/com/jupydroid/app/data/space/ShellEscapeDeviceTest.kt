@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
  * rides on the same busybox that P4b-2 fixed, and it is worth one test that says so.
  *
  * Driven through `PythonRunner` so the child is the app's own process, under the seccomp filter
- * that is the entire subject (`evidence/p4-terminal/busybox-under-app-seccomp.md`).
+ * that is the entire subject.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \

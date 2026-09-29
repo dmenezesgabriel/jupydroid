@@ -31,7 +31,7 @@ interface TerminalLifecycle {
    *
    * [cwd] is **relative to the server's root**, or null to leave it to the server. The handler
    * resolves a relative path against `server_root_dir` (`api_handlers.py:41-49`) and, since the
-   * server's own cwd *is* that root (`docs/DECISIONS.md`), so does the pty when none is sent.
+   * server's own cwd *is* that root, so does the pty when none is sent.
    *
    * ```
    * lifecycle.create(cwd = "reports")   // -> "1"

@@ -28,7 +28,7 @@ fun baseSpaceKernelSockets(server: BaseSpaceServer): PerRunningServer<KernelSock
 
 /**
  * The gateway backed by a real kernel over [sockets] - registered into [registry] so the Running
- * panel's list and shutdown reach the same sessions this hands to notebooks (P8f).
+ * panel's list and shutdown reach the same sessions this hands to notebooks.
  */
 fun baseSpaceKernelGateway(sockets: PerRunningServer<KernelSockets>, registry: KernelSessionRegistry): KernelGateway =
   BaseSpaceKernelGateway(

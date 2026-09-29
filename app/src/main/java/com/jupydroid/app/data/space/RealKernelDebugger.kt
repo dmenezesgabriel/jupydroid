@@ -29,7 +29,7 @@ class DebugRequestFailedException(command: String, message: String?) :
  * [SessionSocket.askOnce] every other control/shell request already uses.
  *
  * [attach] sends **two** round trips, `initialize` then `attach` - `KernelDebugger`'s own port was
- * finalised at nine methods (P6a-3a) with no separate `initialize`, since nothing else on this
+ * finalised at nine methods with no separate `initialize`, since nothing else on this
  * phone-scoped surface needs its capabilities response; this mirrors JupyterLab's own
  * `DebuggerSession.start()` (`packages/debugger/src/session.ts:180-204`) folding the same two
  * calls behind one entry point.
@@ -49,7 +49,7 @@ class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
    * this app's own session object - repeating either after an earlier one already succeeded (a
    * later cell run, or a notebook reopened onto the same still-live kernel) is rejected with
    * `"Invalid message: Session is already initialized"` / `"… already started"`, not a real
-   * failure: each call's own postcondition already holds. Reproduced live on the tablet (P6a-10):
+   * failure: each call's own postcondition already holds. Reproduced live on the tablet:
    * disarming a breakpoint and re-running the cell it was on threw the first, uncaught, and a
    * third run threw the second - since
    * [NotebookDebugger][com.jupydroid.app.ui.editor.NotebookDebugger] still has to attach on every
@@ -68,7 +68,7 @@ class RealKernelDebugger(private val sockets: KernelSockets) : KernelDebugger {
   /**
    * Sends the real DAP `dumpCell` request once per distinct [code] per session - [CellDumpCache]
    * predicts the same `codeId` a `debugInfo` reply's own params would name, so a repeat needs no
-   * round trip (`evidence/p6a-5-cell-code-id/`).
+   * round trip.
    */
   override suspend fun dumpCell(session: KernelSession, code: String): String = dumpCache.sourcePathFor(
     session,

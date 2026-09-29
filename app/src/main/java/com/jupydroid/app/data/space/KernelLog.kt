@@ -23,7 +23,7 @@ package com.jupydroid.app.data.space
  *
  * A stall shows as `EXECUTE_REQUEST` with no `FRAME_RECEIVED` after it (nothing came back), or
  * with frames whose `subscribers` is `0` (it came back and was thrown away). Those are opposite
- * defects and the sightings that predate this log could not tell them apart - see `docs/PLAN.md`, P0.
+ * defects and the sightings that predate this log could not tell them apart, P0.
  *
  * **The ordering is itself worth reading.** On every device capture so far [EXECUTE_REQUEST]
  * precedes [SOCKET_CONNECTED]: the app hands the frame to OkHttp before the handshake finishes,
@@ -69,7 +69,7 @@ internal object KernelLog {
    *
    * Not an error - the caller wanted the session gone and it is - but worth saying, because the
    * two ways to reach it are worth telling apart afterwards: the server culled the kernel on its
-   * own (P1b), or the app is holding a session id from a server that has since been replaced.
+   * own, or the app is holding a session id from a server that has since been replaced.
    */
   const val SESSION_ALREADY_GONE = "kernel.session.alreadygone"
 }

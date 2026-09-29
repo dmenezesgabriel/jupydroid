@@ -6,7 +6,7 @@ private const val DEFAULT_IMPORT_TITLE = "Imported notebook"
 /**
  * Turns a `.ipynb` file name into a notebook title. The extension is stripped
  * (case-insensitive); blank or missing names fall back to [DEFAULT_IMPORT_TITLE].
- * Step 2 imports title-only; nbformat content parsing lands in Step 3.
+ * Title-only: nbformat content parsing is `DiskNotebookRepository`'s, not this.
  *
  * Example: `importTitleFrom("Intro to NumPy.ipynb") == "Intro to NumPy"`.
  */

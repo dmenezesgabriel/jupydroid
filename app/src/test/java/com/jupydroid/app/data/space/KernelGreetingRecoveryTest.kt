@@ -15,7 +15,7 @@ import kotlin.time.Duration.Companion.seconds
  * A greeting that goes unanswered means the shell channel is dead, so replace the kernel.
  *
  * Seven sightings of the execution stall, every one of them passing on the next launch with a
- * fresh kernel, and none reproducible on demand (`docs/PLAN.md` P0). What the sightings agree on
+ * fresh kernel, and none reproducible on demand. What the sightings agree on
  * is the shape: the socket connects, iopub delivers, and the shell channel answers nothing - not
  * the app's `kernel_info_request`, and not 120 asks over 60 s.
  *
@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.seconds
  * JupyterLab gives up after one timeout and sends the pending messages anyway, with a standing
  * FIXME saying a retry "may be preferable" (`packages/services/src/kernel/default.ts:1589-1591`).
  * The retry was tried here and measured: 2 stalls in 80 tablet runs, both trails showing 120 asks
- * and not one reply (`evidence/kernel-observability/seventh-sighting/`). Asking a dead channel
+ * and not one reply. Asking a dead channel
  * again is still asking a dead channel. Replacing the process behind it is a different act.
  *
  * **The socket is deliberately not reopened.** JupyterLab's `restart()` follows the REST call with

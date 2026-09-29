@@ -49,7 +49,7 @@ class EditorTopBarTest {
    * Both are on the bar even with nothing to take back, disabled rather than absent.
    *
    * A control that appears only once it would work is one nobody discovers, which is the lesson
-   * the cell menu cost three attempts (`docs/DECISIONS.md`). JupyterLab keeps both items in the
+   * the cell menu cost three attempts. JupyterLab keeps both items in the
    * Edit menu at all times and gates them with `isEnabled` (`notebook-extension/src/index.ts:4485`).
    */
   @Test

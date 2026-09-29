@@ -142,7 +142,7 @@ class StdioLanguageServerDeviceTest {
   /**
    * P5e-4: `textDocument/signatureHelp` inside `os.path.join(` makes the real `pylsp` answer
    * jedi's signature - the reply the P5e-0 probe measured byte-for-byte
-   * (`evidence/p5e-0-lsp-surface/logcat-probe.txt`): label
+   *: label
    * `join(path: LiteralString, /, *paths: LiteralString) -> LiteralString`, string-labeled
    * `path`/`paths` parameters, `activeSignature`/`activeParameter` zero. A scripted server
    * can only pretend to know a signature; this is the knowing.
@@ -173,7 +173,7 @@ class StdioLanguageServerDeviceTest {
   /**
    * P5e-5: `textDocument/definition` on a call site makes the real `pylsp` answer jedi's
    * `Location[]` - the reply the P5e-0 probe measured byte-for-byte
-   * (`evidence/p5e-0-lsp-surface/logcat-probe.txt`): one location back into the same
+   *: one location back into the same
    * document, its range covering the name in the `def` line (chars 4-17 there -
    * `def compute_total`). A scripted server can only pretend to know where a name is
    * defined; this is the knowing.
@@ -248,7 +248,7 @@ class StdioLanguageServerDeviceTest {
   /**
    * P5e-7: `textDocument/rename` on a call site makes the real `pylsp` answer jedi's
    * `WorkspaceEdit` - the reply the P5e-0 probe measured byte-for-byte
-   * (`evidence/p5e-0-lsp-surface/logcat-probe.txt`): `documentChanges` carrying ONE
+   *: `documentChanges` carrying ONE
    * whole-document `TextEdit` whose `newText` holds the new name at the `def` line and the
    * call site both. A scripted server can only pretend to rename; this is the rename.
    */

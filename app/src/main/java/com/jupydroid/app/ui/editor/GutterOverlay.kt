@@ -17,7 +17,7 @@ import com.jupydroid.app.theme.editorPalette
 
 /**
  * The gutter drawn as its own fixed sibling rather than folded into the field's modifier chain -
- * `docs/PLAN.md`'s P6c-5. Once a code cell can scroll horizontally, a gutter reached by chaining
+ * 5. Once a code cell can scroll horizontally, a gutter reached by chaining
  * `Modifier.horizontalScroll` into the same chain [lineNumbers] uses scrolled away with the code
  * instead of staying beside it - measured on a real device, not assumed
  * (`evidence/p6c-5-word-wrap/05-scrolled-toward-the-marker.png`, captured before this existed: the

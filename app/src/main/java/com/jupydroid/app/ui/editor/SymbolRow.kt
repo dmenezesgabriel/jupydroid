@@ -22,7 +22,7 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
  * A Maestro flow cannot tell this row's `Tab` key apart from a soft keyboard's *own* Tab key by
  * text alone: at least one real IME (Gboard) carries the identical accessible text "Tab"
  * (`resource-id: com.google.android.inputmethod.latin:id/key_pos_tab`, found live on the
- * physical tablet - `docs/PLAN.md`'s P6c-7), so `assertNotVisible: "Tab"` is not reliable once
+ * physical tablet - 7), so `assertNotVisible: "Tab"` is not reliable once
  * the keyboard is up.
  */
 internal const val SYMBOL_ROW_TAG = "symbol_row"

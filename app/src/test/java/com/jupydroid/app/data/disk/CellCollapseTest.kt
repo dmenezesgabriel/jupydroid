@@ -125,7 +125,7 @@ class CellCollapseTest {
     assertTrue(read.outputsHidden)
   }
 
-  // --- the third key, which is a heading hiding its section (P2f) ------------------------
+  // --- the third key, which is a heading hiding its section ------------------------
 
   @Test
   fun toDomain_readsACollapsedHeading() {
@@ -167,7 +167,7 @@ class CellCollapseTest {
     assertTrue(headingCell(headingCollapsed = true).rewritten().headingCollapsed)
   }
 
-  // --- the fourth key: a cell whose outputs are scrolled rather than hidden (P2g-2a) -----
+  // --- the fourth key: a cell whose outputs are scrolled rather than hidden -----
 
   @Test
   fun toDomain_readsScrolledOutputs() {

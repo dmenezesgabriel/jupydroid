@@ -8,7 +8,7 @@ import java.io.File
  * It is one of the **304** busybox applet links [BusyBoxApplets] repoints at `bin/busybox`, which
  * is in turn the only ELF in the Space that can be `execve`'d - it alone points into
  * `nativeLibraryDir`, the one directory carrying an SELinux context that permits exec at
- * targetSdk 36 (`docs/DECISIONS.md`, "Exec model"). So this path is executable *because* the
+ * targetSdk 36 (ADR-0002). So this path is executable *because* the
  * relinker ran, and naming it here rather than at the call site keeps the two from drifting: a
  * shell pinned outside `bin/` would be a link nothing had repaired, and `execve` answers that with
  * ENOENT rather than with anything a log explains.

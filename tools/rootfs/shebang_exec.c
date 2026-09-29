@@ -9,7 +9,7 @@
  * reference does (`termux-app` `TerminalShellUtils.setupShellCommandArguments`, box64
  * `FileIsPython`/`my_execv`).
  *
- * **What it is.** The fourth use of the pattern `docs/DECISIONS.md` "Exec model" already runs
+ * **What it is.** The fourth use of the pattern ADR-0002 already runs
  * three times: a name resolves to a native library that Android *will* exec (it lives in
  * `nativeLibraryDir`, context `apk_data_file`). `usr/local/bin/pip` -> `bin/shebang-exec` ->
  * `nativeLibraryDir/libshebang.so`; PATH puts `usr/local/bin` first, so the link shadows the real

@@ -7,7 +7,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * The two pure helpers the signature-help pipeline leans on (`docs/PLAN.md` P5e-4):
+ * The two pure helpers the signature-help pipeline leans on:
  *
  * - [typedCharBetween], which recovers the char a keystroke inserted - what
  *   `parameterHintsModel.onTypeHint` reads off the typed text - including the `(` of an

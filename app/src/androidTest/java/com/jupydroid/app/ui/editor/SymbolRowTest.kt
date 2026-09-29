@@ -124,7 +124,7 @@ class SymbolRowTest {
   }
 
   /**
-   * `docs/PLAN.md`'s P6c-7 - a Maestro flow needs to tell this row apart from a soft keyboard's
+   * a Maestro flow needs to tell this row apart from a soft keyboard's
    * *own* Tab key, which on at least one real IME (Gboard) carries the identical accessible text
    * "Tab" (`resource-id: com.google.android.inputmethod.latin:id/key_pos_tab`, found live on the
    * physical tablet) - so `assertNotVisible: "Tab"` is not reliable once the keyboard is up.

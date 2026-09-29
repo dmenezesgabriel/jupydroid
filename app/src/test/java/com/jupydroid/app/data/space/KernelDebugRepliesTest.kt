@@ -97,8 +97,7 @@ class KernelDebugRepliesTest {
   }
 
   /**
-   * `hashSeed` arrives as a JSON number, not the string the reference's own type declares
-   * (`evidence/p6a-5-cell-code-id/`).
+   * `hashSeed` arrives as a JSON number, not the string the reference's own type declares.
    */
   @Test
   fun debugInfoHashParams_readsHashAndTmpFileFields() {

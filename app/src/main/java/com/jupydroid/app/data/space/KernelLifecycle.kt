@@ -107,7 +107,7 @@ interface KernelLifecycle {
    *
    * A session the server no longer has is **not** an error - it is gone, which is the point of
    * asking. That is the reference's rule (`restapi.ts:65-70`, 404 warns and returns) and it is
-   * reachable here for a reason of our own: `jupyter_server` culls an idle kernel by itself (P1b).
+   * reachable here for a reason of our own: `jupyter_server` culls an idle kernel by itself.
    */
   suspend fun shutdownSession(serverSessionId: String)
 }

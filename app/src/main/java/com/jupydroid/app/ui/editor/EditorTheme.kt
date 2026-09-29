@@ -119,7 +119,7 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
  * ```
  *
  * @param fontSize [CodeText.size] for every surface above; the terminal's own font-size setting
- *   (`docs/PLAN.md` P4j-3c) is the one caller that overrides it, so its glyphs resize without a
+ * is the one caller that overrides it, so its glyphs resize without a
  *   second copy of this function.
  */
 @Composable

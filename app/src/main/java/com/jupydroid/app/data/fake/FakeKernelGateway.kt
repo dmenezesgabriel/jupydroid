@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Stub [KernelGateway] echoing the code back; replaced by the real one in Step 10.
  *
  * It registers what it mints into [registry], so the Sessions and Tabs panel lists and shuts
- * down sessions on a device with no Space exactly as on one with it (P8f) - which is also what
+ * down sessions on a device with no Space exactly as on one with it - which is also what
  * keeps the emulator's "run → row appears → shut down → No Kernel" loop verifiable.
  */
 class FakeKernelGateway(private val registry: KernelSessionRegistry = KernelSessionRegistry()) : KernelGateway {
@@ -56,7 +56,7 @@ class FakeKernelGateway(private val registry: KernelSessionRegistry = KernelSess
    * The fake's [changeKernel]: `Spec` mints a fresh kernel id the way `PATCH api/sessions` would
    * start one; `Running` binds the id it was handed. The rebind is announced on the shared
    * [registry] - there is no `BaseSpaceKernelGateway` above this fake on a device with no Space,
-   * so the announcement is its own job here (P8g).
+   * so the announcement is its own job here.
    */
   override suspend fun changeKernel(session: KernelSession, kernel: KernelChoice): KernelSession {
     kernelChanges += kernel

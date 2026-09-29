@@ -10,7 +10,7 @@ import org.junit.Test
  * Apache 2.0 - see [TerminalGrid]). **The termcap table stops at what that test exercises** -
  * `Co`/`colors`/`TN`/`name` and `kB` - because every other capability the reference answers
  * depends on an Android key identity and the cursor/keypad application modes `terminal/` has no
- * caller for until P4j (`docs/DECISIONS.md`).
+ * caller for until P4j.
  */
 class DeviceControlStringTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)

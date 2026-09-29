@@ -189,7 +189,7 @@ class CellEditsTest {
   /**
    * **It touches the selection not at all**, which is the one thing `clearAllOutputs` and
    * `clearOutputs` share with `move` and the collapses: they are the cell operations with no
-   * `deselectAll()` in them (`docs/DECISIONS.md`).
+   * `deselectAll()` in them.
    */
   @Test
   fun clearAllOutputs_leavesTheMarkedRunAlone() {

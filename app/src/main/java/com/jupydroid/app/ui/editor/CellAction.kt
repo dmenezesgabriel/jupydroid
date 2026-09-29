@@ -110,7 +110,7 @@ sealed interface CellAction {
    *
    * The reference has no equivalent because it needs none: there, `Shift`+click extends a
    * selection and there is nothing to *enter*. A long press is `BasicTextField`'s text selection
-   * and is not available to us (`docs/DECISIONS.md`), so the way in is a visible control, and the
+   * and is not available to us, so the way in is a visible control, and the
    * menu behind the `⋮` is where the cell already keeps every one of those.
    *
    * A [CellAction] although it edits nothing, because that is what carries it to all three

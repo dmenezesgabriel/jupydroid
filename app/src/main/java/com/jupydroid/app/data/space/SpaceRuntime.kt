@@ -9,7 +9,7 @@ import java.io.File
  *
  * 1. The interpreter is exec'd from [nativeInterpreter], not from `usr/bin/python3`
  *    inside the rootfs. Only the APK native library directory carries a SELinux
- *    context that permits execve at targetSdk 36 (docs/DECISIONS.md, "Exec model").
+ *    context that permits execve at targetSdk 36 (ADR-0002).
  *    A pleasant side effect is that `sys.executable` is then a path the kernel
  *    subprocess can be launched from too, so kernelspecs need no special casing.
  * 2. `PYTHONHOME` is required, because Python derives its prefix from `argv[0]` and
@@ -72,7 +72,7 @@ class SpaceRuntime(
   /**
    * Android refuses syscalls outside bionic's allowlist with SECCOMP_RET_TRAP, and an
    * unhandled SIGSYS terminates the process - the whole reason `import numpy` used to die
-   * (evidence/step8.7/sigsys-syscall-named.txt). The handler reports the syscall and
+   *. The handler reports the syscall and
    * returns, leaving in place the ENOSYS the kernel already set.
    *
    * Omitted rather than dangling when absent, so a Space extracted by an older version
@@ -101,7 +101,7 @@ class SpaceRuntime(
   /**
    * musl's own resolver cannot be redirected to a writable resolv.conf - it reads the real
    * path through a raw inlined syscall no LD_PRELOAD can intercept
-   * (evidence/p7e-3b-interposition-probe/) - so [DnsServerSource]'s addresses go straight to
+   * - so [DnsServerSource]'s addresses go straight to
    * `tools/rootfs/getaddrinfo_shim.c` as an environment variable instead of a file.
    *
    * Omitted, not blank, when there is nothing to report yet (e.g. no network observed since

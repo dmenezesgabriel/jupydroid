@@ -116,7 +116,7 @@ class BaseSpaceInstallerTest {
    * stages *that file* as `libpython3.so` - so pointing the rootfs name at the native library
    * points it at its own bytes, with the one difference that matters: the target carries an
    * SELinux context that permits execve and an executable bit, and nothing under `filesDir` does
-   * (`docs/DECISIONS.md`, "Exec model").
+   * (ADR-0002).
    */
   @Test
   fun install_pointsTheInterpreterLinkAtTheNativeLibrary() = runTest {
@@ -131,7 +131,7 @@ class BaseSpaceInstallerTest {
 
   /**
    * **Which name the link carries is decided by `PATH`, not by taste.** `SpaceRuntime:42` orders it
-   * `usr/local/bin:usr/bin:bin`, so a link made in `bin/` - which is where `docs/PLAN.md`'s P7e-1
+   * `usr/local/bin:usr/bin:bin`, so a link made in `bin/` - which is where 1
    * row said to put it - is shadowed by the `usr/bin/python3` the image already ships and is never
    * reached. Replacing the ELF the shipped links point *at* is what makes all three names work,
    * and it is `bin/busybox`'s own shape.

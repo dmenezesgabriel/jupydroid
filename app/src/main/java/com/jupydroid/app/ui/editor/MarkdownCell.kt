@@ -81,13 +81,13 @@ fun MarkdownCell(
 ) {
   // **Not a heading, or its source is open: no caret, and the body runs the cell's full width.**
   // The reference draws it in both states - `InputArea` builds the prompt node once and hides only
-  // the *editor* when the cell renders (`packages/cells/src/inputarea.ts:53-56,111-119`) - and
-  // P2n-3 transcribed that. P2v-2 retires it: the column costs 48dp of the editor's width
+  // the *editor* when the cell renders (`packages/cells/src/inputarea.ts:53-56,111-119`), and that
+  // was transcribed first. It is retired: the column costs 48dp of the editor's width
   // (measured by `MarkdownCellTest.anOpenHeadingsSourceStartsWhereProseDoes`, 80dp against 32dp)
   // for an affordance that cannot be used mid-typing anyway, since folding the section would close
-  // what is being written. `docs/DECISIONS.md`, "The cell keeps its header strip", carries the
-  // cost: the caret is `ToggleHeadingCollapse`'s only caller, so a heading renders before its
-  // section folds - while [HiddenCellsRow] keeps *expanding* reachable in either state.
+  // what is being written. ADR-0057 carries the departure, and this is its cost: the caret is
+  // `ToggleHeadingCollapse`'s only caller, so a heading renders before its section folds - while
+  // [HiddenCellsRow] keeps *expanding* reachable in either state.
   if (fold == null || !rendered) {
     MarkdownCellBody(
       state, source, rendered, onEditRequested, onSourceEdited, modifier,

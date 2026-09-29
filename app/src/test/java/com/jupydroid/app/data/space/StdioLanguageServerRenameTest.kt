@@ -55,7 +55,7 @@ class StdioLanguageServerRenameTest {
     // `newName` is the one field `RenameParams` adds to `TextDocumentPositionParams`.
     assertEquals("compute_sum", params.getValue("newName").jsonPrimitive.content)
     // The scripted default is the probe's own reply shape: one whole-document TextEdit on the
-    // asked uri (`evidence/p5e-0-lsp-surface/logcat-probe.txt`).
+    // asked uri.
     val edits = edit.changes.getValue(URI)
     assertEquals(1, edits.size)
     assertTrue(edits[0].newText.contains("compute_sum"))

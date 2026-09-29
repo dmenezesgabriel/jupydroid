@@ -33,10 +33,10 @@ private const val ESC = ""
  * @property redraw bumped on every [TerminalEvent.Output] and colour change, so the screen has a
  *   `State` to key its recomposition on - `emulator.screen.grid` is mutated in place and Compose
  *   cannot observe that on its own.
- * @property latches [TerminalExtraKeysRow]'s own Ctrl/Alt state - `docs/PLAN.md`'s P4j-3a.
- * @property fontSizeSp [TerminalSettingsRepository]'s own current value - `docs/PLAN.md`'s P4j-3c.
+ * @property latches [TerminalExtraKeysRow]'s own Ctrl/Alt state - 3a.
+ * @property fontSizeSp [TerminalSettingsRepository]'s own current value - 3c.
  * @property topRow the gesture-scrollback viewport - `0` is the live screen, negative is
- *   scrollback (`docs/PLAN.md`'s P4j-3d-3), passed straight through to [TerminalCanvas]'s own
+ *   scrollback, passed straight through to [TerminalCanvas]'s own
  *   parameter of the same name.
  */
 data class TerminalPaneUiState(
@@ -141,7 +141,7 @@ class TerminalPaneViewModel(
           // Termux's own `TerminalView.onScreenUpdated` default path: no text-selection anchor,
           // no auto-scroll-lock toggle exist in this app to carve an exception out for, so any
           // new output while scrolled back snaps straight back to the live screen
-          // (`docs/PLAN.md`'s P4j-3d-3) - a named simplification of the reference, not a silent
+          // - a named simplification of the reference, not a silent
           // omission.
           _uiState.update { it.copy(topRow = 0) }
           bumpRedraw()
@@ -161,7 +161,7 @@ class TerminalPaneViewModel(
 
   /**
    * Literal soft-keyboard text (or the backspace run `sendTerminalDiff` turns a shortened prefix
-   * into) - `docs/PLAN.md`'s P4j-3a: a tapped Ctrl/Alt latch applies to it the same way a
+   * into) - a tapped Ctrl/Alt latch applies to it the same way a
    * hardware key's own `ctrlPressed` applies to [terminalKeystroke].
    */
   fun typeCharacters(text: String) {
@@ -196,7 +196,7 @@ class TerminalPaneViewModel(
   /**
    * The container's own measured size, turned into both halves `TerminalGateway.resize`'s own
    * KDoc names: [TerminalEmulator.resize] (what this screen draws) and the wire `set_size` (what
-   * the pty is told) - `docs/PLAN.md`'s P4i-3a. A no-op once [gridSize] repeats, which is what
+   * the pty is told) - 3a. A no-op once [gridSize] repeats, which is what
    * keeps a redraw that changes nothing about the layout from writing the wire again.
    *
    * ```
@@ -233,7 +233,7 @@ class TerminalPaneViewModel(
 
   /**
    * A drag's own pixel delta, turned into whole-row movement of [TerminalPaneUiState.topRow] -
-   * `docs/PLAN.md`'s P4j-3d-3, the gesture-scrollback viewport. [pixelDeltaY] need not be a whole
+   * 3, the gesture-scrollback viewport. [pixelDeltaY] need not be a whole
    * number of cells: the fractional remainder carries to the next call rather than being dropped,
    * the way Termux's own `TerminalView.onScroll` keeps `distanceY += mScrollRemainder`.
    *
@@ -244,7 +244,7 @@ class TerminalPaneViewModel(
    * **The alternate screen** (`vi`, `less`, `htop`) **carries no scrollback at all** - Termux's
    * own `doScroll` redirects a drag there to Up/Down arrow keystrokes instead, reusing
    * [terminalKeystroke]'s own encoding (a hardware key's, P4j-2) rather than a second one -
-   * `docs/PLAN.md`'s P4j-3d-4. `ScreenBuffers.isAlternateLive` is already public through
+   * 4. `ScreenBuffers.isAlternateLive` is already public through
    * [emulator]'s own `screen.buffers` - no new delegate property needed on [TerminalScreen].
    *
    * ```

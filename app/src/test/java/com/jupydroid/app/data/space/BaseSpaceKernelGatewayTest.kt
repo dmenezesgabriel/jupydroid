@@ -170,7 +170,7 @@ class BaseSpaceKernelGatewayTest {
   /**
    * `PATCH api/sessions` keeps the session and swaps the kernel (`handlers.py:patch` shuts the
    * old one down itself), so what the registry tracks - and what `rebound` announces to every
-   * other holder of the session - is the *returned* model, kernel id and all (P8g).
+   * other holder of the session - is the *returned* model, kernel id and all.
    */
   @Test
   fun changeKernel_rebindsTheTrackedSessionAndAnnouncesIt() = runTest {

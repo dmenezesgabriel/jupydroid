@@ -8,7 +8,7 @@ import java.io.File
  * The server is allowed to stop itself, so an app that sits idle stops leaking
  * memory instead of holding a server and its kernels for ever.
  *
- * The mechanism is the reference's own (`docs/PLAN.md` P1b): the server shuts down after
+ * The mechanism is the reference's own: the server shuts down after
  * `shutdown_no_activity_timeout` seconds with **no kernels** and no activity, and idle kernels
  * are culled first by `MappingKernelManager`. The arguments are asserted rather than the
  * behaviour, exactly as `JupyterServerRootDirTest` does — a real server needs a Space, which is

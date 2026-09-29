@@ -73,7 +73,7 @@ class BracketPairTest {
   }
 
   /**
-   * P5e-4: the caret inside a call no `)` has closed yet is where signature help is worth
+   * The caret inside a call no `)` has closed yet is where signature help is worth
    * asking - VS Code's `parameterHintsModel` asks at the caret inside the call's parens.
    */
   @Test

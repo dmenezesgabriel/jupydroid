@@ -43,7 +43,7 @@ class PerRunningServer<T : Any>(
    *
    * **It must not start one.** Ending a session after the backstop stopped a server would
    * otherwise boot a whole runtime - seven seconds and ~130 MB - to close a websocket that no
-   * longer exists (`evidence/p1c-app-death-backstop/`).
+   * longer exists.
    */
   suspend fun liveOrNull(): T? = if (server.isRunning()) get() else null
 }

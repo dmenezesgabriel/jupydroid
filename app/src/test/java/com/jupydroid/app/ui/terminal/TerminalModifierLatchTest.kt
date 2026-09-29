@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * `docs/PLAN.md`'s P4j-3a: Termux's own `SpecialButtonState{isActive,isLocked}`
+ * Termux's own `SpecialButtonState{isActive,isLocked}`
  * (`extrakeys/SpecialButtonState.java`), transcribed as an immutable value - see
  * [TerminalModifierLatch]'s own KDoc for the three transitions this pins.
  */

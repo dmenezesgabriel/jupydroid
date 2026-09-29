@@ -105,10 +105,10 @@ fun TerminalPaneScreen(
   // is a *tab* fact, reported up every time it lands rather than drawn on a panel row the tab took.
   LaunchedEffect(state.title) { onTitleChanged(state.title) }
   // The one style [TerminalCanvas]'s glyphs and [terminalCellMetrics]'s own measurement share -
-  // `docs/PLAN.md`'s P4j-3c - resolved once here rather than inside `TerminalCanvas`, which no
+  // resolved once here rather than inside `TerminalCanvas`, which no
   // longer reads the setting itself.
   val textStyle = codeTextStyle(fontSize = state.fontSizeSp.sp)
-  // `docs/PLAN.md`'s P4j-3d-3: the last cell height [TerminalCanvas] reported, so a drag's own
+  // the last cell height [TerminalCanvas] reported, so a drag's own
   // pixel delta can be turned into rows without waiting for a fresh `onGridSizeChanged` call -
   // `terminalCellMetrics`'s own measurement never changes mid-gesture, only mid-recomposition.
   var cellHeightPx by remember { mutableIntStateOf(1) }
@@ -129,7 +129,7 @@ fun TerminalPaneScreen(
         onDecreaseFontSize = { viewModel.changeFontSize(-TerminalFontSize.STEP) },
       )
     },
-    // `docs/PLAN.md`'s P4j-3a - `EditorBottomBars`/`SymbolRow`'s own slot, so this row carries its
+    // `EditorBottomBars`/`SymbolRow`'s own slot, so this row carries its
     // own `imePadding`/`navigationBarsPadding` and Scaffold reserves it in `padding` below exactly
     // as it already does for the editor's bottom bar.
     bottomBar = {
@@ -142,7 +142,7 @@ fun TerminalPaneScreen(
       )
     },
   ) { padding ->
-    // A `Box`, not a `Column` with the field docked below it - `docs/PLAN.md`'s P4j-1. The two
+    // A `Box`, not a `Column` with the field docked below it - 1. The two
     // layers share the same bounds: `TerminalCanvas` draws every glyph and the block cursor, and
     // `TerminalInputField` sits over the whole of it so a tap anywhere in the terminal is a tap on
     // the one thing that receives input, the way Termux's `TerminalView` is both at once.
@@ -153,12 +153,11 @@ fun TerminalPaneScreen(
     // bar's ime-grown height. Without this, `TerminalCanvas`'s own `imePadding` read the same,
     // still-unconsumed inset again and shrank an already-correct area a second time - the doubled
     // window inset `ShellSidePane.kt`'s `panelInsets` already names for the navigation bar, found
-    // here for the ime by a device measurement rather than a re-reading of the source
-    // (`docs/DECISIONS.md`).
+    // here for the ime by a device measurement rather than a re-reading of the source.
     //
     // `pointerInput(cellHeightPx) { detectTerminalScrollDrag(...) }` sits on this `Box` - the
     // ancestor of both `TerminalCanvas` and `TerminalInputField` - rather than `Modifier.scrollable`
-    // on either sibling, `docs/PLAN.md`'s P4j-3d-3's own device-measured finding: a `Modifier.scrollable`
+    // on either sibling, 3's own device-measured finding: a `Modifier.scrollable`
     // on `TerminalCanvas` never once saw a real drag, because `TerminalInputField`'s own
     // `BasicTextField` already consumes touch movement in `PointerEventPass.Main` - the pass every
     // gesture detector in this codebase defaults to - before a sibling's or an ancestor's own
@@ -194,7 +193,7 @@ fun TerminalPaneScreen(
 }
 
 /**
- * Public rather than `private` - `docs/PLAN.md`'s P4j-3c: [TerminalActionsMenuTest][com.jupydroid.app.TerminalActionsMenuTest]
+ * Public rather than `private` - [TerminalActionsMenuTest][com.jupydroid.app.TerminalActionsMenuTest]
  * drives this directly, [NotebookActionsMenuTest][com.jupydroid.app.ui.editor.NotebookActionsMenuTest]'s
  * own reason - a test composing [TerminalActionsMenu] on its own would still pass with the button
  * that opens it gone.
@@ -240,7 +239,7 @@ private fun KeepTheShellAttached(viewModel: TerminalPaneViewModel) {
 }
 
 /**
- * A drag over the terminal scrolls it into history - `docs/PLAN.md`'s P4j-3d-3 - and must win
+ * A drag over the terminal scrolls it into history - and must win
  * that decision *before* [TerminalInputField]'s own `BasicTextField` does. Measured on the
  * tablet, not guessed: `Modifier.scrollable` placed on either the canvas or its ancestor never
  * once saw a real drag, because the field's own touch handling runs on the default
@@ -258,7 +257,7 @@ private fun KeepTheShellAttached(viewModel: TerminalPaneViewModel) {
  * direction, not its positive one.
  *
  * Drag only, not fling - this step's own gate is "scroll back... and show it", not momentum. A
- * fling is a named follow-up rather than silently dropped (`docs/DECISIONS.md`).
+ * fling is a named follow-up rather than silently dropped.
  */
 private suspend fun PointerInputScope.detectTerminalScrollDrag(onDragBy: (Float) -> Unit) {
   awaitEachGesture {
@@ -295,8 +294,8 @@ private val invisibleDecorator = TextFieldDecorator { }
 /**
  * Printable characters and Enter go through [onTypedText] via [reportTerminalKeystroke] - the
  * soft keyboard's own text, subject to `TerminalPaneViewModel.typeCharacters`'s tapped Ctrl/Alt
- * latch (`docs/PLAN.md`'s P4j-3a). A hardware arrow key or Ctrl+letter is intercepted first and
- * sent through [terminalKeystroke] to [onEncodedKey] instead, verbatim - `docs/PLAN.md`'s P4j-2,
+ * latch. A hardware arrow key or Ctrl+letter is intercepted first and
+ * sent through [terminalKeystroke] to [onEncodedKey] instead, verbatim - 2,
  * the encoder P4j-1's own KDoc deferred. [applicationCursorKeys] is read fresh on every key rather
  * than once at composition, since a shell can flip DECCKM at any time (entering `vi` does).
  *
@@ -306,7 +305,7 @@ private val invisibleDecorator = TextFieldDecorator { }
  * sequence through a Ctrl/Alt latch one character at a time would corrupt it.
  *
  * Sized to fill the terminal area it sits over ([TerminalPaneScreen]'s `Box`), not a strip below
- * it - `docs/PLAN.md`'s P4j-1, closing the gap P4i-3a's own commit named: typing went into a
+ * it - 1, closing the gap P4i-3a's own commit named: typing went into a
  * floating box first, not after the `$` a user is looking at. [invisibleDecorator] is what makes
  * that safe: the field still owns real focus/IME/selection state, it just paints nothing, so a tap
  * anywhere in the terminal is a tap on this field.

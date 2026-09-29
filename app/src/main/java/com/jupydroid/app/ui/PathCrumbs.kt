@@ -45,8 +45,7 @@ internal fun crumbsFor(path: String, rootLabel: String): List<Pair<String, Strin
  * is neither and already carries the name, so the name is not said twice and every segment is a
  * folder - which is what makes "a segment opens that folder" one rule rather than two. And where
  * VS Code renders `"no elements"` for a document with no ancestry, this returns empty so the row
- * can be **absent**: 48dp spent saying nothing is the trade P2v declined the run gutter over
- * (`docs/DECISIONS.md`).
+ * can be **absent**: 48dp spent saying nothing is the trade P2v declined the run gutter over.
  *
  * ```
  * ancestorCrumbsFor("reports/Nested.ipynb", ROOT_LABEL)   // ["" to "Workspace", "reports" to "reports"]

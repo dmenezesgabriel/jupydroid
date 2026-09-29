@@ -50,7 +50,7 @@ object KernelOutputs {
    *
    * An execution is done only once **both** this and [isIdleFor] have arrived, in either
    * order, which is what JupyterLab's own `KernelFutureHandler` does
-   * (reference/research_repos/jupyterlab/packages/services/src/kernel/future.ts:14-17,
+   * (jupyterlab@7f0e6906 packages/services/src/kernel/future.ts:14-17,
    * 241-243, 265-269). They travel on separate channels - shell and iopub - with no
    * ordering guarantee between them, so waiting on idle alone ends the cell while output
    * may still be in flight, and waiting on the reply alone does the same.

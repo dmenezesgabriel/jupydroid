@@ -50,7 +50,7 @@ class StdioLanguageServerDefinitionTest {
     assertEquals(8, position.getValue("character").jsonPrimitive.intOrNull)
     assertEquals(URI, request.textDocument["uri"]!!.jsonPrimitive.content)
     // The scripted default is the probe's own reply: one Location naming the asked uri and
-    // compute_total's definition span (`evidence/p5e-0-lsp-surface/`).
+    // compute_total's definition span.
     val location = locations.single()
     assertEquals(URI, location.uri)
     assertEquals(LanguagePosition(4, 4), location.range.start)
@@ -126,7 +126,7 @@ class StdioLanguageServerDefinitionTest {
   /**
    * The ask and its answer both reach `JupydroidSpace`: a definition miss is what
    * `definitionTarget`'s uri filter drops, and only a device shows that - the uris the server
-   * answered with are the evidence (`evidence/p5e5-definition/`).
+   * answered with are the evidence.
    */
   @Test
   fun definition_reachesTheLifecycleLog_askedAndAnswered() = runBlocking {

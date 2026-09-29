@@ -148,7 +148,7 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
 
   /**
    * Every code cell's source as [edits] leave it, keyed by cell id - the answer a
-   * `textDocument/rename` `WorkspaceEdit` gets (`docs/PLAN.md` P5e-7): pylsp returns one
+   * `textDocument/rename` `WorkspaceEdit` gets: pylsp returns one
    * whole-document `TextEdit` whose `newText` carries the new name at every site, so all
    * cells move together or not at all. Applying means splicing [edits] into this synced
    * [text], then [reslicedSources]'s split-and-verify: a count that no longer matches the

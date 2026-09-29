@@ -13,7 +13,7 @@ import java.io.File
  * inside the rootfs - and a rootfs file cannot be execve'd at targetSdk 36. A
  * kernelspec is just JSON we own, so argv[0] becomes the interpreter in
  * nativeLibraryDir, which is the one place execution is permitted
- * (docs/DECISIONS.md, "Exec model").
+ * (ADR-0002).
  *
  * Written over the shipped kernelspec in `usr/share/jupyter/kernels/`. The tidier
  * `usr/local/share/...` override directory is not an option here: jupyter_core builds
@@ -33,7 +33,7 @@ object SpaceKernelSpec {
 
   /**
    * Makes the kernel say which shell messages it dispatched, which is the one thing that
-   * separates the two causes of the execution stall (`docs/PLAN.md` P0).
+   * separates the two causes of the execution stall.
    *
    * At DEBUG `dispatch_shell` logs `*** MESSAGE TYPE:%s***` per message
    * (`ipykernel/kernelbase.py:455`), so a stalled `execute_request` with the line present means

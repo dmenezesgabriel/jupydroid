@@ -10,6 +10,6 @@ import kotlinx.serialization.Serializable
  * [MutableList.openSettings] reveals it rather than reopening it. Reached from
  * [ExplorerScreen][com.jupydroid.app.ui.explorer.ExplorerScreen]'s own bar, the one persistent
  * chrome not scoped to an open document, since the rail's next slot is reserved for P6d's
- * Launcher (`docs/PLAN.md`).
+ * Launcher.
  */
 @Serializable data object Settings : NavKey

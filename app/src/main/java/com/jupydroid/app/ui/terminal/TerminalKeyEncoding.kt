@@ -8,7 +8,7 @@ private const val ESC = "\u001B"
 private const val LOWEST_CONTROL_BYTE = 1
 
 /**
- * What a hardware key reaching the terminal means on the wire - `docs/PLAN.md`'s P4j-2 (arrows,
+ * What a hardware key reaching the terminal means on the wire - 2 (arrows,
  * Ctrl+letter) and P4j-3a (Home/End/PageUp/PageDown/Tab/Escape, the rest of what a soft keyboard
  * cannot produce - `TerminalExtraKeysRow`'s own taps go through this too, so the row sends the
  * exact bytes a hardware key of the same name already does, not a second encoding scheme):
@@ -101,7 +101,7 @@ private fun controlByteFromOffset(offset: Int): Char = (LOWEST_CONTROL_BYTE + of
  * latch is still consumed - Termux's own read happens regardless of whether a mapping exists.
  *
  * Ctrl takes priority over Alt when both are somehow active; combining them ("Ctrl+Alt+letter")
- * is not attempted - `docs/PLAN.md`'s P4j-3a gate needs only one latch armed at a time.
+ * is not attempted - 3a gate needs only one latch armed at a time.
  *
  * @return the bytes to actually send, and the latch pair afterward.
  */

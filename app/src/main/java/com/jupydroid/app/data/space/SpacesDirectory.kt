@@ -4,7 +4,7 @@ import android.content.Context
 import java.io.File
 
 /**
- * Where every Space lives: one directory per Space, which is what a Space *is* (P3a).
+ * Where every Space lives: one directory per Space, which is what a Space *is*.
  *
  * One definition rather than two, now that both [baseSpaceDir] and `DiskSpaceRepository` need the
  * segment - the same reason [notebookWorkspaceIn] and [spaceShellIn] each have a file of their own.

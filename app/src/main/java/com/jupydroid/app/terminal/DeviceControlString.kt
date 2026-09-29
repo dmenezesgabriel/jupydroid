@@ -11,7 +11,7 @@ package com.jupydroid.app.terminal
  * ever sees it, and the terminator is a **bare** `\` with no `ESC` of its own.
  *
  * **The termcap table stops at what the reference's own test exercises** -
- * `Co`/`colors`/`TN`/`name` and `kB` - see `docs/DECISIONS.md`.
+ * `Co`/`colors`/`TN`/`name` and `kB`.
  *
  * ```
  * val dcs = DeviceControlString(replies)

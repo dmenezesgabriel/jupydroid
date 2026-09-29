@@ -101,7 +101,7 @@ class FindTopBarTest {
   /**
    * Greyed rather than absent with nothing found, so the bar does not change shape under a thumb
    * as the query is typed. Asserted here rather than in a flow because the accessibility tree keeps
-   * `enabled` on a node a Maestro assertion cannot read (`docs/DECISIONS.md`).
+   * `enabled` on a node a Maestro assertion cannot read.
    */
   @Test
   fun theArrowsAreDeadWhileThereIsNothingToStepThrough() {

@@ -31,7 +31,7 @@ import org.junit.runner.RunWith
  * `SearchView.replaceAll` drawn (`searchView.ts:812-853`): the action is only enabled once a walk
  * has found something (`:792`), the confirmation counts what is on screen, and the report is the
  * same sentence in the past tense. VS Code answers both halves of this panel - JupyterLab registers
- * no workspace search at all (`docs/DECISIONS.md`).
+ * no workspace search at all.
  *
  * Its own class rather than more of `SearchSidePanelTest`, on the seam detekt and the file-length
  * gate both found in P2x-5g: *the workspace searched* and *the workspace rewritten*.

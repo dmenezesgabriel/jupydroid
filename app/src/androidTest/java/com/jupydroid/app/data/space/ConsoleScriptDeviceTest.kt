@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
  * SELinux whatever its mode.
  *
  * Runs the commands **in the app process** through [runInSpace], the only place the seccomp filter
- * applies - a `run-as` shell would answer a question nobody asked (P4b).
+ * applies - a `run-as` shell would answer a question nobody asked.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \

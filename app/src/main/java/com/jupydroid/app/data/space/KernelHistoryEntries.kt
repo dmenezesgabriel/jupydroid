@@ -10,7 +10,7 @@ import kotlinx.serialization.json.jsonArray
  *
  * The reply's shape is the protocol's, verified against JupyterLab's own message types rather than
  * assumed: `history` is a list of `[session, line, input]` triples
- * (`reference/research_repos/jupyterlab/packages/services/src/kernel/messages.ts:1033-1037`). Only
+ * (`jupyterlab@7f0e6906 packages/services/src/kernel/messages.ts:1033-1037`). Only
  * the third element is read, which is what the reference reads too
  * (`packages/notebook/src/history.ts:361-365`) - the session number it also records is never
  * consulted by anything, and the line number is IPython's own bookkeeping.

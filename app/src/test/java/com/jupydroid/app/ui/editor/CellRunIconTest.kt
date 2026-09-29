@@ -12,7 +12,7 @@ import org.junit.Test
  *
  * A filled triangle at rest reads as "playing"; outlined reads as available, which is what an idle
  * control means - and a notebook draws one per cell, so the misread repeats down the whole
- * document (`docs/DECISIONS.md`, "The cell keeps its header strip"). Scope is deliberately narrow:
+ * document (ADR-0057). Scope is deliberately narrow:
  * the three run controls in [CellHeader]. `NotebookBar`'s *Run all* and `SelectionTopBar`'s play
  * are toolbar commands acting on a selection rather than on a cell's own state, and keep their
  * filled glyphs.

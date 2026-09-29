@@ -26,7 +26,7 @@ import com.jupydroid.app.domain.model.TerminalFontSize
  * **A stepper, not a gesture.** Termux exposes the same setting through pinch-to-zoom
  * (`TermuxTerminalViewClient.onScale`), but no reference this app follows for its own *command
  * surface* names a gesture for this, and no `pointerInput` gesture exists anywhere in this
- * codebase yet - `docs/PLAN.md`'s P4j-3d is the step that establishes one, not this.
+ * codebase yet - 3d is the step that establishes one, not this.
  *
  * Each row disables itself at its own bound rather than disappearing - the reference's own
  * `isEnabled` (`:771`, `:791`), read through a menu row instead of a command palette entry.

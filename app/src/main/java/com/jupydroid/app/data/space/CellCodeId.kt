@@ -6,8 +6,7 @@ package com.jupydroid.app.data.space
  *
  * `hashSeed`/`tmpFilePrefix`/`tmpFileSuffix` come from the kernel's own `debug_info` reply -
  * runtime data, not a constant: `tmpFilePrefix` embeds the kernel process's own PID
- * (`ipykernel/compiler.py`'s `get_tmp_directory`), confirmed against a live capture
- * (`evidence/p6a-5-cell-code-id/`).
+ * (`ipykernel/compiler.py`'s `get_tmp_directory`), confirmed against a live capture.
  *
  * ```
  * CellCodeId.codeId("x = 1", hashSeed = 3339675911L, tmpFilePrefix = "/tmp/ipykernel_1/", tmpFileSuffix = ".py")
@@ -23,8 +22,7 @@ internal object CellCodeId {
    * Murmur2 (32-bit, x86 variant), transcribed from the reference's own
    * `packages/debugger/src/hash.ts:30-70` and cross-checked against ipykernel's own Python
    * transcription (`ipykernel/compiler.py`'s `murmur2_x86`) against a live kernel - both must
-   * agree with what a real kernel names a dumped cell, not just with each other
-   * (`evidence/p6a-5-cell-code-id/`).
+   * agree with what a real kernel names a dumped cell, not just with each other.
    *
    * UTF-8 bytes, not UTF-16 code units - `hash.ts`'s `TextEncoder` and Python's
    * `str.encode(..., "utf8")` both count bytes, so a multi-byte character changes the hash by

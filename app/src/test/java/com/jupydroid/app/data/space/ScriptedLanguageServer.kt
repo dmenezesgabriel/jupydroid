@@ -276,7 +276,7 @@ internal fun defaultDefinition(uri: String): JsonArray = buildJsonArray {
 
 /**
  * The `textDocument/rename` payload the P5e-0 probe measured off real `pylsp`
- * (`evidence/p5e-0-lsp-surface/`): `documentChanges` of one `TextDocumentEdit` per document,
+ *: `documentChanges` of one `TextDocumentEdit` per document,
  * its `edits` a single whole-document `TextEdit` covering (0,0) to past the last line. Here
  * the document is three lines and the rewrite is `compute_total` becoming [newName].
  */
@@ -327,7 +327,7 @@ internal val DEFAULT_HOVER: JsonObject = buildJsonObject {
 
 /**
  * The `textDocument/signatureHelp` payload the P5e-0 probe measured off real `pylsp`
- * (`evidence/p5e-0-lsp-surface/`): one signature, string param labels, both actives 0.
+ *: one signature, string param labels, both actives 0.
  */
 internal val DEFAULT_SIGNATURE_HELP: JsonObject = buildJsonObject {
   putJsonArray("signatures") {

@@ -14,7 +14,7 @@ import org.junit.Test
  * A cell's request must not be handed over before the socket is connected.
  *
  * The execution stall, four sightings and finally diagnosed
- * (`evidence/kernel-observability/stall-diagnosed.md`): the app enqueued `execute_request` from
+ *: the app enqueued `execute_request` from
  * `onSubscription`, which runs the instant a collector attaches and long before OkHttp has
  * finished the handshake. OkHttp queues the frame and flushes it on open, so it can reach
  * `jupyter_server` before that server's own `open()` has associated the session - and be dropped.

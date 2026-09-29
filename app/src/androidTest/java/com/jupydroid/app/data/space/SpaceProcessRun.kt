@@ -12,8 +12,7 @@ data class SpaceProcessRun(val command: String, val exitCode: Int, val output: S
  *
  * **P4b-2, and the gate P4b was missing.** P4b proved the shell through `adb shell run-as`, which
  * is not zygote-spawned and so carries no app seccomp filter. Under the filter every applet died,
- * having printed nothing - which `run-as` could never show
- * (`evidence/p4-terminal/busybox-under-app-seccomp.md`).
+ * having printed nothing - which `run-as` could never show.
  *
  * So this is a plain [ProcessBuilder] started from an instrumented test, which runs *inside* the
  * app process: the child is a sibling of the one `jupyter_server` forks, under the same filter,

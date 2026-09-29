@@ -9,7 +9,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * `docs/PLAN.md`'s P4j-2: what a hardware key means on the wire, decided from plain values
+ * what a hardware key means on the wire, decided from plain values
  * (`Key`, a `Boolean`, an `Int` key code) rather than a whole platform `KeyEvent` - its own
  * getters are stubbed to throw outside an instrumented test, and this decision never needs one.
  */

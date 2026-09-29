@@ -7,7 +7,7 @@ import org.junit.Test
 /**
  * The half of `TerminalInputField` that does not need a Compose test harness to prove -
  * `PythonTypingRulesTest`'s own reason: a real [TextFieldState] shows what the buffer looks like
- * after an edit without composing anything. `docs/PLAN.md`'s P4j-1.
+ * after an edit without composing anything. 1.
  */
 class TerminalInputFieldTest {
   @Test

@@ -22,7 +22,7 @@ import org.junit.Test
 class CornerRadiusTest {
   /**
    * `vscode/src/vs/platform/theme/common/sizes/baseSizes.ts:90-108`, re-read at the clone's own
-   * sha `3f3380c668d` (P7a-0). Spelled out here rather than derived from [CornerRadius], so the
+   * sha `3f3380c668d`. Spelled out here rather than derived from [CornerRadius], so the
    * assertion is against the reference and not against the thing under test.
    */
   private val theReferencesScale = mapOf(

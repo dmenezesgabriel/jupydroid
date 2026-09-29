@@ -144,7 +144,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   /**
    * A picked kernel is `kernel.name` on the session POST (`handlers.py:67-80`), and the started
    * model's `kernel.name` is what the session then carries - the picker row and the file's
-   * `metadata.kernelspec` are both written from it (P8g).
+   * `metadata.kernelspec` are both written from it.
    */
   @Test
   fun connect_startsTheSessionWithTheChosenKernel() = runTest {

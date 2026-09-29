@@ -56,7 +56,7 @@ data class CellCompletions(val query: CompletionQuery, val result: CompletionRes
  * request already in flight, which is why [com.jupydroid.app.data.space.RealKernelGateway.complete]
  * needs no timeout of its own.
  *
- * @param enabled `docs/PLAN.md`'s P6c-6 - false skips the pipeline entirely rather than running it
+ * @param enabled false skips the pipeline entirely rather than running it
  *   to completion and discarding the answer, [lineNumbers]'s own `if (width <= 0.dp) return this`
  *   precedent for an early return ahead of other composable state.
  */
