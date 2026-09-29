@@ -21,7 +21,7 @@ The triage rule, applied entry by entry
 | Section | Entries | Migrated |
 |---|---|---|
 | Runtime | 14 | **yes** |
-| Protocol and behaviour | 36 | no |
+| Protocol and behaviour | 28 | **yes** |
 | Editor | 32 | no |
 | Architecture and UI | 116 | no |
 | Harness | 11 | **yes** |
@@ -104,3 +104,32 @@ in full. Deleting the copy removes a second, staler statement of one fact.
 | The termcap table stops at what `DeviceControlStringTest` exercises · a malformed hex pair is skipped, not thrown · an anchor moved by a refactor is re-pointed | **deleted** — already stated in `terminal/DeviceControlString.kt` |
 | The terminal's own foreground/background/cursor are resolved | **deleted** — already stated in `terminal/TerminalPalette.kt`; the rule is ADR-0020 |
 | The reach point is a second icon, not a fourth item in New · the corner scale is transcribed · the plain file editor takes the notebook's breadcrumb · `lineNumbersShown` moves into persisted settings · a Settings screen's toggles are `Switch` rows · the launcher's cards carry their own surface | **deleted** — each already stated in the file it describes (`ui/shell/SearchOptionToggles.kt`, `ui/Breadcrumb.kt`, `domain/model/EditorSettings.kt`, and the launcher's own composables) |
+
+## Protocol and behaviour — 28 entries
+
+Notebook and kernel *behaviour*, almost all of it read out of JupyterLab's `actions.tsx` rather than
+designed. Tightly related entries are one ADR each rather than one per entry: five heading entries are
+ADR-0033 and four table-of-contents entries are ADR-0037, because splitting them would put one rule
+across five files that all cite each other.
+
+| Source entry | Destination |
+|---|---|
+| nbformat is an open format, so a writer that rebuilds is a shredder | [ADR-0021](../adr/0021-nbformat-is-an-open-format-so-unknown-fields-round-trip.md) |
+| Kernels start through sessions · The kernel's working directory is the session's path · The server's own cwd is that tree as well | [ADR-0022](../adr/0022-kernels-start-through-sessions-and-one-tree-is-the-root.md) |
+| An unanswered greeting replaces the kernel; it is never asked twice | [ADR-0023](../adr/0023-an-unanswered-greeting-replaces-the-kernel-once.md) |
+| The app stops its own server, so the app repairs what that breaks | [ADR-0024](../adr/0024-the-app-stops-its-own-server-so-the-app-repairs-what-that-breaks.md) |
+| A kernel is ended by a command, never by closing the document | [ADR-0025](../adr/0025-a-kernel-is-ended-by-a-command-never-by-closing-the-document.md) |
+| A terminal is ready when `setup` arrives · The terminal socket is opened by the attach | [ADR-0026](../adr/0026-a-terminal-is-ready-when-setup-arrives.md) |
+| Cell semantics come from `NotebookActions` | [ADR-0027](../adr/0027-cell-semantics-come-from-notebookactions.md) |
+| There are two undos, and a cell operation never restores text | [ADR-0028](../adr/0028-there-are-two-undos-and-a-cell-operation-never-restores-text.md) |
+| A selection is a contiguous run | [ADR-0029](../adr/0029-a-selection-is-a-contiguous-run.md) |
+| A run has a range, and the range is not the only thing that separates the run commands | [ADR-0030](../adr/0030-a-run-has-a-range-and-the-command-owns-the-caret.md) |
+| Splitting is the one cell operation that reads the editor | [ADR-0031](../adr/0031-splitting-reads-the-editor-so-a-cell-owns-one-text-state.md) |
+| A raw cell is an editor and nothing else | [ADR-0032](../adr/0032-a-raw-cell-is-an-editor-and-nothing-else.md) |
+| A heading owns a section · A heading level is a change of type · An inserted heading takes the section's level · A collapsed heading is its whole section, for four commands · The three folds are a category | [ADR-0033](../adr/0033-a-heading-owns-a-section-derived-not-stored.md) |
+| Adopting a rewritten source belongs to the cell | [ADR-0034](../adr/0034-adopting-a-rewrite-belongs-to-the-cell-reporting-to-the-field.md) |
+| Unrendered is not the same as asked for, and only a tap asks | [ADR-0035](../adr/0035-unrendered-is-not-the-same-as-asked-for.md) |
+| view toggles, and two defaults kept against the reference on purpose | [ADR-0036](../adr/0036-three-view-toggles-and-two-defaults-kept-against-the-reference.md) |
+| The table of contents is a panel where there is room · folds its own tree · Heading numbers go in the document · A heading a cell printed is an entry | [ADR-0037](../adr/0037-the-table-of-contents-is-two-presentations-of-one-derived-tree.md) |
+| A pty echoes, so "type X, read X back" proves nothing | `cross-cutting.md` §8.6, *What a test here cannot do* |
+| One `jupyter_server` per instrumentation run | same |
