@@ -232,6 +232,7 @@ grep -rln "^Status: superseded" docs/adr/     # decisions that have been replace
 | [0063](adr/0063-kernel-choice-is-a-dialog-and-a-patch-on-the-session.md) | Kernel choice is `selectKernel`'s dialog and a `PATCH` on the session | accepted |
 | [0064](adr/0064-a-files-name-is-its-identity.md) | A file's name is its identity | accepted |
 | [0065](adr/0065-the-kernel-indicator-shows-status-first-and-solid-means-active.md) | The kernel indicator keeps its status when the name goes, and solid means active | accepted |
+| [0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md) | Delete a retired attribution; do not rewrite it as a commit SHA | accepted |
 
 ## 10. Quality requirements
 

@@ -179,8 +179,10 @@ step runs this loop start to finish; no stage is skipped or reordered.
 7. **Close the documents.** A comment states its fact so it stands alone, then cites an `ADR-NNNN`, a
    path in `app/src/`, a path inside the shipped rootfs, an upstream project at a **pinned SHA**, a
    spec or issue URL, or a test name — never a step code, `docs/backlog.md`, a `JD-NNN`,
-   `evidence/<step>/` or `reference/…` (`scripts/check_doc_citations.py` is the gate). A non-trivial
-   decision becomes an ADR. **When the item ships, delete its PRD** — see `docs/adr/0001-*`.
+   `evidence/<step>/` or `reference/…` (`scripts/check_doc_citations.py` is the gate). A comment that
+   already carries one of those **loses it** rather than trading it for another id; only a line
+   that exists because of a specific defect names the change, as `Fixes: <12-hex> ("<subject>")`
+   (`docs/adr/0066-*`). A non-trivial decision becomes an ADR. **When the item ships, delete its PRD** — see `docs/adr/0001-*`.
 
 ## Tooling
 

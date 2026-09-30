@@ -76,6 +76,13 @@ upstream project at a **pinned SHA** · a published spec or upstream issue URL �
 `scripts/check_doc_citations.py` is the gate. `scripts/doc-citations-baseline.txt` lists the files
 still carrying legacy citations; it only ever shrinks, and no file may be added to it.
 
+**A comment that already carries a banned citation loses it rather than trading it for another id**
+— the fact stays, the attribution goes, and `git log -S '<symbol>'` is how you find out when a line
+arrived. A decision becomes `ADR-NNNN`; a measurement is restated with the test or command that
+produces it; only a line that exists *because of* a specific defect names the change, as
+`Fixes: <12-hex> ("<subject>")`. [ADR-0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md)
+carries the measurements behind that, including why device tests get no exemption for `evidence/`.
+
 **Out of scope for the rule:** `scripts/*-driver.sh`, `.maestro/*.yaml` and `evidence/`. A driver,
 its flow and its evidence directory are named in lockstep, and the step code is what ties them
 together. The `evidence/` paths inside driver scripts are functional `OUT=` destinations, not prose.
