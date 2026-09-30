@@ -77,7 +77,7 @@ class CellOutputsViewTest {
   }
 
   /**
-   * P2l-3a: an output is code, so it is drawn at the one size code is drawn at.
+   * An output is code, so it is drawn at the one size code is drawn at.
    *
    * **Measured against a line of code, not against `CodeText.lineHeight.toDp()`**, and the
    * difference is a device rather than a preference. This asserted the conversion until the tablet

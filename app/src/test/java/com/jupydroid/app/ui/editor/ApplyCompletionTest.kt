@@ -29,7 +29,7 @@ class ApplyCompletionTest {
   }
 
   /**
-   * P5e-2: the label is what the user *reads*, not what accepting writes - jedi signature-
+   * The label is what the user *reads*, not what accepting writes - jedi signature-
    * resolves labels (`join(path, paths)`), so splicing the label would type the parameter list.
    * The insert text is what goes in, which is also what keeps `insertTextFormat:2` payload
    * strings out of the document while `snippetSupport` stays undeclared.

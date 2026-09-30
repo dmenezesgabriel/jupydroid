@@ -169,7 +169,7 @@ class AppContainer(
   val terminalGateway: TerminalGateway = ActivityTrackedTerminalGateway(terminalGateway, activeTerminals)
 
   /**
-   * P1c: stop the server when the app goes away - but only once nothing is still running,
+   * Stop the server when the app goes away - but only once nothing is still running,
    * a live terminal included. `MainActivity` drives it from `ProcessLifecycleOwner`'s
    * ON_STOP/ON_START; the counters the stopper reads are moved by every run for the whole of its
    * life, kernel start included, and by every terminal for the whole of its life, so a

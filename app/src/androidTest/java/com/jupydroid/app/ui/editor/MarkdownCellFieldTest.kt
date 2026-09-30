@@ -64,7 +64,7 @@ class MarkdownCellFieldTest {
   }
 
   /**
-   * P2s: every cell type's editor is one font, so a markdown cell's **source** is code-shaped.
+   * Every cell type's editor is one font, so a markdown cell's **source** is code-shaped.
    *
    * **Both references agree, and they were checked separately.** VS Code builds a markup cell's
    * editor as a plain `CodeEditorWidget` over `getBaseCellEditorOptions(language)` - the very

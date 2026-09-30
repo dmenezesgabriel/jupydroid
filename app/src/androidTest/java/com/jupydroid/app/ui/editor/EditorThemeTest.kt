@@ -33,7 +33,7 @@ class EditorThemeTest {
   @get:Rule val compose = createComposeRule()
 
   /**
-   * P2l-3b: code inside *rendered* markdown is the reference's second rule, not its first.
+   * Code inside *rendered* markdown is the reference's second rule, not its first.
    *
    * `.jp-RenderedHTMLCommon pre, code` takes the code family and the code line height but
    * **`font-size: inherit`** - the prose size (`packages/rendermime/style/base.css:407-417`,

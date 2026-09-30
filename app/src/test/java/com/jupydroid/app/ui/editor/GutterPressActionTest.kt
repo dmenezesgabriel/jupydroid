@@ -5,7 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * **P5e-1: which action a gutter press resolves to.**
+ * **Which action a gutter press resolves to.**
  *
  * The gutter holds two affordances in one column now: the breakpoint toggle VS Code's
  * `onMouseDown` always had, and the diagnostic mark VS Code's `markerHoverParticipant` answers

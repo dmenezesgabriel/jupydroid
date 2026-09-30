@@ -110,7 +110,7 @@ class BaseSpaceInstallerTest {
   }
 
   /**
-   * P7e-1: the shell could not run `python3` at all, and the link is what fixes it.
+   * The shell could not run `python3` at all, and the link is what fixes it.
    *
    * `usr/bin/python3.12` is the one real ELF, and `tools/rootfs/stage-app-artifacts.sh:27-28`
    * stages *that file* as `libpython3.so` - so pointing the rootfs name at the native library
@@ -152,7 +152,7 @@ class BaseSpaceInstallerTest {
   }
 
   /**
-   * P7e-2: a `#!` console script cannot be `execve`'d out of `filesDir`, so `usr/local/bin/pip`
+   * A `#!` console script cannot be `execve`'d out of `filesDir`, so `usr/local/bin/pip`
    * links to the trampoline instead. See [ConsoleScriptsTest] for the shapes it does and does not
    * link; here it is only that the installer runs it.
    */

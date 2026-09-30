@@ -7,10 +7,9 @@ import androidx.compose.ui.graphics.Color
  *
  * **Two references meet in this file, and which one answers is per value.** The syntax colours
  * are VS Code's, transcribed from the **resolved** `2026-dark.json` / `2026-light.json` read out
- * of `vscode` at `3f3380c668d`. Everything above `syntax` - the
- * surfaces, the stripes, the search and bracket highlights - is still IntelliJ's until P2u-3
- * re-sources it onto VS Code's `notebook.*` colour ids. `theme/Theme.kt` states the same split
- * from the chrome's side.
+ * of `vscode` at `3f3380c668d`. Everything above `syntax` - the surfaces, the stripes, the search
+ * and bracket highlights - is VS Code's too, each value naming the `notebook.*` id it resolves
+ * from. `theme/Theme.kt` states the same sourcing from the chrome's side.
  *
  * **Resolved is the whole trap.** `2026-dark.json` is the outermost file of a four-deep `include`
  * chain and overrides most of what it inherits; reading any single file gives the wrong colour
@@ -174,8 +173,8 @@ val LightEditorPalette: EditorPalette =
       // `notebook.cellEditorBackground` resolves to this measures **4.42:1**, against a 4.5:1
       // floor. It is what VS Code itself renders: 2026 Light never restates `constant.numeric`,
       // so it keeps `light_vs.json`'s value from three files down. Parity is the rule here and
-      // the shortfall is recorded rather than corrected - `docs/DECISIONS.md`, "Parity with the
-      // 2026 themes outranks the contrast floor".
+      // the shortfall is recorded rather than corrected: parity with the 2026 themes outranks
+      // the contrast floor (ADR-0041).
       number = Color(0xFF098658),
       comment = Color(0xFF6E7781),
       function = Color(0xFF8250DF),

@@ -25,7 +25,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * P6b-3: read-only transcript rendering, against a fake/static list - `ConsoleTranscript` reuses
+ * Read-only transcript rendering, against a fake/static list - `ConsoleTranscript` reuses
  * `CellOutputs`/`executionLabel` exactly as the notebook editor's own cells do (see the entries'
  * own doc comment on `ConsoleEntry`). No kernel, no input row, no navigation entry yet - those are
  * P6b-4/P6b-9's own rows.

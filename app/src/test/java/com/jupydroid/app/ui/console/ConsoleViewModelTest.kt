@@ -229,7 +229,7 @@ class ConsoleViewModelTest {
   }
 
   /**
-   * P8f: the Running panel's shutdown ends the session the Console shares with its notebook, and
+   * The Running panel's shutdown ends the session the Console shares with its notebook, and
    * the Console's own holder has to forget it too - kept, the next submit would run against a
    * session the server already deleted rather than connecting a fresh one.
    */

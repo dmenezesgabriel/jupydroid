@@ -16,7 +16,7 @@ import org.junit.Test
  * `platformStyle = defaultPlatformTextStyle()` - `includeFontPadding = false` on Android - and
  * `lineHeightStyle = DefaultLineHeightStyle` (`TypographyTokens.kt:272-276`). A bare `TextStyle`
  * carries neither, so **the app's most-used role was the only one still laying out with legacy
- * font padding**, and it had been since Step 1.
+ * font padding**, and it had been from the start.
  *
  * Enumerating the roles is the point, exactly as it is in [ColorSchemeTest]: fixing `bodyLarge`
  * alone would leave the same trap set for whichever role someone hand-builds next. A real

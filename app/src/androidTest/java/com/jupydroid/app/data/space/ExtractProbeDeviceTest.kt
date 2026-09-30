@@ -20,7 +20,7 @@ import java.io.File
 import kotlin.time.TimeSource
 
 /**
- * **P8c-1: where the rootfs extraction's ~16.5 s actually goes - measured, not guessed.**
+ * **Where the rootfs extraction's ~16.5 s actually goes - measured, not guessed.**
  *
  * P8a's table names `space.installing` → `server.starting` as the cold-start dominator.
  * This probe splits it on the device it is slow on: decompress+walk the tar (no writes),

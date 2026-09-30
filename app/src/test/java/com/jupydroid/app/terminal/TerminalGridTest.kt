@@ -9,9 +9,10 @@ import org.junit.Test
  * The two buffer-level tests of
  * `terminal-emulator/src/test/java/com/termux/terminal/ScreenBufferTest.java` (termux-app
  * `3df69d1d`, Apache 2.0 - see [TerminalGrid]), plus the ring, which upstream only ever covers
- * through the emulator - and the emulator is P4f.
+ * through the emulator.
  *
- * `ScreenBufferTest`'s other three tests drive `enterString`, so they go with P4f.
+ * `ScreenBufferTest`'s other three tests drive `enterString`, so they belong with the emulator's
+ * own tests rather than here.
  */
 class TerminalGridTest {
   private val plain = CellStyle(0L)
@@ -316,7 +317,7 @@ class TerminalGridTest {
   }
 
   /**
-   * P4h-2: growing the column count over plain content re-wraps nothing, because everything
+   * Growing the column count over plain content re-wraps nothing, because everything
    * already fit - `TerminalBuffer.resize`'s reflow branch (`:233-350`) still walks it character by
    * character, but the wider screen never trips the wrap guard.
    */
@@ -338,7 +339,7 @@ class TerminalGridTest {
   }
 
   /**
-   * P4h-2: shrinking the column count wraps a row that no longer fits across as many output rows
+   * Shrinking the column count wraps a row that no longer fits across as many output rows
    * as it needs, marking the row it left with `lineWrap` the way a shell's own overflow would.
    */
   @Test
@@ -360,7 +361,7 @@ class TerminalGridTest {
   }
 
   /**
-   * P4h-2: a row already wrapped rejoins its continuation before either is re-wrapped at the new
+   * A row already wrapped rejoins its continuation before either is re-wrapped at the new
    * width, rather than the two being re-wrapped independently.
    */
   @Test
@@ -382,7 +383,7 @@ class TerminalGridTest {
   }
 
   /**
-   * P4h-2: an unwrapped row's trailing blanks are not copied into the replay, so a short row does
+   * An unwrapped row's trailing blanks are not copied into the replay, so a short row does
    * not force a wrap it never needed - `TerminalBuffer.resize`'s own `lastNonSpaceIndex` scan.
    */
   @Test
@@ -402,9 +403,9 @@ class TerminalGridTest {
   }
 
   /**
-   * P4h-2: a ring shaped like the alternate screen (`totalRows == screenRows`) fails the fast
+   * A ring shaped like the alternate screen (`totalRows == screenRows`) fails the fast
    * path's own `newScreenRows <= totalRows` guard on a grow even though its columns never move,
-   * so it reflows too - the correction P4h's own row in `docs/PLAN.md` names.
+   * so it reflows too.
    */
   @Test
   fun aRingShapedLikeTheAlternateScreenReflowsOnGrowEvenWithColumnsUnchanged() {
@@ -424,7 +425,7 @@ class TerminalGridTest {
   }
 
   /**
-   * P4j-3d-1: the viewport's own arithmetic - Termux's `TerminalView.doScroll`'s own clamp
+   * The viewport's own arithmetic - Termux's `TerminalView.doScroll`'s own clamp
    * (`Math.min(0, Math.max(-activeTranscriptRows, mTopRow + delta))`), reused here rather than
    * ported to `ui/terminal/`'s gesture code, since it needs nothing but [TerminalGrid]'s own
    * [TerminalGrid.activeTranscriptRows].

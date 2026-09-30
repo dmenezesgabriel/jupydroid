@@ -13,7 +13,7 @@ import androidx.compose.material3.Typography
  * `DefaultTextStyle`, which carries `platformStyle = defaultPlatformTextStyle()`
  * (`includeFontPadding = false` on Android) and `lineHeightStyle = DefaultLineHeightStyle`
  * (`TypographyTokens.kt:272-276`). A bare `TextStyle` carries neither, so the app's most-used role
- * was the only one still laying out with legacy font padding, and had been since Step 1.
+ * was the only one still laying out with legacy font padding, and had been from the start.
  *
  * Material's scale is kept because it is already a design system - fifteen roles with measured
  * sizes, line heights and tracking - and re-typing its numbers here would be a copy that can

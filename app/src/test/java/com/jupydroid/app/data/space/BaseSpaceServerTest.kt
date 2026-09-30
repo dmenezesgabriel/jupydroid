@@ -70,7 +70,7 @@ class BaseSpaceServerTest {
   }
 
   /**
-   * P1a: a server that has stopped must not be handed out. The next ask starts a fresh one.
+   * A server that has stopped must not be handed out. The next ask starts a fresh one.
    */
   @Test
   fun connection_startsAFreshServerWhenThePreviousOneIsNoLongerRunning() = runTest {

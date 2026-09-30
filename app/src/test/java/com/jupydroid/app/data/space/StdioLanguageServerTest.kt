@@ -197,7 +197,7 @@ class StdioLanguageServerTest {
   }
 
   /**
-   * P5e-2: the row a user reads is the `label` (jedi signature-resolves it - `join(path,
+   * The row a user reads is the `label` (jedi signature-resolves it - `join(path,
    * paths)`), the row's glyph comes from `kind`, and the list's order is `sortText`'s. A wire
    * that dropped any of the three could only ever show bare insert text.
    */

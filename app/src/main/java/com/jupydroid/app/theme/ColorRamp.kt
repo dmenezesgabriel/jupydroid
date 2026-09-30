@@ -18,8 +18,7 @@ import androidx.compose.ui.graphics.Color
  * **Resolved, and that word is the whole trap.** `2026-dark.json` is the outermost file of a
  * four-deep `include` chain and overrides most of what it inherits; reading any single file gives
  * the wrong colour, and not by a little - `editor.background` is `#121314` resolved and `#1F1F1F`
- * in Dark Modern alone (`docs/DECISIONS.md`, "The default VS Code theme is 2026 Dark / 2026
- * Light, not Dark Modern").
+ * in Dark Modern alone. The default is 2026 Dark / 2026 Light, not Dark Modern (ADR-0041).
  *
  * Named by ramp position rather than by job, because a position is a fact and a job is an
  * opinion: `Gray2` is one specific grey, where "surfaceVariant" is a role several greys could
@@ -31,7 +30,7 @@ import androidx.compose.ui.graphics.Color
  * would be a list nobody could tell was stale.
  *
  * This file is not the app's only statement of a colour: [EditorPalette]'s two instances state
- * their own hex, from IntelliJ, and keep it until P2u-2 and P2u-3 re-source them. What is true is
+ * their own hex, from the same resolved VS Code themes. What is true is
  * narrower and still worth having - **no Material role states a colour**, so a role that has
  * drifted off the ramp fails `ColorSchemeTest` rather than waiting to be noticed in a screenshot.
  */
@@ -55,7 +54,7 @@ internal object ColorRamp {
   /**
    * `inputOption.activeBackground` - the wash a search toggle takes when it is on.
    *
-   * **It used to be `list.inactiveSelectionBackground`, and P7a-1b parted them.** One role served
+   * **It used to be `list.inactiveSelectionBackground`, and the two were parted.** One role served
    * a list row and three things that are not lists; the reference states two ids there and states
    * the list's one translucent in light, so an opaque position could not carry both. The row went
    * to [ChromePalette.listInactiveSelectionBackground] and this position kept the consumers it had

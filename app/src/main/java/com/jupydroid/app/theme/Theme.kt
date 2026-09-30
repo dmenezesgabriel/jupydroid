@@ -30,15 +30,14 @@ val LocalChromePalette = staticCompositionLocalOf { DarkChromePalette }
  *
  * **Dynamic colour is deliberately not offered.** It was on before, which meant the wallpaper
  * chose the syntax colours: `NUMBER` resolved to `colorScheme.secondary` and on some wallpapers
- * landed close enough to the body text to be unreadable (`docs/DECISIONS.md`, "The palette is
- * read out of IntelliJ, and its contrast is pinned").
+ * landed close enough to the body text to be unreadable. The palette states its colours instead,
+ * and `EditorPaletteTest` pins their contrast (ADR-0042).
  * A palette whose contrast can be asserted is worth more here than one that matches the launcher,
  * because the thing being coloured is code.
  *
- * **The two halves have two sources, and since P2u-1 they are different references.** The Material
- * scheme below is VS Code's, read from the resolved 2026 themes through [ColorRamp]; the editor
- * palette is still IntelliJ's until P2u-2 and P2u-3 re-source it. That is the phase's own split -
- * VS Code answers for presentation, and it is arriving one step at a time.
+ * **Both halves answer to VS Code.** The Material scheme below is read from the resolved 2026
+ * themes through [ColorRamp]; the editor palette is transcribed from the same two files. VS Code
+ * answers for presentation (ADR-0040).
  *
  * ```
  * JupyterDroidTheme { EditorScreen(...) }
@@ -78,9 +77,8 @@ val chromePalette: ChromePalette
  * had set. `ColorSchemeTest` enumerates them so the next omission fails a test rather than waiting
  * to be noticed in a screenshot.
  *
- * **Two mappings depart from what `docs/PLAN.md` first named, and measurement is why** - both
- * recorded, "The chrome ramp is VS Code's, and two roles are not the id the
- * plan named":
+ * **Two mappings depart from the id first named for them, and measurement is why** - both are
+ * recorded in ADR-0058:
  *
  * - `primary` is `textLink.foreground`, not `button.background`. VS Code splits what Material
  *   fuses - one value is a fill under `button.foreground`, the other is the accent drawn *on* a

@@ -71,7 +71,7 @@ class NotebookCompletionTest {
   }
 
   /**
-   * P5e-2: the row shows the `label` - signature-resolved by jedi's `resolve_at_most`, so
+   * The row shows the `label` - signature-resolved by jedi's `resolve_at_most`, so
    * `join(path, paths)` rather than bare `join` - and carries `kind` for the glyph; accepting
    * it still splices `insertText`. The P5e-0 probe records pylsp answering exactly this shape.
    */

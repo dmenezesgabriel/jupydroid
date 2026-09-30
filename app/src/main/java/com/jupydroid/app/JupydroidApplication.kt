@@ -68,7 +68,7 @@ class JupydroidApplication : Application() {
 
   override fun onCreate() {
     super.onCreate()
-    // P1c: when the app is left - the screen lock, a swipe away, a covering app - the server
+    // When the app is left - the screen lock, a swipe away, a covering app - the server
     // follows, unless something is still running. `ProcessLifecycleOwner` is the one lifecycle
     // that tracks the *process*, so a covered activity counts as stopped and a rotation does not.
     ProcessLifecycleOwner.get().lifecycle.addObserver(

@@ -29,7 +29,7 @@ class TerminalReporting(
   private var cellHeightPixels: Int,
 ) {
   /**
-   * P4i-2b: what `CSI 14/16 t` answer after a real cell is measured - `TerminalEmulator.resize`'s
+   * What `CSI 14/16 t` answer after a real cell is measured - `TerminalEmulator.resize`'s
    * own entry point, forwarded here rather than reconstructing this class on every layout.
    */
   fun updateCellPixels(widthPixels: Int, heightPixels: Int) {

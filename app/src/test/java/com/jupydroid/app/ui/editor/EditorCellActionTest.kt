@@ -33,7 +33,7 @@ class EditorCellActionTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
   /**
-   * P5e-5: a "Go to definition" row answers with the target selected and the caret armed -
+   * A "Go to definition" row answers with the target selected and the caret armed -
    * the reply names `compute_total`'s `def` in c1, so the landing lands on c1 even though the
    * ask was made from c3's caret.
    */
@@ -195,7 +195,7 @@ class EditorCellActionTest {
   }
 
   /**
-   * P5e-7: the rename dialog's `RenameTo` answers with **every** cell's source rewritten - the
+   * The rename dialog's `RenameTo` answers with **every** cell's source rewritten - the
    * `def` line and the call site land in one undoable operation, `bulkEditService.apply`'s own
    * shape. Undo puts both back at once, the way a transaction rolls back.
    */

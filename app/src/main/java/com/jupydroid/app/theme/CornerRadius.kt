@@ -17,11 +17,11 @@ import androidx.compose.ui.unit.dp
  * Each scale states which reference it answers to; that is the same rule `theme/ChromePalette.kt`
  * and `theme/EditorPalette.kt` follow for colour.
  *
- * **No workbench *part* gets a radius.** The ask that opened P7 was for "discrete borders with
+ * **No workbench *part* gets a radius.** The ask was for "discrete borders with
  * border-radius", and the reference has the borders and not the radius: every `border-radius` under
  * `parts/sidebar/`, `parts/activitybar/` and `parts/editor/media/` is a badge, a floating panel, a
- * drop target or a modal. Fidelity won, the way it did when parity outranked the contrast floor in
- * P2u-2a (`docs/PLAN.md`, P7's "What this phase declines").
+ * drop target or a modal. Fidelity won, the way it did when parity outranked the contrast floor
+ * (ADR-0041).
  *
  * **`cornerRadius.circle` (9999px, `:110-112`) is not here.** It is CSS's way of spelling a shape
  * Compose names outright - `androidx.compose.foundation.shape.CircleShape` - so transcribing it

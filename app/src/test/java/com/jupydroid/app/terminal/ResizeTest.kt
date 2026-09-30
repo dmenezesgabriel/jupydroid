@@ -186,7 +186,7 @@ class ResizeTest {
   }
 
   /**
-   * P4i-2b: a resize's cell-pixel pair is optional and defaults to "unchanged", not to
+   * A resize's cell-pixel pair is optional and defaults to "unchanged", not to
    * [TerminalEmulator.DEFAULT_CELL_WIDTH_PIXELS]/`HEIGHT_PIXELS` - a plain columns/rows resize
    * must not quietly forget a cell size a caller already reported.
    */

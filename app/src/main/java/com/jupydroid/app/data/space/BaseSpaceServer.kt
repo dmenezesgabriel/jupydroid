@@ -54,7 +54,7 @@ class BaseSpaceServer(
   /**
    * The running server, starting one if there is none.
    *
-   * P1a: the cached connection is only valid while the process it names is alive. Without that
+   * The cached connection is only valid while the process it names is alive. Without that
    * check a stopped server leaves every later call talking to a dead port.
    */
   suspend fun connection(): StartedServer = startLock.withLock {

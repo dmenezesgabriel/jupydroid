@@ -6,8 +6,8 @@ import androidx.compose.ui.graphics.Color
 /**
  * The workbench's **parts** - the surfaces Material has no role for.
  *
- * A second palette rather than more fields on [EditorPalette], the shape P4g settled for the ANSI
- * ramp: that one is the colours a *document* is drawn with, and a rail is not a document.
+ * A second palette rather than more fields on [EditorPalette], the shape ADR-0020 settled for the
+ * ANSI ramp: that one is the colours a *document* is drawn with, and a rail is not a document.
  *
  * **Why these are stated rather than taken from `colorScheme`.** VS Code separates a part's
  * identity from a surface's elevation - `activityBar.background`, `sideBar.background`,
@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.Color
  * levels under it. Two of those ids happen to hold the same hex as `surfaceContainer` today, and
  * that is the trap: `ColorSchemeTest` asserts a role is *somewhere* on [ColorRamp] and never which
  * position, so a role could drift onto `menu.background` with every test still green. The rule is
- * `docs/DECISIONS.md`, "The palette states its colours; it does not derive them from a Material
- * role" - *a colour a role could supply is a colour no test can hold*.
+ * ADR-0042: the palette states its colours and does not derive them from a Material role -
+ * *a colour a role could supply is a colour no test can hold*.
  *
  * `@Immutable` so a composable holding one is skippable, matching [EditorPalette].
  *
@@ -43,7 +43,7 @@ data class ChromePalette(
   /**
    * Behind the row whose document is open - `list.inactiveSelectionBackground`.
    *
-   * **A part, not a Material role, and P7a-1b is what moved it here.** It used to arrive as
+   * **A part, not a Material role.** It used to arrive as
    * `secondaryContainer`, which meant one role served this row *and* the search toggles' on-wash
    * *and* two contextual top bars - four consumers, one of them a list. The reference states two
    * different ids there, and states this one **translucent in 2026 Light** (`#DADADA99`), so a
@@ -77,13 +77,14 @@ data class ChromePalette(
    * `borderRightWidth` on its own container (`parts/sidebar/sidebarPart.ts:175-180`).
    *
    * **This is the one nothing drew.** Both ids resolve to `#2A2B2C` / `#F0F1F2` in the 2026 themes,
-   * and the app drew the first and let the panel abut the page: measured at the seam x662 of
-   * `evidence/p7a-2-part-borders/before-the-fix/two-pane/dark/01-the-file-browser.png`, where the side
-   * panel's band ends at 661 and the document's begins at 662 with no column between them.
+   * and the app drew the first and let the panel abut the page: measured at the seam on a two-pane
+   * tablet, the side panel's band ending at x661 and the document's beginning at x662 with no
+   * column between them.
    *
    * Equal to [activityBarBorder] in both default themes and **kept separate anyway**, for the
-   * reason [sideBarBackground] is kept separate from [activityBarBackground] - and the reason
-   * P7a-1b had to undo a fold: two ids on one field cannot follow a theme that parts them.
+   * reason [sideBarBackground] is kept separate from [activityBarBackground], and the reason a
+   * fold here had to be undone once already: two ids on one field cannot follow a theme that
+   * parts them.
    */
   val sideBarBorder: Color,
   /**

@@ -126,7 +126,7 @@ class NotebookKernelStatusTest {
   }
 
   /**
-   * P8f: the Running panel's per-row shutdown lands the *open* notebook on No Kernel, exactly as
+   * The Running panel's per-row shutdown lands the *open* notebook on No Kernel, exactly as
    * `session.disposed` does in the reference (`sessioncontext.tsx`'s `noKernelName`) - the
    * document stays open, and only its claim on a kernel goes. The fake pair share one registry
    * here the way `SpaceBackedPorts`'s real pair do.

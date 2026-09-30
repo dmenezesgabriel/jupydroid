@@ -157,7 +157,7 @@ internal fun jupyterServerArgs(rootDir: File, token: String, shell: File): List<
   // interface, which it does via psutil.net_if_addrs() - that segfaults on Android.
   "--KernelManager.transport=ipc",
   "--IdentityProvider.token=$token", // ServerApp.token is deprecated since jupyter_server 2.0
-  // P4c: terminado spawns *this* shell, rather than whatever a PATH search turns up. Unpinned,
+  // Terminado spawns *this* shell, rather than whatever a PATH search turns up. Unpinned,
   // `jupyter_server_terminals/app.py:initialize_configurables` resolves it as
   //   [os.environ.get("SHELL") or which("sh")]
   // and then appends `-l`, because that append is guarded on `shell_override is None` and this
@@ -172,7 +172,7 @@ internal fun jupyterServerArgs(rootDir: File, token: String, shell: File): List<
   // jupyter_server_terminals 0.5.4 - the versions in `tools/rootfs/requirements.lock` - rather
   // than assumed to parse: `evidence/p4-terminal/terminado-arg-parses.txt`.
   """--ServerApp.terminado_settings={"shell_command": ["${shell.path}"]}""",
-  // P1b: the server may stop itself. `shutdown_no_activity_timeout` fires only while **no
+  // The server may stop itself. `shutdown_no_activity_timeout` fires only while **no
   // kernels** exist (serverapp.py `shutdown_no_activity` returns early when `len(km) != 0`),
   // and idle kernels are culled first by `MappingKernelManager.cull_idle_timeout`. Culling
   // skips kernels with a connected websocket (`cull_connected` defaults False), so an open

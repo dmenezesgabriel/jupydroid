@@ -8,7 +8,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 /**
- * P2v-1: a cell's play is outlined, not filled.
+ * A cell's play is outlined, not filled.
  *
  * A filled triangle at rest reads as "playing"; outlined reads as available, which is what an idle
  * control means - and a notebook draws one per cell, so the misread repeats down the whole

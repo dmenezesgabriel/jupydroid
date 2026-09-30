@@ -9,23 +9,22 @@ import org.junit.Test
 /**
  * The workbench's **parts** are stated colours, and the page is not one of them.
  *
- * Written against a measurement rather than a suspicion. Reading
- * `evidence/p2u-1-chrome/after-tablet/dark/01-the-explorer.png` along y=900, the activity rail
- * (x 0-119) and the file explorer (x 122-699) are both `#121314` - `editor.background` - with only
- * the 1px seam at x=120 between them. The reference draws those two parts a step off the page and
- * the page itself under the document alone.
+ * Written against a measurement rather than a suspicion. Reading a dark tablet frame of the
+ * explorer along y=900, the activity rail (x 0-119) and the file explorer (x 122-699) were both
+ * `#121314` - `editor.background` - with only the 1px seam at x=120 between them. The reference
+ * draws those two parts a step off the page and the page itself under the document alone.
  *
  * **`ColorRamp` already claimed this and nothing made it true.** `DarkGray2`'s own KDoc reads
- * *"`sideBar.background` - the explorer and the rail, one step up from the page"*, which P2u-1
- * wrote while mapping it onto `surfaceContainer`; no composable ever asked for that role, so the
- * sentence has been false since it was written.
+ * *"`sideBar.background` - the explorer and the rail, one step up from the page"*, written while
+ * mapping it onto `surfaceContainer`; no composable ever asked for that role, so the sentence was
+ * false from the moment it was written.
  *
  * **Why a palette and not `colorScheme.surfaceContainer`, which holds the same hex today.**
  * `ColorSchemeTest` asserts only that a role is *somewhere* on the ramp, never which position - so
  * `surfaceContainer` could drift onto `menu.background` and every test would stay green while the
- * rail moved. `docs/DECISIONS.md`, "The palette states its colours; it does not derive them from a
- * Material role", is the rule that anticipates exactly this: *a colour a role could supply is a
- * colour no test can hold.*
+ * rail moved. ADR-0042 is the rule that anticipates exactly this - the palette states its colours
+ * and does not derive them from a Material role: *a colour a role could supply is a colour no
+ * test can hold.*
  */
 class ChromePaletteTest {
   @Test
@@ -47,7 +46,7 @@ class ChromePaletteTest {
   fun lightStatesTheResolvedParts() {
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.activityBarBackground)
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.sideBarBackground)
-    // Translucent, and the alpha is the whole point of P7a-1b - see [theLightRowIsAWashAndNotAFill].
+    // Translucent, and the alpha is the whole point - see [theLightRowIsAWashAndNotAFill].
     assertEquals(Color(0x99DADADA), LightChromePalette.listInactiveSelectionBackground)
     assertEquals(Color(0xFFF0F1F2), LightChromePalette.activityBarBorder)
     assertEquals(Color(0xFFF0F1F2), LightChromePalette.sideBarBorder)
@@ -74,9 +73,9 @@ class ChromePaletteTest {
   }
 
   /**
-   * **A border is not the part it bounds**, which is the P7a-2 half of [neitherPartIsThePage].
+   * **A border is not the part it bounds**, the other half of [neitherPartIsThePage].
    *
-   * The rail and the side panel were drawn as parts by P7a-1 and then abutted the document with
+   * The rail and the side panel were drawn as parts and then abutted the document with
    * nothing between them: `sideBar.border` is stated in both 2026 themes and this app drew it
    * nowhere (the seam at x662 reading NOT DRAWN).
    * Equality above says each border is the resolved value; this says it is a *separator* - if a
@@ -114,8 +113,9 @@ class ChromePaletteTest {
    * `activityBar.border` *"separating to the side bar"* and `sideBar.border` *"on the side
    * separating to the editor"* (`workbench/common/theme.ts:417,623`) are two registered colours a
    * theme may part; folding them onto one field would make this app unable to follow one that did.
-   * The same rule [ChromePalette.sideBarBackground] already carries - and the rule P7a-1b was
-   * about, where one role served four consumers and flattened the alpha of the one that had it.
+   * The same rule [ChromePalette.sideBarBackground] already carries, and the one an earlier fold
+   * broke, where a single role served four consumers and flattened the alpha of the one that had
+   * it.
    */
   @Test
   fun theTwoBorderIdsAreSeparateFieldsThoughTheyResolveAlike() {
@@ -131,8 +131,8 @@ class ChromePaletteTest {
    * draws a wash, and no test could fail on it: `ColorSchemeTest` asserts only that a role is
    * *somewhere* on the ramp.
    *
-   * **Measured after compositing, which is the only value a pixel ever takes** - the rule P2u-3c
-   * had to adopt for dark's 70%-opaque `focusBorder`. Over the side bar the row paints `#E7E7E8`,
+   * **Measured after compositing, which is the only value a pixel ever takes** - the rule dark's
+   * 70%-opaque `focusBorder` forced. Over the side bar the row paints `#E7E7E8`,
    * and that is the number `check_node_fill.py` holds the device frame to, so the constant here and
    * the pixel there cannot drift apart.
    *

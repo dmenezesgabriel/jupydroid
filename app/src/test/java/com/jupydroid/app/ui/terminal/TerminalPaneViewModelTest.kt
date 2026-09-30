@@ -32,7 +32,7 @@ class TerminalPaneViewModelTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
   /**
-   * P4i-2a: the palette a caller passes is what the emulator actually draws with, not always
+   * The palette a caller passes is what the emulator actually draws with, not always
    * [com.jupydroid.app.terminal.TerminalPalette.REFERENCE] - `TerminalPaneScreen`'s own job is
    * picking [com.jupydroid.app.terminal.TerminalPalette.VS_CODE_DARK] or `_LIGHT` from the
    * system theme; this only has to prove the constructor still threads whatever it is given.
@@ -198,7 +198,7 @@ class TerminalPaneViewModelTest {
   }
 
   /**
-   * P4i-3a: a measured grid reaches both halves `TerminalGateway.resize`'s own KDoc names -
+   * A measured grid reaches both halves `TerminalGateway.resize`'s own KDoc names -
    * `emulator.resize` (what is drawn) and the wire `set_size` (what the pty is told), rows before
    * columns since that is the wire's own order, not a preference.
    */

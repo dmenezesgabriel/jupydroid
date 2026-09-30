@@ -117,7 +117,7 @@ class TerminalCanvasTest {
   }
 
   /**
-   * P4i-3a: the grid this reports is the container's own measured size, not
+   * The grid this reports is the container's own measured size, not
    * `screen.columns`/`rows` echoed back - [silentEmulator] is 5x3, and any real device's canvas
    * area holds far more than that, so a placeholder pass-through would fail this outright.
    */

@@ -6,18 +6,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Every Material role is drawn from IntelliJ's ramp, with nothing left at Material's baseline.
+ * Every Material role is drawn from [ColorRamp], with nothing left at Material's baseline.
  *
- * Written because half of them were. U1 set `primary`, `surface`, `error` and a dozen more and
- * left the rest alone - and `darkColorScheme()`'s defaults are the Material baseline **purple**,
+ * Written because half of them were. An earlier pass set `primary`, `surface`, `error` and a dozen
+ * more and left the rest alone - and `darkColorScheme()`'s defaults are the Material baseline **purple**,
  * so anything reaching for an unset role got a colour from a different design system. The FAB
  * did exactly that: `FloatingActionButton` defaults to `primaryContainer`, which nothing had
  * set, so it sat on Home in baseline purple next to an editor drawn in Darcula
  * (before this).
  *
  * Enumerating the roles is the point. Fixing only the FAB would have left the same bug waiting
- * in every role no screen happens to use yet - and U5 is about to add a bottom bar and a bottom
- * sheet, which reach for several of them.
+ * in every role no screen happens to use yet, and a bottom bar and a bottom sheet reach for
+ * several of them.
  */
 class ColorSchemeTest {
   @Test
@@ -32,12 +32,12 @@ class ColorSchemeTest {
   }
 
   /**
-   * **`secondaryContainer` is the toggle's own id, and until P7a-1b it was the list's.**
+   * **`secondaryContainer` is the toggle's own id, and it used to be the list's too.**
    *
    * The role has four consumers and exactly one was a list: the explorer's open row. The other
    * three - the search toggles' on-wash and the two contextual top bars - cite
-   * `inputOption.activeBackground`, and `docs/DECISIONS.md`'s P2x-3d folded them together on the
-   * grounds that the two ids measured 4/255 apart.
+   * `inputOption.activeBackground`, and an earlier pass folded them together on the grounds that
+   * the two ids measured 4/255 apart.
    *
    * The fold could not survive the alpha. `list.inactiveSelectionBackground` resolves `#DADADA99`
    * in 2026 Light, so honouring it would have made the toggle's wash translucent where the
@@ -67,14 +67,14 @@ class ColorSchemeTest {
 
   /**
    * **Membership alone cannot hold this ramp.** The test above says every role came from
-   * [ColorRamp]; it cannot say the role is legible on what it is drawn over, and P2u-1 turns on
-   * exactly that. Two of the mappings `docs/PLAN.md` named did not survive being measured -
+   * [ColorRamp]; it cannot say the role is legible on what it is drawn over. Two of the mappings
+   * first named for these roles did not survive being measured -
    * `primary` from `button.background` puts nine text sites at 3.88:1 in dark, and `outline` from
    * `panel.border` measures 1.31:1 - so both were re-sourced, and without an assertion the
    * re-sourcing is a comment that the next transcription silently undoes.
    *
-   * `docs/DECISIONS.md` already states the rule this enforces: *a value may not be nudged "to
-   * match VS Code more closely" without re-measuring.*
+   * ADR-0041 states the rule this enforces: *a value may not be nudged "to match VS Code more
+   * closely" without re-measuring.*
    */
   private fun assertEveryPairClearsItsFloor(name: String, scheme: ColorScheme) {
     val shortfalls = scheme.contrastPairs()

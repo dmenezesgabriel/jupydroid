@@ -21,11 +21,12 @@ import org.junit.runner.RunWith
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * **P5b: the adapter drives the real `pylsp` the rootfs ships.**
+ * **The adapter drives the real `pylsp` the rootfs ships.**
  *
- * P5a proved the premises - the script execs and answers over stdio. This proves the thing
- * P5c plugs into: [StdioLanguageServer] as the app composes it (`baseSpaceLanguageServerPort`
- * does this same wiring), a full session through the port rather than raw frames -
+ * [LanguageServerDeviceTest] proves the premises - the console script execs and answers over
+ * stdio. This proves what the editor plugs into: [StdioLanguageServer] as the app composes it
+ * (`baseSpaceLanguageServerPort` does this same wiring), a full session through the port rather
+ * than raw frames -
  * `initialize`, `didOpen`, a `textDocument/completion` jedi answers with real results, then
  * `shutdown`/`exit` ending the process with nothing refused.
  *
@@ -69,8 +70,8 @@ class StdioLanguageServerDeviceTest {
         "jedi offered nothing for `os.path.jo` - got ${items.map { it.label }}",
         items.any { it.label.startsWith("join") },
       )
-      // P5e-2: the row reads the signature-resolved label and is ordered/tinted by the server's
-      // own sortText/kind - the P5e-0 probe measured kind=3, sortText="ajoin" for this item.
+      // The row reads the signature-resolved label and is ordered/tinted by the server's own
+      // sortText/kind - [LspSurfaceProbeTest] measured kind=3, sortText="ajoin" for this item.
       val join = items.first { it.label.startsWith("join") }
       assertEquals("pylsp must name join a function (CompletionItemKind 3)", 3, join.kind)
       assertTrue("pylsp must send sortText for ordering - got ${join.sortText}", !join.sortText.isNullOrEmpty())
@@ -80,7 +81,7 @@ class StdioLanguageServerDeviceTest {
   }
 
   /**
-   * P5d-2a: a `didOpen` carrying an undefined name makes the real `pylsp` push a
+   * A `didOpen` carrying an undefined name makes the real `pylsp` push a
    * `textDocument/publishDiagnostics` - pyflakes' own `undefined name` - arriving typed on the
    * port's stream, never requested. A scripted server can only pretend to lint; this is the
    * lint.
@@ -105,7 +106,7 @@ class StdioLanguageServerDeviceTest {
   }
 
   /**
-   * P5e-3: `textDocument/hover` on a name the document defines makes the real `pylsp` answer
+   * `textDocument/hover` on a name the document defines makes the real `pylsp` answer
    * its markdown - jedi's fenced signature plus docstring - typed through the port, and `null`
    * where nothing is defined. A scripted server can only pretend to know a symbol; this is the
    * knowing.
@@ -140,9 +141,8 @@ class StdioLanguageServerDeviceTest {
   }
 
   /**
-   * P5e-4: `textDocument/signatureHelp` inside `os.path.join(` makes the real `pylsp` answer
-   * jedi's signature - the reply the P5e-0 probe measured byte-for-byte:
-   * label
+   * `textDocument/signatureHelp` inside `os.path.join(` makes the real `pylsp` answer jedi's
+   * signature - the reply [LspSurfaceProbeTest] measured byte-for-byte: label
    * `join(path: LiteralString, /, *paths: LiteralString) -> LiteralString`, string-labeled
    * `path`/`paths` parameters, `activeSignature`/`activeParameter` zero. A scripted server
    * can only pretend to know a signature; this is the knowing.
@@ -171,9 +171,9 @@ class StdioLanguageServerDeviceTest {
   }
 
   /**
-   * P5e-5: `textDocument/definition` on a call site makes the real `pylsp` answer jedi's
-   * `Location[]` - the reply the P5e-0 probe measured byte-for-byte:
-   * one location back into the same
+   * `textDocument/definition` on a call site makes the real `pylsp` answer jedi's
+   * `Location[]` - the reply [LspSurfaceProbeTest] measured byte-for-byte: one location
+   * back into the same
    * document, its range covering the name in the `def` line (chars 4-17 there -
    * `def compute_total`). A scripted server can only pretend to know where a name is
    * defined; this is the knowing.
@@ -208,9 +208,9 @@ class StdioLanguageServerDeviceTest {
   }
 
   /**
-   * P5e-6: `textDocument/rangeFormatting` over a sloppily-spaced document makes the real
-   * `pylsp` answer through autopep8 - which is the plan's named formatter, not black, and
-   * whose `pylsp_format_range` answers ONE whole-document `TextEdit` even for a range ask
+   * `textDocument/rangeFormatting` over a sloppily-spaced document makes the real
+   * `pylsp` answer through autopep8, whose `pylsp_format_range` answers ONE whole-document
+   * `TextEdit` even for a range ask
    * (the p5e6-format flow's `lsp.answer edits:1`). The cell-scoped slicing that makes a
    * whole-document edit safe for one cell is `NotebookVirtualDocument`'s job and its own
    * tests; what a scripted server cannot fake is autopep8 rewriting `x=1` to `x = 1` at all.
@@ -246,8 +246,8 @@ class StdioLanguageServerDeviceTest {
   }
 
   /**
-   * P5e-7: `textDocument/rename` on a call site makes the real `pylsp` answer jedi's
-   * `WorkspaceEdit` - the reply the P5e-0 probe measured byte-for-byte:
+   * `textDocument/rename` on a call site makes the real `pylsp` answer jedi's
+   * `WorkspaceEdit` - the reply [LspSurfaceProbeTest] measured byte-for-byte:
    * `documentChanges` carrying ONE
    * whole-document `TextEdit` whose `newText` holds the new name at the `def` line and the
    * call site both. A scripted server can only pretend to rename; this is the rename.
@@ -290,7 +290,7 @@ class StdioLanguageServerDeviceTest {
     languageServer.stop(BASE_SPACE)
   }
 
-  /** No syscall was refused while the adapter ran a session - same bar P5a set. */
+  /** No syscall was refused while the adapter ran a session - [LanguageServerDeviceTest]'s bar. */
   @Test
   fun nothingWasRefusedWhileTheAdapterRan() {
     assertEquals(

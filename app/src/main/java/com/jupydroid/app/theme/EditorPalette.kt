@@ -44,7 +44,7 @@ data class EditorPalette(
    * **The citation is the webview's base stylesheet**, `contrib/webview/browser/pre/index.html:145-155`,
    * which is what actually themes a rendered markdown cell. `webviewThemeMapping.ts` exports the
    * same ids under `theme-code-*` names, but nothing in the tree consumes those - they are a
-   * compatibility surface for third-party renderers, and P2u-3d cited them by mistake.
+   * compatibility surface for third-party renderers, and were cited here once by mistake.
    */
   val preformatBackground: Color,
   /** `` `code` `` in rendered prose - `textPreformat.foreground`, the other half of the pair. */
@@ -52,7 +52,7 @@ data class EditorPalette(
   /**
    * Behind a **rendered** block quote - `textBlockQuote.background`.
    *
-   * New in P2u-3f, and the reason the rule beside it can be as faint as it is: the reference marks
+   * The reason the rule beside it can be as faint as it is: the reference marks
    * a quote with a wash *and* a 5px rule (`blockquote { background; border-color }` in the webview
    * base, `border-left-width: 5px` in the notebook's own renderer). This app drew the rule only, so
    * it needed a rule strong enough to carry the whole job.
@@ -99,8 +99,8 @@ data class EditorPalette(
   val breakpointVerified: Color,
   /**
    * A breakpoint set in the gutter but not yet confirmed by a kernel - `debugIcon.
-   * breakpointUnverifiedForeground` (`breakpointEditorContribution.ts:876`). Every breakpoint
-   * P6a-6 can create is this colour, since nothing calls `setBreakpoints` until P6a-7a.
+   * breakpointUnverifiedForeground` (`breakpointEditorContribution.ts:876`). Every breakpoint the
+   * gutter can create is this colour while nothing calls `setBreakpoints`.
    */
   val breakpointUnverified: Color,
   /**
@@ -258,7 +258,7 @@ data class SyntaxPalette(
  * **1.03:1** light against [SyntaxPalette.plain], so the colour carries no information and
  * emitting it would be a span that changes nothing anyone can see.
  *
- * **Every markdown kind has a rule of its own, and that is what changed at P2u-2b.** They used to
+ * **Every markdown kind has a rule of its own.** They used to
  * fold onto the general kinds the way IntelliJ folds them - code and quote onto `DEFAULT_STRING`,
  * markers onto `DEFAULT_KEYWORD` (`MarkdownHighlighterColors.java:24-41`). The re-base retired
  * that citation, and the reference it moved to states each one separately.

@@ -121,7 +121,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
   }
 
   /**
-   * P1d: a shutdown is a disconnect **and** a `DELETE`, in that order.
+   * A shutdown is a disconnect **and** a `DELETE`, in that order.
    *
    * Both halves are asserted because either alone is a defect with a long fuse: the socket left
    * open outlives the kernel it points at, and the session left behind is the ~55 MiB the command

@@ -15,7 +15,7 @@ import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.executionLabel
 
 /**
- * P6b-3: the Console's read-only transcript - one row per submitted [ConsoleEntry], reusing the
+ * The Console's read-only transcript - one row per submitted [ConsoleEntry], reusing the
  * notebook editor's own prompt ([executionLabel]) and output rendering ([CellOutputs]) exactly,
  * per [ConsoleEntry]'s own doc comment and JupyterLab's `CodeConsole`, which has no dedicated
  * transcript-cell type either - it reuses a full `CodeCell` per entry.

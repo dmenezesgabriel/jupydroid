@@ -21,7 +21,7 @@ import org.junit.Test
 
 class BaseSpaceKernelGatewayTest {
   /**
-   * P1c: the other half of a server that stopped. P1a gets a fresh server; the sessions the
+   * The other half of a server that stopped. P1a gets a fresh server; the sessions the
    * *previous* one issued still point at kernels that no longer exist, and the fresh server
    * answers the websocket upgrade with 404 - measured on the tablet, in
    * `evidence/p1c-app-death-backstop/stale-session-404.txt`. The gateway knows which server
@@ -109,7 +109,7 @@ class BaseSpaceKernelGatewayTest {
   }
 
   /**
-   * P8f: a session this gateway minted is registered under the server's own session id, so the
+   * A session this gateway minted is registered under the server's own session id, so the
    * Running panel - which asks `GET api/sessions` and sees server ids, never client ones - can
    * name it. The registry, not [issuedSessions], is what the panel shares.
    */

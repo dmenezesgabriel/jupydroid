@@ -52,7 +52,7 @@ class CollapsedCellTest {
   }
 
   /**
-   * P2l-4: the placeholder is a bare `clickable`, so its own padding and the one line inside decide
+   * The placeholder is a bare `clickable`, so its own padding and the one line inside decide
    * the row - 8 + 16 + 8 = **32dp**, measured on device at `evidence/p2l-2-spacing/README.md`.
    * Both descriptions, because a collapsed output previews as nothing and so is the shorter of the
    * two.

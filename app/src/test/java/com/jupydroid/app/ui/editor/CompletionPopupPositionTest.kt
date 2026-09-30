@@ -82,7 +82,7 @@ class CompletionPopupPositionTest {
   }
 
   /**
-   * P5e-4: signature help prefers **above** - VS Code's `[ABOVE, BELOW]` preference
+   * Signature help prefers **above** - VS Code's `[ABOVE, BELOW]` preference
    * (`parameterHintsWidget.ts:177`), which also keeps it clear of the completion list that
    * takes the space below the caret for itself.
    */

@@ -5,7 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * P5e-2: the glyph a completion row leads with. The letter is IntelliJ's completion-icon
+ * The glyph a completion row leads with. The letter is IntelliJ's completion-icon
  * convention (a monogram badge - VS Code's codicons have no Android font), and the family is
  * the colour group VS Code's `symbolIcon.*` registry actually gives each kind
  * (`editor/contrib/symbolIcons/browser/symbolIcons.ts` - only three hues are registered:

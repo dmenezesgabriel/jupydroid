@@ -30,7 +30,7 @@ import kotlin.time.TimeSource
 import kotlin.time.measureTimedValue
 
 /**
- * **P5e-0: what the real `pylsp` answers to every method it advertises - the parity audit.**
+ * **What the real `pylsp` answers to every method it advertises - the parity audit.**
  *
  * [StdioLanguageServerDeviceTest] proves the port drives a session; this dumps the raw
  * replies the port does not yet ask for - `hover`, `signatureHelp`, `definition`,

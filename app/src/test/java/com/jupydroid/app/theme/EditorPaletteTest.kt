@@ -17,12 +17,12 @@ import org.junit.Test
  * asserted, because the role is whatever the wallpaper made it - which is why the fix was a
  * palette of stated constants, and that half has not changed.
  *
- * **What the constants are held to did change, at P2u-2.** The syntax colours are VS Code's and
+ * **What the constants are held to did change.** The syntax colours are VS Code's and
  * are pinned by *equality* to the resolved 2026 themes; the contrast floor that used to gate them
  * is gone, because parity and the floor disagree on one value and parity won
  * (ADR-0041). Everything
  * this app chose for itself - the two search-match foregrounds, the active editor border - is
- * still held to its WCAG floor below, and P2u-3 brings the surfaces onto the same footing.
+ * still held to its WCAG floor below.
  */
 class EditorPaletteTest {
   private val palettes = mapOf("dark" to DarkEditorPalette, "light" to LightEditorPalette)
@@ -109,9 +109,9 @@ class EditorPaletteTest {
    * Keyed by the **colour id** rather than a token scope, because these are workbench colours and
    * are reached differently: most notebook ids are unset in both 2026 themes - dark sets *no*
    * `notebook.*` colour at all - so the value comes from the chain of `registerColor` defaults.
-   * `docs/PLAN.md`, "What P2u-3 is transcribing", carries each resolution.
+   * `scripts/resolve_vscode_theme.py` prints the resolution for any one of them.
    *
-   * The map grows one sub-step at a time. A field not in it yet is one P2u-3 has not reached.
+   * A field not in the map yet is one whose id has not been transcribed.
    */
   @Test
   fun everyChromeTokenIsTheReferenceValue() {
@@ -226,7 +226,7 @@ class EditorPaletteTest {
   /**
    * **A match is a wash over the code, not a fill under a restated foreground.**
    *
-   * This is the assertion that replaced two, and the swap is the whole of P2u-3e. The app used to
+   * This is the assertion that replaced two, and the swap is the whole of it. The app used to
    * paint an opaque background and state the text colour on top, because `EditorPalette`'s two
    * `*Text` fields existed - JupyterLab's answer, which the app took after measuring that
    * IntelliJ's left `DEFAULT_KEYWORD` at 3.16:1 inside a match.
@@ -306,7 +306,7 @@ class EditorPaletteTest {
    * raw it reads 5.09:1; painted over the cell it is `#2F708C` and **3.17:1**. Both clear the
    * floor, so nothing here changed because of the number - it changed because a test that measures
    * an uncomposited value would keep passing after the alpha was lowered to something that does
-   * not, and P2u-3 is the step that put alpha in this palette at all.
+   * not, and this palette carries alpha at all only since the surfaces were re-sourced.
    */
   @Test
   fun theActiveBorderClearsTheNonTextContrastFloor() {
