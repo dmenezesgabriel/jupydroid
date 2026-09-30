@@ -122,7 +122,7 @@ class AppContainer(
   val documentSharer: DocumentSharer = FakeDocumentSharer(),
   val serverLauncher: ServerLauncher = FakeServerLauncher(),
   /**
-   * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown by P6c
+   * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown
    * rather than replaced. Read by every notebook and file editor alike, which is what "universal"
    * means (`fileeditor:toggle-autoclosing-brackets-universal`).
    */

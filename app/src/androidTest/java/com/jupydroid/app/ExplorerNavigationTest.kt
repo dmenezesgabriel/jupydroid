@@ -96,7 +96,7 @@ class ExplorerNavigationTest {
   }
 
   /**
-   * Opening a notebook from a folder puts it in Recents - which is the defect X2h exists to close.
+   * Opening a notebook from a folder puts it in Recents, which it once did not.
    *
    * Recents was `rootDir.listFiles()` (`DiskNotebookRepository:149`), so a notebook in `reports/`
    * was reachable through the explorer and absent from the list the app opened on. Asserted

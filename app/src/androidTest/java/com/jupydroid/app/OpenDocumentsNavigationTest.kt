@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
 /**
  * The open notebook reached **by its path**, from outside its own `NavEntry`, and edited there.
  *
- * `ITextModelService`'s side of the seam that P2x-5 needs: `BulkTextEdits` resolves a model for
+ * `ITextModelService`'s side of the seam a workspace replace needs: `BulkTextEdits` resolves a model for
  * every resource it edits, open or not (`bulkTextEdits.ts:227`), so a replace edits what is on
  * screen instead of writing the file behind it - which this app's debounced save would then undo.
  *

@@ -16,8 +16,7 @@ import com.jupydroid.app.ui.editor.TocNumbering
  * Contents'` (`panel.ts:77-80`).
  *
  * Named for a *document* rather than for a notebook because the reference's own placeholder is:
- * *"The table of contents shows headings in notebooks and supported files"* (`panel.ts:32-36`), and
- * P5e feeds `.py` document symbols into the same panel.
+ * *"The table of contents shows headings in notebooks and supported files"* (`panel.ts:32-36`).
  */
 @Stable
 class DocumentOutline(

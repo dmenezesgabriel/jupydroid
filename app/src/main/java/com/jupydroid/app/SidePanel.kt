@@ -2,7 +2,7 @@ package com.jupydroid.app
 
 /**
  * Which panel the shell's side area is showing - and **it takes both references to say in what
- * order**, which is P2x-2's correction to its own row in `docs/PLAN.md`.
+ * order** (ADR-0062).
  *
  * JupyterLab has **one** side area with an activity bar down its edge, and every panel is added to
  * it with a rank: File Browser 100 (`packages/filebrowser-extension/src/index.ts:676`), Sessions 200
@@ -12,7 +12,7 @@ package com.jupydroid.app
  * (`packages/extensionmanager-extension/src/index.ts:78`). Those five are every
  * `shell.add(…, 'left', …)` in its tree, and **none of them is a search** - `documentsearch` is
  * scoped to `app.shell.currentWidget` (`documentsearch-extension/src/index.ts:227`), which is the
- * find bar P2i shipped, not a panel.
+ * find bar, not a panel.
  *
  * So [SEARCH] comes from VS Code, whose sidebar containers carry an `order`: Explorer 0
  * (`files/browser/explorerViewlet.ts:265`), **Search 1**
@@ -30,8 +30,8 @@ package com.jupydroid.app
  * (`packages/application/src/shell.ts:2630-2643`).
  *
  * The Launcher is deliberately not here: `shell.add(main, 'main', …)`
- * (`packages/launcher-extension/src/index.ts:118`) puts it in the document area, so P6d and this
- * rail do not collide.
+ * (`packages/launcher-extension/src/index.ts:118`) puts it in the document area, so a Launcher
+ * would not collide with this rail.
  */
 enum class SidePanel {
   /** `filebrowser:show-panel` - the panel that opens with the shell, and this app's first screen. */
@@ -50,7 +50,7 @@ enum class SidePanel {
   /**
    * `workbench.view.search` - the workspace searched, where the find bar searches one document.
    *
-   * Wired and empty as of P2x-2; the query box, the option toggles and the results tree are P2x-3.
+   * Its query box, option toggles and results tree live in `ui/shell/`.
    */
   SEARCH,
 
@@ -116,8 +116,8 @@ internal val onePaneDestinations: List<SidePanel> = listOf(SidePanel.FILES, Side
 /**
  * What a window that draws **one pane** is left showing, given the panel the rail was last on.
  *
- * The rule is *"can the bar leave it again"*, and it is the narrowed form of the override P2x-2b
- * added: a tablet rotated from 1280dp to 800dp used to keep drawing whatever panel it had with no
+ * The rule is *"can the bar leave it again"*, and it is the narrowed form of an earlier, wider
+ * override: a tablet rotated from 1280dp to 800dp used to keep drawing whatever panel it had with no
  * rail to switch away from it, and the browser could not be reached again without killing the app.
  * With a bar there, only a panel the bar has no item for still has to fall back - which is the
  * table of contents, and `null`, since a collapsed area over an empty window is not a state.

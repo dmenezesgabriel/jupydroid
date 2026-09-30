@@ -62,7 +62,7 @@ class LauncherAutoCreateTest {
     startApp(twoPane = true, launcherSeen = true)
     waitForTag("launcher-screen")
     compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_TEXT_FILE.name}").performClick()
-    // The tab is what announces the open document - its title's home since P8e (`Tab: <name>` is
+    // The tab is what announces the open document - its title's home (`Tab: <name>` is
     // a description, not a text node, so `waitForText` cannot see it).
     waitForDescription("Tab: untitled.txt")
 

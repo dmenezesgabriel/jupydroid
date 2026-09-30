@@ -37,7 +37,7 @@ class RecordOpeningTest {
     assertEquals(WorkspaceEntryKind.DIRECTORY, recorded["reports"])
   }
 
-  /** A plain file is a document like any other - X2c gave `.py` an editor, so it is openable. */
+  /** A plain file is a document like any other - `.py` has an editor, so it is openable. */
   @Test
   fun aPythonFileIsRecordedLikeANotebook() = runTest {
     val recents = FakeRecentDocumentsRepository()

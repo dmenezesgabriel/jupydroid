@@ -24,11 +24,10 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /**
- * The terminal is reachable, and what is typed comes back on screen,
- * sub-step 1's own gate, on the reaches P6d-6 settled: the bottom bar's own item at one pane,
- * the auto-filled launcher's Terminal card at two. `AppContainer`'s default `FakeTerminalGateway`
- * echoes back whatever it is sent, standing in for a real shell here exactly as it does in
- * [com.jupydroid.app.ui.terminal.TerminalPaneViewModelTest].
+ * The terminal is reachable, and what is typed comes back on screen, by both reaches: the bottom
+ * bar's own item at one pane, the auto-filled launcher's Terminal card at two. `AppContainer`'s
+ * default `FakeTerminalGateway` echoes back whatever it is sent, standing in for a real shell here
+ * exactly as it does in [com.jupydroid.app.ui.terminal.TerminalPaneViewModelTest].
  */
 @RunWith(AndroidJUnit4::class)
 class TerminalNavigationTest {
@@ -54,8 +53,8 @@ class TerminalNavigationTest {
     // test host's own window, and the semantics tree reports every node's bounds relative to the
     // window's pre-resize frame, which reads as "off-screen" no matter where the node actually
     // draws (checked: `Terminal`'s own app-bar title carries the identical offset). The device
-    // proof that this genuinely renders on screen is Maestro's
-    // and `evidence/p4i-terminal-tablet/` are both screenshots of it, not a claim.
+    // proof that this genuinely renders on screen is Maestro's `p4i-terminal-tablet` flow, whose
+    // screenshots are of the real thing rather than a claim about it.
     waitForText("ls")
   }
 

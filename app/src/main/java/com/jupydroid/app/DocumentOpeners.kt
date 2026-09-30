@@ -39,7 +39,7 @@ internal fun rememberDocumentOpener(backStack: MutableList<NavKey>, appContainer
 
 /**
  * `terminal:create-new`, adapted: the reference reaches it from the Launcher tab or the File
- * menu, and this app has neither until `docs/PLAN.md`'s P6d gives it one. So this is the
+ * menu, and this app has neither. So this is the
  * explorer's own provisional reach point - a second icon beside the New notebook/file/folder
  * menu rather than a fourth item inside it, since that menu's own KDoc already states parity
  * with the reference's New widget (exactly three, none of them a terminal).

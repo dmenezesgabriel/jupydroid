@@ -37,8 +37,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `TerminalCanvas` draws batched-run glyphs rather than plain `Text` rows
- * P4i-2d. Background colour rather than glyph ink is what these sample: a glyph's edges
+ * `TerminalCanvas` draws batched-run glyphs rather than plain `Text` rows. Background colour
+ * rather than glyph ink is what these sample: a glyph's edges
  * anti-alias, a full-cell background rect does not, so it is the pixel a test can actually pin.
  */
 @RunWith(AndroidJUnit4::class)
@@ -58,7 +58,7 @@ class TerminalCanvasTest {
     emulator.append(sgr, sgr.size)
     var cell: IntSize? = null
 
-    // P4i-3a: `TerminalCanvas` now fills whatever bounded size its caller gives it rather than
+    // `TerminalCanvas` fills whatever bounded size its caller gives it rather than
     // sizing itself to the grid, so the sample point is the real measured cell centre - reported
     // through `onGridSizeChanged` - not `image.width / columns`, which only held while the two
     // were the same thing.

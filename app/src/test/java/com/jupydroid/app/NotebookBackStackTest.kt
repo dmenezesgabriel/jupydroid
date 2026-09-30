@@ -10,7 +10,7 @@ import org.junit.Test
  * The device half is `NotebookNavigationTest.tappingTheSameNotebookTwiceOpensOneEditor`; this is
  * the half that says what "already open" means when it is not the notebook on top.
  *
- * Since P8d the stack holds **every** open document, the way JupyterLab's main area holds every
+ * The stack holds **every** open document, the way JupyterLab's main area holds every
  * open tab: opening a second document pushes it, and opening one already in the stack moves it to
  * the top rather than duplicating it - two equal keys would share one `contentKey`, one
  * `ViewModelStore` and one `SaveableStateHolder` slot.
@@ -143,9 +143,9 @@ class NotebookBackStackTest {
 
   /**
    * The same notebook, already open **beneath** whatever is on top, is promoted rather than
-   * duplicated - `docs/PLAN.md`'s own Open risks entry on `openNotebook`: `lastOrNull() == document`
-   * only ever checked the top, so a notebook one level deeper survived a swap of what sat above it
-   * and came back a second time on the next [openNotebook] for the same id. Two entries would then
+   * duplicated. `lastOrNull() == document` only ever checked the top, so a notebook one level
+   * deeper survived a swap of what sat above it and came back a second time on the next
+   * [openNotebook] for the same id. Two entries would then
    * share one `contentKey` ([openNotebook]'s own doc comment), and popping either would clear
    * `ViewModelStore`/`SaveableStateHolder` state the other was still relying on.
    */
@@ -290,7 +290,7 @@ class NotebookBackStackTest {
    * At most one Launcher ever exists (the reference's own rule, `maybeCreate`'s). A `data object`
    * key shares `contentKey` across equal entries, so a second `Launcher` beneath anything stacked
    * over it - `[Explorer, Launcher, Settings]` - must come forward rather than be duplicated, the
-   * same invariant P6b-0 gave documents.
+   * same invariant documents have.
    */
   @Test
   fun openingTheLauncherWithOneDeeperInTheStackPromotesIt() {

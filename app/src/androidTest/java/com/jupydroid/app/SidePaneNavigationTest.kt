@@ -125,7 +125,7 @@ class SidePaneNavigationTest {
     assertGone(WORKSPACE)
   }
 
-  /** The other half of the toggle, on the panel P2x-2 added - see the ToC's own case above. */
+  /** The other half of the toggle, on the search panel - see the ToC's own case above. */
   @Test
   fun pickingSearchAgainCollapsesTheAreaAndLeavesTheRail() {
     startApp(twoPane = true)
@@ -157,7 +157,7 @@ class SidePaneNavigationTest {
    * `currentWindowAdaptiveInfo()` reads the *activity's* window and not the override (this file's
    * own `windowFor`, and `TwoPaneLayoutTest` records the same). This test used to read a result row
    * in that pane, which a `Column` lays out anyway by overflowing a parent with no room - a
-   * `LazyColumn` composes only what fits, so since P2x-3e there is nothing there to read.
+   * `LazyColumn` composes only what fits, so there is nothing there to read.
    *
    * A box still holding *"cat"* proves the whole of the claim: a rebuilt `WorkspaceSearchViewModel`
    * starts at `SearchQuery("")`, so surviving text is a surviving instance. The results half is
@@ -190,7 +190,7 @@ class SidePaneNavigationTest {
    * the list pane with no rail to switch away from it, and the file browser could not be reached
    * again without killing the app.
    *
-   * **P2y narrows this rather than reopening it.** The bar the narrowed window now lands on can
+   * **The bottom bar narrows this rather than reopening it.** The bar the narrowed window lands on can
    * leave Files and Search, so those two survive - see the case below. The table of contents has no
    * item on it, so it is the one panel that still has to fall back, and this is now the whole of
    * P2x-2b's defect rather than a third of it.
@@ -210,8 +210,8 @@ class SidePaneNavigationTest {
   }
 
   /**
-   * **And a window that narrows onto Search keeps it**, which is what the bar buys: P2x-2b had to
-   * send every panel back to the browser because a narrowed window had no control at all, and a
+   * **And a window that narrows onto Search keeps it**, which is what the bar buys: the earlier
+   * rule sent every panel back to the browser because a narrowed window had no control at all, and a
    * user who rotated mid-search lost the search. The bar can leave Search, so nothing has to.
    */
   @Test
@@ -246,7 +246,7 @@ class SidePaneNavigationTest {
 
   /**
    * **A one-pane window draws the bar, not the rail** - a rail there would spend a quarter of a
-   * 320dp screen on chrome, which is the cost P2o-4 measured and this step did not reopen.
+   * 320dp screen on chrome, a cost already measured and not reopened here.
    *
    * The table of contents is what tells the two controls apart: it is on the rail and not on the
    * bar, so its absence beside two present destinations is the whole assertion.

@@ -89,7 +89,7 @@ class NotebookNavigationTest {
 
     compose.mainClock.autoAdvance = false
     listingRow(ALPHA_TITLE).performClick()
-    // The *listing* row both times. Since X2h the first tap makes the notebook a recent, so its
+    // The *listing* row both times. The first tap makes the notebook a recent, so its
     // name is on screen twice at the root - once in the Recents section, once in the listing - and
     // a bare text match finds two nodes. Which row the second tap lands on does not matter to what
     // this asserts; naming one does.
@@ -126,7 +126,7 @@ class NotebookNavigationTest {
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
             notebookRepository = repository,
-            // The list is the explorer since X2h, and it lists the *workspace* - the default fake
+            // The list is the explorer, and it lists the *workspace* - the default fake
             // is empty, so without this there are no rows to tap and the test proves nothing.
             workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
           ),

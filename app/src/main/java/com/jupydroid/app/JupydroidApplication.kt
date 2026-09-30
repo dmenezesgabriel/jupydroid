@@ -55,7 +55,7 @@ import java.io.File
  * (`Checking to restart …: not-handles={CONFIG_ORIENTATION}`). Each relaunch built another
  * container with another `ServerLauncher`, so reopening a notebook started a **second
  * `jupyter_server`** beside the first - measured, both children of the app.
- * The process-wide lifecycle observer P1c needs has
+ * The observer that stops the server when the app goes away has
  * the same shape of problem from the other side: registered per activity it is never removed, and
  * the leaked one is what kept the backstop working at all.
  *
@@ -132,7 +132,7 @@ class JupydroidApplication : Application() {
    * by controls that always fail.
    *
    * **One server object for all four**, because `JupyterServerLauncher.start` begins with `stop()`
-   * - see [BaseSpaceServer], whose KDoc has named an export and a terminal as its clients since P1.
+   * - see [BaseSpaceServer], whose KDoc names an export and a terminal as its clients.
    * [kernels] and [debugger] go one step further, sharing one `PerRunningServer<KernelSockets>`
    * so a `debug_request` reuses the identical per-session socket `execute`/`complete`/`history`
    * already share, rather than opening a second one.

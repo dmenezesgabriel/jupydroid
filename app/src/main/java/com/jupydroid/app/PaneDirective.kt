@@ -11,8 +11,8 @@ import androidx.compose.runtime.Composable
  *
  * `calculatePaneScaffoldDirective` is the library's own answer and it is **already this app's
  * rule**: Compact and Medium get one horizontal partition, Expanded gets two, Large and above get
- * three. Expanded's lower bound is 840dp, which is the number P1e checked that
- * before deleting the hand-written strategy rather than assuming it.
+ * three. Expanded's lower bound is 840dp, which was read out of the library rather than assumed
+ * before the hand-written strategy was deleted.
  *
  * **A width rule, never a device one.** The tablet in a split-screen window is a compact window
  * and gets one pane, and the class changes under the layout as the divider is dragged.

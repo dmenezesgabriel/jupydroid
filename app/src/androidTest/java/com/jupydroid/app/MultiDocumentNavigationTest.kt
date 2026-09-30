@@ -30,8 +30,8 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /**
- * Two notebooks open at once hold two live kernel sessions - the multi-document half of P8d that
- * the unit tests cannot see.
+ * Two notebooks open at once hold two live kernel sessions - the half of a stacking main area
+ * that the unit tests cannot see.
  *
  * JupyterLab's main area keeps every widget alive beneath the current tab; here a `NavEntry` keeps
  * its `ViewModelStore`, and the ViewModel is what holds the kernel connection - so

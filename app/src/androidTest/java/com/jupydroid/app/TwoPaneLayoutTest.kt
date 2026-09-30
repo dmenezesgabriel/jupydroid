@@ -138,7 +138,7 @@ class TwoPaneLayoutTest {
    *
    * `calculateScene` declines a single entry, which is what stops an empty second pane appearing
    * beside it. This used to assert something stronger - that Recents was *not* drawn beside the
-   * browser, the defect U7 opened with - and that shape is now unreachable: the explorer is the
+   * browser, the defect this file opened with - and that shape is now unreachable: the explorer is the
    * root, so there is no surface underneath it, and `ListDetailSceneStrategy` would decline the
    * scene anyway - a scaffold value with one pane is not a scene it handles.
    */
@@ -197,7 +197,7 @@ class TwoPaneLayoutTest {
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
               notebookRepository = repository,
-              // The list pane is the explorer since X2h, and it lists the *workspace* - a fake
+              // The list pane is the explorer, and it lists the *workspace* - a fake
               // one would leave both panes' rows empty and every assertion here vacuous.
               workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
             ),

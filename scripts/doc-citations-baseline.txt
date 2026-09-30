@@ -1,15 +1,5 @@
 # Files still carrying citations ADR-0001 retired. This list only ever shrinks;
 # nothing may be added to it. Regenerate after a sweep with --write-baseline.
-app/src/androidTest/java/com/jupydroid/app/ConsoleNavigationTest.kt
-app/src/androidTest/java/com/jupydroid/app/ExplorerNavigationTest.kt
-app/src/androidTest/java/com/jupydroid/app/LauncherAutoCreateTest.kt
-app/src/androidTest/java/com/jupydroid/app/MultiDocumentNavigationTest.kt
-app/src/androidTest/java/com/jupydroid/app/NotebookNavigationTest.kt
-app/src/androidTest/java/com/jupydroid/app/OpenDocumentsNavigationTest.kt
-app/src/androidTest/java/com/jupydroid/app/SidePaneNavigationTest.kt
-app/src/androidTest/java/com/jupydroid/app/TerminalCanvasTest.kt
-app/src/androidTest/java/com/jupydroid/app/TerminalNavigationTest.kt
-app/src/androidTest/java/com/jupydroid/app/TwoPaneLayoutTest.kt
 app/src/androidTest/java/com/jupydroid/app/data/space/BusyBoxAppletsDeviceTest.kt
 app/src/androidTest/java/com/jupydroid/app/data/space/ConsoleScriptDeviceTest.kt
 app/src/androidTest/java/com/jupydroid/app/data/space/LanguageServerDeviceTest.kt
@@ -50,15 +40,6 @@ app/src/androidTest/java/com/jupydroid/app/ui/shell/SearchReplaceAllTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/shell/SearchSidePanelTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/shell/SidePanelBarTest.kt
 app/src/androidTest/java/com/jupydroid/app/ui/shell/SidePanelRailTest.kt
-app/src/main/java/com/jupydroid/app/DocumentOpeners.kt
-app/src/main/java/com/jupydroid/app/DocumentOutline.kt
-app/src/main/java/com/jupydroid/app/JupydroidApplication.kt
-app/src/main/java/com/jupydroid/app/Navigation.kt
-app/src/main/java/com/jupydroid/app/NotebookBackStack.kt
-app/src/main/java/com/jupydroid/app/OpenDocuments.kt
-app/src/main/java/com/jupydroid/app/PaneDirective.kt
-app/src/main/java/com/jupydroid/app/ShellSidePane.kt
-app/src/main/java/com/jupydroid/app/SidePanel.kt
 app/src/main/java/com/jupydroid/app/data/disk/DiskRecentDocumentsRepository.kt
 app/src/main/java/com/jupydroid/app/data/disk/DiskWorkspaceSearcher.kt
 app/src/main/java/com/jupydroid/app/data/disk/NotebookFile.kt
@@ -83,7 +64,6 @@ app/src/main/java/com/jupydroid/app/data/space/PythonRunner.kt
 app/src/main/java/com/jupydroid/app/data/space/RealTerminalGateway.kt
 app/src/main/java/com/jupydroid/app/data/space/SpaceLifecycleLog.kt
 app/src/main/java/com/jupydroid/app/data/space/SpaceRuntime.kt
-app/src/main/java/com/jupydroid/app/di/AppContainer.kt
 app/src/main/java/com/jupydroid/app/terminal/CharacterPlacement.kt
 app/src/main/java/com/jupydroid/app/terminal/ClipboardCommand.kt
 app/src/main/java/com/jupydroid/app/terminal/ColorCommands.kt
@@ -184,9 +164,6 @@ app/src/main/java/com/jupydroid/app/ui/terminal/TerminalCanvas.kt
 app/src/main/java/com/jupydroid/app/ui/terminal/TerminalKeyEncoding.kt
 app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt
 app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneViewModel.kt
-app/src/test/java/com/jupydroid/app/NotebookBackStackTest.kt
-app/src/test/java/com/jupydroid/app/RecordOpeningTest.kt
-app/src/test/java/com/jupydroid/app/SidePanelTest.kt
 app/src/test/java/com/jupydroid/app/architecture/ArchitectureGuardTest.kt
 app/src/test/java/com/jupydroid/app/data/disk/DiskNotebookRepositoryTest.kt
 app/src/test/java/com/jupydroid/app/data/disk/DiskRecentDocumentsRepositoryTest.kt

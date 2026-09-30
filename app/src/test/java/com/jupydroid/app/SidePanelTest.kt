@@ -38,8 +38,8 @@ class SidePanelTest {
   }
 
   /**
-   * The order the rail draws top to bottom, and **it takes both references to state it** - which
-   * is the correction P2x-2 made to its own row in `docs/PLAN.md`.
+   * The order the rail draws top to bottom, and **it takes both references to state it**
+   * (ADR-0062).
    *
    * - The file browser is first in both: rank 100
    *   (`packages/filebrowser-extension/src/index.ts:676`), `order: 0`
@@ -77,7 +77,7 @@ class SidePanelTest {
     )
   }
 
-  /** Every panel toggles, including the one P2x-2 added - `chosen` is written over the type. */
+  /** Every panel toggles, search included - `chosen` is written over the type. */
   @Test
   fun everyPanelCollapsesTheAreaWhenItIsTheOneShowing() {
     SidePanel.entries.forEach { panel -> assertNull(panel.chosen(panel)) }
@@ -108,7 +108,7 @@ class SidePanelTest {
   }
 
   /**
-   * **A one-pane window shows the panel it was left on**, which is the half P2x-2b could not give:
+   * **A one-pane window shows the panel it was left on**, which the earlier rule could not give:
    * with no bar there, every panel had to fall back to the browser or become unreachable.
    */
   @Test

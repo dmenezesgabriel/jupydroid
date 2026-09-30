@@ -87,7 +87,7 @@ fun MainNavigation(
   // under, because replacing it would re-create the entry and discard the editor's state; a rename
   // is reported here instead, keyed by the entry's own key since many editors are open at once.
   // `_contextsForPath` does the same - it filters live contexts by their current path, never
-  // by the one a widget was created with. FileEditor keys join Editor's since P8e: the tab strip
+  // by the one a widget was created with. FileEditor keys join Editor's here: the tab strip
   // reads live paths for titles and dirty lookups.
   val openDocumentPaths = remember { mutableStateMapOf<NavKey, String>() }
   // The strip's tab order - **opening order**, not the stack's. The stack promotes an activated
@@ -211,7 +211,7 @@ fun MainNavigation(
   // to draw has to be able to overrule it - otherwise `twoPane` would decide the row marking above
   // and not the layout, and the two would disagree. Same boolean, both halves.
   val measured = paneScaffoldDirective()
-  // **A one-pane window has no side area, so its panel *is* the window** - and until P2y that meant
+  // **A one-pane window has no side area, so its panel *is* the window** - and that once meant
   // the browser and nothing else, because the rail is drawn only `if (twoPane)` below while
   // `sidePanel` is `rememberSaveable`. A tablet rotated to portrait (1280dp landscape is two panes,
   // 800dp portrait is one) kept drawing the panel it had with no rail to switch away from it and no
@@ -259,16 +259,16 @@ fun MainNavigation(
   // document the side area may be drawing the table of contents instead; in one window the browser
   // is not composed at all until the open entry goes.
   //
-  // **Both documents take this same lambda** - the notebook since P2w-1, the plain file editor
-  // since P7b - because two copies of a branch that has to agree is a defect waiting to be written,
-  // which is the reason `ShellSidePane` stopped being handed the width fact twice in P7a-2.
+  // **Both documents take this same lambda** - the notebook and the plain file editor alike -
+  // because two copies of a branch that has to agree is a defect waiting to be written, the same
+  // reason `ShellSidePane` stopped being handed the width fact twice.
   val goToFolder: (String) -> Unit = { folder ->
     browseRequest = folder
     if (twoPane) {
       sidePanel = SidePanel.FILES
     } else {
       // One pane, and the browser is only ever shown as the top entry: bring it forward rather
-      // than popping the document - since P8d the entries beneath are still-open tabs, so Back
+      // than popping the document - the entries beneath are still-open tabs, so Back
       // from the browser returns to the document exactly as activating a tab would.
       backStack.remove(Explorer)
       backStack.add(Explorer)
@@ -334,11 +334,10 @@ fun MainNavigation(
         rememberSaveableStateHolderNavEntryDecorator(),
         rememberViewModelStoreNavEntryDecorator(),
       ),
-      // Both entries stay entries; this only decides whether they are drawn one at a time or beside
-      // each other. `ListDetailSceneStrategy` collects the matching entries into one scene and draws
-      // each one's own `Content()`, so every decorator stays where it was - which is the property
-      // U7's hand-written strategy existed for and the reason `NavigableListDetailPaneScaffold` is
-      // still not what this uses: the scaffold puts both panes inside *one* `NavEntry`.
+      // Both entries stay entries; this only decides whether they are drawn one at a time or beside each other.
+      // `ListDetailSceneStrategy` collects the matching entries into one scene and draws each one's own `Content()`, so
+      // every decorator stays where it was - the property the hand-written strategy this replaced existed for, and the
+      // reason `NavigableListDetailPaneScaffold` is still not what this uses: it puts both panes in *one* `NavEntry`.
       //
       // With one partition it declines the scene (`shouldHandleSinglePaneLayout` is false by
       // default), and NavDisplay falls through to its single-pane default.
@@ -360,8 +359,8 @@ fun MainNavigation(
             showingPanel = showingPanel,
             onePanePanel = onePanePanel,
             // The one width fact, passed once. It used to arrive twice - as `showingPanel` and as a
-            // `barSelection` that was `if (twoPane) null else onePanePanel` - and P7a-2 needed a
-            // third reading of it for the side bar's own border. Two parameters that have to agree
+            // `barSelection` that was `if (twoPane) null else onePanePanel` - and the side bar's
+            // own border needed a third reading of it. Two parameters that have to agree
             // is a defect waiting to be written; the pane decides from the fact itself.
             twoPane = twoPane,
             onChoosePanel = { sidePanel = it },

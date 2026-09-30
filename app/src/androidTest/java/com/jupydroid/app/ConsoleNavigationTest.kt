@@ -70,7 +70,7 @@ class ConsoleNavigationTest {
     compose.onNodeWithText(NEW_CONSOLE_FOR_NOTEBOOK).performClick()
 
     waitForTag(CONSOLE_INPUT_FIELD_TAG)
-    // The title moved to the tab with P8e - the console's tab carries the notebook's name
+    // The title lives on the tab - the console's tab carries the notebook's name
     // (`title.label`'s own home, `widget.ts`'s `title.label = name`), and the notebook's own tab
     // has the same title, so the selected one is the console's.
     compose.onNode(isSelected() and hasContentDescription("Tab: $NOTEBOOK_TITLE")).assertIsDisplayed()
@@ -80,8 +80,8 @@ class ConsoleNavigationTest {
 
     waitForText("1 + 1")
 
-    // Real evidence of the whole path, not just the standalone screen P6b-9a already captured:
-    // this Console was reached by an actual tap sequence from an open notebook.
+    // Real evidence of the whole path, not just of the standalone screen: this Console was
+    // reached by an actual tap sequence from an open notebook.
     val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
     val context = ApplicationProvider.getApplicationContext<Context>()
     val file = File(context.getExternalFilesDir(null), EVIDENCE_FILE_NAME)

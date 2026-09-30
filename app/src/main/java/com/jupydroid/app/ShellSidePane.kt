@@ -99,8 +99,8 @@ fun ShellSidePane(
 ) {
   // **`sideBar.border`, drawn by the side bar itself** - the seam between this pane and the
   // document, which the reference states (`workbench/common/theme.ts:623`, *"on the side separating
-  // to the editor"*) and this app drew nowhere until P7a-2: the panel's band ended at x661 and the
-  // page's began at x662 with no column between them.
+  // to the editor"*) and this app once drew nowhere: the panel's band ended at x661 and the page's
+  // began at x662 with no column between them.
   // Only beside two panes, because at one pane
   // this pane *is* the window and its trailing edge is the screen's.
   val separated = if (twoPane) Modifier.trailingBorder(chromePalette.sideBarBorder) else Modifier
@@ -175,8 +175,8 @@ fun ShellSidePane(
     // **The bar is drawn here and nowhere else**, which is what keeps it off an open document: in
     // one window `NavDisplay` composes only the top entry, so a bar spelled beside it would sit
     // under the notebook too. That is Android's own rule - a navigation bar carries top-level
-    // destinations - and it is the difference P2o-4 costed: an 80dp bar is 20% of the 400.0dp cell
-    // list at 320dp, where P2q-2 fought for 48dp at that same width. Here it costs the document
+    // destinations - and the difference was costed: an 80dp bar is 20% of the 400.0dp cell list at
+    // 320dp, a width at which 48dp had already been fought for. Here it costs the document
     // nothing.
     //
     // Never `SidePanel.chosen`: re-picking here would collapse the only thing on screen.

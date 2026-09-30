@@ -142,7 +142,7 @@ fun List<NavKey>.launcherIsClosable(): Boolean = count { it.isDocument() } > 1
  *
  * [remove] before [add] is the reveal half: an equal key deeper in the stack would otherwise sit
  * beside its new twin, and equal keys share `contentKey` - one `ViewModelStore` between two
- * entries, the P6b-0 defect this has guarded since it was `lastOrNull() == document` alone.
+ * entries, the defect this has guarded against since it was `lastOrNull() == document` alone.
  */
 internal fun MutableList<NavKey>.openInMainArea(document: NavKey) {
   if (lastOrNull() == document) return

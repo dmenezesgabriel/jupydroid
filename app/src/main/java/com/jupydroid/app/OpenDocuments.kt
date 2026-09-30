@@ -64,8 +64,8 @@ interface OpenDocument {
 /**
  * The documents open right now, so something that is not their screen can reach them by path.
  *
- * **A map-shaped holder, because the back stack now holds every open document** (P8d -
- * `NotebookBackStack` stacks rather than replaces, the way `shell.add(widget, 'main')` adds a
+ * **A map-shaped holder, because the back stack holds every open document**
+ * (`NotebookBackStack` stacks rather than replaces, the way `shell.add(widget, 'main')` adds a
  * tab). Order is open order - the order a tab strip would draw - and lookup is by each
  * document's *live* [OpenDocument.path], because a rename moves the file while the document
  * carries on: the reference's `_contextsForPath` filters contexts by their current path for the
