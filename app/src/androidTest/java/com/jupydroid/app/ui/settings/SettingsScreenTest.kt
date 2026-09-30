@@ -118,7 +118,7 @@ class SettingsScreenTest {
     compose.onNodeWithContentDescription(DECREASE_CODE_FONT_SIZE).assertIsNotEnabled()
   }
 
-  /** `docs/PLAN.md`'s P6c-7 - see `EditorSettings.symbolRowShown`. */
+  /** See `EditorSettings.symbolRowShown`. */
   @Test
   fun symbolRowRowShowsTheRepositorysCurrentValue() {
     startScreen(FakeEditorSettingsRepository(EditorSettings(symbolRowShown = false)))

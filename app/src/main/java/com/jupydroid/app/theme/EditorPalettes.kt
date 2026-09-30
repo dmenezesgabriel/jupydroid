@@ -26,8 +26,7 @@ import androidx.compose.ui.graphics.Color
  * 2026 theme's, verbatim, including the one that measures under WCAG AA: light's `number` at
  * **4.42:1** on the cell surface. `EditorPaletteTest` therefore pins these values *by equality*
  * rather than by ratio - a colour that drifts off the reference fails, and a colour the reference
- * itself draws faintly does not. `docs/DECISIONS.md`, "Parity with the 2026 themes outranks the
- * contrast floor", carries what that trades away and what still holds.
+ * itself draws faintly does not. ADR-0041 carries what that trades away and what still holds.
  *
  * The IntelliJ schemes these syntax colours replaced, for anyone reading back through `git log`,
  * were `platform/platform-resources/src/themes/expUI/expUI_{dark,light}Scheme.xml`.

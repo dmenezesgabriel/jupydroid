@@ -74,8 +74,7 @@ data class WorkspaceSearchUiState(
  *
  * `SearchView`'s model half (`vscode/…/search/browser/searchView.ts`), which answers **both**
  * halves here: JupyterLab registers no workspace search at all, so VS Code is the behaviour
- * reference as well as the presentation one (`docs/DECISIONS.md`, "The activity bar's order takes
- * both references").
+ * reference as well as the presentation one (ADR-0062).
  *
  * ```
  * WorkspaceSearchViewModel(appContainer.workspaceSearcher, replace).queryChanged(SearchQuery("cat"))

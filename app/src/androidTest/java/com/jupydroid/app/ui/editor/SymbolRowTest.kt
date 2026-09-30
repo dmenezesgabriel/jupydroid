@@ -25,7 +25,7 @@ import org.junit.runner.RunWith
  * `FocusedCellInputTest` argues what each key does to a `TextFieldState`; what it cannot answer is
  * whether a field ever hands itself over. That is a question about focus, and this app has
  * shipped one bug of exactly that shape before - a rendered markdown cell that opened an editor
- * with no caret (`docs/DECISIONS.md`, audit A1c).
+ * with no caret.
  */
 @RunWith(AndroidJUnit4::class)
 class SymbolRowTest {

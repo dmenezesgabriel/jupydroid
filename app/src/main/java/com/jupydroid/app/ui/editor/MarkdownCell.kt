@@ -57,7 +57,7 @@ fun MarkdownCell(
   editing: Boolean = false,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
-  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  /** See [codeSourceStyle]. */
   codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /**
    * `toc:display-numbering`'s answer for this cell's heading, or `""`. **In the document** and not

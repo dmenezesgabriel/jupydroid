@@ -15,7 +15,8 @@ import java.io.File
 /**
  * An applet runs **in this app's process**, which is the only place the question means anything.
  *
- * **P4b-2, and the gate P4b was missing.** P4b proved the shell through `adb shell run-as`, which
+ * **This is the gate the first attempt was missing.** That one proved the shell through
+ * `adb shell run-as`, which
  * is not zygote-spawned and so carries no app seccomp filter. Under the filter every applet died:
  * Alpine's busybox sets `CONFIG_FEATURE_SUID`, so each dispatch calls `setgid`/`setuid`
  * (`libbb/appletlib.c:965`), both refused to apps by bionic's `SECCOMP_BLOCKLIST_APP.TXT`, and the
@@ -23,8 +24,8 @@ import java.io.File
  * `run-as` could never show.
  *
  * [runInSpace] is what keeps that: it starts the child from the instrumented test, in the app
- * process, and P7e-1 moved it there so [PythonInterpreterDeviceTest] could not grow a second copy
- * that forgot why.
+ * process, and it lives there so [PythonInterpreterDeviceTest] cannot grow a second copy that
+ * forgot why.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \

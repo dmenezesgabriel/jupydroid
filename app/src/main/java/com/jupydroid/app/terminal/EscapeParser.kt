@@ -135,7 +135,7 @@ class EscapeParser(
    * Whether an `ESC` inside the sequence in progress is **swallowed rather than starting a new
    * one** - true only in [EscapeState.DeviceControlString], where the reference's guard reads
    * `== ESC_P` and drops the byte outright, unlike [isCollectingString]'s `OSC` lookahead, which
-   * re-buffers it. A guard of its own rather than folded into that one, per `docs/DECISIONS.md`,
+   * re-buffers it. A guard of its own rather than folded into that one,
    * "P4f-6c and P4f-6d may not widen this predicate".
    */
   val isDeviceControlString: Boolean get() = state == EscapeState.DeviceControlString

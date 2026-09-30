@@ -57,7 +57,7 @@ class SearchReplaceAllTest {
     }
   }
 
-  /** The panel is one scrolling surface, so a node below the fold has to be scrolled to (P2x-3e). */
+  /** The panel is one scrolling surface, so a node below the fold has to be scrolled to. */
   private fun scrollTo(what: SemanticsMatcher) =
     scrollUntilFound(compose, hasScrollAction(), what) { "the panel never scrolled to $what" }
 

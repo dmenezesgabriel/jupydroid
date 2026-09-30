@@ -520,7 +520,7 @@ class NotebookDebuggerTest {
     assertEquals(listOf(3 to SteppingCommand.NEXT), fake.stepRequests)
   }
 
-  /** [EditorUiState.stoppedLineOf] is what the gutter reads (P6a-7b-2) - scoped to its own cell. */
+  /** [EditorUiState.stoppedLineOf] is what the gutter reads - scoped to its own cell. */
   @Test
   fun stoppedLineOfNamesOnlyTheStoppedCell() = runTest {
     val fake = FakeKernelDebugger()

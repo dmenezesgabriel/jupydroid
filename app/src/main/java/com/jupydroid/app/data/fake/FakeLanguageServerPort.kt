@@ -175,7 +175,7 @@ class FakeLanguageServerPort : LanguageServerPort {
   }
 
   private companion object {
-    /** The `compute_total` name span real `pylsp` answered in `evidence/p5e-0-lsp-surface/`. */
+    /** The `compute_total` name span real `pylsp` answered. */
     val PROBE_DEFINITION_RANGE = LanguageRange(LanguagePosition(4, 4), LanguagePosition(4, 17))
   }
 }

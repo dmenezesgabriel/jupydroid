@@ -29,7 +29,7 @@ import kotlin.math.roundToInt
  * **Not the symbol row.** Its keys are monospace for the shape of `->` and `Tab`, not because they
  * are source being read, and JupyterLab has no such row to copy - it is a phone adaptation. They
  * are captions on touch targets, and 14sp would make the surface most used one-handed harder to
- * read for no parity gained. Recorded in `docs/DECISIONS.md` so it is not re-derived.
+ * read for no parity gained. Recorded so it is not re-derived.
  *
  * ```
  * Text(text = output, style = codeTextStyle())

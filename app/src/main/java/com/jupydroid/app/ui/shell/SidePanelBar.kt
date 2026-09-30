@@ -28,7 +28,7 @@ import com.jupydroid.app.theme.chromePalette
  * `LayoutSettings.ACTIVITY_BAR_LOCATION` (`…/parts/activitybar/activitybarPart.ts:604-616`).
  * JupyterLab answers nothing here: `packages/application/` has no media query and no width branch,
  * and its `'desktop' | 'mobile'` form factor (`packages/application/src/frontend.ts:28,44,120`) is
- * never assigned - which is the split `docs/DECISIONS.md` records under P2x-1e.
+ * never assigned - which is the split
  *
  * **Four destinations now** - the two panels of [onePaneDestinations] plus two *action* items -
  * which is still inside Material's own band of *"three to five destinations of equal

@@ -126,7 +126,7 @@ internal fun jupyterServerProcess(
   // directory and everything downstream is written against that. A terminal is the client that
   // proves it: `PtyWithClients` inherits this cwd whenever the POST carries none
   // (`terminado/management.py:225-232`). Without this line a shell opens on Android's read-only
-  // `/`. See [JupyterServerWorkingDirTest] and `docs/DECISIONS.md`.
+  // `/`. See [JupyterServerWorkingDirTest].
   //
   // [rootDir] is guaranteed to exist rather than created here: the only path that starts this
   // launcher is `BaseSpaceServer.startSpace`, which calls `installSpace()` first, and the rootfs

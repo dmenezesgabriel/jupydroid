@@ -59,7 +59,7 @@ fun MutableList<NavKey>.openTerminal(name: String) {
  * The [removeAll] is [openStandaloneConsole]'s own constraint held globally: `entry<Console>`
  * draws from the one `consoleSession` holder, so a Console deeper in the stack than the incoming
  * one would keep composing against the newer session. JupyterLab tracks many consoles; this
- * holder is why this app cannot (`docs/DECISIONS.md`).
+ * holder is why this app cannot.
  *
  * ```
  * backStack.openConsole("nb-1")   // [Explorer, Editor("nb-1")] -> [Explorer, Editor("nb-1"), Console("nb-1")]

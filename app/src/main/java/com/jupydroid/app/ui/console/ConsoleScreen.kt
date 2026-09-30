@@ -50,7 +50,7 @@ fun ConsoleScreen(
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
-    // The document's own background, not a Material role - `docs/DECISIONS.md`'s rule every other
+    // The document's own background, not a Material role - the rule every other
     // document screen in this tree already follows.
     containerColor = editorPalette.editorBackground,
     topBar = {

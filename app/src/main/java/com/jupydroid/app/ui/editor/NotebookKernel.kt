@@ -171,19 +171,19 @@ class NotebookKernel(
 
   private val completion = NotebookCompletion(session, kernelGateway, languageServer, languageDocument)
 
-  /** The "Symbol info" ask - `textDocument/hover` at the caret's virtual position (P5e-3). */
+  /** The "Symbol info" ask - `textDocument/hover` at the caret's virtual position. */
   private val hover = NotebookHover(session, languageServer, languageDocument)
 
-  /** The signature-help ask - `textDocument/signatureHelp` at the caret's virtual position (P5e-4). */
+  /** The signature-help ask - `textDocument/signatureHelp` at the caret's virtual position. */
   private val signatureHelp = NotebookSignatureHelp(session, languageServer, languageDocument)
 
-  /** The definition ask - `textDocument/definition` at the caret's virtual position (P5e-5). */
+  /** The definition ask - `textDocument/definition` at the caret's virtual position. */
   private val definition = NotebookDefinition(session, languageServer, languageDocument)
 
-  /** The format ask - `textDocument/rangeFormatting` over the cell's virtual block (P5e-6). */
+  /** The format ask - `textDocument/rangeFormatting` over the cell's virtual block. */
   private val format = NotebookFormat(session, languageServer, languageDocument, formattingOptions)
 
-  /** The rename ask - `textDocument/rename` at the caret's virtual position (P5e-7). */
+  /** The rename ask - `textDocument/rename` at the caret's virtual position. */
   private val rename = NotebookRename(session, languageServer, languageDocument)
 
   /**

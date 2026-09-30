@@ -102,7 +102,7 @@ class EscapeDispatchTest {
    * **A declared divergence in the last of those.** The reference's `reset()` assigns `mForeColor`
    * and `mBackColor` and never `mEffect`, so upstream `ESC [ 1;4m A ESC c B` leaves `B` bold and
    * underlined - measured, not read off the source. RIS is a *hard* reset in xterm's `ctlseqs`,
-   * and `docs/DECISIONS.md` records it.
+   * and
    */
   @Test
   fun resetToInitialStateClearsTheScreenTheTranscriptAndTheStyle() {
@@ -123,7 +123,7 @@ class EscapeDispatchTest {
    * **A declared divergence.** The reference's `doEsc` calls `setCursorRowCol(0, mBottomMargin - 1)`
    * for a byte its own comment calls "cursor to lower-left corner" - row and column transposed, so
    * on a 4x3 screen it lands at row 0, column 2. xterm's `ctlseqs` is unambiguous
-   * ("Cursor to lower left corner of screen"), and `docs/DECISIONS.md` records it.
+   * ("Cursor to lower left corner of screen"), and
    */
   @Test
   fun lowerLeftPutsTheCursorAtTheStartOfTheLastRow() {

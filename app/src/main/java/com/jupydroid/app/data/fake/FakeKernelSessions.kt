@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.SharedFlow
 class FakeKernelSessions(private val registry: KernelSessionRegistry = KernelSessionRegistry()) : KernelSessions {
   override val ended: SharedFlow<String> = registry.ended
 
-  /** The fake gateway rebinds through the shared registry, exactly like the real one's (P8g). */
+  /** The fake gateway rebinds through the shared registry, exactly like the real one's. */
   override val rebound: SharedFlow<KernelSession> = registry.rebound
 
   override suspend fun running(): List<KernelSessionModel> = registry.all.map { tracked ->

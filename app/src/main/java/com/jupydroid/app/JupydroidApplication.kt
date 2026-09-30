@@ -155,7 +155,7 @@ class JupydroidApplication : Application() {
     val sessions: KernelSessions =
       kernelSockets?.let { baseSpaceKernelSessions(it, sessionRegistry) } ?: FakeKernelSessions(sessionRegistry)
 
-    /** `GET api/kernelspecs` while a server is up, the Space's declared list while it is not (P8g). */
+    /** `GET api/kernelspecs` while a server is up, the Space's declared list while it is not. */
     val specs: KernelSpecs =
       kernelSockets?.let { baseSpaceKernelSpecs(it, BASE_SPACE) } ?: FakeKernelSpecs()
 

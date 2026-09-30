@@ -47,7 +47,7 @@ internal data class NotebookKernelCommands(
   val onPickKernel: () -> Unit = {},
   val onShutdown: () -> Unit = {},
   val onCloseAndShutdown: () -> Unit = {},
-  /** `notebook:create-console` (P6b-9) - a Console sharing this notebook's own kernel. */
+  /** `notebook:create-console` - a Console sharing this notebook's own kernel. */
   val onOpenConsole: () -> Unit = {},
 )
 
@@ -61,7 +61,7 @@ internal fun notebookKernelCommands(
   state: EditorUiState,
   viewModel: EditorViewModel,
   onBack: () -> Unit,
-  /** Where a Console session `attachConsole()` mints goes next - see `MainNavigation` (P6b-9). */
+  /** Where a Console session `attachConsole()` mints goes next - see `MainNavigation`. */
   onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ): NotebookKernelCommands = NotebookKernelCommands(
   notebookTitle = state.title,

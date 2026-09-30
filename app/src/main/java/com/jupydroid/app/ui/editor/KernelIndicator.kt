@@ -145,7 +145,7 @@ private fun KernelStatusGlyph(status: KernelStatus) {
  * run got to ([ExecutionLabel]) - so a disc that means "done" beside one that means "working"
  * would be two marks with no scale to read them against. **The cost is named**: a JupyterLab user's
  * eye is trained on the meter's polarity, and here a filled mark means busy rather than finished.
- * `docs/DECISIONS.md` carries it.
+ *
  *
  * The bolt is **outlined where the reference's is filled**, and the weight is the only departure
  * there. `offline-bolt.svg` is Material's filled `offline_bolt` verbatim and every toolbar icon in

@@ -37,7 +37,7 @@ class KernelStatusGlyphTest {
    * is what every notebook shows until something is run. Drawn filled beside four outlined glyphs
    * it was the loudest thing in the row - measured off the frame, not guessed - and a resting state
    * that reads as an alarm is the misread P2v-1 retired the filled play for. Outlined keeps the
-   * reference's glyph and changes only its weight. `docs/DECISIONS.md` carries it.
+   * reference's glyph and changes only its weight.
    */
   @Test
   fun aNotebookWithNoKernelDrawsAnOutlinedBolt() {

@@ -14,7 +14,7 @@ package com.jupydroid.app.terminal
  * would be carrying it for one caller apiece. Three go elsewhere for a reason of their own: DECSC
  * and DECRC stay on the screen because `CSI s` and `CSI u` reach them as well, and
  * lower-left is a cursor motion with no grid in it, so it is [TerminalCursor.moveToLowerLeft].
- * detekt's `TooManyFunctions` asked the question at P4f-3a; `docs/DECISIONS.md` records the answer.
+ * detekt's `TooManyFunctions` asked the question at P4f-3a;
  *
  * **`_` (APC) is here since P4f-6d**, though it introduces no state of its own worth holding:
  * [EscapeState.ApplicationProgramCommand] discards everything until its terminator, so

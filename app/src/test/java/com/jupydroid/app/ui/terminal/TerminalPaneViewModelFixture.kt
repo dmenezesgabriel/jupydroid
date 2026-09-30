@@ -68,7 +68,7 @@ internal fun scrollDownOneLine(viewModel: TerminalPaneViewModel) {
   viewModel.emulator.screen.grid.scrollDownOneLine(0, viewModel.emulator.screen.rows, CellStyle.NORMAL)
 }
 
-/** `docs/PLAN.md`'s P4j-3d-4 - `CSI ? 1049 h`, the same sequence `AlternateScreenTest` transcribes. */
+/** `CSI ? 1049 h`, the same sequence `AlternateScreenTest` transcribes. */
 internal fun enterAlternateScreen(viewModel: TerminalPaneViewModel) {
   val bytes = "$ESC[?1049h".toByteArray()
   viewModel.emulator.append(bytes, bytes.size)

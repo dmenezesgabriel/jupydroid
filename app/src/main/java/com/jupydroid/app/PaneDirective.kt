@@ -11,9 +11,7 @@ import androidx.compose.runtime.Composable
  *
  * `calculatePaneScaffoldDirective` is the library's own answer and it is **already this app's
  * rule**: Compact and Medium get one horizontal partition, Expanded gets two, Large and above get
- * three. Expanded's lower bound is 840dp, which is the number `docs/DECISIONS.md` argues for from
- * the list pane's width - 360dp of list plus a divider leaves 239dp for the notebook in a 600dp
- * window, narrower than the phone the single-pane layout was designed for. P1e checked that
+ * three. Expanded's lower bound is 840dp, which is the number P1e checked that
  * before deleting the hand-written strategy rather than assuming it.
  *
  * **A width rule, never a device one.** The tablet in a split-screen window is a compact window

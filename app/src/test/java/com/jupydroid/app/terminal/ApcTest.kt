@@ -31,7 +31,7 @@ class ApcTest {
    * return - is discarded along with the rest of an APC body rather than acting on the screen.
    * The reference's own reasoning is why: its early return for `ESC_APC` runs *before* the C0
    * switch that would otherwise return the carriage, not only before `BEL`'s ring and `ESC`'s new
-   * sequence - `docs/DECISIONS.md`, "Exactly two C0 controls ask the escape state...".
+   * sequence - `terminal/EscapeParser.kt`.
    */
   @Test
   fun apcDiscardsAControlCharacterRatherThanActingOnIt() {

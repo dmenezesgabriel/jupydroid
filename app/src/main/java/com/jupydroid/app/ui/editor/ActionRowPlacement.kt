@@ -23,7 +23,7 @@ import androidx.window.core.layout.WindowSizeClass
  * departs from is the reference's *order*:** `_getWidgetsToRemove` sheds the rightmost items first,
  * so the reference would push the execution indicator into the popup *before* the kernel name.
  * A phone is this app's primary device and the kernel's state is what has to stay glanceable
- * there, so the name goes and the glyph stays. `docs/DECISIONS.md` carries it.
+ * there, so the name goes and the glyph stays.
  *
  * **Measured before the number was chosen.** Free width in this app's action row, between the
  * navigation icon and the first action, read off `evidence/p2o-3-two-pane-threshold/<w>/hierarchy.xml`

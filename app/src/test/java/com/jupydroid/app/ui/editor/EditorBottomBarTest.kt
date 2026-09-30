@@ -48,7 +48,7 @@ class EditorBottomBarTest {
     )
   }
 
-  /** `docs/PLAN.md`'s P6c-7 - the Settings row that turns this off. */
+  /** the Settings row that turns this off. */
   @Test
   fun aCellBeingTypedIntoWithTheSymbolRowHiddenGetsNoBar() {
     assertEquals(

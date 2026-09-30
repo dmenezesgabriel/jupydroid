@@ -330,7 +330,7 @@ class SearchSidePanelTest {
    * assertion later against a count that was right for what had actually been typed.
    *
    * The heading is drawn and cleared out of the tree; the field carries the name, which is the same
-   * split the reference means. `docs/DECISIONS.md` states the rule this keeps.
+   * split the reference means.
    */
   @Test
   fun eachGlobHeadingNamesExactlyOneNode() {

@@ -31,9 +31,9 @@ internal fun EditorContent(
   onEditCell: (String, String) -> Unit,
   /** A tap in a cell's gutter, reporting which cell and which one-based line it hit. */
   onToggleBreakpoint: (String, Int) -> Unit,
-  /** A long-press on an armed line's gutter (P6a-16), confirmed through [BreakpointConditionDialog]. */
+  /** A long-press on an armed line's gutter, confirmed through [BreakpointConditionDialog]. */
   onSetCondition: (cellId: String, line: Int, condition: String?) -> Unit,
-  /** `(cellId, code, cursorOffset)` - the cell keys the language server's document (P5c). */
+  /** `(cellId, code, cursorOffset)` - the cell keys the language server's document. */
   completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
   /** `(cellId, code, cursorOffset)` - the "Symbol info" ask, P5e-3 - see [EditorCell]. */
   hoverAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageHover?,
@@ -50,11 +50,11 @@ internal fun EditorContent(
   indentUnit: IndentUnit,
   /** `notebook:toggle-all-cell-line-numbers` - app-wide and persisted since P6c-2. */
   lineNumbersShown: Boolean,
-  /** `docs/PLAN.md` P6c-4 - app-wide and persisted, see [codeSourceStyle]. */
+  /** App-wide and persisted, see [codeSourceStyle]. */
   codeFontSizeSp: Int,
-  /** `docs/PLAN.md` P6c-5 - app-wide and persisted, code cells only. See [EditorCell]. */
+  /** App-wide and persisted, code cells only. See [EditorCell]. */
   wrapEnabled: Boolean,
-  /** `docs/PLAN.md` P6c-6 - app-wide and persisted, code cells only. See [EditorCell]. */
+  /** App-wide and persisted, code cells only. See [EditorCell]. */
   completionEnabled: Boolean,
   /** `toc:display-numbering` / `toc:display-h1-numbering` - see [MarkdownCell]. */
   tocNumbering: TocNumbering,

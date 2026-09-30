@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
  * The wiring `CellModeTest` cannot see: the transitions are pure and tested on the JVM, but
  * whether anything ever *calls* them depends on a real focus system, and this app has already
  * shipped one bug of exactly that shape - a rendered markdown cell that opened an editor with
- * no caret (`docs/DECISIONS.md`, audit A1c).
+ * no caret.
  */
 @RunWith(AndroidJUnit4::class)
 class CellInputFocusTest {

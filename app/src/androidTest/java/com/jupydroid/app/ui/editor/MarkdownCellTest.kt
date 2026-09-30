@@ -282,8 +282,8 @@ class MarkdownCellTest {
    * only the *editor* when the cell renders (`packages/cells/src/inputarea.ts:53-56,111-119`) -
    * and this test used to transcribe that. Composing it while the source is open spends a column
    * of the editor's width on an affordance that cannot be used mid-typing anyway: collapsing the
-   * section would close what is being written (`docs/DECISIONS.md`, "The cell keeps its header
-   * strip"). The header's play - the control that renders the cell - is what is left on it.
+   * section would close what is being written (ADR-0057). The header's play - the control that
+   * renders the cell - is what is left on it.
    */
   @Test
   fun theCollapserIsGoneWhileTheHeadingsSourceIsOpen() {

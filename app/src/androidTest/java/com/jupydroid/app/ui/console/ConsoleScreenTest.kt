@@ -167,7 +167,7 @@ class ConsoleScreenTest {
     compose.onAllNodesWithText("1 + 1").assertCountEquals(0)
   }
 
-  /** Real on-device evidence: a PNG of the whole screen, pulled into `evidence/p6b-9/`. */
+  /** Real on-device evidence: a PNG of the whole screen. */
   @Test
   fun capturesTheScreenScreenshotForEvidence() {
     compose.setContent {

@@ -23,7 +23,7 @@ package com.jupydroid.app
  *
  * The two therefore answer different halves and agree where they overlap: the file browser is
  * first in both, search is second, the table of contents last. Which is the split
- * `docs/DECISIONS.md` records under P2x-1e - P2x is where JupyterLab stops having an opinion.
+ *
  *
  * **One panel at a time**, which is the area's own behaviour rather than a simplification of it:
  * `SideBarHandler._onCurrentChanged` hides the outgoing widget and shows the incoming one

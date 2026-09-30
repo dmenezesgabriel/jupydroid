@@ -156,8 +156,7 @@ data class EditorPalette(
    * **The reference separates this from [searchMatch] by alpha alone**, and barely: `#27678290`
    * against `#27678280` composites to `#214555` against `#20414F` on the dark cell, which is
    * **1.06:1** apart. No border id is set in either 2026 theme, so there is nothing else carrying
-   * the difference. `docs/DECISIONS.md` records what is left doing that work - the find bar's own
-   * counter and its arrows, which this app has and which VS Code's find widget also has.
+   * the difference.
    */
   val currentSearchMatch: Color,
   /**

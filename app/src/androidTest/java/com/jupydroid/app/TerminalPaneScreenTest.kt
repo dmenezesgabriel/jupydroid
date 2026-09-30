@@ -27,8 +27,7 @@ import org.junit.runner.RunWith
  * `TerminalCanvas` when it is composed alone. It cannot prove *how much* - composed inside
  * `TerminalPaneScreen`'s real `Scaffold`, next to `TerminalExtraKeysRow` (which already carries
  * its own `imePadding` as the bottom bar), the same `imePadding` on `TerminalCanvas` shrank an
- * already-correctly-sized content area a second time. See `docs/DECISIONS.md`'s entry on the
- * double-counted IME inset.
+ * already-correctly-sized content area a second time.
  *
  * `terminalCellMetrics()` is called as a plain expression - not a second `fillMaxSize` sibling -
  * specifically so `TerminalPaneScreen` stays the composition's only layout-emitting root, matching
@@ -75,7 +74,7 @@ class TerminalPaneScreenTest {
     // `terminalGridSize`'s own floor division, not a hand-derived ratio - the same arithmetic
     // `TerminalCanvas` uses to turn pixels into rows. Measured on device rather than treated as
     // exact: a single correct `imePadding` subtraction lands close to but not always exactly at
-    // this floor-divided figure (`docs/DECISIONS.md`'s entry on the double-counted IME inset has
+    // this floor-divided figure (the finding about the double-counted IME inset has
     // the numbers), so the tolerance below is asymmetric on purpose - tight above, where a doubled
     // inset would show up, looser below, where only rounding lives.
     val expectedRows = IME_INSET_PIXELS / cellHeight

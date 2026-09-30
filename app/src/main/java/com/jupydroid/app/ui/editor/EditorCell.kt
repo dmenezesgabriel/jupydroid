@@ -48,7 +48,7 @@ internal fun EditorCell(
   onRun: () -> Unit,
   onStop: () -> Unit,
   onSourceEdited: (String) -> Unit,
-  /** `(cellId, code, cursorOffset)` - the language server keeps one document per cell (P5c). */
+  /** `(cellId, code, cursorOffset)` - the language server keeps one document per cell. */
   completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
   /**
    * `(cellId, code, cursorOffset)` - the "Symbol info" ask. Answers null where no
@@ -79,11 +79,11 @@ internal fun EditorCell(
   hiddenBelow: Int,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean,
-  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  /** See [codeSourceStyle]. */
   codeFontSizeSp: Int,
-  /** `docs/PLAN.md` P6c-5 - code cells only, see [CodeCellField]'s own parameter. */
+  /** Code cells only, see [CodeCellField]'s own parameter. */
   wrapEnabled: Boolean,
-  /** `docs/PLAN.md` P6c-6 - code cells only, see [CodeCellField]'s own parameter. */
+  /** Code cells only, see [CodeCellField]'s own parameter. */
   completionEnabled: Boolean,
   /** Breakpoints set on this cell, by line - code cells only. See [NotebookDebugger]. */
   breakpoints: List<Breakpoint>,
@@ -91,7 +91,7 @@ internal fun EditorCell(
   diagnostics: List<CellDiagnostic>,
   /** A tap in this cell's gutter, reporting the one-based line it hit. */
   onGutterTap: (line: Int) -> Unit,
-  /** A long-press on an armed line's gutter (P6a-16), reporting the one-based line it hit. */
+  /** A long-press on an armed line's gutter, reporting the one-based line it hit. */
   onGutterLongPress: (line: Int) -> Unit,
   /** Where the kernel is paused in this cell, one-based, or null - code cells only. See [NotebookDebugger]. */
   stoppedLine: Int?,

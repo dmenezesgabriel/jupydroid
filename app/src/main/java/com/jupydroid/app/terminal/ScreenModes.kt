@@ -16,7 +16,7 @@ enum class DecMode(val code: Int) {
   APPLICATION_CURSOR_KEYS(1),
   REVERSE_VIDEO(5),
 
-  /** DECOM. The clamp it feeds needs a scrolling region, so that half arrives with DECSTBM (P4f-5). */
+  /** DECOM. The clamp it feeds needs a scrolling region, so that half arrives with DECSTBM. */
   ORIGIN(6),
 
   /** DECAWM, which [TerminalScreen.autoWrap] reads. */

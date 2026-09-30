@@ -5,7 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class OfferedExportFormatTest {
-  /** The fourteen the tablet's server listed, verbatim (`evidence/p2j-2-export-formats/`). */
+  /** The fourteen the tablet's server listed, verbatim. */
   private val whatTheTabletListed = listOf(
     "asciidoc", "custom", "html", "latex", "markdown", "notebook",
     "pdf", "python", "qtpdf", "qtpng", "rst", "script", "slides", "webpdf",

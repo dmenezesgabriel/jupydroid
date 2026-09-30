@@ -96,11 +96,11 @@ fun CodeCellField(
   input: FocusedCellInput? = null,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
-  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  /** See [codeSourceStyle]. */
   codeFontSizeSp: Int = CodeFontSize.DEFAULT,
-  /** `docs/PLAN.md` P6c-5 - false scrolls the code horizontally instead of wrapping it. */
+  /** False scrolls the code horizontally instead of wrapping it. */
   wrapEnabled: Boolean = true,
-  /** `docs/PLAN.md` P6c-6 - false never asks the kernel for completions. */
+  /** False never asks the kernel for completions. */
   completionEnabled: Boolean = true,
   /** Breakpoints set on this cell, by line - see [NotebookDebugger]. Code cells only. */
   breakpoints: List<Breakpoint> = emptyList(),
@@ -108,7 +108,7 @@ fun CodeCellField(
   diagnostics: List<CellDiagnostic> = emptyList(),
   /** A tap in the gutter, reporting the one-based line it hit - see [Modifier.lineNumbers]. */
   onGutterTap: (line: Int) -> Unit = {},
-  /** A long-press on an armed line's gutter (P6a-16) - see [Modifier.lineNumbers]. */
+  /** A long-press on an armed line's gutter - see [Modifier.lineNumbers]. */
   onGutterLongPress: (line: Int) -> Unit = {},
   /** Where the kernel is paused in this cell, one-based, or null - see [Modifier.lineNumbers]. */
   stoppedLine: Int? = null,

@@ -55,8 +55,7 @@ fun bracketMatchStyle(): SpanStyle = SpanStyle(
  * the reference separates current from found by alpha alone - `#214555` against `#20414F` once
  * composited on the dark cell, **1.06:1** apart, with no border id set in either theme. On a
  * phone, at a glance, that is not a signal. The weight was here before P2u-3e for its own reason
- * and is kept for a stronger one; `docs/DECISIONS.md` records it as a departure rather than
- * letting it read as parity.
+ * and is kept for a stronger one;
  */
 @Composable
 @ReadOnlyComposable

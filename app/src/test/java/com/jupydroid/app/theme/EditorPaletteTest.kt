@@ -11,7 +11,7 @@ import org.junit.Test
 /**
  * The palettes, held to the reference they were transcribed from and to what a phone needs.
  *
- * This began as the regression test for the contrast defect recorded in `docs/DECISIONS.md`:
+ * This began as the regression test for the contrast defect recorded:
  * syntax colours used to be `MaterialTheme.colorScheme` roles, so `NUMBER` landed on `secondary`
  * and sat almost on top of the body text in dark. Deriving colour from a role can never be
  * asserted, because the role is whatever the wallpaper made it - which is why the fix was a
@@ -82,8 +82,7 @@ class EditorPaletteTest {
    * This replaced a WCAG AA floor over the same values, and the swap is a decision rather than a
    * regression: with VS Code as the presentation reference, *parity* is what the palette owes, and
    * the floor and parity disagree in exactly one place - light's `number` `#098658`, which the
-   * reference itself draws at **4.42:1** on the cell surface. `docs/DECISIONS.md`, "Parity with
-   * the 2026 themes outranks the contrast floor", carries what that trades away.
+   * reference itself draws at **4.42:1** on the cell surface. ADR-0041 carries what that trades away.
    *
    * Equality is the stronger assertion of the two for everything else. A ratio lets a value be
    * swapped for any other legible colour; this lets it be swapped for nothing at all, which is

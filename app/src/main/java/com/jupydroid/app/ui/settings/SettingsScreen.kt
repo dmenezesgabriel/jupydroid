@@ -293,10 +293,10 @@ private val THEME_OPTIONS = listOf(
 /** `notebook:toggle-all-cell-line-numbers` - see `EditorSettings.lineNumbersShown`. */
 internal const val SHOW_LINE_NUMBERS = "Show line numbers"
 
-/** `docs/PLAN.md` P6c-7 - see `EditorSettings.symbolRowShown`. */
+/** See `EditorSettings.symbolRowShown`. */
 internal const val SYMBOL_ROW = "Symbol row"
 
-/** `docs/PLAN.md` P6c-4 - see `EditorSettings.codeFontSizeSp`. */
+/** See `EditorSettings.codeFontSizeSp`. */
 internal const val CODE_FONT_SIZE = "Code font size"
 
 /** The decrease button's accessible label - see `SettingsStepperRow`. */
@@ -305,13 +305,13 @@ internal const val DECREASE_CODE_FONT_SIZE = "Decrease code font size"
 /** The increase button's accessible label - see `SettingsStepperRow`. */
 internal const val INCREASE_CODE_FONT_SIZE = "Increase code font size"
 
-/** `docs/PLAN.md` P6c-5 - see `EditorSettings.codeWrapEnabled`. */
+/** See `EditorSettings.codeWrapEnabled`. */
 internal const val WRAP_CODE_LINES = "Wrap code lines"
 
 /** `fileeditor:toggle-autoclosing-brackets-universal` - see `EditorSettings.autoClosingBrackets`. */
 internal const val AUTO_CLOSING_BRACKETS = "Auto-closing brackets"
 
-/** `docs/PLAN.md` P6c-6 - see `EditorSettings.completionEnabled`. */
+/** See `EditorSettings.completionEnabled`. */
 internal const val CODE_COMPLETION = "Code completion"
 
 /** `accessKernelHistory` - see `EditorSettings.accessKernelHistory`. */

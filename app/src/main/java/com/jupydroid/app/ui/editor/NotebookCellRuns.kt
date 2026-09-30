@@ -50,7 +50,7 @@ internal class NotebookCellRuns(
   private val checkpoint: suspend () -> Unit,
   /** Injected so a test can assert on a run's duration without waiting for one. */
   private val clock: Clock,
-  /** Arms a cell's breakpoints before it runs, and reports where the kernel stops (P6a-7b). */
+  /** Arms a cell's breakpoints before it runs, and reports where the kernel stops. */
   private val debugger: NotebookDebugger,
 ) {
   /** Set while an interrupt is in flight, so the stop is reported as cancelled and not as error. */
@@ -144,7 +144,7 @@ internal class NotebookCellRuns(
     scope.launch { session.opened?.let { kernelGateway.interrupt(it) } }
   }
 
-  /** Sends a step/continue command for whatever the debugger is currently stopped at (P6a-9). */
+  /** Sends a step/continue command for whatever the debugger is currently stopped at. */
   fun step(command: SteppingCommand) {
     scope.launch { debugger.step(command) }
   }

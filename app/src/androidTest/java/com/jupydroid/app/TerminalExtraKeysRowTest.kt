@@ -67,7 +67,7 @@ class TerminalExtraKeysRowTest {
     assertEquals(listOf("\u001B[A", "\u001B[H", "\u001B[5~"), gateway.sent)
   }
 
-  /** The gate `docs/PLAN.md`'s P4j-3a itself names: a tapped Ctrl converts the next typed letter. */
+  /** The gate 3a itself names: a tapped Ctrl converts the next typed letter. */
   @Test
   fun tappingCtrlThenTypingALetterSendsItsControlByte() {
     val gateway = openTerminalScreen()

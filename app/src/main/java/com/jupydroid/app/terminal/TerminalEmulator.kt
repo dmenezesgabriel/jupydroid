@@ -103,7 +103,7 @@ class TerminalEmulator(
    * new sequence - which is the reference's `case 7` and `case 27`. **`ESC` also asks a second
    * state**, still at the same `case 27`: inside a `DCS` string it is dropped outright rather than
    * looked ahead, since that reference guard is `mEscapeState == ESC_P` - a state of its own, not a
-   * widening of the `OSC` one, per `docs/DECISIONS.md`. Every other control keeps acting on the
+   * widening of the `OSC` one. Every other control keeps acting on the
    * screen while a string collects, measured rather than assumed: a carriage return inside an `OSC`
    * returns the carriage and is not collected into the title.
    *

@@ -127,14 +127,14 @@ class AppContainer(
    * means (`fileeditor:toggle-autoclosing-brackets-universal`).
    */
   val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
-  /** The app-wide terminal preferences - the font size `docs/PLAN.md`'s P4j-3c adds. */
+  /** The app-wide terminal preferences - the font size 3c adds. */
   val terminalSettings: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
   /**
    * The app-wide explorer preferences - whether the Recents section is shut, which the reference
    * persists on every change (`viewContainerModel.ts:456-461`).
    */
   val explorerSettings: ExplorerSettingsRepository = FakeExplorerSettingsRepository(),
-  /** The app-wide theme preference - System/Light/Dark, `docs/PLAN.md`'s P6c-3. */
+  /** The app-wide theme preference - System/Light/Dark, 3. */
   val themeSettings: ThemeSettingsRepository = FakeThemeSettingsRepository(),
   /**
    * The launcher bookkeeping - whether it has ever presented itself, which is what keeps the

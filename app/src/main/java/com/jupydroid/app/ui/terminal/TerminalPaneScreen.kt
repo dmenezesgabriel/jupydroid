@@ -82,7 +82,7 @@ fun TerminalPaneScreen(
   session: TerminalSession,
   terminalGateway: TerminalGateway,
   modifier: Modifier = Modifier,
-  /** The terminal's own font-size setting - `docs/PLAN.md`'s P4j-3c. */
+  /** The terminal's own font-size setting - 3c. */
   terminalSettingsRepository: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
   // Read here, not inside the factory lambda below - `isSystemInDarkTheme` is itself composable
   // and the factory runs once, outside recomposition, the way `viewModel {}` always does.

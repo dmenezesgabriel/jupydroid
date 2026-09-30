@@ -70,7 +70,7 @@ class OpenDebugStackTest {
     assertEquals(emptyList<DebugVariable>(), open.expand(9))
   }
 
-  /** [OpenDebugStack.selectFrame] reaches the debugger that published it (P6a-15), [expand]'s own shape. */
+  /** [OpenDebugStack.selectFrame] reaches the debugger that published it, [expand]'s own shape. */
   @Test
   fun selectFrameReachesTheDebuggerThatPublishedIt() = runTest {
     val open = OpenDebugStack()
@@ -95,7 +95,7 @@ class OpenDebugStackTest {
     assertNull(selected)
   }
 
-  /** [OpenDebugStack.evaluate] reaches the debugger that published it (P6a-17), [expand]'s own shape. */
+  /** [OpenDebugStack.evaluate] reaches the debugger that published it, [expand]'s own shape. */
   @Test
   fun evaluateReachesTheDebuggerThatPublishedIt() = runTest {
     val open = OpenDebugStack()

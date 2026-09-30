@@ -65,7 +65,7 @@ fun MarkdownCellField(
   takesCaret: Boolean = false,
   /** `notebook:toggle-all-cell-line-numbers`, the notebook's - see [gutterWidth]. */
   lineNumbersShown: Boolean = true,
-  /** `docs/PLAN.md` P6c-4 - see [codeSourceStyle]. */
+  /** See [codeSourceStyle]. */
   codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
   search: CellSearchHighlight = CellSearchHighlight.NONE,

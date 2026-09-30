@@ -12,9 +12,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * **P7e-2c: `pip` runs by name in the Space's shell**, which before this step it could not -
+ * **`pip` runs by name in the Space's shell**, which it could not before the trampoline shipped -
  * `evidence/p7e-1-space-python/04-what-the-console-script-still-does.png` is `pip --version`
- * answering *Permission denied*, rc 126, *after* P7e-1: the exec of the script file, refused by
+ * answering *Permission denied*, rc 126, *even with the interpreter linked*: the exec of the
+ * script file, refused by
  * SELinux whatever its mode.
  *
  * Runs the commands **in the app process** through [runInSpace], the only place the seccomp filter

@@ -85,7 +85,7 @@ class TerminalCursor(private var columns: Int, private var rows: Int) {
   /**
    * `ESC F`. **A declared divergence**: the reference transposes the two arguments of its own
    * `setCursorRowCol` here, so its "lower left" is row 0 at the column its bottom margin names.
-   * `docs/DECISIONS.md` carries xterm's wording and the measurement.
+   *
    */
   fun moveToLowerLeft() = moveTo(bottomMargin - 1, 0)
 
@@ -102,7 +102,7 @@ class TerminalCursor(private var columns: Int, private var rows: Int) {
    * [tabs]' rebuild when the column count does. Neither [row] nor [column] is touched here - the
    * reference does not clamp them in this method either. What [TerminalGrid.resize] returns is what
    * [TerminalScreen.resize] assigns back; a second clamp here would only repeat the mistake
-   * `docs/DECISIONS.md`'s P4h-2 entry already found and centralised away from.
+   * an earlier finding already found and centralised away from.
    */
   fun resize(newColumns: Int, newRows: Int) {
     if (rows != newRows) {

@@ -138,7 +138,7 @@ class DiskWorkspaceSearcher(
    *
    * `search.followSymlinks` defaults to true, and this departs from it: the workspace lives inside
    * a rootfs and a cell can call `os.symlink`, so a loop is reachable - ripgrep detects one and
-   * nothing here would. `docs/DECISIONS.md` carries it.
+   * nothing here would.
    */
   private fun WorkspaceEntry.isADirectoryLink(): Boolean =
     kind == WorkspaceEntryKind.DIRECTORY && root.isLink(root.fileAt(path))

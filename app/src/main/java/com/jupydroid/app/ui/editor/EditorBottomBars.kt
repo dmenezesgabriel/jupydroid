@@ -32,7 +32,7 @@ internal fun EditorBottomBars(
   onBack: () -> Unit,
   /** Whether a side panel already shows the call stack and variables - see [DebuggerControlBar]. */
   twoPane: Boolean,
-  /** `notebook:create-console` (P6b-9) - see [notebookKernelCommands]. */
+  /** `notebook:create-console` - see [notebookKernelCommands]. */
   onOpenConsole: (NotebookKernelSession) -> Unit = {},
 ) {
   // Held here rather than inside [DebuggerBottomBar] itself: a real step's own DAP shape sends

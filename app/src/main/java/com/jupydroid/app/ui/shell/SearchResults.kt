@@ -205,8 +205,7 @@ internal fun fileMatchLabel(path: String, matches: Int): String =
  * is false, and a 360dp panel has better uses for the width than a gutter. That default is also
  * what makes the cell necessary rather than decorative: in a notebook, "line 1" belongs to as many
  * lines as the file has cells, so without the cell two rows a tap apart can answer to one string -
- * which is the thing `docs/DECISIONS.md` refuses of two controls and refuses of two rows for the
- * same reason.
+ * which is the thing
  *
  * **In the label rather than as a level of the tree**, which is the reference's own presentation:
  * `searchResultsView.ts` has no notebook branch at all and the cell rides on `MatchInNotebook`'s

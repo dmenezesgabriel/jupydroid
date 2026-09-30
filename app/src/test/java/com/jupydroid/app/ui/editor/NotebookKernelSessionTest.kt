@@ -15,7 +15,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Which kernel a notebook is on, and what happens when the server behind it stops (P1c). */
+/** Which kernel a notebook is on, and what happens when the server behind it stops. */
 class NotebookKernelSessionTest {
   private val space = Space(id = "base", name = "Base", kernels = emptyList())
 

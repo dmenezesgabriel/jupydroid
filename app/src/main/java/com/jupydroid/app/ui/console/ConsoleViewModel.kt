@@ -50,7 +50,7 @@ class ConsoleViewModel(
     viewModelScope.launch { kernelSessions.rebound.collect { session.rebindIfMatches(it) } }
   }
 
-  /** The draft the input row edits, and what a history walk (P6b-6) replaces the text of. */
+  /** The draft the input row edits, and what a history walk replaces the text of. */
   val input = TextFieldState()
 
   /**

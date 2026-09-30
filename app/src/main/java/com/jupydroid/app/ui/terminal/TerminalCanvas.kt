@@ -62,7 +62,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * this file's own `imePadding` here was reserving the keyboard's height a second time on top of
  * what `Scaffold`'s content padding already reflects from the bar's own growth - measured on
  * device, not re-read from source, at a 27-row shrink where one keyboard's worth is closer to 19
- * (`TerminalPaneScreenTest`, `docs/DECISIONS.md`'s entry on the double-counted IME inset). Left
+ * (`TerminalPaneScreenTest`, the finding about the double-counted IME inset). Left
  * unchanged here on purpose: `TerminalPaneScreen` now consumes the inset before this composable
  * ever sees it (`Modifier.consumeWindowInsets(WindowInsets.ime)`), so this `imePadding` becomes a
  * no-op there while staying correct for this composable's own isolated test and any other caller

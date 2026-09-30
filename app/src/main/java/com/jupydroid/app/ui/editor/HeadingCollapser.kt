@@ -25,9 +25,9 @@ import androidx.compose.ui.semantics.semantics
  * renders (`packages/cells/src/inputarea.ts:53-56,111-119`), which P2n-3 transcribed. Composing it
  * beside an open source costs 48dp of the editor's width - measured, 80dp against 32dp
  * (`MarkdownCellTest.anOpenHeadingsSourceStartsWhereProseDoes`) - for an affordance nobody can use
- * mid-typing, since folding the section would close what is being written. `docs/DECISIONS.md`,
- * "The cell keeps its header strip", carries the trade and its cost. [MarkdownCell] is where the
- * state is decided; this composable is unconditional and knows nothing about it.
+ * mid-typing, since folding the section would close what is being written. ADR-0057 carries the
+ * trade and its cost. [MarkdownCell] is where the state is decided; this composable is
+ * unconditional and knows nothing about it.
  *
  * **Where it goes is the reference's, and this app had it somewhere else.** JupyterLab appends the
  * caret to the cell's *prompt node* (`packages/cells/src/widget.ts:2386-2408`) and pins it at

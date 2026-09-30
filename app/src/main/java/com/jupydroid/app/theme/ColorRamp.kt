@@ -59,7 +59,7 @@ internal object ColorRamp {
    * a list row and three things that are not lists; the reference states two ids there and states
    * the list's one translucent in light, so an opaque position could not carry both. The row went
    * to [ChromePalette.listInactiveSelectionBackground] and this position kept the consumers it had
-   * always described (`docs/DECISIONS.md`, "A toggle's on state is a wash").
+   * always described (ADR-0042).
    */
   val DarkGray6 = Color(0xFF313233)
 

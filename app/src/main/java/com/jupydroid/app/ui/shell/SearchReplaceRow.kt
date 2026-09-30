@@ -202,7 +202,7 @@ internal const val REPLACE_ALL_IN_WORKSPACE = "Replace all in workspace"
  *
  * **The button is drawn disabled rather than hidden**, and it is the one place this app draws a
  * control that cannot act. It earns that: the reference's own label explains *why* it cannot, which
- * is exactly what an absent control fails to say. `docs/DECISIONS.md`'s rule is that a row which can
+ * is exactly what an absent control fails to say. the rule is that a row which can
  * only fail is a control that lies; a control that states its own precondition is the case that rule
  * does not cover.
  *

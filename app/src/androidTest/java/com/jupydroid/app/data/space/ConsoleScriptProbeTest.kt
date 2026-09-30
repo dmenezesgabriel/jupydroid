@@ -15,7 +15,7 @@ import java.io.File
 import java.nio.file.Files
 
 /**
- * **P7e-2a: the measurements P7e-2's design is written from, before a line of C.**
+ * **The measurements the trampoline's design is written from, taken before a line of C.**
  *
  * `usr/bin/pip` is a `#!/usr/bin/python3` script under `filesDir`, and
  * [PythonInterpreterDeviceTest.aScriptUnderFilesDirIsRefusedEvenWithItsExecutableBitSet] already
@@ -105,7 +105,7 @@ class ConsoleScriptProbeTest {
     assertEquals("usr/local/bin holds an entry that is not the trampoline link", emptyList<String>(), notTrampoline)
 
     val path = runInSpace(shell, "-c", "echo \$PATH").output.trim()
-    // `pkgs/bin` leads since P8b - user installs first - so the shadowing claim is the *order*:
+    // `pkgs/bin` leads, so user installs come first and the shadowing claim is the *order*:
     // usr/local/bin ahead of the usr/bin scripts it shadows.
     val entriesOrder = path.split(":")
     assertTrue(

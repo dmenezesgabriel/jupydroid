@@ -53,7 +53,7 @@ class DebuggerSidePanelTest {
     compose.onNodeWithText("Debugger").assertIsDisplayed()
   }
 
-  /** The side panel's own compound-variable drill-down (P6a-14) - [DebuggerPanelTest]'s own case. */
+  /** The side panel's own compound-variable drill-down - [DebuggerPanelTest]'s own case. */
   @Test
   fun aCompoundVariableExpandsOnTapToShowItsChildren() {
     val compound = DebugStack(
@@ -69,7 +69,7 @@ class DebuggerSidePanelTest {
     compose.onNodeWithText("0: int = 1").assertIsDisplayed()
   }
 
-  /** The side panel's own frame reselection (P6a-15) - [DebuggerPanelTest]'s own case. */
+  /** The side panel's own frame reselection - [DebuggerPanelTest]'s own case. */
   @Test
   fun tappingANonTopFrameRowSelectsIt() {
     var selected: Int? = null
@@ -80,7 +80,7 @@ class DebuggerSidePanelTest {
     compose.runOnIdle { org.junit.Assert.assertEquals(6, selected) }
   }
 
-  /** The side panel's own ad hoc expression (P6a-17) - [DebuggerPanelTest]'s own case. */
+  /** The side panel's own ad hoc expression - [DebuggerPanelTest]'s own case. */
   @Test
   fun submittingAnExpressionShowsItsAnswer() {
     show(stack(), onEvaluate = { expression -> DebugVariable(expression, "42", "int", 0) })
