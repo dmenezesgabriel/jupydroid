@@ -7,8 +7,8 @@ end_of_line = lf
 insert_final_newline = true
 
 # **2, and it is the house style rather than a preference restated.** This file claimed 4 for
-# `.kt` from Step 1 and no `.kt` file has ever used it: every source in `app/src` is 2-space, and
-# `ktlintCheck` never said so because it was never checking them (`docs/DECISIONS.md`). Turning the
+# `.kt` from the first commit and no `.kt` file has ever used it: every source in `app/src` is
+# 2-space, and `ktlintCheck` never said so because it was never checking them (ADR-0016). Turning the
 # gate on reported **9,864 indentation offences out of 11,939** - which was the config being wrong,
 # not 200 files being wrong.
 [*.kt]

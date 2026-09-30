@@ -59,12 +59,17 @@ ADR_DIR = ROOT / "docs" / "adr"
 #: Every file under these is read. `scripts/` is not one of them - `docs/backlog.md` says why.
 SCANNED_TREES = ("app/src", "tools")
 
-#: The build files, which are shipped configuration rather than a tree.
+#: The build and repo-root configuration files, which carry prose but live in no scanned tree.
+#: `.editorconfig` cited `docs/DECISIONS.md` for why ktlint had checked nothing, and `.gitignore`
+#: cited it for why history was rewritten - both pointing into a file deleted eight commits earlier.
 SCANNED_FILES = (
     "app/build.gradle.kts",
     "build.gradle.kts",
     "settings.gradle.kts",
     "gradle/libs.versions.toml",
+    ".editorconfig",
+    ".gitignore",
+    ".pre-commit-config.yaml",
 )
 
 #: Each pattern with the reason it is banned, which the failure message prints.
@@ -123,7 +128,10 @@ SCANNERS: dict[str, Callable[[str], str]] = {
     ".toml": hash_comments,
     ".lock": hash_comments,
     ".config": hash_comments,
+    ".yaml": hash_comments,
     "Dockerfile": hash_comments,
+    ".editorconfig": hash_comments,
+    ".gitignore": hash_comments,
     ".xml": xml_comments,
 }
 

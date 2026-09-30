@@ -75,7 +75,8 @@ an `architecture.md`/`architecture/*.md` section, which is durable · an upstrea
 `reference/…` path.
 
 `scripts/check_doc_citations.py` is the gate. It reads **every file under `app/src/` and `tools/`**,
-plus the four build files, and picks a scanner per language: Kotlin/C/Java/ANTLR `//` and `/* */`,
+plus the build files and `.editorconfig`/`.gitignore`/`.pre-commit-config.yaml` — 870 files — and
+picks a scanner per language: Kotlin/C/Java/ANTLR `//` and `/* */`,
 shell and Python `#` — a Python **docstring** counts, which is where `tools/rootfs/` explains itself
 — and `<!-- -->` for `AndroidManifest.xml`. Discovery is **fail-closed**: a type with no scanner
 fails the run by name rather than passing quietly, which is how `Dockerfile`, two `.g4` grammars and

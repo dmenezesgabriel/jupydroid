@@ -162,6 +162,18 @@ class ScannedFilesTest(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertIn(name, found)
 
+    def test_repo_root_configuration_is_discovered(self):
+        """`.editorconfig` and `.gitignore` carry prose and live in no scanned tree.
+
+        Both cited `docs/DECISIONS.md` - one for why ktlint had been checking nothing, one for why
+        history was rewritten - eight commits after that file was deleted.
+        """
+        found = {f.name for f in scanned_files(None)}
+        for name in (".editorconfig", ".gitignore", ".pre-commit-config.yaml"):
+            with self.subTest(name=name):
+                self.assertIn(name, found)
+                self.assertIsNotNone(scanner_for(pathlib.Path(name).suffix or name))
+
     def test_a_package_narrows_to_that_package(self):
         found = scanned_files("domain")
         self.assertTrue(found)
