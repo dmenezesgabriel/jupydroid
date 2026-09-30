@@ -43,7 +43,7 @@ class DebuggerVariablesSheetTest {
     compose.onNodeWithText("Not stopped").assertIsDisplayed()
   }
 
-  /** P6a-14's own gate, carried over verbatim: a compound variable expands and collapses on tap. */
+  /** A compound variable expands and collapses on tap. */
   @Test
   fun aCompoundVariableExpandsOnTapToShowItsChildren() {
     show(compoundStack(), onExpand = { listOf(DebugVariable("0", "1", "int", 0)) })
@@ -53,7 +53,7 @@ class DebuggerVariablesSheetTest {
     compose.onNodeWithText("0: int = 1").assertIsDisplayed()
   }
 
-  /** P6a-15's own gate, carried over verbatim: a non-top frame row is tappable and reports its id. */
+  /** A non-top frame row is tappable and reports its id. */
   @Test
   fun tappingANonTopFrameRowSelectsIt() {
     var selected: Int? = null
@@ -64,7 +64,7 @@ class DebuggerVariablesSheetTest {
     compose.runOnIdle { org.junit.Assert.assertEquals(5, selected) }
   }
 
-  /** P6a-17's own gate, carried over verbatim: a submitted expression's answer renders as a row. */
+  /** A submitted expression's answer renders as a row. */
   @Test
   fun submittingAnExpressionShowsItsAnswer() {
     show(stack(), onEvaluate = { expression -> DebugVariable(expression, "42", "int", 0) })

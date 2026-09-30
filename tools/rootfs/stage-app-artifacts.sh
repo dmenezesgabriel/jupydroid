@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Stages the Step 8.2 build artifacts into the app module. Run after build.sh.
+# Stages the build artifacts into the app module. Run after build.sh.
 #
 #   tools/rootfs/stage-app-artifacts.sh [abi]     abi: x86_64 (default) | arm64-v8a
 #
-# Produces two kinds of output, and the split is the whole exec model
-# (docs/PLAN.md, "Exec model"):
+# Produces two kinds of output, and the split is the whole exec model (ADR-0002):
 #
 #   app/src/main/jniLibs/<abi>/        the only files that are ever execve'd.
 #       Android extracts these to /data/app/.../lib/<abi>/ with SELinux context
@@ -23,7 +22,7 @@ case "$ABI" in
   # symlinked into nativeLibraryDir by BaseSpaceInstaller. musl keeps its loader in
   # /lib on every architecture, named after the architecture.
   # INTERPRETER must match BaseSpaceInstaller.INTERPRETER_PATH for the same reason: that is the
-  # rootfs path the installer replaces with a link into nativeLibraryDir (P7e-1), and the link is
+  # rootfs path the installer replaces with a link into nativeLibraryDir, and the link is
   # only right because the file it replaces is the one staged here as libpython3.so.
   # PLATFORM is the same mapping build.sh uses; busybox is compiled here rather than read out of
   # the tarball, so this script now needs to know what to build it for.
@@ -56,7 +55,7 @@ mkdir -p "$JNI_DIR" "$ASSET_DIR"
 
 # x86_64 gets the ELFs but not the rootfs. Android's seccomp filter is defined per
 # architecture and its x86_64 policy kills musl's libc startup, so no Space can run on
-# an x86_64 device (evidence/step8.3/musl-is-arm64-only.txt) and SpaceAbi lists arm64
+# an x86_64 device (ADR-0003) and SpaceAbi lists arm64
 # alone. The native libs still ship so the APK installs on x86_64 emulators for UI work;
 # the 33 MB rootfs would be 33 MB that nothing can ever execute.
 if [ "$ABI" = "arm64-v8a" ]; then
@@ -76,8 +75,8 @@ zstd -dc "$TARBALL" | tar -x -C "$STAGE_DIR" "$LOADER" "$INTERPRETER"
 cp "$STAGE_DIR/$LOADER"      "$STAGE_DIR/libloader.so"
 cp "$STAGE_DIR/$INTERPRETER" "$STAGE_DIR/libpython3.so"
 
-echo "==> building busybox (P4b-2: the one without FEATURE_SUID)"
-# busybox is the exception to "from the tarball", and the reason is P4b-2: Alpine's stock build
+echo "==> building busybox (the one without FEATURE_SUID)"
+# busybox is the exception to "from the tarball", and the reason is ADR-0006: Alpine's stock build
 # sets CONFIG_FEATURE_SUID=y, so every applet dispatch calls setgid()/setuid() and Android's app
 # seccomp filter kills it with SIGSYS before it prints a byte. The Dockerfile builds one without
 # that flag; this takes it from that stage directly, so the ELF staged here is the fixed one even

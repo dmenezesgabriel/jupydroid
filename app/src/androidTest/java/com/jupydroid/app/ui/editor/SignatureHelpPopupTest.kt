@@ -28,7 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P5e-4's own gate: typing `(` inside a cell asks `textDocument/signatureHelp` at the caret
+ * Typing `(` inside a cell asks `textDocument/signatureHelp` at the caret
  * and draws the signature card above the caret - the active parameter lit, `n/N` controls
  * when overloads exist. Driven through the real field so the focus gate, the trigger scan,
  * the debounce and the popup are all under test together.

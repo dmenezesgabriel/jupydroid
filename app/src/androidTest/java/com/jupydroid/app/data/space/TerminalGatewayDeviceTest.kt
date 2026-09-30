@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * **A real shell answers**, over the port the app actually uses.
  *
- * P4d's own gate. [TerminalServiceTest] proved the server spawns the pinned shell and that REST
+ * [TerminalServiceTest] proved the server spawns the pinned shell and that REST
  * reports it; what only this can show is the half after that - the `setup` frame arriving, bytes
  * coming back over the websocket, and what is typed reaching the pty. Nothing below `TerminalGateway`
  * is reached directly, so this also proves the wiring rather than the pieces.
@@ -79,7 +79,7 @@ class TerminalGatewayDeviceTest {
   }
 
   /**
-   * **P4d's gate: something is typed, the shell *runs* it, and its output comes back.**
+   * **Something is typed, the shell *runs* it, and its output comes back.**
    *
    * Two things at once and neither is reachable from REST. The bytes travel *to* the pty, which
    * `TerminalServiceTest` could not show at all, and they come back over the socket as `stdout`.
@@ -104,7 +104,7 @@ class TerminalGatewayDeviceTest {
   }
 
   /**
-   * **The shell starts in the workspace**, which is P4d-0's repair seen from the far end.
+   * **The shell starts in the workspace**, which is the cwd repair seen from the far end.
    *
    * `JupyterServerWorkingDirTest` asserts the `ProcessBuilder` and
    * `TerminalServiceTest.theServerProcessRunsInTheWorkspaceItIsRootedAt` asserts the server

@@ -97,7 +97,7 @@ class SymbolRowTest {
    * **A markdown cell is reachable from the row too**, and it was not: `MarkdownCellField` never
    * handed itself over, so in a markdown cell the row sat above the keyboard doing nothing - a
    * control that lights up and lies, which is what the `⋮` button exists to avoid elsewhere. It
-   * surfaced because P2b's markdown flow drives a caret with `←` and the split then cut at the end
+   * surfaced because a markdown flow drives a caret with `←` and the split then cut at the end
    * of the text rather than where the flow had put it.
    */
   @Test

@@ -4,7 +4,7 @@ Run at image build time, under LD_PRELOAD, so a shim that fails to load - or tha
 quietly breaks an ordinary unlink - is a build error rather than a kernel that will not start.
 
 **What this cannot show** is the seccomp behaviour it exists for: a Docker build has no Android
-filter, so nothing here is refused. That half is measured on device and lives in evidence/.
+filter, so nothing here is refused. That half is measured on device, by an instrumented test.
 What it does show is that the replacements are faithful on the same libc that will run them.
 """
 

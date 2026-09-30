@@ -18,20 +18,20 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 /**
- * **P5a: `pylsp` runs in the Space's shell and answers LSP over stdio.**
+ * **`pylsp` runs in the Space's shell and answers LSP over stdio.**
  *
- * Route 2 in `docs/PLAN.md` ("P5 — LSP") is `python-lsp-server` as a direct stdio
+ * The route this app took is `python-lsp-server` as a direct stdio
  * subprocess off the `nativeLibraryDir` interpreter - no `jupyter-lsp` websocket hop.
  * These tests prove the two premises that route rests on, **in the app process**
  * through [runInSpace]/`ProcessBuilder`, the only place the seccomp filter applies
- * (a `run-as` probe would answer a question nobody asked - P4b's lesson):
+ * (a `run-as` probe would answer a question nobody asked - see [SpaceProcessRun]):
  *
  *  1. the console script runs by name - `usr/local/bin/pylsp` -> `bin/shebang-exec`
- *     -> the interpreter, under the same trampoline chain P7e-2 proved for `pip`; and
+ *     -> the interpreter, under the same trampoline chain `pip` goes through; and
  *  2. it *serves* - a `Content-Length`-framed `initialize` gets a framed response with
  *     `capabilities`, and `shutdown`/`exit` ends the process cleanly. `pylsp --version`
- *     alone only proves the import; P6a-0's debugpy bind is the record of a package
- *     that imported fine and aborted on device the moment it did real work.
+ *     alone only proves the import; debugpy is the record of a package that imported
+ *     fine and aborted on device the moment it did real work.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
@@ -53,7 +53,7 @@ class LanguageServerDeviceTest {
     runBlocking { baseSpaceInstaller(context).installIfNeeded() }
   }
 
-  /** By name, through the trampoline - the way a user in the terminal and P5b's adapter reach it. */
+  /** By name, through the trampoline - the way the terminal and [StdioLanguageServer] reach it. */
   @Test
   fun pylspRunsByNameAndReportsItsVersion() {
     val run = runInSpace(shell, "-c", "pylsp --version")
@@ -63,8 +63,8 @@ class LanguageServerDeviceTest {
   }
 
   /**
-   * The route-2 premise itself: `pylsp` spawned with piped stdio - as P5b's adapter will spawn
-   * it - answers a real `initialize`. Exec'd straight off the `usr/local/bin` link rather than
+   * The premise itself: `pylsp` spawned with piped stdio, as the adapter spawns it, answers a real
+   * `initialize`. Exec'd straight off the `usr/local/bin` link rather than
    * through a shell, so the request goes through `bin/shebang-exec` and nothing else.
    */
   @Test(timeout = 120_000)

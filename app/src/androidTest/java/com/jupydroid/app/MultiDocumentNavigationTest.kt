@@ -41,7 +41,7 @@ import org.junit.runner.RunWith
  * reuses the session it had rather than minting another.
  *
  * Two panes, because the browser has to stay visible to open the second notebook without closing
- * the first - at one pane there is no side area to tap a second row in (P8e's tab strip is the
+ * the first - at one pane there is no side area to tap a second row in (the tab strip is the
  * other reach point).
  */
 @RunWith(AndroidJUnit4::class)

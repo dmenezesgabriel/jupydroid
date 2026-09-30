@@ -23,7 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P6a-6's own gate: a tap in the gutter arms or disarms that line - no kernel behind it yet.
+ * A tap in the gutter arms or disarms that line - no kernel behind it.
  *
  * The marker is drawn on the same canvas as the numbers it replaces (`LineNumberGutterTest`
  * already records why they carry no semantics node), so what is asserted here is the tap's
@@ -67,7 +67,7 @@ class BreakpointGutterTapTest {
   }
 
   /**
-   * P6a-16's own gate: a long-press on an *armed* line's gutter is a distinct signal from an
+   * A long-press on an *armed* line's gutter is a distinct signal from an
    * ordinary tap - it opens the condition editor rather than toggling the breakpoint a second time.
    */
   @Test

@@ -16,8 +16,7 @@ never reaches, so the kernel dies before it can serve anything.
 `bind_to_random_port("tcp://127.0.0.1")` on a bare zmq socket, used only to find
 a free loopback port before handing it to `debugpy.listen()`. The DAP bridge
 does not need a *zmq* socket for that; a plain `socket.socket` bind-to-port-0
-finds the same free port without ever calling `getifaddrs()`.
-(`evidence/p6a-0-debugpy-bind/`).
+finds the same free port without ever calling `getifaddrs()` (ADR-0008).
 
 `IOPubThread.__init__` takes `pipe=False` by default; only `kernelapp.init_iopub`
 hardcodes it to `True`. This module selects the library's own default instead of
@@ -43,8 +42,7 @@ The debugger override changes no behaviour a DAP client can observe: the port it
 finds is used exactly as `DebugpyClient.get_host_port`'s original caller expects,
 handed straight to `debugpy.listen()`.
 
-Evidence: evidence/step8.5/getifaddrs-root-cause.txt, choosing-the-fix.txt,
-evidence/p6a-0-debugpy-bind/.
+What was measured, and why each override is the narrowest one that works, is ADR-0008.
 """
 
 from __future__ import annotations
@@ -101,7 +99,7 @@ class JupydroidDebugpyClient(DebugpyClient):
     `get_host_port` is only ever asked for a free loopback port to hand to
     `debugpy.listen()` (`Debugger.start`); the zmq bind-then-unbind the base
     implementation uses for that is incidental, not a DAP requirement, and it is
-    the exact call that aborts (`evidence/p6a-0-debugpy-bind/`). A plain
+    the exact call that aborts (ADR-0008). A plain
     `socket.socket` bind to port 0 finds a free port the same way, without
     `getifaddrs()`.
     """

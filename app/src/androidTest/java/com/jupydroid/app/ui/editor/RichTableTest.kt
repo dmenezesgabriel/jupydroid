@@ -14,7 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Step 7.2 `text/html`: whether a table is laid out as a grid is not a question any JVM test
+ * `text/html`: whether a table is laid out as a grid is not a question any JVM test
  * can answer - `HtmlDocumentTest` proves the model, and only a measured layout proves the
  * columns. Unlike a popup's, this geometry *is* observable: the table shares the test's window.
  */

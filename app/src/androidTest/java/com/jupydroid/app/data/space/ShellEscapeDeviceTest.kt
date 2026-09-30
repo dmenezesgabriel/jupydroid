@@ -19,7 +19,7 @@ import org.junit.runner.RunWith
  * `self.shell.system(sys.executable + " -m pip …")`, and ipykernel binds `system` to `system_piped`
  * (`zmqshell.py:802`), which is `IPython/utils/_process_posix.py` - pexpect spawning
  * `which(os.environ.get("SHELL", "sh")) -c …` on a pty. So the whole notebook shell-escape surface
- * rides on the same busybox that P4b-2 fixed, and it is worth one test that says so.
+ * rides on the same busybox the seccomp work fixed, and it is worth one test that says so.
  *
  * Driven through `PythonRunner` so the child is the app's own process, under the seccomp filter
  * that is the entire subject.

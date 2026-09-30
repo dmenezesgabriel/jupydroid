@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import unittest
 
-from check_doc_citations import BANNED, citations_in, unknown_adrs_in
+from check_doc_citations import BANNED, citations_in, scanner_for, unknown_adrs_in
+from kotlin_source import comments_only
+from script_source import hash_comments, python_prose
 
 
 class CitationsInTest(unittest.TestCase):
@@ -42,6 +44,33 @@ class CitationsInTest(unittest.TestCase):
     def test_a_slash_separated_run_of_codes_is_banned(self):
         found = citations_in("// P5e-3/P5e-5 rows\n")
         self.assertEqual(["P5e-3", "P5e-5"], [t for _, t, _ in found])
+
+
+class ScannerForTest(unittest.TestCase):
+    """The defect this gate shipped: reading a shell script with a Kotlin comment scanner.
+
+    `tools/rootfs/build.sh` was scanned from the first commit of this gate and reported clean while
+    carrying four citations, because `comments_only` finds no `//` in a shell script.
+    """
+
+    def test_a_shell_script_gets_the_hash_scanner(self):
+        self.assertIs(hash_comments, scanner_for(".sh"))
+
+    def test_a_python_script_gets_the_scanner_that_reads_its_docstrings(self):
+        self.assertIs(python_prose, scanner_for(".py"))
+
+    def test_a_c_family_language_gets_the_slash_scanner(self):
+        """`.c` and `.kt` share `//` and `/* */`, so they share the scanner."""
+        for suffix in (".kt", ".kts", ".c"):
+            with self.subTest(suffix=suffix):
+                self.assertIs(comments_only, scanner_for(suffix))
+
+    def test_a_hash_comment_citation_is_found(self):
+        found = citations_in("OUT=out  # see docs/PLAN.md\n", scanner_for(".sh"))
+        self.assertEqual(["docs/PLAN.md"], [text for _, text, _ in found])
+
+    def test_a_banned_token_in_shell_code_is_not_a_citation(self):
+        self.assertEqual([], citations_in('EVIDENCE="evidence/p1"\n', scanner_for(".sh")))
 
 
 class OnlyProseIsCheckedTest(unittest.TestCase):

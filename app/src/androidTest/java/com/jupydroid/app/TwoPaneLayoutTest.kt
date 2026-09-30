@@ -37,7 +37,7 @@ import java.time.Instant
 /**
  * That two panes are two panes: both entries on screen at once, and each still its own entry.
  *
- * **This is the whole of P1e's gate that a test can hold.** Pairing used to be argued in
+ * **This is all of the pairing rule a test can hold.** Pairing used to be argued in
  * `TwoPaneSceneStrategyTest`, over 165 lines of hand-written `SceneStrategy`; both are gone, and
  * the rule belongs to `ListDetailSceneStrategy` now. What is still *ours* is everything below:
  * that the explorer and the document it opened draw together, that back drops the document, and

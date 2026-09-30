@@ -39,10 +39,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P6a-18/19's own gate: does a real stop, reached through [EditorScreen]'s composed tree rather
+ * Does a real stop, reached through [EditorScreen]'s composed tree rather
  * than fed straight to a leaf composable, still surface [DebuggerControlBar] and its own call
  * stack and variables toggle at **one-pane width** - the phone/no-side-panel path every prior
- * P6a Maestro flow skipped (`docs/PLAN.md:1720` ran with the tablet's side panel open).
+ * earlier Maestro flow skipped, each having run with the tablet's side panel open.
  *
  * [EditorScreen.twoPane] and [EditorScreen.onShowDebugger] are passed directly rather than read
  * from the window, [PaneDirective.forcedToOnePane]'s own reason: `currentWindowAdaptiveInfo()`
@@ -86,8 +86,8 @@ class EditorScreenDebuggerAtOnePaneWidthTest {
    * A real step's own DAP shape - debugpy sends `Continued` before the next `Stopped`
    * (`NotebookDebuggerTest.watchForStopClearsOnAContinuedEvent`), so `state.stoppedAt` is
    * genuinely `null` for the width of that round trip. The sheet must not close because of it -
-   * measured live on the tablet, not assumed: a Maestro run of the reverse of this (P6a-19's own
-   * flow) opened the sheet, stepped, and never saw the new frame, because the sheet's own `open`
+   * measured live on the tablet, not assumed: a Maestro run of the reverse of this opened the
+   * sheet, stepped, and never saw the new frame, because the sheet's own `open`
    * state lived on a composable the transient `null` tore down and rebuilt as freshly closed.
    */
   @Test

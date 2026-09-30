@@ -48,7 +48,7 @@ import java.io.FileOutputStream
 /**
  * `notebook:create-console`, end to end: a real tap sequence from the notebook editor's own Kernel
  * menu through to a Console running against `FakeKernelGateway`, and Back returning to the
- * notebook it was opened from rather than to the browser - P6b-0's own fix, exercised for real
+ * notebook it was opened from rather than to the browser, exercised for real
  * rather than only by `NotebookBackStackTest`'s plain-list cases.
  *
  * Instrumented rather than JVM, `NotebookNavigationTest`'s own reason: what is on screen after a
@@ -93,7 +93,7 @@ class ConsoleNavigationTest {
     }
   }
 
-  /** Back returns to the notebook the Console was opened from, not to the browser - P6b-0's fix. */
+  /** Back returns to the notebook the Console was opened from, not to the browser. */
   @Test
   fun backFromAConsoleReturnsToItsOwnNotebookThenToTheBrowser() {
     startAppWithOneNotebook()

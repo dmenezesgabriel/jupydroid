@@ -25,7 +25,7 @@ import java.io.File
  * `rememberTextFieldState(initialText)` is `rememberSaveable(saver) { … }` with **no keys**
  * (foundation `TextFieldState.kt:657-661`), so a changed `text` on its own leaves the field drawing
  * what it already had. A ViewModel test would have gone green against a screen showing the old
- * word - which is exactly the class of defect P2x-3 and P2x-4 each found only in a picture.
+ * word - which is exactly the class of defect the search work kept finding only in a picture.
  *
  * This is what `BulkTextEdits` buys by resolving a model for every resource rather than writing the
  * file (`bulkTextEdits.ts:227`): the reader watches the replacement land.

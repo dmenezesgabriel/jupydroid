@@ -20,14 +20,14 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * Whether this device can make a pseudoterminal, which is the one thing P4 cannot be built without.
+ * Whether this device can make a pseudoterminal, without which there is no terminal at all.
  *
  * **Instrumented rather than a JVM test, and on the tablet rather than the emulator**, because the
  * answer is a property of the kernel's seccomp filter for *this* architecture and of musl's
  * `forkpty`, neither of which a JVM test on the host can reach. `Assume`-skipped where no rootfs
  * ships, so it is green-by-skip on x86_64 instead of answering for the wrong libc.
  *
- * It stays after P4a closes: if a future Android release withdraws `/dev/ptmx` from apps, the
+ * It stays: if a future Android release withdraws `/dev/ptmx` from apps, the
  * terminal stops working and this is what says so, rather than a shell that opens onto nothing.
  *
  * ```
@@ -109,8 +109,7 @@ class PtySupportTest {
      * **Logged rather than left to the assertions**, because `connectedAndroidTest` uninstalls both
      * APKs when it finishes and takes the Space with them - so `run-as` afterwards finds no package
      * and there is nothing left to pull. A green assertion says *that* a pty was made; this says
-     * what came back, which is what `evidence/p4-terminal/` has to hold. Same shape as
-     * `evidence/step8.3/musl-runs.txt`, which is logcat too.
+     * what came back, which is what a device gate has to hold, logcat included.
      *
      * The refusal log comes with it: `SpaceRuntime` sends every seccomp-refused syscall to
      * `tmp/sigsys.log` rather than stderr, so a pty that worked *while* something was refused would

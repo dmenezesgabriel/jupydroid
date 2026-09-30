@@ -36,7 +36,7 @@ import java.time.Instant
  * `getUnclippedBoundsInRoot` reports coordinates inside that window - a menu pinned to the far
  * left of the cell and one under the button both read `[0.dp..175.dp]`. That was found by
  * writing the assertion, watching it fail identically before and after the fix, and checking
- * the device. Anchoring is evidenced by screenshot instead: `evidence/step4b-cell-menu/`.
+ * the device. Anchoring is evidenced by screenshot instead.
  */
 @RunWith(AndroidJUnit4::class)
 class CellHeaderTest {
@@ -59,7 +59,7 @@ class CellHeaderTest {
     // Scrolled to, and that is a finding rather than a workaround: the menu grew from eight
     // items to thirteen when insert-above, change-type, merge and cut/copy/paste arrived, so
     // Delete no longer fits on a phone-height screen. `DropdownMenu` scrolls, so the action is
-    // still reachable - but a thirteen-item dropdown is the argument for U5b's bottom sheet,
+    // still reachable - but a thirteen-item dropdown is the argument for a bottom sheet,
     // and this assertion is where that argument is recorded.
     compose.onNodeWithContentDescription("Cell menu Delete").performScrollTo().assertIsDisplayed()
   }
@@ -198,7 +198,7 @@ class CellHeaderTest {
 
   /**
    * **A heading cell's header is a markdown cell's header, with nothing extra on it.** The caret
-   * left this strip in P2n-3 for the heading it folds, so the two are now the same row of
+   * left this strip for the heading it folds, so the two are now the same row of
    * controls - which is the parity the reference has by having no per-cell strip at all.
    */
   @Test
@@ -256,7 +256,7 @@ class CellHeaderTest {
    * **A header has to fit at 320dp**, which is the width this app is driven at and the one that
    * decides. The worst case is a code cell that has finished: prompt, Run, the duration label and
    * the `⋮`. This is the assertion that keeps anything added to the strip honest - the version of
-   * P2n that reserved two 48dp gutter slots left about 10dp of headroom here and would have gone
+   * this that reserved two 48dp gutter slots left about 10dp of headroom here and would have gone
    * over as soon as `fontScale` rose, which on the tablet it already has (1.1).
    */
   @Test

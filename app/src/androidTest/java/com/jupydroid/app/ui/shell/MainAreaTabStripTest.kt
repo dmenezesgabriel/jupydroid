@@ -52,7 +52,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The tab strip over the main area - `lm-DockPanel-tabBar`, the visible half of P8d's
+ * The tab strip over the main area - `lm-DockPanel-tabBar`, the visible half of the
  * stack-as-tab-list.
  *
  * What the assertions pin is the reference's own anatomy: `lm-TabBar-tabIcon`, the `title.label`,
@@ -406,7 +406,7 @@ class MainAreaTabStripTest {
    * At one pane the strip leads with the Up affordance - the navigation icon Material gives a
    * detail pane's top bar, and the tab row is where IntelliJ's own Back/Forward live
    * (`EditorTabbedContainer`). The label names the **destination**: over the browser it is
-   * "Back to files", not the system bar's bare "Back" `evidence/u-flow-sweep/` collided with.
+   * "Back to files", not the system bar's bare "Back" an earlier flow sweep collided with.
    */
   @Test
   fun atOnePaneTheStripLeadsWithAnArrowThatNamesTheBrowser() {

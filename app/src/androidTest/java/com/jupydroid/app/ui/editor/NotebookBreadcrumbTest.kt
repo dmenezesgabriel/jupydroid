@@ -36,7 +36,7 @@ class NotebookBreadcrumbTest {
 
   /**
    * **Above the actions**, which is where `BreadcrumbsControl` sits relative to a tab title in VS
-   * Code (`parts/editor/breadcrumbsControl.ts`) - and since P8e the title itself is the tab's, so
+   * Code (`parts/editor/breadcrumbsControl.ts`) - and the title itself is the tab's, so
    * the trail is the first row this bar draws. Asserted at the narrowest window the app is driven
    * at, because that is where a second row is hardest to afford.
    */
@@ -52,7 +52,7 @@ class NotebookBreadcrumbTest {
 
   /**
    * **Absent at the root, not blank.** VS Code renders `"no elements"` for a document with no
-   * ancestry; 48dp spent saying nothing is the trade P2v declined the run gutter over.
+   * ancestry; 48dp spent saying nothing is a trade this app declines everywhere.
    */
   @Test
   fun aNotebookAtTheRootDrawsNoTrailAtAll() {
@@ -112,8 +112,8 @@ class NotebookBreadcrumbTest {
   }
 
   /**
-   * **What the second row costs, as a number.** Since P8e the bar is at most two rows - the trail
-   * over Material's 64dp action row, the same 112dp P2q-2 settled for the title strip it replaced
+   * **What the second row costs, as a number.** The bar is at most two rows - the trail over
+   * Material's 64dp action row, the same 112dp the title strip it replaced settled for
    * - and this pins the cost as measured rather than described.
    *
    * **Measured as a difference, not as a total**, because a total is not the same on two devices:

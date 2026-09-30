@@ -87,8 +87,8 @@ class NotebookBarShutdownTest {
   }
 
   /**
-   * **The menu is gone once its dialog is up**, which nothing pinned until P2w-2b moved the menu
-   * and its dialogs into [KernelMenu]. While the state lived on the anchor a row got this for free
+   * **The menu is gone once its dialog is up**, which nothing pinned until the menu and its
+   * dialogs moved into [KernelMenu]. While the state lived on the anchor a row got this for free
    * - the same lambda that raised the dialog closed the menu - and the move made it something the
    * menu has to do for itself. A menu left expanded behind a modal dialog is still there when the
    * dialog is cancelled, which is not what the row asked for.

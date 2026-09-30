@@ -71,7 +71,7 @@ class SidePanelBarTest {
 
   /**
    * **Icon-only, name in semantics** - the rail's own rule (`SidePanelRail`) for the reason a flow
-   * cost this project in P2b: a screen reader and a Maestro flow address one string. Measured here
+   * already cost this project: a screen reader and a Maestro flow address one string. Measured here
    * rather than argued: `ExplorerScreen` already titles itself "Files" and `SearchSidePanel`
    * "Search", so a labelled item would put each string on screen twice and `onNodeWithText` throws
    * on more than one match. VS Code's bar is icon-only in every position it has.
@@ -226,7 +226,7 @@ class SidePanelBarTest {
     /** The emulator's own window, which is this project's compact device. */
     val PHONE = DpSize(320.dp, 640.dp)
 
-    /** The tablet rotated to portrait - `w800dp`, measured, and the width P2y's bar exists for. */
+    /** The tablet rotated to portrait - `w800dp`, measured, and the width the bar exists for. */
     val TABLET_PORTRAIT = DpSize(800.dp, 1280.dp)
 
     /**

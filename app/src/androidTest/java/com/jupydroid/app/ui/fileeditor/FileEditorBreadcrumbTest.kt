@@ -24,8 +24,8 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * The plain file editor says where its file lives - the trail the notebook has had since
- * P2w-1, on the other document this app opens.
+ * The plain file editor says where its file lives - the trail the notebook already has, on the
+ * other document this app opens.
  *
  * Instrumented rather than JVM for the reason [com.jupydroid.app.ui.editor.NotebookBreadcrumbTest]
  * is: every question here is about *layout* - whether a row is drawn at all and which row it is
@@ -92,8 +92,8 @@ class FileEditorBreadcrumbTest {
 
   /**
    * **Absent at the root, not blank** - `ancestorCrumbsFor` returns empty there, and 48dp spent
-   * saying nothing is the trade P2v declined the run gutter over. Inherited from P2w-1 rather than
-   * re-decided.
+   * saying nothing is a trade this app declines everywhere. Inherited from the notebook's trail
+   * rather than re-decided.
    */
   @Test
   fun aFileAtTheRootDrawsNoTrailAtAll() {

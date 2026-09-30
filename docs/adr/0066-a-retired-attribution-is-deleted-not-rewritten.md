@@ -113,10 +113,12 @@ a deletion mid-sentence changes the sentence. A regex attempt at rewording produ
 `[Copy] is the same shape and has been already.` and was reverted; the safe mechanical shapes are
 trailing parentheticals and whole clauses delimited by `—` or `,`, and everything else is read.
 
-The baseline shrinks as the sweep proceeds, with one exception this decision has already hit: a
-pattern that could not read `P6b-0's` or `P5e-3/P5e-5` was hiding 199 citations, and fixing it
-re-listed 36 files that had looked clean. A gate learning to see more is not a regression, so the
-baseline header and `README.md` both say that widening re-baselines once.
+The baseline shrank as the sweep proceeded and reached **zero**: 600 citations across 291 files,
+then 199 more that a narrow pattern had been hiding, are gone, and
+`scripts/doc-citations-baseline.txt` is deleted with them. The gate now checks every file it
+scans. `--write-baseline` remains for the one case that legitimately re-lists files — widening one
+of the gate's own patterns, as fixing `P6b-0's` and `P5e-3/P5e-5` did — and a commit that uses it
+says how many files it added.
 
 `git log -S '<symbol>'` becomes the way to find out when a line arrived, and `git log --all --grep`
 still finds the step codes in commit subjects, where they remain correct — a commit subject is

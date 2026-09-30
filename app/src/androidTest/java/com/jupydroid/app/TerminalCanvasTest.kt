@@ -151,8 +151,8 @@ class TerminalCanvasTest {
 
   /**
    * the keyboard opening genuinely shrinks the grid, rather than
-   * `TerminalCanvas` adding the IME's own inset back to cancel the shrink out (P4i-3a's own
-   * compensation, retired - an earlier finding). A synthetic `WindowInsetsCompat`
+   * `TerminalCanvas` adding the IME's own inset back to cancel the shrink out (a compensation since
+   * retired). A synthetic `WindowInsetsCompat`
    * dispatched onto the activity's `decorView` stands in for a real keyboard - the headless
    * instrumentation this runs under has no soft keyboard of its own to open.
    */

@@ -5,8 +5,8 @@ fails to load, or resolves the wrong address, is a build error rather than somet
 against a kernel that will not start.
 
 What this cannot show is the reason the shim exists: a Docker build's own /etc/resolv.conf is
-valid, so nothing here proves musl's *real* resolver is unreachable - that half is
-evidence/p7e-3b-interposition-probe/. What it does show is that the shim's own DNS exchange and
+valid, so nothing here proves musl's *real* resolver is unreachable - that half is measured on
+device (ADR-0005). What it does show is that the shim's own DNS exchange and
 the fallthrough into musl's real (numeric-host) getaddrinfo are both correct.
 """
 

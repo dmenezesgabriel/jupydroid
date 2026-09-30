@@ -61,9 +61,9 @@ class EditorThemeTest {
   }
 
   /**
-   * A4's regression, now covering **every** cell type rather than markdown alone.
+   * An old regression, now covering **every** cell type rather than markdown alone.
    *
-   * It used to name `markdownSourceStyle`, which P2s deleted: a markdown cell's source is drawn in
+   * It used to name `markdownSourceStyle`, since deleted: a markdown cell's source is drawn in
    * the same style a code and a raw cell's is, so there is one function left to guard and one
    * place the colour can go missing from.
    */
@@ -83,7 +83,7 @@ class EditorThemeTest {
   }
 
   /**
-   * P2s, at the level of the style rather than the field: source is code, rendered prose is prose.
+   * At the level of the style rather than the field: source is code, rendered prose is prose.
    *
    * [MarkdownCellFieldTest.aMarkdownSourceLaysOutLikeARawCellsSource] measures the layout the two
    * fields actually produce; this pins the rule they produce it from, and pins the pair that is

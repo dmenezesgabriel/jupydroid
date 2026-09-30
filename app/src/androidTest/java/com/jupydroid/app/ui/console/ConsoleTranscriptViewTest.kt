@@ -27,8 +27,8 @@ import java.io.FileOutputStream
 /**
  * Read-only transcript rendering, against a fake/static list - `ConsoleTranscript` reuses
  * `CellOutputs`/`executionLabel` exactly as the notebook editor's own cells do (see the entries'
- * own doc comment on `ConsoleEntry`). No kernel, no input row, no navigation entry yet - those are
- * P6b-4/P6b-9's own rows.
+ * own doc comment on `ConsoleEntry`). No kernel, no input row, no navigation entry - those have
+ * tests of their own.
  */
 @RunWith(AndroidJUnit4::class)
 class ConsoleTranscriptViewTest {

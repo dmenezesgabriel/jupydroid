@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
  *
  * **What is asserted is the room the gutter takes, not the digits in it.** The numbers are drawn
  * on a canvas so they carry no semantics node - deliberately, since a line number must never be
- * selectable with the code - and `step5-line-numbers` has said so since Step 5. What *is* readable
+ * selectable with the code - and the `step5-line-numbers` flow says so. What *is* readable
  * is where the text starts: [lineNumbers] ends in `padding(start = width)` and the field's own
  * node sits inside that padding, so the gutter's presence is the field's left edge moving, which
  * is exactly what a user sees.

@@ -3,7 +3,7 @@ package com.jupydroid.app.data.space
 /**
  * The Python that answers whether this device can make a pseudoterminal at all.
  *
- * P4a, and it is deliberately the first thing in the terminal phase: terminado reaches a shell
+ * Deliberately the first thing the terminal work asked: terminado reaches a shell
  * through `ptyprocess`, i.e. `/dev/ptmx` and `pty.fork()`, and whether Android's app seccomp filter
  * permits that is unverified. Termux does it from an ordinary app process
  * (`terminal-emulator/src/main/jni/termux.c:36-51`) but at `targetSdkVersion=28` and against bionic;

@@ -207,7 +207,7 @@ class ExplorerScreenTest {
   /**
    * A file this app did not write appears without the screen being touched.
    *
-   * The workspace is the kernel's `HOME` since X1a, so a cell calling `open(..., 'w')` puts a file
+   * The workspace is the kernel's `HOME`, so a cell calling `open(..., 'w')` puts a file
    * in the directory being browsed and nothing tells the listing. The reference answers exactly
    * this with a poll - `FileBrowserModel` runs `cd('.')` on a `Poll` at
    * `DEFAULT_REFRESH_INTERVAL = 10000` with `standby: 'when-hidden'`
@@ -309,7 +309,7 @@ class ExplorerScreenTest {
   /**
    * No back arrow when there is nowhere to go back to.
    *
-   * The explorer is the first screen since X2h, so this is now its only shape - a bar that kept an
+   * The explorer is the first screen, so this is its only shape - a bar that kept an
    * arrow would offer a route out of the screen the app opens on.
    */
   @Test

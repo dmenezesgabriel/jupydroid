@@ -89,7 +89,7 @@ class CellTypeControlTest {
   }
 
   /**
-   * Material's 48dp, reserved rather than borrowed from the bar around it - P2l-4's rule, and a
+   * Material's 48dp, reserved rather than borrowed from the bar around it, and a
    * `TextButton` draws 40dp so the reservation has to be asked for.
    *
    * **Measured as a touch target and not as drawn bounds**, which is the distinction
@@ -123,7 +123,7 @@ class CellTypeControlTest {
    * label alone does not fit there before the caret and the button's padding are counted - which
    * is [labelsFitOnActionRow]'s threshold arrived at from a measurement rather than an estimate.
    *
-   * If this fails the number moves - the measurement is the deliverable, which is P2o-3's rule.
+   * If this fails the number moves - the measurement is the deliverable.
    */
   @Test
   fun theWidestLabelFitsTheBarAtTheNarrowestWidthThatOffersIt() {
@@ -192,8 +192,8 @@ class CellTypeControlTest {
   }
 
   /**
-   * **Moved, not duplicated.** Where the bar has no room the control is not on it - P2r-2 puts the
-   * row in [NotebookActionsMenu] instead, which is what a `ReactiveToolbar`'s popup opener is
+   * **Moved, not duplicated.** Where the bar has no room the control is not on it - the row goes
+   * into [NotebookActionsMenu] instead, which is what a `ReactiveToolbar`'s popup opener is
    * (`packages/ui-components/src/components/toolbar.tsx:570-700`). A bar that drew it anyway would
    * be the second home this app refuses everywhere else.
    */

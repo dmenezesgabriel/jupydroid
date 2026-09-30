@@ -119,8 +119,8 @@ class SearchSidePanelTest {
 
   /**
    * **An empty query is the box and nothing else**, which is the reference rather than an omission:
-   * VS Code's search view with nothing typed draws its input and no message at all. P2x-2 recorded
-   * the same finding when it declined to invent a placeholder for the empty panel.
+   * VS Code's search view with nothing typed draws its input and no message at all, so no
+   * placeholder was invented for the empty panel.
    */
   @Test
   fun anEmptyBoxIsTheBoxAndNothingElse() {
@@ -154,7 +154,7 @@ class SearchSidePanelTest {
   }
 
   /**
-   * **The cap is drawn rather than silent**, which is what P2x-3 exists to fix: the walk stops at
+   * **The cap is drawn rather than silent**: the walk stops at
    * `search.maxResults` and the reference says so above the tree (`searchView.ts:1897-1899`).
    */
   @Test
@@ -431,7 +431,7 @@ class SearchSidePanelTest {
    * **Named in the label rather than drawn as a level**, which is the reference's own presentation:
    * `searchResultsView.ts` has no notebook branch at all, and the cell rides on `MatchInNotebook`'s
    * id (`notebookSearchModel.ts:35`). A third tree level would spend indentation the 360dp panel
-   * needs for the code, which is why P2x-3 already declined `FolderMatchRenderer`'s folder level.
+   * needs for the code, which is why `FolderMatchRenderer`'s folder level was declined too.
    */
   @Test
   fun aNotebookHitNamesTheCellItIsIn() {

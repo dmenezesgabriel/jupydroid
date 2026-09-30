@@ -40,7 +40,10 @@ import re
 import sys
 from pathlib import Path
 
+from collections.abc import Callable
+
 from kotlin_source import comments_only
+from script_source import hash_comments, python_prose
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = Path(__file__).resolve().parent / "doc-citations-baseline.txt"
@@ -77,7 +80,33 @@ BANNED: tuple[tuple[re.Pattern[str], str], ...] = (
 ADR_CITED = re.compile(r"\bADR-(\d{4})\b")
 
 
-def citations_in(source: str) -> list[tuple[int, str, str]]:
+#: Which prose scanner reads which language. `.c` shares Kotlin's `//` and `/* */`.
+SCANNERS: dict[str, Callable[[str], str]] = {
+    ".sh": hash_comments,
+    ".py": python_prose,
+}
+
+
+def scanner_for(suffix: str) -> Callable[[str], str]:
+    """The comment scanner for a file with this extension.
+
+    ```
+    scanner_for(".sh")   # hash_comments
+    ```
+
+    Args:
+        suffix: the file's extension, leading dot included.
+
+    Returns:
+        The scanner that returns that language's comments with its code blanked out.
+    """
+    return SCANNERS.get(suffix, comments_only)
+
+
+def citations_in(
+    source: str,
+    comment_scanner: Callable[[str], str] = comments_only,
+) -> list[tuple[int, str, str]]:
     """Every banned citation in the *comments* of one file.
 
     ```
@@ -86,11 +115,12 @@ def citations_in(source: str) -> list[tuple[int, str, str]]:
 
     Args:
         source: the contents of one source file.
+        comment_scanner: what reads that language's comments - [scanner_for] picks it.
 
     Returns:
         `(line number, the offending text, why it is banned)`, in file order.
     """
-    prose = comments_only(source)
+    prose = comment_scanner(source)
     found = [
         (prose.count("\n", 0, m.start()) + 1, m.group(0), why)
         for pattern, why in BANNED
@@ -99,7 +129,11 @@ def citations_in(source: str) -> list[tuple[int, str, str]]:
     return sorted(found, key=lambda hit: (hit[0], hit[1]))
 
 
-def unknown_adrs_in(source: str, known: set[str]) -> list[tuple[int, str]]:
+def unknown_adrs_in(
+    source: str,
+    known: set[str],
+    comment_scanner: Callable[[str], str] = comments_only,
+) -> list[tuple[int, str]]:
     """Every `ADR-NNNN` a comment cites that has no file in `docs/adr/`.
 
     A citation that resolves to nothing is the failure ADR-0001 exists to prevent, so the gate that
@@ -112,11 +146,12 @@ def unknown_adrs_in(source: str, known: set[str]) -> list[tuple[int, str]]:
     Args:
         source: the contents of one source file.
         known: the four-digit numbers of the ADRs that exist.
+        comment_scanner: what reads that language's comments - [scanner_for] picks it.
 
     Returns:
         `(line number, the citation)`, in file order.
     """
-    prose = comments_only(source)
+    prose = comment_scanner(source)
     return [
         (prose.count("\n", 0, m.start()) + 1, m.group(0))
         for m in ADR_CITED.finditer(prose)
@@ -158,8 +193,9 @@ def main() -> int:
     for path in scanned_files(args.package):
         rel = path.relative_to(ROOT).as_posix()
         source = path.read_text(encoding="utf-8", errors="replace")
-        hits = citations_in(source)
-        dangling = unknown_adrs_in(source, adrs)
+        scanner = scanner_for(path.suffix)
+        hits = citations_in(source, scanner)
+        dangling = unknown_adrs_in(source, adrs, scanner)
         if hits:
             offenders.append(rel)
         if args.write_baseline or (rel in allowed and not dangling):

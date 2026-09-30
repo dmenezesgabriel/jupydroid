@@ -22,7 +22,7 @@ import kotlin.time.TimeSource
 /**
  * **Where the rootfs extraction's ~16.5 s actually goes - measured, not guessed.**
  *
- * P8a's table names `space.installing` → `server.starting` as the cold-start dominator.
+ * The cold-start timeline names `space.installing` → `server.starting` as its dominator.
  * This probe splits it on the device it is slow on: decompress+walk the tar (no writes),
  * the shipped serial [TarZstdExtractor.extract], and a channel fan-out that keeps the
  * decompressor serial but hands each entry's bytes to N writer workers - which is the

@@ -19,7 +19,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /**
- * Settings is reachable from the explorer's own bar, and Back returns there - P6c-1's own gate.
+ * Settings is reachable from the explorer's own bar, and Back returns there.
  * `TerminalNavigationTest`'s reach-then-Back shape is the precedent this mirrors.
  */
 @RunWith(AndroidJUnit4::class)

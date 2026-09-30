@@ -28,7 +28,7 @@ class SidePanelRailTest {
 
   private val chosen = mutableListOf<SidePanel>()
 
-  /** Five items since P8f - one per [SidePanel], which is what the rail iterates. */
+  /** Five items - one per [SidePanel], which is what the rail iterates. */
   @Test
   fun everyPanelIsOnTheRail() {
     show(SidePanel.FILES)
@@ -50,7 +50,7 @@ class SidePanelRailTest {
     compose.onNodeWithContentDescription(SEARCH).assertIsNotSelected()
   }
 
-  /** And the one P2x-2 added is selectable like the two beside it, not merely drawable. */
+  /** And search is selectable like the two beside it, not merely drawable. */
   @Test
   fun theSearchPanelIsTheSelectedOneWhenItIsShowing() {
     show(SidePanel.SEARCH)

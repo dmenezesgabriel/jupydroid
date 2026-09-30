@@ -29,10 +29,11 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * The terminal service answers, and the shell it spawns is the one this app pinned.
  *
- * **P4c's gate, and it deliberately goes further than a `GET`.** `GET /api/terminals` returning
+ * **It deliberately goes further than a `GET`.** `GET /api/terminals` returning
  * `200 []` proves only that the extension loaded; it would look identical if terminado were about
  * to spawn Android's own shell out of a `PATH` search with `-l` appended. That is the same shape
- * of hollow gate P4b caught, where `sh -c 'echo ok'` passed while all 304 applets were broken.
+ * of hollow gate the busybox work caught, where `sh -c 'echo ok'` passed while all 304 applets
+ * were broken.
  * So the terminal is actually **created**, and the
  * argv of the process behind it is read back.
  *
@@ -130,8 +131,8 @@ class TerminalServiceTest {
   }
 
   /**
-   * **The shell is still there a second later**, which is the assertion the P4b defect would have
-   * slipped past a faster one.
+   * **The shell is still there a second later**, which a faster assertion would have let the
+   * busybox defect slip past.
    *
    * Alpine's busybox died of SIGSYS about seven milliseconds after exec, so terminado had already
    * reaped the terminal by the time anything asked - but a shell that lived half a second and then
@@ -272,9 +273,9 @@ class TerminalServiceTest {
 /**
  * The three `/api/terminals` calls this gate needs, and nothing more.
  *
- * **Not a port, and deliberately so.** `TerminalGateway` is P4d; this is the raw REST surface used
- * to prove the *server's* configuration, so it stays inside the test that asks the question rather
- * than becoming an abstraction P4d then has to replace.
+ * **Not a port, and deliberately so.** `TerminalGateway` is the port; this is the raw REST surface
+ * used to prove the *server's* configuration, so it stays inside the test that asks the question
+ * rather than becoming an abstraction the port then has to replace.
  */
 private class TerminalsApi(private val connection: ServerConnection) {
   private val client = OkHttpClient()

@@ -57,8 +57,8 @@ internal fun SemanticsNodeInteraction.assertReservesMinimumTouchTarget() {
  *
  * The previous docstring claimed the opposite - that a bare `clickable` *"would have a real 24dp
  * target and nothing but this to notice"*. It was wrong, and it was steering the plan:
- * `HiddenCellsRowTest` shipped green against a 40dp row on the strength of it, and P2l-4 was
- * written expecting this assertion to go red. What notices that case is
+ * `HiddenCellsRowTest` shipped green against a 40dp row on the strength of it, and the fix that
+ * followed was written expecting this assertion to go red. What notices that case is
  * [assertReservesMinimumTouchTarget].
  *
  * What survives is a weaker claim worth one line: the node is clickable, and so it does get the

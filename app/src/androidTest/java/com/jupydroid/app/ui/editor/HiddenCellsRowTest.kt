@@ -49,7 +49,7 @@ class HiddenCellsRowTest {
   }
 
   /**
-   * P2l-4. This test existed and passed while the row was 40dp tall, because it asked with
+   * This test existed and passed while the row was 40dp tall, because it asked with
    * `touchBoundsInRoot` - which pads any clickable out to 48dp before answering. The reservation
    * is what a neighbour can take away; see `assertReservesMinimumTouchTarget`.
    */

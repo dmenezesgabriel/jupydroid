@@ -60,7 +60,7 @@ class TerminalNavigationTest {
 
   /**
    * At two panes the reach is the auto-filled launcher's Terminal card - and **no** "New terminal"
-   * survives anywhere, the FilesBar's provisional icon included. P6d-6's half of the swap: the icon
+   * survives anywhere, the FilesBar's provisional icon included - the other half of the swap: the icon
    * left in the same commit the bar item arrived, so a single tap target owns the name at every
    * width.
    */

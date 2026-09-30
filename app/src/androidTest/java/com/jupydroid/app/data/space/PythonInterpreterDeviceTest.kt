@@ -85,21 +85,20 @@ class PythonInterpreterDeviceTest {
   }
 
   /**
-   * **The measurement P7e-2's design is written from, and it is here because P7e-1 is what made it
-   * answerable.**
+   * **The measurement the trampoline's design is written from.**
    *
-   * `docs/PLAN.md` and `evidence/p7e-0-runtime-probe/README.md` read rc=126 as the W^X refusal on
+   * An earlier reading took rc=126 for the W^X refusal on
    * an ELF under `filesDir`. That is an over-attribution: [TarZstdExtractor] writes **no executable
    * bit at all**, so EACCES is explained by mode 0600 on its own and the two causes were never
    * separated. They matter separately for `usr/bin/pip`, which is a *script* - there is no ELF to
-   * point a symlink at, so P7e-2 is a `chmod` if the mode was the whole story and a different
+   * point a symlink at, so the fix is a `chmod` if the mode was the whole story and a different
    * design if it was not.
    *
    * So: a script this app owns, in this app's own `filesDir`, with its executable bit set, run the
    * way a shell would run it. The assertion is what the device answers, and 126 is what it answers
    * today - the exec is refused with the bit set, so **SELinux is the binding cause** and no amount
-   * of `chmod` reaches `pip`. Should a future platform allow it, this goes red and P7e-2's row is
-   * the thing to re-read, which is the point of pinning it.
+   * of `chmod` reaches `pip`. Should a future platform allow it, this goes red, which is the point
+   * of pinning it.
    */
   @Test
   fun aScriptUnderFilesDirIsRefusedEvenWithItsExecutableBitSet() {
@@ -120,7 +119,7 @@ class PythonInterpreterDeviceTest {
 
   private fun assertRan(run: SpaceProcessRun) {
     // Java reports a signalled child as 128 + signal, so a seccomp kill is 159 - the same
-    // encoding `JupyterServerLauncher.exitCode` documents. 126 is the refusal P7e-1 fixes.
+    // encoding `JupyterServerLauncher.exitCode` documents. 126 is the refusal the trampoline fixes.
     assertEquals(
       "${run.command} exited ${run.exitCode}" +
         (if (run.exitCode == EXEC_REFUSED) " (EACCES: is usr/bin/python3.12 still a plain file?)" else "") +

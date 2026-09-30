@@ -43,7 +43,7 @@ class EditorTopBarTest {
     compose.onNodeWithContentDescription("Run all cells").assertDoesNotExist()
   }
 
-  // --- P2a: undo and redo of cell operations ---
+  // --- Undo and redo of cell operations ---
 
   /**
    * Both are on the bar even with nothing to take back, disabled rather than absent.

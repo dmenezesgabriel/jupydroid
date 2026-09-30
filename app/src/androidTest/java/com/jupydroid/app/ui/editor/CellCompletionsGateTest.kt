@@ -20,8 +20,7 @@ import org.junit.runner.RunWith
  * `enabled = false` has to stop [rememberCellCompletions] from ever
  * offering a completion, not merely compile - and the positive case beside it proves the same
  * harness *would* offer one, so the negative case cannot pass by accident
- * (`docs/PLAN.md`'s own P2z/P2x-3f finding: an assertion that cannot fail is a defect the reader
- * cannot see in a green log).
+ * - an assertion that cannot fail is a defect the reader cannot see in a green log.
  */
 @RunWith(AndroidJUnit4::class)
 class CellCompletionsGateTest {

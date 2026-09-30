@@ -65,11 +65,11 @@ class CellEditorBoxTest {
   /**
    * **The border costs no space**, which is the thing this row could have broken silently.
    * `Modifier.border` strokes inside the layout bounds, so the content it wraps sits exactly where
-   * `.background().padding()` alone put it - the shape all three fields had before P2m-2. Asserted
+   * `.background().padding()` alone put it - the shape all three fields already had. Asserted
    * against that shape rather than against a number, because the number is whatever `Spacing.sm`
    * is and the claim is that nothing moved.
    *
-   * The cell gutter's x is P2n's whole subject; pre-breaking it here would be found late.
+   * The cell gutter's x is settled elsewhere; pre-breaking it here would be found late.
    */
   @Test
   fun drawingTheBorderDoesNotMoveTheContentInsideIt() {

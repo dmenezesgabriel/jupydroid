@@ -97,7 +97,7 @@ class CellSourceTrackingTest {
 
   /**
    * **The field over the state is replaced, and the adoption survives it** - which it did not
-   * until P2f-3. `change-cell-to-heading` is the first command that rewrites a cell's source *and*
+   * until it was fixed. `change-cell-to-heading` is the first command that rewrites a source *and*
    * changes its type, so a [CodeCellField] became a [MarkdownCellField] over the same
    * `TextFieldState` in the same frame the rewrite arrived. With the counter seeded inside the
    * field, the new one started already up to date and adopted nothing: the model held `## title`

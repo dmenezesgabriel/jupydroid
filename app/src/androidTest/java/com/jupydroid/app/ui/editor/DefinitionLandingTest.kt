@@ -19,7 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P5e-5's field half: a `caretLanding` arriving at the field whose cell it names.
+ * The field half of Go to definition: a `caretLanding` arriving at the field whose cell it names.
  *
  * What VS Code's `_openReference` does in `goToCommands.ts` - `Range.collapseToStart` for the
  * caret, `.focus()` for the editor, the `symbolHighlight` mark for the target range - becomes a

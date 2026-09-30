@@ -33,7 +33,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The six toggles P6c-2 moved out of `NotebookActionsMenu`'s View menu - each reads and writes
+ * The six toggles moved out of `NotebookActionsMenu`'s View menu - each reads and writes
  * [EditorSettingsRepository] directly, the same repository the notebook's own bars already share.
  */
 @RunWith(AndroidJUnit4::class)

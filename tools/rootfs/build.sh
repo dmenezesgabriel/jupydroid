@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the base Space rootfs tarball (Step 8.1) from tools/rootfs/Dockerfile.
+# Builds the base Space rootfs tarball from tools/rootfs/Dockerfile.
 #
 #   tools/rootfs/build.sh [abi]      abi: x86_64 (default) | arm64-v8a
 #
@@ -7,9 +7,9 @@
 # The tarball is a build artifact, not a committed file: it is far too big for
 # git and is reproducible from the pinned Dockerfile + requirements.lock.
 #
-# zstd rather than gzip (P8c-1): decompressing the gzip arm64 tarball was ~9 s of
-# single-threaded CPU on the tablet, the floor under every write-side optimisation
-# (evidence/p8a-cold-path). The decoder is zstd-jni via commons-compress, the same
+# zstd rather than gzip (ADR-0012): decompressing the gzip arm64 tarball was ~9 s of
+# single-threaded CPU on the tablet, the floor under every write-side optimisation.
+# The decoder is zstd-jni via commons-compress, the same
 # pairing Winlator's rootfs installer ships - a native lib in the APK, which the old
 # comment's "save a few MB" trade-off now buys back in seconds of cold start.
 set -euo pipefail

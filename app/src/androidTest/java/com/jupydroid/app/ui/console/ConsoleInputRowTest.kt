@@ -56,7 +56,7 @@ class ConsoleInputRowTest {
   }
 
   /**
-   * P6b-5: `console:linebreak`'s equivalent. `PythonTypingRulesTest` already covers what a typed
+   * `console:linebreak`'s equivalent. `PythonTypingRulesTest` already covers what a typed
    * `\n` does to the buffer (carries and extends indent) - this is only the one thing that test
    * altitude cannot see, that the same keystroke never reaches [onSubmit].
    */
@@ -74,7 +74,7 @@ class ConsoleInputRowTest {
     assertFalse(submitted)
   }
 
-  /** P6b-6: `console:history-back`'s mobile stand-in - see `RECALL_PREVIOUS_ENTRY`. */
+  /** `console:history-back`'s mobile stand-in - see `RECALL_PREVIOUS_ENTRY`. */
   @Test
   fun tappingRecallPreviousInvokesOnRecallPreviousEntry() {
     var recalled = false
@@ -132,8 +132,7 @@ class ConsoleInputRowTest {
    * The regression this function's own doc comment explains: `CodeCellField`'s modifier reaches
    * the `BasicTextField` three layers down, not the node `RowScope.weight` reads parent data
    * from, so a weight passed straight through measured to the field's own near-zero intrinsic
-   * width instead of filling the row - reachable but invisible, as
-   * `evidence/p6b-9d-console-shares-kernel/05-console-shares-the-kernel.png` shows.
+   * width instead of filling the row - reachable but invisible.
    */
   @Test
   fun theInputFieldFillsMostOfTheRowRatherThanItsOwnIntrinsicWidth() {
@@ -163,7 +162,7 @@ class ConsoleInputRowTest {
     compose.onNodeWithContentDescription("Run").assertIsEnabled()
   }
 
-  /** Real on-device evidence: a PNG of the row, pulled into `evidence/p6b-4/` - see `ConsoleTranscriptViewTest`. */
+  /** Real on-device evidence: a PNG of the row, pulled off the device - see `ConsoleTranscriptViewTest`. */
   @Test
   fun capturesAnInputRowScreenshotForEvidence() {
     compose.setContent {
@@ -185,7 +184,7 @@ class ConsoleInputRowTest {
 
   /**
    * A second PNG rather than overwriting `EVIDENCE_FILE_NAME`: the row's shape changed with the
-   * history pair, and the P6b-4 screenshot documents what that row looked like then.
+   * history pair, and the earlier screenshot documents what that row looked like then.
    */
   @Test
   fun capturesTheHistoryButtonsScreenshotForEvidence() {

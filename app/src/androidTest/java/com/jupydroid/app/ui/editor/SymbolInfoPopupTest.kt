@@ -28,7 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P5e-3's own gate: the menu row's ask reaches the field as a bumped [symbolAsk], the field
+ * The menu row's ask reaches the field as a bumped [symbolAsk], the field
  * asks at the caret, and the answer draws as markdown - the fenced signature block and the
  * docstring line, VS Code's `editor.contrib.hover` shape with a finger. Dismissal runs through
  * `Popup.onDismissRequest`, which a BACK press drives; an outside tap is Maestro's half (see

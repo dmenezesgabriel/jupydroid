@@ -66,8 +66,8 @@ class BusyBoxAppletsDeviceTest {
 
   /**
    * The Space's `PATH` decides whose coreutils an unqualified name gets, and
-   * `evidence/p4-terminal/busybox-on-device.txt` deferred asserting it to here: under `run-as` an
-   * unqualified `ls` is Android's toybox, because `run-as` keeps Android's environment.
+   * an earlier probe deferred asserting it to here: under `run-as` an unqualified `ls` is Android's
+   * toybox, because `run-as` keeps Android's environment.
    */
   @Test
   fun anUnqualifiedNameFindsTheSpacesOwnCoreutils() {

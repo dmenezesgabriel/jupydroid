@@ -192,8 +192,8 @@ class SidePaneNavigationTest {
    *
    * **The bottom bar narrows this rather than reopening it.** The bar the narrowed window lands on can
    * leave Files and Search, so those two survive - see the case below. The table of contents has no
-   * item on it, so it is the one panel that still has to fall back, and this is now the whole of
-   * P2x-2b's defect rather than a third of it.
+   * item on it, so it is the one panel that still has to fall back, and that is all that is left of
+   * the defect.
    */
   @Test
   fun aWindowThatNarrowsOntoTheOutlineStillDrawsTheBrowser() {

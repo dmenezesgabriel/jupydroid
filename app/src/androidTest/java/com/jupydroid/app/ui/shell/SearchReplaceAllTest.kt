@@ -34,7 +34,7 @@ import org.junit.runner.RunWith
  * no workspace search at all.
  *
  * Its own class rather than more of `SearchSidePanelTest`, on the seam detekt and the file-length
- * gate both found in P2x-5g: *the workspace searched* and *the workspace rewritten*.
+ * gate both found: *the workspace searched* and *the workspace rewritten*.
  */
 @RunWith(AndroidJUnit4::class)
 class SearchReplaceAllTest {

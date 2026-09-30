@@ -73,10 +73,13 @@ upstream project at a **pinned SHA** · a published spec or upstream issue URL �
 **Banned:** a plan/step code · `docs/backlog.md` · a `JD-NNN` · `evidence/<step>/` · any
 `reference/…` path.
 
-`scripts/check_doc_citations.py` is the gate. `scripts/doc-citations-baseline.txt` lists the files
-still carrying legacy citations; it only ever shrinks, and no file may be added to it by writing a
-new citation. Widening one of the gate's own patterns is the exception — it re-baselines once, and
-the commit that widens it says how many files that added.
+`scripts/check_doc_citations.py` is the gate, and it now checks **every** file it scans, reading
+Kotlin, C, shell and Python prose each with its own scanner — a Python **docstring** counts, which is
+where `tools/rootfs/` explains itself. It carried
+a shrinking allowlist (`scripts/doc-citations-baseline.txt`) while the sweep ran; the sweep reached
+zero, so the file is gone and there is nothing left to allow. `--write-baseline` would recreate it,
+which is the escape hatch for widening one of the gate's own patterns — see
+[ADR-0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md).
 
 **A comment that already carries a banned citation loses it rather than trading it for another id**
 — the fact stays, the attribution goes, and `git log -S '<symbol>'` is how you find out when a line

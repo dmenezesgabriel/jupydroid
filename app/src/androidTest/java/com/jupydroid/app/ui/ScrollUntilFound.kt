@@ -7,7 +7,7 @@ import androidx.compose.ui.test.performScrollToNode
 /**
  * Scrolls [list] until [what] is composed, retrying while the walk that produces it is still running.
  *
- * **Scrolling is the assertion, not a workaround.** Since P2x-3e the search panel is one
+ * **Scrolling is the assertion, not a workaround.** The search panel is one
  * `LazyColumn` - box, the `…`, the glob boxes, the messages and the tree - because with the glob
  * boxes open its fixed chrome is taller than the panel and everything below was composed, correct
  * and unreachable (`SearchResults`' own doc carries the reading). A row below the viewport of a lazy

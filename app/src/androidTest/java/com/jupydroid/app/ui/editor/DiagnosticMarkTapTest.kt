@@ -28,7 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P5e-1's own gate: a press on a diagnosed line's **mark column** shows the findings VS Code
+ * A press on a diagnosed line's **mark column** shows the findings VS Code
  * answers on the marker's hover - the numbers of that same line still toggle a breakpoint.
  *
  * The mark itself is canvas, not a semantics node (`BreakpointGutterTapTest` records the same
@@ -79,7 +79,7 @@ class DiagnosticMarkTapTest {
     compose.onNodeWithContentDescription(DETAIL_DESCRIPTION).assertIsNotDisplayed()
   }
 
-  /** P6a-16's contract outranks the mark: armed and held is the condition editor, even on it. */
+  /** The condition editor outranks the mark: armed and held opens it, even on the mark. */
   @Test
   fun longPressingAnArmedDiagnosedLinesMarkStillOpensTheConditionEditor() {
     var longPressed: Int? = null
@@ -129,7 +129,7 @@ class DiagnosticMarkTapTest {
         // `down.position.x` is measured from the element's own left edge, one gutter width earlier.
         // Clicks dispatched on the field node therefore land one gutter width right of where they
         // aimed and miss the gutter entirely; on the wrapper both spaces share one origin and an
-        // offset here is the offset the gesture sees (found live on the tablet, `evidence/p5e-1`).
+        // offset here is the offset the gesture sees (found live on the tablet).
         Box(modifier = Modifier.width(FIELD_WIDTH).testTag(FIELD_TAG)) {
           CodeCellField(
             state = rememberTextFieldState(text),

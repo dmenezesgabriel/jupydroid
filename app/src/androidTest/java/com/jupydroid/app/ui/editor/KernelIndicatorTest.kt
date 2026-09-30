@@ -60,7 +60,7 @@ class KernelIndicatorTest {
   }
 
   /**
-   * **The name goes and the status stays**, which is the departure P2w-2 records. The reference
+   * **The name goes and the status stays**, which is this app's own departure. The reference
    * sheds its rightmost items into the popup first (`toolbar.tsx:661-700`), so it would push the
    * execution indicator in *before* the kernel name; a phone is this app's primary device and the
    * state is what has to stay glanceable there. Free width in this row at 320dp is 72dp measured,

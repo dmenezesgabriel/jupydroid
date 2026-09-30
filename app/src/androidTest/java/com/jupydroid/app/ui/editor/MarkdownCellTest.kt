@@ -160,7 +160,7 @@ class MarkdownCellTest {
 
     /**
      * A device's non-linear font scaling moves a laid-out line off its style's declared height:
-     * measured at about 7% in P2m-2 (19.2dp declared against 20.67dp drawn), which on the tallest
+     * measured at about 7% (19.2dp declared against 20.67dp drawn), which on the tallest
      * heading here is under 2dp. The defect this guards against was 10dp.
      */
     const val TOLERANCE_DP = 2.0f
@@ -277,7 +277,7 @@ class MarkdownCellTest {
   }
 
   /**
-   * **Rendered only, which retires P2n-3's both-states assertion.** JupyterLab's prompt node
+   * **Rendered only, which retires an earlier both-states assertion.** JupyterLab's prompt node
    * carries the caret whether the editor is showing or not - `InputArea` builds it once and hides
    * only the *editor* when the cell renders (`packages/cells/src/inputarea.ts:53-56,111-119`) -
    * and this test used to transcribe that. Composing it while the source is open spends a column
@@ -321,8 +321,8 @@ class MarkdownCellTest {
   /**
    * **What the caret's absence buys, measured rather than asserted in prose**: a heading's open
    * source starts at the same x as a cell that never had a caret, so every editor in the document
-   * runs to one left bound while it is being typed into. This is the invariant P2n spent itself
-   * establishing, read here at the state P2n could not reach.
+   * runs to one left bound while it is being typed into. That is the invariant the gutter work
+   * established, read here at the state it could not reach.
    */
   @Test
   fun anOpenHeadingsSourceStartsWhereProseDoes() {

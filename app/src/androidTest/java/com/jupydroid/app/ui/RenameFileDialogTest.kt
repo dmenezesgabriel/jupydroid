@@ -72,8 +72,9 @@ class RenameFileDialogTest {
    * A name the filesystem cannot hold is refused here, not silently rewritten.
    *
    * JupyterLab validates in this same dialog and names the rule rather than mangling the input:
-   * *"Names must have nonzero length, and cannot include "/", "\\", or ":"* (`packages/docmanager/src/dialogs.ts`, `isValidFileName` and the error beside it). Since X1b
-   * the name **is** the file, so `a/b` is not a preference we are declining - it is not a name.
+   * *"Names must have nonzero length, and cannot include "/", "\\", or ":"*
+   * (`packages/docmanager/src/dialogs.ts`, `isValidFileName` and the error beside it). The name
+   * **is** the file, so `a/b` is not a preference we are declining - it is not a name.
    */
   @Test
   fun aNameWithASeparatorCannotBeConfirmed() {

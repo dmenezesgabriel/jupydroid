@@ -40,9 +40,9 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * P6b-9 sub-step 1: the Console's own screen - [ConsoleTranscript] and [ConsoleInputRow] under a
+ * The Console's own screen - [ConsoleTranscript] and [ConsoleInputRow] under a
  * bar, wired to a real [ConsoleViewModel]. No navigation yet: this only proves the screen composes
- * and the wiring reaches the pieces P6b-2 through P6b-7 already built and tested on their own.
+ * and the wiring reaches the pieces already built and tested on their own.
  */
 @RunWith(AndroidJUnit4::class)
 class ConsoleScreenTest {
