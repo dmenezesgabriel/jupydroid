@@ -12,16 +12,17 @@
 
     <!--
       Read-only, granted at install with no runtime prompt: lets SpaceRuntime read the device's
-      current DNS servers via ConnectivityManager for tools/rootfs/getaddrinfo_shim.c (P7e-3c) -
-      musl's own resolver cannot be redirected to read them from a file
-      (evidence/p7e-3b-interposition-probe/).
+      current DNS servers via ConnectivityManager for tools/rootfs/getaddrinfo_shim.c - musl's
+      own resolver reads /etc/resolv.conf and nothing else, and redirecting that path was measured
+      and ruled out, so the shim interposes the call instead (ADR-0005).
     -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!--
       android:name is what makes the composition root one *per process*: MainActivity is
-      relaunched on every rotation, and a container per activity instance was a jupyter_server
-      per activity instance (evidence/p1g-one-container-per-process/).
+      relaunched on every rotation, and a container per activity instance was measured to be a
+      jupyter_server per activity instance. `JupydroidApplication` builds the one container;
+      `docs/architecture/building-blocks.md` §5 states the rule.
     -->
     <application
         android:name=".JupydroidApplication"
@@ -65,8 +66,8 @@
         </activity>
 
         <!--
-          P2j-5: an exported file leaves the app through a `content://` URI, never a `file://`
-          one - passing a file URI out has thrown `FileUriExposedException` since Android 7, and
+          An exported file leaves the app through a `content://` URI, never a `file://` one
+          (ADR-0051) - passing a file URI out has thrown `FileUriExposedException` since Android 7, and
           the workspace is private storage no other app could read anyway. The provider grants a
           one-shot read to whichever app the user picks from the chooser.
         -->

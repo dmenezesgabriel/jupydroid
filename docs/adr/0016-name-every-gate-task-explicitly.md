@@ -74,5 +74,26 @@ watching a different task fail beside it. Verify one task at a time, against a p
 `src/` has three source-set directories and not five, which is why the *source-set* names are correct
 and the *variant* names were not.
 
+**The same rule caught `check_doc_citations.py` four times, and each time by the file set rather than
+the task name.** It globbed `app/src/**/*.kt` plus three extensions under `tools/`, and every file
+outside that list was not reported as unchecked — it was not reported at all. Measured, after each
+fix was made to fail first:
+
+| What the gate could not see | How many citations it hid | Why |
+|---|---|---|
+| `.sh`, `.py`, `.c` read with Kotlin's scanner | 14 | `comments_only` finds no `//` in a shell script, so the file came back with no prose |
+| A step code ending in `'` or `/` | 199 | The boundary was `[\s,.;:)\]]`, so `P6b-0's` and `P5e-3/P5e-5` read as ordinary words |
+| `Dockerfile`, two `.g4` grammars, `AndroidManifest.xml`, `libs.versions.toml`, `busybox.config` | 33 | Discovery was a list of four extensions; anything else under a scanned tree was never opened |
+| A KDoc after a raw string spelled with four quotes | 5, in 86 blind comment lines across 5 files | Kotlin closes a raw string at the **last** triple of a quote run; the scanner stopped at the first and read the rest of the file as string content |
+
+So discovery is now **whole trees with a per-language scanner map, and an unknown type fails the run
+by name**. Returning a default scanner is what made the first of those four silent. Binary files are
+skipped by git's rule — a NUL byte in the first 8000 bytes — rather than by an extension list, because
+`jniLibs/` and `assets/` hold gitignored build output.
+
+Two of those fixes widened a pattern, and a widened pattern finds citations in files that were
+previously clean. That is not a regression in the tree; it is the gate seeing more. `docs/adr/0066`
+states how such a citation is then removed.
+
 The thing a future reader will be tempted to "fix" is the long gate command. Each name in it is there
 because the short form once reported success over nothing.

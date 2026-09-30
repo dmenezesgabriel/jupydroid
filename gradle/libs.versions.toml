@@ -34,22 +34,23 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 # Version-less on purpose: the Compose BOM already manages the material3.adaptive family, so
 # pinning one here would be a second number to keep in step with it.
 androidx-compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive"}
-# The one member of that family that carries a version, and P1e paid for it knowingly: the
+# The one member of that family that carries a version, and it was adopted knowingly: the
 # Compose BOM 2026.03.01 pins `adaptive` at **1.2.0**, and this artifact's POM requires
 # `adaptive-navigation` **strictly `[1.3.0]`** - so adopting it moves the whole adaptive family,
 # `currentWindowAdaptiveInfo()` included, to 1.3.0 and off the BOM. It also asks for
 # `navigation3-ui:1.0.0`, which `nav3Core` already exceeds. What it buys is the deletion of
-# `TwoPaneSceneStrategy`/`TwoPaneScene`, and `extraPane` for P2h's table of contents.
+# `TwoPaneSceneStrategy`/`TwoPaneScene`, and an `extraPane` the table of contents then measured and
+# declined (ADR-0037).
 androidx-compose-material3-adaptive-navigation3 = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "adaptiveNavigation3"}
 # material3 no longer pulls the icons in transitively; -core is the small set (not -extended).
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core"}
-# Version-less like the rest of the Compose family: the BOM manages it. Added in X2a for the
-# explorer's file-type icons.
+# Version-less like the rest of the Compose family: the BOM manages it. Added for the explorer's
+# file-type icons.
 #
 # **It is big**: the debug APK went from 116 MB to 142 MB, and Android's own guidance says so -
 # "material-icons-extended is a large library and can affect your APK size, so you should consider
 # using R8/Proguard in production builds to remove the resources that aren't used". Release builds
-# do not shrink it today, because `isMinifyEnabled` is false; that is a Step 15 packaging question
+# do not shrink it today, because `isMinifyEnabled` is false; that is a release-packaging question
 # alongside the rootfs, and it is written down here rather than assumed away.
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended"}
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui"}
@@ -60,8 +61,9 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
-# Process-wide ON_STOP/ON_START, which the runtime-ktx artifacts do not provide. P1c's app-death
-# backstop observes the whole process, not an activity - see scripts/... and docs/PLAN.md P1c.
+# Process-wide ON_STOP/ON_START, which the runtime-ktx artifacts do not provide: the backstop that
+# stops a server when the app goes away observes the whole process, not an activity. Used by
+# `JupydroidApplication` and `di/AppContainer`, the two places that outlive a screen.
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidxLifecycle" }
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTest" }
 androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExt" }
@@ -73,8 +75,8 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 # tar reader for the rootfs archive: a docker export carries GNU long names, PAX
 # headers, symlinks and hardlinks, so hand-rolling USTAR parsing is not worth it.
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
-# zstd for the rootfs archive. Gzip decompression of the 82 MB arm64 tarball is ~9 s of
-# single-threaded CPU on the tablet (evidence/p8a-cold-path), and parallel file writes
+# zstd for the rootfs archive. `GZIPInputStream` decompression of the arm64 tarball was measured at
+# ~8.9 s on the tablet, a floor under a 12.0 s serial extract (ADR-0012), and parallel file writes
 # cannot go under that floor - the codec has to change. Winlator's rootfs installer made
 # the same call: `.tzst` via this artifact plus commons-compress's Zstd* streams. The AAR
 # form (@aar in the app deps) carries the arm64-v8a native lib into the APK.

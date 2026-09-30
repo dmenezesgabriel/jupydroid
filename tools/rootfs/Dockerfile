@@ -1,11 +1,11 @@
 # Builds the base Space rootfs: a Linux userland running stock jupyter_server.
 # Not an app build - the output is a tarball that ships as an Android asset and is
-# extracted to files/spaces/base/ on first run (Step 8.2).
+# extracted to files/spaces/base/ on first run by data/space/BaseSpaceInstaller.kt.
 #
 # Alpine/musl, not Debian/glibc, and the reason is measured rather than stylistic:
 # Android 16's app seccomp filter kills glibc's libc startup with SIGSYS, on both the
 # x86_64 emulator and real arm64 hardware. musl starts cleanly under the same filter
-# with everything else held constant. Full evidence in evidence/step8.3/.
+# with everything else held constant. ADR-0003 carries the measurement.
 #
 # The Jupyter stack still comes from ordinary wheels - musllinux rather than manylinux -
 # so the premise of the rootfs approach is intact: no hand-cross-compiling.
@@ -27,10 +27,9 @@ COPY musl_at_shim.c /tmp/musl_at_shim.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libmusl_at_shim.so /tmp/musl_at_shim.c \
  && strip /tmp/libmusl_at_shim.so
 
-# Ships on both ABIs: unlike the AT shim above, the bug this answers is real on the tablet too
-# (evidence/p7e-0-runtime-probe/). See getaddrinfo_shim.c for why this interposes getaddrinfo()
-# rather than redirecting a path, and evidence/p7e-3b-interposition-probe/ for the measurement
-# that ruled the simpler approach out.
+# Ships on both ABIs: unlike the AT shim above, the bug this answers is real on the tablet too.
+# See getaddrinfo_shim.c, and ADR-0005 for why this interposes getaddrinfo() rather than
+# redirecting a path - the simpler approach was measured and ruled out.
 COPY getaddrinfo_shim.c /tmp/getaddrinfo_shim.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libgetaddrinfo_shim.so /tmp/getaddrinfo_shim.c \
  && strip /tmp/libgetaddrinfo_shim.so
@@ -59,9 +58,8 @@ RUN set -eux; d=$(mktemp -d); mkdir -p "$d/bin" "$d/usr/bin"; \
 # busybox is built here rather than taken from `apk add busybox`, and the reason is one config
 # flag: Alpine ships CONFIG_FEATURE_SUID=y, which compiles in check_suid() and makes every applet
 # dispatch call setgid()/setuid() - both refused to app processes by Android's seccomp filter, so
-# every applet died of SIGSYS. See tools/rootfs/busybox.config and
-# evidence/p4-terminal/busybox-under-app-seccomp.md. Termux, which runs busybox in an Android app
-# process under the same filter, sets the flag the same way we do.
+# every applet died of SIGSYS. See tools/rootfs/busybox.config and ADR-0006. Termux, which runs
+# busybox in an Android app process under the same filter, sets the flag the same way we do.
 #
 # utmps is Alpine's own answer to musl having no utmpx, and it is linked **statically**, which is
 # the one place this build deliberately follows Alpine's *static* recipe (APKBUILD:219,
@@ -147,7 +145,7 @@ assert hasattr(IPKernelApp, '_apply_curve_server_options'), 'curve options hook 
 assert 'pipe' in inspect.signature(__import__('ipykernel.iostream', fromlist=['IOPubThread']).IOPubThread.__init__).parameters;\
 print('kernel entry point OK')"
 
-# The same gate for the LSP server (P5a): pylsp starts over stdio - if it cannot
+# The same gate for the LSP server: pylsp starts over stdio - if it cannot
 # even import under musl, the Space's language features would fail on device.
 RUN pylsp --version
 
@@ -187,7 +185,7 @@ print('sigsys reporter armed')"
 # refusing them. Here rather than on device because a shim that fails to load, or that breaks
 # an ordinary unlink, is a build error - not something to discover in a kernel that will not start.
 # What this cannot show is the seccomp behaviour: a Docker build has no Android filter. That half
-# is evidence/, on the device.
+# is proved on the device, by the instrumented tests in app/src/androidTest/.
 COPY at_shim_probe.py /tmp/at_shim_probe.py
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
       LD_PRELOAD=/lib/libmusl_at_shim.so python3 /tmp/at_shim_probe.py; \
@@ -196,7 +194,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 
 # The strip drops docs and test trees - pure bulk - but NOT bytecode caches: on the
 # tablet, importing ipykernel.kernelapp costs 4.7 s cold without .pyc vs 1.3 s with
-# (P8c-3, measured on device). Shipping __pycache__ pays a few compressed MB for
+# (measured on device, ADR-0013). Shipping __pycache__ pays a few compressed MB for
 # seconds off every cold server/kernel/pylsp start.
 # checked-hash, not the default timestamp mode: the extractor writes files with
 # extraction-time mtimes, which mismatch the mtimes timestamp pyc record - so
@@ -208,7 +206,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 # re-resolves jsonschema's format-nongpl extra for jupyter-events either way, and
 # an honest lock lists what was resolved. What we drop is the import cost -
 # building its Lark parser is ~1.7 s on the tablet, inside every serverapp import
-# (P8c-2). jsonschema wraps it in suppress(ImportError), so absent is a designed
+# (ADR-0014). jsonschema wraps it in suppress(ImportError), so absent is a designed
 # state: the iri/iri-reference checkers simply are not registered, and nothing in
 # the lock nor the shipped event schemas uses those formats (uri stays via
 # rfc3986-validator). The RUN check below fails the image if that stops being true.

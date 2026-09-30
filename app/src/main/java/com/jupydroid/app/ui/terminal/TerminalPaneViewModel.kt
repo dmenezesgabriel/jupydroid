@@ -291,7 +291,7 @@ class TerminalPaneViewModel(
   private fun bumpRedraw() = _uiState.update { it.copy(redraw = it.redraw + 1) }
 
   companion object {
-    /** Overwritten by the first real layout - see sub-step 2/3; a shell has to start at *some* size. */
+    /** Overwritten by the first real layout; a shell has to start at *some* size. */
     const val DEFAULT_COLUMNS = 80
     const val DEFAULT_ROWS = 24
   }

@@ -131,7 +131,7 @@ class ConsoleScriptProbeTest {
     try {
       val run = runInSpace(shell, "-c", "python3 -c 'import sys; print(sys.orig_argv[0])'")
       val argv0 = run.output.trim()
-      Log.i(SPACE_LOG_TAG, "P7e-2a argv[0] for a PATH-resolved name: '$argv0'")
+      Log.i(SPACE_LOG_TAG, "argv[0] for a PATH-resolved name: '$argv0'")
       assertEquals("python3 did not run through the shadow link: $argv0", 0, run.exitCode)
       assertTrue(
         "argv[0] '$argv0' does not basename to the command name",

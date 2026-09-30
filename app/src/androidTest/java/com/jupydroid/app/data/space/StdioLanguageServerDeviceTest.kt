@@ -60,7 +60,7 @@ class StdioLanguageServerDeviceTest {
     val languageServer = baseSpaceLanguageServerPort(context)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
-      assertTrue("pylsp must declare completionProvider for P5c", capabilities.completionProvider)
+      assertTrue("pylsp must declare completionProvider, or completion has no source", capabilities.completionProvider)
 
       val uri = "file:///home/jupydroid/p5b-probe.py"
       languageServer.openDocument(BASE_SPACE, uri, "python", "import os\nos.path.jo\n")
@@ -152,7 +152,10 @@ class StdioLanguageServerDeviceTest {
     val languageServer = baseSpaceLanguageServerPort(context)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
-      assertTrue("pylsp must declare signatureHelpProvider for P5e-4", capabilities.signatureHelpProvider)
+      assertTrue(
+        "pylsp must declare signatureHelpProvider, or the signature popup has nothing to show",
+        capabilities.signatureHelpProvider,
+      )
 
       val uri = "file:///home/jupydroid/p5e4-probe.py"
       languageServer.openDocument(BASE_SPACE, uri, "python", "import os\nos.path.join(\"a\", \"b\")\n")
@@ -183,7 +186,10 @@ class StdioLanguageServerDeviceTest {
     val languageServer = baseSpaceLanguageServerPort(context)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
-      assertTrue("pylsp must declare definitionProvider for P5e-5", capabilities.definitionProvider)
+      assertTrue(
+        "pylsp must declare definitionProvider, or go-to-definition has nothing to ask",
+        capabilities.definitionProvider,
+      )
 
       val uri = "file:///home/jupydroid/p5e5-probe.py"
       languageServer.openDocument(
@@ -221,7 +227,7 @@ class StdioLanguageServerDeviceTest {
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
       assertTrue(
-        "pylsp must declare documentRangeFormattingProvider for P5e-6",
+        "pylsp must declare documentRangeFormattingProvider, or \"Format cell\" has nothing to call",
         capabilities.documentRangeFormattingProvider,
       )
 
@@ -257,7 +263,7 @@ class StdioLanguageServerDeviceTest {
     val languageServer = baseSpaceLanguageServerPort(context)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
-      assertTrue("pylsp must declare renameProvider for P5e-7", capabilities.renameProvider)
+      assertTrue("pylsp must declare renameProvider, or rename has nothing to call", capabilities.renameProvider)
 
       val uri = "file:///home/jupydroid/p5e7-probe.py"
       languageServer.openDocument(

@@ -197,7 +197,8 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
 | device-secrets gate | evidence proves the app, not the house it ran in | `scripts/check_device_secrets.py` (+ `_test.py`); local literals in gitignored `.sensitive-strings.local` |
 | monospace-home gate | what code looks like has one home | `scripts/check_monospace_home.py` (+ `_test.py`) |
-| doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist - every scanned file is checked |
+| doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist, every file under `app/src/`+`tools/` read, an unknown type fails |
+| comment scanners | one prose reader per comment syntax, shared by the gates | `scripts/kotlin_source.py` (`//`, `/* */`), `script_source.py` (`#`, docstrings), `xml_source.py` (`<!-- -->`) (+ `_test.py` each) |
 | busybox-seccomp gate | the shell asks Android for no syscall it refuses apps | `scripts/check_busybox_seccomp.py` (+ `_test.py`) |
 | shebang-exec gate | the console-script trampoline is the one that was built | `scripts/check_shebang_exec.py` (+ `_test.py`) |
 | palette-consumers gate | a palette states colours something draws | `scripts/check_palette_consumers.py` (+ `_test.py`) |

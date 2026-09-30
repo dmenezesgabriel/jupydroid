@@ -73,9 +73,10 @@ repos:
         always_run: true
       # A comment cites something that still resolves in a fresh clone (ADR-0001). A shrinking
       # allowlist is what let this land green on a tree where 507 files carried a retired
-      # citation; the sweep reached zero, so there is no allowlist any more and every scanned
-      # file is checked - Kotlin and C by their comments, shell and Python by theirs plus a
-      # Python docstring, which is where tools/rootfs/ explains itself.
+      # citation; the sweep reached zero, so there is no allowlist any more. Every file under
+      # app/src/ and tools/ is read, each language by its own scanner, and a type with no scanner
+      # fails the run by name - a four-extension glob is what left Dockerfile, the ANTLR grammars
+      # and AndroidManifest.xml unread while the gate reported them clean.
       - id: doc-citations
         name: a comment cites what still resolves
         entry: python3 scripts/check_doc_citations.py

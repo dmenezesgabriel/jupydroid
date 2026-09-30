@@ -40,10 +40,10 @@ fun runInSpace(vararg command: String): SpaceProcessRun {
 }
 
 /**
- * The refusals the SIGSYS handler wrote, minus the one this runtime has tolerated since step 8.7.
+ * The refusals the SIGSYS handler wrote, minus the one this runtime tolerates by design.
  *
- * `mbind` is excluded by number rather than the check being dropped: numpy issues it on import
- * (`docs/environment-fidelity.md:24-28`). The log is shared by every Space process and appended
+ * `mbind` is excluded by number rather than the check being dropped: numpy issues it on import and
+ * the handler returns rather than dying (ADR-0004). The log is shared by every Space process and appended
  * to, so any suite that has touched Python puts lines there - which is why a caller asserts on
  * what it finds rather than on the file being absent.
  */
@@ -51,7 +51,7 @@ fun seccompRefusalsIn(baseDir: File): List<String> =
   File(baseDir, "tmp/sigsys.log").takeIf { it.isFile }?.readText().orEmpty()
     .lines().filter { it.isNotBlank() && TOLERATED_REFUSAL !in it }
 
-/** `mbind` on aarch64: numpy issues it on import, tolerated since step 8.7. */
+/** `mbind` on aarch64: numpy issues it on import, and ADR-0004 is why that is tolerated. */
 private const val TOLERATED_REFUSAL = "syscall=235"
 
 /** `adb logcat -s JupydroidSpace`, the filter every Space investigation already uses. */

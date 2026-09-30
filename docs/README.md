@@ -67,19 +67,22 @@ this repo; a table row or a single-fact statement is never wrapped, so a grep re
 A comment states its fact so that it **stands alone**, then cites a source that still resolves in a
 fresh clone.
 
-**Allowed:** an `ADR-NNNN` id · a path in `app/src/` · a path inside the shipped rootfs · an
-upstream project at a **pinned SHA** · a published spec or upstream issue URL · a test name.
+**Allowed:** an `ADR-NNNN` id · a path in `app/src/` or `tools/` · a path inside the shipped rootfs ·
+an `architecture.md`/`architecture/*.md` section, which is durable · an upstream project at a
+**pinned SHA** · a published spec or upstream issue URL · a test or Maestro flow name.
 
 **Banned:** a plan/step code · `docs/backlog.md` · a `JD-NNN` · `evidence/<step>/` · any
 `reference/…` path.
 
-`scripts/check_doc_citations.py` is the gate, and it now checks **every** file it scans, reading
-Kotlin, C, shell and Python prose each with its own scanner — a Python **docstring** counts, which is
-where `tools/rootfs/` explains itself. It carried
-a shrinking allowlist (`scripts/doc-citations-baseline.txt`) while the sweep ran; the sweep reached
-zero, so the file is gone and there is nothing left to allow. `--write-baseline` would recreate it,
-which is the escape hatch for widening one of the gate's own patterns — see
-[ADR-0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md).
+`scripts/check_doc_citations.py` is the gate. It reads **every file under `app/src/` and `tools/`**,
+plus the four build files, and picks a scanner per language: Kotlin/C/Java/ANTLR `//` and `/* */`,
+shell and Python `#` — a Python **docstring** counts, which is where `tools/rootfs/` explains itself
+— and `<!-- -->` for `AndroidManifest.xml`. Discovery is **fail-closed**: a type with no scanner
+fails the run by name rather than passing quietly, which is how `Dockerfile`, two `.g4` grammars and
+the manifest went 33 citations unread behind a four-extension glob. Binary files are skipped by
+git's own rule (a NUL byte in the first 8000 bytes), so gitignored build output in `jniLibs/` and
+`assets/` needs no extension list. There is **no allowlist** — the one the gate launched with
+reached zero and was deleted.
 
 **A comment that already carries a banned citation loses it rather than trading it for another id**
 — the fact stays, the attribution goes, and `git log -S '<symbol>'` is how you find out when a line

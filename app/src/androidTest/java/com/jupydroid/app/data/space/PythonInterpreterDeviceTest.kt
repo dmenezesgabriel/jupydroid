@@ -112,7 +112,8 @@ class PythonInterpreterDeviceTest {
     script.delete()
     assertTrue(
       "a chmod 0755 script under filesDir now runs: ${run.output.trim()}. " +
-        "The exec bit was the binding cause after all - re-read docs/PLAN.md's P7e-2 row.",
+        "The exec bit was the binding cause after all, so the shebang trampoline is answering " +
+        "a constraint that has gone away.",
       "rc=126" in run.output,
     )
   }
