@@ -99,9 +99,9 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
   }
 
   /**
-   * **A base64 image output is not reported.** It is not source, and P2x-4 searches
+   * **A base64 image output is not reported.** It is not source, and this searcher reads
    * `contentResults` only - `webviewResults` needs a home for "what text an output shows" that
-   * `data` is allowed to read.
+   * `data` is allowed to read (ADR-0060).
    */
   @Test
   fun theInsideOfAnOutputIsNotReported() = runTest {
@@ -168,8 +168,7 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
    * **A directory symlink is not descended into**, where `search.followSymlinks` defaults to true.
    *
    * The workspace is inside a rootfs and a cell can call `os.symlink`, so a loop is reachable;
-   * ripgrep detects one and this app has nothing that would. Recorded as a departure in
-   * `docs/DECISIONS.md`.
+   * ripgrep detects one and this app has nothing that would - a departure ADR-0060 records.
    */
   @Test
   fun aDirectorySymlinkIsNotFollowed() = runTest {

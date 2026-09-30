@@ -132,7 +132,22 @@ def _past_literal(source: str, at: int) -> int:
         if quote != '"""' and source[at] == "\\":
             at += 2
         elif source.startswith(quote, at):
-            return at + len(quote)
+            return _past_quote_run(source, at) if len(quote) == 3 else at + len(quote)
         else:
             at += 1
     return end
+
+
+def _past_quote_run(source: str, at: int) -> int:
+    """The index just past the run of quotes that closes a raw string.
+
+    Kotlin closes one at the **last** triple of the run - its grammar spells the closer
+    `'"'* '\"\"\"'` - so a literal written with four quotes each side holds one quote of content.
+    Stopping at the first triple left a quote over to open a fresh literal, and every comment for
+    the rest of the file was read as string content: `DiskWorkspaceSearcherTest` carried a citation
+    of a deleted document past `check_doc_citations.py` that way, and four other test files hid 86
+    comment lines between them.
+    """
+    while at < len(source) and source[at] == '"':
+        at += 1
+    return at

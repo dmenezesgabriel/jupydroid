@@ -91,7 +91,7 @@ class NotebookRoundTripTest {
   /**
    * "Python 3" is only the shipped spec's display name: a notebook saved against a different
    * kernel must not be written claiming one it never had - the same loss `kernelspecJson`'s
-   * own comment names, in miniature (P8g).
+   * own comment names, in miniature.
    */
   @Test
   fun aKernelThatIsNotTheShippedOneClaimsNoDisplayName() {

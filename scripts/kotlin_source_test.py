@@ -22,6 +22,15 @@ class WithoutCommentsTest(unittest.TestCase):
     def test_a_comment_marker_inside_a_raw_string_is_not_a_comment(self):
         self.assertEqual('val u = """a // b"""', without_comments('val u = """a // b"""'))
 
+    def test_a_raw_string_ending_in_a_quote_closes_at_the_last_triple(self):
+        # Kotlin closes a raw string at the LAST triple quote of a run of quotes, so a literal
+        # spelled with four quotes each side holds one quote of content. Reading the *first*
+        # triple as the closer left a quote over to open a fresh literal, and every comment
+        # after it was swallowed as string content - which is how DiskWorkspaceSearcherTest
+        # kept a citation of a deleted document past check_doc_citations.py.
+        source = 'val j = """"cat""""\n// why\n'
+        self.assertEqual(['val j = """"cat""""', " " * len("// why")], without_comments(source).splitlines())
+
     def test_an_escaped_quote_does_not_end_the_literal(self):
         self.assertEqual('val q = "a\\"// b"', without_comments('val q = "a\\"// b"'))
 
@@ -76,6 +85,11 @@ class CommentsOnlyTest(unittest.TestCase):
     def test_newlines_survive_so_line_numbers_hold(self):
         only = comments_only("val a = 1\n// why\nval b = 2")
         self.assertEqual(["         ", "// why", "         "], only.splitlines())
+
+    def test_a_comment_after_a_quote_hugging_raw_string_is_still_prose(self):
+        """The `comments_only` half of the same defect: the comment must survive, not be blanked."""
+        only = comments_only('val j = """"cat""""\n// why\n')
+        self.assertEqual(["                   ", "// why"], only.splitlines())
 
     def test_it_is_the_complement_of_without_comments(self):
         source = '/** k */\nval u = "a // b" // tail\n'

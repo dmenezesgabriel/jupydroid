@@ -67,5 +67,10 @@ repository.
 Cell outputs are not searched from the workspace panel — that is `GAP-001`, and it is a refactor rather than a
 switch.
 
+**A directory symlink is not descended into**, where `search.followSymlinks` defaults to true upstream. The
+workspace lives inside a rootfs and a cell can call `os.symlink`, so a loop is reachable; ripgrep detects one
+and this app has nothing that would, so the safe reading is the narrow one. `DiskWorkspaceSearcherTest`'s
+`aDirectorySymlinkIsNotFollowed` is the gate on it.
+
 The thing a future reader will be tempted to "fix" is the transcribed matcher, since the platform has one. The
 table above is the whole reason, and it is one command to re-measure.

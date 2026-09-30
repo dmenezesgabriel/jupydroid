@@ -148,7 +148,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
   }
 
   /**
-   * P6a-17's own gate: DAP's `evaluate` request carries the expression, the frame it runs against,
+   * DAP's `evaluate` request carries the expression, the frame it runs against,
    * and `context: "repl"` - debugpy's own convention for an ad hoc expression, confirmed against
    * `vscode-jupyter`'s own `DebuggerVariables.evaluate` rather than guessed.
    */
@@ -178,7 +178,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
     assertTrue("must carry the cell's code, got $request", """"code":"x = 1"""" in request)
   }
 
-  /** P6a-5's own gate: predicting the codeId locally (`CellCodeId`) means a repeat needs no round trip. */
+  /** Predicting the codeId locally (`CellCodeId`) means a repeat of the same text needs no round trip. */
   @Test
   fun dumpCell_doesNotResendForUnchangedText() = runTest {
     lateinit var opener: ScriptedKernelSocketOpener
