@@ -85,7 +85,7 @@ class ColorCommands(private val colors: TerminalColors, private val replies: Ter
    * walks past the end of the string and throws; and it hands the index to an unchecked array
    * write, so anything outside the table throws too. Both are reachable from ordinary shell
    * output. What happens here is the intent that `catch`'s own comment states - `// Ignore.` -
-   * applied per token. `evidence/p4-terminal/the-colour-reset-that-walks-off-its-own-string.md`.
+   * applied per token.
    */
   private fun resetIndexed(textParameter: String) {
     if (textParameter.isEmpty()) {

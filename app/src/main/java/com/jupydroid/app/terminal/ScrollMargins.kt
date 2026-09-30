@@ -9,9 +9,8 @@ package com.jupydroid.app.terminal
  * [ScreenEditing] and [ModeSwitching], for the reason those exist.
  *
  * **`CSI s` is two sequences, and DECLRMM decides which.** With the mode off it is the ANSI.SYS
- * cursor save [CursorAddressing] has done since P4f-3b; with it on it is DECSLRM. [apply] therefore
- * declines `s` when the mode is off, and the parser falls through to the cursor applier - which is
- * the correction P4f-3b's row said P4f-5 owed.
+ * cursor save [CursorAddressing] performs; with it on it is DECSLRM. [apply] therefore declines
+ * `s` when the mode is off, and the parser falls through to the cursor applier.
  *
  * **Both margin setters home the cursor**, and under origin mode home is the margin rather than the
  * corner - see [TerminalCursor.moveWithinMargins].

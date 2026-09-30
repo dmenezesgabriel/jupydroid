@@ -8,8 +8,8 @@ package com.jupydroid.app.terminal
  *
  * **A save carries the DECSET flags; a restore puts back exactly two of them** - autowrap and
  * origin mode - because `restoreCursor` masks `mSavedDecFlags` down to that pair. So only those
- * two are kept here: storing the rest would be state nothing ever reads back. P4f-4a added them,
- * and the differential is what found they were missing, not a reading of the source.
+ * two are kept here: storing the rest would be state nothing ever reads back. The differential is
+ * what found them missing, not a reading of the source.
  *
  * ```
  * val saved = SavedCursor(row = 0, column = 3, style = CellStyle.NORMAL, graphicSets = GraphicSetState.ASCII)

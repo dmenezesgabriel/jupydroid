@@ -5,9 +5,9 @@ package com.jupydroid.app.terminal
  *
  * The counterpart of [RowText], and split from [TerminalRow] for the reason that was: one class
  * for the storage and one for what is stored. Upstream both live on `TerminalRow` as bare arrays -
- * `mText` and `mStyle` - and here the char array had already earned a class of its own at P4e-3
- * while the style array had not, because until P4f-5e nothing wrote a style without also writing a
- * character. DECCARA is what does.
+ * `mText` and `mStyle` - and here the char array had already earned a class of its own while the
+ * style array had not, because nothing wrote a style without also writing a character. DECCARA is
+ * what does.
  *
  * ```
  * val styles = RowStyles(columns = 80)

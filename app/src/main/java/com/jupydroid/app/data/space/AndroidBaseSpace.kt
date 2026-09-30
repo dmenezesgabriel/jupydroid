@@ -81,7 +81,8 @@ fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpac
 }
 
 /**
- * The base Space's `pylsp` as the app's [LanguageServerPort] - stdio, route 2 of `docs/PLAN.md`'s
+ * The base Space's `pylsp` as the app's [LanguageServerPort], over stdio.
+ *
  * The console script execs straight through the `shebang-exec` trampoline ([SpaceRuntime]'s
  * `execProcessBuilder`, which must not prefix the interpreter), no `jupyter_server` in between.
  *

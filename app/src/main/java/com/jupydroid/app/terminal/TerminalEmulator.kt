@@ -28,7 +28,7 @@ class TerminalEmulator(
 ) {
   val screen = TerminalScreen(columns, rows, totalRowsFor(transcriptRows), TerminalColors(palette, notices))
 
-  /** What the shell has called this terminal, which P4i draws and `CSI 22/23 t` stacks. */
+  /** What the shell has called this terminal, which `ui/terminal/` draws and `CSI 22/23 t` stacks. */
   val title = WindowTitle(notices)
   private val decoder = Utf8Decoder()
   private val reporting = TerminalReporting(screen, replies, title, cellWidthPixels, cellHeightPixels)
@@ -42,10 +42,10 @@ class TerminalEmulator(
     DeviceControlString(replies),
   )
 
-  /** DECSET 25 (DECTCEM): whether the cursor should be drawn. P4i reads this to decide. */
+  /** DECSET 25 (DECTCEM): whether the cursor should be drawn. `ui/terminal/` reads it to decide. */
   val isCursorEnabled: Boolean get() = screen.modes.isSet(DecMode.CURSOR_ENABLED)
 
-  /** DECSET 1 (DECCKM): whether an arrow key is sent as SS3 rather than CSI. P4j-2 reads this. */
+  /** DECSET 1 (DECCKM): whether an arrow key is sent as SS3 rather than CSI, read by the keyboard. */
   val isApplicationCursorKeys: Boolean get() = screen.modes.isSet(DecMode.APPLICATION_CURSOR_KEYS)
 
   /** Feed the first [length] bytes of [buffer], typically one read from the pseudoterminal. */
@@ -170,7 +170,7 @@ class TerminalEmulator(
     /**
      * Rows of screen plus scrollback, when the caller names none. JupyterLab's own default -
      * `packages/terminal/src/tokens.ts:107,160`, `scrollback: 1000` - taken over the reference's
-     * 2000, since P4h-3 is where this app chose between them: JupyterLab is authoritative for
+     * 2000, and the choice between them is deliberate: JupyterLab is authoritative for
      * *behaviour*, and scrollback depth is behaviour, not presentation.
      */
     const val DEFAULT_TRANSCRIPT_ROWS = 1000
@@ -178,7 +178,7 @@ class TerminalEmulator(
     /**
      * What `CSI 14 t` and `CSI 16 t` report a cell as when nobody has measured one. The
      * reference takes these as constructor arguments too, and its own tests pass 13 by 15;
-     * **P4i is what measures a real cell** and passes it here.
+     * **`ui/terminal/` measures a real cell** and passes it here.
      */
     const val DEFAULT_CELL_WIDTH_PIXELS = 13
     const val DEFAULT_CELL_HEIGHT_PIXELS = 15

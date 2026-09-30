@@ -20,7 +20,7 @@ class FakeNotebookRepository : NotebookRepository {
   private val written = MutableStateFlow<Map<String, Instant>>(emptyMap())
 
   override suspend fun createNotebook(title: String, kernelId: String): Notebook {
-    // The id *is* the name since X1b, as it is on disk. It was a UUID here long after the disk
+    // The id *is* the name, as it is on disk. It was a UUID here long after the disk
     // repository stopped minting them, so a fake-backed test could pass with an id no real
     // notebook could ever have - and `idBeside` reads a folder out of that id.
     val notebook = Notebook(

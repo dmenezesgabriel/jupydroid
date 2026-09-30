@@ -14,9 +14,9 @@ package com.jupydroid.app.terminal
  * would be carrying it for one caller apiece. Three go elsewhere for a reason of their own: DECSC
  * and DECRC stay on the screen because `CSI s` and `CSI u` reach them as well, and
  * lower-left is a cursor motion with no grid in it, so it is [TerminalCursor.moveToLowerLeft].
- * detekt's `TooManyFunctions` asked the question at P4f-3a;
+ * detekt's `TooManyFunctions` is what asked the question.
  *
- * **`_` (APC) is here since P4f-6d**, though it introduces no state of its own worth holding:
+ * **`_` (APC) is here too**, though it introduces no state of its own worth holding:
  * [EscapeState.ApplicationProgramCommand] discards everything until its terminator, so
  * `introduce` just names the state and [EscapeParser] does the rest.
  *
@@ -105,7 +105,7 @@ class EscapeDispatch(
 
   /**
    * NEL. A linefeed that also returns to the first column - **which under origin mode is the left
-   * margin**, not column 0. P4f-3a wrote the off-case for want of any way to set a margin;
+   * margin**, not column 0. The off-case was written first, for want of any way to set a margin;
    * `ScrollRegionTest.nextLineRespectsTheLeftMargin` is what makes the two differ.
    */
   private fun nextLine() {
@@ -165,7 +165,7 @@ class EscapeDispatch(
   }
 
   private companion object {
-    /** DECKPAM and DECKPNM. The flag is all there is until P4j sends a key. */
+    /** DECKPAM and DECKPNM. The flag is all there is until something sends a key. */
     const val APPLICATION_KEYPAD = '='.code
     const val NUMERIC_KEYPAD = '>'.code
 

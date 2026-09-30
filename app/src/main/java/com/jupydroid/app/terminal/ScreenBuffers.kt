@@ -66,7 +66,7 @@ class ScreenBuffers(columns: Int, rows: Int, totalRows: Int) {
    * [live] - the buffer that *was* live - is the one behind. [ModeSwitching] calls it directly,
    * with [columns]/[rows] unmoved, when the buffer **just made** live was not the one resized the
    * last time the terminal's own size changed and so is the one behind instead - the branch
-   * `ModeSwitching.kt` named unreachable until P4h-4 gave it a caller.
+   * `ModeSwitching.kt` once named unreachable.
    */
   fun resizeLiveGrid(columns: Int, rows: Int, cursorRow: Int, cursorColumn: Int, style: CellStyle): GridCursor {
     val newTotalRows = if (isAlternateLive) rows else live.totalRows

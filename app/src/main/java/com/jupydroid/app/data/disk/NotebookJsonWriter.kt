@@ -38,8 +38,8 @@ fun Notebook.toFileJson(): JsonObject = buildJsonObject {
 private fun Notebook.notebookMetadataJson(): JsonObject = buildJsonObject {
   // Dropped rather than carried over: this app owns the `jupydroid` namespace and no longer
   // writes anything into it, so a key from an older build must not linger. It held the title
-  // until X1b, and a file that kept one would be claiming a name its own filename contradicts -
-  // which is precisely the split Phase X exists to close. `updated_at` went the same way in A6.
+  // once, and a file that kept one would be claiming a name its own filename contradicts.
+  // `updated_at` went the same way.
   preserved.objectAt("metadata")
     .filterKeys { it != JUPYDROID_METADATA }
     .forEach { (key, value) -> put(key, value) }

@@ -39,8 +39,8 @@ class DiskWorkspaceSearcher(
   rootDir: File,
   /**
    * `search.maxResults`, which the reference reads **per query** rather than baking in
-   * (`searchView.ts:1670`). A parameter for the same reason: P6c is where a settings screen gets to
-   * change it, and until then every caller takes the registered default.
+   * (`searchView.ts:1670`). A parameter for the same reason, so a settings screen can change it;
+   * every caller otherwise takes the registered default.
    */
   private val maxResults: Int = MAX_SEARCH_RESULTS,
   /**
@@ -92,7 +92,7 @@ class DiskWorkspaceSearcher(
     readableTextAt(path)?.let { matchedLinesIn(it, regex) }
 
   /**
-   * A notebook, read as the cells it is - the skip P2x-1d put in, lifted.
+   * A notebook, read as the cells it is, rather than skipped for not being plain text.
    *
    * **A notebook this app cannot read is declined rather than thrown on**, which makes it the
    * fourth kind of file a walk passes over. `readNotebook` raises for JSON

@@ -8,8 +8,8 @@ import java.util.Base64
  *
  * Transcribed from the `52` arm of `TerminalEmulator.doOscSetTextParameters` (termux-app
  * `3df69d1d`, Apache 2.0 - see [TerminalGrid]), with `java.util.Base64` where the reference has
- * `android.util.Base64` - the departure `docs/PLAN.md`'s P4e row named, and the second of the two
- * `terminal/` was written to avoid.
+ * `android.util.Base64` - a deliberate departure, so nothing in this package needs `android.*` and
+ * every test for it is a plain JVM test.
  *
  * **`terminal/` can run the reference's own disabled test.** `OperatingSystemControlTest
  * .disabledTestSetClipboard` never ran upstream, for the reason its own comment states: *"Cannot

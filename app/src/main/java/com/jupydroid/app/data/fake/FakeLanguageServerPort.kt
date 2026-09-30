@@ -60,7 +60,7 @@ class FakeLanguageServerPort : LanguageServerPort {
 
   /**
    * What `definition` answers, or null to answer the probe's shape at the asked uri -
-   * `compute_total` defined on line 4, the reply `evidence/p5e-0-lsp-surface/` captured off
+   * `compute_total` defined on line 4, the reply `LspSurfaceProbeTest` captured off
    * real `pylsp`. Pointing inside the asked document is what makes the fake's jumps land
    * somewhere a UI test can see.
    */
@@ -85,7 +85,7 @@ class FakeLanguageServerPort : LanguageServerPort {
 
   /**
    * What `rename` answers, or null to answer the probe's shape at the asked uri - one
-   * `TextEdit` rewriting the name, the reply `evidence/p5e-0-lsp-surface/` captured as a
+   * `TextEdit` rewriting the name, the reply `LspSurfaceProbeTest` captured as a
    * whole-document edit off real `pylsp`. [renameAsks] records the (uri, position, newName)
    * each call arrived with.
    */

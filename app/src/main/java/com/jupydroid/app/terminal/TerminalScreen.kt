@@ -16,8 +16,8 @@ package com.jupydroid.app.terminal
  * a rename away if P4j's type-ahead ever wants one.
  *
  * **Three neighbours own the rest**, each split off here on detekt's `TooManyFunctions`:
- * [CharacterPlacement] writes one character and [EscapeDispatch] performs the `ESC` sequences, both
- * from P4f-3a; [ScreenBuffers] holds the two screens and the cursor each one saved, from P4f-4b.
+ * [CharacterPlacement] writes one character, [EscapeDispatch] performs the `ESC` sequences, and
+ * [ScreenBuffers] holds the two screens and the cursor each one saved.
  * [grid] is whichever of those two is live, so nothing here names either by name.
  *
  * ```
@@ -79,7 +79,7 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
    *
    * `>` instead of `==` differs from the reference **only** when the cursor is already left of the
    * margin - the state the reference cannot represent - and is identical everywhere else, margin
-   * or no margin. Measured, not argued: `evidence/p4-terminal/backspace-past-the-left-margin.md`.
+   * or no margin. Measured against the reference, not argued.
    */
   fun backspace() {
     if (cursor.column > cursor.leftMargin) {
@@ -120,7 +120,7 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
   }
 
   /**
-   * DECSC. `CSI s` joins it at P4f-3b, and P4f-5 puts the margin-mode condition on that one. What
+   * DECSC. `CSI s` reaches it too, under the margin-mode condition [ScrollMargins] carries. What
    * it writes belongs to the **live buffer** - see [ScreenBuffers.savedCursor].
    */
   fun saveCursor() {
@@ -134,7 +134,7 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
     )
   }
 
-  /** DECRC, and `CSI u` from P4f-3b. */
+  /** DECRC, and `CSI u` with it. */
   fun restoreCursor() {
     val saved = buffers.savedCursor
     cursor.moveTo(saved.row, saved.column)

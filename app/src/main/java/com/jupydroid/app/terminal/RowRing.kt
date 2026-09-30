@@ -98,8 +98,8 @@ internal class RowRing(val columns: Int, capacity: Int, screenRows: Int) {
    * @return the cursor's row, shifted by the same amount the screen was - **not clamped to `0`**:
    * `TerminalBuffer.resize`'s own common tail (`:352-353`) resets *both* coordinates together
    * whenever either goes negative, and clamping the row here on its own would leave a caller's
-   * column untouched where the reference zeroes it too (P4h-2 found this - a fast-path resize
-   * with a nonzero column and a shift carrying the row negative disagreed with the reference until
+   * column untouched where the reference zeroes it too (found by a fast-path resize
+   * with a nonzero column and a shift carrying the row negative, which disagreed with the reference until
    * the joint reset moved to [TerminalGrid.resize], the one place both this and [GridReflow]'s own
    * result meet). `GridCursor.clamped` is that shared tail.
    */

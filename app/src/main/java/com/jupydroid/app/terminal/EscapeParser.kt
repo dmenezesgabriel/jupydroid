@@ -135,8 +135,8 @@ class EscapeParser(
    * Whether an `ESC` inside the sequence in progress is **swallowed rather than starting a new
    * one** - true only in [EscapeState.DeviceControlString], where the reference's guard reads
    * `== ESC_P` and drops the byte outright, unlike [isCollectingString]'s `OSC` lookahead, which
-   * re-buffers it. A guard of its own rather than folded into that one,
-   * "P4f-6c and P4f-6d may not widen this predicate".
+   * re-buffers it. A guard of its own rather than folded into that one, so widening it cannot be
+   * done by accident.
    */
   val isDeviceControlString: Boolean get() = state == EscapeState.DeviceControlString
 
@@ -207,8 +207,8 @@ class EscapeParser(
 
   /**
    * The byte that ends a control sequence, offered to each applier that owns a group of them.
-   * **What none of them claims is swallowed with its parameters**, which is the frame P4f-3c
-   * onwards fill in rather than a stub - a final byte the reference implements and this step does
+   * **What none of them claims is swallowed with its parameters**, which is the frame the appliers
+   * fill in rather than a stub - a final byte the reference implements and this step does
    * not must not reach the screen as text.
    */
   private fun applyFinalByte(codePoint: Int): EscapeState {
@@ -358,7 +358,7 @@ class EscapeParser(
     /** The private parameter bytes left over. `<` and `=` are unimplemented upstream as well. */
     val PRIVATE_PARAMETER_BYTES = '<'.code..'?'.code
 
-    /** `'`, which introduces DECIC and DECDC - both margin arithmetic, so both land at P4f-5a. */
+    /** `'`, which introduces DECIC and DECDC - both margin arithmetic, so both land there. */
     const val COLUMN_EDIT_BYTE = '\''.code
 
     /** `"`, which introduces DECSCA - the protected attribute the selective erases read. */

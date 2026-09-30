@@ -12,10 +12,11 @@ import java.io.File
 /**
  * Moves notebooks out of the app's private folder and into the workspace the kernel can see.
  *
- * Until Phase X a notebook lived at `filesDir/notebooks/<id>.ipynb` while the kernel's `HOME` was
+ * A notebook used to live at `filesDir/notebooks/<id>.ipynb` while the kernel's `HOME` was
  * `files/spaces/base/home/jupydroid` - two trees that never met. So a notebook could not
  * `open('data.csv')` on anything the user could see, and the user could not see anything a
- * notebook wrote. One filesystem is JupyterLab's model and it is what makes X3 possible at all.
+ * notebook wrote. One filesystem is JupyterLab's model, and it is what lets a cell and the file
+ * browser see the same tree at all.
  *
  * ```
  * NotebookWorkspaceMigration(legacyDir, workspaceDir, stampFile).runOnce()
@@ -29,7 +30,7 @@ import java.io.File
  * Copy-then-delete rather than `renameTo`: the two directories are the same filesystem today, but
  * that is a fact about the current layout and not one worth betting a user's notebooks on.
  *
- * **It also gives each notebook its name back.** X1b makes the file name the title, the way
+ * **It also gives each notebook its name back.** The file name is the title here, the way
  * JupyterLab does - there is no title inside a `.ipynb`, only a path. A notebook whose name lived
  * in `metadata.jupydroid.title` would otherwise reappear called `9f3a1c02-8e4d-…`, and the user
  * would have to rename every one by hand. So the same pass that moves the file also renames it.

@@ -55,7 +55,7 @@ class BaseSpaceTerminalGateway(server: BaseSpaceServer, gatewayFor: (ServerConne
    *
    * [BaseSpaceKernelGateway]'s rule for the same reason: the shell died with the server the
    * backstop stopped, and booting a runtime to delete a terminal that no longer exists would spend
-   * seven seconds and ~130 MB undoing what P1c did.
+   * seven seconds and ~130 MB undoing what the lifecycle backstop did.
    */
   override suspend fun close(session: TerminalSession) {
     live.liveOrNull()?.close(session)

@@ -14,7 +14,7 @@ import kotlinx.serialization.json.jsonPrimitive
  *
  * Two shapes normalize into [LanguageWorkspaceEdit.changes]: `documentChanges` - the form the
  * shipped `pylsp` answers, one `TextDocumentEdit` per document whose `edits` carry a single
- * whole-document `TextEdit` (the P5e-0 probe's capture) - and the legacy `changes` uri-to-edits
+ * whole-document `TextEdit` (`LspSurfaceProbeTest`'s capture) - and the legacy `changes` uri-to-edits
  * map, which the spec keeps as the fallback and prefers `documentChanges` over when both ride
  * one reply. `documentChanges` entries that are resource operations - `kind` of `create`,
  * `rename` or `delete` - drop out: they carry no `textDocument`/`edits`, and a cell editor

@@ -11,8 +11,9 @@ package com.jupydroid.app.terminal
  *
  * **Six of these respect origin mode** - CUP, HVP, CNL, CPL, HPA and VPR all go through
  * [TerminalCursor.moveWithinMargins], whose effective margins are the scrolling region when DECOM
- * is on and the whole screen when it is off. P4f-3b wrote them as the origin-mode-off case for want
- * of any way to set a margin; P4f-5a re-pointed them at the real clamp.
+ * is on and the whole screen when it is off. They were first written as the origin-mode-off case,
+ * for want of any way to set a margin, and re-pointed at the real clamp once [ScrollMargins]
+ * existed.
  *
  * **CUU and CUD do not** - they clamp to the screen, which is the reference's behaviour and
  * termux-app#1340's fix: a scrolling region bounds what scrolls, not where the cursor may go.

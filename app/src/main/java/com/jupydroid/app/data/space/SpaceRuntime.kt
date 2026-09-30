@@ -35,8 +35,8 @@ class SpaceRuntime(
     "TMPDIR" to inBase("tmp"),
     // One setting decides the shell for all three things that go looking for one, and it is
     // load-bearing for the third rather than merely tidy:
-    //   - jupyter_server_terminals consults it before falling back to `which("sh")` (P4c pins
-    //     `shell_command` outright, so this is its belt);
+    //   - jupyter_server_terminals consults it before falling back to `which("sh")`
+    //     (`JupyterServerLauncher` pins `shell_command` outright, so this is its belt);
     //   - pexpect resolves it for a cell's printing escape, `!ls`, which would otherwise search PATH;
     //   - and `IPython/utils/_process_common.py:86-90` passes it as `Popen(executable=...)` for the
     //     *capture* escape, `files = !ls`. Unset, that stays None and CPython falls back to the
@@ -63,7 +63,8 @@ class SpaceRuntime(
     // musl has no multiarch directories, so these two cover the whole rootfs.
     "LD_LIBRARY_PATH" to listOf(inBase("usr/lib"), inBase("lib")).joinToString(":"),
     // The rootfs ships a real CA bundle, and both OpenSSL and musl's own resolver honour these two
-    // variables (P7e-0: `openssl_cafile_env='SSL_CERT_FILE'`). Unconditional, unlike the preloads
+    // variables - measured on the device, `ssl.get_default_verify_paths()` reports
+    // `openssl_cafile_env='SSL_CERT_FILE'`. Unconditional, unlike the preloads
     // below - the bundle always ships, so there is no older-Space case to guard against.
     "SSL_CERT_FILE" to inBase("etc/ssl/certs/ca-certificates.crt"),
     "SSL_CERT_DIR" to inBase("etc/ssl/certs"),

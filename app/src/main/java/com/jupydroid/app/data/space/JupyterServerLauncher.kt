@@ -170,7 +170,7 @@ internal fun jupyterServerArgs(rootDir: File, token: String, shell: File): List<
   // path would be one quoting rule away from being torn in two, while a list reaches ptyprocess
   // as the argv it already is. Measured against jupyter_server 2.20.0 and
   // jupyter_server_terminals 0.5.4 - the versions in `tools/rootfs/requirements.lock` - rather
-  // than assumed to parse: `evidence/p4-terminal/terminado-arg-parses.txt`.
+  // than assumed to parse.
   """--ServerApp.terminado_settings={"shell_command": ["${shell.path}"]}""",
   // The server may stop itself. `shutdown_no_activity_timeout` fires only while **no
   // kernels** exist (serverapp.py `shutdown_no_activity` returns early when `len(km) != 0`),

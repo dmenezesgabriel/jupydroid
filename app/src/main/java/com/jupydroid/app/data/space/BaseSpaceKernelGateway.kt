@@ -91,7 +91,8 @@ class BaseSpaceKernelGateway(
 /**
  * Which sessions the *currently running* server issued, cleared whenever a new one is started.
  *
- * P1c stops the server while the app lives on, so a session the caller still holds can outlive
+ * The lifecycle backstop stops the server while the app lives on, so a session the caller holds
+ * can outlive
  * the process that knew about it. The gateway is the only party that knows a server was
  * replaced, so it is the one that can say so - the alternative is what the tablet measured
  * before this existed: a websocket upgrade answered `404 Not Found` for a kernel id the fresh

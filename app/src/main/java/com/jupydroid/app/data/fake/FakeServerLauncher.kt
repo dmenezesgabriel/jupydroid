@@ -4,7 +4,7 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
 
-/** Stub [ServerLauncher]; the real ProcessBuilder/rootfs launcher lands in Step 8. */
+/** Stub [ServerLauncher]; `JupyterServerLauncher` is the real ProcessBuilder/rootfs one. */
 class FakeServerLauncher : ServerLauncher {
   private var running = false
 

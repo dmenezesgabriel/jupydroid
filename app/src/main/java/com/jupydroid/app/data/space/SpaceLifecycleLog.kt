@@ -7,7 +7,7 @@ import kotlinx.serialization.json.JsonPrimitive
 /**
  * Where the Space runtime says what it did.
  *
- * It exists because deleting the Step 8 probes left the app silent about a runtime that can
+ * It exists because deleting the runtime probes left the app silent about a runtime that can
  * still fail in ways only a device shows - and the first time that happened, there was
  * nothing in logcat to read and the server log had to be dug out through `run-as`.
  *

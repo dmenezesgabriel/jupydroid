@@ -109,8 +109,8 @@ internal fun Json.readNotebook(file: File, id: String): Notebook {
 fun NotebookFile.toDomain(id: String, preserved: JsonObject = JsonObject(emptyMap())): Notebook {
   // The name *is* the file. There is no title inside a `.ipynb` in JupyterLab either - a document
   // is identified by its path, and `Context._updatePath` derives the displayed name with
-  // `PathExt.basename(localPath)`. `metadata.jupydroid.title` is no longer read; the X1 migration
-  // moved every existing title onto its file name before this became true.
+  // `PathExt.basename(localPath)`. `metadata.jupydroid.title` is no longer read;
+  // `NotebookWorkspaceMigration` moved every existing title onto its file name first.
   val title = id
   // By index, because a cell's id is optional in nbformat before 4.5 and duplicated ids happen.
   val preservedCells = preserved["cells"] as? JsonArray

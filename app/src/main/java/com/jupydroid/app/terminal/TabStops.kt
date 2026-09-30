@@ -5,8 +5,8 @@ package com.jupydroid.app.terminal
  *
  * Transcribed from `TerminalEmulator`'s `mTabStop` array, `setDefaultTabStops` and the `nextTabStop`
  * / CBT pair (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). **Split out of
- * [TerminalCursor] at P4f-4a**, on detekt's `TooManyFunctions` - the cursor was at eleven of eleven
- * and the margins P4f-5 adds would have tripped it anyway. The seam is real rather than
+ * [TerminalCursor]**, on detekt's `TooManyFunctions` - the cursor was at eleven of eleven and the
+ * margins would have tripped it anyway. The seam is real rather than
  * arithmetic: where the cursor *is* and where a tab would take it are two questions, and only the
  * second needs an array.
  *

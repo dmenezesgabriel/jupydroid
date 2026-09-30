@@ -24,7 +24,7 @@ enum class DecMode(val code: Int) {
   CURSOR_ENABLED(25),
   APPLICATION_KEYPAD(66),
 
-  /** DECLRMM. P4f-5 puts the condition it carries onto `CSI s`. */
+  /** DECLRMM. The condition it carries is what decides `CSI s` - see [ScrollMargins]. */
   LEFT_RIGHT_MARGIN(69),
   MOUSE_TRACKING_PRESS_RELEASE(1000),
   MOUSE_TRACKING_BUTTON_EVENT(1002),
@@ -79,8 +79,8 @@ class ScreenModes {
 
   /**
    * `CSI ? Pm s`. **This records no value.** Upstream the arm is `mSavedDecSetFlags |= internalBit`
-   * with no read of the current state, so the [recalled] that follows always answers true - see
-   * `docs/DECISIONS.md`. Transcribed rather than corrected into a save.
+   * with no read of the current state, so the [recalled] that follows always answers true.
+   * Transcribed rather than corrected into a save.
    */
   fun mark(mode: DecMode) {
     marked.add(mode)

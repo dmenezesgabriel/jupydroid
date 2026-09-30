@@ -7,7 +7,7 @@ import java.net.URLDecoder
  *
  * Kept apart from [OkHttpNotebookExporter] because each of them was a surprise measured on the
  * tablet rather than a header read off a spec, and because parsing is worth testing without a
- * socket. The captures are `evidence/p2j-2-export-formats/bodies/`.
+ * socket.
  */
 internal object NbConvertResponse {
   /**

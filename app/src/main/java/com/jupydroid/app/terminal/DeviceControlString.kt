@@ -123,8 +123,8 @@ class DeviceControlString(private val replies: TerminalReplies) {
     /**
      * The termcap/terminfo names `DeviceControlStringTest` exercises. Every other name the
      * reference resolves through `KeyHandler.getCodeFromTermcap`, which needs an Android key
-     * identity and the cursor/keypad application modes this package has no caller for until P4j -
-     * `docs/DECISIONS.md`. `kB`, back-tab, is the one the reference's own test names, and it is a
+     * identity and the cursor/keypad application modes. `kB`, back-tab, is the one the
+     * reference's own test names, and it is a
      * fixed answer regardless of either mode.
      */
     val CAPABILITIES = mapOf(

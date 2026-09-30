@@ -37,8 +37,8 @@ import kotlin.time.Duration
  *
  * A single daemon reader drains every frame and routes it three ways, because LSP interleaves
  * them freely: `id` + `result`/`error` completes the pending request, `method` + no `id` is a
- * server notification (published on [notifications] - `publishDiagnostics` is what P5d will
- * collect there), and `method` + `id` is a *server-to-client* request, answered `result: null`
+ * server notification (published on [notifications] - `publishDiagnostics` is what arrives
+ * there), and `method` + `id` is a *server-to-client* request, answered `result: null`
  * so a `workspace/configuration` probe can never stall the reader awaiting a reply we owe.
  *
  * Writes serialize through one mutex - two frames may never interleave on the wire. A close

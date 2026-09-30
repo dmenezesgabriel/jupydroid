@@ -7,8 +7,8 @@ package com.jupydroid.app.terminal
  * Transcribed from `TerminalEmulator.doOsc`, `doOscEsc`, `collectOSCArgs` and the header parse of
  * `doOscSetTextParameters` (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). **The window
  * title is the only number acted on here**; the colours are [ColorCommands]', the clipboard is
- * [ClipboardCommand]'s, and a number none of them claims is dropped - the frame P4f-2 left for the
- * CSI final bytes.
+ * [ClipboardCommand]'s, and a number none of them claims is dropped - the same frame the CSI final
+ * bytes have.
  *
  * **Two terminators, and neither is a byte the emulator can dispatch blindly.** A `BEL` ends the
  * string here and rings the bell everywhere else, and an `ESC` is the first half of `ESC \` here

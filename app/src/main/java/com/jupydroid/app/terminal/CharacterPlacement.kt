@@ -44,8 +44,7 @@ class CharacterPlacement(private val screen: TerminalScreen) {
     // and CHA clamps to the screen. A wide character written there reaches `TerminalRow.setChar`
     // at the screen's last column, which throws. Adding the screen's edge changes nothing while
     // the margin is the screen, and gives the two outcomes the reference gives when the margin
-    // does not interfere: wrap with autowrap on, drop with it off. See
-    // `evidence/p4-terminal/wide-character-outside-the-right-margin.md`.
+    // does not interfere: wrap with autowrap on, drop with it off.
     val onLastColumnOfScreen = cursor.column == screen.columns - 1
     val wideCannotFit = width == WIDE && (inLastColumn || onLastColumnOfScreen)
     val pendingWrap = inLastColumn && cursor.aboutToAutoWrap && width == 1

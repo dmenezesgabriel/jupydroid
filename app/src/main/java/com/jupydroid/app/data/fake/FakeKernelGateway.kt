@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.flow
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Stub [KernelGateway] echoing the code back; replaced by the real one in Step 10.
+ * Stub [KernelGateway] echoing the code back; `BaseSpaceKernelGateway` is the real one.
  *
  * It registers what it mints into [registry], so the Sessions and Tabs panel lists and shuts
  * down sessions on a device with no Space exactly as on one with it - which is also what

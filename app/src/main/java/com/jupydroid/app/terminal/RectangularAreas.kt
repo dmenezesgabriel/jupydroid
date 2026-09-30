@@ -6,8 +6,8 @@ package com.jupydroid.app.terminal
  * DECCRA (`CSI Pts;Pls;Pbs;Prs;Pps;Ptd;Pld;Ppd $ v`).
  *
  * Transcribed from `ESC_CSI_DOLLAR`'s `x`/`z`/`{`/`v` arms (termux-app `3df69d1d`, Apache 2.0 -
- * see [TerminalGrid]). DECCARA and DECRARA join at P4f-5e; the arm is ~120 lines upstream over
- * three groups that share only their effective margins, which is why they are three sub-steps.
+ * see [TerminalGrid]). DECCARA and DECRARA are beside them; the arm is ~120 lines upstream over
+ * three groups that share only their effective margins, which is why they are apart here.
  *
  * **DECCRA's coordinates are zero-based where the other three's are not**: it subtracts one from
  * its top and left, and they carry theirs one-based into the loop. Same arm, two conventions,

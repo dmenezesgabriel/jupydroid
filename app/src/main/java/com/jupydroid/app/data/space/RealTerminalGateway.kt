@@ -87,8 +87,8 @@ class RealTerminalGateway(
    * cannot order.
    *
    * Bounded, because the failure it replaces is worse than an error: a caller that never attaches
-   * would otherwise suspend for the life of the app with nothing logged. P0 is the whole argument
-   * for not shipping a silent forever-wait.
+   * would otherwise suspend for the life of the app with nothing logged - a silent forever-wait is
+   * the one failure mode this app has already spent a week diagnosing once.
    */
   private suspend fun write(session: TerminalSession, frame: String) {
     val terminal = withTimeoutOrNull(ATTACH_TIMEOUT) {

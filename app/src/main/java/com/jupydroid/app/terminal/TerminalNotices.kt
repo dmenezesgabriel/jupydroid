@@ -5,7 +5,7 @@ package com.jupydroid.app.terminal
  * shell.
  *
  * The reference's `TerminalOutput` is one abstract class carrying both directions; they are split
- * here because P4i binds them to different things - these to the ViewModel, the shell's replies to
+ * here because each binds to something different - these to the ViewModel, the shell's replies to
  * `TerminalGateway.send`.
  *
  * ```

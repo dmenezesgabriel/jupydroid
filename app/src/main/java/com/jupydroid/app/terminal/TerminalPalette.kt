@@ -18,7 +18,7 @@ package com.jupydroid.app.terminal
  * **The cube and the greys are generated, not transcribed.** They are arithmetic - six levels per
  * channel and an even ramp - and 240 literals would be 240 chances to mistype one. [CUBE_LEVELS]
  * and the grey step are checked against the reference's own table at its corners and seams in
- * `TerminalColorsTest`. That is the call P4e-1 made for the East Asian width ranges.
+ * `TerminalColorsTest`. That is the same call the East Asian width ranges take.
  *
  * ```
  * TerminalPalette.REFERENCE.at(1)   // 0xFFCD0000, the reference's dim red

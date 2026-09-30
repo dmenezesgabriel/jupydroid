@@ -64,7 +64,7 @@ class TerminalCursor(private var columns: Int, private var rows: Int) {
    * `setCursorPosition`: move to a position **stated relative to the margins when origin mode is
    * on**, and to the screen's own corner when it is off, clamped to whichever of the two applies.
    *
-   * P4f-3b wrote the five sequences that go through this as their origin-mode-off case, because no
+   * The five sequences that go through this were written as their origin-mode-off case, because no
    * margin could be set then and the two are identical without one. [ScrollMargins] makes them
    * differ, so they are re-pointed here.
    */

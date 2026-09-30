@@ -154,7 +154,8 @@ class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
 
   /**
    * DECCARA and DECRARA's write: set, clear or flip [bits] over a region, keeping every cell's
-   * colours. **Left without a caller at P4e-4 on purpose** - the sequences that need it are P4f-5e's.
+   * colours. **Left without a caller on purpose** - the sequences that need it are
+   * [RectangularAreas]'.
    *
    * [rectangular] is DECSACE: false makes the region a *stream*, where only the first row starts at
    * [left] and only the last ends at [right] and the rows between run the full margins.

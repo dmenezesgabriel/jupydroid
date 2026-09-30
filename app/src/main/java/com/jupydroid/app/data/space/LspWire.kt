@@ -51,7 +51,7 @@ internal object LspWire {
           // Tells the server which markup a `completionItem/resolve` may answer in - pylsp's
           // docstring renderer emits markdown when the client names it. `snippetSupport` stays
           // undeclared on purpose: with `include_params` on, declaring it would put literal
-          // `${1:}` placeholders into `insertText`, which nothing here tab-stops (P5e-0 probe).
+          // `${1:}` placeholders into `insertText`, which nothing here tab-stops.
           putJsonObject("completionItem") { put("documentationFormat", markupFormats()) }
         }
         // `hover.contentFormat` is the same declaration on the hover side - pylsp's
@@ -73,7 +73,7 @@ internal object LspWire {
     return LanguageCapabilities(
       completionProvider = offered(caps["completionProvider"]),
       // `signatureHelpProvider` takes the same boolean-or-options shape - pylsp's reply is
-      // the object form (`triggerCharacters: ["(", ",", "="]`, the P5e-0 probe's capture).
+      // the object form (`triggerCharacters: ["(", ",", "="]`, measured off the shipped pylsp).
       signatureHelpProvider = offered(caps["signatureHelpProvider"]),
       // `definitionProvider` takes the same boolean-or-options shape (`DefinitionOptions`
       // is only `workDoneProgress`) - pylsp's reply is the plain `true` the probe captured.
@@ -82,7 +82,7 @@ internal object LspWire {
       // and pylsp's probe-measured `true`.
       documentRangeFormattingProvider = offered(caps["documentRangeFormattingProvider"]),
       // `renameProvider` - boolean or `RenameOptions` (`prepareProvider`) - pylsp's own
-      // reply is a plain `true`, the P5e-0 probe's capture.
+      // reply is a plain `true`, measured off the shipped pylsp.
       renameProvider = offered(caps["renameProvider"]),
       positionEncoding = result?.jsonObject?.get("positionEncoding")
         ?.jsonPrimitive?.contentOrNull ?: "utf-16",

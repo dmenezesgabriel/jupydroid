@@ -35,7 +35,7 @@ import java.io.IOException
  *
  * Both, because they address different endpoints - `api/kernels/<kernelId>` for interrupt and
  * restart, `api/sessions/<serverSessionId>` for the shutdown that ends them both. Returning only
- * the kernel id is what P1d had to undo. [kernelName] is the kernelspec the kernel answers to -
+ * the kernel id is what this had to undo. [kernelName] is the kernelspec the kernel answers to -
  * `kernel.name` in the model - which is what a kernel *choice* displays and persists, while
  * [kernelId] is the server's handle on the process.
  */
@@ -61,7 +61,7 @@ interface KernelLifecycle {
    * `start_kernel(path=...)`, and `jupyter_server` sets `cwd` only when given one
    * (`services/kernels/kernelmanager.py`). Without it the kernel inherits the server process's cwd,
    * which on the device is a read-only filesystem - `open('data.csv', 'w')` in a cell raised
-   * `OSError: [Errno 30]` until X2h. It is the **document's** path, not its directory:
+   * `OSError: [Errno 30]` before this was passed. It is the **document's** path, not its directory:
    * `cwd_for_path` walks up to the directory holding it.
    *
    * ```
