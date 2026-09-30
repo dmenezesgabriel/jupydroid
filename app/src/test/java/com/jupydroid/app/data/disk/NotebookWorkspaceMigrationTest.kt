@@ -14,8 +14,8 @@ import java.io.File
  * This is the destructive step of Phase X and it runs on somebody's real notebooks, so the cases
  * here are the ones that lose data if they are wrong: a name already taken, a file that cannot be
  * read, and **running twice** - which is not paranoia but this project's own scar tissue, since
- * the re-extract path was never exercised until a rootfs bump crash-looped the app
- * (`docs/DECISIONS.md`: "every install-time path needs a second install to be tested at all").
+ * the re-extract path was never exercised until a rootfs bump crash-looped the app: every
+ * install-time path needs a second install to be tested at all.
  */
 class NotebookWorkspaceMigrationTest {
   @get:Rule val temp = TemporaryFolder()
@@ -125,7 +125,7 @@ class NotebookWorkspaceMigrationTest {
   }
 
   /**
-   * The file's own title, moved out of the JSON and onto the file - the second half of X1.
+   * The file's own title, moved out of the JSON and onto the file.
    *
    * It has to happen *here*, in the same one-shot pass, and before anything stops reading
    * `metadata.jupydroid.title`: a notebook whose name lived only in its JSON would otherwise come

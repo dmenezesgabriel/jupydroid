@@ -34,7 +34,7 @@ class ResizeTest {
 
   /**
    * `testShrinkingInAltBuffer`. Resizing while the alternate screen is live leaves the main
-   * buffer stale; leaving catches it up before the character that follows lands - P4h-4's gap.
+   * buffer stale; leaving catches it up before the character that follows lands.
    */
   @Test
   fun leavingAShrunkAlternateScreenCatchesTheStaleMainBufferUp() {

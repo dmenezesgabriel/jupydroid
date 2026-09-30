@@ -11,7 +11,7 @@ import org.junit.Test
  *
  * All three `DecSetTest` methods are transcribed here now (termux-app `3df69d1d`, Apache 2.0 -
  * see [TerminalGrid]): `testWrapAroundMode` from the start, and `testEnableDisableCursor` /
- * `testBracketedPasteMode` since P4f-6d gave them the surfaces they were waiting on -
+ * `testBracketedPasteMode` once the surfaces they were waiting on existed -
  * `TerminalEmulator.isCursorEnabled` and `TerminalEmulator.paste`.
  *
  * Everything upstream never exercises had its **expectations read off the reference itself**

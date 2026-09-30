@@ -191,7 +191,7 @@ class SpaceRuntimeTest {
 
   /**
    * The rootfs ships a real CA bundle, and OpenSSL/musl both honour these two variables
-   * (measured: `openssl_cafile_env='SSL_CERT_FILE'`, evidence/p7e-0-runtime-probe/). Unconditional,
+   * (measured on device: `openssl_cafile_env='SSL_CERT_FILE'`). Unconditional,
    * unlike the preloads: the bundle always ships, so there is no older-Space case to guard.
    */
   @Test

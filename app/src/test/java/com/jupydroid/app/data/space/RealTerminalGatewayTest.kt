@@ -121,7 +121,7 @@ class RealTerminalGatewayTest {
    * A refused upgrade ends the stream **with its status**, rather than looking like an empty shell.
    *
    * `TermSocket.get` raises 404 for a name the server does not have, which is what a terminal from
-   * a previous server looks like after P1c's backstop replaced it.
+   * a previous server looks like after the idle backstop replaced it.
    */
   @Test
   fun attach_toATerminalTheServerDoesNotHaveEndsWithTheReason() = runTest {
@@ -143,7 +143,7 @@ class RealTerminalGatewayTest {
    * **A write pending on a socket that dies fails rather than hanging forever.**
    *
    * Without this the 404 above would leave every keystroke suspended for the life of the app with
-   * nothing logged - the shape of failure P0 spent six sightings on. The readiness signal is
+   * nothing logged - the shape of failure that took six sightings to name. The readiness signal is
    * completed exceptionally, so the waiter learns what happened rather than merely stopping.
    */
   @Test
@@ -179,8 +179,8 @@ class RealTerminalGatewayTest {
   /**
    * The stage the cold-path measurement reads: `setup` is the server's "this pty is live"
    * signal (`default.ts:301-307`), so it is the terminal's line between `SOCKET_OPENED` and the
-   * first output the user can see - and P8a needs it because a logcat timeline without it cannot
-   * say when a shell became usable.
+   * first output the user can see - and a logcat timeline without it cannot say when a shell became
+   * usable.
    */
   @Test
   fun attach_marksReadyWhenTheSetupFrameLands() = runTest {

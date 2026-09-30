@@ -21,10 +21,9 @@ import org.junit.Test
 
 class BaseSpaceKernelGatewayTest {
   /**
-   * The other half of a server that stopped. P1a gets a fresh server; the sessions the
+   * The other half of a server that stopped. The next ask gets a fresh server; the sessions the
    * *previous* one issued still point at kernels that no longer exist, and the fresh server
-   * answers the websocket upgrade with 404 - measured on the tablet, in
-   * `evidence/p1c-app-death-backstop/stale-session-404.txt`. The gateway knows which server
+   * answers the websocket upgrade with 404 - measured on the tablet. The gateway knows which server
    * issued what, so it says so rather than letting the caller find out from a protocol error.
    */
   @Test
@@ -51,12 +50,12 @@ class BaseSpaceKernelGatewayTest {
   }
 
   /**
-   * P1d follows P1c's rule for [KernelGateway.disconnect] exactly: shutting a kernel down must
-   * not *start* a server to do it.
+   * The same rule [KernelGateway.disconnect] follows: shutting a kernel down must not *start* a
+   * server to do it.
    *
    * The kernel died with the server the backstop stopped, so there is nothing left to shut down -
-   * and booting a whole runtime to say so would spend seven seconds and ~130 MB undoing the thing
-   * P1c did.
+   * and booting a whole runtime to say so would spend seven seconds and ~130 MB undoing what the
+   * idle backstop did.
    */
   @Test
   fun shutdown_startsNoServerForASessionTheStoppedOneIssued() = runTest {
@@ -189,7 +188,7 @@ class BaseSpaceKernelGatewayTest {
     assertEquals(listOf(changed), heard.await())
   }
 
-  /** The P1c rule holds for a kernel change too: a session this gateway never issued is stale. */
+  /** The rule holds for a kernel change too: a session this gateway never issued is stale. */
   @Test
   fun changeKernel_refusesASessionTheLiveServerNeverIssued() = runTest {
     val gateway = gateway(RecordingServerLauncher())

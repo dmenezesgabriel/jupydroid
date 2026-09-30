@@ -69,7 +69,7 @@ class DiskWorkspaceSearcherTest : WorkspaceSearcherContract() {
   }
 
   /**
-   * **A notebook is searched as the cells it is** - the skip P2x-1d put in, lifted.
+   * **A notebook is searched as the cells it is**, rather than skipped for not being plain text.
    *
    * The hit names its cell, zero-based, which is `INotebookCellMatchNoModel.index`
    * (`search/common/searchNotebookHelpers.ts:18-22`).

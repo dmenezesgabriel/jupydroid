@@ -208,7 +208,7 @@ class PlainTextInputTest {
    * it and returns that column, so the cursor does not move and the flag is all that differs.
    *
    * **The differential cannot be relied on for this one.** It was detected in some tables and not
-   * others - a mutation's detection is a property of the random draw - and the P4f-5c sweep found
+   * others - a mutation's detection is a property of the random draw - and a full-suite sweep found
    * it covered by no test at all. Expectations read off `RefScreen`.
    */
   @Test

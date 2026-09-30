@@ -6,8 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Every header and body here was captured from the tablet unless a case says otherwise:
- * `evidence/p2j-2-export-formats/bodies/`.
+ * Every header and body here was captured from the tablet unless a case says otherwise.
  */
 class NbConvertResponseTest {
   @Test
@@ -25,7 +24,7 @@ class NbConvertResponseTest {
     assertEquals("p2j-2-export-formats.slides.html", NbConvertResponse.fileName(header))
   }
 
-  /** X1b makes a notebook's title its file name, and titles have spaces in them. */
+  /** A notebook's title is its file name, and titles have spaces in them. */
   @Test
   fun fileName_decodesAPercentEncodedName() {
     val header = "attachment; filename*=utf-8''Quarterly%20Report.html"

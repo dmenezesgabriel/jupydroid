@@ -11,9 +11,9 @@ import org.junit.Test
  * Apache 2.0 - see [TerminalGrid]); the rest are cases neither reference suite covers, because
  * upstream the machine is only ever driven through sequences it fully implements.
  *
- * **Three of these change at P4f-4 and P4f-5**, and say so where they stand: the modes, the private
- * parameter bytes and the intermediate bytes are each swallowed until the sub-step that implements
- * them arrives.
+ * **Three of these changed as the appliers arrived**, and say so where they stand: the modes, the
+ * private parameter bytes and the intermediate bytes were each swallowed until something
+ * implemented them.
  */
 class EscapeSequenceTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)
@@ -103,8 +103,8 @@ class EscapeSequenceTest {
   /**
    * A final byte the reference implements and this step does not is **swallowed with its
    * parameters** rather than printed - the frame, not a stub. The two cases move on as the
-   * sub-steps take them: this held `CSI 2 J` and `CSI 10;3 H` until P4f-3b and P4f-3c implemented
-   * both, and now holds IRM (**P4f-4**) and DECSTBM (**P4f-5**).
+   * appliers take them: this held `CSI 2 J` and `CSI 10;3 H` until both were implemented, and now
+   * holds IRM and DECSTBM.
    */
   @Test
   fun aFinalByteThisStepDoesNotImplementIsSwallowedWhole() {
@@ -114,7 +114,7 @@ class EscapeSequenceTest {
 
   /**
    * A private parameter byte (`?`, `>`, `<`, `=`) is swallowed to its final byte and never drawn.
-   * `?` is P4f-4's and `>` is P4f-6a's, and **both still draw nothing** - what changed for them is
+   * `?` and `>` are both implemented now, and **both still draw nothing** - what changed for them is
    * that something now happens off the screen. `<` and `=` are unimplemented upstream too.
    */
   @Test
@@ -125,7 +125,7 @@ class EscapeSequenceTest {
     terminal(5, 2).enterString("$ESC[=0cx").assertLineIs(0, "x    ")
   }
 
-  /** So is an intermediate byte the reference gives a state of its own. P4f-3 and P4f-5 implement them. */
+  /** So is an intermediate byte the reference gives a state of its own; both are implemented now. */
   @Test
   fun anIntermediateByteIsSwallowedToItsFinalByte() {
     terminal(5, 2).enterString("$ESC[!px").assertLineIs(0, "x    ")

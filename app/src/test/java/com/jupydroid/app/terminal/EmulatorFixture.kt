@@ -79,7 +79,7 @@ internal class EmulatorFixture(private val columns: Int, private val rows: Int) 
 
   /**
    * `TerminalTestCase.resize`: resize, then re-check the invariants a resize must still hold.
-   * [cellWidthPixels]/[cellHeightPixels] are P4i-2b's own addition, both defaulting to "unchanged" -
+   * [cellWidthPixels]/[cellHeightPixels] both default to "unchanged" -
    * `TerminalEmulator.resize`'s own KDoc says why a plain call must not reset them.
    */
   fun resize(columns: Int, rows: Int, cellWidthPixels: Int? = null, cellHeightPixels: Int? = null): EmulatorFixture {

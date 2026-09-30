@@ -12,8 +12,7 @@ import org.junit.Test
  * nothing could set one, so every test here was unreachable rather than merely absent.
  *
  * **`CSI s` means two things**, and which one is DECLRMM's to say: with the mode off it is the
- * ANSI.SYS cursor save [CursorAddressing] has performed since P4f-3b, and with it on it is DECSLRM.
- * That is the correction P4f-3b's row said this step owed.
+ * ANSI.SYS cursor save [CursorAddressing] performs, and with it on it is DECSLRM.
  */
 class ScrollRegionTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)
@@ -215,8 +214,7 @@ class ScrollRegionTest {
    * backspace tests `==` and walks it to column -1 from there, which it then throws on under
    * insert mode. Both lines here abort the reference, and neither is a state a terminal can be in.
    *
-   * `TerminalScreen.backspace` says what changed and why; the measurement is in
-   * `evidence/p4-terminal/backspace-past-the-left-margin.md`.
+   * `TerminalScreen.backspace` says what changed and why.
    */
   @Test
   fun backspaceDoesNotStepLeftOfTheLeftMargin() {
@@ -276,9 +274,9 @@ class ScrollRegionTest {
    * That needs `bottomMargin == rows - 1`, which is why a region ending at the screen's own bottom
    * does not show it - the first case below scrolls, the second does not.
    *
-   * **The differential is not a reliable witness here.** It was unreachable through P4f-4b,
-   * detected at P4f-5a, and survived again at P4f-5c, where a full-suite sweep found the mutation
-   * covered by no test at all. Expectations read off `RefScreen`.
+   * **The differential is not a reliable witness here.** It was unreachable for a while, then
+   * detected, then survived again in a full-suite sweep that found the mutation covered by no test
+   * at all. Expectations read off `RefScreen`.
    */
   @Test
   fun aLinefeedOnABottomMarginThatIsTheLastRowStaysThere() {

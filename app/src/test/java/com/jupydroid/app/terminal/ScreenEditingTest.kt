@@ -11,7 +11,7 @@ import org.junit.Test
  * `testClearingOfAutowrap`, `ControlSequenceIntroducerTest`'s `testCsiS` / `testCsiT` / `testCsiX` /
  * `testRepeat` / `testCsi3J`, and `TerminalTest.testBackgroundColorErase` are transcribed here
  * (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). `testCsi3J`'s third case needs the
- * alternate buffer and goes with **P4f-4**.
+ * alternate buffer and goes with it.
  *
  * The parameters upstream never exercises - `ED 1`, `ED 2`, `EL 1`, `EL 2` and ICH's cap - had
  * their **expectations read off the reference itself**
@@ -60,7 +60,7 @@ class ScreenEditingTest {
     terminal(5, 2).enterString("abcde$ESC[2G$ESC[2b\n").assertLineIs(0, "aeede")
   }
 
-  /** `ControlSequenceIntroducerTest.testCsi3J`; its alternate-buffer case is P4f-4's. */
+  /** `ControlSequenceIntroducerTest.testCsi3J`; its alternate-buffer case goes with that screen. */
   @Test
   fun eraseInDisplayThreeForgetsTheScrollbackAndKeepsTheScreen() {
     val scrolled = terminal(3, 2).enterString("a\r\nb\r\nc\r\nd")
@@ -248,8 +248,8 @@ class ScreenEditingTest {
    * `CSI 9 J` leaves the wrap standing where `CSI 0 J` takes it down. Expectations read off the
    * reference (`harness/RefScreen.java`).
    *
-   * P4f-3c left this to the differential, which detected it then and **stopped detecting it at
-   * P4f-4a** - not because anything broke, but because a widened alphabet reshuffles the random
+   * This was left to the differential, which detected it then and **stopped detecting it later** -
+   * not because anything broke, but because a widened alphabet reshuffles the random
    * stream and this conjunction stopped coming up. A test does not drift that way.
    */
   @Test

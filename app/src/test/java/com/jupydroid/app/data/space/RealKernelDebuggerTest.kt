@@ -57,7 +57,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
   }
 
   /**
-   * P6a-10's own gate: debugpy keeps a debug session attached for the life of the kernel process,
+   * debugpy keeps a debug session attached for the life of the kernel process,
    * not this app's own session object, so a second `attach` after an earlier one already
    * succeeded is rejected with exactly this message - not a real failure, since the kernel already
    * has what `attach`'s own postcondition promises. Reproduced live on the tablet: disarming a
@@ -106,7 +106,7 @@ class RealKernelDebuggerTest : KernelDebuggerContract() {
     assertTrue(failure.exceptionOrNull() is DebugRequestFailedException)
   }
 
-  /** P6a-16's own gate: DAP's `setBreakpoints` request carries a per-line `condition` when one is set. */
+  /** DAP's `setBreakpoints` request carries a per-line `condition` when one is set. */
   @Test
   fun setBreakpoints_sendsAConditionWhenOneIsSet() = runTest {
     lateinit var opener: ScriptedKernelSocketOpener

@@ -152,7 +152,7 @@ abstract class LanguageServerPortContract {
     languageServer().changeDocument(BASE_SPACE, URI, "y = 1\n")
   }
 
-  /** P1's rule, contract-side: stopping never complains, and a stopped server may start again. */
+  /** The rule, contract-side: stopping never complains, and a stopped server may start again. */
   @Test
   fun stop_thenUseRestartsLazily() = runBlocking {
     val languageServer = languageServer()

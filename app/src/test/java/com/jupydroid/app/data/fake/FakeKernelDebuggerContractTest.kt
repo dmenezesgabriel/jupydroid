@@ -14,7 +14,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** The fake is what the UI runs against until P6a-3b, so it owes the same contract. */
+/** The fake is what the UI runs against where no Space can run, so it owes the same contract. */
 class FakeKernelDebuggerContractTest : KernelDebuggerContract() {
   override fun debugger(): KernelDebugger = FakeKernelDebugger()
 

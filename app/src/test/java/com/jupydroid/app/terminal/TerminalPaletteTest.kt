@@ -6,8 +6,8 @@ import org.junit.Test
 /**
  * The three dynamic slots (foreground, background, cursor) [TerminalPalette.VS_CODE_DARK] and
  * [TerminalPalette.VS_CODE_LIGHT] answer for their own surface, rather than
- * [TerminalPalette.REFERENCE]'s black-on-white placeholders, `TerminalPalette.kt`'s own
- * KDoc: "P4i replaces them once the screen exists to answer for its own surface."
+ * [TerminalPalette.REFERENCE]'s black-on-white placeholders, which stand in only until a screen
+ * answers for its own surface (`TerminalPalette.kt`'s own KDoc).
  *
  * Values are VS Code's own, walked through its runtime fallback rather than a single theme file:
  * `terminal.foreground` is registered non-null (`terminalColorRegistry.ts:19-24`) and neither 2026

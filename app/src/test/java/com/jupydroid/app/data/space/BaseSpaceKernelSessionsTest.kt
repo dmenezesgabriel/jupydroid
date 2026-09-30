@@ -36,7 +36,7 @@ class BaseSpaceKernelSessionsTest {
   }
 
   /**
-   * P1d's rule applied to the panel: listing what is running must not start a runtime to find
+   * The same rule applied to the panel: listing what is running must not start a runtime to find
    * out. The base Space's server answers for whatever the app holds anyway - stopped means the
    * local answer "nothing", and whatever was tracked is ended so its holders land on No Kernel.
    */

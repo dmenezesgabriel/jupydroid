@@ -57,7 +57,7 @@ class DiskNotebookRepositoryTest {
     val repository = repository()
     val notebook =
       Notebook(
-        // Title and id are the same string, and since X1b that is the invariant rather than a
+        // Title and id are the same string, and that is the invariant rather than a
         // coincidence: the name *is* the file, so a round trip through disk can only return the
         // name on disk. JupyterLab has the same shape - a path, with the name derived from it.
         id = "nb-1.ipynb",
@@ -154,7 +154,7 @@ class DiskNotebookRepositoryTest {
   /**
    * Regression: nbformat's source lines already end in newlines, and joining them with
    * another one put a blank line between every line of every notebook Jupyter wrote. It was
-   * in every screenshot from Step 3 onwards before anyone read one closely.
+   * in every screenshot from the first disk-backed build on before anyone read one closely.
    */
   @Test
   fun readNotebook_doesNotDoubleTheNewlinesInAJupyterWrittenSource() = runTest {
@@ -186,7 +186,7 @@ class DiskNotebookRepositoryTest {
   }
 
   /**
-   * **`raw` used to be this test's example of an unknown type**, and that is exactly what P2e
+   * **`raw` used to be this test's example of an unknown type**, and that is exactly what was
    * fixed: a notebook holding one could not be opened at all, and `EditorViewModel` turned the
    * throw into a full-screen error message. The example is a genuinely unrecognised type now -
    * nbformat's `cell` union is `code | markdown | raw` and nothing else, so one of these does fail
@@ -222,7 +222,7 @@ class DiskNotebookRepositoryTest {
    * edited notebook kept the time it was created. Jupyter stores no such field - `last_modified`
    * is the file's mtime - so neither do we.
    *
-   * Since X1b the whole `jupydroid` namespace is gone: the title was the last thing in it, and the
+   * The whole `jupydroid` namespace is gone: the title was the last thing in it, and the
    * title is now the file's name. A `.ipynb` this app writes is one any other tool would write.
    */
   @Test
@@ -237,12 +237,13 @@ class DiskNotebookRepositoryTest {
   }
 
   /**
-   * A file written before X1b is named by its **file**, not by the title it still carries.
+   * A file written before the name became the file is named by its **file**, not by the title it
+   * still carries.
    *
    * `metadata.jupydroid.title` is no longer read at all. Files like this one are renamed once by
    * `NotebookWorkspaceMigration` before they are ever shown, so nobody sees a notebook lose its
    * name. (When it was last written is no longer asked of this repository - that is the
-   * workspace's `updatedAt` since X2h, and `DiskWorkspaceRepositoryTest` pins it to the mtime.)
+   * workspace's `updatedAt`, and `DiskWorkspaceRepositoryTest` pins it to the mtime.)
    */
   @Test
   fun aFileWrittenBeforeTheNameWasTheFileIsNamedByItsFile() = runTest {

@@ -16,7 +16,7 @@ import java.io.File
  *
  * The argument list is asserted rather than a running server, exactly as [JupyterServerRootDirTest]
  * and [JupyterServerLifecycleArgsTest] do: a real jupyter_server needs a Space, which is the tablet
- * gate `evidence/p4-terminal/terminal-service.md`.
+ * gate's to prove.
  */
 class JupyterServerTerminalShellTest {
   private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")

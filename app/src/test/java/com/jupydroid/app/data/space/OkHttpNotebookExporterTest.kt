@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 /**
  * The contract, driven against a real loopback server scripted to answer the way the tablet's did.
  *
- * Every header form here is one `evidence/p2j-2-export-formats/bodies/` holds: the RFC 5987
+ * Every header form here is one the tablet actually answered with: the RFC 5987
  * `Content-Disposition`, the charset on the `Content-Type`, the zip for `markdown`, and tornado's
  * error page for the four that fail on pandoc.
  */
@@ -37,8 +37,8 @@ class OkHttpNotebookExporterTest : NotebookExporterContract() {
 
   /**
    * The path's segments are encoded and its slashes are kept, which is what `URLExt.encodeParts`
-   * does in the reference - a notebook in a subfolder is one path, not one segment. X1b makes a
-   * title the file name, so the space is the case that matters.
+   * does in the reference - a notebook in a subfolder is one path, not one segment. A title is the
+   * file name, so the space is the case that matters.
    */
   @Test
   fun export_asksForTheNotebookByItsPathWithTheSegmentsEncoded() = runTest {

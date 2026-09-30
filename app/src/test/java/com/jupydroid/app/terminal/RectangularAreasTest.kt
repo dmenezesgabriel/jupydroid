@@ -4,14 +4,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * The rectangular operations under the `$` intermediate. **P4f-5c is the fill and the two erases**:
- * DECFRA (`CSI Pch;Pt;Pl;Pb;Pr $ x`), DECERA (`CSI Pt;Pl;Pb;Pr $ z`) and DECSERA (`$ {`), which
- * reads the protected bit P4f-5b gave a writer.
+ * The rectangular operations under the `$` intermediate. **The fill and the two erases**: DECFRA
+ * (`CSI Pch;Pt;Pl;Pb;Pr $ x`), DECERA (`CSI Pt;Pl;Pb;Pr $ z`) and DECSERA (`$ {`), which reads the
+ * protected bit DECSCA writes.
  *
  * Transcribed from `RectangularAreasTest.testFillRectangularArea`, `testEraseRectangularArea` and
  * `testSelectiveEraseInRectangle` (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). The
  * third is the one `SelectiveErasingTest` deferred here by name, it being under `$` rather than `"`.
- * DECCRA joins at P4f-5d and the two attribute operations at P4f-5e.
+ * DECCRA and the two attribute operations join them.
  *
  * **DECFRA's first parameter is the character**, where the other two start at the top row - which is
  * why the reference walks its arguments with an index rather than by position.
@@ -118,7 +118,7 @@ class RectangularAreasTest {
     terminal(3, 3).enterString("$grid$ESC[1;1;2;2;1;2;2;1\$v").assertLinesAre("ABC", "DAB", "GDE")
   }
 
-  /** The same, under origin mode with both horizontal margins set - so it needs P4f-5a's DECSLRM. */
+  /** The same, under origin mode with both horizontal margins set - so it needs DECSLRM. */
   @Test
   fun rectangularCopyReadsItsCoordinatesFromTheMarginsUnderOriginMode() {
     val fixture = terminal(5, 5).enterString("$ESC[?6h$ESC[?69h$ESC[2;4s")

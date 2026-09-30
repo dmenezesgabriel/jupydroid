@@ -120,7 +120,7 @@ class OkHttpKernelLifecycleTest {
    * (`services/kernels/kernelmanager.py:_async_start_kernel`, read out of the server in our own
    * rootfs). With no path there is no `cwd` at all and the kernel inherits the server process's -
    * which on the device is a **read-only filesystem**, so `open('data.csv', 'w')` in a cell raised
-   * `OSError: [Errno 30] Read-only file system`. X1a's promise that a notebook can `open()` a file
+   * `OSError: [Errno 30] Read-only file system`. The promise that a notebook can `open()` a file
    * the user can see had never actually held for a relative path.
    *
    * The session is where JupyterLab puts that path - `SessionContext({path: this._path, type:
@@ -240,7 +240,7 @@ class OkHttpKernelLifecycleTest {
     assertTrue("expected a failure, got $failure", failure.isFailure)
   }
 
-  // --- P1d: shutting a session down, which is what takes the kernel with it ---
+  // --- Shutting a session down, which is what takes the kernel with it ---
 
   /**
    * `DELETE api/sessions/<id>`, addressed by the **session** id and not the kernel's.
@@ -308,7 +308,7 @@ class OkHttpKernelLifecycleTest {
     assertTrue("200 is not 204 and must not pass, got $failure", failure.isFailure)
   }
 
-  // --- P8f: listing the server's sessions, which is what the running panel draws ---
+  // --- Listing the server's sessions, which is what the running panel draws ---
 
   /**
    * `GET api/sessions` - `listSessions` (`packages/services/src/session/restapi.ts:86-89`), the
@@ -387,7 +387,7 @@ class OkHttpKernelLifecycleTest {
     )
   }
 
-  // --- P8g: choosing which kernel - the kernelspec list, and the two PATCH payloads ---
+  // --- Choosing which kernel - the kernelspec list, and the two PATCH payloads ---
 
   /**
    * `GET api/kernelspecs`, the `KernelSpec.IManager.specs` feed the reference's picker is built

@@ -14,7 +14,7 @@ import java.io.File
  * The notebook's name **is** its file, which is JupyterLab's model and the point of Phase X.
  *
  * Until now the name lived in `metadata.jupydroid.title` while the file was a UUID, so the
- * workspace the kernel shares - and the explorer X2 builds over it - would show
+ * workspace the kernel shares - and the explorer built over it - would show
  * `9f3a1c02-….ipynb` for a notebook called "Analysis of sales". A rename wrote the JSON and left
  * the file alone, which is the "title inside, name outside" split this closes.
  *
@@ -41,8 +41,8 @@ class NotebookIsItsFileTest {
    * (`packages/docregistry/src/context.ts:611-614`) and the file browser joins onto the directory
    * it is showing (`packages/filebrowser/src/listing.ts:2621`); `isValidFileName` rejects `/` in a
    * name for exactly this reason (`packages/docmanager/src/dialogs.ts:257`). Treating the name as
-   * a whole path would move a notebook out of its folder on a rename, silently, and X2a made
-   * notebooks in folders reachable for the first time.
+   * a whole path would move a notebook out of its folder on a rename, silently, and notebooks in
+   * folders are reachable.
    */
   @Test
   fun renamingANotebookInAFolderKeepsItInThatFolder() = runTest {

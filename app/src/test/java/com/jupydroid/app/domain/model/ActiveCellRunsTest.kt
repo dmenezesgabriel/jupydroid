@@ -8,7 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * How many cell runs the app has in flight - the question P1c's backstop asks before it stops the
+ * How many cell runs the app has in flight - the question the idle backstop asks before it stops the
  * server, and the one that has to stay truthful for a backgrounded computation to survive.
  */
 class ActiveCellRunsTest {

@@ -229,7 +229,7 @@ internal class ScriptedLanguageServer(
         put("completionProvider", true)
         put("hoverProvider", true)
         put("definitionProvider", true)
-        // pylsp's own reply: a plain `true`, the P5e-0 probe's capture.
+        // pylsp's own reply: a plain `true`, measured off the shipped server.
         put("documentRangeFormattingProvider", true)
         put("renameProvider", true)
         // pylsp's real reply: an options object, not a boolean - `["(", ",", "="]` measured.
@@ -254,7 +254,7 @@ internal class ScriptedLanguageServer(
 }
 
 /**
- * The `textDocument/definition` payload the P5e-0 probe measured off real `pylsp`: a
+ * The `textDocument/definition` payload `LspSurfaceProbeTest` measured off real `pylsp`: a
  * `Location[]` of one entry, `uri` the asked document's own, `range` naming `compute_total`'s
  * definition span (`{4,4}`-`{4,17}`).
  */
@@ -275,7 +275,7 @@ internal fun defaultDefinition(uri: String): JsonArray = buildJsonArray {
 }
 
 /**
- * The `textDocument/rename` payload the P5e-0 probe measured off real `pylsp`:
+ * The `textDocument/rename` payload `LspSurfaceProbeTest` measured off real `pylsp`:
  * `documentChanges` of one `TextDocumentEdit` per document,
  * its `edits` a single whole-document `TextEdit` covering (0,0) to past the last line. Here
  * the document is three lines and the rewrite is `compute_total` becoming [newName].
@@ -326,7 +326,7 @@ internal val DEFAULT_HOVER: JsonObject = buildJsonObject {
 }
 
 /**
- * The `textDocument/signatureHelp` payload the P5e-0 probe measured off real `pylsp`:
+ * The `textDocument/signatureHelp` payload `LspSurfaceProbeTest` measured off real `pylsp`:
  * one signature, string param labels, both actives 0.
  */
 internal val DEFAULT_SIGNATURE_HELP: JsonObject = buildJsonObject {

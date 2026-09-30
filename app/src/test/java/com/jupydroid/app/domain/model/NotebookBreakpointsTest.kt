@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * Breakpoints kept for the life of the app rather than one notebook's `EditorViewModel` - the
- * question P6a-6's own gate asks: does a breakpoint survive the ViewModel that set it being torn
+ * question this asks: does a breakpoint survive the ViewModel that set it being torn
  * down and rebuilt for the same notebook.
  */
 class NotebookBreakpointsTest {
@@ -96,7 +96,7 @@ class NotebookBreakpointsTest {
   }
 
   /**
-   * P6a-10's own gate: a kernel's own debugpy keeps a breakpoint until it is told otherwise, so
+   * A kernel's own debugpy keeps a breakpoint until it is told otherwise, so
    * disarming the last line on a cell that was ever armed must still be reported here - it is what
    * tells [NotebookDebugger][com.jupydroid.app.ui.editor.NotebookDebugger] a clearing
    * `setBreakpoints` is still owed, even once [forCell] itself has gone back to empty.
@@ -127,7 +127,7 @@ class NotebookBreakpointsTest {
     assertFalse(breakpoints.everArmed("cell-2"))
   }
 
-  /** P6a-16's own gate: a condition attaches to one line without disturbing the cell's others. */
+  /** A condition attaches to one line without disturbing the cell's others. */
   @Test
   fun setConditionAttachesAConditionToTheNamedLine() {
     val breakpoints = NotebookBreakpoints()

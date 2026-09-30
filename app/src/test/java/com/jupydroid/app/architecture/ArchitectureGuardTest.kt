@@ -9,11 +9,12 @@ class ArchitectureGuardTest {
   private val domainRoot = File("src/main/java/com/jupydroid/app/domain")
 
   /**
-   * The document-and-language row of `docs/architecture.md`: parsers and formats that model
-   * documents and languages rather than this app's domain. CLAUDE.md requires them free of
-   * `android.*` **so that every test for them is a plain JVM test**, which was prose until P4f-1.
+   * The document-and-language row of `docs/architecture/building-blocks.md`: parsers and formats
+   * that model documents and languages rather than this app's domain. CLAUDE.md requires them free
+   * of `android.*` **so that every test for them is a plain JVM test**, which was prose until this
+   * test existed.
    *
-   * P4f is the phase that would have broken it: `TerminalEmulator.java` imports
+   * The terminal is what would have broken it: `TerminalEmulator.java` imports
    * `android.util.Base64` on its OSC 52 path and `TerminalColors.java` imports
    * `android.graphics.Color`, and both are transcribed into `terminal/`.
    */

@@ -8,10 +8,10 @@ import org.junit.Test
  *
  * `TerminalTest.testDeviceStatusReport` is transcribed whole; `testReportTerminalSize` and
  * `ControlSequenceIntroducerTest.testReportPixelSize` are transcribed **as far as their first
- * resize**, which is P4h's (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). Everything
+ * resize** (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). Everything
  * else had its expectations read off `RefScreen`, which prints what the emulator wrote back.
  *
- * **This is the first direction `terminal/` writes in.** P4f-1 split [TerminalNotices] off the
+ * **This is the first direction `terminal/` writes in.** [TerminalNotices] was split off the
  * reference's single `TerminalOutput` so that this half could arrive with its own interface, and
  * [TerminalReplies] is it.
  */
@@ -32,7 +32,7 @@ class TerminalReportingTest {
 
   /**
    * `testReportTerminalSize`, whole: the fixed 5x5 case, then every width and height from 3 to
-   * 11 - P4h-3's own `resize` closes the loop this used to defer.
+   * 11 - `resize` closes the loop this used to defer.
    */
   @Test
   fun theTextAreaIsReportedInCharacters() {
@@ -51,8 +51,8 @@ class TerminalReportingTest {
   /**
    * `testReportPixelSize`, whole: the reference's own default cell of 13 by 15, its `resize(23, 33)`
    * leg, and its third - a cell-pixel-only resize, `mTerminal.resize(columns, rows, 8, 18)` with
-   * columns/rows unchanged - which is P4i-2b's own entry point (`EmulatorFixture.resize`'s new
-   * optional pair). The reports are `rows * cellHeight` by `columns * cellWidth`, in that order.
+   * columns/rows unchanged - which is `EmulatorFixture.resize`'s optional pair. The reports are
+   * `rows * cellHeight` by `columns * cellWidth`, in that order.
    */
   @Test
   fun theWindowAndCellAreReportedInPixels() {
@@ -99,7 +99,7 @@ class TerminalReportingTest {
    * reference answers rather than staying silent.
    *
    * **The `1049` arm reads which buffer is live**, since none of `47`/`1047`/`1049` has a mode flag
-   * - so this query could not be answered before P4f-4b built the second screen.
+   * - so this query could not be answered before the second screen existed.
    */
   @Test
   fun theModeQueryAnswersFromTheFlagOrFromWhichBufferIsLive() {

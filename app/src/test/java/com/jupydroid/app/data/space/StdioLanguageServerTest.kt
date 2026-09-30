@@ -118,8 +118,8 @@ class StdioLanguageServerTest {
 
   /**
    * The same text twice is no change. Every ask syncs before it asks, and without this gate a
-   * hover makes `pylsp` re-analyze the document it already has - the ~600ms pyflakes round the
-   * P5e-0 probe measured, spent on a no-op. Versions still count only up on real edits, and a
+   * hover makes `pylsp` re-analyze the document it already has - the ~600ms pyflakes round
+   * `LspSurfaceProbeTest` measured, spent on a no-op. Versions still count only up on real edits, and a
    * restarted server's fresh map sends the open again, which is why the dedupe lives on
    * [RunningServer]'s state and not the caller's.
    */
@@ -214,7 +214,7 @@ class StdioLanguageServerTest {
   }
 
   /**
-   * P5e-3: `textDocument/hover` is a `TextDocumentPositionParams` request - same wire shape
+   * `textDocument/hover` is a `TextDocumentPositionParams` request - same wire shape as
    * completion's - and its reply's `contents` arrives typed as [LanguageMarkup], with the
    * `range` the server stated kept beside it.
    */

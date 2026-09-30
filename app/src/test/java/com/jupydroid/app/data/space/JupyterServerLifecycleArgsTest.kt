@@ -12,7 +12,7 @@ import java.io.File
  * `shutdown_no_activity_timeout` seconds with **no kernels** and no activity, and idle kernels
  * are culled first by `MappingKernelManager`. The arguments are asserted rather than the
  * behaviour, exactly as `JupyterServerRootDirTest` does — a real server needs a Space, which is
- * the tablet gate `evidence/p1-lifecycle/`.
+ * a tablet gate's to prove.
  */
 class JupyterServerLifecycleArgsTest {
   private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")

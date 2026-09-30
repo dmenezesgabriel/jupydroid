@@ -26,7 +26,7 @@ class TerminalFrameTest {
   }
 
   /**
-   * Escape sequences survive verbatim, which is the whole point of P4e-P4h existing later: this
+   * Escape sequences survive verbatim, which is what lets `terminal/` interpret them: this
    * layer must not interpret, strip or normalise a single byte.
    */
   @Test

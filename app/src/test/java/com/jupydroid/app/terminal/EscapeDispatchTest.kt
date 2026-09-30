@@ -11,11 +11,11 @@ import org.junit.Test
  * `testCursorSaveRestoreLocation` / `testCursorSaveRestoreTextStyle` are transcribed here
  * (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]); the reference covers the other eleven
  * bytes of `doEsc` only through whole-screen scenarios, so those cases are written here and their
- * **expectations were read off the reference itself** rather than off its source - see
- * `evidence/p4-terminal/emulator-differential.md`, "The oracle the expectations came from".
+ * **expectations were read off the reference itself** rather than off its source, by running it as
+ * the differential's oracle.
  *
- * The alternate-screen halves of the two save/restore tests need `CSI ? 1049 h` and go with
- * **P4f-4**, which implements it.
+ * The alternate-screen halves of the two save/restore tests need `CSI ? 1049 h`, so they live with
+ * the alternate screen's own tests.
  */
 class EscapeDispatchTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)

@@ -77,7 +77,7 @@ class StdioLanguageServerRenameTest {
 
   /**
    * `renameProvider` absent is an ask never sent - the same undeclared-capability gate the
-   * providers before it apply. pylsp answers a plain `true` (the P5e-0 probe's capture).
+   * providers before it apply. pylsp answers a plain `true`, measured off the shipped server.
    */
   @Test
   fun renameProvider_absent_sendsNoRequest() = runBlocking {

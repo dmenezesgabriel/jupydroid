@@ -51,9 +51,8 @@ class AlternateScreenTest {
    * pinned that before: `enteringSavesTheCursorAndLeavingPutsItBack` above never leaves and
    * re-enters, and `aSecondEntryChangesNothing` below is a **repeated** entry with no leave between,
    * which is the one case `useAlternateScreen` deliberately skips the blank for. Found as a mutation
-   * survivor while widening P4h-3b's differential - confirmed to predate P4h-3 entirely, so this is
-   * `docs/DECISIONS.md`'s "A resize followed by a buffer switch..." entry's own sibling gap, not a
-   * behaviour change.
+   * survivor while widening the differential, and it predates the resize work entirely - a sibling
+   * of the gap a resize followed by a buffer switch already had, not a behaviour change.
    */
   @Test
   fun reenteringTheAlternateScreenBlanksContentAnEarlierSessionLeft() {
@@ -172,7 +171,7 @@ class AlternateScreenTest {
    * input lands back on row 1 column 2, which is the difference this pins.
    *
    * **The differential cannot reach this**, because `ESC c` is excluded from its alphabet as a
-   * declared divergence - so it is closed the way P4f-3c closed its survivors: expectations read
+   * declared divergence - so it is closed the way every survivor here is: expectations read
    * off `RefScreen`, and the test run against its own mutation to watch it fail.
    */
   @Test

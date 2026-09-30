@@ -12,7 +12,7 @@ import org.junit.Test
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * P1c's decision half: when the app goes away, the server should stop - but a
+ * The decision half: when the app goes away, the server should stop - but a
  * backgrounded computation must be allowed to finish. The gate
  * backgrounds the app mid-run and shows the
  * cell completes, then backgrounds it idle and shows the server stops; both halves

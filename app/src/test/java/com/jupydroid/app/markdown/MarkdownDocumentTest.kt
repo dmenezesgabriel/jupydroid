@@ -145,7 +145,7 @@ class MarkdownDocumentTest {
 
   /**
    * [MarkdownDocument.heading] is the same reduce as [MarkdownDocument.headingLevel], kept as one
-   * function rather than two so the tie rule is not implemented twice - reused by P2h's table of
+   * function rather than two so the tie rule is not implemented twice - reused by the table of
    * contents, which needs the winning heading's text and not only its level.
    */
   @Test

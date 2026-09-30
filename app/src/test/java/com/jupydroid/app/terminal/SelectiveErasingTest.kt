@@ -9,11 +9,11 @@ import org.junit.Test
  *
  * Transcribed from `RectangularAreasTest.testSelectiveEraseInDisplay` and `testSelectiveEraseInLine`
  * (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). That file's third selective test,
- * `testSelectiveEraseInRectangle`, is DECSERA under the `$` intermediate and goes with P4f-5c.
+ * `testSelectiveEraseInRectangle`, is DECSERA under the `$` intermediate and goes with [RectangularAreasTest].
  *
- * **DECSCA is a [CellStyle] bit, not a screen mode**: `CellStyle.PROTECTED` has existed since
- * P4e-2, which transcribed the whole effect set, and this is the step that gives it a writer and
- * two readers.
+ * **DECSCA is a [CellStyle] bit, not a screen mode**: `CellStyle.PROTECTED` existed before
+ * anything wrote it - the whole effect set was transcribed at once - and this is what gives it a
+ * writer and two readers.
  */
 class SelectiveErasingTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)
@@ -53,7 +53,7 @@ class SelectiveErasingTest {
   /**
    * **A selective erase clears the pending wrap whatever its parameter**, where ED and EL clear it
    * only for a parameter they understood. The reference assigns `mAboutToAutoWrap = false`
-   * *before* its switch rather than after, so the asymmetry P4f-3c transcribed does not apply here.
+   * *before* its switch rather than after, so the asymmetry ED and EL have does not apply here.
    * Expectations off `RefScreen`.
    */
   @Test

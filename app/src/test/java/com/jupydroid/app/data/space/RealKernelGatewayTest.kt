@@ -349,7 +349,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     assertEquals(1, opener.openCount)
   }
 
-  // --- P2k-1: execution history over the same socket ---
+  // --- Execution history over the same socket ---
 
   @Test
   fun executionHistory_readsTheInputsOutOfTheReply() = runTest {

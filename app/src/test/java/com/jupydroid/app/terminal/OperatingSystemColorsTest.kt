@@ -12,10 +12,9 @@ import org.junit.Test
  * Apache 2.0 - see [TerminalGrid]); the rest was measured off `RefScreen`.
  *
  * **Two of these tests state an expectation the reference cannot be asked for, because it throws.**
- * `OSC 104` has two unguarded failures - see
- * `evidence/p4-terminal/the-colour-reset-that-walks-off-its-own-string.md` - and the expectation
- * here is the reference's own stated intent (`catch (NumberFormatException) { // Ignore. }`) rather
- * than a reading of what it does.
+ * `OSC 104` has two unguarded failures upstream - `ColorCommands.resetIndexed`'s own KDoc names
+ * both - and the expectation here is the reference's own stated intent
+ * (`catch (NumberFormatException) { // Ignore. }`) rather than a reading of what it does.
  */
 class OperatingSystemColorsTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)

@@ -8,8 +8,8 @@ import org.junit.Test
 
 /**
  * The fake holds a fixed listing, so it does not run `WorkspaceRepositoryContract` - it creates,
- * renames and deletes nothing. What it *does* do is hold files, and P2j made that binary: an
- * export written here has to come back byte for byte.
+ * renames and deletes nothing. What it *does* do is hold files, and an export written here has to
+ * come back byte for byte.
  */
 class FakeWorkspaceRepositoryTest {
   @Test

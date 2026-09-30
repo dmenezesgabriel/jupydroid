@@ -38,7 +38,7 @@ class BaseSpaceKernelDebuggerTest {
     debugger.configurationDone(SESSION) // must not throw
   }
 
-  /** The debugger's own version of P1c: a session attached before a server restart is stale after it. */
+  /** The debugger's own version: a session attached before a server restart is stale after it. */
   @Test
   fun attach_issuesASessionTheServerItStartedKnows() = runTest {
     val debugger = debugger(RecordingServerLauncher(diesAfterFirstStart = true))

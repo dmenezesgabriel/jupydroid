@@ -14,7 +14,7 @@ import org.junit.Test
 /**
  * What this class adds over [RealTerminalGateway]: which calls may start a Space and which may not.
  *
- * The rules are P1b's and P1c's rather than the terminal protocol's, which is why they are asserted
+ * The rules are the server lifecycle's rather than the terminal protocol's, which is why they are asserted
  * here and not in the contract - a gateway with no server under it has no such distinction to make.
  */
 class BaseSpaceTerminalGatewayTest {
@@ -57,7 +57,7 @@ class BaseSpaceTerminalGatewayTest {
    * Closing a terminal after the backstop stopped the server does nothing, rather than starting one.
    *
    * [BaseSpaceKernelGateway]'s rule for `shutdown`: the shell died with the server, so there is
-   * nothing left to end and booting a runtime to say so would undo what P1c did.
+   * nothing left to end and booting a runtime to say so would undo what the idle backstop did.
    */
   @Test
   fun close_startsNoServerForATerminalTheStoppedOneHeld() = runTest {

@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * `textDocument/signatureHelp` over [StdioLanguageServer] - kept beside the main suite's
- * own file because P5e-4's cases pushed it past the 500-line gate; the scripted doubles
+ * own file because these cases pushed it past the 500-line gate; the scripted doubles
  * and the `languageServer` scaffold are the same ones [StdioLanguageServerTest] uses.
  */
 class StdioLanguageServerSignatureHelpTest {

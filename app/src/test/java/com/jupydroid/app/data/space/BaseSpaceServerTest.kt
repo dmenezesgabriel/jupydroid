@@ -158,7 +158,7 @@ class BaseSpaceServerTest {
   }
 
   /**
-   * P1c's rule, and the one the exporter needs as much as the gateway does: closing a websocket
+   * The rule the exporter needs as much as the gateway does: closing a websocket
    * the server has already forgotten must not boot a whole runtime to do it.
    */
   @Test

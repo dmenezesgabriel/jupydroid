@@ -114,7 +114,7 @@ class TerminalColorsTest {
   /**
    * The 216-cube and the 24 greys are **generated**, so this checks the generator against the
    * reference's literal table at its corners and seams rather than restating 240 numbers - the
-   * call P4e-1 made for the width ranges.
+   * same call the width ranges take.
    */
   @Test
   fun theCubeAndTheGreysAreGeneratedToTheReferencesOwnTable() {

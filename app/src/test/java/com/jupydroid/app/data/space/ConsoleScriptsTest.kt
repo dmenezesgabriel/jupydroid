@@ -92,7 +92,7 @@ class ConsoleScriptsTest {
     assertEquals(afterUpdate.canonicalPath, File(base, "usr/local/bin/pip").canonicalPath)
   }
 
-  /** **The second-install case `docs/DECISIONS.md` says every install-time path owes a test.** */
+  /** **The second-install case every install-time path owes a test for.** */
   @Test
   fun relink_isIdempotent() = runTest {
     val base = rootfsWithScripts()
