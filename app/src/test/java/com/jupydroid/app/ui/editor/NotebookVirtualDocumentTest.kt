@@ -132,7 +132,7 @@ class NotebookVirtualDocumentTest {
     assertNull(document.cellOffsetOfClamped("no-such-cell", LanguagePosition(0, 0)))
   }
 
-  // --- P5e-6: the range a format ask sends, and the slice its answer lands as -------------
+  // --- The range a format ask sends, and the slice its answer lands as -------------------
 
   /**
    * A cell's format range is its whole block, `end` at the last line's own length - **not**
@@ -221,7 +221,7 @@ class NotebookVirtualDocumentTest {
     assertEquals("y = 2\n", document.cellSourceAfterEdits("c2", edits))
   }
 
-  // --- P5e-7: a rename's whole-document WorkspaceEdit, sliced back into cells -------------
+  // --- A rename's whole-document WorkspaceEdit, sliced back into cells -------------------
 
   /**
    * The probe's own shape: pylsp answers

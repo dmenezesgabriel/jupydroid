@@ -25,7 +25,7 @@ class PathCrumbsTest {
 
   /**
    * A document at the workspace root has no ancestry, and the row that would draw it is **absent**
-   * rather than empty - the adaptation P2w-1 records. Empty is what says so.
+   * rather than empty, which is this app's own departure. Empty is what says so.
    */
   @Test
   fun aDocumentAtTheRootHasNoAncestors() {

@@ -73,7 +73,7 @@ class TerminalKeyEncodingTest {
     assertNull(bytes)
   }
 
-  // --- P4j-3a: keys a soft keyboard cannot produce, shared by TerminalExtraKeysRow's own taps ---
+  // --- Keys a soft keyboard cannot produce, shared by TerminalExtraKeysRow's own taps ---
 
   @Test
   fun homeIsCsiHInNormalModeAndSs3HInApplicationMode() {
@@ -126,7 +126,7 @@ class TerminalKeyEncodingTest {
     assertEquals("\u001B", bytes)
   }
 
-  // --- P4j-3a: a tapped Ctrl/Alt latch applied to soft-keyboard text, one character at a time ---
+  // --- A tapped Ctrl/Alt latch applied to soft-keyboard text, one character at a time ---
 
   @Test
   fun aConsumedCtrlLatchConvertsTheFirstCharacterToItsControlByte() {

@@ -11,13 +11,12 @@ import org.junit.Test
  * (rank 1000) are both notebook-toolbar items (`packages/notebook-extension/schema/panel.json`)
  * and that toolbar is a `ReactiveToolbar`: an item that does not fit is moved into a popup opener
  * rather than dropped (`packages/ui-components/src/components/toolbar.tsx:570-700`). So there are
- * two homes for such a control and this is what picks between them - for the cell type since
- * P2r, and for the kernel's name since P2w-2.
+ * two homes for such a control and this is what picks between them, for the cell type and for the
+ * kernel's name alike.
  *
  * **Measured before it was written.** Free width in this app's action row, between the navigation
- * icon and the first action, read off the committed hierarchies at
- * `evidence/p2o-3-two-pane-threshold/<w>/hierarchy.xml`: **72dp at 320dp**, **552dp at 800dp**,
- * ~567dp at 1280dp. The widest label the control can draw is "Markdown" plus a caret, which wants
+ * icon and the first action, read off the view hierarchy at each width: **72dp at 320dp**,
+ * **552dp at 800dp**, ~567dp at 1280dp. The widest label the control can draw is "Markdown" plus a caret, which wants
  * about 110dp - so 320dp is the width that cannot have it and the tablet's two orientations both
  * can, with room to spare either way.
  *

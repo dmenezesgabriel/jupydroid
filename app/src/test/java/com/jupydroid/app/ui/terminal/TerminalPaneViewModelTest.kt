@@ -20,7 +20,7 @@ import org.junit.Test
 
 /**
  * Binding the already-built [com.jupydroid.app.domain.port.TerminalGateway] to the already-built
- * `terminal/` emulator - the wiring P4i's own row exists for. `FakeTerminalGateway.send` echoes
+ * `terminal/` emulator, which is all this class is. `FakeTerminalGateway.send` echoes
  * back whatever it is given as `Output`, so it stands in for a real shell that types back what it
  * was sent.
  *
@@ -49,7 +49,7 @@ class TerminalPaneViewModelTest {
   }
 
   /**
-   * P4i-3b: `attach()` is a plain suspend function now, no longer launched for the caller in
+   * `attach()` is a plain suspend function, not launched for the caller in
    * `init` - `TerminalPaneScreen`'s own `repeatOnLifecycle(STARTED)` is what launches it for real,
    * so every test below launches it explicitly, the same shape.
    */
@@ -80,7 +80,7 @@ class TerminalPaneViewModelTest {
 
   /**
    * The emulator's *own* replies - DA1 here - go back to the shell through `TerminalGateway.send`
-   * exactly as typed text does, which is what `TerminalReplies`'s KDoc says P4i binds: an escape
+   * exactly as typed text does, which is the binding `TerminalReplies`'s KDoc describes: an escape
    * sequence is consumed whole by the parser and never becomes a printable glyph, so
    * [firstRowOf]'s screen-reading trick from [typedTextIsSentAndComesBackOntoTheScreen] cannot
    * prove this - only what actually reached [TerminalGateway.send] can. [RecordingGateway] records
@@ -117,7 +117,7 @@ class TerminalPaneViewModelTest {
   }
 
   /**
-   * P4i-3b's own gate: "disposal cancels the collection." `attach()` is a plain suspend function,
+   * "Disposal cancels the collection." `attach()` is a plain suspend function,
    * so cancelling whatever job is collecting it cancels the flow it is collecting the same way any
    * other suspend function's caller would - this proves this class's own half, not
    * `repeatOnLifecycle` itself, which is already-tested androidx machinery this class only calls
@@ -185,7 +185,7 @@ class TerminalPaneViewModelTest {
     assertEquals("hello", firstRowOf(viewModel))
     firstAttach.cancel()
 
-    // Re-attach - backgrounding and foregrounding, P4i-3b's own shape - then the "server" replays
+    // Re-attach - backgrounding and foregrounding - then the "server" replays
     // the same history a real one would resend in full.
     attachOn(viewModel)
     advanceUntilIdle()
@@ -217,7 +217,7 @@ class TerminalPaneViewModelTest {
   }
 
   /**
-   * The regression P4i-3a's own gate names: a recomposition that reports the same grid must not
+   * The regression this names: a recomposition that reports the same grid must not
    * write the wire again.
    */
   @Test
@@ -276,7 +276,7 @@ class TerminalPaneViewModelTest {
     assertEquals(afterFirst, viewModel.uiState.value.redraw)
   }
 
-  // --- P4j-3a: a tapped/long-pressed Ctrl or Alt latch applied to soft-keyboard text ---
+  // --- A tapped or long-pressed Ctrl/Alt latch applied to soft-keyboard text ---
 
   @Test
   fun typingAfterATappedCtrlSendsTheControlByteNotTheLetter() = runTest {
@@ -357,7 +357,7 @@ class TerminalPaneViewModelTest {
     assertEquals(listOf("c"), gateway.sent)
   }
 
-  // --- P4j-3c: the terminal's own font-size setting ---
+  // --- The terminal's own font-size setting ---
 
   /** The screen's own state carries whatever the repository already held, not always the default. */
   @Test

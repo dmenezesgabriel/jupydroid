@@ -128,9 +128,9 @@ class CellEditsTest {
    * `(child as CodeCell).outputHidden = false` inside the same transaction as `clearExecution`
    * (`packages/notebook/src/actions.tsx:1832-1836`).
    *
-   * Named in `docs/PLAN.md` as a known gap and left open until there was a second command with the
-   * same rule to build. Without it, clearing a collapsed cell's outputs leaves an empty collapsed
-   * placeholder - a fold over nothing, with a control offering to expand it.
+   * A known gap, left open until there was a second command with the same rule to build. Without
+   * it, clearing a collapsed cell's outputs leaves an empty collapsed placeholder - a fold over
+   * nothing, with a control offering to expand it.
    */
   @Test
   fun clearOutputs_unfoldsTheOutputsItThrewAway() {

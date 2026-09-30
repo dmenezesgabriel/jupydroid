@@ -82,8 +82,8 @@ class WorkspaceReplaceTest {
   }
 
   /**
-   * **And the round-trip keeps what this app does not model**, which is P2x-5's own gate and the one
-   * P2x-4 could not meet, because P2x-1e had left no replace here to round-trip. nbformat is an open
+   * **And the round-trip keeps what this app does not model**, which could not be asserted until
+   * there was a replace here to round-trip at all. nbformat is an open
    * format (`NotebookRoundTripTest`), and a replace that shredded a cell's `nbgrader` block would be
    * a worse bug than the one it fixed.
    */
@@ -105,7 +105,7 @@ class WorkspaceReplaceTest {
 
   /**
    * **The open document is edited in memory and the file is not touched by this**, which is the whole
-   * reason P2x-1e took replace off the port: writing the file would be overwritten by that editor's
+   * reason replace came off the port: writing the file would be overwritten by that editor's
    * next debounced save, and the reader would watch the replacement vanish.
    */
   @Test

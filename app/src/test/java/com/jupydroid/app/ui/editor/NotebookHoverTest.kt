@@ -22,8 +22,8 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * A cell's "Symbol info" ask, answered by the Space's language server
- * at the caret's **virtual** position - the same document P5c completions and P5d-2b
- * diagnostics already share, so `import os` in an earlier cell is what makes `os.path`'s
+ * at the caret's **virtual** position - the same document completions and diagnostics already
+ * share, so `import os` in an earlier cell is what makes `os.path`'s
  * hover answerable in this one.
  *
  * The session gate is [NotebookKernel.hoverAt]'s own rule carried over: a notebook that never

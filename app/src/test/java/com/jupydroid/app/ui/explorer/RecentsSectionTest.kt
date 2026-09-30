@@ -7,8 +7,8 @@ import org.junit.Test
  * How many items the Recents section puts above the listing, so a scroll to a listing row lands
  * on that row and not on its neighbour.
  *
- * Untested until P7c, which is exactly the shape of defect it exists to prevent: audit A3's own
- * off-by-one, where a created row that lands below the fold makes the screen look unchanged.
+ * Untested for a long time, which is exactly the shape of defect it exists to prevent: an
+ * off-by-one where a created row that lands below the fold makes the screen look unchanged.
  * Collapsing the section changes the count without changing anything visible, so nothing but an
  * assertion could catch it going wrong.
  */

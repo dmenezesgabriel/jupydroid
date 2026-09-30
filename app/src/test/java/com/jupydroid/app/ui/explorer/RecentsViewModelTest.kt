@@ -32,7 +32,7 @@ class RecentsViewModelTest {
    *
    * A recents list is not a property of the folder you are standing in - the reference's own
    * surfaces are global, a File menu submenu and a sidebar panel, never per-directory. The rule is
-   * `shownWhileBrowsing`'s, applied where the directory is known, which since P7c is the screen.
+   * `shownWhileBrowsing`'s, applied where the directory is known, which is the screen.
    */
   @Test
   fun theRootCarriesRecentsAndADirectoryDoesNot() = runTest {

@@ -36,7 +36,7 @@ class KernelStatusGlyphTest {
    * the document, so it is practically never in this one; this app starts a kernel lazily, so this
    * is what every notebook shows until something is run. Drawn filled beside four outlined glyphs
    * it was the loudest thing in the row - measured off the frame, not guessed - and a resting state
-   * that reads as an alarm is the misread P2v-1 retired the filled play for. Outlined keeps the
+   * that reads as an alarm is the misread that retired the filled play. Outlined keeps the
    * reference's glyph and changes only its weight.
    */
   @Test

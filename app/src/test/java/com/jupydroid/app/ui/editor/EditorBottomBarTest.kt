@@ -64,10 +64,10 @@ class EditorBottomBarTest {
   }
 
   /**
-   * **And a marked run gets neither, which P2d-3 is what made necessary.** The contextual bar's Run
-   * acts on the marked run and the kernel bar's acts on every cell, and until P2d-3 there was no
-   * clash to have: both are a bare `PlayArrow`, and at 320dp they sat one above the other on the
-   * same screen. Dropping the kernel bar is P2c's own rule
+   * **And a marked run gets neither, which a screenshot made necessary.** The contextual bar's Run
+   * acts on the marked run and the kernel bar's acts on every cell, and there used to be no clash
+   * to have: both are a bare `PlayArrow`, and at 320dp they sat one above the other on the
+   * same screen. Dropping the kernel bar is the same rule
    * followed through - *one* surface acts on the run, which is why the cell's `⋮` is already hidden
    * while it is up - and none of what the kernel bar offers is what somebody picking cells is doing.
    */
@@ -80,10 +80,10 @@ class EditorBottomBarTest {
   }
 
   /**
-   * **And a notebook being searched gets neither, which is the one state before P2i nothing could
-   * reach: the caret is in the find box, so the notebook is in *command* mode with the soft
+   * **And a notebook being searched gets neither, which is a state nothing could reach before the
+   * find bar: the caret is in the find box, so the notebook is in *command* mode with the soft
    * keyboard up.** Left as KERNEL, a 320dp-tall landscape phone stacks a find bar, a kernel bar and
-   * the keyboard, and `Scaffold` hands the cell list zero height - the U6 defect, which no test
+   * the keyboard, and `Scaffold` hands the cell list zero height - a defect no test
    * without an IME can see and which is why this rule is asserted rather than looked at.
    */
   @Test

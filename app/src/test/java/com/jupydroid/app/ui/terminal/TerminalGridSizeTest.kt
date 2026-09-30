@@ -5,9 +5,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * How many whole glyphs fit in a measured container - the geometry half of `docs/PLAN.md`'s
- * P4i-3a, kept a pure function so "one `resize` call per real size change" is a plain JVM
- * assertion rather than needing a device to exercise `BoxWithConstraints`.
+ * How many whole glyphs fit in a measured container, kept a pure function so "one `resize` call
+ * per real size change" is a plain JVM assertion rather than needing a device to exercise
+ * `BoxWithConstraints`.
  */
 class TerminalGridSizeTest {
   private val cell = IntSize(width = 10, height = 20)
@@ -27,7 +27,7 @@ class TerminalGridSizeTest {
     assertEquals(IntSize(width = 80, height = 30), grid)
   }
 
-  /** `TerminalEmulator.resize`'s own floor (P4h-3's `< 2` guard) - a container too small to hold it still gets one. */
+  /** `TerminalEmulator.resize`'s own `< 2` floor - a container too small to hold it still gets one. */
   @Test
   fun clampsToTheEmulatorsTwoByTwoFloor() {
     val grid = terminalGridSize(containerPixels = IntSize(5, 5), cell = cell)

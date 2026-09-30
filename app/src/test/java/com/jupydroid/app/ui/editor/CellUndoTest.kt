@@ -133,8 +133,8 @@ class CellUndoTest {
   /**
    * **The adaptation.** In the reference an undo after Clear Outputs restores the `execution`
    * metadata and nothing visible, because outputs sit outside the undo manager's tracked scope
-   * (`actions.tsx`, `Private.restoreExecution`). Here the entry restores what was cleared - see
-   * `docs/DECISIONS.md`, and the reason is that on a phone this row sits one above Delete.
+   * (`actions.tsx`, `Private.restoreExecution`). Here the entry restores what was cleared, because
+   * on a phone this row sits one above Delete.
    */
   @Test
   fun clearOutputs_isTakenBackWithTheResultsItThrewAway() {
@@ -294,7 +294,7 @@ class CellUndoTest {
     assertEquals("typed\nahead", split.undoneCellOperation().cells.single().source)
   }
 
-  /** P2a's rule survives the exception: only the cells the *operation* rewrote are restored. */
+  /** The rule survives the exception: only the cells the *operation* rewrote are restored. */
   @Test
   fun split_undo_stillKeepsTypingDoneInAnotherCellAfterwards() {
     val typed = stateOf("a", "b")

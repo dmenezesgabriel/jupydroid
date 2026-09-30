@@ -17,7 +17,7 @@ import org.junit.Test
  * mode, 2px in edit - and are copied rather than scaled, because a stripe is a marker and not
  * something anyone taps. That is the opposite call from the buttons beside it, which take
  * Material's 48dp minimum. **The colours are JupyterLab's and the widths are IntelliJ's**, which
- * is a hybrid and is named as one in `docs/DECISIONS.md`.
+ * is a hybrid and is named as one (ADR-0053).
  */
 class CellStripeTest {
   private val palette = DarkEditorPalette

@@ -151,7 +151,7 @@ class CellHeadingsTest {
   /**
    * What a scroll-to-cell has to index into, since a `LazyColumn` only composes what
    * [hiddenCellIds] leaves out - the same filter [EditorContent] itself applies, pulled out here
-   * so P2h-2's click-to-jump reads one definition rather than a second copy of it.
+   * so the table of contents' click-to-jump reads one definition rather than a second copy.
    */
   @Test
   fun cellsOnScreenExcludesEveryHiddenCell() {

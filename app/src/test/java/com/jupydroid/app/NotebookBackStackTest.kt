@@ -159,7 +159,7 @@ class NotebookBackStackTest {
   }
 
   /**
-   * A Console stacks on top of the notebook it shares a kernel with - P6b-9's own reason to
+   * A Console stacks on top of the notebook it shares a kernel with, and that is its reason to
    * exist: Back has to return to the still-open notebook, not to the browser. [openConsole] is
    * not [openNotebook]'s twin for that reason.
    */

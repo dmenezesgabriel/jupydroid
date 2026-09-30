@@ -73,7 +73,7 @@ class EditorViewModelTest {
   }
 
   /**
-   * P6b-9b: `attachConsole()` is `console:inject`'s own "find the tracked session and inject into
+   * `attachConsole()` is `console:inject`'s own "find the tracked session and inject into
    * it" (`console-extension/src/index.ts:1294-1338`) - the notebook hands a Console a session
    * already open rather than making it ask the gateway for one of its own.
    */
@@ -233,7 +233,7 @@ class EditorViewModelTest {
     assertEquals("print('edited')", gateway.executedSource.single())
   }
 
-  // --- Step 4b: Stop and Run All ---
+  // --- Stop and Run All ---
 
   /**
    * The cell only finishes because it was interrupted, which is what a real kernel does:
@@ -364,7 +364,7 @@ class EditorViewModelTest {
     assertTrue("nothing was typed", !loadedEditor(cells = emptyList()).uiState.value.dirty)
   }
 
-  // --- Step 4b: the cell-management half ---
+  // --- The cell-management half ---
 
   @Test
   fun applyTo_insertsMovesDuplicatesAndDeletesThroughOneEntryPoint() = runTest {
@@ -420,7 +420,7 @@ class EditorViewModelTest {
     assertEquals(null, viewModel.uiState.value.executionCounts["c1"])
   }
 
-  // --- P2b: splitting a cell ---
+  // --- Splitting a cell ---
 
   /**
    * A split is an edit to the document like any other, so it reaches disk on the same debounce -
@@ -441,7 +441,7 @@ class EditorViewModelTest {
     assertEquals("c1", saved.last().id)
   }
 
-  // --- P2a: taking a cell operation back ---
+  // --- Taking a cell operation back ---
 
   /** Undoing is an edit to the document, so it is written on the debounce every other one uses. */
   @Test

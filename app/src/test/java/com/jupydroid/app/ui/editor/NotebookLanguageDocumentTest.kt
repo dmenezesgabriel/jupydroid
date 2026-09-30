@@ -38,7 +38,7 @@ class NotebookLanguageDocumentTest {
     val sync = server.syncs.single()
     assertEquals(synced.uri, sync.uri)
     assertEquals("file:///jupyterdroid/notebooks/Analysis.ipynb.py", sync.uri)
-    // The P5d-1 layout: block text + trailing newline, two blank lines between blocks.
+    // The layout: block text + trailing newline, two blank lines between blocks.
     assertEquals("import os\n\n\nos.getcwd()\n", sync.text)
   }
 

@@ -10,7 +10,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Running a cell after P1c stopped the server underneath it.
+ * Running a cell after the idle backstop stopped the server underneath it.
  *
  * The app is the one that stopped the server, so the app is the one that brings it back: the run
  * opens a fresh session and carries on, and the user sees an answer rather than a death they did
@@ -40,7 +40,7 @@ class StaleSessionReconnectTest {
 
   /**
    * One retry, not a loop. A gateway that refuses every session is a real failure and the cell
-   * says so - retrying for ever would hang the run the way P0 used to.
+   * says so - retrying for ever would hang the run, which is the failure this app already had once.
    */
   @Test
   fun aSessionThatStaysStale_isReportedInTheCellAndTriedOnceMore() = runTest {

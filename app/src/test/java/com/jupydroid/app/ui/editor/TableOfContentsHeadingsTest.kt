@@ -13,7 +13,7 @@ import org.junit.Test
  * contents is a list *of*, before anything folds, numbers or draws it.
  *
  * Its own file rather than a corner of [CellHeadingsTest], which is what the file-length gate
- * asked for when the printed headings of P2h-6 arrived - and the seam it pointed at was already
+ * asked for when the printed headings arrived - and the seam it pointed at was already
  * there: that one is about the sections a heading owns *in the notebook*, and this is about the
  * entries a panel lists.
  */

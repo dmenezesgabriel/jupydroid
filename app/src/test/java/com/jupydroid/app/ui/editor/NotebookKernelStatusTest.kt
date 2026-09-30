@@ -108,7 +108,7 @@ class NotebookKernelStatusTest {
   }
 
   /**
-   * **The stale session is reported, not hidden.** P1c stops the app's own server when it is left
+   * **The stale session is reported, not hidden.** The app stops its own server when it is left
    * alone, so a session can be refused; `NotebookKernelSession.reopeningIfStale` drops it and asks
    * for another, and the notebook must not go on claiming a kernel in between. Asserted through
    * the end state, since the refusal and the reconnection are one `advanceUntilIdle` apart.

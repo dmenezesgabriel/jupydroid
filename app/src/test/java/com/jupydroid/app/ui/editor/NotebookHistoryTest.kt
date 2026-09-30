@@ -185,7 +185,7 @@ class NotebookHistoryTest {
   }
 
   /**
-   * P1c stops the server while the app lives on, so a session the notebook still holds can outlive
+   * The idle backstop stops the server while the app lives on, so a session the notebook holds can outlive
    * the process that knew about it. A history key must then do **nothing** rather than crash or
    * start a runtime: `StaleKernelSessionException` is an `IllegalStateException` precisely so a
    * caller with nothing to say about it keeps working (its own docstring says so), and
@@ -265,7 +265,7 @@ class NotebookHistoryTest {
   /** Answers a fixed history, records the tail lengths it was asked for, and can refuse. */
   private class ScriptedHistoryGateway(
     private val recorded: List<String>,
-    /** Whether the server behind this session has stopped, as P1c's backstop can make it. */
+    /** Whether the server behind this session has stopped, as the idle backstop can make it. */
     var stale: Boolean = false,
   ) : KernelGateway by FakeKernelGateway() {
     val batches = mutableListOf<Int>()

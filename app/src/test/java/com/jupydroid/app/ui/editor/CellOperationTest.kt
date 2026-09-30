@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * What a cell operation applies to, which since P2c is the marked run rather than one cell.
+ * What a cell operation applies to, which is the marked run rather than one cell.
  *
  * The transforms themselves are `CellEditsTest`, `CellRestructureTest` and `CellBatchEditsTest`;
  * this is only about the operand, the head, and what the run looks like afterwards.

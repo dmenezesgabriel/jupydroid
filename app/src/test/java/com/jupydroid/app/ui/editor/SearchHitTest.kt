@@ -39,7 +39,7 @@ class SearchHitTest {
   /**
    * **Every cell participates, hidden or not.** `startQuery` creates a provider per widget with no
    * visibility filter at all (`:352-386`) - so a match inside a collapsed section is counted, and
-   * P2i-3 is what makes reaching it reveal it.
+   * and reaching it is what reveals it.
    */
   @Test
   fun aCellHiddenUnderACollapsedHeadingStillHasHits() {

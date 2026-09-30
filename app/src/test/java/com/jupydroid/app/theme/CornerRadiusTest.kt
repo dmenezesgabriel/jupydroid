@@ -55,8 +55,8 @@ class CornerRadiusTest {
    * The reference registers it at **9999px** (`baseSizes.ts:110-112`), which is CSS's way of
    * spelling a shape Compose names outright: `androidx.compose.foundation.shape.CircleShape`. A
    * `9999.dp` val no consumer could legitimately draw is exactly the field
-   * `scripts/check_palette_consumers.py` exists to refuse, and P7a-1's "two fields, not six" is
-   * the same rule applied to a palette.
+   * `scripts/check_palette_consumers.py` exists to refuse, and "two fields, not six" is the same
+   * rule applied to a palette.
    */
   @Test
   fun theCircleTokenIsNotOnTheScale() {

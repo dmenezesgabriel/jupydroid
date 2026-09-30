@@ -87,7 +87,7 @@ class EditorCellActionTest {
   }
 
   /**
-   * P5e-6: "Format cell" answers with the cell's source rewritten - autopep8's whole-document
+   * "Format cell" answers with the cell's source rewritten - autopep8's whole-document
    * `TextEdit` sliced back to the asked cell - as **one undoable operation**, the
    * `sourceRevisions` bump being what the cell's field reads to adopt it. Undo puts back the
    * text the ask was made over, not a debounce-stale copy.

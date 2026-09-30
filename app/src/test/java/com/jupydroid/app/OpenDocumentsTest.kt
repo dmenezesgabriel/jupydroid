@@ -108,8 +108,8 @@ class OpenDocumentsTest {
 
   /**
    * Many at once, because the back stack holds every open document: the registry answers
-   * each by its own live path, and reports them in the order they opened - the order P8e's tab
-   * strip draws.
+   * each by its own live path, and reports them in the order they opened - the order the tab strip
+   * draws.
    */
   @Test
   fun openDocumentsAreAllReachableInTheOrderTheyOpened() {

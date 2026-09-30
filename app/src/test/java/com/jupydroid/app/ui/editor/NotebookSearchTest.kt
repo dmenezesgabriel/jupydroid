@@ -175,7 +175,7 @@ class NotebookSearchTest {
     assertEquals(false, searching.withSearchStepped(false).dirty)
   }
 
-  // ---- replace, P2i-6 ----
+  // ---- replace ----
 
   private fun searchingFor(text: String, replaceWith: String, vararg cells: Cell) =
     EditorUiState(cells = cells.toList(), selectedCellId = cells.first().id, loaded = true)
@@ -286,7 +286,7 @@ class NotebookSearchTest {
     assertEquals("DOG", replaced.sourceOf("a"))
   }
 
-  // ---- the two filters, P2i-7 ----
+  // ---- the two filters ----
 
   private fun notebookPrinting(cell: Cell, printed: String) = EditorUiState(
     cells = listOf(cell),

@@ -249,7 +249,7 @@ class ConsoleViewModelTest {
   }
 
   /**
-   * P8g's `kernelChanged` beside P8f's `disposed`: the notebook whose session this Console shares
+   * `kernelChanged` beside `disposed`: the notebook whose session this Console shares
    * can swap the kernel under it (`PATCH api/sessions` keeps the session id), and the copy held
    * here has to follow - the old kernel id points at a process the server already shut down.
    */

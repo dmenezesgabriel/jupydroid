@@ -94,7 +94,7 @@ class CellRevealTest {
   }
 
   /**
-   * **And it does not take the caret**, which is P2e-3's lesson: a command that unrenders is not a
+   * **And it does not take the caret**, which was learnt the hard way: a command that unrenders is not a
    * tap asking to type, and a soft keyboard over a notebook nobody is writing in was the cost of
    * conflating them.
    */

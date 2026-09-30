@@ -164,11 +164,10 @@ class CellActionItemsTest {
     count = count,
   ).map { it.first }
 
-  // --- the session-ask rows (P5e-3 "Symbol info", P5e-5 "Go to definition", P5e-6 "Format cell") ---
+  // --- the session-ask rows: "Symbol info", "Go to definition", "Format cell" ---
 
   /**
-   * The three asks as menu rows - `docs/PLAN.md` P5e-3's affordance, P5e-5's and P5e-6's beside
-   * it. They lead under the selection row, jump first, for the reason VS Code's editor context
+   * The three asks as menu rows. They lead under the selection row, jump first, for the reason VS Code's editor context
    * menu leads its navigation group with `editor.action.goToDefinition`
    * (`editorContextMenu.ts`): all three ask about the code where every row below them edits the
    * notebook, and the jump is the stronger promise. "Format cell" sits last of the three, which

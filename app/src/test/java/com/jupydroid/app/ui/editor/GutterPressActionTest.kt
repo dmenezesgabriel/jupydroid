@@ -11,7 +11,7 @@ import org.junit.Test
  * `onMouseDown` always had, and the diagnostic mark VS Code's `markerHoverParticipant` answers
  * on hover - a hover mobile performs as a tap on the mark itself. So a press resolves by where
  * it landed and how long it held: the mark's own column on a diagnosed line shows the detail,
- * an armed line's long-press is still the condition editor (P6a-16's contract, never yielded),
+ * an armed line's long-press is still the condition editor, never yielded,
  * and anything else toggles a breakpoint as it always did.
  */
 class GutterPressActionTest {

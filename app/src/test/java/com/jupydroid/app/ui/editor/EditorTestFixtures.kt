@@ -237,7 +237,7 @@ internal class RecordingKernelDebugger(private val fake: FakeKernelDebugger = Fa
     fake.configurationDone(session)
   }
 
-  /** Which frame id each `scopes` call named, in order - P6a-8a's own gate for "the top frame only". */
+  /** Which frame id each `scopes` call named, in order - the gate for "the top frame only". */
   val scopesRequestedForFrame = mutableListOf<Int>()
 
   /** Which `variablesReference` each `variables` call named, in order. */
@@ -264,7 +264,7 @@ internal class RecordingKernelDebugger(private val fake: FakeKernelDebugger = Fa
 /**
  * Mirrors `BaseSpaceKernelDebugger.known`'s real contract - `events` throws for a session that
  * was never `attach`ed - which [FakeKernelDebugger] alone does not, since its `events` answers
- * any session. Found this way, not guessed: a tablet run of P6a-8's own Maestro flow crashed the
+ * any session. Found this way, not guessed: a tablet Maestro run crashed the
  * app on an ordinary cell with no breakpoint, because [NotebookCellRuns] used to launch
  * [NotebookDebugger.watchForStop] for *every* run regardless of whether [NotebookDebugger.startSession]
  * ever attached.
@@ -339,14 +339,14 @@ internal fun TestScope.loadedEditor(
   // The six formats the shipped rootfs converts, which is what the fake offers by default - so a
   // case about the export picker sees the same rows a device does.
   exporter: NotebookExporter = FakeNotebookExporter(),
-  // The path the notebook lives at, which is its id since X1b. Overridden by the cases about
+  // The path the notebook lives at, which is its id. Overridden by the cases about
   // folders; "nb-1"/"Data" is kept as the default so the cases that predate them read unchanged.
   notebookId: String = "nb-1",
   title: String = "Data",
   // The test scope stands in for the application scope, so work that outlives the ViewModel is
   // driven by advanceUntilIdle like everything else.
   applicationScope: CoroutineScope = this,
-  // Only the cases about P1c pass one; every other case ignores what it counts.
+  // Only the cases about the idle backstop pass one; every other case ignores what it counts.
   activeCellRuns: ActiveCellRuns = ActiveCellRuns(),
   // Only the cases about the open-document registry pass one; the rest never read it.
   openDocuments: OpenDocuments = OpenDocuments(),

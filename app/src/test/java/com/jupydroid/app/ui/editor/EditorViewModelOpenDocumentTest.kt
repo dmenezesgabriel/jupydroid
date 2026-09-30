@@ -18,7 +18,7 @@ import org.junit.Test
  *
  * `ReplaceService.createEdits` builds an edit against `match.cell?.uri` for a notebook match
  * (`replaceService.ts:206-214`), so a cell genuinely is a resource in the reference too. The index
- * is the one `MatchedLine.cell` carries, and P2x-4a's reason for an index rather than an id holds
+ * is the one `MatchedLine.cell` carries, and the reason for an index rather than an id holds
  * here for the same reason: `CellFile.toDomain` mints a `UUID` for a cell nbformat left without one.
  */
 class EditorViewModelOpenDocumentTest {
@@ -85,8 +85,8 @@ class EditorViewModelOpenDocumentTest {
   /**
    * **And it is not an entry in this notebook's own history.** The reference records one
    * `MultiModelEditStackElement` for the whole replace (`bulkTextEdits.ts:319-330`); a second entry
-   * here would make one command undoable twice, in two scopes that could then disagree. P2x-5d is
-   * where the one entry lives.
+   * here would make one command undoable twice, in two scopes that could then disagree. The one
+   * entry lives on the workspace replace.
    */
   @Test
   fun anEditIsNotAnEntryInTheNotebooksOwnUndoHistory() = runTest {

@@ -76,9 +76,9 @@ class MarkdownEditingTest {
    * **A tap asks for the caret; nothing else does.**
    *
    * The field used to request focus simply for having been composed, which was right while a tap
-   * was the only way to open one. P2e-3 gave it a second way in - a command that unrenders - and
-   * `evidence/p2e-3-change-to-markdown/` is what that looked like: two editors appearing in one
-   * frame, both asking, and the soft keyboard up over a notebook nobody was typing in. The
+   * was the only way to open one. A second way in - a command that unrenders - looked like this:
+   * two editors appearing in one frame, both asking, and the soft keyboard up over a notebook
+   * nobody was typing in. The
    * reference leaves the notebook in command mode after `changeCellType` (`actions.tsx:3314`,
    * `notebook.deselectAll()` and no mode change).
    */

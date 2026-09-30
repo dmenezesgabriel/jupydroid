@@ -15,7 +15,7 @@ import org.junit.Test
  *
  * The actions JupyterLab has that this app did not. Every rule below is read out of
  * `packages/notebook/src/actions.tsx` rather than guessed, and several are not the obvious
- * answer - which is the same thing the cell menu found in Step 4b.
+ * answer - which is the same thing the cell menu found.
  */
 class CellRestructureTest {
   private val notebook = EditorUiState(

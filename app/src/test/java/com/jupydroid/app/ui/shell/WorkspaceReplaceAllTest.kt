@@ -78,7 +78,7 @@ class WorkspaceReplaceAllTest {
 
   /**
    * **The counts are read off the tree, never a fresh walk** - `searchResult.count()` and
-   * `fileCount()` (`searchView.ts:816-817`), which is the whole of P2x-1e: a replace that re-ran
+   * `fileCount()` (`searchView.ts:816-817`), and that is the whole point: a replace that re-ran
    * its query could rewrite a file against matches nobody saw.
    */
   @Test

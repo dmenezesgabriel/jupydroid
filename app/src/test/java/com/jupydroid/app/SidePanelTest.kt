@@ -85,7 +85,7 @@ class SidePanelTest {
 
   /**
    * **What the bottom bar offers, where the rail offers everything.** The table of contents is not
-   * on it, and that is P2o-4's own argument rather than a shortening: Files is a screen you
+   * on it, and that is an argument rather than a shortening: Files is a screen you
    * navigate *to*, and the table of contents is a surface over the document you are already *in* -
    * which is why `toc:show-panel` opens an overlay from the notebook's own menu at this width
    * (`TableOfContentsPanel`) and why it needs no destination beside it. The debugger is off it too -
@@ -119,7 +119,7 @@ class SidePanelTest {
   }
 
   /**
-   * **P2x-2b's defect, narrowed rather than reopened.** A tablet rotated from 1280dp to 800dp with
+   * **An earlier defect, narrowed rather than reopened.** A tablet rotated from 1280dp to 800dp with
    * the table of contents up used to keep drawing it with no rail to leave it by, and the browser
    * could not be reached again without killing the app. The bar has no table-of-contents item -
    * and no debugger item, a document-bound panel for the same reason - so those panels are still

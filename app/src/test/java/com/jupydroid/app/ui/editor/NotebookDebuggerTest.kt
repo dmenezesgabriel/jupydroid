@@ -31,7 +31,7 @@ import org.junit.Test
 /**
  * The debugger's own first visible slice: a breakpoint toggled in the gutter, kept for as
  * long as the app runs rather than for as long as the ViewModel that toggled it does. The
- * handshake itself is P6a-7a, and wiring it into Run plus reflecting a stop is P6a-7b.
+ * handshake itself, and its wiring into Run, are asserted below.
  */
 class NotebookDebuggerTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
@@ -172,7 +172,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * P6a-8a's own gate: a `Stopped` event chains `stackTrace -> scopes -> variables` **for the top
+   * A `Stopped` event chains `stackTrace -> scopes -> variables` **for the top
    * frame only** (JupyterLab's own default selection on a fresh stop,
    * `packages/debugger/src/panels/callstack/model.ts:31-44`), grouping variables by the scope
    * they came from rather than flattening them into one list.
@@ -239,7 +239,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * The crash a tablet run of P6a-8's own Maestro flow found: `startSession` used to answer
+   * The crash a tablet Maestro run found: `startSession` used to answer
    * `Unit`, so [NotebookCellRuns] launched [NotebookDebugger.watchForStop] for *every* run
    * regardless of whether a debug session ever attached - and the real adapter's `events` throws
    * for a session that was never `attach`ed, crashing the app on the ordinary case, a cell with
@@ -300,7 +300,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * P6a-9's own gate: nothing is stopped, so there is no thread to send a step/continue command
+   * Nothing is stopped, so there is no thread to send a step/continue command
    * for - mirrors [NotebookCellRuns.stopRunningCell]'s own "no-op when the precondition isn't
    * met" shape for Interrupt.
    */
@@ -353,7 +353,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * P6a-10's own gate: debugpy keeps a breakpoint paused in its own memory until told otherwise,
+   * debugpy keeps a breakpoint paused in its own memory until told otherwise,
    * so disarming the only breakpoint a cell ever had must still send a **clearing**
    * `setBreakpoints` next run - skipping the handshake entirely (as an always-empty cell does)
    * would leave a real kernel's own stale breakpoint armed forever, hanging every future run of
@@ -391,7 +391,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * P6a-11's own gate: Terminate restarts the kernel, which tears debugpy's own state down with
+   * Terminate restarts the kernel, which tears debugpy's own state down with
    * it - the debugger's own idea of "stopped" must go with it too, or the toolbar and the
    * stopped-line wash would keep naming a stop that no longer exists on a fresh kernel.
    */
@@ -413,7 +413,7 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * P6a-14's own gate: a compound variable's `variablesReference` fetches its children off the
+   * A compound variable's `variablesReference` fetches its children off the
    * same stopped session [step] already resumes on - the debugger's own bookkeeping, not a fresh
    * argument the panel would otherwise have no way to supply.
    */
@@ -440,8 +440,8 @@ class NotebookDebuggerTest {
   }
 
   /**
-   * P6a-15's own gate: tapping a frame other than the top one re-chains `scopes -> variables` for
-   * *that* frame's own id - the named Open risks gap [DebugStack]'s own doc pointed at since P6a-8.
+   * Tapping a frame other than the top one re-chains `scopes -> variables` for *that* frame's own
+   * id - the gap [DebugStack]'s own doc had named.
    */
   @Test
   fun selectFrameAsksTheKernelForTheTappedFramesOwnScopes() = runTest {
