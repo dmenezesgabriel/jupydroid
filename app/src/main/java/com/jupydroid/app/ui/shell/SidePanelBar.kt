@@ -33,7 +33,7 @@ import com.jupydroid.app.theme.chromePalette
  * **Four destinations now** - the two panels of [onePaneDestinations] plus two *action* items -
  * which is still inside Material's own band of *"three to five destinations of equal
  * importance"*. Both actions launch rather than mark a panel: the Launcher opens a document, and
- * the Terminal is where the FilesBar icon's provisional reach moved once P6d's launcher existed -
+ * the Terminal is where the FilesBar icon's provisional reach moved once the launcher existed -
  * a document, not a panel, so nothing stays selected for either one.
  *
  * ```
@@ -83,8 +83,7 @@ fun SidePanelBar(
           // string. Measured before it was chosen: `ExplorerScreen` titles itself "Files" and
           // `SearchSidePanel` "Search", and a labelled item directly below either one would put
           // that string on screen twice - `onNodeWithText` throws on two matches and `tapOn` picks
-          // one of them. The departure from Material's "labels recommended" is in
-          // `docs/DECISIONS.md`.
+          // one of them. That is the reason for departing from Material's "labels recommended".
           label = null,
           modifier = Modifier.semantics { contentDescription = panel.label },
         )
@@ -135,7 +134,7 @@ const val NEW_TERMINAL = "New terminal"
  * both widths; measured at 800dp, each of two items was **396dp** wide with centres 404dp apart - a
  * 24dp icon inside a tap target half the window across, with the two controls stranded at the
  * quarter points. Grouped, `calculateCenteredContentHorizontalPadding` puts two items in 50% of the
- * bar, so their centres sit a quarter of it apart. `evidence/p2y-bottom-navigation/` has both.
+ * bar, so their centres sit a quarter of it apart.
  *
  * A pure `Dp` predicate rather than a window query, so the seam a test drives is the same one the
  * bar reads.

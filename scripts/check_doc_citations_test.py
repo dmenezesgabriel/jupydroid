@@ -35,6 +35,14 @@ class CitationsInTest(unittest.TestCase):
     def test_a_backlog_id_is_banned(self):
         self.assertEqual(["JD-041"], [t for _, t, _ in citations_in("// JD-041 adds it\n")])
 
+    def test_a_possessive_step_code_is_banned(self):
+        """`P6b-0's own fix` hid 199 citations from this gate until the boundary was widened."""
+        self.assertEqual(["P6b-0"], [t for _, t, _ in citations_in("// P6b-0's own fix\n")])
+
+    def test_a_slash_separated_run_of_codes_is_banned(self):
+        found = citations_in("// P5e-3/P5e-5 rows\n")
+        self.assertEqual(["P5e-3", "P5e-5"], [t for _, t, _ in found])
+
 
 class OnlyProseIsCheckedTest(unittest.TestCase):
     """The defect two gates in this repository already shipped: reading code as if it were prose."""

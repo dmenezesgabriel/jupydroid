@@ -54,8 +54,8 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  *
  * - **The glyph.** `Codicon.replaceAll` is typographic - the SVG read this phase is a `b`
  *   letterform, a curved arrow and a box of letters - and Material's only transcription of the idea
- *   is `find_replace`, a magnifier wrapped in a circular arrow. Drawn at 24dp in
- *   `evidence/p2x-5-replace-all/` it read as **refresh**, next to a query box whose own leading icon
+ *   is `find_replace`, a magnifier wrapped in a circular arrow. Drawn at 24dp it read as
+ *   **refresh**, next to a query box whose own leading icon
  *   is the magnifier it is built from. An action that rewrites files may not be drawn as the one
  *   glyph that means "do it again, harmlessly". Where [SearchOptionToggles] answered a missing
  *   codicon by drawing its letters, the answer for an action is the control Material gives

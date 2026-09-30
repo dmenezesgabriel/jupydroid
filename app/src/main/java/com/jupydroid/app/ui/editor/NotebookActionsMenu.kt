@@ -17,8 +17,8 @@ import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.CellKind
 
 /**
- * The notebook's overflow: everything the reference files under **View**, and - from P2j - under
- * **File** as well.
+ * The notebook's overflow: everything the reference files under **View**, and under **File** as
+ * well.
  *
  * **One overflow, two of the reference's menus**, which is the same adaptation [NotebookBar]
  * already makes and justifies for Run + Kernel: a phone's bar has room for one overflow, not two,
@@ -36,7 +36,7 @@ import com.jupydroid.app.domain.model.CellKind
  * Folding a section away asks the kernel nothing, and the reference files it under View for the
  * same reason.
  *
- * **And since P2r-2 it is a third thing: the toolbar's own popup opener.** JupyterLab's notebook
+ * **And it is a third thing: the toolbar's own popup opener.** JupyterLab's notebook
  * toolbar is a `ReactiveToolbar`, which *moves* an item too wide for the row into a popup rather
  * than dropping it (`packages/apputils/src/mainareawidget.ts:51`,
  * `packages/ui-components/src/components/toolbar.tsx:570-700`). Measured, the cell-type control
@@ -65,8 +65,8 @@ internal fun NotebookActionsMenu(
   tableOfContentsHeadings: List<TocHeading>,
   onTableOfContentsHeadingSelected: (String) -> Unit,
   /**
-   * How the overlay numbers what it lists - read-only here since P6c-2 moved the toggles that set
-   * it to `SettingsScreen`; this menu only ever displayed them, through [TableOfContentsPanel].
+   * How the overlay numbers what it lists - read-only here, because the toggles that set it live
+   * in `SettingsScreen`; this menu only ever displayed them, through [TableOfContentsPanel].
    */
   tocNumbering: TocNumbering,
   /** `toc:show-panel` where the shell has a side area - see [EditorTopBar]. Null where it has none. */

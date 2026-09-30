@@ -91,8 +91,8 @@ fun ExplorerScreen(
   onOpenFile: (WorkspaceEntry) -> Unit,
   onOpenRecent: (String) -> Unit = {},
   /**
-   * Opens the app-wide Settings screen - P6c-1's own reach point. This bar is the one chrome
-   * shown with no document open, so it is Settings' provisional home until P6d's Launcher exists;
+   * Opens the app-wide Settings screen. This bar is the one chrome shown with no document open, so
+   * it is Settings' provisional home;
    * `NotebookBackStack.kt`'s `openSettings` doc comment records why the rail is not it.
    */
   onOpenSettings: () -> Unit = {},
@@ -282,7 +282,7 @@ fun ExplorerScreen(
  * Re-lists while the screen is in front of someone, and stops when it is not.
  *
  * **The workspace is shared, so the listing goes stale without this app doing anything.** It is
- * the kernel's `HOME` since X1a, so a cell calling `open(..., 'w')` writes into the directory
+ * the kernel's `HOME`, so a cell calling `open(..., 'w')` writes into the directory
  * being browsed, and an editor writes the notebook a row names. The reference answers exactly this
  * with a poll: `FileBrowserModel` runs `cd('.')` on a `Poll` at `DEFAULT_REFRESH_INTERVAL = 10000`
  * with `standby: 'when-hidden'` (`packages/filebrowser/src/model.ts:26,97-106`). Its own
@@ -354,7 +354,7 @@ private fun EntryRow(
   val directory = entry.kind == WorkspaceEntryKind.DIRECTORY
   var menuOpen by remember { mutableStateOf(false) }
   // The same items the long press opens, in the local context menu TalkBack reads. A long press is
-  // not reachable by a screen reader at all, which U5e already paid to learn on the cell actions.
+  // not reachable by a screen reader at all, which the cell actions already paid to learn.
   val actions = remember(entry.path, onRename, onDelete) {
     listOf(
       CustomAccessibilityAction("Rename") {

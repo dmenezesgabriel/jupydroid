@@ -113,6 +113,11 @@ a deletion mid-sentence changes the sentence. A regex attempt at rewording produ
 `[Copy] is the same shape and has been already.` and was reverted; the safe mechanical shapes are
 trailing parentheticals and whole clauses delimited by `—` or `,`, and everything else is read.
 
+The baseline shrinks as the sweep proceeds, with one exception this decision has already hit: a
+pattern that could not read `P6b-0's` or `P5e-3/P5e-5` was hiding 199 citations, and fixing it
+re-listed 36 files that had looked clean. A gate learning to see more is not a regression, so the
+baseline header and `README.md` both say that widening re-baselines once.
+
 `git log -S '<symbol>'` becomes the way to find out when a line arrived, and `git log --all --grep`
 still finds the step codes in commit subjects, where they remain correct — a commit subject is
 immutable, which is exactly why the codes are allowed to survive there and nowhere else.

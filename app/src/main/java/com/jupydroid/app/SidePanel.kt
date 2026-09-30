@@ -96,7 +96,7 @@ internal fun SidePanel?.chosen(panel: SidePanel): SidePanel? = if (this == panel
 /**
  * The panels a **one-pane** window offers on its bottom bar, in the rail's own rank order.
  *
- * [SidePanel.TABLE_OF_CONTENTS] is deliberately absent, and P2o-4's own argument is why: Files is
+ * [SidePanel.TABLE_OF_CONTENTS] is deliberately absent, and the reason is what the bar is: Files is
  * a screen you navigate *to* and the table of contents is a surface over the document you are
  * already *in*, which is what `toc:show-panel` opens from the notebook's menu at this width
  * (`TableOfContentsPanel`). A destination for it would be a destination for something that has no

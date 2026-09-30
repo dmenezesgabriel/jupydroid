@@ -13,7 +13,7 @@ package com.jupydroid.app.terminal
  * (operations to buffer) behind a `Terminal` interface. That seam is taken here - [TerminalEmulator]
  * calls this and never touches [TerminalGrid] - **as a class rather than an interface**, because
  * nothing has a second implementation and no test drives a fake of it. Extracting the interface is
- * a rename away if P4j's type-ahead ever wants one.
+ * a rename away if anything ever wants one.
  *
  * **Three neighbours own the rest**, each split off here on detekt's `TooManyFunctions`:
  * [CharacterPlacement] writes one character, [EscapeDispatch] performs the `ESC` sequences, and

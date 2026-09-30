@@ -71,7 +71,7 @@ internal fun CellOutputs(
  * `Dp` here.
  *
  * `resize: vertical` is **not** built - a drag handle is not a touch idiom, and there is no
- * pointer to hover it into view with. Recorded as a departure in `docs/DECISIONS.md`.
+ * pointer to hover it into view with.
  */
 @Composable
 private fun ScrolledOutputs(rendered: List<RenderedOutput>, search: List<CellSearchHighlight>) {

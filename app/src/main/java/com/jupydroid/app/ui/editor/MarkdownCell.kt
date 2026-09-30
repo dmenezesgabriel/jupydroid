@@ -28,8 +28,8 @@ internal const val RENDERED_MARKDOWN = "Rendered markdown"
  * `packages/cells/src/widget.ts`). Tapping the rendered text opens the editor; running the cell
  * renders it again, which is what running a markdown cell means in Jupyter too.
  *
- * **Which of the two it is arrives as a parameter and is not remembered here**, and P2d-6 moved it
- * for a reason a screenshot found: a *range* run has to be able to close the editor
+ * **Which of the two it is arrives as a parameter and is not remembered here**, moved out for a
+ * reason a screenshot found: a *range* run has to be able to close the editor
  * (`Private.runCells` renders every markdown cell it is handed), and a flag only this composable
  * could see left an open editor open through a Run All. It is [EditorUiState.markdownBeingEdited]
  * now - see [MarkdownEditing].
@@ -73,7 +73,7 @@ fun MarkdownCell(
   search: CellSearchHighlight = CellSearchHighlight.NONE,
   /**
    * This cell's heading and whether it is folded, or null when it is not one - see [HeadingFold].
-   * Drawn **only while [rendered]**, which is P2v-2 - see the comment on the branch below.
+   * Drawn **only while [rendered]** - see the comment on the branch below.
    */
   fold: HeadingFold? = null,
   /** `notebook:toggle-heading-collapse`, asked for by the caret beside the heading. */

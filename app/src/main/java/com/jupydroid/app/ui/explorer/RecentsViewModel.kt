@@ -29,7 +29,7 @@ data class RecentsUiState(val documents: List<RecentDocument> = emptyList(), val
  * **Its own state holder because it is its own thing**, which is how the reference is arranged and
  * what [recentsSection] already says in as many words: recents belong to `docmanager` and are
  * surfaced from `mainmenu-extension`, never from `filebrowser`. Drawing the list inside the browser
- * is X2h's adaptation to a phone with no menu bar; letting the *browser's* state holder own it was
+ * is this app's adaptation to a phone with no menu bar; letting the *browser's* state holder own it was
  * the adaptation bleeding through, and detekt counting [ExplorerViewModel]'s functions is what said
  * so out loud.
  *

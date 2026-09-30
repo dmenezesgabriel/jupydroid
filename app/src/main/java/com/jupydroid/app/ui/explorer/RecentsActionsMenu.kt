@@ -20,7 +20,7 @@ import androidx.compose.runtime.setValue
  * **Behind a menu rather than beside the heading**, which is the reference's own arrangement: a
  * view pane's header carries its actions in a toolbar whose secondary half is a `…`
  * (`viewPane.ts:693`, `toolbar.ts:135`), and the header itself is the collapse rather than a
- * button among buttons (`paneview.ts:285-292`). Before P7c the heading's one control was a bare
+ * button among buttons (`paneview.ts:285-292`). The heading's one control used to be a bare
  * `Clear` icon, so the only thing a user could do to this section was destroy it.
  *
  * **Drawn only while the section is open** - every CSS rule that reveals a pane header's actions

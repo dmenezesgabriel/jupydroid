@@ -66,7 +66,7 @@ fun SearchOptionToggles(query: SearchQuery, onOptionChanged: (SearchQuery) -> Un
 /**
  * One option, on or off - the reference's `Toggle`, which marks *on* with a wash rather than a mark.
  *
- * **The wash is measured, not chosen, and since P7a-1b the role *is* this id.**
+ * **The wash is measured, not chosen, and the role *is* this id.**
  * `inputOption.activeBackground` / `activeForeground` resolve in the 2026 themes to
  * `#313233` / `#bfbfbf` dark and `#D6D6D6` / `#202020` light (`scripts/resolve_vscode_theme.py`),
  * and `secondaryContainer` / `onSecondaryContainer` now hold `#313233` / `#BBBEBF` and
@@ -76,8 +76,8 @@ fun SearchOptionToggles(query: SearchQuery, onOptionChanged: (SearchQuery) -> Un
  * It used to be a *fold*: the role was `list.inactiveSelectionBackground`, borrowed here because
  * the two ids measured 4/255 apart. The fold did not survive that id's alpha - light states it
  * `#DADADA99`, which paints `#E7E7E8` and would have made this wash translucent where the
- * reference draws it opaque, and 17/255 from the id this doc cites. `docs/DECISIONS.md` holds the
- * numbers and what retired the fold.
+ * reference draws it opaque, and 17/255 from the id this file cites. ADR-0042 is the rule that
+ * retired the fold.
  *
  * **And the wash is not the accessible state.** Android's tree keeps a toggled state on a node that
  * carries no label, so what says which way this is set is the label itself, flipped - the rule every
@@ -100,8 +100,8 @@ internal fun SearchOptionToggle(
       .size(MINIMUM_TAP_TARGET)
       // `Toggle`'s own rounding, at the scale a 48dp target is drawn rather than a 20px one:
       // `cornerRadius.large`, the step the reference reserves for *prominent* elements
-      // (`theme/CornerRadius.kt`). It reads as 8.dp either way - what changed in P7a-3 is that
-      // the number now says where it came from.
+      // (`theme/CornerRadius.kt`). It reads as 8.dp either way; the citation is what makes the
+      // number say where it came from.
       .clip(RoundedCornerShape(CornerRadius.large))
       .background(if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
       .clickable(onClick = onToggle)

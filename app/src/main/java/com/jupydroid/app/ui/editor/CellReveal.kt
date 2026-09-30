@@ -27,7 +27,7 @@ import com.jupydroid.app.domain.model.CellKind
  * One helper for both put a heading's `## Part A` on screen as an editor where the reader had asked
  * for a heading - green against every assertion, and the screenshot is what said otherwise.
  *
- * The parent-expanding half also corrects a reading recorded in P2h: the table of contents' jump
+ * The parent-expanding half also corrects an earlier reading: the table of contents' jump
  * treated a hidden heading as unreachable, on the grounds that the reference does not solve it
  * either. That citation says it does.
  *
@@ -70,8 +70,8 @@ fun EditorUiState.withCellRevealed(cellId: String): EditorUiState {
  * collapsed source, and its rendered prose.
  *
  * Only a search wants these. Both are about showing the reader the characters that matched, and a
- * match in this app is only ever drawn in a cell's source - see `docs/DECISIONS.md` for why
- * rendered prose is counted and not lit.
+ * match in this app is only ever drawn in a cell's source - ADR-0043 says why rendered prose is
+ * counted and not lit.
  *
  * ```
  * state.withMatchRevealed("c7")   // its section open, its source open, its prose unrendered
@@ -112,8 +112,8 @@ private fun EditorUiState.opening(cellId: String, folds: MatchFolds): EditorUiSt
     }
   },
   // Opened, and **not** asked to take the caret: a command that unrenders is not a tap asking to
-  // type in it, which is the distinction P2e-3 cost a soft keyboard over an untouched notebook to
-  // learn (`EditorUiState.markdownTakingCaret`).
+  // type in it, a distinction that cost a soft keyboard over an untouched notebook to learn
+  // (`EditorUiState.markdownTakingCaret`).
   markdownBeingEdited = if (folds.prose) markdownBeingEdited + cellId else markdownBeingEdited,
   // Which markdown cells are open is not the document's; both collapse flags are.
   dirty = dirty || folds.source || folds.outputs,

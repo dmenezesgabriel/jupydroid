@@ -19,9 +19,8 @@ import com.jupydroid.app.domain.model.TerminalFontSize
  * The terminal's overflow: `terminal:increase-font`/`terminal:decrease-font`
  * (`packages/terminal-extension/src/index.ts:64-66`), the only two commands the reference offers
  * for this surface, filed under its own Settings menu (`:342-349`) and the command palette. This
- * app has no Settings screen until P6c, so - [com.jupydroid.app.ui.editor.NotebookActionsMenu]'s
- * own precedent for exactly this situation - they sit on the terminal's own bar and move once
- * P6c lands.
+ * app has no Settings screen, so - [com.jupydroid.app.ui.editor.NotebookActionsMenu]'s own
+ * precedent for exactly this situation - they sit on the terminal's own bar.
  *
  * **A stepper, not a gesture.** Termux exposes the same setting through pinch-to-zoom
  * (`TermuxTerminalViewClient.onScale`), but no reference this app follows for its own *command

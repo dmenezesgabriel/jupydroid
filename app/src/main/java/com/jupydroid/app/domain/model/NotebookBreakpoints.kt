@@ -27,7 +27,7 @@ class NotebookBreakpoints {
 
   /**
    * Cells that have had a breakpoint at least once, kept even once [forCell] goes back to empty -
-   * P6a-10's own gate. debugpy keeps a line paused in its own memory until a `setBreakpoints` call
+   * debugpy keeps a line paused in its own memory until a `setBreakpoints` call
    * tells it otherwise; a cell this app never armed can carry no such stale state, but one that was
    * armed and then cleared can, so [NotebookDebugger][com.jupydroid.app.ui.editor.NotebookDebugger]
    * still owes it a clearing round trip even with nothing left in [forCell].

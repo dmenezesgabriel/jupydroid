@@ -142,7 +142,7 @@ private fun DocumentTopBar(
       KernelIndicator(
         status = state.kernelStatus,
         // The name goes where the row cannot afford it and the status glyph stays - see
-        // [labelsFitOnActionRow], and `docs/DECISIONS.md` for why that is the half kept.
+        // [labelsFitOnActionRow] for why the status is the half kept.
         nameShown = labelsFitOnActionRow(),
         kernelName = state.kernelDisplayName,
         onPickKernel = viewModel.kernel.picker::open,

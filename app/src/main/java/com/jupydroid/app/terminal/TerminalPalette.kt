@@ -91,7 +91,7 @@ class TerminalPalette(private val defaults: IntArray) {
      * identical for every palette, and only [ansi] and the three dynamic slots vary.
      *
      * **The dynamic slots (256-258) are [foreground]/[background]/[cursor], not [ansi]'s to
-     * answer.** [REFERENCE] passes its own placeholders; [VS_CODE_DARK]/[VS_CODE_LIGHT] pass P4i-2a's
+     * answer.** [REFERENCE] passes its own placeholders; [VS_CODE_DARK]/[VS_CODE_LIGHT] pass the
      * resolved values - see their own KDoc for the citation.
      */
     private fun defaultsWithAnsi(

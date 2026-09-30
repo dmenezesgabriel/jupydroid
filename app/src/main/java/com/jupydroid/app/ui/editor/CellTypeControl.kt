@@ -33,7 +33,7 @@ import com.jupydroid.app.domain.model.CellKind
  * (`packages/cell-toolbar-extension/schema/plugin.json`) - so the type is a fact about the
  * notebook's focus rather than a control on each cell.
  *
- * **It exists because P2n took away the thing that used to say this.** The words `markdown` and
+ * **It exists because the thing that used to say this was taken away.** The words `markdown` and
  * `raw` in a cell's prompt were this app's own; the reference draws no prompt on a non-code cell
  * at all (`packages/cells/src/widget.ts:1693-1700`), and removing them was right. This is where
  * the reference answers the question they were answering - see [executionLabel].
@@ -101,9 +101,8 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
  *
  * **No check mark on the current one**, which is this app's convention and it is load-bearing:
  * Android's accessibility tree keeps a `DropdownMenuItem`'s toggled state on a node carrying no
- * label, so a check is a state no Maestro flow can read (`docs/DECISIONS.md`, and see
- * [SHOW_LINE_NUMBERS]). The current type is on the trigger that opened this, which is where the
- * reference's select carries it too.
+ * label, so a check is a state no Maestro flow can read (and see [SHOW_LINE_NUMBERS]). The current
+ * type is on the trigger that opened this, which is where the reference's select carries it too.
  */
 @Composable
 internal fun CellTypePicker(expanded: Boolean, onDismiss: () -> Unit, onPick: (CellKind) -> Unit) {

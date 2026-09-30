@@ -6,7 +6,7 @@ internal enum class GutterPress { TOGGLE_BREAKPOINT, EDIT_CONDITION, SHOW_DIAGNO
 /**
  * The resolution a gutter press runs through, in order:
  *
- * 1. an **armed** line held long is the condition editor - P6a-16's contract, never yielded,
+ * 1. an **armed** line held long is the condition editor - never yielded,
  *    not even to a diagnostic mark drawn on the same line;
  * 2. a press on the **mark column** of a **diagnosed** line shows the detail - the square is
  *    the affordance, and VS Code's `markerHoverParticipant` answers the same content on hover

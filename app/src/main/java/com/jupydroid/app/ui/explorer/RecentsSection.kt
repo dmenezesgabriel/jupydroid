@@ -35,7 +35,7 @@ import com.jupydroid.app.ui.shell.MINIMUM_TAP_TARGET
  *
  * **Its own file because it is its own thing**, which is how the reference is arranged too:
  * recents belong to `docmanager` and are surfaced from `mainmenu-extension` and
- * `running-extension`, never from `filebrowser`. Putting the list inside the browser is X2h's
+ * `running-extension`, never from `filebrowser`. Putting the list inside the browser is this app's
  * adaptation - a phone has no menu bar to hang `File > Open Recent` on, and no second sidebar -
  * and keeping it in one file is what stops that adaptation bleeding through the listing.
  *

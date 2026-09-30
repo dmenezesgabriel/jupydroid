@@ -8,8 +8,8 @@ import com.jupydroid.app.domain.model.CellKind
  *
  * Split out of [CellActions] on detekt's `TooManyFunctions`, and detekt was pointing at a real
  * seam rather than at a count: the surface beside it draws *any* list of labelled things to do,
- * while this is the one list of cell actions - and P2c gave it a third caller
- * ([SelectionTopBar]'s overflow) with a different argument from the other two.
+ * while this is the one list of cell actions - and a third caller ([SelectionTopBar]'s overflow)
+ * passes a different argument from the other two.
  */
 
 /**
@@ -219,7 +219,7 @@ internal const val EXPAND_OUTPUTS = "Expand outputs"
 internal const val ENABLE_OUTPUT_SCROLLING = "Enable output scrolling"
 
 /**
- * P5e-3's row - what the surface asks the language server about the symbol under the caret.
+ * What the surface asks the language server about the symbol under the caret.
  * VS Code's own command is "Show or Focus Hover"; the phrase names what a user gets rather
  * than the protocol verb, which is also how JupyterLab's inspector names it ("Contextual Help").
  */

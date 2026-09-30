@@ -230,7 +230,7 @@ private fun WorkspaceSearchUiState.after(progress: SearchProgress): WorkspaceSea
  * `search.searchOnTypeDebouncePeriod`' registered default (`search.common.contribution.ts:29-32`).
  *
  * `search.searchOnType` itself is true by default and there is no setting screen to turn it off
- * until P6c, so typing is what runs a search here - the reference's own arrangement.
+ * anywhere, so typing is what runs a search here - the reference's own arrangement.
  */
 internal const val SEARCH_ON_TYPE_DEBOUNCE_MILLIS = 300L
 

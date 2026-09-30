@@ -72,7 +72,7 @@ internal object KernelDebugReplies {
 }
 
 // Kept at file scope, not as object members: KernelDebugReplies was already at detekt's
-// eleven-function cap (P6a-3a's own precedent for this file's neighbours), and a field reader
+// eleven-function cap, the same precedent this file's neighbours set, and a field reader
 // shared by every DAP body shape here is not specific to the reply-body reading it happens to serve.
 private fun JsonObject.string(key: String): String = get(key)?.jsonPrimitive?.content.orEmpty()
 

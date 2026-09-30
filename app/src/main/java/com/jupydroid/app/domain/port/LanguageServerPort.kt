@@ -271,7 +271,7 @@ interface LanguageServerPort {
   val diagnostics: SharedFlow<PublishDiagnostics>
 
   /**
-   * `shutdown` + `exit`, the process ended - P1's rule for a subprocess this app owns: it dies
+   * `shutdown` + `exit`, the process ended - the rule for a subprocess this app owns: it dies
    * with the Space, never outliving it. A [space] whose server never ran stops as a no-op.
    */
   suspend fun stop(space: Space)

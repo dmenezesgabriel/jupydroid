@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
  * starting `jupyter_server` and starting the kernel took fourteen seconds on the tablet before the
  * cell's first byte went anywhere. A count that only rises
  * when output starts arriving says "nothing is running" for exactly the stretch that is slowest to
- * lose - which is how P1c's backstop came to kill a cell it was written to protect.
+ * lose - which is how the idle backstop came to kill a cell it was written to protect.
  *
  * Owned by `AppContainer`, moved by `NotebookKernel`, read by `IdleServerStopper`.
  *

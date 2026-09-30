@@ -85,7 +85,7 @@ fun FileEditorScreen(
    * A search result this screen was opened from, to be landed on - `IEditorOptions.selection`,
    * which `searchView.open` builds from the match's own range (`searchView.ts:2240-2256`).
    *
-   * Null for every other way of opening a file, which is every way there was before P2x-3f.
+   * Null for every other way of opening a file, which is every way but a search result.
    */
   reveal: MatchedLine? = null,
   /** Consumed once, the way `browseRequest` is - see the `LaunchedEffect` below. */
@@ -138,14 +138,13 @@ fun FileEditorScreen(
     // `colorScheme.background`, which this app maps onto `editor.background` - the right colour
     // by way of a role that could be re-mapped, and `ColorSchemeTest` asserts only that a role
     // is *somewhere* on the ramp, never which position. VS Code separates a part's identity from
-    // a surface's elevation, and this is the document's own id (`docs/DECISIONS.md`, "The
-    // palette states its colours; it does not derive them from a Material role").
+    // a surface's elevation, and this is the document's own id (ADR-0042).
     containerColor = editorPalette.editorBackground,
     topBar = {
       // **The trail is all this screen's top carries** - `BreadcrumbsControl`'s own spot under a
       // tab title (`parts/editor/breadcrumbsControl.ts`), and the tab is what carries the name
       // and the close now, so there is no action row above it at all. Ancestors only, and
-      // **absent** rather than blank at the root - P2w-1's departures, argued in
+      // **absent** rather than blank at the root - both departures argued in
       // [ancestorCrumbsFor]. The status-bar insets are already consumed by the tab strip above
       // this pane (`MainAreaTabStrip`), so a crumbs-only Column needs none of its own.
       Column(modifier = Modifier.background(TopAppBarDefaults.topAppBarColors().containerColor)) {

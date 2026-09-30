@@ -66,7 +66,7 @@ fun RenameFileDialog(
     text = {
       // Refused, not rewritten. JupyterLab validates in this dialog and names the characters at
       // fault rather than turning `a/b` into `a-b` and handing back a notebook the user never
-      // named (`packages/docmanager/src/dialogs.ts`). Since X1b the name *is* the file, so an
+      // named (`packages/docmanager/src/dialogs.ts`). The name *is* the file here, so an
       // invalid one is not a matter of taste - the filesystem cannot store it.
       val refused = title.text.isNotBlank() && !isValidFileName(title.text)
       OutlinedTextField(

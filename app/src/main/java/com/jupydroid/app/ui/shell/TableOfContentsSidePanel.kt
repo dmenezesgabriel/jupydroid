@@ -44,8 +44,8 @@ import com.jupydroid.app.ui.editor.tocSomeExpanded
  * `NotebookActionsMenu` still shows where there is no side area: jumping twice costs two taps
  * rather than four, and the structure stays up while the document scrolls.
  *
- * **The same chrome as the panel beside it**, which is the question `docs/DECISIONS.md` left open
- * under P2q: a `Scaffold` and a `TopAppBar`, exactly as `ExplorerScreen`'s `FilesBar`. That is not
+ * **The same chrome as the panel beside it**: a `Scaffold` and a `TopAppBar`, exactly as
+ * `ExplorerScreen`'s `FilesBar`. That is not
  * only symmetry - the bar is also what pads the panel out of the status bar, and drawn as a bare
  * `Column` its header sat on top of the clock.
  *
@@ -132,8 +132,7 @@ private fun CollapseAllEntries(someExpanded: Boolean?, onToggleAllCollapsed: () 
 /**
  * The reference's own placeholder, in this app's sentence case: a headline and a line saying what
  * would fill the panel (`packages/toc/src/panel.ts:32-36`). The wording is deliberately about
- * *documents* rather than notebooks, because that is what the reference promises and what P5e
- * delivers for `.py` files.
+ * *documents* rather than notebooks, because that is what the reference promises.
  */
 @Composable
 private fun NoHeadingsPlaceholder(modifier: Modifier = Modifier) {

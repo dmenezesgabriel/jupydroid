@@ -20,7 +20,7 @@ import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.ExecutionStatus
 
 /**
- * The Console's own screen - P6b-9's first sub-step: [ConsoleTranscript] above, [ConsoleInputRow]
+ * The Console's own screen: [ConsoleTranscript] above, [ConsoleInputRow]
  * docked below, under a bar carrying only actions ([ConsoleActionsMenu]'s `Clear`) - the name
  * is the tab's now, the way the reference keeps no title panel under a tab strip.
  *
@@ -60,7 +60,7 @@ fun ConsoleScreen(
         // separate document type in VS Code's Interactive Window), so nothing here repeats it.
         title = {},
         // No navigation icon - leaving is the strip's own act, and the arrow there names the
-        // destination itself (`upDestinationLabel`), which is P6b-9d's fix carried up a level:
+        // destination itself (`upDestinationLabel`), which is the same fix carried up a level:
         // a bare "Back" label here kept reaching the system navigation bar's own button in
         // `uiautomator` dumps.
         actions = {

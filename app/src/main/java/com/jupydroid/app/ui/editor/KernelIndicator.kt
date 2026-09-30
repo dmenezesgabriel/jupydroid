@@ -154,7 +154,7 @@ private fun KernelStatusGlyph(status: KernelStatus) {
  * differs is which state *rests*: JupyterLab opens a session with the document and is practically
  * never here, while this app starts a kernel lazily and so shows this until something is run.
  * Filled beside four outlined glyphs it was the loudest thing in the row - measured off the frame -
- * and a resting state that reads as an alarm is the misread P2v-1 retired the filled play for.
+ * and a resting state that reads as an alarm is the misread that retired the filled play.
  *
  * A value rather than an inline argument so [KernelStatusGlyphTest] has something to pin: without
  * it, a departure back to the wrong weight is a one-token edit no gate would see. Same call

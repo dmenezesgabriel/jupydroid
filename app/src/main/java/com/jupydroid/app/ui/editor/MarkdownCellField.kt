@@ -93,7 +93,7 @@ fun MarkdownCellField(
   // half a tap. Invisible to the Compose tests, whose `performTextInput` focuses the node itself;
   // `a1-markdown` caught it.
   //
-  // **Conditional since P2e-3**, which gave this field a second way to appear. `changeCellType`
+  // **Conditional**, because this field has a second way to appear. `changeCellType`
   // unrenders every cell it visits (`actions.tsx:3308-3312`) and ends in command mode, so a run
   // changed to markdown composed several of these at once - each asking for the caret, one of them
   // winning it, and the soft keyboard up over a notebook nobody was typing in.
@@ -105,7 +105,7 @@ fun MarkdownCellField(
     // same way a code cell reads. Rendered prose sitting in a box would be wrong, so this is
     // here rather than around MarkdownCell.
     //
-    // Since P2m-2 it is literally the same panel: this wrote its own out of
+    // It is literally the same panel now: this wrote its own out of
     // `colorScheme.surfaceVariant` while the code and raw fields used `cellBackground` - one role,
     // two colours, and nothing that would have caught the divergence.
     modifier = modifier

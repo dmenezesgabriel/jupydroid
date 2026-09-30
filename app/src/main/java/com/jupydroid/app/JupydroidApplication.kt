@@ -81,7 +81,7 @@ class JupydroidApplication : Application() {
   }
 
   private fun buildContainer(): AppContainer {
-    // The launcher is built once and shared: the gateways start it and P1c's backstop stops it,
+    // The launcher is built once and shared: the gateways start it and the idle backstop stops it,
     // and two launchers would be two processes pretending to be one.
     val serverLauncher = baseSpaceServerLauncher(this)
     val space = SpaceBackedPorts(serverLauncher, this)

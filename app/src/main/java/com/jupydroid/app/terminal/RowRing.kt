@@ -24,7 +24,7 @@ internal class RowRing(val columns: Int, capacity: Int, screenRows: Int) {
 
   /**
    * The logical size of the ring - always `<= lines.size`. [resize] only ever narrows it; a resize
-   * that needs more slots than [lines] was allocated at is P4h-2's reflow, which reallocates.
+   * that needs more slots than [lines] was allocated at is [GridReflow]'s, which reallocates.
    */
   var totalRows: Int = capacity
     private set

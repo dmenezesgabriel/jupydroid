@@ -210,7 +210,7 @@ internal fun fileMatchLabel(path: String, matches: Int): String =
  * **In the label rather than as a level of the tree**, which is the reference's own presentation:
  * `searchResultsView.ts` has no notebook branch at all and the cell rides on `MatchInNotebook`'s
  * id (`notebookSearchModel.ts:35`). A third level would spend indentation on chrome that the code
- * needs, which is the call P2x-3 already made against `FolderMatchRenderer`'s folder level.
+ * needs, which is the same call already made against `FolderMatchRenderer`'s folder level.
  *
  * **One-based here where [MatchedLine.cell] is zero-based**, so it reads beside the line number it
  * is spoken with - the reference's own `rawCell#${index}` is an id and never a sentence.

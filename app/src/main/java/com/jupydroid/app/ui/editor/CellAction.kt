@@ -115,13 +115,12 @@ sealed interface CellAction {
    *
    * A [CellAction] although it edits nothing, because that is what carries it to all three
    * surfaces - the dropdown, the sheet and the cell's accessibility context menu - without a
-   * fourth code path. [Copy] is the same shape and has been since U5a.
+   * fourth code path. [Copy] is the same shape, for the same reason.
    */
   data object StartSelecting : CellAction
 
   /**
-   * Asks the language server what the symbol under the caret is - `docs/PLAN.md` P5e-3's
-   * "symbol info" affordance.
+   * Asks the language server what the symbol under the caret is - the "symbol info" affordance.
    *
    * A [CellAction] although it edits nothing, for [StartSelecting]'s reason: it is what carries
    * the row to the menu and the accessibility context menu alike. Answered by the surface that

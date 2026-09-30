@@ -23,7 +23,7 @@ data class ExplorerUiState(
   /**
    * The path a creation just made, until the listing has scrolled to it - or null.
    *
-   * A3's defect, on the surface X2h moved it to: a created row that lands below the fold makes the
+   * An older defect, on the surface it moved to: a created row that lands below the fold makes the
    * screen look unchanged. Home answered it by prepending and scrolling to the top; the browser
    * orders by name, so the row can land anywhere and the answer has to name it. The reference gets
    * there by a different route - `_createNew` hands its result to `rename()`, which selects and

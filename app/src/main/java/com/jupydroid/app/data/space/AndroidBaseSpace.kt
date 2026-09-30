@@ -69,7 +69,7 @@ fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher = JupyterSe
  *
  * **One per process, and shared by every client of the Space**, because
  * `JupyterServerLauncher.start` begins with `stop()` - see [BaseSpaceServer]. [launcher] is the
- * caller's for the same reason from the other side: P1c's backstop stops the process this starts.
+ * caller's for the same reason from the other side: the idle backstop stops what this starts.
  */
 fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpaceServer? {
   if (runCatching { deviceAbi() }.isFailure) return null

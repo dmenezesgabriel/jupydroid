@@ -87,7 +87,7 @@ class NotebookDebugger(
    *   [com.jupydroid.app.domain.port.StaleKernelSessionException] for a session that was never
    *   attached, and until this returned a value there was nothing stopping [NotebookCellRuns] from
    *   launching [watchForStop] anyway - crashing the app on every ordinary run, found on a tablet
-   *   in P6a-8's own Maestro run.
+   *   in a Maestro run.
    */
   suspend fun startSession(session: KernelSession, cell: Cell): Boolean {
     val armed = store.forCell(cell.id)
@@ -188,7 +188,7 @@ class NotebookDebugger(
 
   /**
    * A tap on a call-stack frame other than the top one, closing the gap [DebugStack]'s
-   * own doc named since P6a-8: re-chains `scopes -> variables` for [frameId] alone, replacing
+   * own doc had named: re-chains `scopes -> variables` for [frameId] alone, replacing
    * [EditorUiState.debugStack]'s groups and moving [EditorUiState.stoppedAt]'s line to that
    * frame's own line - JupyterLab's own callstack model does the same
    * (`packages/debugger/src/panels/callstack/model.ts`'s `set currentFrame`), since the gutter's

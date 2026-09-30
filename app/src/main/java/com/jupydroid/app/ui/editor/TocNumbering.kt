@@ -10,7 +10,7 @@ import com.jupydroid.app.domain.model.EditorSettings
  * (`packages/toc-extension/schema/registry.json:32-69`).
  *
  * `baseNumbering` and `maximalDepth` are settings there with **no command** and no surface here
- * yet - see `docs/DECISIONS.md` for what each would change and why neither is invented early.
+ * yet, and neither is invented early.
  */
 data class TocNumbering(val numberHeaders: Boolean = false, val numberingH1: Boolean = true)
 
@@ -67,7 +67,7 @@ private fun MutableList<Int>.prefixFor(level: Int, previousLevel: Int, numbering
     // for every other (`level === highestLevel ? baseNumbering : 1`, where `highestLevel` is 1 or
     // 2 depending on `numberingH1`). `baseNumbering` is a schema setting with **no command**, and
     // its default is 1 - so both arms are the same number here and only one is written. The
-    // distinction comes back with the setting, at P6c.
+    // distinction comes back if the setting ever does.
     setLevel(level - 1, 1)
   } else {
     setLevel(level - 1, getOrElse(level - 1) { 0 } + 1)

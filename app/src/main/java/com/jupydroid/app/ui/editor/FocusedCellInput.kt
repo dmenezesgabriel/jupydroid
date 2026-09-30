@@ -122,7 +122,7 @@ class FocusedCellInput {
  * Shared by both fields rather than written twice, and that is not tidiness: the markdown field
  * went without it, so the row sat above the keyboard in a markdown cell doing **nothing** - the
  * exact "a control that lights up and does not work" this codebase refuses elsewhere. It surfaced
- * because P2b's markdown flow drives a caret with `←`, and the split then cut at the end of the
+ * because a markdown flow drives a caret with `←`, and the split then cut at the end of the
  * text instead of where the flow had put it.
  *
  * Detach is guarded by identity inside [FocusedCellInput.detach], so a cell being left cannot

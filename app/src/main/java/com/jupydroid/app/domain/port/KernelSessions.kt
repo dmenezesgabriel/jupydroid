@@ -4,8 +4,8 @@ import kotlinx.coroutines.flow.SharedFlow
 
 /**
  * The server's session list, and this process's claim on it - `Session.IManager`'s `running()`
- * and `runningChanged` (`packages/services/src/session/manager.ts`) reduced to what P8f's panel
- * and P8f's "No Kernel" landing ask: what is running, what just ended.
+ * and `runningChanged` (`packages/services/src/session/manager.ts`) reduced to what the Running
+ * panel and the "No Kernel" landing ask: what is running, what just ended.
  *
  * The model is [KernelSessionModel]'s, the server's own: a session row names its kernel only
  * when one is attached, and ends by `DELETE api/sessions/<id>`, never by the client-side session

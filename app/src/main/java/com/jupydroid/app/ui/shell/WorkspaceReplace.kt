@@ -16,8 +16,8 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
  *
  * Two arms and not three, because the reference has two: `replaceAll` reports counts on success
  * (`searchView.ts:860-925`) and `_validateBeforePrepare` **throws** on a conflict rather than
- * prompting (`bulkTextEdits.ts:213-216`). An earlier draft of `docs/DECISIONS.md` guessed there was
- * a dialog; reading it said otherwise.
+ * prompting (`bulkTextEdits.ts:213-216`). An earlier reading of this assumed a dialog; the source
+ * says otherwise.
  */
 sealed interface ReplaceOutcome {
   /**
@@ -80,7 +80,7 @@ data class ReplaceUndo(val resources: List<ResourceEdits>)
  * messages: a replace refuses on `"has changed in the meantime"` (`bulkTextEdits.ts:216`) and an
  * undo on *"Could not undo '{0}' across all files because changes were made to {1}"*
  * (`undoRedoService.ts:858-869`). There is no redo here, because nothing asks for one -
- * `MultiModelEditStackElement` has one and P2x-5 does not.
+ * `MultiModelEditStackElement` has one and this does not.
  */
 sealed interface UndoOutcome {
   /** Every resource was put back. */
@@ -126,7 +126,7 @@ class WorkspaceReplace(
   /**
    * Replaces every match in [files] - **the matches already on screen**, never a query re-run.
    *
-   * That distinction is the whole of P2x-1e: a replace that took a query and searched again could
+   * That distinction is the point: a replace that took a query and searched again could
    * rewrite a file against matches nobody saw.
    */
   suspend fun replaceAll(

@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.dp
  * **`cornerRadius.circle` (9999px, `:110-112`) is not here.** It is CSS's way of spelling a shape
  * Compose names outright - `androidx.compose.foundation.shape.CircleShape` - so transcribing it
  * would add a `9999.dp` val no consumer could legitimately draw, which is exactly the field
- * `scripts/check_palette_consumers.py` refuses for a colour and exactly what P7a-1's "two fields,
- * not six" refused for a palette. `CornerRadiusTest` asserts the absence rather than trusting this
+ * `scripts/check_palette_consumers.py` refuses for a colour and exactly what "two fields, not
+ * six" refused for a palette. `CornerRadiusTest` asserts the absence rather than trusting this
  * paragraph.
  *
  * ```

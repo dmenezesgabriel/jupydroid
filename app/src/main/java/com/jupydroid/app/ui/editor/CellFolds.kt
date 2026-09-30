@@ -6,7 +6,7 @@ import com.jupydroid.app.domain.model.CellKind
 /**
  * Folding a cell's halves away, as pure functions over [EditorUiState].
  *
- * Split out of [CellEdits] on detekt's `TooManyFunctions` when P2d-4 added the second clear, and
+ * Split out of [CellEdits] on detekt's `TooManyFunctions` when the second clear arrived, and
  * the count was pointing at a seam that was already there: **a fold discards nothing.** Every
  * other transform next door changes which cells the notebook has, what they say, or what results
  * they carry; these two change only what is drawn, and they are the only ones whose state

@@ -153,8 +153,8 @@ internal class NotebookCellRuns(
    * Returns whether the cell finished without raising, which is what [runAllCells] gates on.
    *
    * The whole of it counts as a run in flight, **opening the kernel included**: on a cold app that
-   * is the Space installing, the server starting and the kernel starting, and P1c's backstop must
-   * not read "nothing is running" through the slowest part of a run.
+   * is the Space installing, the server starting and the kernel starting, and the idle backstop
+   * must not read "nothing is running" through the slowest part of a run.
    */
   private suspend fun execute(cell: Cell): Boolean = activeCellRuns.whileRunning { run(cell) }
 
@@ -194,7 +194,7 @@ internal class NotebookCellRuns(
    * [NotebookDebugger.watchForStop] to watch - `BaseSpaceKernelDebugger.events` throws
    * `StaleKernelSessionException` for a session that was never attached, uncaught inside the
    * coroutine [scope] launches, which crashed the app on every ordinary run before this guard
-   * (found on a tablet, P6a-8's own Maestro run).
+   * (found on a tablet, in a Maestro run).
    */
   private fun eventsFor(cell: Cell): Flow<KernelEvent> = flow {
     emitAll(

@@ -52,7 +52,7 @@ internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onOpen
  * The reference offers the same three from the filebrowser toolbar's New widget and then renames
  * the result in place (`browser.ts:_createNew` -> `rename()`). Ours lands the creation in the
  * browsed directory under the server's own `untitled{ext}` name and leaves the rename to the row's
- * own menu, which X2f gave it - one way to name a thing rather than a second one that only new
+ * own menu - one way to name a thing rather than a second one that only new
  * files can reach.
  */
 @Composable

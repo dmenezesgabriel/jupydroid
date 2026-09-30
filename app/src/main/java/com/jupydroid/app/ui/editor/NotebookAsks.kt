@@ -8,8 +8,7 @@ import kotlinx.coroutines.flow.update
 
 /**
  * The notebook's position-asks - completion while typing, the "Symbol info" hover, the
- * signature of the call the caret is inside, and where that symbol is defined -
- * `docs/PLAN.md` P5d/P5e-3/P5e-4/P5e-5.
+ * signature of the call the caret is inside, and where that symbol is defined.
  *
  * They read as one surface for the same reason [NotebookKernel.history] is its own object:
  * both are a cell's question about an offset, answered through the same session gate and the

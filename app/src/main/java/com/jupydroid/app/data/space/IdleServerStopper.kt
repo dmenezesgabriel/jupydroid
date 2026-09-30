@@ -10,7 +10,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
 
 /**
- * P1c's decision half: when the app is left, the server should stop - but a backgrounded
+ * The decision half: when the app is left, the server should stop - but a backgrounded
  * computation must be allowed to finish, and a live terminal must be treated exactly the same way.
  *
  * [onAppStopped] starts (or restarts) the countdown and [onAppStarted] cancels it, so briefly

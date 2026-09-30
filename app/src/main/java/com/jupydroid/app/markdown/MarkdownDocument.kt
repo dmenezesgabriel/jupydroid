@@ -53,7 +53,7 @@ object MarkdownDocument {
    * (`packages/markedparser-extension/src/index.ts:268-298`): a heading inside a blockquote or a
    * list item is not the cell's heading.
    *
-   * Exposed as the whole block, not only its level, because P2h's table of contents needs the
+   * Exposed as the whole block, not only its level, because the table of contents needs the
    * winning heading's text too - one reduce, read by both [headingLevel] and the ToC builder,
    * rather than the tie rule implemented twice.
    *

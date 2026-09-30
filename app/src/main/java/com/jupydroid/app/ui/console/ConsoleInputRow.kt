@@ -50,9 +50,8 @@ const val CONSOLE_INPUT_FIELD_TAG = "console-input-field"
  * measures - the caller's modifier reaches the [androidx.compose.foundation.text.BasicTextField]
  * three layers down, not the node `RowScope.weight` reads parent data from, so a weight passed
  * straight through was silently inert: the field measured to its own intrinsic (near-zero, empty)
- * width and every pixel past it sat unclaimed between the caret and Run - visible already in
- * `evidence/p6b-9d-console-shares-kernel/05-console-shares-the-kernel.png`, taken before this row
- * existed to explain it. [cellEditorBox] is the same border,
+ * width and every pixel past it sat unclaimed between the caret and Run - visible in a screenshot
+ * taken before this row existed to explain it. [cellEditorBox] is the same border,
  * background and padding the notebook's own cell editor draws (`CellEditorBox.kt`), which an
  * unstyled `BasicTextField` drew none of - together the two are why the field was reachable but
  * invisible.

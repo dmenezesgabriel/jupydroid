@@ -14,13 +14,13 @@ import com.jupydroid.app.theme.editorPalette
  * The panel a cell's source is typed into: its surface, the line around it and the clearance
  * inside it.
  *
- * **The border is drawn whether or not the cell is active**, which is the half of P2m this app
- * did not have: `.jp-InputArea-editor` carries `1px solid var(--jp-cell-editor-border-color)`
+ * **The border is drawn whether or not the cell is active**, which is the half this app did not
+ * have: `.jp-InputArea-editor` carries `1px solid var(--jp-cell-editor-border-color)`
  * unconditionally (`packages/cells/style/inputarea.css:18-26`), and the cell being typed into
  * swaps that colour for `--jp-cell-editor-active-border-color`, which is the brand colour
- * (`packages/notebook/style/base.css:160-164`). With the collapser transparent at rest since
- * P2m-1, this is now the *only* thing that says where a cell's editor ends - which is the
- * reference's own arrangement and why the two rows are one phase.
+ * (`packages/notebook/style/base.css:160-164`). With the collapser transparent at rest, this is
+ * the *only* thing that says where a cell's editor ends, which is the reference's own
+ * arrangement.
  *
  * **One factory rather than three call sites**, which is the other half. The code and raw fields
  * each spelled this out in [EditorCell] and the markdown field wrote its own using
@@ -43,7 +43,7 @@ import com.jupydroid.app.theme.editorPalette
  *
  * `Modifier.border` strokes *inside* the layout bounds, so this adds no space and the content
  * sits where `.background().padding()` alone put it - asserted by `CellEditorBoxTest`, because
- * the gutter's x is P2n's subject and must not move here.
+ * the gutter's x is settled elsewhere and must not move here.
  *
  * ```
  * CodeCellField(state = state, modifier = Modifier.fillMaxWidth().cellEditorBox(editing))

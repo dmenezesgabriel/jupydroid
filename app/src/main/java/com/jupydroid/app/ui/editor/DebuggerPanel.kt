@@ -92,8 +92,8 @@ private val SHEET_ELEVATION = 3.dp
  * and a value is drawn in [codeTextStyle], the same monospace this app already reserves for
  * anything that is source rather than prose.
  *
- * **A compound variable expands on tap**, closing the Open risks entry
- * `docs/PLAN.md` named for exactly this: [DebugVariable.variablesReference] was already fetched
+ * **A compound variable expands on tap**, closing a gap that was recorded and left open:
+ * [DebugVariable.variablesReference] was already fetched
  * from the kernel on every reply and then discarded. [onExpand] is [NotebookDebugger.expand] -
  * this composable owns no session of its own, so it asks the debugger for one instead of trying
  * to keep one.

@@ -21,11 +21,11 @@ data class CellStripe(val width: Dp, val color: Color)
  * answers *"where does this cell end"* with the input area's own border - `1px solid` at rest,
  * brand colour plus a box-shadow in edit mode (`packages/cells/style/inputarea.css:18-26`,
  * `base.css:160-164`) - and not with a mark in the gutter. This app drew the opposite in both
- * halves until P2m; what the reversal cost is `docs/DECISIONS.md`.
+ * halves once; ADR-0053 carries what the reversal cost.
  *
  * The colour rule is therefore JupyterLab's while the widths stay IntelliJ's - 4dp command, 2dp
  * edit, from `DefaultNotebookEditorAppearanceSizes`, copied rather than scaled. **That hybrid is
- * deliberate and is named as one** in `docs/DECISIONS.md`: a stripe is a marker and nobody taps
+ * deliberate** (ADR-0053): a stripe is a marker and nobody taps
  * it, so the 48dp minimum that governs every button beside it does not apply, and the reference's
  * own 8px collapser is sized to be clicked.
  *

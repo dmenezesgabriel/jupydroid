@@ -11,7 +11,7 @@ import com.jupydroid.app.richtext.plainText
  *
  * Its own file rather than a corner of [CellFolds], because the two fold different things: those
  * two hide a half of *one* cell and are a fact about that cell, while this hides the cells a
- * heading is above and is a fact about the document's structure. P2h's table of contents reads the
+ * heading is above and is a fact about the document's structure. The table of contents reads the
  * same structure, which is the other reason it is not buried in a cell-shaped file.
  *
  * **What is hidden is derived, never stored.** The reference stores it on each widget and then
@@ -128,7 +128,7 @@ val EditorUiState.hiddenCellIds: Set<String>
  * The cells a `LazyColumn` actually composes, in draw order - every cell but the hidden ones.
  *
  * [EditorContent] applies this same filter to build its list; pulled out here so a scroll-to-cell
- * index (P2h-2's click-to-jump) reads one definition instead of a second copy of it.
+ * index (the table of contents' click-to-jump) reads one definition instead of a second copy.
  */
 val EditorUiState.cellsOnScreen: List<Cell>
   get() = cells.filterNot { it.id in hiddenCellIds }

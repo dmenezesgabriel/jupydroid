@@ -52,8 +52,8 @@ internal fun EditorUiState.recording(before: EditorUiState): EditorUiState {
  * cell, and without this its undo would take the new fragment away and leave the original holding
  * only the half below the caret - the text above it gone, with nothing left to undo. Derived from
  * the before/after diff rather than declared per action, which is Yjs's shape too: a transaction
- * records the delta it made, not the document it made it to. So P2i's find-and-replace gets this
- * for nothing and cannot forget to ask for it.
+ * records the delta it made, not the document it made it to. So find-and-replace gets this for
+ * nothing and cannot forget to ask for it.
  */
 private fun EditorUiState.sourcesRewrittenFrom(before: EditorUiState): Set<String> {
   val was = before.cells.associate { it.id to it.source }

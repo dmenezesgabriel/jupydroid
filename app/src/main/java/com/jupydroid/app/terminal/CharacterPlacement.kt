@@ -7,7 +7,7 @@ package com.jupydroid.app.terminal
  * Transcribed from `TerminalEmulator.emitCodePoint` (termux-app
  * `3df69d1da197dd9bd71a3bafd902dffd720576b4`, Apache 2.0 - see [TerminalGrid]).
  *
- * **Split out of [TerminalScreen] on detekt's `TooManyFunctions` at P4f-3a**, and detekt was
+ * **Split out of [TerminalScreen] on detekt's `TooManyFunctions`**, and detekt was
  * pointing at a real seam: these five functions exist only for each other - nothing but [write]
  * calls any of them - while every other operation on a screen is one a control character or an
  * escape sequence asks for by name.

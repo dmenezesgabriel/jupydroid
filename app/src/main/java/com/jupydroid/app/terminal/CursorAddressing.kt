@@ -7,7 +7,7 @@ package com.jupydroid.app.terminal
  * Transcribed from the cursor arms of `TerminalEmulator.doCsi` (termux-app
  * `3df69d1da197dd9bd71a3bafd902dffd720576b4`, Apache 2.0 - see [TerminalGrid]). A class of its own
  * because `doCsi` is 327 lines and detekt's `LongMethod` is 20: the final bytes arrive in groups,
- * and each group gets the applier that owns it - this one, and P4f-3c's for the erases and edits.
+ * and each group gets the applier that owns it - this one, and [ScreenEditing] for the erases.
  *
  * **Six of these respect origin mode** - CUP, HVP, CNL, CPL, HPA and VPR all go through
  * [TerminalCursor.moveWithinMargins], whose effective margins are the scrolling region when DECOM

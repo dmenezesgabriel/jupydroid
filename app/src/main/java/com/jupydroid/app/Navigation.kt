@@ -296,7 +296,7 @@ fun MainNavigation(
   // collapse to the bar alone. An earlier plan row said "the left edge of the list pane"; reading the
   // shell corrected it.
   //
-  // Only where there is room for two panes: the bar on a compact window is P2o-4's, and a rail
+  // Only where there is room for two panes: a compact window gets the bar instead, and a rail
   // there would spend a quarter of a 320dp screen on chrome.
   Row(modifier = Modifier.fillMaxSize()) {
     if (twoPane) {

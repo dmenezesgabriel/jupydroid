@@ -23,7 +23,7 @@ import com.jupydroid.app.theme.Spacing
 /**
  * An ancestry, scrolling sideways rather than eliding, with every segment a target.
  *
- * Two surfaces draw one of these since P2w-1 - the file browser, standing in a directory, and the
+ * Two surfaces draw one of these - the file browser, standing in a directory, and the
  * open document, saying which folder it lives in - so it is one composable rather than two that
  * would drift. What differs between them is where it sits and whether it collapses, which is the
  * caller's [modifier], not this.

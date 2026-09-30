@@ -55,7 +55,7 @@ internal fun CellFrame(
         // Anchored on its left edge, so narrowing it in edit mode widens the gap instead of
         // moving the line - the content never shifts either way.
         //
-        // Skipped when there is nothing to draw, which since P2m is every cell that is neither
+        // Skipped when there is nothing to draw, which is every cell that is neither
         // active nor failed - the same guard [tint] takes above, rather than a transparent rect
         // blended over the page once per cell per frame. The gutter's *width* is reserved by
         // [STRIPE_LEFT] whatever is drawn in it.

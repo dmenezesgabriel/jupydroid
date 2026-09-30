@@ -71,7 +71,7 @@ class NotebookDocument(
    * `ReplaceService.createEdits` addresses a notebook match through `match.cell?.uri`
    * (`replaceService.ts:206-214`), and a cell does have a URI of its own there (`CellUri.parse`), so
    * this is the reference's arrangement and not a convenience. The index is the one a
-   * `MatchedLine` carries, and P2x-4a's reason for an index rather than an id holds here too.
+   * `MatchedLine` carries, and the reason for an index rather than an id holds here too.
    *
    * Null answers two different questions the same way, and both are refusals the engine wants: a
    * request for the file itself, which this document does not have, and a cell the notebook no

@@ -147,8 +147,8 @@ fun CodeCellField(
   // The code a popup was already answered for, so accepting or dismissing one does not
   // immediately re-offer against the very text it just produced.
   var settled by remember { mutableStateOf<String?>(null) }
-  // The line whose diagnostic mark was pressed, whose findings the detail popup lists -
-  // `docs/PLAN.md` P5e-1. Derived visibility: when a republish leaves the line with no
+  // The line whose diagnostic mark was pressed, whose findings the detail popup lists.
+  // Derived visibility: when a republish leaves the line with no
   // findings, there is nothing left to show and the popup goes on its own.
   var detailLine by remember { mutableStateOf<Int?>(null) }
   // The hover the last "Symbol info" ask returned. Null rather than stale on a miss:
@@ -284,7 +284,7 @@ fun CodeCellField(
  *
  * [TextLayoutResult.getCursorRect] answers in the text's own coordinates, which start at the
  * gutter's right edge rather than at the cell's left - and, once [scrollOffsetPx] is nonzero
- * (`docs/PLAN.md` P6c-5, `wrapEnabled = false`), further right than where the code is actually
+ * (`wrapEnabled = false`), further right than where the code is actually
  * drawn on screen.
  */
 @Composable

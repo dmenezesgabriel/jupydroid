@@ -16,7 +16,7 @@ import com.jupydroid.app.theme.Spacing
  * What the notebook's body says when it is not drawing cells, and the one thing it says **over**
  * them.
  *
- * Split out of `EditorScreen.kt` when P2x-5b's banner took that file past the 500-line gate, and
+ * Split out of `EditorScreen.kt` when the replace banner took that file past the 500-line gate, and
  * along a real seam rather than an arbitrary one: these three are the document area's *messages*,
  * and none of them knows anything about a cell, a kernel or a toolbar.
  *

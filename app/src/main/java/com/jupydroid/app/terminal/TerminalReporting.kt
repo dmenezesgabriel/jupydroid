@@ -15,7 +15,7 @@ package com.jupydroid.app.terminal
  * `3df69d1d`, Apache 2.0 - see [TerminalGrid]).
  *
  * **DECRQM's `47`/`1047`/`1049` arm reads which buffer is live** rather than a mode flag, because
- * none of the three has one - so this needed P4f-4b's second screen before it could answer.
+ * none of the three has one - so this needed [ScreenBuffers]' second screen before it could answer.
  *
  * ```
  * TerminalReporting(screen, replies, 13, 15).apply('n'.code, parameters)   // CSI 6 n -> CSI y;x R

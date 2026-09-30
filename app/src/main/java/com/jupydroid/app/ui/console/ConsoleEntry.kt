@@ -14,7 +14,7 @@ import com.jupydroid.app.ui.editor.ExecutionStatus
  * transcript model belongs beside the other screens' models. An ordered transcript is a plain
  * `List<ConsoleEntry>`; nothing yet needs a wrapper around one.
  *
- * [id] and [executionCount] are P6b-4's own additions, named after `Cell.id`/`Cell.executionCount`
+ * [id] and [executionCount] are named after `Cell.id`/`Cell.executionCount`
  * exactly: `KernelGateway.execute` correlates streamed events by an id the same way it does for a
  * cell, and the kernel's own count (`KernelEvent.ExecutionCount`) is what the prompt shows once it
  * arrives - not the entry's position in the list, which is what [ConsoleTranscript] showed before

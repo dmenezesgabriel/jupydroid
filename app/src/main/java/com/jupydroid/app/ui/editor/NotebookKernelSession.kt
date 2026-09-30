@@ -15,8 +15,8 @@ import com.jupydroid.app.domain.port.StaleKernelSessionException
  * The session a notebook holds: the one it has, and the one it gets when that server is gone.
  *
  * Split out of [NotebookKernel] for the reason that class was split out of `EditorViewModel` -
- * detekt counted the functions and the answer is the object that wants to exist. Since P1c there
- * is one: the app stops its own server when it is left alone, so "which session is this notebook
+ * detekt counted the functions and the answer is the object that wants to exist. There is one
+ * because the app stops its own server when it is left alone, so "which session is this notebook
  * on" stopped being a field and became a question with an answer that can change underfoot.
  *
  * ```
@@ -39,7 +39,7 @@ class NotebookKernelSession(
    *
    * Reported from here rather than by each caller because this is the one object that sees every
    * arrival and every departure: an [open], a [forget], and the drop [reopeningIfStale] makes when
-   * a server stopped by P1c refuses a session. A caller-by-caller report would miss that last one,
+   * a server stopped by the idle backstop refuses a session. A caller-by-caller report would miss that last one,
    * which is precisely the case where the notebook would go on claiming a kernel it has lost.
    *
    * **Declared before [documentPath] despite being the defaulted one**, so the path stays the
@@ -81,8 +81,8 @@ class NotebookKernelSession(
    */
   kernelPreference: KernelPreference? = null,
   /**
-   * Read when a session is opened rather than captured, because since X1b the notebook's id *is*
-   * its path and a rename moves it.
+   * Read when a session is opened rather than captured, because the notebook's id *is* its path
+   * and a rename moves it.
    */
   private val documentPath: () -> String,
 ) {
@@ -183,8 +183,8 @@ class NotebookKernelSession(
    * Runs [use] against the open session, opening a fresh one and trying once more if the session
    * belonged to a server that has since stopped.
    *
-   * **P1c stopped that server on the app's own policy, so the app brings it back rather than
-   * reporting it.** The reference has no equivalent: nothing there stops a server behind the
+   * **The app stopped that server on its own policy, so it brings it back rather than reporting
+   * it.** The reference has no equivalent: nothing there stops a server behind the
    * client, so a dead kernel is always news and `SessionContext` displays its error
    * (`packages/apputils/src/sessioncontext.tsx:1167`). Exactly one retry - a second refusal is a
    * real failure and belongs to the caller.

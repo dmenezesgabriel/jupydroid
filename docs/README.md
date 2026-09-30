@@ -74,7 +74,9 @@ upstream project at a **pinned SHA** · a published spec or upstream issue URL �
 `reference/…` path.
 
 `scripts/check_doc_citations.py` is the gate. `scripts/doc-citations-baseline.txt` lists the files
-still carrying legacy citations; it only ever shrinks, and no file may be added to it.
+still carrying legacy citations; it only ever shrinks, and no file may be added to it by writing a
+new citation. Widening one of the gate's own patterns is the exception — it re-baselines once, and
+the commit that widens it says how many files that added.
 
 **A comment that already carries a banned citation loses it rather than trading it for another id**
 — the fact stays, the attribution goes, and `git log -S '<symbol>'` is how you find out when a line

@@ -29,7 +29,7 @@ import com.jupydroid.app.ui.ancestorCrumbsFor
  *
  * **The document's name is not here - the tab owns it.** In tabbed mode the reference shows no
  * title panel at all: `#jp-title-panel` exists only in `single-document` mode
- * (`packages/application/src/shell.ts:690-705`), which P8e does not run - the name, the dirty
+ * (`packages/application/src/shell.ts:690-705`), which this app does not run - the name, the dirty
  * dot and the rename affordance all live on the `lm-TabBar-tab` now, where
  * `[data-type="document-title"]` puts them (`docmanager-extension/src/index.tsx:122`). What this
  * bar keeps is what the reference's toolbar keeps: the actions and the kind of cell the caret is

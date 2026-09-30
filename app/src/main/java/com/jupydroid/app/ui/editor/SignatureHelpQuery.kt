@@ -13,7 +13,7 @@ data class SignatureHelpQuery(val code: String, val cursorOffset: Int)
  * While the hints are hidden only a *typed* trigger char asks - `onTypeHint` checks the last
  * char of the inserted text, which is why [typedChar] rides beside the caret rather than
  * being read off the code: `join(path, |` asks only if the comma, not the space, was just
- * typed. pylsp's measured `triggerCharacters` are `(`, `,`, `=` (the P5e-0 probe's capture).
+ * typed. pylsp's measured `triggerCharacters` are `(`, `,`, `=` (`LspSurfaceProbeTest`).
  * Once the model is triggered - a request in flight or the hints already up, `isTriggered`
  * covering both - `onModelContentChange` retriggers on every content change and
  * `onCursorChange` on a caret move. [armed] is that state, and either way the caret
@@ -36,5 +36,5 @@ fun signatureHelpQueryAt(
   return if (asks && insideUnclosedParen(code, cursor, spans)) SignatureHelpQuery(code, cursor) else null
 }
 
-/** pylsp's advertised `triggerCharacters` - measured on device by the P5e-0 probe. */
+/** pylsp's advertised `triggerCharacters` - measured on device by `LspSurfaceProbeTest`. */
 private val TRIGGER_CHARS = setOf('(', ',', '=')

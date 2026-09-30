@@ -39,7 +39,7 @@ import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.codeTextStyle
 
 /**
- * `workbench.view.search` - the workspace searched, where P2i's find bar searches one document.
+ * `workbench.view.search` - the workspace searched, where the find bar searches one document.
  *
  * The box, then whatever the last finished walk has to say, then what it found grouped by file.
  * VS Code answers for **both** halves of this panel: JupyterLab registers no workspace search at
@@ -166,15 +166,15 @@ private fun LazyListScope.settledMessages(state: WorkspaceSearchUiState) {
     return
   }
   item { PanelMessage(resultCountMessage(state.results.sumOf { it.matches.size }, state.results.size)) }
-  // **The cap drawn rather than silent**, which is the thing P2x-3 exists to fix: the walk stops at
-  // `search.maxResults` and until now nothing said so.
+  // **The cap drawn rather than silent**: the walk stops at `search.maxResults`, and a silent cap
+  // is a wrong answer that looks like a complete one.
   if (state.limitHit) item { PanelMessage(RESULTS_ARE_A_SUBSET) }
 }
 
 /**
  * One line above the tree - a `.message` in the search view's messages element.
  *
- * `internal` rather than private since P2x-5h, because [SearchReplaceReport] draws into the same
+ * `internal` rather than private, because [SearchReplaceReport] draws into the same
  * slot: the reference appends both into `this.messagesElement`, and only one of them is ever in it.
  */
 @Composable
@@ -239,7 +239,7 @@ internal fun resultCountMessage(results: Int, files: Int): String {
  *
  * The reference says *"Review your configured exclusions and check your gitignore files"* and puts
  * an *Open Settings* button beside it. This app has neither a settings screen nor gitignore
- * support - P6c is where the first arrives - so advice pointing at neither would be advice nobody
+ * support, so advice pointing at neither would be advice nobody
  * can act on. Named here rather than left to look like the whole string.
  */
 internal const val NO_RESULTS_FOUND = "No results found"

@@ -21,7 +21,7 @@ import com.jupydroid.app.ui.editor.executionLabel
  * transcript-cell type either - it reuses a full `CodeCell` per entry.
  *
  * `executionLabel`'s count is [ConsoleEntry.executionCount] - the kernel's own count, not the
- * entry's position in [entries]. P6b-4 is what gave `ConsoleEntry` that field to read.
+ * entry's position in [entries].
  *
  * ```kotlin
  * ConsoleTranscript(listOf(ConsoleEntry("e1", "1 + 1", listOf(CellOutput.Stream(STDOUT, "2\n")), STOPPED_OK, 1)))

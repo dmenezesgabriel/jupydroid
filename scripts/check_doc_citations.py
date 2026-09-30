@@ -58,7 +58,10 @@ SCANNED = (
 #: Each pattern with the reason it is banned, which the failure message prints.
 BANNED: tuple[tuple[re.Pattern[str], str], ...] = (
     (
-        re.compile(r"\bP\d[a-z]?(?:-\d+[a-z]?)*\b(?=[\s,.;:)\]]|$)"),
+        # The boundary excludes `-` so a longer code is never matched by its prefix, and excludes
+        # word characters so `HTTP1` and `CP437` stay prose. Anything else ends a code: a possessive
+        # `P6b-0's` and a run of `P5e-3/P5e-5` each hid citations from this gate until it read them.
+        re.compile(r"\bP\d[a-z]?(?:-\d+[a-z]?)*(?![\w-])"),
         "a plan step code - retired, and its numbering was never stable",
     ),
     (re.compile(r"\bStep \d+(?:\.\d+)?[a-z]?\b"), "a plan step code"),

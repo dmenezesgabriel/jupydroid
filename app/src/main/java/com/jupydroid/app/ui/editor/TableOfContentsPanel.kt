@@ -34,8 +34,8 @@ import com.jupydroid.app.theme.Spacing
  * [CellActionPresentation] rather than inventing a second width rule for the same picker shape.
  *
  * `packages/toc-extension/src/index.ts:161-172` just activates the reference's own sidebar tab.
- * This is the **narrow** adaptation of it, for a window with no side area to activate: since P2o-2
- * a shell that has one draws `TableOfContentsSidePanel` there instead, which is the reference's own
+ * This is the **narrow** adaptation of it, for a window with no side area to activate: a shell
+ * that has one draws `TableOfContentsSidePanel` there instead, which is the reference's own
  * persistent shape, and `onShowTableOfContentsPanel` is what picks between the two.
  *
  * Every entry is drawn, indented by level and never folded: `toc:toggle-collapse` belongs to the
@@ -140,7 +140,7 @@ internal fun TableOfContentsRows(
  * reasoning one rank along: this is a tree node's disclosure and the row itself stays put.
  *
  * **Its own control inside the row, so a tap on it is not a pick.** The name goes on the button
- * rather than on the icon for the reason P2b cost a flow - and names the entry, since a screen
+ * rather than on the icon for the reason a flow already cost us - and names the entry, since a screen
  * reader meets one of these per row.
  */
 @Composable

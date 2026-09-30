@@ -4,7 +4,7 @@ package com.jupydroid.app.domain.port
  * The session belongs to a server that is no longer running, so nothing can be asked of it.
  *
  * Its own type because the caller can resolve this one: it connects again and runs the cell,
- * which is what P1c's backstop makes an ordinary event rather than a fault - the app stops the
+ * which is what the idle backstop makes an ordinary event rather than a fault - the app stops the
  * server when it is left alone, and the next run brings one back.
  *
  * An `IllegalStateException`, like [FileNameTakenException], so a caller that only knows the

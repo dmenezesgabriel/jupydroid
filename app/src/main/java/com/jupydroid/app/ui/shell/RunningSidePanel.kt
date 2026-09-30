@@ -381,7 +381,7 @@ private const val OPEN_TABS_SECTION = "Open Tabs"
 /**
  * The reference's section name is `Kernels` (`kernels.tsx:272`) because it lists *kernels* grouped
  * by spec - which needs `GET api/kernels`, not in the contract. These rows are sessions, and
- * `docs/PLAN.md` names the section after them.
+ * so the section is named after sessions.
  */
 private const val KERNEL_SESSIONS_SECTION = "Kernel Sessions"
 

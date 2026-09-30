@@ -39,20 +39,20 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * The cell size is [terminalCellMetrics]'s real device measurement. [onGridSizeChanged] reports how
  * many whole cells this composable's own measured area holds - through a
  * `BoxWithConstraints` rather than a self-sized `Box`, since the grid this now draws is driven by
- * the container's real size instead of dictating it. **The IME genuinely shrinks it now -
- * 3b**: `imePadding()` sits on this composable's own `BoxWithConstraints`, the
+ * the container's real size instead of dictating it. **The IME genuinely shrinks it now**:
+ * `imePadding()` sits on this composable's own `BoxWithConstraints`, the
  * same rule `TerminalExtraKeysRow`/`SymbolRow`/`NotebookBar` each already follow (their own inset,
  * not an ancestor's or a sibling's) - so a keyboard opening is just another size change, read by
  * the same [LaunchedEffect] that already answers a rotation, the way Termux's own
  * `TerminalView.onSizeChanged` -> `updateSize()` treats every size change alike.
- * P4i-3a's own compensation - adding the IME's bottom inset back before computing the grid - answered
+ * An earlier compensation - adding the IME's bottom inset back before computing the grid - answered
  * a `Column` layout this file no longer has: `TerminalCanvas` and the input field were a weighted
  * `Column`, so the field's own `imePadding` shrank its `weight(1f)` sibling's incoming constraints
- * too (`docs/DECISIONS.md`, "`imePadding` on a shared ancestor pulls a sibling's own height budget
- * negative"). P4j-1 replaced that `Column` with a `Box` - independent overlapping siblings, where
+ * too: `imePadding` on a shared ancestor pulls a sibling's own height budget negative. A `Box`
+ * replaced that `Column` - independent overlapping siblings, where
  * one child's own `imePadding` shrinks only its own layout - so the compensation was left cancelling
  * out a squeeze that could no longer reach it, measured actually inflating the grid past what the
- * pty had ever been told (`docs/DECISIONS.md`'s own P4j-3b entry).
+ * pty had ever been told.
  *
  * **The analogy two paragraphs up was wrong, and it shipped a doubled IME inset.** This
  * composable is `TerminalPaneScreen`'s *content*, not a bottom bar - `TerminalExtraKeysRow` is the
@@ -76,7 +76,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * accident.** `Canvas` carries no semantics of its own, so a screen reader - and every existing
  * test/Maestro flow built against `onNodeWithText` before this sub-step - would otherwise find
  * nothing here at all. `color = Color.Transparent` keeps the pixels the `Canvas` alone draws;
- * P4i-1's own reason for one node per row rather than one blob - a screen reader must not read a
+ * The reason for one node per row rather than one blob - a screen reader must not read a
  * whole screenful as one utterance - applies exactly as it did before this replaced `Text`s that
  * were themselves visible.
  *

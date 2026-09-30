@@ -176,7 +176,7 @@ internal const val SELECTED_CELL_ACTIONS = "Selected cell actions"
  * Distinct from the cell header's "Run cell" for the same reason, and the difference is real: this
  * runs the whole marked run, that one runs its own cell.
  *
- * **Three icons on this bar and not four**, which is what P2c measured: a navigation icon plus four
+ * **Three icons on this bar and not four**, and it was measured: a navigation icon plus four
  * actions is 240dp of 360 and wrapped the count to three lines. Three leaves 168dp for a count that
  * needs about 70.
  */

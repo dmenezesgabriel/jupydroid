@@ -21,19 +21,19 @@ enum class EditorBottomBar {
  * Typing wants the characters a touch keyboard lacks and a notebook being read wants the kernel;
  * showing both would stack two bars over a keyboard that already owns half the screen.
  *
- * **A marked run gets neither, and P2d-3 is what made that necessary.** [SelectionTopBar]'s Run
+ * **A marked run gets neither, and a screenshot is what made that necessary.** [SelectionTopBar]'s Run
  * acts on the marked run while [NotebookBar]'s acts on every cell - two bare `PlayArrow` triangles
  * on one screen, one above the other at 320dp. Dropping the
- * kernel bar is P2c's own rule followed through: *one* surface acts on the run, which is already
+ * kernel bar follows the same rule through: *one* surface acts on the run, which is already
  * why the cell's `⋮` is hidden while that bar is up. Nothing the kernel bar offers is what somebody
  * picking cells is doing, and every one of them is a tap on `✕` away.
  *
  * **A notebook being searched gets neither either, for the same two reasons and one measured
  * one.** [FindTopBar] is what a search acts through, nothing the kernel bar offers is what
  * somebody looking for a word is doing - and the find box holds the caret while the notebook is
- * in *command* mode, which is a state nothing before P2i could reach. Without this branch a
+ * in *command* mode, which is a state nothing before the find bar could reach. Without this branch a
  * 320dp-tall landscape phone stacks a find bar, a kernel bar and the soft keyboard over the cell
- * list and `Scaffold` resolves the overflow by giving it zero height, which is the U6 defect
+ * list and `Scaffold` resolves the overflow by giving it zero height, which is that defect
  * exactly (and [editorTopBarVisible] for its other half).
  *
  * **A paused kernel beats all three.** Unlike marking or searching, which the user chose

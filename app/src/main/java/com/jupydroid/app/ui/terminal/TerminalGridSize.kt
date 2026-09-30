@@ -2,7 +2,7 @@ package com.jupydroid.app.ui.terminal
 
 import androidx.compose.ui.unit.IntSize
 
-/** Below this, `TerminalEmulator.resize` itself throws (P4h-3's own `< 2` guard). */
+/** Below this, `TerminalEmulator.resize` itself throws (its own `< 2` guard). */
 private const val MINIMUM_CELLS = 2
 
 /**

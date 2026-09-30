@@ -3,7 +3,7 @@ package com.jupydroid.app.ui.editor
 /**
  * Which markdown cells are showing their source, as pure functions over [EditorUiState].
  *
- * **This used to be `rememberSaveable` inside the cell**, and P2d-6 moved it because a run has to
+ * **This used to be `rememberSaveable` inside the cell**, and it moved because a run has to
  * be able to change it: `Private.runCells` is handed every widget and decides per cell what running
  * one means, which for markdown is `rendered = true` (`packages/notebook/src/cellexecutor.ts`).
  * State only the composable could see left an open markdown editor open through a Run All, and no

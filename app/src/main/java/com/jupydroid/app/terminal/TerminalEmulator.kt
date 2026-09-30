@@ -58,7 +58,7 @@ class TerminalEmulator(
 
   /**
    * The public entry point. [cellWidthPixels]/[cellHeightPixels] default to "unchanged" - a plain
-   * columns/rows resize (P4h-3's own shape) must not reset what a caller already reported, so
+   * columns/rows resize must not reset what a caller already reported, so
    * both are read together or not at all, mirroring the reference's own
    * `resize(columns, rows, cellWidthPixels, cellHeightPixels)` - it never means "reset one and
    * leave the other," since a caller that has measured a cell always has both.

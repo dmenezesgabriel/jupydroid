@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
  * **Terminate reuses [Icons.Filled.Stop]**, the same glyph [NotebookBar]'s own Interrupt already
  * draws - JupyterLab's own `terminate` command takes `stopIcon` too
  * (`debugger.ts:150`/`index.ts:1258`). **Never disabled by [stepping]**: it is the escape hatch
- * for a request stuck in flight - P6a-10's own tablet reproduction needed exactly this (a kernel
+ * for a request stuck in flight - a tablet reproduction needed exactly this (a kernel
  * restart) to get free of a debug session Interrupt alone could not touch, so the one control
  * meant to work when everything else is stuck cannot be the one still waiting on it.
  *

@@ -20,9 +20,9 @@ import androidx.compose.ui.semantics.semantics
  * The chevron that folds a heading's section away, drawn **beside the heading it folds** - and
  * only while that heading is rendered.
  *
- * **Rendered only is P2v-2's, and it departs from the reference.** JupyterLab's prompt node carries
+ * **Rendered only, which departs from the reference.** JupyterLab's prompt node carries
  * the caret in both states: `InputArea` builds it once and hides only the *editor* when the cell
- * renders (`packages/cells/src/inputarea.ts:53-56,111-119`), which P2n-3 transcribed. Composing it
+ * renders (`packages/cells/src/inputarea.ts:53-56,111-119`), transcribed here once. Composing it
  * beside an open source costs 48dp of the editor's width - measured, 80dp against 32dp
  * (`MarkdownCellTest.anOpenHeadingsSourceStartsWhereProseDoes`) - for an affordance nobody can use
  * mid-typing, since folding the section would close what is being written. ADR-0057 carries the
@@ -37,9 +37,8 @@ import androidx.compose.ui.semantics.semantics
  * 25px caret keeps to the heading's **first line** as the heading shrinks: at `h1`'s 29px in a
  * ~43px line box that is an icon centre of 21.2px against a line centre of 21.5px.
  *
- * This app drew it in its own header strip instead - a row above the heading, beside the Run
- * control, with nothing connecting it to what it folds
- * (before P2n-3).
+ * This app drew it in its own header strip once - a row above the heading, beside the Run control,
+ * with nothing connecting it to what it folds.
  *
  * **IntelliJ is empty for this and it was checked**, so nobody searches it again: everything under
  * `notebooks/` that collapses collapses *outputs* (`CollapsingComponent`,
@@ -52,7 +51,7 @@ import androidx.compose.ui.semantics.semantics
  * open. `ExpandLess`/`ExpandMore` would claim the cell itself folds, and the cell is exactly what
  * stays on screen.
  *
- * **The name goes on the button, not on the icon inside it** - the rule a flow cost us in P2b:
+ * **The name goes on the button, not on the icon inside it** - a rule a flow already cost us:
  * `contentDescription` on the `Icon` lands on a child node, so the label and the state would be
  * one level apart. And it names what a tap will *do*, as every other control here does.
  *

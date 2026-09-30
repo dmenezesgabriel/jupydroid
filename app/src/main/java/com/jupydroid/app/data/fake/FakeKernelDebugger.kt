@@ -27,8 +27,7 @@ class FakeKernelDebugger : KernelDebugger {
 
   /**
    * A path per distinct [code], the same property ipykernel's own hash-named file has - but
-   * content-keyed rather than hashed, since matching the real Murmur2 name is P6a-5's job, not
-   * this fake's.
+   * content-keyed rather than hashed, since matching the real Murmur2 name is not this fake's job.
    */
   override suspend fun dumpCell(session: KernelSession, code: String): String =
     dumpedPaths.getOrPut(code) { "/fake/debug-cells/cell-${dumpedPaths.size}.py" }
@@ -46,7 +45,7 @@ class FakeKernelDebugger : KernelDebugger {
     return breakpoints.map { VerifiedBreakpoint(line = it.line, verified = true) }
   }
 
-  /** Scripted per test; the default is the single-frame stack every P6a-6/7b test already asserts against. */
+  /** Scripted per test; the default is the single-frame stack the debugger's tests assert against. */
   var stackFramesToReturn: List<DebugStackFrame> =
     listOf(DebugStackFrame(id = 1, name = "<module>", line = 1, column = 1))
 

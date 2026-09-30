@@ -2,7 +2,7 @@ package com.jupydroid.app.domain.model
 
 /**
  * A breakpoint set on one line of a cell's source, kept in memory rather than in the notebook -
- * JupyterLab's own `DebuggerModel`, not `.ipynb`. A cell has no debug session until P6a-7a's
+ * JupyterLab's own `DebuggerModel`, not `.ipynb`. A cell has no debug session until the debug
  * handshake runs, so [verified] is `false` and [codeId] is `null` for every breakpoint this app
  * can create today; both are filled in once `KernelDebugger.setBreakpoints` answers for real.
  *

@@ -423,7 +423,7 @@ internal const val REPLACE_VERBATIM = "Replace verbatim"
  *
  * **Narrower than the reference's**, and stated in the label rather than hidden: this searches the
  * outputs it can also *show* a match in - stream, stderr, a traceback and `text/plain` - where the
- * reference walks its rendered DOM and so reaches a table's text too. See `docs/DECISIONS.md`.
+ * reference walks its rendered DOM and so reaches a table's text too (ADR-0043).
  */
 internal const val SEARCH_CELL_OUTPUTS = "Search cell outputs"
 

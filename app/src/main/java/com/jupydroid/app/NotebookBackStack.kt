@@ -135,7 +135,7 @@ fun List<NavKey>.mainAreaIsEmpty(): Boolean = none { it.isDocument() }
 fun List<NavKey>.launcherIsClosable(): Boolean = count { it.isDocument() } > 1
 
 /**
- * The main area's open-or-activate, which is the whole of P8d's model: `shell.add(widget, 'main')`
+ * The main area's open-or-activate, which is the whole model: `shell.add(widget, 'main')`
  * when the document is not already open, `shell.activateById` when it is - and activate *is* a
  * move to the top of this stack, since the top entry is the one the scene draws. There is no sweep:
  * everything beneath stays open the way a tab stays open.

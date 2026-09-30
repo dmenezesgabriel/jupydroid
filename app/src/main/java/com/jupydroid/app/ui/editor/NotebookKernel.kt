@@ -79,7 +79,7 @@ class NotebookKernel(
    */
   private val formattingOptions: () -> LanguageFormatOptions = { IndentUnit.SPACES_4.formattingOptions() },
   /**
-   * The Space's language server - P5c's completion source, asked before the kernel and lazily
+   * The Space's language server - the completion source, asked before the kernel and lazily
    * spawned by the port on the first ask. Faked where no Space can run, as [kernelGateway] is.
    */
   private val languageServer: LanguageServerPort = FakeLanguageServerPort(),
@@ -202,8 +202,8 @@ class NotebookKernel(
    * `console:inject`'s own contract (`console-extension/src/index.ts:1294-1338`): find the session
    * already tracked for this path and hand it over, never call `connect` a second time. A fresh
    * [NotebookKernelSession] rather than [session] itself, because a Console lives in its own
-   * `ViewModelStore` entry - [attachedTo] is what lets its own copy skip the connect P6b-1 built it
-   * to skip, without the two screens sharing one mutable object across two independent lifecycles.
+   * `ViewModelStore` entry - [attachedTo] is what lets its own copy skip the connect it exists to
+   * skip, without the two screens sharing one mutable object across two independent lifecycles.
    * `null` when this notebook has never opened a kernel of its own yet - the returned session then
    * behaves exactly like a fresh one, and opens on whichever of the two runs something first.
    */

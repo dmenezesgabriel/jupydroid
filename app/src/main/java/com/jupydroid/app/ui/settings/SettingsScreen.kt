@@ -42,8 +42,8 @@ import kotlinx.coroutines.launch
 const val SETTINGS_SCREEN_TAG = "settings_screen"
 
 /**
- * The app-wide Settings screen - P6c-2's own six rows, every persisted [EditorSettings] toggle
- * that used to sit in `NotebookActionsMenu`'s View menu, plus P6c-3's theme row.
+ * The app-wide Settings screen - six rows, every persisted [EditorSettings] toggle that used to
+ * sit in `NotebookActionsMenu`'s View menu, plus the theme row.
  *
  * **A `Switch` per row, not the View menu's flip-label text.** That convention existed because a
  * `DropdownMenuItem`'s toggled state carries no accessible label

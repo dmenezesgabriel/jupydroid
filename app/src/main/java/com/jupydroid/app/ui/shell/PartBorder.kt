@@ -69,6 +69,6 @@ internal fun Modifier.topBorder(colour: Color, thickness: Dp = STROKE_THICKNESS)
  *
  * **Not the same number as `CellEditorBox`'s `BORDER_WIDTH`**, which is JupyterLab's
  * `--jp-border-width` and happens to measure the same. Two references, two citations: this file
- * draws chrome and that one draws a document (`docs/DECISIONS.md`, the P2t split).
+ * draws chrome and that one draws a document (ADR-0040).
  */
 private val STROKE_THICKNESS = 1.dp

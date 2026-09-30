@@ -69,7 +69,7 @@ fun EditorUiState.searchHits(
  * **Only what [RenderedOutput.Text] draws**: stream, stderr, a traceback and `text/plain`. The
  * reference searches its *rendered DOM*, so a table's text is searchable there; here markup and
  * tables become `RichBlock`s rather than one string, and a match counted in one could not be shown.
- * See `docs/DECISIONS.md` - an uncounted match is better than a counted one nobody can see.
+ * ADR-0043: an uncounted match is better than a counted one nobody can see.
  *
  * Indexed against the **rendered** list rather than the raw outputs, because that is what
  * [CellOutputs] draws and so what a highlight has to line up with.

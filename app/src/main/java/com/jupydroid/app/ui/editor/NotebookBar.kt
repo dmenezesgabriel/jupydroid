@@ -34,7 +34,7 @@ import androidx.compose.ui.Modifier
  * reference keeps them - the Kernel menu (`packages/mainmenu-extension/src/index.ts:690`,
  * `kernelUsers.shutdownKernel`), never the notebook toolbar - and a fifth and sixth icon on a
  * phone's bottom bar is where the thumb stops being able to tell them apart. The menu itself is
- * [KernelMenu], which since P2w-2b lives next door because it has a second anchor.
+ * [KernelMenu], which lives next door because it has a second anchor.
  *
  * ```
  * NotebookBar(busy = state.runningCellId != null, notebookTitle = state.title, …)
@@ -68,7 +68,7 @@ internal fun NotebookBar(
       // **A stop square, which is what the reference draws**: `createInterruptButton` takes
       // `stopIcon` (`apputils/src/toolbar/widget.tsx:50`) and that icon is `M6 6h12v12H6z`
       // (`ui-components/style/icons/toolbar/stop.svg`) - a filled square, never a cross. This drew
-      // `Icons.Filled.Clear` until P7d, which was a parity gap on its own and became an ambiguity
+      // `Icons.Filled.Clear` once, which was a parity gap on its own and became an ambiguity
       // the moment a *second* cross appeared on the same screen: the document close that sat in the
       // navigation slot before the tab strip took it over shared the glyph, so one cross meant both
       // "stop what the kernel is doing" and "close this document".
@@ -121,7 +121,7 @@ internal fun NotebookBar(
  *
  * This was a `Refresh` and a `PlayArrow` drawn side by side while `material-icons-extended` was
  * not a dependency - an invention that read plausibly and was not what a JupyterLab user sees.
- * X2a added the dependency; reading the reference settled which icon it should have been.
+ * The dependency arrived later; reading the reference settled which icon it should have been.
  */
 @Composable
 private fun RestartAndRunAllIcon() {

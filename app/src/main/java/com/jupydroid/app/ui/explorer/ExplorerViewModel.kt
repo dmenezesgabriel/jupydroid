@@ -92,7 +92,7 @@ class ExplorerViewModel(
     // listings used to be able to be in flight at once - `refresh` re-listing what was on screen
     // while a `goTo` was on its way somewhere else - and whichever finished last wrote the state.
     // Cancelling settles the order, and [browsing] is what stops a poll launched in between from
-    // re-listing the directory we are leaving. Found on the tablet, where P2w-1's breadcrumb is
+    // re-listing the directory we are leaving. Found on the tablet, where the breadcrumb is
     // the first thing that navigates this browser from outside it;
     // `aListingAlreadyInFlightDoesNotOverwriteWhereWeJustWent`
     // is the pin.
@@ -148,7 +148,7 @@ class ExplorerViewModel(
   /**
    * Lists the current directory again.
    *
-   * The workspace is **shared** - the kernel's `HOME` since X1a - so what is on screen goes stale
+   * The workspace is **shared** - it is the kernel's `HOME` - so what is on screen goes stale
    * without anything here doing wrong: an editor writes the notebook the browser is showing, an
    * import lands a file, a cell writes beside its own notebook. The reference keeps its browser
    * fresh with a poll (`FileBrowserModel`, `DEFAULT_REFRESH_INTERVAL = 10000`,

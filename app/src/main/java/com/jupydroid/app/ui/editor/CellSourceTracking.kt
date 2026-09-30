@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.drop
  * is not tidiness: a cell owns *one* text state however it is being shown,
  * while the field over it is composed, disposed and *replaced* - a change of type swaps
  * [CodeCellField] for [MarkdownCellField] over the same state. Both halves used to live in the
- * field, and P2f-3 is what proved that wrong: `change-cell-to-heading` is the first command that
+ * field, and `change-cell-to-heading` is what proved that wrong: it is the first command that
  * rewrites a cell's source **and** changes its type, so the new field's counter was seeded already
  * up to date and adopted nothing. The model held `## title`, the chevron said so, and the editor
  * showed the text from before.

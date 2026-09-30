@@ -22,13 +22,13 @@ data class DebugStop(val cellId: String, val line: Int, val threadId: Int)
  * other scope's - `Locals` and `Globals` can each hold a variable named the same thing, and
  * flattening them into one list would lose which is which. Mirrors JupyterLab's own
  * already-resolved `IScope { name, variables }` shape (`packages/debugger/src/tokens.ts:352-365`),
- * without that reference's interactive scope switcher: P6a's own phone-scoped surface renders
+ * without that reference's interactive scope switcher: this app's phone-scoped surface renders
  * every group at once instead.
  */
 data class DebugVariableGroup(val scope: String, val variables: List<DebugVariable>)
 
 /**
- * What P6a-8's panel renders for a stop: every frame of the call stack, and one frame's variables,
+ * What the debugger panel renders for a stop: every frame of the call stack, and one frame's variables,
  * grouped by scope.
  *
  * **A fresh stop resolves the top frame's variables** - [NotebookDebugger.watchForStop] chains

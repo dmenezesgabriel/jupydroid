@@ -35,9 +35,9 @@ internal fun EditorContent(
   onSetCondition: (cellId: String, line: Int, condition: String?) -> Unit,
   /** `(cellId, code, cursorOffset)` - the cell keys the language server's document. */
   completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
-  /** `(cellId, code, cursorOffset)` - the "Symbol info" ask, P5e-3 - see [EditorCell]. */
+  /** `(cellId, code, cursorOffset)` - the "Symbol info" ask - see [EditorCell]. */
   hoverAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageHover?,
-  /** `(cellId, code, cursorOffset)` - the signature-help ask, P5e-4 - see [EditorCell]. */
+  /** `(cellId, code, cursorOffset)` - the signature-help ask - see [EditorCell]. */
   signatureHelpAt: suspend (cellId: String, code: String, cursorOffset: Int) -> LanguageSignatureHelp?,
   onCellAction: (String, CellAction, CellEditorText) -> Unit,
   onCellFocusChanged: (String, Boolean) -> Unit,
@@ -48,7 +48,7 @@ internal fun EditorContent(
   autoClosingBrackets: Boolean,
   /** `indentUnit` - the level a `:` line adds; see [EditorSettings.indentUnit]. */
   indentUnit: IndentUnit,
-  /** `notebook:toggle-all-cell-line-numbers` - app-wide and persisted since P6c-2. */
+  /** `notebook:toggle-all-cell-line-numbers` - app-wide and persisted. */
   lineNumbersShown: Boolean,
   /** App-wide and persisted, see [codeSourceStyle]. */
   codeFontSizeSp: Int,
@@ -60,7 +60,7 @@ internal fun EditorContent(
   tocNumbering: TocNumbering,
   /** Every heading in the notebook, numbered as one document - see [tableOfContentsHeadings]. */
   tocHeadings: List<TocHeading>,
-  /** Hoisted so P2h-2's click-to-jump can drive the same list a tap in the table of contents. */
+  /** Hoisted so the table of contents' click-to-jump drives the same list a tap does. */
   listState: LazyListState,
   /** Told once a landing field took its caret - `NotebookCellEdits.caretLanded` wired through. */
   onCaretLanded: () -> Unit,

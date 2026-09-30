@@ -119,8 +119,7 @@ fun TerminalPaneScreen(
     // `colorScheme.background`, which this app maps onto `editor.background` - the right colour
     // by way of a role that could be re-mapped, and `ColorSchemeTest` asserts only that a role
     // is *somewhere* on the ramp, never which position. VS Code separates a part's identity from
-    // a surface's elevation, and this is the document's own id (`docs/DECISIONS.md`, "The
-    // palette states its colours; it does not derive them from a Material role").
+    // a surface's elevation, and this is the document's own id (ADR-0042).
     containerColor = editorPalette.editorBackground,
     topBar = {
       TerminalBar(
@@ -217,8 +216,8 @@ fun TerminalBar(fontSizeSp: Int, onIncreaseFontSize: () -> Unit, onDecreaseFontS
 }
 
 /**
- * Attaches while the screen is at least visible, and cancels the moment it is not
- * P4i-3b. `ExplorerScreen.KeepTheListingFresh` is this codebase's own precedent for a
+ * Attaches while the screen is at least visible, and cancels the moment it is not.
+ * `ExplorerScreen.KeepTheListingFresh` is this codebase's own precedent for a
  * lifecycle-gated collection, but on `STARTED` here rather than its `RESUMED`, a deliberate
  * departure: `RESUMED` is right for a periodic poll that should skip a wakeup nobody is
  * interactively looking at, and it pauses on a transient partial-obscure too (a permission dialog,
@@ -295,8 +294,8 @@ private val invisibleDecorator = TextFieldDecorator { }
  * Printable characters and Enter go through [onTypedText] via [reportTerminalKeystroke] - the
  * soft keyboard's own text, subject to `TerminalPaneViewModel.typeCharacters`'s tapped Ctrl/Alt
  * latch. A hardware arrow key or Ctrl+letter is intercepted first and
- * sent through [terminalKeystroke] to [onEncodedKey] instead, verbatim - 2,
- * the encoder P4j-1's own KDoc deferred. [applicationCursorKeys] is read fresh on every key rather
+ * sent through [terminalKeystroke] to [onEncodedKey] instead, verbatim, through the encoder
+ * [TerminalKeyEncoding] holds. [applicationCursorKeys] is read fresh on every key rather
  * than once at composition, since a shell can flip DECCKM at any time (entering `vi` does).
  *
  * The two callbacks are not interchangeable: [onEncodedKey] carries bytes that are already a
@@ -305,10 +304,10 @@ private val invisibleDecorator = TextFieldDecorator { }
  * sequence through a Ctrl/Alt latch one character at a time would corrupt it.
  *
  * Sized to fill the terminal area it sits over ([TerminalPaneScreen]'s `Box`), not a strip below
- * it - 1, closing the gap P4i-3a's own commit named: typing went into a
- * floating box first, not after the `$` a user is looking at. [invisibleDecorator] is what makes
- * that safe: the field still owns real focus/IME/selection state, it just paints nothing, so a tap
- * anywhere in the terminal is a tap on this field.
+ * it, which closes a gap that had typing going into a floating box first, not after the `$` a user
+ * is looking at. [invisibleDecorator] is what makes that safe: the field still owns real
+ * focus/IME/selection state, it just paints nothing, so a tap anywhere in the terminal is a tap on
+ * this field.
  *
  * Focused the moment this screen is on it, the way a real terminal is the instant it has the
  * window - `RenameFileDialog`'s own reason applies here too: without it the first keystroke goes
@@ -402,7 +401,7 @@ internal fun reportTerminalKeystroke(
  * What one field edit means on the wire: delete back to the longest common prefix of [from] and
  * [to] - one DEL (`\u007F`, the byte most shells' `stty erase` answers to) per character removed -
  * then type whatever [to] adds past that prefix. A pure append sends no DELs and a pure deletion
- * sends no text, so the two easy cases fall out of the one rule; the case P4j-1 left unsent - an
+ * sends no text, so the two easy cases fall out of the one rule; the case that used to go unsent - an
  * edit that rewrites a token mid-line - is now a delete-and-retype rather than a silent drop that
  * drifts the field and the shell apart (where a
  * Samsung IME's quote-completion was measured doing exactly that). [TerminalInputField] also asks

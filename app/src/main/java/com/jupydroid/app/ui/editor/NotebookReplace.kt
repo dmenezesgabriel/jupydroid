@@ -48,8 +48,7 @@ fun EditorUiState.withPreserveCase(preserve: Boolean): EditorUiState =
  *
  * Undoable, and it costs nothing to be: `recording` derives the rewritten cells from the diff and
  * bumps [EditorUiState.sourceRevisions] with them, which is what tells the cell's field its text
- * changed underneath it. `docs/DECISIONS.md` wrote that rule for Split and named this as its next
- * user.
+ * changed underneath it. That rule was written for Split, and this is its second user.
  */
 fun EditorUiState.withCurrentMatchReplaced(): EditorUiState {
   val searching = search ?: return this
@@ -97,7 +96,7 @@ fun EditorUiState.withAllMatchesReplaced(): EditorUiState {
 /**
  * One cell's source with every one of its matches replaced, keeping the text between them.
  *
- * **The fold itself is [withEditsApplied]'s**, not this file's. P2x-5a moved it to `domain/model`
+ * **The fold itself is [withEditsApplied]'s**, not this file's. It lives in `domain/model`
  * because a workspace replace needs the identical arithmetic over `MatchedLine`s, and two copies of
  * "append what is between, then the replacement" is how the two would drift apart.
  */

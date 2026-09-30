@@ -297,8 +297,7 @@ class EscapeParser(
    * The five states that collect - or, for `APC`, discard - a string rather than parameters:
    * `OSC`, its escape lookahead, `DCS`, and `APC` with its own escape lookahead. **One arm in
    * [accept] for all five**, the way [actOnIntermediate] holds its five: `accept` sat at detekt's
-   * twenty-line cap before this step, and P4f-6d's two new `APC` states would have pushed it over
-   * on their own.
+   * twenty-line cap already, and the two `APC` states would have pushed it over on their own.
    *
    * `APC`'s half is `doApc`/`doApcEscape` transcribed: every byte is discarded, matching the
    * reference's own comment - "Eat APC sequences silently for now." Only the terminator is

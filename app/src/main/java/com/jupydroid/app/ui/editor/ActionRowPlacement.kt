@@ -11,8 +11,8 @@ import androidx.window.core.layout.WindowSizeClass
  * type moves into the overflow where its label does not fit ([CellTypeControl],
  * [NotebookActionsMenu]); the kernel indicator keeps its status glyph and drops the kernel's name
  * ([KernelIndicator]). Both are a *labelled* control on a row with four icons and a navigation
- * arrow already on it. It was `cellTypeOnBar` in a file named for that one control until P2w-2
- * gave it a second reader.
+ * arrow already on it. It was `cellTypeOnBar` in a file named for that one control until a second
+ * reader arrived.
  *
  * **Both homes are the reference's, not an invention.** `cellType` is a notebook-toolbar item at
  * rank 40 and `kernelName` one at rank 1000 (`packages/notebook-extension/schema/panel.json`), and
@@ -26,7 +26,7 @@ import androidx.window.core.layout.WindowSizeClass
  * there, so the name goes and the glyph stays.
  *
  * **Measured before the number was chosen.** Free width in this app's action row, between the
- * navigation icon and the first action, read off `evidence/p2o-3-two-pane-threshold/<w>/hierarchy.xml`
+ * navigation icon and the first action, read off the view hierarchy at each width
  * (the emulator is density 1, so 1px is 1dp): **72dp at 320dp**, **552dp at 800dp**, ~567dp at
  * 1280dp. "Markdown" plus a caret wants about 110dp, and so does a status glyph plus "Python 3",
  * so the phone is the width that cannot have either and both of the tablet's orientations can.

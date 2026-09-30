@@ -9,8 +9,8 @@ import java.util.UUID
  *
  * Split out of [CellEdits] on detekt's `TooManyFunctions`, which found a seam the file's own
  * doc had already described: the transforms next door each do one thing to a notebook, and this
- * decides *which* of them a menu row means and *what it applies to*. `docs/DECISIONS.md` calls
- * that unit a cell operation, which is where the file's name comes from.
+ * decides *which* of them a menu row means and *what it applies to*. That unit is a cell
+ * operation, which is where the file's name comes from.
  */
 
 /**

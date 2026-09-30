@@ -99,7 +99,7 @@ private fun GlobBox(
       // **Drawn, and out of the tree**, because the field below carries the same name: the reference
       // gives the input an `ariaLabel` equal to this `h4` (`searchView.ts:542`), which in a browser
       // costs nothing and here made two nodes answer to one string - and a flow tapped the label
-      // (`docs/DECISIONS.md`, and `evidence/p2x-3-search-scope/README.md` for the run that found it).
+      // rather than the field it meant.
       modifier = Modifier.clearAndSetSemantics {},
     )
     OutlinedTextField(

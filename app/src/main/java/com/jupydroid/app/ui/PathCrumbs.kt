@@ -5,7 +5,7 @@ import com.jupydroid.app.domain.model.parentDirectory
 /**
  * What the root crumb is called, since its path is the empty string.
  *
- * Here rather than private to the browser's `ViewModel`, because since P2w-1 the open document
+ * Here rather than private to the browser's `ViewModel`, because the open document also
  * draws a trail of its own and the two must not disagree about what the root is called.
  */
 internal const val ROOT_LABEL = "Workspace"
@@ -45,7 +45,7 @@ internal fun crumbsFor(path: String, rootLabel: String): List<Pair<String, Strin
  * is neither and already carries the name, so the name is not said twice and every segment is a
  * folder - which is what makes "a segment opens that folder" one rule rather than two. And where
  * VS Code renders `"no elements"` for a document with no ancestry, this returns empty so the row
- * can be **absent**: 48dp spent saying nothing is the trade P2v declined the run gutter over.
+ * can be **absent**: 48dp spent saying nothing is a trade this app declines everywhere.
  *
  * ```
  * ancestorCrumbsFor("reports/Nested.ipynb", ROOT_LABEL)   // ["" to "Workspace", "reports" to "reports"]

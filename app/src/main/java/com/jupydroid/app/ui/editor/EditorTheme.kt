@@ -46,7 +46,7 @@ fun bracketMatchStyle(): SpanStyle = SpanStyle(
 /**
  * How the find bar's matches are drawn - the ones it found, and the one it is standing on.
  *
- * **Neither states a foreground, since P2u-3e.** Both used to, which was JupyterLab's structure;
+ * **Neither states a foreground.** Both used to, which was JupyterLab's structure;
  * VS Code registers `editor.findMatchForeground` and `editor.findMatchHighlightForeground` as
  * `null` and makes the backgrounds translucent instead, so the syntax colour under a match shows
  * through rather than being replaced.
@@ -54,8 +54,8 @@ fun bracketMatchStyle(): SpanStyle = SpanStyle(
  * **The bold on the current match is this app's, and it now carries the difference.** Measured,
  * the reference separates current from found by alpha alone - `#214555` against `#20414F` once
  * composited on the dark cell, **1.06:1** apart, with no border id set in either theme. On a
- * phone, at a glance, that is not a signal. The weight was here before P2u-3e for its own reason
- * and is kept for a stronger one;
+ * phone, at a glance, that is not a signal. The weight was here for its own reason already and is
+ * kept for a stronger one.
  */
 @Composable
 @ReadOnlyComposable
@@ -73,7 +73,7 @@ fun searchMatchStyles(): SearchMatchStyles = SearchMatchStyles(
  * How each inline mark in **rendered** prose is drawn.
  *
  * Emphasis is weight and slant with no colour, which both references agree on. Code and links do
- * **not** take the source palette's values, and that is the correction P2u-3d made: a rendered
+ * **not** take the source palette's values, and that is a correction: a rendered
  * markdown cell is a webview in the reference, and the webview's base stylesheet is what themes it
  * (`contrib/webview/browser/pre/index.html:125-155`): `code` takes the `textPreformat` pair and
  * `a` takes `textLink.foreground`, which is `MaterialTheme`'s `primary` here.
@@ -184,9 +184,9 @@ fun symbolKeyStyle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFa
  * It is explicit rather than inherited, and that is a regression rather than a preference: a
  * `BasicTextField` handed `Color.Unspecified` draws black rather than falling back to
  * `LocalContentColor` the way `Text` does, which made a markdown cell's source black in both
- * themes - fine on light, nearly invisible on dark (audit A4, `EditorThemeTest`).
+ * themes - fine on light, nearly invisible on dark (`EditorThemeTest`).
  *
- * **All three fields, since P2s** - [CodeCellField], [RawCellField] and [MarkdownCellField]. A
+ * **All three fields** - [CodeCellField], [RawCellField] and [MarkdownCellField]. A
  * markdown cell drew its source in `bodyMedium` until then, which is prose, and both references
  * say the editor is one font whatever the cell holds:
  *
@@ -200,8 +200,7 @@ fun symbolKeyStyle(): TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFa
  *
  * **Not to be confused with [richTextCodeStyle]**, which is the opposite direction about the
  * opposite surface: code inside *rendered* markdown inherits the **prose** size. Source is code
- * that looks like code; rendered prose is prose that happens to contain code. P2l-3b settled the
- * second and P2s the first.
+ * that looks like code; rendered prose is prose that happens to contain code.
  *
  * @param fontSize [CodeText.size] for every cell; its own font-size setting
  *   (`EditorSettings.codeFontSizeSp`) is the one caller that overrides it, resizing

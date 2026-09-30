@@ -35,7 +35,7 @@ import com.jupydroid.app.theme.editorPalette
  * Draws a line number beside every logical line of the text this modifier decorates, and
  * reserves the room they need. A line carrying a [Breakpoint] draws its dot in its **own** column,
  * to the left of the numbers - VS Code's own layout, a `glyphMarginWidth` one row tall
- * sitting before the line-number margin (`editorOptions.ts`). This reverses P6a-6's own choice to
+ * sitting before the line-number margin (`editorOptions.ts`). This reverses an earlier choice to
  * reuse the number's column instead of spending the extra width; recorded as a reversal, not a
  * silent change, once the number disappearing under an armed breakpoint measured out as the wrong
  * trade after real use.
@@ -249,7 +249,7 @@ private fun DrawScope.drawBreakpointMark(breakpoint: Breakpoint, metrics: Gutter
  *
  * **This used to fire [onTap] on press**, mirroring JupyterLab's own `domEventHandlers: {
  * mousedown }` (`packages/debugger/src/handlers/editor.ts:230-236`) and VS Code's `onMouseDown`
- * (`breakpointEditorContribution.ts:257`). P6a-16 gave that up: a mouse's down and up are
+ * (`breakpointEditorContribution.ts:257`). That was given up: a mouse's down and up are
  * effectively simultaneous, so neither reference had to choose between them, but a touch long
  * enough to be a long-press is, by definition, not simultaneous - firing [onTap] eagerly on press
  * toggled the very breakpoint a long-press was asking to add a condition to, off, in the same

@@ -13,7 +13,7 @@ import com.jupydroid.app.domain.port.KernelEvent
 
 data class EditorUiState(
   /**
-   * Where the notebook lives now, which a rename changes - since X1b the file *is* the name.
+   * Where the notebook lives now, which a rename changes - the file *is* the name.
    *
    * Carried explicitly rather than inferred from [title], which is only the last segment of it -
    * a notebook in a folder has a path the name cannot reconstruct. It is what tells the notebook
@@ -137,9 +137,9 @@ data class EditorUiState(
    * - the reference ends `changeCellType` in command mode (`actions.tsx:3308-3314`).
    *
    * The field used to request focus for having been composed at all, which was a complete answer
-   * while a tap was the only way to open one. P2e-3 gave it a second way in, and
-   * `evidence/p2e-3-change-to-markdown/` is what that cost: two editors arriving in one frame,
-   * both asking, and the soft keyboard up over a notebook nobody was typing in.
+   * while a tap was the only way to open one. A second way in cost exactly that: two editors
+   * arriving in one frame, both asking, and the soft keyboard up over a notebook nobody was
+   * typing in.
    *
    * One id and not a set: only one field can hold the caret, so a second request replaces the
    * first rather than joining it. Not persisted, like the set beside it.
@@ -228,7 +228,7 @@ data class EditorUiState(
    * Written by [NotebookKernelSession] rather than by whoever asked for the kernel, because the
    * session is the one object that sees every way one arrives and every way one goes: an
    * `open()`, a `forget()` on shutdown or teardown, and the drop `reopeningIfStale` makes when
-   * P1c's stopped server refuses a session.
+   * the idle backstop's stopped server refuses a session.
    */
   val kernelConnected: Boolean = false,
   /**
@@ -244,7 +244,7 @@ data class EditorUiState(
    * needsSelection (`sessioncontext.tsx:746-747`), which is the reference's cue to open
    * `selectKernel` (`context.ts:599-603`). Owed when the persisted kernelspec resolves to
    * nothing in the Space's catalogue, at load and again at each refused run: the picker is
-   * P8g-4's dialog, and only a counter makes the second owe a change it can see. Not persisted.
+   * a dialog, and only a counter makes the second owe a change it can see. Not persisted.
    */
   val kernelPickRequired: Int = 0,
   /**

@@ -30,8 +30,8 @@ class NotebookCompletion(
   private val kernelGateway: KernelGateway,
   private val languageServer: LanguageServerPort,
   /**
-   * The notebook's one document under the language server, shared with the diagnostics watch -
-   * P5d-2b - so a `publishDiagnostics` range always maps against what the last sync sent.
+   * The notebook's one document under the language server, shared with the diagnostics watch, so a
+   * `publishDiagnostics` range always maps against what the last sync sent.
    */
   private val document: NotebookLanguageDocument,
 ) {

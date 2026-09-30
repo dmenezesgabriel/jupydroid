@@ -228,7 +228,7 @@ class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
  * the same defensive re-clamp `TerminalView.onScreenUpdated` applies before trusting `mTopRow`.
  *
  * An extension rather than a member - [TerminalGrid] is already at detekt's `TooManyFunctions`
- * cap (P4h-1's own "spends its one remaining function slot" note), and this needs nothing of the
+ * cap, and this needs nothing of the
  * class's own internals beyond the one property it already exposes.
  */
 fun TerminalGrid.clampedTopRow(current: Int, deltaRows: Int): Int =

@@ -85,8 +85,8 @@ class EditorViewModel(
    */
   private val applicationScope: CoroutineScope,
   /**
-   * Only written to, and only by [kernel]: it is the app's count of runs in flight, and what P1c's
-   * backstop reads before it stops the server under a backgrounded computation.
+   * Only written to, and only by [kernel]: it is the app's count of runs in flight, and what the
+   * idle backstop reads before it stops the server under a backgrounded computation.
    */
   activeCellRuns: ActiveCellRuns,
   /**

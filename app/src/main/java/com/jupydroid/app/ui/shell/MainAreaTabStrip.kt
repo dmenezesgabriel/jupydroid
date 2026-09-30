@@ -85,8 +85,8 @@ import kotlinx.coroutines.launch
  * "Launcher/Settings/Terminal/Console are tabs too" free: they are already entries on the stack,
  * and the stack is the strip's model.
  *
- * The reference draws the strip at every width (`docs/PLAN.md` P8e rejected `single-document`
- * mode on that reading), so no `twoPane` branch exists here.
+ * The reference draws the strip at every width - `single-document` mode was read and rejected on
+ * that ground - so no `twoPane` branch exists here.
  *
  * [tabs] is the strip's own order - **opening order**, not the stack's: `activateById` changes
  * which widget is current and never moves a tab, so a click must not reorder the row even though

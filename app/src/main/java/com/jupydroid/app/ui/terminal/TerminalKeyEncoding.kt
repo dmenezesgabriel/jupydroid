@@ -8,10 +8,10 @@ private const val ESC = "\u001B"
 private const val LOWEST_CONTROL_BYTE = 1
 
 /**
- * What a hardware key reaching the terminal means on the wire - 2 (arrows,
- * Ctrl+letter) and P4j-3a (Home/End/PageUp/PageDown/Tab/Escape, the rest of what a soft keyboard
- * cannot produce - `TerminalExtraKeysRow`'s own taps go through this too, so the row sends the
- * exact bytes a hardware key of the same name already does, not a second encoding scheme):
+ * What a hardware key reaching the terminal means on the wire - arrows and Ctrl+letter, plus
+ * Home/End/PageUp/PageDown/Tab/Escape, the rest of what a soft keyboard cannot produce
+ * (`TerminalExtraKeysRow`'s own taps go through this too, so the row sends the exact bytes a
+ * hardware key of the same name already does, not a second encoding scheme):
  * an arrow or Home/End moves the cursor the way the shell asked for it (CSI in normal mode, SS3
  * in DECCKM's application mode - [TerminalEmulator.isApplicationCursorKeys], `vttest`'s own
  * distinction), PageUp/PageDown are the VT220 tilde sequences (no application-mode variant),

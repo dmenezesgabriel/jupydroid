@@ -50,7 +50,7 @@ data class TerminalPaneUiState(
 )
 
 /**
- * Binds an already-open [TerminalSession] to the `terminal/` emulator that P4a-P4h already built.
+ * Binds an already-open [TerminalSession] to the `terminal/` emulator.
  *
  * Two directions, and [TerminalReplies]/[TerminalNotices]'s own KDoc names this ViewModel as the
  * one that tells them apart: what the emulator writes back to the shell (a query it answered on
@@ -93,7 +93,7 @@ class TerminalPaneViewModel(
     override fun onClipboardCopy(text: String) = Unit
   }
 
-  /** The VT100 state this screen draws - P4a-P4h's, unowned by this class beyond feeding it bytes. */
+  /** The VT100 state this screen draws - `terminal/`'s, fed bytes by this class and not owned. */
   val emulator = TerminalEmulator(
     columns = columns,
     rows = rows,
@@ -106,8 +106,8 @@ class TerminalPaneViewModel(
   private var hasAttachedBefore = false
 
   /**
-   * Collects [terminalGateway]'s events for as long as this call is not cancelled
-   * P4i-3b. No longer launched for the caller in `init`: `TerminalPaneScreen`'s own
+   * Collects [terminalGateway]'s events for as long as this call is not cancelled. No longer
+   * launched for the caller in `init`: `TerminalPaneScreen`'s own
    * `repeatOnLifecycle(Lifecycle.State.STARTED)` is what decides when, so backgrounding cancels this
    * (closing the socket - `TerminalGateway.attach`'s own KDoc) and coming back calls it again, which
    * is a re-attach the server answers by replaying what was missed.
@@ -258,7 +258,7 @@ class TerminalPaneViewModel(
 
     // Local, not a sibling member - `TerminalPaneViewModel` is already at detekt's
     // `TooManyFunctions` cap (the same reason `TerminalGrid.clampedTopRow` is an extension
-    // rather than a member, P4j-3d-1's own finding), and both need nothing outside this call's
+    // rather than a member), and both need nothing outside this call's
     // own `deltaRows`/`cellHeightPx`.
     fun forwardArrowKeys(): Float {
       val key = if (deltaRows < 0) Key.DirectionUp else Key.DirectionDown

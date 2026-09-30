@@ -53,7 +53,7 @@ fun BreakpointConditionDialog(currentCondition: String?, onConfirm: (String?) ->
         placeholder = { Text("e.g. x > 10") },
         // The IME's own default sentence-capitalization otherwise turns a condition beginning
         // with a lowercase identifier into one Python no longer recognizes - measured live on the
-        // tablet, not guessed: the first Maestro run of P6a-16's own flow sent debugpy a literal
+        // tablet, not guessed: a Maestro run sent debugpy a literal
         // "I == 3" for a typed "i == 3", so the kernel never once found the name and the loop ran
         // to completion unconditioned. `CodeCellField` needs no such override, being multi-line
         // and rarely typed into starting at its own first character; a single-line expression

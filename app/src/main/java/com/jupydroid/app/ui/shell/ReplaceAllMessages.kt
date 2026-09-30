@@ -18,7 +18,7 @@ package com.jupydroid.app.ui.shell
 /**
  * *"Replace 5 occurrences across 2 files with 'dog'?"* - asked before anything is written.
  *
- * The counts are the matches **on screen**, which is the whole of P2x-1e: `replaceAll()` reads
+ * The counts are the matches **on screen**, and that is the whole point: `replaceAll()` reads
  * `searchResult.count()` and `fileCount()` off the tree rather than re-running the query
  * (`searchView.ts:816-817`).
  *

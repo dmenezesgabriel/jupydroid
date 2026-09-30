@@ -171,7 +171,7 @@ class StdioLanguageServer(
    * params that name a document and a point in it, one request timeout, replies decoded at
    * the wire objects. An inner class rather than loose methods because it uses
    * [ServerPool.serverFor] and [requestTimeout], and a holder rather than the class's own scope so the
-   * position-ask shape stays greppable in one place (P5e-4's signature help lands here too).
+   * position-ask shape stays greppable in one place (signature help lands here too).
    */
   private val positions = PositionRequests()
 

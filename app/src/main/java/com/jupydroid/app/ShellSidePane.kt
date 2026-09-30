@@ -196,7 +196,7 @@ fun ShellSidePane(
  *
  * Every side panel is a `Scaffold` and none sets `contentWindowInsets`, so each reserves the system
  * navigation-bar inset at its foot - and `NavigationBar` reserves it again underneath. Left alone
- * that is a gap between the last row and the bar, which is P2q's "doubled window inset" defect in a
+ * that is a gap between the last row and the bar, which is the doubled-window-inset defect in a
  * new place. Consumed only where a bar is drawn: with none, the panel really is the window's foot.
  */
 @Composable

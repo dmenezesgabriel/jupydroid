@@ -65,7 +65,7 @@ fun EditorScreen(
   /** DAP over the same kernel session - the handshake `EditorViewModel.debugger` sends. */
   kernelDebugger: KernelDebugger,
   /**
-   * The Space's language server - P5c's completion source, asked before the kernel. Defaulted
+   * The Space's language server - the completion source, asked before the kernel. Defaulted
    * the way [openDocuments] is, for the tests that drive this screen alone.
    */
   languageServer: LanguageServerPort = FakeLanguageServerPort(),
@@ -84,7 +84,7 @@ fun EditorScreen(
   /** Where an exported file goes next, from the report that says it was written. */
   documentSharer: DocumentSharer,
   applicationScope: CoroutineScope,
-  /** The app's count of runs in flight, which P1c's backstop reads; see [ActiveCellRuns]. */
+  /** The app's count of runs in flight, which the idle backstop reads; see [ActiveCellRuns]. */
   activeCellRuns: ActiveCellRuns,
   /**
    * `notebook:toggle-autoclosing-brackets`, universal - read here rather than through the
@@ -118,7 +118,7 @@ fun EditorScreen(
    * derived from one `twoPane` at the single call site, so they cannot disagree there. They are not
    * folded because they answer different questions of different widgets: one is *"is there a panel
    * to ask"*, whose lambda differs in body and not only in presence, and this is *"is the browser
-   * already on screen"*. P7a-2's rule is about two parameters describing one widget's state.
+   * already on screen"*. The rule against two parameters is about one widget's state.
    */
   twoPane: Boolean = false,
   /**
@@ -149,7 +149,7 @@ fun EditorScreen(
    * A workspace search result this notebook was opened from, to be landed on - the notebook half of
    * what [com.jupydroid.app.ui.fileeditor.FileEditorScreen] already does for a plain file.
    *
-   * Null for every other way of opening a notebook, which is every way there was before P2x-4d.
+   * Null for every other way of opening a notebook, which is every way but a search result.
    */
   reveal: MatchedLine? = null,
   /** Consumed once, the way `browseRequest` is - see the `LaunchedEffect` below. */
@@ -292,8 +292,8 @@ fun EditorScreen(
     }
     val jumpToHeading: (String) -> Unit = { cellId ->
       // A heading is never hidden by its own section (CellHeadings.kt), but one nested inside an
-      // ancestor's collapsed section is - and **the reference reveals it**, which P2h recorded the
-      // other way round. `expandParent` is wired to every active-cell change
+      // ancestor's collapsed section is - and **the reference reveals it**, which an earlier
+      // reading had the other way round. `expandParent` is wired to every active-cell change
       // (`packages/notebook-extension/src/index.ts:2871-2873`), so a jump there lands on a cell
       // whose section has just been opened; here the entry was listed and the tap did nothing.
       viewModel.edits.revealCell(cellId)
@@ -360,8 +360,7 @@ fun EditorScreen(
       // `colorScheme.background`, which this app maps onto `editor.background` - the right colour
       // by way of a role that could be re-mapped, and `ColorSchemeTest` asserts only that a role
       // is *somewhere* on the ramp, never which position. VS Code separates a part's identity from
-      // a surface's elevation, and this is the document's own id (`docs/DECISIONS.md`, "The
-      // palette states its colours; it does not derive them from a Material role").
+      // a surface's elevation, and this is the document's own id (ADR-0042).
       containerColor = editorPalette.editorBackground,
       topBar = {
         Column {
@@ -399,9 +398,9 @@ fun EditorScreen(
     ) { innerPadding ->
       // The pane is a column *beside* the notebook rather than a scene of its own, and that is a
       // constraint rather than a preference: `ListDetailSceneStrategy.extraPane()` - what
-      // `docs/PLAN.md` assumed - is a separate `NavEntry`, and every entry here owns its own
-      // `ViewModelStore` (`docs/architecture.md` §4), so it could reach neither this notebook's
-      // `EditorViewModel` for the headings nor its `listState` to scroll. See `docs/DECISIONS.md`.
+      // an earlier reading assumed would work - is a separate `NavEntry`, and every entry here
+      // owns its own `ViewModelStore` (`docs/architecture/runtime-views.md`), so it could reach
+      // neither this notebook's `EditorViewModel` for the headings nor its `listState` to scroll.
       Row(modifier = Modifier.padding(innerPadding)) {
         EditorContent(
           state = state,
