@@ -54,7 +54,7 @@ Five, each obliging something different. The full definition is in
 | Kernel wire and execution | `AUD-001` | examined — below |
 | Cell commands and selection | `AUD-002` | examined — below |
 | Editor language features | `AUD-003` | examined — below |
-| Search, replace, table of contents | `AUD-004` | measured — the surface below, verdicts next |
+| Search, replace, table of contents | `AUD-004` | examined — below |
 | Files, workspace, recents | `AUD-005` | unexamined |
 | Console, sessions, running panel | `AUD-006` | unexamined |
 | Terminal emulator and view | `AUD-007` | unexamined |
@@ -649,6 +649,7 @@ edit counted a notebook that was no longer there.
 | the provider registry's breadth | the notebook's alone | **absent** | `GAP-036`. `ISearchProviderRegistry` gets five registrations — notebook, file editor, csv, tsv, terminal. csv/tsv open through the file editor here, and the terminal is a real screen with the same hole |
 | one provider per cell, plus per-output providers | one hit list in document order, `SearchHit.outputAt` marking the output half | adapted | the split the arithmetic exists for is the same; held apart it is summed, held together it is already the sum — `SearchHit.kt`'s own accounting |
 | a query stays live under change | `withSearchRecomputed` / `withSearchedOutputsRecomputed`, now called from every seam that moves what a search reads | **defect** | found by the walk and fixed red-first: `editCell` and the two replace paths re-ran the query, but a cell delete, duplicate, move, undo, rename, format or a stream's output left the counter counting stale hits — `cells.changed`/`outputLengthChanged` restart it there. `NotebookSearchRestartTest`: `deletingACellUnderAnOpenSearchDropsItsHits`, `duplicatingACellUnderAnOpenSearchCountsItsCopy`, `undoingACellOperationUnderAnOpenSearchFindsAgain`, `aRenameUnderAnOpenSearchFindsTheNewText`, `anArrivingOutputIsCountedWhileOutputsAreSearched`, `aRerunDropsTheHitsItsEarlierOutputsHad` |
+| a pattern mid-parse keeps the last settled answer — `_updateSearch`'s catch sets `_parsingError` and returns before `endQuery` is reached, so the provider goes on highlighting what the last good query found (`searchmodel.ts:339-369`); `!isInputValid` early-returns the same way on the workspace side | `withSearchQuery` on `Invalid` writes only `parseError`, `hits`/`current` standing | **defect** | found by the walk and fixed red-first: a `(` typed mid-pattern emptied every highlight it would restore a keystroke later, and the workspace arm was already verdicted `present` on the same rule — `NotebookSearchTest.anUnparseablePatternKeepsTheLastQuerysHits` |
 | the `output` filter | `searchOutputs` → `outputsSearched` → `outputHitsOf` | adapted | only what `RenderedOutput.Text` draws is searched, where the reference searches its rendered DOM — `outputHitsOf`'s docstring and ADR-0043; `supportReplace: false` is `outputsSearched`'s rule |
 | `searchDebounceTime`, `autoSearchInSelection` (`documentsearch-extension/schema/plugin.json:72-86`) | no settings carried | adapted | a re-find is one synchronous pass over state, so per-keystroke is already honest; the selection filter arms only by hand — the reasons live on `withSearchQuery` and `withSearchInSelection` |
 
@@ -743,3 +744,108 @@ context menu — carried into the partition for it.
 | `isActive`/`isAlwaysActive` gating + the 200 ms `ActivityMonitor` (`model.ts:108-120`, `factory.ts:72-81`) | a synchronous rederivation per state change, always | adapted | `isAlwaysActive` is already true on the two reference models that write numbering into the document (`toc.ts:142-144`, `markdownviewer/src/toc.ts:57-59`); a pure derivation over state needs no activity monitor |
 | `title` = `PathExt.basename` (`factory.ts:83-90`), and the two-line placeholder (`panel.ts:31-36`, `treeview.tsx:31-40`) | `state.title` → `DocumentOutline.title`; `NoHeadingsPlaceholder` carries the same two lines | present | one placeholder answers "nothing is open" and "nothing has headings" in both |
 | settings pushed live to every open model — `settings.changed` → `updateSettings` (`index.ts:219-258`) | `editorSettings` republishes the outline — `LaunchedEffect(…, editorSettings)` | present | the same broadcast; `per-widget` vs per-document is a difference that cannot fire while the outline reads the open document alone |
+
+### The walk
+
+Four dispatches on the one `SearchQuery`. **The find bar:** `EditorTopBars` mounts `FindTopBar`
+while `search != null` — find beats marking beats the document (`EditorTopBars.kt`) — →
+`NotebookSearch.queryChanged` → `withSearchQuery`, where `compile`'s three arms decide: `Matching`
+re-finds over `searchHits` (+ `outputHitsOf` while `outputsSearched`), `Empty` clears,
+`Invalid` now stands the last hits and writes only `parseError` → `firstHitFrom` lands beside the
+selected cell → the counter, and per cell `searchHighlightOf`/`outputSearchHighlightsOf` →
+`CellSearchHighlight.within` clamping ranges to the field's text, which trails the model by up to
+one `reportCellEdits` debounce. The arrows → `withSearchStepped` → `withMatchRevealed` —
+`withCellRevealed` plus whichever of the three folds `foldsOver` finds in the way — → select,
+anchor cleared → `NotebookSearch.step` schedules a write only when `cells` moved identity. The
+recompute is wired to every seam that moves what a search reads: `cellAction`, `editCell`,
+undo/redo, rename, format, `applyEdits`, and output events only while `outputsSearched`.
+**The workspace:** `SearchBox`/`SearchOptionToggles`/`SearchScopeBoxes` →
+`queryChanged`/`optionChanged`/`scopeChanged` → `ask` — state and `parseError` at once, the walk
+in `waitMillis` — → `asked` (`SharedFlow`, `DROP_OLDEST`) → `debounce { it.waitMillis }` →
+`collectLatest`, which is the cancellation half: a superseded walk's `Found`s never land under
+another query's text → `walk`'s two early returns — blank clears, invalid keeps — →
+`DiskWorkspaceSearcher.search` on IO → `pathsUnder`'s lazy sequence — a directory symlink
+declined, an excluded directory's subtree pruned, a file filtered — → `matchedFileAt` (`.ipynb` →
+`matchedCellsAt`, an unreadable notebook swallowed per file; else `matchedTextAt`, the NUL rule on
+bytes) → `matchedLinesIn` → `cappedAt` spending `search.maxResults` → `Found` per file then one
+`Complete(limitHit)` → `after` folding each into the panel's state → `searchResults` → a row's tap
+→ `onRevealMatch` + `openDocument` — the match rides beside the path, because the panel may not
+pick which editor a path opens — → `LandingOnAMatch`, once per request and keyed on `loaded`
+rather than cells, since the reveal *changes* cells and a cells-keyed effect cancels its own
+scroll → `landOnMatch` → `landedOn` → `hitFor` re-resolving the cell by **index** and `rangeIn`
+re-verifying the characters → `withMatchRevealed` → scroll; the file editor's arm lands the same
+match through `rangeIn(state.text)` → a `TextRange` selection → `scrollTo`. **Replace:**
+`requested` → `replaceAllQuestion` counted once, so the report can never disagree with the
+question → `ReplaceAllDialog` → `confirmed` reads *the screen's* `results`, never a re-query →
+`WorkspaceReplace.replaceAll` → `resources()` grouping the file's matches by cell → `plan`:
+`sourceOf` asks the open document first and **refuses on null rather than falling back to the
+file** → `editsAgainst` comparing characters, all-or-none → `write` three routes chosen by the
+resource's own shape — an open document's `applyEdits`, a closed file's `writeText`, a closed
+notebook's read-copy-`saveNotebook` — → `Replaced(…, asUndo())` or `Refused(paths)` →
+`afterReplace` emptying the tree on success and standing it on refusal → `undo` re-checking every
+resource against the text the replace *produced* → `afterUndo` returning the cleared results. The
+notebook's own replace is the same discipline at document scale: `withCurrentMatchReplaced` /
+`withAllMatchesReplaced` → `recording` → `withSearchRefoundFrom`/`withSearchRecomputed` → the same
+`cells`-moved save gate. **The table of contents:**
+`tableOfContentsHeadings(tocIncludeOutput)` per recomposition → `LaunchedEffect(outline, title,
+tocHeadings, editorSettings)` → `outline.publish` — and `DisposableEffect` → `clear` when the
+entry goes — → `TableOfContentsSidePanel` (`remember(outline?.title) { TocFolds() }`, `tocRows`)
+at two panes or the fold-less `TableOfContentsPanel` overlay at one → a row's tap → `jumpTo` →
+`edits.revealCell` — `withCellRevealed`, returning `this` when nothing hid so a jump past no folds
+writes nothing — → the index asked of the *about-to-be* document's `cellsOnScreen` →
+`animateScrollToItem`. What it found, beyond the rows above:
+
+- **Growth is a re-find per keystroke and a re-walk per debounce, both paid in full and both small
+  by construction.** The find bar's answer is one synchronous pass over state the next frame reads
+  anyway — no debounce, the stated reason being that the reference debounces an async DOM walk
+  this app does not have. The drawn half re-filters the whole `hits` list per cell per frame
+  (`searchHighlightOf`) — O(cells × hits), where the heading numbers beside it are sliced once for
+  the list; bounded and deliberate, and the docstring is the argument. The workspace walk is a
+  lazy `Sequence` under `collectLatest`, so a superseded query stops mid-file, and the cap is
+  *learnt* one file late when the budget lands exactly — the next file is read and capped to
+  nothing before `limitHit` reports true, which is how the cap is known to have cost something
+  rather than merely counted. Two costs the walk measured rather than excused, both recorded:
+  `editsAgainst` re-splits the resource's text **once per match** — O(matches × lines) where the
+  reference's `versionId` compare is O(matches) — `GAP-048`; and the disk read is a whole-file
+  `readBytes()` with nothing like `search.maxFileSize` standing between a dataset-sized file and
+  the heap — `GAP-049`.
+- **Branching lives on `CompiledQuery`'s three arms, and after the fix both surfaces read them
+  alike.** `Empty` clears (the reference's `endQuery`), `Invalid` keeps the last settled answer
+  and says so, `Matching` re-finds — `walk`'s two early returns are the same two branches on the
+  panel's side. Below that the branches are each path's own: `matchedFileAt` on the `.ipynb`
+  suffix, `WorkspaceReplace`'s three routes off `openDocuments.at` + `cell != null` — the match's
+  shape picks its writer, no suffix rule — `foldsOver`'s three flags deciding which of a section,
+  a source area or a rendered prose a match sits behind, `SearchFilter`'s exclude-before-include
+  with directory pruning, `tocRows`' single `hidingBelow` level standing in for the fold stack.
+- **Failure is null-rather-than-guess at every seam a shared workspace can move under.** `hitFor`
+  re-resolves the cell by index and `rangeIn` re-verifies the line still says what the walk read;
+  `stillAt` adds the character compare so a line still present and still long enough now saying
+  something else refuses; an open document that cannot be read refuses rather than falling back
+  to the file (`anOpenDocumentThatCannotBeReadRefusesRatherThanFallingBackToTheFile`); one stale
+  match refuses the whole replace and names *every* stale path where the reference throws on the
+  first; undo re-checks each resource against the produced text the same way. A tapped match the
+  notebook no longer holds lands nowhere and is still consumed — `landOnMatch` returns null and
+  `onHandled` still runs — so the request is spent and the document opens at the top.
+  `matchedCellsAt` swallows an unreadable notebook per file — `extHostNotebook`'s
+  `catch (e) { return; }` exactly — and a dangling symlink is passed over, where a directory link
+  is deliberately declined (`isADirectoryLink`, since a cell can `os.symlink` a loop). And the
+  defect the walk owes the ledger: **a pattern mid-parse emptied the find bar's hits** where both
+  references keep the last settled answer — `_updateSearch`'s catch never reaches `endQuery`, the
+  workspace panel was already verdicted `present` on the same rule — fixed red-first,
+  `NotebookSearchTest.anUnparseablePatternKeepsTheLastQuerysHits`.
+- **Coupling is the walk's real yield — one direction rule and three seams.** `data/` may not
+  import `ui/editor`'s `RenderedOutput.render`, which is `GAP-001`'s own blocker: which outputs
+  have searchable text is a *draw* rule and the disk walk sits a layer under it, so
+  `matchedCellsIn` reads cell sources and no more. A match crosses from the panel to the editor as
+  a cell **index**, not an id — `CellFile.toDomain` mints a UUID for an id-less cell, so the only
+  thing a disk walk and an editor provably share is position; `hitFor` converts at landing and
+  `OpenDocuments.sourceOf(cell)` takes the same index, so a replace addresses a cell identically
+  to the tap that found it. And everything between panel and document is composition-scoped, never
+  `AppContainer`: `OpenDocuments`, `OpenDocumentOutline`, `revealRequest` and the `WorkspaceReplace`
+  built around them are `remember`ed by `MainNavigation`/`ShellSidePane`, because a document's
+  `path` must be read live across a rename and `jumpTo` closes over a `LazyListState` that dies
+  with its composition; `TocFolds` keyed on `outline?.title` is the same lifetime answer one level
+  down, dead keys inert across same-named documents. The one rule four collaborators share —
+  `step`, `replacing`, `revealCell`, `landOnMatch` — is the `cells !==` identity check: *did a
+  persisted thing move*, which is what makes reading through a notebook's matches free and
+  reaching a hidden one a write.

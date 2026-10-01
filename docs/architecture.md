@@ -785,6 +785,32 @@ exists per cell (`EditorUiState.executionOf`); the gap is carrying it onto the r
 app-wide and the only layer here: a notebook that carries `toc/skip_h1_title` loses it on open.
 The repair reads metadata where the notebook is read, not beside the app-wide settings.
 
+### GAP-048 — A replace-all validates by re-splitting each resource once per match
+
+`List<MatchedLine>.editsAgainst` is the staleness check a replace-all pays before a single write:
+`stillAt` → `rangeIn` → `text.split("\n")`, **per match**
+(`app/src/main/java/com/jupydroid/app/domain/model/TextEdit.kt`,
+`app/src/main/java/com/jupydroid/app/ui/shell/WorkspaceReplace.kt`). The reference's version of the
+check is a `versionId` compare per resource — O(matches) for the file
+(`vscode/src/vs/workbench/contrib/bulkEdit/browser/bulkTextEdits.ts:213-216`). Ours is
+O(matches × lines): a file holding a thousand matches re-splits its line list a thousand times, and
+the same `rangeIn` is what a tapped match pays once on landing, where it costs nothing. The repair
+splits each resource once and answers every match's range by index — the arithmetic `startOf`
+already does — and changes no rule the refusal is built on.
+
+### GAP-049 — A search reads each file whole into memory, and nothing bounds it
+
+`DiskWorkspaceSearcher.readableTextAt` calls `File.readBytes()` — the entire file on the heap
+*before* the NUL-byte check decides it was even text
+(`app/src/main/java/com/jupydroid/app/data/disk/DiskWorkspaceSearcher.kt`), and `matchedCellsAt`
+reads a notebook the same whole way. The reference delegates the read to ripgrep, which streams
+the file and bounds it at `search.maxFileSize` (16 GB,
+`vscode/src/vs/workbench/services/search/node/rawSearchService.ts:85-87`). A workspace here shares
+a device: a dataset-sized file walked by a search is a read that can out-allocate the app before
+one byte is weighed. The repair is the bound first — a size cap the walk reports rather than
+swallows — and a streamed or mapped read second; the NUL rule stands either way and only needs a
+window to look through.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

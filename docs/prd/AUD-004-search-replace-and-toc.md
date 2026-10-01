@@ -173,7 +173,7 @@ whatever the walk surfaces; an `undocumented` difference earns its ADR here.
       `TableOfContents*`; the registry's file-editor factories and the markdownviewer's vs our
       notebook-only outline; VS Code's `DocumentSymbol`-driven Outline; the toolbar's two
       already-verdicted `notebook:select-*` ids restated as `GAP-022`'s.
-- [ ] T5 — **The walk.** Find bar: `FindTopBar` → `withSearchQuery` → `searchHits` →
+- [x] T5 — **The walk.** Find bar: `FindTopBar` → `withSearchQuery` → `searchHits` →
       `CellSearchHighlight`/`withMatchRevealed`, and the model-vs-field window
       `CellSearchHighlight` clamps. Workspace: keystroke → debounce → `search` stream → a row's
       tap → `hitFor`'s re-resolve → `LandingOnAMatch`. Replace: the counted question → model
