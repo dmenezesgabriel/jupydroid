@@ -7,6 +7,11 @@ package com.jupydroid.app.ui.editor
  * The reference's own `TableOfContentsItem` renders a `TreeItem` with `expanded={!heading.collapsed}`
  * and draws a disclosure only where there are children (`packages/toc/src/tocitem.tsx`); these are
  * the two facts that decides, computed rather than stored.
+ *
+ * Its other two decorations are absent: `selected={isActive}` marks the row that owns the active
+ * cell (`toc.ts:379-395`), and a `data-running` attribute carries each heading's execution state,
+ * aggregated upward over a fold (`toc.ts:471-556`). A row here knows neither where the document
+ * is nor what it is doing - `docs/architecture.md` §11's `GAP-046` records it.
  */
 data class TocRow(
   val heading: TocHeading,

@@ -10,7 +10,11 @@ import com.jupydroid.app.domain.model.EditorSettings
  * (`packages/toc-extension/schema/registry.json:32-69`).
  *
  * `baseNumbering` and `maximalDepth` are settings there with **no command** and no surface here
- * yet, and neither is invented early.
+ * yet, and neither is invented early. `baseNumbering`'s difference would be cosmetic anyway -
+ * it changes the number only where `level === highestLevel`
+ * (`packages/toc/src/utils/common.ts:172`). `maximalDepth` bounds which headings the list keeps
+ * at all, and `tableOfContentsHeadings` keeping every level is `docs/architecture.md` §11's
+ * `GAP-043`.
  */
 data class TocNumbering(val numberHeaders: Boolean = false, val numberingH1: Boolean = true)
 

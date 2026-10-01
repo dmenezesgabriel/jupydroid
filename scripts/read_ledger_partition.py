@@ -49,14 +49,18 @@ COMMAND_IN_CELL = re.compile(r"`((?:notebook|documentsearch|toc|fileeditor|editm
 
 #: Packages whose whole command surface the partition covers - every id they declare must be
 #: owned. `notebook-extension` is read separately because only its `notebook:` ids are the
-#: audit's; its other three (`kernelstatus:*` et al.) are nobody's yet.
+#: audit's - plus `toc:run-cells`, carried below; the rest (`kernelstatus:*` et al.) are
+#: nobody's yet.
 PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension")
 
 #: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
 #: and `editmenu:find` are AUD-004's while the rest of `fileeditor-extension`/`mainmenu-extension`
-#: waits for the slices that examine the file editor and the chrome.
-CARRIED_PACKAGES = ("fileeditor-extension", "mainmenu-extension")
-CARRIED_IDS = ("fileeditor:find", "editmenu:find")
+#: waits for the slices that examine the file editor and the chrome. `notebook-extension` is
+#: carried too, for one id: `toc:run-cells` is declared there under the `toc:` prefix
+#: (`index.ts:351`) for a ToC row's context menu, so the `notebook:` filter over that package's
+#: own ids never reaches it and neither does the package-whole read of `toc-extension`.
+CARRIED_PACKAGES = ("fileeditor-extension", "mainmenu-extension", "notebook-extension")
+CARRIED_IDS = ("fileeditor:find", "editmenu:find", "toc:run-cells")
 
 
 def declared_ids(packages: Path) -> list[str]:

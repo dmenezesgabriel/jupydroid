@@ -65,6 +65,10 @@ data class TocHeading(
  * A markdown cell yields at most one, which is where this is narrower than the reference:
  * [Cell.headingLevel]'s "lowest number wins" already collapses a cell to a single heading. An
  * output can yield several, exactly as there.
+ *
+ * **The list is unfiltered**: `filterHeadings` drops `level > maximalDepth` (schema default 4) and
+ * headings marked `jp-toc-ignore`/`tocSkip` (`packages/toc/src/utils/common.ts:44-60,104-106`), and
+ * neither bound exists here - `docs/architecture.md` §11's `GAP-043` records it.
  */
 fun EditorUiState.tableOfContentsHeadings(includeOutput: Boolean = true): List<TocHeading> = cells.flatMap { cell ->
   when (cell.kind) {

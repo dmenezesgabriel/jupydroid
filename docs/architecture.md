@@ -733,6 +733,58 @@ the document itself — there is no second editor shape, and a user checking a r
 gets only the counted confirm. The diff half of the machinery is what is missing; the edits
 themselves (`editsAgainst` → `withEditsApplied`) are already computed before anything writes.
 
+### GAP-043 — The outline lists every heading it finds
+
+`maximalDepth` bounds the reference's list at 4 (`toc-extension/schema/registry.json`,
+`filterHeadings` keeps `level <= config.maximalDepth` at `toc/utils/common.ts:50`), and an author
+opts a heading out with `jp-toc-ignore`/`tocSkip` (`common.ts:104-106`, `markdown.ts:351-352` —
+HTML headings and markdown tokens alike). `tableOfContentsHeadings` keeps both readings unbounded:
+a `#####` five levels down and a heading marked skippable are listed exactly alike. The repair seam
+is a filter over `tableOfContentsHeadings` for the depth cap; the opt-out wants a marker convention
+read in `MarkdownDocument`'s parse and in `RenderedOutput`'s blocks.
+
+### GAP-044 — A table-of-contents row is jump-only
+
+`toc:run-cells` is *"Select and Run Cell(s) for this Heading"* — the heading's section marked and
+run (`notebook-extension/index.ts:5124-5160`), mounted on the row's context menu
+(`toc-extension/schema/registry.json:18-24`). VS Code mounts the same menu on an outline entry:
+`notebook.section.runSingleCell`/`runCells` plus `foldSection`/`expandSection`
+(`notebook/browser/controller/sectionActions.ts:30-248`). Here a row answers a tap and nothing
+else — `TableOfContentsRows`' `onChoose` is the whole surface, so "run this section" and
+"fold this section from the outline" have no shape. The pieces exist: `headingSectionOf` is the
+same section the reference walks, and `RunRange`/`CellRangeSelection` are a long-press menu away.
+
+### GAP-045 — The outline reads the notebook alone
+
+`ITableOfContentsRegistry` gets five factories — the notebook, the LaTeX/Markdown/Python file
+editors (`fileeditor-extension/index.ts:585-587`), the markdown viewer
+(`markdownviewer-extension/index.ts:233`) — and VS Code's `OutlineModel` is `DocumentSymbol`-driven
+for any provider (`documentSymbols/outlineModel.ts:196-255`), its view adding `followCursor`, sort
+and filter (`outlineViewState.ts:12-53`). `FileEditorScreen` publishes no `DocumentOutline`, so a
+`.md` or `.py` open in the file editor has structure nothing lists. `PythonTableOfContentsModel`
+shows no language server is needed — it is a regex over `class`/`def`/`import` lines
+(`fileeditor/toc/python.ts:21-111`) — so `GAP-029`'s LSP hole is adjacent but not the blocker. The
+publish seam is the one `OpenDocumentOutline` already is.
+
+### GAP-046 — The outline knows neither where the document is nor what it is doing
+
+`onActiveCellChanged` → `setActiveHeading` draws the row owning the active cell `selected`
+(`notebook/toc.ts:379-395`, `toc/tocitem.tsx:60-63`); `isRunning`/`data-running` marks each heading
+idle/scheduled/running/error, a folded heading aggregating its subtree's worst (`toc.ts:397-556`).
+VS Code's outline does both the other way — `followCursor` (`outlineViewState.ts:12-33`) and a
+per-entry `exeState` bubble (`notebookOutlineEntryFactory.ts:95-117`). `TocRow` carries the heading,
+its fold and its prefix — no current mark, no run state. The notebook's own run state already
+exists per cell (`EditorUiState.executionOf`); the gap is carrying it onto the row.
+
+### GAP-047 — A notebook can carry its own ToC config, and nothing reads it
+
+`configMetadataMap` maps `toc-autonumbering`, `toc/number_sections`, `!toc/skip_h1_title` and
+`toc/base_numbering` out of the notebook's metadata into the model's configuration
+(`notebook/toc.ts:565-571`), applied on load and on `metadataChanged` (`toc.ts:347-377`,
+`:467-469`) — a JupyterBook-style file keeps its own numbering rules. `EditorSettings.toc*` is
+app-wide and the only layer here: a notebook that carries `toc/skip_h1_title` loses it on open.
+The repair reads metadata where the notebook is read, not beside the app-wide settings.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

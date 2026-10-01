@@ -126,6 +126,17 @@ class LedgerPartitionTest(unittest.TestCase):
                                  "toc:show-panel", "fileeditor:find", "editmenu:find"]),
                          sorted(declared_ids(packages)))
 
+    def test_a_toc_id_declared_inside_notebook_extension_is_carried(self) -> None:
+        """`toc:run-cells` is declared by `notebook-extension` under the `toc:` prefix
+        (`index.ts:351`) for the ToC row's context menu - a package-whole read of
+        `toc-extension` misses it, and the `notebook:` filter over `notebook-extension`'s
+        own ids would drop it too."""
+        packages = _packages({
+            "notebook-extension": "  export const t = 'toc:run-cells';\n"
+                                  "  export const u = 'notebook:undo';",
+        })
+        self.assertIn("toc:run-cells", declared_ids(packages))
+
 
 class PartitionedSurfaceTest(unittest.TestCase):
     """Every id the partition has reached is owned by exactly one slice.

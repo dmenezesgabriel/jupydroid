@@ -60,6 +60,13 @@ import kotlinx.coroutines.CoroutineScope
  * own selections rather than mounting a search panel, and finding is the workspace search's,
  * whose results this screen lands on through [reveal].
  *
+ * **And no outline either** - this screen never calls `OpenDocumentOutline.publish`, where the
+ * reference registers a ToC factory per file kind: LaTeX, Markdown and Python editors
+ * (`fileeditor-extension/src/index.ts:585-587`) and the markdown viewer
+ * (`markdownviewer-extension/src/index.ts:233`). `docs/architecture.md` §11's `GAP-045` records
+ * it, and notes the Python factory is a regex over `class`/`def`/`import` lines - no language
+ * server required, so `GAP-029` is not what blocks it.
+ *
  * ```
  * FileEditorScreen("reports/data.csv", workspaceRepository, applicationScope, onBack = { … })
  * ```

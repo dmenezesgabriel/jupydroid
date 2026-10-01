@@ -25,6 +25,11 @@ import kotlinx.serialization.Serializable
  * ToC model at once (`packages/toc-extension/src/index.ts:219-258`), and because the phone's
  * surface for the ToC has no toolbar of its own to put them on.
  *
+ * The app-wide layer is the only one here: a notebook can carry the same knobs in its own
+ * metadata - `toc-autonumbering`, `toc/number_sections`, `toc/skip_h1_title`, `toc/base_numbering`
+ * (`packages/notebook/src/toc.ts:565-571`) - and nothing reads it.
+ * `docs/architecture.md` §11's `GAP-047` records it.
+ *
  * Of the reference's language-side `editorConfig` keys, three have no field here and want none:
  * `keymap` is a binding list for keys a soft keyboard does not have - `SymbolRow` is the answer
  * to the whole class of them - `tabFocusable` manages `tabIndex` through a DOM a Compose field

@@ -108,6 +108,12 @@ private fun TableOfContentsSheet(rows: List<TocRow>, onDismiss: () -> Unit, onCh
  * the reference's ToC collapse state is rebuilt on every refresh and never saved
  * (`packages/notebook/src/toc.ts:274,293`), so on a surface that is opened, picked from and gone
  * a fold would never survive to be looked at twice. The side panel is the one that outlives a jump.
+ *
+ * **A row answers a tap and nothing else.** The reference mounts a context menu on `.jp-tocItem`
+ * whose one command is `toc:run-cells` - *"Select and Run Cell(s) for this Heading"*
+ * (`toc-extension/schema/registry.json:18-24`, declared at `notebook-extension/index.ts:351`) -
+ * and VS Code gives an outline entry the same menu (`notebook.section.*`). There is no row action
+ * here at all; `docs/architecture.md` §11's `GAP-044` records it.
  */
 @Composable
 internal fun TableOfContentsRows(

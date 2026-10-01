@@ -167,7 +167,7 @@ whatever the walk surfaces; an `undocumented` difference earns its ADR here.
       save; the all-or-none staleness refusal; the undo); `search.maxResults`/`limitHit`,
       `files.exclude`/`search.exclude`, `preserveCase`. `read_port_surface.py` on the port's one
       operation.
-- [ ] T4 — **Verdicts for the table of contents.** The five `toc:*` ids and the five schema
+- [x] T4 — **Verdicts for the table of contents.** The five `toc:*` ids and the five schema
       settings (`numberHeaders`, `numberingH1`, `maximalDepth`, `includeOutput`,
       `syncCollapseState`) against `TocNumbering`/`TocFolds`/`CellHeadings`/`EditorSettings.toc*`/
       `TableOfContents*`; the registry's file-editor factories and the markdownviewer's vs our
