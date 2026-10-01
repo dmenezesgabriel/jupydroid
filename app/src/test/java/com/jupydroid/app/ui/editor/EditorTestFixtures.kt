@@ -315,6 +315,43 @@ internal class RecordingNotebookRepository(private val delegate: FakeNotebookRep
 }
 
 /**
+ * A write that holds until released once [holdSaves] arms it - a disk write on a device is
+ * `Dispatchers.IO`, so the editor goes on taking operations while one is in flight. Unarmed it
+ * writes straight through, so [loadedEditor]'s seed is unaffected.
+ *
+ * Each write waits on its own deferred rather than one gate, so a test can finish a *newer*
+ * write while an older one is still suspended - the order two real disk writes can complete in.
+ */
+internal class SlowToSaveNotebookRepository(private val delegate: FakeNotebookRepository = FakeNotebookRepository()) :
+  NotebookRepository by delegate {
+  private var holding = false
+  private val held = ArrayDeque<CompletableDeferred<Unit>>()
+
+  /** Every write that reached the delegate, in completion order - a cancelled one never arrives. */
+  val completedWrites = mutableListOf<Notebook>()
+
+  override suspend fun saveNotebook(notebook: Notebook) {
+    if (holding) CompletableDeferred<Unit>().also { held.addLast(it) }.await()
+    delegate.saveNotebook(notebook)
+    completedWrites += notebook
+  }
+
+  /** From here every write suspends in arrival order until its release. */
+  fun holdSaves() {
+    holding = true
+  }
+
+  /** Lets the most recently arrived write finish; a no-op while none is waiting. */
+  fun releaseNewest() {
+    held.removeLastOrNull()?.complete(Unit)
+  }
+
+  /** Whether a write is waiting on a release - the loop a drain runs on. */
+  val writeIsHeld: Boolean
+    get() = held.isNotEmpty()
+}
+
+/**
  * A workspace that moves nothing and can say something moved.
  *
  * The editor only ever *listens* to this port - a rename it did not make is announced by the

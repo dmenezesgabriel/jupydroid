@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.EditorSettings
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
@@ -232,6 +233,31 @@ class DocumentAutosaveTest {
     runCurrent()
     settings.value = EditorSettings(autosaveEnabled = false, autosaveIntervalSeconds = AN_INTERVAL_SECONDS)
     advanceTimeBy(AN_INTERVAL * 3)
+    runCurrent()
+
+    assertEquals(1, writes)
+  }
+
+  /**
+   * The debounce restarts the delay, never the write: `pending?.cancel()` is aimed at the
+   * *pending* half of a schedule, and a write suspended on the disk is not pending - on a
+   * device that is a `File.writeText` interrupted mid-file, which is half a notebook.
+   */
+  @Test
+  fun aWriteInFlightIsNotCancelledByTheNextSchedule() = runTest {
+    val gate = CompletableDeferred<Unit>()
+    var writes = 0
+    val save = autosave(writes = {
+      gate.await()
+      writes++
+    })
+
+    save.schedule()
+    advanceTimeBy(A_DEBOUNCE)
+    runCurrent()
+
+    save.schedule()
+    gate.complete(Unit)
     runCurrent()
 
     assertEquals(1, writes)

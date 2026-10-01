@@ -60,7 +60,7 @@ class DocumentAutosave(
           editArrived.first { it }
           editArrived.value = false
           delay(current.autosaveIntervalSeconds * MILLIS_PER_SECOND)
-          if (!discarded && isDirty()) attemptWrite()
+          if (!discarded && isDirty()) launchWrite()
         }
       }
     }
@@ -77,8 +77,18 @@ class DocumentAutosave(
     pending?.cancel()
     pending = scope.launch {
       delay(DEBOUNCE_MILLIS)
-      if (settings.value.autosaveEnabled && !discarded) attemptWrite()
+      if (settings.value.autosaveEnabled && !discarded) launchWrite()
     }
+  }
+
+  /**
+   * The write runs *beside* the debounce, never inside it: `pending?.cancel()` is how the next
+   * edit restarts the delay, and it must not reach a write already suspended on the disk. The
+   * poll goes through here for the same reason - a settings change restarts `collectLatest`,
+   * which would otherwise kill a write mid-flight.
+   */
+  private fun launchWrite() {
+    scope.launch { attemptWrite() }
   }
 
   /**

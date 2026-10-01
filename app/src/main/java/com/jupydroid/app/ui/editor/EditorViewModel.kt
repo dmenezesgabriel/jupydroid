@@ -26,6 +26,7 @@ import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.formattingOptions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +34,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * The document half of the editor: what the notebook *is*, where it lives, and when it is written.
@@ -368,6 +371,13 @@ class EditorViewModel(
   }
 
   /**
+   * One write at a time, in the order they were asked for: a debounced write and a run's
+   * checkpoint `persist` can both be in flight, and an older snapshot landing second must not
+   * put its document back on disk.
+   */
+  private val writeMutex = Mutex()
+
+  /**
    * Writes the notebook back - and **adopts the result only if the write happened**.
    *
    * Two things used to be true before the save rather than after it, and both were wrong when it
@@ -381,12 +391,36 @@ class EditorViewModel(
    */
   private suspend fun persist() {
     if (notebookIsGone) return
-    val updated = notebook?.copy(cells = _uiState.value.withResultsOnCells()) ?: return
-    runCatching { notebookRepository.saveNotebook(updated) }
-      .onSuccess {
-        notebook = updated
-        _uiState.update { it.copy(cells = updated.cells, dirty = false, saveFailure = null) }
-      }
-      .onFailure { failure -> _uiState.update { it.copy(saveFailure = failure.message) } }
+    writeMutex.withLock {
+      val base = notebook ?: return
+      val written = base.copy(cells = _uiState.value.withResultsOnCells())
+      runCatching { notebookRepository.saveNotebook(written) }
+        .onSuccess { adoptWritten(base, written) }
+        .onFailure { failure ->
+          if (failure is CancellationException) throw failure
+          _uiState.update { it.copy(saveFailure = failure.message) }
+        }
+    }
+  }
+
+  /**
+   * A write is a snapshot of the model, not an authority over it: what arrived while it was
+   * suspended - an edit, a delete, a run's outputs - stays, and the screen's cells are rebuilt
+   * from the state as it stands now rather than put back from the snapshot. `dirty` clears only
+   * when the write still covers that state; otherwise the later edit is still owed a write of
+   * its own, which `schedule` already armed.
+   *
+   * `Context._save` is the same shape - it clears `dirty` when the write returns and updates the
+   * contents model's metadata, but it never writes the snapshot back over the live document
+   * (`packages/docregistry/src/context.ts:627-640`).
+   */
+  private fun adoptWritten(base: Notebook, written: Notebook) {
+    val notebookMoved = notebook != base
+    notebook = (notebook ?: base).copy(cells = written.cells)
+    _uiState.update { state ->
+      val merged = state.withResultsOnCells()
+      val covered = !notebookMoved && merged == written.cells
+      state.copy(cells = merged, dirty = state.dirty && !covered, saveFailure = null)
+    }
   }
 }
