@@ -171,7 +171,7 @@ is skipped "for speed". A step is only finished when all of them hold.
 The rules above say *what* must hold. This says *in what order* to work. Every
 step runs this loop start to finish; no stage is skipped or reordered.
 
-1. **Size the step.** Find the next item with `grep -n "\*\*open ← next" docs/backlog.md`, and read its
+1. **Size the step.** Find the next item with `grep -n "← next" docs/backlog.md`, and read its
    PRD in `docs/prd/JD-NNN-*.md` — writing it from `docs/prd/_TEMPLATE.md` if it has none. If a task is
    too big to close in one functional commit, split it in the PRD *before* writing any code.
 2. **Research before acting.** Read the relevant ADRs (`grep -rn "ADR-0022" docs/ app/src/`), the

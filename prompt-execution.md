@@ -7,7 +7,7 @@ memory. Follow these steps in order.
 
 - `git log --oneline -15` and `git status --short`. Uncommitted or untracked work from an earlier session
   means that session stopped partway through. Understand it before starting anything new.
-- Open `docs/backlog.md`. Find the next item with `grep -n "\*\*open ← next" docs/backlog.md`.
+- Open `docs/backlog.md`. Find the next item with `grep -n "← next" docs/backlog.md`.
 - Read that item's PRD in `docs/prd/JD-NNN-*.md`, and its first unchecked task with
   `grep -n "\[ \]" docs/prd/JD-NNN-*.md`. **If it has no PRD, write it first** from
   `docs/prd/_TEMPLATE.md`.

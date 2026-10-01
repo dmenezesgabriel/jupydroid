@@ -5,7 +5,7 @@
 
 | Need | Read |
 |---|---|
-| What to work on next | [`backlog.md`](backlog.md) — the first row marked `open ← next` |
+| What to work on next | [`backlog.md`](backlog.md) — the one row marked `← next` |
 | How to build it | `prd/JD-NNN-*.md`, the PRD for that item |
 | Why the system is shaped this way | [`architecture.md`](architecture.md) and [`adr/`](adr/) |
 | What lives where, and what is enforced | [`architecture/building-blocks.md`](architecture/building-blocks.md) |
@@ -57,7 +57,7 @@ this repo; a table row or a single-fact statement is never wrapped, so a grep re
 |---|---|
 | Everything about one decision | `grep -rn "ADR-0012" docs/ app/src/ tools/` |
 | Everything about one backlog item | `grep -rn "JD-001" docs/` |
-| The next item | `grep -n "\*\*open ← next" docs/backlog.md` |
+| The next item | `grep -n "← next" docs/backlog.md` |
 | Unchecked tasks in a PRD | `grep -n "\[ \]" docs/prd/JD-001-*.md` |
 | Every open gap | `grep -o "GAP-[0-9]*" docs/architecture.md \| sort -u` |
 | Every closed question | `grep -n "^### CLOSED-" docs/research/closed-questions.md` |

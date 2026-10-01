@@ -7,7 +7,7 @@ prose blocks, no shipped narrative. What is settled and why is [`adr/`](adr/); h
 Find the next item with:
 
 ```sh
-grep -n "\*\*open ← next" docs/backlog.md
+grep -n "← next" docs/backlog.md
 ```
 
 ## The rules
@@ -41,7 +41,8 @@ grep -n "\*\*open ← next" docs/backlog.md
 ## Ledger
 
 State is one of `open`, `in-progress`, `partial`, `shipped`. The next item to pick up carries
-`open ← next`.
+`← next` **after** its state, whichever that is: the marker says which row to open and the state
+says how far it got, and an item part-way through is still the one to continue.
 
 ### M0 — Audit
 
@@ -61,7 +62,7 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 | Id | Area | State | PRD | Closes |
 |---|---|---|---|---|
 | `AUD-001` | The harness, the ledger, the rules, and the kernel wire as the worked example | shipped | — | — |
-| `AUD-002` | Cell commands and selection — notebook-extension against `CellAction`/`CellEdits` | **open ← next** | — | `GAP-005` |
+| `AUD-002` | Cell commands and selection — notebook-extension against `CellAction`/`CellEdits` | **in-progress ← next** | [`AUD-002`](prd/AUD-002-cell-commands-and-selection.md) | `GAP-005` |
 | `AUD-003` | Editor language features — the LSP surface, and the kernel introspection it replaced | open | — | — |
 | `AUD-004` | Search, replace and the table of contents | open | — | `GAP-001`, `GAP-002` |
 | `AUD-005` | Files, workspace and recents — filebrowser-extension against `ui/explorer/` | open | — | — |
