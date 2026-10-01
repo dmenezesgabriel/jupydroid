@@ -233,6 +233,7 @@ grep -rln "^Status: superseded" docs/adr/     # decisions that have been replace
 | [0064](adr/0064-a-files-name-is-its-identity.md) | A file's name is its identity | accepted |
 | [0065](adr/0065-the-kernel-indicator-shows-status-first-and-solid-means-active.md) | The kernel indicator keeps its status when the name goes, and solid means active | accepted |
 | [0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md) | Delete a retired attribution; do not rewrite it as a commit SHA | accepted |
+| [0067](adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md) | Store a parity verdict; produce every count beside it | accepted |
 
 ## 10. Quality requirements
 
