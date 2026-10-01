@@ -221,6 +221,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | vscode-theme resolve | what colour a VS Code role *actually* is, after its `include` chain | `scripts/resolve_vscode_theme.py` (+ `_test.py`) — a measurement, not a gate |
 | reference-surface measure | what each reference offers, enumerated with the pattern that counted it | `scripts/read_reference_commands.py` (+ `_test.py`) — a measurement, not a gate |
 | port-surface measure | every port operation, and whether production code uses it | `scripts/read_port_surface.py` (+ `_test.py`) — a measurement, not a gate |
+| ledger-partition measure | every reference command id is owned by exactly one audit slice | `scripts/read_ledger_partition.py` (+ `_test.py`) — a measurement, not a gate; its cross-check skips where `reference/` is absent |
 
 Local verification command (same as the commit gate):
 ```sh

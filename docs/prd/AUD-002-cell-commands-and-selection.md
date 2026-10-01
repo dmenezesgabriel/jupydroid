@@ -27,6 +27,16 @@ and the second of those plus the selection half of the first is this slice. Ever
 carried to the slice that owns it, named in the ledger — an id assigned to no slice is how an area
 silently stays unexamined.
 
+**And that bound does not reach the whole surface, which `T2a` measured.** The two categories hold
+27 and 58 ids, plus `notebook:create-new` added on its own with `args: { isPalette: true }` — 86 of
+the 99. **Thirteen are in neither**, and four of those are operations this app ships:
+`notebook:duplicate-below`, `notebook:undo`, `notebook:redo` and `notebook:toggle-output-scrolling`.
+A reading bounded by the palette alone would have dropped them in silence, which is this slice's own
+warning turned on itself. So ownership is decided by three sources in order — the palette category,
+then the command's own registration read for what its `label` and `execute` say it does, then
+`cross-cutting.md` §8.3 — and `scripts/read_ledger_partition.py` plus `PartitionedSurfaceTest` make
+an unowned id fail rather than go unnoticed.
+
 ## The surface, produced
 
 Never stored. ADR-0067's rule, and the commands are these:
@@ -146,10 +156,15 @@ Known going in, so a verdict does not re-litigate them:
       now reads a wrapped declaration, which moves the whole surface from 403 to 412 ids and this
       package from 99 to 102. §1's prose, `PinnedSurfaceTest` and ADR-0067's worked example all
       corrected to the measured numbers. Nothing can be mapped against an enumeration that is short.
-- [ ] T2 — Partition the 99 `notebook:*` ids by the slice that owns them, and map this slice's
-      **editing** half: insert, change type, the six heading levels, merge, split, move, duplicate,
-      delete, the clipboard, the folds, clear outputs, undo/redo. One ledger row per entry with a
-      verdict; a `GAP-NNN` per `absent`.
+- [x] T2a — **Partition the 99 `notebook:*` ids** by the slice that owns them, one ledger row per
+      command family, with the rule that decided each. Split out of `T2` because the partition is
+      what makes `T3`, `AUD-006`, `AUD-008` and `AUD-009` pickable at all, and because it is the
+      half nothing was checking: `read_ledger_partition.py` and `PartitionedSurfaceTest` now refuse
+      an id owned by nobody or claimed by two. A partition carries no verdict.
+- [ ] T2b — Map this slice's **editing** half: insert, change type, the six heading levels, merge,
+      split, move, duplicate, delete, the clipboard, the folds, clear outputs, undo/redo. One ledger
+      row per entry with a verdict; a `GAP-NNN` per `absent`. The 52 ids `T2a` assigned to it are
+      the operand — `python3 scripts/read_ledger_partition.py | grep 'T2b'`.
 - [ ] T3 — Map the **selection and navigation** half: `select-all`, `deselect-all`, the four
       `extend-marked-cells-*`, `move-cursor-up`/`-down`, the two
       `move-cursor-heading-{above-or-collapse,below-or-expand}` walks T1 made visible,
