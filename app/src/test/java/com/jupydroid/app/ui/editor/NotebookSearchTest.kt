@@ -78,6 +78,23 @@ class NotebookSearchTest {
     assertEquals(emptyList<SearchHit>(), broken.search?.hits)
   }
 
+  /**
+   * The catch in `_updateSearch` sets `_parsingError` and **returns before `endQuery` is reached**
+   * - the provider keeps the last query's highlights while the error is up
+   * (`searchmodel.ts:339-369`). The workspace panel does the same: `!isInputValid` returns early,
+   * leaving the last settled tree (`searchView.ts:1612-1614`). A `(` typed mid-pattern must not
+   * drop every highlight it will put back one keystroke later.
+   */
+  @Test
+  fun anUnparseablePatternKeepsTheLastQuerysHits() {
+    val found = notebook.withSearchOpened().withSearchQuery(SearchQuery("cat"))
+    val broken = found.withSearchQuery(SearchQuery("cat(", useRegex = true))
+    assertEquals(found.search?.hits, broken.search?.hits)
+    assertEquals(found.search?.current, broken.search?.current)
+    assertEquals("1/3", broken.searchCounter())
+    assertTrue("${broken.search?.parseError}", broken.search?.parseError?.contains("cat(") == true)
+  }
+
   @Test
   fun aQueryThatParsesClearsTheErrorBeforeIt() {
     val recovered = notebook.withSearchOpened()

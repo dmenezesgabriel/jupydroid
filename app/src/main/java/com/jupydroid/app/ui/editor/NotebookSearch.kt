@@ -85,20 +85,20 @@ fun EditorUiState.withSearchClosed(): EditorUiState = if (search == null) this e
 fun EditorUiState.withSearchQuery(query: SearchQuery): EditorUiState {
   if (search == null) return this
   val compiled = query.compile()
-  val hits = if (compiled is CompiledQuery.Matching) {
-    searchHits(compiled.regex, search.outputsSearched, search.searchSelection)
-  } else {
-    emptyList()
-  }
+  val hits = (compiled as? CompiledQuery.Matching)
+    ?.let { searchHits(it.regex, search.outputsSearched, search.searchSelection) }
+    .orEmpty()
   // `copy` of the search rather than a fresh one: `_updateSearch` rebuilds the *query*, and the
   // replacement text and its options are the view's, untouched by it (`searchmodel.ts:334-352`).
   return copy(
-    search = search.copy(
-      query = query,
-      hits = hits,
-      current = hits.firstHitFrom(this),
-      parseError = (compiled as? CompiledQuery.Invalid)?.message,
-    ),
+    search = when (compiled) {
+      // A pattern that does not parse keeps the **last** query's hits: `_updateSearch`'s catch sets
+      // `_parsingError` and returns before `endQuery` is reached, so the provider goes on
+      // highlighting what the last good pattern found (`searchmodel.ts:339-369`). VS Code's
+      // workspace panel reads the same way (`searchView.ts:1612-1614`).
+      is CompiledQuery.Invalid -> search.copy(query = query, parseError = compiled.message)
+      else -> search.copy(query = query, hits = hits, current = hits.firstHitFrom(this), parseError = null)
+    },
   )
 }
 
