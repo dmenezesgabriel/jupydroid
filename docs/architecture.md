@@ -638,6 +638,22 @@ stays declined.
 pushes, and pyflakes has no such rule. JupyterLab itself ships nothing like it, so the gap is
 against the extension reference alone.
 
+### GAP-035 — The diagnostics watch gates on the kernel session, though `pylsp`'s lifetime is the Space's
+
+`NotebookDiagnostics.keepSynced` sends the virtual document's `didChange`s only while
+`kernelConnected` holds (`app/src/main/java/com/jupydroid/app/ui/editor/NotebookDiagnostics.kt`)
+— the asks' own "a runtime was paid for" gate borrowed for the watch, since a sync lazily spawns
+the server. But `pylsp` is the app's own subprocess: spawned by any sync, stopped only by the
+idle stopper's `stopServer` (`app/src/main/java/com/jupydroid/app/di/AppContainer.kt`). The gate
+is wrong in both directions. A session ended elsewhere — `NotebookKernelSession.endIfMatches`,
+the Running panel's shutdown — stops the syncs while the server and its document live on, and the
+marks freeze in `diagnosticsByCellId` on whatever lines they last mapped, drifting wrong under
+fresh typing until a reconnect resyncs. The other way, a session the idle stopper left stale
+still reads `kernelConnected`, so typing respawns ~60 MB of `pylsp` while `jupyter_server` is
+still down — the boot a gate exists to prevent, paid anyway. The repair is a watch keyed on the
+server's existence rather than the session's — a "is there a server" the port does not answer
+today — or clearing the marks at the drop; either is a build item, not an audit's.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

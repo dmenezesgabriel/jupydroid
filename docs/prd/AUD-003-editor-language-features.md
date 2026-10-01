@@ -186,7 +186,7 @@ Known going in, so a verdict does not re-litigate them:
       language-rule `editorConfig` keys (`indentUnit`, `smartIndent`, `matchBrackets`, `tabSize`,
       `tabFocusable`) against `PythonTypingRules`/`EditorSettings`/`HighlightTransformation`;
       `GAP-004` decided; the highlighting row.
-- [ ] T4 — **The walk.** `EditorCell`/`CodeCellField` → `rememberCellCompletions` /
+- [x] T4 — **The walk.** `EditorCell`/`CodeCellField` → `rememberCellCompletions` /
       `rememberCellSignatureHelp` (the 250ms debounce, `collectLatest`) → `NotebookAsks` →
       `Notebook{Completion,…}` → `NotebookLanguageDocument.sync` (whole document per ask,
       `documentLock`, the no-change skip) → `StdioLanguageServer.ServerPool` → `JsonRpcChannel` →

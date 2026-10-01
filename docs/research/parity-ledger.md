@@ -53,7 +53,7 @@ Five, each obliging something different. The full definition is in
 |---|---|---|
 | Kernel wire and execution | `AUD-001` | examined — below |
 | Cell commands and selection | `AUD-002` | examined — below |
-| Editor language features | `AUD-003` | examined — every surface is verdicted below; the walk is `T4`'s |
+| Editor language features | `AUD-003` | examined — below |
 | Search, replace, table of contents | `AUD-004` | unexamined |
 | Files, workspace, recents | `AUD-005` | unexamined |
 | Console, sessions, running panel | `AUD-006` | unexamined |
@@ -493,4 +493,67 @@ Backspace.
 | `extendSelection`, `rectangularSelection`, `allowMultipleSelections` | — | **absent** | `GAP-033`. All three create what `TextFieldState` cannot hold: more than one selection |
 | syntax highlighting (`syntaxHighlighting` over the Lezer parse tree) | `syntax/`'s ANTLR lexers → `SyntaxHighlighter` spans → `HighlightTransformation` styles | adapted | a generated pure-JVM lexer instead of a parse tree — ADR-0038 — over a deliberately short kind list, `SyntaxHighlighter`'s "a cell is not an IDE" |
 
-The walk is `T4`'s.
+### The walk
+
+`CodeCellField` asks on its own typing: `rememberCellCompletions` (`snapshotFlow` over text and
+selection, `distinctUntilChanged`, `collectLatest` — a keystroke cancels the debounce and the ask
+in flight — on a 250 ms settle behind `completionQueryAt`'s two-letter tail) and
+`rememberCellSignatureHelp` (armed-or-trigger-char behind `insideUnclosedParen`, 120 ms — VS
+Code's `parameterHintsModel.DEFAULT_DELAY`) both reach `NotebookAsks`, wired
+`viewModel.kernel.asks::*` at `EditorScreen.kt:412-414`. The menu asks enter lower down:
+`EditorCellActions.cellAction` peels `GoToDefinition`/`FormatCell`/`RenameTo` out of the `when`
+before `NotebookCellEdits.applyTo` sees them, and `SymbolInfo` never leaves `EditorCell` —
+`symbolAsk++` fires `hoverAt` directly. From there one shape six times: the `session.opened` gate
+→ `document.sync(cells.withLiveSource(cellId, code))` → the caret's virtual position →
+`languageServer.<op>` → `NotebookLanguageDocument.sync` (`syncLock`; a rename's orphaned uri is
+closed before the new one auto-opens) → `StdioLanguageServer.ServerPool` (the `startup` mutex:
+lazy spawn, `initialize`/`initialized`, a dead process respawned on the next call) →
+`JsonRpcChannel` (one write mutex, a `pending` map, `$/cancelRequest` owed on timeout-or-cancel)
+→ `pylsp` over `LspFraming`'s stdio frames. Back: `channel.notifications` → `diagnosticsPump` →
+`LspNotifications.publishDiagnosticsFrom` → `diagnostics` → `NotebookDiagnostics.relayPublishes`
+(uri-checked against `synced`) → `toCellLines` → `diagnosticsByCellId` → the gutter marks — while
+`keepSynced` feeds the document that mirror mirrors, a `didChange` per distinct
+`(cells, kernelConnected)` state. What it found:
+
+- **Growth is the whole document, twice a burst.** Every ask syncs before it asks, and every
+  distinct cells-state syncs anyway; each builds a fresh `NotebookVirtualDocument` — all code
+  cells joined, the block map rebuilt — even when the adapter's `synced.text == text` then skips
+  the send. When the text did move the frame is the whole notebook (`sendFullTextChange`'s own
+  choice), and `pylsp` pays ~540–630 ms of re-analysis per `didChange` → `publishDiagnostics`
+  (probe-measured). Felt latency is the debounce plus that analysis: a completion lands ≈
+  250 + 620 ms after the keystroke that earned it. Nothing sends deltas, and nothing measured
+  says one should yet.
+- **Branching is three gates in a row, each biased to quiet.** The query shapes decide whether a
+  keystroke is worth a round trip; `session.opened` decides whether a runtime was ever paid for
+  (typing boots nothing — the Space install is seconds and ~143 MB); the capability checks decide
+  whether the server was offered the method at all. Answers map back through the synced mirror —
+  `positionOf`, `cellLineAt`, `cellOffsetOf(Clamped)` — a markdown cell, a separator line, an
+  off-document uri each read as null rather than a guess. Below that, the channel's `route` is
+  the last `when`: reply, notification, or a server→client request declined `result: null`. One
+  hole named rather than fixed: completion has an off-switch (`EditorSettings.completionEnabled`)
+  and signature help has none — VS Code's `editor.parameterHints.enabled` has no counterpart here.
+- **Failure is designed silence, and the catches are where the design lives.** Every ask's broad
+  `catch (failed: Exception)` keeps a dead `pylsp` or a dying channel out of a `LaunchedEffect`;
+  `CancellationException` rethrows so `collectLatest`'s next-keystroke cancel lands, and the
+  channel pays the `$/cancelRequest` courtesy on the way. The kernel fallback's
+  `catch (IllegalStateException)` is load-bearing — `StaleKernelSessionException` is one *by
+  declaration*, so a session the idle backstop stopped is a quiet `NONE`, not a crash.
+  `keepSynced`'s `runCatching` leaves the last mirror standing; a dead server respawns inside
+  `serverFor`'s lock — its `documents` map dies with the process, so the next sync's auto-
+  `didOpen` is also the recovery — and `close()` fails every pending request rather than leave
+  one hung. The honest lag: a push maps against `synced`, the last text *sent*, which can sit
+  ahead of the version `pylsp` analyzed — a ~600 ms window of possibly-misplaced marks, corrected
+  by the next push, the same approximation the reference accepts.
+- **Coupling is the walk's real yield — three knots.** `BASE_SPACE` is hardcoded at every ask
+  site, at the document's sync and at `AppContainer`'s idle stop: the language surface answers
+  only for the base Space, `JD-001`'s question arriving from a second direction. `NotebookKernel`
+  owns `asks`, `history`, the virtual document and the diagnostics watch because it owns the
+  `session` each gates on — one owner keeps the gate singular, at the price of a class named
+  "kernel" holding the language surface. And the watch borrows the session for a runtime that is
+  not it: `keepSynced` keys on `kernelConnected`, but `pylsp` is the app's own subprocess whose
+  lifetime is the Space's — spawned by any sync, stopped only by the idle stopper's
+  `stopServer`. A session ended elsewhere (`NotebookKernelSession.endIfMatches`, the Running
+  panel's shutdown) stops the syncs while the server and its document live on, and the marks
+  freeze on whatever lines they last mapped; the other way, typing against a session the idle
+  stopper made stale respawns ~60 MB of `pylsp` while `jupyter_server` is still down. Recorded
+  as `GAP-035`.
