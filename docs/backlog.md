@@ -101,7 +101,7 @@ runtime, the UI and one measured decision.
 
 ### Known gaps
 
-Eleven measured gaps are recorded as `GAP-001`–`GAP-011` in
+Measured gaps are recorded as `GAP-NNN` in
 [`architecture.md` §11](architecture.md). A gap becomes a `JD-NNN` when it is picked up; until then it is a
 limitation with a measurement, not a plan.
 

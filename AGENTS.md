@@ -222,6 +222,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | reference-surface measure | what each reference offers, enumerated with the pattern that counted it | `scripts/read_reference_commands.py` (+ `_test.py`) — a measurement, not a gate |
 | port-surface measure | every port operation, and whether production code uses it | `scripts/read_port_surface.py` (+ `_test.py`) — a measurement, not a gate |
 | ledger-partition measure | every reference command id is owned by exactly one audit slice | `scripts/read_ledger_partition.py` (+ `_test.py`) — a measurement, not a gate; its cross-check skips where `reference/` is absent |
+| ledger-verdicts measure | every id an examined audit task owns carries exactly one verdict, and the counts beside them | `scripts/read_ledger_verdicts.py` (+ `_test.py`) — a measurement, not a gate; its cross-check skips where `reference/` is absent |
 
 Local verification command (same as the commit gate):
 ```sh

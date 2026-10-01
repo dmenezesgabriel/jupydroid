@@ -1,0 +1,7 @@
+appId: com.jupydroid.app
+---
+# Part 2 of 4: the driver has typed five keys. No launch - the field must keep its focus.
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "kept = 1typed"
+- takeScreenshot: 02-typed

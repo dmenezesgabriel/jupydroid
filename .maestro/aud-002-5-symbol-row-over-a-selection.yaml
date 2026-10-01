@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# The one defect this slice found by measuring rather than reading: a key on the symbol row typed
+# over a selection used to go in *front* of it and leave it selected - `#` over `kept = 1` gave
+# `#kept = 1` - where the same key on the keyboard replaces it. `FocusedCellInput.type` promises
+# keyboard parity; `typingOverASelectionReplacesItJustAsTheKeyboardsDoes` is the unit half.
+#
+# Runs on after part 4 in the same session, so the cell holds the three pasted lines; selecting all
+# of them is what makes the replacement unmistakable.
+- tapOn: "Text History.ipynb"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "kept = 1typedkept = 1typedkept = 1typed"
+- longPressOn: "kept = 1typedkept = 1typedkept = 1typed"
+- tapOn:
+    text: "Select all"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 09-the-line-selected
+# The row's `#`, not a key hint on the keyboard: the row is the first `#` in the hierarchy.
+- tapOn:
+    text: "#"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "#"
+- assertNotVisible: ".*kept.*"
+- takeScreenshot: 10-the-rows-key-replaced-it

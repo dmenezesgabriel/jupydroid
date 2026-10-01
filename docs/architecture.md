@@ -408,6 +408,58 @@ The reference offers the opposite default — `allow_stdin: true`
 (`packages/outputarea/src/widget.ts`), which is the shape to take: the flag is one line, and the
 feature is a prompt, a reply and a cell that stays busy while it waits.
 
+### GAP-015 — A cell clipboard pastes below, and only below
+
+The reference pastes three ways — `notebook:paste-cell-below`, `paste-cell-above` and
+`paste-and-replace-cell` — all three in its Edit menu
+(`jupyterlab@7f0e690680a763d3c3db5dc0231803b0ba0e1e12`
+`packages/notebook-extension/schema/tracker.json:51-60`), while its cell context menu offers below
+alone, which is the one placement ours has (`CellActionItems.kt`'s `clipboardItems`). With no Edit
+menu, the other two have no surface here at all. `withClipboardPasted` already takes the cell it
+pastes from and computes where a collapsed section ends, so the transform is a placement parameter
+rather than a new function; what is missing is where the rows go.
+
+### GAP-016 — Code and outputs fold one selection at a time, never the whole notebook
+
+`notebook:hide-all-cell-code`, `show-all-cell-code`, `hide-all-cell-outputs` and
+`show-all-cell-outputs` are the reference's View menu (`tracker.json:125-165`); none exists here.
+Headings already have their notebook-wide pair (`NotebookCellEdits.setAllHeadingsCollapsed`, in
+`NotebookActionsMenu`), and `CellFolds.withSourceHiddenSet` / `withOutputsHiddenSet` take a list of
+cell ids, so passing every code cell is the transform. The cost is four rows in a menu that is
+already the reference's View menu, and a decision about whether they are four rows or two toggles.
+
+### GAP-017 — Output text cannot be selected, so it cannot be copied
+
+Outputs draw through a plain `Text` (`ui/editor/CellOutputsView.kt`'s `OutputText`) and nothing in
+the app wraps them in a `SelectionContainer`. A long press on an output selects nothing — measured
+on the tablet, no toolbar appears. The reference's `notebook:copy-selected-text` falls back to the
+page's selection when the editor has none, which is how text is copied *out* of a result there
+(`packages/notebook-extension/src/index.ts:3786-3820`). Text inside a cell's source is the platform
+field's and works ([ADR-0068](adr/0068-text-inside-a-cell-is-its-fields.md)); this is the half with
+no field behind it. `notebook:copy-to-clipboard`, which copies a whole output, is the rendering
+audit's, and closing either changes what the other has to do.
+
+### GAP-018 — A cell's text undo has no touch control
+
+The history exists and works: Compose's `TextFieldState` answers `Ctrl+Z` and `Ctrl+Shift+Z`, one
+entry per run of typing, measured on the tablet
+([ADR-0068](adr/0068-text-inside-a-cell-is-its-fields.md)). What is missing is a way to reach it
+without a hardware keyboard. The reference puts `notebook:undo` / `notebook:redo` in Edit → Undo /
+Redo (`packages/notebook-extension/src/index.ts:5365-5372`); the platform text toolbar has no Undo
+item; and the undo pair on this app's bar is the **cell-operation** history, which is a different
+scope by design (`CellUndo.kt`). Closing it means deciding which history a single visible Undo
+reaches while a cell has the caret — VS Code answers that by focus — rather than adding a second
+pair of arrows.
+
+### GAP-019 — Markdown cells cannot be rendered together without running the notebook
+
+`notebook:render-all-markdown` (*"Render All Markdown Cells"*, the reference's Run menu,
+`tracker.json:205-215`) renders every markdown cell and runs nothing
+(`packages/notebook/src/actions.tsx:968-990`). Here the only notebook-wide render is Run All's
+markdown branch (`NotebookCellRuns`, through `MarkdownEditing.withMarkdownRendered`), so closing
+every open markdown editor costs executing every code cell. `withMarkdownRendered` already takes a
+list of cell ids; the gap is a surface.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

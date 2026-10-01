@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# Part 3 of 4: the driver has sent one Ctrl+Z. `notebook:undo` is `cell.editor?.undo()` in the
+# reference; ours has no command for it, so the question is whether the field's own history
+# answers the platform's key mapping - and answers it the way Compose's `TextFieldState` merges a
+# run of typing, which is one entry for all five keys.
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "kept = 1"
+- assertNotVisible: ".*typed.*"
+# The cell-operation undo did not answer it: still disabled, nothing recorded.
+- assertVisible:
+    text: "Undo cell operation"
+    enabled: false
+- takeScreenshot: 03-one-ctrl-z-took-the-whole-run-back

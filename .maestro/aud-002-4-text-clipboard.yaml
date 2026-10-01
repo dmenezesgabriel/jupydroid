@@ -1,0 +1,84 @@
+appId: com.jupydroid.app
+---
+# Part 4 of 4: the driver has sent Ctrl+Shift+Z, and then the text clipboard against the cell one.
+#
+# `notebook:copy-selected-text`, `cut-selected-text` and `paste-text` are rows in the reference's
+# cell context menu (`packages/notebook-extension/schema/tracker.json:250-266`). Ours has no row,
+# so what a user has is the platform's text toolbar - measured here, together with the one thing
+# that makes the two clipboards two: a *cell* copy must not reach the text one.
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "kept = 1typed"
+- takeScreenshot: 04-ctrl-shift-z-put-it-back
+# Every press is on an element, never a point: the tablet turns, and a point that is a word in
+# portrait is empty field in landscape. A press on the field lands at its centre, past the text,
+# which offers Select all - and selecting everything is what puts Cut and Copy on the toolbar.
+- longPressOn: "kept = 1typed"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Select all"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scoped to the platform's floating toolbar: the bar's own "Undo cell operation" and an IME's
+# undo button are both on screen and are neither of the things asked about here.
+- assertVisible:
+    text: "Cut"
+    id: "android:id/floating_toolbar_menu_item_text"
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- assertNotVisible:
+    text: "Undo"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 05-a-selection-offers-cut-and-copy-and-no-undo
+- tapOn:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- tapOn: "kept = 1typed"
+- longPressOn: "kept = 1typed"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    text: "Paste"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 06-the-copy-is-offered-back
+- tapOn:
+    text: "Paste"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "kept = 1typedkept = 1typed"
+# Now the cell's own Copy, and then the text Paste again. The cell's source is by now the doubled
+# line, so a cell copy that had reached the system clipboard would paste *that*; the text
+# clipboard still holding the single line is what says the two are two.
+- tapOn: "Cell actions"
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- tapOn: "Cell menu Copy"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "kept = 1typedkept = 1typed"
+- longPressOn: "kept = 1typedkept = 1typed"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Paste"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "kept = 1typedkept = 1typedkept = 1typed"
+- takeScreenshot: 07-a-cell-copy-never-reached-the-text-clipboard
+# And an output: drawn by a plain `Text` with no `SelectionContainer` anywhere in the app, so a
+# long press there should select nothing - the half of `copy-selected-text` that falls back to
+# `window.getSelection()` in the reference.
+- longPressOn: "printed words"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- assertNotVisible:
+    text: "Select all"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 08-a-long-press-on-an-output-selects-nothing

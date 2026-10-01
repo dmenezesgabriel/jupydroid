@@ -161,10 +161,13 @@ Known going in, so a verdict does not re-litigate them:
       what makes `T3`, `AUD-006`, `AUD-008` and `AUD-009` pickable at all, and because it is the
       half nothing was checking: `read_ledger_partition.py` and `PartitionedSurfaceTest` now refuse
       an id owned by nobody or claimed by two. A partition carries no verdict.
-- [ ] T2b — Map this slice's **editing** half: insert, change type, the six heading levels, merge,
+- [x] T2b — Map this slice's **editing** half: insert, change type, the six heading levels, merge,
       split, move, duplicate, delete, the clipboard, the folds, clear outputs, undo/redo. One ledger
-      row per entry with a verdict; a `GAP-NNN` per `absent`. The 52 ids `T2a` assigned to it are
-      the operand — `python3 scripts/read_ledger_partition.py | grep 'T2b'`.
+      row per entry with a verdict; a `GAP-NNN` per `absent` — `GAP-015`..`GAP-019`, ADR-0068 for
+      the text half nobody had written down, and one `defect` fixed red-first (`FocusedCellInput.type`
+      inserting in front of a selection). The text half was measured on the tablet, not only read.
+      `read_ledger_verdicts.py` and `VerdictedSurfaceTest` now refuse an examined task that left an
+      id unjudged — `python3 scripts/read_ledger_verdicts.py --missing`.
 - [ ] T3 — Map the **selection and navigation** half: `select-all`, `deselect-all`, the four
       `extend-marked-cells-*`, `move-cursor-up`/`-down`, the two
       `move-cursor-heading-{above-or-collapse,below-or-expand}` walks T1 made visible,

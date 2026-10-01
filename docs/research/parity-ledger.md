@@ -18,6 +18,8 @@ python3 scripts/read_reference_commands.py --notebook-actions # NotebookActions'
 python3 scripts/read_port_surface.py                          # our ports, and what names each operation
 python3 scripts/read_port_surface.py --unused                 # operations nothing names
 python3 scripts/read_ledger_partition.py --unassigned         # command ids this file owns nowhere
+python3 scripts/read_ledger_verdicts.py --missing             # ids an examined task left unjudged
+python3 scripts/read_ledger_verdicts.py --counts              # how many of each verdict
 python3 -m unittest discover -s scripts -p 'read_*_test.py'   # the counts §1 states, against the clones
 ```
 
@@ -49,7 +51,7 @@ Five, each obliging something different. The full definition is in
 | Area | Item | State |
 |---|---|---|
 | Kernel wire and execution | `AUD-001` | examined — below |
-| Cell commands and selection | `AUD-002` | partitioned — every id owned, verdicts for the editing half next |
+| Cell commands and selection | `AUD-002` | editing half examined — below; the selection and navigation half next |
 | Editor language features | `AUD-003` | unexamined |
 | Search, replace, table of contents | `AUD-004` | unexamined |
 | Files, workspace, recents | `AUD-005` | unexamined |
@@ -191,3 +193,39 @@ examination came out, which is what a verdict is for.
 | `notebook:toggle-all-cell-line-numbers` | `AUD-009` | The gutter — `EditorSettings.lineNumbersShown`, drawn by `LineNumbers.kt`, and presentation rather than a cell operation |
 | `notebook:create-new` | `AUD-009` | Added to the palette on its own. Creating a document is chrome, not a cell command |
 | `notebook:toggle-autoclosing-brackets` | `AUD-003` | Palette-less (`:2223`). A typing rule — `PythonTypingRules`, which is `GAP-004`'s own subject — carried app-wide by `EditorSettingsRepository` |
+
+### The editing half — verdicts
+
+`T2b`'s ids, one row per family as above, and every verdict read against the code down the dispatch
+— `CellActionItems` (the row) → `NotebookCellEdits.applyTo` → `applyingFrom` / `applying` /
+`transformed` in `ui/editor/CellOperation.kt` → the transform → `recording` — rather than against a
+grep, which `docs/prd/AUD-002-*.md` showed is wrong in both directions here. The text half was
+**measured on the tablet** as well as read, because what it rests on is the platform's and not ours:
+`scripts/aud-002-text-history-driver.sh`. A verdict is what the examination found; the last column
+says what discharged its obligation.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `notebook:insert-cell-above`, `notebook:insert-cell-below` | `CellAction.InsertAbove` / `Insert` → `withCellInsertedAbove` / `withCellInserted` | present | the head only, as `insertAbove`/`insertBelow` act on the active cell (`actions.tsx:545`, `:582`) |
+| `notebook:insert-heading-above`, `notebook:insert-heading-below` | `CellAction.InsertHeading` → `withHeadingInserted` | adapted | same placement, end of the section; the *label* reads "after section" where the reference says "below", and `CellActionItems.kt`'s `addingItems` says why |
+| `notebook:change-cell-to-code`, `notebook:change-cell-to-markdown`, `notebook:change-cell-to-raw` | `CellAction.ChangeKind` → `withCellsKindChanged` | present | id kept, outputs dropped, a new markdown cell left unrendered — `changeCellType`'s three rules; the menu offers the two types the head is not |
+| `notebook:change-cell-to-heading-1`, `notebook:change-cell-to-heading-2`, `notebook:change-cell-to-heading-3`, `notebook:change-cell-to-heading-4`, `notebook:change-cell-to-heading-5`, `notebook:change-cell-to-heading-6` | `CellAction.ChangeToHeading` → `withCellsHeadingLevel` | adapted | six palette entries become one row and a picker, and the flat six on the accessibility surface — `CellActionItems.kt`'s `headingLevelItems` and `CHANGE_TO_HEADING` |
+| `notebook:merge-cells`, `notebook:merge-cell-above`, `notebook:merge-cell-below` | `CellAction.Merge` → `withCellsMerged` | present | two rows for one cell, one for a run, because `mergeAbove` is read only when one cell is marked (`actions.tsx:390-425`) |
+| `notebook:split-cell-at-cursor` | `CellAction.Split` → `withCellSplit` | adapted | one selection, so two or three fragments, never more — a `TextFieldState` carries one; `CellSplit.kt` states the narrowing |
+| `notebook:move-cell-up`, `notebook:move-cell-down` | `CellAction.Move` → `withCellsMoved` | present | the run moves as a block and stays marked, as `move` has no `deselectAll()` |
+| `notebook:duplicate-below` | `CellAction.Duplicate` → `withCellsDuplicated` | present | `'belowSelected'`, outputs and count kept, a collapsed heading taking its section (`CellOperation.kt`'s `operandOf`) |
+| `notebook:delete-cell` | `CellAction.Delete` → `withCellsDeleted` | present | the last cell's deletion leaves an empty code cell, inside the same undo entry |
+| `notebook:copy-cell`, `notebook:cut-cell`, `notebook:paste-cell-below` | `CellAction.Copy` / `Cut` / `Paste` → `withCellsCopied` / `withCellsCut` / `withClipboardPasted` | adapted | the clipboard is per notebook where the reference's is a singleton — `EditorUiState.clipboard`'s docstring says why |
+| `notebook:paste-cell-above`, `notebook:paste-and-replace-cell` | — | **absent** | `GAP-015`. The reference's Edit menu; its cell context menu, like ours, has below alone |
+| `notebook:copy-selected-text` | the platform text toolbar, in the source only | **absent** | `GAP-017`. Copying from a cell's source is the field's ([ADR-0068](../adr/0068-text-inside-a-cell-is-its-fields.md)); the command's other half — copying from an output — has nothing to select. Measured: a long press on an output opens no toolbar |
+| `notebook:cut-selected-text`, `notebook:paste-text` | the platform text toolbar, over the system clipboard | **undocumented** | no reason was written anywhere; [ADR-0068](../adr/0068-text-inside-a-cell-is-its-fields.md), written by this slice. Measured: Cut, Copy, Paste and Select all, and a cell copy never reaching the text clipboard |
+| `notebook:replace-selection` | `FocusedCellInput.type` | **defect** | measured: the symbol row's `#` over a selected line gave `#kept = 1` with the line still selected, against `type`'s own promise of keyboard parity. Fixed red-first — `FocusedCellInputTest.typingOverASelectionReplacesItJustAsTheKeyboardsDoes`, and a flow on the tablet. No command id, for [ADR-0068](../adr/0068-text-inside-a-cell-is-its-fields.md)'s reason: nothing calls one |
+| `notebook:hide-cell-code`, `notebook:show-cell-code`, `notebook:hide-cell-outputs`, `notebook:show-cell-outputs`, `notebook:toggle-cell-outputs` | `CellAction.ToggleSourceHidden` / `ToggleOutputsHidden` → `withSourceHiddenSet` / `withOutputsHiddenSet` | adapted | each pair is one row that sets the state opposite to the head's, because the row's label is written from the head — `CellFolds.kt`. That differs from `toggleOutput`, which is **any-of** (`actions.tsx:1999-2015`): on a mixed run whose head is collapsed the reference hides and ours shows. Read by hand |
+| `notebook:hide-all-cell-code`, `notebook:show-all-cell-code`, `notebook:hide-all-cell-outputs`, `notebook:show-all-cell-outputs` | — | **absent** | `GAP-016`. The reference's View menu; the transforms already take a list |
+| `notebook:enable-output-scrolling`, `notebook:disable-output-scrolling`, `notebook:toggle-output-scrolling` | `CellAction.ToggleOutputsScrolled` → `withOutputsScrolledSet` | adapted | one row with the reference's own fixed menu label, toggling by its all-of rule — `CellActionItems.kt`'s `foldingItems`, `CellFolds.allMarkedCodeCellsScrolled` |
+| `notebook:toggle-heading-collapse` | `CellAction.ToggleHeadingCollapse` → `withHeadingCollapsed` | present | the head alone, as `toggleCurrentHeadingCollapse` reads `activeCell` |
+| `notebook:collapse-all-headings`, `notebook:expand-all-headings` | `NotebookCellEdits.setAllHeadingsCollapsed` | adapted | menu rows where the reference has palette entries and shortcuts — `NotebookActionsMenu.kt` says why |
+| `notebook:render-all-markdown` | — | **absent** | `GAP-019`. Only Run All renders markdown notebook-wide here, and it runs the code cells too |
+| `notebook:clear-cell-output`, `notebook:clear-all-cell-outputs` | `CellAction.ClearOutputs` → `withOutputsCleared`; `NotebookCellEdits.clearAllOutputs` in `KernelMenu` | present | outputs, count and run record together, and the fold undone, as `clearExecution` does |
+| `notebook:undo-cell-action`, `notebook:redo-cell-action` | `NotebookCellEdits.undo` / `redo` → `CellUndo`, on the editor bar | present | structural only; a cell operation never carries text back (`CellUndo.kt`) |
+| `notebook:undo`, `notebook:redo` | `TextFieldState`'s own history, under `Ctrl+Z` / `Ctrl+Shift+Z` | **absent** | `GAP-018`. The history is present and measured — one entry per run of typing; what is absent is the reference's Edit → Undo, any touch way to reach it |
