@@ -99,9 +99,8 @@ deleted, wherever they are named - flows, drivers and `evidence/` write-ups incl
 above exempts for step codes but not for a path that resolves nowhere. 233 such citations survived
 the first sweep because it was scoped to shipped code. Eight files may still name them, because
 recording the retirement is their job: ADR-0001, [ADR-0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md),
-[`research/decisions-triage.md`](research/decisions-triage.md), this file, and the citation gate with
-its test, and this second gate with its own test - the last four quote the banned forms as
-data.
+[`research/decisions-triage.md`](research/decisions-triage.md), this file, the citation gate with its
+test, and this second gate with its own test - the last four carry the banned forms as data.
 
 **Out of scope for the rule:** `scripts/*-driver.sh`, `.maestro/*.yaml` and `evidence/`. A driver,
 its flow and its evidence directory are named in lockstep, and the step code is what ties them
