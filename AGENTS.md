@@ -215,6 +215,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | palette-consumers gate | a palette states colours something draws | `scripts/check_palette_consumers.py` (+ `_test.py`) |
 | pane-width measure | what each column of the shell gets, on device | `scripts/read_pane_widths.py` (+ `_test.py`) — a measurement, not a gate |
 | vscode-theme resolve | what colour a VS Code role *actually* is, after its `include` chain | `scripts/resolve_vscode_theme.py` (+ `_test.py`) — a measurement, not a gate |
+| reference-surface measure | what each reference offers, enumerated with the pattern that counted it | `scripts/read_reference_commands.py` (+ `_test.py`) — a measurement, not a gate |
 
 Local verification command (same as the commit gate):
 ```sh
