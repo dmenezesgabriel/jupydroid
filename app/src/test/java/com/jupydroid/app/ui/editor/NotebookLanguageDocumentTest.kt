@@ -22,11 +22,12 @@ class NotebookLanguageDocumentTest {
 
   private lateinit var server: RecordingSyncServer
   private lateinit var document: NotebookLanguageDocument
+  private var notebookId = "Analysis.ipynb"
 
   @Before
   fun setUp() {
     server = RecordingSyncServer()
-    document = NotebookLanguageDocument(server) { "Analysis.ipynb" }
+    document = NotebookLanguageDocument(server) { notebookId }
   }
 
   @Test
@@ -58,15 +59,37 @@ class NotebookLanguageDocumentTest {
     assertEquals("x = 1\n", server.syncs.last().text)
   }
 
+  /**
+   * A rename re-keys [NotebookVirtualDocument]'s uri, so the document the server knew is
+   * orphaned - left open, still linted, its pushes dropped at `relayPublishes`' uri check.
+   * The next sync is where the orphan is found, and `didClose` must reach it before the
+   * new uri's auto-open.
+   */
+  @Test
+  fun aRename_closesTheDocumentTheServerKnew() = runTest {
+    document.sync(listOf(code("c1", "x = 1")))
+    notebookId = "Renamed.ipynb"
+
+    document.sync(listOf(code("c1", "x = 1")))
+
+    assertEquals(listOf("file:///jupyterdroid/notebooks/Analysis.ipynb.py"), server.closes)
+    assertEquals("file:///jupyterdroid/notebooks/Renamed.ipynb.py", server.syncs.last().uri)
+  }
+
   /** The syncs the adapter would hear, recorded for the tests to assert on. */
   private class RecordingSyncServer(private val fake: FakeLanguageServerPort = FakeLanguageServerPort()) :
     LanguageServerPort by fake {
     data class Sync(val uri: String, val text: String)
 
     val syncs = mutableListOf<Sync>()
+    val closes = mutableListOf<String>()
 
     override suspend fun changeDocument(space: Space, uri: String, text: String) {
       syncs += Sync(uri, text)
+    }
+
+    override suspend fun closeDocument(space: Space, uri: String) {
+      closes += uri
     }
   }
 

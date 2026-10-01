@@ -201,11 +201,18 @@ interface LanguageServerPort {
   /**
    * The server's `initialize` answer, from a running server - starting it lazily if this is
    * the first call for [space]. Called on every operation anyway, so a caller asserting
-   * readiness pays nothing after the first.
+   * readiness pays nothing after the first. No feature reads it today: the adapter gates
+   * every ask on the capabilities it stores at handshake, and the op stays as the one place
+   * the negotiated surface is exposed - `LanguageServerPortContract` reads it.
    */
   suspend fun capabilities(space: Space): LanguageCapabilities
 
-  /** `textDocument/didOpen`; [uri] is a `file://`-style document identifier, [languageId] `python`. */
+  /**
+   * `textDocument/didOpen`; [uri] is a `file://`-style document identifier, [languageId] `python`.
+   * Callers reach the open through [changeDocument], whose auto-open is the only open a sync
+   * ever needs - the explicit form stays so the port carries the lifecycle whole, and it is
+   * what `LanguageServerPortContract` opens documents with.
+   */
   suspend fun openDocument(space: Space, uri: String, languageId: String, text: String)
 
   /**
@@ -215,6 +222,13 @@ interface LanguageServerPort {
    */
   suspend fun changeDocument(space: Space, uri: String, text: String)
 
+  /**
+   * `textDocument/didClose` for a document whose uri a rename orphaned - the caller is
+   * `NotebookLanguageDocument.sync`, which finds the orphan when the notebook id re-keys the
+   * uri. Deliberately not sent on the editor's own close: the kernel's socket stays open for
+   * reattach the same way (`NotebookKernel.close`), and a document still open makes a
+   * reopened notebook's first sync cost no frame at all.
+   */
   suspend fun closeDocument(space: Space, uri: String)
 
   /** `textDocument/completion` at [position] in the document at [uri]. */

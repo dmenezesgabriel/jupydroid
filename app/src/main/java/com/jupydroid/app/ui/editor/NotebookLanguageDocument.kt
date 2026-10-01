@@ -40,9 +40,16 @@ class NotebookLanguageDocument(
    * opened on first sync ([LanguageServerPort.changeDocument]'s own rule), the version bumped
    * by the adapter each time after. Serialized so two syncs can never interleave into a version
    * order neither caller intended, and [synced] moves only once the send succeeded.
+   *
+   * A rename re-keys the uri (`NotebookVirtualDocument` builds it from `notebookId`), and the
+   * document the server knew is orphaned without a `didClose` - left open and linted, its
+   * pushes dropped by the callers' uri check. The orphan is found here, on the next sync, and
+   * closed before the new uri's auto-open (`NotebookLanguageDocumentTest.aRename_closesTheDocumentTheServerKnew`).
    */
   suspend fun sync(cells: List<Cell>): NotebookVirtualDocument = syncLock.withLock {
     val document = NotebookVirtualDocument(notebookId(), cells)
+    _synced.value?.takeIf { it.uri != document.uri }
+      ?.let { languageServer.closeDocument(BASE_SPACE, it.uri) }
     languageServer.changeDocument(BASE_SPACE, document.uri, document.text)
     _synced.value = document
     document
