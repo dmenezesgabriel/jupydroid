@@ -23,7 +23,10 @@ FIXTURE="$ROOT/.maestro/fixtures/step10-real-kernel.ipynb"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"   # $ADB, $APP, reset_notebooks, seed_notebook, run_flow
 
-EVIDENCE="$ROOT/evidence/kernel-observability/shell-dispatch-logged"
+# Overridable like the other seven drivers, so a step that only needs this flow *green again* can
+# capture under its own name rather than overwriting the committed SM-X216B captures. This one had
+# no override, which made re-running it destructive.
+EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/kernel-observability/shell-dispatch-logged}"
 SERVER_LOG="files/spaces/base/run/jupyter_server.log"
 # ipykernel's dispatch_shell, at DEBUG (kernelbase.py:455), matched with grep -F: the line is
 # full of `*`, and as a regex it would mean something else entirely.
