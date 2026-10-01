@@ -52,6 +52,14 @@ import kotlinx.coroutines.CoroutineScope
  * symbol row are the same code as in a code cell, not a second implementation that will drift
  * from it.
  *
+ * **There is no in-file find.** `fileeditor:find` is `editor.execCommand(findNext)` over a
+ * CodeMirror search panel (`fileeditor-extension/src/commands.ts:624-641`), mounted by the
+ * `searchWithCM` editorConfig key (`packages/codemirror/src/factory.ts:28`), and the
+ * documentsearch overlay's own answer is `jp-fileeditorSearchProvider`
+ * (`fileeditor-extension/src/index.ts:288`). None of the three exists here: a field keeps its
+ * own selections rather than mounting a search panel, and finding is the workspace search's,
+ * whose results this screen lands on through [reveal].
+ *
  * ```
  * FileEditorScreen("reports/data.csv", workspaceRepository, applicationScope, onBack = { … })
  * ```

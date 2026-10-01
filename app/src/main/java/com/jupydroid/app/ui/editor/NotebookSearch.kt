@@ -33,7 +33,16 @@ data class SearchState(
    * (`packages/notebook/src/searchprovider.ts:229-243`).
    */
   val searchOutputs: Boolean = false,
-  /** The `selection` filter - *"Search in %1 Selected Cells"*, also off by default (`:244-256`). */
+  /**
+   * The `selection` filter - *"Search in %1 Selected Cells"*, also off by default (`:244-256`).
+   *
+   * **Cells only, never text inside one.** The reference's filter has a second mode:
+   * `getSelectionState` answers `"single"` when one edit-mode cell has *lines* selected, and the
+   * provider narrows to just those (`packages/notebook/src/searchprovider.ts:166-174`, `:264-276`).
+   * Here a field's selection stays the field's own - [EditorUiState] carries no caret or marked
+   * range inside a cell, which is ADR-0068's split - so the marked run is the only "selection" a
+   * search can be scoped to.
+   */
   val searchSelection: Boolean = false,
 ) {
   /**
@@ -67,6 +76,11 @@ fun EditorUiState.withSearchClosed(): EditorUiState = if (search == null) this e
  * (`searchmodel.ts:334-352`), and `startQuery` finishes by highlighting from `activeCellIndex`
  * with `scroll: false` - so typing finds and counts, and **does not move the notebook**. Only the
  * arrows do that, which is `activateNewMatch`'s first line (`searchprovider.ts:604-610`).
+ *
+ * No `searchDebounceTime` (`documentsearch-extension/schema/plugin.json`): the reference debounces
+ * because each restart walks async providers over a live DOM. A re-find here is one synchronous
+ * pass over state the next frame reads anyway, so the counter is honest on every keystroke rather
+ * than 500 ms stale - a debounce would only delay it.
  */
 fun EditorUiState.withSearchQuery(query: SearchQuery): EditorUiState {
   if (search == null) return this
@@ -93,9 +107,21 @@ fun EditorUiState.withSearchQuery(query: SearchQuery): EditorUiState {
  *
  * *"`startQuery` is also used as 'restartQuery' after each text change"* - the reference says so in
  * its own comment (`searchprovider.ts:391-395`), and without it the highlights would name
- * characters that have since moved.
+ * characters that have since moved. The same restart happens there on `cells.changed`
+ * (`packages/notebook/src/searchprovider.ts:559-590`), which is why [NotebookCellEdits]' mutators
+ * call this too: a deleted cell's hits would otherwise go on counting it.
  */
 fun EditorUiState.withSearchRecomputed(): EditorUiState = search?.let { withSearchQuery(it.query) } ?: this
+
+/**
+ * Finds again where what changed is a cell's **outputs** rather than its source - a run's
+ * stream arriving, or a re-run clearing the previous run's first.
+ * `outputLengthChanged` rebuilds that cell's output providers and re-queries them
+ * (`packages/cells/src/searchprovider.ts:76-81`, `:298-316`). Only while the search reads
+ * outputs at all: a recompute that cannot change the hit list is a wasted walk per event.
+ */
+fun EditorUiState.withSearchedOutputsRecomputed(): EditorUiState =
+  if (search?.outputsSearched == true) withSearchRecomputed() else this
 
 /**
  * `highlightNext` / `highlightPrevious` - one match on, wrapping, and the new one revealed.
@@ -130,7 +156,14 @@ private fun SearchState.stepped(reverse: Boolean): Int? =
 fun EditorUiState.withSearchOutputs(on: Boolean): EditorUiState =
   search?.let { copy(search = it.copy(searchOutputs = on)).withSearchRecomputed() } ?: this
 
-/** The `selection` filter - the marked run rather than the whole notebook. */
+/**
+ * The `selection` filter - the marked run rather than the whole notebook.
+ *
+ * `autoSearchInSelection` is not carried: the reference can arm the filter by itself when
+ * `multiple-selected` or `any-selected` holds (`documentsearch-extension/src/index.ts`'s setting),
+ * but on a bar that is opened and closed by hand the toggle that visibly moves is the row on it -
+ * a filter that armed itself while the bar hid would be a narrowing nobody asked for.
+ */
 fun EditorUiState.withSearchInSelection(on: Boolean): EditorUiState =
   search?.let { copy(search = it.copy(searchSelection = on)).withSearchRecomputed() } ?: this
 

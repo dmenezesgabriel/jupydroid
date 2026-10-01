@@ -317,6 +317,7 @@ internal fun EditorUiState.revision(rewrote: Set<String> = emptySet()) =
 fun EditorUiState.after(event: KernelEvent): EditorUiState = when (event) {
   is KernelEvent.Output ->
     copy(outputs = outputs + (event.cellId to outputs[event.cellId].orEmpty() + event.output))
+      .withSearchedOutputsRecomputed()
 
   is KernelEvent.ExecutionCount ->
     copy(executionCounts = executionCounts + (event.cellId to event.count))

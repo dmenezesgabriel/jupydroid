@@ -154,7 +154,7 @@ whatever the walk surfaces; an `undocumented` difference earns its ADR here.
       the whole `fileeditor-extension`/`mainmenu-extension` packages, whose other ~70 ids belong
       to unexamined slices. Land the `AUD-004` ledger section: the surface paragraphs, the
       produced counts, the partition rows — no verdicts.
-- [ ] T2 — **Verdicts for the in-document half.** The six `documentsearch:*` ids against
+- [x] T2 — **Verdicts for the in-document half.** The six `documentsearch:*` ids against
       `NotebookSearch`/`SearchHit`/`FindTopBar`/`NotebookReplace`/`CellReveal`/
       `CellSearchHighlight`; `fileeditor:find` and `editmenu:find` (and the schema-only
       `editmenu:find-and-replace`);

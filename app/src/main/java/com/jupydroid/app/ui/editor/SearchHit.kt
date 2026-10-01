@@ -95,6 +95,11 @@ internal fun EditorUiState.renderedOutputsOf(cellId: String): List<RenderedOutpu
  * `_currentProviderIndex` from `activeCellIndex` (`searchprovider.ts:389-401`), so a search opened
  * halfway down a long notebook lands beside what is already on screen rather than jumping to the
  * top. `loop` is true there, which is the wrap.
+ *
+ * **Cell-granular, where `selection-start` is caret-granular.** The reference seeds from the
+ * caret's offset inside the active cell; [EditorUiState] holds no caret - fields keep their own,
+ * ADR-0068's split - so "the selected cell" is the finest place a state-level landing can name.
+ * [firstHitAtOrAfter] is the offset-aware half, kept for what replace needs.
  */
 fun List<SearchHit>.firstHitFrom(state: EditorUiState): Int? {
   if (isEmpty()) return null

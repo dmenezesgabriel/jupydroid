@@ -654,6 +654,31 @@ still down — the boot a gate exists to prevent, paid anyway. The repair is a w
 server's existence rather than the session's — a "is there a server" the port does not answer
 today — or clearing the marks at the drop; either is a build item, not an audit's.
 
+### GAP-036 — Find is the notebook's alone: no in-document search reaches the file editor or the terminal
+
+JupyterLab gives every document kind a search surface: `fileeditor:find` drives CodeMirror's own
+panel (`execCommand(findNext)`, `packages/fileeditor-extension/src/commands.ts:624-641`), mounted
+by the `searchWithCM` editorConfig key (`packages/codemirror/src/factory.ts:28`), and the
+documentsearch overlay reaches the rest through `ISearchProviderRegistry` — file editor, csv,
+tsv and terminal registrations beside the notebook's
+(`packages/fileeditor-extension/src/index.ts:288`,
+`packages/terminal-extension/src/index.ts:411`). Ours has the notebook's find bar and nothing
+else: `FileEditorScreen` can only *land* a workspace-search result (`reveal`), not find inside
+the file, csv/tsv documents open there too, and `TerminalPaneScreen` has no find at all. The
+shape a fix takes is a find surface on the file editor's field plus a terminal one — both
+borrowed from `SearchQuery`/`searchHits`, which are already document-order walks over plain text.
+
+### GAP-037 — The `selection` search filter cannot see text inside a cell
+
+The reference's filter has two modes and ours carries one. `getSelectionState` answers
+`"single"` when a single edit-mode cell holds a text selection, and the provider then searches
+just the selected *lines*
+(`packages/notebook/src/searchprovider.ts:166-174`, `:264-276`); with several cells marked it is
+the marked run, which is the half `searchHits`' `onlySelected` reproduces. A narrower ask — the
+lines inside one cell — has no shape here: `EditorUiState` keeps no per-field selection, which
+is ADR-0068's split, so the find bar would need the focused field's `TextFieldState.selection`
+handed up before the filter could mean it.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

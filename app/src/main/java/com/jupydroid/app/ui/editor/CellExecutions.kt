@@ -34,7 +34,7 @@ fun EditorUiState.queueingRun(cellIds: List<String>): EditorUiState =
 fun EditorUiState.startingRun(cellId: String, at: Instant): EditorUiState = copy(
   executions = executions + (cellId to CellExecution(ExecutionStatus.RUNNING, startedAt = at)),
   outputs = outputs - cellId,
-)
+).withSearchedOutputsRecomputed()
 
 fun EditorUiState.finishedRun(cellId: String, at: Instant, failed: Boolean): EditorUiState =
   stopping(cellId, at, if (failed) ExecutionStatus.STOPPED_ERROR else ExecutionStatus.STOPPED_OK)

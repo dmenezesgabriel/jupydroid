@@ -18,7 +18,10 @@ import kotlinx.coroutines.flow.update
  * history for that half - and everything with an entry in [EditorUiState.undoable] is here.
  *
  * Each operation is a pure transform from [CellEdits] followed by the same debounced save an edit
- * gets, so re-ordering a notebook survives leaving the screen exactly as typing does.
+ * gets, so re-ordering a notebook survives leaving the screen exactly as typing does - and the
+ * same re-search, because the reference restarts its query on `cells.changed`
+ * (`packages/notebook/src/searchprovider.ts:559-590`) and a find bar that kept hits for deleted
+ * cells would count a notebook that is no longer there.
  *
  * ```
  * val edits = NotebookCellEdits(uiState, save)
@@ -44,7 +47,7 @@ class NotebookCellEdits(
   fun applyTo(cellId: String, action: CellAction, editor: CellEditorText = CellEditorText.NONE) {
     // Clamped after every transform, not only after Delete: it costs nothing, and a transform
     // added later cannot forget to.
-    uiState.update { it.applyingFrom(cellId, action, editor).withSelectionClamped() }
+    uiState.update { it.applyingFrom(cellId, action, editor).withSelectionClamped().withSearchRecomputed() }
     save.schedule()
   }
 
@@ -59,7 +62,7 @@ class NotebookCellEdits(
    * Undoable like the selection-scoped one, and by the same adaptation.
    */
   fun clearAllOutputs() {
-    uiState.update { it.withAllOutputsCleared().recording(before = it) }
+    uiState.update { it.withAllOutputsCleared().recording(before = it).withSearchRecomputed() }
     save.schedule()
   }
 
@@ -199,7 +202,7 @@ class NotebookCellEdits(
     val cell = before.cells.firstOrNull { it.id == cellId } ?: return
     if (cell.source != expectedSource || cell.source == source) return
     val on = if (cellId in before.selectedCellIds) before else before.withSelectionCollapsed().withCellSelected(cellId)
-    uiState.value = on.withSource(cellId, source).recording(before = before)
+    uiState.value = on.withSource(cellId, source).recording(before = before).withSearchRecomputed()
     save.schedule()
   }
 
@@ -210,13 +213,13 @@ class NotebookCellEdits(
    * is the one thing about this feature that is easy to get quietly wrong.
    */
   fun undo() {
-    uiState.update { it.undoneCellOperation() }
+    uiState.update { it.undoneCellOperation().withSearchRecomputed() }
     save.schedule()
   }
 
   /** Replays what [undo] took back - `notebook:redo-cell-action`. */
   fun redo() {
-    uiState.update { it.redoneCellOperation() }
+    uiState.update { it.redoneCellOperation().withSearchRecomputed() }
     save.schedule()
   }
 }
@@ -244,7 +247,7 @@ fun NotebookCellEdits.cellsRenamed(cellId: String, sources: Map<String, String>,
   val identical = before.cells.none { cell -> cell.id in sources && cell.source != sources[cell.id] }
   if (moved || identical) return
   val on = if (cellId in before.selectedCellIds) before else before.withSelectionCollapsed().withCellSelected(cellId)
-  uiState.value = on.withSources(sources).recording(before = before)
+  uiState.value = on.withSources(sources).recording(before = before).withSearchRecomputed()
   save.schedule()
 }
 

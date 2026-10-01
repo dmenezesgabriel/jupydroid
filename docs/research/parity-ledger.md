@@ -624,3 +624,29 @@ python3 scripts/read_port_surface.py --unused  # nothing of this slice's is dead
 `fileeditor-extension` and `mainmenu-extension` waits for the slices that own them. The
 partition rows are in the shared table under `AUD-002`'s heading — `documentsearch:*` and the
 carried ids to `T2`, `toc:*` to `T4`.
+
+### The in-document half — verdicts
+
+`T2`'s entries, read down the dispatch — `EditorTopBars`/`FindTopBar` → `NotebookSearch` →
+`SearchState`/`searchHits`/`SearchHit` → `CellReveal`/`CellSearchHighlight`, and the replace half
+through `NotebookReplace` — and for the carried ids, down the file editor's dispatch, where it
+simply stops. The walk is what found the defect below: the reference's query is live data
+(`cells.changed` and `outputLengthChanged` each restart it,
+`packages/notebook/src/searchprovider.ts:559-590`, `packages/cells/src/searchprovider.ts:76-81`),
+and ours re-ran only on typed edits and replaces, so a find bar left open across a structural
+edit counted a notebook that was no longer there.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `documentsearch:start`, `documentsearch:startWithReplace` | the top bar's Find → `withSearchOpened` / `withReplaceShown`, a contextual bar rather than the floating overlay | adapted | the bar opens empty where `getInitialQuery` reads `window.getSelection()` — `withSearchOpened`'s docstring; and the two settings the overlay would read are declined where they would matter — `withSearchQuery`, `withSearchInSelection` |
+| `documentsearch:highlightNext`, `documentsearch:highlightPrevious` | `withSearchStepped` over one hit list → `withMatchRevealed` | present | wrap, reveal and the head moving onto the match, read from `searchprovider.ts:389-401`, `:604-706`; `NotebookSearchTest`'s step tests |
+| `documentsearch:end` | `withSearchClosed`, and Back | adapted | `Escape` is Back on touch — `EditorScreen`'s `BackHandler`; `endQuery` disposes the model there, `search = null` does it here |
+| `documentsearch:toggleSearchInSelection` | the bar's row → `withSearchInSelection` → `onlySelected` over `selectedCellIds` | **absent** | `GAP-037`. The marked-run half is `isSelectedOrActive` exactly (`searchprovider.ts:369-374`); the missing half is `getSelectionState`'s text mode — selected *lines* inside one edit-mode cell (`:166-174`, `:264-276`) — which `EditorUiState` has no shape for (ADR-0068) |
+| `fileeditor:find` | — | **absent** | `GAP-036`. `editor.execCommand(findNext)` over a `searchWithCM` panel (`commands.ts:624-641`), with `jp-fileeditorSearchProvider` as the overlay's own surface (`index.ts:288`); `FileEditorScreen` has neither — it only *lands* workspace results, via `reveal` |
+| `editmenu:find` | — | present | declared in `mainmenu-extension`'s constants and bound to an empty-keys schema entry (`plugin.json:269`), never `addCommand`-ed — the id cannot fire there either, so there is nothing to carry |
+| `searchWithCM` | the notebook's own bar stands in; nothing in the file editor | **absent** | `GAP-036`. The key mounts CM's own search keymap — `Mod-f`/`F3`/`Mod-g`/`Escape` (`packages/codemirror/src/extension.ts:879`) — which the file editor factory turns on (`factory.ts:28`) and the notebook's overlay replaces. Ours declines the panel where the reference does too, and the decline is stated on `FileEditorScreen`; the file-editor half is the gap |
+| the provider registry's breadth | the notebook's alone | **absent** | `GAP-036`. `ISearchProviderRegistry` gets five registrations — notebook, file editor, csv, tsv, terminal. csv/tsv open through the file editor here, and the terminal is a real screen with the same hole |
+| one provider per cell, plus per-output providers | one hit list in document order, `SearchHit.outputAt` marking the output half | adapted | the split the arithmetic exists for is the same; held apart it is summed, held together it is already the sum — `SearchHit.kt`'s own accounting |
+| a query stays live under change | `withSearchRecomputed` / `withSearchedOutputsRecomputed`, now called from every seam that moves what a search reads | **defect** | found by the walk and fixed red-first: `editCell` and the two replace paths re-ran the query, but a cell delete, duplicate, move, undo, rename, format or a stream's output left the counter counting stale hits — `cells.changed`/`outputLengthChanged` restart it there. `NotebookSearchRestartTest`: `deletingACellUnderAnOpenSearchDropsItsHits`, `duplicatingACellUnderAnOpenSearchCountsItsCopy`, `undoingACellOperationUnderAnOpenSearchFindsAgain`, `aRenameUnderAnOpenSearchFindsTheNewText`, `anArrivingOutputIsCountedWhileOutputsAreSearched`, `aRerunDropsTheHitsItsEarlierOutputsHad` |
+| the `output` filter | `searchOutputs` → `outputsSearched` → `outputHitsOf` | adapted | only what `RenderedOutput.Text` draws is searched, where the reference searches its rendered DOM — `outputHitsOf`'s docstring and ADR-0043; `supportReplace: false` is `outputsSearched`'s rule |
+| `searchDebounceTime`, `autoSearchInSelection` (`documentsearch-extension/schema/plugin.json:72-86`) | no settings carried | adapted | a re-find is one synchronous pass over state, so per-keystroke is already honest; the selection filter arms only by hand — the reasons live on `withSearchQuery` and `withSearchInSelection` |
