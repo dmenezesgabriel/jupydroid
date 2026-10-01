@@ -679,6 +679,60 @@ lines inside one cell — has no shape here: `EditorUiState` keeps no per-field 
 is ADR-0068's split, so the find bar would need the focused field's `TextFieldState.selection`
 handed up before the filter could mean it.
 
+### GAP-038 — Workspace search reads no ignore files
+
+`search.useIgnoreFiles` is **true** by default upstream — `.gitignore` and `.ignore` shape every
+walk before a glob box is typed, with `useGlobalIgnoreFiles` and `useParentIgnoreFiles` beside it,
+all three feeding `disregardIgnoreFiles` into the query
+(`vscode/src/vs/workbench/contrib/search/browser/searchView.ts:1666-1671`,
+`search.contribution.ts:142-158`). `SearchFilter` knows `include`/`exclude` globs and the eight
+registered defaults and nothing else: a workspace holding a git checkout is searched through
+`build/` and `node_modules`-adjacent noise the user's own repository already excluded. The walk
+itself has the right seam — `SearchFilter.searches`/`descendsInto` is asked of every path — so the
+gap is a `.gitignore` reader feeding it, per directory.
+
+### GAP-039 — The search box cannot be scoped to open editors or changed files
+
+The include input mounts two toggles beside it — `onlySearchInOpenEditors` and
+`onlySearchInChangedFiles` (`patternInputWidget.ts:210-227`) — and `commonQueryFromFileList`
+rewrites the first into a query over exactly those resources (`queryBuilder.ts:258-263`); the
+second rides the SCM provider's changed-file list. `SearchScope` carries the two glob boxes alone.
+On this device the first one is the one that matters: the workspace is the whole Space, so
+"narrow it to what I have open" is the small-screen scope a glob cannot express — and the answer
+shape already exists, since `OpenDocuments` is the registry a scope like that would read.
+
+### GAP-040 — The search panel's results take no action past a tap
+
+A result row there can be opened and a file folded — that is all. The reference's tree answers to
+**Dismiss** per element (which is also how a replace is narrowed without re-querying), **Replace**
+per match, file and folder (`searchActionsRemoveReplace.ts:54-243`), and the view itself carries
+Refresh, Clear Results, Cancel Search, collapse/expand-all and the copy actions
+(`searchActionsTopBar.ts:42-157`, `searchActionsCopy.ts`), plus a query history on the input box.
+None has a surface here — and Dismiss is not cosmetic: it is the difference between "replace
+everywhere" and "replace everywhere *except* this".
+
+### GAP-041 — Workspace results are a snapshot; the reference keeps them live
+
+Two halves of one property. At query time the reference merges `getOpenEditorResults` — each open
+editor's model searched as it stands, beating the disk hit for the same file
+(`searchService.ts:127-145`, `:497-575`) — and asks an open *notebook* through its widget
+(`notebookSearchService.ts:230-268`); ours walks the disk alone, with `DocumentAutosave` narrowing
+the window to a debounce. Afterwards, `bindModel` re-matches a bound model on every
+`onDidChangeContent` (`fileMatch.ts:135-175`, 250 ms) and `onFilesChanged` removes deleted
+resources (`searchView.ts:2354-2370`); ours answers staleness only at the tap
+(`MatchedLine.rangeIn`, `hitFor`) and at the replace (`editsAgainst` refuses). The seams to close
+it already exist — `OpenDocuments` for the live content, `WorkspaceRepository.changes` for the
+file events.
+
+### GAP-042 — Selecting a match never shows what a replace would do
+
+`search.useReplacePreview` defaults true: while the replace box is armed and non-empty, tapping a
+match opens a diff editor of the file *as the replace would write it*
+(`searchView.ts:2229-2237` → `replaceService.ts:140-167`, `toReplaceResource`). Ours always opens
+the document itself — there is no second editor shape, and a user checking a rename's blast radius
+gets only the counted confirm. The diff half of the machinery is what is missing; the edits
+themselves (`editsAgainst` → `withEditsApplied`) are already computed before anything writes.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

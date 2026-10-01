@@ -160,7 +160,7 @@ whatever the walk surfaces; an `undocumented` difference earns its ADR here.
       `editmenu:find-and-replace`);
       `searchWithCM`; the registry shape (five providers over widget factories vs one bar over
       cells plus rendered outputs); the `output`/`selection` filters against `SearchState`'s two.
-- [ ] T3 — **Verdicts for the workspace half.** VS Code's `textSearch`/`searchView`/
+- [x] T3 — **Verdicts for the workspace half.** VS Code's `textSearch`/`searchView`/
       `notebookSearch` against `WorkspaceSearcher` → `DiskWorkspaceSearcher` → `glob/` →
       `SearchSidePanel` — `webviewResults` is `GAP-001`, `isMultilineRegexSource` is `GAP-002`,
       both decided here; the replace stack (`WorkspaceReplace*` → `OpenDocuments` → write-back →

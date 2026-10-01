@@ -43,6 +43,15 @@ import kotlinx.coroutines.launch
  *   the walk is over before it is read.
  * @property confirming the counted question a Replace All is waiting on, null when none is asked.
  * @property report what the last replace or undo had to say - see [ReplaceReport].
+ *
+ * **The settings the reference's view would read are not here, and that is a decline with a shape.**
+ * `searchView`'s `searchConfig` reaches `sortOrder`, `smartCase`, `seedWithNearestWord`,
+ * `seedOnFocus`, `decorations.*`, `actionsPosition`, `collapseResults` and `search.mode`
+ * (`search.contribution.ts`, `search.common.contribution.ts`); there is no settings surface for any
+ * of them to land on, and the behaviour this state fixes is each one's registered default - the
+ * `Default` sort is folder-then-name, which is the order the walk itself emits. The three that
+ * *do* change what is found - `useIgnoreFiles` and the `onlySearchIn*` scopes - are not settings to
+ * decline but capabilities; `docs/architecture.md` §11's `GAP-038`/`GAP-039` carry them.
  */
 data class WorkspaceSearchUiState(
   val query: SearchQuery = SearchQuery(""),
