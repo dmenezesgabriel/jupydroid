@@ -64,8 +64,8 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 | `AUD-001` | The harness, the ledger, the rules, and the kernel wire as the worked example | shipped | — | — |
 | `AUD-002` | Cell commands and selection — notebook-extension against `CellAction`/`CellEdits` | shipped | — | `GAP-005` |
 | `AUD-003` | Editor language features — the LSP surface, and the kernel introspection it replaced | shipped | — | — |
-| `AUD-004` | Search, replace and the table of contents | **in-progress ← next** | [`AUD-004`](prd/AUD-004-search-replace-and-toc.md) | `GAP-001`, `GAP-002` |
-| `AUD-005` | Files, workspace and recents — filebrowser-extension against `ui/explorer/` | open | — | — |
+| `AUD-004` | Search, replace and the table of contents | shipped | — | `GAP-001`, `GAP-002` |
+| `AUD-005` | Files, workspace and recents — filebrowser-extension against `ui/explorer/` | **open ← next** | — | — |
 | `AUD-006` | Console, sessions and the running panel | open | — | `GAP-009`, `GAP-010`, `GAP-011` |
 | `AUD-007` | Terminal emulator and view, against Termux's state machine and JediTerm | open | — | — |
 | `AUD-008` | Rendering and formats — markdown, HTML, outputs, nbformat | open | — | — |
