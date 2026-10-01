@@ -51,7 +51,7 @@ Five, each obliging something different. The full definition is in
 | Area | Item | State |
 |---|---|---|
 | Kernel wire and execution | `AUD-001` | examined — below |
-| Cell commands and selection | `AUD-002` | editing half examined — below; the selection and navigation half next |
+| Cell commands and selection | `AUD-002` | both halves examined — below; the walk down our own call stack next |
 | Editor language features | `AUD-003` | unexamined |
 | Search, replace, table of contents | `AUD-004` | unexamined |
 | Files, workspace, recents | `AUD-005` | unexamined |
@@ -229,3 +229,30 @@ says what discharged its obligation.
 | `notebook:clear-cell-output`, `notebook:clear-all-cell-outputs` | `CellAction.ClearOutputs` → `withOutputsCleared`; `NotebookCellEdits.clearAllOutputs` in `KernelMenu` | present | outputs, count and run record together, and the fold undone, as `clearExecution` does |
 | `notebook:undo-cell-action`, `notebook:redo-cell-action` | `NotebookCellEdits.undo` / `redo` → `CellUndo`, on the editor bar | present | structural only; a cell operation never carries text back (`CellUndo.kt`) |
 | `notebook:undo`, `notebook:redo` | `TextFieldState`'s own history, under `Ctrl+Z` / `Ctrl+Shift+Z` | **absent** | `GAP-018`. The history is present and measured — one entry per run of typing; what is absent is the reference's Edit → Undo, any touch way to reach it |
+
+### The selection and navigation half — verdicts
+
+`T3`'s ids, read the same way: down the dispatch from the control that offers each one, through
+`NotebookCellSelection`, `cellFocusChanged` or `NotebookCellRuns`, to the transform in
+`CellRangeSelection.kt`, `CellSelection.kt` or `CellRunRange.kt`. Where the reference's surface is
+a key binding, it is `packages/notebook-extension/schema/tracker.json` and is cited by line.
+Nothing on screen changed, so there was no flow to run. `GAP-005` is decided here: it is the
+**select-without-editing** half that four of the ids below are missing, restated in
+[`../architecture.md`](../architecture.md) §11.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `notebook:select-all` | `SelectionTopBar`'s Select all → `NotebookCellSelection.selectAll` → `withAllCellsSelected` | adapted | the head goes on the last cell where `selectAll` leaves `activeCellIndex` alone. The docstring says why: the next extend would otherwise reach `getContiguousSelection()`'s throw (`widget.ts:2344-2348`). The reference's `Accel A` (`tracker.json:635`) and Edit-menu row (`:75`) are one bar button here, and it is reachable only while a run is marked |
+| `notebook:deselect-all` | the selection bar's close, and Back → `withSelectionCollapsed` | present | anchor dropped, head kept, as `Notebook.deselectAll()` does |
+| `notebook:extend-marked-cells-above`, `notebook:extend-marked-cells-below`, `notebook:extend-marked-cells-top`, `notebook:extend-marked-cells-bottom` | `SelectionTopBar`'s overflow → `NotebookCellSelection.extend` → `withSelectionExtended(SelectionReach)` | present | no wrap-around, and extending onto the anchor ends the selection, both read from `actions.tsx:1314-1356`. Entering the mode first is the PRD's known deviation (`CellAction.StartSelecting`) |
+| `notebook:move-cursor-up`, `notebook:move-cursor-down` | — | **absent** | `GAP-005`. `ArrowUp`/`K` and `ArrowDown`/`J` in command mode (`tracker.json:523-540`) → `selectAbove`/`selectBelow` (`actions.tsx:1099`, `:1142`), which skip hidden cells and keep the mode. No editor composable here reads a key, and no touch control moves the head without the caret |
+| `notebook:move-cursor-heading-above-or-collapse`, `notebook:move-cursor-heading-below-or-expand` | the collapse half only: `CellAction.ToggleHeadingCollapse` | **absent** | `GAP-005`. `ArrowLeft`/`ArrowRight` (`tracker.json:543-550`): collapse or expand the head if it is a heading, otherwise walk to the parent or next heading (`actions.tsx:1244-1310`). The fold exists here, but the walk does not |
+| `notebook:enter-command-mode` | Back → `focusManager.clearFocus()` → `cellFocusChanged` → `withMode(COMMAND)` | adapted | `Escape` and `Ctrl M` (`tracker.json:443-450`) become Back. `EditorScreen.kt` says why: it is the touch `Escape`, and dropping focus keeps one path out of edit mode |
+| `notebook:enter-edit-mode` | a tap into the cell's field → `cellFocusChanged` → `withCellSelected` then `withMode(EDIT)` | adapted | `Enter` on a focused cell (`tracker.json:463`) becomes the tap. Focus *is* the mode here, and the `cellFocusChanged` KDoc gives the reason and the order |
+| `notebook:run-cell` | the selection bar's Run selected cells → `run(RunRange.MARKED)`; the cell header's Run → `runCell(cell)` | **absent** | `GAP-005`. The marked run matches `runSelected` (deselect, head on the last cell run). The header's Run runs its cell **and leaves the head where it was**, but both references move the head first: JupyterLab because the click activated the cell, VS Code by `focusNotebookCell(context.cell, 'container')` (`vscode@3f3380c668d07649b953eb8278354b2f263ea6ff` `src/vs/workbench/contrib/notebook/browser/controller/executeActions.ts:295-297`). Read by hand |
+| `notebook:run-cell-and-select-next`, `notebook:run-cell-and-insert-below` | — | **absent** | `GAP-020`. `Shift Enter` and `Alt Enter` (`tracker.json:605-622`), and the notebook toolbar's own Run button is `run-cell-and-select-next` (`schema/panel.json:17-19`). Nothing here advances after a run |
+| `notebook:run-all-cells` | `NotebookBar` → `run(RunRange.ALL)` | adapted | runs with no head where `runAll` bails (`actions.tsx:946`). `cellsToRun` says why: the button is on the notebook's own bar and reachable before any cell is touched |
+| `notebook:run-all-above`, `notebook:run-all-below` | `KernelMenu` → `run(RunRange.ABOVE / BELOW)`, greyed by `canRunAllAbove` / `canRunSelectedAndBelow` | present | above excludes the head, below includes it, and the head-placement rule is `withRunStarted`'s, all from `actions.tsx:1005-1090` |
+| `notebook:restart-and-run-to-selected` | `KernelMenu` → `NotebookKernel.restartAndRunTo` → `RunRange.UP_TO_SELECTED` through `runCells` | present | `slice(0, activeCellIndex + 1)` with the selection untouched (`index.ts:3273`). Its restart half is `AUD-006`'s |
+| `notebook:select-last-run-cell` | — | **absent** | `GAP-021`. *"Select current running or last run cell"* is reached by clicking the execution indicator (`packages/notebook/src/executionindicator.tsx:93-99`) |
+| `notebook:select-last-modified-cell`, `notebook:select-next-modified-cell` | — | **absent** | `GAP-022`. A back/forward stack of edited cells (`widget.ts:2538-2616`), on the table of contents' toolbar (`packages/notebook/src/toc.ts:846-868`) |

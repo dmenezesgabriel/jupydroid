@@ -135,8 +135,8 @@ complete and unusually well cited; the notebook-wide half is where the holes are
 | Undo / redo of an operation | `CellUndo.kt` | complete, and the two-histories seam is stated |
 | One-cell selection | `CellSelection.kt` | complete |
 | A run of cells | `CellRangeSelection.kt`, `NotebookCellSelection.kt`, `SelectionTopBar.kt` | complete |
-| Moving the head in command mode | `EditorViewModel.cellFocusChanged` | **absent** — `GAP-005`, and `T2` decides what it becomes |
-| Dispatch | `EditorCellActions.kt`, `NotebookCellEdits.kt` | `T3` walks it |
+| Moving the head in command mode | `EditorViewModel.cellFocusChanged` | **absent** — `GAP-005`, restated by `T3` as the missing select-without-editing primitive |
+| Dispatch | `EditorCellActions.kt`, `NotebookCellEdits.kt` | `T4` walks it |
 
 ## Deviations
 
@@ -168,12 +168,15 @@ Known going in, so a verdict does not re-litigate them:
       inserting in front of a selection). The text half was measured on the tablet, not only read.
       `read_ledger_verdicts.py` and `VerdictedSurfaceTest` now refuse an examined task that left an
       id unjudged — `python3 scripts/read_ledger_verdicts.py --missing`.
-- [ ] T3 — Map the **selection and navigation** half: `select-all`, `deselect-all`, the four
+- [x] T3 — Map the **selection and navigation** half: `select-all`, `deselect-all`, the four
       `extend-marked-cells-*`, `move-cursor-up`/`-down`, the two
       `move-cursor-heading-{above-or-collapse,below-or-expand}` walks T1 made visible,
       `enter-command-mode`/`enter-edit-mode`, `select-last-{modified,run}-cell`,
       `select-next-modified-cell`, and the five `RunRange` ranges. `GAP-005` is decided here,
-      because it *is* this.
+      because it *is* this. Decided: nothing selects a cell without editing it, which is
+      what the two cursor moves, the two heading walks and the header Run's head are missing.
+      Three more gaps for the rest: `GAP-020` run-and-advance, `GAP-021` last-run, `GAP-022`
+      modified-cell back/forward.
 - [ ] T4 — Walk our own call stack: `EditorCell` → `cellAction` → `NotebookCellEdits.applyTo` →
       `CellEdits`/`CellRestructure` → `DocumentAutosave`, for growth, branching, failure handling
       and coupling. `AUD-001`'s walk is the shape.
