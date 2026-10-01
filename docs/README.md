@@ -13,6 +13,7 @@
 | A concern that crosses every screen — palette, exec model, testing | [`architecture/cross-cutting.md`](architecture/cross-cutting.md) |
 | One decision, and what it forbids | `adr/NNNN-*.md` — `grep -rn "ADR-0012" docs/ app/src/` |
 | A question already closed by measurement | [`research/closed-questions.md`](research/closed-questions.md) |
+| What of each reference we have, and why each difference exists | [`research/parity-ledger.md`](research/parity-ledger.md) |
 | What Android's sandbox costs a Linux userland | [`research/android-sandbox-fidelity.md`](research/android-sandbox-fidelity.md) |
 | The procedure for a clean session, in order | [`../prompt-execution.md`](../prompt-execution.md) |
 | How work is done — TDD, Maestro, the device rule, hooks | [`../AGENTS.md`](../AGENTS.md) |
@@ -32,6 +33,7 @@ Every id is a unique grep token.
 |---|---|---|
 | `ADR-NNNN` | a decision, and what it forbids | durable |
 | `JD-NNN` | a backlog item; its PRD is `prd/JD-NNN-*.md` | ephemeral — PRD deleted on ship, ledger row stays one line |
+| `AUD-NNN` | an audit item: one area examined against the references and down our own call stack | ephemeral — its findings become `GAP-NNN`, `JD-NNN` and parity-ledger rows |
 | `GAP-NNN` | a measured parity gap or known limitation | durable until closed |
 | `DEF-NNN` | a defect | ephemeral |
 | `CLOSED-NNN` | a question closed by measurement, so nobody re-investigates it | durable |

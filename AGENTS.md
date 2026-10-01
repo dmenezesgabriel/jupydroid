@@ -113,6 +113,10 @@ is skipped "for speed". A step is only finished when all of them hold.
 - **Look at the screenshots.** More than one flow in this repo's history has gone
   green against the wrong thing; a green log is only half the evidence.
 - Unit tests alone are never sufficient to close a step.
+- **One exception, and it is named:** an `AUD-NNN` audit item ships a measurement rather than a
+  screen, so it runs no flow and closes on the command that reproduces what it measured
+  ([ADR-0067](docs/adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md)). An audit
+  task that does touch a screen owes the flow like any other.
 
 ### 2b. Instrumented tests exist as of Step 4b
 - `app/src/androidTest` was empty until the cell menu, though the Compose test

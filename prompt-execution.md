@@ -16,6 +16,9 @@ memory. Follow these steps in order.
   `docs/architecture/runtime-views.md`. For a concern that crosses screens — the exec model, the palette, the
   testing strategy, which reference answers which question — `docs/architecture/cross-cutting.md`.
 - Before investigating anything, check it is not already closed: `docs/research/closed-questions.md`.
+- Before claiming the references do or do not have something, read
+  `docs/research/parity-ledger.md` — it says per entry what we have, what we adapted and why, and
+  which areas nobody has examined yet.
 - Follow `AGENTS.md`. Do the searches yourself; spawn agents or workflows only if I ask.
 
 ## 2. Scope — one task per session
@@ -24,6 +27,14 @@ memory. Follow these steps in order.
   then do the first piece.
 - An item is one user-visible capability crossing domain → port → adapter → UI. Never cut it horizontally:
   an adapter with no entry point is not shipped. Too large is fixed by narrowing the capability.
+- **An `AUD-NNN` item is the exception, and the only one.** It examines one area against the
+  references and down our own call stack, and what it ships is a *measurement*
+  ([ADR-0067](docs/adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md)). It is
+  still vertical — one area taken through four questions at once, never four sweeps across all of
+  them: what the reference offers, what we built, where we differ and *why*, and whether that path
+  is sound in growth, branching, failure handling and coupling. It records; it repairs only a
+  `defect`, red test first, and every other repair it finds becomes a `JD-NNN` with a demo of its
+  own.
 - Finish what was started. Don't open a new item while the current one is `open` or `partial`.
 
 ## 3. Build — strict TDD, evidence over assumption
@@ -51,6 +62,9 @@ memory. Follow these steps in order.
 - Measure; don't eyeball. For any layout you touch, record the numbers before and after.
 - Screenshots, snapshots and `maestro.log` into `evidence/<step>/`, committed. `logcat` is captured and
   **never committed** ([ADR-0015](docs/adr/0015-rewrite-history-once-to-take-the-device-out-of-it.md)).
+- **An `AUD-NNN` task runs no flow, because nothing on screen changed.** What stands in for the
+  device is the command that reproduces its measurement, in the commit body — and if the task did
+  touch a screen, it owes the flow like any other.
 
 ## 5. Close the step
 

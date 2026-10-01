@@ -60,7 +60,7 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 
 | Id | Area | State | PRD | Closes |
 |---|---|---|---|---|
-| `AUD-001` | The harness, the ledger, the rules, and the kernel wire as the worked example | in-progress | — | — |
+| `AUD-001` | The harness, the ledger, the rules, and the kernel wire as the worked example | shipped | — | — |
 | `AUD-002` | Cell commands and selection — notebook-extension against `CellAction`/`CellEdits` | **open ← next** | — | `GAP-005` |
 | `AUD-003` | Editor language features — the LSP surface, and the kernel introspection it replaced | open | — | — |
 | `AUD-004` | Search, replace and the table of contents | open | — | `GAP-001`, `GAP-002` |
