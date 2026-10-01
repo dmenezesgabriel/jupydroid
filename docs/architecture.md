@@ -28,8 +28,8 @@ same filesystem is the kernel's `HOME`, the server's `--ServerApp.root_dir` and 
 so nothing has to be synchronised.
 
 **Parity is not a matter of taste.** JupyterLab's `packages/notebook-extension/src/index.ts` declares
-99 command ids, 96 of them `notebook:*`; `filebrowser-extension` 36, `console-extension` 21,
-`terminal-extension` 11, `documentsearch-extension` 5, `toc-extension` 5. Those lists are the
+102 command ids, 99 of them `notebook:*`; `filebrowser-extension` 38, `console-extension` 21,
+`terminal-extension` 11, `documentsearch-extension` 6, `toc-extension` 5. Those lists are the
 specification. A behaviour that cannot be reached on a phone is **adapted, never invented**, and the
 adaptation is written down beside what it departs from.
 
@@ -43,7 +43,10 @@ python3 -m unittest discover -s scripts -p 'read_reference_commands_test.py'   #
 Every number above holds at the SHA `README.md` pins, and `PinnedSurfaceTest` fails if a bumped pin
 changes one — because a count is only a fact together with the pattern that produced it, and two
 reasonable patterns for a command-id constant differ here by seven real ids
-([ADR-0067](adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md)). What we have of
+([ADR-0067](adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md)). These numbers
+were each nine and three lower until the pattern was made to read a declaration the reference's own
+formatter wrapped onto a second line; the test that holds them now is the one that would have caught
+it, which is the point of having one. What we have of
 that surface, and why each difference exists, is
 [`research/parity-ledger.md`](research/parity-ledger.md).
 

@@ -59,6 +59,29 @@ export namespace CommandIDs {
         })
         self.assertEqual({"notebook-extension": ["notebook:x"]}, jupyterlab_command_ids(packages))
 
+    def test_an_id_prettier_wrapped_onto_the_next_line_is_found(self) -> None:
+        """A long declaration is wrapped by the reference's own formatter, and the id still counts.
+
+        `notebook:move-cursor-heading-above-or-collapse` is declared this way, so a pattern that
+        needs the value on the `export const` line reports a notebook surface two commands short.
+        """
+        packages = _tree({"notebook-extension/src/index.ts": """
+  export const selectHeadingAboveOrCollapse =
+    'notebook:move-cursor-heading-above-or-collapse';
+"""})
+        self.assertEqual({"notebook-extension": ["notebook:move-cursor-heading-above-or-collapse"]},
+                         jupyterlab_command_ids(packages))
+
+    def test_a_wrapped_declaration_of_a_namespaceless_value_is_still_not_an_id(self) -> None:
+        """The colon rule survives the wrap - otherwise the fix for one would undo the other."""
+        packages = _tree({"notebook-extension/src/index.ts": """
+  export const FACTORY =
+    'Notebook';
+  export const runAll = 'notebook:run-all-cells';
+"""})
+        self.assertEqual({"notebook-extension": ["notebook:run-all-cells"]},
+                         jupyterlab_command_ids(packages))
+
     def test_a_package_declaring_none_is_absent_rather_than_empty(self) -> None:
         packages = _tree({"ui-components/src/index.ts": "export const x = 1;\n"})
         self.assertEqual({}, jupyterlab_command_ids(packages))
@@ -223,10 +246,11 @@ class ReferenceDirTest(unittest.TestCase):
 class PinnedSurfaceTest(unittest.TestCase):
     """The counts `docs/architecture.md` §1 calls the specification, asserted against the clone.
 
-    §1 states them as prose - "99 command ids, 96 of them `notebook:*`; `filebrowser-extension` 36,
-    `console-extension` 21, `terminal-extension` 11, `documentsearch-extension` 5, `toc-extension`
-    5". Every one is confirmed here at the SHA `docs/README.md` pins, so the prose is checked rather
-    than trusted: bumping a pin fails this test instead of leaving the specification silently wrong.
+    §1 states them as prose - "102 command ids, 99 of them `notebook:*`; `filebrowser-extension`
+    38, `console-extension` 21, `terminal-extension` 11, `documentsearch-extension` 6,
+    `toc-extension` 5". Every one is confirmed here at the SHA `docs/README.md` pins, so the prose
+    is checked rather than trusted: bumping a pin fails this test instead of leaving the
+    specification silently wrong.
 
     Skipped where `reference/` is absent, which is every fresh clone.
     """
@@ -247,26 +271,26 @@ class PinnedSurfaceTest(unittest.TestCase):
                 self.assertEqual(pinned[project][0], clone_head(clone))
 
     def test_the_five_package_counts_section_1_names(self) -> None:
-        for package, expected in (("filebrowser-extension", 36), ("console-extension", 21),
-                                  ("terminal-extension", 11), ("documentsearch-extension", 5),
+        for package, expected in (("filebrowser-extension", 38), ("console-extension", 21),
+                                  ("terminal-extension", 11), ("documentsearch-extension", 6),
                                   ("toc-extension", 5)):
             with self.subTest(package=package):
                 self.assertEqual(expected, len(self.by_package[package]))
 
-    def test_the_notebook_extension_declares_99_ids_of_which_96_are_notebook(self) -> None:
+    def test_the_notebook_extension_declares_102_ids_of_which_99_are_notebook(self) -> None:
         ids = self.by_package["notebook-extension"]
-        self.assertEqual(99, len(ids))
-        self.assertEqual(96, sum(1 for found in ids if found.startswith("notebook:")))
+        self.assertEqual(102, len(ids))
+        self.assertEqual(99, sum(1 for found in ids if found.startswith("notebook:")))
 
     def test_the_three_ids_the_notebook_extension_declares_for_other_namespaces(self) -> None:
-        """The remainder of the 99, named so that a change in it is read rather than counted."""
+        """The remainder of the 102, named so that a change in it is read rather than counted."""
         ids = self.by_package["notebook-extension"]
         self.assertEqual(["completer:invoke-notebook", "completer:select-notebook", "toc:run-cells"],
                          [found for found in ids if not found.startswith("notebook:")])
 
-    def test_the_whole_command_surface_is_403_ids_across_33_packages(self) -> None:
+    def test_the_whole_command_surface_is_412_ids_across_33_packages(self) -> None:
         unique = {found for ids in self.by_package.values() for found in ids}
-        self.assertEqual((403, 33), (len(unique), len(self.by_package)))
+        self.assertEqual((412, 33), (len(unique), len(self.by_package)))
 
     def test_notebook_actions_declares_69_functions(self) -> None:
         """ADR-0027's specification, bounded to the namespace - the file holds 83 to its end."""

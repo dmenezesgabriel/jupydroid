@@ -24,7 +24,7 @@ document can be wrong while looking right.
 
 **A count without its pattern is not a fact.** Two reasonable regexes for a `CommandIDs` constant in
 `jupyterlab@7f0e690680a763d3c3db5dc0231803b0ba0e1e12` disagree by seven ids: narrowing the
-constant's *name* to `[A-Za-z]+` gives 396 where allowing a digit gives 403, and the seven lost are
+constant's *name* to `[A-Za-z]+` gives 405 where allowing a digit gives 412, and the seven lost are
 real — `markdown1`..`markdown6` (`notebook:change-cell-to-heading-1`..`-6`) and `displayH1Numbering`
 (`toc:display-h1-numbering`). Either number can be written into a document and defended; only the
 pattern decides which is right.

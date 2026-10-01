@@ -13,7 +13,7 @@ gitignored and travels with no clone, so an absent clone is reported with the co
 rather than treated as an error in the tree.
 
 **The pattern travels with the count, because two reasonable patterns disagree.** Narrowing the
-constant's *name* to `[A-Za-z]+` reports 396 ids where [COMMAND_ID] reports 403, and the seven it
+constant's *name* to `[A-Za-z]+` reports 405 ids where [COMMAND_ID] reports 412, and the seven it
 loses are real: `markdown1` through `markdown6`
 (`notebook:change-cell-to-heading-1`..`-6`) and `displayH1Numbering`
 (`toc:display-h1-numbering`), whose names end in a digit. A TypeScript identifier may contain
@@ -48,8 +48,16 @@ PINNED_ROW = re.compile(r"^\| `([a-z0-9-]+)` \| `([0-9a-f]{40})` \| `([^`]+)`", 
 #: A JupyterLab command id, as the `CommandIDs` namespaces declare them:
 #: `export const runAll = 'notebook:run-all-cells';`. The value must carry a namespace colon -
 #: `export const FACTORY = 'Notebook'` is a widget factory name in the same namespace and is not a
-#: command. Requiring the colon is what makes this 396 ids rather than 403.
-COMMAND_ID = re.compile(r"^\s+export const [A-Za-z]\w* *= *['\"]([a-z0-9-]+:[A-Za-z0-9:_.-]+)['\"]", re.M)
+#: command. Requiring the colon is what makes this 405 ids rather than 412.
+#:
+#: **The value may sit on the next line**, because the reference is prettier-formatted and a
+#: declaration too long for one line is wrapped after the `=`. Requiring it on the `export const`
+#: line missed 9 ids across 5 packages, three of them in `notebook-extension` itself:
+#: `notebook:move-cursor-heading-above-or-collapse`, `-below-or-expand` and
+#: `notebook:toggle-render-side-by-side-current` - two of which are the only command-mode way to
+#: walk headings, so the gap they belong to was invisible to the measurement that should have found
+#: it. `\s*` rather than `[ ]*` is the whole fix, and the colon rule is unchanged by it.
+COMMAND_ID = re.compile(r"^\s+export const [A-Za-z]\w* *=\s*['\"]([a-z0-9-]+:[A-Za-z0-9:_.-]+)['\"]", re.M)
 
 #: A member of `export namespace NotebookActions`, which is indented by exactly two spaces.
 ACTION_FUNCTION = re.compile(r"^  export (?:async )?function (\w+)", re.M)

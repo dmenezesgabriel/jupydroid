@@ -32,9 +32,16 @@ silently stays unexamined.
 Never stored. ADR-0067's rule, and the commands are these:
 
 ```sh
-python3 scripts/read_reference_commands.py --jupyterlab-package notebook-extension   # 99 ids, 96 notebook:*
+python3 scripts/read_reference_commands.py --jupyterlab-package notebook-extension   # 102 ids, 99 notebook:*
 python3 scripts/read_reference_commands.py --notebook-actions                        # 69 NotebookActions members
 ```
+
+**Those were 99 and 96 when this PRD was written, and T1 is why they are not.** `COMMAND_ID`
+required the id on the `export const` line, so it could not read a declaration the reference's own
+formatter had wrapped — and two of the three it missed in this very package are
+`notebook:move-cursor-heading-above-or-collapse` and `-below-or-expand`, the only command-mode way
+to walk headings. The measurement that should have found this area's gap was blind to it. Fixed
+red-first in T1; see the ledger's first row.
 
 VS Code's half has no producer, because its core commands are registered in code rather than
 contributed by a manifest — `read_reference_commands.py`'s `vscode_jupyter_command_ids` reads a
@@ -61,7 +68,7 @@ python3 scripts/read_reference_commands.py --jupyterlab-package notebook-extensi
   | while read -r id; do grep -rqF "$id" app/src/ || echo "unnamed $id"; done
 ```
 
-— which reports 40 named and 56 unnamed, and both numbers are wrong in both directions. This is
+— which reports 40 named and 59 unnamed, and both numbers are wrong in both directions. This is
 `read_port_surface.py`'s own lesson in a new place, and all three failures are confirmed, not
 feared:
 
@@ -135,15 +142,21 @@ Known going in, so a verdict does not re-litigate them:
 
 ## Tasks
 
-- [ ] T1 — Partition the 96 `notebook:*` ids by the slice that owns them, and map this slice's
+- [x] T1 — **The `defect` the slice found in its own instrument**, repaired red-first: `COMMAND_ID`
+      now reads a wrapped declaration, which moves the whole surface from 403 to 412 ids and this
+      package from 99 to 102. §1's prose, `PinnedSurfaceTest` and ADR-0067's worked example all
+      corrected to the measured numbers. Nothing can be mapped against an enumeration that is short.
+- [ ] T2 — Partition the 99 `notebook:*` ids by the slice that owns them, and map this slice's
       **editing** half: insert, change type, the six heading levels, merge, split, move, duplicate,
       delete, the clipboard, the folds, clear outputs, undo/redo. One ledger row per entry with a
       verdict; a `GAP-NNN` per `absent`.
-- [ ] T2 — Map the **selection and navigation** half: `select-all`, `deselect-all`, the four
-      `extend-marked-cells-*`, `move-cursor-up`/`-down`, `enter-command-mode`/`enter-edit-mode`,
-      `select-last-{modified,run}-cell`, `select-next-modified-cell`, the two heading walks, and the
-      five `RunRange` ranges. `GAP-005` is decided here, because it *is* this.
-- [ ] T3 — Walk our own call stack: `EditorCell` → `cellAction` → `NotebookCellEdits.applyTo` →
+- [ ] T3 — Map the **selection and navigation** half: `select-all`, `deselect-all`, the four
+      `extend-marked-cells-*`, `move-cursor-up`/`-down`, the two
+      `move-cursor-heading-{above-or-collapse,below-or-expand}` walks T1 made visible,
+      `enter-command-mode`/`enter-edit-mode`, `select-last-{modified,run}-cell`,
+      `select-next-modified-cell`, and the five `RunRange` ranges. `GAP-005` is decided here,
+      because it *is* this.
+- [ ] T4 — Walk our own call stack: `EditorCell` → `cellAction` → `NotebookCellEdits.applyTo` →
       `CellEdits`/`CellRestructure` → `DocumentAutosave`, for growth, branching, failure handling
       and coupling. `AUD-001`'s walk is the shape.
 
