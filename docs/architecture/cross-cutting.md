@@ -123,7 +123,7 @@ Four tiers, and each answers a question the tier below it cannot.
 | JVM unit | `:app:testDebugUnitTest` | logic, parsers, the emulator, port contracts |
 | Port contract | the same task, once per implementation | that a fake and its real adapter agree |
 | Instrumented | `:app:connectedDebugAndroidTest` | whether there is something *visible to press* |
-| Maestro on device | `scripts/maestro-run.sh` | that the real app, on the device `CLAUDE.md` rule 2 names, does the thing |
+| Maestro on device | `scripts/maestro-run.sh` | that the real app, on the device `AGENTS.md` rule 2 names, does the thing |
 
 A port contract is written once and run per implementation, which is why the unit-test *execution*
 count exceeds the `@Test` site count. Any figure of this kind is **produced, never stored** — a

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md): a flow runs against the state its own driver set up.
+"""Working Agreement (AGENTS.md): a flow runs against the state its own driver set up.
 
 Two rules, one idea. The driver prepares a device and then runs a flow; both halves have to be
 talking about the same thing.

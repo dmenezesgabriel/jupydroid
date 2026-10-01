@@ -52,7 +52,7 @@ segfaults on an `execve`'d arm64 binary. Both measured.
 ## Consequences
 
 Every device gate that proves the runtime runs on the tablet, and only there. The emulator is for
-UI, and `CLAUDE.md` rule 2 is the enforcement.
+UI, and `AGENTS.md` rule 2 is the enforcement.
 
 The `musl_at_shim.c` work is not wasted and is not dead code on arm64 — it is what makes the x86_64
 kernel's remaining failure a *single* unexplained problem rather than eight.

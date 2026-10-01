@@ -7,7 +7,7 @@ import kotlinx.coroutines.CancellationException
 /**
  * A workspace whose listing is cancelled, and which is otherwise the one it wraps.
  *
- * **A named fake rather than an inline stub** (CLAUDE.md), and it exists because the thing it
+ * **A named fake rather than an inline stub** (AGENTS.md), and it exists because the thing it
  * stands for cannot be reproduced on a virtual scheduler: `ExplorerViewModel.goTo` cancels the
  * listing already in flight, and on a device `DiskWorkspaceRepository.list` -
  * a `withContext(ioDispatcher)` - raises that cancellation when its block *finishes*, after the

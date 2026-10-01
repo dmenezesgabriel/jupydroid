@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
  * The app-wide explorer preferences - one field today: whether the Recents section is shut.
  *
  * Its own type rather than a field on [EditorSettings] or [TerminalSettings]: a collapsed section
- * is neither an editor preference nor a terminal one (`CLAUDE.md`'s "one home per kind of logic"),
+ * is neither an editor preference nor a terminal one (`AGENTS.md`'s "one home per kind of logic"),
  * which is deliberate rather than growing whichever store already existed.
  *
  * **False by default**, which is the reference's own: a view's `collapsed` is

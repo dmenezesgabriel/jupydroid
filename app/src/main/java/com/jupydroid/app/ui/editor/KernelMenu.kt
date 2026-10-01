@@ -20,7 +20,7 @@ import androidx.compose.runtime.setValue
  * A type rather than ten parameters repeated at two call sites, and that is the point: the menu is
  * opened from the bottom bar's `⋮` ([NotebookBar]) *and* from the kernel
  * indicator on the action row ([KernelIndicator]). Spelled out at each, the two wirings would have
- * to be kept in step by hand, which is the drift `CLAUDE.md` gives one home to avoid.
+ * to be kept in step by hand, which is the drift `AGENTS.md` gives one home to avoid.
  *
  * `@Immutable` so a bar holding one stays skippable, which is [CellExecution]'s call for the same
  * reason.
@@ -106,7 +106,7 @@ internal fun notebookKernelCommands(
  *
  * **A file of its own, because it has two anchors.** It was private to [NotebookBar]
  * while the bar's `⋮` was the only way in; the kernel indicator on the notebook's action row is
- * the second ([KernelIndicator]), and `CLAUDE.md`'s greppable test gives one kind of logic one
+ * the second ([KernelIndicator]), and `AGENTS.md`'s greppable test gives one kind of logic one
  * home. What moved with it is the state the *rows* need and nothing else: this owns the pending
  * confirmation for its own two restarts and for the close, so an anchor supplies callbacks and no
  * state at all. [NotebookBar] keeps its own for the two restart **buttons** on the bar, which are

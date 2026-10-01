@@ -34,7 +34,7 @@ import com.jupydroid.app.theme.Spacing
 
 /**
  * What a cell's outputs draw as - split out of [EditorScreen] on the file-length gate
- * (`CLAUDE.md` rule 6). [RenderedOutput] decides *what* an output becomes; this is only how that
+ * (`AGENTS.md` rule 6). [RenderedOutput] decides *what* an output becomes; this is only how that
  * gets drawn, which is why the split sits at exactly that seam.
  */
 @Composable

@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
  * The app-wide theme preference - one field today, which [ThemeOverride] the app is on.
  *
  * Its own type rather than a field on [EditorSettings]: a theme choice is neither an editor
- * preference nor a terminal one (`CLAUDE.md`'s "one home per kind of logic"), the same reasoning
+ * preference nor a terminal one (`AGENTS.md`'s "one home per kind of logic"), the same reasoning
  * [ExplorerSettings] and [TerminalSettings] already carry.
  *
  * **[ThemeOverride.SYSTEM] by default**, matching the reference's own `adaptive-theme` default of

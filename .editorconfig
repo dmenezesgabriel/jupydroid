@@ -40,6 +40,6 @@ ktlint_function_naming_ignore_when_annotated_with = Composable
 # `standard:no-consecutive-comments` refuses *"a KDoc may not be preceded by a KDoc"*, which is
 # exactly what a header is - see `ui/editor/CellSelection.kt`, where one names what the file is for
 # before the first function's own KDoc says what that function does. Those headers carry intent and
-# provenance, which `CLAUDE.md` says not to strip on a refactor, and rewriting all 19 into block
+# provenance, which `AGENTS.md` says not to strip on a refactor, and rewriting all 19 into block
 # comments to satisfy a rule the project has decided against is the tail wagging the dog.
 ktlint_standard_no-consecutive-comments = disabled

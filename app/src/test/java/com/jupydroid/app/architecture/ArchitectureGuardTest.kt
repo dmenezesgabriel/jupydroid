@@ -4,13 +4,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/** Enforces the Working Agreement (CLAUDE.md, "Architecture"): the domain layer is pure Kotlin. */
+/** Enforces the Working Agreement (AGENTS.md, "Architecture"): the domain layer is pure Kotlin. */
 class ArchitectureGuardTest {
   private val domainRoot = File("src/main/java/com/jupydroid/app/domain")
 
   /**
    * The document-and-language row of `docs/architecture/building-blocks.md`: parsers and formats
-   * that model documents and languages rather than this app's domain. CLAUDE.md requires them free
+   * that model documents and languages rather than this app's domain. AGENTS.md requires them free
    * of `android.*` **so that every test for them is a plain JVM test**, which was prose until this
    * test existed.
    *

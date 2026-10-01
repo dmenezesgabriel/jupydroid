@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md): a gap this app draws has a name, and the name is in one place.
+"""Working Agreement (AGENTS.md): a gap this app draws has a name, and the name is in one place.
 
 Measured before this gate existed: **63 `.dp` literals across 20 files in 16 distinct values, 13
 of them off Material's 4dp grid** - `14.dp` three times in the explorer and its recents, and one

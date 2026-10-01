@@ -6,7 +6,7 @@ import org.junit.Test
 /**
  * The line a stall gets read from, so it has to be machine-readable and it has to escape.
  *
- * `CLAUDE.md`: structured JSON when logging for observability. Built with the serializer the app
+ * `AGENTS.md`: structured JSON when logging for observability. Built with the serializer the app
  * already depends on rather than by hand - a reason string carrying a quote or a newline is the
  * ordinary case here, not the exotic one (`"KernelChannelException: closed: 1006 "gone""`), and
  * hand-rolled JSON is where that becomes an unparseable evening.

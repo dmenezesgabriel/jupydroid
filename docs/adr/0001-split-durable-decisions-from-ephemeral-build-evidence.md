@@ -113,7 +113,7 @@ or upstream issue URL, or a test name. It may not cite a plan/step code, `docs/b
 becomes `jupyterlab@7f0e6906 packages/…`. The terminal files already did this and are the reason the
 form is known to work; the clone commands and the nine pinned SHAs live in `docs/README.md`.
 
-**Evidence stays committed, and stops being cited by code.** `CLAUDE.md` rules 2 and 3 are unchanged:
+**Evidence stays committed, and stops being cited by code.** `AGENTS.md` rules 2 and 3 are unchanged:
 every step still closes with Maestro flows on the device the rule names, and `evidence/<step>/` is
 still committed with the step. What changes is the direction of reference — the ADR restates the
 measurement, so the code never has to point at a screenshot. `evidence/` directory names,

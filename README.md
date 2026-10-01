@@ -44,7 +44,8 @@ greps. Documents are separated by **lifetime**, not by topic
 | [`docs/backlog.md`](docs/backlog.md) | what gets built next — one line per item | ephemeral |
 | `docs/prd/` | how to build one item; written when it is picked up, deleted when it ships | ephemeral |
 | [`docs/research/`](docs/research/) | measured investigations, and questions closed so nobody re-opens them | durable |
-| `CLAUDE.md` | how work is done: the working agreement, per-step procedure, tooling | durable |
+| [`prompt-execution.md`](prompt-execution.md) | the procedure a clean session follows, in order | durable |
+| [`AGENTS.md`](AGENTS.md) | how work is done: the working agreement, per-step procedure, tooling. `CLAUDE.md` points here | durable |
 | `evidence/<step>/` | the screenshots, snapshots and logs a step closed on | durable |
 
 ## Build

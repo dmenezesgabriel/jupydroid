@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
  * The app-wide terminal preferences - one field today, the font size.
  *
  * Its own port rather than a field on [EditorSettings]: a terminal's glyph size is not an editor
- * concern (`CLAUDE.md`'s "one home per kind of logic"), even though the two happen to share the
+ * concern (`AGENTS.md`'s "one home per kind of logic"), even though the two happen to share the
  * same default today - see [com.jupydroid.app.theme.CodeText.size].
  */
 @Serializable

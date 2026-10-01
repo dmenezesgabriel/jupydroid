@@ -16,7 +16,7 @@ package com.jupydroid.app.domain.model
  * type**: `WorkspaceSearcher.search` takes one, and `domain` imports nothing project-local
  * outside `domain.model` - the same relationship [WorkspaceEntry] has to `WorkspaceRepository`.
  * Two surfaces read it now, the notebook's find bar and the workspace search, which is what makes
- * one home a rule rather than a preference (CLAUDE.md, "One home per kind of logic").
+ * one home a rule rather than a preference (AGENTS.md, "One home per kind of logic").
  *
  * ```
  * SearchQuery("cat", wholeWords = true).compile()   // CompiledQuery.Matching(/\bcat\b/im)

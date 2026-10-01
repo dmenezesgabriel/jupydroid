@@ -14,7 +14,8 @@
 | One decision, and what it forbids | `adr/NNNN-*.md` — `grep -rn "ADR-0012" docs/ app/src/` |
 | A question already closed by measurement | [`research/closed-questions.md`](research/closed-questions.md) |
 | What Android's sandbox costs a Linux userland | [`research/android-sandbox-fidelity.md`](research/android-sandbox-fidelity.md) |
-| How work is done — TDD, Maestro, the device rule, hooks | `CLAUDE.md` |
+| The procedure for a clean session, in order | [`../prompt-execution.md`](../prompt-execution.md) |
+| How work is done — TDD, Maestro, the device rule, hooks | [`../AGENTS.md`](../AGENTS.md) |
 | How each step was actually reached | `git log` and `evidence/` |
 | Starting a new PRD | copy [`prd/_TEMPLATE.md`](prd/_TEMPLATE.md) |
 | Recording a decision | copy [`adr/0000-template.md`](adr/0000-template.md) |
@@ -53,9 +54,9 @@ this repo; a table row or a single-fact statement is never wrapped, so a grep re
 | To find | Run |
 |---|---|
 | Everything about one decision | `grep -rn "ADR-0012" docs/ app/src/ tools/` |
-| Everything about one backlog item | `grep -rn "JD-041" docs/` |
-| The next item | `grep -n "open ← next" docs/backlog.md` |
-| Unchecked tasks in a PRD | `grep -n "\[ \]" docs/prd/JD-041-*.md` |
+| Everything about one backlog item | `grep -rn "JD-001" docs/` |
+| The next item | `grep -n "\*\*open ← next" docs/backlog.md` |
+| Unchecked tasks in a PRD | `grep -n "\[ \]" docs/prd/JD-001-*.md` |
 | Every open gap | `grep -o "GAP-[0-9]*" docs/architecture.md \| sort -u` |
 | Every closed question | `grep -n "^### CLOSED-" docs/research/closed-questions.md` |
 | Which ADR a source file leans on | `grep -rn "ADR-" app/src/main/java/com/jupydroid/app/data/space/` |

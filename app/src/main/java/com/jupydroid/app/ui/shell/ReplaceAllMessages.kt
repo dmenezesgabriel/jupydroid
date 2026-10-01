@@ -25,7 +25,7 @@ package com.jupydroid.app.ui.shell
  * **`truncateValue` is declined rather than transcribed** (`searchView.ts:889-899`). The reference
  * clamps a replacement of more than ten lines to ten and an ellipsis; the replace box here is
  * `singleLine = true` ([SearchReplaceRow]), so a replacement cannot hold a newline and the clamp
- * could never fire. Unreachable code is what `CLAUDE.md` forbids, and a multi-line replace box is
+ * could never fire. Unreachable code is what `AGENTS.md` forbids, and a multi-line replace box is
  * what would bring it back.
  *
  * ```

@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.port
 /**
  * Offers a file in the workspace to whatever else on the device can take it.
  *
- * A port because sharing is a platform mechanism and `CLAUDE.md` keeps those behind an interface
+ * A port because sharing is a platform mechanism and `AGENTS.md` keeps those behind an interface
  * this project owns - and because there is no such thing on the reference side to copy: JupyterLab
  * exports by `window.open(url, download=true)`, and where the file goes after that is the
  * browser's business. On Android there is no download folder to hand it to, so the artifact lands

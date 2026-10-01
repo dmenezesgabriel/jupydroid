@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md, rule 2): a flow must observe what it claims to.
+"""Working Agreement (AGENTS.md, rule 2): a flow must observe what it claims to.
 
 A Maestro flow taps Run and then waits for something. Two different mistakes make that wait
 pass without the kernel having done anything, and this gate refuses both. Tests in

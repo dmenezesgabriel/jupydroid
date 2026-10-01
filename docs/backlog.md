@@ -2,12 +2,12 @@
 
 **This file is the entry point for a work session.** It is forward-looking: one line per item, no
 prose blocks, no shipped narrative. What is settled and why is [`adr/`](adr/); how work is done is
-`CLAUDE.md`; how each item was reached is `git log` and `evidence/`.
+`AGENTS.md`; how each item was reached is `git log` and `evidence/`.
 
 Find the next item with:
 
 ```sh
-grep -n "open ← next" docs/backlog.md
+grep -n "\*\*open ← next" docs/backlog.md
 ```
 
 ## The rules
@@ -15,7 +15,7 @@ grep -n "open ← next" docs/backlog.md
 - An item is one **user-visible capability**, crossing domain → port → adapter → UI. It is never cut
   horizontally: an adapter with no entry point is not shipped. Too large is fixed by narrowing the
   capability, never by cutting the stack.
-- An item is `shipped` only after **a human has run its demo** on the device `CLAUDE.md` rule 2
+- An item is `shipped` only after **a human has run its demo** on the device `AGENTS.md` rule 2
   names. Otherwise it is `partial`, and its row names the missing entry point.
 - **Passing gates do not make an item usable.** More than one flow in this repo's history has gone
   green against the wrong thing; the demo records what was measured on screen.
@@ -85,5 +85,5 @@ Listed so nobody re-derives them, with no commitment to build them. What is out 
 | `resize: vertical` on a scrolled output | A drag handle is not a touch idiom, and there is no pointer to hover it into view ([ADR-0036](adr/0036-three-view-toggles-and-two-defaults-kept-against-the-reference.md)) |
 | Writing `metadata.language_info` | Would let `script` export be offered as itself, and improve anything else reading a notebook's language ([ADR-0051](adr/0051-an-export-is-named-by-the-server-and-the-menu-offers-what-was-measured.md)) |
 | Diagnosing the execution stall | Parked as `GAP-007` with the experiment and the sample size costed: ~120 runs per arm. The user-visible damage is already repaired ([ADR-0023](adr/0023-an-unanswered-greeting-replaces-the-kernel-once.md)) |
-| The citation gate over `scripts/` | **136** citations in 41 files, excluding the 352 in 204 `*-driver.sh` that [ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md) keeps in lockstep with their flows: 81 step codes, 36 `evidence/` paths, 10 retired-family codes, 5 pointers at a deleted document, 2 `reference/`, 2 `docs/backlog.md`. Out of scope for ADR-0001, which scoped the sweep to shipped code; the gate's own files and their tests also quote the banned forms **as data**, so the rule needs an answer for that before the scan can include `scripts/`. `scripts/gradlew-jbr` would also need a scanner - it is shell with no extension |
+| The citation gate over `scripts/` | **131** citations in 41 files, excluding the 352 in 204 `*-driver.sh` that [ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md) keeps in lockstep with their flows: 81 step codes, 36 `evidence/` paths, 10 retired-family codes, 2 `reference/`, 2 `docs/backlog.md`. Out of scope for ADR-0001, which scoped the sweep to shipped code; the gate's own files and their tests also quote the banned forms **as data**, so the rule needs an answer for that before the scan can include `scripts/`. `scripts/gradlew-jbr` would also need a scanner - it is shell with no extension. The deleted-document class is **closed**: it was swept everywhere, including the drivers and `.maestro/`, and `scripts/check_retired_doc_citations.py` now gates it over every tracked file |
 | A citation inside a *message* string | 32 banned tokens sit outside comments in 13 files, and **18 are legitimate**: `DeviceControlStringTest`'s `${ESC}P1+r` is a DCS reply and `P8g Julia` is a fixture's display name. The rest were assertion and log messages - prose a human reads on failure - and those were rewritten by hand. Gating them means knowing which argument of `assertTrue` is the message, which is a Kotlin call-site parse this gate does not do; a 72% false-positive rate is why the string-literal exemption stays |

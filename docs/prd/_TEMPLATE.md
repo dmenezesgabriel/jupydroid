@@ -16,7 +16,7 @@ One sentence: what a user can do afterwards that they cannot do now.
 
 ## Demo
 
-A numbered script a human runs from a cold start, on **the device `CLAUDE.md` rule 2 names**: anything
+A numbered script a human runs from a cold start, on **the device `AGENTS.md` rule 2 names**: anything
 that runs a cell goes on the arm64 tablet (`SM-X216B`), because on x86_64 `MainActivity` falls back to
 `FakeKernelGateway` and echoes the cell's source back as its output. The emulator is fine for anything
 that does not run a cell.

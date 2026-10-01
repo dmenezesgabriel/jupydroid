@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md): what code looks like has one home, and the name is in one place.
+"""Working Agreement (AGENTS.md): what code looks like has one home, and the name is in one place.
 
 P2l-3a/P2l-3b. Measured before this gate existed: **four sizes for one thing**. The cell's source
 stated none at all and resolved to Compose's `DefaultFontSize`, outputs and the folded-cell

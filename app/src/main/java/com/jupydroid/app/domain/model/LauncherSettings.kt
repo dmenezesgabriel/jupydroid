@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  * itself.
  *
  * Its own type rather than a field on [ExplorerSettings] or [EditorSettings]: a first-run flag is
- * neither an explorer preference nor an editor one (`CLAUDE.md`'s "one home per kind of logic"),
+ * neither an explorer preference nor an editor one (`AGENTS.md`'s "one home per kind of logic"),
  * following the precedent `ExplorerSettings` records.
  *
  * **False by default** - a fresh install has never been shown the launcher, and it is the first

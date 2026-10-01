@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
  * rather than replaced.
  *
  * A port with one implementation, kept because a uniform port surface beats case-by-case
- * minimalism (`CLAUDE.md`): every setting screen and every editor reads through here, never
+ * minimalism (`AGENTS.md`): every setting screen and every editor reads through here, never
  * through a concrete adapter.
  *
  * ```

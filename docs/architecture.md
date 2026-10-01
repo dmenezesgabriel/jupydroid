@@ -72,7 +72,7 @@ A remote-server mode is not deferred — it is refused. It would make every cons
   artifacts, built by `tools/rootfs/build.sh` and `tools/rootfs/stage-app-artifacts.sh`.
 - **No code is vendored from any reference.** What may be transcribed and what is clean-room only is
   decided per licence — [§8.4](architecture/cross-cutting.md).
-- **Strict test-first development** with a per-step evidence gate — `CLAUDE.md`.
+- **Strict test-first development** with a per-step evidence gate — `AGENTS.md`.
 
 ### Organisational
 

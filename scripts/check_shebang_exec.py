@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md): the console-script trampoline must be the one that was built.
+"""Working Agreement (AGENTS.md): the console-script trampoline must be the one that was built.
 
 **P7e-2, and this gate is the same shape as `check_busybox_seccomp.py`.** `pip`, `jupyter`,
 `ipython` and 28 other console scripts ship in the rootfs as `#!/usr/bin/python3` text files under

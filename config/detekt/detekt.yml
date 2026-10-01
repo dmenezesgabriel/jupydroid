@@ -1,6 +1,6 @@
 # detekt configuration (v2). Overrides on top of the default config
 # (buildUponDefaultConfig = true in app/build.gradle.kts).
-# Enforces the Working Agreement (CLAUDE.md, rule 6): classes <= 500 lines,
+# Enforces the Working Agreement (AGENTS.md, rule 6): classes <= 500 lines,
 # functions 4-20 lines, complexity cap. Naming rules and MaxLineLength (120)
 # come from the defaults.
 complexity:

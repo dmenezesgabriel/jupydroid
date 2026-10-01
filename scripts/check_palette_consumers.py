@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md): a palette states colours something draws, and nothing else.
+"""Working Agreement (AGENTS.md): a palette states colours something draws, and nothing else.
 
 `ColorRamp` has carried the rule in prose since P2u-1 - *"A position with no consumer is not here.
 The ramp holds what `Theme.kt` maps a role onto and nothing else; the resolved themes have many

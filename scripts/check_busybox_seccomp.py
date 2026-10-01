@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md): the shell must not ask Android for a syscall it refuses apps.
+"""Working Agreement (AGENTS.md): the shell must not ask Android for a syscall it refuses apps.
 
 **P4b-2, and this gate is the defect it closes.** The busybox shipped through P4b was Alpine's
 stock build, which sets `CONFIG_FEATURE_SUID=y`. That compiles in `check_suid()`, which busybox

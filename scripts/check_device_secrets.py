@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Working Agreement (CLAUDE.md): evidence proves the app, and must not describe the house it ran in.
+"""Working Agreement (AGENTS.md): evidence proves the app, and must not describe the house it ran in.
 
 **Why this exists.** Rule 2 asked for logcat as evidence, and 223 full-device dumps were committed
 before anyone read one end to end. `adb logcat` is not this app's log - it is the whole device's:

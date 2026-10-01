@@ -5,7 +5,7 @@ Date: 2026-09-16
 
 ## Context
 
-`CLAUDE.md` rule 2 asks for `logcat` as evidence, and 223 full-device dumps went in — 249 MB at the
+`AGENTS.md` rule 2 asks for `logcat` as evidence, and 223 full-device dumps went in — 249 MB at the
 tip, 1.16 GB across history.
 
 `adb logcat` is the **whole device's** log, not this app's. Read end to end, those dumps held the
