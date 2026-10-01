@@ -24,6 +24,13 @@ grep -n "\*\*open ← next" docs/backlog.md
 - A PRD is **written when the item is picked up**, not in advance, and **deleted when it ships**.
   Evidence gathered early rots before it is used. Anything worth keeping becomes an
   [ADR](adr/0000-template.md) or a code comment first.
+- **An `AUD-NNN` item is the one kind that is not a capability.** It examines one area against the
+  references and our own call stack, and it ships a *measurement* rather than a screen
+  ([ADR-0067](adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md)). It closes on
+  the measurement committed with the command that reproduces it, and on the rows it adds to
+  [`research/parity-ledger.md`](research/parity-ledger.md), `GAP-NNN` and this ledger — **no Maestro
+  flow, because nothing on screen changed**. It fixes only a `defect`, red test first; every other
+  repair it finds becomes a `JD-NNN` with a demo of its own.
 - Gate results go in the **commit body**, never here. A row gets one line.
 - Correct this file by **editing** it. Git holds the history — no dated correction blocks, no
   appended errata. That accretion is what [ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)
@@ -36,6 +43,35 @@ grep -n "\*\*open ← next" docs/backlog.md
 State is one of `open`, `in-progress`, `partial`, `shipped`. The next item to pick up carries
 `open ← next`.
 
+### M0 — Audit
+
+**Why this is first.** The forward process analyses parity per item, and
+[ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md) deletes that analysis
+when the item ships — so for the ~60 ADRs already in the tree there is no standing answer to what
+the references offer that we do not, and which of those absences was decided. `GAP-001`–`GAP-011`
+are the whole retrospective record and every one was found incidentally. This milestone fills
+[`research/parity-ledger.md`](research/parity-ledger.md) one area at a time, and it runs **before**
+M1 because it changes what M1 and M2 should contain: an audit run after the ranking wastes the
+ranking.
+
+Each row is one session, a tracer bullet through four questions in one area: what the reference
+offers, what we built, where we differ and *why*, and whether the code on that path is sound —
+growth, branching, failure handling, coupling. Never four horizontal sweeps.
+
+| Id | Area | State | PRD | Closes |
+|---|---|---|---|---|
+| `AUD-001` | The harness, the ledger, the rules, and the kernel wire as the worked example | in-progress | — | — |
+| `AUD-002` | Cell commands and selection — notebook-extension against `CellAction`/`CellEdits` | **open ← next** | — | `GAP-005` |
+| `AUD-003` | Editor language features — the LSP surface, and the kernel introspection it replaced | open | — | — |
+| `AUD-004` | Search, replace and the table of contents | open | — | `GAP-001`, `GAP-002` |
+| `AUD-005` | Files, workspace and recents — filebrowser-extension against `ui/explorer/` | open | — | — |
+| `AUD-006` | Console, sessions and the running panel | open | — | `GAP-009`, `GAP-010`, `GAP-011` |
+| `AUD-007` | Terminal emulator and view, against Termux's state machine and JediTerm | open | — | — |
+| `AUD-008` | Rendering and formats — markdown, HTML, outputs, nbformat | open | — | — |
+| `AUD-009` | Chrome and presentation, against VS Code's workbench | open | — | — |
+| `AUD-010` | Spaces and runtime, against Winlator's container lifecycle | open | — | — |
+| `AUD-011` | Code health, produced — the two gate gaps first, then the measured tail | open | — | `GAP-006`, `GAP-008` |
+
 ### M1 — Spaces
 
 The product's headline concept. Its data layer is shipped — `SpaceConfig`, the `SpaceRepository` port and
@@ -45,7 +81,7 @@ runtime, the UI and one measured decision.
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-001` | A Space's runtime environment is its own — per-Space `PYTHONUSERBASE`, `HOME` and `JUPYTER_RUNTIME_DIR`, generalising what `base` already ships | **open ← next** | — | — |
+| `JD-001` | A Space's runtime environment is its own — per-Space `PYTHONUSERBASE`, `HOME` and `JUPYTER_RUNTIME_DIR`, generalising what `base` already ships | open | — | — |
 | `JD-002` | List, create, rename and delete a Space from the UI, async with progress, delete asking first | open | — | — |
 | `JD-003` | Install, list and remove packages in a Space, surfacing pip's own message including the offending package and the wheel tag it wanted | open | — | — |
 | `JD-004` | **Decide by measurement:** one `jupyter_server` per Space, or one server with per-Space kernelspecs. A second server costs about what the first does — RSS ~75 MiB, already measured | open | — | — |

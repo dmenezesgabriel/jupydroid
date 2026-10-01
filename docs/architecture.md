@@ -352,6 +352,45 @@ The cost is bounded: a broken instrumented test cannot reach a device, so it fai
 has been queued, and a commit can carry it. `compileDebugAndroidTestKotlin` is the one task that
 closes it, and it takes seconds.
 
+### GAP-012 — `is_complete_request` is never asked, so the Console cannot know a block is unfinished
+
+The shipped kernel dispatches it (`ipykernel`'s own `msg_types`, `kernelbase.py` in the rootfs) and
+nothing here sends it. The reference asks it where a user submits a block that may continue —
+`jupyterlab@7f0e690680a763d3c3db5dc0231803b0ba0e1e12`
+`packages/console/src/widget.ts:979` and `packages/notebook-extension/src/index.ts:1962`. Ours has a
+Console (`ui/console/`), so the absence is reachable: submitting `for i in range(3):` executes it
+and takes the `SyntaxError` rather than waiting for the body.
+
+Bounded by what the kernel does on its own: an incomplete block is an ordinary Python error, not a
+hang.
+
+### GAP-013 — There is no comm channel, so no `ipywidgets`
+
+`comm_info_request` is one of the ten shell messages the shipped kernel answers, and `comm_open` /
+`comm_msg` are how a kernel-side object and a client-side view talk. None is sent or read
+(`data/space/JupyterMessage.kt` builds five message types; `KernelOutputs` maps none of the three).
+
+Not in [§1](architecture.md)'s out-of-scope list, which names the file viewers, `metadataform`,
+`celltags`, `workspaces` and `logconsole` — so this is an unrecorded absence rather than a declined
+one. It is also the largest of the three: a widget is a renderer, a protocol and a state model, and
+the reference itself has no caller for `comm_info_request` inside `packages/` because the feature
+lives in a separate project.
+
+### GAP-014 — `allow_stdin` is false, so `input()` raises instead of prompting
+
+`data/space/JupyterMessage.kt:106` sends `allow_stdin: false` on every `execute_request`, with the
+reason given as "there is no terminal behind this kernel". The consequence is exact and measured in
+the shipped image: `raw_input` and `getpass` check the flag and raise
+`StdinNotImplementedError("raw_input was called, but this frontend does not support input requests.")`
+(`usr/lib/python3.12/site-packages/ipykernel/kernelbase.py:1400-1402`, and `:1375-1377` for
+`getpass`). A cell calling `input()` therefore fails with a traceback rather than hanging — the
+damage is bounded, and `input()` is ordinary teaching Python.
+
+The reference offers the opposite default — `allow_stdin: true`
+(`packages/services/src/kernel/default.ts:801`) — and draws the prompt inside the output area
+(`packages/outputarea/src/widget.ts`), which is the shape to take: the flag is one line, and the
+feature is a prompt, a reply and a cell that stays busy while it waits.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

@@ -6,19 +6,18 @@ Date: 2026-10-01
 ## Context
 
 This project's headline quality goal is parity: JupyterLab's behaviour and VS Code's presentation,
-adapted to touch, *with every adaptation stated*
-([§1](../architecture.md)). The forward process enforces that per item —
-[`prd/_TEMPLATE.md`](../prd/_TEMPLATE.md) makes every PRD fill in a row per reference, including the
-references that do **not** have the capability, and a gap analysis against our own code before any
-code is written.
+adapted to touch, *with every adaptation stated* ([§1](../architecture.md)). The forward process
+enforces that per item — [`prd/_TEMPLATE.md`](../prd/_TEMPLATE.md) makes every PRD fill in a row per
+reference, including the references that do **not** have the capability, and a gap analysis against
+our own code before any code is written.
 
 **That analysis is deleted when the item ships.**
 [ADR-0001](0001-split-durable-decisions-from-ephemeral-build-evidence.md) deletes the PRD, keeping
 only an ADR and the code comments. The consequence was not noticed until it was looked for: for
 everything already built there is no standing answer to *what the references offer that we do not,
-and which of those absences was a decision*. The eleven gaps in
-[§11](../architecture.md) are the whole retrospective record, and every one of them was found
-incidentally while building something else rather than by a sweep.
+and which of those absences was a decision*. The eleven gaps in [§11](../architecture.md) are the
+whole retrospective record, and every one of them was found incidentally while building something
+else rather than by a sweep.
 
 Two measurements taken while deciding this shape the decision, because both are ways a parity
 document can be wrong while looking right.
@@ -84,21 +83,21 @@ stated is the point: it is what makes the next slice pickable.
 ## Consequences
 
 **A ledger row never carries a number.** Not "7 of 11 implemented", not a percentage. The row names
-the entry, our symbol, the verdict and an id; a reader who wants a total runs the script. This is the
-same rule [`backlog.md`](../backlog.md) holds its own rows to, for the same reason.
+the entry, our symbol, the verdict and an id; a reader who wants a total runs the script. This is
+the same rule [`backlog.md`](../backlog.md) holds its own rows to, for the same reason.
 
 **`undocumented` is the verdict that does the work.** `absent` is already visible to anyone grepping
 for a feature and finding nothing. A difference that *looks* decided — because the code is confident
 and someone clearly thought about it — is the one that survives review for years without its reason
-being written anywhere, and the first one found says so: `ui/editor/NotebookHover.kt` substitutes the
-language server's `textDocument/hover` for the kernel's `inspect_request` and notes the substitution
-without giving a reason, while the reference has four callers for the message it drops.
+being written anywhere, and the first one found says so: `ui/editor/NotebookHover.kt` substitutes
+the language server's `textDocument/hover` for the kernel's `inspect_request` and notes the
+substitution without giving a reason, while the reference has four callers for the message it drops.
 
-**The tools' limits are part of the record.** `read_port_surface.py` counts *mentions*, so a non-zero
-count is an upper bound: an unrelated member of the same name masks a dead operation, which is
-exactly how `LanguageServerPort.capabilities` reads as used. Where a verdict rests on a reading the
-tool cannot make, the row says the reading was by hand. A verdict with a stated method is worth more
-than a number with none.
+**The tools' limits are part of the record.** `read_port_surface.py` counts *mentions*, so a
+non-zero count is an upper bound: an unrelated member of the same name masks a dead operation, which
+is exactly how `LanguageServerPort.capabilities` reads as used. Where a verdict rests on a reading
+the tool cannot make, the row says the reading was by hand. A verdict with a stated method is worth
+more than a number with none.
 
 **What a future reader will want to "fix".** The ledger will look redundant beside
 `prd/_TEMPLATE.md`, which asks the same questions. It is not the same artifact: the template asks
