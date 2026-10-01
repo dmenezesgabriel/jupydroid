@@ -179,6 +179,33 @@ class FileEditorViewModelTest {
     assertEquals(emptyList<String>(), temp.root.list()?.toList())
   }
 
+  /**
+   * An overwrite is a delete of the file under the editor, and it must be heard as one.
+   *
+   * `DocumentManager.overwrite` runs `deleteFile(newPath)` first (`manager.ts:514-528`), so the
+   * reference's widget on the target learns its file is gone exactly the way a delete lands.
+   * Unannounced, the editor's owed write lands on the name the *other* file just won - one
+   * document, and the file that survived is gone under it.
+   */
+  @Test
+  fun aFileOverwrittenUnderTheEditorIsNotWrittenBack() = runTest {
+    val temp = TemporaryFolder().also { it.create() }
+    val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    File(temp.root, "notes.txt").writeText("what the editor loaded")
+    File(temp.root, "other.txt").writeText("the one that survives")
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this)
+    advanceUntilIdle()
+    viewModel.edit("typed into the file being replaced")
+
+    workspace.overwrite("other.txt", "notes.txt")
+    advanceUntilIdle()
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertTrue("the file it was on is gone, so the screen should close", viewModel.uiState.value.gone)
+    assertEquals("the one that survives", File(temp.root, "notes.txt").readText())
+  }
+
   /** A screen showing a document is a document that is open, and its text is what it holds. */
   @Test
   fun theOpenFileIsReachedByItsPathAndReadsBackItsText() = runTest {

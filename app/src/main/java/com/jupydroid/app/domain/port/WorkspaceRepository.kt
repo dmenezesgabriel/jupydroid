@@ -135,6 +135,9 @@ interface WorkspaceRepository {
    * reference's division of labour, and the same pair [NotebookRepository] already has. Ours is
    * moved aside, the target deleted, then ours moved into place (`DocumentManager.overwrite`,
    * `manager.ts:514-528`): deleting first would open a window in which neither file exists.
+   *
+   * The target's removal is announced on [changes] as a delete *before* the rename, in the disk's
+   * own order - a document open on it stops writing before the winner's path is adopted.
    */
   suspend fun overwrite(path: String, name: String): String
 

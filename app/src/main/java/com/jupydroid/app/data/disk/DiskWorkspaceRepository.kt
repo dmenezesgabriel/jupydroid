@@ -115,11 +115,16 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     val target = root.fileAt(moved)
     val aside = File(target.parentFile, "${target.name}.${UUID.randomUUID()}")
     check(from.renameTo(aside)) { "could not move '$path' aside to overwrite '$moved'" }
-    if (root.isPresent(target) && !target.delete()) {
+    val targetWasThere = root.isPresent(target)
+    if (targetWasThere && !target.delete()) {
       check(aside.renameTo(from)) { "could not put '$path' back after failing to overwrite '$moved'" }
       error("could not replace '$moved' in the workspace; a folder with anything in it cannot be replaced")
     }
     check(aside.renameTo(target)) { "could not move '$path' into place as '$moved'" }
+    // The target's delete lands as a delete, in the disk's own order and before the `Renamed` -
+    // a document that just adopted `moved` must not take the announcement for its new file going,
+    // and a document open on `moved` that heard nothing would write over the winner.
+    if (targetWasThere) _changes.emit(WorkspaceChange.Deleted(moved))
     _changes.emit(WorkspaceChange.Renamed(from = path, to = moved))
     moved
   }

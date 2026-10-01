@@ -1,7 +1,12 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -489,6 +494,33 @@ abstract class WorkspaceRepositoryContract {
     assertEquals("taken.txt", overwritten)
     assertEquals("the one that survives", repository.readText("taken.txt"))
     assertEquals(listOf("taken.txt"), repository.list("").map { it.name })
+  }
+
+  /**
+   * An overwrite is also the *delete* of whatever held the name, and it is announced as one.
+   *
+   * `DocumentManager.overwrite` runs `deleteFile(newPath)` first (`manager.ts:514-528`), which a
+   * widget open on the target hears exactly the way a delete lands. Unannounced, a document open
+   * on the target keeps its buffer and its next write lands over the file that just won the
+   * name. Announced **before** the rename, in the order the disk moved: a document that adopted
+   * the new path first would take the announcement for its own file going.
+   */
+  @Test
+  fun overwritingTellsTheTargetIsGoneBeforeItMoves() = runTest {
+    given("notes.txt", "taken.txt")
+    val repository = repository()
+    val heard = async { repository.changes.take(2).toList() }
+    advanceUntilIdle() // the collector subscribes before the emit - `changes` replays nothing
+
+    repository.overwrite("notes.txt", "taken.txt")
+
+    assertEquals(
+      listOf(
+        WorkspaceChange.Deleted("taken.txt"),
+        WorkspaceChange.Renamed(from = "notes.txt", to = "taken.txt"),
+      ),
+      heard.await(),
+    )
   }
 
   private companion object {
