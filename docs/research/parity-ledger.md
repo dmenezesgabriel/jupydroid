@@ -54,7 +54,7 @@ Five, each obliging something different. The full definition is in
 | Kernel wire and execution | `AUD-001` | examined — below |
 | Cell commands and selection | `AUD-002` | examined — below |
 | Editor language features | `AUD-003` | examined — below |
-| Search, replace, table of contents | `AUD-004` | unexamined |
+| Search, replace, table of contents | `AUD-004` | measured — the surface below, verdicts next |
 | Files, workspace, recents | `AUD-005` | unexamined |
 | Console, sessions, running panel | `AUD-006` | unexamined |
 | Terminal emulator and view | `AUD-007` | unexamined |
@@ -194,6 +194,14 @@ examination came out, which is what a verdict is for.
 | `notebook:toggle-all-cell-line-numbers` | `AUD-009` | The gutter — `EditorSettings.lineNumbersShown`, drawn by `LineNumbers.kt`, and presentation rather than a cell operation |
 | `notebook:create-new` | `AUD-009` | Added to the palette on its own. Creating a document is chrome, not a cell command |
 | `notebook:toggle-autoclosing-brackets` | `AUD-003` | Palette-less (`:2223`). A typing rule — `PythonTypingRules`, which is `GAP-004`'s own subject — carried app-wide by `EditorSettingsRepository` |
+| `documentsearch:start`, `documentsearch:startWithReplace` | `AUD-004` `T2` | The find bar opening — `EditorUiState.withSearchOpened`/`withReplaceShown`, reached by the top bar's Find |
+| `documentsearch:highlightNext`, `documentsearch:highlightPrevious` | `AUD-004` `T2` | The bar's next/previous — `withSearchStepped` over `SearchHit`s |
+| `documentsearch:end` | `AUD-004` `T2` | The bar closing — `withSearchClosed`, and Back |
+| `documentsearch:toggleSearchInSelection` | `AUD-004` `T2` | The `selection` filter — `SearchState.searchSelection` |
+| `fileeditor:find`, `editmenu:find` | `AUD-004` `T2` | Carried ids from packages later slices own: the file editor's find and the Edit menu's. `editmenu:find-and-replace` sits beside it only in `plugin.json`'s schema, never declared; `fileeditor:replace-selection` reads like this slice's and is the completer's write-over-selection (`fileeditor-extension/src/commands.ts:733`) |
+| `toc:display-numbering`, `toc:display-h1-numbering`, `toc:display-outputs-numbering` | `AUD-004` `T4` | The schema's numbering settings as commands — `EditorSettings.toc*`/`TocNumbering` |
+| `toc:show-panel` | `AUD-004` `T4` | The outline's entry point — `TableOfContentsSidePanel` at two panes, `TableOfContentsPanel` where there is no side area |
+| `toc:toggle-collapse` | `AUD-004` `T4` | The ToC *list's* own fold — `TocFolds`. The document's section fold (`jp-MarkdownHeadingCollapsed`, `CellHeadings`) is a cell operation, `AUD-002`'s |
 
 ### The editing half — verdicts
 
@@ -557,3 +565,62 @@ lazy spawn, `initialize`/`initialized`, a dead process respawned on the next cal
   freeze on whatever lines they last mapped; the other way, typing against a session the idle
   stopper made stale respawns ~60 MB of `pylsp` while `jupyter_server` is still down. Recorded
   as `GAP-035`.
+
+---
+
+## Search, replace and the table of contents — `AUD-004`
+
+**The surface is two packages' command ids plus everything a command never names.**
+`documentsearch-extension` declares **6 ids** and `toc-extension` **5** — produced, never stored:
+
+```sh
+python3 scripts/read_reference_commands.py --jupyterlab-package documentsearch-extension
+python3 scripts/read_reference_commands.py --jupyterlab-package toc-extension
+```
+
+Two carried ids join them: `fileeditor:find` (*"Find…"* on the current editor,
+`fileeditor-extension/src/commands.ts:624`) and `editmenu:find` — where
+`editmenu:find-and-replace` sits beside it only in `plugin.json`'s schema, never declared, and
+`fileeditor:replace-selection` reads like this slice's and is the completer's
+write-over-selection (`commands.ts:733`). And `searchWithCM`, the `editorConfig` key the
+keystroke search rides (`packages/codemirror/src/extension.ts:879`), carried from `AUD-003`.
+
+**The rest of the surface is registries, filters and settings.** `ISearchProviderRegistry` takes
+one provider per widget factory and `ITableOfContentsRegistry` a factory per document kind — the
+notebook, the LaTeX/Markdown/Python file editors, the markdown viewer:
+
+```sh
+grep -rn "searchRegistry.add" reference/research_repos/jupyterlab/packages --include="*.ts"
+# jp-notebookSearchProvider, jp-fileeditorSearchProvider, csv, tsv, terminal
+grep -rn "tocRegistry.add" reference/research_repos/jupyterlab/packages --include="*.ts"
+# notebook + LaTeX/Markdown/Python file factories + markdownviewer
+```
+
+The notebook provider's own surface is its filters — `output` (off by default) and `selection`
+(`packages/notebook/src/searchprovider.ts:229-256`) — over one `CellSearchProvider` per cell
+editor plus a `GenericSearchProvider` per output widget
+(`packages/cells/src/searchprovider.ts:63-100`). The ToC's is `toc-extension/schema/registry.json`:
+`numberHeaders`, `numberingH1`, `maximalDepth`, `includeOutput`, `syncCollapseState`. **And the
+workspace half is VS Code's alone** — JupyterLab registers no workspace search, so the panel's
+authoritative reading is `contrib/search/browser/` with `notebookSearch/` (`webviewResults`,
+`isMultilineRegexSource` → `IPatternInfo.isMultiline`), `services/search/common/`, and
+`contrib/outline/browser/` for the document-structure half.
+
+**Ours** is the find bar over `SearchState`/`searchHits`/`SearchHit.outputAt` — source and
+rendered outputs — the workspace walk behind the one-operation `WorkspaceSearcher` port
+(`DiskWorkspaceSearcher` + the transcribed `glob/`), the replace-all through `OpenDocuments`, and
+the outline as `DocumentOutline`/`tableOfContentsHeadings` drawn by `TableOfContentsSidePanel` at
+two panes or `TableOfContentsPanel` at one. The two recorded holes are this slice's to decide:
+`GAP-001` (the walk never reaches an output) and `GAP-002` (a result row *is* a line). Produced:
+
+```sh
+python3 scripts/read_port_surface.py           # WorkspaceSearcher: search, one operation
+python3 scripts/read_port_surface.py --unused  # nothing of this slice's is dead
+```
+
+**Carried neighbours, restated not rejudged.** The document's own section fold
+(`CellHeadings.withHeadingCollapsed`) and the ToC toolbar's two
+`notebook:select-*-modified-cell` ids are `AUD-002`'s verdicts (`GAP-022`); the rest of
+`fileeditor-extension` and `mainmenu-extension` waits for the slices that own them. The
+partition rows are in the shared table under `AUD-002`'s heading — `documentsearch:*` and the
+carried ids to `T2`, `toc:*` to `T4`.

@@ -23,10 +23,9 @@ whether the code on that path is sound in growth, branching, failure handling an
 The area is finding text and navigating structure, at the two scales this app has: **inside the
 open document** (the find bar, the outline) and **across the workspace** (the search panel and
 its replace-all). The partition hands it two packages' command ids whole —
-`documentsearch-extension`'s six and `toc-extension`'s five — plus three carried out of
-neighbours' packages: `fileeditor:find`, `fileeditor:replace-selection` and `editmenu:find`
-(whose Edit-menu sibling `editmenu:find-and-replace` exists only in `plugin.json`'s schema, never
-declared). The `searchWithCM` `editorConfig` key (`packages/codemirror/src/extension.ts:879`) is
+`documentsearch-extension`'s six and `toc-extension`'s five — plus two carried out of
+neighbours' packages: `fileeditor:find` and `editmenu:find` (whose Edit-menu sibling
+`editmenu:find-and-replace` exists only in `plugin.json`'s schema, never declared). The `searchWithCM` `editorConfig` key (`packages/codemirror/src/extension.ts:879`) is
 this slice's too — `AUD-003` carried it here.
 
 But the larger half of the surface has no command ids at all. Enumerating ids alone would read
@@ -58,8 +57,10 @@ the find bar's commands and miss what a search *is*:
 `CellHeadings.withHeadingCollapsed`) is a cell fold `AUD-002` verdicted; so are the two commands
 the reference mounts on the ToC's own toolbar — `notebook:select-last-modified-cell` and
 `notebook:select-next-modified-cell` (`GAP-022`, `packages/notebook/src/toc.ts:846-868`). Both are
-restated where the toolbar they ride on is examined, not rejudged. The remaining
-`fileeditor-extension` ids are `AUD-005`'s and `AUD-008`'s.
+restated where the toolbar they ride on is examined, not rejudged. `fileeditor:replace-selection`
+reads like this slice's and is not — it is the completer's write-over-selection path
+(`fileeditor-extension/src/commands.ts:733`), judged with the file editor's own surface. The
+remaining `fileeditor-extension` ids are `AUD-005`'s and `AUD-008`'s.
 
 ## The surface, produced
 
@@ -69,7 +70,7 @@ registries are greps.
 ```sh
 python3 scripts/read_reference_commands.py --jupyterlab-package documentsearch-extension   # 6 ids
 python3 scripts/read_reference_commands.py --jupyterlab-package toc-extension            # 5 ids
-python3 scripts/read_reference_commands.py --jupyterlab-package fileeditor-extension     # 31; find + replace-selection
+python3 scripts/read_reference_commands.py --jupyterlab-package fileeditor-extension     # 31; fileeditor:find
 python3 scripts/read_reference_commands.py --jupyterlab-package mainmenu-extension       # 41; editmenu:find
 
 # the registries - which widgets a search or an outline reaches
@@ -142,20 +143,21 @@ whatever the walk surfaces; an `undocumented` difference earns its ADR here.
 
 ## Tasks
 
-- [ ] T1 — **The instrument and the surface, produced.** `COMMAND_IN_CELL` in
-      `read_ledger_partition.py` is `notebook:*`-only and misses the camelCase
-      `documentsearch:`/`toc:`/`fileeditor:`/`editmenu:` ids entirely; widen it to the shape
-      `COMMAND_ID` already enumerates, red tests first in `read_ledger_partition_test.py` and
-      `read_ledger_verdicts_test.py` — the verdicts reader shares the pattern, and widening it
-      makes `inspector:open`-shaped first cells count as verdicted ids, which is pinned
-      deliberately. Extend `PartitionedSurfaceTest`'s declared set: `documentsearch-extension`
-      and `toc-extension` whole, plus the three carried ids — **not** the whole
-      `fileeditor-extension`/`mainmenu-extension` packages, whose other ~70 ids belong to
-      unexamined slices. Land the `AUD-004` ledger section: the surface paragraphs, the produced
-      counts, the partition rows — no verdicts.
+- [x] T1 — **The instrument and the surface, produced.** `COMMAND_IN_CELL` in
+      `read_ledger_partition.py` is `notebook:`-only and misses the camelCase
+      `documentsearch:`/`toc:`/`fileeditor:`/`editmenu:` ids entirely; widen it to a closed
+      prefix list covering exactly the families the partition has reached — an open pattern would
+      sweep `inspector:open`-shaped verdict cells in as owned-nowhere verdicts, red tests first in
+      `read_ledger_partition_test.py` and `read_ledger_verdicts_test.py` (the verdicts reader
+      shares the pattern). Extend `PartitionedSurfaceTest`'s declared set:
+      `documentsearch-extension` and `toc-extension` whole, plus the two carried ids — **not**
+      the whole `fileeditor-extension`/`mainmenu-extension` packages, whose other ~70 ids belong
+      to unexamined slices. Land the `AUD-004` ledger section: the surface paragraphs, the
+      produced counts, the partition rows — no verdicts.
 - [ ] T2 — **Verdicts for the in-document half.** The six `documentsearch:*` ids against
       `NotebookSearch`/`SearchHit`/`FindTopBar`/`NotebookReplace`/`CellReveal`/
-      `CellSearchHighlight`; `fileeditor:find`, `fileeditor:replace-selection`, `editmenu:find`;
+      `CellSearchHighlight`; `fileeditor:find` and `editmenu:find` (and the schema-only
+      `editmenu:find-and-replace`);
       `searchWithCM`; the registry shape (five providers over widget factories vs one bar over
       cells plus rendered outputs); the `output`/`selection` filters against `SearchState`'s two.
 - [ ] T3 — **Verdicts for the workspace half.** VS Code's `textSearch`/`searchView`/

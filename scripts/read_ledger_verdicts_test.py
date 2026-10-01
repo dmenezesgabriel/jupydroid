@@ -77,6 +77,15 @@ class LedgerVerdictTest(unittest.TestCase):
         found = ledger_verdicts(_ledger(_TABLE_HEAD + "| `execute_request` | ours | present | — |\n"))
         self.assertEqual({}, found)
 
+    def test_a_verdict_reaches_past_the_notebook_family(self) -> None:
+        """Verdicts and partition share the one id pattern: `documentsearch:`/`toc:` verdicts are
+        collected - camelCase included - while a family no slice has claimed stays unread."""
+        found = ledger_verdicts(_ledger(
+            _TABLE_HEAD
+            + "| `documentsearch:start` | ours | present | — |\n"
+            + "| `inspector:open` | ours | adapted | a caller-table row |\n"))
+        self.assertEqual({"documentsearch:start": "present"}, found)
+
     def test_a_task_with_one_verdict_owes_one_for_every_id_it_owns(self) -> None:
         """Examined is derived, not stored: the first verdict opens the task, and opens all of it."""
         owned = {"notebook:undo": "AUD-002 T2b", "notebook:redo": "AUD-002 T2b", "notebook:trust": "AUD-008"}

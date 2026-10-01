@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from read_ledger_partition import PARTITION_HEADING, ledger_partition, unassigned_ids
-from read_reference_commands import jupyterlab_command_ids, reference_dir
+from read_ledger_partition import PARTITION_HEADING, declared_ids, ledger_partition, unassigned_ids
+from read_reference_commands import reference_dir
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -17,6 +17,16 @@ def _ledger(body: str) -> Path:
     path = Path(tempfile.mkdtemp()) / "parity-ledger.md"
     path.write_text(body, encoding="utf-8")
     return path
+
+
+def _packages(body_by_package: dict[str, str]) -> Path:
+    """A throwaway jupyterlab `packages/` tree, one index.ts per package."""
+    root = Path(tempfile.mkdtemp())
+    for package, body in body_by_package.items():
+        source = root / package / "src" / "index.ts"
+        source.parent.mkdir(parents=True)
+        source.write_text(body, encoding="utf-8")
+    return root
 
 
 _TABLE_HEAD = f"{PARTITION_HEADING}\n\n| Reference ids | Owner | Why it is that slice's |\n|---|---|---|\n"
@@ -72,13 +82,58 @@ class LedgerPartitionTest(unittest.TestCase):
         self.assertEqual((["notebook:undo"], ["notebook:invented"]),
                          unassigned_ids(["notebook:trust", "notebook:undo"], owned))
 
+    def test_the_families_the_partition_has_reached_are_read(self) -> None:
+        """`notebook:` alone misses AUD-004's own ids - `documentsearch:` is camelCase.
+
+        The prefix list is closed on purpose: an open `x:y` pattern would read a verdict-table
+        first cell like `inspector:open` (AUD-003's caller table) as an id the partition owns
+        nowhere, so a family enters the pattern only when a slice has claimed it.
+        """
+        found = ledger_partition(_ledger(
+            _TABLE_HEAD
+            + "| `documentsearch:highlightNext`, `toc:display-numbering` | `AUD-004` `T2` | in-document |\n"
+            + "| `fileeditor:find`, `editmenu:find` | `AUD-004` `T2` | carried |\n"))
+        self.assertEqual({"documentsearch:highlightNext": "AUD-004 T2",
+                          "toc:display-numbering": "AUD-004 T2",
+                          "fileeditor:find": "AUD-004 T2",
+                          "editmenu:find": "AUD-004 T2"}, found)
+
+    def test_an_unreached_family_is_not_read(self) -> None:
+        """`inspector:open` is a real id verdicted in AUD-003's caller table - and unclaimed,
+        because no slice owns the inspector-extension family yet. Unread rather than wrongly
+        claimed."""
+        found = ledger_partition(_ledger(
+            _TABLE_HEAD + "| `inspector:open` | `AUD-003` | only a verdict cell |\n"))
+        self.assertEqual({}, found)
+
+    def test_declared_ids_cover_whole_packages_and_carried_ones(self) -> None:
+        """`documentsearch-extension` and `toc-extension` enter whole; from the packages a later
+        slice owns, only the carried ids do - `fileeditor:undo` waits with the rest."""
+        packages = _packages({
+            # `COMMAND_ID` reads a namespace member - indented, never at column 0.
+            "notebook-extension": "  export const u = 'notebook:undo';\n"
+                                  "  export const r = 'notebook:redo';",
+            "documentsearch-extension": "  export const s = 'documentsearch:start';\n"
+                                        "  export const n = 'documentsearch:highlightNext';",
+            "toc-extension": "  export const t = 'toc:show-panel';",
+            "fileeditor-extension": "  export const f = 'fileeditor:find';\n"
+                                    "  export const u = 'fileeditor:undo';",
+            "mainmenu-extension": "  export const e = 'editmenu:find';\n"
+                                  "  export const r = 'editmenu:redo';",
+        })
+        self.assertEqual(sorted(["notebook:undo", "notebook:redo",
+                                 "documentsearch:start", "documentsearch:highlightNext",
+                                 "toc:show-panel", "fileeditor:find", "editmenu:find"]),
+                         sorted(declared_ids(packages)))
+
 
 class PartitionedSurfaceTest(unittest.TestCase):
-    """Every `notebook:*` id the reference declares is owned by exactly one slice.
+    """Every id the partition has reached is owned by exactly one slice.
 
     The claim `docs/prd/AUD-002-*.md` makes in prose - *"an id assigned to no slice is how an area
     silently stays unexamined"* - asserted rather than hoped for. A bumped pin that adds a command
-    fails here instead of leaving it owned by nobody.
+    fails here instead of leaving it owned by nobody. `declared_ids` names which packages the
+    partition covers, and why a package can enter it one id at a time.
 
     Skipped where `reference/` is absent, which is every fresh clone - PinnedSurfaceTest's shape.
     """
@@ -89,8 +144,7 @@ class PartitionedSurfaceTest(unittest.TestCase):
             clone = reference_dir("jupyterlab")
         except FileNotFoundError as absent:
             raise unittest.SkipTest(str(absent)) from absent
-        cls.declared = [found for found in jupyterlab_command_ids(clone / "packages")["notebook-extension"]
-                        if found.startswith("notebook:")]
+        cls.declared = declared_ids(clone / "packages")
         cls.owned = ledger_partition(REPO / "docs/research/parity-ledger.md")
 
     def test_no_declared_id_is_owned_by_nobody(self) -> None:

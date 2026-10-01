@@ -40,8 +40,45 @@ LEDGER = REPO / "docs/research/parity-ledger.md"
 #: collect them too.
 PARTITION_HEADING = "### Who owns which id"
 
-#: A reference command id as the ledger's first column writes it, backticked.
-COMMAND_IN_CELL = re.compile(r"`(notebook:[a-z0-9-]+)`")
+#: A reference command id as the ledger's first column writes it, backticked. **The prefix list
+#: is closed on purpose**: a family enters it only when a slice has claimed it - an open `x:y`
+#: pattern would sweep first cells like `inspector:open` (a real id verdicted in AUD-003's caller
+#: table, whose family no slice owns) into "owned by nobody" reports. `documentsearch:` carries
+#: camelCase suffixes; the rest are lowercase.
+COMMAND_IN_CELL = re.compile(r"`((?:notebook|documentsearch|toc|fileeditor|editmenu):[A-Za-z0-9-]+)`")
+
+#: Packages whose whole command surface the partition covers - every id they declare must be
+#: owned. `notebook-extension` is read separately because only its `notebook:` ids are the
+#: audit's; its other three (`kernelstatus:*` et al.) are nobody's yet.
+PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension")
+
+#: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
+#: and `editmenu:find` are AUD-004's while the rest of `fileeditor-extension`/`mainmenu-extension`
+#: waits for the slices that examine the file editor and the chrome.
+CARRIED_PACKAGES = ("fileeditor-extension", "mainmenu-extension")
+CARRIED_IDS = ("fileeditor:find", "editmenu:find")
+
+
+def declared_ids(packages: Path) -> list[str]:
+    """Every command id the partition must own, read off a jupyterlab `packages/` tree.
+
+    `notebook-extension`'s `notebook:` ids, the `PARTITIONED_PACKAGES` whole, and `CARRIED_IDS`
+    picked out of their own packages rather than listed bare, so a pin bump that renames one turns
+    its partition row into "declared by nobody" instead of staying silently owned.
+
+    ```
+    declared_ids(reference_dir("jupyterlab") / "packages")   # 99 + 11 + 2 ids at the pinned SHA
+    ```
+    """
+    from read_reference_commands import jupyterlab_command_ids
+
+    by_package = jupyterlab_command_ids(packages)
+    carried = [found for package in CARRIED_PACKAGES
+               for found in by_package.get(package, []) if found in CARRIED_IDS]
+    return ([found for found in by_package.get("notebook-extension", [])
+             if found.startswith("notebook:")]
+            + [found for package in PARTITIONED_PACKAGES for found in by_package.get(package, [])]
+            + carried)
 
 #: A slice, and optionally the task inside it: `AUD-002` `T2b`. The task is kept because it is what
 #: makes the remaining work pickable - "this slice's editing half" is a different answer from "this
@@ -119,12 +156,10 @@ def _partition_lines(ledger: Path) -> list[str]:
 
 def _report_unassigned(ledger: Path) -> None:
     """Both directions, against the reference the ledger's own section names."""
-    from read_reference_commands import jupyterlab_command_ids, reference_dir
+    from read_reference_commands import reference_dir
 
     clone = reference_dir("jupyterlab")
-    declared = [found for found in jupyterlab_command_ids(clone / "packages")["notebook-extension"]
-                if found.startswith("notebook:")]
-    unowned, invented = unassigned_ids(declared, ledger_partition(ledger))
+    unowned, invented = unassigned_ids(declared_ids(clone / "packages"), ledger_partition(ledger))
     print(f"owned by no slice     {len(unowned)}" + "".join(f"\n    {found}" for found in unowned))
     print(f"declared by nobody    {len(invented)}" + "".join(f"\n    {found}" for found in invented))
 
