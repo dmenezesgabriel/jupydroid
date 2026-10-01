@@ -14,10 +14,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
+# Overridable, so an emulator run - legitimate here, the flow runs no cell - does not overwrite
+# the committed tablet frames (`EVIDENCE_ROOT=...` -> explorer-delete-open-document-driver.sh).
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/aud-002-paste-outputs}"
+
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/aud-002-paste-outputs.ipynb" "Paste Outputs"
 
-run_flow "$ROOT/.maestro/aud-002-paste-outputs.yaml" "$ROOT/evidence/aud-002-paste-outputs"
+run_flow "$ROOT/.maestro/aud-002-paste-outputs.yaml" "$OUT"
 
 # The debounce's write rather than the screen's copy: the pasted cell's results reaching the file
 # is half of what the fix is for, and the flow itself cannot see it.
