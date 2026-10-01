@@ -2,12 +2,12 @@ appId: com.jupydroid.app
 ---
 # P7e-0's other half: what the *shell* can run, which the kernel cannot answer.
 #
-# `docs/PLAN.md` names two causes and asks which one each name actually hits: `usr/bin/python3.12`
-# is an ELF under `filesDir`, which `execve` refuses at targetSdk 36 (`docs/DECISIONS.md`, "Exec
-# model" - the reason `BusyBoxApplets` exists), and `usr/bin/pip`'s shebang is `#!/usr/bin/python3`,
-# an absolute path that does not exist because the rootfs is not mounted at `/`.
-# `SpaceRuntime.environment():42` puts all three bin dirs on `PATH`, so both names *resolve* and
-# then fail - and the interesting part is the errno, which only the shell prints.
+# Two causes, and which one each name actually hits: `usr/bin/python3.12` is an ELF under
+# `filesDir`, which `execve` refuses at targetSdk 36 (ADR-0002 - the reason `BusyBoxApplets`
+# exists), and `usr/bin/pip`'s shebang is `#!/usr/bin/python3`, an absolute path that does not exist
+# because the rootfs is not mounted at `/`. `SpaceRuntime.environment():42` puts all three bin dirs
+# on `PATH`, so both names *resolve* and then fail - and the interesting part is the errno, which
+# only the shell prints.
 #
 # **TABLET ONLY (SM-X216B):** the emulator has no rootfs, so its terminal has no shell to ask.
 #

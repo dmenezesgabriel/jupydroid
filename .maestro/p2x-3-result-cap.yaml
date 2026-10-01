@@ -4,8 +4,8 @@ appId: com.jupydroid.app
 #
 # This is the thing the sub-step exists for. `DiskWorkspaceSearcher` stops at `search.maxResults`'
 # registered 20000 (`search.contribution.ts:202-205`) and until P2x-3a nothing could *tell* that it
-# had - the walk reported files and never said it had stopped, which is the silent truncation
-# `docs/PLAN.md`'s own rule forbids. The reference draws a warning above the tree when
+# had - the walk reported files and never said it had stopped, which is the silent truncation a
+# result cap must not become. The reference draws a warning above the tree when
 # `ISearchComplete.limitHit` comes back true (`searchView.ts:1897-1899`), and so does this.
 #
 # **A separate flow from `p2x-3-workspace-search`, and on purpose.** The only way to make a real

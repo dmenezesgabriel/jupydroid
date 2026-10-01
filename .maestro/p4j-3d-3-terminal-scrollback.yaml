@@ -2,9 +2,9 @@ appId: com.jupydroid.app
 ---
 # P4j-3d-3's own gate: scroll back into real output a real shell produced, and show it - not the
 # live screen. Maestro's own `visible:`/`extendedWaitUntil` cannot reliably read this terminal's
-# text (`docs/DECISIONS.md`'s P4j-3b entry) - screenshots and the pixel-based
-# `terminal_top_strip_differs` oracle (`terminal_content_extent.py`) are what actually prove it,
-# the same screenshot-plus-python-oracle pattern P4j-3b/P4j-3c already established for this screen.
+# text (`architecture/cross-cutting.md` §8.6) - screenshots and the pixel-based
+# `terminal_top_strip_differs` oracle (`terminal_content_extent.py`) are what actually prove it, the
+# same screenshot-plus-python-oracle pattern P4j-3b/P4j-3c already established for this screen.
 #
 # TABLET ONLY (SM-X216B): a real shell, not `FakeTerminalGateway`'s echo.
 # NOT A SUITE FLOW: the driver rotates the device, which every flow running after it would inherit.
@@ -59,7 +59,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 02-scrolled-back
 
 # Typing again snaps the view back to the live tail - `TerminalPaneViewModel.attach`'s own
-# reset-on-output rule (`docs/PLAN.md`'s P4j-3d-3).
+# reset-on-output rule.
 - inputText: "echo done"
 - pressKey: Enter
 - waitForAnimationToEnd:

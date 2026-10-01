@@ -50,7 +50,7 @@ class PythonProseTest(unittest.TestCase):
     """
 
     def test_a_module_docstring_is_prose(self):
-        self.assertIn("docs/PLAN.md", python_prose('"""See docs/PLAN.md."""\nx = 1\n'))
+        self.assertIn("evidence/p1", python_prose('"""See evidence/p1."""\nx = 1\n'))
 
     def test_code_outside_a_docstring_is_blanked(self):
         self.assertNotIn("evidence", python_prose('PATH = "evidence/p1"\n'))

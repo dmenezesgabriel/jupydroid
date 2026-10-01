@@ -1,9 +1,8 @@
 appId: com.jupydroid.app
 ---
-# P5e-6: "Format cell" asks `textDocument/rangeFormatting` for the cell's whole virtual block
-# and lands the formatter's answer on that cell alone - `docs/PLAN.md`'s P5e-6 row and VS
-# Code's `notebook.formatCell`, which puts the label in the context menu's modification
-# group.
+# P5e-6: "Format cell" asks `textDocument/rangeFormatting` for the cell's whole virtual block and
+# lands the formatter's answer on that cell alone - VS Code's `notebook.formatCell`, which puts the
+# label in the context menu's modification group.
 #
 # The shipped pylsp answers through autopep8, whose `pylsp_format_range` returns ONE
 # whole-document TextEdit even for a range ask - so the proof is three cells: the asked one

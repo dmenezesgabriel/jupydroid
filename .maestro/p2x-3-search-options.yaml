@@ -4,8 +4,7 @@ appId: com.jupydroid.app
 #
 # `showCommonFindToggles: true` (`searchWidget.ts:454`) puts them inside the input, and
 # `findInput.ts:181-197` fixes their order - **case, whole word, regex**. VS Code answers for both
-# halves here: JupyterLab registers no workspace search at all (`docs/DECISIONS.md`, "The activity
-# bar's order takes both references").
+# halves here: JupyterLab registers no workspace search at all (ADR-0062).
 #
 # **Each toggle is proved by a query it changes the answer to**, never by tapping it and looking:
 #
@@ -18,8 +17,8 @@ appId: com.jupydroid.app
 #                    upper-case one when it is not.
 #
 # A toggle says which way it is set by **flipping its own name**, not by a check mark: Android keeps
-# a toggled state on a node that carries no label (`docs/DECISIONS.md`), so the assertions below
-# address "Match anywhere" after turning whole-word on, and that *is* the state readout.
+# a toggled state on a node that carries no label, so the assertions below address "Match anywhere"
+# after turning whole-word on, and that *is* the state readout.
 #
 # **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
 # this needs the width and not the arm64 kernel.

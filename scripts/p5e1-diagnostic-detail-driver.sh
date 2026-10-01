@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# P5e-1: a tap on a diagnosed line's gutter mark shows its findings in a floating card -
-# `docs/PLAN.md`'s P5e-1 row, VS Code's `markerHoverParticipant` content performed as a tap.
+# P5e-1: a tap on a diagnosed line's gutter mark shows its findings in a floating card - The P5e-1
+# gate: VS Code's `markerHoverParticipant` content performed as a tap.
 #
 # TABLET ONLY (SM-X216B), for the reason `p5d2-diagnostics-driver.sh` states: the emulator's
 # `FakeKernelGateway` means no kernel session ever opens - the sync gate stays shut and no

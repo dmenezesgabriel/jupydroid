@@ -7,8 +7,8 @@
 #
 # P7a-1b's second half. `SearchOptionToggles` has always cited `inputOption.activeBackground` and
 # has always been handed `secondaryContainer`, which was `list.inactiveSelectionBackground` - two
-# reference ids folded onto one role because they measured 4/255 apart (`docs/DECISIONS.md`,
-# P2x-3d). P7a-1b unfolds them, and this is where the toggle's half is held to its own id.
+# reference ids folded onto one role because they measured 4/255 apart. P7a-1b unfolds them, and
+# this is where the toggle's half is held to its own id.
 #
 # **Two themes rather than one, for the reason U1 records**: a single-theme capture cannot tell a
 # working palette from one that has collapsed onto a value that happens to read in that theme.

@@ -11,7 +11,7 @@ appId: com.jupydroid.app
 #
 # **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell. The
 # terminal draws to a `Canvas`, so nothing here is asserted by Maestro text - the flow redirects
-# what pylsp printed to files and the driver reads them back (`docs/DECISIONS.md`, P4j-3b).
+# what pylsp printed to files and the driver reads them back (`architecture/cross-cutting.md` §8.6).
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000

@@ -7,9 +7,9 @@ appId: com.jupydroid.app
 # upgrade. That is the only way to drive this: the migration is one-shot by design.
 #
 # The driver runs the whole thing twice and prints the workspace listing after each, because the
-# second run is the one this project has been burned by (`docs/PLAN.md`: "every install-time path
-# needs a second install to be tested at all"). A migration that ran again would suffix the
-# notebook, and only the listing shows that.
+# second run is the one this project has been burned by (every install-time path needs a second
+# install to be tested at all). A migration that ran again would suffix the notebook, and only the
+# listing shows that.
 #
 # Runs no cell: where the file is, is not a kernel question.
 - launchApp

@@ -35,7 +35,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-three-cells-nothing-run
 
 # The touch way into multi-select: a row in the cell's own menu, because a long press is
-# BasicTextField's text selection and is not available to us (docs/DECISIONS.md).
+# BasicTextField's text selection and is not available to us.
 - tapOn:
     text: "Cell actions"
     index: 0
@@ -58,7 +58,7 @@ appId: com.jupydroid.app
 - assertNotVisible: "63"
 # `runSelected` deselects before it runs, so the contextual bar is gone and the notebook's own is
 # back. Named by a control only that bar has - a count assertion alone would pass on a bar that had
-# simply changed its number (docs/DECISIONS.md, on titles being the wrong handle).
+# simply changed its number.
 - assertVisible: "Back to files"
 - assertNotVisible: "2 selected"
 - takeScreenshot: 03-the-run-ran-and-the-selection-went

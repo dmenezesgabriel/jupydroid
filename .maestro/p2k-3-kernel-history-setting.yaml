@@ -29,8 +29,8 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - tapOn: "Notebook actions"
-# The label names what tapping will do, so it flips with the state - a check mark is a state no
-# flow can read (docs/DECISIONS.md).
+# The label names what tapping will do, so it flips with the state - a check mark is a state no flow
+# can read.
 - assertVisible: "Disable kernel history access"
 - takeScreenshot: 02-on-and-the-row-flipped
 # Dismiss rather than re-tap the button: it opened the menu and is now behind it, so the popup is

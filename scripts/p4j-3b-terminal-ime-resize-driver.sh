@@ -3,20 +3,20 @@
 # rotation (P4i-3a's own gate, `p4i-terminal-resize-driver.sh`).
 #
 # `vi`'s own full-screen redraw is the same *idea* reused - its fill lines run to the bottom of
-# whatever the pty was told its screen was - but not the same *reading* of it. P4i-3a's own
-# oracle (`grep -c 'text="~"'` over a `uiautomator dump`) proved unreliable on this device,
-# independent of anything `TerminalCanvas` draws: a real run found it reporting zero fill lines
-# against a screenshot showing dozens, reproduced with and without this phase's own code
-# (`docs/DECISIONS.md`'s own P4j-3b entry). `terminal_content_extent.py` reads the screenshot's
-# own pixels instead - the terminal's thin monospace strokes against every UI chrome element's
-# thicker glyphs - which is what proves the resize here.
+# whatever the pty was told its screen was - but not the same *reading* of it. P4i-3a's own oracle
+# (`grep -c 'text="~"'` over a `uiautomator dump`) proved unreliable on this device, independent of
+# anything `TerminalCanvas` draws: a real run found it reporting zero fill lines against a
+# screenshot showing dozens, reproduced with and without this phase's own code
+# (`architecture/cross-cutting.md` §8.6). `terminal_content_extent.py` reads the screenshot's own
+# pixels instead - the terminal's thin monospace strokes against every UI chrome element's thicker
+# glyphs - which is what proves the resize here.
 #
-# `stty size` is still rejected for the reason `docs/DECISIONS.md` already gives - this rootfs's
-# busybox/toybox answers it from a fixed default, not a live `ioctl`.
+# `stty size` is still rejected for the reason CLOSED-006 gives - this rootfs's busybox/toybox
+# answers it from a fixed default, not a live `ioctl`.
 #
 # Measured with the keyboard *open* first, `p4i-terminal-vi.yaml`'s own proven shape (autofocused,
 # no `hideKeyboard` before typing) - a resize racing `vi`'s own startup redraw is a real, measured
-# hazard (`docs/DECISIONS.md`'s P4j-3b entry), so the keyboard is only ever dismissed once `vi` is
+# hazard (`architecture/cross-cutting.md` §8.6), so the keyboard is only ever dismissed once `vi` is
 # already idle, in part2.
 #
 # TABLET ONLY (SM-X216B). NOT A SUITE FLOW: part1 leaves a `vi` session running, which any flow
@@ -52,15 +52,15 @@ run_flow "$ROOT/.maestro/p4j-3b-terminal-ime-resize-part2.yaml" "$EVIDENCE" || e
 CLOSED_Y="$(content_bottom_y "$EVIDENCE/02-vi-keyboard-closed.png")"
 echo "content bottom with the keyboard closed: y=$CLOSED_Y"
 
-# `>=`, not `>`: fixing the double-counted IME inset (docs/DECISIONS.md) revealed that "closed_y
-# strictly greater" was never proof of vi's own live redraw - vi's `~` fill lines are its startup
-# draw at whatever grid size was current when it launched (already keyboard-open, from part1's own
-# "Input text vi"/Enter), not a repaint triggered by the later resize. The wire resize itself is
-# real and reaches `TerminalEmulator` (confirmed on device: the grid genuinely goes
-# 77x39 -> 77x52 closing the keyboard, matching this rootfs's own `stty size` limitation this file
-# already named - a fixed default, not a live `ioctl`, so vi never learns the new size to redraw
-# by). What this gate can still catch is a real regression - the content getting *smaller* once
-# the keyboard closes - which `>=` still refuses.
+# `>=`, not `>`: fixing the double-counted IME inset revealed that "closed_y strictly greater" was
+# never proof of vi's own live redraw - vi's `~` fill lines are its startup draw at whatever grid
+# size was current when it launched (already keyboard-open, from part1's own "Input text vi"/Enter),
+# not a repaint triggered by the later resize. The wire resize itself is real and reaches
+# `TerminalEmulator` (confirmed on device: the grid genuinely goes 77x39 -> 77x52 closing the
+# keyboard, matching this rootfs's own `stty size` limitation this file already named - a fixed
+# default, not a live `ioctl`, so vi never learns the new size to redraw by). What this gate can
+# still catch is a real regression - the content getting *smaller* once the keyboard closes - which
+# `>=` still refuses.
 [ "$CLOSED_Y" -ge "$OPEN_Y" ] || {
   echo "the shell's own content got smaller once the keyboard closed (y=$OPEN_Y -> y=$CLOSED_Y) - a real regression" >&2
   exit 1

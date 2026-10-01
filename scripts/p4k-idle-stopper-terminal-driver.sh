@@ -17,26 +17,25 @@
 # file, straight off the device's disk, the same move that driver makes for a notebook's answer.
 #
 # **Not `visible:`/`extendedWaitUntil` on this terminal's own content, anywhere in this driver's
-# flows.** `docs/DECISIONS.md`'s own P4j-3b entry forbids it: accessibility polling of this
-# terminal's per-row text proved unreliable independent of anything `TerminalCanvas` draws,
-# reproduced against an untouched build. A direct pixel-crop comparison
-# (`terminal_content_extent.py`'s `terminal_top_strip_differs`) is what that entry names as the
-# pattern the next terminal-content gate should follow - used here for *sameness* rather than
-# difference (P4j-3d-3's own use of it), which needs neither a filter nor a bound either, and so
-# is not thrown off by `terminal_content_bottom_y`'s own thin-glyph-stroke assumption: that oracle
-# is tuned to `vi`'s isolated `~` fill lines, and this flow's own wrapped echo output instead
-# stacks several rows with no vertical gap between them, which is a plain digit row's own shape
-# that file already documents as taller than its filter allows.
+# flows.** `architecture/cross-cutting.md` §8.6 forbids it: accessibility polling of this terminal's
+# per-row text proved unreliable independent of anything `TerminalCanvas` draws, reproduced against
+# an untouched build. A direct pixel-crop comparison (`terminal_content_extent.py`'s
+# `terminal_top_strip_differs`) is what that entry names as the pattern the next terminal-content
+# gate should follow - used here for *sameness* rather than difference (P4j-3d-3's own use of it),
+# which needs neither a filter nor a bound either, and so is not thrown off by
+# `terminal_content_bottom_y`'s own thin-glyph-stroke assumption: that oracle is tuned to `vi`'s
+# isolated `~` fill lines, and this flow's own wrapped echo output instead stacks several rows with
+# no vertical gap between them, which is a plain digit row's own shape that file already documents
+# as taller than its filter allows.
 #
-# Portrait, forced - `p4i-terminal-resize-driver.sh`'s own `rotate_to`, for the reason
-# `docs/DECISIONS.md`'s own P4j-3c entry gives: a device left in landscape puts `Terminal` behind
-# `ListDetailSceneStrategy`'s two-pane layout, and every pixel bound below is measured against the
-# single-pane, full-width shape portrait guarantees.
+# Portrait, forced - `p4i-terminal-resize-driver.sh`'s own `rotate_to`, for a measured reason: a
+# device left in landscape puts `Terminal` behind `ListDetailSceneStrategy`'s two-pane layout, and
+# every pixel bound below is measured against the single-pane, full-width shape portrait guarantees.
 #
-# The wait is a fixed sleep, not an observed condition - unlike P1c's cell, which persists an
-# answer to disk the driver can poll for, nothing else here changes state while backgrounded to
-# wait on. `docs/PLAN.md`'s own gate text calls for 60s; `IDLE_STOP_GRACE` in `AppContainer` is 30s,
-# so this clears it with margin rather than racing it.
+# The wait is a fixed sleep, not an observed condition - unlike P1c's cell, which persists an answer
+# to disk the driver can poll for, nothing else here changes state while backgrounded to wait on.
+# the gate text calls for 60s; `IDLE_STOP_GRACE` in `AppContainer` is 30s, so this clears it with
+# margin rather than racing it.
 set -euo pipefail
 
 # TABLET ONLY (SM-X216B). The check below greps `ps -A` for a real `jupyter_server` process - on

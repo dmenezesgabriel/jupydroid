@@ -14,8 +14,8 @@ appId: com.jupydroid.app
 #   three as a pattern, which is `parseQuery`'s escaping half.
 #
 # The labels flip rather than carrying a check mark, because Android's accessibility tree keeps a
-# menu item's toggled state on a node with no label - so a check is a state no flow can read
-# (`docs/DECISIONS.md`). That is also what lets this flow assert the option is *on*.
+# menu item's toggled state on a node with no label - so a check is a state no flow can read. That
+# is also what lets this flow assert the option is *on*.
 #
 # No cell is run, so nothing here needs the tablet.
 - launchApp

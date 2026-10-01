@@ -14,8 +14,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 reset_notebooks
 # Named for what it shows and not for the command: Maestro matches a whole node, so a document
-# called "Line numbers.ipynb" sitting beside a menu row reading "Show line numbers" is a flow
-# nobody can read (`docs/DECISIONS.md`, on titles as handles).
+# called "Line numbers.ipynb" sitting beside a menu row reading "Show line numbers" is a flow nobody
+# can read.
 seed_notebook "$ROOT/.maestro/fixtures/p2g-1-line-numbers.ipynb" "Gutter"
 
 run_flow "$ROOT/.maestro/p2g-1-line-numbers.yaml" "$ROOT/evidence/p2g-1-line-numbers"

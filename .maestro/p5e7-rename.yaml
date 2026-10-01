@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
 # P5e-7: "Rename symbol…" asks `textDocument/rename` at the caret's virtual position and lands
-# jedi's whole-document answer on every cell the name touches - `docs/PLAN.md`'s P5e-7 row,
-# VS Code's `editor.action.rename`, which `bulkEditService.apply`s as one undoable unit.
+# jedi's whole-document answer on every cell the name touches - VS Code's `editor.action.rename`,
+# which `bulkEditService.apply`s as one undoable unit.
 #
 # The shipped pylsp answers ONE whole-document TextEdit whose `newText` carries the new name
 # at the `def` line and the call site both - so the proof is that *both* cells change in one

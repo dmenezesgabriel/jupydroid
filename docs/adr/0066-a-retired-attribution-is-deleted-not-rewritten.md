@@ -127,3 +127,12 @@ immutable, which is exactly why the codes are allowed to survive there and nowhe
 The temptation to re-add "which step did this" is answered here rather than re-argued: the code was
 retired because its numbering never was stable, and 253 of the citations name a code no single
 commit corresponds to.
+
+**The sweep this ADR describes was scoped to shipped code, and that left 233 attributions standing.**
+`app/src/` and `tools/` reached zero, and `.maestro/` (91 lines), `scripts/` (31) and `evidence/`
+(110) did not, because the gate reads only the first two trees. Each was closed the way this ADR
+says - the sentence kept its fact, and the attribution either went or became an id that resolves:
+ADR-0046 for the differential rule, `architecture/cross-cutting.md` §8.6 for what a Maestro flow
+cannot read off a `Canvas`, `CLOSED-006` for `stty size`'s fixed answer, ADR-0002 for the exec
+model. `scripts/check_retired_doc_citations.py` now gates all of it over every tracked file, so the
+next deletion cannot leave the same residue.

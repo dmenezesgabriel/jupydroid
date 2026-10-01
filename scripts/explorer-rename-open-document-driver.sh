@@ -51,10 +51,9 @@ on_disk "Renamed From The Browser.ipynb" || {
   exit 1
 }
 
-# Quoted inside the command string, not around the argument: `adb shell` joins its arguments and
-# the device's shell splits them again, so an unquoted name with spaces arrives as four paths.
-# The same bug once landed `Markdown Render.ipynb` in a file called `Markdown`
-# (docs/DECISIONS.md, "A file's name is its identity (X1b)").
+# Quoted inside the command string, not around the argument: `adb shell` joins its arguments and the
+# device's shell splits them again, so an unquoted name with spaces arrives as four paths. The same
+# bug once landed `Markdown Render.ipynb` in a file called `Markdown` (ADR-0064).
 moved="$("$ADB" shell "run-as $APP cat \"$NOTEBOOK_DIR/Renamed From The Browser.ipynb\"" | tr -d '\r')"
 for expected in "edited_after_open = 1" "edited_after_rename = 2"; do
   grep -q "$expected" <<<"$moved" || {

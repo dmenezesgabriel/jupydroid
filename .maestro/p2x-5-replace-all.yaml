@@ -16,10 +16,10 @@ appId: com.jupydroid.app
 # `replaceService.ts:206-214`). One `Replace All`, both routes, and **both files read back** by
 # reopening them - which is the only thing that can tell a write from a redraw.
 #
-# The Replace All control is a **labelled button on a row of its own**, named apart from the notebook
-# find bar's *"Replace all"* - at this width both can be in one tree. Its first draft was VS Code's
-# icon, and the screenshot is what refused it: Material's `find_replace` at 24dp read as *refresh*,
-# beside a query box whose leading icon is the magnifier it is drawn from (`docs/DECISIONS.md`).
+# The Replace All control is a **labelled button on a row of its own**, named apart from the
+# notebook find bar's *"Replace all"* - at this width both can be in one tree. Its first draft was
+# VS Code's icon, and the screenshot is what refused it: Material's `find_replace` at 24dp read as
+# *refresh*, beside a query box whose leading icon is the magnifier it is drawn from.
 #
 # **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
 # this needs the width and not the arm64 kernel.

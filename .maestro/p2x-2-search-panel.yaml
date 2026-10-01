@@ -2,8 +2,7 @@ appId: com.jupydroid.app
 ---
 # P2x-2: the activity bar grows a **third** item, and a panel behind it.
 #
-# The order takes both references to state, which is the correction this sub-step made to its own
-# row in `docs/PLAN.md`:
+# The order takes both references to state, which is the correction this sub-step made:
 #   - the file browser is first in both - rank 100 (`filebrowser-extension/src/index.ts:676`),
 #     `order: 0` (`vscode/…/files/browser/explorerViewlet.ts:265`);
 #   - **Search is second and only VS Code says so** - `order: 1` on the sidebar view container

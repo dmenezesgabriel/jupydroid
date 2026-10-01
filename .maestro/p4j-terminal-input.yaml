@@ -1,20 +1,20 @@
 appId: com.jupydroid.app
 ---
 # P4j-1's own gate: input folded into the terminal canvas itself - no separate floating box below
-# the output, the merged surface Termux's own `TerminalView` is (`docs/PLAN.md` P4j-1). Runs on
-# both the tablet and a phone-width emulator profile - `p4i-terminal-screen`'s own precedent:
-# FakeTerminalGateway (the emulator's fallback) echoes what it is sent, which is enough to prove
-# the merged surface; the tablet run is a real shell answering the same input. Not `clearState`
-# on either device - `p4i-terminal-tablet.yaml`'s own reason: it would wipe the tablet's already
-# installed Space, forcing a full rootfs reinstall this flow does not need.
+# the output, the merged surface Termux's own `TerminalView` is. Runs on both the tablet and a
+# phone-width emulator profile - `p4i-terminal-screen`'s own precedent: FakeTerminalGateway (the
+# emulator's fallback) echoes what it is sent, which is enough to prove the merged surface; the
+# tablet run is a real shell answering the same input. Not `clearState` on either device -
+# `p4i-terminal-tablet.yaml`'s own reason: it would wipe the tablet's already installed Space,
+# forcing a full rootfs reinstall this flow does not need.
 - launchApp
 - assertVisible: "Files"
 - takeScreenshot: 01-the-workspace
 
 # The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
-# launcher's Terminal card at two (`docs/DECISIONS.md`, "The bars gain action items"). The card
-# half is checked first - a `when:` is evaluated where it sits, and after the bar's own tap the
-# bar itself is gone, so "not visible" would then describe the terminal screen too.
+# launcher's Terminal card at two. The card half is checked first - a `when:` is evaluated where it
+# sits, and after the bar's own tap the bar itself is gone, so "not visible" would then describe the
+# terminal screen too.
 - runFlow:
     when:
       notVisible: "New terminal"

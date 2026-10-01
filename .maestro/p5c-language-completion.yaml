@@ -1,7 +1,7 @@
 appId: com.jupydroid.app
 ---
-# P5c: the completion popup is answered by the Space's language server (`pylsp` over stdio),
-# not by the kernel's `complete_request` - same popup, better source, `docs/PLAN.md`'s P5c row.
+# P5c: the completion popup is answered by the Space's language server (`pylsp` over stdio), not by
+# the kernel's `complete_request` - same popup, better source.
 #
 # The first cell is RUN first, and that is not scene-setting: completion deliberately never
 # starts a runtime (`NotebookCompletion.at`'s own `session.opened ?: return NONE` guard, the

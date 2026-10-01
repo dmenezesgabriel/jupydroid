@@ -13,7 +13,7 @@ appId: com.jupydroid.app
 # - **Replace All** takes the rest in one go, and the counter falls to `-/-` on its own because
 #   the query is re-run and finds nothing.
 # - And it is ONE undo, not one per cell: `notebook:undo-cell-action` puts every cell back, which
-#   is `CellEdits.applying`'s boundary (`docs/DECISIONS.md`).
+#   is `CellEdits.applying`'s boundary.
 #
 # The replacement is written through the same `sourceRevisions` bump a split uses, so what the
 # flow reads off a cell is the field having adopted text it did not type.

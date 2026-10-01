@@ -12,9 +12,9 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-the-workspace
 
 # The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
-# launcher's Terminal card at two (`docs/DECISIONS.md`, "The bars gain action items"). The card
-# half is checked first - a `when:` is evaluated where it sits, and after the bar's own tap the
-# bar itself is gone, so "not visible" would then describe the terminal screen too.
+# launcher's Terminal card at two. The card half is checked first - a `when:` is evaluated where it
+# sits, and after the bar's own tap the bar itself is gone, so "not visible" would then describe the
+# terminal screen too.
 - runFlow:
     when:
       notVisible: "New terminal"

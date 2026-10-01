@@ -54,9 +54,9 @@ run_in_theme() {
 # **Position, not presence, and that distinction is load-bearing.** `EditorPalette.cellBackground`
 # is `#191A1B` too - a cell sits a step off the page exactly as the side bar does - so "the part
 # colour appears somewhere in this frame" is satisfied by an open notebook's own cells whether or
-# not the rail was ever fixed. An assertion that can pass for the wrong reason is not an assertion
-# (`docs/DECISIONS.md`). What is checked instead is that the **leftmost** band is the part - the
-# rail beside two panes, the side panel where there is one - and never the document.
+# not the rail was ever fixed. An assertion that can pass for the wrong reason is not an assertion.
+# What is checked instead is that the **leftmost** band is the part - the rail beside two panes, the
+# side panel where there is one - and never the document.
 #
 # **And the seams between them, since P7a-2.** `read_chrome_parts.py` drops a 1-2px band on purpose,
 # so until this step nothing here could report a border that was never drawn - which is how the side

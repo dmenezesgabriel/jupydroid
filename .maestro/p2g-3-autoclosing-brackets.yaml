@@ -26,8 +26,8 @@ appId: com.jupydroid.app
 # Past the end of the short line, the same trick step5-brackets uses.
 - tapOn: "value = "
 - inputText: "("
-# On by default: the app's own resting state, a departure from the reference's own
-# `default: false` recorded in docs/DECISIONS.md.
+# On by default: the app's own resting state, a departure from the reference's own `default: false`,
+# kept as the reference's (ADR-0036).
 - assertVisible: "value = \\(\\)"
 - takeScreenshot: 02-typing-a-paren-closes-it
 - tapOn: "Notebook actions"

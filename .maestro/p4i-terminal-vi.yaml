@@ -1,12 +1,12 @@
 appId: com.jupydroid.app
 ---
 # P4i-2's own closing gate: `vi` forces the alternate screen, a full redraw on entry, and its own
-# status line and `~` fill lines - none of which a shell prompt or an echoed keystroke can
-# produce. Two oracles stand in for what `extendedWaitUntil: visible: "~"` could not reliably
-# read (`docs/DECISIONS.md`'s own P4j-3b entry forbids gating on this canvas's `Text` column):
-# the driver's `terminal_top_strip_differs` proves the Canvas redrew a whole screen on entry,
-# and `vi`'s own `:wq` writes a buffer only a real, unmodified program processed - a keystroke
-# echoed to a shell never lands in a file.
+# status line and `~` fill lines - none of which a shell prompt or an echoed keystroke can produce.
+# Two oracles stand in for what `extendedWaitUntil: visible: "~"` could not reliably read
+# (`architecture/cross-cutting.md` §8.6 forbids gating on this canvas's `Text` column): the driver's
+# `terminal_top_strip_differs` proves the Canvas redrew a whole screen on entry, and `vi`'s own
+# `:wq` writes a buffer only a real, unmodified program processed - a keystroke echoed to a shell
+# never lands in a file.
 #
 # Not `clearState: true` - `p4i-terminal-tablet.yaml`'s own reason: the driver's `reset_notebooks`
 # + `seed_file` already put a clean workspace and the marker file in place, and `clearState` would

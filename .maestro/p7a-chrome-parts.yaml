@@ -34,9 +34,8 @@ appId: com.jupydroid.app
 #
 # **Before the document, not after, and a device run is why.** Where the shell draws one pane the
 # document *is* the window - `NavDisplay` composes only the top entry and the activity bar is
-# deliberately not drawn over a document (`docs/DECISIONS.md`, "The bar is drawn over the panel and
-# never over a document") - so reaching Search from inside the notebook is not a thing that exists
-# there. Ordered this way the same flow drives both layouts.
+# deliberately not drawn over a document (ADR-0055) - so reaching Search from inside the notebook is
+# not a thing that exists there. Ordered this way the same flow drives both layouts.
 - tapOn: "Search"
 - waitForAnimationToEnd:
     timeout: 5000

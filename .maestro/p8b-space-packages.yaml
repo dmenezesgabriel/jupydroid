@@ -42,7 +42,7 @@ appId: com.jupydroid.app
 - tapOn:
     id: "terminal-input"
 # The log file is the driver's oracle: the canvas's own Text column reads "" on this device
-# (docs/DECISIONS.md, P4j-3b), so the shell writes its answer where run-as can read it.
+# (`architecture/cross-cutting.md` §8.6), so the shell writes its answer where run-as can read it.
 - inputText: "pip install tabulate > p8b-install.log 2>&1; echo rc=$? > p8b-pip.rc"
 - pressKey: Enter
 - takeScreenshot: 01-pip-install-running

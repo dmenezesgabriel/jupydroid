@@ -19,11 +19,10 @@ appId: com.jupydroid.app
 # matches take the same teal - `searchMatch` `#27678280` and `currentSearchMatch` `#27678290`
 # (`EditorPalettes.kt:74-75`), one alpha apart, which is the reference separating them by alpha
 # alone and measures 1.06:1 on the dark cell. So the current one is drawn **bold** as well
-# (`EditorTheme.kt:62-70`), and `docs/DECISIONS.md` records that as a departure. Measured off
-# frame 03: the current match's ink sits on `(33,69,85)` against the other's `(32,65,78)`.
-# A match in the *rendered* markdown cell is counted and not lit - our departure, because rendered
-# prose is `RichText` rather than a text field, and it is reached by unrendering the cell
-# (`docs/DECISIONS.md`).
+# (`EditorTheme.kt:62-70`), a recorded departure (ADR-0042). Measured off frame 03: the current
+# match's ink sits on `(33,69,85)` against the other's `(32,65,78)`. A match in the *rendered*
+# markdown cell is counted and not lit - our departure, because rendered prose is `RichText` rather
+# than a text field, and it is reached by unrendering the cell.
 #
 # No cell is run, so nothing here needs the tablet.
 - launchApp
@@ -35,9 +34,9 @@ appId: com.jupydroid.app
     direction: DOWN
     timeout: 20000
 - tapOn: "Find And Replace.ipynb"
-# A whole node, which is what Maestro matches: a cell's field is one node holding all of its
-# source, so `velocity = 3` names half of `velocity = 3\nprint(velocity)` and can never be seen.
-# The single-line cell is the anchor instead (`docs/DECISIONS.md`).
+# A whole node, which is what Maestro matches: a cell's field is one node holding all of its source,
+# so `velocity = 3` names half of `velocity = 3\nprint(velocity)` and can never be seen. The
+# single-line cell is the anchor instead.
 - extendedWaitUntil:
     visible: "Velocity = 0"
     timeout: 30000

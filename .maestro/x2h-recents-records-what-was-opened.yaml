@@ -2,11 +2,11 @@ appId: com.jupydroid.app
 ---
 # X2h-1: opening a document is what puts it in Recents.
 #
-# The defect this closes is X2b's, recorded in docs/PLAN.md: Recents was a scan of the workspace
-# *root* (`DiskNotebookRepository.scanSummaries`, `rootDir.listFiles()`), so a notebook inside a
-# folder was reachable through the explorer and absent from the list the app opens on. The list is
-# now a record of what was opened - JupyterLab's `RecentsManager` - so where a document lives has
-# stopped deciding whether it can be found again.
+# The defect this closes is X2b's: Recents was a scan of the workspace *root*
+# (`DiskNotebookRepository.scanSummaries`, `rootDir.listFiles()`), so a notebook inside a folder was
+# reachable through the explorer and absent from the list the app opens on. The list is now a record
+# of what was opened - JupyterLab's `RecentsManager` - so where a document lives has stopped
+# deciding whether it can be found again.
 #
 # **This flow drives the app; its driver reads the store.** A list that looked right on screen and
 # was never persisted would pass a screen-only assertion, which is the trap `new-python-file`

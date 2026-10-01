@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# P5d-1: one virtual document stands for the notebook under the language server - the
-# reference's `VirtualDocument` shape (`packages/lsp/src/virtual/document.ts`), cells joined
-# with two blank lines between them. `docs/PLAN.md`'s P5d-1 row.
+# P5d-1: one virtual document stands for the notebook under the language server - the reference's
+# `VirtualDocument` shape (`packages/lsp/src/virtual/document.ts`), cells joined with two blank
+# lines between them.
 #
 # The assertion that discriminates it is `Completion cross_cell_name_for_lsp`: that name is
 # defined in a cell that is NEVER RUN, so the kernel's namespace does not hold it - the kernel

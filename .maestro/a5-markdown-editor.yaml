@@ -32,12 +32,11 @@ appId: com.jupydroid.app
 - hideKeyboard
 # **Back to the top of the document by swiping, not by scrolling to an element.**
 # `scrollUntilVisible` needs something that is *off* screen to aim at, and since P2v-2 drew the
-# heading's caret rendered-only (`docs/DECISIONS.md`, "The cell keeps its header strip") the only
-# node left on an open markdown cell is its field - which carries the whole source as one node, so
-# it is already partly visible and the scroll is a no-op that leaves the cell's first line above
-# the viewport. Before P2v-2 the anchor was that caret, and before that a kind label this app
-# invented, the reference giving markdown no prompt at all
-# (`packages/cells/src/widget.ts:1693-1700`).
+# heading's caret rendered-only (ADR-0057) the only node left on an open markdown cell is its field
+# - which carries the whole source as one node, so it is already partly visible and the scroll is a
+# no-op that leaves the cell's first line above the viewport. Before P2v-2 the anchor was that
+# caret, and before that a kind label this app invented, the reference giving markdown no prompt at
+# all (`packages/cells/src/widget.ts:1693-1700`).
 #
 # Down the frame's **left edge**, clear of the text: inside a focused field a drag is a selection,
 # not a scroll. Three is more than the two this notebook needs, and a swipe at the top of a list

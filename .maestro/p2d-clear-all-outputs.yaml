@@ -14,8 +14,8 @@ appId: com.jupydroid.app
 #   2. **It unfolds what it clears.** `(child as CodeCell).outputHidden = false` in the same
 #      transaction (`:1864`). The second cell is seeded `"collapsed": true`, so before the clear it
 #      shows a `Collapsed outputs` placeholder - and after it there must be no placeholder either,
-#      because a fold over nothing is a control offering to expand an absence. This is the gap
-#      `docs/PLAN.md` carried as known and open.
+#      because a fold over nothing is a control offering to expand an absence. This gap was carried
+#      as known and open.
 #   3. **The markdown cell is untouched**, which is the `cell.type === 'code'` guard both loops
 #      carry.
 #
@@ -61,7 +61,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 02-every-output-gone-and-nothing-left-folded
 
 # One entry, because `clearAllOutputs` is one operation - the same undoable unit every cell
-# operation is (`docs/DECISIONS.md`).
+# operation is.
 - tapOn: "Undo cell operation"
 - waitForAnimationToEnd:
     timeout: 5000

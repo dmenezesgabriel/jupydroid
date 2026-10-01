@@ -3,10 +3,10 @@ appId: com.jupydroid.app
 # P2x-3: the search panel actually searches - the box, and what it found grouped by file.
 #
 # VS Code answers for both halves of this panel. JupyterLab registers no workspace search at all,
-# its `documentsearch` being scoped to `currentWidget` (`documentsearch-extension/src/index.ts:227`),
-# which is the find bar P2i shipped - so `search/browser/searchView.ts` is the reference for
-# behaviour here as well as for presentation (`docs/DECISIONS.md`, "The activity bar's order takes
-# both references").
+# its `documentsearch` being scoped to `currentWidget`
+# (`documentsearch-extension/src/index.ts:227`), which is the find bar P2i shipped - so
+# `search/browser/searchView.ts` is the reference for behaviour here as well as for presentation
+# (ADR-0062).
 #
 # Four claims:
 #   1. the panel has a box, and it is **not** spelled the way the panel's title is - the reference's

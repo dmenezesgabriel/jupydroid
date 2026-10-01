@@ -30,10 +30,10 @@ appId: com.jupydroid.app
 - assertVisible: "Part A"
 - assertVisible: "part = 2"
 - takeScreenshot: 01-expanded
-# The H2 first, so the H1 below it has something already-collapsed inside it to preserve.
-# index 1 is the second heading in document order - h1, h2, h1b each carry a collapser, and the
-# fixture is short enough that all six cells are on screen at once, so the index is not addressing
-# a cell the list happened to render (`docs/DECISIONS.md`).
+# The H2 first, so the H1 below it has something already-collapsed inside it to preserve. index 1 is
+# the second heading in document order - h1, h2, h1b each carry a collapser, and the fixture is
+# short enough that all six cells are on screen at once, so the index is not addressing a cell the
+# list happened to render.
 - tapOn:
     text: "Collapse heading"
     index: 1

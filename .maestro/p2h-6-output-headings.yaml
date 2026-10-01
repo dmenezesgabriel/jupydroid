@@ -7,8 +7,8 @@ appId: com.jupydroid.app
 #
 # **WIDE WINDOW** rather than TABLET ONLY, and the fixture is why: nbformat stores a cell's outputs,
 # so the HTML this reads was saved into the file rather than produced by a kernel. That makes the
-# flow repeatable and lets it run wherever there is room for the pane - `docs/PLAN.md` assumed it
-# would need the arm64 kernel, and it does not.
+# flow repeatable and lets it run wherever there is room for the pane - this flow was assumed to
+# need the arm64 kernel, and it does not.
 #
 # Seeded by scripts/p2h-6-output-headings-driver.sh; the setting is app-wide and persisted, so this
 # flow puts it back at the end.

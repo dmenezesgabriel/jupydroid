@@ -19,7 +19,7 @@ appId: com.jupydroid.app
 # **This app's `output` filter is narrower than the reference's**: it searches what
 # `RenderedOutput.Text` draws - stream, stderr, a traceback and `text/plain` - where the reference
 # walks its rendered DOM and so reaches a table's text too. A match it cannot also *show* is one it
-# does not count (`docs/DECISIONS.md`).
+# does not count.
 #
 # No cell is run, so nothing here needs the tablet.
 - launchApp

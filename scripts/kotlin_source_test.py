@@ -72,7 +72,7 @@ class CommentsOnlyTest(unittest.TestCase):
 
     def test_a_citation_inside_a_string_is_not_a_comment(self):
         """The defect this exists to avoid: a URL or a path in a string literal is not prose."""
-        source = 'val u = "docs/PLAN.md"'
+        source = 'val u = "evidence/p1/README.md"'
         self.assertEqual(" " * len(source), comments_only(source))
 
     def test_a_comment_marker_inside_a_raw_string_stays_code(self):

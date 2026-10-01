@@ -6,7 +6,7 @@ appId: com.jupydroid.app
 # `.replace-container.disabled` until `onToggleReplaceButton` opens it (`searchWidget.ts:553`,
 # `:600-616`); the placeholder is *"Replace"* (`:559`) and `ReplaceInput` carries exactly one
 # toggle, `Codicon.preserveCase` (`replaceInput.ts:119-124`). VS Code answers both halves of this
-# panel: JupyterLab registers no workspace search at all (`docs/DECISIONS.md`).
+# panel: JupyterLab registers no workspace search at all.
 #
 # **The chevron has a column of its own on this row, where the reference spans it across both
 # inputs, and that is a measurement** - the query box is 336dp here and three 48dp toggles already

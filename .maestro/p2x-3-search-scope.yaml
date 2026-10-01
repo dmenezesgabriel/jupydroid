@@ -14,8 +14,7 @@ appId: com.jupydroid.app
 #   * exclude     - `reports` prunes the folder, and the `.md` comes back because the include is gone.
 #
 # The `…` names what a tap will do rather than carrying `aria-expanded`, which a browser has and
-# Android's tree does not (`docs/DECISIONS.md`) - so "Hide search details" being visible *is* the
-# open state.
+# Android's tree does not - so "Hide search details" being visible *is* the open state.
 #
 # **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
 # this needs the width and not the arm64 kernel.
@@ -42,7 +41,7 @@ appId: com.jupydroid.app
 # longer fits in what it leaves. This flow was the thing that said so, one phase late: its committed
 # `02` frame already showed the exclude field half clipped, and 48dp finished the job. Putting the
 # keyboard away first is what a reader does to read a panel, and it is what `03` and `04` below have
-# always done before reading a count (`docs/DECISIONS.md`).
+# always done before reading a count.
 - hideKeyboard
 - assertVisible: "files to include"
 - assertVisible: "files to exclude"

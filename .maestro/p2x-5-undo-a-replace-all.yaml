@@ -7,11 +7,11 @@ appId: com.jupydroid.app
 # property and not a per-file undo: a notebook and a plain file were rewritten by one action, and one
 # tap puts **both** back.
 #
-# **The control is this app's and the reference has none.** A replace-all there is undone with Ctrl+Z
-# from any editor it touched, and the search view never learns of it; there is no keyboard here, and
-# the notebook's own history deliberately does not carry a workspace replace (`WorkspaceReplace` -
-# one command undoable twice would be two scopes able to disagree). So the offer sits beside the
-# report, living exactly as long as that sentence does (`docs/DECISIONS.md`).
+# **The control is this app's and the reference has none.** A replace-all there is undone with
+# Ctrl+Z from any editor it touched, and the search view never learns of it; there is no keyboard
+# here, and the notebook's own history deliberately does not carry a workspace replace
+# (`WorkspaceReplace` - one command undoable twice would be two scopes able to disagree). So the
+# offer sits beside the report, living exactly as long as that sentence does.
 #
 # **The results come back with the files**, which is the half a screenshot has to show: nothing else
 # on this panel would have changed, and re-drawing the matches is what says the workspace is what the

@@ -1,9 +1,9 @@
 appId: com.jupydroid.app
 ---
-# P5d-2b: `publishDiagnostics` as gutter marks - `docs/PLAN.md`'s row. The server pushes the
-# publications unprompted once the document is synced; `NotebookDiagnostics` maps their ranges
-# back through the virtual document and the cell gutters draw a severity-coloured square -
-# CodeMirror's lint-gutter job in the reference.
+# P5d-2b: `publishDiagnostics` as gutter marks. The server pushes the publications unprompted once
+# the document is synced; `NotebookDiagnostics` maps their ranges back through the virtual document
+# and the cell gutters draw a severity-coloured square - CodeMirror's lint-gutter job in the
+# reference.
 #
 # What is asserted is the *semantics text* the mark carries - the painted square states its own
 # diagnostics for TalkBack (`diagnostic on line 1: error, ...`), which is also what a flow can

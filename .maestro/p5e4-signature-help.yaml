@@ -1,8 +1,7 @@
 appId: com.jupydroid.app
 ---
-# P5e-4: typing `(` inside a cell asks `textDocument/signatureHelp` at the caret's virtual
-# position and the card draws the signature pylsp answers - `docs/PLAN.md`'s P5e-4 row,
-# VS Code's parameter-hints widget.
+# P5e-4: typing `(` inside a cell asks `textDocument/signatureHelp` at the caret's virtual position
+# and the card draws the signature pylsp answers - VS Code's parameter-hints widget.
 #
 # The trigger is real typing, not a menu row: `inputText` drives the IME, so `(` first runs
 # `PythonTypingRules`' autoclose and lands the caret inside `os.path.join()` - the exact

@@ -3,13 +3,12 @@
 # produced, shows it, and a further output snaps it back to the live tail.
 #
 # `terminal_top_strip_differs` (`terminal_content_extent.py`) is the oracle, not
-# `visible:`/`extendedWaitUntil` on the terminal's own text - `docs/DECISIONS.md`'s P4j-3b entry
+# `visible:`/`extendedWaitUntil` on the terminal's own text - `architecture/cross-cutting.md` §8.6
 # found that unreliable on this device independent of anything drawn, and every terminal-content
-# gate since has followed the pixel-based pattern instead. It compares a fixed strip just below
-# the app bar between two captures - content-agnostic, and it never crosses into
-# `TerminalExtraKeysRow` or a soft keyboard regardless of scroll position, unlike two earlier
-# versions of this driver's own oracle that tried reading ink at a distant column and read each
-# of those in turn instead (`docs/DECISIONS.md`).
+# gate since has followed the pixel-based pattern instead. It compares a fixed strip just below the
+# app bar between two captures - content-agnostic, and it never crosses into `TerminalExtraKeysRow`
+# or a soft keyboard regardless of scroll position, unlike two earlier versions of this driver's own
+# oracle that tried reading ink at a distant column and read each of those in turn instead.
 #
 # **Portrait, not whatever the device is already at** - `p4j-3c-terminal-font-size-driver.sh`'s
 # own `rotate_to`, reusing its already-tuned single-pane geometry rather than teaching the oracle

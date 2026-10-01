@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # P2j-4's layout half: the export row and its picker, at the width that decides whether they fit.
 #
-# NARROW WINDOW (<840dp): the 320dp emulator and the tablet in portrait at 800dp, whichever this
-# is - the width is measured and named in the evidence path, so the two cannot overwrite each
-# other. *"Save and Export Notebook As…"* is the longest
-# row this menu has and *"Reveal.js Slides"* the longest the picker has, and neither is in any
-# danger on a 1280dp tablet - so a green run there would be a green run against the wrong question.
-# The mirror of `WIDE WINDOW`, and the rule `docs/DECISIONS.md` records.
+# NARROW WINDOW (<840dp): the 320dp emulator and the tablet in portrait at 800dp, whichever this is
+# - the width is measured and named in the evidence path, so the two cannot overwrite each other.
+# *"Save and Export Notebook As…"* is the longest row this menu has and *"Reveal.js Slides"* the
+# longest the picker has, and neither is in any danger on a 1280dp tablet - so a green run there
+# would be a green run against the wrong question. The mirror of `WIDE WINDOW`, and the rule
+# `architecture/cross-cutting.md` §8.6 records.
 #
 # It deliberately makes no claim about the conversion: on x86_64 the exporter is the fake. That
 # claim is `p2j-4-export`'s, on the tablet.

@@ -44,12 +44,12 @@ run_flow "$ROOT/.maestro/step10-run-cell-real-kernel.yaml" "$EVIDENCE" || flow_s
 # is where the kernel's own account of the shell channel lands.
 "$ADB" shell run-as "$APP" cat "$SERVER_LOG" >"$EVIDENCE/jupyter_server.log" 2>/dev/null || true
 
-# The one line that separates the two causes of the execution stall (docs/PLAN.md P0): present,
-# the kernel heard the request and did not reply; absent, the request never reached it. The
+# The one line that separates the two causes of the execution stall (`research/execution-stall.md`):
+# present, the kernel heard the request and did not reply; absent, the request never reached it. The
 # server cannot answer that - its nudge is satisfied by a *control* reply alone
 # (jupyter_server/services/kernels/connection/channels.py:158-164), so a dead shell channel looks
-# healthy to it. Asserted on a passing run too, so the diagnostic is known to work before the
-# next sighting rather than during it.
+# healthy to it. Asserted on a passing run too, so the diagnostic is known to work before the next
+# sighting rather than during it.
 if ! grep -qF "$DISPATCHED" "$EVIDENCE/jupyter_server.log"; then
   echo "the kernel logged no shell dispatch for execute_request in $SERVER_LOG."
   echo "is --log-level=DEBUG still in the kernelspec argv (SpaceKernelSpec)?"

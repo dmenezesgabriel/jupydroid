@@ -11,7 +11,7 @@ appId: com.jupydroid.app
 # The notebook is called "Heading Sections" and not after the command: Maestro matches a whole node,
 # so a title reading "Collapse All Headings.ipynb" would not actually collide with the menu row -
 # but a flow whose tap target is one character from the document's own name is a flow nobody can
-# read (`docs/DECISIONS.md`, on titles as handles).
+# read.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000

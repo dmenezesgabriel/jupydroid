@@ -46,6 +46,6 @@ appId: com.jupydroid.app
 #
 # So the landing is proved by the two things that can see it: the screenshot below, which is why
 # this flow exists at all, and `FileEditorRevealTest.theMatchIsScrolledOnToTheScreen`, which reads
-# the scroll offset directly. `docs/DECISIONS.md` carries the reading.
+# the scroll offset directly.
 - assertVisible: "(?s).*MARKER_47.*"
 - takeScreenshot: 02-the-editor-landed-on-the-match

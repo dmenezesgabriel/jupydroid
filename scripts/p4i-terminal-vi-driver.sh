@@ -20,7 +20,7 @@ seed_file "$ROOT/.maestro/fixtures/p4i-marker.txt" "p4i-vi-marker.txt"
 
 run_flow "$ROOT/.maestro/p4i-terminal-vi.yaml" "$EVIDENCE" || exit 1
 
-# `docs/DECISIONS.md`'s P4j-3b entry forbids `visible:` on this canvas's per-row `Text` column, so
+# `architecture/cross-cutting.md` §8.6 forbids `visible:` on this canvas's per-row `Text` column, so
 # "vi drew a full screen" is two oracles here: the pixel strip above the prompt redrew (a shell
 # prompt alone never repaints the terminal's own top rows), and the file vi's own `:wq` wrote.
 REDRAWN="$(top_strip_differs "$EVIDENCE/00-bare-prompt.png" "$EVIDENCE/01-vi-full-screen.png" 700 1900)"

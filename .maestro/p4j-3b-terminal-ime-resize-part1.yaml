@@ -1,26 +1,26 @@
 appId: com.jupydroid.app
 ---
 # P4j-3b's own gate: `set_size` actually resizes when the keyboard opens, not only on rotation
-# (P4i-3a's own gate, `p4i-terminal-resize`). `vi`'s own full-screen redraw is the same oracle
-# idea reused, but read differently: the driver's own `terminal_content_extent.py` measures the
+# (P4i-3a's own gate, `p4i-terminal-resize`). `vi`'s own full-screen redraw is the same oracle idea
+# reused, but read differently: the driver's own `terminal_content_extent.py` measures the
 # screenshot's own pixels rather than the accessibility tree - `grep -c 'text="~"'` over a
-# `uiautomator dump` (P4i-3a's own oracle) proved unreliable on this device, independent of
-# anything `TerminalCanvas` draws (`docs/DECISIONS.md`'s own P4j-3b entry). `stty size` is still
-# rejected for the reason `docs/DECISIONS.md` already gives.
+# `uiautomator dump` (P4i-3a's own oracle) proved unreliable on this device, independent of anything
+# `TerminalCanvas` draws (`architecture/cross-cutting.md` §8.6). `stty size` is still rejected for
+# the same reason.
 #
 # A fixed `waitForAnimationToEnd` before typing, not straight from "Terminal" being visible to
 # `inputText` - `p4i-terminal-vi.yaml`'s own shape, which a real device run found is a race:
 # "Terminal" names the *screen*, not the pty being attached and the input field ready to receive
 # keystrokes, and a `vi` typed too early is silently lost, leaving an empty prompt
-# (`docs/DECISIONS.md`'s own P4j-3b entry). Not `extendedWaitUntil visible: "jupydroid"` (the
-# shell's own first prompt, `.../home/jupydroid $`) either - tried first and rejected: it timed
-# out for 30s over a prompt a screenshot taken moments later shows plainly, the same
-# accessibility-polling gap the fill-line oracle hit (`docs/DECISIONS.md`'s own P4j-3b entry),
-# so a fixed wait is what is left.
+# (`architecture/cross-cutting.md` §8.6). Not `extendedWaitUntil visible: "jupydroid"` (the shell's
+# own first prompt, `.../home/jupydroid $`) either - tried first and rejected: it timed out for 30s
+# over a prompt a screenshot taken moments later shows plainly, the same accessibility-polling gap
+# the fill-line oracle hit (`architecture/cross-cutting.md` §8.6), so a fixed wait is what is left.
 #
 # Read with the keyboard *open* first - autofocused on composition, no `hideKeyboard` first - a
-# resize racing `vi`'s own startup redraw is a real, measured hazard (`docs/DECISIONS.md`'s P4j-3b
-# entry), so the keyboard is only ever dismissed once `vi` is already idle, in part2.
+# resize racing `vi`'s own startup redraw is a real, measured hazard
+# (`architecture/cross-cutting.md` §8.6), so the keyboard is only ever dismissed once `vi` is
+# already idle, in part2.
 #
 # TABLET ONLY (SM-X216B): a real shell, not `FakeTerminalGateway`'s echo.
 # NOT A SUITE FLOW: it leaves a `vi` session running, which a flow run after it in the same sweep
@@ -57,9 +57,9 @@ appId: com.jupydroid.app
 - inputText: "vi"
 - pressKey: Enter
 # A generous, fixed settle for vi's own full-screen redraw - a real run found 5s could still be
-# mid-launch (a cold rootfs/JIT after a device reboot), the "vi" typed and running but its own
-# first frame not drawn yet, leaving an apparently-empty screenshot `docs/DECISIONS.md`'s own
-# P4j-3b entry measured and explains.
+# mid-launch (a cold rootfs/JIT after a device reboot), the "vi" typed and running but its own first
+# frame not drawn yet, leaving an apparently-empty screenshot that `architecture/cross-cutting.md`
+# §8.6 measured and explains.
 - waitForAnimationToEnd:
     timeout: 10000
 - takeScreenshot: 01-vi-keyboard-open

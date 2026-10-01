@@ -16,10 +16,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_file + run_flow
 
-# The terminal's own output gate lives here, not in the flow: `docs/DECISIONS.md`'s P4j-3b entry
-# forbids `visible:`/`extendedWaitUntil` on the per-row `Text` column, which this device reports
-# as `text=""` run-to-run. The flow `tee`'d the shell's real answers into the workspace, so a
-# `run-as` read is the honest oracle - the same shape `a1-markdown-driver.sh` already uses.
+# The terminal's own output gate lives here, not in the flow: `architecture/cross-cutting.md` §8.6
+# forbids `visible:`/`extendedWaitUntil` on the per-row `Text` column, which this device reports as
+# `text=""` run-to-run. The flow `tee`'d the shell's real answers into the workspace, so a `run-as`
+# read is the honest oracle - the same shape `a1-markdown-driver.sh` already uses.
 reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/p4i-marker.txt" "p4i-marker.txt"
 

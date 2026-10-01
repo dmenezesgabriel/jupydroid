@@ -3,11 +3,11 @@ appId: com.jupydroid.app
 # P4i-3a's own gate: `gateway.resize` reaches the real pty on a real size change (rotation), not
 # only the app's own redraw. The oracle is `os.get_terminal_size()` written to the workspace by
 # `tee` - CPython's own `TIOCGWINSZ` on fd 1, the live answer `stty size` could not give (this
-# busybox build answers a fixed `25 80` regardless of the real winsize, `docs/DECISIONS.md`'s
-# P4i-3a entry) and the one the fill-line count it replaced was only ever a proxy for: a changed
-# `columns lines` pair is `set_size` itself observed at the pty, not a program's redraw inferred.
-# `vi` stays as the on-screen witness a `~`-filled screenshot records - the same real-program
-# reflow, read by eye rather than by a gate.
+# busybox build answers a fixed `25 80` regardless of the real winsize,
+# `research/closed-questions.md` CLOSED-006) and the one the fill-line count it replaced was only
+# ever a proxy for: a changed `columns lines` pair is `set_size` itself observed at the pty, not a
+# program's redraw inferred. `vi` stays as the on-screen witness a `~`-filled screenshot records -
+# the same real-program reflow, read by eye rather than by a gate.
 #
 # TABLET ONLY (SM_X216B): a real shell, not `FakeTerminalGateway`'s echo.
 # NOT A SUITE FLOW: the driver rotates the device, which every flow running after it would inherit.

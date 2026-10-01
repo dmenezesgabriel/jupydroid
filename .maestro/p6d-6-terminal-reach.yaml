@@ -2,7 +2,7 @@ appId: com.jupydroid.app
 ---
 # P6d-6: the terminal reach moved atomically - the FilesBar's provisional "New terminal" icon is
 # gone, and `terminal:create-new` is reached from the bottom bar's own item at one pane and the
-# auto-filled launcher's Terminal card at two (`docs/DECISIONS.md`, "The bars gain action items").
+# auto-filled launcher's Terminal card at two.
 #
 # Runs on both devices - the reach differs by width and both halves are the gate. The
 # `when:`-guarded taps are `p6c-8`'s and `reveal-the-symbol-row-arrows`'s own idiom.

@@ -11,7 +11,7 @@ appId: com.jupydroid.app
 # accessibility tree can see: the View row names the state by naming what tapping will do, so a row
 # reading "Show line numbers" is the app telling us the gutter is off. That is why the labels flip
 # instead of carrying a check mark - a toggled `DropdownMenuItem`'s state lives on a node Maestro
-# reads as unlabelled (`docs/DECISIONS.md`).
+# reads as unlabelled.
 #
 # The fixture has a **code** cell and a **raw** cell so one screenshot carries two of the three
 # types with nothing tapped. Markdown's gutter needs the cell opened for editing, which would take
@@ -31,7 +31,8 @@ appId: com.jupydroid.app
     timeout: 30000
 - assertVisible: "(?s).*E = mc\\^2.*"
 # Both gutters are on, which is this app's resting state and a departure from the reference's own
-# default (`lineNumbers: false`, `packages/notebook/src/widget.ts:1336-1355`). See docs/DECISIONS.md.
+# default (`lineNumbers: false`, `packages/notebook/src/widget.ts:1336-1355`), kept as the
+# reference's (ADR-0036).
 - takeScreenshot: 01-gutters-on-code-and-raw
 - tapOn: "Notebook actions"
 # The row names the *change*, so this is also the assertion that the gutter is currently shown.

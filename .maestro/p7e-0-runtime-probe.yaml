@@ -2,11 +2,11 @@ appId: com.jupydroid.app
 ---
 # P7e-0: **measure before a line is written.**
 #
-# `docs/PLAN.md` names six questions and answers none of them from the tree: what the running kernel
-# says its interpreter is, whether `%pip` can be invoked at all, whether musl can resolve a name,
-# whether OpenSSL can find a trust store, whether one real HTTPS GET completes, and which of the
-# env vars nothing has ever set are set. The last three are explicitly *"a hypothesis, not a
-# measurement"* in that file, and P7e-3 onward is written from what comes back here.
+# Six questions, none of them answerable from the tree: what the running kernel says its interpreter
+# is, whether `%pip` can be invoked at all, whether musl can resolve a name, whether OpenSSL can
+# find a trust store, whether one real HTTPS GET completes, and which of the env vars nothing has
+# ever set are set. The last three are explicitly *"a hypothesis, not a measurement"* in that file,
+# and P7e-3 onward is written from what comes back here.
 #
 # **TABLET ONLY (SM-X216B).** Every cell in this notebook runs against the kernel, and on x86_64
 # `MainActivity` falls back to `FakeKernelGateway`, which echoes a cell's source back as its

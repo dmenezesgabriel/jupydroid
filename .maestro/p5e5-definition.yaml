@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# P5e-5: "Go to definition" asks `textDocument/definition` at the caret's virtual position and
-# lands the caret where jedi says the name is defined - `docs/PLAN.md`'s P5e-5 row, VS Code's
-# `editor.action.goToDefinition` (`_openReference` in `goToCommands.ts`).
+# P5e-5: "Go to definition" asks `textDocument/definition` at the caret's virtual position and lands
+# the caret where jedi says the name is defined - VS Code's `editor.action.goToDefinition`
+# (`_openReference` in `goToCommands.ts`).
 #
 # The jump is cross-cell on purpose: the virtual document joins every code cell, so the `def`
 # and the call site are different cells whose offsets map through `NotebookVirtualDocument`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# P4j-1's phone-width half - `docs/PLAN.md`'s own gate names both a tablet and a phone-width run.
-# Run with ANDROID_SERIAL set to a phone-width device (w320dp-h640dp on `dev36`, the x86_64
-# emulator this repo already uses for compact-width coverage).
+# P4j-1's phone-width half - this step's gate names both a tablet and a phone-width run. Run with
+# ANDROID_SERIAL set to a phone-width device (w320dp-h640dp on `dev36`, the x86_64 emulator this
+# repo already uses for compact-width coverage).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

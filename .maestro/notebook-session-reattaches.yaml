@@ -36,9 +36,9 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: 00-opened
-# The first cell defines the variable AND prints it - an assignment on its own produces no
-# output at all, which is the trap `answer = 42` fell into (docs/PLAN.md, "One gate for running
-# a cell"). 42, 43 and 44 are all computed; none appears in any cell's source.
+# The first cell defines the variable AND prints it - an assignment on its own produces no output at
+# all, which is the trap `answer = 42` fell into. 42, 43 and 44 are all computed; none appears in
+# any cell's source.
 - tapOn:
     text: "Run cell"
     index: 0

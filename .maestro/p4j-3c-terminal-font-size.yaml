@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# `docs/PLAN.md`'s P4j-3c gate: "change the size, show the grid reflow and the glyphs redraw at
-# the new scale against a real shell." TABLET ONLY (SM-X216B): a real shell's own SIGWINCH
-# redraw on `set_size`, not `FakeTerminalGateway`'s echo.
+# The P4j-3c gate: "change the size, show the grid reflow and the glyphs redraw at the new scale
+# against a real shell." TABLET ONLY (SM-X216B): a real shell's own SIGWINCH redraw on `set_size`,
+# not `FakeTerminalGateway`'s echo.
 #
 # `vi`'s own full-screen `~` fill is the same oracle P4i-3a/P4j-3b already use for a resize -
 # read differently again here: the driver's own `terminal_row_spacing_px` measures the pixel gap

@@ -40,8 +40,8 @@ appId: com.jupydroid.app
 # **The document area empties and the browser keeps its column** - which is what the frame showed
 # and not what this flow first claimed. It is also the reference's own structure: VS Code leaves an
 # empty editor group (its watermark lives there) and JupyterLab an empty dock area. What fills it is
-# `docs/PLAN.md`'s P6d, the Launcher, and inventing a surface for it here would be inventing one the
-# reference already names.
+# the Launcher, and inventing a surface for it here would be inventing one the reference already
+# names.
 - assertVisible: "Root.ipynb"
 - assertVisible: "file_editor.py"
 - takeScreenshot: 02-the-document-area-is-empty-and-the-browser-keeps-its-column

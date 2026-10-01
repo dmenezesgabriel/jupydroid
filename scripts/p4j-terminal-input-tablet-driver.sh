@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# P4j-1's tablet half - `docs/PLAN.md`'s own gate names both a tablet and a phone-width run.
-# Run with ANDROID_SERIAL set to the arm64 tablet (SM-X216B); a real shell answers here, not the
-# emulator's `FakeTerminalGateway` echo.
+# P4j-1's tablet half - this step's gate names both a tablet and a phone-width run. Run with
+# ANDROID_SERIAL set to the arm64 tablet (SM-X216B); a real shell answers here, not the emulator's
+# `FakeTerminalGateway` echo.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

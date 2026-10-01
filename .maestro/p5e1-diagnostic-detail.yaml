@@ -1,7 +1,7 @@
 appId: com.jupydroid.app
 ---
 # P5e-1: the gutter mark's tap answers what VS Code's `markerHoverParticipant` answers on hover -
-# the line's findings in a floating card. `docs/PLAN.md`'s P5e-1 row.
+# the line's findings in a floating card.
 #
 # The mark itself is canvas, so the flow taps its *pixel* (the square `02` shows at the glyph
 # column's left edge, ≈39% across the width) and asserts the popup's own accessibility text -

@@ -2,15 +2,15 @@
 # P4i-3a's own gate: a real size change (rotation) reaches the wire, not only the app's own redraw.
 #
 # The ground truth is the pty's own `TIOCGWINSZ` answer, written to the workspace by the flows
-# themselves: `os.get_terminal_size()` is CPython's raw ioctl on fd 1 - the live report
-# `stty size` could not give (this busybox build answers a fixed `25 80`, `docs/DECISIONS.md`'s
-# P4i-3a entry) and the quantity `vi`'s fill-line count was only ever a proxy for. A changed
-# `columns lines` pair across the rotation is `set_size` observed at the pty, not a redraw
-# inferred. `vi` stays open across the rotation so the screenshots still carry the same
-# full-screen-program reflow as visual evidence - read by eye, where the fill-line count's own
-# accessibility-tree oracle went away: P4j-3b's own entry records this device's per-row `Text`
-# nodes reporting `text=""` run-to-run, and by P6d-6 they report nothing at all on this build -
-# which is why the count is gone rather than wrapped in yet another wait.
+# themselves: `os.get_terminal_size()` is CPython's raw ioctl on fd 1 - the live report `stty size`
+# could not give (this busybox build answers a fixed `25 80`, `research/closed-questions.md`
+# CLOSED-006) and the quantity `vi`'s fill-line count was only ever a proxy for. A changed `columns
+# lines` pair across the rotation is `set_size` observed at the pty, not a redraw inferred. `vi`
+# stays open across the rotation so the screenshots still carry the same full-screen-program reflow
+# as visual evidence - read by eye, where the fill-line count's own accessibility-tree oracle went
+# away: P4j-3b's own entry records this device's per-row `Text` nodes reporting `text=""`
+# run-to-run, and by P6d-6 they report nothing at all on this build - which is why the count is gone
+# rather than wrapped in yet another wait.
 #
 # TABLET ONLY (SM-X216B). NOT A SUITE FLOW: it rotates the device, which every flow running after it
 # on the same device would inherit.

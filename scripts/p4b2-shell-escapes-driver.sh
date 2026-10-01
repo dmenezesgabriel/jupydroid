@@ -41,8 +41,9 @@ run_flow "$ROOT/.maestro/p4b2-shell-escapes.yaml" "$EVIDENCE" || flow_status=$?
 # of its own, so a refusal *there* is fatal rather than logged; this covers the interpreter side.
 #
 # 235 is `mbind`, which numpy issues on import and which this runtime has tolerated since step 8.7
-# (docs/environment-fidelity.md:24-28). It is named rather than the check being dropped, so a
-# *different* refusal still fails here instead of being lost in a log nobody greps.
+# (`research/android-sandbox-fidelity.md`, the `syscall=235` rows). It is named rather than the
+# check being dropped, so a *different* refusal still fails here instead of being lost in a log
+# nobody greps.
 if grep -v "syscall=235" "$EVIDENCE/sigsys.log" 2>/dev/null | grep -q "seccomp-refused"; then
   echo "seccomp refused a syscall other than mbind while the escapes ran:"
   grep -v "syscall=235" "$EVIDENCE/sigsys.log"

@@ -13,10 +13,9 @@
 # every assertion and wrong in the picture.
 #
 # **Captured at phone geometry rather than the AVD's own**, for the reason
-# `p2l-3b-rendered-code-driver.sh` records: `dev36` is 320x640px at density 160, so it draws 1px
-# per dp and a type judgement made there is made on proportions no reader will see
-# (`docs/DECISIONS.md`). The driver overrides the window to 1080x2400 at 420dpi - Pixel-class,
-# 411dp - and resets it afterwards.
+# `p2l-3b-rendered-code-driver.sh` records: `dev36` is 320x640px at density 160, so it draws 1px per
+# dp and a type judgement made there is made on proportions no reader will see. The driver overrides
+# the window to 1080x2400 at 420dpi - Pixel-class, 411dp - and resets it afterwards.
 #
 # No cell is run - a markdown cell renders from the file - so this needs no Space runtime and
 # either device will do.

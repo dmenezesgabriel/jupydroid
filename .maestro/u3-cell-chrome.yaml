@@ -26,7 +26,7 @@ appId: com.jupydroid.app
 # reference's `activeCellIndex = 0` - so exactly one stripe is drawn: the markdown cell's, in the
 # accent colour. The two code cells below carry nothing, which is the thing this step is for
 # (`.jp-Collapser` is transparent until `.jp-mod-active`). This label used to say the opposite and
-# the screenshot always disagreed with it; see `docs/DECISIONS.md` P2m-1.
+# the screenshot always disagreed with it.
 - takeScreenshot: 01-only-the-active-cell-is-marked
 # Selecting the code cell: its stripe takes the accent colour and, because focus lands in the
 # editor, narrows to the edit width.

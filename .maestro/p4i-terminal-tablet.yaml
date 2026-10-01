@@ -1,16 +1,16 @@
 appId: com.jupydroid.app
 ---
-# P4i sub-step 1's tablet half - a real shell, not the fake's echo. `docs/DECISIONS.md`'s own
-# rule: an assertion must name something that cannot appear in the prompt or the pty's own echo of
-# the command line, so this asks for arithmetic the shell has to compute and lists a file the
-# driver seeded, rather than waiting for "ls" or "ok".
+# P4i sub-step 1's tablet half - a real shell, not the fake's echo. `architecture/cross-cutting.md`
+# §8.6: an assertion must name something that cannot appear in the prompt or the pty's own echo of
+# the command line, so this asks for arithmetic the shell has to compute and lists a file the driver
+# seeded, rather than waiting for "ls" or "ok".
 #
 # The answers are `tee`'d into the workspace rather than `extendedWaitUntil: visible:`'d off the
-# screen: `docs/DECISIONS.md`'s P4j-3b entry forbids gating on the per-row `Text` column, which
-# reports `text=""` to a11y on this device run-to-run. The driver's `wait_for_workspace_text`
-# greps those files - `42` is still something only a real shell computes, and `p4i-marker.txt`
-# only a real `ls` against the real workspace lists - while `tee` keeps both answers on screen
-# for the screenshot.
+# screen: `architecture/cross-cutting.md` §8.6 forbids gating on the per-row `Text` column, which
+# reports `text=""` to a11y on this device run-to-run. The driver's `wait_for_workspace_text` greps
+# those files - `42` is still something only a real shell computes, and `p4i-marker.txt` only a real
+# `ls` against the real workspace lists - while `tee` keeps both answers on screen for the
+# screenshot.
 #
 # Not `clearState: true`: the driver's own `reset_notebooks` + `seed_file` already put a clean
 # workspace and the marker file in place, and `clearState` would wipe both **and** the already

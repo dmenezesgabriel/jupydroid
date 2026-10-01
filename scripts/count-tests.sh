@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # What this repository's test suites actually hold, counted off the tree.
 #
-# **This exists because the number was stored and went stale at least eight times.** The retired
-# docs/PLAN.md carried a running ledger of recounts, each one noting that the previous figure was
-# behind the tree; ADR-0001 records why a number that drifts is produced rather than written down.
+# **This exists because the number was stored and went stale at least eight times.** A retired
+# planning document carried a running ledger of recounts, each one noting that the previous figure
+# was behind the tree; ADR-0001 records why a number that drifts is produced rather than written
+# down.
 #
 # Three of these are counted differently and the difference is the point:
 #   - unit tests are reported as EXECUTIONS by Gradle, because a port contract is written once and

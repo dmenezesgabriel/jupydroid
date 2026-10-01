@@ -54,8 +54,8 @@ appId: com.jupydroid.app
 - tapOn: "Previous match"
 - assertVisible: "Matches 2/2"
 - takeScreenshot: 05-wrapped-backwards-to-the-last
-# The expansion is a persisted flag, so it outlives the search and the screen - leaving the
-# document is what flushes the debounce (`stopApp` is a force-stop, `docs/DECISIONS.md`).
+# The expansion is a persisted flag, so it outlives the search and the screen - leaving the document
+# is what flushes the debounce (`stopApp` is a force-stop).
 - tapOn: "Close search"
 - tapOn: "Back to files"
 # **Wait for the explorer before reaching into it.** `tapOn` locates a node and then taps where it

@@ -1,7 +1,7 @@
 appId: com.jupydroid.app
 ---
 # P5e-3: "Symbol info" asks `textDocument/hover` at the caret's virtual position and draws the
-# markdown it answers - `docs/PLAN.md`'s P5e-3 row.
+# markdown it answers.
 #
 # The affordance is a cell-menu row, not a long-press: a long press fights text selection, and
 # the gesture VS Code uses for hover (a mouse) does not exist here. The ask uses the caret the

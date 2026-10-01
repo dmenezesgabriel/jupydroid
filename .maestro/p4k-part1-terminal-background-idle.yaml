@@ -3,11 +3,11 @@ appId: com.jupydroid.app
 # P4k part 1: open a terminal, write a marker to disk, then background the app with nothing else
 # running.
 #
-# The marker goes to a file rather than only to the screen: `docs/DECISIONS.md`'s own P4j-3b
-# finding forbids gating a Maestro flow's pass/fail on `visible:`/`extendedWaitUntil` reading this
+# The marker goes to a file rather than only to the screen: `architecture/cross-cutting.md` §8.6
+# forbids gating a Maestro flow's pass/fail on `visible:`/`extendedWaitUntil` reading this
 # terminal's own per-row text - accessibility polling of it proved unreliable independent of
-# anything `TerminalCanvas` actually draws (reproduced against an untouched build too). The
-# driver reads the file straight off the device's disk afterwards instead - the same move
+# anything `TerminalCanvas` actually draws (reproduced against an untouched build too). The driver
+# reads the file straight off the device's disk afterwards instead - the same move
 # `p1c-app-death-backstop-driver.sh` already makes for a notebook's answer.
 #
 # A screenshot here is for the driver's own pixel-extent comparison against part 2's resume

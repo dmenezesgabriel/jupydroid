@@ -41,18 +41,18 @@ appId: com.jupydroid.app
     id: "terminal-input"
 - inputText: "vi p4j-3d-4-marker.txt"
 - pressKey: Enter
-# Not `extendedWaitUntil: visible: "~"` - `docs/DECISIONS.md`'s own P4j-3b finding: Maestro's own
-# text reading of this terminal is unreliable independent of anything drawn, and the pixel-based
-# pattern every terminal-content gate since has followed is a fixed wait plus a screenshot the
-# driver's own python oracle reads, not a text assertion.
+# Not `extendedWaitUntil: visible: "~"` - `architecture/cross-cutting.md` §8.6: Maestro's own text
+# reading of this terminal is unreliable independent of anything drawn, and the pixel-based pattern
+# every terminal-content gate since has followed is a fixed wait plus a screenshot the driver's own
+# python oracle reads, not a text assertion.
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: 01-vi-cursor-on-line-one
 
 # An upward drag - `detectTerminalScrollDrag`'s own sign convention sends Down arrows for this
-# direction (`docs/DECISIONS.md`'s P4j-3d-3 entry) - moves the cursor down through the file's five
-# lines. `vi` clamps at the last line rather than erroring past it, so this needs no precise
-# calibration against the device's own cell height. Both ends stay above 65% of the screen height
+# direction - moves the cursor down through the file's five lines. `vi` clamps at the last line
+# rather than erroring past it, so this needs no precise calibration against the device's own cell
+# height. Both ends stay above 65% of the screen height
 # - the soft keyboard covers everything below that once it opens, and a swipe starting on it never
 # reaches this app's own gesture handling at all (a device-measured finding, not a guess).
 - swipe:

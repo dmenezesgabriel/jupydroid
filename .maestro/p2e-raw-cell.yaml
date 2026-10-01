@@ -34,8 +34,7 @@ appId: com.jupydroid.app
 # Claims 1 and 2 in one wait: the raw cell's own source, drawn verbatim and unrendered. Only a
 # notebook that *parsed* can put it there - before this step `EditorViewModel` showed the read's
 # exception as the whole screen instead. The title would not do: on a tablet the file list beside
-# the editor shows the same name, so it matches whether or not the document opened
-# (`docs/DECISIONS.md`).
+# the editor shows the same name, so it matches whether or not the document opened.
 #
 # `(?s).*…*` because Maestro matches a node's whole text and this field holds three lines.
 - extendedWaitUntil:

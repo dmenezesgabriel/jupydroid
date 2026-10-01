@@ -16,7 +16,7 @@ appId: com.jupydroid.app
 #   2. **Table of contents** is reachable *without leaving the document*, through `toc:show-panel`
 #      in the notebook's own menu - the overlay this app has had since P2h, which is the narrow
 #      adaptation of a sidebar the reference has never written one for
-#      (`docs/DECISIONS.md`: no media query, no width branch, a `format: 'mobile'` never assigned).
+#      (no media query, no width branch, a `format: 'mobile'` never assigned).
 #      It stays an overlay and gets **no** bar item: it is a surface over the document you are
 #      already in, where a destination is a screen you navigate to.
 #   3. And the bar is under the browser when the document is left, and was not under the document -

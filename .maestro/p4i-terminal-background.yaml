@@ -9,10 +9,10 @@ appId: com.jupydroid.app
 # after foregrounding, still gets an answer - which needs a live re-attach, not just old pixels.
 #
 # The markers are `tee`'d into the workspace and grepped by the driver rather than
-# `extendedWaitUntil: visible:`'d: `docs/DECISIONS.md`'s P4j-3b entry forbids gating on this
+# `extendedWaitUntil: visible:`'d: `architecture/cross-cutting.md` §8.6 forbids gating on this
 # canvas's per-row `Text` column, which reports `text=""` to a11y on this device run-to-run. The
-# scrollback half is the driver's `terminal_top_strip_differs` over screenshots 01 and 03 -
-# replayed rows keep the same top strip, a blanked grid does not.
+# scrollback half is the driver's `terminal_top_strip_differs` over screenshots 01 and 03 - replayed
+# rows keep the same top strip, a blanked grid does not.
 #
 # TABLET ONLY (SM-X216B): a real shell, not `FakeTerminalGateway`'s echo.
 - launchApp

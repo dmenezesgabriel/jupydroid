@@ -53,8 +53,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 # Leave the document before anything that could kill the app: writes are held for 500 ms
-# (`NotebookSaveDebounce`) and only flushed from `onCleared`, not from a `stopApp`
-# (`docs/DECISIONS.md`).
+# (`NotebookSaveDebounce`) and only flushed from `onCleared`, not from a `stopApp`.
 - tapOn: "Back to files"
 - waitForAnimationToEnd:
     timeout: 5000

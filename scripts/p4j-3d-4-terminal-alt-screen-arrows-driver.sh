@@ -3,10 +3,10 @@
 # arrow keypress rather than scrolling the screen.
 #
 # Two pixel measurements, not one - `terminal_content_bottom_y` (tuned for vi's own `~` glyph,
-# `docs/DECISIONS.md`'s own note on what that constant is and is not tuned for) must stay
+# `architecture/cross-cutting.md` §8.6 on what a pixel oracle is and is not tuned for) must stay
 # unchanged across the drag - the screen itself never scrolled, since `TerminalPaneViewModel.
-# scrollBy`'s alt-screen branch never touches `topRow` - while `terminal_top_strip_differs`, over
-# a strip tall enough to hold the file's first several lines, must change - the cursor's own cell
+# scrollBy`'s alt-screen branch never touches `topRow` - while `terminal_top_strip_differs`, over a
+# strip tall enough to hold the file's first several lines, must change - the cursor's own cell
 # moved from one of those lines to another.
 #
 # **Portrait, not whatever the device is already at** - `p4j-3c-terminal-font-size-driver.sh`'s

@@ -8,10 +8,10 @@ appId: com.jupydroid.app
 # and would draw the name whatever the rule said.
 #
 # **The name goes and the status stays**, which departs from the reference's own removal order:
-# `_getWidgetsToRemove` sheds the rightmost items first (`toolbar.tsx:661-700`), so JupyterLab
-# would push the execution indicator into the popup *before* the kernel name. A phone is this
-# app's primary device and the kernel's state is what has to stay glanceable there.
-# `docs/DECISIONS.md` carries it. Driven by scripts/p2w-2-kernel-indicator-narrow-driver.sh.
+# `_getWidgetsToRemove` sheds the rightmost items first (`toolbar.tsx:661-700`), so JupyterLab would
+# push the execution indicator into the popup *before* the kernel name. A phone is this app's
+# primary device and the kernel's state is what has to stay glanceable there. Driven by
+# scripts/p2w-2-kernel-indicator-narrow-driver.sh.
 #
 # **What this flow does not claim.** On x86_64 there is no rootfs, so nothing here runs a cell:
 # every assertion is about placement and about the resting state of a notebook nobody has run.
