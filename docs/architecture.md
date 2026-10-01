@@ -294,10 +294,15 @@ are reported — [§8.2](architecture/cross-cutting.md).
 
 ### GAP-004 — `PythonTypingRules` reads the line as text, not as tokens
 
-A block opener with a trailing comment (`if x:  # note`) gets no extra indent level. Fixing it means
-asking the lexer where the comment starts, a dependency the transformation does not otherwise have.
-Replacing a selection is likewise left alone rather than wrapped in the typed bracket: wrapping is a
-separate feature, and half-doing it leaves an unmatched closer.
+Two misses share one cause, and one fix. A block opener with a trailing comment (`if x:  # note`)
+gets no extra indent level, and the line being typed is never re-indented: the reference's
+`smartIndent` key runs `indentOnInput`, which dedents `else:`/`elif`/`except`/`finally:`/`case` and
+reindents on a typed `)`/`]`/`}` (`@codemirror/lang-python@6.2.1`'s own regexp, gated at
+`packages/codemirror/src/extension.ts:918-925`), and nothing here does either direction. Fixing
+both means asking the lexer where the tokens are, a dependency the transformation does not
+otherwise have. Replacing a selection is likewise left alone rather than wrapped in the typed
+bracket — that half is a decline, not a miss: wrapping is a separate feature, and half-doing it
+leaves an unmatched closer.
 
 ### GAP-005 — Nothing selects a cell without editing it
 
@@ -590,6 +595,48 @@ project to be read from. The server therefore runs factory defaults: `pylint` st
 (`plugins/pylint_lint.py`'s own `"enabled": False`), and autopep8 sees no `pycodestyle` keys —
 the reason `LanguageFormatOptions`' docstring already names for an editor indent unit that
 cannot reach the formatter.
+
+### GAP-031 — Completion waits on a session, so a document's own tokens are never offered
+
+The reference's completer merges providers by rank, and the always-applicable one —
+`CompletionProvider:context` at rank 500 (`packages/completer/src/default/contextprovider.ts`,
+`completer-extension/schema/manager.json`'s `availableProviders`) — answers from the tokens
+already in the document, needing no kernel and no server. Ours asks only behind
+`session.opened` (`NotebookCompletion`), and the ask rows hide until `kernelConnected`
+(`EditorContent.kt`): a notebook that has never run completes nothing, and a word that exists
+only in a comment or a not-yet-bound line is offered by nobody even when it has. The token
+source is a cell-side read, so closing this wants no new wire — a provider that reads the
+cells' own text.
+
+### GAP-032 — There is no inline completion channel, so history never suggests
+
+The reference's second completer channel is `IInlineCompletionProvider` — grey continuation
+text accepted in place — and the one provider riding it is `HistoryInlineCompletionProvider`
+(`packages/completer/src/default/inlinehistoryprovider.ts`), which turns `history_request`
+replies into frequency-ranked suggestions. Ours holds the wire (`history_request` is `present`
+in the ledger's `AUD-001` table) but the channel is absent whole: `CompletionPopup` is a list a
+tap accepts, and no field renders a suggestion ahead of the caret.
+
+### GAP-033 — A cell's editor carries exactly one selection
+
+`TextFieldState` holds a single `TextRange`, so the reference's three multi-selection keys have
+no shape here: `rectangularSelection` (the Alt-drag block), `extendSelection` (`Mod-Shift-L`,
+select-all-matches) and `allowMultipleSelections`
+(`packages/codemirror/src/extension.ts:821-835`, `:864-876`, `:988-998`). It is the same bound
+`notebook:split-cell-at-cursor` already met — one selection, so two or three fragments, never
+more (`CellSplit.kt`). A fix is
+platform-shaped rather than local: Compose would have to grow multi-cursor state, or the feature
+stays declined.
+
+### GAP-034 — A `!pip` cell gets no static diagnostic
+
+`vscode-jupyter` runs a provider that is no language feature at all — a static scan turning
+`!pip install` / `!conda` / `%matplotlib`-outside-a-notebook cells into diagnostics with a
+`%pip` quick fix
+(`vscode-jupyter@f01d80ca0aa0dfdfa1d2e10a08943e12b776d155`
+`src/standalone/intellisense/diagnosticsProvider.ts`). Ours flags nothing outside what `pylsp`
+pushes, and pyflakes has no such rule. JupyterLab itself ships nothing like it, so the gap is
+against the extension reference alone.
 
 ### GAP-007 — The execution stall is parked, not closed
 

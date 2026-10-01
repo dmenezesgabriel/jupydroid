@@ -178,7 +178,7 @@ Known going in, so a verdict does not re-litigate them:
       comment or ADR either way, never in the ledger alone). And the `inspect_request` **ADR**
       `AUD-001` charged here: the kernel answers the *live* object, the server answers the *source* —
       the substitution is real and lossy, and it says which direction it loses.
-- [ ] T3 — **Verdicts for the kernel-introspection and typing half.** `complete_request` as
+- [x] T3 — **Verdicts for the kernel-introspection and typing half.** `complete_request` as
       fallback vs the ranked-provider merge (vscode-jupyter's is a third shape — racing); the
       inspector panel, the tooltip-as-separate-widget, completer doc-resolve and the inline-history
       provider each verdicted; `is_complete_request` restated with its owners (`GAP-012`, and

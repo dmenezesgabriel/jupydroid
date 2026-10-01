@@ -25,6 +25,13 @@ import kotlinx.serialization.Serializable
  * ToC model at once (`packages/toc-extension/src/index.ts:219-258`), and because the phone's
  * surface for the ToC has no toolbar of its own to put them on.
  *
+ * Of the reference's language-side `editorConfig` keys, three have no field here and want none:
+ * `keymap` is a binding list for keys a soft keyboard does not have - `SymbolRow` is the answer
+ * to the whole class of them - `tabFocusable` manages `tabIndex` through a DOM a Compose field
+ * is not in - a hardware keyboard's Tab reaches the field through the platform's own focus
+ * traversal - and `readOnly` locks an editor no surface locks: a rendered markdown cell is a
+ * different widget, not a field held still (`packages/codemirror/src/extension.ts:727-961`).
+ *
  * New fields must carry a default: an `editor-settings.json` written before they existed is read
  * with `ignoreUnknownKeys` and has nothing to say about them.
  */

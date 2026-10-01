@@ -125,9 +125,12 @@ sealed interface CellAction {
    * A [CellAction] although it edits nothing, for [StartSelecting]'s reason: it is what carries
    * the row to the menu and the accessibility context menu alike. Answered by the surface that
    * raised it - [EditorCell], which owns both the menu and the caret the ask needs - and never
-   * by [CellEdits], like [ChooseHeadingLevel] and for the same reason. The reference's gesture
-   * is a mouse hover we have no equivalent of; its inspector-panel route is a pane a compact
-   * surface has no room for, so the ask lives where the cell's other asks do.
+   * by [CellEdits], like [ChooseHeadingLevel] and for the same reason. The references raise the
+   * same ask two ways a compact touch surface cannot take: VS Code's is a mouse hover, and
+   * JupyterLab's `tooltip:launch-notebook` is a `Shift Tab` binding
+   * (`packages/tooltip-extension/schema/notebooks.json`) where a soft keyboard has no Tab; the
+   * inspector-panel route (`packages/inspector/`, `inspect_request` at `detail_level: 1`) is a
+   * pane there is no room for. So the ask lives where the cell's other asks do.
    */
   data object SymbolInfo : CellAction
 

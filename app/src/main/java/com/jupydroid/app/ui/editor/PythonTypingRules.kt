@@ -19,6 +19,13 @@ import com.jupydroid.app.domain.model.IndentUnit
  * BasicTextField(state = state, inputTransformation = PythonTypingRules())
  * ```
  *
+ * Two neighbouring rules of the reference's sit outside what these three cover. A deletion is
+ * never a keystroke here, so `closeBracketsKeymap`'s Backspace-empties-a-pair -
+ * wired under `matchBrackets`, not `autoClosingBrackets`
+ * (`packages/codemirror/src/extension.ts:807-819`) - has no counterpart; and the line being
+ * typed is never re-indented, which is `indentOnInput`'s whole job under `smartIndent`
+ * (`:918-925`). Both absences are `GAP-004` in `docs/architecture.md` §11.
+ *
  * @param autoClosingBrackets `notebook:toggle-autoclosing-brackets`, universal - gates
  *   [closePair] and [stepOverPartner] only. [continueIndent] is a different CodeMirror setting
  *   there (`packages/codemirror/src/extension.ts:637-644` vs the block-indent behaviour bound to

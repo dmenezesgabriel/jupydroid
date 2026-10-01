@@ -53,7 +53,7 @@ Five, each obliging something different. The full definition is in
 |---|---|---|
 | Kernel wire and execution | `AUD-001` | examined — below |
 | Cell commands and selection | `AUD-002` | examined — below |
-| Editor language features | `AUD-003` | examined — the LSP half is verdicted below; the introspection and typing halves are `T3`'s |
+| Editor language features | `AUD-003` | examined — every surface is verdicted below; the walk is `T4`'s |
 | Search, replace, table of contents | `AUD-004` | unexamined |
 | Files, workspace, recents | `AUD-005` | unexamined |
 | Console, sessions, running panel | `AUD-006` | unexamined |
@@ -440,6 +440,57 @@ rather than here alone:
 | `capabilities` | kept | the `initialize` answer itself — the adapter gates asks on the capability field it stored at handshake, which is why no production file names the port op; it stays the negotiated surface's one expose, and `LanguageServerPortContract` reads it |
 | `openDocument` | kept | `changeDocument`'s auto-open is the only open a sync needs; the port carries the lifecycle whole rather than the used half, and the contract test opens through it |
 
-The kernel-introspection and typing rows — the introspection callers against the asks,
-`is_complete_request`'s restatement, the eleven `editorConfig` keys against
-`PythonTypingRules`/`EditorSettings`, and `GAP-004` decided — are `T3`'s. The walk is `T4`'s.
+### The kernel introspection — verdicts
+
+`T3`'s first half. The wire verdicts are `AUD-001`'s already (`complete_request` and
+`history_request` `present`, `inspect_request` `undocumented` → ADR-0069, `is_complete_request`
+`absent` → GAP-012); what is judged here is the *callers* — the surfaces the references build on
+those asks, and whether anything stands in their place. `vscode-jupyter` contributes a third
+completion shape beside the merged list and the fallback: its provider **races** the kernel
+against the other sources, taking the kernel answer if it lands first
+(`kernelCompletionProvider.ts:90-132`'s `raceTimeout`), and resolves a row's documentation with
+`requestInspect` or a `do_inspect` executed on a background thread
+(`resolveCompletionItem.ts:136-146`, `:329`).
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `complete_request` — one ranked provider in a merged list (`manager.json`'s `availableProviders`, kernel 550 / context 500; `ProviderReconciliator` merges under a 1000ms per-provider timeout) | `NotebookCompletion` — `pylsp` first, `kernelGateway.complete` only when the server cannot answer | adapted | the docstring states the narrowing: a fallback, not a second source. The trigger is likewise ours — `completionQueryAt` wants a two-letter identifier at its end on a 250ms settle, where the reference invokes on Tab (`autoCompletion` defaults `false`) or continuous-hints per provider; `EditorSettings.completionEnabled` collapses `availableProviders` and says so. And the reply's `_jupyter_types_experimental` — the per-match `type`/`text` `kernelprovider.ts:62-75` keeps — is dropped by `KernelCompletions`, which returns bare strings |
+| `CompletionProvider:context` — same-document token completion, the one provider that is always applicable | — | **absent** | `GAP-031`. The only source that answers with no kernel and no server; both of ours wait on `session.opened` |
+| `kernelprovider.resolve` → `requestInspect`, and vscode-jupyter's `resolveCompletionItem` → `do_inspect` — a completion row's documentation, lazy-fetched | — | **absent** | `GAP-024`, whose own text names this kernel twin of the unasked `completionItem/resolve` |
+| `@jupyterlab/inline-completer:history` — ghost-text completions ranked by `history_request` frequency | — | **absent** | `GAP-032`. The channel is absent whole: no inline provider, and no field that draws grey text ahead of the caret |
+| `inspector:open` — the contextual-help pane: `inspect_request` at `detail_level: 1`, refiring on each text change while visible (`inspector/src/handler.ts:114-172`), rendered through the rendermime registry | `CellAction.SymbolInfo` → `textDocument/hover` → `HoverPopup` | adapted | a pane a compact surface has no room for, and the live-object answer is ADR-0069's substitution — `CellAction.SymbolInfo`'s docstring |
+| `tooltip:launch-notebook` — the same ask as a transient widget at `detail_level: 0`, bound to `Shift Tab` in edit mode (`tooltip-extension/schema/notebooks.json`) | the same row and popup | adapted | the ask is the same; the trigger is a key a soft keyboard does not have — `CellAction.SymbolInfo`'s docstring, whose earlier "mouse hover" wording named only VS Code's gesture |
+| `NotebookCellBangInstallDiagnosticsProvider` — vscode-jupyter's static `!pip`/`!conda`/`!matplotlib` diagnostics with a `%pip` quick fix | — | **absent** | `GAP-034`. No kernel ask at all — a lint ours never runs and `pylsp` never produces |
+
+`is_complete_request` is restated rather than rejudged: `absent` → `GAP-012` in `AUD-001`'s
+table, and both callers are the console's own — `console/widget.ts:979`'s block check and
+`notebook-extension/src/index.ts:1962` inside `run-in-console` — so the repair is `AUD-006`'s
+and this slice records only. `history_request`'s remaining callers split the same way:
+`console/history.ts` is `AUD-006`'s, and `notebook/src/history.ts`'s walk is the one ours does
+carry, behind the same opt-in flag the reference ships (`EditorSettings.accessKernelHistory`,
+`SymbolRow`'s two recall keys — the `notebook:access-previous-history-entry` /
+`notebook:access-next-history-entry` ids themselves are `AUD-006`'s partition rows).
+
+### The typing rules and highlighting — verdicts
+
+`T3`'s second half: the eleven language-side `editorConfig` keys, this slice's one command id,
+and the highlighting row. Every key was read against the class that does the work — which is how
+`matchBrackets` came out `adapted` rather than `present`: the highlight is ours, but the key
+also bundles `closeBracketsKeymap` (`extension.ts:807-819`), and nothing here deletes a pair on
+Backspace.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `notebook:toggle-autoclosing-brackets` | the Settings row writing `EditorSettings.autoClosingBrackets` | adapted | the command flips three per-cell-type configs in one write (`notebook-extension/src/index.ts:2223-2246`); a single app-wide flag is the `fileeditor:toggle-autoclosing-brackets-universal` sibling's shape, and `EditorSettings`'s docstring says so |
+| `autoClosingBrackets` (`closeBrackets()`) | `PythonTypingRules.closePair` / `stepOverPartner` / `opensAPair` | adapted | on by default against the schema's `false`, because a soft keyboard's `(` is two taps deep (`EditorSettings`); a non-empty selection is left alone rather than wrapped — GAP-004's decline half; and `'''` is deliberately not closed — `opensAPair`'s own comment |
+| `indentUnit` | `EditorSettings.indentUnit` → `IndentUnit` | present | the schema's own five-value enum and `'4'` default; feeds `continueIndent`, `SymbolRow`'s Tab, and `IndentUnit.formattingOptions` |
+| `smartIndent` (`indentOnInput()`) | — | **absent** | `GAP-004`. The line being typed is never re-indented: `@codemirror/lang-python@6.2.1`'s regexp dedents `else:`/`elif`/`except`/`finally:`/`case` and reindents on `)`/`]`/`}` |
+| `matchBrackets` (`bracketMatching()` + `closeBracketsKeymap`) | `bracketPairAround`, run by `HighlightTransformation` | adapted | the highlight answers with the lexer's string/comment mask — `print("(")` lights nothing, the same question CM's syntax tree answers; the bundled Backspace-pair-delete is not carried, and `PythonTypingRules`'s docstring states why |
+| `tabSize` | — | adapted | deliberately unmodelled — `IndentUnit`'s docstring: the display width of a `\t` is a slot a Compose `TextFieldState` does not have; its default still answers `formattingOptions` |
+| `tabFocusable` | the platform's own focus traversal; hardware Tab indents through `SymbolRow` | adapted | `tabIndex` management is a DOM problem a Compose field does not have — `EditorSettings`'s docstring |
+| `keymap` | `SymbolRow` + the cell menu | adapted | "what edit-mode keys mean on a phone" — `SymbolRow`'s docstring; the list's `Enter` (newline-and-indent) is `continueIndent`'s text-level version, GAP-004's other miss |
+| `readOnly` | — | adapted | no surface locks a field; a rendered markdown cell is a different widget, not an editor held still — `EditorSettings`'s docstring |
+| `extendSelection`, `rectangularSelection`, `allowMultipleSelections` | — | **absent** | `GAP-033`. All three create what `TextFieldState` cannot hold: more than one selection |
+| syntax highlighting (`syntaxHighlighting` over the Lezer parse tree) | `syntax/`'s ANTLR lexers → `SyntaxHighlighter` spans → `HighlightTransformation` styles | adapted | a generated pure-JVM lexer instead of a parse tree — ADR-0038 — over a deliberately short kind list, `SyntaxHighlighter`'s "a cell is not an IDE" |
+
+The walk is `T4`'s.
