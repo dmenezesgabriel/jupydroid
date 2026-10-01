@@ -176,9 +176,17 @@ fun EditorUiState.withCellsCut(cellIds: List<String>, replacementId: String): Ed
   return withCellsDeleted(cellIds, replacementId).copy(clipboard = taken, clipboardWasCut = true)
 }
 
+/**
+ * The cells as **JSON**, which is what the clipboard holds - `copyOrCut` stores
+ * `cell.model.toJSON()` (`actions.tsx:1451-1454`), outputs and execution count included. The
+ * maps beside [cells] are where this state keeps the live answers, so they are folded back in
+ * here; a *cut* cell's entries are about to be deleted with it and the clipboard becomes the
+ * only place they survive.
+ */
 private fun EditorUiState.cellsIn(cellIds: List<String>): List<Cell> {
   val wanted = cellIds.toSet()
   return cells.filter { it.id in wanted }
+    .map { it.copy(outputs = outputs[it.id].orEmpty(), executionCount = executionCounts[it.id]) }
 }
 
 /**
@@ -192,6 +200,11 @@ private fun EditorUiState.cellsIn(cellIds: List<String>): List<Cell> {
  * **And it lands after a collapsed heading's children rather than between them**, which is
  * `addCells`'s own arithmetic (`actions.tsx:1590-1612`): a cell pasted into a folded section would
  * be somewhere nobody can see.
+ *
+ * **The paste is over once it lands** - `recordCellClipboardInteraction('paste')` overwrites the
+ * `'cut'` the keep-identity rule reads (`actions.tsx:1683`), so a second paste is a copy of a
+ * cell that exists now and mints again. [clipboardWasCut] follows it or two cells would answer
+ * to one id.
  *
  * [newIds] supplies one id per clipboard entry; the ones a cut code cell does not need are simply
  * unused, which keeps this function free of id generation like the rest of the file.
@@ -207,5 +220,18 @@ fun EditorUiState.withClipboardPasted(cellId: String, newIds: List<String>): Edi
   // adds `numberChildNodes` to the index (`actions.tsx:1590-1612`), because a paste that landed
   // inside a folded section would vanish into cells nobody can see.
   val below = at + 1 + hiddenSectionSize(cellId)
-  return copy(cells = cells.toMutableList().apply { addAll(below, pasted) }, dirty = true)
+  return copy(
+    cells = cells.toMutableList().apply { addAll(below, pasted) },
+    // The clipboard carried the cell's JSON (`actions.tsx:1451-1454`), so its outputs and count
+    // come back onto the maps under the id it landed with - this state keeps them beside `cells`,
+    // and a pasted cell without them would show blank where the original showed a result.
+    outputs = pasted.fold(outputs) { carried, cell ->
+      if (cell.outputs.isEmpty()) carried else carried + (cell.id to cell.outputs)
+    },
+    executionCounts = pasted.fold(executionCounts) { carried, cell ->
+      cell.executionCount?.let { carried + (cell.id to it) } ?: carried
+    },
+    clipboardWasCut = false,
+    dirty = true,
+  )
 }

@@ -305,6 +305,57 @@ class CellRestructureTest {
     assertEquals(listOf("c1", "copy", "c2", "m1"), pasted.cells.map { it.id })
   }
 
+  /**
+   * The clipboard holds the cell's whole **JSON** - `copyOrCut` stores `cell.model.toJSON()`,
+   * outputs and execution count included (`actions.tsx:1451-1454`), and `addCells` reinserts
+   * that JSON. A copied cell's results land under the fresh id it was given.
+   */
+  @Test
+  fun pastingACopiedCellBringsItsOutputsAndCountUnderTheNewId() {
+    val ran = notebook.copy(
+      outputs = mapOf("c2" to listOf(CellOutput.Stream(StreamName.STDOUT, "ran"))),
+      executionCounts = mapOf("c2" to 7),
+    )
+
+    val pasted = ran.withCellsCopied(listOf("c2")).withClipboardPasted("m1", newIds = listOf("copy"))
+
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "ran")), pasted.outputs["copy"])
+    assertEquals(7, pasted.executionCounts["copy"])
+  }
+
+  /**
+   * The cut cell's map entries went with it when it was deleted, so the clipboard's JSON is the
+   * only place its results survive - and the paste has to put them back under the same id.
+   */
+  @Test
+  fun pastingACutCellBringsItsOutputsAndCountBack() {
+    val ran = notebook.copy(
+      outputs = mapOf("c2" to listOf(CellOutput.Stream(StreamName.STDOUT, "ran"))),
+      executionCounts = mapOf("c2" to 7),
+    )
+
+    val pasted = ran.withCellsCut(listOf("c2"), replacementId = "fresh")
+      .withClipboardPasted("c1", newIds = listOf("would-be-new"))
+
+    assertEquals(listOf("c1", "c2", "m1"), pasted.cells.map { it.id })
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "ran")), pasted.outputs["c2"])
+    assertEquals(7, pasted.executionCounts["c2"])
+  }
+
+  /**
+   * Only the **first** paste after a cut keeps the cell's id - `addCells` reads
+   * `lastClipboardInteraction === 'cut'` (`actions.tsx:1666-1677`), and the first paste records
+   * `'paste'` over it (`:1683`). A second paste is a copy of a cell that now exists, so it mints.
+   */
+  @Test
+  fun onlyTheFirstPasteAfterACutKeepsTheCellsId() {
+    val pasted = notebook.withCellsCut(listOf("c2"), replacementId = "fresh")
+      .withClipboardPasted("c1", newIds = listOf("would-be-new"))
+      .withClipboardPasted("c1", newIds = listOf("second"))
+
+    assertEquals(listOf("c1", "second", "c2", "m1"), pasted.cells.map { it.id })
+  }
+
   /** *"This is a no-op if there is no cell data on the clipboard."* */
   @Test
   fun pastingAnEmptyClipboardChangesNothing() {
