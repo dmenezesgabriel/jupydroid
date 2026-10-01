@@ -107,6 +107,35 @@ class FocusedCellInputTest {
     assertEquals("x:", state.text.toString())
   }
 
+  /**
+   * A key typed over a selection **replaces** it, on the keyboard and so on the row. Measured on the
+   * tablet before this test existed: `kept = 1` selected, `#` from the row gave `#kept = 1` with the
+   * selection still standing, where the keyboard's `#` gives `#`.
+   */
+  @Test
+  fun typingOverASelectionReplacesItJustAsTheKeyboardsDoes() {
+    val state = TextFieldState("kept = 1", TextRange(0, "kept".length)).also(input::attach)
+
+    input.type("x")
+
+    assertEquals("x = 1", state.text.toString())
+    assertEquals("the caret sits after what was typed", TextRange(1), state.selection)
+  }
+
+  /**
+   * And the typing rules stand aside for it, as they do for the keyboard: a replaced selection is
+   * not the single keystroke [PythonTypingRules] reasons about, so `(` over a word is `(` and not
+   * `()` - the wrap `GAP-004` records as left alone.
+   */
+  @Test
+  fun aBracketOverASelectionIsNotClosed() {
+    val state = TextFieldState("print", TextRange(0, "print".length)).also(input::attach)
+
+    input.type("(")
+
+    assertEquals("(", state.text.toString())
+  }
+
   /** The keyboard's `(` gives `()`; the row's must too, or the two disagree about the same key. */
   @Test
   fun aBracketFromTheRowAutoClosesJustAsTheKeyboardsDoes() {

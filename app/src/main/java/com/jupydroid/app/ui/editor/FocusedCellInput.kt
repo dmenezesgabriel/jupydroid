@@ -65,11 +65,18 @@ class FocusedCellInput {
    * The rules are applied by hand because a programmatic `edit` does **not** run the field's
    * `InputTransformation`: without this, `(` from the row would insert a lone bracket where the
    * same key on the keyboard gives `()`, and the two would disagree about one character.
+   *
+   * **And it replaces a selection, as a key does.** Inserting at `selection.start` put `#` in front
+   * of a selected line and left the line selected, where the keyboard's `#` replaces it - measured
+   * on the tablet, and `typingOverASelectionReplacesItJustAsTheKeyboardsDoes` holds it. The rules
+   * then stand aside on their own: a replaced range is not the single keystroke they reason about.
    */
   fun type(text: String) {
     val state = target ?: return
     state.edit {
-      insert(selection.start, text)
+      val at = selection.min
+      replace(at, selection.max, text)
+      selection = TextRange(at + text.length)
       with(PythonTypingRules(autoClosingBrackets, indentUnit)) { transformInput() }
     }
   }
