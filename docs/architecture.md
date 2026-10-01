@@ -524,6 +524,73 @@ in the shipped rootfs). The window is narrow — a process kill or a dead batter
 the failure it leaves is the worst kind there is: a notebook that opens as invalid JSON.
 Closing it is a write to a sibling file and a rename, and nothing more.
 
+### GAP-024 — A completion row's documentation is never fetched
+
+`completionItem/resolve` is the ask that turns a completion row into its documentation, and the
+reference routes it (`jupyterlab@7f0e690680a763d3c3db5dc0231803b0ba0e1e12`
+`packages/lsp/src/tokens.ts:866`). The shipped `pylsp 1.15.0` advertises `resolveProvider: true`
+on its `completionProvider`, and a probe on the device measured the resolve reply carrying
+`detail` plus a markdown `documentation` where the completion reply carries neither. Nothing
+here sends it — `LspCompletion.kt` decodes the completion reply's own fields and stops — so a
+popup row shows its label and kind and never its docstring. The kernel-side twin the reference
+uses for the same resolve (`requestInspect` in `completer/default/kernelprovider.ts:113`) is the
+unasked `inspect_request` of [ADR-0069](adr/0069-a-cells-hover-asks-the-source-not-the-live-object.md).
+
+### GAP-025 — `textDocument/references` is advertised and never asked
+
+The shipped `pylsp` advertises `referencesProvider`, and the reference routes the ask
+(`packages/lsp/src/tokens.ts:875`) — its Find All References surface. Nothing here sends it:
+`LanguageServerPort` carries no operation for it and no editor surface would drive one. The
+probe measured the reply shape (`Location[]` into the same document) and one wire rule an
+implementation owes: `pylsp` rejects the ask with `-32602` unless `context.includeDeclaration`
+is set. The gap is a surface, not a transport.
+
+### GAP-026 — `textDocument/documentHighlight` is advertised and never asked
+
+The shipped `pylsp` advertises `documentHighlightProvider`, and a probe measured the reply —
+`[{range, kind}]` with `kind` splitting reads from writes. The reference routes it
+(`packages/lsp/src/tokens.ts:870`) as the occurrences highlight a caret on a symbol paints on
+its other uses. Nothing here sends it, and nothing in the cell editor would draw it. It is the
+visible half of GAP-025's question.
+
+### GAP-027 — `textDocument/documentSymbol` is advertised and never asked
+
+The shipped `pylsp` answers `documentSymbol` with a flat `SymbolInformation[]` —
+`location`/`containerName`/`kind`, probe-measured — and the reference routes it
+(`packages/lsp/src/tokens.ts:871`) as the outline a symbol list is drawn from. Nothing here
+sends it; the notebook's table of contents is a different surface, fed by markdown headings
+rather than symbols. What is missing is the outline and the pane it would live in.
+
+### GAP-028 — `textDocument/typeDefinition` is advertised and never asked
+
+The shipped `pylsp` replies `typeDefinitionProvider: true`, and the reference routes the ask
+(`packages/lsp/src/tokens.ts:878`). Ours asks `definition` alone (`NotebookDefinition`): the
+jump lands on the symbol's own site and never on its *type's* site — the half of the jump a
+`None`-or-`Any`-shaped definition needs. No surface offers it.
+
+### GAP-029 — The file editor asks a language server nothing
+
+`ui/fileeditor/` opens, edits and saves a text file with the notebook's own typing rules and
+highlighting, and never names `LanguageServerPort` — no completion, no diagnostics, no
+`textDocument/formatting`, which the shipped `pylsp` answers through black and which only the
+notebook's `rangeFormatting` ever approaches (`NotebookFormat`). The reference's file editor
+rides the same document adapter as its notebook (`packages/lsp/src/adapters/`), so a `.py` file
+opened here is the one place a language feature is expected and unreachable.
+
+### GAP-030 — No configuration route reaches `pylsp.plugins.*`
+
+The shipped server reads plugin configuration from three routes and nothing here writes any of
+them: `initialize`'s `initializationOptions`, sent `null` (`LspWire.initializeParams`);
+`workspace/didChangeConfiguration`, never sent — pylsp's own
+`m_workspace__did_change_configuration` merges `settings["pylsp"]` and re-lints every open
+document (`usr/lib/python3.12/site-packages/pylsp/python_lsp.py:832` in the shipped rootfs); and
+`workspace/configuration`, which `JsonRpcChannel.answerServerRequest` declines with
+`result: null`. With `rootUri` also `null`, even its `configurationSources` files have no
+project to be read from. The server therefore runs factory defaults: `pylint` stays disabled
+(`plugins/pylint_lint.py`'s own `"enabled": False`), and autopep8 sees no `pycodestyle` keys —
+the reason `LanguageFormatOptions`' docstring already names for an editor indent unit that
+cannot reach the formatter.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

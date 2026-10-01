@@ -166,7 +166,7 @@ Known going in, so a verdict does not re-litigate them:
       `## Editor language features — AUD-003` section in `research/parity-ledger.md`: the surface
       paragraphs, the produced counts, and which neighbours carry which entries — a partition with
       no verdicts yet.
-- [ ] T2 — **Verdicts for the LSP half.** One ledger row per reference method and per port op:
+- [x] T2 — **Verdicts for the LSP half.** One ledger row per reference method and per port op:
       the six asks + lifecycle + `publishDiagnostics`; the unasked methods each read against "can
       the shipped `pylsp` even answer it" (the probe) and "is there a surface for it" —
       `completionItem/resolve`, `references`, `documentHighlight`, `documentSymbol`, `foldingRange`,

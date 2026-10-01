@@ -53,7 +53,7 @@ Five, each obliging something different. The full definition is in
 |---|---|---|
 | Kernel wire and execution | `AUD-001` | examined — below |
 | Cell commands and selection | `AUD-002` | examined — below |
-| Editor language features | `AUD-003` | measured — the surface below, verdicts next |
+| Editor language features | `AUD-003` | examined — the LSP half is verdicted below; the introspection and typing halves are `T3`'s |
 | Search, replace, table of contents | `AUD-004` | unexamined |
 | Files, workspace, recents | `AUD-005` | unexamined |
 | Console, sessions, running panel | `AUD-006` | unexamined |
@@ -90,7 +90,7 @@ reference goes.
 | `connect_request` | — | adapted | deprecated in the protocol, and the reference has no caller for it either: zero hits outside its own message types |
 | `usage_request` (control) | — | adapted | same absence in the reference — no hit anywhere under `packages/` |
 | `create_subshell_request`, `delete_subshell_request`, `list_subshell_request` (control) | — | adapted | declared in the reference's service layer, called by no feature in it |
-| `inspect_request` | LSP `textDocument/hover` — `ui/editor/NotebookHover.kt` | **undocumented** | the file notes the substitution and gives no reason. The reference has four callers: `packages/inspector/src/kernelconnector.ts:47`, `packages/completer/src/default/kernelprovider.ts:113`, `packages/tooltip-extension/src/index.ts:355`, and the console. `AUD-003` owes the ADR |
+| `inspect_request` | LSP `textDocument/hover` — `ui/editor/NotebookHover.kt` | **undocumented** | the file noted the substitution and gave no reason; [ADR-0069](../adr/0069-a-cells-hover-asks-the-source-not-the-live-object.md), written by `AUD-003` T2, says it — the kernel answers the *live* object, the server answers the *source*, and the substitution is lossy in that direction. The reference's four callers stand: `packages/inspector/src/kernelconnector.ts:47`, `packages/completer/src/default/kernelprovider.ts:113`, `packages/tooltip-extension/src/index.ts:355`, and the console |
 | `is_complete_request` | — | **absent** | `GAP-012`. Two callers in the reference: `packages/console/src/widget.ts:979` decides whether a submitted block is complete, and `packages/notebook-extension/src/index.ts:1962` |
 | `comm_info_request`, and the comm channel | — | **absent** | `GAP-013`. The protocol half ipywidgets rides on |
 | stdin `input_request` / `input_reply` | `allow_stdin: false` — `JupyterMessage.kt:106` | **absent** | `GAP-014`. The reference sends `allow_stdin: true` (`packages/services/src/kernel/default.ts:801`) and draws the prompt in the output area (`packages/outputarea/src/widget.ts`) |
@@ -104,8 +104,8 @@ and are carried to the slice that owns them:
 | `NotebookRepository.renameNotebook` | `defect`-adjacent, deferred | named nowhere; renaming goes through `WorkspaceRepository`, which owns the tree. `AUD-005` decides whether the port keeps it |
 | `NotebookRepository.overwriteNotebook` | deferred | as above |
 | `NotebookRepository.deleteNotebook` | deferred | as above |
-| `LanguageServerPort.closeDocument` | deferred | named nowhere. `AUD-003` |
-| `LanguageServerPort.capabilities` | deferred | **read by hand, not by the tool**: it reports the name as used because `StdioLanguageServer` holds an unrelated `val capabilities` field and checks it six times. The port operation has no caller. `AUD-003` |
+| `LanguageServerPort.closeDocument` | `defect` → fixed | a rename re-keyed the virtual document's uri and orphaned the server's copy — `NotebookLanguageDocument.sync` now sends `didClose` for the replaced uri (`aRename_closesTheDocumentTheServerKnew`). `AUD-003` T2 |
+| `LanguageServerPort.capabilities` | kept | **read by hand, not by the tool** — the `val capabilities` field masked the dead name. Decided by `AUD-003` T2: the `initialize` answer itself, kept as the port's expose of the negotiated surface; the reason is in the op's KDoc |
 
 **The walk.** `EditorViewModel` → `NotebookKernel` → `KernelGateway` (port) →
 `BaseSpaceKernelGateway` → `RealKernelGateway` → `KernelSockets` → one JSON text frame per message.
@@ -349,17 +349,18 @@ keystroke search rides — is `AUD-004`'s. The other 15 are presentation and car
 `highlightTrailingWhitespace`, `highlightWhitespace`, `lineNumbers`, `lineWrap`, `dropCursor`,
 `rulers`, `scrollPastEnd`, `tooltips`, `customStyles`, `theme`, `translation`.
 
-**Ours is a 12-operation port**, `LanguageServerPort`, and nine operations are reached through
+**Ours is a 12-operation port**, `LanguageServerPort`, and ten operations are reached through
 it: `changeDocument` (`NotebookLanguageDocument` — where `didOpen` also happens, the adapter's
-`_sendChange` opening a never-opened uri), `completion`, `hover`, `signatureHelp`, `definition`,
+`_sendChange` opening a never-opened uri), `closeDocument` (the same class, for the uri a rename
+replaces — the `defect` row below), `completion`, `hover`, `signatureHelp`, `definition`,
 `rangeFormatting`, `rename` (one ask file each under `ui/editor/`, all behind
 `NotebookVirtualDocument`'s one-`file:///`-document-per-notebook mapping), `diagnostics`
 (`NotebookDiagnostics` collects the push into gutter marks), and `stop` (`AppContainer`'s
-shutdown). **Three are never called through the port**, and two of them hide behind the name
-collisions `AUD-001` warned the tool cannot see: `read_port_surface.py` reports `openDocument`
+shutdown). **Two are never called through the port**, both hidden behind the name collisions
+`AUD-001` warned the tool cannot see: `read_port_surface.py` reports `openDocument`
 used because navigation's document-opening functions share the identifier, and `capabilities`
 used because `StdioLanguageServer` holds a field of that name and checks it five times — the port
-operations have no caller. `closeDocument` is named nowhere. Measured:
+operations have no caller. `closeDocument` was the third, named nowhere until T2's fix. Measured:
 
 ```sh
 python3 scripts/read_port_surface.py --unused
@@ -377,6 +378,68 @@ inherits. Two probe decisions are already load-bearing in the code: `snippetSupp
 undeclared because pylsp would emit `${1:}` placeholders our insert would splice literally, and
 `codeAction` sits off this surface because the measured reply was empty.
 
-The verdict rows — LSP methods against the port, introspection callers against the asks, the
-eleven typing keys against `PythonTypingRules`/`EditorSettings`, and the `inspect_request` ADR —
-are `T2`'s and `T3`'s. Nothing above is a verdict yet.
+### The LSP half — verdicts
+
+`T2`'s rows. Every entry was read twice: once against what the shipped `pylsp 1.15.0` advertises
+and answers (the probe above; where the probe's questions end, the rootfs's own source —
+`python_lsp.py`, `workspace.py`, `plugins/pylint_lint.py`), and once for whether a surface here
+asks it. Two shapes the enum does not know are in the table anyway because we send them —
+`shutdown`/`exit` and `didClose`: a connection in the reference is server-managed, never stopped
+and never closed, where ours owns a subprocess per Space. `foldingRange` is the inverse: pylsp
+advertises it and the reference's `Method` does not route it — the 36 members above are the whole
+contract, and the decline ours made lives in `backlog.md`'s not-scheduled table.
+
+**Client → server — the 22 requests, then the 6 notifications.**
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `initialize` | `LspWire.initializeParams`, at spawn | present | utf-16 declared; `initializationOptions`/`rootUri` both `null` — the edge GAP-030 names |
+| `textDocument/completion` | `completion` → `NotebookCompletion` | present | LSP first, kernel `complete_request` as fallback — the merge question is T3's own row |
+| `completionItem/resolve` | — | **absent** | `GAP-024`. Advertised (`resolveProvider: true`) and probe-measured carrying `detail` + markdown `documentation`; a row's docs are never fetched |
+| `textDocument/definition` | `definition` → `NotebookDefinition` | present | locations outside the virtual document dropped — `LandingOnDefinition` |
+| `textDocument/diagnostic` | — | adapted | pull diagnostics (LSP 3.17); `diagnosticProvider` never advertised — the push is ours |
+| `textDocument/documentColor` | — | adapted | never advertised (a CSS-shaped feature anyway) |
+| `textDocument/documentHighlight` | — | **absent** | `GAP-026`. Advertised; probe-measured `[{range, kind}]`, kind splitting reads from writes |
+| `textDocument/documentSymbol` | — | **absent** | `GAP-027`. Advertised; probe-measured flat `SymbolInformation[]` — the outline no pane here draws |
+| `textDocument/hover` | `hover` → `NotebookHover` | present | the `inspect_request` substitution — [ADR-0069](../adr/0069-a-cells-hover-asks-the-source-not-the-live-object.md) |
+| `textDocument/implementation` | — | adapted | never advertised |
+| `textDocument/references` | — | **absent** | `GAP-025`. Advertised; pylsp `-32602`s without `context.includeDeclaration`, probe-measured |
+| `textDocument/rename` | `rename` → `NotebookRename` | present | `WorkspaceEdit` sliced and verified back into cells — `cellSourcesAfterEdits` |
+| `textDocument/signatureHelp` | `signatureHelp` → `NotebookSignatureHelp` | present | triggered on `(`, `,`, `=` — the probe's own triggerCharacters |
+| `textDocument/typeDefinition` | — | **absent** | `GAP-028`. Advertised `true`; ours asks `definition` alone |
+| `textDocument/linkedEditingRange`, `textDocument/inlineValue`, `textDocument/inlayHint` | — | adapted | never advertised — one reason, read by hand off the probe's initialize reply |
+| `workspace/symbol`, `workspaceSymbol/resolve` | — | adapted | never advertised — and no workspace surface here would ask it |
+| `textDocument/formatting` | — | **absent** | `GAP-029`. Advertised — black answers it whole-document; only the range form is ever asked, and the FileEditor owns no asks at all |
+| `textDocument/rangeFormatting` | `rangeFormatting` → `NotebookFormat` | present | the cell's block as the range — `rangeOf`'s non-canonical end is pylsp's own `pylsp_format_range` accommodation |
+| `textDocument/codeAction` | — | adapted | advertised and probe-measured `[]` for pyflakes diagnostics — off the surface by measurement, not by guess |
+| `shutdown`, `exit` (unrouted by the reference) | `stop` | adapted | the reference never stops a server; ours owns a subprocess that must not outlive its Space — the port docstring's own rule |
+| `initialized` | sent post-handshake | present | — |
+| `textDocument/didOpen` | `changeDocument`'s auto-open | present | `_sendChange`'s rule — a sync is never a document's first frame |
+| `textDocument/didChange` | `changeDocument`, whole text | present | `sendFullTextChange`'s shape; pylsp advertises kind 2, whole is the cheaper bound it accepts |
+| `textDocument/didSave` | — | adapted | pylsp re-lints `is_saved` on it (`python_lsp.py:697`), and the one save-gated plugin ships disabled and unreachable — `pylint_lint.py`'s own `"enabled": False`, GAP-030's edge. Every enabled lint already fires on `didChange`/`didOpen` |
+| `workspace/didChangeConfiguration` | — | **absent** | `GAP-030`. The `pylsp.plugins.*` route — `m_workspace__did_change_configuration` merges `settings["pylsp"]` and re-lints (`python_lsp.py:832`) — and nothing reaches it |
+| `$/setTrace` | — | adapted | a wire-trace toggle; the server's own log drains on stderr (`drainStderr`), which is where a trace's detail belongs here |
+| `textDocument/didClose` (unrouted by the reference) | `closeDocument` | **defect** → fixed | a rename re-keyed the uri and orphaned the server's copy — `sync` closes the replaced uri now (`NotebookLanguageDocumentTest.aRename_closesTheDocumentTheServerKnew`, `de92aa58`) |
+| `textDocument/foldingRange` (unrouted by the reference) | — | adapted | the enum holds 36 members and this is not one; pylsp advertises it, and `backlog.md`'s not-scheduled table holds the code-folding decline |
+
+**Server → client — the 4 requests, then the 4 notifications.**
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `workspace/configuration` | `result: null` — `answerServerRequest` | adapted | declined per spec and moot for pylsp, which never pulls config — its own server→client asks are `workspace/applyEdit` and `window/workDoneProgress/create`, measured off `workspace.py` and declined the same way. The push half is GAP-030 |
+| `client/registerCapability`, `client/unregisterCapability`, `window/showMessageRequest` | `result: null` — `answerServerRequest` | adapted | LSP lets a client decline what it does not implement — `JsonRpcChannel`'s own comment carries the reason |
+| `textDocument/publishDiagnostics` | `diagnostics` → `NotebookDiagnostics` → gutter marks | present | pushed ranges map back through the last synced mirror, never a rebuild |
+| `window/showMessage`, `window/logMessage`, `$/logTrace` | on the notifications flow, dropped at `publishDiagnosticsFrom` | adapted | a server's log may never occupy the protocol stream — it drains on stderr instead (`drainStderr`'s own comment) |
+
+**The port ops, decided.** `closeDocument` is the `defect` row above — kept, because its fix is
+its caller. The other two stay uncalled by design, and the reason is now in each op's KDoc
+rather than here alone:
+
+| Operation | Decision | Why |
+|---|---|---|
+| `capabilities` | kept | the `initialize` answer itself — the adapter gates asks on the capability field it stored at handshake, which is why no production file names the port op; it stays the negotiated surface's one expose, and `LanguageServerPortContract` reads it |
+| `openDocument` | kept | `changeDocument`'s auto-open is the only open a sync needs; the port carries the lifecycle whole rather than the used half, and the contract test opens through it |
+
+The kernel-introspection and typing rows — the introspection callers against the asks,
+`is_complete_request`'s restatement, the eleven `editorConfig` keys against
+`PythonTypingRules`/`EditorSettings`, and `GAP-004` decided — are `T3`'s. The walk is `T4`'s.
