@@ -69,6 +69,19 @@ ACTIONS_NAMESPACE = "export namespace NotebookActions {"
 #: reference at all.
 SKIPPED_DIRS = frozenset({"node_modules", "lib"})
 
+#: What `lsp_method_names` looks for. `packages/lsp/src/tokens.ts` sorts every LSP method the
+#: connection layer routes into `Method`'s four direction enums, which is the whole of the ask
+#: surface: a method absent there cannot cross this client's connection.
+METHOD_NAMESPACE = "export namespace Method {"
+
+#: One direction enum inside `Method`, whose body ends at the `}` in column 2 - the file's own
+#: nesting, the same bound `_namespace_end` takes for the namespace itself.
+LSP_DIRECTION = re.compile(r"export enum (\w+) \{(.*?)\n  \}", re.S)
+
+#: A member's wire string: `INITIALIZE = 'initialize'` counts `initialize`, which is what crosses
+#: the wire, not the identifier that names it.
+LSP_MEMBER = re.compile(r"'([^']+)'")
+
 
 def pinned_clones(readme: Path) -> dict[str, tuple[str, str]]:
     """Each reference project's pinned SHA and clone command, read off the table in [readme].
@@ -181,6 +194,26 @@ def vscode_jupyter_command_ids(manifest: Path) -> list[str]:
     return sorted({entry["command"] for entry in commands})
 
 
+def lsp_method_names(tokens_ts: Path) -> dict[str, list[str]]:
+    """The LSP methods `Method` enumerates in [tokens_ts], grouped by its direction enum.
+
+    Bounded to the namespace rather than the file: `tokens.ts` keeps declaring exported types
+    after it, and an enum outside `Method` is not a direction the connection routes.
+
+    ```
+    lsp_method_names(reference_dir("jupyterlab") / "packages/lsp/src/tokens.ts")
+    ```
+    """
+    text = tokens_ts.read_text(encoding="utf-8")
+    start = text.find(METHOD_NAMESPACE)
+    if start < 0:
+        raise ValueError(f"{tokens_ts} declares no `{METHOD_NAMESPACE}`, so it is not the file "
+                         f"holding the LSP method surface")
+    body = text[start:_namespace_end(text, start)]
+    return {direction: LSP_MEMBER.findall(members)
+            for direction, members in LSP_DIRECTION.findall(body)}
+
+
 def rootfs_kernel_message_types(kernelbase: Path) -> dict[str, list[str]]:
     """The message types the shipped kernel answers, from its own dispatch lists.
 
@@ -232,6 +265,14 @@ def _report_vscode_jupyter(root: Path, readme: Path) -> None:
     print(f"  contributes.commands  {len(ids)}")
 
 
+def _report_lsp_methods(clone: Path) -> None:
+    tokens = clone / "packages/lsp/src/tokens.ts"
+    directions = lsp_method_names(tokens)
+    print(f"jupyterlab @ {clone_head(clone)} {tokens.relative_to(clone)}")
+    for direction, methods in directions.items():
+        print(f"  {direction:<20} {len(methods)}: {', '.join(methods)}")
+
+
 def _report_kernelbase(kernelbase: Path) -> None:
     types = rootfs_kernel_message_types(kernelbase)
     print(f"shipped kernel @ {kernelbase}")
@@ -249,6 +290,8 @@ def main() -> None:
                         help="print the contributed command ids, one per line")
     parser.add_argument("--kernelbase", type=Path,
                         help="an ipykernel kernelbase.py extracted from the shipped rootfs")
+    parser.add_argument("--lsp-methods", action="store_true",
+                        help="print Method's direction enums and their members")
     parser.add_argument("--reference-root", type=Path, default=REFERENCE_ROOT,
                         help="where the clones live")
     args = parser.parse_args()
@@ -264,6 +307,8 @@ def main() -> None:
         print(*vscode_jupyter_command_ids(clone / "package.json"), sep="\n")
     elif args.kernelbase:
         _report_kernelbase(args.kernelbase)
+    elif args.lsp_methods:
+        _report_lsp_methods(reference_dir("jupyterlab", args.reference_root, readme))
     else:
         _report_jupyterlab(args.reference_root, readme)
         _report_vscode_jupyter(args.reference_root, readme)

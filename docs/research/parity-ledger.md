@@ -15,6 +15,7 @@ examined says `unexamined` rather than nothing.
 ```sh
 python3 scripts/read_reference_commands.py --all              # the references' surface, per package
 python3 scripts/read_reference_commands.py --notebook-actions # NotebookActions' members
+python3 scripts/read_reference_commands.py --lsp-methods      # the LSP surface — Method's four direction enums
 python3 scripts/read_port_surface.py                          # our ports, and what names each operation
 python3 scripts/read_port_surface.py --unused                 # operations nothing names
 python3 scripts/read_ledger_partition.py --unassigned         # command ids this file owns nowhere
@@ -52,7 +53,7 @@ Five, each obliging something different. The full definition is in
 |---|---|---|
 | Kernel wire and execution | `AUD-001` | examined — below |
 | Cell commands and selection | `AUD-002` | examined — below |
-| Editor language features | `AUD-003` | unexamined |
+| Editor language features | `AUD-003` | measured — the surface below, verdicts next |
 | Search, replace, table of contents | `AUD-004` | unexamined |
 | Files, workspace, recents | `AUD-005` | unexamined |
 | Console, sessions, running panel | `AUD-006` | unexamined |
@@ -303,3 +304,79 @@ What it found, beyond the rows above:
 - **And one gap the walk records rather than repairs** — `GAP-023`:
   `DiskNotebookRepository.saveNotebook` is a bare `File.writeText` where the reference stack's
   save is `atomic_writing`, so an interrupted write can leave half a notebook.
+
+---
+
+## Editor language features — `AUD-003`
+
+**The surface is three enumerations, not one.** `AUD-002` had 99 command ids; this area has
+exactly one — `notebook:toggle-autoclosing-brackets` (the partition row above) — because almost
+everything a cell editor does for a language is asked by typing and caret position, not invoked.
+So the surface is what a language server may be asked, what a kernel may be asked without
+executing, and what the editor's settings do to a keystroke. Produced, never stored:
+
+```sh
+python3 scripts/read_reference_commands.py --lsp-methods
+grep -rln "requestInspect\|requestComplete\|requestIsComplete\|requestHistory" \
+  reference/research_repos/jupyterlab/packages --include="*.ts" | grep -v "services\|test\|mock"
+grep -rln "requestInspect\|requestComplete\|do_inspect" \
+  reference/research_repos/vscode-jupyter/src --include="*.ts" | grep -v test
+```
+
+The first: `packages/lsp/src/tokens.ts`'s `Method` namespace holds **36 wire strings in four
+direction enums** — 22 client requests, 6 client notifications, 4 server requests, 4 server
+notifications — which is the whole of what a connection here can route, jupyterlab-lsp's plugin
+contract included. The second: **eight files** send the kernel a non-execute ask —
+`completer/default/kernelprovider.ts` (`complete_request`, one completer provider),
+`completer/default/inlinehistoryprovider.ts`, `inspector/kernelconnector.ts` (`inspect_request`,
+the Inspector panel), `tooltip-extension` (`inspect_request` on hover), `console/widget.ts`
+(`is_complete_request`, the block-completeness check), `console/history.ts` and
+`notebook/src/history.ts` (`history_request`, `present` in `AUD-001`), and
+`notebook-extension/src/index.ts:1962` (`is_complete_request` inside `run-in-console` — both
+`is_complete_request` callers are the console's, so `GAP-012`'s repair is `AUD-006`'s and this
+slice records it). The third grep is vscode-jupyter's half of the same question: the intellisense
+callers are `standalone/intellisense/kernelCompletionProvider.ts` and `resolveCompletionItem.ts`
+— a provider that races an LSP-shaped answer against the kernel and can `do_inspect` to resolve
+documentation — and the rest of the hits are the service layer and unrelated features.
+
+**The editor's keys split three ways.** `packages/codemirror/src/extension.ts`'s
+`getDefaultExtensions` declares **27 `editorConfig` entries**. Eleven are what a keystroke does
+to the source or the selection and are this slice's: `autoClosingBrackets`, `indentUnit`,
+`smartIndent`, `matchBrackets`, `tabSize`, `tabFocusable`, `keymap`, `readOnly`,
+`extendSelection`, `rectangularSelection`, `allowMultipleSelections`. `searchWithCM` — the panel
+keystroke search rides — is `AUD-004`'s. The other 15 are presentation and carry to `AUD-009`:
+`codeFolding`, `cursorBlinkRate`, `highlightActiveLine`, `highlightSpecialCharacters`,
+`highlightTrailingWhitespace`, `highlightWhitespace`, `lineNumbers`, `lineWrap`, `dropCursor`,
+`rulers`, `scrollPastEnd`, `tooltips`, `customStyles`, `theme`, `translation`.
+
+**Ours is a 12-operation port**, `LanguageServerPort`, and nine operations are reached through
+it: `changeDocument` (`NotebookLanguageDocument` — where `didOpen` also happens, the adapter's
+`_sendChange` opening a never-opened uri), `completion`, `hover`, `signatureHelp`, `definition`,
+`rangeFormatting`, `rename` (one ask file each under `ui/editor/`, all behind
+`NotebookVirtualDocument`'s one-`file:///`-document-per-notebook mapping), `diagnostics`
+(`NotebookDiagnostics` collects the push into gutter marks), and `stop` (`AppContainer`'s
+shutdown). **Three are never called through the port**, and two of them hide behind the name
+collisions `AUD-001` warned the tool cannot see: `read_port_surface.py` reports `openDocument`
+used because navigation's document-opening functions share the identifier, and `capabilities`
+used because `StdioLanguageServer` holds a field of that name and checks it five times — the port
+operations have no caller. `closeDocument` is named nowhere. Measured:
+
+```sh
+python3 scripts/read_port_surface.py --unused
+grep -rn "languageServer\." app/src/main/java
+```
+
+**And the server ours speaks to was probed, not assumed.** `LspSurfaceProbeTest` drove a raw
+`JsonRpcChannel` against the shipped `pylsp 1.15.0` on the arm64 tablet
+(`evidence/p5e-0-lsp-surface/`): it advertises completion, `completionItem/resolve`, hover,
+signatureHelp (triggers `(`, `,`, `=`), definition, references, documentHighlight,
+documentSymbol, foldingRange, formatting, rename and codeAction; it answers `codeAction` with
+`[]` for pyflakes diagnostics; and it takes ~620ms for a completion and ~540–630ms from
+`didChange` to `publishDiagnostics` — the felt debounce budget every typing-triggered feature
+inherits. Two probe decisions are already load-bearing in the code: `snippetSupport` stays
+undeclared because pylsp would emit `${1:}` placeholders our insert would splice literally, and
+`codeAction` sits off this surface because the measured reply was empty.
+
+The verdict rows — LSP methods against the port, introspection callers against the asks, the
+eleven typing keys against `PythonTypingRules`/`EditorSettings`, and the `inspect_request` ADR —
+are `T2`'s and `T3`'s. Nothing above is a verdict yet.

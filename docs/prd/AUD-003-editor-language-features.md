@@ -159,7 +159,7 @@ Known going in, so a verdict does not re-litigate them:
 
 ## Tasks
 
-- [ ] T1 — **The instrument and the surface, produced.** `read_reference_commands.py` gains the
+- [x] T1 — **The instrument and the surface, produced.** `read_reference_commands.py` gains the
       LSP-method producer — `lsp_method_names(tokens.ts)` + `--lsp-methods`, red test first in
       `read_reference_commands_test.py`, same shape as `rootfs_kernel_message_types`/`--kernelbase`:
       the `Method` namespace's four direction enums read as declared members. Land the

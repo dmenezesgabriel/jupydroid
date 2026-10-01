@@ -11,6 +11,7 @@ from read_reference_commands import (
     REFERENCE_ROOT,
     clone_head,
     jupyterlab_command_ids,
+    lsp_method_names,
     notebook_action_names,
     pinned_clones,
     reference_dir,
@@ -190,6 +191,50 @@ class RootfsKernelMessageTypesTest(unittest.TestCase):
         with self.assertRaises(ValueError) as raised:
             self.types("class Kernel:\n    pass\n")
         self.assertIn("msg_types = [", str(raised.exception))
+
+
+class LspMethodNamesTest(unittest.TestCase):
+    """`Method`'s four direction enums in `packages/lsp/src/tokens.ts` are the LSP surface."""
+
+    TOKENS = """export namespace Method {
+  /** Server notifications */
+  export enum ServerNotification {
+    PUBLISH_DIAGNOSTICS = 'textDocument/publishDiagnostics',
+    LOG_TRACE = '$/logTrace'
+  }
+
+  /** Client requests */
+  export enum ClientRequest {
+    COMPLETION = 'textDocument/completion',
+    INITIALIZE = 'initialize'
+  }
+}
+"""
+
+    def names(self, source: str) -> dict[str, list[str]]:
+        return lsp_method_names(_tree({"tokens.ts": source}) / "tokens.ts")
+
+    def test_each_direction_enum_reports_its_wire_strings_in_order(self) -> None:
+        names = self.names(self.TOKENS)
+        self.assertEqual(["textDocument/publishDiagnostics", "$/logTrace"],
+                         names["ServerNotification"])
+        self.assertEqual(["textDocument/completion", "initialize"], names["ClientRequest"])
+
+    def test_the_member_wire_value_is_reported_not_its_identifier(self) -> None:
+        """`INITIALIZE = 'initialize'` counts as the string the wire carries, not the name."""
+        self.assertIn("initialize", self.names(self.TOKENS)["ClientRequest"])
+        self.assertNotIn("INITIALIZE", self.names(self.TOKENS)["ClientRequest"])
+
+    def test_an_enum_after_the_namespace_is_not_read(self) -> None:
+        """A later top-level `export enum` is not a direction, so the namespace bound holds."""
+        source = self.TOKENS + "export enum Other {\n  A = 'not/a/method'\n}\n"
+        self.assertNotIn("not/a/method",
+                         [m for names in self.names(source).values() for m in names])
+
+    def test_a_file_without_the_namespace_is_an_error_naming_what_was_wanted(self) -> None:
+        with self.assertRaises(ValueError) as raised:
+            self.names("export const x = 1;\n")
+        self.assertIn("export namespace Method", str(raised.exception))
 
 
 class PinnedClonesTest(unittest.TestCase):
