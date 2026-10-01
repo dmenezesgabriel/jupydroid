@@ -51,7 +51,7 @@ Five, each obliging something different. The full definition is in
 | Area | Item | State |
 |---|---|---|
 | Kernel wire and execution | `AUD-001` | examined — below |
-| Cell commands and selection | `AUD-002` | both halves examined — below; the walk down our own call stack next |
+| Cell commands and selection | `AUD-002` | examined — below |
 | Editor language features | `AUD-003` | unexamined |
 | Search, replace, table of contents | `AUD-004` | unexamined |
 | Files, workspace, recents | `AUD-005` | unexamined |
@@ -215,7 +215,8 @@ says what discharged its obligation.
 | `notebook:move-cell-up`, `notebook:move-cell-down` | `CellAction.Move` → `withCellsMoved` | present | the run moves as a block and stays marked, as `move` has no `deselectAll()` |
 | `notebook:duplicate-below` | `CellAction.Duplicate` → `withCellsDuplicated` | present | `'belowSelected'`, outputs and count kept, a collapsed heading taking its section (`CellOperation.kt`'s `operandOf`) |
 | `notebook:delete-cell` | `CellAction.Delete` → `withCellsDeleted` | present | the last cell's deletion leaves an empty code cell, inside the same undo entry |
-| `notebook:copy-cell`, `notebook:cut-cell`, `notebook:paste-cell-below` | `CellAction.Copy` / `Cut` / `Paste` → `withCellsCopied` / `withCellsCut` / `withClipboardPasted` | adapted | the clipboard is per notebook where the reference's is a singleton — `EditorUiState.clipboard`'s docstring says why |
+| `notebook:copy-cell`, `notebook:cut-cell` | `CellAction.Copy` / `Cut` → `withCellsCopied` / `withCellsCut` | adapted | the clipboard is per notebook where the reference's is a singleton — `EditorUiState.clipboard`'s docstring says why |
+| `notebook:paste-cell-below` | `CellAction.Paste` → `withClipboardPasted` | **defect** | two, found by the walk below and fixed red-first: the pasted cell's outputs and count never reached the maps beside `cells`, so a pasted copy showed blank and the next save wrote it so (`CellRestructureTest.pastingACopiedCellBringsItsOutputsAndCountUnderTheNewId`, `pastingACutCellBringsItsOutputsAndCountBack`, and the `aud-002-paste-outputs` flow on the tablet); and `clipboardWasCut` never cleared, so a second paste reused the cut id where `recordCellClipboardInteraction('paste')` flips the reference's read of it (`actions.tsx:1683`) — `onlyTheFirstPasteAfterACutKeepsTheCellsId`. The per-notebook scope above still applies |
 | `notebook:paste-cell-above`, `notebook:paste-and-replace-cell` | — | **absent** | `GAP-015`. The reference's Edit menu; its cell context menu, like ours, has below alone |
 | `notebook:copy-selected-text` | the platform text toolbar, in the source only | **absent** | `GAP-017`. Copying from a cell's source is the field's ([ADR-0068](../adr/0068-text-inside-a-cell-is-its-fields.md)); the command's other half — copying from an output — has nothing to select. Measured: a long press on an output opens no toolbar |
 | `notebook:cut-selected-text`, `notebook:paste-text` | the platform text toolbar, over the system clipboard | **undocumented** | no reason was written anywhere; [ADR-0068](../adr/0068-text-inside-a-cell-is-its-fields.md), written by this slice. Measured: Cut, Copy, Paste and Select all, and a cell copy never reaching the text clipboard |
@@ -256,3 +257,49 @@ Nothing on screen changed, so there was no flow to run. `GAP-005` is decided her
 | `notebook:restart-and-run-to-selected` | `KernelMenu` → `NotebookKernel.restartAndRunTo` → `RunRange.UP_TO_SELECTED` through `runCells` | present | `slice(0, activeCellIndex + 1)` with the selection untouched (`index.ts:3273`). Its restart half is `AUD-006`'s |
 | `notebook:select-last-run-cell` | — | **absent** | `GAP-021`. *"Select current running or last run cell"* is reached by clicking the execution indicator (`packages/notebook/src/executionindicator.tsx:93-99`) |
 | `notebook:select-last-modified-cell`, `notebook:select-next-modified-cell` | — | **absent** | `GAP-022`. A back/forward stack of edited cells (`widget.ts:2538-2616`), on the table of contents' toolbar (`packages/notebook/src/toc.ts:846-868`) |
+
+### The walk
+
+`EditorCell`'s `act` → `EditorViewModel.cellAction` (`EditorCellActions.kt`, the one door the
+menu, the sheet and the accessibility context menu all take — with `GoToDefinition`,
+`FormatCell` and `RenameTo` peeled off as *asks* first) → `NotebookCellEdits.applyTo` →
+`applyingFrom` → `transformed` (`CellOperation.kt`) → `CellEdits` / `CellRestructure` /
+`CellFolds` → `recording` (`CellUndo.kt`) → `withSelectionClamped` → `DocumentAutosave.schedule`
+→ `EditorViewModel.persist` → `NotebookRepository.saveNotebook` (`DiskNotebookRepository`).
+What it found, beyond the rows above:
+
+- **Growth is a `copy()` per operation, never one per keystroke.** `applyTo` rewrites
+  `EditorUiState` through `MutableStateFlow.update`, so a transform always reads the state as it
+  stands — never a snapshot taken before a write was suspended. The run's results live in maps
+  beside `cells` (`outputs`, `executionCounts`, `executions`) and fold back into the cell
+  objects only at the state's two edges — `toEditorUiState` on the way in,
+  `withResultsOnCells` on the way to disk. Undo records share the immutable spines, so an
+  operation costs list structure, not cell copies — `NotebookRevision`'s own arithmetic.
+- **Branching is one `when`** — `transformed` over the sealed `CellAction`, with `folded`
+  split out on detekt's `LongMethod` — and the rules that are not transforms are decided before
+  it runs: `applying` answers the actions nothing can apply (`Paste` on an empty clipboard),
+  `operandOf` collapses a marked run onto the head the menu was opened from.
+- **Failure is a state, not an event.** A refused write is `saveFailure`, drawn beside the
+  notebook until a later one succeeds; `dirty` is cleared by a landing write, and only while
+  that write still covers the state as it stands. A failed write is retried by the poll at the
+  next interval only while dirt remains, and otherwise waits for the next edit —
+  `SaveHandler`'s re-arm narrowed to dirt, the narrowing `DocumentAutosave`'s docstring states.
+- **Coupling was where the defects were — two in the save half, both fixed red-first.**
+  `pending` used to carry the *whole* debounce job — delay and write in one coroutine — so the
+  next `schedule()` cancelled a write already suspended on the disk, and `persist`'s
+  `runCatching` reported the `CancellationException` as a `saveFailure` that the next success
+  then hid. And on success `persist` put its pre-suspension snapshot back over `uiState.cells`
+  and `notebook`, so whatever had changed mid-write was reverted on screen — reachable through
+  a run's `checkpoint`, which calls `persist` directly and never touches `pending`, making an
+  older write landing second able to take a run's outputs back off the document *and* the file.
+  Writes now run beside the debounce rather than inside it (`DocumentAutosave.launchWrite`),
+  serialize on `writeMutex` so landing order is ask order, and `adoptWritten` rebuilds the
+  screen's cells from the live state — `Context._save`'s shape
+  (`packages/docregistry/src/context.ts:627-640`), tightened: the reference serializes nothing
+  and clears `dirty` unconditionally, which it can afford because a JupyterLab save patches the
+  model where ours writes the whole document. `NotebookSaveInFlightTest` pins all five cases;
+  `DocumentAutosaveTest.aWriteInFlightIsNotCancelledByTheNextSchedule` is the machinery-level
+  pin.
+- **And one gap the walk records rather than repairs** — `GAP-023`:
+  `DiskNotebookRepository.saveNotebook` is a bare `File.writeText` where the reference stack's
+  save is `atomic_writing`, so an interrupted write can leave half a notebook.
