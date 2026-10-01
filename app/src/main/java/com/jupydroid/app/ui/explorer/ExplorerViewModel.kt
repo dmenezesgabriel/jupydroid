@@ -26,6 +26,11 @@ import kotlinx.coroutines.launch
  * what JupyterLab's file browser is (`BreadCrumbs` + `DirListing`), and what a phone wants anyway:
  * a tree's indentation would spend the width the names need.
  *
+ * It opens on the root every launch rather than resuming where it left off - the reference
+ * persists the cwd in the state DB (`FileBrowserModel.restore`,
+ * `packages/filebrowser/src/model.ts:369`). Recents is this app's resume surface, so a restored
+ * directory would re-ask a question it already answers.
+ *
  * ```
  * ExplorerViewModel(workspaceRepository).open(entry)
  * ```
@@ -70,6 +75,11 @@ class ExplorerViewModel(
    * The explorer does not decide what opens a file - a notebook and a `.py` are different
    * documents with different editors, as they are in the reference, where the browser asks the
    * document manager to open a path and the factory is chosen from it.
+   *
+   * One tap does it, which is `singleClickNavigation`'s on-state worn permanently - the reference
+   * defaults it off so a click selects and a double-click opens
+   * (`packages/filebrowser-extension/schema/browser.json`). A touch screen has no click that
+   * selects to spend, so picking a row is the long press and the row's other acts ride it.
    */
   fun open(entry: WorkspaceEntry, onOpenFile: (WorkspaceEntry) -> Unit = {}) {
     if (entry.kind == WorkspaceEntryKind.DIRECTORY) goTo(entry.path) else onOpenFile(entry)

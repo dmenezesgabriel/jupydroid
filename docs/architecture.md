@@ -811,6 +811,89 @@ one byte is weighed. The repair is the bound first — a size cap the walk repor
 swallows — and a streamed or mapped read second; the NUL rule stands either way and only needs a
 window to look through.
 
+### GAP-050 — The listing has no selection, so nothing acts on more than one row
+
+`DirListing` keeps a `Set<string>` of selected paths and `selectAll()` fills it
+(`jupyterlab/packages/filebrowser/src/listing.ts:543`); the `showFileCheckboxes`
+column renders it, and `filebrowser:select-all`, the context menu's copy/cut/delete
+over every selected item, and `copyShareableLink`'s `selectedItems().length === 1`
+all ride it. Ours gives a row two gestures — a tap opens, a long-press opens that
+row's own actions (`app/src/main/java/com/jupydroid/app/ui/explorer/ExplorerScreen.kt`)
+— so a batch act has no selection to consume and a single-item act hidden behind
+`isVisible` has no way to appear. The repair starts with selection state on
+`ExplorerUiState` — a long-press that selects first is the checkbox column's own
+answer.
+
+### GAP-051 — The browser cannot be aimed at a typed path
+
+`filebrowser:open-path` runs an `InputDialog` that resolves the path against
+`services.contents` and navigates or opens it
+(`jupyterlab/packages/filebrowser-extension/src/index.ts:1476-1530`), and
+`filebrowser:edit-path` swaps the crumbs for a `PathNavigator` inline
+(`jupyterlab/packages/filebrowser/src/crumbs.ts:847`). Ours' crumbs are targets and
+nothing else takes a path, so a deep directory is reachable only by tapping through
+every level. The seam already exists — `browseRequest` navigates the browser from a
+path (`app/src/main/java/com/jupydroid/app/Navigation.kt`); the missing piece is the
+field that asks for one.
+
+### GAP-052 — The listing shows every entry; nothing filters it
+
+`showFileFilter` mounts a `FilenameSearcher` that narrows the listed rows by
+substring — fuzzy-matched when `useFuzzyFilter`, scoped by `filterDirectories`,
+cleared on navigation
+(`jupyterlab/packages/ui-components/src/components/search.tsx:273`). Ours has no
+listing filter; workspace search is a different act — it reads file *contents*
+(`app/src/main/java/com/jupydroid/app/data/disk/DiskWorkspaceSearcher.kt`) — so a
+long directory offers only scroll. The repair is a field over the loaded listing,
+not a searcher: the entries are already in memory.
+
+### GAP-053 — The listing's order and fields are fixed
+
+A `DirListing` header click sets `sortState` — a key and a direction across name,
+last_modified, file_size, date_created
+(`jupyterlab/packages/filebrowser/src/listing.ts:322,1585`) — and VS Code exposes
+`explorer.sortOrder`'s six modes plus lexicographic and reverse
+(`vscode/src/vs/workbench/contrib/files/browser/files.contribution.ts:520-562`).
+Ours holds one order — directories first, `compareNaturally` — and `WorkspaceEntry`
+reads neither `size` nor `created`, so two of the reference's fields cannot be drawn
+or sorted on even if a header existed. The model fields come first; the header is
+cheap once they do.
+
+### GAP-054 — Nothing puts a file into the workspace
+
+`allowFileUploads`, `autoOpenUploads`, `maxAutoOpenSizeMB` gate
+`jupyterlab/packages/filebrowser/src/upload.ts` and the listing's drag-drop; VS
+Code mounts an upload act on the same surface. Ours has no path in: the VIEW intent
+reaches `createNotebook` as a display *name* only — the shared file's content is
+never copied (`app/src/main/java/com/jupydroid/app/Navigation.kt`) — and no picker
+exists. The repair's shape is SAF (`OpenDocumentTree`) into `WorkspaceRepository`;
+the reference's auto-open pair then maps onto the open-document act.
+
+### GAP-055 — A file cannot leave the workspace from the tree
+
+`filebrowser:share-main` (`copyShareableLink`) copies
+`PageConfig.getUrl({treePath, toShare: true})` — a URL that presupposes a server the
+recipient can reach, JupyterHub's shape
+(`jupyterlab/packages/filebrowser-extension/src/index.ts:862-880`); VS Code's
+download and copy-path sit beside it. Ours already has the seam — `DocumentSharer`
+hands a document to other apps — but only an *open* document reaches it
+(`app/src/main/java/com/jupydroid/app/domain/port/DocumentSharer.kt`); a row has no
+act that shares, downloads, or copies a path. The repair is a row action, not new
+plumbing.
+
+### GAP-056 — A fresh listing is only ever the poll's
+
+`filebrowser:refresh` forces `FileBrowserModel.refresh()` outside the 10 s tick —
+a toolbar button and a palette entry
+(`jupyterlab/packages/filebrowser-extension/src/index.ts:1604`) — and VS Code
+mounts `RefreshExplorerAction` beside its refresh-on-visible. Ours polls at the
+same interval and re-lists after every act of its own, but a change nobody polled
+yet — a file a cell just wrote, a push from outside — waits up to the tick and
+cannot be pulled forward. `ExplorerViewModel.refresh()` already re-lists
+(`app/src/main/java/com/jupydroid/app/ui/explorer/ExplorerViewModel.kt`); the
+repair is a gesture that reaches it — a pull-down on the listing is the shape the
+surface already suggests — not new plumbing.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

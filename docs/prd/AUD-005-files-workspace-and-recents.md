@@ -152,7 +152,7 @@ Known going in, so a verdict does not re-litigate them:
       `fileeditor:create-new-markdown-file` — red tests first in `read_ledger_partition_test.py`
       and `read_ledger_verdicts_test.py`, which shares the pattern. Land the `AUD-005` ledger
       section: the surface paragraphs, the produced counts, the partition rows — no verdicts.
-- [ ] T2 — **Verdicts for the tree.** `filebrowser:*` navigation and view ids (`go-up`,
+- [x] T2 — **Verdicts for the tree.** `filebrowser:*` navigation and view ids (`go-up`,
       `go-to-path`, `open-path`, `open-directory`, `refresh`, `show-panel`, `activate`,
       `toggle-*`, `select-all`, the main-area ids) and `browser.json`'s eighteen settings against
       `ExplorerViewModel`/`ExplorerScreen`/`WorkspaceListing`/`ExplorerSettings`; VS Code's
