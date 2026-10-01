@@ -33,6 +33,20 @@ so nothing has to be synchronised.
 specification. A behaviour that cannot be reached on a phone is **adapted, never invented**, and the
 adaptation is written down beside what it departs from.
 
+Those counts are **produced**, and asserted rather than trusted:
+
+```sh
+python3 scripts/read_reference_commands.py --all
+python3 -m unittest discover -s scripts -p 'read_reference_commands_test.py'   # PinnedSurfaceTest
+```
+
+Every number above holds at the SHA `README.md` pins, and `PinnedSurfaceTest` fails if a bumped pin
+changes one — because a count is only a fact together with the pattern that produced it, and two
+reasonable patterns for a command-id constant differ here by seven real ids
+([ADR-0067](adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md)). What we have of
+that surface, and why each difference exists, is
+[`research/parity-ledger.md`](research/parity-ledger.md).
+
 ### Quality goals
 
 | Goal | What it means here |
