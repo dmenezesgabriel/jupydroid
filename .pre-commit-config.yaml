@@ -83,6 +83,11 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: retired-doc-citations
+        name: no file names a document ADR-0001 deleted
+        entry: python3 scripts/check_retired_doc_citations.py
+        language: system
+        types: [text]
       - id: ktlint-check
         name: ktlint format check
         entry: scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck

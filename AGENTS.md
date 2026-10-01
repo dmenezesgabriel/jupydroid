@@ -208,6 +208,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | device-secrets gate | evidence proves the app, not the house it ran in | `scripts/check_device_secrets.py` (+ `_test.py`); local literals in gitignored `.sensitive-strings.local` |
 | monospace-home gate | what code looks like has one home | `scripts/check_monospace_home.py` (+ `_test.py`) |
 | doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist, every file under `app/src/`+`tools/` read, an unknown type fails |
+| retired-doc gate | no file names a document ADR-0001 deleted | `scripts/check_retired_doc_citations.py` (+ `_test.py`); the three names, and the eight files whose job is to hold them |
 | comment scanners | one prose reader per comment syntax, shared by the gates | `scripts/kotlin_source.py` (`//`, `/* */`), `script_source.py` (`#`, docstrings), `xml_source.py` (`<!-- -->`) (+ `_test.py` each) |
 | busybox-seccomp gate | the shell asks Android for no syscall it refuses apps | `scripts/check_busybox_seccomp.py` (+ `_test.py`) |
 | shebang-exec gate | the console-script trampoline is the one that was built | `scripts/check_shebang_exec.py` (+ `_test.py`) |

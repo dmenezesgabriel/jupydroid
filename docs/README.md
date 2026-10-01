@@ -93,6 +93,16 @@ produces it; only a line that exists *because of* a specific defect names the ch
 `Fixes: <12-hex> ("<subject>")`. [ADR-0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md)
 carries the measurements behind that, including why device tests get no exemption for `evidence/`.
 
+**A second, narrower gate covers every tracked file.** `scripts/check_retired_doc_citations.py`
+refuses the three documents [ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)
+deleted, wherever they are named - flows, drivers and `evidence/` write-ups included, which the rule
+above exempts for step codes but not for a path that resolves nowhere. 233 such citations survived
+the first sweep because it was scoped to shipped code. Eight files may still name them, because
+recording the retirement is their job: ADR-0001, [ADR-0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md),
+[`research/decisions-triage.md`](research/decisions-triage.md), this file, and the citation gate with
+its test, and this second gate with its own test - the last four quote the banned forms as
+data.
+
 **Out of scope for the rule:** `scripts/*-driver.sh`, `.maestro/*.yaml` and `evidence/`. A driver,
 its flow and its evidence directory are named in lockstep, and the step code is what ties them
 together. The `evidence/` paths inside driver scripts are functional `OUT=` destinations, not prose.
