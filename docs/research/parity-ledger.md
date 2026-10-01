@@ -55,7 +55,7 @@ Five, each obliging something different. The full definition is in
 | Cell commands and selection | `AUD-002` | examined — below |
 | Editor language features | `AUD-003` | examined — below |
 | Search, replace, table of contents | `AUD-004` | examined — below |
-| Files, workspace, recents | `AUD-005` | unexamined |
+| Files, workspace, recents | `AUD-005` | measured — the surface below, verdicts next |
 | Console, sessions, running panel | `AUD-006` | unexamined |
 | Terminal emulator and view | `AUD-007` | unexamined |
 | Rendering and formats | `AUD-008` | unexamined |
@@ -203,6 +203,19 @@ examination came out, which is what a verdict is for.
 | `toc:show-panel` | `AUD-004` `T4` | The outline's entry point — `TableOfContentsSidePanel` at two panes, `TableOfContentsPanel` where there is no side area |
 | `toc:toggle-collapse` | `AUD-004` `T4` | The ToC *list's* own fold — `TocFolds`. The document's section fold (`jp-MarkdownHeadingCollapsed`, `CellHeadings`) is a cell operation, `AUD-002`'s |
 | `toc:run-cells` | `AUD-004` `T4` | A ToC-row context-menu command — *"Select and Run Cell(s) for this Heading"* — declared by `notebook-extension` under the `toc:` prefix (`index.ts:351`, mounted at `toc-extension/schema/registry.json:18-24`). The package-whole read of `toc-extension` never sees it, and `notebook-extension`'s own `notebook:` filter drops it — carried for exactly that reason |
+| `filebrowser:go-up`, `filebrowser:go-to-path`, `filebrowser:edit-path` | `AUD-005` `T2` | Navigation — `go-up` is one directory (`ExplorerViewModel.goTo`), `go-to-path` a jump to an argument, `edit-path` the breadcrumb's edit mode (`filebrowser-extension/src/index.ts:2020`) |
+| `filebrowser:open-path`, `filebrowser:open-directory`, `filebrowser:refresh` | `AUD-005` `T2` | Reaching a path in the browser — `open-path` resolves then `goToPath`s (`:1476`), `open-directory` activates the widget holding it (`:720`) — and relisting it |
+| `filebrowser:open` | `AUD-005` `T2` | The listing row's own act — a directory `cd`s, a file delegates to `docmanager:open` (`:1557`); ours is the row tap in `ExplorerScreen`. Its `docmanager:open` twin is `T3`'s below |
+| `filebrowser:activate`, `filebrowser:show-panel`, `filebrowser:hide-main`, `filebrowser:toggle-main`, `filebrowser:share-main` | `AUD-005` `T2` | The browser widget's own chrome — reveal, hide, and `share-main` = `copyShareableLink` on the main widget (`:130`), an act on the panel rather than on a file |
+| `filebrowser:select-all` | `AUD-005` `T2` | The listing's selection — whether ours has anything to select-all over |
+| `filebrowser:toggle-date-created`, `filebrowser:toggle-file-checkboxes`, `filebrowser:toggle-file-filter`, `filebrowser:toggle-file-size`, `filebrowser:toggle-hidden-files`, `filebrowser:toggle-last-modified`, `filebrowser:toggle-navigate-to-current-directory`, `filebrowser:toggle-show-full-path`, `filebrowser:toggle-single-click-navigation`, `filebrowser:toggle-sort-notebooks-first` | `AUD-005` `T2` | `browser.json`'s settings as commands — columns, hidden files, the filter, checkboxes, full path, single-click, sort order — against `ExplorerSettings` |
+| `filebrowser:create-new-directory`, `filebrowser:create-new-file`, `filebrowser:create-new-markdown-file`, `fileeditor:create-new`, `fileeditor:create-new-markdown-file` | `AUD-005` `T3` | Creating — `ExplorerBar`'s NewMenu → `WorkspaceRepository.createFile`/`createFolder`. The `fileeditor:` pair is carried: it creates files rather than editing one (`commands.ts:60`, `:62`), while the rest of its package waits for its own slices |
+| `filebrowser:rename`, `filebrowser:duplicate`, `filebrowser:copy`, `filebrowser:cut`, `filebrowser:paste` | `AUD-005` `T3` | The acts on the selected rows — ours' rename goes `WorkspaceRepository.rename` through the 409 → ask → overwrite split; whether a file clipboard exists is the verdict's question |
+| `filebrowser:delete`, `filebrowser:shutdown` | `AUD-005` `T3` | Permanent delete, no trash — `WorkspaceRepository.delete` refuses a non-empty folder — and shutting down what a file's sessions run |
+| `filebrowser:download`, `filebrowser:copy-download-link`, `filebrowser:copy-path`, `filebrowser:open-url`, `filebrowser:open-browser-tab` | `AUD-005` `T3` | Leaving the browser — `DocumentSharer` is weighed against `download` here though export's format question is `AUD-008`'s |
+| `docmanager:new-untitled`, `docmanager:open`, `docmanager:rename`, `docmanager:delete`, `docmanager:delete-file`, `docmanager:duplicate`, `docmanager:clone`, `docmanager:download`, `docmanager:open-browser-tab`, `docmanager:show-in-file-browser` | `AUD-005` `T3` | The document manager's own file acts — the commands every other surface calls (`docmanager-extension/src/index.tsx`, no palette category) |
+| `docmanager:save`, `docmanager:save-all`, `docmanager:save-as`, `docmanager:toggle-autosave`, `docmanager:restore-checkpoint`, `docmanager:reload` | `AUD-005` `T4` | Persistence — `DocumentAutosave`'s debounce over `EditorSettings.autosave`/`autosaveInterval`, and what checkpoints/save-as/reload mean where there is no document manager |
+| `docmanager:recents`, `docmanager:clear-recents` | `AUD-005` `T4` | Recents — `RecentDocumentsRepository` → `DiskRecentDocumentsRepository`, `RecordOpening`, `RecentsSection`. `docmanager:recents` is the one id the `docmanager` package itself declares |
 
 ### The editing half — verdicts
 
@@ -849,3 +862,80 @@ writes nothing — → the index asked of the *about-to-be* document's `cellsOnS
   `step`, `replacing`, `revealCell`, `landOnMatch` — is the `cells !==` identity check: *did a
   persisted thing move*, which is what makes reading through a notebook's matches free and
   reaching a hidden one a write.
+
+---
+
+## Files, workspace and recents — `AUD-005`
+
+**The surface is three packages' command ids plus everything a command never names.**
+`filebrowser-extension` declares **38 ids**, `docmanager-extension` **17**, and `docmanager` —
+the document manager's own package, not its extension — **1** (`docmanager:recents`). Produced,
+never stored:
+
+```sh
+python3 scripts/read_reference_commands.py --jupyterlab-package filebrowser-extension
+python3 scripts/read_reference_commands.py --jupyterlab-package docmanager-extension
+python3 scripts/read_reference_commands.py --jupyterlab-package docmanager
+```
+
+Two carried ids join them out of `fileeditor-extension`'s 31: `fileeditor:create-new` and
+`fileeditor:create-new-markdown-file` (`src/commands.ts:60`, `:62`), which create files rather
+than edit one; the rest of that package waits for the slices that own the file editor and the
+chrome.
+
+**The rest of the surface is settings and the machinery under the ids.** Eighteen settings under
+`filebrowser-extension/schema/browser.json` — sorting (`sortNotebooksFirst`,
+`sortFileNamesNaturally`), the three columns (`showLastModifiedColumn`, `showFileSizeColumn`,
+`showDateCreatedColumn`), `showHiddenFiles`, the filter's four (`showFileFilter`,
+`useFuzzyFilter`, `filterDirectories`, `clearFilterOnNavigation`), `breadcrumbs`, `showFullPath`,
+`singleClickNavigation`, `navigateToCurrentDirectory`, `showFileCheckboxes`, and the uploader's
+three (`allowFileUploads`, `autoOpenUploads`, `maxAutoOpenSizeMB`) — several surfaced by the
+`filebrowser:toggle-*` ids above. Seven under `docmanager-extension/schema/plugin.json`:
+`autosave`, `autosaveInterval`, `confirmClosingDocument`, `defaultViewers`,
+`lastModifiedCheckMargin`, `maxNumberRecents`, `renameUntitledFileOnSave`. Produced:
+
+```sh
+python3 -c "import json; print(sorted(json.load(open('reference/research_repos/jupyterlab/packages/filebrowser-extension/schema/browser.json'))['properties']))"
+python3 -c "import json; print(sorted(json.load(open('reference/research_repos/jupyterlab/packages/docmanager-extension/schema/plugin.json'))['properties']))"
+```
+
+The machinery the commands ride on: `Contents.fileChanged` and the open document following its
+path (`docregistry/src/context.ts`), `SaveHandler` (`docmanager/src/savehandler.ts`), the
+overwrite dialog on a 409 (`docmanager/src/dialogs.ts`), `RecentsManager`'s validation
+(`docmanager/src/recents.ts`), the uploader (`filebrowser/src/upload.ts`), the breadcrumbs
+(`filebrowser/src/crumbs.ts`). **And the presentation half is VS Code's** — a tree, not a
+replaced listing: `contrib/files/browser/` (`fileCommands`, `fileActions`, `explorerService`,
+`views/`), `workbench.action.openRecent` (`browser/actions/windowActions.ts`):
+
+```sh
+ls reference/research_repos/vscode/src/vs/workbench/contrib/files/browser/
+grep -n "openRecent" reference/research_repos/vscode/src/vs/workbench/browser/actions/windowActions.ts
+```
+
+Under it all, the behaviour ours mirrors is the shipped rootfs's —
+`jupyter_server/services/contents/filemanager.py` and `manager.py`: `newUntitled`'s names, the
+409 on rename, the refused non-empty directory, `allow_hidden`.
+
+**Ours** is `ui/explorer/` over `WorkspaceRepository` — `ExplorerViewModel`/`ExplorerScreen`/
+`ExplorerBar`, `DiskWorkspaceRepository` and `WorkspaceListing` (directories first, natural
+order, hidden left out) — the 409 → ask → overwrite split on rename, a permanent delete refusing
+a non-empty folder, `WorkspaceChange`s an open document follows; plus recents
+(`RecentDocumentsRepository` → `DiskRecentDocumentsRepository`, `RecordOpening`, `MAX_RECENTS`,
+the section's fold on `ExplorerSettings`), `DocumentAutosave` over `EditorSettings`, and the
+`DocumentSharer` an export leaves through. Carried from `AUD-001`, this slice's to decide: the
+three `NotebookRepository` operations no production file names — `renameNotebook`,
+`overwriteNotebook`, `deleteNotebook`. Produced:
+
+```sh
+python3 scripts/read_port_surface.py            # WorkspaceRepository 11, RecentDocumentsRepository 4,
+                                                # ExplorerSettingsRepository 2, NotebookRepository 6,
+                                                # DocumentSharer 1
+python3 scripts/read_port_surface.py --unused   # the three carried operations
+```
+
+**Carried neighbours, restated not rejudged.** The running panel and `running-extension` are
+`AUD-006`'s; `filemenu:*`, the tab strip and the rest of the chrome are `AUD-009`'s; export's
+format question is `AUD-008`'s, though the `DocumentSharer` it leaves through is weighed here
+against `filebrowser:download`. The partition rows are in the shared table under `AUD-002`'s
+heading — the tree's navigation and view ids to `T2`, the file operations to `T3`, persistence
+and recents to `T4`.

@@ -145,7 +145,7 @@ Known going in, so a verdict does not re-litigate them:
 
 ## Tasks
 
-- [ ] T1 — **The instrument and the surface, produced.** `read_ledger_partition.py`'s
+- [x] T1 — **The instrument and the surface, produced.** `read_ledger_partition.py`'s
       `COMMAND_IN_CELL` is closed to the families a slice has claimed; add `filebrowser` and
       `docmanager`, `PARTITIONED_PACKAGES` gains `filebrowser-extension`, `docmanager-extension`
       and `docmanager`, `CARRIED_IDS` gains `fileeditor:create-new` and

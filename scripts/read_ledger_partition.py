@@ -45,22 +45,28 @@ PARTITION_HEADING = "### Who owns which id"
 #: pattern would sweep first cells like `inspector:open` (a real id verdicted in AUD-003's caller
 #: table, whose family no slice owns) into "owned by nobody" reports. `documentsearch:` carries
 #: camelCase suffixes; the rest are lowercase.
-COMMAND_IN_CELL = re.compile(r"`((?:notebook|documentsearch|toc|fileeditor|editmenu):[A-Za-z0-9-]+)`")
+COMMAND_IN_CELL = re.compile(
+    r"`((?:notebook|documentsearch|toc|fileeditor|editmenu|filebrowser|docmanager):[A-Za-z0-9-]+)`")
 
 #: Packages whose whole command surface the partition covers - every id they declare must be
 #: owned. `notebook-extension` is read separately because only its `notebook:` ids are the
 #: audit's - plus `toc:run-cells`, carried below; the rest (`kernelstatus:*` et al.) are
-#: nobody's yet.
-PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension")
+#: nobody's yet. `docmanager` (no `-extension` suffix) is the document manager's own package and
+#: declares `docmanager:recents` alone; the rest of the family lives in `docmanager-extension`.
+PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension",
+                        "filebrowser-extension", "docmanager-extension", "docmanager")
 
 #: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
 #: and `editmenu:find` are AUD-004's while the rest of `fileeditor-extension`/`mainmenu-extension`
-#: waits for the slices that examine the file editor and the chrome. `notebook-extension` is
-#: carried too, for one id: `toc:run-cells` is declared there under the `toc:` prefix
-#: (`index.ts:351`) for a ToC row's context menu, so the `notebook:` filter over that package's
-#: own ids never reaches it and neither does the package-whole read of `toc-extension`.
+#: waits for the slices that examine the file editor and the chrome, and `fileeditor:create-new`
+#: plus `fileeditor:create-new-markdown-file` are AUD-005's because they create files rather than
+#: edit one. `notebook-extension` is carried too, for one id: `toc:run-cells` is declared there
+#: under the `toc:` prefix (`index.ts:351`) for a ToC row's context menu, so the `notebook:`
+#: filter over that package's own ids never reaches it and neither does the package-whole read
+#: of `toc-extension`.
 CARRIED_PACKAGES = ("fileeditor-extension", "mainmenu-extension", "notebook-extension")
-CARRIED_IDS = ("fileeditor:find", "editmenu:find", "toc:run-cells")
+CARRIED_IDS = ("fileeditor:find", "editmenu:find", "toc:run-cells",
+               "fileeditor:create-new", "fileeditor:create-new-markdown-file")
 
 
 def declared_ids(packages: Path) -> list[str]:
@@ -71,7 +77,7 @@ def declared_ids(packages: Path) -> list[str]:
     its partition row into "declared by nobody" instead of staying silently owned.
 
     ```
-    declared_ids(reference_dir("jupyterlab") / "packages")   # 99 + 11 + 2 ids at the pinned SHA
+    declared_ids(reference_dir("jupyterlab") / "packages")   # 99 + 67 + 5 ids at the pinned SHA
     ```
     """
     from read_reference_commands import jupyterlab_command_ids
