@@ -17,6 +17,8 @@ import com.jupydroid.app.ui.editor.newCellId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -143,7 +145,10 @@ class ConsoleViewModel(
   }
 
   private suspend fun run(id: String, source: String) {
-    session.reopeningIfStale { open -> kernelGateway.execute(open, id, source) }
+    // `reopeningIfStale` resolves inside the flow rather than before it, the shape
+    // `NotebookCellRuns.eventsFor` already carries: a refused `connect` has to reach the same
+    // error output a refused `execute` does, or the entry spins RUNNING for ever.
+    flow { emitAll(session.reopeningIfStale { open -> kernelGateway.execute(open, id, source) }) }
       .catch { failure -> emit(kernelFailure(id, failure)) }
       .collect { event -> _entries.update { entries -> entries.after(id, event) } }
     val cancelled = interrupting == id

@@ -4,6 +4,7 @@ import androidx.compose.foundation.text.input.insert
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
+import com.jupydroid.app.data.space.KernelLifecycleException
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
@@ -12,6 +13,7 @@ import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.editor.RecordingKernelGateway
@@ -191,6 +193,26 @@ class ConsoleViewModelTest {
   }
 
   /**
+   * The refusal lands *before* the flow exists - `reopeningIfStale` resolves the session ahead
+   * of `execute`, so a `connect` that fails (a refused pick, a server that never came up) has to
+   * reach the same error output a refused `execute` does rather than escape the launch.
+   */
+  @Test
+  fun submit_resolvesToStoppedErrorWhenConnectingIsRefused() = runTest {
+    val gateway = RefusingToConnectKernelGateway()
+    val session = NotebookKernelSession(gateway, SPACE) { "Analysis.ipynb" }
+    val viewModel = ConsoleViewModel(gateway, session)
+    viewModel.input.edit { insert(0, "1 + 1") }
+
+    viewModel.submit()
+    advanceUntilIdle()
+
+    val entry = viewModel.entries.value.single()
+    assertEquals(ExecutionStatus.STOPPED_ERROR, entry.status)
+    assertTrue("the refusal is an output, not a crash", entry.outputs.any { it is CellOutput.Error })
+  }
+
+  /**
    * `interrupt` on a session whose server is already gone: there is no kernel left to interrupt,
    * and the refusal must not escape the launch - the dead session is forgotten so the next
    * [submit] reconnects, the landing `session.disposed` already owns.
@@ -317,4 +339,14 @@ private class AlwaysRaisingKernelGateway : KernelGateway by FakeKernelGateway() 
     emit(KernelEvent.Output(cellId, CellOutput.Error("ValueError", "boom", emptyList())))
     emit(KernelEvent.Idle)
   }
+}
+
+/** Never connects - the refusal a `connect` answer carries when the server never came up. */
+private class RefusingToConnectKernelGateway : KernelGateway by FakeKernelGateway() {
+  override suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): KernelSession = throw KernelLifecycleException("POST api/sessions refused for $documentPath")
 }
