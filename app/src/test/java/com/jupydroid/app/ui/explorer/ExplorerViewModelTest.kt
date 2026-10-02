@@ -274,6 +274,29 @@ class ExplorerViewModelTest {
     assertNull(viewModel.uiState.value.nameTaken)
   }
 
+  /**
+   * **The overwrite question is answered by its dialog, not by a re-list.** `listingOf` builds a
+   * fresh state so nothing stale survives a navigation - but `nameTaken` is not stale state, it
+   * is an unanswered question, and `KeepTheListingFresh` ticks whether or not a dialog is up.
+   * One tick used to drop the ask the user had not answered; the reference's `showDialog` waits
+   * for its button for as long as that takes (`docmanager/src/dialogs.ts`). The ask that
+   * survives must still be *answerable* - `renamingPath` outlives it for exactly that.
+   */
+  @Test
+  fun aPollDoesNotRetractTheOverwriteQuestion() = runTest {
+    given("notes.txt", "taken.txt")
+    File(temp.root, "notes.txt").writeText("the one that survives")
+    val viewModel = explorer()
+    viewModel.rename(viewModel.uiState.value.entries.first { it.name == "notes.txt" }, "taken.txt")
+
+    viewModel.refresh()
+
+    assertEquals("taken.txt", viewModel.uiState.value.nameTaken)
+    viewModel.answerOverwrite(accepted = true)
+    assertNull(viewModel.uiState.value.nameTaken)
+    assertEquals("the one that survives", File(temp.root, "taken.txt").readText())
+  }
+
   @Test
   fun answeringNoLeavesBothFilesAlone() = runTest {
     given("notes.txt", "taken.txt")

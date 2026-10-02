@@ -111,7 +111,11 @@ class ExplorerViewModel(
     listing = viewModelScope.launch {
       runCatching { workspaceRepository.list(path) }
         .onSuccess { entries ->
-          _uiState.value = listingOf(path, entries, rootLabel, justCreated)
+          // `nameTaken` is carried rather than rebuilt fresh: it is an unanswered question, not
+          // stale state - the poll ticks while the dialog is up, and a landing listing must not
+          // retract an ask nobody answered (`aPollDoesNotRetractTheOverwriteQuestion`). Nothing
+          // else can drop it while it is up, because the dialog is modal.
+          _uiState.value = listingOf(path, entries, rootLabel, justCreated, _uiState.value.nameTaken)
         }
         .onFailure { failure ->
           // **A cancellation is not a failure to report, and `runCatching` cannot tell them
@@ -275,8 +279,12 @@ class ExplorerViewModel(
  * At file level, and private, because it needs no part of the ViewModel - everything it reads is
  * an argument. Every `goTo` case in `ExplorerViewModelTest` goes through it.
  *
+ * The one exception to fresh: [nameTaken] is handed in from the state being replaced, because it
+ * is an unanswered question rather than anything a navigation could stale - the poll ticks while
+ * the dialog is up, and the ask survives until its answer (`aPollDoesNotRetractTheOverwriteQuestion`).
+ *
  * ```
- * _uiState.value = listingOf(path, entries, rootLabel, justCreated = null)
+ * _uiState.value = listingOf(path, entries, rootLabel, justCreated = null, nameTaken = null)
  * ```
  */
 private fun listingOf(
@@ -284,10 +292,12 @@ private fun listingOf(
   entries: List<WorkspaceEntry>,
   rootLabel: String,
   justCreated: String?,
+  nameTaken: String?,
 ): ExplorerUiState = ExplorerUiState(
   path = path,
   entries = entries,
   crumbs = crumbsFor(path, rootLabel),
   error = null,
+  nameTaken = nameTaken,
   justCreated = justCreated,
 )
