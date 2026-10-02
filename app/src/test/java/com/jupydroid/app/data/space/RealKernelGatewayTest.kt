@@ -8,9 +8,11 @@ import com.jupydroid.app.domain.port.KernelGatewayContract
 import com.jupydroid.app.mimeBundleOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.time.Duration.Companion.seconds
 
 /** The real gateway owes the same contract as the fake, plus the protocol's own rules. */
 class RealKernelGatewayTest : KernelGatewayContract() {
@@ -257,6 +259,29 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val events = gateway.execute(gateway.connect(SPACE, "Analysis.ipynb"), "cell-1", "2 + 2").toList()
 
     assertEquals(KernelEvent.Idle, events.last())
+  }
+
+  /**
+   * `kernel.reconnect()`'s act without the button: a socket that ended between runs is not the
+   * session's socket anymore, so the next ask opens a fresh one rather than `send`ing on a dead
+   * one - OkHttp returns false there and no frame ever comes back, which is a run that waits
+   * for ever.
+   */
+  @Test
+  fun execute_reopensASocketThatEndedBetweenRuns() = runTest {
+    val opener = ScriptedKernelSocketOpener(
+      reply = { KernelFrames.successfulExecution(it) },
+      endAfter = JupyterSocketEvent.Ended("connection reset", failed = true),
+    )
+    val gateway = RealKernelGateway(KernelSockets(opener, FakeKernelLifecycle()))
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.execute(session, "cell-1", "2 + 2").toList()
+    val events = withTimeoutOrNull(3.seconds) { gateway.execute(session, "cell-2", "2 + 2").toList() }
+
+    assertTrue("the second run hung on the dead socket (${opener.openCount} socket(s) opened)", events != null)
+    assertEquals(2, opener.openCount)
+    assertEquals(KernelEvent.Idle, events!!.last())
   }
 
   // --.5a: completion over the same socket ---

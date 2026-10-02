@@ -88,29 +88,38 @@ class ScriptedKernelSocketOpener(
     openedKernelId = kernelId
     openedSessionId = sessionId
     openCount++
-    events = onEvent
+    val socket = ScriptedSocket(onEvent)
+    events = socket::emit
     if (openImmediately) {
       opened = true
       onEvent(JupyterSocketEvent.Opened)
     }
-    return ScriptedSocket(onEvent)
+    return socket
   }
 
   private inner class ScriptedSocket(private val onEvent: (JupyterSocketEvent) -> Unit) : JupyterSocket {
+    /** Terminal, as the event is: OkHttp's `send` returns false on a socket that has ended. */
+    private var ended = false
+
+    fun emit(event: JupyterSocketEvent) {
+      if (event is JupyterSocketEvent.Ended) ended = true
+      onEvent(event)
+    }
+
     override fun send(frame: String): Boolean {
+      if (ended) return false
       // A real server drops what arrives before its own `open()` has associated the session, so
       // the fake keeps it and answers nothing - which is what the stall looks like.
       if (!opened) {
-        // A real server drops what arrives before its own `open()` has associated the session.
         sentBeforeOpen += frame
-        return true
+      } else {
+        val header = Json.parseToJsonElement(frame).jsonObject["header"]!!.jsonObject
+        val requestMsgId = header["msg_id"]!!.jsonPrimitive.content
+        val msgType = header["msg_type"]!!.jsonPrimitive.content
+        sentMsgTypes += msgType
+        sent += frame
+        answer(msgType, requestMsgId)
       }
-      val header = Json.parseToJsonElement(frame).jsonObject["header"]!!.jsonObject
-      val requestMsgId = header["msg_id"]!!.jsonPrimitive.content
-      val msgType = header["msg_type"]!!.jsonPrimitive.content
-      sentMsgTypes += msgType
-      sent += frame
-      answer(msgType, requestMsgId)
       return true
     }
 
@@ -118,12 +127,12 @@ class ScriptedKernelSocketOpener(
       if (msgType == "kernel_info_request") {
         kernelInfoAsks++
         if (answerKernelInfo(kernelInfoAsks)) {
-          onEvent(JupyterSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId)))
+          emit(JupyterSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId)))
         }
         return
       }
-      reply(requestMsgId).forEach { onEvent(JupyterSocketEvent.Received(it)) }
-      endAfter?.let(onEvent)
+      reply(requestMsgId).forEach { emit(JupyterSocketEvent.Received(it)) }
+      endAfter?.let(::emit)
     }
 
     override fun close() {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -39,6 +40,10 @@ class KernelSockets(
   private val socketsLock = Mutex()
 
   suspend fun socketFor(session: KernelSession): SessionSocket = socketsLock.withLock {
+    // `reconnect()` without the button (`packages/services/src/kernel/kernel.ts`): an Ended
+    // socket is terminal, so the next ask opens a fresh one rather than `send`ing on a dead one -
+    // OkHttp returns false there and no frame ever comes back.
+    if (sessionSockets[session.id]?.ended == true) sessionSockets.remove(session.id)
     sessionSockets.getOrPut(session.id) { openSocket(session) }
   }
 
@@ -53,8 +58,11 @@ class KernelSockets(
     // no replay the flow discards frames arriving between executions rather than growing.
     val events = MutableSharedFlow<JupyterSocketEvent>(extraBufferCapacity = FRAME_BUFFER)
     val connected = CompletableDeferred<Unit>()
+    // Written by the opener's own thread on `Ended`, read under [socketsLock] - see [socketFor].
+    val endedFlag = AtomicBoolean()
     log.reached(KernelLog.SOCKET_OPENED, mapOf("kernelId" to session.kernelId, "sessionId" to session.id))
     val socket = opener.open(session.kernelId, session.id) { event ->
+      if (event is JupyterSocketEvent.Ended) endedFlag.set(true)
       // Not via the SessionSocket being constructed: an opener may report `Opened` synchronously
       // from inside `open()`, before there is anything to hold it in - which is exactly what the
       // scripted opener does, and a fake that mimics reality is the point of having one.
@@ -66,6 +74,7 @@ class KernelSockets(
       events,
       session.id,
       connected,
+      endedFlag,
       restartKernel = { lifecycle.restart(session.kernelId) },
       log,
     )
@@ -90,10 +99,13 @@ class SessionSocket(
   val events: MutableSharedFlow<JupyterSocketEvent>,
   private val sessionId: String,
   private val connected: CompletableDeferred<Unit>,
+  private val endedFlag: AtomicBoolean,
   /** Replaces the process behind this socket; see [recoverOnce] for when that is the answer. */
   private val restartKernel: suspend () -> Unit,
   private val log: SpaceLifecycleLog,
 ) {
+  /** Terminal means it can never answer again - [KernelSockets.socketFor] drops it on sight. */
+  internal val ended: Boolean get() = endedFlag.get()
   private val handshake = Mutex()
   private var greeted = false
 
