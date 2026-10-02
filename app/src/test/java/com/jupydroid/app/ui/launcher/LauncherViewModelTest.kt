@@ -6,6 +6,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.editor.RecordingKernelGateway
 import kotlinx.coroutines.CompletableDeferred
@@ -147,6 +148,24 @@ class LauncherViewModelTest {
     assertEquals(1, kernelGateway.connectCount)
     assertEquals(listOf(console.path), kernelGateway.connectedPaths)
     assertNotNull(console.session.opened)
+  }
+
+  /**
+   * The minted session declares its kind on the POST: `SessionContext({type: 'console'})`
+   * (`packages/console/src/panel.ts:71`), not the `"file"` the extension rule derives for a
+   * suffixless `console-<count>-<uuid>` path. `running:kernel-open-session` reads the field to
+   * pick `console:open` over `docmanager:open`, so a console minted `file` could never be
+   * reached as one - its Running-panel row opened a file editor on a path that is not a file.
+   */
+  @Test
+  fun launchingTheConsoleCardDeclaresItsSessionAConsole() = runTest {
+    val kernelGateway = RecordingKernelGateway()
+    val viewModel = viewModel(kernelGateway = kernelGateway)
+
+    viewModel.launch(card(LauncherCommand.NEW_CONSOLE), "") {}
+    advanceUntilIdle()
+
+    assertEquals(listOf(SessionType.CONSOLE), kernelGateway.connectedSessionTypes)
   }
 
   /** `Private.count` (`panel.ts:332`) is a counter, not a random suffix: each mint numbers up. */

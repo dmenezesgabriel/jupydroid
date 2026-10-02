@@ -6,6 +6,7 @@ import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.TerminalSession
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -52,6 +53,20 @@ class RunningPanelViewModelTest {
 
     assertEquals(listOf("notes.ipynb"), model.uiState.value.sessions.map { it.name })
     assertEquals(listOf(TerminalSession("1")), model.uiState.value.terminals)
+  }
+
+  /**
+   * The row's `type` is the value `running:kernel-open-session`'s tap reads to pick
+   * `console:open` over `docmanager:open` - it must be what the mint declared, not what the
+   * path's suffix implies.
+   */
+  @Test
+  fun aSessionDeclaredAConsoleListsAsOne() = runTest {
+    kernelGateway.connect(BASE_SPACE, "console-1-abc", sessionType = SessionType.CONSOLE)
+    val model = showing().also { it.refresh() }
+    advanceUntilIdle()
+
+    assertEquals("console", model.uiState.value.sessions.single().type)
   }
 
   /**

@@ -34,6 +34,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -75,10 +76,19 @@ internal class RecordingKernelGateway(
   /** The document paths each connect was asked for, in order - the cwd a kernel was born in. */
   val connectedPaths = mutableListOf<String>()
 
-  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
+  /** The [SessionType] each connect declared - what the session POST would carry as `type`. */
+  val connectedSessionTypes = mutableListOf<SessionType?>()
+
+  override suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): KernelSession {
     connectCount++
     connectedPaths += documentPath
-    return delegate.connect(space, documentPath, kernel)
+    connectedSessionTypes += sessionType
+    return delegate.connect(space, documentPath, kernel, sessionType)
   }
 
   private val interrupted = CompletableDeferred<Unit>()
@@ -135,7 +145,12 @@ internal class RecordingKernelGateway(
 internal class SlowToConnectKernelGateway : KernelGateway by FakeKernelGateway() {
   private val connectable = CompletableDeferred<Unit>()
 
-  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
+  override suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): KernelSession {
     connectable.await()
     return KernelSession(
       id = "slow-${space.id}",
@@ -174,7 +189,12 @@ internal class StaleSessionKernelGateway(
 
   private var refused = 0
 
-  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
+  override suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): KernelSession {
     connectCount++
     return KernelSession(
       id = "session-$connectCount",
@@ -290,9 +310,14 @@ internal class RecordingConnectKernelGateway(private val fake: FakeKernelGateway
   KernelGateway by fake {
   val paths = mutableListOf<String>()
 
-  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
+  override suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): KernelSession {
     paths += documentPath
-    return fake.connect(space, documentPath, kernel)
+    return fake.connect(space, documentPath, kernel, sessionType)
   }
 }
 

@@ -9,6 +9,7 @@ import com.jupydroid.app.domain.port.KernelPreference
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.KernelSpecModels
 import com.jupydroid.app.domain.port.KernelSpecs
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 
 /**
@@ -74,6 +75,14 @@ class NotebookKernelSession(
    */
   attachedTo: KernelSession? = null,
   /**
+   * `SessionContext.IOptions.type` (`sessioncontext.tsx`): what the session declares itself on
+   * `POST api/sessions` when it *does* connect. Null leaves the document rule - a notebook's
+   * path answers `notebook` for it - while a console declares [SessionType.CONSOLE] over a
+   * `console-<count>-<uuid>` path that would derive `file`, the same write `ConsolePanel`'s own
+   * `type: 'console'` makes (`packages/console/src/panel.ts:71`).
+   */
+  private val sessionType: SessionType? = null,
+  /**
    * `kernelPreference` (`SessionContext.IOptions`, `sessioncontext.tsx`): the kernelspec the
    * notebook was saved with, resolved through [kernelSpecs] on the *first* connect - a null asks
    * for the server's default. Kept in step with the kernel the session is actually bound to, so
@@ -126,7 +135,7 @@ class NotebookKernelSession(
     val catalogue = kernelSpecs.specs(space)
     val choice = resolve(preferredKernel, catalogue)
     reportPending((choice as? KernelChoice.Spec)?.name ?: catalogue.default, catalogue)
-    return kernelGateway.connect(space, documentPath(), choice).also { opened = it }
+    return kernelGateway.connect(space, documentPath(), choice, sessionType).also { opened = it }
   }
 
   /**
@@ -161,7 +170,7 @@ class NotebookKernelSession(
       reportPending(spec.name, kernelSpecs.specs(space))
     }
     val bound = opened?.let { kernelGateway.changeKernel(it, choice) }
-      ?: kernelGateway.connect(space, documentPath(), choice)
+      ?: kernelGateway.connect(space, documentPath(), choice, sessionType)
     preferredKernel = KernelPreference(name = bound.kernelName)
     opened = bound
     return bound

@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import kotlinx.coroutines.flow.Flow
 
@@ -43,12 +44,16 @@ class BaseSpaceKernelGateway(
    * Starts a kernel and binds a session to it. The session id is ours and identifies this
    * client to the server; the kernel id is the server's.
    */
-  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession =
-    issued.currentGateway().connect(space, documentPath, kernel).also {
-      issued.minted(it.id)
-      registry.register(it, documentPath)
-      log.reached("kernel ${it.kernelId} ready for space ${space.id}")
-    }
+  override suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): KernelSession = issued.currentGateway().connect(space, documentPath, kernel, sessionType).also {
+    issued.minted(it.id)
+    registry.register(it, documentPath, sessionType)
+    log.reached("kernel ${it.kernelId} ready for space ${space.id}")
+  }
 
   /**
    * The session keeps both its ids and gets a different kernel - `PATCH api/sessions`

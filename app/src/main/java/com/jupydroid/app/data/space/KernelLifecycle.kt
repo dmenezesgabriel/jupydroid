@@ -5,6 +5,7 @@ import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.KernelSpecModels
 import com.jupydroid.app.domain.port.ServerConnection
+import com.jupydroid.app.domain.port.SessionType
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,7 +69,11 @@ interface KernelLifecycle {
    * lifecycle.start("reports/Analysis.ipynb")  // -> kernel-abc in session-1, reattaching if open
    * ```
    */
-  suspend fun start(documentPath: String, kernel: KernelChoice? = null): StartedKernelSession
+  suspend fun start(
+    documentPath: String,
+    kernel: KernelChoice? = null,
+    sessionType: SessionType? = null,
+  ): StartedKernelSession
 
   suspend fun interrupt(kernelId: String)
 
@@ -130,8 +135,16 @@ class OkHttpKernelLifecycle(
 ) : KernelLifecycle {
   private val rest = SessionRest(connection, client, ioDispatcher)
 
-  override suspend fun start(documentPath: String, kernel: KernelChoice?): StartedKernelSession {
-    val request = SessionStartRequest.forDocument(documentPath, kernel)
+  override suspend fun start(
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): StartedKernelSession {
+    val request = SessionStartRequest.forDocument(
+      documentPath,
+      sessionType ?: SessionType.forPath(documentPath),
+      kernel,
+    )
     val body = rest.post("api/sessions", Json.encodeToString(SessionStartRequest.serializer(), request))
     return Json.parseToJsonElement(body).jsonObject.toStartedSession(documentPath)
   }
@@ -344,15 +357,17 @@ private data class SessionStartRequest(
 ) {
   companion object {
     /**
-     * Every field derived from the document's path, the way the reference's `Context` derives them.
+     * Every field derived from the document's path, the way the reference's `Context` derives
+     * them - except [type], which is `SessionContext.IOptions.type` and the caller's to declare:
+     * `ConsolePanel` writes `console` over a path that would derive `file`
+     * (`packages/console/src/panel.ts:71`).
      *
      * Spelled out rather than left to constructor defaults: kotlinx serialization omits a value
      * equal to its default, so defaulted fields would simply not be sent - and `type` is required.
      */
-    fun forDocument(path: String, kernel: KernelChoice? = null) = SessionStartRequest(
+    fun forDocument(path: String, type: SessionType, kernel: KernelChoice? = null) = SessionStartRequest(
       path = path,
-      // `type: ext === '.ipynb' ? 'notebook' : 'file'` (packages/docregistry/src/context.ts:86)
-      type = if (path.endsWith(".ipynb")) "notebook" else "file",
+      type = type.wire,
       // `PathExt.basename(localPath)` - the document, without the folders above it.
       name = path.substringAfterLast('/'),
       kernel = kernel?.ref(),

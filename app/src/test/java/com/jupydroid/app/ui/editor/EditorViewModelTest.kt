@@ -10,6 +10,7 @@ import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.domain.port.SessionType
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -89,6 +90,23 @@ class EditorViewModelTest {
     consoleSession.reopeningIfStale { }
 
     assertEquals("a pre-attached session must not connect again", 1, gateway.connectCount)
+  }
+
+  /**
+   * When the console's copy does have to connect - the notebook had no session yet, or a stale
+   * one is reopened - its POST declares `type: 'console'`, what the reference's own
+   * `SessionContext` for a console carries (`packages/console/src/panel.ts:71`). The server
+   * applies it only on creation, so an existing notebook session on the path is unaffected.
+   */
+  @Test
+  fun kernel_attachConsoleDeclaresAConsoleSessionWhenItConnects() = runTest {
+    val gateway = RecordingKernelGateway()
+    val viewModel = loadedEditor(gateway = gateway)
+
+    viewModel.kernel.attachConsole().open()
+    advanceUntilIdle()
+
+    assertEquals(listOf(SessionType.CONSOLE), gateway.connectedSessionTypes)
   }
 
   @Test

@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.ServerConnection
+import com.jupydroid.app.domain.port.SessionType
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -93,6 +94,25 @@ class OkHttpKernelLifecycleTest {
 
     assertEquals("""{"path":"Analysis.ipynb","type":"notebook","name":"Analysis.ipynb"}""", takeRequest().body?.utf8())
     assertEquals("""{"path":"scratch.py","type":"file","name":"scratch.py"}""", takeRequest().body?.utf8())
+  }
+
+  /**
+   * `type` is the opener's to declare, not only the path's to imply: `ConsolePanel` opens its
+   * `SessionContext` with `type: 'console'` (`packages/console/src/panel.ts:71`) over a
+   * `console-<count>-<uuid>` path the `.ipynb` rule above would call a `file` - and
+   * `running:kernel-open-session` reads the server's copy of this field to pick `console:open`
+   * over `docmanager:open`, so a console declared `file` can never be reached as one.
+   */
+  @Test
+  fun start_postsTheSessionTypeTheCallerDeclared() = runTest {
+    serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
+
+    lifecycle().start("reports/console-1-abc", sessionType = SessionType.CONSOLE)
+
+    assertEquals(
+      """{"path":"reports/console-1-abc","type":"console","name":"console-1-abc"}""",
+      takeRequest().body?.utf8(),
+    )
   }
 
   /** With no `kernel` in the body the server picks its default; we still have to send valid JSON. */

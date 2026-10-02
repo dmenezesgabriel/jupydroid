@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.KernelSpecModels
+import com.jupydroid.app.domain.port.SessionType
 
 /**
  * A [KernelLifecycle] that hands out predictable kernel ids and records interrupts, so the
@@ -37,13 +38,17 @@ class FakeKernelLifecycle(
   private val issued = LinkedHashMap<String, KernelSessionModel>()
   private var mintedKernels = 0
 
-  override suspend fun start(documentPath: String, kernel: KernelChoice?): StartedKernelSession {
+  override suspend fun start(
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): StartedKernelSession {
     failWith?.let { throw it }
     startCount++
     startedWith += kernel
     val started = kernel?.let { startedKernel(serverSessionId, it) }
       ?: StartedKernelSession(kernelId = kernelId, kernelName = kernelName, serverSessionId = serverSessionId)
-    issued[serverSessionId] = sessionModel(documentPath, started)
+    issued[serverSessionId] = sessionModel(documentPath, started, sessionType ?: SessionType.forPath(documentPath))
     return started
   }
 
@@ -65,13 +70,13 @@ class FakeKernelLifecycle(
       StartedKernelSession(kernel.kernelId, kernel.kernelId, serverSessionId)
   }
 
-  private fun sessionModel(documentPath: String, started: StartedKernelSession) = KernelSessionModel(
+  private fun sessionModel(documentPath: String, started: StartedKernelSession, type: SessionType) = KernelSessionModel(
     serverSessionId = started.serverSessionId,
     kernelId = started.kernelId,
     kernelName = started.kernelName,
     path = documentPath,
     name = documentPath.substringAfterLast('/'),
-    type = if (documentPath.endsWith(".ipynb")) "notebook" else "file",
+    type = type.wire,
   )
 
   override suspend fun sessions(): List<KernelSessionModel> {

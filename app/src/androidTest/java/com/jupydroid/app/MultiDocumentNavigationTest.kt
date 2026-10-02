@@ -20,6 +20,7 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.theme.JupyterDroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -117,9 +118,14 @@ class MultiDocumentNavigationTest {
     val connectedPaths = mutableListOf<String>()
     val shutDownSessions get() = delegate.shutDownSessions
 
-    override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
+    override suspend fun connect(
+      space: Space,
+      documentPath: String,
+      kernel: KernelChoice?,
+      sessionType: SessionType?,
+    ): KernelSession {
       connectedPaths += documentPath
-      return delegate.connect(space, documentPath, kernel)
+      return delegate.connect(space, documentPath, kernel, sessionType)
     }
   }
 

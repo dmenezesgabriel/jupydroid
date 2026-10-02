@@ -32,7 +32,7 @@ class FakeKernelSessions(private val registry: KernelSessionRegistry = KernelSes
       kernelName = tracked.kernelSession.kernelName,
       path = tracked.documentPath,
       name = tracked.documentPath.substringAfterLast('/'),
-      type = if (tracked.documentPath.endsWith(".ipynb")) "notebook" else "file",
+      type = tracked.type.wire,
     )
   }
 

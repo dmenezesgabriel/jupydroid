@@ -15,6 +15,7 @@ import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageServerPort
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.SteppingCommand
 import com.jupydroid.app.domain.port.formattingOptions
 import kotlinx.coroutines.CoroutineScope
@@ -212,6 +213,10 @@ class NotebookKernel(
     BASE_SPACE,
     kernelSpecs,
     attachedTo = session.opened,
+    // `SessionContext({type: 'console'})` (`console/panel.ts:71`) - declared even though the
+    // POST only goes out when there is no session to share, since the field is the opener's
+    // to state, not the path's to imply.
+    sessionType = SessionType.CONSOLE,
     // The kernel the notebook prefers - seeded from its metadata, then kept in step with what
     // it is bound to - is the console's preference too: a stale reconnect re-asks for it
     // rather than the server's default.

@@ -10,6 +10,7 @@ import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.SessionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.util.concurrent.atomic.AtomicInteger
@@ -31,7 +32,12 @@ class FakeKernelGateway(private val registry: KernelSessionRegistry = KernelSess
   /** What [changeKernel] was asked for, in order - the picker's answer reaching the gateway. */
   val kernelChanges = mutableListOf<KernelChoice>()
 
-  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
+  override suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): KernelSession {
     connectsAskedFor += kernel
     val serial = issuedCount.incrementAndGet()
     return KernelSession(
@@ -49,7 +55,7 @@ class FakeKernelGateway(private val registry: KernelSessionRegistry = KernelSess
       // A server session id shaped like the server's, so a caller that builds a URL from it
       // builds a plausible one. There is no server here to file it with.
       serverSessionId = "fake-session-${space.id}-$serial",
-    ).also { registry.register(it, documentPath) }
+    ).also { registry.register(it, documentPath, sessionType) }
   }
 
   /**

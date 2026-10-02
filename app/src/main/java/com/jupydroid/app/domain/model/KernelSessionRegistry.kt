@@ -1,12 +1,18 @@
 package com.jupydroid.app.domain.model
 
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.SessionType
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
-/** A session this process minted, and the document it was minted for - the pair a row needs. */
-data class TrackedKernelSession(val kernelSession: KernelSession, val documentPath: String)
+/**
+ * A session this process minted, the document it was minted for, and the kind it declared -
+ * [type] is the `type` field of its `POST api/sessions` ([SessionType]), which a `GET
+ * api/sessions` row reports back verbatim, so it is what a `running()` answer built from
+ * tracked sessions has to carry.
+ */
+data class TrackedKernelSession(val kernelSession: KernelSession, val documentPath: String, val type: SessionType)
 
 /**
  * The kernel sessions this process minted, keyed by the server's own session id.
@@ -49,9 +55,13 @@ class KernelSessionRegistry {
   /**
    * Minted a session: remember it so its end can be told apart from sessions this process never
    * held. Silent - an arrival announces itself on the session object the caller already has.
+   *
+   * [type] is what the session declared on its POST - null answers "the document rule" the way
+   * [KernelGateway.connect]'s own parameter does.
    */
-  fun register(session: KernelSession, documentPath: String) {
-    tracked[session.serverSessionId] = TrackedKernelSession(session, documentPath)
+  fun register(session: KernelSession, documentPath: String, type: SessionType? = null) {
+    tracked[session.serverSessionId] =
+      TrackedKernelSession(session, documentPath, type ?: SessionType.forPath(documentPath))
   }
 
   /**

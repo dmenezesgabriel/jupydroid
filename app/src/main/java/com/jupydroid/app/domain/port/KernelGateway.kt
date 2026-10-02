@@ -73,8 +73,18 @@ interface KernelGateway {
    * `open('data.csv', 'w')` lands beside the notebook rather than wherever the server happened to
    * be started - which on the device is a read-only filesystem. JupyterLab reaches the same thing
    * by giving its session the document's path (`SessionContext({path, type: 'notebook'})`).
+   *
+   * [sessionType] is `SessionContext.IOptions.type` - declared by the opener, since the caller is
+   * the one that knows what it is opening. Null means the document rule, [SessionType.forPath]:
+   * a console's `console-<count>-<uuid>` path derives `file` under it, so a console declares
+   * [SessionType.CONSOLE] itself the way `ConsolePanel` does (`console/src/panel.ts:71`).
    */
-  suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice? = null): KernelSession
+  suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice? = null,
+    sessionType: SessionType? = null,
+  ): KernelSession
 
   /**
    * Rebinds [session] to another kernel - `SessionContext.changeKernel`

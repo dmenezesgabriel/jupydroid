@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.SessionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.emitAll
@@ -42,8 +43,13 @@ class RealKernelGateway(
    * Starts a kernel and binds a session to it. The session id is ours and identifies this
    * client to the server; the kernel id is the server's.
    */
-  override suspend fun connect(space: Space, documentPath: String, kernel: KernelChoice?): KernelSession {
-    val started = lifecycle.start(documentPath, kernel)
+  override suspend fun connect(
+    space: Space,
+    documentPath: String,
+    kernel: KernelChoice?,
+    sessionType: SessionType?,
+  ): KernelSession {
+    val started = lifecycle.start(documentPath, kernel, sessionType)
     return KernelSession(
       id = UUID.randomUUID().toString(),
       spaceId = space.id,

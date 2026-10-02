@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.untitledNotebookIn
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.editor.NotebookKernelSession
@@ -118,7 +119,7 @@ class LauncherViewModel(
     val ordinal = consoleOrdinal()
     val name = "console-$ordinal-${UUID.randomUUID()}"
     val path = if (cwd.isEmpty()) name else "$cwd/$name"
-    val session = NotebookKernelSession(kernelGateway, BASE_SPACE) { path }
+    val session = NotebookKernelSession(kernelGateway, BASE_SPACE, sessionType = SessionType.CONSOLE) { path }
     session.open()
     return LaunchedDocument.CreatedConsole(session, path, "Console $ordinal")
   }
