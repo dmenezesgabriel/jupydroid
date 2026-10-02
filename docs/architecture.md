@@ -1025,6 +1025,43 @@ list cannot be dropped without dropping all ten. `RecentRow`'s stated reason —
 no per-row act because rename and delete belong to the file — was written before Forget was
 weighed, and the repair is the row act it declined.
 
+### GAP-068 — A session's record does not follow its file's rename
+
+`Context._onFileChanged` answers a rename by pointing the session at the new path —
+`sessionContext.session?.setPath(newPath)`
+(`jupyterlab/packages/docregistry/src/context.ts:540-555`) — so the running panel's row keeps
+naming a live file. Ours' `KernelSessions` has no path op — `running()` lists and `shutdown()`
+ends, and that is the whole surface
+(`app/src/main/java/com/jupydroid/app/domain/port/KernelSessions.kt`) — so a rename moves the
+open document (its `Renamed` adoption is the same event) while the server's session record keeps
+the old path: the Running row built from `running()` goes stale, and its tap opens the dead
+path as a fresh editor. The repair is a `setPath` on the port PATCHing the session, asked from
+the same `changes` collector that already adopts the rename — which is where the reference puts
+it, inside the context that heard `fileChanged`.
+
+### GAP-069 — A file act on a tab fails without saying so
+
+`renameFile`'s catch rethrows every refusal that is not a 409
+(`jupyterlab/packages/docmanager/src/dialogs.ts`), so a rename refused for another reason at
+least reaches the console, and the browser's own row reports it on the listing's error line.
+Ours' tab-strip rename keeps only the `FileNameTakenException` arm and the overwrite that follows
+it has no failure arm at all
+(`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`) — so a refusal by the disk
+answers with silence: the dialog is gone, the tab is unchanged, and nothing learns why. The
+strip has no error surface to put it on; the repair is the one a kept-open dialog or the
+document's own error line would provide.
+
+### GAP-070 — Every disk-backed state file is read on the main thread at launch
+
+`MutableStateFlow(loadValidated())` in each `Disk*SettingsRepository` — and in
+`DiskRecentDocumentsRepository`, which adds a directory `lstat` per stored row — runs inside
+`AppContainer` construction on `JupydroidApplication.onCreate`
+(`app/src/main/java/com/jupydroid/app/di/AppContainer.kt`,
+`app/src/main/java/com/jupydroid/app/data/disk/DiskRecentDocumentsRepository.kt`): a handful of
+small `readText`s plus up to `MAX_RECENTS` stats, all before the first frame, on the thread
+startup is measured on. Bounded today and never yet a measured problem — the repair the day a
+cold start shows up in a profile is a first read deferred to first collection.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

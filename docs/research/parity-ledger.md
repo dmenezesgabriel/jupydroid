@@ -55,7 +55,7 @@ Five, each obliging something different. The full definition is in
 | Cell commands and selection | `AUD-002` | examined — below |
 | Editor language features | `AUD-003` | examined — below |
 | Search, replace, table of contents | `AUD-004` | examined — below |
-| Files, workspace, recents | `AUD-005` | measured — the surface below, verdicts next |
+| Files, workspace, recents | `AUD-005` | examined — below |
 | Console, sessions, running panel | `AUD-006` | unexamined |
 | Terminal emulator and view | `AUD-007` | unexamined |
 | Rendering and formats | `AUD-008` | unexamined |
@@ -1032,7 +1032,7 @@ leaving-seam — is reachable only from a notebook's export.
 | `filebrowser:open-url` — prompt → `fetch` → `model.upload` → `docmanager`'s `open` (`index.ts:1088-1140`) | — | absent | GAP-054. A file *in* — the URL's content is fetched then uploaded into the workspace — and nothing puts a file in. |
 | `filebrowser:open-browser-tab` — per selected item, a `single-document` tree URL or `docmanager`'s `open-browser-tab`'s download URL → `window.open` (`index.ts:976-1010`) | — | absent | GAP-055. Both halves presuppose a server URL a browser can open; none exists. |
 | `docmanager:new-untitled` — `contents.newUntitled({path,type,ext})` — the typed create every surface delegates to (`index.tsx:775-822`, `manager.ts:426-430`) | `NewMenu` → `create` → `createFile`/`createFolder`/`createNotebook` | adapted | The same create under the same server names. The notebook arm goes through `NotebookRepository` because an `.ipynb` is nbformat, not an empty file — `create`'s docstring states the split. |
-| `docmanager:open` — `contents.get` then `openOrReveal` (`index.tsx:824-847`) | a tap → `openNotebook`/`openFile` → `openInMainArea` — reveal-or-open | present | `NotebookBackStack`'s docstring names `openOrReveal` itself; the path picks the factory by suffix in `DocumentOpeners`. |
+| `docmanager:open` — `contents.get` then `openOrReveal` (`index.tsx:824-847`) | a tap → `openDocument` — `OpenDocuments.at` resolves the live path to the `openedAs` the key keeps — → `openNotebook`/`openFile` → `openInMainArea` | **defect** | found by the walk and fixed red-first: the reveal was key-equality only and a `NavKey` keeps the path it was opened under, so a document renamed beside its open editor re-opened as a *second* entry — two ViewModels, two autosaves on one file (`fbd21a99`, `NotebookBackStackTest.openingARenamedDocumentRevealsItInsteadOfOpeningItAgain`). The reference matches by the context's *current* path via `_contextsForPath` (`manager.ts:481-503`). |
 | `docmanager:rename` — `dialogs.rename(context)`, bound on `document-title` context menus (`index.tsx:1428-1450`) | tab long press → the same `RenameFileDialog` → `rename`; the document adopts through `WorkspaceChange.Renamed` | present | `MainAreaTabStrip.kt:309` states the long press is the `document-title` menu collapsed to its one item. |
 | `docmanager:delete`, `docmanager:delete-file` — ask → `deleteFile` = `stopIfNeeded` + `contents.delete` + `deleteWidgets` (`index.tsx:749-773,1473-1506`) | the ask+delete lives on the explorer row, never on the document's own tab; `Deleted` closes the document | absent | GAP-059 for the surface, GAP-058 for `stopIfNeeded`: the open document hears its file go (the `deleteWidgets` half) while its session survives. |
 | `docmanager:duplicate` — `manager.duplicate` on the context's path (`index.tsx:1452-1471`) | — | absent | GAP-059 — no copy act on the document's surface, and GAP-050 — no `copy` op for one to delegate to. |
@@ -1112,3 +1112,108 @@ by `RecentsSection` at the explorer root with `RecentsActionsMenu`'s clear.
 | VS Code `workbench.action.files.revert` (`fileCommands.ts:565`) | — | **absent** | `GAP-064`. |
 | VS Code `workbench.action.openRecent` — a quick pick over MRU'd workspaces and files, a remove button per row (`windowActions.ts:48-56,290-310`) | `RecentsSection` — always-on-screen at the explorer root | **adapted** | The pick's job — reopen something recent without hunting — is a root-level section; the per-row remove button the pick mounts is `GAP-067`. |
 | VS Code `files.autoSave` — `off`/`afterDelay`/`onFocusChange`/`onWindowChange` (`files.contribution.ts:261-268`) | `autosaveEnabled` + `autosaveIntervalSeconds` — an on/off and a delay | **adapted** | The four-valued trigger collapses: `afterDelay` is this app everywhere (a phone's focus is one window's), and `onFocusChange`/`onWindowChange` have no surface to hang from — `EditorSettings`' docstring carries the JupyterLab half of the same collapse. |
+
+### The walk
+
+Four paths through the one workspace. **A tap to an open document re-keyed:** `EntryRow`'s tap →
+`ExplorerViewModel.open` — a directory `goTo`s, a file is handed up `onOpenFile` →
+`rememberDocumentOpener` → `MutableList<NavKey>.openDocument` — `OpenDocuments.at` resolving the
+asked path to the `openedAs` the stack still knows, the live-path reveal `openOrReveal` gets from
+`_contextsForPath` — then the suffix split → `openNotebook`/`openFile` → `openInMainArea`'s
+reveal-or-push → the new entry's ViewModel `init`: `openDocuments.opened` *before* the read, then
+the `workspaceRepository.changes` collector. The change side: `DiskWorkspaceRepository`'s
+`MutableSharedFlow` — no replay, no buffer, `emit` suspending until every collector has taken the
+event. A `Renamed` → `pathAfterRename` — exact match or whole-segment prefix, so a renamed folder
+moves every open descendant — → `adopt` → the live `notebookId`/`path` var → `LaunchedEffect` →
+`onNotebookMoved`/`onFileMoved` → `openDocumentPaths[key]` → `mainAreaTabTitle` renames the tab and
+`openDocumentPath` re-marks the row. A `Deleted` matching exactly → `gone`/`stopWriting` → `onBack`
+*outside* the save gate — a deleted file has nothing a save could put back.
+**A rename to 409 to overwrite:** the row's menu → `RenameFileDialog` — invalid or unchanged
+refused before the port is asked — → `rename` → `move` (`renamingPath` armed) →
+`DiskWorkspaceRepository.rename`: `idBeside` joins the name onto the parent, same-name no-ops,
+`isValidFileName` refuses, a missing source refuses, a taken target throws
+`FileNameTakenException` before `renameTo` has touched anything → `_changes.emit(Renamed)`.
+`move.onFailure` splits: taken → `nameTaken` → `OverwriteFileDialog` → `answerOverwrite` →
+`overwrite` — the source moved aside to a UUID sibling, the target deleted, the aside moved in,
+the aside *restored* when the delete failed — → `Deleted(moved)` then `Renamed(from→moved)` in
+the disk's own order → the same adoption path a plain rename takes; every other failure lands on
+the `error` line. **An open to recents to revalidate:** `recordOpening` on `applicationScope` —
+the write must outlive the tap that caused it — → `recentsForOpening`: the document and its
+parent directory, the root excluded → `record` per entry, a path the workspace cannot address
+refused → `withMostRecent` dedup-unshift-cap-`MAX_RECENTS` → a whole-JSON write per record →
+`MutableStateFlow` → `RecentsViewModel` → `shownWhileBrowsing` — the section exists only at the
+root — → `inRecentsOrder` directories-first → `RecentsSection`; a recent's tap re-enters the tap
+path or `goTo`. `loadValidated` at construction — parse-or-empty, then an `lstat` per stored row
+— and `revalidate` on every `KeepTheListingFresh` tick, the same filter again, writing only when
+a row dropped. **An edit to debounce to poll to write:** `editCell`/`edit` →
+`DocumentAutosave.schedule` — refused while `autosaveEnabled` is off or the document is
+`discarded` — → `editArrived = true` + the 500 ms `pending` job restarted → `launchWrite` as a
+*separate* job, so a re-schedule cannot cancel a write mid-flight → `attemptWrite` swallowing
+everything but cancellation → `persist`: `gone`/`loaded` guards, then the notebook arm —
+`writeMutex`, a snapshot of `written`, `saveNotebook`, `adoptWritten` clearing `dirty` only while
+the snapshot still covers, `saveFailure` on failure — or the file arm — `writeText`, `dirty`
+cleared, `error` on failure. The poll: `editorSettings.collectLatest` → `editArrived.first{it}` —
+a clean document parks the poll rather than spinning — → `delay(interval)` → `isDirty()` → write.
+The way out: `SaveBeforeCloseGate`/`MainAreaCloseGate` → `saveNow` → `flush` → `onSaved` only
+when nothing is left dirty — a rejected save never closes, the reference's own rule —
+`discardChanges` dropping the owed work, `onCleared` flushing what is owed on `applicationScope`.
+What it found, beyond the rows above:
+
+- **Growth is a relist per act and per tick, and a revalidation per refresh — all bounded by
+  construction.** Every create/rename/delete ends in a `goTo(browsing)` — one `listFiles`, a stat
+  per entry, `inWorkspaceOrder` — serialized by `listing?.cancel()` so at most one listing is in
+  flight; `KeepTheListingFresh` adds one per `RESUMED` spell. That is the reference's own shape —
+  `_refreshOrRepopulate` after every mutation plus the 10 s poll — and the same re-read
+  `relistAfter`'s docstring argues for over patching rows. Recents cost ≤`MAX_RECENTS` `lstat`s a
+  tick and write only when a row dropped; `record` writes the whole JSON per entry — two writes
+  for a document opened from a folder — bounded at ten rows, the debounce declined where the
+  repository's docstring states it. `emit`'s suspend-until-collected makes a rename's cost the
+  move plus every open document's synchronous adoption — paid by the renamer, and the ordering
+  the tab strip leans on. The one growth the walk did not excuse: `loadValidated` and the four
+  `Disk*SettingsRepository` twins read their state files inside `AppContainer` construction, on
+  the main thread, before the first frame — `GAP-070`.
+- **Branching is small and each arm belongs to the layer that owns it.** `open` splits directory
+  from file, `openDocument` splits the suffix, `move.onFailure` splits the one answerable refusal
+  (`FileNameTakenException` → the ask) from every other (→ the banner). `rename`'s own refusals
+  run in order — same name, invalid name, missing source, taken target — before `renameTo` runs;
+  `overwrite` carries a restore-aside arm so a failed delete puts the source back rather than
+  leaving the name's owner aside. `pathAfterRename` is exact-match-or-whole-segment-prefix — a
+  folder takes its open descendants with it — while `Deleted` is exact-match only, sufficient
+  *because* the port refuses a non-empty delete: the refusal is load-bearing for the listener, a
+  coupling worth naming. `DocumentAutosave` splits debounce/poll/flush, and `persist` guards
+  `gone` and `loaded` before it writes, so a mid-write delete cannot resurrect a file.
+- **Failure is answered at the surface it belongs to — and the walk found three places it was
+  not.** A refused rename asks (taken) or banners (other); a refused non-empty delete and a failed
+  create banner; a failed listing leaves the browser where it stood; a cancelled listing says
+  nothing — both pinned. A failed write leaves `dirty` set with `saveFailure`/`error` carrying the
+  cause, and the close gate keeps the document open — `context.save()` rejecting keeps the widget
+  open, the same rule. What another *process* does to the workspace arrives nowhere: `changes` is
+  in-process and non-replay, so a cell's `os.remove` or a second client is invisible to an open
+  document until its own write trips on it — `GAP-064`'s missing reload and `GAP-065`'s blind
+  save are where the ledger already charges that. The defects the walk owes the ledger, all fixed
+  red-first: **`docmanager:open` revealed by key equality, and a key keeps the path it opened
+  under** — rename a file beside its open document and the next tap pushed a second editor, two
+  autosaves on one file — `fbd21a99`,
+  `NotebookBackStackTest.openingARenamedDocumentRevealsItInsteadOfOpeningItAgain` (the row above
+  is re-verdicted `**defect**`); **an act landing mid-navigation re-listed the stale path** —
+  `relistAfter`/`move` read `uiState.path` where `refresh` already reads `browsing`, cancelling the
+  pending `goTo` — `f631fea2`, `aRename…`/`aDeleteFinishedMidNavigationRelistsWhereWeAreGoing`;
+  **a landing listing retracted the overwrite question** — `listingOf`'s fresh state dropped
+  `nameTaken`, so a poll tick answered the ask nobody answered — `068d08c9`,
+  `aPollDoesNotRetractTheOverwriteQuestion`. One more failure found and not repaired: a rename or
+  overwrite refused on the *tab strip* lands nowhere at all — `GAP-069`.
+- **Coupling is the walk's real yield — one channel, one direction, and who never hears.**
+  `WorkspaceRepository.changes` is the only channel every tree act announces on, and
+  `emit`-suspends-until-collected is the ordering `TabbedDocumentPane`'s `openDocumentPaths` write
+  leans on — the rename returns only after the document adopted it. Documents adopt through
+  `pathAfterRename` and report their live path sideways into `openDocumentPaths`; the key keeps
+  `openedAs` and `documentIn`/`openedUnder` find a document by it even mid-composition-gap — the
+  two-key scheme `MainAreaTabs` documents, joined on the open side by `openDocument`'s `at`
+  lookup. Recents deliberately do not follow a move — the reference's rule
+  (`RecentsManager.validateRecents` drops what no longer resolves) and ours is the same
+  `stillThere` filter at `loadValidated`/`revalidate`. The explorer itself never subscribes — the
+  poll is its freshness, `GAP-056`'s shape. `changes` carries `Renamed`/`Deleted` and no `new` or
+  `save` type because no listener needs one: the only consumer is a document hearing about itself.
+  And the coupling the reference has that ours does not: `_onFileChanged` patches the session's
+  own record — `sessionContext.session?.setPath(newPath)`, `context.ts:551` — while
+  `KernelSessions` has no path op, so a Running row keeps the dead path and opens it — `GAP-068`.

@@ -166,7 +166,7 @@ Known going in, so a verdict does not re-litigate them:
       toggle-autosave|restore-checkpoint|reload|clear-recents`, `docmanager:recents`, and
       `plugin.json`'s seven settings against `DocumentAutosave`/`EditorSettings`/
       `RecentDocumentsRepository`/`RecentsSection`; VS Code's save/revert and `openRecent`.
-- [ ] T5 — **The walk.** Tap → `ExplorerViewModel` → `WorkspaceRepository` → disk → `changes` →
+- [x] T5 — **The walk.** Tap → `ExplorerViewModel` → `WorkspaceRepository` → disk → `changes` →
       an open document re-keyed; rename → 409 → the overwrite question → move aside, delete,
       move in; an open → `RecordOpening` → recents → `revalidate`; an edit → `DocumentAutosave`'s
       debounce and poll → write. Growth (a relist per act, recents revalidated per refresh),
