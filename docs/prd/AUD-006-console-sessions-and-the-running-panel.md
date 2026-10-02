@@ -237,7 +237,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `ConsoleCellExecutor`) against `ui/console/`, `Console`, `attachConsole`,
       `openStandaloneConsole`, `mintConsole`; vscode-jupyter's interactive window against the same.
       `GAP-012`'s console half is read here.
-- [ ] T3 — **Verdicts for sessions and kernel lifecycle.** The nine `notebook:` lifecycle ids, the
+- [x] T3 — **Verdicts for sessions and kernel lifecycle.** The nine `notebook:` lifecycle ids, the
       two history-walk ids, the nine carried menu delegates, `notebook:create-subshell-console`'s
       subshell half, and the `sessioncontext`/`sessionDialogs`/`kernels-settings` machinery against
       `NotebookKernelSession`, `NotebookKernel`, `KernelMenu`, `NotebookKernelPicker`,

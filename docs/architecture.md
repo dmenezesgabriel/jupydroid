@@ -1140,6 +1140,16 @@ kernel spawns — so a run lands while the main shell is busy — gated by `comm
 in `KernelGateway` names a subshell — `execute` addresses the session's one shell channel — so
 the command has nothing to mint on.
 
+### GAP-078 — The restart dialog always asks
+
+`sessionDialogs.restart`'s confirm carries a "Do not ask me again." checkbox that writes
+`kernelPreference.skipKernelRestartDialog`, and `sessionDialogs.json`'s setting of the same name
+skips the confirm outright
+(`jupyterlab/packages/apputils/src/sessioncontext.tsx:1493-1540`,
+`jupyterlab/packages/apputils-extension/schema/sessionDialogs.json`). `RestartDialog` has no
+checkbox and no preference stands behind it — a restart agreed to once is asked about again every
+time.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

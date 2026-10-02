@@ -1403,3 +1403,63 @@ declares it. And one observation shaped a gap rather than a fix: closing a Conso
 neither socket nor session while `SessionContext.dispose` releases the client connection —
 recorded as `GAP-075` rather than repaired, because the naive disconnect would close an attached
 console's *shared* socket out from under its notebook.
+### Sessions and kernel lifecycle — verdicts
+
+`T3`'s entries, read through `SessionContext` rather than the command ids alone: every notebook
+id here is a call on `context.sessionContext` — `sessionDialogs.restart`/`selectKernel` for the
+two that ask, `sessionContext.interrupt`/`shutdown`/`reconnect` for the ends, `session?.kernel`
+for the invisible get — and the seven `kernelmenu:*` ids are `SemanticCommand`s executing
+whatever the current widget registered for the act (`mainmenu/src/kernel.ts`), so a menu row and
+the command it wears are one read. `filemenu:close-and-cleanup` delegates to
+`*:close-and-shutdown` with `application:close` as the fallback.
+
+Ours is the same shape at one remove: `NotebookKernel` (`stopRunningCell`, `restart(then)`,
+`restartAndRunAll`, `shutdown(then)`, `picker`) over a `NotebookKernelSession` that lands
+`SessionContext`'s two signals — `disposed` as `kernelSessions.ended` → `endIfMatches`,
+`kernelChanged` as `rebound` → `rebindIfMatches` (`NotebookKernelSession.kt:180-220`) — with
+`reopeningIfStale` the landing the reference has no equivalent for. The compound restarts keep
+the reference's own composition: an awaited restart whose continuation runs after the kernel has
+been replaced (`index.ts:3245-3345`, cited at `NotebookKernel.restart`), and each asks first
+through the one `RestartDialog` reading the reference's own sentence — *"All variables will be
+lost"* (`sessioncontext.tsx:1505-1520`).
+
+The settings read as machinery rather than commands: `kernelInfoTimeout` is
+`KERNEL_INFO_TIMEOUT`'s 3 s — the reference's own default as a constant (`KernelSockets.kt`);
+`commsOverSubshells` is `GAP-077`'s absent wire; `showStatusBarItem` toggles a statusbar item
+this shell has no surface for — the running panel's Kernel Sessions section is the same list;
+and `skipKernelRestartDialog` is the one hole the read found in the dialogs — `GAP-078`.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `notebook:interrupt-kernel` — `sessionContext.interrupt()` → `POST api/kernels/<id>/interrupt`; the toolbar's stop square, enabled while running (`createInterruptButton`, `apputils/src/toolbar/widget.tsx:50`) | `NotebookBar`'s stop square, enabled `busy` → `stopRunningCell` → `kernelGateway.interrupt` → the same POST | present | Same endpoint, same icon, same enable-while-running — `NotebookBar.kt`'s doc cites both halves. |
+| `notebook:restart-kernel` — `sessionDialogs.restart` → `restartKernel` → `POST api/kernels/<id>/restart` | `NotebookBar`'s refresh button → `RestartDialog(RESTART)` → `NotebookKernel.restart` → `kernelGateway.restart` | present | The same confirm asking the reference's own sentence, then the same POST. The dialog's "Do not ask me again" half is the settings read below, not the command's. |
+| `notebook:restart-clear-output` — restart, then `NotebookActions.clearAllOutputs` (`index.ts:3245-3260`) | `KernelMenu`'s `RESTART_AND_CLEAR` row → `RestartDialog` → `kernel.restart(then = edits.clearAllOutputs)` | present | The same awaited-restart-then-clear; `restart`'s `then` parameter exists for exactly these three commands (`NotebookKernel.kt`). |
+| `notebook:restart-run-all` — restart, then the public `NotebookActions.runCells` over the whole notebook (`index.ts:3315`) | `NotebookBar`'s fast-forward → `restartAndRunAll` → `restart(then = runs.runCells(cells))` | present | Same continuation, same toolbar-button surface; `restartAndRunAll`'s doc states why it composes out of `runCells` rather than `runAll`, exactly as the reference does. |
+| `notebook:shutdown-kernel` — `sessionContext.shutdown()` → `DELETE api/kernels/<id>`, unguarded | `KernelMenu`'s "Shut Down Kernel" → `kernel.shutdown()` → `kernelGateway.shutdown` → DELETE + `ended` | present | Unguarded in both — the close variant is the one that asks (`index.ts:3189-3213`), which `shutdown`'s doc states. |
+| `notebook:change-kernel` — `sessionDialogs.selectKernel` over specs, running kernels and "No Kernel" | `KernelMenu`'s "Change Kernel…" and the `KernelIndicator` tap → `NotebookKernelPicker` | adapted | The same three groups, transcribed from `kernelOptions`; the picker's `autoStartDefault`/"always start the preferred kernel" checkbox is declined on purpose — `KernelChoice.kt` states it. |
+| `notebook:get-kernel` — the invisible `session?.kernel` the name and status widgets query (`index.ts:4591-4607`) | `KernelSession.kernelName`/`preferredKernel`, drawn by `KernelIndicator` | adapted | The question exists as resolved state rather than a command result — `KernelIndicator.kt`'s doc states why the name is the *live* kernel's, not the file's. |
+| `notebook:reconnect-to-kernel` — `kernel.reconnect()`: close the websocket, open a fresh one on the same kernel (`index.ts:4591-4607`) | `KernelSockets.socketFor` evicts a socket that ended, so the next ask opens the fresh one | **defect** | Found by the read and fixed red-first: a socket that reported `Ended` between asks stayed cached in `sessionSockets`, the next `execute` reused it — OkHttp's `send` returns false there and no frame ever arrives — so the run waited for ever. `RealKernelGatewayTest.execute_reopensASocketThatEndedBetweenRuns`; the act is now the reference's own, arriving on the next ask rather than from a menu. |
+| `notebook:close-and-shutdown` — asks "Shut down the notebook?", awaits `sessionContext.shutdown()`, disposes (`index.ts:3189-3213`) | `KernelMenu`'s "Close and Shut Down Notebook…" → `CloseAndShutDownDialog` → `kernel.shutdown(then = onBack)` | present | Same question in the reference's own words, same awaited ordering — `CloseAndShutDownDialog` cites `index.ts:3196-3205`, and `shutdown`'s `then` runs after the session has ended, as the reference's `await` does. |
+| `notebook:access-previous-history-entry`, `notebook:access-next-history-entry` — ArrowUp/ArrowDown at the prompt cell's edge walking `NotebookHistory`, behind `accessKernelHistory` (`index.ts:5179+`) | `SymbolRow`'s `Hist ↑`/`Hist ↓` keys behind `EditorSettings.accessKernelHistory` → `recallPrevious`/`recallNext` | adapted | The walk is the same object, the setting keeps the reference's name and off-by-default; the keys are the touch surface for the cell-edge arrows — `SymbolRow.kt`'s `RECALL_*_ENTRY` labels cite the reference's own. |
+| `kernelmenu:interrupt` — the Kernel menu's Interrupt row, executing the current widget's `interruptKernel` | `NotebookBar`'s stop square | adapted | The act is present; the menu row is not — interrupt sits on the bar at a thumb's reach, which `KernelMenu.kt`'s doc states is where a running notebook's ends live on a phone. |
+| `kernelmenu:reconnect-to-kernel` — the menu's Reconnect row | — | **defect** | The same dead-socket hang, judged once with `notebook:reconnect-to-kernel`: the menu's own act is what `socketFor`'s eviction now performs on the next ask. |
+| `kernelmenu:restart` — the menu's "Restart Kernel…" row | `NotebookBar`'s refresh button | adapted | Same act, same confirm — the bar's own button rather than a menu row, for `kernelmenu:interrupt`'s reason. |
+| `kernelmenu:restart-and-clear` — the menu row executing `restartKernel` + `clearWidget` (`mainmenu-extension/src/index.ts:653`) | `KernelMenu`'s `RESTART_AND_CLEAR` row | present | Same label, same composition, filed in the Kernel menu the reference files it under. |
+| `kernelmenu:change` — the menu's "Change Kernel…" row | `KernelMenu`'s "Change Kernel…" row | present | Same label, ellipsis kept — `KernelMenu.kt` states the ellipsis is what says a row will ask. |
+| `kernelmenu:shutdown` — the menu's "Shut Down Kernel" row | `KernelMenu`'s "Shut Down Kernel" row | present | Same label, same unguarded act. |
+| `kernelmenu:shutdownAll` — "Shut Down All Kernels…" → counted confirm → `sessions.shutdownAll()` (`mainmenu-extension/src/index.ts:708-735`); also the running panel's own bulk button (`running/src/index.tsx:584-620`) | the Kernel Sessions section's "Shut Down All" → `kernelShutdownAllText`'s counted confirm → `shutdownAllSessions` | adapted | The act lives on the running surface, which is the reference's own second home for it; `RunningPanelViewModel.kt`'s doc states why ours deletes sessions — the level the reference's own `sessions.shutdownAll()` works at — where its dialog counts kernels. |
+| `filemenu:close-and-cleanup` — semantic delegate to `*:close-and-shutdown`, `application:close` as the fallback | `KernelMenu`'s "Close and Shut Down Notebook…" row | adapted | The same close-and-shutdown act under the one entry point; the File menu shell itself is `AUD-009`'s chrome. |
+| `sessionDialogs.json`'s `skipKernelRestartDialog` — the "Do not ask me again." checkbox writing `kernelPreference.skipKernelRestartDialog`, and the setting that skips the confirm outright (`sessioncontext.tsx:1493-1540`) | — | absent | GAP-078. |
+| `kernels-settings.json`'s `commsOverSubshells` — how comms route over kernel-spawned subshells | — | absent | GAP-077 — no subshell exists to route over. |
+| `kernels-settings.json`'s `kernelInfoTimeout` — 3000 ms default | `KERNEL_INFO_TIMEOUT` = 3 s, a constant | adapted | The reference's own default, fixed rather than tunable — `KernelSockets.kt` states it; there is no settings surface to hang a tunable on. |
+| `kernels-settings.json`'s `showStatusBarItem` — toggles the statusbar's running-kernels item | — | adapted | The shell has no statusbar; the running panel's Kernel Sessions section is the same list the item counts, always shown rather than toggled. |
+
+**The read's own findings.** One defect came out of tracing the `Ended` path rather than comparing
+menus: a socket that reported `Ended` between asks stayed the session's socket, and OkHttp's own
+contract — `send` returns false on a terminated socket, no frames arrive — turned the next run
+into a wait for ever. Fixed red-first as `execute_reopensASocketThatEndedBetweenRuns`, which also
+made the scripted fake honest: it now returns false from `send` after `Ended`, as the real one
+does. The carried gaps were measured again rather than re-opened: `GAP-009` stands — the console
+still has no Restart, and the `ended`/`rebound` pair every holder already collects is the shape a
+shared end/restart signal would take — and `GAP-010` stands — `BaseSpaceServer` still counts the
+generation no port carries to the editor. `GAP-011` is `T4`'s.
