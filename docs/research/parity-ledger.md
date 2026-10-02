@@ -1463,3 +1463,67 @@ does. The carried gaps were measured again rather than re-opened: `GAP-009` stan
 still has no Restart, and the `ended`/`rebound` pair every holder already collects is the shape a
 shared end/restart signal would take — and `GAP-010` stands — `BaseSpaceServer` still counts the
 generation no port carries to the editor. `GAP-011` is `T4`'s.
+
+### The running panel — verdicts
+
+`T4`'s entries, read down both dispatches. Theirs: `running:show-panel` activates the sidebar
+widget and `running:show-modal` launches a `SearchableSessions` inside a `Dialog`
+(`running-extension/src/index.ts:123-209`); the five `kernel-*` ids are acts on the Kernels
+section's rows — a context-menu hit or a toolbar button resolving `args.id` off
+`dataset.context` (`kernels.tsx`) — and the sections themselves are `IManager`s registered into
+`IRunningSessionManagers`: Open Tabs reads `labShell.widgets('main')` (`opentabs.ts`), Kernels
+groups `kernels.running()` by spec with each kernel's sessions as children
+(`kernels.tsx:143-199`), Recently Closed reads `recentsManager.recentlyClosed` (`recents.ts`),
+and Terminals is `terminal-extension`'s own contribution, not this package's
+(`terminal-extension/src/index.ts:420-462`). `Section` wraps each manager in an accordion title
+with a per-section toolbar — the counted shutdown-all confirm, the list/tree switch,
+collapse-expand — while `RunningSessions` is the `SidePanel` itself, added left at rank 200,
+carrying the refresh button that calls every manager's `refreshRunning()`, the
+`listViewSections` StateDB entry and the movable-sections registration
+(`running/src/index.tsx:786-955`). The data re-arms on each `services` manager's
+`Poll{interval: 10s, standby: 'when-hidden'}` (`session/manager.ts:32-41`), whose
+`runningChanged` the kernels section funnels through a 100 ms `Throttler` (`kernels.tsx:51-66`),
+with a second 10 s `Throttler` re-checking whether any kernel has `connections < 1` to re-enable
+`kernel-shut-down-unused` (`:56-84`).
+
+Ours is the same panel one level flatter: `RunningSidePanel` draws three collapsible
+`RunningSection`s — Open Tabs off the shell's own back stack, Kernel Sessions and Terminals off
+`RunningPanelViewModel`'s two server lists — with the refresh icon on the panel's bar, a bulk
+confirm per section while open, a tap to open and a direct ✕ to end (`RunningSidePanel.kt`).
+The `LaunchedEffect` 10 s poll is the `Poll`'s cadence with *composed* standing in for
+`standby: 'when-hidden'`, and `kernelSessions.ended` collected from `init` is `runningChanged`'s
+kernel half — a row the panel itself ends leaves at once because `BaseSpaceKernelSessions`'s
+`shutdown` emits `ended` whether or not the server was still there to DELETE; the terminal port
+carries no such signal, so its rows re-list after their own acts instead
+(`RunningPanelViewModel.kt:30-43`, `BaseSpaceKernelSessions.kt:46-50`).
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `running:show-panel` — `app.shell.activateById(running.id)`, the palette/menu reach that puts Sessions and Tabs on screen (`running-extension/src/index.ts:123-134`) | the rail's `SidePanel.RUNNING` item → `onChoosePanel` (`SidePanelRail.kt:50`), the bottom bar's same item at one pane (`onePaneDestinations`, `SidePanel.kt:114`) | adapted | The activate act is a rail/bar item rather than a command — the panel is a destination of the shell, not a palette reach, which is `SidePanel.chosen`/`showingAtOnePane`'s own shape. |
+| `running:show-modal` — a `Dialog` over `SearchableSessions`: a `FilterBox` flattening every section, arrow-key walk, `getValue` clicking the active row (`index.ts:190-209`, `running/src/index.tsx:999-1146`) | — | **absent** | `GAP-079`. |
+| `running:kernel-open-session` — docmanager:open on the session's path, console:open when `type === 'console'`; label is the session name or path basename, icon by type (`kernels.tsx:248-285`) | `openRunningSession` — `openDocument(path)` for a document row, a console row reveals its open tab (`Navigation.kt:172-185`) | adapted | The document arm is the same act; the console arm is reveal-only because `entry<Console>` draws from the single `consoleSession` holder — a console with no tab cannot be synthesised, which both the caller and `RunningSidePanel`'s doc state. A row whose path went stale opens the dead path — `GAP-068`'s own recorded caveat. |
+| `running:kernel-shut-down` — `kernels.shutdown(id)` → `DELETE api/kernels/<id>` on the row's ✕, unguarded (`kernels.tsx:286-307`; `Item.shutdown` asks nothing, `index.tsx:218-225`) | the row's ✕ → `shutdownSession` → `DELETE api/sessions/<id>`, unguarded (`RunningPanelViewModel.kt:54-57`) | adapted | Session-level rather than kernel-level — `delete_session` shuts the kernel behind the session (`sessionmanager.py:522-527`), the level `kernelmenu:shutdownAll` was already verdicted at. The row keeps the reference's own `Shut Down Kernel` label. |
+| `running:kernel-shut-down-unused` — every kernel with `connections < 1`, a confirm listing them, `KernelAPI.shutdownKernel` each, then both managers refreshed; a `CommandToolbarButton` on the section toolbar, `isEnabled` re-asked on a 10 s `Throttler` (`kernels.tsx:54-140`) | — | adapted | Declined where the section is drawn: the "unused" question is asked of `GET api/kernels`' `connections`, which the contract does not carry — the port's rows are sessions, and `RunningSidePanel.kt`'s class doc states the decline. |
+| `running:kernel-new-console` — console:create with `kernelPreference: {id}` — the minted console's `SessionContext` joins the *running* kernel (`kernels.tsx:204-225`) | — | **absent** | `GAP-080`. |
+| `running:kernel-new-notebook` — notebook:create-new with `kernelId` — the same join for a notebook (`kernels.tsx:226-247`) | — | **absent** | `GAP-080`. |
+| `Section` + `Item` — accordion title, per-section toolbar (counted shutdown-all confirm, list/tree switch, collapse-expand), rows carrying icon/label/`labelTitle`/detail with tap-to-open and an unguarded ✕ (`index.tsx:192-746`) | `RunningSection` + `RunningRow` — caret fold, the bulk `TextButton` drawn only while open and disabled on an empty section, the `(kernelIdPrefix)` detail list-mode carries | adapted | Folds survive a rotation in `rememberSaveable` rather than a StateDB, and the two tree-only controls are declined with the grouping itself — `RunningSidePanel.kt`'s doc states both, and `_updateButtons`' disabled-when-empty is `bulkEnabled`'s own read. |
+| `RunningSessions` — the `SidePanel` at left rank 200, its refresh button calling every `refreshRunning()`, `restorer.add` for layout restore, `IMovableSectionRegistry` for drag-reorder (`index.tsx:786-955`, `running-extension/src/index.ts:83-146`) | `RunningSidePanel` under `SidePanel.RUNNING`, refresh icon → `viewModel.refresh()` (`ShellSidePane.kt:122-131`) | adapted | A fixed trio in the registration order rather than a movable registry — the rail offers no drag to reorder with, so there is nothing for a registry to persist. |
+| Open Tabs manager — `labShell.widgets('main')`, `activateById` on tap, `widget.close()` on ✕, "Close"/"Close All" with the counted confirm; `runningChanged` driven by `layoutModified` plus each widget's `title.changed` (`opentabs.ts:19-127`) | `openTabs` handed down from the back stack, `onActivateTab` → `activateMainAreaTab`, `onCloseTab` through the shared close gate, "Close All" with the same question | present | Same section, same acts, same labels; recomposition on the live `openTabs` list is `OpenTabsSignaler`'s job done by the state itself, and the dirty gate is the reference's own close-request answer. |
+| Recently Closed manager — `recentsManager.recentlyClosed`, reopen validates then docmanager:open and forgets the row, per-row Forget, "Forget All" (`recents.ts:33-109`) | — | **absent** | `GAP-066` — the `closed` list it would read was verdicted in AUD-005; this section is the surface half that gap already names. |
+| Terminals section — `terminal-extension`'s manager: `terminals.running()`, `terminal:open` on tap, `manager.shutdown`/`shutdownAll` under "Shut Down"/"Shut Down All" (`terminal-extension/src/index.ts:420-462`) | `TerminalGateway.running()`/`close()`, `onOpenTerminal` reattaches to the held shell, the same confirm sentence verbatim (`RunningSidePanel.kt:181-205`) | present | The section's machinery verdicts here as `running-extension`'s surface; the pane's own `terminal:*` ids stay `AUD-007`'s. |
+| `runningSessions.tsx` statusbar item — "N Terminals, M Kernel sessions" counting off `sessions.runningChanged`/`terminals.runningChanged`, click activating the sidebar (`apputils/src/runningSessions.tsx:111-213`) | — | adapted | The shell has no statusbar to hold it; the same two lists the item counts are drawn always-on in the panel — `showStatusBarItem`'s own read, one section up. |
+| kernels-by-spec tree and the connected-sessions submenu — `KernelSpecItem` → `RunningKernel` → session children, the switch-view that flattens it, the `contextMenu.opened` submenu listing a kernel's sessions (`kernels.tsx:143-199,309-517`) | flat session rows under "Kernel Sessions" | adapted | The grouping is the same `GET api/kernels` decline the shut-down-unused row rests on — `RunningSidePanel.kt`'s doc names the section "Kernel Sessions" because its rows *are* sessions; a phone's rail has no context-menu slot for the submenu. |
+
+**The read's own findings.** `GAP-011` retires rather than keeps: it was written before the
+panel existed, and its premise — the kernel half needs `GET api/sessions`, which the lifecycle
+does not expose — is now `KernelSessions.running()`/`shutdown()` with the Kernel Sessions
+section standing on them. What the reference's Kernels section still has that ours declines —
+the spec-grouped tree, Shut Down Unused, kernel-level shutdown — is each recorded where the
+decline lives, which is `adapted` already stated rather than an open gap. Two new gaps open:
+`GAP-079` — the panel lists the four lists but nothing filters or quick-opens them — and
+`GAP-080` — a new document cannot join a running kernel, though `KernelChoice.Running` is the
+wire half already plumbed and the kernel picker's change path already reaches it. No defect came
+out of the panel's own read: `shutdown` emits `ended` through the registry whether or not the
+server was still there, so a row ends under the tap rather than at the next poll, and a dead
+server's `running()` already answers empty with `endAll` told. `GAP-011`'s row in
+`decisions-triage.md` is updated to the retirement; `GAP-009` and `GAP-010` stand from `T3`.

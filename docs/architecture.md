@@ -346,17 +346,6 @@ stale session is refused, `NotebookKernelSession.reopeningIfStale` drops it, and
 The honest fix is a **server-generation signal reaching the editor**, which `BaseSpaceServer` already
 counts. That is a new port surface rather than a UI patch, which is why it is recorded here.
 
-### GAP-011 — The running panel has no kernel half
-
-JupyterLab's `running-extension` registers one left-area panel at **rank 200** — between File Browser 100
-and Command Palette 300, which is where `SidePanel.RUNNING` sits. Its stock sections are **Open Tabs**
-(`labShell.widgets('main')`), **Kernel Sessions** (`GET /api/sessions`, per-row shutdown, "Shut Down All",
-"Shut Down Unused" for kernels with no connections), and **Terminals** (`GET /api/terminals`).
-
-`TerminalGateway.running()` already exists; the kernel half needs `GET /api/sessions`, which the kernel
-lifecycle does not yet expose. A kernel shut down under an open notebook leaves the notebook showing "No
-Kernel", exactly as the reference's own `selectKernel`-adjacent state does.
-
 ### GAP-009 — Restart Kernel is not reachable from the Console
 
 Both `vscode-jupyter` and JupyterLab keep Restart on the console's own primary toolbar — unlike
@@ -1149,6 +1138,36 @@ skips the confirm outright
 `jupyterlab/packages/apputils-extension/schema/sessionDialogs.json`). `RestartDialog` has no
 checkbox and no preference stands behind it — a restart agreed to once is asked about again every
 time.
+
+### GAP-079 — No searchable surface over the running lists
+
+`running:show-modal` opens a `Dialog` holding `SearchableSessions` — a `FilterBox` that flattens
+every running section (open tabs, kernels, recently closed, terminals) into one filtered list,
+arrow keys walk the matches and `getValue` clicks the active row
+(`jupyterlab/packages/running-extension/src/index.ts:190-209`,
+`jupyterlab/packages/running/src/index.tsx:999-1206`). Ours' `RunningSidePanel` lists the same
+sections but offers no filter, and the shell carries no command palette or quick-open for the
+equivalent to hang on
+(`app/src/main/java/com/jupydroid/app/ui/shell/RunningSidePanel.kt`). The repair is a filter
+field over the two server lists plus the back stack — `RunningPanelState` and `openTabs`
+already hold everything it would match.
+
+### GAP-080 — A new document cannot join a running kernel
+
+`running:kernel-new-console` mints a console whose `SessionContext` opens on
+`kernelPreference: {id}` — the already-running kernel, not a fresh one — and
+`running:kernel-new-notebook` hands `notebook:create-new` the same id
+(`jupyterlab/packages/running-extension/src/kernels.tsx:204-247`). The wire half already exists:
+`KernelChoice.Running(kernelId)` writes `{"kernel": {"id": …}}` on `POST api/sessions`, and the
+notebook's own kernel picker reaches it for a *change*
+(`app/src/main/java/com/jupydroid/app/domain/port/KernelChoice.kt`,
+`app/src/main/java/com/jupydroid/app/domain/model/KernelPicker.kt`). What nothing offers is the
+mint: `mintConsole` and `createNotebook` always open a session on a new kernel, and no Kernel
+Sessions row carries "New Console for Kernel" or "New Notebook for Kernel"
+(`app/src/main/java/com/jupydroid/app/ui/launcher/LauncherViewModel.kt`,
+`app/src/main/java/com/jupydroid/app/ui/shell/RunningSidePanel.kt`). The repair is a per-row
+affordance feeding the session's `kernelId` into session start — which `attachConsole` is not:
+it binds to the notebook's *own* session, not an arbitrary running kernel.
 
 ### GAP-007 — The execution stall is parked, not closed
 

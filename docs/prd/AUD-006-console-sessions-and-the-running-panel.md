@@ -242,7 +242,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       subshell half, and the `sessioncontext`/`sessionDialogs`/`kernels-settings` machinery against
       `NotebookKernelSession`, `NotebookKernel`, `KernelMenu`, `NotebookKernelPicker`,
       `KernelSessions`, `KernelLifecycle`, `kernelStatus`. `GAP-009` and `GAP-010` are decided here.
-- [ ] T4 — **Verdicts for the running panel.** The seven `running:*` ids and the `running/`
+- [x] T4 — **Verdicts for the running panel.** The seven `running:*` ids and the `running/`
       machinery (`Section`, `RunningSessions`, `SearchableSessions`, `refreshRunning()`) plus the contributed
       sections in `running-extension/src/` (`kernels.tsx`'s grouping and `Throttler`,
       `opentabs.ts`, `recents.ts`) and `apputils/src/runningSessions.tsx`'s statusbar item against

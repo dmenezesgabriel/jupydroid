@@ -185,7 +185,7 @@ one supersession, and the rest deleted as duplicates of code comments — each v
 | A transcription of an algorithm is diffed against it, not reviewed against it | [ADR-0046](../adr/0046-a-transcription-is-diffed-against-its-source-not-reviewed.md) |
 | Cell outputs are not searched from the workspace panel | `GAP-001` |
 | The indicator can read *Idle* — the server-generation signal | `GAP-010` |
-| The running panel is JupyterLab's "Sessions and Tabs" | `GAP-011` |
+| The running panel is JupyterLab's "Sessions and Tabs" | **retired** — `GAP-011`'s premise predated the panel: `KernelSessions.running()`/`shutdown()` and the Kernel Sessions section shipped under it. What is still declined is stated in `app/src/main/java/com/jupydroid/app/ui/shell/RunningSidePanel.kt` and verdicted in `research/parity-ledger.md` §AUD-006 |
 | A dialog row can draw fully and still be unreachable — the `AlertDialog` scroll range and `minimumInteractiveComponentSize` inflating semantics bounds | `cross-cutting.md` §8.7, *Compose and Android gotchas* |
 | Maestro text selectors are `Regex.matches`, full-string | `cross-cutting.md` §8.6, *What a test here cannot do* |
 | One object owns the Space's server · `SearchQuery` lives in `domain/model` | `architecture/building-blocks.md` §5.3, which already states both |
