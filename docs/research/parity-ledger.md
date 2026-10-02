@@ -1371,13 +1371,13 @@ second to go.
 
 | Reference entry | Ours | Verdict | Why / id |
 |---|---|---|---|
-| `console:run-forced` — `console.execute(true)`, Shift Enter in both modes (`index.ts:1058-1080`) | `ConsoleViewModel.submit` → `run` → `kernelGateway.execute`, on `ConsoleInputRow`'s Run button, disabled while the last entry runs | adapted | The forced run is what a tap on Run is; `submit`'s docstring records the dedicated-action-in-place-of-Shift+Enter call. |
-| `console:run-unforced` — `console.execute()`; notebook-mode Enter runs only when `requestIsComplete` says the block is whole, else inserts a newline (`widget.ts:960-1000`) | the same `submit()` — no completeness ask precedes it | adapted | Executing is the same `execute`; the unforced half's check — `is_complete_request` — is `GAP-012`'s recorded absence, so a run here is always the forced arm's. |
+| `console:run-forced` — `console.execute(true)`, Shift Enter in both modes (`index.ts:1058-1080`) | `ConsoleViewModel.submit` → `run` → `kernelGateway.execute`, on `ConsoleInputRow`'s Run button, disabled while the last entry runs | **defect** | The forced run is what a tap on Run is; `submit`'s docstring records the dedicated-action-in-place-of-Shift+Enter call. The walk found `run` awaiting `reopeningIfStale` outside the flow's `catch` — a refused `connect` escaped the launch and the entry span RUNNING for ever; fixed red-first in `dc73b380` (`submit_resolvesToStoppedErrorWhenConnectingIsRefused`). |
+| `console:run-unforced` — `console.execute()`; notebook-mode Enter runs only when `requestIsComplete` says the block is whole, else inserts a newline (`widget.ts:960-1000`) | the same `submit()` — no completeness ask precedes it | **defect** | Executing is the same `execute`; the unforced half's check — `is_complete_request` — is `GAP-012`'s recorded absence, so a run here is always the forced arm's. The same `run` boundary defect, judged once with `console:run-forced`. |
 | `console:linebreak` — `console.insertLinebreak()`, Accel Enter in terminal mode (`index.ts:1081-1102`) | Enter inside `CodeCellField` inserts a newline | adapted | `ConsoleInputRow`'s docstring states it: Enter keeps the field's own newline and the dedicated action runs. |
 | `console:replace-selection` — `console.replaceSelection(text)`, the write-back a completer pick rides (`index.ts:1104-1130`) | — | absent | GAP-072. |
 | `console:undo`, `console:redo` — `editor.undo()`/`editor.redo()` on the prompt cell, enabled on `sharedModel.canUndo()`/`canRedo()` (`index.ts:910-985`) | — | absent | GAP-071 — the prompt's `TextFieldState` keeps no edit history to walk. |
 | `console:clear` — `console.clear()`, unconditional (`index.ts:997-1024`) | `ConsoleActionsMenu`'s "Clear Console Cells" → `ConsoleViewModel.clear` | present | Same act, same label, same unconditionality — `clear()`'s docstring cites both. |
-| `console:interrupt-kernel` — `sessionContext.interrupt()`, reachable only from a menu or the palette in either reference (`index.ts:1132-1150`) | `ConsoleActionsMenu`'s "Interrupt Kernel" → `interrupt` → `kernelGateway.interrupt`, enabled only while a run is live | present | `ConsoleActionsMenu.kt:23-27` states the menu-only placement both references share. |
+| `console:interrupt-kernel` — `sessionContext.interrupt()`, reachable only from a menu or the palette in either reference (`index.ts:1132-1150`) | `ConsoleActionsMenu`'s "Interrupt Kernel" → `interrupt` → `kernelGateway.interrupt`, enabled only while a run is live | **defect** | `ConsoleActionsMenu.kt:23-27` states the menu-only placement both references share. The walk found the stale arm unguarded — interrupt on a session whose server was replaced threw `StaleKernelSessionException` out of the launch; fixed red-first in `0d2146b8` (`interrupt_onASessionWhoseServerWasReplaced_forgetsIt`). |
 | `console:restart-kernel` — `sessionDialogs.restart(sessionContext)`, on the console toolbar's contributed slots and the Interactive Window's primary toolbar | — | absent | GAP-009 — recorded by the backlog before this audit, verdicted not decided here. |
 | `console:shutdown`, `console:close-and-shutdown` — `sessionContext.shutdown()` leaving the console open; the close variant asks, shuts, disposes (`index.ts:1186-1255`) | — | absent | GAP-075 — the console surface has no end act, and closing its tab frees neither socket nor session. |
 | `console:change-kernel`, `console:get-kernel` — `sessionDialogs.selectKernel`, and the invisible `session?.kernel` the kernel-name/status widgets ask (`index.ts:1338-1380`) | — | absent | GAP-074 — `NotebookKernelSession.changeKernel` exists but the console carries no kernel surface that reaches it. |
@@ -1431,23 +1431,23 @@ and `skipKernelRestartDialog` is the one hole the read found in the dialogs — 
 
 | Reference entry | Ours | Verdict | Why / id |
 |---|---|---|---|
-| `notebook:interrupt-kernel` — `sessionContext.interrupt()` → `POST api/kernels/<id>/interrupt`; the toolbar's stop square, enabled while running (`createInterruptButton`, `apputils/src/toolbar/widget.tsx:50`) | `NotebookBar`'s stop square, enabled `busy` → `stopRunningCell` → `kernelGateway.interrupt` → the same POST | present | Same endpoint, same icon, same enable-while-running — `NotebookBar.kt`'s doc cites both halves. |
-| `notebook:restart-kernel` — `sessionDialogs.restart` → `restartKernel` → `POST api/kernels/<id>/restart` | `NotebookBar`'s refresh button → `RestartDialog(RESTART)` → `NotebookKernel.restart` → `kernelGateway.restart` | present | The same confirm asking the reference's own sentence, then the same POST. The dialog's "Do not ask me again" half is the settings read below, not the command's. |
+| `notebook:interrupt-kernel` — `sessionContext.interrupt()` → `POST api/kernels/<id>/interrupt`; the toolbar's stop square, enabled while running (`createInterruptButton`, `apputils/src/toolbar/widget.tsx:50`) | `NotebookBar`'s stop square, enabled `busy` → `stopRunningCell` → `kernelGateway.interrupt` → the same POST | **defect** | Same endpoint, same icon, same enable-while-running — `NotebookBar.kt`'s doc cites both halves. The walk found the stale arm unguarded — interrupt on a session whose server was replaced threw `StaleKernelSessionException` out of the launch; fixed red-first in `0d2146b8` (`aStopWhoseServerWasReplaced_landsOnNoKernel`). |
+| `notebook:restart-kernel` — `sessionDialogs.restart` → `restartKernel` → `POST api/kernels/<id>/restart` | `NotebookBar`'s refresh button → `RestartDialog(RESTART)` → `NotebookKernel.restart` → `kernelGateway.restart` | **defect** | The same confirm asking the reference's own sentence, then the same POST. The dialog's "Do not ask me again" half is the settings read below, not the command's. The walk found the stale arm unguarded — restart beside `reopeningIfStale` threw out of the launch with `kernelRestarting` latched; fixed red-first in `0d2146b8` (`aRestartWhoseServerWasReplaced_reconnectsAndRestartsTheFreshKernel`). |
 | `notebook:restart-clear-output` — restart, then `NotebookActions.clearAllOutputs` (`index.ts:3245-3260`) | `KernelMenu`'s `RESTART_AND_CLEAR` row → `RestartDialog` → `kernel.restart(then = edits.clearAllOutputs)` | present | The same awaited-restart-then-clear; `restart`'s `then` parameter exists for exactly these three commands (`NotebookKernel.kt`). |
 | `notebook:restart-run-all` — restart, then the public `NotebookActions.runCells` over the whole notebook (`index.ts:3315`) | `NotebookBar`'s fast-forward → `restartAndRunAll` → `restart(then = runs.runCells(cells))` | present | Same continuation, same toolbar-button surface; `restartAndRunAll`'s doc states why it composes out of `runCells` rather than `runAll`, exactly as the reference does. |
 | `notebook:shutdown-kernel` — `sessionContext.shutdown()` → `DELETE api/kernels/<id>`, unguarded | `KernelMenu`'s "Shut Down Kernel" → `kernel.shutdown()` → `kernelGateway.shutdown` → DELETE + `ended` | present | Unguarded in both — the close variant is the one that asks (`index.ts:3189-3213`), which `shutdown`'s doc states. |
-| `notebook:change-kernel` — `sessionDialogs.selectKernel` over specs, running kernels and "No Kernel" | `KernelMenu`'s "Change Kernel…" and the `KernelIndicator` tap → `NotebookKernelPicker` | adapted | The same three groups, transcribed from `kernelOptions`; the picker's `autoStartDefault`/"always start the preferred kernel" checkbox is declined on purpose — `KernelChoice.kt` states it. |
+| `notebook:change-kernel` — `sessionDialogs.selectKernel` over specs, running kernels and "No Kernel" | `KernelMenu`'s "Change Kernel…" and the `KernelIndicator` tap → `NotebookKernelPicker` | **defect** | The same three groups, transcribed from `kernelOptions`; the picker's `autoStartDefault`/"always start the preferred kernel" checkbox is declined on purpose — `KernelChoice.kt` states it. The walk found the stale PATCH escaping `pick`'s launch with `kernelChanging` latched; fixed red-first in `0d2146b8` (`changeKernel_connectsTheChoiceWhenTheOpenSessionProvesStale`). |
 | `notebook:get-kernel` — the invisible `session?.kernel` the name and status widgets query (`index.ts:4591-4607`) | `KernelSession.kernelName`/`preferredKernel`, drawn by `KernelIndicator` | adapted | The question exists as resolved state rather than a command result — `KernelIndicator.kt`'s doc states why the name is the *live* kernel's, not the file's. |
 | `notebook:reconnect-to-kernel` — `kernel.reconnect()`: close the websocket, open a fresh one on the same kernel (`index.ts:4591-4607`) | `KernelSockets.socketFor` evicts a socket that ended, so the next ask opens the fresh one | **defect** | Found by the read and fixed red-first: a socket that reported `Ended` between asks stayed cached in `sessionSockets`, the next `execute` reused it — OkHttp's `send` returns false there and no frame ever arrives — so the run waited for ever. `RealKernelGatewayTest.execute_reopensASocketThatEndedBetweenRuns`; the act is now the reference's own, arriving on the next ask rather than from a menu. |
 | `notebook:close-and-shutdown` — asks "Shut down the notebook?", awaits `sessionContext.shutdown()`, disposes (`index.ts:3189-3213`) | `KernelMenu`'s "Close and Shut Down Notebook…" → `CloseAndShutDownDialog` → `kernel.shutdown(then = onBack)` | present | Same question in the reference's own words, same awaited ordering — `CloseAndShutDownDialog` cites `index.ts:3196-3205`, and `shutdown`'s `then` runs after the session has ended, as the reference's `await` does. |
 | `notebook:access-previous-history-entry`, `notebook:access-next-history-entry` — ArrowUp/ArrowDown at the prompt cell's edge walking `NotebookHistory`, behind `accessKernelHistory` (`index.ts:5179+`) | `SymbolRow`'s `Hist ↑`/`Hist ↓` keys behind `EditorSettings.accessKernelHistory` → `recallPrevious`/`recallNext` | adapted | The walk is the same object, the setting keeps the reference's name and off-by-default; the keys are the touch surface for the cell-edge arrows — `SymbolRow.kt`'s `RECALL_*_ENTRY` labels cite the reference's own. |
-| `kernelmenu:interrupt` — the Kernel menu's Interrupt row, executing the current widget's `interruptKernel` | `NotebookBar`'s stop square | adapted | The act is present; the menu row is not — interrupt sits on the bar at a thumb's reach, which `KernelMenu.kt`'s doc states is where a running notebook's ends live on a phone. |
+| `kernelmenu:interrupt` — the Kernel menu's Interrupt row, executing the current widget's `interruptKernel` | `NotebookBar`'s stop square | **defect** | The same stale-session escape, judged once with `notebook:interrupt-kernel` — the act is what was unguarded; the bar-over-menu placement stands as the `adapted` half. |
 | `kernelmenu:reconnect-to-kernel` — the menu's Reconnect row | — | **defect** | The same dead-socket hang, judged once with `notebook:reconnect-to-kernel`: the menu's own act is what `socketFor`'s eviction now performs on the next ask. |
-| `kernelmenu:restart` — the menu's "Restart Kernel…" row | `NotebookBar`'s refresh button | adapted | Same act, same confirm — the bar's own button rather than a menu row, for `kernelmenu:interrupt`'s reason. |
+| `kernelmenu:restart` — the menu's "Restart Kernel…" row | `NotebookBar`'s refresh button | **defect** | The same stale-session escape, judged once with `notebook:restart-kernel` — the act is what was unguarded; the bar-over-menu placement stands as the `adapted` half. |
 | `kernelmenu:restart-and-clear` — the menu row executing `restartKernel` + `clearWidget` (`mainmenu-extension/src/index.ts:653`) | `KernelMenu`'s `RESTART_AND_CLEAR` row | present | Same label, same composition, filed in the Kernel menu the reference files it under. |
-| `kernelmenu:change` — the menu's "Change Kernel…" row | `KernelMenu`'s "Change Kernel…" row | present | Same label, ellipsis kept — `KernelMenu.kt` states the ellipsis is what says a row will ask. |
+| `kernelmenu:change` — the menu's "Change Kernel…" row | `KernelMenu`'s "Change Kernel…" row | **defect** | The same stale PATCH escape, judged once with `notebook:change-kernel` — the row and label stand; the act behind them was what was unguarded. |
 | `kernelmenu:shutdown` — the menu's "Shut Down Kernel" row | `KernelMenu`'s "Shut Down Kernel" row | present | Same label, same unguarded act. |
-| `kernelmenu:shutdownAll` — "Shut Down All Kernels…" → counted confirm → `sessions.shutdownAll()` (`mainmenu-extension/src/index.ts:708-735`); also the running panel's own bulk button (`running/src/index.tsx:584-620`) | the Kernel Sessions section's "Shut Down All" → `kernelShutdownAllText`'s counted confirm → `shutdownAllSessions` | adapted | The act lives on the running surface, which is the reference's own second home for it; `RunningPanelViewModel.kt`'s doc states why ours deletes sessions — the level the reference's own `sessions.shutdownAll()` works at — where its dialog counts kernels. |
+| `kernelmenu:shutdownAll` — "Shut Down All Kernels…" → counted confirm → `sessions.shutdownAll()` (`mainmenu-extension/src/index.ts:708-735`); also the running panel's own bulk button (`running/src/index.tsx:584-620`) | the Kernel Sessions section's "Shut Down All" → `kernelShutdownAllText`'s counted confirm → `shutdownAllSessions` | **defect** | The act lives on the running surface, which is the reference's own second home for it; `RunningPanelViewModel.kt`'s doc states why ours deletes sessions — the level the reference's own `sessions.shutdownAll()` works at — where its dialog counts kernels. The walk found one refused DELETE escaping the launch and skipping the rows behind it; fixed red-first in `7b5e670e` (`aRefusedShutdownDoesNotSkipTheRestOfShutdownAll`). |
 | `filemenu:close-and-cleanup` — semantic delegate to `*:close-and-shutdown`, `application:close` as the fallback | `KernelMenu`'s "Close and Shut Down Notebook…" row | adapted | The same close-and-shutdown act under the one entry point; the File menu shell itself is `AUD-009`'s chrome. |
 | `sessionDialogs.json`'s `skipKernelRestartDialog` — the "Do not ask me again." checkbox writing `kernelPreference.skipKernelRestartDialog`, and the setting that skips the confirm outright (`sessioncontext.tsx:1493-1540`) | — | absent | GAP-078. |
 | `kernels-settings.json`'s `commsOverSubshells` — how comms route over kernel-spawned subshells | — | absent | GAP-077 — no subshell exists to route over. |
@@ -1502,15 +1502,15 @@ carries no such signal, so its rows re-list after their own acts instead
 | `running:show-panel` — `app.shell.activateById(running.id)`, the palette/menu reach that puts Sessions and Tabs on screen (`running-extension/src/index.ts:123-134`) | the rail's `SidePanel.RUNNING` item → `onChoosePanel` (`SidePanelRail.kt:50`), the bottom bar's same item at one pane (`onePaneDestinations`, `SidePanel.kt:114`) | adapted | The activate act is a rail/bar item rather than a command — the panel is a destination of the shell, not a palette reach, which is `SidePanel.chosen`/`showingAtOnePane`'s own shape. |
 | `running:show-modal` — a `Dialog` over `SearchableSessions`: a `FilterBox` flattening every section, arrow-key walk, `getValue` clicking the active row (`index.ts:190-209`, `running/src/index.tsx:999-1146`) | — | **absent** | `GAP-079`. |
 | `running:kernel-open-session` — docmanager:open on the session's path, console:open when `type === 'console'`; label is the session name or path basename, icon by type (`kernels.tsx:248-285`) | `openRunningSession` — `openDocument(path)` for a document row, a console row reveals its open tab (`Navigation.kt:172-185`) | adapted | The document arm is the same act; the console arm is reveal-only because `entry<Console>` draws from the single `consoleSession` holder — a console with no tab cannot be synthesised, which both the caller and `RunningSidePanel`'s doc state. A row whose path went stale opens the dead path — `GAP-068`'s own recorded caveat. |
-| `running:kernel-shut-down` — `kernels.shutdown(id)` → `DELETE api/kernels/<id>` on the row's ✕, unguarded (`kernels.tsx:286-307`; `Item.shutdown` asks nothing, `index.tsx:218-225`) | the row's ✕ → `shutdownSession` → `DELETE api/sessions/<id>`, unguarded (`RunningPanelViewModel.kt:54-57`) | adapted | Session-level rather than kernel-level — `delete_session` shuts the kernel behind the session (`sessionmanager.py:522-527`), the level `kernelmenu:shutdownAll` was already verdicted at. The row keeps the reference's own `Shut Down Kernel` label. |
+| `running:kernel-shut-down` — `kernels.shutdown(id)` → `DELETE api/kernels/<id>` on the row's ✕, unguarded (`kernels.tsx:286-307`; `Item.shutdown` asks nothing, `index.tsx:218-225`) | the row's ✕ → `shutdownSession` → `DELETE api/sessions/<id>`, unguarded (`RunningPanelViewModel.kt:54-57`) | **defect** | Session-level rather than kernel-level — `delete_session` shuts the kernel behind the session (`sessionmanager.py:522-527`), the level `kernelmenu:shutdownAll` was already verdicted at. The row keeps the reference's own `Shut Down Kernel` label. The walk found a refused DELETE escaping the launch; fixed red-first in `7b5e670e` (`aRefusedShutdownLeavesTheSessionListed`). |
 | `running:kernel-shut-down-unused` — every kernel with `connections < 1`, a confirm listing them, `KernelAPI.shutdownKernel` each, then both managers refreshed; a `CommandToolbarButton` on the section toolbar, `isEnabled` re-asked on a 10 s `Throttler` (`kernels.tsx:54-140`) | — | adapted | Declined where the section is drawn: the "unused" question is asked of `GET api/kernels`' `connections`, which the contract does not carry — the port's rows are sessions, and `RunningSidePanel.kt`'s class doc states the decline. |
 | `running:kernel-new-console` — console:create with `kernelPreference: {id}` — the minted console's `SessionContext` joins the *running* kernel (`kernels.tsx:204-225`) | — | **absent** | `GAP-080`. |
 | `running:kernel-new-notebook` — notebook:create-new with `kernelId` — the same join for a notebook (`kernels.tsx:226-247`) | — | **absent** | `GAP-080`. |
 | `Section` + `Item` — accordion title, per-section toolbar (counted shutdown-all confirm, list/tree switch, collapse-expand), rows carrying icon/label/`labelTitle`/detail with tap-to-open and an unguarded ✕ (`index.tsx:192-746`) | `RunningSection` + `RunningRow` — caret fold, the bulk `TextButton` drawn only while open and disabled on an empty section, the `(kernelIdPrefix)` detail list-mode carries | adapted | Folds survive a rotation in `rememberSaveable` rather than a StateDB, and the two tree-only controls are declined with the grouping itself — `RunningSidePanel.kt`'s doc states both, and `_updateButtons`' disabled-when-empty is `bulkEnabled`'s own read. |
-| `RunningSessions` — the `SidePanel` at left rank 200, its refresh button calling every `refreshRunning()`, `restorer.add` for layout restore, `IMovableSectionRegistry` for drag-reorder (`index.tsx:786-955`, `running-extension/src/index.ts:83-146`) | `RunningSidePanel` under `SidePanel.RUNNING`, refresh icon → `viewModel.refresh()` (`ShellSidePane.kt:122-131`) | adapted | A fixed trio in the registration order rather than a movable registry — the rail offers no drag to reorder with, so there is nothing for a registry to persist. |
+| `RunningSessions` — the `SidePanel` at left rank 200, its refresh button calling every `refreshRunning()`, `restorer.add` for layout restore, `IMovableSectionRegistry` for drag-reorder (`index.tsx:786-955`, `running-extension/src/index.ts:83-146`) | `RunningSidePanel` under `SidePanel.RUNNING`, refresh icon → `viewModel.refresh()` (`ShellSidePane.kt:122-131`) | **defect** | A fixed trio in the registration order rather than a movable registry — the rail offers no drag to reorder with, so there is nothing for a registry to persist. The walk found `relist` propagating a refused `running()` uncaught — the class's own "keeps the last good list" contract; fixed red-first in `7b5e670e` (`aRefusedRelistKeepsTheLastGoodSessions`). |
 | Open Tabs manager — `labShell.widgets('main')`, `activateById` on tap, `widget.close()` on ✕, "Close"/"Close All" with the counted confirm; `runningChanged` driven by `layoutModified` plus each widget's `title.changed` (`opentabs.ts:19-127`) | `openTabs` handed down from the back stack, `onActivateTab` → `activateMainAreaTab`, `onCloseTab` through the shared close gate, "Close All" with the same question | present | Same section, same acts, same labels; recomposition on the live `openTabs` list is `OpenTabsSignaler`'s job done by the state itself, and the dirty gate is the reference's own close-request answer. |
 | Recently Closed manager — `recentsManager.recentlyClosed`, reopen validates then docmanager:open and forgets the row, per-row Forget, "Forget All" (`recents.ts:33-109`) | — | **absent** | `GAP-066` — the `closed` list it would read was verdicted in AUD-005; this section is the surface half that gap already names. |
-| Terminals section — `terminal-extension`'s manager: `terminals.running()`, `terminal:open` on tap, `manager.shutdown`/`shutdownAll` under "Shut Down"/"Shut Down All" (`terminal-extension/src/index.ts:420-462`) | `TerminalGateway.running()`/`close()`, `onOpenTerminal` reattaches to the held shell, the same confirm sentence verbatim (`RunningSidePanel.kt:181-205`) | present | The section's machinery verdicts here as `running-extension`'s surface; the pane's own `terminal:*` ids stay `AUD-007`'s. |
+| Terminals section — `terminal-extension`'s manager: `terminals.running()`, `terminal:open` on tap, `manager.shutdown`/`shutdownAll` under "Shut Down"/"Shut Down All" (`terminal-extension/src/index.ts:420-462`) | `TerminalGateway.running()`/`close()`, `onOpenTerminal` reattaches to the held shell, the same confirm sentence verbatim (`RunningSidePanel.kt:181-205`) | **defect** | The section's machinery verdicts here as `running-extension`'s surface; the pane's own `terminal:*` ids stay `AUD-007`'s. The walk found a refused close escaping the launch instead of relisting; fixed red-first in `7b5e670e` (`aRefusedTerminalCloseLeavesTheTerminalListed`). |
 | `runningSessions.tsx` statusbar item — "N Terminals, M Kernel sessions" counting off `sessions.runningChanged`/`terminals.runningChanged`, click activating the sidebar (`apputils/src/runningSessions.tsx:111-213`) | — | adapted | The shell has no statusbar to hold it; the same two lists the item counts are drawn always-on in the panel — `showStatusBarItem`'s own read, one section up. |
 | kernels-by-spec tree and the connected-sessions submenu — `KernelSpecItem` → `RunningKernel` → session children, the switch-view that flattens it, the `contextMenu.opened` submenu listing a kernel's sessions (`kernels.tsx:143-199,309-517`) | flat session rows under "Kernel Sessions" | adapted | The grouping is the same `GET api/kernels` decline the shut-down-unused row rests on — `RunningSidePanel.kt`'s doc names the section "Kernel Sessions" because its rows *are* sessions; a phone's rail has no context-menu slot for the submenu. |
 
@@ -1527,3 +1527,100 @@ out of the panel's own read: `shutdown` emits `ended` through the registry wheth
 server was still there, so a row ends under the tap rather than at the next poll, and a dead
 server's `running()` already answers empty with `endAll` told. `GAP-011`'s row in
 `decisions-triage.md` is updated to the retirement; `GAP-009` and `GAP-010` stand from `T3`.
+
+### The walk
+
+Six paths through the one registry. **A submission to a transcript line:** `ConsoleInputRow`'s
+Run button → `ConsoleViewModel.submit` — blank input refused, a still-RUNNING last entry refused
+— → a minted `newCellId`, a RUNNING `ConsoleEntry` appended, the field cleared →
+`viewModelScope.launch { run }` → `flow { emitAll(session.reopeningIfStale { open ->
+kernelGateway.execute(open, id, source) }) }`: `open()` hands back `opened` or `connect`s under
+the resolved preference (`Private.getDefaultKernel`'s resolution shape) →
+`BaseSpaceKernelGateway.gatewayKnowing` → `PerRunningServer.get` → `RealKernelGateway.execute` →
+`KernelSockets.socketFor`, an `Ended` socket evicted on the way — → the streamed `KernelEvent`s
+folded per event into the entry (`after`: `Output` appends, `ExecutionCount` records, `Idle`
+does nothing) → the flow's completion → `resolved`: a set `interrupting` says CANCELLED, an
+error output says STOPPED_ERROR, else STOPPED_OK. **An interrupt:** the last entry RUNNING →
+`interrupting` marked → `kernelGateway.interrupt(open)` → `POST api/kernels/<id>/interrupt` →
+the kernel's own `KeyboardInterrupt` output — the flag, not the stream, is what says cancelled,
+exactly as the notebook's `stopRunningCell` does it; a `StaleKernelSessionException` off a dead
+server is caught and the dead session forgotten through `endIfMatches` instead of escaping the
+launch. **A session ended elsewhere landing on both holders:** the panel's row ✕ →
+`kernelSessions.shutdown(serverSessionId)` → `BaseSpaceKernelSessions` DELETEs only when a live
+server answers (`liveOrNull` — ending must never boot a runtime) and `registry.end`es regardless
+→ `ended`, a buffered no-replay `MutableSharedFlow<String>` — one emission per serverSessionId,
+ever — → every holder's collector: `NotebookKernel`'s `init` → `endIfMatches` → `opened = null`
+→ `onConnectedChanged(false)` → `kernelConnected = false` and the indicator's "No Kernel"; the
+console's `NotebookKernelSession` — a second holder over the same serverSessionId, minted by
+`attachConsole`'s `attachedTo` — its own `endIfMatches` collector landing identically; the
+panel's own collector → `refresh()` — the row leaves because the event, not the DELETE's return,
+removed it. **A rebound:** a `changeKernel` → `PATCH api/sessions` keeps `serverSessionId` and
+swaps `kernelId` → `registry.rebind` → `rebound` → every holder's `rebindIfMatches` — `opened`
+takes the rebound session or the holder would address a kernel process the server already shut
+down, and `onBound` is what writes the kernelspec back. **The stale reopen against a replaced
+server:** `reopeningIfStale { use(open()) }` → `use` throws `StaleKernelSessionException` —
+`IssuedSessions`' id set cleared when `PerRunningServer` saw the new generation — → `opened =
+null`, the indicator honestly dropping in between — → `use(open())` once more: a fresh session
+on the server that replaced it. One retry; a second refusal is a real failure and belongs to the
+caller. **The list re-arming:** `ended` → `refresh()`; the refresh icon → `refresh()`; a
+terminal's close → `relist()` directly, since the terminal port carries no end signal; the 10 s
+`LaunchedEffect` poll — the `Poll`'s cadence, *composed* standing in for `standby: 'when-hidden'`.
+Each `relist` is two passive asks — `liveOrNull` never boots a runtime to answer — and each list
+keeps its last good answer when its own ask is refused.
+What the walk found, beyond the rows above:
+
+- **Growth is a flow per submitted line and a relist per act — bounded by construction.** One
+  `launch` and one cold `Flow` per submission, one `MutableStateFlow` update per `KernelEvent`,
+  one buffered `ended` emission per end and one `rebound` per PATCH, `extraBufferCapacity` set
+  once in the registry. `shutdown` answers locally through `ended` even when the DELETE had no
+  server to reach, and a dead server's `running()` answers `emptyList()` plus `endAll` off
+  `liveOrNull`'s `isRunning` check — ending and listing never boot a runtime. The growth the
+  walk names rather than opens: a server's disappearance lands as `endAll`'s N emissions → N
+  `refresh()`es → N `relist()`s, where the reference funnels the same burst through a 100 ms
+  `Throttler` on `runningChanged` (`kernels.tsx:51-66`) — bounded because a dead server's relist
+  never reaches the wire, and `endAll`'s second pass emits nothing once the registry is empty.
+- **Branching splits on who may ask, and each arm belongs to the layer that owns it.** `submit`
+  refuses blank and busy before minting the entry; `open()` splits held-session from connect and
+  a resolved preference from a picker-owed one — `KernelPickRequiredException` is a cue, not an
+  error, so the notebook's run lane rethrows it for the picker while the console folds it as an
+  error output (a console holds no picker to cue). `reopeningIfStale` splits stale-once
+  (reconnect and re-ask) from stale-twice (propagate). `restart` splits nothing-to-replace (the
+  continuation still runs) from stale (reconnect first) from dead-twice or pick-owed (No Kernel
+  or the cue, the continuation skipped — an awaited restart that never happened has no
+  continuation). `endIfMatches`/`rebindIfMatches` are exact-match on `serverSessionId` — an
+  emission naming somebody else's session is ignored. `interrupt` splits nothing-running (a
+  no-op) from stale (forget), and carries `interrupting` so the kernel's own `KeyboardInterrupt`
+  resolves the run CANCELLED rather than ERROR.
+- **Failure is answered at the surface it belongs to — and the walk found three boundaries where
+  it was not, all repaired red-first.** `interrupt`, `restart` and `changeKernel` reached the
+  gateway beside `reopeningIfStale`, so a session minted by a server the idle backstop had
+  stopped threw `StaleKernelSessionException` out of the `scope.launch` — an uncaught coroutine
+  failure with `kernelRestarting`/`kernelChanging` latched and a continuation that silently
+  never ran; `0d2146b8`, red through
+  `aRestartWhoseServerWasReplaced_reconnectsAndRestartsTheFreshKernel`,
+  `aStopWhoseServerWasReplaced_landsOnNoKernel`,
+  `changeKernel_connectsTheChoiceWhenTheOpenSessionProvesStale` and
+  `interrupt_onASessionWhoseServerWasReplaced_forgetsIt`. The console's `run` awaited
+  `reopeningIfStale` before the flow existed, so a refused `connect` escaped past the `catch`
+  and left the entry RUNNING for ever; `dc73b380`,
+  `submit_resolvesToStoppedErrorWhenConnectingIsRefused`. And every launch in
+  `RunningPanelViewModel` propagated a refused ask, contradicting its own "keeps the last good
+  list" contract; `7b5e670e`, the four `aRefused*` cases. The failure shapes the walk confirmed
+  rather than repaired: `ended` fires for a dead server's sessions even when nothing was left to
+  DELETE, `running()`'s `dropped` reconciliation ends rows the server forgot without asking, and
+  an already-gone shutdown is a no-op by the registry's once-per-id emission.
+- **Coupling is the walk's real yield — one registry, one direction, and who hears an end.**
+  `KernelSessionRegistry` is the single channel every session act announces on:
+  `BaseSpaceKernelGateway` registers on `connect` and rebinds on PATCH, `BaseSpaceKernelSessions`
+  emits `ended` for `shutdown`, `dropped` rows and `endAll` on a dead server, and
+  `PerRunningServer` is the one place a client learns its server was replaced — `build` per
+  generation, `IssuedSessions` cleared — which is `GAP-010`'s point that the editor proper never
+  hears it. `ended`/`rebound` are collected by exactly three holders — the notebook's session,
+  the console's own `NotebookKernelSession` copy (same `serverSessionId`, so one `ended` lands
+  on both), and the panel — each inside `init`, because `ended` is buffered but not replayed and
+  a late subscriber would miss it. The direction is deliberately one-way: the panel never calls
+  into a holder — the holder hears the registry — which is `SessionContext`'s
+  `disposed`/`kernelChanged` by another name. Who does *not* hear: `NotebookHistory` and the
+  asks layer (`completion`, `hover`, `signatureHelp`, `definition`, `format`, `rename`) address
+  `session.opened` fresh per ask, so an end reaches them only as the next ask's refusal — folded
+  to the caller's own lane, which is all they need.

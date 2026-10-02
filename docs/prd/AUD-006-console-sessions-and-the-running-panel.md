@@ -248,7 +248,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `opentabs.ts`, `recents.ts`) and `apputils/src/runningSessions.tsx`'s statusbar item against
       `RunningSidePanel`,
       `RunningPanelViewModel`, `KernelSessions`, `TerminalGateway`. `GAP-011` is decided here.
-- [ ] T5 — **The walk.** Submit → `reopeningIfStale` → `kernelGateway.execute` → the transcript's
+- [x] T5 — **The walk.** Submit → `reopeningIfStale` → `kernelGateway.execute` → the transcript's
       fold; interrupt; a session `ended` elsewhere landing on both holders (`No Kernel`);
       `rebound`; the panel's per-row and bulk shutdowns; the stale-session reopen against a
       replaced server; what re-arms the list — `ended`, the refresh act, the relist after a
