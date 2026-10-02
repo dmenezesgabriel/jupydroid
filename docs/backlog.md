@@ -65,8 +65,8 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 | `AUD-002` | Cell commands and selection — notebook-extension against `CellAction`/`CellEdits` | shipped | — | `GAP-005` |
 | `AUD-003` | Editor language features — the LSP surface, and the kernel introspection it replaced | shipped | — | — |
 | `AUD-004` | Search, replace and the table of contents | shipped | — | `GAP-001`, `GAP-002` |
-| `AUD-005` | Files, workspace and recents — filebrowser-extension against `ui/explorer/` | **in-progress ← next** | [`AUD-005`](prd/AUD-005-files-workspace-and-recents.md) | — |
-| `AUD-006` | Console, sessions and the running panel | open | — | `GAP-009`, `GAP-010`, `GAP-011` |
+| `AUD-005` | Files, workspace and recents — filebrowser-extension against `ui/explorer/` | shipped | — | — |
+| `AUD-006` | Console, sessions and the running panel | **open ← next** | — | `GAP-009`, `GAP-010`, `GAP-011` |
 | `AUD-007` | Terminal emulator and view, against Termux's state machine and JediTerm | open | — | — |
 | `AUD-008` | Rendering and formats — markdown, HTML, outputs, nbformat | open | — | — |
 | `AUD-009` | Chrome and presentation, against VS Code's workbench | open | — | — |
