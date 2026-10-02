@@ -94,7 +94,11 @@ class LedgerPartitionTest(unittest.TestCase):
             + "| `documentsearch:highlightNext`, `toc:display-numbering` | `AUD-004` `T2` | in-document |\n"
             + "| `fileeditor:find`, `editmenu:find` | `AUD-004` `T2` | carried |\n"
             + "| `filebrowser:go-up`, `filebrowser:toggle-hidden-files` | `AUD-005` `T2` | the tree |\n"
-            + "| `docmanager:save`, `docmanager:recents` | `AUD-005` `T4` | persistence |\n"))
+            + "| `docmanager:save`, `docmanager:recents` | `AUD-005` `T4` | persistence |\n"
+            + "| `console:clear`, `completer:invoke-console`, `filemenu:create-console` "
+            + "| `AUD-006` `T2` | the console |\n"
+            + "| `kernelmenu:shutdownAll`, `filemenu:close-and-cleanup` | `AUD-006` `T3` | delegates |\n"
+            + "| `running:kernel-shut-down`, `running:show-panel` | `AUD-006` `T4` | the panel |\n"))
         self.assertEqual({"documentsearch:highlightNext": "AUD-004 T2",
                           "toc:display-numbering": "AUD-004 T2",
                           "fileeditor:find": "AUD-004 T2",
@@ -102,7 +106,14 @@ class LedgerPartitionTest(unittest.TestCase):
                           "filebrowser:go-up": "AUD-005 T2",
                           "filebrowser:toggle-hidden-files": "AUD-005 T2",
                           "docmanager:save": "AUD-005 T4",
-                          "docmanager:recents": "AUD-005 T4"}, found)
+                          "docmanager:recents": "AUD-005 T4",
+                          "console:clear": "AUD-006 T2",
+                          "completer:invoke-console": "AUD-006 T2",
+                          "filemenu:create-console": "AUD-006 T2",
+                          "kernelmenu:shutdownAll": "AUD-006 T3",
+                          "filemenu:close-and-cleanup": "AUD-006 T3",
+                          "running:kernel-shut-down": "AUD-006 T4",
+                          "running:show-panel": "AUD-006 T4"}, found)
 
     def test_an_unreached_family_is_not_read(self) -> None:
         """`inspector:open` is a real id verdicted in AUD-003's caller table - and unclaimed,
@@ -113,9 +124,9 @@ class LedgerPartitionTest(unittest.TestCase):
         self.assertEqual({}, found)
 
     def test_declared_ids_cover_whole_packages_and_carried_ones(self) -> None:
-        """`documentsearch-extension`, `toc-extension` and AUD-005's three enter whole; from the
-        packages a later slice owns, only the carried ids do - `fileeditor:undo` waits with the
-        rest."""
+        """`documentsearch-extension`, `toc-extension`, AUD-005's three and AUD-006's two enter
+        whole; from the packages a later slice owns, only the carried ids do - `fileeditor:undo`
+        and `filemenu:open` wait with the rest."""
         packages = _packages({
             # `COMMAND_ID` reads a namespace member - indented, never at column 0.
             "notebook-extension": "  export const u = 'notebook:undo';\n"
@@ -127,11 +138,18 @@ class LedgerPartitionTest(unittest.TestCase):
                                      "  export const h = 'filebrowser:toggle-hidden-files';",
             "docmanager-extension": "  export const s = 'docmanager:save';",
             "docmanager": "  export const r = 'docmanager:recents';",
+            "console-extension": "  export const c = 'console:clear';\n"
+                                  "  export const i = 'completer:invoke-console';",
+            "running-extension": "  export const s = 'running:show-panel';",
             "fileeditor-extension": "  export const f = 'fileeditor:find';\n"
                                     "  export const c = 'fileeditor:create-new';\n"
                                     "  export const m = 'fileeditor:create-new-markdown-file';\n"
                                     "  export const u = 'fileeditor:undo';",
             "mainmenu-extension": "  export const e = 'editmenu:find';\n"
+                                  "  export const k = 'kernelmenu:shutdownAll';\n"
+                                  "  export const c = 'filemenu:create-console';\n"
+                                  "  export const s = 'filemenu:close-and-cleanup';\n"
+                                  "  export const o = 'filemenu:open';\n"
                                   "  export const r = 'editmenu:redo';",
         })
         self.assertEqual(sorted(["notebook:undo", "notebook:redo",
@@ -139,7 +157,10 @@ class LedgerPartitionTest(unittest.TestCase):
                                  "toc:show-panel", "filebrowser:go-up",
                                  "filebrowser:toggle-hidden-files", "docmanager:save",
                                  "docmanager:recents", "fileeditor:find", "editmenu:find",
-                                 "fileeditor:create-new", "fileeditor:create-new-markdown-file"]),
+                                 "fileeditor:create-new", "fileeditor:create-new-markdown-file",
+                                 "console:clear", "completer:invoke-console",
+                                 "running:show-panel", "kernelmenu:shutdownAll",
+                                 "filemenu:create-console", "filemenu:close-and-cleanup"]),
                          sorted(declared_ids(packages)))
 
     def test_a_toc_id_declared_inside_notebook_extension_is_carried(self) -> None:

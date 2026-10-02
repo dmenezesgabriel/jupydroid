@@ -43,30 +43,42 @@ PARTITION_HEADING = "### Who owns which id"
 #: A reference command id as the ledger's first column writes it, backticked. **The prefix list
 #: is closed on purpose**: a family enters it only when a slice has claimed it - an open `x:y`
 #: pattern would sweep first cells like `inspector:open` (a real id verdicted in AUD-003's caller
-#: table, whose family no slice owns) into "owned by nobody" reports. `documentsearch:` carries
-#: camelCase suffixes; the rest are lowercase.
+#: table, whose family no slice owns) into "owned by nobody" reports. `documentsearch:` and
+#: `kernelmenu:` carry camelCase suffixes; the rest are lowercase.
 COMMAND_IN_CELL = re.compile(
-    r"`((?:notebook|documentsearch|toc|fileeditor|editmenu|filebrowser|docmanager):[A-Za-z0-9-]+)`")
+    r"`((?:notebook|documentsearch|toc|fileeditor|editmenu|filebrowser|docmanager|console|running"
+    r"|kernelmenu|filemenu|completer):[A-Za-z0-9-]+)`")
 
 #: Packages whose whole command surface the partition covers - every id they declare must be
 #: owned. `notebook-extension` is read separately because only its `notebook:` ids are the
 #: audit's - plus `toc:run-cells`, carried below; the rest (`kernelstatus:*` et al.) are
 #: nobody's yet. `docmanager` (no `-extension` suffix) is the document manager's own package and
 #: declares `docmanager:recents` alone; the rest of the family lives in `docmanager-extension`.
+#: `console-extension` declares the console's completer pair too (`completer:invoke-console`,
+#: `completer:select-console`), which is why `completer:` is in the pattern above while the
+#: completer's own package waits for its slice.
 PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension",
-                        "filebrowser-extension", "docmanager-extension", "docmanager")
+                        "filebrowser-extension", "docmanager-extension", "docmanager",
+                        "console-extension", "running-extension")
 
 #: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
 #: and `editmenu:find` are AUD-004's while the rest of `fileeditor-extension`/`mainmenu-extension`
 #: waits for the slices that examine the file editor and the chrome, and `fileeditor:create-new`
 #: plus `fileeditor:create-new-markdown-file` are AUD-005's because they create files rather than
-#: edit one. `notebook-extension` is carried too, for one id: `toc:run-cells` is declared there
+#: edit one. AUD-006 claims `mainmenu-extension`'s kernel-lifecycle delegates - the seven
+#: `kernelmenu:*` acts a `SemanticCommand` forwards to the current widget's `console:`/`notebook:`
+#: registration (`mainmenu/src/kernel.ts`), and the File menu's `create-console` /
+#: `close-and-cleanup`; `kernelmenu:open` opens the menu rather than the act, so it waits with the
+#: chrome. `notebook-extension` is carried too, for one id: `toc:run-cells` is declared there
 #: under the `toc:` prefix (`index.ts:351`) for a ToC row's context menu, so the `notebook:`
 #: filter over that package's own ids never reaches it and neither does the package-whole read
 #: of `toc-extension`.
 CARRIED_PACKAGES = ("fileeditor-extension", "mainmenu-extension", "notebook-extension")
 CARRIED_IDS = ("fileeditor:find", "editmenu:find", "toc:run-cells",
-               "fileeditor:create-new", "fileeditor:create-new-markdown-file")
+               "fileeditor:create-new", "fileeditor:create-new-markdown-file",
+               "kernelmenu:interrupt", "kernelmenu:reconnect-to-kernel", "kernelmenu:restart",
+               "kernelmenu:restart-and-clear", "kernelmenu:change", "kernelmenu:shutdown",
+               "kernelmenu:shutdownAll", "filemenu:create-console", "filemenu:close-and-cleanup")
 
 
 def declared_ids(packages: Path) -> list[str]:

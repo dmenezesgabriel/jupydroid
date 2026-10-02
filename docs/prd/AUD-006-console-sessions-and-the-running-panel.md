@@ -224,7 +224,7 @@ Known going in, so a verdict does not re-litigate them:
 
 One TDD unit each (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — **The instrument and the surface, produced.** `read_ledger_partition.py`'s
+- [x] T1 — **The instrument and the surface, produced.** `read_ledger_partition.py`'s
       `COMMAND_IN_CELL` is closed to the families a slice has claimed; add `console`, `running`,
       `kernelmenu` and `filemenu`, `PARTITIONED_PACKAGES` gains `console-extension` and
       `running-extension`, `CARRIED_IDS` gains the nine menu delegates — red tests first in
@@ -243,15 +243,18 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `NotebookKernelSession`, `NotebookKernel`, `KernelMenu`, `NotebookKernelPicker`,
       `KernelSessions`, `KernelLifecycle`, `kernelStatus`. `GAP-009` and `GAP-010` are decided here.
 - [ ] T4 — **Verdicts for the running panel.** The seven `running:*` ids and the `running/`
-      machinery (`Section`, `Item`, the `Poll`, `kernels.tsx`'s grouping, `opentabs.ts`,
-      `recents.ts`, `runningSessions.tsx`) against `RunningSidePanel`, `RunningPanelViewModel`,
-      `KernelSessions`, `TerminalGateway`. `GAP-011` is decided here.
+      machinery (`Section`, `RunningSessions`, `SearchableSessions`, `refreshRunning()`) plus the contributed
+      sections in `running-extension/src/` (`kernels.tsx`'s grouping and `Throttler`,
+      `opentabs.ts`, `recents.ts`) and `apputils/src/runningSessions.tsx`'s statusbar item against
+      `RunningSidePanel`,
+      `RunningPanelViewModel`, `KernelSessions`, `TerminalGateway`. `GAP-011` is decided here.
 - [ ] T5 — **The walk.** Submit → `reopeningIfStale` → `kernelGateway.execute` → the transcript's
       fold; interrupt; a session `ended` elsewhere landing on both holders (`No Kernel`);
       `rebound`; the panel's per-row and bulk shutdowns; the stale-session reopen against a
-      replaced server; the poll's start and stop with the rail. Growth (one flow per entry, a
-      relist per act, the poll's cadence), branching, failure (a refused execute, a shutdown
-      already gone), coupling (who learns of an end, and from whom — the `ended` broadcast).
+      replaced server; what re-arms the list — `ended`, the refresh act, the relist after a
+      terminal close. Growth (one flow per entry, a relist per act), branching, failure (a
+      refused execute, a shutdown already gone), coupling (who learns of an end, and from whom —
+      the `ended` broadcast).
 
 ## Out of scope
 

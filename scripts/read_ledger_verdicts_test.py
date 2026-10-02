@@ -78,16 +78,19 @@ class LedgerVerdictTest(unittest.TestCase):
         self.assertEqual({}, found)
 
     def test_a_verdict_reaches_past_the_notebook_family(self) -> None:
-        """Verdicts and partition share the one id pattern: `documentsearch:`/`toc:` and
-        AUD-005's `filebrowser:`/`docmanager:` verdicts are collected - camelCase included -
-        while a family no slice has claimed stays unread."""
+        """Verdicts and partition share the one id pattern: `documentsearch:`/`toc:`,
+        AUD-005's `filebrowser:`/`docmanager:` and AUD-006's `console:`/`running:` plus the
+        menu delegates are collected - camelCase included - while a family no slice has claimed
+        stays unread."""
         found = ledger_verdicts(_ledger(
             _TABLE_HEAD
             + "| `documentsearch:start` | ours | present | — |\n"
             + "| `filebrowser:rename`, `docmanager:save` | ours | present | — |\n"
+            + "| `console:clear`, `running:show-panel`, `kernelmenu:shutdownAll` | ours | adapted | — |\n"
             + "| `inspector:open` | ours | adapted | a caller-table row |\n"))
         self.assertEqual({"documentsearch:start": "present", "filebrowser:rename": "present",
-                          "docmanager:save": "present"}, found)
+                          "docmanager:save": "present", "console:clear": "adapted",
+                          "running:show-panel": "adapted", "kernelmenu:shutdownAll": "adapted"}, found)
 
     def test_a_task_with_one_verdict_owes_one_for_every_id_it_owns(self) -> None:
         """Examined is derived, not stored: the first verdict opens the task, and opens all of it."""

@@ -56,7 +56,7 @@ Five, each obliging something different. The full definition is in
 | Editor language features | `AUD-003` | examined — below |
 | Search, replace, table of contents | `AUD-004` | examined — below |
 | Files, workspace, recents | `AUD-005` | examined — below |
-| Console, sessions, running panel | `AUD-006` | unexamined |
+| Console, sessions, running panel | `AUD-006` | measured — the surface below, verdicts next |
 | Terminal emulator and view | `AUD-007` | unexamined |
 | Rendering and formats | `AUD-008` | unexamined |
 | Chrome and presentation | `AUD-009` | unexamined |
@@ -184,9 +184,9 @@ examination came out, which is what a verdict is for.
 | `notebook:select-last-modified-cell`, `notebook:select-next-modified-cell`, `notebook:select-last-run-cell` | `AUD-002` `T3` | The first two are *Cell Operations*; the third is palette-less, *"Select current running or last run cell"* (`:5000`) |
 | `notebook:run-cell`, `notebook:run-cell-and-select-next`, `notebook:run-cell-and-insert-below`, `notebook:run-all-cells`, `notebook:run-all-above`, `notebook:run-all-below` | `AUD-002` `T3` | The `RunRange` ranges. Which cells a run means is a selection question; what the kernel then does with them is `AUD-001`'s, already examined |
 | `notebook:restart-and-run-to-selected` | `AUD-002` `T3` | `RunRange.UP_TO_SELECTED` — head-relative, which is why it is here and not with the restarts. Its restart half is `AUD-006`'s |
-| `notebook:interrupt-kernel`, `notebook:restart-kernel`, `notebook:restart-clear-output`, `notebook:restart-run-all`, `notebook:shutdown-kernel`, `notebook:change-kernel`, `notebook:reconnect-to-kernel`, `notebook:get-kernel`, `notebook:close-and-shutdown` | `AUD-006` | Kernel lifecycle. `shutdown-kernel` and `get-kernel` are palette-less (`:3171`, `:4567`); the rest are *Notebook Operations* |
-| `notebook:create-console`, `notebook:create-subshell-console`, `notebook:run-in-console` | `AUD-006` | The console, which is that slice's own area |
-| `notebook:access-previous-history-entry`, `notebook:access-next-history-entry` | `AUD-006` | *Notebook Operations*. The history walk — the `history_request` behind it is `present` in `AUD-001` above, so what is left is the walk ([ADR-0052](../adr/0052-kernel-history-is-the-kernels-and-a-walk-belongs-to-its-cell.md)) |
+| `notebook:interrupt-kernel`, `notebook:restart-kernel`, `notebook:restart-clear-output`, `notebook:restart-run-all`, `notebook:shutdown-kernel`, `notebook:change-kernel`, `notebook:reconnect-to-kernel`, `notebook:get-kernel`, `notebook:close-and-shutdown` | `AUD-006` `T3` | Kernel lifecycle. `shutdown-kernel` and `get-kernel` are palette-less (`:3171`, `:4567`); the rest are *Notebook Operations* |
+| `notebook:create-console`, `notebook:create-subshell-console`, `notebook:run-in-console` | `AUD-006` `T2` | The console, which is that slice's own area |
+| `notebook:access-previous-history-entry`, `notebook:access-next-history-entry` | `AUD-006` `T3` | *Notebook Operations*. The history walk — the `history_request` behind it is `present` in `AUD-001` above, so what is left is the walk ([ADR-0052](../adr/0052-kernel-history-is-the-kernels-and-a-walk-belongs-to-its-cell.md)) |
 | `notebook:export-to-format`, `notebook:show-export-guidance` | `AUD-008` | Formats. *"Enable notebook exports"* (`:775`) is the guidance dialog for a deployment that can convert nothing |
 | `notebook:trust` | `AUD-008` | *Notebook Operations*. Trust decides what a notebook's outputs may render |
 | `notebook:copy-to-clipboard`, `notebook:create-output-view` | `AUD-008` | Palette-less, and both are *output* operations by their own labels: *"Copy Output to Clipboard"* (`:2078`) reads `cell.outputArea`, *"Create New View for Cell Output"* (`:1751`) |
@@ -216,6 +216,19 @@ examination came out, which is what a verdict is for.
 | `docmanager:new-untitled`, `docmanager:open`, `docmanager:rename`, `docmanager:delete`, `docmanager:delete-file`, `docmanager:duplicate`, `docmanager:clone`, `docmanager:download`, `docmanager:open-browser-tab`, `docmanager:show-in-file-browser` | `AUD-005` `T3` | The document manager's own file acts — the commands every other surface calls (`docmanager-extension/src/index.tsx`, no palette category) |
 | `docmanager:save`, `docmanager:save-all`, `docmanager:save-as`, `docmanager:toggle-autosave`, `docmanager:restore-checkpoint`, `docmanager:reload` | `AUD-005` `T4` | Persistence — `DocumentAutosave`'s debounce over `EditorSettings.autosave`/`autosaveInterval`, and what checkpoints/save-as/reload mean where there is no document manager |
 | `docmanager:recents`, `docmanager:clear-recents` | `AUD-005` `T4` | Recents — `RecentDocumentsRepository` → `DiskRecentDocumentsRepository`, `RecordOpening`, `RecentsSection`. `docmanager:recents` is the one id the `docmanager` package itself declares |
+| `console:run-forced`, `console:run-unforced`, `console:linebreak` | `AUD-006` `T2` | The prompt's run acts — `Shift Enter` forced in both modes, `Enter` unforced and `Accel Enter` the linebreak in terminal mode (`schema/tracker.json`), and notebook-mode Enter's run-or-newline is `requestIsComplete`'s call (`widget.ts:979`); `submit()` and Enter's newline are ours |
+| `console:replace-selection`, `console:undo`, `console:redo` | `AUD-006` `T2` | The prompt's text acts — the completer's write-over-selection and the console's own history |
+| `console:clear` | `AUD-006` `T2` | The transcript emptied — `ConsoleViewModel.clear`, unconditional as `CodeConsole.clear()` is |
+| `console:interrupt-kernel`, `console:restart-kernel`, `console:shutdown`, `console:close-and-shutdown` | `AUD-006` `T2` | The console's kernel ends — Interrupt sits in `ConsoleActionsMenu`; Restart's absence is `GAP-009` itself |
+| `console:change-kernel`, `console:get-kernel` | `AUD-006` `T2` | The console's kernel asks — `selectKernel` and the invisible semantic delegate |
+| `console:create`, `console:open`, `console:inject`, `filemenu:create-console` | `AUD-006` `T2` | Reaching a console — `create` mints (the launcher's card, and `notebook:create-console`'s `split-bottom` "Linked Console"), `open` reveals by path, `inject` runs code in a console found by session path (`index.ts:1294-1337`); the File menu's entry is a semantic delegate to `console:create` |
+| `console:rename`, `console:interaction-mode`, `console:toggle-autoclosing-brackets` | `AUD-006` `T2` | The console's own shape — its title, the terminal-vs-notebook `interactionMode`, and the universal bracket toggle's reach |
+| `completer:invoke-console`, `completer:select-console` | `AUD-006` `T2` | The console's own completer pair, declared inside `console-extension` — completion on the prompt field |
+| `kernelmenu:interrupt`, `kernelmenu:reconnect-to-kernel`, `kernelmenu:restart`, `kernelmenu:restart-and-clear`, `kernelmenu:change`, `kernelmenu:shutdown`, `kernelmenu:shutdownAll` | `AUD-006` `T3` | The Kernel menu's semantic delegates (`mainmenu/src/kernel.ts` `SemanticCommand`) — each executes whatever the current widget registered for the act, and both registrants (`notebook:*` above, `console:*` above) are this slice's |
+| `filemenu:close-and-cleanup` | `AUD-006` `T3` | The File menu's close-and-shutdown — a semantic delegate to `*:close-and-shutdown` (`mainmenu-extension/src/index.ts`), which this slice already owns |
+| `running:show-panel`, `running:show-modal` | `AUD-006` `T4` | Reaching the panel — the rail entry versus the searchable-sessions dialog (`SearchableSessions`) |
+| `running:kernel-open-session`, `running:kernel-shut-down`, `running:kernel-shut-down-unused` | `AUD-006` `T4` | The sessions section's row acts — open, per-row shutdown, and the grouped-list's "Shut Down Unused" |
+| `running:kernel-new-console`, `running:kernel-new-notebook` | `AUD-006` `T4` | Minting a document on a running kernel — the kernel row's two spawn acts (`kernels.tsx`) |
 
 ### The editing half — verdicts
 
@@ -1217,3 +1230,115 @@ What it found, beyond the rows above:
   And the coupling the reference has that ours does not: `_onFileChanged` patches the session's
   own record — `sessionContext.session?.setPath(newPath)`, `context.ts:551` — while
   `KernelSessions` has no path op, so a Running row keeps the dead path and opens it — `GAP-068`.
+
+---
+
+## Console, sessions and the running panel — `AUD-006`
+
+**The surface is two packages' command ids, nine menu delegates, and everything a command never
+names.** `console-extension` declares **21 ids** — nineteen `console:*` plus the console's own
+completer pair (`completer:invoke-console`, `completer:select-console`, declared there rather
+than in `completer`'s own package) — and `running-extension` **7**. Nine are carried out of
+`mainmenu-extension`'s 41: the seven `kernelmenu:*` semantic delegates — each a `SemanticCommand`
+executing whatever the current widget registered for the act
+(`packages/mainmenu/src/kernel.ts`), so they are this slice's acts wearing the menu — plus
+`filemenu:create-console` and `filemenu:close-and-cleanup`, the File menu's entries into console
+creation and close-and-shutdown. `kernelmenu:open` stays with the chrome slice: it opens the menu,
+not the act. Fourteen `notebook:*` ids were already this slice's: nine kernel-lifecycle, three
+console-creation, two history-walk. Produced, never stored:
+
+```sh
+python3 scripts/read_reference_commands.py --jupyterlab-package console-extension
+python3 scripts/read_reference_commands.py --jupyterlab-package running-extension
+python3 scripts/read_reference_commands.py --jupyterlab-package mainmenu-extension
+```
+
+**The rest of the surface is settings and the machinery under the ids.** Nine settings under
+`console-extension/schema/tracker.json` — `clearCellsOnExecute`, `clearCodeContentOnExecute`,
+`hideCodeInput`, `interactionMode`, `promptCellConfig`, `promptCellPosition`,
+`showAllKernelActivity`, `showBanner`, `toolbar` — and its four shortcuts: `Shift Enter` runs
+forced in both modes, `Enter` runs unforced and `Accel Enter` inserts the linebreak in terminal
+mode, while notebook-mode Enter asks `requestIsComplete` whether to run or break — the split our
+prompt's Run button and Enter-as-newline stand in for. The
+kernel-lifecycle settings live in `apputils-extension/schema/`: `sessionDialogs.json`'s
+`skipKernelRestartDialog` — the "don't ask again" half of the restart confirm — and
+`kernels-settings.json`'s `commsOverSubshells`, `kernelInfoTimeout`, `showStatusBarItem`.
+Produced:
+
+```sh
+python3 -c "import json; print(sorted(json.load(open('reference/research_repos/jupyterlab/packages/console-extension/schema/tracker.json'))['properties']))"
+python3 -c "import json; print(sorted(json.load(open('reference/research_repos/jupyterlab/packages/apputils-extension/schema/sessionDialogs.json'))['properties']))"
+python3 -c "import json; print(sorted(json.load(open('reference/research_repos/jupyterlab/packages/apputils-extension/schema/kernels-settings.json'))['properties']))"
+```
+
+The machinery the commands ride on: `CodeConsole`/`ConsolePanel` (`console/src/widget.ts`,
+`panel.ts`), `ConsoleHistory` (`console/src/history.ts` — what `NotebookHistory` was transcribed
+from, so this slice reads the class ours returns to its own surface), the `ForeignHandler` and
+`ConsoleCellExecutor` that put a notebook's run inside a console's transcript
+(`console/src/foreign.ts`, `cellexecutor.ts` and their `console-extension` twins), the running
+panel's `Section`/`RunningSessions`/`SearchableSessions` and its per-manager `refreshRunning()`
+(`running/src/index.tsx`), the three contributed sections in
+`running-extension/src/{kernels,opentabs,recents}` — `kernels.tsx` the kernel-grouped list, its
+`Throttler` pacing the kernels and sessions managers — `SessionContext`
+(`apputils/src/sessioncontext.tsx` — the object every document's kernel goes through, select and
+restart dialogs included), `apputils/src/{kernelstatuses,runningSessions}.tsx` (the statusbar's
+"N Terminals, M Kernel sessions"), and `services/src/{session,kernel,terminal}/` — the managers
+the panel's `running()` reads. **The console's second home is vscode-jupyter's interactive window** —
+`src/interactive-window/` (`InteractiveWindowController.ts`, `commands/`, `editor-integration/`)
+behind `jupyter.createnewinteractive`, `jupyter.execSelectionInteractive`,
+`jupyter.runFileInteractive`, the `jupyter.interactive.*` family and the `jupyter.*kernel*`
+commands, which keep Restart on the toolbar — the `GAP-009` reference row:
+
+```sh
+grep -n '"command": "jupyter\.' reference/research_repos/vscode-jupyter/package.json
+ls reference/research_repos/vscode-jupyter/src/interactive-window/
+```
+
+Under it all, the behaviour ours mirrors is the shipped rootfs's —
+`jupyter_server/services/sessions/{handlers,sessionmanager}.py`,
+`services/kernels/{handlers,kernelmanager}.py`, `services/kernelspecs/handlers.py`,
+`jupyter_server_terminals/{handlers,terminalmanager}.py` and `terminado/websocket.py`:
+`api/sessions` POST/PATCH/GET/DELETE, interrupt and restart on `api/kernels`, `api/terminals`,
+`api/kernelspecs`.
+
+```sh
+T=app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server/services/sessions/sessionmanager.py
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server/services/sessions/handlers.py
+```
+
+**Ours** is `ui/console/` — `ConsoleViewModel` (submit-disabled-while-running, `clear`,
+`interrupt`, the `NotebookHistory` walk on buttons for `edgeRequested`), `ConsoleScreen`,
+`ConsoleInputRow`, `ConsoleTranscriptView`, `ConsoleActionsMenu` — over a `NotebookKernelSession`
+`NotebookKernel.attachConsole` pre-binds to the notebook's own, or `openStandaloneConsole`/
+`LauncherViewModel.mintConsole` mints one standalone;
+the session object `NotebookKernelSession` (`SessionContext`'s shape: preference, pending name,
+`disposed`/`kernelChanged` landings as `endIfMatches`/`rebindIfMatches`, `reopeningIfStale`'s
+reconnect the reference has no equivalent for); the REST half `KernelLifecycle` +
+`RealKernelGateway`/`KernelSockets` (`AUD-001`'s wire); the lifecycle UI `KernelMenu`,
+`RestartDialog`, `NotebookKernelPicker`, `kernelStatus`/`EditorUiState.kernelRestarting`; and the
+panel `RunningSidePanel`/`RunningPanelViewModel` over `KernelSessions` (`running`, `shutdown`,
+`ended`, `rebound`) and `TerminalGateway` (`running`, `close`). Produced:
+
+```sh
+python3 scripts/read_port_surface.py            # KernelGateway 9, KernelSessions 4, KernelSpecs 1,
+                                                # TerminalGateway 6, KernelDebugger 10
+python3 scripts/read_port_surface.py --unused   # empty since AUD-005's ADR-0070
+```
+
+**Carried in, recorded not rejudged.** `is_complete_request`'s only two callers are the console's
+(`console/src/widget.ts:979` decides whether a submitted block is complete,
+`notebook-extension/src/index.ts:1962` inside `run-in-console`), so `GAP-012` — recorded `absent`
+on the wire in `AUD-001` — is this slice's to weigh on the surface that would send it. The three
+gaps the backlog row names are verdicted here, not repaired: `GAP-009` (no Restart on the
+Console, cross-holder staleness), `GAP-010` (no server-generation signal reaches the editor —
+`BaseSpaceServer` counts it for `PerRunningServer`'s cache and no port carries it further),
+`GAP-011` (the running panel's kernel half, written
+before `KernelSessions.running()` and the panel's Sessions section existed). The terminal pane's
+own commands (`terminal:*`) wait for `AUD-007` — the panel's Terminals section is
+`running-extension`'s own code, and the pane's `copy`/`paste`/`set-theme`/font pair are the
+terminal *view's*; the menu shells and the rest of the chrome are `AUD-009`'s; the completer's
+machinery is `AUD-003`'s, examined — the two `completer:*-console` ids are read here only as far
+as the console's surface offers them. The partition rows are in the shared table under `AUD-002`'s
+heading — the console's ids to `T2`, sessions and kernel lifecycle to `T3`, the running panel to
+`T4`, and the walk is `T5`.
