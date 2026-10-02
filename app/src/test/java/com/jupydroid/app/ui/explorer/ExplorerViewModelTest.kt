@@ -339,6 +339,43 @@ class ExplorerViewModelTest {
   }
 
   /**
+   * **A file act that finishes mid-navigation re-lists where the user is going**, not the
+   * directory still on screen. `move`'s re-list read `_uiState.value.path`, which trails
+   * `browsing` while a listing is in flight - the same gap `refresh` reads `browsing` for - so a
+   * rename answered while the crumb's listing was on its way cancelled that listing, re-listed
+   * the directory just left, and left the browser standing there.
+   */
+  @Test
+  fun aRenameFinishedMidNavigationRelistsWhereWeAreGoing() = runTest {
+    given("At Root.ipynb", "reports/Nested.ipynb")
+    val viewModel = explorer(workspace = SlowListingWorkspaceRepository(disk(), slowPath = "reports"))
+    val entry = viewModel.uiState.value.entries.first { it.name == "At Root.ipynb" }
+    viewModel.goTo("reports")
+
+    viewModel.rename(entry, "Renamed.ipynb")
+    advanceUntilIdle()
+
+    assertEquals("reports", viewModel.uiState.value.path)
+    assertEquals(listOf("Nested.ipynb"), viewModel.uiState.value.entries.map { it.name })
+    assertTrue(File(temp.root, "Renamed.ipynb").exists())
+  }
+
+  /** The same for `relistAfter`'s arm - a delete landing while the listing is in flight. */
+  @Test
+  fun aDeleteFinishedMidNavigationRelistsWhereWeAreGoing() = runTest {
+    given("At Root.ipynb", "reports/Nested.ipynb")
+    val viewModel = explorer(workspace = SlowListingWorkspaceRepository(disk(), slowPath = "reports"))
+    val entry = viewModel.uiState.value.entries.first { it.name == "At Root.ipynb" }
+    viewModel.goTo("reports")
+
+    viewModel.delete(entry)
+    advanceUntilIdle()
+
+    assertEquals("reports", viewModel.uiState.value.path)
+    assertEquals(listOf("Nested.ipynb"), viewModel.uiState.value.entries.map { it.name })
+  }
+
+  /**
    * **And a cancelled listing says nothing to the user**, which the test above cannot catch.
    *
    * `runCatching` catches `CancellationException` like any other throwable, so cancelling the

@@ -229,7 +229,10 @@ class ExplorerViewModel(
         // means: `_createNew` hands the result to `rename()`, which selects and scrolls to it.
         // Cleared by the next plain `goTo`, which builds a fresh state, so nothing has to
         // remember to put it down again.
-        .onSuccess { created -> goTo(_uiState.value.path, justCreated = created) }
+        // `browsing`, like `refresh` reads it: a navigation can be in flight while the act
+        // lands, and re-listing the path on screen would cancel it and stand the browser back
+        // in the folder just left - `aDeleteFinishedMidNavigationRelistsWhereWeAreGoing`.
+        .onSuccess { created -> goTo(browsing, justCreated = created) }
         .onFailure { failure -> _uiState.update { it.copy(error = failure.message) } }
     }
   }
@@ -246,7 +249,10 @@ class ExplorerViewModel(
     renamingPath = from
     viewModelScope.launch {
       runCatching { moving() }
-        .onSuccess { goTo(_uiState.value.path) }
+        // `browsing`, the same reason [relistAfter] reads it: a rename that lands while a
+        // navigation is in flight re-lists where the user is going, not the directory still on
+        // screen - `aRenameFinishedMidNavigationRelistsWhereWeAreGoing`.
+        .onSuccess { goTo(browsing) }
         .onFailure { failure ->
           _uiState.update {
             if (failure is FileNameTakenException) {
