@@ -15,6 +15,7 @@ import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.editor.RecordingKernelGateway
+import com.jupydroid.app.ui.editor.StaleSessionKernelGateway
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -187,6 +188,31 @@ class ConsoleViewModelTest {
 
     assertEquals(ExecutionStatus.CANCELLED, viewModel.entries.value.single().status)
     assertEquals(1, gateway.interruptCount)
+  }
+
+  /**
+   * `interrupt` on a session whose server is already gone: there is no kernel left to interrupt,
+   * and the refusal must not escape the launch - the dead session is forgotten so the next
+   * [submit] reconnects, the landing `session.disposed` already owns.
+   */
+  @Test
+  fun interrupt_onASessionWhoseServerWasReplaced_forgetsIt() = runTest {
+    val gateway = StaleSessionKernelGateway(refusals = 0).also { it.holdRuns() }
+    val session = NotebookKernelSession(gateway, SPACE) { "Analysis.ipynb" }
+    session.open()
+    val viewModel = ConsoleViewModel(gateway, session)
+    viewModel.input.edit { insert(0, "1 + 1") }
+    viewModel.submit()
+    advanceUntilIdle()
+    gateway.serverWasReplaced()
+
+    viewModel.interrupt()
+    advanceUntilIdle()
+
+    assertNull("the dead session is forgotten - the next run reconnects", session.opened)
+
+    gateway.releaseRuns()
+    advanceUntilIdle()
   }
 
   @Test

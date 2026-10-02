@@ -289,6 +289,25 @@ class NotebookKernelSessionTest {
   }
 
   /**
+   * A PATCH cannot reach a session whose server is gone, so the pick lands as the *start* the
+   * no-session half already is - the chosen kernel connected fresh, not a
+   * `StaleKernelSessionException` out of the picker's launch with `kernelChanging` left latched.
+   */
+  @Test
+  fun changeKernel_connectsTheChoiceWhenTheOpenSessionProvesStale() = runTest {
+    val gateway = StaleSessionKernelGateway(refusals = 0)
+    val session = NotebookKernelSession(gateway, space) { "Analysis.ipynb" }
+    session.open()
+    gateway.serverWasReplaced()
+
+    session.changeKernel(KernelChoice.Spec("p8g"))
+
+    assertEquals(listOf(null, KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
+    assertEquals("p8g", session.opened?.kernelName)
+    assertEquals("session-2", session.opened?.id)
+  }
+
+  /**
    * The picked spec becomes the preference a reconnect re-asks for: `_updateSpec` writes
    * `kernel.name` to `metadata.kernelspec` in the reference (`notebook/panel.ts`), so what the
    * notebook is bound to *is* what it prefers.

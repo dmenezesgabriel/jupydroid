@@ -9,6 +9,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelPickRequiredException
 import com.jupydroid.app.domain.port.KernelPreference
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.KernelSessions
@@ -16,6 +17,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.SessionType
+import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.SteppingCommand
 import com.jupydroid.app.domain.port.formattingOptions
 import kotlinx.coroutines.CoroutineScope
@@ -272,17 +274,32 @@ class NotebookKernel(
    */
   fun restart(then: suspend () -> Unit = {}) {
     scope.launch {
-      session.opened?.let { open ->
-        // Announced for the length of the call rather than after it: replacing an interpreter is
-        // the one kernel operation with nothing else on screen to say it is happening, and on a
-        // device it is not instant. Only when there *is* a process to replace, which is the same
-        // guard the restart itself carries.
-        uiState.update { state -> state.copy(kernelRestarting = true) }
-        kernelGateway.restart(open)
+      // Nothing to replace - the continuation is not conditional on a kernel ever having run.
+      if (session.opened == null) {
+        then()
+        return@launch
+      }
+      var replaced = false
+      // Announced for the length of the call rather than after it: replacing an interpreter is
+      // the one kernel operation with nothing else on screen to say it is happening, and on a
+      // device it is not instant.
+      uiState.update { state -> state.copy(kernelRestarting = true) }
+      try {
+        // `reopeningIfStale`, the run's own policy: the kernel a stale session named died with
+        // its server, so the ask reconnects first - a fresh kernel is what a restart means.
+        session.reopeningIfStale { open -> kernelGateway.restart(open) }
+        replaced = true
+      } catch (_: StaleKernelSessionException) {
+        // The reconnect's second refusal is a real failure: `opened` is already dropped and the
+        // indicator's No Kernel is the truth of it - the continuation's premise went with it.
+      } catch (_: KernelPickRequiredException) {
+        // The reconnect owes a kernel pick - the same cue a run lands on, not a crash.
+        uiState.update { it.copy(kernelPickRequired = it.kernelPickRequired + 1) }
+      } finally {
         // Whatever was in flight died with the process; anything finished is history and stays.
         uiState.update { state -> state.abandoningRun().copy(kernelRestarting = false) }
       }
-      then()
+      if (replaced) then()
     }
   }
 

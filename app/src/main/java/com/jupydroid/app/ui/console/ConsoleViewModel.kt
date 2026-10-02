@@ -8,6 +8,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
+import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.NotebookHistory
 import com.jupydroid.app.ui.editor.NotebookKernelSession
@@ -128,7 +129,17 @@ class ConsoleViewModel(
   fun interrupt() {
     val running = _entries.value.lastOrNull()?.takeIf { it.status == ExecutionStatus.RUNNING } ?: return
     interrupting = running.id
-    viewModelScope.launch { session.opened?.let { kernelGateway.interrupt(it) } }
+    viewModelScope.launch {
+      session.opened?.let { open ->
+        try {
+          kernelGateway.interrupt(open)
+        } catch (_: StaleKernelSessionException) {
+          // The kernel the interrupt named died with its server - nothing to interrupt, but the
+          // dead session must not stay claimed: the landing `session.disposed` already owns.
+          session.endIfMatches(open.serverSessionId)
+        }
+      }
+    }
   }
 
   private suspend fun run(id: String, source: String) {

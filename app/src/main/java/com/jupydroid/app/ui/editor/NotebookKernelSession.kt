@@ -169,8 +169,14 @@ class NotebookKernelSession(
     (choice as? KernelChoice.Spec)?.let { spec ->
       reportPending(spec.name, kernelSpecs.specs(space))
     }
-    val bound = opened?.let { kernelGateway.changeKernel(it, choice) }
-      ?: kernelGateway.connect(space, documentPath(), choice, sessionType)
+    // A PATCH cannot reach a session whose server is gone, so a stale refusal lands as the
+    // *start* the no-session half already is - the chosen kernel connected fresh.
+    val bound = try {
+      opened?.let { kernelGateway.changeKernel(it, choice) }
+    } catch (_: StaleKernelSessionException) {
+      opened = null
+      null
+    } ?: kernelGateway.connect(space, documentPath(), choice, sessionType)
     preferredKernel = KernelPreference(name = bound.kernelName)
     opened = bound
     return bound

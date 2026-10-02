@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelPickRequiredException
+import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -141,7 +142,17 @@ internal class NotebookCellRuns(
     // report a KeyboardInterrupt through the ordinary output path. This is what tells the stop
     // apart from the user's own code raising.
     interrupting = running
-    scope.launch { session.opened?.let { kernelGateway.interrupt(it) } }
+    scope.launch {
+      session.opened?.let { open ->
+        try {
+          kernelGateway.interrupt(open)
+        } catch (_: StaleKernelSessionException) {
+          // The kernel the interrupt named died with its server - nothing to interrupt, but the
+          // dead session must not stay claimed: the landing `session.disposed` already owns.
+          session.endIfMatches(open.serverSessionId)
+        }
+      }
+    }
   }
 
   /** Sends a step/continue command for whatever the debugger is currently stopped at. */

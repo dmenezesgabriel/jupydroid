@@ -5,6 +5,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -54,5 +55,52 @@ class StaleSessionReconnectTest {
     val outputs = editor.uiState.value.outputs[codeCell.id].orEmpty()
     assertTrue("expected the failure in the cell, got $outputs", outputs.any { it is CellOutput.Error })
     assertEquals(ExecutionStatus.STOPPED_ERROR, editor.uiState.value.statusOf(codeCell.id))
+  }
+
+  /**
+   * `kernel:restart` after the idle backstop: the kernel the restart names belongs to a server
+   * that is gone, so the restart reconnects the way a run would - the user asked for a fresh
+   * kernel and a fresh kernel is what they get, not a `StaleKernelSessionException` out of the
+   * launch and `kernelRestarting` latched for ever.
+   */
+  @Test
+  fun aRestartWhoseServerWasReplaced_reconnectsAndRestartsTheFreshKernel() = runTest {
+    val gateway = StaleSessionKernelGateway(refusals = 0)
+    val editor = loadedEditor(gateway = gateway)
+    editor.kernel.runCell(codeCell)
+    advanceUntilIdle()
+    gateway.serverWasReplaced()
+
+    editor.kernel.restart()
+    advanceUntilIdle()
+
+    assertEquals("the restart had to open a second session", 2, gateway.connectCount)
+    assertEquals("the fresh kernel is what was restarted", listOf("kernel-2"), gateway.restarted.map { it.kernelId })
+    assertTrue("the indicator re-arms on the new session", editor.uiState.value.kernelConnected)
+    assertFalse("`kernelRestarting` is not left latched", editor.uiState.value.kernelRestarting)
+  }
+
+  /**
+   * `notebook:interrupt-kernel` on a session whose server is already gone: there is nothing to
+   * interrupt, but the refusal must not escape the launch - the session is simply forgotten and
+   * the indicator lands on No Kernel, the landing `session.disposed` already owns.
+   */
+  @Test
+  fun aStopWhoseServerWasReplaced_landsOnNoKernel() = runTest {
+    val gateway = StaleSessionKernelGateway(refusals = 0).also { it.holdRuns() }
+    val editor = loadedEditor(gateway = gateway)
+    editor.kernel.runCell(codeCell)
+    advanceUntilIdle()
+    gateway.serverWasReplaced()
+
+    editor.kernel.stopRunningCell()
+    advanceUntilIdle()
+
+    assertEquals("the interrupt never reached the dead kernel", 0, gateway.interruptCount)
+    assertFalse("the dead session is forgotten", editor.uiState.value.kernelConnected)
+    assertEquals("No Kernel", editor.uiState.value.kernelDisplayName)
+
+    gateway.releaseRuns()
+    advanceUntilIdle()
   }
 }

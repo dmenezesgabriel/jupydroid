@@ -41,6 +41,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -177,8 +178,13 @@ internal class SlowToChangeKernelGateway : KernelGateway by FakeKernelGateway() 
 }
 
 /**
- * A gateway that refuses the first [refusals] sessions handed back to it, the way
+ * A gateway that refuses the first [refusals] `execute` asks handed back to it, the way
  * `BaseSpaceKernelGateway` refuses one issued by a server that has since been stopped.
+ *
+ * [serverWasReplaced] is the other half of that picture: every session minted so far goes stale at
+ * once on *every* verb, the way `IssuedSessions` clears its whole id set when the server generation
+ * moves - the distinction a stale `interrupt`/`restart`/`changeKernel` needs, since [refusals]
+ * counts `execute` calls only.
  */
 internal class StaleSessionKernelGateway(
   private val refusals: Int,
@@ -187,7 +193,37 @@ internal class StaleSessionKernelGateway(
   var connectCount = 0
     private set
 
+  /** The [KernelChoice] each [connect] carried, in order - what a reconnect re-asked for. */
+  val connectsAskedFor = mutableListOf<KernelChoice?>()
+
+  /** Sessions whose [restart] reached the server - `SessionContext.restart`'s POST. */
+  val restarted = mutableListOf<KernelSession>()
+  var interruptCount = 0
+    private set
+
   private var refused = 0
+  private val mintedIds = mutableSetOf<String>()
+  private val staleIds = mutableSetOf<String>()
+  private var holdsRuns = false
+  private val releasedRuns = CompletableDeferred<Unit>()
+
+  /** Every session this gateway minted is stale from here on - the server under them is gone. */
+  fun serverWasReplaced() {
+    staleIds += mintedIds
+  }
+
+  /** Executions suspend until [releaseRuns] - a kernel still busy on what it was asked. */
+  fun holdRuns() {
+    holdsRuns = true
+  }
+
+  fun releaseRuns() {
+    releasedRuns.complete(Unit)
+  }
+
+  private fun refuseIfStale(session: KernelSession) {
+    if (session.id in staleIds) throw StaleKernelSessionException(session.id)
+  }
 
   override suspend fun connect(
     space: Space,
@@ -196,21 +232,41 @@ internal class StaleSessionKernelGateway(
     sessionType: SessionType?,
   ): KernelSession {
     connectCount++
+    connectsAskedFor += kernel
     return KernelSession(
       id = "session-$connectCount",
       spaceId = space.id,
       kernelId = "kernel-$connectCount",
-      kernelName = "python3",
+      kernelName = (kernel as? KernelChoice.Spec)?.name ?: "python3",
       serverSessionId = "server-session-$connectCount",
-    )
+    ).also { mintedIds += it.id }
   }
 
   override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> {
+    refuseIfStale(session)
     if (refused < refusals) {
       refused++
       throw StaleKernelSessionException(session.id)
     }
-    return fake.execute(session, cellId, code)
+    return flow {
+      if (holdsRuns) releasedRuns.await()
+      emitAll(fake.execute(session, cellId, code))
+    }
+  }
+
+  override suspend fun interrupt(session: KernelSession) {
+    refuseIfStale(session)
+    interruptCount++
+  }
+
+  override suspend fun restart(session: KernelSession) {
+    refuseIfStale(session)
+    restarted += session
+  }
+
+  override suspend fun changeKernel(session: KernelSession, kernel: KernelChoice): KernelSession {
+    refuseIfStale(session)
+    return fake.changeKernel(session, kernel)
   }
 }
 
