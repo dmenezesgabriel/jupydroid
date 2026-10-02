@@ -1067,3 +1067,48 @@ And the three carried `NotebookRepository` file ops are removed rather than
 kept — no caller, no `WorkspaceChange` to announce on, and a `renameNotebook`
 that rewrote content where the reference moves the file. ADR-0070;
 `read_port_surface.py --unused` now reports nothing.
+
+### Persistence and recents — verdicts
+
+`T4`'s entries, read down both dispatches. Theirs: a `docmanager:*` id →
+`commands.execute` → the current document's `context` — `save`, `saveAs`,
+`revert`, `listCheckpoints`/`restoreCheckpoint` — or the `settingRegistry`
+(`toggle-autosave` is a settings write wearing a command's shape); every save
+runs `_maybeSave`'s hash-or-`last_modified` check first and ends in
+`createCheckpoint`. Recents are `RecentsManager` over `IStateDB` under the
+`docmanager:recents` key — one entry recorded per activation, one per close —
+shown by `recentmenu:*` and the running panel's Recently Closed. VS Code:
+`fileCommands.ts` handlers for save/saveAll/saveAs/revert, `files.autoSave`'s
+four-valued enum, and `workbench.action.openRecent`'s quick pick.
+
+Ours: `DocumentAutosave` — the debounce and the interval poll over
+`EditorSettings.autosaveEnabled`/`autosaveIntervalSeconds` — plus the close
+gates (`SaveBeforeCloseGate`, `MainAreaCloseGate`) whose `saveNow` is the only
+on-demand write in the app; `RecordOpening` → `RecentDocumentsRepository` →
+`DiskRecentDocumentsRepository` (`stateDir`, `recent-documents.json`), rendered
+by `RecentsSection` at the explorer root with `RecentsActionsMenu`'s clear.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `docmanager:save`, `docmanager:save-all` — `context.save()` then `createCheckpoint()`, on Accel S, the File menu, the palette and the notebook toolbar (`index.tsx:1105-1235`); `save-all` sweeps every writable context (`:1237-1268`); `renameUntitledFileOnSave` prompts on an untitled first save (`:1155-1190`) | `DocumentAutosave`'s debounce and poll write on their own timers; the only on-demand write is the close gate's flush (`SaveBeforeCloseGate` → `saveNow`) | **absent** | `GAP-061`. The write exists — `OpenDocuments.saveNow` — and the act does not; with `autosaveEnabled` off a dirty document writes only when it closes. |
+| `docmanager:save-as` — a path prompt, `_maybeOverWrite` on a taken one, then `fileChanged` closes the old context and opens the new (`context.ts:295-333`, `index.tsx:1270-1318`) | — | **absent** | `GAP-063`. `rename` moves a file; nothing writes the document's bytes under a second name. |
+| `docmanager:toggle-autosave` — `isToggled` reads `docManager.autosave`, the act writes the setting (`index.tsx:1330-1349`), offered as a palette item | the Settings row → `EditorSettings.autosaveEnabled` (`SettingsScreen.kt:138-139`) | **adapted** | A settings row rather than a palette command — the phone has no palette, and the row's own checked state is `isToggled`. `SettingsScreen.kt:320` names the command the row is. |
+| `docmanager:restore-checkpoint` — `listCheckpoints` → a picker → `restoreCheckpoint` (`index.tsx:1020-1084`); the points are made by `save()` itself and `_maybeCheckpoint` at first open (`context.ts:528-540,841-860`) | — | **absent** | `GAP-062`. The shipped `filecheckpoints.py` serves the API, but no port names it and nothing ever creates one — so the picker would have nothing to list. |
+| `docmanager:reload` — `context.revert()` re-reads the file and reinitialises the model, asked first when dirty (`index.tsx:968-1018`, `context.ts:676`) | — | **absent** | `GAP-064`. A file is read at open and never again; `changes` announces only what this app itself moved. |
+| `docmanager:recents` — the `IStateDB` key and its machinery: `{opened, closed}` lists, `addRecent`'s dedup-then-unshift, Contents-API validation on load, a 500 ms `Debouncer` on the write (`recents.ts:17-288`) | `RecentDocumentsRepository` → `DiskRecentDocumentsRepository` — `recent-documents.json` in `stateDir`, dedup+cap in `withMostRecent`, the same validation at `loadValidated` and on explorer refresh (`ExplorerScreen.kt:162`) | **adapted** | Client state in a file outside the workspace rather than in `IStateDB`, and written eagerly rather than debounced — the repository's docstring states both choices. The `closed` list the schema stores is `GAP-066`. |
+| `docmanager:clear-recents` — empties `opened` and `closed`, enabled only while either is non-empty (`docmanager-extension/src/recents.ts:66-81`) | the Recents section's overflow → `RecentsViewModel.clear` → `clear()`; the section itself is gone while the list is empty (`RecentsSection.kt:53`) | **present** | Same act, same label — `RecentsActionsMenu.kt:57` cites it — and the same reachability: two lists there, one here is `GAP-066`'s difference, not this command's. |
+| `autosave` (`plugin.json:113-118`, default true — gates `DocumentManager.autosave`, `manager.ts:96-126`) | `EditorSettings.autosaveEnabled`, default true, gating both halves of `DocumentAutosave` | **present** | The flag, at the schema's own default, over the mechanism it names — the field's docstring names the setting and the command. |
+| `autosaveInterval` (`plugin.json:119-124`, default 120, unbounded) | `EditorSettings.autosaveIntervalSeconds` — the same 120, clamped 5–600 by `AutosaveInterval` | **adapted** | The bound is written (`EditorSettings.kt:204-213`): a touch stepper needs edges, and under 5 s the poll is a chore the 500 ms debounce does better. The fixed interval also declines `SaveHandler`'s `10 * duration` growth and `isConnectedCallback` pause — `DocumentAutosave`'s docstring carries that reason. |
+| `confirmClosingDocument` (`plugin.json:125-130`, default false — on asks for a clean close too, `widgetmanager.ts:478-487`) | not carried — a dirty close always asks, a clean one never does | **adapted** | Pinned at the schema's own default; the reason is written on `MainAreaCloseGate`'s docstring. |
+| `defaultViewers` (`plugin.json:137-146` — a file-type → widget-factory override, `index.tsx:297-315`) | `DocumentOpeners`' suffix split — one factory per type | **adapted** | No second factory exists for any type, so an override would have nothing to point at — `DocumentOpeners`' docstring says so. |
+| `lastModifiedCheckMargin` (`plugin.json:131-136`, default 500 ms — bounds `_maybeSave`'s disk-vs-client comparison, `context.ts:741-790`) | — | **absent** | `GAP-065`. The knob parameterises a check that does not exist: `writeText`/`saveNotebook` write blind over whatever the kernel or another client left. |
+| `maxNumberRecents` (`plugin.json:153-158`, default 10 — `maximalRecentsLength` truncates both lists, `recents.ts:63-77`) | `MAX_RECENTS = 10`, a domain constant | **adapted** | The schema's own default, not carried as a setting — the constant's docstring states the decline. |
+| `renameUntitledFileOnSave` (`plugin.json:147-152`, default true — the first-save rename prompt, `index.tsx:1155-1190`) | — | **absent** | `GAP-061`. Its premise — a manual save — is the command row above's hole. |
+| the save machinery — `SaveHandler`'s debounce, interval re-arm, `10 * duration` growth, `isConnectedCallback` pause (`savehandler.ts:130-137`, `index.tsx:216-221`) | `DocumentAutosave` — 500 ms debounce plus a dirt-gated poll at the configured interval | **adapted** | Debounce and poll are the same; the growth and the pause answer a write that crosses a network, and this one's never leaves the disk — the class docstring states it. |
+| the `closed` list — `addRecent(path, 'closed')` on `close-request`, read by `recentmenu:reopen-last` and the running panel (`widgetmanager.ts:336-403,428-441`) | — | **absent** | `GAP-066`. Only opens are recorded (`RecordOpening.kt`); a closed document is still-opened or forgotten. |
+| per-entry removal — `removeRecent` (`recents.ts:124-129`), Forget on the running panel's rows (`running-extension/src/recents.ts:71-75`) | clear-all only (`RecentsActionsMenu`) | **absent** | `GAP-067`. `RecentRow`'s own no-per-row-act rationale predates weighing Forget. |
+| recents surface — `recentmenu:open-recent` items in the File menu and the running panel's two sections (`mainmenu-extension/src/recents.ts`, `running-extension/src/recents.ts`) | `RecentsSection` at the explorer root — directories first, tap to open or navigate | **adapted** | A pinned section rather than a menu — the phone has no File menu and the explorer root is where a next-open starts; `RecentsSection`'s docstring and `inRecentsOrder` carry the shape. |
+| VS Code `workbench.action.files.save`, `saveAll`, `saveAs` (`fileCommands.ts:497-540`) | — | **absent** | `GAP-061` and `GAP-063` — the same holes the `docmanager:` family left. |
+| VS Code `workbench.action.files.revert` (`fileCommands.ts:565`) | — | **absent** | `GAP-064`. |
+| VS Code `workbench.action.openRecent` — a quick pick over MRU'd workspaces and files, a remove button per row (`windowActions.ts:48-56,290-310`) | `RecentsSection` — always-on-screen at the explorer root | **adapted** | The pick's job — reopen something recent without hunting — is a root-level section; the per-row remove button the pick mounts is `GAP-067`. |
+| VS Code `files.autoSave` — `off`/`afterDelay`/`onFocusChange`/`onWindowChange` (`files.contribution.ts:261-268`) | `autosaveEnabled` + `autosaveIntervalSeconds` — an on/off and a delay | **adapted** | The four-valued trigger collapses: `afterDelay` is this app everywhere (a phone's focus is one window's), and `onFocusChange`/`onWindowChange` have no surface to hang from — `EditorSettings`' docstring carries the JupyterLab half of the same collapse. |

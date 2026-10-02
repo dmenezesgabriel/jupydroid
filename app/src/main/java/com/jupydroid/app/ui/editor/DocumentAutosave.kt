@@ -26,6 +26,13 @@ import kotlinx.coroutines.launch
  * write failure is a filesystem fact, and a retry with identical bytes fails identically, so
  * waiting for the next edit loses nothing the reference's timer would have recovered.
  *
+ * **The interval is fixed.** `SaveHandler` grows its timer to `max(10 * duration, min)` after
+ * every save (`docmanager/src/savehandler.ts:130-137`) and pauses it on `isConnectedCallback`
+ * while the server's connection is down (`docmanager-extension/src/index.tsx:216-221`) - both
+ * answers to a write that crosses a network. The write path here never does: it is the local
+ * disk the workspace and the kernel share, so a slow save has nothing to stretch for and no
+ * socket to wait on.
+ *
  * ```
  * private val save = DocumentAutosave(viewModelScope, settings, { uiState.value.dirty }) { persist() }
  * save.schedule()                       // after an edit

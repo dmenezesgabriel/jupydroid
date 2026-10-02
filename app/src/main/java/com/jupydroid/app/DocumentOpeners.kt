@@ -19,7 +19,10 @@ import kotlinx.coroutines.launch
  *
  * A `.ipynb` goes to the notebook editor and anything else to the plain one, which is the
  * reference's own split: the notebook factory claims its extension and the file editor is the
- * default for the rest (`packages/fileeditor`).
+ * default for the rest (`packages/fileeditor`). There is no `defaultViewers` knob on top of the
+ * map (`docmanager-extension/src/index.tsx:297-315` lets a setting point a file type at another
+ * factory) because every type here has exactly one factory - an override would have nothing to
+ * point at.
  *
  * Recorded on [AppContainer.applicationScope], not on a screen's: the write must finish even if
  * the tap that caused it is the last thing that screen does.

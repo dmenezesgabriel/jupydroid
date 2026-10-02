@@ -30,6 +30,11 @@ import com.jupydroid.app.ui.SaveBeforeCloseDialog
  * document's question is answered before the second's is shown, in the order the rows were closed.
  * A repeated ask for a tab already queued is the same ask and does not join the queue again.
  *
+ * The ask exists for a dirty document alone. `confirmClosingDocument`'s on-state, which asks even
+ * a clean close (`docmanager/src/widgetmanager.ts:478-487`), stays at the schema's default off
+ * (`docmanager-extension/schema/plugin.json:125-130`): it guards a cheap keybinding close a touch
+ * surface does not have, and every leave here already costs a deliberate tap.
+ *
  * ```
  * val closeTab = rememberMainAreaCloseGate(backStack, tabs, openDocuments, openDocumentPaths)
  * TabbedDocumentPane(…, onCloseTab = closeTab) { … }

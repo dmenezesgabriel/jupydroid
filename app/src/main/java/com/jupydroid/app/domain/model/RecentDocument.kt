@@ -17,8 +17,9 @@ package com.jupydroid.app.domain.model
 data class RecentDocument(val path: String, val kind: WorkspaceEntryKind)
 
 /**
- * How many are remembered: `maxNumberRecents`, whose reference default is 10
- * (`docmanager-extension/schema/plugin.json:153-158`).
+ * How many are remembered: `maxNumberRecents`, fixed at its reference default of 10 rather than
+ * carried as a setting (`docmanager-extension/schema/plugin.json:153-158`) - a stepper to bound a
+ * ten-row list is a knob with no use this small.
  */
 const val MAX_RECENTS: Int = 10
 

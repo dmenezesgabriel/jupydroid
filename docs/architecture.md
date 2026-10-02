@@ -941,6 +941,90 @@ the same ask with a second editor group. Ours opens reveal-don't-reopen over one
 unoffered — the stack's own rule refuses it. The repair is a clone act on the surface GAP-059
 names plus a per-key tab that tolerates two keys for one path.
 
+### GAP-061 — A document cannot be saved on demand
+
+`docmanager:save` runs `context.save()` then `createCheckpoint()`, bound on Accel S with a menu
+item, a palette entry and the notebook toolbar's save button
+(`jupyterlab/packages/docmanager-extension/src/index.tsx:1105-1235`), and `save-all` sweeps every
+writable context (`:1237-1268`); `renameUntitledFileOnSave` hangs a rename prompt on the first
+manual save of an untitled file (`:1155-1190`). Ours writes on a debounce and an interval poll
+(`app/src/main/java/com/jupydroid/app/ui/editor/DocumentAutosave.kt`) and flushes owed work on the
+way out (`saveNow` in `app/src/main/java/com/jupydroid/app/OpenDocuments.kt`), so a save is never
+an act — and with `autosaveEnabled` off, an edit is written only when the document is closed. The
+repair is a save act on the document's own surface — the actions menu, or the surface GAP-059
+names — over `OpenDocuments.saveNow`, which already does the flush-and-check.
+
+### GAP-062 — There are no checkpoints
+
+`context.save()` ends in `createCheckpoint()`
+(`jupyterlab/packages/docregistry/src/context.ts:528-540`), and `_maybeCheckpoint` creates one at
+first open when a writable file has none (`:841-860`), so `docmanager:restore-checkpoint` always
+has a point to return to
+(`jupyterlab/packages/docmanager-extension/src/index.tsx:1020-1084`). The shipped backend serves
+the API — `jupyter_server/services/contents/filecheckpoints.py` is in the rootfs — but no port
+operation names it and nothing ever creates one. The repair starts with the checkpoint calls on
+the repository an editor writes through; the picker the command offers is a dialog over
+`listCheckpoints`.
+
+### GAP-063 — A document cannot be saved under a new name
+
+`docmanager:save-as` asks a path, refuses a taken one through `_maybeOverWrite`, writes, then
+closes the old context and opens the new one off `fileChanged`
+(`jupyterlab/packages/docregistry/src/context.ts:295-333`,
+`jupyterlab/packages/docmanager-extension/src/index.tsx:1270-1318`); VS Code's `files.saveAs` is
+the same act. Ours' `rename` moves a file rather than copying it — the same-shape answer to a
+different ask — and no write-a-copy exists; GAP-050 already notes there is no `copy` op for one
+to ride. The repair is a path prompt writing the document's bytes through the repository the
+editor already writes, then opening the result.
+
+### GAP-064 — An open document never re-reads its file
+
+`docmanager:reload` is `context.revert()` — the file read back and the model reinitialised, asked
+first when dirty (`jupyterlab/packages/docmanager-extension/src/index.tsx:968-1018`,
+`jupyterlab/packages/docregistry/src/context.ts:676`) — and VS Code's `files.revert` does the
+same. Ours opens a file once and never reads it again: `WorkspaceRepository.changes` announces
+only what this app moved
+(`app/src/main/java/com/jupydroid/app/domain/port/WorkspaceRepository.kt`), so a file a cell
+rewrote — or a second Jupyter client — sits stale until the next autosave overwrites it. The
+repair is a re-read act on the document; whether it merges or replaces is the question `revert`'s
+own dirty-guard already answers.
+
+### GAP-065 — A save never checks what it is overwriting
+
+`Context._maybeSave` re-reads the model (`hash: true`) before every write and raises a conflict
+dialog when the disk's hash or `last_modified` is newer than the client's by more than
+`lastModifiedCheckMargin` — 500 ms
+(`jupyterlab/packages/docregistry/src/context.ts:741-790`) — and the same `_maybeOverWrite` ask
+guards `saveAs`. Ours' `writeText` and `saveNotebook` write blind: the workspace is shared with
+the kernel, so a cell that rewrites an open file — or any second client on the same directory —
+is silently overwritten at the next debounce. The repair is a compare in the write path; the
+machinery is the `last_modified` a document already records at read, not a second channel.
+
+### GAP-066 — Nothing remembers a closed document
+
+`RecentsManager` keeps two lists, `opened` and `closed`
+(`jupyterlab/packages/docmanager/src/recents.ts:39-50`), and `widgetmanager` records a close on
+`'close-request'` the way it records an open on `'activate-request'`
+(`jupyterlab/packages/docmanager/src/widgetmanager.ts:273-286,336-403,428-441`): the running
+panel's "Recently Closed" section and `recentmenu:reopen-last` both read the list. Ours records
+opens alone (`app/src/main/java/com/jupydroid/app/RecordOpening.kt`) — a closed document is only
+ever still in `opened`, or gone. The repair is the second list on `RecentDocumentsRepository`,
+written where a document closes; the surfaces that would read it are AUD-006's and AUD-009's to
+draw.
+
+### GAP-067 — A recent is kept or cleared, never removed alone
+
+`RecentsManager.removeRecent` drops one entry
+(`jupyterlab/packages/docmanager/src/recents.ts:124-129`), the running panel's closed rows carry
+it as Forget (`jupyterlab/packages/running-extension/src/recents.ts:71-75`), and VS Code's
+open-Recent pick mounts a remove button on every row
+(`vscode/src/vs/workbench/browser/actions/windowActions.ts:48-56`). Ours offers only
+`docmanager:clear-recents`
+(`app/src/main/java/com/jupydroid/app/ui/explorer/RecentsActionsMenu.kt`): one dead row in the
+list cannot be dropped without dropping all ten. `RecentRow`'s stated reason — a recent carries
+no per-row act because rename and delete belong to the file — was written before Forget was
+weighed, and the repair is the row act it declined.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

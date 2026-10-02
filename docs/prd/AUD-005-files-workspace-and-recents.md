@@ -162,7 +162,7 @@ Known going in, so a verdict does not re-litigate them:
       `docmanager:new-untitled|open|rename|delete|delete-file|duplicate|clone|download|
       open-browser-tab|show-in-file-browser`; the two carried `fileeditor:create-new*`; Winlator's
       file manager; the three `NotebookRepository` operations decided.
-- [ ] T4 — **Verdicts for persistence and recents.** `docmanager:save|save-all|save-as|
+- [x] T4 — **Verdicts for persistence and recents.** `docmanager:save|save-all|save-as|
       toggle-autosave|restore-checkpoint|reload|clear-recents`, `docmanager:recents`, and
       `plugin.json`'s seven settings against `DocumentAutosave`/`EditorSettings`/
       `RecentDocumentsRepository`/`RecentsSection`; VS Code's save/revert and `openRecent`.
