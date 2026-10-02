@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,25 +52,32 @@ class RunningPanelViewModel(private val kernelSessions: KernelSessions, private 
     viewModelScope.launch { relist() }
   }
 
-  /** `running:kernel-shut-down` - `DELETE api/sessions/<id>` on the row's own control. */
+  /**
+   * `running:kernel-shut-down` - `DELETE api/sessions/<id>` on the row's own control. A refused
+   * delete dies quietly: `ended`, not the call's return, is what removes a row, and a delete the
+   * server never saw emits no end.
+   */
   fun shutdownSession(session: KernelSessionModel) {
-    viewModelScope.launch { kernelSessions.shutdown(session.serverSessionId) }
+    viewModelScope.launch { ignoringFailure { kernelSessions.shutdown(session.serverSessionId) } }
   }
 
   /**
    * The section toolbar's `shutdown-all` - one DELETE per session. The reference shuts *kernels*
    * (`kernels.shutdownAll()` over `GET api/kernels`); this port's rows are sessions, and deleting
    * a session takes its kernel with it (`SessionManager.delete_session`), so the count the caller
-   * confirmed against is [RunningPanelState.sessions]' own.
+   * confirmed against is [RunningPanelState.sessions]' own. Each shutdown is its own ask - one
+   * refused DELETE does not skip the rows behind it.
    */
   fun shutdownAllSessions() {
-    viewModelScope.launch { _uiState.value.sessions.forEach { kernelSessions.shutdown(it.serverSessionId) } }
+    viewModelScope.launch {
+      _uiState.value.sessions.forEach { ignoringFailure { kernelSessions.shutdown(it.serverSessionId) } }
+    }
   }
 
   /** `terminal:close` - `DELETE api/terminals/<name>` on the row's own control. */
   fun closeTerminal(session: TerminalSession) {
     viewModelScope.launch {
-      terminalGateway.close(session)
+      ignoringFailure { terminalGateway.close(session) }
       relist()
     }
   }
@@ -77,7 +85,7 @@ class RunningPanelViewModel(private val kernelSessions: KernelSessions, private 
   /** The section toolbar's `shutdown-all` - `manager.shutdownAll()`, one DELETE per terminal. */
   fun shutdownAllTerminals() {
     viewModelScope.launch {
-      _uiState.value.terminals.forEach { terminalGateway.close(it) }
+      _uiState.value.terminals.forEach { ignoringFailure { terminalGateway.close(it) } }
       relist()
     }
   }
@@ -85,8 +93,31 @@ class RunningPanelViewModel(private val kernelSessions: KernelSessions, private 
   /** Both lists again - what the server answers now. */
   private suspend fun relist() {
     _uiState.value = RunningPanelState(
-      sessions = kernelSessions.running(),
-      terminals = terminalGateway.running(),
+      sessions = keepingLastGood(_uiState.value.sessions) { kernelSessions.running() },
+      terminals = keepingLastGood(_uiState.value.terminals) { terminalGateway.running() },
     )
+  }
+
+  /**
+   * A refused ask keeps the list it would have replaced - the reference's per-manager
+   * `refreshRunning` leaves a failed section's rows alone, and one dead endpoint is no reason to
+   * empty the other's list too. Cancellation is never swallowed.
+   */
+  private suspend fun <T> keepingLastGood(current: List<T>, ask: suspend () -> List<T>): List<T> = try {
+    ask()
+  } catch (cancelled: CancellationException) {
+    throw cancelled
+  } catch (_: Exception) {
+    current
+  }
+
+  /** A verb the panel fired: its refusal is logged by the server's silence, not a crash. */
+  private suspend fun ignoringFailure(ask: suspend () -> Unit) {
+    try {
+      ask()
+    } catch (cancelled: CancellationException) {
+      throw cancelled
+    } catch (_: Exception) {
+    }
   }
 }

@@ -4,9 +4,13 @@ import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeTerminalGateway
+import com.jupydroid.app.data.space.KernelLifecycleException
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
+import com.jupydroid.app.domain.port.KernelSessionModel
+import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.SessionType
+import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -143,5 +147,112 @@ class RunningPanelViewModelTest {
     advanceUntilIdle()
 
     assertTrue(model.uiState.value.terminals.isEmpty())
+  }
+
+  /**
+   * The class contract's own promise: a refused `GET api/sessions` keeps the last good list, the
+   * way the reference's section keeps its rows when `refreshRunning` rejects - the launch's
+   * failure must neither escape nor empty the panel.
+   */
+  @Test
+  fun aRefusedRelistKeepsTheLastGoodSessions() = runTest {
+    val refusing = RefusingKernelSessions(kernelSessions)
+    kernelGateway.connect(BASE_SPACE, "notes.ipynb")
+    val model = RunningPanelViewModel(refusing, terminalGateway).also { it.refresh() }
+    advanceUntilIdle()
+    refusing.refusingList = true
+
+    model.refresh()
+    advanceUntilIdle()
+
+    assertEquals(listOf("notes.ipynb"), model.uiState.value.sessions.map { it.name })
+  }
+
+  /**
+   * A refused `DELETE api/sessions/<id>` dies quietly: `ended`, not the call's return, is what
+   * removes a row - and no end was emitted for a delete the server never saw.
+   */
+  @Test
+  fun aRefusedShutdownLeavesTheSessionListed() = runTest {
+    val refusing = RefusingKernelSessions(kernelSessions)
+    kernelGateway.connect(BASE_SPACE, "notes.ipynb")
+    val model = RunningPanelViewModel(refusing, terminalGateway).also { it.refresh() }
+    advanceUntilIdle()
+    refusing.refusingShutdown += model.uiState.value.sessions.single().serverSessionId
+
+    model.shutdownSession(model.uiState.value.sessions.single())
+    advanceUntilIdle()
+
+    assertEquals(listOf("notes.ipynb"), model.uiState.value.sessions.map { it.name })
+  }
+
+  /**
+   * `shutdown-all` with one DELETE refused: the refusal does not skip the rows behind it - each
+   * shutdown is its own ask, the way `forEach { it.shutdown() }` over the managers is.
+   */
+  @Test
+  fun aRefusedShutdownDoesNotSkipTheRestOfShutdownAll() = runTest {
+    val refusing = RefusingKernelSessions(kernelSessions)
+    val a = kernelGateway.connect(BASE_SPACE, "a.ipynb")
+    kernelGateway.connect(BASE_SPACE, "b.ipynb")
+    val model = RunningPanelViewModel(refusing, terminalGateway).also { it.refresh() }
+    advanceUntilIdle()
+    refusing.refusingShutdown += a.serverSessionId
+
+    model.shutdownAllSessions()
+    advanceUntilIdle()
+
+    assertEquals(listOf("a.ipynb"), model.uiState.value.sessions.map { it.name })
+  }
+
+  /**
+   * `terminal:close` whose DELETE is refused still relists - the terminal is simply still there,
+   * which is the list's own truth rather than the call's.
+   */
+  @Test
+  fun aRefusedTerminalCloseLeavesTheTerminalListed() = runTest {
+    val refusing = RefusingTerminalGateway(terminalGateway)
+    refusing.open(cwd = null)
+    val model = RunningPanelViewModel(kernelSessions, refusing).also { it.refresh() }
+    advanceUntilIdle()
+    refusing.refusing = true
+
+    model.closeTerminal(TerminalSession("1"))
+    advanceUntilIdle()
+
+    assertEquals(listOf(TerminalSession("1")), model.uiState.value.terminals)
+  }
+}
+
+/** `GET`/`DELETE api/sessions` refusing on demand - what a dead server answers the panel with. */
+private class RefusingKernelSessions(private val fake: FakeKernelSessions) : KernelSessions by fake {
+  var refusingList = false
+  val refusingShutdown = mutableSetOf<String>()
+
+  override suspend fun running(): List<KernelSessionModel> {
+    if (refusingList) throw KernelLifecycleException("GET api/sessions refused")
+    return fake.running()
+  }
+
+  override suspend fun shutdown(serverSessionId: String) {
+    if (serverSessionId in refusingShutdown) {
+      throw KernelLifecycleException("DELETE api/sessions/$serverSessionId refused")
+    }
+    fake.shutdown(serverSessionId)
+  }
+}
+
+/** `GET`/`DELETE api/terminals` refusing on demand - the terminal half of the same dead server. */
+private class RefusingTerminalGateway(private val fake: FakeTerminalGateway) : TerminalGateway by fake {
+  var refusing = false
+
+  override suspend fun running(): List<TerminalSession> {
+    if (refusing) throw KernelLifecycleException("GET api/terminals refused")
+    return fake.running()
+  }
+
+  override suspend fun close(session: TerminalSession) {
+    if (refusing) throw KernelLifecycleException("DELETE api/terminals/${session.name} refused")
+    fake.close(session)
   }
 }
