@@ -100,6 +100,11 @@ class ConsoleViewModel(
   /**
    * Submits [input]'s current text as a new entry and runs it.
    *
+   * Always the *forced* arm: the reference's unforced `execute()` asks `is_complete_request`
+   * whether the block is whole and inserts a newline when it is not
+   * (`packages/console/src/widget.ts:979`), and `docs/architecture.md` §11's `GAP-012` records
+   * that nothing here sends it - so a submission runs rather than waiting for the body.
+   *
    * A no-op on blank input, and a no-op while the last entry is still [ExecutionStatus.RUNNING] -
    * `RunControl`'s own disabled-while-busy treatment, not the reference's queue (this row's own
    * concurrency decision).

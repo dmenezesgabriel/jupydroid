@@ -1342,3 +1342,64 @@ machinery is `AUD-003`'s, examined — the two `completer:*-console` ids are rea
 as the console's surface offers them. The partition rows are in the shared table under `AUD-002`'s
 heading — the console's ids to `T2`, sessions and kernel lifecycle to `T3`, the running panel to
 `T4`, and the walk is `T5`.
+
+### The console — verdicts
+
+`T2`'s entries, read down both dispatches. Theirs: a `console:*` or `completer:*-console` id →
+`commands.execute` → `getCurrent`/`contextMenuConsole` on `IConsoleTracker` → `CodeConsole`/
+`ConsolePanel` (`execute(force)`, `insertLinebreak`, `replaceSelection`, `clear`, `inject`,
+`setConfig`, the prompt editor's own undo/redo) or its `sessionContext` (`shutdown`,
+`sessionDialogs.restart`/`selectKernel`, `setName`, `session?.kernel`); the three
+`notebook:*-console` ids mint or feed one through `sessionContextDialogs`/`ForeignHandler`; and
+`filemenu:create-console` is `console:create` wearing the File menu. VS Code's second home is the
+Interactive Window, which keeps Restart on the primary toolbar — `GAP-009`'s own row.
+
+Ours: `ConsoleViewModel` (`submit`, `clear`, `interrupt`, the `NotebookHistory` walk) under
+`ConsoleActionsMenu` and `ConsoleInputRow`'s Run button, over a `NotebookKernelSession` either
+`attachConsole`ed onto the notebook's own or `mintConsole`ed standalone, reached through
+`KernelMenu`'s "New Console for Notebook", the launcher's card, or `openRunningSession`'s
+reveal — all under the one `consoleSession` holder `NotebookBackStack`'s two openers sweep for.
+
+Five real commands ride the surface that the measure cannot see: console:prompt-to-top, -bottom,
+-left, -right (`index.ts:1360-1427`) and console:toggle-show-all-kernel-activity (`foreign.ts`)
+are literal `addCommand` registrations with no `CommandIDs` export for `COMMAND_ID` to count, so
+no slice owns them and they are named here — un-backticked, so the missing-check does not report
+them owned — rather than verdicted: the four move the prompt between the console's edges, and the
+fifth gates whether *every* kernel's activity lands in the transcript, which presupposes the
+foreign-execution surface `GAP-073` records missing; ours' prompt is docked bottom with nowhere
+second to go.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `console:run-forced` — `console.execute(true)`, Shift Enter in both modes (`index.ts:1058-1080`) | `ConsoleViewModel.submit` → `run` → `kernelGateway.execute`, on `ConsoleInputRow`'s Run button, disabled while the last entry runs | adapted | The forced run is what a tap on Run is; `submit`'s docstring records the dedicated-action-in-place-of-Shift+Enter call. |
+| `console:run-unforced` — `console.execute()`; notebook-mode Enter runs only when `requestIsComplete` says the block is whole, else inserts a newline (`widget.ts:960-1000`) | the same `submit()` — no completeness ask precedes it | adapted | Executing is the same `execute`; the unforced half's check — `is_complete_request` — is `GAP-012`'s recorded absence, so a run here is always the forced arm's. |
+| `console:linebreak` — `console.insertLinebreak()`, Accel Enter in terminal mode (`index.ts:1081-1102`) | Enter inside `CodeCellField` inserts a newline | adapted | `ConsoleInputRow`'s docstring states it: Enter keeps the field's own newline and the dedicated action runs. |
+| `console:replace-selection` — `console.replaceSelection(text)`, the write-back a completer pick rides (`index.ts:1104-1130`) | — | absent | GAP-072. |
+| `console:undo`, `console:redo` — `editor.undo()`/`editor.redo()` on the prompt cell, enabled on `sharedModel.canUndo()`/`canRedo()` (`index.ts:910-985`) | — | absent | GAP-071 — the prompt's `TextFieldState` keeps no edit history to walk. |
+| `console:clear` — `console.clear()`, unconditional (`index.ts:997-1024`) | `ConsoleActionsMenu`'s "Clear Console Cells" → `ConsoleViewModel.clear` | present | Same act, same label, same unconditionality — `clear()`'s docstring cites both. |
+| `console:interrupt-kernel` — `sessionContext.interrupt()`, reachable only from a menu or the palette in either reference (`index.ts:1132-1150`) | `ConsoleActionsMenu`'s "Interrupt Kernel" → `interrupt` → `kernelGateway.interrupt`, enabled only while a run is live | present | `ConsoleActionsMenu.kt:23-27` states the menu-only placement both references share. |
+| `console:restart-kernel` — `sessionDialogs.restart(sessionContext)`, on the console toolbar's contributed slots and the Interactive Window's primary toolbar | — | absent | GAP-009 — recorded by the backlog before this audit, verdicted not decided here. |
+| `console:shutdown`, `console:close-and-shutdown` — `sessionContext.shutdown()` leaving the console open; the close variant asks, shuts, disposes (`index.ts:1186-1255`) | — | absent | GAP-075 — the console surface has no end act, and closing its tab frees neither socket nor session. |
+| `console:change-kernel`, `console:get-kernel` — `sessionDialogs.selectKernel`, and the invisible `session?.kernel` the kernel-name/status widgets ask (`index.ts:1338-1380`) | — | absent | GAP-074 — `NotebookKernelSession.changeKernel` exists but the console carries no kernel surface that reaches it. |
+| `console:create` — mints `console-<count>-<uuid>` under cwd titled `Console <count>`, from launcher tile, palette, or menu (`index.ts:716-770`, `panel.ts:58-70`) | the launcher's console card → `LauncherViewModel.mintConsole` → `openStandaloneConsole` | adapted | The mint and the naming are the same (`Console.kt:7-15` cites both); one card instead of per-kernelspec tiles, and the sweep is the single-`consoleSession`-holder rule. |
+| `console:open` — reveals the console whose session path matches, minting one when a running session has none (`index.ts:674-710`) | `openRunningSession`'s console arm — reveal only | **defect** | Found by the read and fixed red-first: every session POST derived `type` from the path and `console-<count>-<uuid>` is extensionless, so the row always read `file` and the tap fell to `openDocument` on a path that does not exist (`0af14e7b`; `OkHttpKernelLifecycleTest`, `LauncherViewModelTest`, `EditorViewModelTest`, `RunningPanelViewModelTest`). Still reveal-only past the fix — `Navigation.kt:172-185` states why a console with no tab cannot be synthesised. |
+| `console:inject` — find-or-create a console by session path, run `code` in it (`index.ts:1294-1337`) | — | absent | GAP-073. `attachConsole`'s docstring already names the find-the-tracked-session half as its own precedent; the act that would use it does not exist. |
+| `filemenu:create-console` — the File menu's entry, a semantic delegate to console:create (`mainmenu-extension/src/index.ts`) | the launcher card is the only create entry | adapted | The same mint under one entry point; the File menu shell itself is the chrome slice's (`AUD-009`). |
+| `console:rename` — `InputDialog.getText` → `session.setName` = `PATCH api/sessions` `name` (`index.ts:1257-1292`) | — | absent | GAP-076 — `KernelSessions` has no name op, and a `Console` key's `title` is minted once. |
+| `console:interaction-mode` — writes `interactionMode` to notebook or terminal, choosing which key runs (`index.ts:1482-1511`) | — | adapted | Both modes exist to pick which key runs; the touch prompt decides once — Enter only newlines, the button only runs — so a toggle would have no second mode to select (`ConsoleViewModel.submit`/`ConsoleInputRow`'s docstrings record the shape). |
+| `console:toggle-autoclosing-brackets` — writes `promptCellConfig.autoClosingBrackets` (`index.ts:630-646`) | `EditorSettings.autoClosingBrackets`, the universal pair the prompt field reads | adapted | One setting rather than a per-widget `promptCellConfig` — `ConsoleScreen.kt:40-48` states the universal toggle's own reach. |
+| `completer:invoke-console`, `completer:select-console` — `manager.invoke` on the current console and the pick's write-back, registered inside `console-extension` (`index.ts:1519-1560`) | — | absent | GAP-072 — `ConsoleInputRow` leaves `CodeCellField`'s `completionsAt` at `NO_COMPLETIONS`; the machinery exists unwired. |
+| `notebook:create-console` — a console sharing the notebook's `sessionContext`, `split-bottom`, filed under the File menu's `consoleCreators` (`index.ts:1841`, `mainmenu-extension`'s group) | `KernelMenu`'s "New Console for Notebook" → `attachConsole()` — a second `NotebookKernelSession` pre-bound by `attachedTo` — → `openConsole`'s sweep-and-push | adapted | The share is the same session and the label is the reference's own (`KernelMenu.kt:265`); the placement is a stacked entry rather than a split pane, under the single-holder sweep `NotebookBackStack.kt:54-84` states. |
+| `notebook:create-subshell-console` — a console whose session talks on a kernel-spawned subshell (`index.ts:5461-5473`), gated by `commsOverSubshells` | — | absent | GAP-077 — nothing on the wire or the port names a subshell. |
+| `notebook:run-in-console` — the selection executes in the notebook's console through `ForeignHandler`, landing in its transcript (`notebook-extension/src/index.ts:1900-1990`) | — | absent | GAP-073 — no foreign execution exists to land. |
+
+**The read's own findings.** One defect came out of tracing rather than comparing —
+`openRunningSession`'s console arm could never fire, since every session POST derived `type` from
+the path and a minted `console-<count>-<uuid>` is extensionless — **defect → fixed** in `0af14e7b`,
+red-first through `OkHttpKernelLifecycleTest`, `LauncherViewModelTest`, `EditorViewModelTest` and
+`RunningPanelViewModelTest`'s new cases, the fix threading a declared `SessionType` from both
+console constructors down to `SessionStartRequest` the way `ConsolePanel`'s `type: 'console'`
+declares it. And one observation shaped a gap rather than a fix: closing a Console tab releases
+neither socket nor session while `SessionContext.dispose` releases the client connection —
+recorded as `GAP-075` rather than repaired, because the naive disconnect would close an attached
+console's *shared* socket out from under its notebook.

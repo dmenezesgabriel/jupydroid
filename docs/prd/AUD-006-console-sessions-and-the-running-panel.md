@@ -231,7 +231,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `read_ledger_partition_test.py` and `read_ledger_verdicts_test.py`, which shares the pattern.
       Land the `AUD-006` ledger section: the surface paragraphs, the produced counts, the partition
       rows — no verdicts.
-- [ ] T2 — **Verdicts for the console.** The nineteen `console:*` ids and the two
+- [x] T2 — **Verdicts for the console.** The nineteen `console:*` ids and the two
       `completer:*-console`, `tracker.json`'s nine settings and four shortcuts, and the `console/`
       machinery (`CodeConsole`, `ConsolePanel`, `ConsoleHistory`, `ForeignHandler`,
       `ConsoleCellExecutor`) against `ui/console/`, `Console`, `attachConsole`,

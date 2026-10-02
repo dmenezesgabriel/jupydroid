@@ -1062,6 +1062,84 @@ small `readText`s plus up to `MAX_RECENTS` stats, all before the first frame, on
 startup is measured on. Bounded today and never yet a measured problem — the repair the day a
 cold start shows up in a profile is a first read deferred to first collection.
 
+### GAP-071 — The console prompt keeps no undo of its own
+
+`console:undo`/`console:redo` call `editor.undo()`/`editor.redo()` on the prompt cell's editor,
+enabled while its `sharedModel.canUndo()`/`canRedo()` says there is something to walk
+(`jupyterlab/packages/console-extension/src/index.ts:910-985`) — the prompt's own edit history,
+independent of the transcript above it. Ours' prompt is a bare `TextFieldState`
+(`app/src/main/java/com/jupydroid/app/ui/console/ConsoleInputRow.kt`) — `edit { }` writes and
+nothing is remembered, which is the same shape every `CodeCellField` in the notebook already has,
+so the repair is editor-wide rather than console-local: an undo stack on the field both surfaces
+then share.
+
+### GAP-072 — The console's prompt has no completion
+
+`completer:invoke-console`/`completer:select-console` are registered *inside* `console-extension`
+(`jupyterlab/packages/console-extension/src/index.ts:1519-1560`): `manager.invoke` on the current
+console's prompt, and the pick written back through `console:replace-selection`'s
+`replaceSelection(text)` (`:1104-1130`). Ours' field already carries the machinery —
+`CodeCellField.completionsAt` is a parameter with a `NO_COMPLETIONS` default, which
+`ConsoleInputRow` never overrides — so the absence is the wiring alone: nothing hands the prompt
+the console session's `complete_request` the way `NotebookCompletion` hands it the notebook's
+(`app/src/main/java/com/jupydroid/app/ui/console/`, `ui/editor/NotebookCompletion.kt`).
+
+### GAP-073 — Nothing runs one surface's code inside a console
+
+`console:inject` finds a console by session path — minting one if a running session has none —
+and executes the given `code` in it (`jupyterlab/packages/console-extension/src/index.ts:1294-1337`);
+`notebook:run-in-console` sends the notebook's selection the same way, through the `ForeignHandler`
+and `ConsoleCellExecutor` that land a foreign run in the console's transcript
+(`jupyterlab/packages/notebook-extension/src/index.ts:1900-1990`,
+`jupyterlab/packages/console/src/foreign.ts`, `cellexecutor.ts`); and the reply's `set_next_input`
+payload writes the console's prompt. Ours has none of the three: `ConsoleViewModel.run` runs only
+what `submit` typed, `KernelOutputs` maps no reply payload, and `attachConsole` shares the session
+but no act reaches across to it (`app/src/main/java/com/jupydroid/app/ui/console/ConsoleViewModel.kt`).
+
+### GAP-074 — The console carries no kernel surface of its own
+
+The reference's console toolbar draws the kernel's name and a live status from contributed
+factories, `showBanner` can paint the kernel's banner, `console:change-kernel` runs
+`sessionDialogs.selectKernel`, and `console:get-kernel` is the invisible delegate that answers
+`session?.kernel` for those widgets
+(`jupyterlab/packages/console-extension/src/index.ts:1338-1380`). Ours' console bar carries only
+the actions menu (`app/src/main/java/com/jupydroid/app/ui/console/ConsoleScreen.kt`): the session
+object already answers `changeKernel` — the notebook's own picker calls it — but nothing on a
+console reaches it, and an attached console only follows the notebook's rebound through
+`rebindIfMatches`.
+
+### GAP-075 — A console's end frees nothing
+
+`console:shutdown` ends the session and leaves the console open; `console:close-and-shutdown`
+asks, then shuts and disposes (`jupyterlab/packages/console-extension/src/index.ts:1186-1255`) —
+and `SessionContext.dispose` releases the client connection either way
+(`jupyterlab/packages/apputils/src/sessioncontext.tsx:697`). Ours' console surface has no end act
+at all — a minted console's kernel can only die from a Running row — and removing the `Console`
+entry releases neither socket nor session: `disconnect` is only `NotebookKernel.close`'s, so the
+`consoleSession` holder keeps the orphaned session — and its kernel — alive past the tab
+(`app/src/main/java/com/jupydroid/app/Navigation.kt:146`). The repair must tell minted from
+attached: a naive close-time `disconnect` would close an attached console's *shared* socket out
+from under its notebook, which is why this is recorded rather than patched.
+
+### GAP-076 — A console's session cannot be renamed
+
+`console:rename` is `InputDialog.getText` → `session.setName` — a `PATCH api/sessions` `name`
+write that the running panel then shows
+(`jupyterlab/packages/console-extension/src/index.ts:1257-1292`). Ours' `KernelSessions` has no
+name op — `running`, `shutdown`, `ended`, `rebound` are the whole surface — and a `Console` key's
+`title` is minted once (`app/src/main/java/com/jupydroid/app/domain/port/KernelSessions.kt`,
+`app/src/main/java/com/jupydroid/app/Console.kt`). The repair is a `setName` on the port first;
+the act has somewhere to land only after.
+
+### GAP-077 — No console on a subshell
+
+`notebook:create-subshell-console` builds a console whose session talks on a *subshell* the
+kernel spawns — so a run lands while the main shell is busy — gated by `commsOverSubshells`
+(`jupyterlab/packages/notebook-extension/src/index.ts:5461-5473`,
+`jupyterlab/packages/apputils-extension/schema/kernels-settings.json`). Nothing on ours' wire or
+in `KernelGateway` names a subshell — `execute` addresses the session's one shell channel — so
+the command has nothing to mint on.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the
