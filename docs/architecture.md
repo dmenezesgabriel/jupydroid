@@ -894,6 +894,53 @@ cannot be pulled forward. `ExplorerViewModel.refresh()` already re-lists
 repair is a gesture that reaches it — a pull-down on the listing is the shape the
 surface already suggests — not new plumbing.
 
+### GAP-057 — Nothing creates a text file that is not Python
+
+`filebrowser:create-new-file` takes an `ext` per kernelspec on offer and `create-new-markdown-file`
+a `.md`, and the carried `fileeditor:create-new*` pair goes further — `docmanager:new-untitled`
+then `docmanager:open`, so the file lands already open
+(`jupyterlab/packages/fileeditor-extension/src/commands.ts:1383-1400`). Ours' New menu is exactly
+three — notebook, `.py`, folder
+(`app/src/main/java/com/jupydroid/app/ui/explorer/ExplorerBar.kt`) — while
+`WorkspaceRepository.createFile` already takes any extension and `DocumentOpeners` sends anything
+that is not `.ipynb` to the plain file editor
+(`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`): a `.md` the editor would happily open
+cannot be made. The repair is a menu row, not a new op — the editor is already the fallback.
+
+### GAP-058 — Deleting a file never stops the sessions it was running
+
+`DocumentManager.deleteFile` runs `services.sessions.stopIfNeeded(path)` *first*
+(`jupyterlab/packages/docmanager/src/manager.ts:351-363`), so deleting the notebook a kernel is
+running ends the session — and `overwrite` gets the same half free, since it deletes the target
+through that call (`manager.ts:522`). Ours' `WorkspaceRepository.delete` announces `Deleted` and
+an open document goes `gone`, but the kernel it was running on is left running; only the Running
+panel's own row can stop it
+(`app/src/main/java/com/jupydroid/app/ui/shell/RunningSidePanel.kt`). The repair composes the two
+ports at the caller — the workspace port cannot look a session up, and the reference puts the
+pairing in its document manager for the same reason.
+
+### GAP-059 — The open document's own surface answers only rename
+
+`docmanager:delete`, `docmanager:duplicate` and the tab context menu they sit on
+(`data-type="document-title"`, `jupyterlab/packages/docmanager-extension/src/index.tsx`) act on
+the *open document* — the tab asks, and the answer deletes its file or copies it beside itself.
+Ours' tab long-press opens the rename dialog and nothing else: deliberate for one item, "a touch
+context menu would be one item deep"
+(`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`), but the reasoning was
+written for rename alone, and the file acts have no home on the document they act on — the
+explorer row's own menu is the only way to delete or would-be-duplicate a file. The repair is
+the menu that comment declined the moment it would be two items deep.
+
+### GAP-060 — A document cannot be viewed twice
+
+`docmanager:clone` → `cloneWidget` opens a second view on one context, split-right by default —
+two scroll positions over one file
+(`jupyterlab/packages/docmanager-extension/src/index.tsx:1397`); VS Code's `openToSide` answers
+the same ask with a second editor group. Ours opens reveal-don't-reopen over one entry per path
+(`app/src/main/java/com/jupydroid/app/NotebookBackStack.kt`), so a second view is not merely
+unoffered — the stack's own rule refuses it. The repair is a clone act on the surface GAP-059
+names plus a per-key tab that tolerates two keys for one path.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

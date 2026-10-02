@@ -157,7 +157,7 @@ Known going in, so a verdict does not re-litigate them:
       `toggle-*`, `select-all`, the main-area ids) and `browser.json`'s eighteen settings against
       `ExplorerViewModel`/`ExplorerScreen`/`WorkspaceListing`/`ExplorerSettings`; VS Code's
       explorer tree against our replaced listing.
-- [ ] T3 — **Verdicts for file operations.** Create, rename, delete, duplicate, copy, cut, paste,
+- [x] T3 — **Verdicts for file operations.** Create, rename, delete, duplicate, copy, cut, paste,
       download, copy-path, copy-download-link, upload, `open-url`, `open-browser-tab`, `shutdown`;
       `docmanager:new-untitled|open|rename|delete|delete-file|duplicate|clone|download|
       open-browser-tab|show-in-file-browser`; the two carried `fileeditor:create-new*`; Winlator's

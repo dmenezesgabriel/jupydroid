@@ -991,3 +991,79 @@ Code's explorer is the presentation comparison — an `AsyncDataTree`
 GAP-050 and GAP-055 are shared absences: T3's copy/cut/download rows and
 `docmanager`'s download land on the same two holes, and their verdicts cite
 these GAPs rather than naming new ones.
+
+### File operations — verdicts
+
+`T3`'s entries, read down both dispatches. Theirs: a `filebrowser:*` or
+`docmanager:*` id → `commands.execute` → `tracker.currentWidget` /
+`contextMenuWidget` → `FileBrowser`/`DirListing` acts (`_clipboard`,
+`selectedItems`, `model.manager`) or `IDocumentManager` (`newUntitled`,
+`openOrReveal`, `deleteFile` — `stopIfNeeded` first — `overwrite`,
+`cloneWidget`) → `services.contents`; a 409 on rename reaches the shared
+`IDocumentManagerDialogs.rename` → `shouldOverwrite`. Winlator:
+`BaseFileManagerFragment`'s `Clipboard{files, cutMode}` plus a paste FAB,
+`FileUtils.copy/delete` under an `isSymlink` guard, `clearReservedChars` on
+rename. VS Code: `fileActions.ts` handlers on the explorer's `AsyncDataTree`
+and — unlike both — the *system* clipboard.
+
+Ours: `NewMenu` → `ExplorerViewModel.create` → `createFile`/`createFolder`/
+`createNotebook`; a row's long press opens its own menu (`ExplorerScreen.kt:387`)
+whose rename/delete reach `ExplorerViewModel.rename`/`delete` through the shared
+`RenameFileDialog`/`DeleteFileDialog`; a `FileNameTakenException` becomes
+`nameTaken` → `answerOverwrite` → `WorkspaceRepository.overwrite`; every act
+announces on `WorkspaceChange` for open documents; the tab strip's long press
+is `docmanager:rename`'s home (`MainAreaTabStrip.kt:309`); a Running row owns a
+session's shutdown (`RunningSidePanel.kt:175`); `DocumentSharer` — the
+leaving-seam — is reachable only from a notebook's export.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `filebrowser:create-new-directory`, `filebrowser:create-new-file` — `_createNew` → `newUntitled` → `selectItemByName(name, true)` → `rename()` on the landed row (`browser.ts:529-541`); `create-new-file` carries an `ext` per file type on the New submenu (`index.ts:604-607,1653-1690`) | `NewMenu` → `create` → `createFile`/`createFolder` → `untitled{ext}`/`Untitled Folder` counted past, the row brought into view | adapted | The server's names and the lands-then-visible are the same; the rename the reference then opens is not chained — `NewMenu`'s docstring states the choice, one way to name a thing, and the per-type submenu collapses to the one non-notebook type this app creates. |
+| `filebrowser:create-new-markdown-file`, `fileeditor:create-new-markdown-file` — `createNewFile({ext:'md'})` (`index.ts:1692-1697`); the carried command creates *and opens* it (`commands.ts:1033-1040,1382-1400`) | — | absent | GAP-057. `createFile` takes any extension and `DocumentOpeners` opens a `.md` in the file editor, but no surface can make one. |
+| `fileeditor:create-new` — `new-untitled` + `open` + `isUntitled` (`commands.ts:969-990,1382-1400`) | `NewItem.PYTHON_FILE` → `createFile(directory, "py")`; the landed row waits for a tap | adapted | The create half is `docmanager:new-untitled`'s own; the chained *open* is the row's tap here — the same lands-then-name-later the NewMenu docstring states. |
+| `filebrowser:rename` — the row's inline edit node (`_doRename`, `listing.ts:2556`), `isVisible` only for a single selection (`index.ts:1737-1748`); a taken name is 409 → `shouldOverwrite` → `manager.overwrite` | row menu → `RenameFileDialog` → `rename`; `FileNameTakenException` → `nameTaken` → `OverwriteFileDialog` → `overwrite` | adapted | The bare-name rule and the ask-then-overwrite split are identical (`move`/`overwrite`). The ask is the shared `RenameFileDialog` rather than the listing's edit node — one dialog for the row, the tab, and Recents, as its docstring states. |
+| `filebrowser:duplicate` — `manager.duplicate` per selected non-directory: `contents.copy(path, dirname)` (`listing.ts:519-527`, `manager.ts:372-375`) | — | absent | GAP-050. Iterates `selectedItems()` — and no `copy` op exists for a single row to ride even without selection. |
+| `filebrowser:copy`, `filebrowser:cut`, `filebrowser:paste` — `_clipboard` of selected paths (`listing.ts:2528-2533`); cut-paste is `manager.rename` per item, copy-paste `manager.copy`, clipboard cleared after (`listing.ts:406-431`) | — | absent | GAP-050. There is no selection to put on a clipboard; the reference's own note on the seam — an in-app list, not the system clipboard — is what Winlator replicates with a different gesture. |
+| `filebrowser:delete` — confirm → `manager.deleteFile` = `stopIfNeeded` + `contents.delete` + `deleteWidgets` on the file's contexts (`listing.ts:2537-2549`, `manager.ts:351-363`) | row menu → `DeleteFileDialog` → `delete` — permanent, refuses non-empty, unlinks a link; `Deleted` → the open document goes `gone` | absent | GAP-058. The file half is present in full — the ask, the permanence, the announced close. Absent is the first step: the file's sessions are never stopped. |
+| `filebrowser:shutdown` — shuts each session whose `session.path` sits among the *selected* rows (`listing.ts:654-674`, `index.ts:1797`) | — | absent | GAP-050 — selection-bound in the reference. The capability exists one surface over (a Running row names the file and owns `shutdownSession`), but no act on a file row reaches it. |
+| `filebrowser:download` — `model.download` per selected non-directory, an anchor click on `getDownloadUrl` (`listing.ts:559`, `index.ts:526-543`) | — | absent | GAP-055. No served URL exists to hand a browser; `DocumentSharer` is the seam this ask would ride and only a notebook's export reaches it. |
+| `filebrowser:copy-download-link` — `getDownloadUrl(selected)` → `Clipboard.copyToSystem`, hidden unless exactly one row is selected (`index.ts:544-566`) | — | absent | GAP-055. Same presupposed server URL; a link to a server nobody else can reach is not the shape sharing takes on Android. |
+| `filebrowser:copy-path` — the workspace-relative path (or `serverRoot`-joined under `copyAbsolutePath`) → system clipboard (`index.ts:1761-1790`) | — | absent | GAP-055, whose text already names it. The path is a value the crumbs already show; the missing half is only the copy act on the row. |
+| `filebrowser:open-url` — prompt → `fetch` → `model.upload` → `docmanager`'s `open` (`index.ts:1088-1140`) | — | absent | GAP-054. A file *in* — the URL's content is fetched then uploaded into the workspace — and nothing puts a file in. |
+| `filebrowser:open-browser-tab` — per selected item, a `single-document` tree URL or `docmanager`'s `open-browser-tab`'s download URL → `window.open` (`index.ts:976-1010`) | — | absent | GAP-055. Both halves presuppose a server URL a browser can open; none exists. |
+| `docmanager:new-untitled` — `contents.newUntitled({path,type,ext})` — the typed create every surface delegates to (`index.tsx:775-822`, `manager.ts:426-430`) | `NewMenu` → `create` → `createFile`/`createFolder`/`createNotebook` | adapted | The same create under the same server names. The notebook arm goes through `NotebookRepository` because an `.ipynb` is nbformat, not an empty file — `create`'s docstring states the split. |
+| `docmanager:open` — `contents.get` then `openOrReveal` (`index.tsx:824-847`) | a tap → `openNotebook`/`openFile` → `openInMainArea` — reveal-or-open | present | `NotebookBackStack`'s docstring names `openOrReveal` itself; the path picks the factory by suffix in `DocumentOpeners`. |
+| `docmanager:rename` — `dialogs.rename(context)`, bound on `document-title` context menus (`index.tsx:1428-1450`) | tab long press → the same `RenameFileDialog` → `rename`; the document adopts through `WorkspaceChange.Renamed` | present | `MainAreaTabStrip.kt:309` states the long press is the `document-title` menu collapsed to its one item. |
+| `docmanager:delete`, `docmanager:delete-file` — ask → `deleteFile` = `stopIfNeeded` + `contents.delete` + `deleteWidgets` (`index.tsx:749-773,1473-1506`) | the ask+delete lives on the explorer row, never on the document's own tab; `Deleted` closes the document | absent | GAP-059 for the surface, GAP-058 for `stopIfNeeded`: the open document hears its file go (the `deleteWidgets` half) while its session survives. |
+| `docmanager:duplicate` — `manager.duplicate` on the context's path (`index.tsx:1452-1471`) | — | absent | GAP-059 — no copy act on the document's surface, and GAP-050 — no `copy` op for one to delegate to. |
+| `docmanager:clone` — `cloneWidget` + `widgetOpener.open`, `split-right` the default (`index.tsx:1397-1425`) | — | absent | GAP-060. `openInMainArea`'s one-entry-per-path rule is stated, so the second view is refused by the stack rather than merely unoffered. |
+| `docmanager:download` — `context.download()` on the current document (`index.tsx:504-527`) | — | absent | GAP-055. The open notebook's *export* does leave through `DocumentSharer` — a conversion to another format, not this file's own bytes. |
+| `docmanager:open-browser-tab` — `getDownloadUrl(path)` → `window.open` (`index.tsx:563-600`) | — | absent | GAP-055. Same presupposed server URL. |
+| `docmanager:show-in-file-browser` — `open-directory` + `go-to-path` (`index.tsx:1508-1527`) | the document's crumb → `onGoToFolder` → `browseRequest` → `goTo` + the row's mark | adapted | T2's verdict on the same machinery; the command exists as the crumb's aim rather than a menu item — `EditorScreen.onGoToFolder`'s docstring carries the wiring. |
+| Winlator's file clipboard — `Clipboard{files, cutMode}` + a paste FAB; `pasteFiles` checks every target first and *toasts* on a taken name — no overwrite ask (`BaseFileManagerFragment:154-178`) | — | absent | GAP-050 — the same hole as JupyterLab's clipboard, plus a second answer for the collision worth recording: refuse with a toast where the reference asks to overwrite. |
+| Winlator's delete — `FileUtils.delete` recurses a directory but checks `isSymlink` first (`FileUtils:114-119`) | `delete` refuses a non-empty folder and unlinks a link rather than following it | adapted | The refuse is documented on the port: Winlator's file manager deletes a tree recursively and the server sharing this workspace does not. The link half is shared. |
+| Winlator's rename — `clearReservedChars` strips the bad characters | `isValidFileName` refuses them | adapted | Strip-vs-refuse is stated in `WorkspaceRepositoryContract.anInvalidNameIsRefused`: a stripped name hands back a file the user never named. |
+| VS Code `explorer.newFile`/`explorer.newFolder` — names the file **inline in the tree** at create (`fileActions.ts`) | server-named `untitled`/`Untitled Folder`, landed and scrolled to, renamed later from the row's menu | adapted | A third option JupyterLab also declines — and `NewMenu`'s docstring states the lands-then-rename-later choice. |
+| VS Code copy/cut/paste — the **system** clipboard, so a file copied in another app can paste *in* (`fileActions.ts`, `explorerService.ts`) | — | absent | GAP-050 for the clipboard; the system half doubles as an import channel, GAP-054's hole from the other side. |
+| VS Code `explorer.download`, `explorer.upload` — remote-aware file in/out (`fileActions.ts`) | — | absent | GAP-055 and GAP-054 respectively. |
+| VS Code `copyFilePath`/`copyRelativeFilePath`/`copyPathOfActiveFile` | — | absent | GAP-055. |
+| VS Code `revealInExplorer`/`revealResourceInExplorer` — the tree reveals and selects the file (`fileActions.ts`) | the document's crumb aims the browser (`browseRequest` → `goTo` + the mark) | adapted | Same verdict as `docmanager:show-in-file-browser` — the aim exists as the crumb's request. |
+| VS Code `openToSide` — a second editor group over one file (`fileActions.ts`) | — | absent | GAP-060. |
+| VS Code `moveFileToTrash`/`deleteFile` — platform trash unless `files.simpleDialog.enable`/Shift or `useTrash:false` (`fileActions.ts`) | permanent delete; a non-empty folder is refused | adapted | Android grants an app no trash over its own files — the port's `delete` docstring states it, and the reference's own trashless branch is what a server-side `delete` already is. |
+
+**The walk's own findings.** Two came out of tracing rather than comparing.
+`DiskWorkspaceRepository.overwrite` used to emit only its `Renamed` — while the
+reference's `DocumentManager.overwrite` deletes the target through `deleteFile`
+(`manager.ts:514-528`), whose `deleteWidgets` is what a widget on the target
+hears — so a document open on the *overwritten* path was never told its file
+was gone and its next save wrote over the winner. **defect → fixed** in
+`b492da53`, red-first through
+`WorkspaceRepositoryContract.overwritingTellsTheTargetIsGoneBeforeItMoves` and
+`FileEditorViewModelTest.aFileOverwrittenUnderTheEditorIsNotWrittenBack`;
+`overwrite` now emits `Deleted(moved)` before `Renamed`, matching the disk's
+own delete-then-move order.
+
+And the three carried `NotebookRepository` file ops are removed rather than
+kept — no caller, no `WorkspaceChange` to announce on, and a `renameNotebook`
+that rewrote content where the reference moves the file. ADR-0070;
+`read_port_surface.py --unused` now reports nothing.
