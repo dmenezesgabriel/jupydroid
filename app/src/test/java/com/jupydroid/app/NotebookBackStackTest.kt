@@ -1,6 +1,8 @@
 package com.jupydroid.app
 
 import androidx.navigation3.runtime.NavKey
+import com.jupydroid.app.domain.model.TextEdit
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -60,6 +62,44 @@ class NotebookBackStackTest {
     backStack.openNotebook("nb-1")
 
     assertEquals(listOf(Explorer, Editor("nb-2"), Editor("nb-1")), backStack)
+  }
+
+  /**
+   * `openOrReveal` matches a widget by its context's **current** path - `manager.ts:481-503`
+   * reaches the match through `_contextsForPath`, which filters on the path a context lives at
+   * *now*. A `NavKey` cannot ask that: it keeps only the path it was opened under (its
+   * `contentKey` is what keeps the entry's `ViewModelStore`), so a document renamed since it
+   * opened answers to a path the stack has never seen. Opening by live path asks [OpenDocuments]
+   * for the `openedAs` the stack still knows - a second `Editor` entry for the same file would
+   * be a second ViewModel and a second autosave on one document.
+   */
+  @Test
+  fun openingARenamedDocumentRevealsItInsteadOfOpeningItAgain() {
+    val open = OpenDocuments()
+    val document = MovedDocument("a.ipynb")
+    open.opened(document)
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("a.ipynb"))
+
+    // The `changes` adoption: the file was renamed beside its open document, which re-keyed.
+    document.path = "b.ipynb"
+    backStack.openDocument("b.ipynb", open)
+
+    assertEquals(listOf(Explorer, Editor("a.ipynb")), backStack)
+  }
+
+  /**
+   * A path nothing is open on falls through the reveal and opens by its own suffix, exactly as
+   * [openNotebook]/[openFile] always did.
+   */
+  @Test
+  fun openingAPathNothingIsOpenOnPushesByItsSuffix() {
+    val backStack = mutableListOf<NavKey>(Explorer, Editor("a.ipynb"))
+
+    backStack.openDocument("b.ipynb", OpenDocuments())
+    assertEquals(listOf(Explorer, Editor("a.ipynb"), Editor("b.ipynb")), backStack)
+
+    backStack.openDocument("c.py", OpenDocuments())
+    assertEquals(listOf(Explorer, Editor("a.ipynb"), Editor("b.ipynb"), FileEditor("c.py")), backStack)
   }
 
   /** A plain file opens the same way a notebook does: pushed onto whatever is open. */
@@ -536,5 +576,15 @@ class NotebookBackStackTest {
     assertEquals("Console 2", Console("p", "Console 2").mainAreaTabTitle(emptyMap()))
     assertEquals("Launcher", Launcher.mainAreaTabTitle(emptyMap()))
     assertEquals("Settings", Settings.mainAreaTabTitle(emptyMap()))
+  }
+
+  /** A document whose path has moved since it opened - the registry contract, nothing more. */
+  private class MovedDocument(override val openedAs: String) : OpenDocument {
+    override var path: String = openedAs
+    override val dirty = MutableStateFlow(false)
+    override fun saveNow(onSaved: () -> Unit) = onSaved()
+    override fun discardChanges() = Unit
+    override fun sourceOf(cell: Int?): String? = null
+    override fun applyEdits(cell: Int?, edits: List<TextEdit>) = Unit
   }
 }

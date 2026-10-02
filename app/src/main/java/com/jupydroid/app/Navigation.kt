@@ -166,7 +166,7 @@ fun MainNavigation(
    */
   val launcherIsFill = remember { mutableStateOf(false) }
 
-  val openDocument = rememberDocumentOpener(backStack, appContainer)
+  val openDocument = rememberDocumentOpener(backStack, appContainer, openDocuments)
   val newTerminal = rememberNewTerminal(backStack, appContainer)
 
   /**

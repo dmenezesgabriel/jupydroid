@@ -9,6 +9,33 @@ import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import kotlinx.coroutines.launch
 
 /**
+ * `docmanager:open` on a path: the editor kind the suffix names, revealed rather than pushed a
+ * second time when the document is already open.
+ *
+ * A `.ipynb` goes to the notebook editor and anything else to the plain one, which is the
+ * reference's own split: the notebook factory claims its extension and the file editor is the
+ * default for the rest (`packages/fileeditor`). There is no `defaultViewers` knob on top
+ * (`docmanager-extension/src/index.tsx:297-315` lets a setting point a file type at another
+ * factory) because every type here has exactly one factory - an override would have nothing to
+ * point at.
+ *
+ * The reveal asks [OpenDocuments] first. `openOrReveal` matches a widget by its context's
+ * **current** path - `manager.ts:481-503` reaches it through `_contextsForPath`, which filters
+ * on where a context lives *now* - and a `NavKey` keeps only the path it was opened under, so a
+ * document renamed since it opened answers to a path the stack has never seen. `at` resolves the
+ * live path to the `openedAs` the key still carries; a path nothing is open on falls through to
+ * the suffix split, and a renamed file's `openedAs` still points the right kind at it.
+ */
+internal fun MutableList<NavKey>.openDocument(path: String, openDocuments: OpenDocuments) {
+  val openedAs = openDocuments.at(path)?.openedAs ?: path
+  if (openedAs.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
+    openNotebook(openedAs)
+  } else {
+    openFile(openedAs)
+  }
+}
+
+/**
  * Opening a document, wherever it was opened from: the right editor, and a line in Recents.
  *
  * **One opener rather than one per screen.** Home knew which of its rows was a notebook and the
@@ -17,28 +44,24 @@ import kotlinx.coroutines.launch
  * the path decides the factory, and recents are recorded once, from the widget manager's
  * `activate-request` hook (`packages/docmanager/src/widgetmanager.ts:268-285`).
  *
- * A `.ipynb` goes to the notebook editor and anything else to the plain one, which is the
- * reference's own split: the notebook factory claims its extension and the file editor is the
- * default for the rest (`packages/fileeditor`). There is no `defaultViewers` knob on top of the
- * map (`docmanager-extension/src/index.tsx:297-315` lets a setting point a file type at another
- * factory) because every type here has exactly one factory - an override would have nothing to
- * point at.
+ * The kind split and the reveal live in [openDocument]; what stays here is the record - the
+ * *asked* path goes to Recents even when the open resolved to a document that has since been
+ * renamed, because the asked path is the one the file lives at now.
  *
  * Recorded on [AppContainer.applicationScope], not on a screen's: the write must finish even if
  * the tap that caused it is the last thing that screen does.
  */
 @Composable
-internal fun rememberDocumentOpener(backStack: MutableList<NavKey>, appContainer: AppContainer): (String) -> Unit =
-  remember(backStack, appContainer) {
-    { path ->
-      if (path.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
-        backStack.openNotebook(path)
-      } else {
-        backStack.openFile(path)
-      }
-      appContainer.applicationScope.launch { appContainer.recentDocuments.recordOpening(path) }
-    }
+internal fun rememberDocumentOpener(
+  backStack: MutableList<NavKey>,
+  appContainer: AppContainer,
+  openDocuments: OpenDocuments,
+): (String) -> Unit = remember(backStack, appContainer, openDocuments) {
+  { path ->
+    backStack.openDocument(path, openDocuments)
+    appContainer.applicationScope.launch { appContainer.recentDocuments.recordOpening(path) }
   }
+}
 
 /**
  * `terminal:create-new`, adapted: the reference reaches it from the Launcher tab or the File
