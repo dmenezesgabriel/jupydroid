@@ -4,10 +4,7 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.model.incrementedFileName
-import com.jupydroid.app.domain.model.isValidFileName
-import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +13,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import java.io.File
-import java.util.UUID
 
 /**
  * Notebook persistence over nbformat 4 JSON files, addressed by path from [rootDir].
@@ -55,33 +51,6 @@ class DiskNotebookRepository(
     notebook
   }
 
-  /**
-   * Moves the file, because the name *is* the file - `Context._rename` calls
-   * `contents.rename(this.path, newPath)` for the same reason.
-   *
-   * Refuses an invalid or taken name rather than resolving it. jupyter_server answers a taken name
-   * with 409 and JupyterLab catches exactly that to ask "already exists, overwrite?", so the
-   * asking belongs to the dialog and the refusing belongs here.
-   */
-  override suspend fun renameNotebook(id: String, title: String): String = withContext(ioDispatcher) {
-    val wanted = title.trim()
-    require(isValidFileName(wanted)) {
-      "notebook name '$title' is not valid: it must not be empty, start with '.', or contain / \\ :"
-    }
-    // The new *name* joined onto the id's folder, never used as a path in its own right: a
-    // notebook in `reports/` must stay in `reports/`. See `idBeside`.
-    val moved = idBeside(id, wanted)
-    if (moved != id && fileFor(moved).exists()) throw FileNameTakenException(wanted)
-    val notebook = readNotebook(id).copy(id = moved, title = moved)
-    writeFile(notebook)
-    if (moved != id) fileFor(id).delete()
-    moved
-  }
-
-  override suspend fun deleteNotebook(id: String) {
-    withContext(ioDispatcher) { fileFor(id).delete() }
-  }
-
   override suspend fun readNotebook(id: String): Notebook = withContext(ioDispatcher) {
     val file = fileFor(id)
     if (!file.exists()) {
@@ -96,26 +65,6 @@ class DiskNotebookRepository(
 
   override suspend fun saveNotebook(notebook: Notebook) = withContext(ioDispatcher) {
     writeFile(notebook)
-  }
-
-  /**
-   * Replaces the notebook at [title] with this one, by the reference's own steps.
-   *
-   * `DocumentManager.overwrite`: "Cleanly overwrite the file by moving it, making sure the original
-   * does not exist, and then renaming to the new path." Ours goes aside under a unique temporary
-   * name first, so a failure while deleting the target leaves both files on disk rather than
-   * neither - deleting first would open a window in which the user has lost one and not gained
-   * the other.
-   */
-  override suspend fun overwriteNotebook(id: String, title: String): String = withContext(ioDispatcher) {
-    val wanted = title.trim()
-    require(isValidFileName(wanted)) { "notebook name '$title' is not valid" }
-    val moved = idBeside(id, wanted)
-    val temporary = File(rootDir, "$moved.${UUID.randomUUID()}")
-    fileFor(id).renameTo(temporary)
-    fileFor(moved).delete()
-    temporary.renameTo(fileFor(moved))
-    moved
   }
 
   private fun writeFile(notebook: Notebook) {

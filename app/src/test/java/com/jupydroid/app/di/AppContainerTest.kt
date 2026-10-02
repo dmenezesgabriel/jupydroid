@@ -39,9 +39,6 @@ class AppContainerTest {
 
     val created = repository.createNotebook(title = "Untitled", kernelId = "python3")
     assertEquals("Untitled", repository.readNotebook(created.id).title)
-
-    val renamed = repository.renameNotebook(created.id, "Renamed")
-    assertEquals("Renamed", repository.readNotebook(renamed).title)
   }
 
   /** The fake must fail the same way the disk adapter does, or callers that catch one break on the other. */

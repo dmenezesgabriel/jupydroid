@@ -10,7 +10,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Rule
@@ -104,26 +103,6 @@ class DiskNotebookRepositoryTest {
 
     assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "hi\n")), reread.cells.single().outputs)
     assertEquals(4, reread.cells.single().executionCount)
-  }
-
-  @Test
-  fun renameNotebook_updatesStoredTitle() = runTest {
-    val repository = repository()
-    val created = repository.createNotebook(title = "Untitled", kernelId = "python3")
-
-    val renamed = repository.renameNotebook(created.id, "Renamed")
-
-    assertEquals("Renamed", repository.readNotebook(renamed).title)
-  }
-
-  @Test
-  fun deleteNotebook_removesTheFile() = runTest {
-    val repository = repository()
-    val created = repository.createNotebook(title = "Untitled", kernelId = "python3")
-
-    repository.deleteNotebook(created.id)
-
-    assertFalse(notebookFile(created.id).exists())
   }
 
   @Test

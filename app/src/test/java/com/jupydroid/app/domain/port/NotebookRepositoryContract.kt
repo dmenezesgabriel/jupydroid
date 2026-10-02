@@ -43,41 +43,4 @@ abstract class NotebookRepositoryContract {
 
     assertEquals(listOf("x = 1"), repository.readNotebook(edited.id).cells.map { it.source })
   }
-
-  /**
-   * A rename supplies a *name*, and the notebook keeps the folder its id names.
-   *
-   * `Context._rename` replaces the path's last segment and joins the rest back on
-   * (`packages/docregistry/src/context.ts:611-614`); the file browser joins onto the directory it
-   * is showing (`packages/filebrowser/src/listing.ts:2621`). Both implementations have to agree,
-   * because the editor calls this with whatever the rename dialog was given and a name can never
-   * contain a `/` - `isValidFileName` refuses one (`packages/docmanager/src/dialogs.ts:257`).
-   */
-  @Test
-  fun renamingANotebookInAFolderKeepsItInThatFolder() = runTest {
-    val repository = repository()
-    val nested = repository.createNotebook("reports/Draft", "python3")
-
-    assertEquals("reports/Final", repository.renameNotebook(nested.id, "Final"))
-  }
-
-  /**
-   * A rename answers with the **new** id, because it moves the file and the old one stops naming
-   * anything - the contract every implementation owes, fake and disk alike.
-   *
-   * This used to assert the renamed notebook then sat at the top of Recents. That ordering was a
-   * property of Recents-as-a-scan and went with it; when a file was last written is now
-   * `WorkspaceEntry.updatedAt`, where `WorkspaceRepositoryContract` holds every implementation to
-   * it. What is owed *here* is that the id moves, which is what the rest of the app resolves.
-   */
-  @Test
-  fun renamingANotebookAnswersWithTheIdItMovedTo() = runTest {
-    val repository = repository()
-    val renamed = repository.createNotebook(title = "Renamed", kernelId = "python3")
-
-    val movedTo = repository.renameNotebook(renamed.id, "Renamed again.ipynb")
-
-    assertEquals("Renamed again.ipynb", movedTo)
-    assertEquals("Renamed again.ipynb", repository.readNotebook(movedTo).title)
-  }
 }

@@ -132,9 +132,10 @@ interface WorkspaceRepository {
    * Renames onto a name already taken, replacing what was there.
    *
    * Offered only after the user has been asked - `"%1" already exists, overwrite?` - which is the
-   * reference's division of labour, and the same pair [NotebookRepository] already has. Ours is
-   * moved aside, the target deleted, then ours moved into place (`DocumentManager.overwrite`,
-   * `manager.ts:514-528`): deleting first would open a window in which neither file exists.
+   * reference's division of labour: `renameFile` catches the 409 and calls `overwrite` only if the
+   * dialog is accepted (`docmanager/src/dialogs.ts`). Ours is moved aside, the target deleted,
+   * then ours moved into place (`DocumentManager.overwrite`, `manager.ts:514-528`): deleting
+   * first would open a window in which neither file exists.
    *
    * The target's removal is announced on [changes] as a delete *before* the rename, in the disk's
    * own order - a document open on it stops writing before the winner's path is adopted.

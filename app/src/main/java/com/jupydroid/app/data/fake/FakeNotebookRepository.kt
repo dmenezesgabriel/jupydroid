@@ -1,8 +1,6 @@
 package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.domain.model.idBeside
-import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.Instant
@@ -31,31 +29,6 @@ class FakeNotebookRepository : NotebookRepository {
     )
     put(notebook)
     return notebook
-  }
-
-  /** Re-keyed, not merely re-titled: the id *is* the name, so a rename moves the entry. */
-  override suspend fun renameNotebook(id: String, title: String): String {
-    val existing = notebooks.value[id] ?: return id
-    // The name joined onto the folder the id names, never used as a path of its own - see
-    // `idBeside`, and `NotebookRepositoryContract.renamingANotebookInAFolderKeepsItInThatFolder`.
-    val moved = idBeside(id, title)
-    if (moved != id && notebooks.value.containsKey(moved)) throw FileNameTakenException(title)
-    notebooks.value = notebooks.value - id
-    put(existing.copy(id = moved, title = moved))
-    return moved
-  }
-
-  /** Takes the name whatever is there, which is what the user asked for when they confirmed. */
-  override suspend fun overwriteNotebook(id: String, title: String): String {
-    val existing = notebooks.value[id] ?: return id
-    notebooks.value = notebooks.value - id - title
-    put(existing.copy(id = title, title = title))
-    return title
-  }
-
-  override suspend fun deleteNotebook(id: String) {
-    notebooks.value = notebooks.value - id
-    written.value = written.value - id
   }
 
   // IllegalArgumentException, not IllegalStateException: DiskNotebookRepository is the
