@@ -66,8 +66,8 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 | `AUD-003` | Editor language features — the LSP surface, and the kernel introspection it replaced | shipped | — | — |
 | `AUD-004` | Search, replace and the table of contents | shipped | — | `GAP-001`, `GAP-002` |
 | `AUD-005` | Files, workspace and recents — filebrowser-extension against `ui/explorer/` | shipped | — | — |
-| `AUD-006` | Console, sessions and the running panel — `console-extension`/`running-extension` against `ui/console/` and `ui/shell/` | **in-progress ← next** | [`AUD-006`](prd/AUD-006-console-sessions-and-the-running-panel.md) | `GAP-009`, `GAP-010`, `GAP-011` |
-| `AUD-007` | Terminal emulator and view, against Termux's state machine and JediTerm | open | — | — |
+| `AUD-006` | Console, sessions and the running panel — `console-extension`/`running-extension` against `ui/console/` and `ui/shell/` | shipped | — | `GAP-009`, `GAP-010`, `GAP-011` |
+| `AUD-007` | Terminal emulator and view, against Termux's state machine and JediTerm | **open ← next** | — | — |
 | `AUD-008` | Rendering and formats — markdown, HTML, outputs, nbformat | open | — | — |
 | `AUD-009` | Chrome and presentation, against VS Code's workbench | open | — | — |
 | `AUD-010` | Spaces and runtime, against Winlator's container lifecycle | open | — | — |

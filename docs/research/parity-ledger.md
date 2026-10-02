@@ -56,7 +56,7 @@ Five, each obliging something different. The full definition is in
 | Editor language features | `AUD-003` | examined — below |
 | Search, replace, table of contents | `AUD-004` | examined — below |
 | Files, workspace, recents | `AUD-005` | examined — below |
-| Console, sessions, running panel | `AUD-006` | measured — the surface below, verdicts next |
+| Console, sessions, running panel | `AUD-006` | examined — below |
 | Terminal emulator and view | `AUD-007` | unexamined |
 | Rendering and formats | `AUD-008` | unexamined |
 | Chrome and presentation | `AUD-009` | unexamined |
