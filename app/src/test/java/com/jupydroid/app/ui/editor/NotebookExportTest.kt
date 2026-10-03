@@ -67,6 +67,26 @@ class NotebookExportTest {
     assertEquals(listOf("persist", "export"), whatHappened)
   }
 
+  /**
+   * The reference's `await context.save()` rejects the export command when the save
+   * fails (`index.ts:741-745`), because nbconvert would otherwise read the last-good
+   * file while the banner says the write never landed - a conversion of content the
+   * user just typed, answered with bytes that predate it, is a silent wrong answer.
+   */
+  @Test
+  fun exportAs_refusesToConvertAFileTheSaveNeverWrote() = runTest {
+    val export = export(persistLanded = false)
+
+    export.exportAs("html")
+
+    assertEquals("the export must not run on the stale file", listOf("persist"), whatHappened)
+    assertEquals(
+      ExportReport.Refused("cannot export to 'html': the notebook's latest edits never reached disk"),
+      state.value.export.report,
+    )
+    assertNull(state.value.export.converting)
+  }
+
   @Test
   fun exportAs_writesTheArtifactBesideTheNotebook() = runTest {
     val export = export(notebookId = "reports/Analysis.ipynb")
@@ -198,13 +218,17 @@ class NotebookExportTest {
     exporter: NotebookExporter = RecordingExporter(),
     notebookId: String = "Analysis.ipynb",
     scope: TestScope = TestScope(UnconfinedTestDispatcher()),
+    persistLanded: Boolean = true,
   ) = NotebookExport(
     uiState = state,
     exporter = exporter,
     workspace = workspace,
     scope = scope,
     notebookId = { notebookId },
-    persist = { whatHappened += "persist" },
+    persist = {
+      whatHappened += "persist"
+      persistLanded
+    },
   )
 
   /** The fake plus a note of when it was asked, so the save-then-convert order is assertable. */

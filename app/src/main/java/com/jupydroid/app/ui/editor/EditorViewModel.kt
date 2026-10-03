@@ -378,7 +378,11 @@ class EditorViewModel(
   private val writeMutex = Mutex()
 
   /**
-   * Writes the notebook back - and **adopts the result only if the write happened**.
+   * Writes the notebook back - and **adopts the result only if the write happened**. Answers
+   * whether the file on disk is this notebook now, which [NotebookExport] needs: nbconvert reads
+   * the file, and the reference's `await context.save()` rejects its export command when the save
+   * fails rather than converting what was last written
+   * (`packages/notebook-extension/src/index.ts:741-745`).
    *
    * Two things used to be true before the save rather than after it, and both were wrong when it
    * failed: `dirty` was cleared, so a notebook that owed a write claimed not to, and the exception
@@ -389,10 +393,10 @@ class EditorViewModel(
    * `EditorUiState.dirty` says it is *"cleared by the save, not by the edit"*, which is only true
    * from here. See [EditorUiState.saveFailure] for why the report is not `error`.
    */
-  private suspend fun persist() {
-    if (notebookIsGone) return
-    writeMutex.withLock {
-      val base = notebook ?: return
+  private suspend fun persist(): Boolean {
+    if (notebookIsGone) return false
+    return writeMutex.withLock {
+      val base = notebook ?: return@withLock false
       val written = base.copy(cells = _uiState.value.withResultsOnCells())
       runCatching { notebookRepository.saveNotebook(written) }
         .onSuccess { adoptWritten(base, written) }
@@ -400,6 +404,7 @@ class EditorViewModel(
           if (failure is CancellationException) throw failure
           _uiState.update { it.copy(saveFailure = failure.message) }
         }
+        .isSuccess
     }
   }
 

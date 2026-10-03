@@ -75,9 +75,10 @@ class NotebookExport(
    * Flushes the save debounce before a conversion, because nbconvert reads the **file** and the
    * last 500 ms of typing may not be in it yet. The reference does the same thing for the same
    * reason - `if (context.model.dirty) await context.save()`
-   * (`packages/notebook-extension/src/index.ts:743-745`).
+   * (`packages/notebook-extension/src/index.ts:743-745`) - and its `await` rejects the command
+   * when the save fails, which is why this is a `Boolean` and not a fire-and-forget.
    */
-  private val persist: suspend () -> Unit,
+  private val persist: suspend () -> Boolean,
 ) {
   /**
    * The picker was opened, so ask the Space what it has.
@@ -118,7 +119,11 @@ class NotebookExport(
     uiState.update { it.copy(export = it.export.copy(converting = format, report = null)) }
     scope.launch {
       val written = runCatching {
-        persist()
+        if (!persist()) {
+          // The save's own reason is already on screen as saveFailure; the refusal's job is to
+          // say the conversion did not happen on the file that did.
+          throw NotebookExportException(format, "the notebook's latest edits never reached disk")
+        }
         val exported = exporter.export(notebookId(), format)
         val path = besideNotebook(notebookId(), exported.fileName)
         workspace.writeBytes(path, exported.bytes)
