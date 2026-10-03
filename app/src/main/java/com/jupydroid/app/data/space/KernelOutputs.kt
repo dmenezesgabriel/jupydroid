@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -63,7 +64,7 @@ object KernelOutputs {
     "execute_result" -> content.toExecuteResult()
     "display_data", "update_display_data" -> CellOutput.DisplayData(content.mimeBundle())
     "error" -> content.toError()
-    "clear_output" -> CellOutput.ClearOutput
+    "clear_output" -> CellOutput.ClearOutput(content["wait"]?.jsonPrimitive?.booleanOrNull == true)
     else -> null
   }
 

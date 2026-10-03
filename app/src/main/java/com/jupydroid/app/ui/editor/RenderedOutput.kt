@@ -39,7 +39,7 @@ fun CellOutput.render(): RenderedOutput? = when (this) {
   is CellOutput.ExecuteResult -> mimeBundle.renderRichest()
   is CellOutput.DisplayData -> mimeBundle.renderRichest()
   // An instruction to the front end rather than a result.
-  CellOutput.ClearOutput -> null
+  is CellOutput.ClearOutput -> null
 }
 
 /**

@@ -63,6 +63,11 @@ data class EditorUiState(
    * written to disk, and half a run's output has no business being saved.
    */
   val outputs: Map<String, List<CellOutput>> = emptyMap(),
+  /**
+   * Cells whose next output arrives under a `wait`-ing `clear_output` - the reference's
+   * `clearNext` flag, kept per cell here. Run state like [outputs], not a saved attribute.
+   */
+  val clearsPending: Set<String> = emptySet(),
   val executionCounts: Map<String, Int> = emptyMap(),
   /**
    * Per cell, where its run got to. Replaces a single nullable `runningCellId`, which could say
@@ -315,9 +320,7 @@ internal fun EditorUiState.revision(rewrote: Set<String> = emptySet()) =
  * something a test can call directly, with no coroutines or repository in the way.
  */
 fun EditorUiState.after(event: KernelEvent): EditorUiState = when (event) {
-  is KernelEvent.Output ->
-    copy(outputs = outputs + (event.cellId to outputs[event.cellId].orEmpty() + event.output))
-      .withSearchedOutputsRecomputed()
+  is KernelEvent.Output -> afterOutput(event).withSearchedOutputsRecomputed()
 
   is KernelEvent.ExecutionCount ->
     copy(executionCounts = executionCounts + (event.cellId to event.count))
@@ -325,6 +328,29 @@ fun EditorUiState.after(event: KernelEvent): EditorUiState = when (event) {
   // Idle says the kernel is done with this cell, but not whether it raised - that is decided by
   // what it emitted, so the run is closed by NotebookKernel rather than here.
   KernelEvent.Idle -> this
+}
+
+/**
+ * `clear_output` is an instruction to the *model*, which is where it is executed: an immediate
+ * one empties the cell's list now, and a `wait` one is held in [clearsPending] and spent by the
+ * next output to arrive - the in-place swap `clear(wait)` exists for
+ * (`packages/outputarea/src/model.ts:301-311`, jupyterlab@7f0e6906). It never lands in [outputs]:
+ * what it drew would render as nothing and persist as `{}`, which nbformat refuses to validate.
+ */
+private fun EditorUiState.afterOutput(event: KernelEvent.Output): EditorUiState {
+  val output = event.output
+  if (output is CellOutput.ClearOutput) {
+    return if (output.wait) {
+      copy(clearsPending = clearsPending + event.cellId)
+    } else {
+      copy(outputs = outputs - event.cellId)
+    }
+  }
+  val carried = if (event.cellId in clearsPending) emptyList() else outputs[event.cellId].orEmpty()
+  return copy(
+    outputs = outputs + (event.cellId to carried + output),
+    clearsPending = clearsPending - event.cellId,
+  )
 }
 
 /** [EditorUiState.stoppedAt]'s line for [cellId], or null when nothing is stopped there. */

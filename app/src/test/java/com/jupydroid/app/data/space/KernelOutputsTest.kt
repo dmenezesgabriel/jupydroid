@@ -96,7 +96,18 @@ class KernelOutputsTest {
        "header":{"msg_type":"clear_output"},"content":{}}
     """.trimIndent()
 
-    assertEquals(CellOutput.ClearOutput, KernelOutputs.outputOf(frame, "m1"))
+    assertEquals(CellOutput.ClearOutput(), KernelOutputs.outputOf(frame, "m1"))
+  }
+
+  /** `wait: true` defers the clear to the next output, so it has to survive the wire. */
+  @Test
+  fun outputOf_readsClearOutputWait() {
+    val frame = """
+      {"channel":"iopub","parent_header":{"msg_id":"m1"},
+       "header":{"msg_type":"clear_output"},"content":{"wait":true}}
+    """.trimIndent()
+
+    assertEquals(CellOutput.ClearOutput(wait = true), KernelOutputs.outputOf(frame, "m1"))
   }
 
   @Test

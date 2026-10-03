@@ -19,7 +19,7 @@ fun CellOutput.toFileOutput(): JsonElement = when (this) {
   is CellOutput.DisplayData -> toDisplayDataJson()
   is CellOutput.Error -> toErrorJson()
   // An instruction to the front end rather than a result, so nbformat has no shape for it.
-  CellOutput.ClearOutput -> JsonObject(emptyMap())
+  is CellOutput.ClearOutput -> JsonObject(emptyMap())
 }
 
 private fun CellOutput.Stream.toStreamJson() = buildJsonObject {

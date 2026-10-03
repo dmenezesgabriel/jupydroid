@@ -181,7 +181,7 @@ class RenderedOutputTest {
   /** ClearOutput is an instruction, not a result; there is nothing to draw. */
   @Test
   fun render_drawsNothingForClearOutput() {
-    assertNull(CellOutput.ClearOutput.render())
+    assertNull(CellOutput.ClearOutput().render())
   }
 
   private fun text(output: CellOutput): RenderedOutput.Text = output.render() as RenderedOutput.Text

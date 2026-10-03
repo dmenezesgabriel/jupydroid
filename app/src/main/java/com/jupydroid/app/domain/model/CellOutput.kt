@@ -28,5 +28,9 @@ sealed interface CellOutput {
 
   data class ExecuteResult(val mimeBundle: MimeBundle, val executionCount: Int) : CellOutput
 
-  data object ClearOutput : CellOutput
+  /**
+   * The kernel's `clear_output` instruction: drop the cell's outputs. With [wait] the drop
+   * happens when the next output arrives instead of at once - the swap `wait=True` exists for.
+   */
+  data class ClearOutput(val wait: Boolean = false) : CellOutput
 }
