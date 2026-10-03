@@ -66,6 +66,42 @@ class NotebookOutputsTest {
     assertEquals(null, outputOf("""{"output_type":"from_the_future","payload":1}"""))
   }
 
+  /** Totality covers shape too: an `output_type` that is not a string cannot be dispatched. */
+  @Test
+  fun toDomain_ignoresAnOutputWhoseTypeIsNotAString() {
+    assertEquals(null, outputOf("""{"output_type":{"kind":"display_data"},"data":{}}"""))
+  }
+
+  /** A stream's `text` member another tool wrote oddly must not take the output with it. */
+  @Test
+  fun toDomain_keepsTheLinesOfAStreamItCanRead() {
+    val output = outputOf(
+      """{"output_type":"stream","name":"stdout","text":["one\n",{"json":true},"two"]}""",
+    )
+
+    assertEquals(CellOutput.Stream(StreamName.STDOUT, "one\ntwo"), output)
+  }
+
+  /** The error survives its malformed traceback lines - the failure still names itself. */
+  @Test
+  fun toDomain_keepsAnErrorButDropsTheTracebackLinesItCannotRead() {
+    val output = outputOf(
+      """{"output_type":"error","ename":"ValueError","evalue":"bad","traceback":["one",["nested"],"two"]}""",
+    )
+
+    assertEquals(CellOutput.Error("ValueError", "bad", listOf("one", "two")), output)
+  }
+
+  /** `execution_count` is optional metadata - an unreadable one reads as none recorded. */
+  @Test
+  fun toDomain_readsAnExecuteResultWhoseCountIsUnreadableAsZero() {
+    val output = outputOf(
+      """{"output_type":"execute_result","execution_count":{"n":3},"data":{"text/plain":"42"}}""",
+    ) as CellOutput.ExecuteResult
+
+    assertEquals(0, output.executionCount)
+  }
+
   @Test
   fun roundTrip_survivesEveryOutputKindWeModel() {
     val outputs = listOf(
