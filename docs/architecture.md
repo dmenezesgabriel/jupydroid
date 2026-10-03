@@ -1393,6 +1393,131 @@ model/surface split a second view could share (`app/src/main/java/com/jupydroid/
 The repair is the model split first — an output area object a second pane could subscribe to —
 before any "view for this output" reach exists.
 
+### GAP-101 — A `text/markdown` output never renders
+
+`markdownRendererFactory` ranks `text/markdown` at 60 — below `text/html`, above `text/latex` —
+and `renderMarkdown` parses through `IMarkdownParser`, sanitizes, anchors headings and typesets
+(`jupyterlab/packages/rendermime/src/factories.ts:48-50`, `renderers.ts`). Ours has the parser —
+`MarkdownDocument.parse` maps commonmark-java's AST onto `RichBlock`, and `MarkdownCell` renders
+with it — but `RenderedOutput.RANKED_MIME_TYPES` never routes to it, so a kernel's
+`display(Markdown("**bold**"))` falls to the bundle's `text/plain`, which is the markdown source
+verbatim (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt:67`). The repair is a
+rank entry wiring `text/markdown` to `MarkdownDocument.parse` → `RenderedOutput.Document` — the
+machinery exists, the routing does not.
+
+### GAP-102 — `image/svg+xml` never draws, trusted or not
+
+The reference's only unsafe standard renderer besides JavaScript: `svgRendererFactory` rank 80,
+`safe: false`, and `renderSVG` inlines the sanitized `<svg>` — or draws "Cannot display an
+untrusted SVG" where the bundle is not trusted
+(`jupyterlab/packages/rendermime/src/factories.ts:58-60`, `renderers.ts`). Ours has no SVG arm at
+all: the mime falls through `RANKED_MIME_TYPES` to the bundle's `text/plain` or the keys line
+(`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt`). The repair needs a decode
+path Compose can draw — a vector-drawable or coil-svg decoder — and an answer to the trust
+question the `safe: false` marks, since an inlined foreign `<svg>` is script-carrying markup.
+
+### GAP-103 — Only PNG of the five image mimes decodes
+
+`imageRendererFactory` covers `image/bmp`, `image/png`, `image/jpeg`, `image/gif` and
+`image/webp` at rank 90 — `renderImage` draws an `<img>` and reads width/height/`needs_background`
+from the mime's metadata (`jupyterlab/packages/rendermime/src/factories.ts:22-30`, `renderers.ts`).
+Ours decodes `image/png` alone (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt:82`);
+the other four fall to `text/plain` or the mime-keys line though `BitmapFactory` decodes every
+one of them. The repair widens the `image/png` arm to the decode-capable set — one decoder, four
+mime keys — with the metadata half recorded under `GAP-104`.
+
+### GAP-104 — An output's metadata is dropped at the wire
+
+`OutputModel` keeps the message's `metadata` as observable JSON and serializes it back
+(`jupyterlab/packages/rendermime/src/outputmodel.ts:92-213`), and the renderers spend it —
+`renderImage`'s width/height, `isolated`/`needs_background`/`unconfined` classes, JSON's
+`expanded`/`root`, mermaid's theme overrides, a `fragment` to scroll to. Ours reads `data` and
+nothing else: `KernelOutputs.mimeBundle()`
+(`app/src/main/java/com/jupydroid/app/data/space/KernelOutputs.kt:101`) drops `metadata` and
+`transient` at the port, and `MimeBundle`/`CellOutput` have no carrier for either. The repair
+carries `metadata` through the bundle; `transient`/`display_id` belongs to the display-update
+read and drops on the same line.
+
+### GAP-105 — Text output never linkifies
+
+`renderTextual` runs `autolink` over every text and error render — `checkWeb` wraps URLs in
+`<a>`, `checkPaths` wraps file paths in `data-path` links a file browser or debugger can follow
+(`jupyterlab/packages/rendermime/src/renderers.ts:648-920`). Ours draws `RenderedOutput.Text` as
+one plain string: a printed URL is text, a traceback's `File "<path>", line 3` is text — and
+even an authored markdown link's destination goes nowhere (`GAP-093`). The repair is the
+detection — URLs and `file:line` spans becoming `RichInline.Link`s — before the consumer
+`GAP-093` names has anything new to follow.
+
+### GAP-106 — ANSI colour never renders, only strips
+
+`renderText` and `renderError` pass their source through `ansiSpan`, which maps SGR codes — the
+16, 256 and true-colour forms — to styled spans the sanitizer then permits
+(`jupyterlab/packages/rendermime/src/renderers.ts:852-864`). Ours chose the documented fallback:
+`withoutAnsiColours` strips the escapes so a stream, a `text/plain` repr or a traceback reads
+clean — and monochrome (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt`). The
+capability was never built: `RenderedOutput.Text` carries a flat `String`, so the repair is a
+styled carrier — spans on `RichInline`, or a styled-string output type — before any colour can
+land.
+
+### GAP-107 — An embedded image or attachment never draws
+
+Three surfaces feed one machinery: markdown `![alt](src)`, HTML `<img src>`, and the
+`attachment:name` scheme `AttachmentsResolver` answers from the cell's own attachment bundle —
+all resolved against the workspace by `IResolver.resolveUrl`/`getDownloadUrl`
+(`jupyterlab/packages/attachments/src/model.ts:328-390`; Jewel's `ImageRendererExtension` +
+`ImageSourceResolver` + Coil3 is the in-idiom precedent). Ours drops all three at the parse:
+`MarkdownDocument`'s `else -> null` eats the `Image` node and its alt text, `HtmlInlines`
+flattens `<img>` to nothing, and `RichBlock`/`RichInline` have no image node to draw;
+`PreservedJson` round-trips `attachments` but no resolver answers the scheme
+(`app/src/main/java/com/jupydroid/app/markdown/MarkdownDocument.kt:96-98`). The repair is the
+resolver and the model node together — attachment bundle, workspace path, then the decode
+surface `GAP-103` already names.
+
+### GAP-108 — A JSON payload prints its mime key, not a tree
+
+`json-extension`'s `RenderedJSON` ranks `application/json` and the three json-lines mimes at 0 —
+outranking `text/html` — into a collapsible tree honouring `metadata.expanded` and `root`
+(`jupyterlab/packages/json-extension/src/index.tsx:29-136`). Ours keeps the structured value —
+`MimeBundle` holds the `JsonObject` — and never looks at it: `RANKED_MIME_TYPES` misses it and
+the last resort prints the keys
+(`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt:65`). The repair is a
+`RenderedOutput` variant over the `JsonObject` and a lazy expandable tree; `CellOutputsView`
+already scrolls, so the payload has somewhere to grow.
+
+### GAP-109 — Media has no surface — pdf, audio, video
+
+`pdf-extension` renders `application/pdf` at rank 100
+(`jupyterlab/packages/pdf-extension/src/index.ts:132-133`), the sanitizer's whitelist admits
+`<audio>`/`<video>` tags, and the media extensions mount document widgets for each format. Ours
+answers each the same way it answers a `.png`: an `application/pdf` bundle prints its keys, the
+tags flatten out of `HtmlInlines`'s subset, and `.pdf`/`.mp3`/`.mp4` files open as editable
+mojibake — `GAP-097`'s failure mode with no factory to claim the file first
+(`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`). The repair is a per-format surface
+decision — viewer, external-intent hand-off, or read-only refusal — before the
+binary-corrupting edit can be closed for media the way `GAP-097` names it for images.
+
+### GAP-110 — A Vega or Vega-Lite spec never draws
+
+`vega5-extension` ranks its four mimes — `application/vnd.vega.v5+json` and vegalite v3 through
+v6 — at 57, above `text/markdown`, and `RenderedVega` draws the spec through vega-embed
+(`jupyterlab/packages/vega5-extension/src/index.ts:175-224`). Ours prints the keys; `altair`'s
+`chart.show()` lands as `application/vnd.vegalite.v5+json` beside a `text/plain` that says only
+`VegaLiteChart(...)`. The repair has no in-idiom precedent — there is no Compose Vega — and
+likely resolves to a spec-to-canvas mapper for the common marks or an ADR declining the family.
+
+### GAP-111 — GitHub-flavoured markdown never parses
+
+JupyterLab's marked runs `gfm: true`, and Jewel ships the same surface as extension modules —
+`gfm-tables`, `gfm-strikethrough`, `gfm-alerts`, `autolink` — a processor and a renderer
+extension per feature (`jupyterlab/packages/markedparser-extension/src/index.ts`;
+`intellij-community/platform/jewel/markdown/extensions/`). Ours builds the bare core:
+`Parser.builder().build()` with no `commonmark-ext-*` on the classpath
+(`app/src/main/java/com/jupydroid/app/markdown/MarkdownDocument.kt:37`,
+`gradle/libs.versions.toml`), so a `| a | b |` table is a paragraph of pipe characters, a
+`> [!NOTE]` is an ordinary blockquote, `~~del~~` and bare URLs are plain text. The repair adds
+the extension dependencies and maps their AST nodes — commonmark's `TableBlock` already has a
+home in `RichBlock.Table`, which `HtmlTable` fills today.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

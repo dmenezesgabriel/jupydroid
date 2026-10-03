@@ -306,7 +306,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       (copy-to-clipboard, create-output-view), the `FileEditorScreen` fallback (markdownviewer,
       htmlviewer, imageviewer, csvviewer, mermaid document surfaces and their trust acts),
       `RichInlineString`'s `RICH_LINK_TAG` (`handle-local-link`), and the mathjax pair.
-- [ ] T3 — **Verdicts for the rendermime half.** `registry.ts`/`factories.ts`/`renderers.ts`/
+- [x] T3 — **Verdicts for the rendermime half.** `registry.ts`/`factories.ts`/`renderers.ts`/
       `mimemodel.ts`/`outputmodel.ts`/`attachmentmodel.ts`/`latex.ts`/`widgets.ts` plus the plugs
       (`sanitizer.ts`, `markedparser-extension`, `mathjax-extension`, `attachments/`) and the
       extension-mounted factories against `markdown/`+`html/`+`richtext/`+`RenderedOutput`/
