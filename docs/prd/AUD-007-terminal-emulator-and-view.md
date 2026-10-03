@@ -238,7 +238,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `WcWidth`/`KeyHandler` and JediTerm's `Terminal`/`JediEmulator`/`TerminalTextBuffer`/
       `typeahead`/`hyperlinks`/`mouse` against `terminal/` — states, CSI/OSC/DCS finals, DECSET
       modes, charsets, widths, reports, bracketed paste, clipboard OSC, mouse.
-- [ ] T4 — **Verdicts for the view.** `TerminalView`/`TerminalRenderer`/`textselection`/
+- [x] T4 — **Verdicts for the view.** `TerminalView`/`TerminalRenderer`/`textselection`/
       `GestureAndScaleRecognizer`/the io extras against `ui/terminal/` — the IME contract, key
       encoding, modifier latches, selection and its handles, scroll/fling/pinch, cell metrics,
       the cursor, TalkBack rows.

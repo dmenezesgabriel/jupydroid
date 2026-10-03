@@ -57,7 +57,7 @@ Five, each obliging something different. The full definition is in
 | Search, replace, table of contents | `AUD-004` | examined — below |
 | Files, workspace, recents | `AUD-005` | examined — below |
 | Console, sessions, running panel | `AUD-006` | examined — below |
-| Terminal emulator and view | `AUD-007` | partially verdicted — the pane surface and the wire below |
+| Terminal emulator and view | `AUD-007` | partially verdicted — all but the walk below |
 | Rendering and formats | `AUD-008` | unexamined |
 | Chrome and presentation | `AUD-009` | unexamined |
 | Spaces and runtime | `AUD-010` | unexamined |
@@ -1822,3 +1822,72 @@ DCS is Termux's narrow table, JediTerm offering none; REP/HPR/VPR/CHT/CBT/DECSLR
 Termux though JediTerm drops them; charsets are Termux's two-set model, not JediTerm's ISO-2022;
 DECSCUSR and DECSTR are *ours* absent while both references carry them - the only cells in the
 table where both references out-ship us.
+
+### The view — verdicts
+
+`T4`'s entries, read down the screen-side of both references. Theirs: `TerminalView`'s 1,500
+lines - `onCreateInputConnection`'s `BaseInputConnection` and `commitText`'s code-point loop,
+`onKeyPreIme`/`onKeyDown`/`inputCodePoint`, `GestureAndScaleRecognizer`'s scroll/fling/scale,
+`textselection/`'s cursor controller and drag handles with its ACTION_MENU, `onScreenUpdated`'s
+snap and `isSelectingText`/`isAutoScrollDisabled` carve-outs, `onCheckIsTextEditor` and the
+transcript content description, the `TerminalViewClient` seam - `TerminalRenderer`'s
+`measureText("X")`/`getFontSpacing` metrics, `drawTextRun` batching, `CURSOR_STYLE_*` shapes
+with `invertCursorTextColor`, the `canvas.scale` width correction and `mInvertedColors`; the
+app layer's `io/` extras - `TermuxTerminalExtraKeys`'s property-driven `ExtraKeysView` rows,
+`KeyboardShortcut`'s ctrl/volume chords, `TerminalToolbarViewPager`, `FullScreenWorkAround`,
+`TermuxTerminalViewClient`'s scale/paste/bell/logging answers and
+`TermuxSessionsListViewController`'s drawer. JediTerm `ui/` is the second opinion:
+`TerminalPanel` over `JediTermWidget` with a real `JScrollBar`, `BlinkingTextTracker`, word and
+line drag-selection, middle-click paste, mouse wheel, clickable hyperlinks and `input/`'s
+key-event processor. Ours: `TerminalPaneScreen`'s invisible `BasicTextField` and
+`onPreviewKeyEvent`, `TerminalCanvas`/`GlyphStyle`'s batched runs and block cursor,
+`terminalCellMetrics`/`terminalGridSize`, `TerminalExtraKeysRow`/`TerminalModifierLatch`,
+`detectTerminalScrollDrag` -> `TerminalPaneViewModel.scrollBy`, `TerminalActionsMenu`'s font
+stepper, and the transparent `Text` per row that is this canvas's answer to TalkBack.
+
+```sh
+wc -l reference/research_repos/termux-app/terminal-view/src/main/java/com/termux/view/{TerminalView,TerminalRenderer,GestureAndScaleRecognizer}.java
+ls reference/research_repos/termux-app/terminal-view/src/main/java/com/termux/view/textselection
+ls reference/research_repos/termux-app/app/src/main/java/com/termux/app/terminal/io
+ls reference/research_repos/jediterm/ui/src/com/jediterm/terminal/ui
+ls app/src/main/java/com/jupydroid/app/ui/terminal
+```
+
+These rows carry no `terminal:*` id - all eleven stayed `T2`'s - so the produced counts do not
+move here either; each `absent` still names its `GAP-NNN`. Two `defect`s surfaced in the read,
+both in what was drawn rather than in what was stored: the block cursor painted over its own
+glyph where `invertCursorTextColor` keeps it legible, and a soft-keyboard Enter landed `\n`
+where `commitText` rewrites every committed `'\n'` to `'\r'` - "a terminal expects \r". Both
+were fixed red-first in this slice and are verdicted with the rows they sit under.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| the IME contract - `onCreateInputConnection`'s `VISIBLE_PASSWORD` + `NO_SUGGESTIONS` for the Samsung IMEs (their #686), `commitText`'s per-code-point loop (surrogate pairs, `'\n' -> '\r'`, `codePoint <= 31` routed to `sendKeyEvent`), `deleteSurroundingText` re-emitted as DEL key events, selection/editable callbacks stubbed | the invisible `BasicTextField` laid over the whole canvas (`KeyboardType.Password`, `autoCorrectEnabled = false`), `snapshotFlow` -> `sendTerminalDiff`: delete to the shared prefix as `\u007F`s, then type the tail; the field clears when its text ends in Enter | **defect** | the `\n` -> `\r` rewrite was absent - a soft Enter sent `\n` where the reference and a real Return key send `\r`, and a raw-mode program that binds `C-m` and `C-j` apart (Emacs) reads them as different keystrokes. Fixed red-first: `aTrailingNewlineIsSentAsCarriageReturnAndClearsTheField`, `aNewlineMidTextIsSentAsCarriageReturn`. The rest is the same contract at Compose's boundary: the field IS the input connection, password-type is the same Samsung guard, and the diff's delete-then-retype is `deleteSurroundingText`+`commitText` read as a buffer delta |
+| hardware keys - `onKeyPreIme`/`onKeyDown` -> `inputCodePoint`/`KeyHandler.getCodeForKey` with the modifier transform, volume keys routed, BACK folded to Escape | `onPreviewKeyEvent` -> `terminalKeystroke` -> `onEncodedKey` -> `send`; an unhandled key returns `false` and falls through to the field | adapted | delivery is the same reach - encoded bytes to the one socket write - while the table's breadth is `GAP-088`'s, verdicted at `T3`. BACK->Escape stays with the activity's own dispatcher rather than folding: the pane is one tab among several, and Esc exists on the extra-keys row |
+| the latches - `SpecialButtonState`/`readSpecialButton` over CTRL/ALT/SHIFT/FN: tap toggles active (clearing lock), long-press locks, unlocked consumes once | `TerminalModifierLatch`/`TerminalModifierLatches` verbatim as an immutable value, read by `applyModifierLatches` on the typed-text path | present | `TerminalModifierLatchTest` pins each transition against `SpecialButton.java`'s own lines; the stated narrowing - CTRL/ALT only, Shift/Fn being the reference's optional extras - is the enum's KDoc |
+| extra keys - the `extra-keys` property -> `ExtraKeysInfo`/`ExtraKeysView` (configurable rows, long-press popups, two-row layouts) under `TermuxTerminalExtraKeys`, `TerminalToolbarViewPager`'s page 0 | `TerminalExtraKeysRow` - a fixed row: Esc, Tab, Ctrl, Alt, the arrows, Home, End, PgUp, PgDn | adapted | the fixed set is Termux's own default row's content; what is not carried - property configurability, popup keys, the toolbar's second page (a plain text field for long input the IME itself answers here) - is a narrower row, not a different contract |
+| `KeyboardShortcut` - ctrl+key and volume-down-as-ctrl chords to actions, the client flags `shouldBackButtonBeMappedToEscape`/`shouldEnforceCharBasedInput`/`shouldUseCtrlSpaceWorkaround` | the Ctrl latch covers soft-keyboard chords; no volume-chord or flag layer exists | adapted | the chords' own need - a Ctrl a touchscreen can apply - is the latch's; Ctrl+Space's NUL is `GAP-088`'s named table gap; the workaround flags exist for IME quirks the password-type field was itself chosen to dodge |
+| selection and its handles - long-press arms `TextSelectionCursorController`, `TextSelectionHandleView` cursors drag over the transcript with edge auto-scroll, ACTION_MENU's copy/paste | `GridSelection` spans exist in the emulator and no gesture can create one; the canvas carries no long-press handling at all | **absent** | `GAP-081`, opened at `T2` - this row names the gesture half its machinery verdict lacked: nothing ever hands `GridSelection` a span, so neither handle nor menu has anything to act on. JediTerm's word/line drag-select and middle-click paste are the same gap's extra surface |
+| scroll - `GestureAndScaleRecognizer.onScroll` -> `doScroll(distanceY)` with `mScrollRemainder` carrying sub-row pixels; the alt screen redirected to Up/Down arrow keystrokes | `detectTerminalScrollDrag` (Initial-pass consume, measured pre-empting the field's Main-pass) -> `scrollBy(delta, cellHeightPx)` - the remainder carried, the alt screen forwarded as `terminalKeystroke` arrows | present | `doScroll` verbatim including the remainder and the arrow redirection, pinned by `scrollByRemembersTheRemainderAcrossCalls`/`scrollByForwardsUpArrowsWhileTheAlternateScreenIsLive`; the Initial-pass consume is the measured Compose answer to "the same view handles both" |
+| fling, wheel, key scroll, scrollbar - `onFling` into `Scroller.fling`/`computeScroll` decay, `onGenericMotionEvent` wheel x3-rows, Shift+PageUp/PageDown full-screen `doScroll`s, `awakenScrollBars`' thumb; JediTerm's `JScrollBar` and wheel are the same chrome | none - a drag moves whole rows and release stops dead | **absent** | `GAP-090`. Four flavours of the same unbuilt chrome; `scrollBy`'s own return contract already reserves the fling driver ("so a caller driving this from a fling... can stop its own deceleration cleanly at a clamped boundary") |
+| pinch - `GestureAndScaleRecognizer.onScale` -> `setTextSize` clamped to `MIN_FONT_SIZE`/`MAX_FONT_SIZE`, tracked through `onScaleBegin`/`End` | `TerminalActionsMenu`'s A+/A- stepper -> `TerminalFontSize` (the same 4-256 at a 2sp step) persisted through `TerminalSettings` | adapted | the same act through a menu rather than a gesture - `T2` verdicted the rows themselves; a pinch carries no semantics a TalkBack user or a Maestro flow can name, the stepper does |
+| output while scrolled - `onScreenUpdated` snaps `mTopRow` to 0 unless `isSelectingText` or `isAutoScrollDisabled` holds the view back (with selection cursors riding the scroll counter) | any `Output` event snaps `topRow` to 0 | adapted | `TerminalPaneViewModel`'s comment names it a simplification: neither carve-out has machinery behind it - no selection to preserve, no scroll-lock toggle to honour - so live output wins every time; the lock lands with `GAP-081`'s own task |
+| cell metrics - `mTextPaint.measureText("X")` for the width, `Paint.getFontSpacing()` for the height, `mFontLineSpacingAndAscent` for the baseline | `terminalCellMetrics` - the same "X" measured through Compose's `TextMeasurer`, shared `codeTextStyle` with the glyphs | present | the file's own KDoc names the reference's two calls it mirrors; one style feeding measurement and drawing alike keeps the two from drifting |
+| sizing - `onSizeChanged` -> `updateSize()` -> `TerminalSession.updateSize` -> pty `TIOCSWINSZ`, IME-shrunken height counted | `BoxWithConstraints` -> `terminalGridSize` -> `resize()` -> `emulator.resize` + wire `set_size` | present | the container is the source of truth exactly as `TerminalView.onSizeChanged` is; the doubled-IME-inset detour is recorded in `TerminalCanvas`'s own KDoc, measured wrong on device and removed |
+| the draw - `drawTextRun`'s run batching at style-change boundaries, indexed/256/truecolour resolution, bold-brightens/inverse/dim/underline/italic/strikethrough/invisible, non-default backgrounds only | `GlyphStyle`'s `resolvedRunColors`/`styleFor` under `TerminalCanvas`'s `drawRun` - the same batching, resolutions and background rule | present | `TerminalRenderer` is the cited model and `TerminalCanvasTest` pins the observable half: palette resolution, repaint-over, scrollback rows, INVISIBLE drawing nothing, the cursor's visibility rules |
+| proportional-font correction - `drawTextRun` measures the run and `canvas.scale`s it into `mFontWidth * columns` when the font lied about being monospace | none - every run draws at the grid's cell pitch unscaled | **absent** | `GAP-092`. A font whose glyphs do not match the measured "X" (ligature-prone or mis-declared monospace) drifts ink and cells apart; `CodeText` is consistent today, so this is a dormant rendering risk rather than a visible wrongness |
+| `CSI ? 5 h/l` - Termux's `isReverseVideo` -> `render`'s `reverseVideoHere` XOR on every run plus a foreground-coloured canvas fill; JediTerm's `TerminalMode.ReverseVideo` is *set* by `JediEmulator` and `TerminalPanel` never reads it | `DecMode.REVERSE_VIDEO` stores the bit; `TerminalCanvas` never reads it | **absent** | `GAP-091` - the stored-never-read class `GAP-087` already names, and one JediTerm shares: the emulator answers `? 5 h` truthfully and the paint step has no branch for it, so the sequence repaints nothing. Termux is the only reference that draws it |
+| the cursor - `CURSOR_STYLE_BLOCK/UNDERLINE/BAR` drawn under the run, `invertCursorTextColor` repainting the run's text inverted over a block; `cursorBlink`'s timer and `onTerminalCursorStateChange` | the block only - shapes are `GAP-086`'s, blink stays declined - and until this read it was an opaque rect that erased the glyph beneath it | **defect** | `invertCursorTextColor` was missing: `drawCursor` painted the block *over* the runs. Fixed red-first - it now repaints the cell's glyph in the run's resolved back colour over the block, wide-char second halves and INVISIBLE honoured (`theBlockCursorShowsTheGlyphUnderIt`). JediTerm's `BlinkingTextTracker` blink stays folded into `cursorBlink`'s declined setting |
+| accessibility - `onCheckIsTextEditor` true, `setContentDescription(getText())` republishing the whole transcript on every update | a transparent `Text` per row over the same grid - row-granular nodes a screen reader walks line by line | adapted | one utterance per row rather than one blob per screen, the `TerminalCanvas` KDoc's own stated reason; an IME-reachable node exists in both, the invisible field being ours |
+| bell - `TerminalViewClient.onBell` -> `TermuxTerminalViewClient`'s notification/`Bell` | `TerminalNotices.onBell` reaches the ViewModel and is a `Unit` | adapted | the notice is carried and declined: JupyterLab's `widget.ts` has no bell handler at all, so this is a mobile-form's affordance, not a parity command - stated at the handler itself |
+| dead session - `TermuxService`'s `onSessionFinished` notification/toast and the session list dropping it | `endedReason` stores; the pane stands on the shell's last screen | **absent** | `GAP-084`, verdicted at `T2` over `closeOnExit` - this row names the presentation half: a dead shell is indistinguishable from a quiet one |
+| session list - `TermuxSessionsListViewController`'s drawer (list, add, rename via long-press) | the running panel's Terminals section | adapted | verdicted at `AUD-006` `T4` as `running-extension`'s surface: the acts are the same, the container differs |
+| mouse/pen reach - `onTouchEvent`'s `SOURCE_MOUSE` routing into `sendMouseEvent`, stylus/mouse capture, `isMouseTrackingActive` gates on scroll/select | the drag detector is the only pointer path; no event ever consults the stored mouse-mode bits | **absent** | `GAP-087` names the protocol half; this row names the pointer half - even an encoder landing tomorrow has no gesture feeding it today |
+
+As at `T3`, the disagreements stay named rather than averaged: scrollbar-and-wheel chrome is
+JediTerm's answer where Termux uses `Scroller`-fling - both are `GAP-090`; blink is JediTerm's
+`BlinkingTextTracker` where Termux ties it to `cursorBlink` - both stay declined; selection is a
+gap on every front (`GAP-081`); the `\r` rewrite and `invertCursorTextColor` are *not*
+Termux-only - JediTerm encodes `VK_ENTER` to `Ascii.CR` in
+`TerminalKeyEncoder` and its `drawCursor` repaints the cell's char under `getInversedStyle` - so
+both defects were ours alone.

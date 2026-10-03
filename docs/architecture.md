@@ -1260,6 +1260,42 @@ paints as it arrives, which degrades gracefully. The repair is the mode bit plus
 buffer - worth doing only if a TUI's flicker is ever seen, since the ignore is already what
 xterm-family terminals without 2026 do.
 
+### GAP-090 — A scrolled-back view has no momentum, wheel, keys or thumb
+
+Termux's `GestureAndScaleRecognizer` turns a fast drag into `onFling` -> `Scroller.fling` with
+`computeScroll` decay, `onGenericMotionEvent` scrolls a mouse wheel three rows a notch, its key
+dispatch answers Shift+PageUp/PageDown with full-screen scrolls, and `awakenScrollBars` draws a
+thumb while the transcript is long (`termux-app/terminal-view/`); JediTerm's `TerminalPanel`
+carries the same chrome as a real `JScrollBar` plus wheel. Ours has the drag and nothing else:
+`detectTerminalScrollDrag` -> `TerminalPaneViewModel.scrollBy` moves whole rows and release
+stops dead, so a 1000-line transcript is a hundred finger strokes away
+(`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`,
+`TerminalPaneViewModel.kt`). The repair is the fling driver feeding `scrollBy` - whose return
+contract already reserves it ("so a caller driving this from a fling... can stop its own
+deceleration cleanly at a clamped boundary") - before the wheel, key and thumb flavours.
+
+### GAP-091 — Reverse video is stored and never drawn
+
+`CSI ? 5 h/l` is DECSET 5: Termux's `isReverseVideo` feeds `TerminalRenderer.render`'s
+`reverseVideoHere` XOR on every run plus a foreground-coloured canvas fill, so the whole screen
+inverts. Ours stores the same bit in `DecMode.REVERSE_VIDEO` and `TerminalCanvas` never reads
+it - `GAP-087`'s stored-never-read class again, and one JediTerm shares (its
+`TerminalMode.ReverseVideo` is set by `JediEmulator` and `TerminalPanel` has no branch either).
+A program emitting `? 5 h` repaints nothing. The repair is one resolved-colour swap at
+`GlyphStyle`'s boundary, read off the emulator's mode bit.
+
+### GAP-092 — A run is drawn at cell pitch even when the font disagrees
+
+Termux's `drawTextRun` measures each run's ink and, when it disagrees with `mFontWidth *
+columns` by more than 1%, `canvas.scale`s the run into the cells it was measured for - the
+run-boundary condition itself widens on `fontWidthMismatch`
+(`termux-app/terminal-view/.../TerminalRenderer.java`). Ours draws every run at the grid's cell
+pitch unscaled (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalCanvas.kt`): a font
+whose glyphs do not match the "X" `terminalCellMetrics` measured - ligature-prone or
+mis-declared monospace - drifts ink and cells apart. `CodeText` measures honestly today, so
+this is a dormant rendering risk rather than a visible wrongness; the repair is the same
+per-run measure-and-scale if a font ever lies.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the
