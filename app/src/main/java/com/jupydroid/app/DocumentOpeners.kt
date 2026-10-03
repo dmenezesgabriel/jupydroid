@@ -6,6 +6,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
+import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.launch
 
 /**
@@ -79,11 +80,17 @@ internal fun rememberDocumentOpener(
 internal fun rememberNewTerminal(backStack: MutableList<NavKey>, appContainer: AppContainer): (String) -> Unit {
   val scope = rememberCoroutineScope()
   return remember(backStack, appContainer, scope) {
-    { cwd ->
-      scope.launch {
-        val session = appContainer.terminalGateway.open(cwd.ifEmpty { null })
-        backStack.openTerminal(session.name)
-      }
-    }
+    { cwd -> scope.launch { backStack.openNewTerminal(appContainer.terminalGateway, cwd) } }
   }
+}
+
+/**
+ * `terminal:create-new`'s mint and reveal, as a suspend on the stack so the refused half is
+ * testable without Compose. **A refused `open` is no terminal opened, not a crash** - the same
+ * `runCatching` the VIEW intent gives `createNotebook` (`Navigation.kt`), since this reach has
+ * no error surface the way the launcher card's `LauncherViewModel.error` is.
+ */
+internal suspend fun MutableList<NavKey>.openNewTerminal(terminalGateway: TerminalGateway, cwd: String) {
+  runCatching { terminalGateway.open(cwd.ifEmpty { null }) }
+    .onSuccess { openTerminal(it.name) }
 }
