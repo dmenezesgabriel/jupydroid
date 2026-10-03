@@ -1891,3 +1891,136 @@ gap on every front (`GAP-081`); the `\r` rewrite and `invertCursorTextColor` are
 Termux-only - JediTerm encodes `VK_ENTER` to `Ascii.CR` in
 `TerminalKeyEncoder` and its `drawCursor` repaints the cell's char under `getInversedStyle` - so
 both defects were ours alone.
+
+### The walk
+
+Eight paths through the one port - a mint, an attach, a keystroke, a resize, an end, a covered
+tab, a close, and the refused asks. **A mint:** the bar's "+" at one pane and the launcher's
+Terminal card at two → `rememberNewTerminal`'s `scope.launch` → `openNewTerminal` →
+`runCatching { terminalGateway.open(cwd.ifEmpty { null }) }` (the launcher card's own
+`runCatching` lands on `LauncherViewModel.error` instead) → `ActivityTrackedTerminalGateway.open`
+→ `BaseSpaceTerminalGateway.open` → `live.get()` - asking for a terminal is asking for the
+runtime, so a stopped Space boots here - → `RealTerminalGateway.open` →
+`OkHttpTerminalLifecycle.create` → `POST api/terminals` with `{}` or `{"cwd": dir}`, never
+`{"cwd": null}` - → `TerminalRootHandler.post` → `NamedTermManager.new` minting `"%d"` and
+spawning the pty → `200 {"name": "1"}` → `TerminalSession("1")` → `activeTerminals.minted("1")` →
+`openTerminal("1")` → `openInMainArea` pushing `Terminal("1")` - a fresh name never matches an
+old tab, so a second mint is always a second tab - → `entry<Terminal>` → `TerminalPaneScreen`.
+**An attach, and what flows back:** `KeepTheShellAttached` →
+`repeatOnLifecycle(Lifecycle.State.STARTED)` → `viewModel.attach()` →
+`ActivityTrackedTerminalGateway.attach` - the `onEach` the fix below added - →
+`BaseSpaceTerminalGateway.attach` → `live.get()` → `RealTerminalGateway.attach`, an
+`AttachedTerminal` registered in the `attached` map as the flow is collected → `connect()` →
+`OkHttpTerminalSocketOpener` upgrading `terminals/websocket/<name>` → `TermSocket.open` appending
+the client, sending `["setup", …]` and replaying `read_buffer` → `TerminalFrame.read` per
+message - `setup` → `Ready` (completing `ready`), `stdout` → `Output`, `disconnect` →
+`Ended("the shell exited")`, anything unrecognised ignored - → `tryEmit` into the 256-deep
+buffered `MutableSharedFlow`, on OkHttp's reader thread, a refusal logged as
+`terminal.frame.dropped` → `upToEnd` stopping the flow on `Ended` → the ViewModel folding each
+event: `Ready` → `uiState.ready`; `Output` → `emulator.append` + `topRow = 0` + `bumpRedraw` →
+`key(state.redraw)` rebuilding `TerminalCanvas`, whose `drawRun`s repaint batched runs; `Ended` →
+`endedReason`. What the emulator answers on its own - `TerminalReplies.reply`, the DA1/DSR
+replies a program can ask for - goes back through `sendToShell` exactly as a keystroke does. The
+`finally` removes the registration *by identity* and closes the socket, so an old attach's
+cancel cannot unregister a newer re-attach. **A keystroke:** two routes into `sendToShell` -
+soft-keyboard edits land in the invisible `BasicTextField` (`KeyboardType.Password`,
+`autoCorrectEnabled = false`, focus requested at composition) → `snapshotFlow` →
+`reportTerminalKeystroke` → `sendTerminalDiff` deleting back to the shared prefix as `\u007F`s
+and typing the tail with `\n` rewritten to `\r`, the field cleared once its text ends in a
+newline → `typeCharacters` → `applyModifierLatches` → `sendToShell`; a hardware key or an
+extra-keys tap → `onPreviewKeyEvent`/`onKey` → `terminalKeystroke` → `type` - pre-encoded bytes,
+no latch pass, which would corrupt an escape sequence one character at a time - → `sendToShell` →
+the `endedReason` gate → `writingToTheShell { send }` → `write` waiting up to `ATTACH_TIMEOUT`
+(10 s) for `attached[name]` to appear and `awaitReady` to complete, then `["stdin", text]` on the
+socket → `TermSocket.on_message` → `ptyproc.write`. **A resize:** `TerminalCanvas`'s
+`onGridSizeChanged` - `terminalGridSize` over `terminalCellMetrics`'s measured "X" - →
+`viewModel.resize(grid, w, h)` → a `lastGridSize` dedup → `emulator.resize` reflowing the grid
+plus `bumpRedraw` - and this half stays right on a dead shell, whose last screen still draws
+correctly at a new size - → the `endedReason` gate → `writingToTheShell { resize }` →
+`["set_size", rows, cols]` rows first, `self.size = command[1:3]` on the wire's own order - →
+`resize_to_smallest` → `TIOCSWINSZ`. **An end:** `on_pty_died` sends `["disconnect", 1]` →
+`Ended("the shell exited")`; a socket ending for any other reason - a network drop, the 404
+`TermSocket.get` raises on a name a replaced server never minted - → `Ended(reason)`; either way
+`upToEnd` completes, `endedReason` stores, and the pane stands on the shell's last screen
+(`GAP-084`'s verdict) with input and wire-resizes gated off - while a `ready` that never
+completed is completed *exceptionally*, so a writer that raced a pre-`setup` end fails rather
+than suspending forever. **A covered tab:** the entry leaving the top of the scene caps its
+lifecycle at `CREATED` → `repeatOnLifecycle` cancels the collect → the `finally` closes only the
+client socket - `TermSocket.on_close` drops the client while `NamedTermManager` keeps the shell -
+→ returning to the tab re-`STARTED`s and calls `attach()` again → `hasAttachedBefore` sends the
+emulator `ESC[H ESC[2J ESC[3J` first - home the cursor, blank the screen, forget the scrollback,
+because `read_buffer` replays the whole session rather than the missed delta (`CLOSED-007`) - → a
+fresh `AttachedTerminal`, `setup`, the replay, and the pane redraws the session it left. The
+active count is unmoved by the whole cycle: the shell lived throughout, which is exactly what the
+count is for. **A close:** the running panel's ✕ → `closeTerminal` →
+`ignoringFailure { terminalGateway.close(session) }` → `liveOrNull()?.close()` - ending a
+terminal must never boot a runtime to do it - → `lifecycle.terminate` →
+`DELETE api/terminals/<name>` → 204 and 404 both success, the second being "somebody got there
+first" → `activeTerminals.ended(name)` → `relist()`. A tab ✕ is only navigation: the entry's
+ViewModel clears, the attach's `finally` drops the socket, and the pty runs on -
+`shutdownOnClose`'s verdicted adaptation, the panel's ✕ being the kill reach. **The refused
+asks:** a refused `open` dies in `openNewTerminal`'s `runCatching` - no terminal opened, not a
+crash (`aRefusedTerminalOpenLeavesTheStackAlone`) - or lands on the launcher card's `error`
+surface; a refused attach is `Ended` carrying the reason - a boot refusal
+(`attach_endsWithTheReasonWhenTheServerCannotStart`) or the 404
+(`attach_toATerminalTheServerDoesNotHaveEndsWithTheReason`); a write to a terminal nobody
+attached suspends up to `ATTACH_TIMEOUT` then throws `TerminalChannelException`, as does a send
+on a socket already ending - both landing in `writingToTheShell`'s swallow
+(`aKeystrokeOnAnEndedShellReachesNoSocket`, `typingOnAClosedShellDoesNotThrow`).
+
+What the walk found, beyond the rows above:
+
+- **Growth is one redraw per frame and a ring that overwrites - bounded by construction.** Each
+  `stdout` frame is one `Output` → one `emulator.append` → one `redraw` bump → one `key()`
+  rebuild of the canvas; the canvas's own run batching is per-paint, so output volume changes
+  repaint frequency, never per-repaint cost. Scrollback is `RowRing` capped at
+  `DEFAULT_TRANSCRIPT_ROWS = 1000` - overwrite, not allocation - and a resize reflows by replay
+  (`GridReflow`), deduplicated by `lastGridSize` so a redraw that changes nothing writes the
+  wire never. The one place output *can* be lost is named on `publish` itself: `tryEmit` into a
+  256-frame buffer means a collector slower than the socket drops frames - logged as
+  `terminal.frame.dropped` rather than backpressured, because the producer is OkHttp's reader
+  thread and must never block. `ActiveTerminals` is now a set of names, so a name a later server
+  generation re-mints counts once. And the panel's `relist` is two passive asks behind
+  `keepingLastGood` - `running()` answers through `liveOrNull`, so the poll never boots what it
+  lists.
+- **Branching splits on who may boot the runtime, and on which end an `Ended` was.**
+  `open`/`send`/`resize`/`attach` go through `live.get()` - asking is asking for the runtime;
+  `running`/`close` go through `liveOrNull()` - listing and ending never boot one.
+  `BaseSpaceTerminalGateway.attach` splits a refused boot (`Ended` carrying it) from the
+  delegate's own refusals (the 404) from readiness (`setup` → `Ready`). `write` splits
+  attachable-in-time from `TerminalChannelException` twice over - no attach within 10 s, and a
+  socket that will not take a frame. The ViewModel splits `endedReason` the reference's own way
+  (`_isDisposed`): wire writes drop, while the emulator half of `resize` keeps running because a
+  dead shell's last screen is still the right thing to draw at a new size. The scroll gesture
+  splits on `isAlternateLive` - arrows to the program where there is no scrollback to move.
+- **Failure is answered at the surface it belongs to - and the walk found the one boundary
+  where it was not.** `ActiveTerminals` released a hold only on `close()`: a shell that exited -
+  `disconnect`, `on_eof` popping it from `NamedTermManager`'s map - or a name lost when the
+  server was replaced kept the count positive forever, and `IdleServerStopper`'s
+  `combine { both zero }` cannot fire while it stays positive: a dead shell held a live server
+  open. `Ended` could not decrement on its own - `TermSocket.on_close` means the pty may live -
+  so `b176c260` made the belief a set of names reconciled to `running()`'s answer: asked once on
+  every attach's `Ended`, re-aligned by every `running()` call, removed idempotently by `close`.
+  Red first: `anEndedAttachReconcilesAwayTheDeadShell`, `aSocketEndOnALiveShellKeepsItsHold`,
+  `aShellEndedElsewhereDropsOnTheNextList`, `anEndedObservedAfterCloseStillCountsOnce`, with
+  `FakeTerminalGateway.detach` modelling the socket-ended-pty-lived half and
+  `ActiveTerminalsTest` pinning the set semantics. It is the audit's sixth terminal defect after
+  `T2`'s three and `T4`'s two. The failure shapes the walk confirmed rather than repaired:
+  `TerminalFrame.read` swallows malformed and unrecognised frames; `writingToTheShell` lands a
+  refused write the reference's own `_isDisposed` way; `ready.completeExceptionally` turns a
+  pre-`setup` end into an error rather than a forever-suspend.
+- **Coupling is the walk's real yield - who owns the truth about whether a shell is alive.**
+  `running()` is now doubly authoritative: it draws the panel's rows *and* re-aligns the active
+  count, so one ask keeps both honest and every panel refresh is also a reconcile.
+  `ActivityTrackedTerminalGateway` is the count's only mover and `IdleServerStopper` only reads
+  `combine(cells, terminals)` - the wrapper sitting outside `BaseSpaceTerminalGateway`
+  deliberately, since that class swaps its delegate per `PerRunningServer` generation and a
+  counter inside it would reset on every replacement. A replaced server's minted names reconcile
+  away at the next list rather than at a signal the port does not carry - which is the same
+  answer `BaseSpaceTerminalGateway`'s KDoc gives for carrying no session registry: the wire
+  already reports the truth, and `running()` is where it is asked. The residual the fix accepts:
+  a shell that exits while *nothing* is attached and nobody lists stays counted until the next
+  `running()` - bounded, failing safe (a server kept, never a live shell dropped), and the same
+  question the reference's `current_activity()` answers, only asked client-side. `endedReason`
+  stays the pane's one error channel where JupyterLab has `connectionFailed`, `_isDisposed` and
+  `closeOnExit`; the presentation half is `GAP-084`'s, unchanged by the fix.

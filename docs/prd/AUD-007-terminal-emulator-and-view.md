@@ -242,7 +242,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `GestureAndScaleRecognizer`/the io extras against `ui/terminal/` — the IME contract, key
       encoding, modifier latches, selection and its handles, scroll/fling/pinch, cell metrics,
       the cursor, TalkBack rows.
-- [ ] T5 — **The walk.** Open → POST `api/terminals` → attach → `setup` → stdout → emulator →
+- [x] T5 — **The walk.** Open → POST `api/terminals` → attach → `setup` → stdout → emulator →
       canvas; `stdin`; layout → `set_size` + grid reflow; `disconnect` → `endedReason`; STARTED
       gating → cancel → re-attach replay-clear; `close` → DELETE; refused paths (a refused create,
       an attach to a name a replaced server never minted surfacing `Ended`'s 404, a refused
