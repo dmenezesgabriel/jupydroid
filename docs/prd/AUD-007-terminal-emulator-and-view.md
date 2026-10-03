@@ -219,7 +219,7 @@ Known going in, so a verdict does not re-litigate them:
 
 One TDD unit each (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — **The instrument and the surface, produced.** `read_ledger_partition.py`'s
+- [x] T1 — **The instrument and the surface, produced.** `read_ledger_partition.py`'s
       `COMMAND_IN_CELL` gains `terminal` and `PARTITIONED_PACKAGES` gains `terminal-extension`
       whole — red tests first in `read_ledger_partition_test.py` and `read_ledger_verdicts_test.py`,
       which shares the pattern. The widened pattern sweeps a stray backticked `terminal:open` in

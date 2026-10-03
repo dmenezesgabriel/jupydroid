@@ -57,7 +57,7 @@ Five, each obliging something different. The full definition is in
 | Search, replace, table of contents | `AUD-004` | examined — below |
 | Files, workspace, recents | `AUD-005` | examined — below |
 | Console, sessions, running panel | `AUD-006` | examined — below |
-| Terminal emulator and view | `AUD-007` | unexamined |
+| Terminal emulator and view | `AUD-007` | measured — the surface below, verdicts next |
 | Rendering and formats | `AUD-008` | unexamined |
 | Chrome and presentation | `AUD-009` | unexamined |
 | Spaces and runtime | `AUD-010` | unexamined |
@@ -229,6 +229,10 @@ examination came out, which is what a verdict is for.
 | `running:show-panel`, `running:show-modal` | `AUD-006` `T4` | Reaching the panel — the rail entry versus the searchable-sessions dialog (`SearchableSessions`) |
 | `running:kernel-open-session`, `running:kernel-shut-down`, `running:kernel-shut-down-unused` | `AUD-006` `T4` | The sessions section's row acts — open, per-row shutdown, and the grouped-list's "Shut Down Unused" |
 | `running:kernel-new-console`, `running:kernel-new-notebook` | `AUD-006` `T4` | Minting a document on a running kernel — the kernel row's two spawn acts (`kernels.tsx`) |
+| `terminal:create-new`, `terminal:open`, `terminal:open-folder-in-terminal` | `AUD-007` `T2` | Reaching a terminal — `create-new` mints (the launcher's card), `open` reveals a running one by name, `open-folder-in-terminal` lands a folder's `cwd` on `TerminalGateway.open` |
+| `terminal:copy`, `terminal:copy-link`, `terminal:paste` | `AUD-007` `T2` | The pane's clipboard — copying the selection `GridSelection` holds, a link under the cursor, and what a paste hands `send` |
+| `terminal:increase-font`, `terminal:decrease-font`, `terminal:set-theme`, `terminal:refresh` | `AUD-007` `T2` | The pane's own presentation — the font pair (`TerminalActionsMenu` over `TerminalSettings`), the theme pick, and re-fit/re-send-size weighed against a layout that already resizes |
+| `terminal:shut-down` | `AUD-007` `T2` | Ending one — `TerminalGateway.close`; the running panel's ✕ for it is `AUD-006` `T4`'s, verdicted above |
 
 ### The editing half — verdicts
 
@@ -1510,7 +1514,7 @@ carries no such signal, so its rows re-list after their own acts instead
 | `RunningSessions` — the `SidePanel` at left rank 200, its refresh button calling every `refreshRunning()`, `restorer.add` for layout restore, `IMovableSectionRegistry` for drag-reorder (`index.tsx:786-955`, `running-extension/src/index.ts:83-146`) | `RunningSidePanel` under `SidePanel.RUNNING`, refresh icon → `viewModel.refresh()` (`ShellSidePane.kt:122-131`) | **defect** | A fixed trio in the registration order rather than a movable registry — the rail offers no drag to reorder with, so there is nothing for a registry to persist. The walk found `relist` propagating a refused `running()` uncaught — the class's own "keeps the last good list" contract; fixed red-first in `7b5e670e` (`aRefusedRelistKeepsTheLastGoodSessions`). |
 | Open Tabs manager — `labShell.widgets('main')`, `activateById` on tap, `widget.close()` on ✕, "Close"/"Close All" with the counted confirm; `runningChanged` driven by `layoutModified` plus each widget's `title.changed` (`opentabs.ts:19-127`) | `openTabs` handed down from the back stack, `onActivateTab` → `activateMainAreaTab`, `onCloseTab` through the shared close gate, "Close All" with the same question | present | Same section, same acts, same labels; recomposition on the live `openTabs` list is `OpenTabsSignaler`'s job done by the state itself, and the dirty gate is the reference's own close-request answer. |
 | Recently Closed manager — `recentsManager.recentlyClosed`, reopen validates then docmanager:open and forgets the row, per-row Forget, "Forget All" (`recents.ts:33-109`) | — | **absent** | `GAP-066` — the `closed` list it would read was verdicted in AUD-005; this section is the surface half that gap already names. |
-| Terminals section — `terminal-extension`'s manager: `terminals.running()`, `terminal:open` on tap, `manager.shutdown`/`shutdownAll` under "Shut Down"/"Shut Down All" (`terminal-extension/src/index.ts:420-462`) | `TerminalGateway.running()`/`close()`, `onOpenTerminal` reattaches to the held shell, the same confirm sentence verbatim (`RunningSidePanel.kt:181-205`) | **defect** | The section's machinery verdicts here as `running-extension`'s surface; the pane's own `terminal:*` ids stay `AUD-007`'s. The walk found a refused close escaping the launch instead of relisting; fixed red-first in `7b5e670e` (`aRefusedTerminalCloseLeavesTheTerminalListed`). |
+| Terminals section — `terminal-extension`'s manager: `terminals.running()`, terminal:open on tap, `manager.shutdown`/`shutdownAll` under "Shut Down"/"Shut Down All" (`terminal-extension/src/index.ts:420-462`) | `TerminalGateway.running()`/`close()`, `onOpenTerminal` reattaches to the held shell, the same confirm sentence verbatim (`RunningSidePanel.kt:181-205`) | **defect** | The section's machinery verdicts here as `running-extension`'s surface; the pane's own `terminal:*` ids stay `AUD-007`'s. The walk found a refused close escaping the launch instead of relisting; fixed red-first in `7b5e670e` (`aRefusedTerminalCloseLeavesTheTerminalListed`). |
 | `runningSessions.tsx` statusbar item — "N Terminals, M Kernel sessions" counting off `sessions.runningChanged`/`terminals.runningChanged`, click activating the sidebar (`apputils/src/runningSessions.tsx:111-213`) | — | adapted | The shell has no statusbar to hold it; the same two lists the item counts are drawn always-on in the panel — `showStatusBarItem`'s own read, one section up. |
 | kernels-by-spec tree and the connected-sessions submenu — `KernelSpecItem` → `RunningKernel` → session children, the switch-view that flattens it, the `contextMenu.opened` submenu listing a kernel's sessions (`kernels.tsx:143-199,309-517`) | flat session rows under "Kernel Sessions" | adapted | The grouping is the same `GET api/kernels` decline the shut-down-unused row rests on — `RunningSidePanel.kt`'s doc names the section "Kernel Sessions" because its rows *are* sessions; a phone's rail has no context-menu slot for the submenu. |
 
@@ -1624,3 +1628,90 @@ What the walk found, beyond the rows above:
   asks layer (`completion`, `hover`, `signatureHelp`, `definition`, `format`, `rename`) address
   `session.opened` fresh per ask, so an end reaches them only as the next ask's refusal — folded
   to the caller's own lane, which is all they need.
+
+---
+
+## Terminal emulator and view — `AUD-007`
+
+**The surface is one package's eleven ids, twelve settings, and two emulators' worth of state
+machine.** `terminal-extension` declares **11 ids**, all `terminal:*`, and nothing else — the
+first package in the audit whose whole surface is one slice's with nothing carried (verified: no
+other package under `packages/` declares a `terminal:` id). Twelve settings sit in
+`schema/plugin.json` — `fontFamily`, `fontSize`, `lineHeight`, `theme`, `screenReaderMode`,
+`scrollback`, `shutdownOnClose`, `closeOnExit`, `pasteWithCtrlV`, `macOptionIsMeta`,
+`cursorBlink`, `showStatusBarItem`. Produced, never stored:
+
+```sh
+python3 scripts/read_reference_commands.py --jupyterlab-package terminal-extension
+python3 -c "import json; print(sorted(json.load(open('reference/research_repos/jupyterlab/packages/terminal-extension/schema/plugin.json'))['properties']))"
+```
+
+**This slice meets two kinds of reference.** The behaviour spec is JupyterLab's command surface
+plus the shipped server's wire; the state-machine spec is the two emulators ours transcribes —
+Termux's `terminal-emulator/` (`TerminalEmulator.java`'s 24-state dispatch over `TerminalBuffer`,
+`TerminalRow`, `TextStyle`, `TerminalColors`, `WcWidth`, `KeyHandler`,
+`TerminalSession`/`TerminalSessionClient`) and JediTerm `core/` (`Terminal.java`,
+`emulator/JediEmulator`, `model/`'s `TerminalTextBuffer`/`LinesBuffer`/`TerminalSelection`/
+`Tabulator`, plus `typeahead/`, `model/hyperlinks/` and `mouse/` — surfaces Termux does not have).
+The view is Termux's `terminal-view/` — `TerminalView`'s IME contract, hardware-key handling,
+`textselection/` handles, `GestureAndScaleRecognizer`'s scroll/fling/scale, `TerminalRenderer` —
+plus the app layer's `io/` extras (`TermuxTerminalExtraKeys`, `KeyboardShortcut`,
+`TermuxTerminalViewClient`, `TermuxSessionsListViewController`). The machinery the commands ride
+on is `packages/terminal/src/widget.ts`'s `Terminal` over vendored xterm.js and its lazy addons
+(`addon-fit`, `addon-search`, `addon-web-links`, `addon-webgl`), `tokens.ts`'s
+`ITerminal`/`IOptions`, `terminal-extension/src/searchprovider.ts`'s document-search
+registration — `GAP-036`'s terminal entry — and `services/src/terminal/`'s connection,
+`default.ts`'s `_pendingMessages`-until-`setup` being the shape ours mirrors.
+
+```sh
+grep -c 'case ' reference/research_repos/termux-app/terminal-emulator/src/main/java/com/termux/terminal/TerminalEmulator.java
+ls reference/research_repos/termux-app/terminal-emulator/src/main/java/com/termux/terminal/
+ls reference/research_repos/termux-app/terminal-view/src/main/java/com/termux/view/
+ls reference/research_repos/jediterm/core/src/com/jediterm/terminal/ reference/research_repos/jediterm/core/src/com/jediterm/terminal/{emulator,model}
+```
+
+Under it all, the behaviour ours mirrors is the shipped rootfs's —
+`jupyter_server_terminals/{api_handlers,handlers,terminalmanager}.py` and
+`terminado/{websocket,management}.py`: `api/terminals` POST/GET/DELETE, and
+`terminals/websocket/<name>` carrying `setup`/`stdin`/`stdout`/`set_size`/`disconnect`.
+
+```sh
+T=app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/terminado/websocket.py
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/terminado/management.py
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server_terminals/api_handlers.py
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server_terminals/terminalmanager.py
+```
+
+**Ours** is `terminal/` — `TerminalEmulator` over `EscapeParser`/`EscapeDispatch`/
+`EscapeParameters`, `TerminalScreen`/`TerminalGrid`/`TerminalRow`/`RowRing`, `ScreenModes`,
+`Utf8Decoder`, `TerminalReporting`/`TerminalReplies`/`TerminalNotices`, `CharacterWidth`,
+`GraphicRendition`, `TerminalPalette`, `GridSelection`, transcribed from Termux and JediTerm
+where the files cite them — `ui/terminal/` (`TerminalPaneScreen`/`TerminalPaneViewModel`,
+`TerminalCanvas`/`GlyphStyle`/`TerminalCellMetrics`/`TerminalGridSize`, `TerminalActionsMenu`,
+`TerminalExtraKeysRow`/`TerminalModifierLatch`, `TerminalKeyEncoding`) — and the wire:
+`TerminalGateway`'s six ops (open/running/attach/send/resize/close) behind `data/space/`'s
+`RealTerminalGateway`, `TerminalFrame`, `TerminalLifecycle`/`OkHttpTerminalLifecycle`,
+`OkHttpTerminalSocketOpener`, `BaseSpaceTerminalGateway`, `ActivityTrackedTerminalGateway`,
+`FakeTerminalGateway`, with the one setting `TerminalSettings.fontSizeSp` over
+`TerminalSettingsRepository`. Produced:
+
+```sh
+python3 scripts/read_port_surface.py            # TerminalGateway 6, TerminalSettingsRepository 2
+python3 scripts/read_port_surface.py --unused
+```
+
+**Carried in, recorded not rejudged.** `GAP-036`'s terminal half — the provider registry's fifth
+registration, `searchprovider.ts` — is verdicted here, not repaired. The running panel's
+Terminals section was verdicted in `AUD-006` `T4` as `running-extension`'s surface; what stays is
+the pane's own ids. Three closed questions are this area's settled ground: `CLOSED-006` (`stty
+size` reads a fixed default, not the pty — `vi`'s reflow is the oracle), `CLOSED-007` (a re-attach
+replays the whole session, so the pane clears first), `CLOSED-009` (a pty works in the app
+process — probed before the terminal was designed). Two ADRs already carry this area's decisions:
+`ADR-0020` (the colour ramp lives in `terminal/`) and `ADR-0026` (a terminal is ready when `setup`
+arrives). VS Code's `workbench.action.terminal.*` ids are **not** partitioned — the command
+surface is JupyterLab's by §8.3 and VS Code is read for presentation only — and IntelliJ's
+`plugins/terminal/` is the *integration* it names, the emulator it drives being JediTerm's. What
+runs inside the pty is `AUD-010`'s; this slice owns the wire to it and the screen it draws on. The
+partition rows are in the shared table under `AUD-002`'s heading — all eleven ids to `T2` (the
+pane surface and the wire); `T3` verdicts the emulator, `T4` the view, `T5` the walk.

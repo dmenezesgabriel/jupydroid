@@ -47,7 +47,7 @@ PARTITION_HEADING = "### Who owns which id"
 #: `kernelmenu:` carry camelCase suffixes; the rest are lowercase.
 COMMAND_IN_CELL = re.compile(
     r"`((?:notebook|documentsearch|toc|fileeditor|editmenu|filebrowser|docmanager|console|running"
-    r"|kernelmenu|filemenu|completer):[A-Za-z0-9-]+)`")
+    r"|kernelmenu|filemenu|completer|terminal):[A-Za-z0-9-]+)`")
 
 #: Packages whose whole command surface the partition covers - every id they declare must be
 #: owned. `notebook-extension` is read separately because only its `notebook:` ids are the
@@ -56,10 +56,12 @@ COMMAND_IN_CELL = re.compile(
 #: declares `docmanager:recents` alone; the rest of the family lives in `docmanager-extension`.
 #: `console-extension` declares the console's completer pair too (`completer:invoke-console`,
 #: `completer:select-console`), which is why `completer:` is in the pattern above while the
-#: completer's own package waits for its slice.
+#: completer's own package waits for its slice. `terminal-extension`'s eleven `terminal:*` ids
+#: are AUD-007's whole package — no other package declares a `terminal:` id, so nothing is
+#: carried.
 PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension",
                         "filebrowser-extension", "docmanager-extension", "docmanager",
-                        "console-extension", "running-extension")
+                        "console-extension", "running-extension", "terminal-extension")
 
 #: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
 #: and `editmenu:find` are AUD-004's while the rest of `fileeditor-extension`/`mainmenu-extension`

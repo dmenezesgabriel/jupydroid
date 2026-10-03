@@ -98,7 +98,8 @@ class LedgerPartitionTest(unittest.TestCase):
             + "| `console:clear`, `completer:invoke-console`, `filemenu:create-console` "
             + "| `AUD-006` `T2` | the console |\n"
             + "| `kernelmenu:shutdownAll`, `filemenu:close-and-cleanup` | `AUD-006` `T3` | delegates |\n"
-            + "| `running:kernel-shut-down`, `running:show-panel` | `AUD-006` `T4` | the panel |\n"))
+            + "| `running:kernel-shut-down`, `running:show-panel` | `AUD-006` `T4` | the panel |\n"
+            + "| `terminal:create-new`, `terminal:shut-down` | `AUD-007` `T2` | the pane |\n"))
         self.assertEqual({"documentsearch:highlightNext": "AUD-004 T2",
                           "toc:display-numbering": "AUD-004 T2",
                           "fileeditor:find": "AUD-004 T2",
@@ -113,7 +114,9 @@ class LedgerPartitionTest(unittest.TestCase):
                           "kernelmenu:shutdownAll": "AUD-006 T3",
                           "filemenu:close-and-cleanup": "AUD-006 T3",
                           "running:kernel-shut-down": "AUD-006 T4",
-                          "running:show-panel": "AUD-006 T4"}, found)
+                          "running:show-panel": "AUD-006 T4",
+                          "terminal:create-new": "AUD-007 T2",
+                          "terminal:shut-down": "AUD-007 T2"}, found)
 
     def test_an_unreached_family_is_not_read(self) -> None:
         """`inspector:open` is a real id verdicted in AUD-003's caller table - and unclaimed,
@@ -124,9 +127,9 @@ class LedgerPartitionTest(unittest.TestCase):
         self.assertEqual({}, found)
 
     def test_declared_ids_cover_whole_packages_and_carried_ones(self) -> None:
-        """`documentsearch-extension`, `toc-extension`, AUD-005's three and AUD-006's two enter
-        whole; from the packages a later slice owns, only the carried ids do - `fileeditor:undo`
-        and `filemenu:open` wait with the rest."""
+        """`documentsearch-extension`, `toc-extension`, AUD-005's three, AUD-006's two and
+        AUD-007's one enter whole; from the packages a later slice owns, only the carried ids do -
+        `fileeditor:undo` and `filemenu:open` wait with the rest."""
         packages = _packages({
             # `COMMAND_ID` reads a namespace member - indented, never at column 0.
             "notebook-extension": "  export const u = 'notebook:undo';\n"
@@ -141,6 +144,8 @@ class LedgerPartitionTest(unittest.TestCase):
             "console-extension": "  export const c = 'console:clear';\n"
                                   "  export const i = 'completer:invoke-console';",
             "running-extension": "  export const s = 'running:show-panel';",
+            "terminal-extension": "  export const c = 'terminal:create-new';\n"
+                                  "  export const d = 'terminal:shut-down';",
             "fileeditor-extension": "  export const f = 'fileeditor:find';\n"
                                     "  export const c = 'fileeditor:create-new';\n"
                                     "  export const m = 'fileeditor:create-new-markdown-file';\n"
@@ -160,7 +165,8 @@ class LedgerPartitionTest(unittest.TestCase):
                                  "fileeditor:create-new", "fileeditor:create-new-markdown-file",
                                  "console:clear", "completer:invoke-console",
                                  "running:show-panel", "kernelmenu:shutdownAll",
-                                 "filemenu:create-console", "filemenu:close-and-cleanup"]),
+                                 "filemenu:create-console", "filemenu:close-and-cleanup",
+                                 "terminal:create-new", "terminal:shut-down"]),
                          sorted(declared_ids(packages)))
 
     def test_a_toc_id_declared_inside_notebook_extension_is_carried(self) -> None:
