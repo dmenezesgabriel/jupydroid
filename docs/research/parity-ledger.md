@@ -58,7 +58,7 @@ Five, each obliging something different. The full definition is in
 | Files, workspace, recents | `AUD-005` | examined — below |
 | Console, sessions, running panel | `AUD-006` | examined — below |
 | Terminal emulator and view | `AUD-007` | partially verdicted — all but the walk below |
-| Rendering and formats | `AUD-008` | unexamined |
+| Rendering and formats | `AUD-008` | partitioned — the surface below |
 | Chrome and presentation | `AUD-009` | unexamined |
 | Spaces and runtime | `AUD-010` | unexamined |
 
@@ -187,9 +187,16 @@ examination came out, which is what a verdict is for.
 | `notebook:interrupt-kernel`, `notebook:restart-kernel`, `notebook:restart-clear-output`, `notebook:restart-run-all`, `notebook:shutdown-kernel`, `notebook:change-kernel`, `notebook:reconnect-to-kernel`, `notebook:get-kernel`, `notebook:close-and-shutdown` | `AUD-006` `T3` | Kernel lifecycle. `shutdown-kernel` and `get-kernel` are palette-less (`:3171`, `:4567`); the rest are *Notebook Operations* |
 | `notebook:create-console`, `notebook:create-subshell-console`, `notebook:run-in-console` | `AUD-006` `T2` | The console, which is that slice's own area |
 | `notebook:access-previous-history-entry`, `notebook:access-next-history-entry` | `AUD-006` `T3` | *Notebook Operations*. The history walk — the `history_request` behind it is `present` in `AUD-001` above, so what is left is the walk ([ADR-0052](../adr/0052-kernel-history-is-the-kernels-and-a-walk-belongs-to-its-cell.md)) |
-| `notebook:export-to-format`, `notebook:show-export-guidance` | `AUD-008` | Formats. *"Enable notebook exports"* (`:775`) is the guidance dialog for a deployment that can convert nothing |
-| `notebook:trust` | `AUD-008` | *Notebook Operations*. Trust decides what a notebook's outputs may render |
-| `notebook:copy-to-clipboard`, `notebook:create-output-view` | `AUD-008` | Palette-less, and both are *output* operations by their own labels: *"Copy Output to Clipboard"* (`:2078`) reads `cell.outputArea`, *"Create New View for Cell Output"* (`:1751`) |
+| `notebook:export-to-format`, `notebook:show-export-guidance` | `AUD-008` `T2` | Formats. *"Enable notebook exports"* (`:775`) is the guidance dialog for a deployment that can convert nothing |
+| `notebook:trust` | `AUD-008` `T2` | *Notebook Operations*. Trust decides what a notebook's outputs may render |
+| `notebook:copy-to-clipboard`, `notebook:create-output-view` | `AUD-008` `T2` | Palette-less, and both are *output* operations by their own labels: *"Copy Output to Clipboard"* (`:2078`) reads `cell.outputArea`, *"Create New View for Cell Output"* (`:1751`) |
+| `rendermime:handle-local-link` | `AUD-008` `T2` | The registry's one command — a link inside rendered output activating. `RichInlineString`'s `RICH_LINK_TAG` is ours |
+| `markdownviewer:open`, `markdownviewer:edit`, `markdownviewer:trust` | `AUD-008` `T2` | The markdown *document* surface — open rendered, edit the source, trust the file — against a `.md` tap landing in `FileEditorScreen` |
+| `htmlviewer:trust-html` | `AUD-008` `T2` | The HTML document surface's trust act — declared in `index.tsx`, `htmlviewer-extension`'s only source file |
+| `mathjax:clipboard`, `mathjax:scale` | `AUD-008` `T2` | The rendered-equation context menu — `schema/plugin.json` mounts both on a `.MathJax` node only a rendered equation creates |
+| `imageviewer:zoom-in`, `imageviewer:zoom-out`, `imageviewer:reset-image`, `imageviewer:rotate-clockwise`, `imageviewer:rotate-counterclockwise`, `imageviewer:flip-horizontal`, `imageviewer:flip-vertical`, `imageviewer:invert-colors` | `AUD-008` `T2` | The image document surface's eight transforms against what ours draws when a `.png` opens |
+| `csv:go-to-line`, `tsv:go-to-line` | `AUD-008` `T2` | `csvviewer-extension` carries two families — the table viewer's go-to-line per delimiter |
+| `mermaid:copy-source` | `AUD-008` `T2` | The diagram surface's one id — copy the mermaid source a rendered diagram was drawn from |
 | `notebook:toggle-render-side-by-side-current`, `notebook:set-side-by-side-ratio`, `notebook:toggle-virtual-scrollbar` | `AUD-009` | Layout of the notebook pane. §8.3 makes VS Code authoritative for presentation, so the comparison is that slice's |
 | `notebook:toggle-all-cell-line-numbers` | `AUD-009` | The gutter — `EditorSettings.lineNumbersShown`, drawn by `LineNumbers.kt`, and presentation rather than a cell operation |
 | `notebook:create-new` | `AUD-009` | Added to the palette on its own. Creating a document is chrome, not a cell command |
@@ -2024,3 +2031,84 @@ What the walk found, beyond the rows above:
   question the reference's `current_activity()` answers, only asked client-side. `endedReason`
   stays the pane's one error channel where JupyterLab has `connectionFailed`, `_isDisposed` and
   `closeOnExit`; the presentation half is `GAP-084`'s, unchanged by the fix.
+
+## Rendering and formats — `AUD-008`
+
+**The surface is seven packages' whole command surface plus the five `notebook:` ids this slice
+already reserved — and a machinery reach no earlier slice has had: the registry every renderer
+plugs into, the document viewers, the output area and the format itself.**
+`rendermime-extension` declares `rendermime:handle-local-link`; `markdownviewer-extension`
+`open`/`edit`/`trust`; `htmlviewer-extension` `trust-html` — in `index.tsx`, the package's only
+source file, which is why the produced grep reads `*.tsx` beside `*.ts`; `mathjax-extension`
+`clipboard`/`scale`, mounted by a `schema/plugin.json` that is a `.MathJax` context-menu
+contribution rather than a settings schema; `imageviewer-extension` the eight transform acts;
+`csvviewer-extension` two families at once (`csv:`/`tsv:go-to-line`); `mermaid-extension`
+`copy-source`. Verified: no other package under `packages/` declares an id in any of these
+families. Produced, never stored:
+
+```sh
+for p in rendermime-extension markdownviewer-extension htmlviewer-extension mathjax-extension \
+         imageviewer-extension csvviewer-extension mermaid-extension; do
+  echo "== $p"; python3 scripts/read_reference_commands.py --jupyterlab-package "$p"
+done
+grep -rhoE "'(rendermime|markdownviewer|htmlviewer|mathjax|imageviewer|csv|tsv|mermaid):[A-Za-z0-9-]+'" \
+  reference/research_repos/jupyterlab/packages/*/src --include='*.ts' --include='*.tsx' | sort -u
+for f in reference/research_repos/jupyterlab/packages/{markdownviewer-extension,htmlviewer-extension,mathjax-extension,imageviewer-extension,csvviewer-extension}/schema/*.json; do
+  echo "== $f"; python3 -c "import json;print(sorted(json.load(open('$f')).get('properties',{})))"
+done
+```
+
+**This slice meets two kinds of reference.** The behaviour spec is JupyterLab's command surface
+plus `packages/rendermime/` — `RenderMimeRegistry` (`preferredMimeType` walking `defaultRank`,
+`createRenderer` wiring the five plugs: `resolver`, `sanitizer`, `linkHandler`,
+`latexTypesetter`, `markdownParser`), `standardRendererFactories` (html, the five images, latex,
+markdown, svg, console text and a JavaScript **placeholder**), `mimemodel`/`outputmodel`/
+`attachmentmodel` — plus `outputarea` (`OutputArea`, `SimplifiedOutputArea`, `OutputPrompt`,
+`Stdin`, `display_id` routing and `isolated` metadata in `widget.ts`; the collapser is
+`cells/src/collapser.tsx`) and `nbformat` itself. The format spec is met twice —
+`packages/nbformat/`'s TS types (`MAJOR_VERSION` 4, `MINOR_VERSION` 4) and the shipped rootfs's
+`nbformat` 5.10.4 (`validator.py`, `reader.py`, `v4/{nbjson,nbbase,convert,rwbase}.py`) with
+`nbconvert` 7.17.1's exporters behind `jupyter_server/nbconvert/handlers.py`'s
+`api/nbconvert/<format>/<path>?download=true`, the wire ours already mirrors. The document
+surfaces ours falls back to plain text for are `markdownviewer` (six settings — `fontFamily`,
+`fontSize`, `lineHeight`, `lineWidth`, `hideFrontMatter`, `renderTimeout`), `htmlviewer` (an
+explicitly sandboxed iframe; `toolbar`, `trustByDefault`), `csvviewer` (`toolbar` per schema and
+`searchprovider.ts`'s document-search registration), `imageviewer` and `mermaid`
+(`mermaid/src/{mime,markdown}.ts` render inside outputs and markdown, not just documents).
+IntelliJ's `platform/jewel/markdown` is the Compose-native precedent for AST → blocks →
+composables — the one reference shaped like ours — and VS Code's `cellRenderer`/
+`backLayerWebView` is read for how a non-JupyterLab client renders outputs: behind a second
+process boundary JupyterLab does not have.
+
+```sh
+ls reference/research_repos/jupyterlab/packages/{rendermime,outputarea,nbformat}/src
+T=app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server/nbconvert/handlers.py
+zstd -dc $T | tar -xOf - usr/lib/python3.12/site-packages/nbformat/validator.py
+```
+
+**Ours** is `markdown/` — `MarkdownDocument` over commonmark-java's AST into `RichBlock`/
+`RichInline`, producing no HTML anywhere — `html/` — `HtmlDocument` over jsoup into the same
+model — `richtext/` with `ui/editor/{RichText,RichTable}` the drawing, `ui/editor/RenderedOutput`
+picking `text/html` → `image/png` → `text/plain` off each `CellOutput` and
+listing bundle keys for anything else, `data/disk/` — `NotebookFile`/`NotebookJsonWriter`/
+`NotebookOutputReader`/`NotebookOutputWriter`/`MimeBundleLines` plus `PreservedJson`, nbformat 4
+read/write with unknowns carried through — and the export half `domain/port/NotebookExporter` +
+`data/space/{BaseSpace,OkHttp}NotebookExporter`/`NbConvertResponse` → `ui/editor/NotebookExport`
+→ `DocumentSharer`. Produced:
+
+```sh
+python3 scripts/read_port_surface.py            # NotebookExporter 2, DocumentSharer 1
+python3 scripts/read_port_surface.py --unused
+```
+
+**Carried in, recorded not rejudged.** `GAP-013`'s comm-channel absence lands here as the missing
+widget-view renderer; `GAP-014`'s `allow_stdin: false` as the missing `Stdin`; `GAP-017` is what
+`notebook:copy-to-clipboard` is measured against; `GAP-023` is the format half's open wound.
+`GAP-019` was verdicted `absent` under `AUD-002` `T2b` — `render-all-markdown` sets cell state,
+not rendering — and is recorded, not rejudged. Five ADRs already carry this area's decisions:
+`ADR-0009` (kernel logging out of output), `ADR-0021` (`PreservedJson`), `ADR-0035` (unrendered
+≠ asked-for), `ADR-0039` — the load-bearing one, Compose rather than a WebView, the deviation
+every renderer verdict rests on — and `ADR-0051` (the server names the export). The partition
+rows are in the shared table under `AUD-002`'s heading — all 23 ids to `T2` (the command
+surface); `T3` verdicts the rendermime half, `T4` the output area and the format, `T5` the walk.

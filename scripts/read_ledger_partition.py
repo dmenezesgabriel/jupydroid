@@ -47,7 +47,8 @@ PARTITION_HEADING = "### Who owns which id"
 #: `kernelmenu:` carry camelCase suffixes; the rest are lowercase.
 COMMAND_IN_CELL = re.compile(
     r"`((?:notebook|documentsearch|toc|fileeditor|editmenu|filebrowser|docmanager|console|running"
-    r"|kernelmenu|filemenu|completer|terminal):[A-Za-z0-9-]+)`")
+    r"|kernelmenu|filemenu|completer|terminal|rendermime|markdownviewer|htmlviewer|mathjax"
+    r"|imageviewer|csv|tsv|mermaid):[A-Za-z0-9-]+)`")
 
 #: Packages whose whole command surface the partition covers - every id they declare must be
 #: owned. `notebook-extension` is read separately because only its `notebook:` ids are the
@@ -58,10 +59,16 @@ COMMAND_IN_CELL = re.compile(
 #: `completer:select-console`), which is why `completer:` is in the pattern above while the
 #: completer's own package waits for its slice. `terminal-extension`'s eleven `terminal:*` ids
 #: are AUD-007's whole package — no other package declares a `terminal:` id, so nothing is
-#: carried.
+#: carried. AUD-008's seven enter whole: `rendermime-extension`'s one id is its family's only
+#: declaration, `csvviewer-extension` carries two families at once (`csv:` and `tsv:`), and
+#: `htmlviewer-extension` declares its one id in `index.tsx`, which only
+#: `read_reference_commands.py`'s `*.tsx` half of the scan reaches.
 PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension",
                         "filebrowser-extension", "docmanager-extension", "docmanager",
-                        "console-extension", "running-extension", "terminal-extension")
+                        "console-extension", "running-extension", "terminal-extension",
+                        "rendermime-extension", "markdownviewer-extension", "htmlviewer-extension",
+                        "mathjax-extension", "imageviewer-extension", "csvviewer-extension",
+                        "mermaid-extension")
 
 #: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
 #: and `editmenu:find` are AUD-004's while the rest of `fileeditor-extension`/`mainmenu-extension`

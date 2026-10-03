@@ -99,7 +99,11 @@ class LedgerPartitionTest(unittest.TestCase):
             + "| `AUD-006` `T2` | the console |\n"
             + "| `kernelmenu:shutdownAll`, `filemenu:close-and-cleanup` | `AUD-006` `T3` | delegates |\n"
             + "| `running:kernel-shut-down`, `running:show-panel` | `AUD-006` `T4` | the panel |\n"
-            + "| `terminal:create-new`, `terminal:shut-down` | `AUD-007` `T2` | the pane |\n"))
+            + "| `terminal:create-new`, `terminal:shut-down` | `AUD-007` `T2` | the pane |\n"
+            + "| `rendermime:handle-local-link`, `markdownviewer:trust` | `AUD-008` `T2` | rendering |\n"
+            + "| `htmlviewer:trust-html`, `mathjax:clipboard`, `mathjax:scale` | `AUD-008` `T2` | viewers |\n"
+            + "| `imageviewer:zoom-in`, `csv:go-to-line`, `tsv:go-to-line` | `AUD-008` `T2` | formats |\n"
+            + "| `mermaid:copy-source` | `AUD-008` `T2` | rendering |\n"))
         self.assertEqual({"documentsearch:highlightNext": "AUD-004 T2",
                           "toc:display-numbering": "AUD-004 T2",
                           "fileeditor:find": "AUD-004 T2",
@@ -116,7 +120,16 @@ class LedgerPartitionTest(unittest.TestCase):
                           "running:kernel-shut-down": "AUD-006 T4",
                           "running:show-panel": "AUD-006 T4",
                           "terminal:create-new": "AUD-007 T2",
-                          "terminal:shut-down": "AUD-007 T2"}, found)
+                          "terminal:shut-down": "AUD-007 T2",
+                          "rendermime:handle-local-link": "AUD-008 T2",
+                          "markdownviewer:trust": "AUD-008 T2",
+                          "htmlviewer:trust-html": "AUD-008 T2",
+                          "mathjax:clipboard": "AUD-008 T2",
+                          "mathjax:scale": "AUD-008 T2",
+                          "imageviewer:zoom-in": "AUD-008 T2",
+                          "csv:go-to-line": "AUD-008 T2",
+                          "tsv:go-to-line": "AUD-008 T2",
+                          "mermaid:copy-source": "AUD-008 T2"}, found)
 
     def test_an_unreached_family_is_not_read(self) -> None:
         """`inspector:open` is a real id verdicted in AUD-003's caller table - and unclaimed,
@@ -127,9 +140,10 @@ class LedgerPartitionTest(unittest.TestCase):
         self.assertEqual({}, found)
 
     def test_declared_ids_cover_whole_packages_and_carried_ones(self) -> None:
-        """`documentsearch-extension`, `toc-extension`, AUD-005's three, AUD-006's two and
-        AUD-007's one enter whole; from the packages a later slice owns, only the carried ids do -
-        `fileeditor:undo` and `filemenu:open` wait with the rest."""
+        """`documentsearch-extension`, `toc-extension`, AUD-005's three, AUD-006's two,
+        AUD-007's one and AUD-008's seven enter whole; from the packages a later slice owns,
+        only the carried ids do - `fileeditor:undo` and `filemenu:open` wait with the rest.
+        `htmlviewer-extension` declares in `index.tsx`, so the fixture writes one there."""
         packages = _packages({
             # `COMMAND_ID` reads a namespace member - indented, never at column 0.
             "notebook-extension": "  export const u = 'notebook:undo';\n"
@@ -156,7 +170,19 @@ class LedgerPartitionTest(unittest.TestCase):
                                   "  export const s = 'filemenu:close-and-cleanup';\n"
                                   "  export const o = 'filemenu:open';\n"
                                   "  export const r = 'editmenu:redo';",
+            "rendermime-extension": "  export const l = 'rendermime:handle-local-link';",
+            "markdownviewer-extension": "  export const o = 'markdownviewer:open';\n"
+                                        "  export const t = 'markdownviewer:trust';",
+            "mathjax-extension": "  export const c = 'mathjax:clipboard';",
+            "imageviewer-extension": "  export const z = 'imageviewer:zoom-in';",
+            "csvviewer-extension": "  export const c = 'csv:go-to-line';\n"
+                                   "  export const t = 'tsv:go-to-line';",
+            "mermaid-extension": "  export const c = 'mermaid:copy-source';",
         })
+        # `htmlviewer-extension` ships no `index.ts` at the pinned SHA - `index.tsx` is it.
+        tsx = packages / "htmlviewer-extension" / "src" / "index.tsx"
+        tsx.parent.mkdir(parents=True)
+        tsx.write_text("  export const t = 'htmlviewer:trust-html';", encoding="utf-8")
         self.assertEqual(sorted(["notebook:undo", "notebook:redo",
                                  "documentsearch:start", "documentsearch:highlightNext",
                                  "toc:show-panel", "filebrowser:go-up",
@@ -166,7 +192,11 @@ class LedgerPartitionTest(unittest.TestCase):
                                  "console:clear", "completer:invoke-console",
                                  "running:show-panel", "kernelmenu:shutdownAll",
                                  "filemenu:create-console", "filemenu:close-and-cleanup",
-                                 "terminal:create-new", "terminal:shut-down"]),
+                                 "terminal:create-new", "terminal:shut-down",
+                                 "rendermime:handle-local-link", "markdownviewer:open",
+                                 "markdownviewer:trust", "htmlviewer:trust-html",
+                                 "mathjax:clipboard", "imageviewer:zoom-in", "csv:go-to-line",
+                                 "tsv:go-to-line", "mermaid:copy-source"]),
                          sorted(declared_ids(packages)))
 
     def test_a_toc_id_declared_inside_notebook_extension_is_carried(self) -> None:

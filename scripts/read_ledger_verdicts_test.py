@@ -80,19 +80,28 @@ class LedgerVerdictTest(unittest.TestCase):
     def test_a_verdict_reaches_past_the_notebook_family(self) -> None:
         """Verdicts and partition share the one id pattern: `documentsearch:`/`toc:`,
         AUD-005's `filebrowser:`/`docmanager:`, AUD-006's `console:`/`running:` plus the
-        menu delegates, and AUD-007's `terminal:` are collected - camelCase included - while a
-        family no slice has claimed stays unread."""
+        menu delegates, AUD-007's `terminal:`, and AUD-008's eight rendering families are
+        collected - camelCase included - while a family no slice has claimed stays unread."""
         found = ledger_verdicts(_ledger(
             _TABLE_HEAD
             + "| `documentsearch:start` | ours | present | — |\n"
             + "| `filebrowser:rename`, `docmanager:save` | ours | present | — |\n"
             + "| `console:clear`, `running:show-panel`, `kernelmenu:shutdownAll` | ours | adapted | — |\n"
             + "| `terminal:create-new` | ours | present | — |\n"
+            + "| `rendermime:handle-local-link`, `markdownviewer:trust` | ours | adapted | — |\n"
+            + "| `htmlviewer:trust-html`, `imageviewer:zoom-in` | ours | absent | GAP-001 |\n"
+            + "| `csv:go-to-line`, `tsv:go-to-line`, `mermaid:copy-source` | ours | absent | GAP-001 |\n"
+            + "| `mathjax:clipboard` | ours | present | — |\n"
             + "| `inspector:open` | ours | adapted | a caller-table row |\n"))
         self.assertEqual({"documentsearch:start": "present", "filebrowser:rename": "present",
                           "docmanager:save": "present", "console:clear": "adapted",
                           "running:show-panel": "adapted", "kernelmenu:shutdownAll": "adapted",
-                          "terminal:create-new": "present"}, found)
+                          "terminal:create-new": "present",
+                          "rendermime:handle-local-link": "adapted",
+                          "markdownviewer:trust": "adapted", "htmlviewer:trust-html": "absent",
+                          "imageviewer:zoom-in": "absent", "csv:go-to-line": "absent",
+                          "tsv:go-to-line": "absent", "mermaid:copy-source": "absent",
+                          "mathjax:clipboard": "present"}, found)
 
     def test_a_task_with_one_verdict_owes_one_for_every_id_it_owns(self) -> None:
         """Examined is derived, not stored: the first verdict opens the task, and opens all of it."""
