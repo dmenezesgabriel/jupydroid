@@ -88,7 +88,7 @@ fun MainNavigation(
   // is reported here instead, keyed by the entry's own key since many editors are open at once.
   // `_contextsForPath` does the same - it filters live contexts by their current path, never
   // by the one a widget was created with. FileEditor keys join Editor's here: the tab strip
-  // reads live paths for titles and dirty lookups.
+  // reads live paths for titles and dirty lookups; dead keys drop with the order's own reconcile.
   val openDocumentPaths = remember { mutableStateMapOf<NavKey, String>() }
   // The strip's tab order - **opening order**, not the stack's. The stack promotes an activated
   // entry to its top because that is what the scene draws, but `activateById` never moves a tab:
@@ -96,16 +96,12 @@ fun MainNavigation(
   // entries drop out, new ones join at the end) - see `orderedAsOpened`.
   val openTabOrder = remember { mutableStateListOf<NavKey>() }
   val orderedTabs = backStack.mainAreaTabs().orderedAsOpened(openTabOrder)
-  LaunchedEffect(orderedTabs) {
-    openTabOrder.clear()
-    openTabOrder.addAll(orderedTabs)
-  }
   // What a tab's label is *now* where the key's own title is not live: a terminal's shell reports
   // its OSC title (`widget.ts:486-488` sends it to `title.label`, which is the tab), so the
   // screen writes it here and the strip reads it ahead of the key's static "Terminal N". Keys a
   // closed tab left behind drop out with the same reconcile that keeps the order honest.
   val liveTabTitles = remember { mutableStateMapOf<NavKey, String>() }
-  LaunchedEffect(orderedTabs) { liveTabTitles.keys.retainAll(orderedTabs.toSet()) }
+  LaunchedEffect(orderedTabs) { reconcileOpenTabs(orderedTabs, openTabOrder, liveTabTitles, openDocumentPaths) }
   /**
    * `application:close`'s dirty gate, mounted here rather than inside an entry - the Running
    * panel's row close reaches it too, and the dialog must outlive whichever tab opened the ask.

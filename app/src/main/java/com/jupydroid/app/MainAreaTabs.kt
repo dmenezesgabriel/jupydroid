@@ -37,6 +37,32 @@ fun List<NavKey>.orderedAsOpened(known: List<NavKey>): List<NavKey> =
   known.filter { it in this } + filter { it !in known }
 
 /**
+ * The per-pass reconcile the shell's per-tab holders share: [order] reseeds to [tabs]' own
+ * list, and the two key-indexed maps drop the keys that left.
+ *
+ * Dead keys are not tidiness: a tab's entry in [liveDocumentPaths] keeps answering
+ * [liveDocumentPath] after its tab closes, so a file reopened under the name a closed tab was
+ * renamed to would be marked by the path the tab left behind. OpenDocumentMarkingTest is the
+ * composition-level proof.
+ *
+ * ```
+ * LaunchedEffect(orderedTabs) { reconcileOpenTabs(orderedTabs, openTabOrder, liveTabTitles, openDocumentPaths) }
+ * ```
+ */
+fun reconcileOpenTabs(
+  tabs: List<NavKey>,
+  order: MutableList<NavKey>,
+  liveTabTitles: MutableMap<NavKey, String>,
+  liveDocumentPaths: MutableMap<NavKey, String>,
+) {
+  order.clear()
+  order.addAll(tabs)
+  val open = tabs.toSet()
+  liveTabTitles.keys.retainAll(open)
+  liveDocumentPaths.keys.retainAll(open)
+}
+
+/**
  * Where the document this key opened lives **now** - the key keeps the path it was opened under,
  * because replacing it would re-create the entry and drop its `ViewModelStore`, so a rename is
  * reported beside it into [liveDocumentPaths] (the way `_contextsForPath` filters contexts by

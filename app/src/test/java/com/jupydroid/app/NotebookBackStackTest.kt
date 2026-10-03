@@ -578,6 +578,24 @@ class NotebookBackStackTest {
     assertEquals("Settings", Settings.mainAreaTabTitle(emptyMap()))
   }
 
+  /**
+   * The reconcile the shell runs per pass: the strip's order reseeds, and the two per-key maps
+   * drop keys whose tabs left. A dead live-path entry is the wrong answer a reopened name would
+   * otherwise get - the composition-level half is OpenDocumentMarkingTest.
+   */
+  @Test
+  fun theReconcileDropsAClosedTabsKeys() {
+    val order = mutableListOf<NavKey>(Editor("a.ipynb"), Explorer, Terminal("1"))
+    val titles = mutableMapOf<NavKey, String>(Terminal("1") to "bash", Editor("a.ipynb") to "b.ipynb")
+    val paths = mutableMapOf<NavKey, String>(Editor("a.ipynb") to "b.ipynb")
+
+    reconcileOpenTabs(listOf(Explorer, Terminal("1")), order, titles, paths)
+
+    assertEquals(listOf(Explorer, Terminal("1")), order)
+    assertEquals(mapOf(Terminal("1") to "bash"), titles)
+    assertEquals(emptyMap<NavKey, String>(), paths)
+  }
+
   /** A document whose path has moved since it opened - the registry contract, nothing more. */
   private class MovedDocument(override val openedAs: String) : OpenDocument {
     override var path: String = openedAs
