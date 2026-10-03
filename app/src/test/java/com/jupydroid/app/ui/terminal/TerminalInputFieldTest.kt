@@ -32,17 +32,35 @@ class TerminalInputFieldTest {
     assertEquals("l", next)
   }
 
-  /** [state] itself is cleared, not just the value this returns - the multi-line-by-default rule. */
+  /**
+   * [state] itself is cleared, not just the value this returns - the multi-line-by-default rule.
+   * The byte on the wire is `\r`, not the field's `\n`: a real Return key sends carriage return,
+   * and `TerminalView.commitText` rewrites every committed `'\n'` to `'\r'` for it
+   * (termux-app `3df69d1d`, `TerminalView.java` - "a terminal expects \r"). `icrnl` maps it back
+   * for a canonical reader; a raw-mode program sees the difference - Emacs binds `C-m` and `C-j`
+   * to different commands, so a raw `\n` Enter is a different keystroke there.
+   */
   @Test
-  fun aTrailingNewlineIsSentAndClearsTheField() {
+  fun aTrailingNewlineIsSentAsCarriageReturnAndClearsTheField() {
     val sent = mutableListOf<String>()
     val state = TextFieldState("ls\n")
 
     val next = reportTerminalKeystroke(state, previous = "ls", current = "ls\n", onType = sent::add)
 
-    assertEquals(listOf("\n"), sent)
+    assertEquals(listOf("\r"), sent)
     assertEquals("", next)
     assertEquals("", state.text.toString())
+  }
+
+  /** The same rewrite holds mid-line: every `\n` the IME commits becomes `\r` upstream. */
+  @Test
+  fun aNewlineMidTextIsSentAsCarriageReturn() {
+    val sent = mutableListOf<String>()
+    val state = TextFieldState("a\nb")
+
+    reportTerminalKeystroke(state, previous = "", current = "a\nb", onType = sent::add)
+
+    assertEquals(listOf("a\rb"), sent)
   }
 
   @Test

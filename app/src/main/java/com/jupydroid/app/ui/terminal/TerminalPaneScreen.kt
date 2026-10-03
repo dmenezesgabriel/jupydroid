@@ -407,9 +407,17 @@ internal fun reportTerminalKeystroke(
  * Samsung IME's quote-completion was measured doing exactly that). [TerminalInputField] also asks
  * the IME not to rewrite the buffer in the first place (`KeyboardType.Password`); this is the
  * backstop for whatever still gets through.
+ *
+ * Typed text crosses the field-text/wire-bytes boundary here, which is also where `\n` becomes
+ * `\r`: `TerminalView.commitText` rewrites every committed `'\n'` the same way, because a real
+ * Return key sends carriage return and a terminal expects it (termux-app `3df69d1d`,
+ * `TerminalView.java`). `icrnl` maps it back for a canonical reader; a raw-mode program sees the
+ * difference - Emacs binds `C-m` and `C-j` to different commands. The DEL run holds no `\n` to
+ * rewrite, and the already-encoded path ([terminalKeystroke]'s bytes, an extra-key tap) never
+ * passes through here to be corrupted by it.
  */
 private fun sendTerminalDiff(from: String, to: String, onType: (String) -> Unit) {
   val shared = from.commonPrefixWith(to).length
   if (from.length > shared) onType("\u007F".repeat(from.length - shared))
-  if (to.length > shared) onType(to.substring(shared))
+  if (to.length > shared) onType(to.substring(shared).replace('\n', '\r'))
 }
