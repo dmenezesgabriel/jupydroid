@@ -334,12 +334,16 @@ Known going in, so a verdict does not re-litigate them:
   precedent the ledger already sets: a verdict names what was read, and the openers read as one
   unit while the delegates group by what they forward to.
 - **Status-bar verdict shape** — `absent` (no part) vs `adapted` (items on owners' bars); the
-  same question `statusbar:toggle` carries. T4's read.
+  same question `statusbar:toggle` carries. Decided at T4 — the items-on-owners fold is the
+  recorded shape, so the toggle's absent operand reads `adapted` in prose, the same read
+  `apputils:toggle-header`'s row took.
 - **Whether the literal ids earn verdict rows** — `statusbar:toggle`/`workspace-indicator:toggle`
   are named-not-counted; if T4 verdicts them it must keep them un-backticked so the missing-check
-  stays honest.
+  stays honest. Decided at T4 — verdicted in prose rather than tabled: named un-backticked in the
+  section's own paragraph, the `console:prompt-to-top` precedent carried one step further.
 - **`workspace-ui:*` fold** — ten ids one capability (multi-session workspaces) or per-act
-  verdicts?
+  verdicts? Decided at T4 — one row on T2's verdict-sharing-unit rule: all ten are acts on the
+  same absent layer, and the row says so.
 - **The five carried `notebook:` ids' task** — layout/presentation acts: T3 (presentation) or
   T4 (hosted surfaces) assigns them; the partition rows name the owner. Decided at T3 —
   presentation owns them, as the partition rows already said.
@@ -375,7 +379,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `LineNumbers`/`CellFrame`/`CellStripe`/`CollapsedCell`/`HiddenCellsRow` and the launcher;
       VS Code's `parts/` + `cellParts/` + `colorRegistry` read for the presentation verdicts
       (`read_pane_widths.py`, `resolve_vscode_theme.py` produce the measures).
-- [ ] T4 — **Verdicts for the hosted surfaces.** `launcher:create`, `settingeditor:*`,
+- [x] T4 — **Verdicts for the hosted surfaces.** `launcher:create`, `settingeditor:*`,
       `help:*`, `shortcuts:*`, `workspace-ui:*`, `logconsole:*`, `pluginmanager:*`,
       `extensionmanager:*`, notifications/`print`/`licenses` against `ui/launcher/` +
       `LauncherItems`, `ui/settings/` + the `*Settings` models and `Disk*` repositories, the

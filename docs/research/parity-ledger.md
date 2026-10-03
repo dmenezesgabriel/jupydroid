@@ -2681,3 +2681,78 @@ affordances), `GAP-130` (font family), `GAP-131` (localisation), `GAP-132` (styl
 | `highlightActiveLine` (`highlightActiveLine()` — a wash over the caret's line, `false` by default, `extension.ts:670-676`) | — | **absent** | `GAP-128`. The active *cell*'s marker is `CellStripe`'s; the caret's own line draws nothing |
 | `highlightWhitespace`, `highlightTrailingWhitespace`, `highlightSpecialCharacters` (`highlightWhitespace()`/`highlightTrailingWhitespace()`/`highlightSpecialChars()` — invisible-character marks, the last `true` by default, `extension.ts:679-704`) | — | **absent** | `GAP-127`. No invisible is drawn anywhere — `HighlightTransformation` styles syntax and the platform font renders whatever control characters arrive, where the reference shows marks |
 | `translation` (`EditorState.phrases` — CM's own string table a locale overrides, `extension.ts:1055-1071`) | English literals throughout `ui/` and `theme/` | **absent** | `GAP-131`. `trans.__()` and this key have no surface; nothing in the app is localised |
+
+### The hosted surfaces — verdicts
+
+`T4`'s entries, read down every `addCommand` in `launcher-extension`'s `index.ts:62-157` (the
+`Launcher` widget and the `maybeCreate` fill on an empty dock), `settingeditor-extension`'s
+`index.ts:235-505` (the `settingEditorType` dispatch, the raw `JsonSettingEditor`, the staged
+`save`/`revert` gated on `canSaveRaw`/`canRevertRaw`, and the file-borne `import`/`export`),
+`shortcuts-extension`'s `index.ts:114-215` (five commands emitting `ActionRequest` signals into
+the keybindings editor, read off `contextMenuHitTest`'s `data-shortcut` nodes),
+`help-extension`'s `index.tsx:85-590`, `workspaces-extension`'s `commands.ts:126-560` plus its
+indicator plugin at `index.ts:76-150`, `logconsole-extension`'s `index.tsx:213-300`,
+`pluginmanager-extension`'s `index.ts:119-170`, `extensionmanager-extension`'s
+`index.ts:158-200`, and `apputils-extension`'s `notificationplugin.tsx:401-780`,
+`licensesplugin.ts:142-210` and `index.ts:303-330,797-825`. Theirs: a `Launcher` mounted into
+`main` and re-minted when the dock empties; a `SettingEditor` whose UI form and JSON form are
+tracked widgets over a staged raw buffer; a keybindings editor plus the `displayShortcuts`
+dialog tabulating the current widget's bindings; the Help plugin's About dialog, forum
+`window.open` and `help:open`'s URL-in-tab; ten `workspace-ui:` acts over `IWorkspacesModel`'s
+named, URL-keyed layout snapshots; the `LogConsolePanel` window with `ILogger` checkpoints and
+level; the plugin list and extension-manager panels; and the notification machinery —
+`Notification.manager` toasts plus the centre anchored on the status bell — beside
+`licensesUrl`'s widget and report and `Printing.getPrintFunction`. Ours: `SidePanelRail`'s `+`
+and `LauncherNavigation`'s empty-main fill over `LAUNCHER_ITEMS`; `SettingsScreen`'s flat row
+list writing through the `*Settings` models to the `Disk*` repositories' JSON under `filesDir`;
+the status items drawn on their owners (`KernelIndicator` on the document bar, `DirtyMarker`
+on the tab); per-owner transient reports (`ExportReportSnackbar`, `SaveFailureBanner`,
+`SearchReplaceReport`); `SymbolRow` as the edit-mode key surface; and kernel/server logging in
+`run/jupyter_server.log` and logcat, which is ADR-0009's decision.
+
+One finding the read surfaced, not a defect: `help:activate`, `help:close`, `help:show` and
+`help:hide` are declared (`index.tsx:40-46`) and never registered or referenced anywhere — no
+`addCommand` mounts them, tree-wide; the same dead-const shape as `T2`'s `runmenu:run-above`
+pair and `T3`'s `apputils:change-font`, so their row follows the `editmenu:find` precedent.
+Two more entries lean the other way: `help:licenses`, `help:license-report` and
+`help:licenses-refresh` are deprecated delegates to the `apputils:` ids (`index.tsx:85-129`), so
+both trios verdict together. And `apputils:licenses` would be inert even upstream on this
+stack — its `execute` bails unless `licensesUrl` is set (`licensesplugin.ts:152`), a
+page-config option the Lab server extension writes and bare `jupyter_server` does not.
+
+Two real commands ride the surface the measure cannot see: statusbar:toggle
+(`statusbar-extension/src/index.ts:49-95`) hides the status bar and persists `visible`, and
+workspace-indicator:toggle (`workspaces-extension/src/index.ts:76`) hides the workspace
+selector the topbar carries. Named, un-backticked — the `console:prompt-to-top` precedent — and
+read here rather than verdicted in the table: the first presupposes a status-bar part, and what
+one would carry is drawn on the owners instead (`KernelIndicator`, `DirtyMarker`, the running
+panel's count) — the shape `application:toggle-header`'s row verdicted `adapted`, an absent
+part the shell never has; the second presupposes the workspace layer the `workspace-ui`
+row records `absent`, so it shares that ground without standing a row of its own.
+
+Eight absences open new gaps — `GAP-133` (settings' raw and portable form), `GAP-134` (a
+keymap to edit), `GAP-135` (a help/about surface), `GAP-136` (licenses), `GAP-137` (a
+notification store and centre), `GAP-138` (print), `GAP-139` (named workspaces) and `GAP-140`
+(an in-app log window). Four ids land `undocumented` — the plugin and extension managers —
+with [ADR-0071](../adr/0071-nothing-extends-the-app.md) written by this slice, the verdict
+[ADR-0067](../adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md) keeps for a
+reason in nobody's writing.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `launcher:create` — `new Launcher` into `main` per call, and `maybeCreate` refilling an empty dock on every `layoutModified` (`index.ts:62-157`) | `SidePanelRail`'s `+` → `openLauncher`, and the same fill when the last document closes — `LauncherNavigation` cites `maybeCreate` itself; a card's `openDocument` then removes the launcher entry, which is the reference's own `ref:`-replace | adapted | the surface and both reaches exist — a rail button whose docstring names `addButtonEnabled`, and the auto-fill; the palette mount is `GAP-120`'s closed-set story |
+| `settingeditor:open` — the `SettingsEditor` UI form, one panel per plugin schema, dispatched by `settingEditorType` (`index.ts:235-330`) | `SettingsScreen` — a flat list of the app's own persisted keys, stacked over the document by `openSettings` | adapted | the reach is the same — a settings surface in the main area — minus the per-plugin registry; the `*Settings` models are the closed equivalent of `schema/*.json` |
+| `settingeditor:open-json` — the `JsonSettingEditor`: the user-settings JSON edited raw (`index.ts:344-410`) | the `Disk*` repositories' JSON files under `filesDir` are the raw form (`DiskEditorSettingsRepository`'s `editor-settings.json`), with no in-app surface that shows or edits them | **absent** | `GAP-133`. |
+| `settingeditor:save`, `settingeditor:revert` — `content.save()`/`revert()` on the raw editor's staged buffer, `isEnabled` on `canSaveRaw`/`canRevertRaw` (`index.ts:436-463`) | writes land on the tap itself — `update` → the `Disk*` repository write; no staging exists for a save or revert to act on | adapted | the acts' operand is a staged buffer the live-apply list never makes — `SettingsScreen`'s rows persist per tap, so the question these commands answer is never asked |
+| `settingeditor:import`, `settingeditor:export` — a file input writes an uploaded overrides object into the registry; `collectUserSettings` downloads `overrides.json` (`index.ts:464-505`) | — | **absent** | `GAP-133`. The raw form is the same repair's other half — an `overrides.json` is only meaningful to a surface that can read one |
+| `shortcuts:add-keybinding`, `shortcuts:delete-keybinding`, `shortcuts:edit-keybinding`, `shortcuts:reset-all`, `shortcuts:toggle-selectors` — `actionRequested` signals into the keybindings editor, read off `contextMenuHitTest`'s `data-shortcut` nodes (`index.ts:114-215`) | `SymbolRow` — the fixed edit-mode key surface a soft keyboard can reach, its docstring carrying the selector-by-selector map | **absent** | `GAP-134`. No keymap exists for the CRUD to edit; the analog answers the keys' absence rather than exposing bindings |
+| `apputils:display-shortcuts` — `displayShortcuts` dialog tabulating the current widget's keybindings (`index.ts:797-825`) | — | **absent** | `GAP-134`. A table of bindings presupposes the same absent keymap |
+| `help:about`, `help:jupyter-forum`, `help:open` — the About dialog with version and wordmark, the forum's `window.open`, and open-a-URL-in-a-tab (`index.tsx:155-590`) | — | **absent** | `GAP-135`. No help or about surface exists; `help:open` is also the banner machinery's link runner |
+| `help:activate`, `help:close`, `help:show`, `help:hide` — **declared, never registered**: no `addCommand`, `execute` or reference reaches them anywhere in the tree (`index.tsx:40-46`) | — | present | The `editmenu:find` precedent — dead consts upstream, so the id cannot fire there either; ours has no help widget for them to name in any case (the finding above) |
+| `help:licenses`, `help:license-report`, `help:licenses-refresh`, `apputils:licenses`, `apputils:license-report`, `apputils:licenses-refresh` — the help trio deprecated delegates to the `apputils` ids (`index.tsx:85-129`); those open a Licenses widget over `licensesUrl`, re-init its model and download the report (`licensesplugin.ts:142-210`) | — | **absent** | `GAP-136`. Inert even upstream here — `licensesUrl` is a Lab-server page-config the Space's bare `jupyter_server` never writes |
+| `workspace-ui:clone`, `workspace-ui:create-new`, `workspace-ui:delete`, `workspace-ui:export`, `workspace-ui:import`, `workspace-ui:open`, `workspace-ui:rename`, `workspace-ui:reset`, `workspace-ui:save`, `workspace-ui:save-as` — named, URL-keyed layout snapshots over `IWorkspacesModel`/`IWindowResolver` (`commands.ts:126-560`) | one unnamed workspace — the persisted `OpenDocuments`/`NotebookBackStack` model is the whole layout memory, and `architecture.md` §1 already lists `workspaces` out of scope | **absent** | `GAP-139`. Ten acts on one capability: a workspace that can be named, switched and carried — the folded row answers the open decision by verdict-sharing unit |
+| `logconsole:add-checkpoint`, `logconsole:clear`, `logconsole:open`, `logconsole:set-level` — the `LogConsolePanel` window's toggle, and the `ILogger` ring's checkpoint/clear/level (`index.tsx:213-300`; `logconsole/src/logger.ts`) | kernel and server logging land in `run/jupyter_server.log` and logcat — ADR-0009's recorded answer; §1 names `logconsole` out of scope | **absent** | `GAP-140`. The logs' home is recorded; what is missing is the in-app window, its ring and its level filter |
+| `pluginmanager:open`, `pluginmanager:refresh`, `extensionmanager:show-panel`, `extensionmanager:toggle` — the plugin list panel with its refresh, and the extension-manager view plus its enable toggle (`pluginmanager-extension/src/index.ts:119-170`, `extensionmanager-extension/src/index.ts:158-200`) | — | **undocumented** | [ADR-0071](../adr/0071-nothing-extends-the-app.md), written by this slice: the app is not extensible by construction, so a manager's operand — a plugin registry — does not exist; machinery-n/a, not a missing capability |
+| `apputils:notify` — `Notification.manager` toast plus a centre entry, typed with `autoClose` and action buttons (`notificationplugin.tsx:401-500`) | the owner-drawn transient report — `ExportReportSnackbar`, `SaveFailureBanner`, `SearchReplaceReport` — shown where the event lived | adapted | the message exists in place, which is also why the next row's machinery has no operand: a report here is an event on its owner, not an entry in a store |
+| `apputils:update-notification`, `apputils:dismiss-notification`, `apputils:display-notifications` — mutate a store entry by id, and open the `NotificationCenter` popup anchored on the status bell (`notificationplugin.tsx:500-780`) | — | **absent** | `GAP-137`. No notification store exists to update or dismiss, and no centre to open — the transient reports above never join a list |
+| `apputils:print` — `Printing.getPrintFunction(currentWidget)` — a per-widget print the browser owns (`index.ts:303-330`) | — | **absent** | `GAP-138`. The adjacent surface is `NotebookExport`'s convert-and-share; printing the view itself is Android's `PrintManager`, unreached |

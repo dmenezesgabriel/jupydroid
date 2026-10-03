@@ -1743,6 +1743,88 @@ missing scroll chrome is `GAP-090`'s own record (`app/src/main/java/com/jupydroi
 repair is a scrollbar indicator on the scroll surfaces, before a styled one has anything to
 colour.
 
+### GAP-133 — Settings have no raw or portable form
+
+`settingeditor:open-json` opens the `JsonSettingEditor` — the user-settings JSON edited raw —
+and `settingeditor:import`/`export` round-trip an `overrides.json` through a file
+(`jupyterlab/packages/settingeditor-extension/src/index.ts`). Ours persists each `*Settings`
+model as JSON under `filesDir` — `DiskEditorSettingsRepository` writes `editor-settings.json`
+(`app/src/main/java/com/jupydroid/app/data/disk/DiskEditorSettingsRepository.kt`) — but nothing
+in-app shows or edits it raw, and there is no import or export. The repair is an advanced mode on
+`SettingsScreen` over the files the repositories already write, which carries the portability
+pair with it.
+
+### GAP-134 — No keymap exists to edit
+
+`shortcuts:add-keybinding`/`edit-keybinding`/`delete-keybinding`/`reset-all`/
+`toggle-selectors` drive the keybindings editor, and `apputils:display-shortcuts` tabulates the
+current widget's bindings (`jupyterlab/packages/shortcuts-extension/src/index.ts`,
+`apputils-extension/src/index.ts`). Ours has no keymap at all: the input surface is a soft
+keyboard, and `SymbolRow` is the fixed edit-mode key row standing where the reference's
+selector-bound shortcuts do
+(`app/src/main/java/com/jupydroid/app/ui/editor/SymbolRow.kt`). The repair presupposes a
+keyboard with keys to bind — a binding model plus the editor to write it — so this gap sits
+behind any hardware-keyboard story rather than beside it.
+
+### GAP-135 — No help or about surface
+
+`help:about` is the About dialog, `help:jupyter-forum` opens Discourse, and `help:open` runs a
+URL in a new tab — the help links and the release-notices banner both ride on it
+(`jupyterlab/packages/help-extension/src/index.tsx`). Ours has no help surface of any kind:
+no About, no links, no banner (`app/src/main/java/com/jupydroid/app/ui/`). The repair is an
+about/help entry — the row `SettingsScreen` would carry or a dialog — plus the URL-open act the
+links would share.
+
+### GAP-136 — Licenses are unviewable
+
+`apputils:licenses` opens the Licenses widget over the server's `licensesUrl`,
+`licenses-refresh` re-inits its model and `license-report` downloads the report; the `help:`
+trio are deprecated forwards to the same ids
+(`jupyterlab/packages/apputils-extension/src/licensesplugin.ts`,
+`help-extension/src/index.tsx`). Ours shows no license surface anywhere — and the command is
+inert even upstream on this stack, since `licensesUrl` is a page-config the Lab server
+extension writes and bare `jupyter_server` does not. The repair is both halves: a license
+manifest for the shipped Space plus the surface that lists it.
+
+### GAP-137 — A notification is an event, never an entry
+
+`apputils:notify` toasts a message and files it in `Notification.manager`;
+`update-notification`/`dismiss-notification` mutate an entry by id, and
+`display-notifications` opens the centre popup on the status bell
+(`jupyterlab/packages/apputils-extension/src/notificationplugin.tsx`). Ours draws transient
+reports where their owners are — `ExportReportSnackbar`, `SaveFailureBanner`,
+`SearchReplaceReport` (`app/src/main/java/com/jupydroid/app/ui/`) — shown once and gone, with
+no store to update or dismiss and no centre to open. The repair is a notification model plus a
+surface that lists it; the owner-drawn messages are its producers, not its replacement.
+
+### GAP-138 — Nothing prints
+
+`apputils:print` asks `Printing.getPrintFunction(currentWidget)` and the browser prints what
+the widget returns (`jupyterlab/packages/apputils-extension/src/index.ts`). Ours has no print
+reach on any surface — the adjacent act is `NotebookExport`'s convert-and-share
+(`app/src/main/java/com/jupydroid/app/ui/editor/NotebookExport.kt`), which writes a file rather
+than rendering the view. The repair is Android's `PrintManager` over a rendered document, or
+the nbconvert PDF the share sheet already knows how to carry.
+
+### GAP-139 — Workspaces are unnamed and singular
+
+`workspace-ui:*`'s ten acts manage named, URL-keyed layout snapshots — create, clone, rename,
+delete, open, reset, import, export, save, save-as — over `IWorkspacesModel` and
+`IWindowResolver` (`jupyterlab/packages/workspaces-extension/src/commands.ts`). Ours has one
+unnamed workspace: the persisted `OpenDocuments`/`NotebookBackStack` model is the whole layout
+memory (`app/src/main/java/com/jupydroid/app/`), and §1's out-of-scope list already names
+`workspaces`. The repair is a workspace model — named roots, each with its own open set — which
+is a larger shape change than any single command on it.
+
+### GAP-140 — Logs have no in-app window
+
+`logconsole:open` toggles the `LogConsolePanel`, and `add-checkpoint`/`clear`/`set-level` act
+on its `ILogger` ring (`jupyterlab/packages/logconsole-extension/src/index.tsx`,
+`logconsole/src/logger.ts`). Ours sends kernel and server logging to `run/jupyter_server.log`
+and logcat — ADR-0009's recorded answer — and §1 names `logconsole` itself out of scope. What
+is missing is the window: an in-app reader over the same stream, with the ring's checkpoint and
+level. The repair is a log panel reading the file the launcher already writes.
+
 ---
 
 ## 12. Glossary
