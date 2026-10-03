@@ -87,7 +87,9 @@ class LedgerPartitionTest(unittest.TestCase):
 
         The prefix list is closed on purpose: an open `x:y` pattern would read a verdict-table
         first cell like `inspector:open` (AUD-003's caller table) as an id the partition owns
-        nowhere, so a family enters the pattern only when a slice has claimed it.
+        nowhere, so a family enters the pattern only when a slice has claimed it. AUD-009's
+        chrome brings the menu shells and the hyphenated `workspace-ui:`/`property-inspector:`
+        families - a prefix may contain a dash, a suffix may not.
         """
         found = ledger_partition(_ledger(
             _TABLE_HEAD
@@ -103,7 +105,19 @@ class LedgerPartitionTest(unittest.TestCase):
             + "| `rendermime:handle-local-link`, `markdownviewer:trust` | `AUD-008` `T2` | rendering |\n"
             + "| `htmlviewer:trust-html`, `mathjax:clipboard`, `mathjax:scale` | `AUD-008` `T2` | viewers |\n"
             + "| `imageviewer:zoom-in`, `csv:go-to-line`, `tsv:go-to-line` | `AUD-008` `T2` | formats |\n"
-            + "| `mermaid:copy-source` | `AUD-008` `T2` | rendering |\n"))
+            + "| `mermaid:copy-source` | `AUD-008` `T2` | rendering |\n"
+            + "| `application:close`, `sidebar:switch`, `property-inspector:show-panel`, "
+            + "`router:tree` | `AUD-009` `T2` | the shell |\n"
+            + "| `apputils:change-theme` | `AUD-009` `T3` | presentation |\n"
+            + "| `mainmenu:open-first`, `viewmenu:word-wrap`, `runmenu:run-all`, `tabsmenu:open` "
+            + "| `AUD-009` `T2` | the menus |\n"
+            + "| `settingsmenu:open`, `helpmenu:get-kernel`, `recentmenu:reopen-last` "
+            + "| `AUD-009` `T2` | menu shells |\n"
+            + "| `help:about`, `launcher:create`, `settingeditor:open`, `shortcuts:reset-all` "
+            + "| `AUD-009` `T4` | surfaces |\n"
+            + "| `workspace-ui:create-new`, `logconsole:open`, `apputils:print` "
+            + "| `AUD-009` `T4` | surfaces |\n"
+            + "| `pluginmanager:open`, `extensionmanager:toggle` | `AUD-009` `T4` | panels |\n"))
         self.assertEqual({"documentsearch:highlightNext": "AUD-004 T2",
                           "toc:display-numbering": "AUD-004 T2",
                           "fileeditor:find": "AUD-004 T2",
@@ -129,7 +143,28 @@ class LedgerPartitionTest(unittest.TestCase):
                           "imageviewer:zoom-in": "AUD-008 T2",
                           "csv:go-to-line": "AUD-008 T2",
                           "tsv:go-to-line": "AUD-008 T2",
-                          "mermaid:copy-source": "AUD-008 T2"}, found)
+                          "mermaid:copy-source": "AUD-008 T2",
+                          "application:close": "AUD-009 T2",
+                          "sidebar:switch": "AUD-009 T2",
+                          "property-inspector:show-panel": "AUD-009 T2",
+                          "router:tree": "AUD-009 T2",
+                          "apputils:change-theme": "AUD-009 T3",
+                          "mainmenu:open-first": "AUD-009 T2",
+                          "viewmenu:word-wrap": "AUD-009 T2",
+                          "runmenu:run-all": "AUD-009 T2",
+                          "tabsmenu:open": "AUD-009 T2",
+                          "settingsmenu:open": "AUD-009 T2",
+                          "helpmenu:get-kernel": "AUD-009 T2",
+                          "recentmenu:reopen-last": "AUD-009 T2",
+                          "help:about": "AUD-009 T4",
+                          "launcher:create": "AUD-009 T4",
+                          "settingeditor:open": "AUD-009 T4",
+                          "shortcuts:reset-all": "AUD-009 T4",
+                          "workspace-ui:create-new": "AUD-009 T4",
+                          "logconsole:open": "AUD-009 T4",
+                          "apputils:print": "AUD-009 T4",
+                          "pluginmanager:open": "AUD-009 T4",
+                          "extensionmanager:toggle": "AUD-009 T4"}, found)
 
     def test_an_unreached_family_is_not_read(self) -> None:
         """`inspector:open` is a real id verdicted in AUD-003's caller table - and unclaimed,
@@ -141,9 +176,11 @@ class LedgerPartitionTest(unittest.TestCase):
 
     def test_declared_ids_cover_whole_packages_and_carried_ones(self) -> None:
         """`documentsearch-extension`, `toc-extension`, AUD-005's three, AUD-006's two,
-        AUD-007's one and AUD-008's seven enter whole; from the packages a later slice owns,
-        only the carried ids do - `fileeditor:undo` and `filemenu:open` wait with the rest.
-        `htmlviewer-extension` declares in `index.tsx`, so the fixture writes one there."""
+        AUD-007's one, AUD-008's seven and AUD-009's eleven enter whole - `mainmenu-extension`
+        among them, so even the ids earlier slices carried out of it are declared by the
+        partition now. From the packages a later slice owns, only the carried ids do -
+        `fileeditor:undo` waits with the file editor's slice. `htmlviewer-extension` declares
+        in `index.tsx`, so the fixture writes one there."""
         packages = _packages({
             # `COMMAND_ID` reads a namespace member - indented, never at column 0.
             "notebook-extension": "  export const u = 'notebook:undo';\n"
@@ -178,6 +215,19 @@ class LedgerPartitionTest(unittest.TestCase):
             "csvviewer-extension": "  export const c = 'csv:go-to-line';\n"
                                    "  export const t = 'tsv:go-to-line';",
             "mermaid-extension": "  export const c = 'mermaid:copy-source';",
+            "application-extension": "  export const c = 'application:close';\n"
+                                      "  export const s = 'sidebar:switch';\n"
+                                      "  export const p = 'property-inspector:show-panel';",
+            "apputils-extension": "  export const t = 'apputils:change-theme';\n"
+                                  "  export const p = 'apputils:print';",
+            "launcher-extension": "  export const c = 'launcher:create';",
+            "settingeditor-extension": "  export const o = 'settingeditor:open';",
+            "help-extension": "  export const a = 'help:about';",
+            "shortcuts-extension": "  export const r = 'shortcuts:reset-all';",
+            "workspaces-extension": "  export const c = 'workspace-ui:create-new';",
+            "logconsole-extension": "  export const o = 'logconsole:open';",
+            "pluginmanager-extension": "  export const o = 'pluginmanager:open';",
+            "extensionmanager-extension": "  export const t = 'extensionmanager:toggle';",
         })
         # `htmlviewer-extension` ships no `index.ts` at the pinned SHA - `index.tsx` is it.
         tsx = packages / "htmlviewer-extension" / "src" / "index.tsx"
@@ -192,11 +242,19 @@ class LedgerPartitionTest(unittest.TestCase):
                                  "console:clear", "completer:invoke-console",
                                  "running:show-panel", "kernelmenu:shutdownAll",
                                  "filemenu:create-console", "filemenu:close-and-cleanup",
+                                 "filemenu:open", "editmenu:redo",
                                  "terminal:create-new", "terminal:shut-down",
                                  "rendermime:handle-local-link", "markdownviewer:open",
                                  "markdownviewer:trust", "htmlviewer:trust-html",
                                  "mathjax:clipboard", "imageviewer:zoom-in", "csv:go-to-line",
-                                 "tsv:go-to-line", "mermaid:copy-source"]),
+                                 "tsv:go-to-line", "mermaid:copy-source",
+                                 "application:close", "sidebar:switch",
+                                 "property-inspector:show-panel",
+                                 "apputils:change-theme", "apputils:print",
+                                 "launcher:create", "settingeditor:open", "help:about",
+                                 "shortcuts:reset-all", "workspace-ui:create-new",
+                                 "logconsole:open", "pluginmanager:open",
+                                 "extensionmanager:toggle"]),
                          sorted(declared_ids(packages)))
 
     def test_a_toc_id_declared_inside_notebook_extension_is_carried(self) -> None:

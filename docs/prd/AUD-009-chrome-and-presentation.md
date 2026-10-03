@@ -348,7 +348,7 @@ Known going in, so a verdict does not re-litigate them:
 
 One TDD unit each (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — **The instrument and the surface, produced.** `read_reference_commands.py`'s
+- [x] T1 — **The instrument and the surface, produced.** `read_reference_commands.py`'s
       `COMMAND_ID` learns the typed-const declaration (`export const name: string = 'id'`, same
       line or formatter-wrapped) — red test first in `read_reference_commands_test.py`, then the
       pattern; the spec's pinned numbers move to the produced ones (435 across 34). Then
@@ -360,7 +360,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       verdicts; `statusbar:toggle`/`workspace-indicator:toggle`/`hub:*`/`completer:`-notebook
       pair named un-backticked so the checks stay honest.
 - [ ] T2 — **Verdicts for the shell and the menus.** `application:*`/`sidebar:*` +
-      `mainmenu-extension`'s 30 + `apputils`' shell acts (`toggle-header`, `run-*-enabled`,
+      `mainmenu-extension`'s 28 + `apputils`' shell acts (`toggle-header`, `run-*-enabled`,
       `move-section-*`, `load-statedb`/`reset*`) + `router:tree`/`property-inspector:show-panel`
       against `Navigation`/`PaneDirective`/`SidePanel`/`SidePanelBar`/`MainAreaTabs`/
       `MainAreaTabStrip`/`MainAreaCloseGate`/`NotebookBackStack`/`OpenDocuments`/`DocumentOpeners`/

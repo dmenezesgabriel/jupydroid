@@ -80,8 +80,10 @@ class LedgerVerdictTest(unittest.TestCase):
     def test_a_verdict_reaches_past_the_notebook_family(self) -> None:
         """Verdicts and partition share the one id pattern: `documentsearch:`/`toc:`,
         AUD-005's `filebrowser:`/`docmanager:`, AUD-006's `console:`/`running:` plus the
-        menu delegates, AUD-007's `terminal:`, and AUD-008's eight rendering families are
-        collected - camelCase included - while a family no slice has claimed stays unread."""
+        menu delegates, AUD-007's `terminal:`, AUD-008's eight rendering families, and
+        AUD-009's twenty chrome families - menu shells and the hyphenated `workspace-ui:`/
+        `property-inspector:` included - are collected while a family no slice has claimed
+        stays unread."""
         found = ledger_verdicts(_ledger(
             _TABLE_HEAD
             + "| `documentsearch:start` | ours | present | — |\n"
@@ -92,6 +94,12 @@ class LedgerVerdictTest(unittest.TestCase):
             + "| `htmlviewer:trust-html`, `imageviewer:zoom-in` | ours | absent | GAP-001 |\n"
             + "| `csv:go-to-line`, `tsv:go-to-line`, `mermaid:copy-source` | ours | absent | GAP-001 |\n"
             + "| `mathjax:clipboard` | ours | present | — |\n"
+            + "| `application:close`, `apputils:change-theme`, `sidebar:switch` | ours | adapted | — |\n"
+            + "| `mainmenu:open-first`, `viewmenu:word-wrap`, `recentmenu:reopen-last` | ours | absent | GAP-001 |\n"
+            + "| `runmenu:run-all`, `tabsmenu:open`, `settingsmenu:open`, `helpmenu:get-kernel` | ours | absent | GAP-001 |\n"
+            + "| `help:about`, `launcher:create`, `settingeditor:open`, `shortcuts:reset-all` | ours | absent | GAP-001 |\n"
+            + "| `workspace-ui:create-new`, `logconsole:open`, `property-inspector:show-panel`, `router:tree` | ours | adapted | — |\n"
+            + "| `pluginmanager:open`, `extensionmanager:toggle`, `apputils:print` | ours | absent | GAP-001 |\n"
             + "| `inspector:open` | ours | adapted | a caller-table row |\n"))
         self.assertEqual({"documentsearch:start": "present", "filebrowser:rename": "present",
                           "docmanager:save": "present", "console:clear": "adapted",
@@ -101,7 +109,18 @@ class LedgerVerdictTest(unittest.TestCase):
                           "markdownviewer:trust": "adapted", "htmlviewer:trust-html": "absent",
                           "imageviewer:zoom-in": "absent", "csv:go-to-line": "absent",
                           "tsv:go-to-line": "absent", "mermaid:copy-source": "absent",
-                          "mathjax:clipboard": "present"}, found)
+                          "mathjax:clipboard": "present",
+                          "application:close": "adapted", "apputils:change-theme": "adapted",
+                          "sidebar:switch": "adapted", "mainmenu:open-first": "absent",
+                          "viewmenu:word-wrap": "absent", "recentmenu:reopen-last": "absent",
+                          "runmenu:run-all": "absent", "tabsmenu:open": "absent",
+                          "settingsmenu:open": "absent", "helpmenu:get-kernel": "absent",
+                          "help:about": "absent", "launcher:create": "absent",
+                          "settingeditor:open": "absent", "shortcuts:reset-all": "absent",
+                          "workspace-ui:create-new": "adapted", "logconsole:open": "adapted",
+                          "property-inspector:show-panel": "adapted", "router:tree": "adapted",
+                          "pluginmanager:open": "absent", "extensionmanager:toggle": "absent",
+                          "apputils:print": "absent"}, found)
 
     def test_a_task_with_one_verdict_owes_one_for_every_id_it_owns(self) -> None:
         """Examined is derived, not stored: the first verdict opens the task, and opens all of it."""

@@ -197,9 +197,9 @@ examination came out, which is what a verdict is for.
 | `imageviewer:zoom-in`, `imageviewer:zoom-out`, `imageviewer:reset-image`, `imageviewer:rotate-clockwise`, `imageviewer:rotate-counterclockwise`, `imageviewer:flip-horizontal`, `imageviewer:flip-vertical`, `imageviewer:invert-colors` | `AUD-008` `T2` | The image document surface's eight transforms against what ours draws when a `.png` opens |
 | `csv:go-to-line`, `tsv:go-to-line` | `AUD-008` `T2` | `csvviewer-extension` carries two families — the table viewer's go-to-line per delimiter |
 | `mermaid:copy-source` | `AUD-008` `T2` | The diagram surface's one id — copy the mermaid source a rendered diagram was drawn from |
-| `notebook:toggle-render-side-by-side-current`, `notebook:set-side-by-side-ratio`, `notebook:toggle-virtual-scrollbar` | `AUD-009` | Layout of the notebook pane. §8.3 makes VS Code authoritative for presentation, so the comparison is that slice's |
-| `notebook:toggle-all-cell-line-numbers` | `AUD-009` | The gutter — `EditorSettings.lineNumbersShown`, drawn by `LineNumbers.kt`, and presentation rather than a cell operation |
-| `notebook:create-new` | `AUD-009` | Added to the palette on its own. Creating a document is chrome, not a cell command |
+| `notebook:toggle-render-side-by-side-current`, `notebook:set-side-by-side-ratio`, `notebook:toggle-virtual-scrollbar` | `AUD-009` `T3` | Layout of the notebook pane. §8.3 makes VS Code authoritative for presentation, so the comparison is that slice's |
+| `notebook:toggle-all-cell-line-numbers` | `AUD-009` `T3` | The gutter — `EditorSettings.lineNumbersShown`, drawn by `LineNumbers.kt`, and presentation rather than a cell operation |
+| `notebook:create-new` | `AUD-009` `T3` | Added to the palette on its own. Creating a document is chrome, not a cell command |
 | `notebook:toggle-autoclosing-brackets` | `AUD-003` | Palette-less (`:2223`). A typing rule — `PythonTypingRules`, which is `GAP-004`'s own subject — carried app-wide by `EditorSettingsRepository` |
 | `documentsearch:start`, `documentsearch:startWithReplace` | `AUD-004` `T2` | The find bar opening — `EditorUiState.withSearchOpened`/`withReplaceShown`, reached by the top bar's Find |
 | `documentsearch:highlightNext`, `documentsearch:highlightPrevious` | `AUD-004` `T2` | The bar's next/previous — `withSearchStepped` over `SearchHit`s |
@@ -223,6 +223,7 @@ examination came out, which is what a verdict is for.
 | `docmanager:new-untitled`, `docmanager:open`, `docmanager:rename`, `docmanager:delete`, `docmanager:delete-file`, `docmanager:duplicate`, `docmanager:clone`, `docmanager:download`, `docmanager:open-browser-tab`, `docmanager:show-in-file-browser` | `AUD-005` `T3` | The document manager's own file acts — the commands every other surface calls (`docmanager-extension/src/index.tsx`, no palette category) |
 | `docmanager:save`, `docmanager:save-all`, `docmanager:save-as`, `docmanager:toggle-autosave`, `docmanager:restore-checkpoint`, `docmanager:reload` | `AUD-005` `T4` | Persistence — `DocumentAutosave`'s debounce over `EditorSettings.autosave`/`autosaveInterval`, and what checkpoints/save-as/reload mean where there is no document manager |
 | `docmanager:recents`, `docmanager:clear-recents` | `AUD-005` `T4` | Recents — `RecentDocumentsRepository` → `DiskRecentDocumentsRepository`, `RecordOpening`, `RecentsSection`. `docmanager:recents` is the one id the `docmanager` package itself declares |
+| `recentmenu:open-recent`, `recentmenu:reopen-last` | `AUD-005` `T4` | The File menu's recents pair, declared in `mainmenu-extension` but already judged in `T4`'s recents read — `open-recent` adapted to `RecentsSection`, `reopen-last` absent with `GAP-066`. Ownership lands where the verdicts already live |
 | `console:run-forced`, `console:run-unforced`, `console:linebreak` | `AUD-006` `T2` | The prompt's run acts — `Shift Enter` forced in both modes, `Enter` unforced and `Accel Enter` the linebreak in terminal mode (`schema/tracker.json`), and notebook-mode Enter's run-or-newline is `requestIsComplete`'s call (`widget.ts:979`); `submit()` and Enter's newline are ours |
 | `console:replace-selection`, `console:undo`, `console:redo` | `AUD-006` `T2` | The prompt's text acts — the completer's write-over-selection and the console's own history |
 | `console:clear` | `AUD-006` `T2` | The transcript emptied — `ConsoleViewModel.clear`, unconditional as `CodeConsole.clear()` is |
@@ -233,6 +234,7 @@ examination came out, which is what a verdict is for.
 | `completer:invoke-console`, `completer:select-console` | `AUD-006` `T2` | The console's own completer pair, declared inside `console-extension` — completion on the prompt field |
 | `kernelmenu:interrupt`, `kernelmenu:reconnect-to-kernel`, `kernelmenu:restart`, `kernelmenu:restart-and-clear`, `kernelmenu:change`, `kernelmenu:shutdown`, `kernelmenu:shutdownAll` | `AUD-006` `T3` | The Kernel menu's semantic delegates (`mainmenu/src/kernel.ts` `SemanticCommand`) — each executes whatever the current widget registered for the act, and both registrants (`notebook:*` above, `console:*` above) are this slice's |
 | `filemenu:close-and-cleanup` | `AUD-006` `T3` | The File menu's close-and-shutdown — a semantic delegate to `*:close-and-shutdown` (`mainmenu-extension/src/index.ts`), which this slice already owns |
+| `application:close` | `AUD-006` `T3` | `filemenu:close-and-cleanup`'s fallback — the semantic delegate executes this when no `*:close-and-shutdown` registrant is current — judged in the same row. Closes what the shell shows; declared in `application-extension` but this slice already examined it |
 | `running:show-panel`, `running:show-modal` | `AUD-006` `T4` | Reaching the panel — the rail entry versus the searchable-sessions dialog (`SearchableSessions`) |
 | `running:kernel-open-session`, `running:kernel-shut-down`, `running:kernel-shut-down-unused` | `AUD-006` `T4` | The sessions section's row acts — open, per-row shutdown, and the grouped-list's "Shut Down Unused" |
 | `running:kernel-new-console`, `running:kernel-new-notebook` | `AUD-006` `T4` | Minting a document on a running kernel — the kernel row's two spawn acts (`kernels.tsx`) |
@@ -240,6 +242,19 @@ examination came out, which is what a verdict is for.
 | `terminal:copy`, `terminal:copy-link`, `terminal:paste` | `AUD-007` `T2` | The pane's clipboard — copying the selection `GridSelection` holds, a link under the cursor, and what a paste hands `send` |
 | `terminal:increase-font`, `terminal:decrease-font`, `terminal:set-theme`, `terminal:refresh` | `AUD-007` `T2` | The pane's own presentation — the font pair (`TerminalActionsMenu` over `TerminalSettings`), the theme pick, and re-fit/re-send-size weighed against a layout that already resizes |
 | `terminal:shut-down` | `AUD-007` `T2` | Ending one — `TerminalGateway.close`; the running panel's ✕ for it is `AUD-006` `T4`'s, verdicted above |
+| `application:activate-next-tab`, `application:activate-next-tab-bar`, `application:activate-previous-tab`, `application:activate-previous-tab-bar`, `application:close-all`, `application:close-other-tabs`, `application:close-right-tabs`, `application:move-widget`, `application:reset-layout`, `application:reset-widget-zoom`, `application:set-activity-bar-position`, `application:set-mode`, `application:split-tab`, `application:toggle-context-menu`, `application:toggle-down-area`, `application:toggle-fullscreen-mode`, `application:toggle-header`, `application:toggle-left-area`, `application:toggle-mode`, `application:toggle-presentation-mode`, `application:toggle-right-area`, `application:toggle-side-tabbar`, `application:toggle-sidebar-widget`, `application:zoom-in-widget`, `application:zoom-out-widget` | `AUD-009` `T2` | The shell's own layout acts — area toggles, tab walks, splits, zooms, the presentation modes. Twenty are the typed declarations `T1` taught `COMMAND_ID` to see (`index.tsx:65-117`); `application:close` is `AUD-006` `T3`'s, judged already |
+| `sidebar:switch`, `router:tree`, `property-inspector:show-panel` | `AUD-009` `T2` | Foreign families `application-extension` declares — the rail's tab switch, the URL-tree walk, the side panel's reveal — read with the shell that hosts them |
+| `mainmenu:open-first`, `editmenu:open`, `filemenu:open`, `helpmenu:open`, `kernelmenu:open`, `runmenu:open`, `settingsmenu:open`, `tabsmenu:open`, `viewmenu:open` | `AUD-009` `T2` | The menu bar's openers — nine `*:open` acts plus the main menu's own, against a shell with no menu bar |
+| `helpmenu:get-kernel`, `editmenu:clear-all`, `editmenu:clear-current`, `editmenu:go-to-line`, `editmenu:redo`, `editmenu:undo`, `runmenu:restart-and-run-all`, `runmenu:run`, `runmenu:run-above`, `runmenu:run-all`, `runmenu:run-below`, `tabsmenu:activate-by-id`, `tabsmenu:activate-previously-used-tab`, `viewmenu:line-numbering`, `viewmenu:match-brackets`, `viewmenu:show-minimap`, `viewmenu:word-wrap`, `filemenu:logout`, `filemenu:shutdown` | `AUD-009` `T2` | The menu delegates — `SemanticCommand`s forwarding to the current widget's registration and the View menu's settings rows; the acts they reach for are their registrants' slices' |
+| `apputils:activate-command-palette`, `apputils:toggle-header`, `apputils:run-all-enabled`, `apputils:run-first-enabled`, `apputils:move-section-back`, `apputils:move-section-to`, `apputils:load-statedb`, `apputils:reset`, `apputils:reset-on-load` | `AUD-009` `T2` | The apputils shell acts — the palette's opener, the top-bar toggle, the enabled-command runners, the side-panel section movers, and the state-db restore/reset |
+| `apputils:adaptive-theme`, `apputils:change-dark-theme`, `apputils:change-light-theme`, `apputils:change-theme`, `apputils:change-font`, `apputils:decr-font-size`, `apputils:incr-font-size`, `apputils:theme-scrollbars` | `AUD-009` `T3` | The presentation commands — the theme pickers, the font pair and family, scrollbar styling — against `theme/` and `ThemeSettings`/`CodeFontSize` |
+| `launcher:create`, `settingeditor:open`, `settingeditor:open-json`, `settingeditor:save`, `settingeditor:revert`, `settingeditor:import`, `settingeditor:export` | `AUD-009` `T4` | The hosted surfaces' openers — the launcher's card and the settings editor's six, against `ui/launcher/` and `ui/settings/` |
+| `shortcuts:add-keybinding`, `shortcuts:delete-keybinding`, `shortcuts:edit-keybinding`, `shortcuts:reset-all`, `shortcuts:toggle-selectors`, `apputils:display-shortcuts` | `AUD-009` `T4` | The keybinding editor's five and the shortcuts table the palette offers — against a shell with no user-editable bindings |
+| `help:about`, `help:activate`, `help:close`, `help:hide`, `help:jupyter-forum`, `help:license-report`, `help:licenses`, `help:licenses-refresh`, `help:open`, `help:show` | `AUD-009` `T4` | The help surface — open/close/activate and the About/forum entries, plus the license-report trio it shares with `apputils`' |
+| `workspace-ui:clone`, `workspace-ui:create-new`, `workspace-ui:delete`, `workspace-ui:export`, `workspace-ui:import`, `workspace-ui:open`, `workspace-ui:rename`, `workspace-ui:reset`, `workspace-ui:save`, `workspace-ui:save-as` | `AUD-009` `T4` | Workspaces — named layout snapshots against a shell whose one layout is fixed |
+| `logconsole:add-checkpoint`, `logconsole:clear`, `logconsole:open`, `logconsole:set-level` | `AUD-009` `T4` | The log console — against logcat, which [ADR-0009](../adr/0009-logs-are-adbs.md) already makes the app's answer |
+| `pluginmanager:open`, `pluginmanager:refresh`, `extensionmanager:show-panel`, `extensionmanager:toggle` | `AUD-009` `T4` | The plugin and extension manager panels — surfaces for managing plugins a Compose app does not load |
+| `apputils:display-notifications`, `apputils:dismiss-notification`, `apputils:notify`, `apputils:update-notification`, `apputils:print`, `apputils:license-report`, `apputils:licenses`, `apputils:licenses-refresh` | `AUD-009` `T4` | The notification centre's four, print, and the license trio — chrome acts against a shell that shows state in place instead |
 
 ### The editing half — verdicts
 
@@ -2448,3 +2463,86 @@ What the walk found, beyond the rows above:
   boundary the path ends at: the artifact lands in the workspace precisely so the explorer
   already lists it and a cell can `open()` it — the download the reference hands to a browser,
   answered by a share sheet.
+
+## Chrome and presentation — `AUD-009`
+
+**The surface is eleven chrome packages whole, `mainmenu-extension`'s remainder, five `notebook:`
+ids earlier sections reserved, and the VS Code workbench parts the comparison reads against —
+127 ids this slice owns of the 435 the instrument now counts across 34 packages.** `COMMAND_ID`
+learned the typed declaration at `T1` (`export const name: string = 'id'`, wrapped by the
+formatter or not), and the count moved 412 → 435 unique across 33 → 34 packages because twenty
+of `application-extension`'s 29 ids and all three of `hub-extension`'s are written that way —
+the annotation hid the chrome's own area toggles behind it (`index.tsx:65-117`).
+`docmanager:clear-recents` is declared in both `docmanager-extension` and `mainmenu-extension`,
+which is why package declarations total 436 where unique ids total 435. Two real commands sit in
+module-level `const`s the pattern will not honestly reach — statusbar:toggle
+(`statusbar-extension/src/index.ts:49`) and workspace-indicator:toggle
+(`workspaces-extension/src/index.ts:76`) — named like `console:prompt-to-top` before them rather
+than counted, because broadening to bare `const` would sweep every `const cmd = 'console:create'`
+an `execute` call names in with them. `hub-extension`'s three — hub:control-panel, hub:logout,
+hub:restart — entered the measured surface on the same fix but are JupyterHub's own, named not
+claimed, as is the completer pair `notebook-extension` declares under the `completer:` prefix
+(completer:invoke-notebook, completer:select-notebook) that the `notebook:` family filter drops.
+Produced, never stored:
+
+```sh
+python3 scripts/read_reference_commands.py --all                                     # 435 / 34
+python3 scripts/read_reference_commands.py --jupyterlab-package application-extension  # 29
+python3 scripts/read_reference_commands.py --jupyterlab-package mainmenu-extension     # 41
+for p in apputils-extension launcher-extension settingeditor-extension help-extension \
+         shortcuts-extension workspaces-extension logconsole-extension \
+         pluginmanager-extension extensionmanager-extension; do
+  echo "== $p"; python3 scripts/read_reference_commands.py --jupyterlab-package "$p"
+done
+python3 scripts/read_ledger_partition.py --unassigned   # 0 / 0
+python3 scripts/read_ledger_verdicts.py --missing       # 0
+```
+
+**This slice meets two kinds of reference.** JupyterLab's chrome:
+`application/src/{shell,layoutrestorer,router}.ts` and `application-extension/src/{index,topbar}`
+(the `application:` ids plus `sidebar:switch`, `router:tree`, `property-inspector:show-panel`),
+`apputils/src/{thememanager,commandpalette,menufactory,semanticCommand,notification,printing,licenses}`
+beside `apputils-extension`'s plugin files, `mainmenu/src/{mainmenu,file,edit,view,kernel,run,tabs,settings,help}.ts`
+— the `SemanticCommand` delegates — `launcher/src`, `statusbar/src` +
+`statusbar-extension/src/index.ts`, `settingeditor/src` + `settingeditor-extension`,
+`help-extension`, `shortcuts-extension`, `workspaces/src` + `workspaces-extension`,
+`logconsole/src` + `logconsole-extension`, `pluginmanager/`, `extensionmanager/`, and the three
+shipped theme packages — `theme-light-extension`, `theme-dark-extension`,
+`theme-dark-high-contrast-extension` (`theme-scrollbars` is a setting, not a package). VS Code's
+is the workbench: `src/vs/workbench/browser/{layout,workbench}.ts` and `browser/parts/` —
+activitybar, auxiliarybar, banner, editor, notifications, panel, sidebar, statusbar, titlebar,
+views — plus `contrib/notebook/browser/view/cellParts/` (`cellToolbars.ts`,
+`cellFocusIndicator.ts`, `cellExecution.ts`, `cellStatusPart.ts`, `foldedCellHint.ts`,
+`collapsedCellInput.ts`, `collapsedCellOutput.ts`, `cellDnd.ts`) for the cell chrome §8.3 makes
+VS Code authoritative over.
+
+```sh
+ls reference/research_repos/vscode/src/vs/workbench/browser/parts
+ls reference/research_repos/vscode/src/vs/workbench/contrib/notebook/browser/view/cellParts
+```
+
+**Ours** is `Navigation.kt` (the rail, the panes, the main-area stack) with `PaneDirective`,
+`SidePanel.kt`/`SidePanelBar.kt`/`SidePanelRail.kt`, `MainAreaTabs.kt`/`MainAreaTabStrip.kt`/
+`MainAreaCloseGate.kt`, `NotebookBackStack`/`OpenDocuments`/`DocumentOpeners`, `MainActivity`,
+`theme/` — `ChromePalettes`/`EditorPalettes`/`Typography`/`CodeText` over `ThemeSettings`/
+`ThemeOverride` and `EditorSettings.codeFontSizeSp` — `ui/launcher/` + `LauncherItems`,
+`ui/settings/` over the `*Settings` models and `Disk*` repositories, and the status items on
+`EditorTopBar*`/`KernelIndicator`/`DirtyMarker` — Compose chrome by ADR-0039, with no menu bar,
+no command palette, no status-bar part for the toggles to land on.
+
+**Carried in, recorded not rejudged.** Three ids arrive already judged: `application:close` sits
+in `AUD-006`'s `filemenu:close-and-cleanup` row and the `recentmenu:` pair in `AUD-005`'s recents
+read — ownership followed the verdicts rather than this slice reclaiming them.
+`docmanager:clear-recents`, `editmenu:find`, the `filemenu:` pair and the seven `kernelmenu:`
+delegates keep their earlier owners while `mainmenu-extension` enters the partition whole — its
+eleven already-owned ids declared by the package read now rather than carried. The partition
+rows are in the shared table under `AUD-002`'s heading; this slice's own split puts 65 ids on
+`T2` (shell and menus), 13 on `T3` (the presentation commands and the five `notebook:` carries),
+49 on `T4` (the hosted surfaces).
+
+**The hole, named:** `fileeditor-extension`'s remaining 28, `codemirror-extension`'s 12,
+`debugger`'s 17, `completer-extension`'s 4 plus the notebook pair, `tooltip-extension`'s 4,
+`inspector-extension`'s 3 — **70 ids no audit has examined**, left outside this slice on purpose
+and recorded so the next slice knows exactly what is unclaimed. No verdicts land at `T1`: the
+section opens with the measured surface and the ownership, and the verdict tables grow in with
+the tasks that produce them.

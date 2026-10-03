@@ -83,6 +83,40 @@ export namespace CommandIDs {
         self.assertEqual({"notebook-extension": ["notebook:run-all-cells"]},
                          jupyterlab_command_ids(packages))
 
+    def test_a_type_annotated_declaration_is_found(self) -> None:
+        """`export const name: string = 'id'` is the same declaration, with prettier's annotation.
+
+        Twenty of `application-extension`'s 29 ids are written that way (`index.tsx:65-117`), so
+        a pattern reading only the bare form undercounts that package by more than half.
+        """
+        packages = _tree({"application-extension/src/index.tsx": """
+  export const activateNextTab: string = 'application:activate-next-tab';
+"""})
+        self.assertEqual({"application-extension": ["application:activate-next-tab"]},
+                         jupyterlab_command_ids(packages))
+
+    def test_a_wrapped_type_annotated_declaration_is_found(self) -> None:
+        """Both shapes at once - the annotation plus a value wrapped onto the next line."""
+        packages = _tree({"application-extension/src/index.tsx": """
+  export const activatePreviousTab: string =
+    'application:activate-previous-tab';
+"""})
+        self.assertEqual({"application-extension": ["application:activate-previous-tab"]},
+                         jupyterlab_command_ids(packages))
+
+    def test_a_module_level_const_is_not_an_id(self) -> None:
+        """`const command: string = 'statusbar:toggle'` is a real command bound without `export`.
+
+        Reading bare `const` would also read every `const cmd = 'console:create'` an `execute`
+        call names, so the two commands bound that way are named in the ledger by hand rather
+        than counted here (`statusbar-extension/src/index.ts:49`,
+        `workspaces-extension/src/index.ts:76`).
+        """
+        packages = _tree({"statusbar-extension/src/index.ts": """
+const command: string = 'statusbar:toggle';
+"""})
+        self.assertEqual({}, jupyterlab_command_ids(packages))
+
     def test_a_package_declaring_none_is_absent_rather_than_empty(self) -> None:
         packages = _tree({"ui-components/src/index.ts": "export const x = 1;\n"})
         self.assertEqual({}, jupyterlab_command_ids(packages))
@@ -333,9 +367,16 @@ class PinnedSurfaceTest(unittest.TestCase):
         self.assertEqual(["completer:invoke-notebook", "completer:select-notebook", "toc:run-cells"],
                          [found for found in ids if not found.startswith("notebook:")])
 
-    def test_the_whole_command_surface_is_412_ids_across_33_packages(self) -> None:
+    def test_the_whole_command_surface_is_435_ids_across_34_packages(self) -> None:
         unique = {found for ids in self.by_package.values() for found in ids}
-        self.assertEqual((412, 33), (len(unique), len(self.by_package)))
+        self.assertEqual((435, 34), (len(unique), len(self.by_package)))
+
+    def test_the_ids_the_typed_consts_carry(self) -> None:
+        """Twenty of `application-extension`'s 29 are typed declarations, and all three of
+        `hub-extension`'s - the surface the annotation fix made visible."""
+        self.assertEqual(29, len(self.by_package["application-extension"]))
+        self.assertEqual(["hub:control-panel", "hub:logout", "hub:restart"],
+                         self.by_package["hub-extension"])
 
     def test_notebook_actions_declares_69_functions(self) -> None:
         """ADR-0027's specification, bounded to the namespace - the file holds 83 to its end."""

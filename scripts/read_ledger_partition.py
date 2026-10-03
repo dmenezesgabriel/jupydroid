@@ -44,11 +44,15 @@ PARTITION_HEADING = "### Who owns which id"
 #: is closed on purpose**: a family enters it only when a slice has claimed it - an open `x:y`
 #: pattern would sweep first cells like `inspector:open` (a real id verdicted in AUD-003's caller
 #: table, whose family no slice owns) into "owned by nobody" reports. `documentsearch:` and
-#: `kernelmenu:` carry camelCase suffixes; the rest are lowercase.
+#: `kernelmenu:` carry camelCase suffixes; `workspace-ui:` and `property-inspector:` carry a dash
+#: in the *prefix*; the rest are lowercase.
 COMMAND_IN_CELL = re.compile(
     r"`((?:notebook|documentsearch|toc|fileeditor|editmenu|filebrowser|docmanager|console|running"
     r"|kernelmenu|filemenu|completer|terminal|rendermime|markdownviewer|htmlviewer|mathjax"
-    r"|imageviewer|csv|tsv|mermaid):[A-Za-z0-9-]+)`")
+    r"|imageviewer|csv|tsv|mermaid|application|sidebar|apputils|mainmenu|viewmenu|runmenu"
+    r"|tabsmenu|settingsmenu|helpmenu|recentmenu|help|launcher|settingeditor|shortcuts"
+    r"|workspace-ui|logconsole|pluginmanager|extensionmanager|property-inspector|router)"
+    r":[A-Za-z0-9-]+)`")
 
 #: Packages whose whole command surface the partition covers - every id they declare must be
 #: owned. `notebook-extension` is read separately because only its `notebook:` ids are the
@@ -62,32 +66,38 @@ COMMAND_IN_CELL = re.compile(
 #: carried. AUD-008's seven enter whole: `rendermime-extension`'s one id is its family's only
 #: declaration, `csvviewer-extension` carries two families at once (`csv:` and `tsv:`), and
 #: `htmlviewer-extension` declares its one id in `index.tsx`, which only
-#: `read_reference_commands.py`'s `*.tsx` half of the scan reaches.
+#: `read_reference_commands.py`'s `*.tsx` half of the scan reaches. AUD-009's eleven chrome
+#: packages enter whole too: `mainmenu-extension` moves out of `CARRIED_PACKAGES`, so the ten
+#: ids earlier slices claimed out of it are now declared by the partition rather than picked;
+#: `application-extension` declares `sidebar:switch` and two ids in foreign families
+#: (`property-inspector:show-panel`, `router:tree`) beside its own; and `docmanager:clear-recents`
+#: is declared twice - here and in `docmanager-extension` - a cross-package dupe the set-based
+#: check counts once. `statusbar:toggle` and `workspace-indicator:toggle` are bound to module-level
+#: `const`s `COMMAND_ID` cannot see, so the ledger names them rather than the partition owning
+#: them.
 PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension",
                         "filebrowser-extension", "docmanager-extension", "docmanager",
                         "console-extension", "running-extension", "terminal-extension",
                         "rendermime-extension", "markdownviewer-extension", "htmlviewer-extension",
                         "mathjax-extension", "imageviewer-extension", "csvviewer-extension",
-                        "mermaid-extension")
+                        "mermaid-extension",
+                        "application-extension", "apputils-extension", "mainmenu-extension",
+                        "launcher-extension", "settingeditor-extension", "help-extension",
+                        "shortcuts-extension", "workspaces-extension", "logconsole-extension",
+                        "pluginmanager-extension", "extensionmanager-extension")
 
 #: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
-#: and `editmenu:find` are AUD-004's while the rest of `fileeditor-extension`/`mainmenu-extension`
-#: waits for the slices that examine the file editor and the chrome, and `fileeditor:create-new`
-#: plus `fileeditor:create-new-markdown-file` are AUD-005's because they create files rather than
-#: edit one. AUD-006 claims `mainmenu-extension`'s kernel-lifecycle delegates - the seven
-#: `kernelmenu:*` acts a `SemanticCommand` forwards to the current widget's `console:`/`notebook:`
-#: registration (`mainmenu/src/kernel.ts`), and the File menu's `create-console` /
-#: `close-and-cleanup`; `kernelmenu:open` opens the menu rather than the act, so it waits with the
-#: chrome. `notebook-extension` is carried too, for one id: `toc:run-cells` is declared there
-#: under the `toc:` prefix (`index.ts:351`) for a ToC row's context menu, so the `notebook:`
-#: filter over that package's own ids never reaches it and neither does the package-whole read
-#: of `toc-extension`.
-CARRIED_PACKAGES = ("fileeditor-extension", "mainmenu-extension", "notebook-extension")
-CARRIED_IDS = ("fileeditor:find", "editmenu:find", "toc:run-cells",
-               "fileeditor:create-new", "fileeditor:create-new-markdown-file",
-               "kernelmenu:interrupt", "kernelmenu:reconnect-to-kernel", "kernelmenu:restart",
-               "kernelmenu:restart-and-clear", "kernelmenu:change", "kernelmenu:shutdown",
-               "kernelmenu:shutdownAll", "filemenu:create-console", "filemenu:close-and-cleanup")
+#: is AUD-004's while the rest of `fileeditor-extension` waits for the file-editor slice, and
+#: `fileeditor:create-new` plus `fileeditor:create-new-markdown-file` are AUD-005's because they
+#: create files rather than edit one. `mainmenu-extension` is carried no longer - AUD-009 owns it
+#: whole, so the ten ids earlier slices took out of it are declared by the partition above.
+#: `notebook-extension` stays carried, for one id: `toc:run-cells` is declared there under the
+#: `toc:` prefix (`index.ts:351`) for a ToC row's context menu, so the `notebook:` filter over
+#: that package's own ids never reaches it and neither does the package-whole read of
+#: `toc-extension`.
+CARRIED_PACKAGES = ("fileeditor-extension", "notebook-extension")
+CARRIED_IDS = ("fileeditor:find", "toc:run-cells",
+               "fileeditor:create-new", "fileeditor:create-new-markdown-file")
 
 
 def declared_ids(packages: Path) -> list[str]:
@@ -98,7 +108,7 @@ def declared_ids(packages: Path) -> list[str]:
     its partition row into "declared by nobody" instead of staying silently owned.
 
     ```
-    declared_ids(reference_dir("jupyterlab") / "packages")   # 99 + 67 + 5 ids at the pinned SHA
+    declared_ids(reference_dir("jupyterlab") / "packages")   # 99 + 260 + 4 ids at the pinned SHA
     ```
     """
     from read_reference_commands import jupyterlab_command_ids
