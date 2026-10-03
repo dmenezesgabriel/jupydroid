@@ -1518,6 +1518,90 @@ extension per feature (`jupyterlab/packages/markedparser-extension/src/index.ts`
 the extension dependencies and maps their AST nodes — commonmark's `TableBlock` already has a
 home in `RichBlock.Table`, which `HtmlTable` fills today.
 
+### GAP-112 — Stream output never merges, and `\r`/`\b` draw literally
+
+`OutputAreaModel.add` folds a `stream` into the previous output when the `name`s match, and
+`processText`/`fixBackspace`/`fixCarriageReturn` interpret `\b` and `\r` so a progress bar
+rewrites its own line (`jupyterlab/packages/outputarea/src/model.ts:279-389`, `:545-659`). Ours
+appends each `stream` message as its own `CellOutput.Stream` in `EditorUiState.afterOutput`, and
+`withoutAnsiColours` touches ANSI escapes only — a `tqdm` loop lands as one output per repaint,
+carriage returns and all. The repair is the model-side accumulator — combine by name, then run
+the control-character pass — and `afterOutput` is already the one place the list changes.
+
+### GAP-113 — `update_display_data` appends instead of updating
+
+The reference registers every `display_data`/`execute_result` under its `transient.display_id`,
+and an `update_display_data` looks the id up and `set()`s the stored bundle in place — every view
+of that output redraws with the new data
+(`jupyterlab/packages/outputarea/src/widget.ts:804-850`). Ours folds the message into
+`CellOutput.DisplayData` at `KernelOutputs.outputFrom`
+(`app/src/main/java/com/jupydroid/app/data/space/KernelOutputs.kt:64`) and `afterOutput` appends
+it — a `display(..., display_id=)` + `update_display()` pair draws the stale frame above the new
+one. The carrier it needs is `GAP-104`'s `transient`; the repair beyond it is an id-indexed
+replace in `afterOutput`.
+
+### GAP-114 — An execute result gets no `Out[n]` prompt
+
+Every `execute_result` is wrapped by `OutputPrompt` bound to the model's `executionCount`, so the
+left column carries `Out[7]` beside what the cell produced
+(`jupyterlab/packages/outputarea/src/widget.ts:895-909`, `tokens.ts`). Ours puts the count on the
+input side only — `executionLabel`'s `[n]:` — while the result's own number round-trips through
+`execution_count` without ever drawing (`CellOutput.ExecuteResult` holds it;
+`app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt` never reads it). The repair
+is a prompt beside each execute-result row; the count already arrives.
+
+### GAP-115 — A runaway cell's output is unbounded
+
+`maxNumberOutputs` (500 by default) wraps a newly added output in `TrimmedOutputs` once the model
+is past the cap, and `setMaxNumberOutputs` re-trims on change
+(`jupyterlab/packages/outputarea/src/{model,widget}.ts`). Ours has no bound: `afterOutput`
+appends for as long as the kernel sends, and `CellOutputsView`'s scroll container grows with it —
+`while True: print()` fills the editor with one row per line until the device says otherwise. The
+repair is a cap in `afterOutput` — the same place `GAP-112`'s accumulator lives — plus the
+"outputs exceeded" surface the cap needs.
+
+### GAP-116 — An execute reply's `payload` never lands
+
+A reply carrying `payload` entries routes each by `source` — `page` opens the pager for `%page`
+and `?`-help, `set_next_input` rewrites the cell, `ask_exit`/`edit` round out the list
+(`jupyterlab/packages/outputarea/src/widget.ts:_onExecuteReply`). Ours never reads `payload`:
+`KernelOutputs.isReplyFor` checks the message's identity and the reply's content is dropped — an
+IPython `?`-help or `%page` payload vanishes entirely. The repair reads the payload list off the
+reply and routes `page` to a surface — the console transcript being the in-app precedent for
+where long help text lives.
+
+### GAP-117 — A `raises-exception` tag never reaches `stop_on_error`
+
+`OutputArea.execute` reads the cell's `tags` metadata and sends `stop_on_error: false` when
+`raises-exception` is among them, so a notebook whose cells are expected to raise — a test suite
+— runs to the end (`jupyterlab/packages/outputarea/src/widget.ts`; the tag is nbformat's
+convention). Ours sends `stop_on_error: true` unconditionally
+(`app/src/main/java/com/jupydroid/app/data/space/JupyterMessage.kt:107`), and `runCells` breaks
+on the first raise — the tag is preserved by `PreservedJson` but never read. The repair reads
+the tag list where the execute request is built.
+
+### GAP-118 — A malformed notebook is never told apart
+
+The server validates every notebook twice — `nbformat.validate` on the read path and again on the
+save path, `capture_validation_error` catching the exception so `validate_notebook_model` can put
+`"Notebook validation failed: …"` into the response, and a read that cannot parse is renamed
+`.invalid` rather than lost (rootfs `jupyter_server/services/contents/manager.py`,
+`filemanager.py`; `nbformat/v4/nbbase.py`). Ours has no check: a notebook missing `cells` fails
+the decode outright, an output without `output_type` drops silently at `toDomainOutput`, and a
+structural break is indistinguishable from an empty document. The repair is a read-side
+validation pass whose finding surfaces the way `model["message"]` does.
+
+### GAP-119 — An opened `.ipynb` is a name with no content
+
+`DocumentManager.open` on a notebook path reads the file's bytes through the contents API and
+builds the model from them — a document is its content
+(`jupyterlab/packages/docmanager/src/manager.ts`). Ours answers a VIEW intent by taking the
+display name only: `importTitleFrom` strips the `.ipynb` suffix into a title and `MainActivity`
+creates an empty notebook under it, so a shared file's cells never arrive
+(`app/src/main/java/com/jupydroid/app/import/ImportTitles.kt`,
+`app/src/main/java/com/jupydroid/app/MainActivity.kt`). The repair reads the intent URI's bytes
+through `NotebookFile.readNotebook` and stores the result under the imported title.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

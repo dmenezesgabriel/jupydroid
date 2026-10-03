@@ -58,7 +58,7 @@ Five, each obliging something different. The full definition is in
 | Files, workspace, recents | `AUD-005` | examined — below |
 | Console, sessions, running panel | `AUD-006` | examined — below |
 | Terminal emulator and view | `AUD-007` | partially verdicted — all but the walk below |
-| Rendering and formats | `AUD-008` | partially verdicted — the command surface below |
+| Rendering and formats | `AUD-008` | partially verdicted — all but the walk below |
 | Chrome and presentation | `AUD-009` | unexamined |
 | Spaces and runtime | `AUD-010` | unexamined |
 
@@ -2233,3 +2233,86 @@ and stripping is the stated fallback for its absence, not the capability itself.
 | `RenderedCommon`/`RenderedHTMLCommon`/`widgets.ts` — collapse/prompt DOM, `trusted` marks, `addMessageRenderer`'s mount point | `CellOutputsView` — the Compose container; no trusted marks (nothing to mark); inline expand/collapse and scroll | adapted | the container concerns are Compose's; collapse, scroll and output accumulation verdict with `T4`'s output-area surface |
 | VS Code `backLayerWebView`/`cellRenderer` — outputs drawn by a second webview layer behind the cells, renderer scripts contributed per mime | outputs draw in-document in Compose — JupyterLab's own placement | adapted | presentation reference only: ours matches JupyterLab's in-document choice rather than the backlayer split, and ADR-0039's no-WebView model removes the bridge entirely |
 | Jewel markdown — `MarkdownProcessor` → `MarkdownBlock`/`InlineMarkdown` → `MarkdownBlockRenderer`, `parseEmbeddedHtml` opt-in with `MarkdownHtmlConverterExtension`, `CodeHighlighter` no-op by default | `MarkdownDocument` → `RichBlock`/`RichInline` → `RichText` — the same two stages | adapted | the shape is deliberately shared; the extension surface Jewel ships — autolink, gfm-tables, gfm-strikethrough, gfm-alerts, images — is what `GAP-107`/`GAP-111` record absent; `parseEmbeddedHtml` maps to our inverse: raw HTML in markdown drops rather than converts |
+
+### The output area and the format — verdicts
+
+`T4`'s entries, read down the widget+model pair, the stdin and prompt machinery, the two
+nbformat implementations and the server's file/nbconvert halves — then the import the VIEW
+intent offers. Theirs: `OutputArea`/`OutputAreaModel` (`packages/outputarea/src/{widget,model}.ts`
+— `add`/`insert`, `clear`/`clearNext`, `shouldCombine`, `processText`/`fixBackspace`/
+`fixCarriageReturn`, `maxNumberOutputs`/`TrimmedOutputs`, `fromJSON`/`toJSON`, `execute` clearing
+before a run and reading `tags` for `stop_on_error`); `OutputPrompt`/`InputPrompt`/
+`PromptOverlay` and `IsolatedRenderer` (`tokens.ts`); `Stdin`/`onInputRequest` echoing a
+`stream(name:'stdin')`; `display_id`/`update_display_data` registered under `transient` and
+`set()` in place; `SimplifiedOutputArea` for the console; `execute_reply` `payload` routed to
+the pager; `packages/nbformat/src/index.ts`'s open interfaces (`PartialJSONObject` everywhere,
+`IUnrecognizedCell`/`IUnrecognizedOutput`, `MultilineString`, MINOR 4); rootfs `nbformat`
+(`validate`, `split_lines`/`rejoin_lines`/`_rejoin_mimebundle`, `strip_transient` popping
+`trusted`/`signature`/`orig_nbformat`, `nbformat_minor` 5); `jupyter_server`
+(`contents/manager.py`'s `validate_notebook_model` on read *and* save, `fileio.py`'s
+`atomic_writing` + `.invalid` recovery, `nbconvert/handlers.py`'s GET + POST + `api/nbconvert`
+listing, `respond_zip`/CSP/`redirect_to_files`); `DocumentManager.open` reading bytes through
+`contents.get`. Ours: `EditorUiState.outputs`/`after`/`afterOutput`/`startingRun` +
+`clearsPending` (the model half), `CellOutputs`/`CellOutputsView`/`CollapsedCell`/
+`executionLabel` (the draw), `KernelOutputs`/`CellOutput`/`MimeBundle` (the wire),
+`NotebookFile`/`NotebookJsonWriter`/`NotebookOutput{Reader,Writer}`/`MimeBundleLines`/
+`PreservedJson` (the format), `DiskNotebookRepository` (the file), `OkHttpNotebookExporter`/
+`OfferedExportFormat`/`DocumentSharer` (the conversion), `ImportTitles` + `MainActivity`'s VIEW
+intent (the import).
+
+```sh
+ls reference/research_repos/jupyterlab/packages/outputarea/src
+grep -n 'clearNext\|shouldCombine\|processText\|maxNumberOutputs' reference/research_repos/jupyterlab/packages/outputarea/src/model.ts
+grep -n 'OutputPrompt\|SimplifiedOutputArea\|isIsolated\|update_display_data\|display_id\|onInputRequest\|PromptOverlay\|raises-exception\|payload' reference/research_repos/jupyterlab/packages/outputarea/src/{widget,tokens}.ts
+grep -n 'IUnrecognized\|PartialJSONObject\|nbformat_minor\|MultilineString' reference/research_repos/jupyterlab/packages/nbformat/src/index.ts
+zstd -dc app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server/services/contents/fileio.py | grep -n 'atomic\|invalid'
+zstd -dc app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server/services/contents/manager.py | grep -n 'validate'
+zstd -dc app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst | tar -xOf - usr/lib/python3.12/site-packages/jupyter_server/nbconvert/handlers.py | sed -n '1,90p'
+zstd -dc app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst | tar -xOf - usr/lib/python3.12/site-packages/nbformat/v4/nbjson.py | grep -n 'strip_transient\|split_lines\|rejoin'
+grep -rn 'ClearOutput\|clear_output\|allow_stdin\|stop_on_error' app/src/main/java/com/jupydroid/app
+cat app/src/main/java/com/jupydroid/app/import/ImportTitles.kt; grep -n 'importTitle\|VIEW\|Intent' app/src/main/java/com/jupydroid/app/MainActivity.kt
+```
+
+These rows carry no `family:id` — the command surface is `T2`'s — so the produced counts do not
+move; each `absent` still names the `GAP-NNN` ADR-0067 obliges. One defect surfaced and was
+fixed red-first in `974ba25c`: `clear_output` was appended to the output list as an invisible
+instruction — a `print; clear_output()` kept its output on screen, and the same entry serialized
+to disk as `{}`, an output `nbformat.validate` refuses. `EditorUiStateTest`'s three
+`aClearOutput*` cases and `KernelOutputsTest.outputOf_readsClearOutputWait` pinned it;
+`afterOutput` now executes the instruction against the model — immediate clears drop the list,
+`wait` sets `clearsPending` and the next output spends it (`model.ts:301-311`'s two cases) — so
+it never lands in `outputs`, never renders, and never writes. Eight GAPs open — `GAP-112` through `GAP-119`; `GAP-014`,
+`GAP-023` and `GAP-104` are cited where the read lands on their ground. Fold calls the PRD left
+open: the stdin row cites `GAP-014` rather than re-gapping (its stream-name echo drops on the
+same lines), `isolated` verdicts `adapted` under ADR-0039's no-DOM answer rather than `absent`
+(there is nothing rendered for an iframe to isolate, consistent with `notebook:trust` at `T2`),
+and `update_display_data` verdicts `absent` — flattening to `DisplayData` produces a *duplicate*
+frame, a visible wrongness no comment states — while the carrier it needs stays `GAP-104`'s.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `OutputArea`/`OutputAreaModel` — the widget+model pair: `add`/`insert`, `changed`/`stateChanged` signals, `fromJSON`/`toJSON`, `execute` clearing outputs before a run (`packages/outputarea/src/{widget,model}.ts`) | `EditorUiState.outputs` + `after`/`afterOutput` projected over `CellOutput`; `startingRun`'s `outputs - cellId` on re-run | adapted | the same model duties run as a `Map` plus pure functions — `startingRun`'s clear is `execute()`'s `clear()`, commented on the function; each message's rule verdicts in its own row below |
+| stream accumulation — `shouldCombine` folding adjacent same-name streams, `processText`/`fixBackspace`/`fixCarriageReturn` interpreting `\b` and `\r` (`model.ts:279-389`, `:545-659`) | every `stream` message appends its own `CellOutput.Stream`; no combining, no control-character pass | **absent** | `GAP-112`. One machinery half: a `tqdm` bar is one output per repaint; a same-name split is a new row per flush |
+| `OutputPrompt` — `Out[n]` beside each `execute_result`, bound to the model's `executionCount` (`widget.ts:895-909`, `tokens.ts`) | `executionLabel`'s `[n]:` on the input side only; `CellOutput.ExecuteResult.executionCount` never drawn | **absent** | `GAP-114`. The PRD's "no `Out[n]` prompt" confirmed — the count arrives and round-trips; nothing draws it beside the output |
+| `PromptOverlay` — the output-column overlay that toggles the `scrolled` metadata flag (`widget.ts`, `tokens.ts`) | `CellAction.ToggleOutputsScrolled` in the cell menu; `outputsScrolled` persisted the same way | adapted | same flag, different affordance — the hover/click overlay is a pointer's luxury the menu row answers on a tablet; the toggle itself verdicted at `AUD-002` |
+| `Stdin`/`onInputRequest`/`allow_stdin: true` — a prompt widget on `input_request`, the reply echoed as `stream(name:'stdin')` (`widget.ts:547-629`) | `allow_stdin: false` — commented "there is no terminal behind this kernel" (`JupyterMessage.kt:106`); no stdin surface; a `stdin`-named stream drops at `toStream` | **absent** | `GAP-014` — recorded: `input()` raises `StdinNotImplementedError`; the echo drop rides the same missing surface |
+| `display_id`/`update_display_data` — outputs registered under `transient.display_id`; an update `set()`s the stored bundle in place, every view redraws (`widget.ts:804-850`) | folded to `CellOutput.DisplayData` at `KernelOutputs.outputFrom`; `transient` dropped; the update appends as a second, stale-paired frame | **absent** | `GAP-113` — the routing half; `GAP-104` is the carrier the id rides on |
+| `clear_output`/`clear(wait)` — `wait:false` clears the model now, `wait:true` sets `clearNext` and the next `add` clears first (`model.ts:301-311`) | was: appended as an invisible output and persisted as `{}` — now: `afterOutput` executes it against the model, `clearsPending` carries the deferred half | **defect** | fixed red-first in `974ba25c` — `aClearOutputDropsWhatTheCellPrinted`, `aClearOutputWithWaitKeepsTheOutputsUntilTheNextOneArrives`, `aClearOutputWithWaitIsSpentByTheNextOutput`, `outputOf_readsClearOutputWait`; the `{}` write dies with it — the instruction never reaches `outputs`, so `toFileOutput`'s arm is unreachable |
+| `maxNumberOutputs`/`TrimmedOutputs` — a cap (500 default) with an "outputs exceeded" placeholder (`{model,widget}.ts`) | unbounded append; `CellOutputsView` scrolls what it gets | **absent** | `GAP-115`. A runaway `print()` loop has no ceiling and no mercy row |
+| `isIsolated`/`IsolatedRenderer` — `metadata.isolated` (per-mime key, then `metadata.isolated`) wraps the output in an iframe (`widget.ts:769-783`, `:1052-1064`) | no metadata carrier (`GAP-104`) and no DOM to isolate — the subset parse is unconditional | adapted | the isolation question presumes rendered markup can act — under ADR-0039 nothing can, so there is nothing to fence; `notebook:trust`'s `T2` verdict covers the flag itself |
+| `SimplifiedOutputArea` — the console's output area: no prompt wrapper, `onInputRequest` a no-op (`widget.ts:1217-1238`) | `ConsoleTranscriptView` reuses `CellOutputs`/`executionLabel` directly | adapted | same transcript shape through the shared parts — and the stdin refusal rides `GAP-014`'s `allow_stdin: false` one layer up |
+| `InputCollapser`/`OutputCollapser` — click strips over the prompt columns bound to `inputHidden`/`outputHidden` (`packages/cells/src/collapser.tsx`) | `CollapsedCell` for both directions, `outputsHidden`/`sourceHidden` metadata-driven | adapted | the collapse machinery verdicted at `AUD-002` over the toggle commands — this row is the widget shape: a strip with a preview rather than a prompt-column affordance |
+| `execute_reply` `payload` — `source:'page'` to the pager, `set_next_input`, `ask_exit`, `edit` (`widget.ts:_onExecuteReply`) | `isReplyFor` reads the reply's identity only; `payload` never read | **absent** | `GAP-116`. `%page` and `?`-help vanish — the message arrives whole and its routing field is dropped |
+| `raises-exception` cell tag — `OutputArea.execute` sends `stop_on_error: false` for a tagged cell (`widget.ts`; nbformat's tag convention) | `stop_on_error: true` unconditionally (`JupyterMessage.kt:107`); the tag is preserved but never read | **absent** | `GAP-117`. A test-suite notebook's expected failure halts our run-all where the reference's continues |
+| `execute_input` → the prompt's execution count | `executionCountOf` → `KernelEvent.ExecutionCount` → `executionCounts` map → `[n]:` and `cell.executionCount` persisted | present | the same message feeds the same count — the input-side prompt draws it and the file keeps it |
+| model `toJSON`/`fromJSON` — stored outputs round-trip through the model | `toDomainOutput`/`toFileOutput` over `outputsJson()` — preserved bytes when the domain list is unchanged, regenerated when it is not | adapted | stronger than a model round-trip on the untouched path (byte-for-byte); a regenerated list loses what `GAP-104` never carried in |
+| `IUnrecognizedCell`/`IUnrecognizedOutput` — a cell type or output the schema does not name still opens, drawn unrecognized (`nbformat/src/index.ts`) | `cellKind` throws naming the fourth type; an unknown `output_type` drops at `toDomainOutput` ("Total by design") but survives in `PreservedJson` while untouched | adapted | refusal-with-a-name on the cell half — the comment names the value; preservation-not-modeling on the output half — the same `IUnrecognizedOutput` idea answered at the file layer instead of the widget |
+| `nbformat`/`nbformat_minor` — TS `MINOR_VERSION` 4, Python `nbformat_minor` 5 | `nbformat = 4`, `nbformatMinor = 5` | present | matches the shipped rootfs's own writer — minor 5 because cell ids are a 4.5 requirement, stated on `NotebookFile` |
+| `MultilineString`/`split_lines`/`rejoin_lines`/`_rejoin_mimebundle` — `text/*` and the two special mimes split on write, non-text JSON stays structured, lists rejoin on read (`nbformat/v4/nbjson.py`) | `MimeBundleLines` + `joinedText`/`toJsonLines` + `MultiLineSourceSerializer`; cell `source` emits the string form | present | the asymmetry is transcribed function-for-function, comments naming each; the string form is a shape `split_lines=False` also produces, and ours reads both |
+| `nbformat.validate` — run on read and on save; `capture_validation_error` → `model["message"]` reports the failure; `.invalid` renames an unparseable file (`contents/{manager,filemanager}.py`, `nbformat/v4`) | nothing validates anywhere — a structurally broken notebook throws in decode or drops silently | **absent** | `GAP-118`. The reference's answer is *report*, not refuse — invalid structure opens with a warning; ours cannot say why a file opened degraded |
+| `atomic_writing` + `.invalid` recovery — `.{name}~` temp, flush+fsync, rename, prior file restored on failure (`contents/fileio.py`) | `DiskNotebookRepository.writeFile` is `File.writeText` direct | **absent** | `GAP-023` — recorded: a save cut mid-flight can leave the notebook truncated |
+| `strip_transient` — `nbformat`'s own I/O pops `cell.metadata.trusted`, `signature`, `orig_nbformat` on reads and writes (`nbformat/v4/nbjson.py`) | `PreservedJson` keeps every field byte-for-byte | adapted | the reference disagrees with itself here — JupyterLab's model carries `trusted` while the Python layer strips it at both ends; ours sides with file-faithful preservation (ADR-0021's open format) |
+| open schema — every interface `extends PartialJSONObject`; `nbbase`/`toJSON` keep unknown keys (`nbformat/src/index.ts`) | `PreservedJson` + `ignoreUnknownKeys` + the overlay writer | present | same contract, one level stronger — untouched regions round-trip byte-for-byte rather than field-for-field |
+| `api/nbconvert` + `NbconvertFileHandler` — format listing, GET `nbconvert/<fmt>/<path>?download`, POST variant, `respond_zip`, CSP sandbox header, `redirect_to_files` for non-notebooks (`nbconvert/handlers.py`) | `OkHttpNotebookExporter.formats()`/`export()` over the same two endpoints; `OfferedExportFormat` intersects; `DocumentSharer` hands bytes off | adapted | verdicted at `T2` — the GET pair is the half both clients call; POST, the zip branch and the redirect have no caller on either frontend, and the CSP header guards a browsing surface ADR-0039 never built |
+| contents `get`/`save` — the file manager reading and writing notebook models (`contents/{filemanager,manager}.py`) | `DiskNotebookRepository.readFile`/`writeFile` | adapted | the same file-level duties; validation and atomicity split to their own rows above |
+| `.ipynb` open — `DocumentManager.open` reads the file's bytes through `contents.get`; a document is its content (`docmanager/src/manager.ts`) | a VIEW intent yields the display name only — `importTitleFrom` strips the suffix and an *empty* notebook is created under it | **absent** | `GAP-119`. Shipped as a title-only import; the shared file's bytes are never read |

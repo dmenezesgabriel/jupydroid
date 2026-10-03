@@ -312,7 +312,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       extension-mounted factories against `markdown/`+`html/`+`richtext/`+`RenderedOutput`/
       `MarkdownCell`; `platform/jewel/markdown` and VS Code's `cellRenderer`/`backLayerWebView`
       read for presentation.
-- [ ] T4 — **Verdicts for the output area and the format.** `outputarea` (OutputArea/OutputPrompt/
+- [x] T4 — **Verdicts for the output area and the format.** `outputarea` (OutputArea/OutputPrompt/
       Stdin/SimplifiedOutputArea/collapser/isolated/display_id/clear_output) + `nbformat` (TS types
       and Python validator/reader/rwbase) + `nbconvert`/`handlers.py` against `CellOutput`/
       `CellOutputsView`/`KernelOutputs`, `data/disk/*`, `data/space/*Exporter*`,
