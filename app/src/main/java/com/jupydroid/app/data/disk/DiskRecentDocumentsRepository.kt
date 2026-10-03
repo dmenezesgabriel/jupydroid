@@ -10,6 +10,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -42,6 +44,14 @@ class DiskRecentDocumentsRepository(
   private val workspace = WorkspaceRoot(workspaceDir)
   private val recents = MutableStateFlow(loadValidated())
 
+  /**
+   * One write at a time, and the publish lands after it - the flow only repeats what the file
+   * holds. A `writeText` the filesystem refuses must not broadcast a list the next launch never
+   * kept, and [record]'s read-modify-write must not let two opens in the same breath drop one:
+   * `recordOpening` writes twice per document tap and the stack's opens race freely.
+   */
+  private val writeMutex = Mutex()
+
   override fun observeRecents(): Flow<List<RecentDocument>> = recents
 
   /**
@@ -53,10 +63,12 @@ class DiskRecentDocumentsRepository(
    */
   override suspend fun record(document: RecentDocument) = withContext(ioDispatcher) {
     if (!isInsideTheWorkspace(document)) return@withContext
-    write(recents.value.withMostRecent(document))
+    writeMutex.withLock { write(recents.value.withMostRecent(document)) }
   }
 
-  override suspend fun clear() = withContext(ioDispatcher) { write(emptyList()) }
+  override suspend fun clear() = withContext(ioDispatcher) {
+    writeMutex.withLock { write(emptyList()) }
+  }
 
   /**
    * The same filter [loadValidated] applies at launch, applied again on demand.
@@ -65,14 +77,16 @@ class DiskRecentDocumentsRepository(
    * entry and touches no disk.
    */
   override suspend fun revalidate() = withContext(ioDispatcher) {
-    val surviving = recents.value.filter { stillThere(it) }
-    if (surviving.size != recents.value.size) write(surviving)
+    writeMutex.withLock {
+      val surviving = recents.value.filter { stillThere(it) }
+      if (surviving.size != recents.value.size) write(surviving)
+    }
   }
 
   private fun write(updated: List<RecentDocument>) {
-    recents.value = updated
     stateDir.mkdirs()
     storeFile().writeText(json.encodeToString(StoredRecents(updated.map { it.stored() })))
+    recents.value = updated
   }
 
   /**

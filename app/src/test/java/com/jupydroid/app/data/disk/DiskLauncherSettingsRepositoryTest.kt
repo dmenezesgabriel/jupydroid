@@ -55,4 +55,20 @@ class DiskLauncherSettingsRepositoryTest : LauncherSettingsRepositoryContract() 
 
     assertTrue(File(stateDir, LAUNCHER_SETTINGS_FILE_NAME).isFile)
   }
+
+  /**
+   * The file is the record and the flow repeats it - so a refused write announces nothing:
+   * publishing before `writeText` would leave every collector showing a value the next launch
+   * never kept. A directory standing where the file belongs is a write the filesystem refuses.
+   */
+  @Test
+  fun aRefusedWritePublishesNothing() = runTest {
+    val store = openStore()
+    File(stateDir, LAUNCHER_SETTINGS_FILE_NAME).mkdirs()
+
+    val refused = runCatching { store.update(LauncherSettings(launcherSeen = true)) }
+
+    assertTrue(refused.exceptionOrNull() is java.io.IOException)
+    assertEquals(LauncherSettings(), store.observeSettings().first())
+  }
 }

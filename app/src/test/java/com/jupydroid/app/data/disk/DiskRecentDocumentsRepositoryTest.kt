@@ -161,4 +161,21 @@ class DiskRecentDocumentsRepositoryTest : RecentDocumentsRepositoryContract() {
     assertEquals(listOf("notes.ipynb"), paths)
     assertFalse("an escaping path must never be remembered", paths.contains("../escaped.ipynb"))
   }
+
+  /**
+   * The file is the record and the flow repeats it - so a refused write announces nothing:
+   * publishing before `writeText` would leave the list showing an entry the next launch never
+   * kept. A directory standing where the file belongs is a write the filesystem refuses.
+   */
+  @Test
+  fun aRefusedWritePublishesNothing() = runTest {
+    givenInWorkspace("kept.ipynb")
+    val store = openStore()
+    File(stateDir, RECENTS_FILE_NAME).mkdirs()
+
+    val refused = runCatching { store.record(RecentDocument("kept.ipynb", WorkspaceEntryKind.FILE)) }
+
+    assertTrue(refused.exceptionOrNull() is java.io.IOException)
+    assertTrue(store.observeRecents().first().isEmpty())
+  }
 }

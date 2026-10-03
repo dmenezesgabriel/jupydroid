@@ -8,6 +8,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -33,12 +35,22 @@ class DiskEditorSettingsRepository(
 ) : EditorSettingsRepository {
   private val settings = MutableStateFlow(loadValidated())
 
+  /**
+   * One write at a time, and the publish lands after it - the flow only repeats what the file
+   * holds. A `writeText` the filesystem refuses must not broadcast a value the next launch never
+   * kept, and two writes racing on `applicationScope` must not leave the file and the flow
+   * disagreeing about which update was last.
+   */
+  private val writeMutex = Mutex()
+
   override fun observeSettings(): Flow<EditorSettings> = settings
 
   override suspend fun update(settings: EditorSettings) = withContext(ioDispatcher) {
-    this@DiskEditorSettingsRepository.settings.value = settings
-    stateDir.mkdirs()
-    storeFile().writeText(json.encodeToString(EditorSettings.serializer(), settings))
+    writeMutex.withLock {
+      stateDir.mkdirs()
+      storeFile().writeText(json.encodeToString(EditorSettings.serializer(), settings))
+      this@DiskEditorSettingsRepository.settings.value = settings
+    }
   }
 
   /**
