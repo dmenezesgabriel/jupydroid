@@ -426,4 +426,55 @@ class TerminalPaneViewModelTest {
 
     assertEquals(TerminalFontSize.MIN, viewModel.uiState.value.fontSizeSp)
   }
+
+  /**
+   * A keystroke on a shell that already ended goes nowhere - the reference's own drop:
+   * `_sendMessage` returns on `_isDisposed` (`packages/services/src/terminal/default.ts:106-108`),
+   * and a browser `WebSocket.send` on a closed socket is already silent. [RecordingGateway]
+   * records what a send *attempt* was, so a `send`/`resize` that still fires after `Ended` is
+   * seen without needing the exception it throws on the real gateway to escape anywhere.
+   */
+  @Test
+  fun aKeystrokeOnAnEndedShellReachesNoSocket() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway)
+    attachOn(viewModel)
+    advanceUntilIdle()
+    viewModel.resize(IntSize(80, 24), 10, 20)
+    advanceUntilIdle()
+
+    gateway.push(TerminalEvent.Ended("the shell exited"))
+    advanceUntilIdle()
+    viewModel.type("x")
+    viewModel.typeCharacters("y")
+    viewModel.resize(IntSize(120, 30), 10, 20)
+    advanceUntilIdle()
+
+    assertEquals("the shell exited", viewModel.uiState.value.endedReason)
+    assertEquals("a send attempted after Ended reaches the socket: ${gateway.sent}", emptyList<String>(), gateway.sent)
+    // The one resize before Ended stands; the one after does not.
+    assertEquals(listOf(24 to 80), gateway.resized)
+  }
+
+  /**
+   * The same drop against [FakeTerminalGateway], whose `send` on a closed terminal throws where
+   * the recording one only counts - `send_failsWithTheReasonWhenTheSocketDiesBeforeSetup` is the
+   * port's own contract for the refusal, so this proves it lands *not as a crash*.
+   */
+  @Test
+  fun typingOnAClosedShellDoesNotThrow() = runTest {
+    val gateway = FakeTerminalGateway()
+    val session = gateway.open()
+    val viewModel = TerminalPaneViewModel(session, gateway)
+    attachOn(viewModel)
+    advanceUntilIdle()
+
+    gateway.close(session)
+    advanceUntilIdle()
+
+    viewModel.type("x")
+    viewModel.typeCharacters("y")
+    viewModel.resize(IntSize(120, 30), 10, 20)
+    advanceUntilIdle()
+  }
 }

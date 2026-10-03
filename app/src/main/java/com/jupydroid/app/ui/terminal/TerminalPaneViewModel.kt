@@ -16,6 +16,7 @@ import com.jupydroid.app.terminal.TerminalNotices
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.terminal.TerminalReplies
 import com.jupydroid.app.terminal.clampedTopRow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -211,7 +212,13 @@ class TerminalPaneViewModel(
     // only a fresh `key(state.redraw)` rebuild reads what the mutation above just changed, the
     // same reason every `Output` event already bumps this.
     bumpRedraw()
-    viewModelScope.launch { terminalGateway.resize(session, rows = gridSize.height, cols = gridSize.width) }
+    // The reflow above is still right for a dead shell - its last screen is what stays drawn.
+    // The wire half has no pty to size once [TerminalEvent.Ended] landed, and an ended pane's
+    // `attached` slot is already gone, so asking would suspend for `ATTACH_TIMEOUT` and refuse.
+    if (_uiState.value.endedReason != null) return
+    viewModelScope.launch {
+      writingToTheShell { terminalGateway.resize(session, rows = gridSize.height, cols = gridSize.width) }
+    }
   }
 
   /**
@@ -285,7 +292,11 @@ class TerminalPaneViewModel(
   }
 
   private fun sendToShell(text: String) {
-    viewModelScope.launch { terminalGateway.send(session, text) }
+    // `_sendMessage`'s `_isDisposed` early-return (`services/terminal/default.ts:106-108`, where a
+    // browser `WebSocket.send` on a closed socket is already a silent no-op): `endedReason` is the
+    // same fact here, and dropping the keystroke is what it means.
+    if (_uiState.value.endedReason != null) return
+    viewModelScope.launch { writingToTheShell { terminalGateway.send(session, text) } }
   }
 
   private fun bumpRedraw() = _uiState.update { it.copy(redraw = it.redraw + 1) }
@@ -294,5 +305,22 @@ class TerminalPaneViewModel(
     /** Overwritten by the first real layout; a shell has to start at *some* size. */
     const val DEFAULT_COLUMNS = 80
     const val DEFAULT_ROWS = 24
+  }
+}
+
+/**
+ * A write the socket refuses goes nowhere rather than crashing the caller's `launch`. The
+ * `endedReason` gates cannot see the race this covers - a socket that ends between the check and
+ * the frame landing, whose refusal `RealTerminalGateway` deliberately throws (the port's own
+ * contract in `send_failsWithTheReasonWhenTheSocketDiesBeforeSetup`, which the pane is obliged to
+ * land). File-level rather than a member: the class is already at detekt's `TooManyFunctions`
+ * cap, the same reason `TerminalGrid.clampedTopRow` is an extension.
+ */
+private suspend fun writingToTheShell(ask: suspend () -> Unit) {
+  try {
+    ask()
+  } catch (cancelled: CancellationException) {
+    throw cancelled
+  } catch (_: Exception) {
   }
 }
