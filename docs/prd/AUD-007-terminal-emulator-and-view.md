@@ -226,7 +226,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `AUD-006`'s Terminals-section verdict row (`parity-ledger.md`), which loses its backticks so
       the missing-check does not report it judged. Land the `AUD-007` ledger section: the surface
       paragraphs, the produced counts, the partition rows — no verdicts.
-- [ ] T2 — **Verdicts for the pane surface and the wire.** The eleven `terminal:*` ids and the
+- [x] T2 — **Verdicts for the pane surface and the wire.** The eleven `terminal:*` ids and the
       twelve `plugin.json` settings against `TerminalActionsMenu`, the launcher card,
       `MutableList.openTerminal`, `TerminalSettings`/`…Repository`; `packages/terminal`
       (`widget.ts`/`tokens.ts`) and `services/terminal` against `TerminalPaneViewModel` and

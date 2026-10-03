@@ -1169,6 +1169,48 @@ Sessions row carries "New Console for Kernel" or "New Notebook for Kernel"
 affordance feeding the session's `kernelId` into session start — which `attachConsole` is not:
 it binds to the notebook's *own* session, not an arbitrary running kernel.
 
+### GAP-081 — A terminal has no clipboard of its own
+
+`terminal:copy` copies `getSelection()` and `terminal:paste` hands the system clipboard to
+`widget.paste` (`jupyterlab/packages/terminal-extension/src/index.ts:623-746`), with
+`pasteWithCtrlV` as the keybind reach. Ours holds the machinery and none of the reach:
+`TerminalGrid.selectedText`/`GridSelection` turn a *span* into text, but nothing anywhere creates
+a selection to pass one — no drag-select, no anchors, no `hasSelection` — and
+`TerminalEmulator.paste`/`PasteCommand` (sanitizing, bracketed under DECSET 2004) is callable by
+nobody (`app/src/main/java/com/jupydroid/app/terminal/`,
+`app/src/main/java/com/jupydroid/app/ui/terminal/`). The repair is two acts, not one wire: a
+selection gesture plus a Copy reach (Termux's `textselection/` handles are the reference's own
+mobile shape — AUD-007 `T4`'s read), and a Paste row/keybind landing text on `TerminalGateway.send`.
+
+### GAP-082 — The terminal never holds a link
+
+`terminal:copy-link` reads `content.contextMenuLink` — the OSC-8 link under the pointer, tracked
+by xterm.js's `addon-web-links` (`jupyterlab/packages/terminal-extension/src/index.ts:693-716`).
+Ours parses no OSC 8 at all: `EscapeDispatch`'s OSC handler covers colours, title and clipboard
+(`app/src/main/java/com/jupydroid/app/terminal/`), so a `https://…` a program prints is drawn as
+text and there is nothing under a pointer for a menu to name. The repair starts in the emulator —
+store the link span the way JediTerm's `model/hyperlinks/` does — before any surface can offer
+copy/open for it.
+
+### GAP-083 — A folder cannot open a terminal at itself
+
+`terminal:open-folder-in-terminal` is a directory's context-menu item delegating to
+`terminal:create-new` with `cwd` (`jupyterlab/packages/terminal-extension/src/index.ts:128-163`).
+The wire half already exists here — `TerminalGateway.open(cwd)` takes the directory and the bar's
+"+" already passes `browsedDirectory` (`Navigation.kt`) — but `ExplorerScreen`'s long-press menu
+on a directory row offers only Rename and Delete. The repair is the row's own item feeding its
+`cwd` to `openNewTerminal`.
+
+### GAP-084 — A shell's end goes unmarked
+
+`closeOnExit` (schema default true) closes the tab when the pty exits
+(`jupyterlab/packages/terminal/src/widget.ts`); ours keeps the pane standing on the last screen —
+defensible on touch — but `TerminalPaneUiState.endedReason` is written on every `Ended` and
+*nothing reads it*: no banner, no status, no difference a user can see between a shell at a prompt
+and a dead one (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneViewModel.kt`,
+`TerminalPaneScreen.kt`). The repair is the marked end — drawing the reason the way the
+reference's auto-close makes the end obvious — before `closeOnExit` itself is even a question.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

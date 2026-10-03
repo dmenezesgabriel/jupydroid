@@ -57,7 +57,7 @@ Five, each obliging something different. The full definition is in
 | Search, replace, table of contents | `AUD-004` | examined — below |
 | Files, workspace, recents | `AUD-005` | examined — below |
 | Console, sessions, running panel | `AUD-006` | examined — below |
-| Terminal emulator and view | `AUD-007` | measured — the surface below, verdicts next |
+| Terminal emulator and view | `AUD-007` | partially verdicted — the pane surface and the wire below |
 | Rendering and formats | `AUD-008` | unexamined |
 | Chrome and presentation | `AUD-009` | unexamined |
 | Spaces and runtime | `AUD-010` | unexamined |
@@ -1715,3 +1715,43 @@ surface is JupyterLab's by §8.3 and VS Code is read for presentation only — a
 runs inside the pty is `AUD-010`'s; this slice owns the wire to it and the screen it draws on. The
 partition rows are in the shared table under `AUD-002`'s heading — all eleven ids to `T2` (the
 pane surface and the wire); `T3` verdicts the emulator, `T4` the view, `T5` the walk.
+
+### The pane surface and the wire — verdicts
+
+`T2`'s entries, read down both dispatches. Ours: the bar's "+" / the launcher's Terminal card →
+`rememberNewTerminal` → `openNewTerminal` → `TerminalGateway.open` → `openTerminal`; the pane's
+`TerminalActionsMenu` → `TerminalPaneViewModel.changeFontSize` → `TerminalSettings`; the running
+panel's tap → `openTerminal(name)` and its ✕ → `close` (AUD-006 `T4` verdicted that surface's own
+rows); `KeepTheShellAttached` → `attach()` → `BaseSpaceTerminalGateway.attach` →
+`RealTerminalGateway` over `OkHttpTerminalSocketOpener`/`OkHttpTerminalLifecycle`/`TerminalFrame`,
+answers going back through `TerminalGateway.send`/`resize`. Theirs: `index.ts`'s eleven
+`addCommand`s and the `plugin.json` settings, `widget.ts`'s `Terminal` over xterm.js,
+`default.ts`'s `TerminalConnection` (`_pendingMessages` until `setup`, `_reconnect` backoff,
+`_isDisposed` drop), `manager.ts`/`restapi.ts`, `searchprovider.ts`'s registry add - and under it
+all the shipped server's `api/terminals` handlers and `TermSocket`/`NamedTermManager`.
+
+The read is what found the three defects below: two refused asks escaping a launch (the mint, the
+post-`Ended` write) and one refused attach escaping the flow - the same class AUD-006 fixed twice,
+fixed red-first here and verdicted with the rows they sit under.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `terminal:create-new` — Launcher tab, File menu, palette; args `name`, `cwd` (`index.ts:482-550`) | the bar's "+" at one pane and the launcher's Terminal card at two → `rememberNewTerminal` → `openNewTerminal` → `open(cwd)` → `openTerminal` | adapted | the mint happens with the browsed directory carried (`Navigation.kt`'s `newTerminal(browsedDirectory)` is `openFolderInTerminal`'s `cwd` half already); the `name` arg is uncarried - a name is the server's own `%d` mint (`terminalmanager.py`), never the client's |
+| `terminal:open` — activate a widget by session name, delegating to `create-new` on a miss (`index.ts:552-580`) | the running panel's tap → `openTerminal(name)`, `openInMainArea`'s reveal-or-push | adapted | reveal-by-name is the same act; a miss lands `Ended` carrying the 404 `TermSocket.get` raises rather than minting under a client-chosen name - `BaseSpaceTerminalGateway`'s stated "truthful answer", pinned by `attach_toATerminalTheServerDoesNotHaveEndsWithTheReason` |
+| `terminal:copy`, `terminal:paste` - `getSelection()`/`hasSelection()`, the context-menu Copy, clipboard → `widget.paste` (`index.ts:623-746`); the `pasteWithCtrlV` keybind is the same reach | `GridSelection`/`TerminalGrid.selectedText` is span→text machinery nothing can arm - no selection state exists - and `TerminalEmulator.paste`/`PasteCommand` (sanitizing, bracketed) sits uncalled | **absent** | `GAP-081`. The gap is the anchor and the reach, not the wiring: no gesture creates a selection, no surface offers Copy or Paste |
+| `terminal:copy-link` — `contextMenuLink` reads the OSC-8 link under the context-menu pointer (`index.ts:693-716`; `addon-web-links`) | no link is ever parsed - OSC 8 has no dispatch entry, so there is nothing under a pointer to name | **absent** | `GAP-082`. Deeper than an unwired menu: the emulator discards the sequence and stores no link |
+| `terminal:refresh` — `session.reconnect()` then `term.clear()` (`widget.ts:265-270`), the connection's own `_reconnect` backoff on a dropped socket (`default.ts:178-210`) | `KeepTheShellAttached`'s cancel → re-`attach`, which clears the emulator first while `read_buffer` replays the whole session | adapted | reconnect+clear+replay is exactly what every STARTED→attach cycle does (CLOSED-007), so no manual reach exists; what is *not* carried is the mid-foreground auto-retry - a socket that dies while visible ends the pane (`Ended`) instead of a silent re-attach, and a leave-and-return is the re-try |
+| `terminal:increase-font`, `terminal:decrease-font` | `TerminalActionsMenu`'s two rows → `changeFontSize` → `TerminalSettings.fontSizeSp`, persisted | present | the rows disable at `TerminalFontSize`'s bounds - the reference's `isEnabled` clamps (`index.ts:770`, `:790`) reread as menu state; Termux's own 4/2/256 (`TerminalFontSize.kt`) rather than the command's ±1 |
+| `terminal:set-theme` — writes the `theme` setting through a four-item submenu (`index.ts:813-845`) | `isSystemInDarkTheme()` picks `TerminalPalette.VS_CODE_DARK`/`_LIGHT` | adapted | the palette follows the system theme - the composition-root pick `TerminalPalette.kt`'s KDoc states; a per-terminal theme menu has no reach where the app itself has no theme switcher |
+| `terminal:shut-down` — `session.shutdown()` on the current widget (`index.ts:747-765`) | the running panel's ✕ → `TerminalGateway.close` → `DELETE api/terminals/<name>` | adapted | the same act one surface over - AUD-006 `T4` verdicted the panel's rows; the pane's own menu carries no shutdown, and `OkHttpTerminalLifecycle`'s 404-tolerant DELETE is the server's own `kill` semantics for an already-dead name |
+| `terminal:open-folder-in-terminal` — a directory's context menu → `create-new` with `cwd` (`index.ts:128-163`) | `open(cwd)` carries a directory on the wire and the bar's "+" already passes `browsedDirectory`; a directory row's long-press menu offers Rename and Delete only | **absent** | `GAP-083`. The wire half exists - what nothing mounts is the row's own reach |
+| `terminal:`-registered search - `searchRegistry.add('terminal', TerminalSearchProvider)` (`searchprovider.ts`) | no registration | **absent** | `GAP-036`'s fifth row, verdicted here not repaired: the pane's grid is no searchable surface and the workspace search never reaches it |
+| `fontSize` (`plugin.json`, default 13) | `TerminalSettings.fontSizeSp` → `codeTextStyle(state.fontSizeSp.sp)` | present | stored through `TerminalSettingsRepository`, observed into `uiState`, drawn by `TerminalCanvas` - `changeFontSize`'s tests |
+| `theme` | folded into `terminal:set-theme`'s row - the system is the switcher | adapted | the reference's `inherit` default is also theme-follow; ours follows the system rather than the app's Light/Dark |
+| `scrollback` (default 1000) | `TerminalEmulator.DEFAULT_TRANSCRIPT_ROWS = 1000`, fixed | adapted | fixed at the schema's own default - and at Termux's, whose `MAX_TRANSCRIPT_ROWS` the constant cites - so the setting's only value anyone runs is already the one chosen |
+| `shutdownOnClose` (default false) | a closed tab detaches the socket; the server's pty keeps running | adapted | fixed at the schema's own default - `NamedTermManager`'s list still holds the shell for the running panel, and the idle backstop is the lifecycle's answer to a truly dead one |
+| `closeOnExit` (default true - the tab closes when the pty exits) | `Ended` sets `endedReason`; the pane stands on the shell's last screen | **absent** | `GAP-084`. The write is real - `endingTheTerminalSurfacesItsReason` pins it - but nothing reads it: no banner, no auto-close, a dead shell indistinguishable from a quiet one |
+| `fontFamily`, `lineHeight`, `cursorBlink`, `screenReaderMode`, `macOptionIsMeta`, `showStatusBarItem`, `pasteWithCtrlV` | none carried | adapted | declined where each one's machinery is: the face is the app's code font (`CodeText`), the cell height is measured (`terminalCellMetrics`), the cursor is a static block (the blink's own read is the cursor's - T4's), the canvas is drawn text not a DOM (the a11y read is likewise T4's), no Option key exists, no status bar exists, and `pasteWithCtrlV` declines with the paste it would bind - `GAP-081` |
+| widget readiness - stdout buffered until xterm is ready and `setup` lands, `_isDisposed` dropping a send, `onTitleChange` → `title.label` (`widget.ts:135-270`, `:486-488`) | the emulator exists before the socket (`TerminalPaneViewModel`'s `val emulator`), so output needs no buffer; `send`/`resize` suspend until attach-readiness (`send_waitsForSetupRatherThanForTheHandshake`); `endedReason` is the `_isDisposed` gate; `state.title` → `onTitleChanged` → the tab | **defect** | the gate's absence was found by the read, not a sighting - a write after `Ended` escaped `viewModelScope.launch`, the port's refusal being a throw. Fixed red-first: `aKeystrokeOnAnEndedShellReachesNoSocket`, `typingOnAClosedShellDoesNotThrow` |
+| connection machinery - `_pendingMessages` until `setup`, `connectionFailed` as a stream state, `manager.ts`'s `isReady`/`refreshRunning`/`shutdownAll` | `TerminalGateway`'s six ops over `RealTerminalGateway`/`TerminalFrame`; `running()`/`close` answer the panel's poll (AUD-006 `T4`'s verdicts) | adapted | the queue-until-setup is `send`'s own suspend; a refused `live.get()` now lands `Ended` like the 404 (the third defect - `attach_endsWithTheReasonWhenTheServerCannotStart`); `refreshRunning`/`shutdownAll` are the panel's, already verdicted |
+| the wire - `POST/GET/DELETE api/terminals`, `terminals/websocket/<name>` carrying `setup`/`stdin`/`stdout`/`set_size`/`disconnect`, `read_buffer` replay, `NamedTermManager`'s `%d`, 404-on-unknown-name | `OkHttpTerminalLifecycle` → the three REST verbs; `OkHttpTerminalSocketOpener` → the websocket; `TerminalFrame` maps each frame and `FakeTerminalGateway` mints the same `%d` | present | `TerminalFrameTest`, `OkHttpTerminalLifecycleTest`, `RealTerminalGatewayTest` pin every frame, the replay, and the 404-tolerant delete; a refused mint escaping `rememberNewTerminal`'s launch was the second defect - `aRefusedTerminalOpenLeavesTheStackAlone` |
