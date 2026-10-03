@@ -1,40 +1,51 @@
 package com.jupydroid.app.domain.model
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /**
- * How many terminals the app has opened and not yet closed.
+ * The names of the terminals this process believes alive, and their count.
  *
- * **A counter of its own, not state inside a gateway - because the gateway backing a Space is
- * rebuilt whenever its server restarts.** `BaseSpaceTerminalGateway` builds a fresh
- * `RealTerminalGateway` per running server, so state kept there would reset to zero across a
- * restart even though the question this answers - "does this process currently have a shell it
- * opened and has not closed" - spans the whole app's life, not one server instance's. Mirrors
- * `ActiveCellRuns`' reasoning, but as two independent calls rather than one wrapped block: a
- * terminal's lifetime runs from [opened] to a much later, maybe-never [closed], not across a
- * single suspend call the way a cell run does.
+ * **A set of names, not an integer - because a terminal's end arrives by more roads than
+ * `close`.** A shell that exits reports `["disconnect", 1]` and is gone from the server's list
+ * (`NamedTermManager.on_eof` pops it); a socket that dies says nothing about the pty
+ * (`TermSocket.on_close` drops only the client). Only `running()`'s answer distinguishes those,
+ * so [reconciled] replaces the belief outright and [ended] removes a name whose end was
+ * witnessed - set removes make "the `Ended` a `close` causes" a free no-op rather than a
+ * double decrement.
+ *
+ * Still state outside the gateways for the reason this class has always been one:
+ * `BaseSpaceTerminalGateway` builds a fresh `RealTerminalGateway` per running server, so the
+ * count must outlive one server instance. Name-reuse across generations is harmless - the
+ * server mints `"%d"` and a re-minted name is a live name.
  *
  * Owned by `AppContainer`, moved by `ActivityTrackedTerminalGateway`, read by `IdleServerStopper`.
  *
  * ```
  * val terminals = ActiveTerminals()
- * terminals.opened() // a shell now exists
- * terminals.closed() // it doesn't anymore
+ * terminals.minted("1") // a shell now exists
+ * terminals.ended("1")  // it doesn't anymore
  * ```
  */
 class ActiveTerminals {
-  private val _open = MutableStateFlow(0)
-  val open: StateFlow<Int> = _open.asStateFlow()
+  private val live = MutableStateFlow<Set<String>>(emptySet())
 
-  fun opened() {
-    _open.update { it + 1 }
+  /** How many terminals this process believes alive - a `Flow`, the set being the only state. */
+  val open: Flow<Int> = live.map { it.size }.distinctUntilChanged()
+
+  fun minted(name: String) {
+    live.update { it + name }
   }
 
-  /** Floored at zero: a stray extra close must not read as a terminal being open. */
-  fun closed() {
-    _open.update { (it - 1).coerceAtLeast(0) }
+  fun ended(name: String) {
+    live.update { it - name }
+  }
+
+  /** The server's own answer: whatever it still lists is the whole of what is alive. */
+  fun reconciled(names: Collection<String>) {
+    live.value = names.toSet()
   }
 }

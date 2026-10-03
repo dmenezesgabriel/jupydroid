@@ -1,60 +1,96 @@
 package com.jupydroid.app.domain.model
 
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * How many terminals the app has opened and not yet closed - the signal `IdleServerStopper` needs
- * so a live shell is not indistinguishable from an idle app. See `ActiveTerminals`'s own doc for
- * why this is a standalone counter and not state kept inside a gateway.
+ * The names this process believes alive - the signal `IdleServerStopper` needs so a live shell
+ * is not indistinguishable from an idle app. See `ActiveTerminals`'s own doc for why the state
+ * is a set of names and not an integer.
  */
 class ActiveTerminalsTest {
   @Test
-  fun nothingIsOpenToBeginWith() {
-    assertEquals(0, ActiveTerminals().open.value)
+  fun nothingIsAliveToBeginWith() = runTest {
+    assertEquals(0, ActiveTerminals().open.first())
   }
 
   @Test
-  fun openedIncrementsTheCount() {
+  fun mintedCountsTheName() = runTest {
     val terminals = ActiveTerminals()
 
-    terminals.opened()
+    terminals.minted("1")
 
-    assertEquals(1, terminals.open.value)
+    assertEquals(1, terminals.open.first())
+  }
+
+  /** A name the server re-mints in a later generation is still just one live name. */
+  @Test
+  fun aReusedNameCountsOnce() = runTest {
+    val terminals = ActiveTerminals()
+
+    terminals.minted("1")
+    terminals.minted("1")
+
+    assertEquals(1, terminals.open.first())
   }
 
   @Test
-  fun closedDecrementsTheCount() {
+  fun endedForgetsTheName() = runTest {
     val terminals = ActiveTerminals()
-    terminals.opened()
+    terminals.minted("1")
 
-    terminals.closed()
+    terminals.ended("1")
 
-    assertEquals(0, terminals.open.value)
+    assertEquals(0, terminals.open.first())
   }
 
-  /** The failure mode that matters: a stray extra close must not read as "terminals are open". */
+  /** The failure mode that matters: an end nobody minted must not read as "terminals are open". */
   @Test
-  fun closedNeverGoesBelowZero() {
+  fun endingANameNeverMintedIsANoOp() = runTest {
     val terminals = ActiveTerminals()
 
-    terminals.closed()
+    terminals.ended("1")
 
-    assertEquals(0, terminals.open.value)
+    assertEquals(0, terminals.open.first())
+  }
+
+  /** The `Ended` a `close` causes reaches `reconciled` after `ended` - one decrement, not two. */
+  @Test
+  fun anEndWitnessedTwiceStillCountsOnce() = runTest {
+    val terminals = ActiveTerminals()
+    terminals.minted("1")
+
+    terminals.ended("1")
+    terminals.reconciled(emptyList())
+
+    assertEquals(0, terminals.open.first())
   }
 
   @Test
-  fun terminalsCountIndependentlyOfEachOther() {
+  fun reconciledTakesTheServersWholeAnswer() = runTest {
+    val terminals = ActiveTerminals()
+    terminals.minted("1")
+    terminals.minted("2")
+
+    terminals.reconciled(listOf("2"))
+
+    assertEquals(1, terminals.open.first())
+  }
+
+  @Test
+  fun terminalsCountIndependentlyOfEachOther() = runTest {
     val terminals = ActiveTerminals()
 
-    terminals.opened()
-    terminals.opened()
-    assertEquals(2, terminals.open.value)
+    terminals.minted("1")
+    terminals.minted("2")
+    assertEquals(2, terminals.open.first())
 
-    terminals.closed()
-    assertEquals("one of the two is still open", 1, terminals.open.value)
+    terminals.ended("1")
+    assertEquals("one of the two is still open", 1, terminals.open.first())
 
-    terminals.closed()
-    assertEquals(0, terminals.open.value)
+    terminals.ended("2")
+    assertEquals(0, terminals.open.first())
   }
 }

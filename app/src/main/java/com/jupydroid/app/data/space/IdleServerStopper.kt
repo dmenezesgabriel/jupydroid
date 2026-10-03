@@ -2,6 +2,7 @@ package com.jupydroid.app.data.space
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -37,7 +38,8 @@ import kotlin.time.Duration
 class IdleServerStopper(
   private val scope: CoroutineScope,
   private val cellsInFlight: StateFlow<Int>,
-  private val terminalsOpen: StateFlow<Int>,
+  /** `ActiveTerminals.open`'s own shape - a count derived from the set, not a stored state. */
+  private val terminalsOpen: Flow<Int>,
   private val stopServer: suspend () -> Unit,
   private val grace: Duration,
 ) {

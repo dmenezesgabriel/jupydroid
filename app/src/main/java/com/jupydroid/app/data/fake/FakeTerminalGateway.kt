@@ -72,6 +72,16 @@ class FakeTerminalGateway : TerminalGateway {
     shell.printed.emit(TerminalEvent.Ended("terminal ${session.name} was closed"))
   }
 
+  /**
+   * The socket ends while the shell lives - `TermSocket.on_close` drops only the client, so
+   * `running()` still lists the terminal. The shape `close` minus the removal: an attach sees
+   * [TerminalEvent.Ended] either way, and only `running()` can tell which kind it was.
+   */
+  suspend fun detach(session: TerminalSession) {
+    val shell = terminals[session.name] ?: error("no terminal named '${session.name}'; open one first")
+    shell.printed.emit(TerminalEvent.Ended("the socket went"))
+  }
+
   /** The most recent size [resize] was given, or null where it was never called. */
   fun sizeOf(session: TerminalSession): Pair<Int, Int>? = terminals[session.name]?.size
 
