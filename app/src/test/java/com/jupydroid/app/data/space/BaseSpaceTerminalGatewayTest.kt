@@ -4,8 +4,10 @@ import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
+import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -70,12 +72,28 @@ class BaseSpaceTerminalGatewayTest {
     assertEquals("closing a dead terminal must not start a server", 1, launcher.startCount)
   }
 
+  /**
+   * An attach that cannot reach a running server ends the stream **with the reason**, the same
+   * landing `TermSocket.get`'s 404 takes: `Ended` is the pane's error channel, and a boot refusal
+   * escaping the `flow` would arrive as an exception on `repeatOnLifecycle`'s launch instead.
+   */
+  @Test
+  fun attach_endsWithTheReasonWhenTheServerCannotStart() = runTest {
+    val gateway = gateway(RecordingServerLauncher(failWith = IllegalStateException("no runtime")))
+
+    val events = gateway.attach(TerminalSession("1")).toList()
+
+    val ended = events.filterIsInstance<TerminalEvent.Ended>().single()
+    assertTrue("expected the refusal in '${ended.reason}'", "no runtime" in ended.reason)
+  }
+
   private fun gateway(launcher: ServerLauncher): TerminalGateway = BaseSpaceTerminalGateway(
     server = BaseSpaceServer(installSpace = {}, launcher = launcher),
     gatewayFor = { FakeTerminalGateway() },
   )
 
   private class RecordingServerLauncher(
+    private val failWith: Exception? = null,
     /** Simulates the first server process dying; the one started after it survives. */
     private val diesAfterFirstStart: Boolean = false,
   ) : ServerLauncher {
@@ -83,6 +101,7 @@ class BaseSpaceTerminalGatewayTest {
       private set
 
     override suspend fun start(space: Space): ServerConnection {
+      failWith?.let { throw it }
       startCount++
       return ServerConnection(baseUrl = "http://127.0.0.1:8888/", port = 8888, token = "t")
     }

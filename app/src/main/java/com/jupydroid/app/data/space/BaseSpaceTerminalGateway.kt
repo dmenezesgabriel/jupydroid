@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -42,8 +43,23 @@ class BaseSpaceTerminalGateway(server: BaseSpaceServer, gatewayFor: (ServerConne
    */
   override suspend fun running(): List<TerminalSession> = live.liveOrNull()?.running().orEmpty()
 
+  /**
+   * Reaching the terminal's socket, or the reason it cannot be reached as [TerminalEvent.Ended].
+   *
+   * A refused `live.get()` - a Space that will not boot - takes the same landing this class's own
+   * KDoc gives `TermSocket.get`'s 404: `Ended` is the pane's error channel, where an exception
+   * escaping the flow would arrive as a crash on the collect's `repeatOnLifecycle` launch.
+   */
+  @Suppress("TooGenericExceptionCaught") // a boot refusal's type is the launcher's to choose
   override fun attach(session: TerminalSession): Flow<TerminalEvent> = flow {
-    emitAll(live.get().attach(session))
+    val gateway = try {
+      live.get()
+    } catch (refused: Exception) {
+      if (refused is CancellationException) throw refused
+      emit(TerminalEvent.Ended(refused.message ?: "the server did not start"))
+      return@flow
+    }
+    emitAll(gateway.attach(session))
   }
 
   override suspend fun send(session: TerminalSession, text: String) = live.get().send(session, text)
