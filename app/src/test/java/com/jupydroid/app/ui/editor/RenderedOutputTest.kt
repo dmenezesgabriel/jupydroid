@@ -42,6 +42,36 @@ class RenderedOutputTest {
     assertTrue(rendered.contains("Traceback (most recent call last)"))
   }
 
+  /**
+   * `print("\u001b[31mred\u001b[0m")`, tqdm, `colored` - a stream colours itself with the same
+   * escapes a traceback does, and the same `[31m` residue on screen if nobody strips it.
+   */
+  @Test
+  fun render_stripsTheAnsiColoursOutOfAStream() {
+    val rendered = text(CellOutput.Stream(StreamName.STDOUT, "[31mred[0m\n"))
+
+    assertTrue("escapes must be gone, got '${rendered.text}'", !rendered.text.contains(""))
+    assertTrue("the bracket codes must be gone too, got '${rendered.text}'", !rendered.text.contains("[31m"))
+    assertEquals("red", rendered.text)
+  }
+
+  /**
+   * A `text/plain` payload can carry escapes too - `__repr__`s of `rich` and `colored`
+   * objects do - and it is the last fallback, so nothing after it catches the residue.
+   */
+  @Test
+  fun render_stripsTheAnsiColoursOutOfPlainText() {
+    val output = CellOutput.ExecuteResult(
+      mimeBundleOf("text/plain" to "[32mok[0m\n"),
+      1,
+    )
+
+    val rendered = text(output).text
+
+    assertTrue("the bracket codes must be gone, got '$rendered'", !rendered.contains("[32m"))
+    assertEquals("ok", rendered)
+  }
+
   /** With no traceback there is still a name and a value, and they must not read as blank. */
   @Test
   fun render_fallsBackToNameAndValueWhenThereIsNoTraceback() {

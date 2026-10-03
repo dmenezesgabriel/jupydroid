@@ -31,7 +31,10 @@ sealed interface RenderedOutput {
  * type wins, what a traceback reads like - are unit-testable.
  */
 fun CellOutput.render(): RenderedOutput? = when (this) {
-  is CellOutput.Stream -> RenderedOutput.Text(text.trimEnd(), isError = name == StreamName.STDERR)
+  is CellOutput.Stream -> RenderedOutput.Text(
+    text.withoutAnsiColours().trimEnd(),
+    isError = name == StreamName.STDERR,
+  )
   is CellOutput.Error -> RenderedOutput.Text(readable(), isError = true)
   is CellOutput.ExecuteResult -> mimeBundle.renderRichest()
   is CellOutput.DisplayData -> mimeBundle.renderRichest()
@@ -77,7 +80,7 @@ private fun JsonElement.asText(): String? = (this as? JsonPrimitive)?.takeIf { i
 private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when (mimeType) {
   "text/html" -> HtmlDocument.parse(payload).takeIf { it.isNotEmpty() }?.let(RenderedOutput::Document)
   "image/png" -> payload.decodedPng()?.let(RenderedOutput::Image)
-  else -> RenderedOutput.Text(payload.trimEnd(), isError = false)
+  else -> RenderedOutput.Text(payload.withoutAnsiColours().trimEnd(), isError = false)
 }
 
 /**
@@ -91,9 +94,10 @@ private fun String.decodedPng(): ByteArray? = filterNot { it.isWhitespace() }
   .let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
 
 /**
- * Removes the SGR escapes a kernel colours its tracebacks with. Both the real `ESC [ … m`
- * form and the bare `[…m` left behind when something has already eaten the escape byte -
- * the second is what reaches us, and rendering it literally is what put `[31m` on screen.
+ * Removes the SGR escapes a kernel colours its output with - tracebacks, streams, and any
+ * `text/plain` a `__repr__` emits. Both the real `ESC [ … m` form and the bare `[…m` left
+ * behind when something has already eaten the escape byte - the second is what reaches us,
+ * and rendering it literally is what put `[31m` on screen.
  */
 private fun String.withoutAnsiColours(): String = replace(ANSI_SGR, "")
 
