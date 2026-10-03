@@ -69,7 +69,7 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 | `AUD-006` | Console, sessions and the running panel — `console-extension`/`running-extension` against `ui/console/` and `ui/shell/` | shipped | — | `GAP-009`, `GAP-010`, `GAP-011` |
 | `AUD-007` | Terminal emulator and view, against Termux's state machine and JediTerm | shipped | — | `GAP-081`–`GAP-092` |
 | `AUD-008` | Rendering and formats — markdown, HTML, outputs, nbformat | shipped | — | `GAP-093`–`GAP-119` |
-| `AUD-009` | Chrome and presentation, against VS Code's workbench | in-progress ← next | [AUD-009](prd/AUD-009-chrome-and-presentation.md) | `GAP-120`–`GAP-124` |
+| `AUD-009` | Chrome and presentation, against VS Code's workbench | in-progress ← next | [AUD-009](prd/AUD-009-chrome-and-presentation.md) | `GAP-120`–`GAP-132` |
 | `AUD-010` | Spaces and runtime, against Winlator's container lifecycle | open | — | — |
 | `AUD-011` | Code health, produced — the two gate gaps first, then the measured tail | open | — | `GAP-006`, `GAP-008` |
 

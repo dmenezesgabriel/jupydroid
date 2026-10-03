@@ -2615,3 +2615,69 @@ rests on a comment or ADR already written, and ADR-0054 carries the one-side-are
 | `apputils:run-first-enabled`, `apputils:run-all-enabled` — execute the first / every enabled command from an arg list (`index.ts:707-770`) | — | **absent** | `GAP-120`. Dispatch machinery over the same absent registry — not a capability in itself |
 | `apputils:move-section-to`, `apputils:move-section-back` — drag sections between registered sidebars, persisted in `section-mover:layout` (`movesectionsplugin.ts:44-118`) | one panel at a time — `SidePanel`'s `_onCurrentChanged` cite — and no panel sections exist to move | adapted | the operands — multiple stacked sidebars — are ADR-0054's recorded shape |
 | `apputils:load-statedb`, `apputils:reset`, `apputils:reset-on-load` — the workspace statedb's load/reset/reset-on-load router commands; `reset` is `db.clear()` + save + reload (`index.ts:481-610`) | `rememberSaveable`/`rememberNavBackStack` plus `Disk*` repositories is the persistence story; no workspace layer exists for a statedb to serve | adapted | the restore question is answered by the persisted model; a reset's operand — a workspace — is `T4`'s `workspace-ui` read |
+
+### The presentation — verdicts
+
+`T3`'s entries, read down every `addCommand` in `apputils-extension`'s `themesplugins.ts`
+(`:119-366`, the `matchMedia` listener at `:368-386`, the Settings/palette mounts at
+`:402-528`), the fifteen presentation keys `codemirror/src/extension.ts`'s `editorConfig`
+registry declares (`:646-1031`), `notebook-extension`'s five carried ids with their launcher
+and palette mounts (`index.ts:2509-2545,2589-2609,4405-4441,2268-2293,4877-4910,5209-5233,
+5289-5293`), and the VS Code half the intro names — `browser/parts/`, `cellParts/`,
+`colorRegistry.ts` — read for the look's census, never counted. Theirs: `ThemeManager`'s
+registered-`ITheme` registry and `setCSSOverride` (`thememanager.ts:270-429`), the `themes.json`
+keys the commands write, `NotebookActions`'s `toggleAllLineNumbers`/`renderSideBySide`/
+`renderDefault` (`actions.tsx:1792-1812,2043-2053`), the persisted `sideBySideOutputRatio`, and
+`content.scrollbar` — the flag the "Show Minimap" label actually flips. Ours: `ThemeOverride`'s
+tri-state resolved through `isSystemInDarkTheme()` at `MainActivity` into `JupyterDroidTheme`'s
+two palettes (`EditorPalettes`/`ChromePalettes`/`ColorRamp`, the pair `resolve_vscode_theme.py`
+verifies them against), `ThemeSettings`, the fourteen-field `EditorSettings` with `CodeFontSize`,
+the three cell fields plus `FileEditorScreen`'s `CodeCellField`, the
+`LineNumbers`/`GutterOverlay` gutter, and `CellFrame`/`CellStripe`/`CollapsedCell`/
+`HiddenCellsRow`/`CellHeader`/`ExecutionLabel` — the chrome `cellParts/` maps onto.
+
+Two findings and a census before the rows. `apputils:change-font` is **registered but never
+mounted** — `themesplugins.ts:277-304` adds the command and no `execute`, `palette.addItem` or
+menu item reaches it anywhere upstream; the `cssOverrides` keys it writes are the settings
+editor's own surface, a `T4` read. Same shape as `T2`'s `runmenu:run-above` dead consts: a hole
+in the reference's surface, not a local defect. Second: `lineNumbersShown` reaches the three
+cell fields and `ConsoleInputRow` but not `FileEditorScreen`, whose `CodeCellField` takes the
+parameter's own always-on default — recorded on the `lineNumbers` row rather than defected,
+because the flag's documented scope is the notebook's (`EditorSettings.lineNumbersShown`). And
+the `cellParts/` census maps one-for-one — `cellFocusIndicator` → `CellStripe`,
+`cellExecution`/`cellStatusPart` → `ExecutionLabel`, `collapsedCellInput`/`collapsedCellOutput`/
+`foldedCellHint` → `CollapsedCell`/`HiddenCellsRow`, `cellToolbars` → `CellHeader` — while
+`cellDnd`'s drag gesture answers an act we carry as `CellAction.Move`'s menu rows
+(`notebook:move-cell-up` verdicted `present` at `AUD-002`): a reach difference, recorded, that
+no gap needs because the act exists.
+
+Eight absences open new gaps — `GAP-125` (side-by-side layout), `GAP-126` (in-cell folding),
+`GAP-127` (the invisible marks), `GAP-128` (line-level field chrome), `GAP-129` (caret
+affordances), `GAP-130` (font family), `GAP-131` (localisation), `GAP-132` (styled scrollbars)
+— and the virtual-scrollbar row cites `GAP-124`, which already names this carried id.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `apputils:change-theme` — `manager.setTheme(theme)` across a registered-`ITheme` registry: three shipped `*-extension` theme packages plus whatever plugins add; Settings-submenu and palette mounts carry one item per theme (`themesplugins.ts:119-160,427-449`; `thememanager.ts:280-309`) | `ThemeOverrideRow`'s Light/Dark segments → `ThemeSettings.override` over `DiskThemeSettingsRepository`; `JupyterDroidTheme` swaps the `EditorPalettes`/`ChromePalettes` pair | adapted | the pick exists on a closed set — `ThemeOverride`'s own docstring folds the open registry into two palettes because a third name would have nothing to name |
+| `apputils:change-light-theme`, `apputils:change-dark-theme` — `setPreferred{Light,Dark}Theme` writes the theme `preferredTheme` falls back to while adaptive is on (`themesplugins.ts:162-238`; `thememanager.ts:68-92`) | the same two segments — `SYSTEM` resolves to whichever palette the system reports | adapted | the preferred pair is the palette pair; `ThemeOverride`'s docstring folds the two strings into the tri-state on the same reasoning |
+| `apputils:adaptive-theme` — `toggleAdaptiveTheme` plus the `matchMedia('(prefers-color-scheme: dark)')` listener swapping preferred themes live (`themesplugins.ts:240-263,368-386`; `thememanager.ts:356-374`) | `ThemeOverride.SYSTEM` → `resolvesToDark(isSystemInDarkTheme())` at `MainActivity`; recomposition reacts the way the listener does | adapted | the same track-the-system state as one enum rather than a boolean beside two strings — `resolvesToDark` cites `thememanager.ts:68-92` itself, and `ThemeSettings`'s docstring records why SYSTEM defaults on where `adaptive-theme` ships `false` |
+| `apputils:theme-scrollbars` — `toggleThemeScrollbars` flips `themes.json`'s `theme-scrollbars`, setting `data-jp-theme-scrollbars` and mounting `scrollbar.raw.css` while a theme asks (`themesplugins.ts:265-275`; `thememanager.ts:329-354`) | — | **absent** | `GAP-132`. No styled scrollbar exists for the attribute to colour — Compose scrollables draw the platform's transient indicators, and the terminal's missing scroll chrome is `GAP-090`'s own record |
+| `apputils:change-font` — `setCSSOverride(key, font)` over the `*-font-family` `cssOverrides` keys — registered at `themesplugins.ts:277-304` and **never mounted**: no `execute`, palette item or menu reaches it (`thememanager.ts:270-278,394-429`) | `FontFamily.Monospace` in `codeTextStyle`, `JupydroidTypography` for the rest | **absent** | `GAP-130`. Dead surface upstream — the finding above — and no font choice exists here either; the `cssOverrides` keys it would write are the `settingeditor`'s own surface, a `T4` read |
+| `apputils:incr-font-size`, `apputils:decr-font-size` — `_incrFontSize` steps `code-font-size`/`content-font-size1`/`ui-font-size1` by ±1px, the palette mounting all three keys (`themesplugins.ts:306-366,480-522`; `thememanager.ts:311-322,380-389`) | `SettingsStepperRow` steps `codeFontSizeSp` 8–32sp by `CodeFontSize.STEP`; `TerminalActionsMenu`'s ± owns the terminal's own size | adapted | the code scope's stepper exists and `CodeFontSize.STEP`'s docstring cites this mechanism as its source; the other two keys answer per-scope sizes nothing here names |
+| `notebook:create-new` — the `docmanager` `new-untitled`+`open` pair per kernelspec's `kernelName`, launcher-mounted once per kernel (default at rank 0, its icon) and palette-mounted (`index.ts:2509-2545,2589-2609,5289-5293`) | `LauncherCommand.NEW_NOTEBOOK` — one card under "Notebook" → `createNotebook(untitledNotebookIn(cwd), DEFAULT_KERNEL_ID)` → `LaunchedDocument.CreatedNotebook` → a tab on the strip | adapted | one kernelspec collapses a card-per-kernel launcher to the single card `LAUNCHER_ITEMS` declares; the palette mount is a surface the closed act set does not have — the mint is the same |
+| `notebook:toggle-all-cell-line-numbers` — `NotebookActions.toggleAllLineNumbers` flips `editorConfig.code`/`markdown`/`raw.lineNumbers` on the tracked notebook (`index.ts:4405-4441`; `actions.tsx:1792-1812`) | `EditorSettings.lineNumbersShown` — app-wide, persisted, on by default — gating the zero-is-off gutter on all three cell fields and `ConsoleInputRow` | adapted | a per-notebook triple-flip becomes one app-wide flag whose docstring names this command; `FileEditorScreen` takes the always-on default — the finding above's recorded half |
+| `notebook:toggle-render-side-by-side-current`, `notebook:set-side-by-side-ratio` — `renderingLayout = 'side-by-side'` sets `jp-mod-sideBySide` and renders a markdown cell's source beside its output; the ratio command's dialog persists `sideBySideOutputRatio` (`index.ts:4877-4910,2268-2293`; `widget.ts:157-170`; `tracker.json:854-860`) | — | **absent** | `GAP-125`. A markdown cell renders or edits, never beside itself — no second layout exists for a ratio to divide |
+| `notebook:toggle-virtual-scrollbar` — `content.scrollbar`, labelled "Show Minimap": the document miniature is the scrollbar (`index.ts:5209-5233`) | — | **absent** | `GAP-124`, opened at `T2` and already naming this carried id as its own cite |
+| `lineNumbers` (`lineNumbers()` extension, default `true`, `extension.ts`) | `lineNumbersShown` → `Modifier.lineNumbers`/`GutterOverlay` on code, markdown and raw fields — a gutter that also carries breakpoints, diagnostics and the stopped line | adapted | the key is what the command row above flips, app-wide rather than per-notebook; the gutter does more than the extension's numbers alone, `LineNumbers.kt`'s own docstring's shape |
+| `lineWrap` (`EditorView.lineWrapping`, `true` by default — `false` in `codeCellConfig`, `tracker.json:699-706`) | `codeWrapEnabled` governs code cells and `FileEditorScreen`; markdown and raw fields wrap unconditionally | adapted | the reference hardwires markdown/raw to wrap (`widget.ts:1335-1352`), so the toggle's honest scope is code — `codeWrapEnabled`'s docstring records that plus why it defaults `true` where the schema ships `false` |
+| `theme` (`themes.getTheme(value)` — a CM editor theme from the registered set, default `'jupyter'`, `extension.ts:1037-1042`) | `EditorPalettes` dark/light — resolved VS Code themes, `resolve_vscode_theme.py`'s own check | adapted | fixed palettes rather than a registry — `change-theme`'s row's same collapse, one level down in the editor itself; ADR-0041's resolved-not-read rule |
+| `customStyles` (`customTheme({fontFamily, fontSize, lineHeight})`, all `null` by default, `extension.ts:1000-1010`) | `codeFontSizeSp` covers `fontSize`; `CodeText.lineHeightFor` derives the height; `FontFamily.Monospace` is `fontFamily`, fixed | adapted | one of three sub-keys is a reach where all default null; `fontFamily`'s absent half is `GAP-130`'s own |
+| `tooltips` (`tooltips()` as `createImmutableExtension` — machinery, not a toggle, `extension.ts:975-986`) | `HoverPopup`, `CompletionPopup`, `SignatureHelpPopup`, `DiagnosticDetailPopup` — Compose popups anchored at `caretRect` | adapted | the tooltip space exists as per-kind popups rather than CM's one shared layer — `caretRect`'s own anchor math |
+| `codeFolding` (`foldGutter()` — fold regions inside one editor, `false` by default, `extension.ts:646-652`) | — | **absent** | `GAP-126`. Folds here are cell-level (`CellFolds`, `CollapsedCell`, `HiddenCellsRow`; `GAP-016`'s all-cells pair sits at the same level); nothing folds a region inside one field's source |
+| `cursorBlinkRate` (`drawSelection({cursorBlinkRate})`, 1200 ms default, `extension.ts:655-659`) | the platform caret `BasicTextField` draws | **absent** | `GAP-129`. No slot exists for the knob — a Compose field's caret blinks at the platform's rate |
+| `dropCursor` (`dropCursor()` — the marker a text-drag's drop position draws, `true` by default, `extension.ts:798-800`) | — | **absent** | `GAP-129`. No drag-move of selected text exists for a drop marker to answer; cut/paste through the platform menu is the only move |
+| `scrollPastEnd` (`scrollPastEnd()` — `null` for inline/cell editors, `false` default, `extension.ts:912-915`) | cell fields grow to content; `FileEditorScreen`'s scroll ends at the last line | **absent** | `GAP-128`. The reference itself refuses it for cells (`options.inline`), so the file editor is where the real absence lives |
+| `rulers` (`rulers(number[])` — column guides, `[]` by default meaning none, `extension.ts:848-856`) | — | **absent** | `GAP-128`. No column guide is drawn on any field |
+| `highlightActiveLine` (`highlightActiveLine()` — a wash over the caret's line, `false` by default, `extension.ts:670-676`) | — | **absent** | `GAP-128`. The active *cell*'s marker is `CellStripe`'s; the caret's own line draws nothing |
+| `highlightWhitespace`, `highlightTrailingWhitespace`, `highlightSpecialCharacters` (`highlightWhitespace()`/`highlightTrailingWhitespace()`/`highlightSpecialChars()` — invisible-character marks, the last `true` by default, `extension.ts:679-704`) | — | **absent** | `GAP-127`. No invisible is drawn anywhere — `HighlightTransformation` styles syntax and the platform font renders whatever control characters arrive, where the reference shows marks |
+| `translation` (`EditorState.phrases` — CM's own string table a locale overrides, `extension.ts:1055-1071`) | English literals throughout `ui/` and `theme/` | **absent** | `GAP-131`. `trans.__()` and this key have no surface; nothing in the app is localised |

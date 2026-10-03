@@ -1663,6 +1663,86 @@ cell list on its own scrollbar with no miniature; the overview is the table of c
 on the notebook's scroll surface — the same gap the carried `notebook:toggle-virtual-scrollbar`
 id will cite.
 
+### GAP-125 — A markdown cell never sits beside its own rendering
+
+`notebook:toggle-render-side-by-side-current` flips `renderingLayout` to `'side-by-side'` —
+source on the left, rendered output on the right, `jp-mod-sideBySide` dividing them at the
+`sideBySideOutputRatio` `notebook:set-side-by-side-ratio`'s dialog persists
+(`jupyterlab/packages/notebook-extension/src/index.ts`, `notebook/src/widget.ts`). Ours renders a
+markdown cell or edits it, never both at once (`app/src/main/java/com/jupydroid/app/ui/editor/`).
+The repair is a second layout on the markdown cell — a source pane beside the rendered one,
+with a divider a persisted ratio would own.
+
+### GAP-126 — No fold exists inside a cell's source
+
+`codeFolding` mounts `foldGutter()` — fold regions *inside* one editor's text, off by default
+(`jupyterlab/packages/codemirror/src/extension.ts`). Ours folds cells (`CellFolds`,
+`CollapsedCell`, `HiddenCellsRow`, and `GAP-016`'s all-cells pair is the same level), but
+nothing inside a field: a long function in a cell cannot collapse its own body
+(`app/src/main/java/com/jupydroid/app/ui/editor/CodeCellField.kt`). The repair is a fold model
+over the field's own layout — the per-line positions `LineNumbers.kt` already computes.
+
+### GAP-127 — No invisible character is ever drawn
+
+`highlightWhitespace`, `highlightTrailingWhitespace` and `highlightSpecialCharacters` mount
+CM's whitespace/special-character marks — the last on by default — so a stray control character
+or a trailing space shows as a mark (`jupyterlab/packages/codemirror/src/extension.ts`). Ours
+hands the platform font the raw text: `HighlightTransformation` styles syntax and nothing
+renders invisibles (`app/src/main/java/com/jupydroid/app/ui/editor/CodeCellField.kt`). The
+repair is a decoration pass over the text — an `OutputTransformation` beside the syntax
+highlighter.
+
+### GAP-128 — The field draws nothing past its gutter and its text
+
+`rulers`, `highlightActiveLine` and `scrollPastEnd` mount a column guide, a caret-line wash and
+room below the last line (`jupyterlab/packages/codemirror/src/extension.ts`; `scrollPastEnd` is
+already `null` for inline/cell editors, so the file editor is where its half lives). Ours:
+`CodeCellField`'s decorations are the gutter, the squiggles and the search marks — the caret's
+line draws nothing, no column is ruled, and `FileEditorScreen`'s scroll stops at the last line
+while its gutter ignores `lineNumbersShown`
+(`app/src/main/java/com/jupydroid/app/ui/editor/CodeCellField.kt`,
+`app/src/main/java/com/jupydroid/app/ui/fileeditor/FileEditorScreen.kt`). The repair is a
+`drawBehind` layer beside `lineNumbers` for the first two, content padding for the third, and
+the settings flag reaching the file editor's field.
+
+### GAP-129 — The caret's own affordances are the platform's
+
+`cursorBlinkRate` (1200 ms default) and `dropCursor` set the caret's blink and the drop marker a
+text-drag shows (`jupyterlab/packages/codemirror/src/extension.ts`). Ours: `BasicTextField`'s
+caret blinks at the platform's rate with no slot for a knob, and selected text cannot be
+drag-moved — cut/paste through the platform menu is the only move
+(`app/src/main/java/com/jupydroid/app/ui/editor/CodeCellField.kt`). The repair is a caret
+controller where Compose gives one a home, and a drag-move gesture over `TextFieldState`'s own
+edit.
+
+### GAP-130 — No font family is reachable
+
+`apputils:change-font` writes the `*-font-family` `cssOverrides` keys — registered at
+`themesplugins.ts` and never mounted: no `execute`, palette item or menu reaches it, so the
+settings editor is its only surface even upstream
+(`jupyterlab/packages/apputils-extension/src/themesplugins.ts`, `apputils/src/thememanager.ts`).
+Ours fixes `FontFamily.Monospace` in `codeTextStyle` and `JupydroidTypography` for the rest — no
+picker, no override field (`app/src/main/java/com/jupydroid/app/ui/editor/EditorTheme.kt`). The
+repair is a `fontFamily` on the settings models and a chooser row.
+
+### GAP-131 — Nothing is localised
+
+`translation` is `EditorState.phrases` — the string table a locale replaces — and `trans.__()`
+wraps every label the chrome draws (`jupyterlab/packages/codemirror/src/extension.ts`,
+`apputils-extension`). Ours writes English literals in every label
+(`app/src/main/java/com/jupydroid/app/ui/`, `theme/`). The repair is a string-resource layer and
+a locale the model picks.
+
+### GAP-132 — No styled scrollbar exists to theme
+
+`apputils:theme-scrollbars` flips the `theme-scrollbars` setting: `data-jp-theme-scrollbars`
+plus `scrollbar.raw.css` while the theme asks
+(`jupyterlab/packages/apputils-extension/src/themesplugins.ts`). Ours draws no scrollbar chrome
+at all — Compose scrollables show the platform's transient indicators, and the terminal's
+missing scroll chrome is `GAP-090`'s own record (`app/src/main/java/com/jupydroid/app/`). The
+repair is a scrollbar indicator on the scroll surfaces, before a styled one has anything to
+colour.
+
 ---
 
 ## 12. Glossary

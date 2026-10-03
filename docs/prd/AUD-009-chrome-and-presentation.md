@@ -323,7 +323,7 @@ Known going in, so a verdict does not re-litigate them:
 - **Items live on their owners** — the status bar's question is whether the *information*
   (kernel, save state, position, running) is shown, not whether a bottom bar exists.
 - **English-only** — `trans.__()` strings and the `translation` config key have no surface;
-  stated once rather than per id.
+  stated once rather than per id. Landed as `GAP-131` at T3.
 - **`hub:*` is JupyterHub's** — surfaced by the instrument fix in a package this app has no
   analog for; named, not claimed.
 
@@ -341,9 +341,11 @@ Known going in, so a verdict does not re-litigate them:
 - **`workspace-ui:*` fold** — ten ids one capability (multi-session workspaces) or per-act
   verdicts?
 - **The five carried `notebook:` ids' task** — layout/presentation acts: T3 (presentation) or
-  T4 (hosted surfaces) assigns them; the partition rows name the owner.
+  T4 (hosted surfaces) assigns them; the partition rows name the owner. Decided at T3 —
+  presentation owns them, as the partition rows already said.
 - **`editorConfig` verdict shape** — 15 keys against `EditorSettings`: per-key rows or grouped
-  by what `CodeCellField` honours? T3's call.
+  by what `CodeCellField` honours? Decided at T3 — grouped by verdict-sharing unit, T2's own
+  rule: the whitespace trio is one row, the preferred-theme pair one, the side-by-side pair one.
 
 ## Tasks
 
@@ -367,7 +369,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `MainAreaTabStrip`/`MainAreaCloseGate`/`NotebookBackStack`/`OpenDocuments`/`DocumentOpeners`/
       `MainActivity` and the contextual bars — the shell read, the menu-bar question, the palette
       pair's `absent`/`adapted`.
-- [ ] T3 — **Verdicts for the presentation.** `apputils`' theme/font five+three against
+- [x] T3 — **Verdicts for the presentation.** `apputils`' theme/font five+three against
       `theme/`/`ThemeOverride`/`ThemeSettings`/`CodeFontSize`; the 15 `editorConfig` keys against
       `EditorSettings`/`CodeCellField`/`EditorTheme`; the five carried `notebook:` ids against
       `LineNumbers`/`CellFrame`/`CellStripe`/`CollapsedCell`/`HiddenCellsRow` and the launcher;
