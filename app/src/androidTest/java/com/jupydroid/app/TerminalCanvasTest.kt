@@ -117,6 +117,32 @@ class TerminalCanvasTest {
   }
 
   /**
+   * `TerminalRenderer.render`'s `invertCursorTextColor` (termux-app `3df69d1d`): the block
+   * cursor keeps the glyph it sits on legible by drawing it inverted - in the run's own
+   * background colour - rather than covering it, so a `vi` cursor resting on a letter shows
+   * the letter reversed instead of erasing it. `█` fills its cell edge to edge, which makes
+   * its ink the pixel a test can actually pin -
+   * [aColouredBackgroundDrawsThePalettesResolvedColour]'s own reason for sampling rect
+   * interiors, not glyph edges.
+   */
+  @Test
+  fun theBlockCursorShowsTheGlyphUnderIt() {
+    val emulator = silentEmulator(TerminalPalette.REFERENCE)
+    emulator.screen.grid.setChar(0, 0, '█'.code, CellStyle.NORMAL)
+    var cell: IntSize? = null
+
+    val image = capture {
+      TerminalCanvas(emulator, onGridSizeChanged = { _, measured ->
+        cell = measured
+      }, modifier = Modifier.fillMaxSize())
+    }
+    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val pixel = image.toPixelMap()[cellWidth / 2, cellHeight / 2]
+
+    assertEquals(Color(TerminalPalette.REFERENCE.at(CellStyle.COLOR_INDEX_BACKGROUND)), pixel)
+  }
+
+  /**
    * The grid this reports is the container's own measured size, not
    * `screen.columns`/`rows` echoed back - [silentEmulator] is 5x3, and any real device's canvas
    * area holds far more than that, so a placeholder pass-through would fail this outright.

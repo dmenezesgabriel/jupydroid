@@ -18,6 +18,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
 import com.jupydroid.app.terminal.CellStyle
+import com.jupydroid.app.terminal.CharacterWidth
 import com.jupydroid.app.terminal.TerminalColors
 import com.jupydroid.app.terminal.TerminalEmulator
 import com.jupydroid.app.terminal.TerminalGrid
@@ -118,7 +119,9 @@ fun TerminalCanvas(
     Canvas(modifier = Modifier.matchParentSize()) {
       drawRect(Color(renderer.colors.at(CellStyle.COLOR_INDEX_BACKGROUND)))
       for (row in topRow until topRow + screen.rows) drawRow(screen.grid, row, topRow, screen.columns, renderer)
-      if (topRow == 0 && emulator.isCursorEnabled) drawCursor(screen.cursor.row, screen.cursor.column, renderer)
+      if (topRow == 0 && emulator.isCursorEnabled) {
+        drawCursor(screen.grid, screen.cursor.row, screen.cursor.column, renderer)
+      }
     }
     Column {
       for (row in topRow until topRow + screen.rows) {
@@ -180,8 +183,26 @@ private fun DrawScope.drawRun(
   drawText(renderer.measurer, text, topLeft, styleFor(renderer.style, runStyle, foreColor))
 }
 
-private fun DrawScope.drawCursor(row: Int, column: Int, renderer: GlyphRenderer) {
-  val topLeft = Offset((column * renderer.cell.width).toFloat(), (row * renderer.cell.height).toFloat())
-  val size = Size(renderer.cell.width.toFloat(), renderer.cell.height.toFloat())
+/**
+ * `TerminalRenderer.render`'s `invertCursorTextColor` (termux-app `3df69d1d`): the block keeps
+ * the glyph it sits on legible by repainting it over the block in the run's resolved *back*
+ * colour - a `vi` cursor resting on a letter shows the letter reversed, not a hole. Either
+ * half of a wide character counts as inside the cursor (the reference's `insideCursor`), so the
+ * block spans the glyph's own columns rather than the cursor's one cell, and an
+ * [CellStyle.INVISIBLE] cell stays invisible - [drawRun]'s own rule.
+ */
+private fun DrawScope.drawCursor(grid: TerminalGrid, row: Int, column: Int, renderer: GlyphRenderer) {
+  val terminalRow = grid.rowAt(row)
+  val glyphIndex = terminalRow.findStartOfColumn(column)
+  val onSecondHalf = column > 0 && terminalRow.findStartOfColumn(column - 1) == glyphIndex
+  val glyphColumn = if (onSecondHalf) column - 1 else column
+  val glyphCells = CharacterWidth.at(terminalRow.text, glyphIndex)
+  val topLeft = Offset((glyphColumn * renderer.cell.width).toFloat(), (row * renderer.cell.height).toFloat())
+  val size = Size(glyphCells * renderer.cell.width.toFloat(), renderer.cell.height.toFloat())
   drawRect(Color(renderer.colors.at(CellStyle.COLOR_INDEX_CURSOR)), topLeft = topLeft, size = size)
+  val runStyle = grid.styleAt(row, column)
+  val text = textOf(terminalRow, glyphColumn, glyphColumn + glyphCells)
+  if (text.isBlank() || runStyle.effect and CellStyle.INVISIBLE != 0) return
+  val ink = resolvedRunColors(runStyle, renderer.colors).second
+  drawText(renderer.measurer, text, topLeft, styleFor(renderer.style, runStyle, ink))
 }
