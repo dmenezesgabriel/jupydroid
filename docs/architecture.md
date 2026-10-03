@@ -1608,6 +1608,61 @@ Reproducible and understood as far as the frames go; the request never reached t
 server's own log cannot say why ([CLOSED-005](research/closed-questions.md)). Everything needed to
 restart the investigation is in [`research/execution-stall.md`](research/execution-stall.md).
 
+### GAP-120 — No searchable surface reaches the acts
+
+`apputils:activate-command-palette` opens `ICommandPalette` — the sidebar widget it registers at
+rank 300 or its modal form — which lists every command the registry holds and executes the one a
+typed search picks (`jupyterlab/packages/apputils-extension/src/palette.ts`). Ours has no command
+registry for a palette to search: every act is a named call wired to its own reach point —
+`NotebookBar`, `KernelMenu`, `NotebookActionsMenu`, the rail, the bars — so an act the user cannot
+find is answered only by knowing where it lives
+(`app/src/main/java/com/jupydroid/app/ui/editor/NotebookBar.kt`). The same absence owns the
+`apputils:run-first-enabled`/`run-all-enabled` machinery, which is a dispatch over registered
+command ids. The repair is not necessarily a palette — any surface that enumerates the closed act
+set and executes a pick.
+
+### GAP-121 — A document cannot be shown without its chrome
+
+`application:toggle-presentation-mode` flips `labShell.presentationMode`, withdrawing the side
+areas, the activity bar and the menus so the current document is the window
+(`jupyterlab/packages/application-extension/src/index.tsx`). Ours collapses the side area to its
+rail (`SidePanel.chosen`) but nothing withdraws the rail, the tab strip or the document's own
+bars — the chrome-free state has no reach
+(`app/src/main/java/com/jupydroid/app/SidePanel.kt`,
+`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`). The repair is a read/present
+state that hides shell chrome and leaves by the way it entered.
+
+### GAP-122 — No way to jump to a line on any document
+
+`editmenu:go-to-line` delegates to the current widget's `goToLiners` registration — the file
+editor's go-to-line scroll and the CSV viewer's `csv:go-to-line`/`tsv:go-to-line` dialogs
+(`jupyterlab/packages/mainmenu-extension/src/index.ts`,
+`csvviewer-extension/src/index.ts`). Ours can *land* on a line — `reveal: MatchedLine` carries one
+from a search result into either editor — but nothing asks for a number: no reach exists on
+`FileEditorScreen`, and the grid half is `GAP-098`'s
+(`app/src/main/java/com/jupydroid/app/ui/fileeditor/FileEditorScreen.kt`,
+`app/src/main/java/com/jupydroid/app/Navigation.kt`). The repair is a reach — a jump dialog or
+row — that mints the `MatchedLine` the landing machinery already reads.
+
+### GAP-123 — No property inspector surface
+
+`property-inspector:show-panel` activates `jp-property-inspector` — a side-area widget whose
+registered providers draw the current widget's properties
+(`jupyterlab/packages/application-extension/src/index.tsx`). Ours has no inspector and no
+widget-property surface at all: a document's metadata shows only where the document itself shows
+it (`app/src/main/java/com/jupydroid/app/SidePanel.kt`). The repair is a `SidePanel` entry, or
+per-kind property rows, when a provider has something to show.
+
+### GAP-124 — No minimap or virtual scrollbar
+
+`viewmenu:show-minimap` delegates to `editorViewers.toggleMinimap`, whose only registration is
+`notebook:toggle-virtual-scrollbar` — the scrollbar that draws a miniature of the whole document
+(`jupyterlab/packages/mainmenu-extension/src/index.ts`, `notebook-extension`). Ours scrolls the
+cell list on its own scrollbar with no miniature; the overview is the table of contents instead
+(`app/src/main/java/com/jupydroid/app/SidePanel.kt`). The repair is a density-scaled overview rail
+on the notebook's scroll surface — the same gap the carried `notebook:toggle-virtual-scrollbar`
+id will cite.
+
 ---
 
 ## 12. Glossary

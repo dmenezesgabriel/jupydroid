@@ -330,8 +330,9 @@ Known going in, so a verdict does not re-litigate them:
 ## Open decisions
 
 - **Menu-family row granularity.** Thirty `mainmenu-extension` ids: one row per menu (`runmenu:*`
-  acts together) or per family act? Decided at T2 on the row-precedent the ledger already sets —
-  a verdict names what was read; menus read as units.
+  acts together) or per family act? Decided at T2 — grouped by verdict-sharing unit on the
+  precedent the ledger already sets: a verdict names what was read, and the openers read as one
+  unit while the delegates group by what they forward to.
 - **Status-bar verdict shape** — `absent` (no part) vs `adapted` (items on owners' bars); the
   same question `statusbar:toggle` carries. T4's read.
 - **Whether the literal ids earn verdict rows** — `statusbar:toggle`/`workspace-indicator:toggle`
@@ -359,7 +360,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       ledger section: the surface paragraphs, the produced counts, the partition rows — no
       verdicts; `statusbar:toggle`/`workspace-indicator:toggle`/`hub:*`/`completer:`-notebook
       pair named un-backticked so the checks stay honest.
-- [ ] T2 — **Verdicts for the shell and the menus.** `application:*`/`sidebar:*` +
+- [x] T2 — **Verdicts for the shell and the menus.** `application:*`/`sidebar:*` +
       `mainmenu-extension`'s 28 + `apputils`' shell acts (`toggle-header`, `run-*-enabled`,
       `move-section-*`, `load-statedb`/`reset*`) + `router:tree`/`property-inspector:show-panel`
       against `Navigation`/`PaneDirective`/`SidePanel`/`SidePanelBar`/`MainAreaTabs`/
