@@ -1211,6 +1211,55 @@ and a dead one (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneVie
 `TerminalPaneScreen.kt`). The repair is the marked end — drawing the reason the way the
 reference's auto-close makes the end obvious — before `closeOnExit` itself is even a question.
 
+### GAP-085 — A soft reset lands nowhere
+
+`CSI ! p` is DECSTR, the soft reset: Termux routes `ESC_CSI_EXCLAMATION` + `p` to `reset()`
+(`terminal-emulator/TerminalEmulator.java:669-675`) and JediTerm's `'p'` arm calls
+`reset(false)` - terminfo's `rs2`, which `reset` and `tput reset` emit, is this sequence. Ours
+routes `!` into `EscapeParser`'s `UnsupportedIntermediateByte` state, which consumes the
+sequence and does nothing (`app/src/main/java/com/jupydroid/app/terminal/`). The machinery is
+not missing - `TerminalScreen.reset` exists and `ESC c` reaches it - only the `!` entry point
+is. The repair is one route and one test, not a feature.
+
+### GAP-086 — The cursor's shape never changes
+
+`CSI Ps SP q` is DECSCUSR, cursor shape (block/underline/bar, blinking/steady): Termux keeps
+`mCursorStyle` for the renderer to read (`TerminalEmulator.java:871-893`) and JediTerm carries
+`CursorShape` end to end. Ours swallows the sequence with every other unclaimed intermediate
+byte, and no cursor-shape state exists anywhere - neovim's `guicursor` and readline's vi-mode
+send it per mode and ours always draws the block. The repair is a field on the emulator plus
+the canvas reading it - the draw half belongs with the view's cursor work.
+
+### GAP-087 — A program's mouse reporting is set and never read
+
+`CSI ? 1000`/`1002`/`1004`/`1006` turn mouse tracking on, and both references own the encoder
+that follows: Termux's `sendMouseEvent` (X10-style and SGR replies, behind
+`isMouseTrackingActive`) and JediTerm's `emulator/mouse/` package (modes 1000-1003, formats
+XTERM/XTERM_EXT/URXVT/SGR). Ours stores the four mode bits (`DecMode`) exactly as upstream -
+and nothing reads them: no encoder, no consumer, no route to `TerminalGateway.send`. A TUI
+asking for mouse events gets silence. The repair is two halves: the protocol encoder this
+package lacks, and the pointer-event reach that feeds it, which is the view task's read.
+
+### GAP-088 — The key table encodes a fraction of itself
+
+`KeyHandler.getCode`'s table is F1-F12, Insert/ForwardDel, SysRq/Break, the numpad with its
+application-keypad variants, `transformForModifiers`'s `CSI 1;Psm` modified keys, Shift+Tab's
+`ESC [ Z`, Ctrl+Space's NUL - and `getCodeFromTermcap`, the ~40-entry reverse map `+q` DCS
+replies consult. JediTerm's `TerminalKeyEncoder` carries the same breadth. Ours'
+`terminalKeystroke`/`applyModifierLatches` are byte-exact for what they cover - arrows and
+Home/End in both DECCKM states, PageUp/PageDown, Tab, Escape, Ctrl+A-Z, the ctrl/alt latches -
+and cover nothing else (`app/src/main/java/com/jupydroid/app/ui/terminal/`). The repair widens
+the table; the extra-keys row already lands its taps here, so nothing downstream changes.
+
+### GAP-089 — A batch-redraw hint is ignored
+
+JediTerm's `2026` is synchronized output: `SynchronizedOutput` buffers the stream between the
+`CSI ? 2026 h` begin and the `l` end, then flushes - contour's BSU/ESU spec, written so a
+full-screen app repaints without tearing. Neither Termux nor ours carries the mode; output
+paints as it arrives, which degrades gracefully. The repair is the mode bit plus a bounded
+buffer - worth doing only if a TUI's flicker is ever seen, since the ignore is already what
+xterm-family terminals without 2026 do.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

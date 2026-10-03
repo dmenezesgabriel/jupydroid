@@ -234,7 +234,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `OkHttpTerminalSocketOpener`/`BaseSpaceTerminalGateway`/`ActivityTrackedTerminalGateway`;
       `searchprovider.ts` against `GAP-036`'s terminal half; the rootfs's `api/terminals` and
       `TermSocket` against the same adapters.
-- [ ] T3 — **Verdicts for the emulator.** Termux's `TerminalEmulator`/`TerminalBuffer`/`TextStyle`/
+- [x] T3 — **Verdicts for the emulator.** Termux's `TerminalEmulator`/`TerminalBuffer`/`TextStyle`/
       `WcWidth`/`KeyHandler` and JediTerm's `Terminal`/`JediEmulator`/`TerminalTextBuffer`/
       `typeahead`/`hyperlinks`/`mouse` against `terminal/` — states, CSI/OSC/DCS finals, DECSET
       modes, charsets, widths, reports, bracketed paste, clipboard OSC, mouse.
