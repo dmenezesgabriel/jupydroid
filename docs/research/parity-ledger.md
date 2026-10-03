@@ -58,7 +58,7 @@ Five, each obliging something different. The full definition is in
 | Files, workspace, recents | `AUD-005` | examined — below |
 | Console, sessions, running panel | `AUD-006` | examined — below |
 | Terminal emulator and view | `AUD-007` | partially verdicted — all but the walk below |
-| Rendering and formats | `AUD-008` | partitioned — the surface below |
+| Rendering and formats | `AUD-008` | partially verdicted — the command surface below |
 | Chrome and presentation | `AUD-009` | unexamined |
 | Spaces and runtime | `AUD-010` | unexamined |
 
@@ -2112,3 +2112,51 @@ not rendering — and is recorded, not rejudged. Five ADRs already carry this ar
 every renderer verdict rests on — and `ADR-0051` (the server names the export). The partition
 rows are in the shared table under `AUD-002`'s heading — all 23 ids to `T2` (the command
 surface); `T3` verdicts the rendermime half, `T4` the output area and the format, `T5` the walk.
+
+### The command surface — verdicts
+
+`T2`'s entries, read down every `addCommand` in the seven packages and the five `notebook:` ids
+this slice carried. Theirs: `rendermime-extension`'s link dispatch (`index.ts:68-125` —
+`contents.get` → `defaultRenderedWidgetFactory` → `openOrReveal` + `setFragment`),
+`markdownviewer-extension`'s trio on the preview factory (`:122-230`), `htmlviewer-extension`'s
+trust toggle on a sandboxed iframe that `defaultFor: ['html']` makes the `.html` tap's landing
+(`index.tsx:113-208`), `mathjax-extension`'s pair behind a `.MathJax` context-menu node
+(`index.ts:135-196`, `schema/plugin.json`), `imageviewer-extension`'s eight transform mutators
+(`index.ts:203-297`), `csvviewer-extension`'s delimiter-twinned go-to-line (`index.ts:219-248`,
+`:383-412`) beside `searchprovider.ts`, `mermaid-extension`'s source-copy off a rendered node
+(`index.ts:80-102`) — and `notebook-extension`'s export trio (`exportToFormat` `:694-747`, the
+submenu's guidance fallback `:809-833`, `FORMAT_EXCLUDE` `:375`), its `ClonedOutputArea` sibling
+(`:1751-1824`, `:5603-5630`), its DOM-element copy (`:2078-2113`) and its trust dialog
+(`:3223-3244` → `actions.tsx:2504-2560`). Ours: `DocumentOpeners`'s suffix split — `.ipynb` to
+the notebook editor, everything else to `FileEditorScreen`'s one text field (`reveal:
+MatchedLine` its only line-landing machinery) — `RenderedOutput`/`CellOutputsView` (three mimes
+ranked off `defaultRank`, plain `Text`, nothing selectable), `RichInlineString`'s
+`RICH_LINK_TAG` written by `appendLink` and read only by `RichInlineStringTest`,
+`NotebookExport`/`OfferedExportFormat`/`ExportStatus` into `DocumentSharer`, and
+`HtmlInlines`'s `IGNORED_TAGS` — the standing answer every trust row rests on. A `.png` tap
+lands in the same field as a `.md`: `DiskWorkspaceRepository.readText` decodes leniently, so
+binary opens as editable mojibake — the reference's text editor shares that failure mode, but
+there a factory claims the file first.
+
+No defect surfaced: the sharp edges the read found are absence-shaped, and the GAPs record them
+with their repairs. Eight GAPs open — `GAP-093` through `GAP-100`, with `GAP-017` cited on the
+one row it already owns. No `undocumented`: every difference the rows state has its reason in a
+comment or ADR already.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| `rendermime:handle-local-link` — the registry's `linkHandler` mounts a click listener on every rendered `<a>`: `contents.get(path)` → `openOrReveal` in the `defaultRendered` factory + `setFragment(id)`; `scope: 'kernel'` delegates to `debugger:open-source` (`index.ts:68-125`, `:137-166`) | `RichInline.Link` carries `destination` and `appendLink` stores it under `RICH_LINK_TAG`; `RichInlineStringTest` is the annotation's only reader — a tap on a rendered link reaches nothing | **absent** | `GAP-093`. Machinery without reach, `GAP-081`'s class: the destination is kept and nothing follows it — no workspace open, not even a browser hand-off |
+| `markdownviewer:open` — "Markdown Preview": delegates to the document manager's open with the rendered factory, which `defaultRendered: ['markdown']` also makes `handle-local-link`'s landing for a `.md` (`index.ts:152-181`; the file editor's own `defaultFor` outranks it for a plain tap) | `.md` → `FileEditorScreen`'s text field; `MarkdownDocument` renders only inside a notebook cell | **absent** | `GAP-094`. The capability is the *rendered* document — the file *is* shown, which is `markdownviewer:edit`'s row, not this one's |
+| `markdownviewer:edit` — "Show Markdown Editor": re-opens the preview's path with the `'Editor'` factory split-right, visible only from a current preview (`index.ts:183-211`) | the editor is the only surface a `.md` ever lands in — the suffix split sends it there unconditionally (`DocumentOpeners.kt`) | adapted | the same destination by the only route that exists; a toggle presupposes the preview `GAP-094` records |
+| `markdownviewer:trust` — `markTrusted` on the preview's node, arming the `jupyter:` command links rendered markdown can carry (`index.ts:213-230`; `data-trust-command` `:138`) | no rendered markdown document exists, and no command-link machinery anywhere — `GAP-093` | **absent** | `GAP-094`'s other half — there is nothing for trust to mark. On a surface that *does* render, trust reads as `notebook:trust` below |
+| `htmlviewer:trust-html` — toggles `widget.trusted` → the iframe sandbox's `allow-scripts`, `isToggled` reading `sandbox` (`index.tsx:180-208`); the whole `HTMLViewer` surface — `defaultFor: ['html']`, `UNTRUSTED_LINK_STYLE`'s painted warning, `trustByDefault` — stands behind it | `.html` → the same text field; no iframe, no sandbox, and `HtmlDocument`'s subset is what `text/html` *outputs* get, not documents | **absent** | `GAP-095`. The package's entire surface is missing, so the row records the viewer too: nothing renders the document, so there is nothing to trust — the `notebook:trust` row's by-construction answer |
+| `mathjax:clipboard`, `mathjax:scale` — `contextMenuHitTest` on a `.MathJax` node: copy the TeX source it keeps, or rescale every typeset document (`index.ts:135-196`, mounted by `schema/plugin.json`'s context-menu contribution, not a settings schema) | nothing typesets: a `$…$` in markdown draws as literal text — `MarkdownDocument` has no math node to map | **absent** | `GAP-096`. Both acts presuppose a rendered equation; `text/latex` and the `ILatexTypesetter` plug are `T3`'s read and cite the same gap |
+| `imageviewer:zoom-in`, `imageviewer:zoom-out`, `imageviewer:reset-image`, `imageviewer:rotate-clockwise`, `imageviewer:rotate-counterclockwise`, `imageviewer:flip-horizontal`, `imageviewer:flip-vertical`, `imageviewer:invert-colors` — `scale`/`rotate`/`flip`/`colorinversion` mutators on the tracker's current `ImageViewer`, `isEnabled` on it being foreground (`index.ts:203-304`) | `.png` → the text field: `readText` decodes the bytes leniently, so the file shows as mojibake in an *editable* field — and a save writes the lossy decoding back | **absent** | `GAP-097`. No image surface exists for the eight acts to mutate; the fallback is worse than empty, since an edit corrupts the file — the GAP's repair names the refuse/read-only half as well as the viewer |
+| `csv:go-to-line`, `tsv:go-to-line` — `InputDialog.getNumber` → `CSVViewer.goToLine`, one registration per delimiter, plus `editMenu.goToLiners` (`index.ts:219-248`, `:383-412`); `searchprovider.ts` registers each grid for document search | `.csv`/`.tsv` → the text field; `reveal: MatchedLine` can *land* on a line — a search result uses it — but nothing asks for a line | **absent** | `GAP-098`. The landing machinery exists without the reach, and the grid viewer, its delimiter toolbar and the search registration do not — the last is `GAP-036`'s family, noted not re-gapped |
+| `mermaid:copy-source` — context-menu on a rendered diagram copies the source its `MERMAID_CODE_CLASS` node keeps (`index.ts:80-102`) | no rendered mermaid anywhere — a ` ```mermaid ` fence in a markdown cell draws as a plain code block | **absent** | `GAP-099`. The diagram surface — mime factory, markdown fence, document widget — is `T3`'s read and cites the same gap; the copy reach itself would still need `GAP-017`'s selection story |
+| `notebook:trust` — "Trust Notebook": warn dialog → `NotebookActions.trust` marks every cell `trusted` → save (`index.ts:3223-3244`; `actions.tsx:2504-2560`), and trust is what lets outputs render *un*sanitized | no `trusted` flag is read anywhere; `HtmlInlines`'s `IGNORED_TAGS` drops `script`/`style`/`head`/`title`/`meta`/`link` whatever the metadata says, and `PreservedJson` round-trips the flag unread | adapted | the subset parse is the sanitizer: nothing rendered can execute, so the flag gates nothing — the deviation the PRD names, resting on ADR-0039's no-WebView model and `HtmlInlines`'s stated rule |
+| `notebook:export-to-format` — one submenu row per server-listed format minus `FORMAT_EXCLUDE` → save if dirty → `nbconvert.exportAs` → `window.open` download; HTML asks "Sanitize HTML output" where the server is new enough (`index.ts:694-747`, `:805-850`, `:375`) | the same act one surface over: overflow row → `pickerOpened` → server formats ∩ `OFFERED_EXPORT_FORMATS` (the measured four) → `exportAs` flushes the debounce → `NotebookExporter.export` → `writeBytes` beside the notebook → the report snackbar's Share → `DocumentSharer` | adapted | every departure written: the artifact lands in the workspace since Android has no download (`NotebookExport`), the four-row menu was measured on the tablet (`OfferedExportFormat`, ADR-0051), `python` stands in for `script`, and `sanitize_html` is never asked — the reference's default-`true` prompt has no reach here |
+| `notebook:show-export-guidance` — "Enable notebook exports", the submenu's only row when the server lists no formats → the guidance dialog or the docs (`index.ts:775-790`, `:817-822`) | `NO_EXPORT_FORMATS` — a disabled "No export formats are available" row, quoting the reference's own wording for the same state (`index.ts:938`) | adapted | the same state surfaced in place rather than a guidance act — `NotebookActionsMenu`'s comment states it, and a docs link has no surface to open on |
+| `notebook:copy-to-clipboard` — copies the output's rendered DOM element, context-menu on `.jp-OutputArea-child` (`index.ts:2078-2113`) | outputs are plain `Text`, unselectable — `GAP-017` measured on the tablet | **absent** | `GAP-017`. Already recorded as the selection story; this row measures the command against it — a copy reach has nothing to copy |
+| `notebook:create-output-view` — `ClonedOutputArea`: a live second widget over one cell's output *model*, split-bottom sibling, disposed with the notebook (`index.ts:1751-1824`, `:5603-5630`) | outputs draw inline only; there is no output-model/surface split a second view could share | **absent** | `GAP-100`. The clone is another widget on the same model — ours has the model inside `CellOutput` with no second surface to mount |
+| `markdownviewer`'s six (`fontFamily`, `fontSize`, `lineHeight`, `lineWidth`, `hideFrontMatter`, `renderTimeout`), `htmlviewer`'s `toolbar`/`trustByDefault`, `csvviewer`'s `toolbar` per delimiter (`schema/*.json`); `imageviewer`'s schema declares no `properties`; `mathjax`'s `plugin.json` is a menu contribution, not settings | rendered content takes `MaterialTheme` typography and `editorPalette`, not per-document config; `EditorSettings.codeFontSizeSp` sizes the *fields*, not the rendering | adapted | declined where each one's surface is — `GAP-094`/`GAP-095`/`GAP-098`; `trustByDefault`'s answer is `notebook:trust`'s row, and `renderTimeout` presupposes a render that can time out |

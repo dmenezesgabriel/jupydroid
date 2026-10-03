@@ -1296,6 +1296,103 @@ mis-declared monospace - drifts ink and cells apart. `CodeText` measures honestl
 this is a dormant rendering risk rather than a visible wrongness; the repair is the same
 per-run measure-and-scale if a font ever lies.
 
+### GAP-093 — A rendered link's destination is stored and never followed
+
+`rendermime:handle-local-link` mounts a click listener on every `<a>` a renderer draws:
+`contents.get(path)` then `openOrReveal` in the `defaultRendered` factory, with `setFragment`
+for the `#id` and a `kernel` scope delegated to the debugger's source viewer
+(`jupyterlab/packages/rendermime-extension/src/index.ts:68-166`). Ours keeps the destination
+and loses the reach: `RichInline.Link` carries it, `appendLink` writes it under `RICH_LINK_TAG`,
+and `RichInlineStringTest` is the annotation's only reader
+(`app/src/main/java/com/jupydroid/app/richtext/RichInlineString.kt`) — a tap on a link in a
+rendered markdown cell or an HTML output does nothing. The repair is the consumer: a tap
+reading the annotation and routing the destination the way `handle-local-link` does — a
+workspace path to `DocumentOpeners.openDocument`, everything else to a browser intent — before
+any relative-path rule can exist.
+
+### GAP-094 — A markdown file has no rendered preview
+
+`markdownviewer:open` opens a `.md` in the 'Markdown Preview' factory — the same pipeline a
+markdown *cell* renders through, mounted as a document (`markdownviewer-extension/src/index.ts:122-230`).
+JupyterLab's file editor still wins a plain tap (`fileeditor-extension` registers `defaultFor:
+['markdown']` "so it outranks the defaultRendered viewer"), but the preview exists to be asked
+for — and `handle-local-link` lands on it. Ours renders `MarkdownDocument` only inside a
+notebook cell; a `.md` in the explorer opens `FileEditorScreen`'s text field, the same as every
+other suffix (`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`). `markdownviewer:trust`
+has nothing to mark without it. The repair is a rendered view — `RichText` over the file's own
+`MarkdownDocument` parse is already the whole pipeline — mounted as a second way to look at the
+document, with the settings (`fontFamily`/`fontSize`/`lineWidth`/`hideFrontMatter`) decided
+when it is built.
+
+### GAP-095 — An HTML file never renders: no viewer, nothing to trust
+
+`htmlviewer:trust-html` toggles `allow-scripts` on a deliberately weak sandbox — the
+`HTMLViewer` iframe carries `allow-same-origin` and nothing else — and the viewer is
+`defaultFor: ['html']`, so a `.html` tap in the reference renders the file
+(`htmlviewer-extension/src/index.tsx:113-208`). Ours opens it as editable source text: no
+iframe, no sandbox, no scripts — `HtmlDocument`'s dropping subset is what `text/html` *outputs*
+parse through, and no document ever reaches it (`app/src/main/java/com/jupydroid/app/html/`).
+The trust question itself is answered by construction — nothing rendered can execute — so the
+repair is the viewer decision first: whether a document surface that draws rendered HTML (under
+ADR-0039's no-WebView rule, that means the `HtmlDocument` subset, not an iframe) is wanted at
+all; only if it can run something does a trust act exist to gate it.
+
+### GAP-096 — Math never typesets, so there is no equation to copy or scale
+
+`mathjax:clipboard` and `mathjax:scale` sit on a context menu `schema/plugin.json` mounts on a
+`.MathJax` node — a node only `MathJaxTypesetter.typeset` creates
+(`mathjax-extension/src/index.ts:135-196`). Ours typesets nothing: `MarkdownDocument` has no
+math node to map, so `$…$` draws as literal text in cells, and `text/latex` outputs fall
+through `RenderedOutput`'s ranking to the bundle-keys line
+(`app/src/main/java/com/jupydroid/app/markdown/MarkdownDocument.kt`,
+`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt`). The repair is the
+typesetter itself — the `ILatexTypesetter` plug and the `text:latex` renderer are the rendermime
+half's read — and the two commands are context-menu rows once a rendered equation exists.
+
+### GAP-097 — An image file opens as editable text, and an edit corrupts it
+
+`imageviewer:*` is eight transform acts — zoom, rotate, flip, invert, reset — over an
+`ImageViewer` that `defaultFor` claims `.png`/`.jpeg`/`.gif`/`.bmp`/`.webp`
+(`imageviewer-extension/src/index.ts:203-304`). Ours has no image document surface: a `.png`
+tap lands in `FileEditorScreen` via `readText`, which decodes the bytes leniently into mojibake
+in an *editable* field (`app/src/main/java/com/jupydroid/app/data/disk/DiskWorkspaceRepository.kt`).
+The reference's own text editor shares that failure mode, but there a factory claims the file
+first — here nothing stands between the bytes and a field whose save writes the lossy decoding
+back over the image. The repair is two steps: refuse or read-only the payloads a text field
+cannot represent, then the viewer the eight acts mutate.
+
+### GAP-098 — A CSV/TSV file has no grid viewer, and no line to jump to
+
+`csv:go-to-line`/`tsv:go-to-line` open a number dialog into `CSVViewer.goToLine`, one per
+delimiter, beside a `CSVDelimiter` toolbar pick and a `searchprovider.ts` registration that
+makes the grid searchable (`csvviewer-extension/src/index.ts:219-412`). Ours opens both as
+plain text in `FileEditorScreen` — which *can* land on a line: `reveal: MatchedLine` scrolls a
+search result to it (`app/src/main/java/com/jupydroid/app/ui/fileeditor/`). What is missing is
+the reach — nothing asks for a line — and the grid viewer itself. The search-registration half
+is `GAP-036`'s family. The repair splits the same way: a go-to-line reach is small and could
+serve every text file, while the parsed grid is a bigger, separable decision.
+
+### GAP-099 — A mermaid diagram never renders, so its source has nothing to be copied from
+
+`mermaid:copy-source` copies the diagram source a `MERMAID_CODE_CLASS` node keeps, off a
+context menu on a rendered `RenderedMermaid` (`mermaid-extension/src/index.ts:80-102`). Ours
+has no rendered mermaid anywhere: a ` ```mermaid ` fence in a markdown cell draws as a plain
+code block, and `text/vnd.mermaid` outputs fall through `RenderedOutput` like every unlisted
+mime (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt`). The source *is* on
+screen in the fence — but verbatim, not as a diagram with a menu on it. The diagram surface —
+the mime factory, the markdown-fence processor, the `.mmd` document widget — is the rendermime
+half's read; the copy reach itself would still need `GAP-017`'s selection story even then.
+
+### GAP-100 — A cell's output cannot be viewed twice
+
+`notebook:create-output-view` mounts `ClonedOutputArea` — a second widget over the same cell's
+output *model*, split-bottom, live-updating, disposed with the notebook
+(`notebook-extension/src/index.ts:1751-1824`, `:5603-5630`). Ours draws outputs inline and only
+inline: `CellOutput` is a domain list `CellOutputsView` renders in place, with no
+model/surface split a second view could share (`app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt`).
+The repair is the model split first — an output area object a second pane could subscribe to —
+before any "view for this output" reach exists.
+
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the

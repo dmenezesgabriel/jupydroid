@@ -300,7 +300,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       pattern. No stray-id sweep needed (verified: no backticked id in any of these families exists
       in the ledger or `app/src/`). Land the `AUD-008` ledger section: the surface paragraphs, the
       produced counts, the partition rows — no verdicts.
-- [ ] T2 — **Verdicts for the command surface.** The 18 package ids plus the five carried
+- [x] T2 — **Verdicts for the command surface.** The 18 package ids plus the five carried
       `notebook:` ids against `ui/editor/{NotebookExport,OfferedExportFormat,ExportStatus}` and
       `DocumentSharer`/`IntentDocumentSharer` (export/guidance), `CellOutputsView`/`RenderedOutput`
       (copy-to-clipboard, create-output-view), the `FileEditorScreen` fallback (markdownviewer,
