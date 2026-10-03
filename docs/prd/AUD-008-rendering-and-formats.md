@@ -317,7 +317,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       and Python validator/reader/rwbase) + `nbconvert`/`handlers.py` against `CellOutput`/
       `CellOutputsView`/`KernelOutputs`, `data/disk/*`, `data/space/*Exporter*`,
       `import/ImportTitles` + `MainActivity`.
-- [ ] T5 — **The walk.** `.ipynb` open → `readNotebook` → `PreservedJson` → autosave →
+- [x] T5 — **The walk.** `.ipynb` open → `readNotebook` → `PreservedJson` → autosave →
       `NotebookJsonWriter` round-trip; iopub → `KernelOutputs` → `CellOutput` → `renderRichest` →
       drawn; export → `api/nbconvert` → `nbconvert/<format>/<path>` → share sheet; `.md` tap →
       file editor; `attachment:`/`display_id`/`wait`-flag paths; growth (per-output recompose,

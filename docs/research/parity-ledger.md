@@ -57,8 +57,8 @@ Five, each obliging something different. The full definition is in
 | Search, replace, table of contents | `AUD-004` | examined — below |
 | Files, workspace, recents | `AUD-005` | examined — below |
 | Console, sessions, running panel | `AUD-006` | examined — below |
-| Terminal emulator and view | `AUD-007` | partially verdicted — all but the walk below |
-| Rendering and formats | `AUD-008` | partially verdicted — all but the walk below |
+| Terminal emulator and view | `AUD-007` | examined — below |
+| Rendering and formats | `AUD-008` | examined — below |
 | Chrome and presentation | `AUD-009` | unexamined |
 | Spaces and runtime | `AUD-010` | unexamined |
 
@@ -2316,3 +2316,135 @@ frame, a visible wrongness no comment states — while the carrier it needs stay
 | `api/nbconvert` + `NbconvertFileHandler` — format listing, GET `nbconvert/<fmt>/<path>?download`, POST variant, `respond_zip`, CSP sandbox header, `redirect_to_files` for non-notebooks (`nbconvert/handlers.py`) | `OkHttpNotebookExporter.formats()`/`export()` over the same two endpoints; `OfferedExportFormat` intersects; `DocumentSharer` hands bytes off | adapted | verdicted at `T2` — the GET pair is the half both clients call; POST, the zip branch and the redirect have no caller on either frontend, and the CSP header guards a browsing surface ADR-0039 never built |
 | contents `get`/`save` — the file manager reading and writing notebook models (`contents/{filemanager,manager}.py`) | `DiskNotebookRepository.readFile`/`writeFile` | adapted | the same file-level duties; validation and atomicity split to their own rows above |
 | `.ipynb` open — `DocumentManager.open` reads the file's bytes through `contents.get`; a document is its content (`docmanager/src/manager.ts`) | a VIEW intent yields the display name only — `importTitleFrom` strips the suffix and an *empty* notebook is created under it | **absent** | `GAP-119`. Shipped as a title-only import; the shared file's bytes are never read |
+
+### The walk
+
+Five paths end to end — an `.ipynb` open through save, a run's output through pixels, an
+export through the share sheet, a `.md` tap, and the three flags the middle of the pipe
+swallows. **An `.ipynb` open:** a tap in the explorer → `rememberDocumentOpener` →
+`backStack.openDocument` — `openDocuments.at(path)?.openedAs` resolving the live path back to
+the key's `openedAs`, the `openOrReveal` read `manager.ts`'s `_contextsForPath` makes — → the
+`.ipynb` suffix → `openNotebook` → `openInMainArea`, an equal key revealed rather than pushed a
+second time → `entry<Editor>` → `EditorScreen` → `EditorViewModel` →
+`openDocuments.opened(document)` registered *before* the read, so nothing can replace the file
+in between → `notebookRepository.readNotebook(id)` → `DiskNotebookRepository` — a missing file
+or a failed decode each named in an `IllegalArgumentException` that lands as
+`EditorUiState.error` — → `Json.readNotebook`'s double parse: the typed `NotebookFile` for the
+modeled fields and the raw `JsonObject` riding beside them as `preserved` (ADR-0021) →
+`toDomain` pairing each cell with its preserved twin by index, `cellKind` naming a fourth
+`cell_type` rather than guessing → `toEditorUiState` seeding `outputs` and `executionCounts`
+from the cells → `seedKernelPreference` → a typed keystroke → `withSource` setting `dirty` →
+`save.schedule()` → `DocumentAutosave` — 500 ms of debounce, the periodic pass armed only once
+an `editArrived` says there is work — → `persist()` under `writeMutex`, writes serialized in
+the order asked so a debounced write and a run's checkpoint cannot put an older snapshot back
+over a newer edit → `withResultsOnCells` folding `outputs` onto the cells **for the snapshot
+only** — a run in flight keeps its output off the file until the checkpoint — →
+`NotebookJsonWriter.toFileJson`, the overlay: `preserved` laid down first and the owned keys
+over it, `nbformat_minor` forced to 5 because cell ids are written regardless,
+`metadata.jupydroid` stripped, `kernelspec.name` updated while `display_name` keeps the file's
+own, `outputsJson()` returning the preserved `JsonArray` itself when the domain list reads back
+unchanged — byte-for-byte on the untouched path — and `toFileOutput` regenerating when it does
+not → `File.writeText` direct — `GAP-023`'s un-atomic wound — → `adoptWritten` clearing `dirty`
+only where the write still covers the live state → `onCleared`'s farewell `persist()` on
+`applicationScope`, outliving the ViewModel and gated by `save.discarded`. **A run's output:**
+`runCell` → `NotebookCellRuns.run` → `startingRun` — `outputs - cellId`, `execute()`'s pre-run
+`clear()` — → `eventsFor(cell)` → `session.reopeningIfStale` → `kernelGateway.execute` →
+`RealKernelGateway.execute`'s cold flow — `msg_id` and `ExecutionCompletion` minted per
+collection, not per call — → `sessionSocket.events`, the 256-deep `MutableSharedFlow` fed by
+`tryEmit` off OkHttp's reader thread, a full buffer logged `kernel.frame.dropped` rather than
+backpressured → `onSubscription` — `awaitReady` holding the request until handshake *and*
+`kernel_info` answer, then `send` — → `transformWhile { emitUntilComplete }`: an `Ended` frame
+→ `KernelChannelException`; `executionCountOf` → `KernelEvent.ExecutionCount`; `outputOf` →
+`KernelEvent.Output`; `completion.accept` wanting reply *and* idle in either order
+(`future.ts:14-17`) → `KernelEvent.Idle` ends the flow → the collect folding each event into
+`uiState.update { it.after(event) }` → `afterOutput` — `ClearOutput` executed against the
+model: immediate drops the list, `wait` parks the cell in `clearsPending` and the next output
+spends it, so the instruction never lands in `outputs`, never renders and never serializes
+(`974ba25c`) — → `withSearchedOutputsRecomputed`, a no-op unless the search reads outputs →
+`finishedRun` → `checkpoint` — `persist()` when autosave is on, `dirty = true` when not — → the
+cell's `EditorContent` item → `CellOutputs` → `render()`/`renderRichest` — three mimes ranked
+off `defaultRank`, an unusable payload falling through to the next, the bundle's keys the last
+resort — → `OutputText`/`OutputImage`/`RichText` inside `OutputColumn`, `ScrolledOutputs`'s
+24-line bound or `CollapsedCell`'s preview strip. **An export:** the overflow's row →
+`pickerOpened` → `BaseSpaceNotebookExporter.live.get()` — asking for formats *is* asking for
+the runtime, which is why the ask sits inside the picker and not beside the menu — →
+`GET api/nbconvert` → `offeredExportFormats` intersecting the server's list with the four ours
+has labels for → `exportAs("html")` → `converting` named on the row → `persist()` — the
+save-first the reference does as `await context.save()`, and refused rather than silent since
+`48041f2f` when the write never landed — → `exporter.export(path, "html")` →
+`GET nbconvert/html/<path>?download=true` → `NbConvertResponse` — the server's own filename off
+`Content-Disposition`, its media type off `Content-Type`, its own sentence off a failure — →
+`writeBytes` beside the notebook, a same-name artifact replaced → `ExportReport.Written` → the
+snackbar's Share → `IntentDocumentSharer` → `FileProvider`'s `content://` → `ACTION_SEND` under
+a chooser, `FLAG_GRANT_READ_URI_PERMISSION` granted. **A `.md` tap:** the same `openDocument`
+to the split's other arm → `openFile` → `entry<FileEditor>` → `FileEditorViewModel` →
+`workspaceRepository.readText` — lenient decode, so a `.png` opens the same field as mojibake
+(`GAP-097`) — → `syntaxForFile` → the same autosave-and-`persist` shape, `changes`-fed
+`adopt`/`stopWriting`, the same farewell flush on `applicationScope`. **The three flags:**
+`attachment:name` round-trips inside `PreservedJson` unread — preserved, never resolved
+(`GAP-107`); `display_id`/`transient` are dropped at `KernelOutputs.mimeBundle`'s `data`-only
+read, an `update_display_data` arriving as a second `DisplayData` beside its stale twin
+(`GAP-113` riding `GAP-104`'s missing carrier); `clear_output`'s `wait` survives as
+`clearsPending`, spent by the next output — and surviving `startingRun` is the reference's own
+shape, whose `clear()` never resets `clearNext` either (`model.ts:301-320`), the flag inert on
+an already-empty list in both.
+
+What the walk found, beyond the rows above:
+
+- **Growth is paid per frame at the wire and per recomposition at the glass.** Each iopub
+  frame is decoded four times — `executionCountOf`, `outputOf`, `isReplyFor` and `isIdleFor`
+  each run `JupyterFrame.decode` on the same string rather than one decode fanning out. The
+  buffer behind them is honest: 256 frames of headroom, `tryEmit` never blocking OkHttp's
+  reader thread, a refusal logged `kernel.frame.dropped` rather than queued without bound.
+  Inside the model `afterOutput`'s `carried + output` copies the cell's list per message,
+  bounded only by the output count — which `GAP-115`'s missing `maxNumberOutputs` and
+  `GAP-112`'s missing `shouldCombine` leave unbounded. And `CellOutputs`'s
+  `mapNotNull { it.render() }` re-derives every rendered output on each recomposition of the
+  item: `OutputImage` memoizes only the bitmap decode (`remember(output)`), `MarkdownCell`'s
+  blocks are `remember`ed by source — the html/base64/ANSI work is re-paid on every state bump
+  of a running cell, which is once per frame. On the file side `outputsJson()` pays O(outputs)
+  per save per code cell to prove byte-identity — the rarer direction. None of it is wrong; it
+  is the cost ledger a `JD-NNN` would spend on memoizing `render()` or decoding the frame once.
+- **Branching splits at the factory door, on `msg_type`, and on who may boot the runtime.**
+  `openDocument`'s `openedAs`-then-suffix is the whole factory dispatch — one conditional where
+  the reference's document manager holds a factory map, sized by there being exactly one
+  factory per type to dispatch (`DocumentOpeners.kt`). `KernelOutputs.outputFrom`'s `when` is
+  the wire dispatch — a `stdin`-named stream dropping at `toStream` (`GAP-014`),
+  `update_display_data` folding into `display_data` (`GAP-113`), `clear_output` becoming an
+  instruction rather than an output. `renderRichest`'s fall-through is the renderer selection —
+  rank → usable-payload → keys — already verdicted. And the boot split: `pickerOpened`,
+  `exportAs` and a cell's run all reach `live.get()`, so every Space-backed ask may boot the
+  runtime; only the disk paths — open, save, the artifact write, the share — never do.
+- **Failure lands at four distinct surfaces, and the walk found the two places it did not.**
+  An open failure is `EditorUiState.error` with the file's name in it. A save failure is
+  `saveFailure` — a state rather than an event, because "your work is not reaching disk" goes
+  on being true until it stops — and is now also the export's refusal where it used to convert
+  the last-good file beside the banner: `48041f2f`, red first
+  (`exportAs_refusesToConvertAFileTheSaveNeverWrote`). A wire failure is a `CellOutput.Error`
+  the cell earned — `KernelChannelException` on an `Ended` socket, a refused connect — except
+  `KernelPickRequiredException`, rethrown past the failure lane to arm the picker rather than
+  stain a cell that never ran. An export failure is `ExportReport.Refused` carrying the
+  server's own sentence (`NbConvertResponse`). The second defect is the file half's twin of the
+  wire's totality contract: `toDomainOutput` promised "dropped rather than throwing" and read
+  every member through `jsonPrimitive`, which throws on a non-primitive — one malformed member
+  anywhere in `outputs` failed the whole open until `4304a05f` made the reads `as?`-tolerant at
+  member granularity (red first: the four `toDomain_*` cases in `NotebookOutputsTest`). What
+  the walk confirmed rather than repaired: `toStream`'s stdin refusal (`GAP-014`),
+  `stopWriting`/`notebookIsGone` gating the farewell write so a deleted file is not
+  resurrected, and `getUriForFile`'s refusal staying unreachable behind a `writeBytes` that
+  just succeeded — `DiskWorkspaceRepository.writeText`/`writeBytes` sharing `GAP-023`'s
+  non-atomic wound is worth naming while here.
+- **Coupling is one type spoken by two translators, and one junction where wire-state meets
+  file-state.** `CellOutput` is the wire's model *and* the file's — `KernelOutputs.outputFrom`
+  produces it from frames, `NotebookOutputReader.toDomainOutput`/`NotebookOutputWriter`'s
+  `toFileOutput` translate the stored shapes, and `MimeBundleLines` mediates the line-split
+  convention the wire never has. `PreservedJson` threads raw `JsonObject` through the domain
+  model — lawful because kotlinx's types are not Android's (ADR-0021) — which is what makes the
+  byte-for-byte overlay possible. `outputs` live on `EditorUiState`, not on `Cell` — in-flight
+  output is not document content — and `withResultsOnCells` is the single junction where the
+  run's map meets the persisted list, `toEditorUiState` its inverse on open; `persist` injected
+  into `NotebookExport` is the same seam a level up, and its `Boolean` is now what keeps the
+  export honest about which bytes nbconvert will read. `DocumentSharer` is the one Android
+  boundary the path ends at: the artifact lands in the workspace precisely so the explorer
+  already lists it and a cell can `open()` it — the download the reference hands to a browser,
+  answered by a share sheet.
