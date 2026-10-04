@@ -61,7 +61,7 @@ Five, each obliging something different. The full definition is in
 | Rendering and formats | `AUD-008` | examined — below |
 | Chrome and presentation | `AUD-009` | examined — below |
 | Spaces and runtime | `AUD-010` | examined — below |
-| Code health | `AUD-011` | unexamined |
+| Code health | `AUD-011` | examined — below |
 
 ---
 
@@ -3735,3 +3735,79 @@ verdict `AUD-010` gave machinery no reference has.
 driver↔flow↔evidence lockstep) and nine on the references' (shellcheck, licence headers, cyclic
 dependencies, i18n, external links, spell-check, flakiness tracking, wrapper validation, and the
 pipeline itself). The Areas row stays `unexamined` until `T5`'s walk reads a commit end to end.
+
+### The walk
+
+One commit traced end to end — hook, gate, suite, then the step's documented command — the three
+tiers the harness runs at and what each can and cannot hold. Reproduces from a clone:
+
+```sh
+grep -n "id:\|files:\|types:\|always_run\|pass_filenames\|entry:" .pre-commit-config.yaml
+pre-commit run --all-files                                   # the whole walk, live
+ls .git/hooks/pre-commit                                     # the enrolment edge — opt-in
+python3 -m unittest discover -s scripts -p '*_test.py'       # the 34 suites every commit pays
+ls scripts/*_test.py | wc -l                                 # 34
+grep -n "gradlew\|unittest" AGENTS.md                        # the documented step gate
+```
+
+**A commit** starts at `.git/hooks/pre-commit` — the framework's generated trampoline, present on
+this clone because someone ran `pre-commit install` and free to be absent on the next: the
+enrolment edge `GAP-161` records, where the tier refuses nothing it never runs and
+`git commit --no-verify` walks around it whole. Inside it, the yaml's 16 ids run in three trigger
+shapes. **Three pass the staged names to the gate as its input** — `file-line-length` on staged
+`.kt` (its `"$@"` is the operand, `awk 'NF'` counting non-blank — staged-only by design, detekt
+`LargeClass` its every-file pair, and the one gate with no fails-closed proof of its own), plus
+`device-secrets` on everything staged and `retired-doc-citations` on staged text, each backed by a
+whole-tree sweep inside its suite. **Five take the staged name as a trigger, not an input** —
+`pass_filenames: false`, the gate re-scans its whole domain — and for four of them the suite's
+real-tree run (`ScopeTest`, `main(REPO)`, `test_the_real_drivers_are_clean`) is what refuses a
+violation in a file the trigger's `files:` pattern missed; `check_maestro_output_assertions`
+needs no sweep because its trigger *is* its domain — every `.maestro` flow matches
+`\.(yaml|ipynb)$` — so its suite keeps fixtures instead. **Eight are `always_run`** — a commit
+touching one `.kt` and a commit touching only `docs/` pay identically: the 34-suite `unittest
+discover`, the three whole-tree sweeps (`monospace-home`, `palette-consumers`, `doc-citations`),
+and the four Gradle calls in the yaml's order — ktlint's named source sets, detekt, `lintDebug`,
+`testDebugUnitTest` + `compileDebugAndroidTestKotlin`. The order is cheap first: every Python hook
+can refuse before a Gradle daemon is asked, and `gradlew-jbr` carries the `JAVA_HOME` fact once
+for all four (the documented `<jdk>` is the same fact a human pays by hand).
+
+**The hooks' tests** are the second tier inside the same commit. `maestro-gate-tests` —
+`always_run` — runs `unittest discover -s scripts -p '*_test.py'`: 34 suites, milliseconds, and
+the reason the five narrow triggers can stay narrow. `ArchitectureGuardTest` is the same act on
+the Gradle side, inside `testDebugUnitTest`, asserting the real tree — its red proven not by a
+fixture suite but by a planted violation watched failing and reverted, recorded in `f18e2dc1`'s
+commit body: the two red-proof styles the audit found, kept as the fact they are. `unittest
+discover`'s `*_test.py` pattern is the wiring — a new gate's suite joins the run by filename
+alone, no registration — which is also the edge the one `.sh` gate sits outside: a
+`check_file_line_length_test.py` wrapper is how a non-Python gate would re-enter the tier.
+
+**The step** is what the documented command adds to a commit: the same Gradle surface plus
+`assembleDebug` — evidence gate 3, the APK itself — and the same `unittest discover`, each ktlint
+source set and `compileDebugAndroidTestKotlin` named for the `ADR-0016`/`GAP-008` reasons. Beyond
+any command is the rest of the step — `connectedDebugAndroidTest` wants a device or emulator, the
+Maestro flow wants the device rule 2 names (arm64 when a cell runs, the emulator otherwise), and
+the evidence wants committing. The device tier exists because a commit cannot carry a device
+frame — the same constraint that put `check_chrome_parts` and `check_node_fill` inside their
+driver scripts rather than in the yaml, wired by the flows they read.
+
+What the walk found, beyond the tiers:
+
+- **Growth is one file, one suite, one stanza.** A new gate is `check_x.py`, `check_x_test.py`
+  (joining `unittest discover` by its filename — nothing registers it) and a yaml stanza choosing
+  its trigger shape. `check-file-line-length.sh` shows the edge: it predates the convention, its
+  `check_*` name slips the stated rule by shape, and a `_test.py` wrapper is the whole repair the
+  finding prescribes. The `34` is produced, not gated — a deleted suite shrinks coverage silently,
+  the deliberate posture `ADR-0067` set for counts.
+- **Branching is three trigger shapes and one refusal arm.** Filename-passing where the staged
+  set *is* the domain; trigger-not-input where the domain is a subtree and the suite sweeps what
+  the trigger misses; `always_run` where nothing may depend on what was touched. pre-commit's own
+  fail-fast ordering puts the free checks before the four Gradle-paying hooks.
+- **Failure is closed at the wiring, open at the enrolment.** `language: system` makes a missing
+  entry fail the hook rather than skip it, and every gate's error is a non-zero exit, never a
+  pass. The open arm is the one `GAP-161` already names — opt-in install, `--no-verify`, no
+  pipeline behind the local tier — and inside the tier the one gate that cannot demonstrate it
+  fails stays the file-length `.sh`. Both recorded; neither a defect.
+- **Coupling is three shared substrates and one honest split.** `gradlew-jbr` holds `JAVA_HOME`
+  for the four Gradle hooks; the three scanners are the citation gates' shared readers; `unittest
+  discover` couples every `*_test.py` to every commit. The driver-bound pair stay coupled to their
+  flows — a device frame is their input, the one coupling the design refuses to pretend away.

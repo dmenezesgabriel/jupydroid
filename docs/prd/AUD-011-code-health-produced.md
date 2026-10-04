@@ -243,7 +243,7 @@ command answers it and nothing gates the answer; **convention** = neither.
   (license headers, cyclic deps, i18n/link checks, CI itself) and the bespoke gates no reference
   has (doc citations, device secrets, maestro output assertions, driver isolation). `undocumented`
   → ADR; `absent` → `GAP-NNN`; `defect` → red-first fix in-slice.
-- [ ] **T5 — the walk and the close.** The end-to-end read: a commit passes through the hooks, the
+- [x] **T5 — the walk and the close.** The end-to-end read: a commit passes through the hooks, the
   hooks through their tests, the step through the documented gate. Areas row → `examined`; the PRD
   is deleted per ADR-0001; the backlog row ships and the marker moves to `JD-001`.
 
