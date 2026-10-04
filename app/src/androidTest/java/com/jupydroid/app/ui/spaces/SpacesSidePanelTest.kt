@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.filterToOne
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -22,6 +24,8 @@ import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,8 +34,8 @@ import java.time.Instant
 
 /**
  * The Spaces panel: every Space, base first, each named over its id and age, with a bar while an
- * act runs and the port's own refusal when one fails; a Space made and renamed by name, base's
- * name locked.
+ * act runs and the port's own refusal when one fails; a Space made and renamed by name, deleted
+ * only after asking, base's name and existence locked.
  *
  * What the ViewModel decides - order, one act at a time, re-listing - is `SpacesViewModelTest`'s.
  * This holds what only a composition can: that the rows, the bar and the refusal reach the screen.
@@ -62,7 +66,7 @@ class SpacesSidePanelTest {
 
   @Test
   fun theBarShowsWhileAnActRunsAndGoesWhenItEnds() {
-    val gated = GatedCreateSpaceRepository(FakeSpaceRepository())
+    val gated = GatedSpaceRepository(FakeSpaceRepository())
     val model = show(gated)
 
     compose.runOnIdle { model.create(THESIS) }
@@ -139,17 +143,59 @@ class SpacesSidePanelTest {
   /** One act at a time: while one runs, the controls that would start another are held. */
   @Test
   fun theActControlsAreHeldWhileAnActRuns() {
-    val gated = GatedCreateSpaceRepository(FakeSpaceRepository(listOf(base, thesis)))
+    val gated = GatedSpaceRepository(FakeSpaceRepository(listOf(base, thesis)))
     val model = show(gated)
 
     compose.runOnIdle { model.create("Scratch") }
 
     compose.onNodeWithContentDescription(NEW_SPACE).assertIsNotEnabled()
     compose.onNodeWithContentDescription("Rename $THESIS (space-1)").assertIsNotEnabled()
+    compose.onNodeWithContentDescription("Delete $THESIS (space-1)").assertIsNotEnabled()
     gated.release.complete(Unit)
     compose.waitUntil(TIMEOUT_MILLIS) { !model.uiState.value.busy }
     compose.onNodeWithContentDescription(NEW_SPACE).assertIsEnabled()
   }
+
+  /** The port refuses to delete base; the screen does not offer it, as VS Code does not. */
+  @Test
+  fun baseHasNoDeleteControlAndAUserSpaceHasOne() {
+    show(FakeSpaceRepository(listOf(base, thesis)))
+
+    compose.onAllNodesWithContentDescription("Delete ${BASE_SPACE.name}", substring = true)
+      .assertCountEquals(0)
+    compose.onNodeWithContentDescription("Delete $THESIS (space-1)").assertIsDisplayed()
+  }
+
+  /** The question names the id as well, so two Spaces called Thesis cannot be confused in it. */
+  @Test
+  fun cancellingADeleteKeepsTheSpace() {
+    val repository = FakeSpaceRepository(listOf(base, thesis))
+    show(repository)
+
+    compose.onNodeWithContentDescription("Delete $THESIS (space-1)").performClick()
+    compose.onNodeWithText("Are you sure you want to permanently delete: $THESIS (space-1)?").assertIsDisplayed()
+    compose.onNodeWithText("Cancel").performClick()
+
+    compose.onNodeWithText(THESIS).assertIsDisplayed()
+    assertEquals(listOf(BASE_SPACE.id, "space-1"), runBlocking { repository.spaces() }.map { it.id })
+  }
+
+  @Test
+  fun aConfirmedDeleteShowsProgressThenRemovesTheRow() {
+    val gated = GatedSpaceRepository(FakeSpaceRepository(listOf(base, thesis)))
+    show(gated)
+
+    compose.onNodeWithContentDescription("Delete $THESIS (space-1)").performClick()
+    confirmDelete()
+
+    compose.onNodeWithContentDescription(SPACES_BUSY).assertIsDisplayed()
+    gated.release.complete(Unit)
+    compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText(THESIS).fetchSemanticsNodes().isEmpty() }
+    compose.onNodeWithText(BASE_SPACE.name).assertIsDisplayed()
+  }
+
+  /** The dialog's button, not its title - both say "Delete" (`ExplorerScreenTest.confirmDelete`). */
+  private fun confirmDelete() = compose.onAllNodesWithText("Delete").filterToOne(hasClickAction()).performClick()
 
   private fun show(repository: SpaceRepository): SpacesViewModel {
     val model = SpacesViewModel(repository)
@@ -168,12 +214,17 @@ class SpacesSidePanelTest {
   }
 }
 
-/** Holds every `create` until [release] completes, so a test can look at the panel mid-act. */
-private class GatedCreateSpaceRepository(private val fake: SpaceRepository) : SpaceRepository by fake {
+/** Holds every `create` and `delete` until [release] completes, so a test can look at the panel mid-act. */
+private class GatedSpaceRepository(private val fake: SpaceRepository) : SpaceRepository by fake {
   val release = CompletableDeferred<Unit>()
 
   override suspend fun create(name: String): SpaceConfig {
     release.await()
     return fake.create(name)
+  }
+
+  override suspend fun delete(id: String) {
+    release.await()
+    fake.delete(id)
   }
 }

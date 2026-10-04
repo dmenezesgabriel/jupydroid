@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,6 +38,7 @@ import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.relativeTime
 import com.jupydroid.app.ui.shell.label
@@ -63,6 +65,12 @@ import java.time.Instant
  * (`vscode@3f3380c src/vs/workbench/contrib/userDataProfile/browser/userDataProfilesEditor.ts`,
  * `renderName`).
  *
+ * **Deleted only after asking**, in [DeleteFileDialog], which names the Space as `"<name> (<id>)"`:
+ * VS Code names the profile it would delete
+ * (`vscode@3f3380c src/vs/workbench/contrib/userDataProfile/browser/userDataProfilesEditorModel.ts`,
+ * `removeProfile`), and the id keeps two same-named Spaces apart. **Base has no delete control**;
+ * the port refuses it anyway (`requireDeletableSpace`).
+ *
  * The same chrome as the panels beside it: a `Scaffold` on the side bar's surface under
  * [sideBarTopAppBarColors].
  *
@@ -80,6 +88,7 @@ fun SpacesSidePanel(
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   var creating by remember { mutableStateOf(false) }
   var renaming by remember { mutableStateOf<SpaceConfig?>(null) }
+  var deleting by remember { mutableStateOf<SpaceConfig?>(null) }
   Scaffold(
     modifier = modifier.fillMaxSize(),
     containerColor = chromePalette.sideBarBackground,
@@ -105,7 +114,7 @@ fun SpacesSidePanel(
         )
       }
       state.failure?.let { SpacesFailure(it) }
-      SpaceRows(state.spaces, actsEnabled = !state.busy, onRename = { renaming = it })
+      SpaceRows(state.spaces, actsEnabled = !state.busy, onRename = { renaming = it }, onDelete = { deleting = it })
     }
   }
   if (creating) {
@@ -117,6 +126,16 @@ fun SpacesSidePanel(
     SpaceNameDialog(heading = "Rename Space", currentName = space.name, onDone = { renaming = null }) {
       viewModel.rename(space.id, it)
     }
+  }
+  deleting?.let { space ->
+    DeleteFileDialog(
+      name = "${space.name} (${space.id})",
+      onDelete = {
+        deleting = null
+        viewModel.delete(space.id)
+      },
+      onDismiss = { deleting = null },
+    )
   }
 }
 
@@ -149,20 +168,38 @@ private fun SpaceNameDialog(
 
 /** The rows, aged against one `now` per listing, the way the explorer's rows are. */
 @Composable
-private fun SpaceRows(spaces: List<SpaceConfig>, actsEnabled: Boolean, onRename: (SpaceConfig) -> Unit) {
+private fun SpaceRows(
+  spaces: List<SpaceConfig>,
+  actsEnabled: Boolean,
+  onRename: (SpaceConfig) -> Unit,
+  onDelete: (SpaceConfig) -> Unit,
+) {
   val now = remember(spaces) { Instant.now() }
   spaces.forEach { space ->
-    SpaceRow(space, now, actsEnabled, onRename = { onRename(space) }.takeUnless { space.id == BASE_SPACE.id })
+    val isBase = space.id == BASE_SPACE.id
+    SpaceRow(
+      space,
+      now,
+      actsEnabled,
+      onRename = { onRename(space) }.takeUnless { isBase },
+      onDelete = { onDelete(space) }.takeUnless { isBase },
+    )
   }
 }
 
 /**
  * One Space: its name, and under it the id and age. The id is shown because names may repeat
  * (`SpaceRepositoryContract.twoSpacesMayShareAName`) and the id is what tells two such rows apart.
- * A null [onRename] draws no rename control at all, which is base's case.
+ * A null [onRename] or [onDelete] draws no control at all, which is base's case.
  */
 @Composable
-private fun SpaceRow(space: SpaceConfig, now: Instant, actsEnabled: Boolean, onRename: (() -> Unit)?) {
+private fun SpaceRow(
+  space: SpaceConfig,
+  now: Instant,
+  actsEnabled: Boolean,
+  onRename: (() -> Unit)?,
+  onDelete: (() -> Unit)?,
+) {
   Row(
     modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs),
     verticalAlignment = Alignment.CenterVertically,
@@ -174,13 +211,18 @@ private fun SpaceRow(space: SpaceConfig, now: Instant, actsEnabled: Boolean, onR
         Icon(Icons.Filled.Edit, contentDescription = "Rename ${space.name} (${space.id})")
       }
     }
+    onDelete?.let {
+      IconButton(onClick = it, enabled = actsEnabled) {
+        Icon(Icons.Filled.Delete, contentDescription = "Delete ${space.name} (${space.id})")
+      }
+    }
   }
 }
 
 @Composable
 private fun SpaceRowText(space: SpaceConfig, now: Instant, modifier: Modifier) {
   // One accessible item, so a row reads as "Thesis, space-1 · just now" rather than two nodes.
-  // The rename button stays outside it, a control of its own.
+  // The act buttons stay outside it, each a control of its own.
   Column(
     modifier = modifier
       .semantics(mergeDescendants = true) {}
