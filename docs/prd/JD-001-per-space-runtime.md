@@ -26,7 +26,7 @@ This item changes no pixels, so the proof is a runtime script plus flow re-runs,
    `scripts/p5b-language-server-driver.sh`). It seeds `spaces/space-1/config.json` itself —
    the driver's `rm -rf` is a *clean* state, not a seeded one, so no repository call is needed:
    the disk scan `DiskSpaceRepository` already does would count the dir either way. The test:
-   a. `launcherFor(space-1).start(space-1)` against a booted dir containing only `config.json`
+   a. `spaceServerLauncher(context).start(space-1)` against a booted dir containing only `config.json`
       — `space-1/run/jupyter_server.log` appears (the server boots from a Space that was never
       provisioned ahead of time).
    b. GET `api/status` → 200; assert `space-1/run/jupyter-*.json` (kernel/connection files land
@@ -38,7 +38,7 @@ This item changes no pixels, so the proof is a runtime script plus flow re-runs,
       Space-rooted process survives the runtime's seccomp filter — the app-side sweep is
       `BusyBoxAppletsDeviceTest`'s `seccompRefusalsIn`, and `TerminalServiceTest` already
       shows the terminals API answering on a real server).
-   e. `launcherFor(base).start(base)` in the same test — base unaffected by space-1 existing.
+   e. `start(base)` on the same launcher in the same test — base unaffected by space-1 existing.
 3. **Launch the app** and re-run `p8b-space-packages.yaml` into
    `evidence/jd-001-p8b-space-packages/` — the terminal installs `rich` and the pip-list file
    lands under `files/spaces/base/pkgs` while a `space-1/` exists beside `base/` on disk.
@@ -160,7 +160,7 @@ For every FULL or PARTIAL reference — the files an implementer must open:
   site valid (base = both roles on one dir); requiring both arguments would make the compiler
   audit every construction. Defaulted.
 - **The launcher's new constructor shape** — `(Space) -> SpaceRuntime` + `(Space) -> SpaceDirs`
-  factories (so `pythonRunner` keeps `base`'s stable runtime while `launcherFor` returns a
+  factories (so `pythonRunner` keeps `base`'s stable runtime while `runtimeFor` returns a
   fresh per-Space one) vs fields `(spacesDir, rootfsDir, interpreter, dns)`. Factory pair.
 - **`processBuilder`'s `extraEnv` parameter** — survives once `JUPYTER_RUNTIME_DIR` moves in
   (terminals/`ls -l` callers may still pass extras), but the launcher stops using it.
@@ -189,13 +189,14 @@ For every FULL or PARTIAL reference — the files an implementer must open:
       `JUPYTER_RUNTIME_DIR` joins `environment()`; the launcher drops its `extraEnv` for it.
 - [x] T2 — `spaceDirIn` (one home for the `<id>` → dir convention); `DiskSpaceRepository` and
       `baseSpaceDir` route through it.
-- [ ] T3 — `SpaceDirs.ensure()` provisions `home/jupydroid`, `run`, `tmp`, `pkgs`, invoked first in
+- [x] T3 — `SpaceDirs.ensure()` provisions `home/jupydroid`, `run`, `tmp`, `pkgs`, invoked first in
       `start(space)`; `JupyterServerLauncher.start(space)` honours its operand: per-Space `runtimeDir`,
-      `rootDir`, `shell`, `env`; composition rewired to `launcherFor(space)`;
-      `SpaceProcessRun`/`StdioLanguageServerDeviceTest` generalised to take an env.
+      `rootDir`, `env` (the shell stays one constructor field — after T1 it lives in the shared
+      rootfs); composition rewired: `baseSpaceServerLauncher` → `spaceServerLauncher(context)`.
 - [ ] T4 — `StdioLanguageServer.spawn` gains `space`: per-Space env + `cwd`, `ensure()` first.
 - [ ] T5 — device test `PerSpaceRuntimeDeviceTest` + driver + `evidence/jd-001-*`; re-run
-      `p8b`/`p7e-1`; tidy `SpaceDirs` API surface.
+      `p8b`/`p7e-1`; `SpaceProcessRun`/`LanguageServerDeviceTest` generalised to take an env (moved
+      from T3: no caller until this test); tidy `SpaceDirs` API surface.
 
 ## Out of scope
 
