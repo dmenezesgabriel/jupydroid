@@ -82,7 +82,7 @@ runtime, the UI and one measured decision.
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-001` | A Space's runtime environment is its own — per-Space `PYTHONUSERBASE`, `HOME` and `JUPYTER_RUNTIME_DIR`, generalising what `base` already ships | open ← next | — | — |
+| `JD-001` | A Space's runtime environment is its own — per-Space `PYTHONUSERBASE`, `HOME` and `JUPYTER_RUNTIME_DIR`, generalising what `base` already ships | in-progress ← next | [JD-001](prd/JD-001-per-space-runtime.md) | — |
 | `JD-002` | List, create, rename and delete a Space from the UI, async with progress, delete asking first | open | — | — |
 | `JD-003` | Install, list and remove packages in a Space, surfacing pip's own message including the offending package and the wheel tag it wanted | open | — | — |
 | `JD-004` | **Decide by measurement:** one `jupyter_server` per Space, or one server with per-Space kernelspecs. A second server costs about what the first does — RSS ~75 MiB, already measured | open | — | — |

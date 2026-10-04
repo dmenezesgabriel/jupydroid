@@ -174,12 +174,12 @@ For every FULL or PARTIAL reference — the files an implementer must open:
 | --- | --- |
 | domain/model | — (`Space`, `SpaceConfig` unchanged) |
 | domain/port | — (signatures already carry `Space` end-to-end) |
-| data/space | `SpaceRuntime.kt`, `JupyterServerLauncher.kt`, `StdioLanguageServer.kt`, `AndroidBaseSpace.kt`, new `SpaceDirs.kt` |
+| data/space | `SpaceRuntime.kt`, `JupyterServerLauncher.kt`, `StdioLanguageServer.kt`, `AndroidBaseSpace.kt`, `SpacesDirectory.kt` (`spaceDirIn`), new `SpaceDirs.kt` |
 | data/disk | `DiskSpaceRepository.kt` (route through `SpaceDirs`) |
 | data/fake | — (`FakeServerLauncher` already takes `space`) |
 | ui | — |
 | di | `JupydroidApplication.kt` (builder rename) |
-| unit tests | `SpaceRuntimeTest`, `JupyterServer*Test`, `StdioLanguageServer*Test`, new `SpaceDirsTest` |
+| unit tests | `SpaceRuntimeTest`, `JupyterServer*Test`, `StdioLanguageServer*Test`, `SpacesDirectoryTest`, new `SpaceDirsTest` |
 | instrumented | new `PerSpaceRuntimeDeviceTest`; `SpaceProcessRun` generalised to take an env |
 | maestro/scripts | `scripts/jd-001-per-space-runtime-driver.sh`; re-runs of `p8b-space-packages` + `p7e-1-space-python` under `EVIDENCE_ROOT`; no new `.maestro/` flow |
 
@@ -187,9 +187,10 @@ For every FULL or PARTIAL reference — the files an implementer must open:
 
 - [x] T1 — `SpaceRuntime` derives env from `(spaceDir, rootfsDir = spaceDir)`;
       `JUPYTER_RUNTIME_DIR` joins `environment()`; the launcher drops its `extraEnv` for it.
-- [ ] T2 — `SpaceDirs` (one home for the `<id>` → dir convention + `ensure()` provisioning of
-      `home/jupydroid`, `run`, `tmp`, `pkgs`); `DiskSpaceRepository` routes through it.
-- [ ] T3 — `JupyterServerLauncher.start(space)` honours its operand: per-Space `runtimeDir`,
+- [x] T2 — `spaceDirIn` (one home for the `<id>` → dir convention); `DiskSpaceRepository` and
+      `baseSpaceDir` route through it.
+- [ ] T3 — `SpaceDirs.ensure()` provisions `home/jupydroid`, `run`, `tmp`, `pkgs`, invoked first in
+      `start(space)`; `JupyterServerLauncher.start(space)` honours its operand: per-Space `runtimeDir`,
       `rootDir`, `shell`, `env`; composition rewired to `launcherFor(space)`;
       `SpaceProcessRun`/`StdioLanguageServerDeviceTest` generalised to take an env.
 - [ ] T4 — `StdioLanguageServer.spawn` gains `space`: per-Space env + `cwd`, `ensure()` first.
