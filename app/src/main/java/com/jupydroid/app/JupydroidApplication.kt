@@ -9,6 +9,7 @@ import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
 import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
+import com.jupydroid.app.data.disk.DiskSpaceRepository
 import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
 import com.jupydroid.app.data.disk.DiskThemeSettingsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
@@ -36,6 +37,7 @@ import com.jupydroid.app.data.space.baseSpaceServer
 import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.data.space.spaceServerLauncher
+import com.jupydroid.app.data.space.spacesDir
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
@@ -90,6 +92,9 @@ class JupydroidApplication : Application() {
     return containerFor(serverLauncher, space, workspace)
   }
 
+  // One named argument per port and no logic, so its length grows with the ports rather than
+  // with what it decides - the reason `config/detekt/detekt.yml` exempts a dispatch-table `when`.
+  @Suppress("LongMethod")
   private fun containerFor(serverLauncher: JupyterServerLauncher, space: SpaceBackedPorts, workspace: File) =
     AppContainer(
       notebookRepository = DiskNotebookRepository(workspace),
@@ -113,6 +118,8 @@ class JupydroidApplication : Application() {
       // any other means can still be sent.
       documentSharer = IntentDocumentSharer(this, workspace),
       serverLauncher = serverLauncher,
+      // Always real, like the searcher: listing and editing Space records needs only `filesDir`.
+      spaceRepository = DiskSpaceRepository(spacesDir(this)),
       // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
       // state, not a Contents API file.
       editorSettings = DiskEditorSettingsRepository(filesDir),

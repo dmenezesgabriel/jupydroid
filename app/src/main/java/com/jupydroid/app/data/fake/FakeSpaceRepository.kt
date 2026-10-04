@@ -14,8 +14,7 @@ import java.time.Instant
 /**
  * Spaces held in memory - the fake every port carries, for the reason every port has one: a
  * screen composes before its adapter is wired, and a device that cannot run a Space can still
- * draw the list of them. Nothing in [com.jupydroid.app.di.AppContainer] constructs the port yet;
- * this stands ready as its default once one does.
+ * draw the list of them. It is [com.jupydroid.app.di.AppContainer]'s default for the port.
  *
  * Seeded with the base Space, because that is what an installed device holds and what
  * `SpaceRepositoryContract` asks of both implementations. Every rule it shares with

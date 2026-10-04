@@ -33,6 +33,14 @@ class AppContainerTest {
     assertEquals("base", session.spaceId)
   }
 
+  /** A device with no Space wiring still lists the base Space, as every installed device holds it. */
+  @Test
+  fun container_defaultsSpaceRepositoryToAFakeHoldingBase() = runTest {
+    val container = AppContainer(notebookRepository = FakeNotebookRepository())
+
+    assertEquals(listOf("base"), container.spaceRepository.spaces().map { it.id })
+  }
+
   @Test
   fun fakeNotebookRepository_roundTrips() = runTest {
     val repository = FakeNotebookRepository()
