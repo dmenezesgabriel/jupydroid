@@ -69,9 +69,10 @@ draw the control; only the port can stop a second caller.
 moving a directory on rename, deleting `base` through any path, and reading a partially-stated config
 as wholly default.
 
-The scan runs on every call rather than being cached. That is the reference's shape and it is what
-makes the directory the only source of truth; a cache would reintroduce the disagreement this decision
-removes.
+The scan runs on every call rather than being cached. That is stronger than the reference's shape —
+its `ContainerManager` scans once, when a screen constructs it, and then mutates its in-memory copy
+(`winlator`'s `ContainerManager.java:32-65` at `fb66541b…`) — and it is what makes the directory the
+only source of truth; a cache would reintroduce the disagreement this decision removes.
 
 The thing a future reader will be tempted to "fix" is the numbering gap. Filling it would reuse an id
 that an open document, a kernel session or a server root may still be standing in.

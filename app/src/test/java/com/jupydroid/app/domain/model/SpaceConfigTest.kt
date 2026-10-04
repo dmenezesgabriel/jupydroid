@@ -62,7 +62,7 @@ class SpaceConfigTest {
     assertEquals(listOf("space-2", "space-10"), ordered.map { it.id })
   }
 
-  /** Anything unnumbered sorts after the numbered ones, by name, so the order is still total. */
+  /** Anything unnumbered sorts after the numbered ones, by id, so the order is still total. */
   @Test
   fun anUnnumberedDirectorySortsAfterTheNumberedOnes() {
     val ordered = listOf(spaceConfig("scratch"), spaceConfig("space-2"), spaceConfig(BASE_SPACE.id)).inSpaceOrder()

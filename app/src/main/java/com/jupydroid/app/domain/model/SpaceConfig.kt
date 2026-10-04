@@ -61,6 +61,7 @@ fun List<SpaceConfig>.nextSpaceId(): String = SPACE_ID_PREFIX + ((mapNotNull { i
  * Numbered by their **number**, so `space-2` precedes `space-10` where sorting the ids as text
  * would not - the same natural-order rule [inWorkspaceOrder] applies to file names, for the same
  * reason. The base Space leads because it is the one every other Space shares a rootfs with.
+ * Unnumbered directories sort last, **by id** - the name can change and the id cannot.
  *
  * ```
  * repository.spaces().inSpaceOrder()

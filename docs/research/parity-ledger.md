@@ -2860,9 +2860,9 @@ What the walk found, beyond the rows above:
 **The surface is not a JupyterLab package — it is the reference app's whole model, and the
 partition claims none of it.** Every slice before this one counted `x:y` command ids because the
 area was a JupyterLab extension; a Space's lifecycle is winlator's: a user browses a list of
-installed *containers*, each a directory under `files/containers/<id>` with a `.container` JSON
-inside, on top of a rootfs the app extracts once into `files/rootfs` behind a
-`.winlator/.rfs_version` stamp. Produced: **9** `ContainerManager` verbs (`getContainers`,
+installed *containers*, each a `xuser-<id>` directory inside the one rootfs the app extracts into
+`files/rootfs` — so the containers live under `files/rootfs/home/` beside the image they share —
+with a `.container` JSON inside, the whole tree behind a `.winlator/.rfs_version` stamp. Produced: **9** `ContainerManager` verbs (`getContainers`,
 `activateContainer`, `createContainerAsync`, `duplicateContainerAsync`, `removeContainerAsync`,
 `loadShortcuts`, `loadFiles`, `getNextContainerId`, `getContainerById`), **18** config keys the
 create/edit form persists, a per-row Run button plus a five-item popup (File Manager, Edit,
@@ -2884,17 +2884,23 @@ grep -n 'LATEST_VERSION\|UPDATE_WINEPREFIX_VERSION\|getRFSVersionFile\|getVersio
   reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java
 ```
 
-**The lifecycle, end to end.** Identity is the directory name: `loadContainers()` rescans
-`files/containers` on every call and `getNextContainerId()` is max+1 — the scan is truth, the
-list a projection. Config lives inside the dir: every `.container` `data.get` carries a literal
-default, so a partial file loads field-by-field; a parallel `putExtra`/`getExtra` extras bag on
-`Container` holds state like `rfsVersion` and `wineprefixNeedsUpdate` that the form never shows.
-Acts: `createContainerAsync`, `duplicateContainerAsync` (`FileUtils.deepCopy` under a fresh id),
-`saveData` in place, `removeContainerAsync` (whose `onRemoveContainer` closes a running
-`XServerDisplayActivity`), and `activateContainer` — the run path's mark for `XrActivity`, not a
-menu verb. Install: `installIfNeeded` fires when `!isValid || version < LATEST_VERSION`;
+**The lifecycle, end to end.** Identity is the directory name: `loadContainers()` scans
+`files/rootfs/home` for `xuser-*` dirs **once, at each `ContainerManager`'s construction** — a
+fresh one per fragment/launch — derives
+`maxContainerId` from what it finds (`getNextContainerId()` is max+1), and the in-memory list is
+then maintained incrementally — `containers.add`/`remove`, never re-read. Config lives inside the
+dir: `loadData` is a per-key switch, so an absent key leaves the field's initializer — a partial
+file loads field-by-field — and a parallel `putExtra`/`getExtra` extras bag on `Container` holds
+state like `rfsVersion` and `wineprefixNeedsUpdate` that the form never shows. Acts:
+`createContainerAsync` (which also extracts `container_pattern.tzst` into the new dir),
+`duplicateContainerAsync` (`FileUtils.copy` under a fresh id), `saveData` in place,
+`removeContainerAsync` (`FileUtils.delete` the dir — nothing at this SHA stops a session already
+running it), and `activateContainer` — not a user act but the run path's mark, which repoints the
+`home/xuser` symlink at `xuser-<id>` so the guest's `/home/xuser` lands on the launched container;
+`XServerDisplayActivity` calls it itself (`XServerDisplayActivity.java:169`). Install:
+`installIfNeeded` fires when `!isValid || version < LATEST_VERSION`;
 `install` is `clearRootDir` — delete everything under `files/rootfs` except `home` and `opt`
-(`opt` keeps `installed-wine`) — then extract `rootfs.tzst` in place, then on success write the
+(`home` keeps the containers and their wineprefixes, `opt` keeps `installed-wine`) — then extract `rootfs.tzst` in place, then on success write the
 stamp and `resetContainerRFSVersions`, which clears every container's `rfsVersion` extra and
 flags `wineprefixNeedsUpdate=t` where the old stamp was ≤ 16: a rootfs bump cascades into
 per-container migration. The surfaces are the app itself — `ContainersFragment` is the drawer's
@@ -2964,3 +2970,104 @@ winlator shapes they adapt — `SpaceConfig`'s two `ContainerManager.java` line 
 trick, `TarZstdExtractor`'s "same archive shape through the same two libraries". The Jupyter wire
 `BaseSpaceServer` serves was `AUD-001`/`003`/`006`/`007`/`008`'s; the Areas row stays
 `unexamined` and no partition rows move — the verdicts land in `T2`–`T5`'s subsections below.
+
+### The model and its lifecycle acts — verdicts
+
+`T2`'s entries, read down both sides' own files. Theirs: `container/Container.java` (the
+`.container` fields, `saveData`'s 19 `data.put`s against `loadData`'s no-`id`-case switch,
+`checkObsoleteOrMissingProperties`' on-read merge, `extraData`),
+`container/ContainerManager.java` (the once-at-construction scan, the five acts, `loadShortcuts`
+/`loadFiles`), `container/Shortcut.java` (a `.desktop` entry plus its `[Extra Data]` override
+bag), `ContainerDetailFragment.java` (the 18-key create/edit form), `ContainersFragment.java`
+(the Run button, the five-verb popup, the gated Add), and `XServerDisplayActivity.java:164-229`
+(where `activateContainer`, `wineprefixNeedsUpdate`, `wineVersion` and the shortcut overrides are
+consumed). Ours: `domain/model/Space.kt` + `SpaceConfig.kt`, `domain/port/SpaceRepository.kt`,
+`data/disk/DiskSpaceRepository.kt`, `data/fake/FakeSpaceRepository.kt`,
+`data/space/SpacesDirectory.kt`, and the two contract suites that pin them.
+
+```sh
+grep -n 'public.*(' reference/research_repos/winlator/app/app/src/main/java/com/winlator/container/ContainerManager.java
+grep -n 'case "' reference/research_repos/winlator/app/app/src/main/java/com/winlator/container/Container.java
+grep -n 'putExtra\|getExtra\|\[Extra Data\]' reference/research_repos/winlator/app/app/src/main/java/com/winlator/container/Shortcut.java
+grep -rn 'activateContainer\|wineprefixNeedsUpdate\|setWinePath' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/
+python3 scripts/read_port_surface.py --unused    # 0 — and wrong: see the by-hand read
+grep -rn 'SpaceRepository' app/src/main --include='*.kt' | grep -v WorkspaceRepository   # only its own files
+grep -rn 'BUNDLED_PYTHON_VERSION\|pythonVersion' app/src/main --include='*.kt'
+```
+
+**Three of the surface paragraph's claims were wrong at this SHA and are corrected in place
+above**: the containers are `xuser-<id>` dirs inside `files/rootfs/home/` — inside the shared
+image, which is also what `clearRootDir`'s `home` exemption preserves — not under
+`files/containers/`; `loadContainers()` runs once per screen's manager, not per call; and there is no
+`onRemoveContainer`/`XrActivity`/`createDir`/`.sys` — `activateContainer` repoints the `home/xuser`
+symlink and `XServerDisplayActivity` calls it itself. The same cadence read corrects ADR-0010's
+"that is the reference's shape" — ours' per-op scan is stronger than the reference's
+per-screen one, and the ADR now says so.
+
+**The unwired read is by hand, and ADR-0067 says to record it that way.** `read_port_surface
+--unused` reports zero because `rename`/`delete` mentions are `WorkspaceRepository`'s same-named
+ops colliding; grep says `AppContainer` never constructs a `SpaceRepository` and no screen names
+one — so the port's four ops are `present` as machinery and the surface over them is the
+`absent` row. First slice where the backlog already owns repairs: an `absent` verdict here cites
+the `JD-NNN` that schedules it (a picked-up gap is a JD, not a second record) and a `GAP-NNN`
+only where nobody owns it. No defect surfaced — the sharp edges are absence-shaped or
+deliberate, and the recorded-not-repaired findings sit under the table.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| Identity — `xuser-<id>` dir name is the id; ids derived from the scan, `getNextContainerId()` max+1 (`ContainerManager.java:43-64,227-229`) | `files/spaces/<id>` is the id; `DiskSpaceRepository.scan()` + `nextSpaceId` mints `space-<n>` over the listing | present | ADR-0010 takes the model wholesale; `SpaceConfigTest` pins gap-never-filled and deleting-the-highest-hands-it-back as the reference's own behaviour |
+| Placement — containers live *inside* the shared image at `files/rootfs/home/xuser-<id>/`; the `xuser` symlink names the active one | Spaces are siblings under `files/spaces/`, `base` beside them | adapted | a container is a home dir inside the one image every container mounts; a Space is its own rootfs tree — `SpaceConfig`'s "the one every other Space shares a rootfs with" records the intent, and `JD-004` holds the open server-half |
+| Scan cadence — once per screen's `ContainerManager`; the list is then `containers.add`/`remove`, never re-read for the manager's life (`ContainerManager.java:32,119,164` — a fresh one per fragment/launch) | `scan()` runs inside every op; nothing is cached | adapted | ADR-0010's recorded consequence, stronger than the reference's — no ours-op sees a stale list where a reference screen can for its own lifetime |
+| What counts — only `xuser-*` directories are containers (`ContainerManager.java:52`) | any non-dot directory under `spaces/` is a Space (`DiskSpaceRepository.scan`) | adapted | `aDirectoryWithNoConfigIsNamedAfterItself` pins it — a Space made by hand in a terminal still lists; the dot rule is the workspace listing's own |
+| The config file — `.container` JSON inside the dir (`Container.java:238-240`) | `config.json` inside the dir (`SPACE_CONFIG_FILE_NAME`) | present | same placement; ours is readable by eye (ISO `created`) and writes no `id` — the next row |
+| Field tolerance — `loadData` is a per-key switch; an absent key leaves the field's initializer; a malformed config throws `JSONException` that `loadContainers`' one catch turns into an *empty* list (`Container.java:314-390`, `ContainerManager.java:64`) | `StoredSpaceConfig` is all-optional over `defaultSpaceConfig`; a malformed or unreadable file falls back per-Space (`DiskSpaceRepository.read`) | present | the same partial-file rule — `aConfigStatingOnlySomeFieldsKeepsTheOnesItStates` pins it and ADR-0010 names it — with ours' blast radius per directory where the reference's single catch drops the whole list |
+| `id` in the file — `saveData` writes `data.put("id", id)` and `loadData`'s switch has no `case "id"` (`Container.java:288`, `:314-388`) | never written | adapted | ADR-0010 — the stored copy is the reference's own two-truth risk, removed rather than ignored |
+| The extras bag — `extraData` round-tripped verbatim; `putExtra`/`getExtra` carry `rfsVersion`, `wineprefixNeedsUpdate`, `appVersion` (`Container.java:202-228,306,370-373`) | `extra` JsonObject round-tripped verbatim | present | `unknownFieldsUnderExtraSurviveARename` pins it; `StoredSpaceConfig`'s KDoc cites `Container.java` for the same nested object |
+| Read-side migration — `checkObsoleteOrMissingProperties` merges newly-added default keys *into* stored `envVars`/`wincomponents` values on load (`Container.java:392-426`) | none — absent fields take `defaultSpaceConfig`'s value | adapted | the merge answers "new keys appear inside a stored value"; no ours-field is a composite bag, so field-default covers what exists today — the first composite field reopens it |
+| `createContainerAsync` — mkdir → `extractContainerPatternFile` (`container_pattern.tzst` + `common_dlls` copies) → `saveData`, on a background executor (`ContainerManager.java:98-125`) | `create` — `nextSpaceId` mint → `mkdirs` → write `config.json`, `suspend` on `Dispatchers.IO` | adapted | the bookkeeping half is identical; a created Space carries no env to provision because its runtime is base's shared rootfs — `JD-001`'s steering ground — and ours refuses loudly with the dir named where `createContainer`'s `return null` says nothing |
+| Edit — `saveData` rewrites `.container` in place from the form's 18 keys (`Container.java:285-312`, `ContainerDetailFragment.java:204-229`) | `rename` writes the one mutable field | adapted | ours' config has one user-mutable field where the form has eighteen; the rest is the run-config rows below |
+| `duplicateContainerAsync` — `FileUtils.copy` the tree under a fresh id, name suffixed "(copy)" (`ContainerManager.java:127-161`) | — | **absent** | `GAP-145` — the copy act exists on neither port nor disk impl |
+| `removeContainerAsync` — `FileUtils.delete` the dir (`ContainerManager.java:163-165`) | `delete` — `deleteRecursively`, and `requireDeletableSpace` refuses `base` before lookup | adapted | the same arm plus the refusal ADR-0010 records — the reference can delete anything, including the container a session is running |
+| `activateContainer` — repoint `home/xuser` at `xuser-<id>`; the launch reads through the symlink (`ContainerManager.java:67-72`, `XServerDisplayActivity.java:169`) | no active Space; `BASE_SPACE` is the compile-time answer | **absent** | `JD-005` owns the switching capability — the active Space rooting the explorer and binding new notebooks |
+| `getContainerById` — linear scan, null on miss (`ContainerManager.java:231-234`) | `spaceWithId` throws `IllegalArgumentException` naming the asked id and the roll | adapted | the shared refusal `SpaceConfig.spaceWithId`'s KDoc states — a miss is a programming error both impls refuse identically, which `SpaceRepositoryContract` holds them to |
+| `loadShortcuts` + `Shortcut` — per-container `.desktop` entries with icons, and each entry's `[Extra Data]` overrides the container's run config at launch (`ContainerManager.java:167-200`, `Shortcut.java`, `XServerDisplayActivity.java:205-218`) | — | **absent** | `GAP-146` — no saved per-entry launch exists; the document-open path is the only entry into a Space and `JD-005`'s binding is the nearest shape |
+| `loadFiles` / `ContainerFileManagerFragment` — browse the container dir (`C:`, drives, Documents, Favorites) (`ContainerManager.java:202-225`) | the explorer browses `NotebookWorkspace` — `home/jupydroid` *inside* the base Space's rootfs | adapted | the browse act exists, aimed at the served tree rather than the env dir — nobody browses `usr/` — and a user Space's browse is `JD-005`'s rooting |
+| `StorageInfoDialog` — `FileUtils.getSizeAsync` over the container's `drive_c`, its cache and the global cache (`contentdialog/StorageInfoDialog.java`) | — | **absent** | `GAP-147` — no surface measures a Space dir, and `base`'s 268 MiB makes it the size most worth answering |
+| Per-container env — `envVars` is a `.container` key the form edits (`Container.java:20,78-80`) | `SpaceRuntime`'s env is fixed for the one Space | **absent** | `JD-001` owns it — per-Space `PYTHONUSERBASE`/`HOME`/`JUPYTER_RUNTIME_DIR` generalising what `base` already ships |
+| The run-tuning keys — screenSize, graphicsDriver(+config), dxwrapper(+config), audioDriver(+config), wincomponents, drives, hudMode, startupSelection, cpuList×2, desktopTheme, box64Preset (`Container.java:33-49`) | none — a Python env has no display, driver or wineprefix to tune | adapted | the keys' operand is the wine/display stack; the ours-analog run config is the kernelspec binding — `JD-005`'s, not a key bag's |
+| Interpreter pick — `wineVersion` chooses `container-pattern-<ver>.tzst` at create and `rootFS.setWinePath` at launch (`ContainerManager.java:110-111,247-269`, `XServerDisplayActivity.java:188-191`) | `pythonVersion` is written into `config.json` and round-tripped, but nothing consults it — `INTERPRETER_PATH` is `usr/bin/python$BUNDLED_PYTHON_VERSION` | **absent** | `GAP-148` — the selection machinery is the absence: the field is honest today (one Python exists) and inert by construction, and a hand-edit would make it lie because the runtime never reads it |
+| Migration flag — `wineprefixNeedsUpdate` in `extraData`, set by `resetContainerRFSVersions`, read at launch, cleared by `wineboot -u` (`RootFSInstaller.java:33-45`, `XServerDisplayActivity.java:171-183`) | `extra` bag exists; no flag is written and no migration act reads one | adapted | the carrier is present and round-trips — `unknownFieldsUnderExtraSurviveARename` — and no schema move has ever needed flagging; the first one writes into the same bag |
+| `*Async` + `PreloaderDialog` — acts run on per-call single-thread executors behind a progress dialog (`ContainerManager.java:74-96`) | `suspend` ops on `Dispatchers.IO`; no surface calls them | adapted | the machinery half is the suspending port — and both sides race identically, a per-call executor being no more serialized than no mutex — while the progress surface is `JD-002`'s |
+| Confirm — `ContentDialog.confirm` gates duplicate and remove (`ContainersFragment.java:156,165`) | `requireDeletableSpace` refuses `base`; nothing asks | adapted | the ask is a surface act — `JD-002`'s "delete asking first"; ours' only confirm-shaped rule today is the refusal itself |
+| The lifecycle surface — `ContainersFragment` (Run + five-verb popup + gated Add), `ContainerDetailFragment` over 18 keys, `ShortcutsFragment`, `SettingsFragment` (`main_menu.xml` is the app) | nothing — `AppContainer` never constructs a `SpaceRepository` and no screen names one | **absent** | `JD-002` owns the surface — list, create, rename and delete, async with progress; `FakeSpaceRepository`'s KDoc called itself "`AppContainer`'s default" before the container ever built one — corrected in this slice |
+
+What the read found, beyond the rows:
+
+- **`FakeSpaceRepository` tells the time by the wall, `DiskSpaceRepository` by an injected
+  `Clock`.** The fake stamps `created` with `Instant.now()` where the disk impl takes the
+  constructor's clock — so a ViewModel test that ever orders or asserts on `created` races the
+  real clock. Not a defect today: the contract pins no `created` behaviour and nothing orders by
+  it; recorded because the first test that needs it has no injection point.
+- **`inSpaceOrder`'s doc says "by name", the code sorts by `it.id`.** For an unnumbered dir the
+  two agree until the dir is renamed — `rename("scratch", "Zebra")` still sorts by `scratch`.
+  The id is the stronger tie-break (unique, rename-stable where a name may duplicate), so the
+  KDoc's word was the lie — corrected to "by id", not the sort.
+- **`space--<n>` counts toward the mint.** `nextSpaceId`'s `toIntOrNull` accepts `-5`, so a
+  hand-made `space--5` makes the next mint `space--4` — weird but lawful: every minted id is
+  still `space-`-prefixed and unique, and the counter walks up toward zero. No guard added;
+  `aDirectoryWithNoNumberIsIgnoredByTheCounter` pins the intent for unnumbered dirs.
+- **A mistyped field costs the file's parse.** `{"name": 5}` is valid JSON that fails
+  `StoredSpaceConfig`'s decode, so the Space reads as default — name and all — where a missing
+  field keeps the rest. The reference's arm is strictly worse (the one catch empties the list),
+  so this is a recorded edge, not a defect: tolerance is promised for *partial* files, not
+  *wrongly-typed* ones, and the fix would be per-field `as?` decoding the contract never asked
+  for.
+- **Neither side writes config atomically, and neither validates a name.** `writeText` and
+  `FileUtils.writeString` can both leave a torn file that reads as default; `create("")` and
+  `etName`'s straight-through to `data.put` both mint a blank-named entry. Parity — noted so a
+  later hardening does not mistake either for a regression.
+- **A `rename` on `base` writes `config.json` into the extracted rootfs.** Lawful — the port
+  refuses only `delete` — and the file survives a `rootfs-version` bump because the installer
+  never clears (`T3`'s arm); the only hazard is a future archive shipping a top-level
+  `config.json`, which the image does not carry today.

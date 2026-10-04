@@ -1871,6 +1871,55 @@ stacked entries.
 same shape on a tab's rename. The repair is one failure surface the shell already owns (the
 snackbar the transient reports use), not new machinery.
 
+### GAP-145 — A Space cannot be duplicated
+
+`ContainerManager.duplicateContainerAsync` copies the whole `xuser-<id>` directory under a fresh
+id and names it "<name> (copy)" — the reference's cheap way to fork an environment before
+changing it (`container/ContainerManager.java:127-161` in the winlator clone). Ours' port offers
+`spaces`/`create`/`rename`/`delete` and no copy act
+(`app/src/main/java/com/jupydroid/app/domain/port/SpaceRepository.kt`), and the contract test
+already names the copy the reference makes — `twoSpacesMayShareAName` cites `duplicateContainer`
+as the reason a name is a label, never a key. The repair is a `duplicate` op beside `create`:
+mint the id, copy the dir, write the config — the disk half `deleteRecursively`'s inverse, under
+`JD-002`'s surface once it exists.
+
+### GAP-146 — No per-Space launch entry carries its own overrides
+
+A winlator container's `.desktop` files are its launch entries, and each `Shortcut`'s
+`[Extra Data]` section overrides the container's own run config — graphicsDriver, dxwrapper,
+wincomponents, screenSize — read in place of it at launch (`container/Shortcut.java`,
+`XServerDisplayActivity.java:205-218` in the winlator clone). Ours has no launch-entry concept at
+all: the document-open path is the only entry into a Space, and a per-entry override bag exists
+nowhere — `SpaceConfig.extra` could carry one and nothing writes it
+(`app/src/main/java/com/jupydroid/app/domain/model/SpaceConfig.kt`). The nearest shape the
+backlog already owns is `JD-005`'s notebook→Space binding; what overrides a single entry's run
+is unowned.
+
+### GAP-147 — A Space's size is never measured
+
+`StorageInfoDialog` answers "how big is this container" — `FileUtils.getSizeAsync` over its
+`drive_c`, its cache and the global cache (`contentdialog/StorageInfoDialog.java` in the winlator
+clone), one of the five verbs on the per-row popup. Ours has no Space surface at all and no
+`du`-shaped measure anywhere: `files/spaces/base` holds ~268 MiB of extracted rootfs, and a
+second Space's site-packages would grow beside it, invisible
+(`app/src/main/java/com/jupydroid/app/data/space/`). The repair is a size measure on the
+lifecycle surface — `JD-002` names the list it hangs off but not the verb.
+
+### GAP-148 — A Space's interpreter is written, never selected
+
+`Container.wineVersion` does work twice: it picks which `container-pattern-<ver>.tzst`
+provisions the directory at create, and which installed wine `rootFS.setWinePath` serves at
+launch (`container/ContainerManager.java:110-111,247-269`, `XServerDisplayActivity.java:188-191`
+in the winlator clone). Ours' `SpaceConfig.pythonVersion` round-trips through `config.json` and
+nothing consults it — `BaseSpaceInstaller.INTERPRETER_PATH` is
+`usr/bin/python$BUNDLED_PYTHON_VERSION`, the build-time constant
+(`app/src/main/java/com/jupydroid/app/data/disk/DiskSpaceRepository.kt`,
+`app/src/main/java/com/jupydroid/app/data/space/BaseSpaceInstaller.kt`). The field is honest
+today — exactly one Python exists — and inert by construction: a hand-edited
+`"pythonVersion": "3.13"` would report a version no Space runs, because the runtime never reads
+it. The repair is either a real per-Space interpreter story (a second Python in the image, or a
+selection read of the field) or dropping the field until one exists.
+
 ---
 
 ## 12. Glossary

@@ -29,11 +29,12 @@ brings it up** — taken through four questions at once, per AGENTS.md:
    the Space dir)?
 
 The reference is `winlator` for what it offers: it is the app's whole model —
-a user browses a list of installed *containers*, each a directory under
-`files/containers/<id>` with a `.container` config inside, sitting on a
-*rootfs* the app extracted once into `files/rootfs`; containers are created,
-edited, duplicated, removed, browsed, run — the run marks one active for
-`XrActivity`; the rootfs carries a `.winlator/.rfs_version` stamp the
+a user browses a list of installed *containers*, each a `xuser-<id>`
+directory inside the one *rootfs* the app extracts into `files/rootfs` —
+so they live under `files/rootfs/home/` beside the image they share — with
+a `.container` config inside; containers are created,
+edited, duplicated, removed, browsed, run — the run repoints the
+`home/xuser` symlink at the launched one; the rootfs carries a `.winlator/.rfs_version` stamp the
 installer compares against the app's pinned `LATEST_VERSION`. Its authority here is
 the same shape the app's own ADRs already cite: ADR-0010 (a Space is a
 directory; its id comes from the scan), ADR-0011 (site-packages inside the
@@ -81,14 +82,14 @@ The area at five scales:
   resolv.conf).
   Reference: `XEnvironment` (`EnvironmentComponent` start/stop, tmpdir
   cleanup), `GuestProgramLauncherComponent` (proot + envvars), the run flow
-  in `XServerDisplayActivity`/`XrActivity`.
+  in `XServerDisplayActivity` (no `XrActivity` exists at this pin).
 - **The exec model and the sandbox.** Where ours must differ absolutely:
   `targetSdkVersion 28` on both reference apps vs `targetSdk 36` here, so
   neither winlator's `processBuilder` on `files/rootfs` nor Termux's
   bootstrap on `files/usr` can exec at all on this app's SDK — ours is the
   `jniLibs` + launch-time-relink model ADR-0002/0003 record. And the
-  multi-Space question: winlator's containers share one rootfs read-only
-  over a per-container `drive_c`; the app's `files/spaces/<id>` model
+  multi-Space question: winlator's containers share one rootfs read-only,
+  each holding its own `.wine` prefix inside its dir; the app's `files/spaces/<id>` model
   already carries a per-Space rootfs the moment a second Space exists —
   while `BaseSpaceServer` is one server for the app. That difference is the
   audit's spine.
@@ -173,44 +174,51 @@ area is the app's own invention-adapted-from-winlator.
 The lifecycle, end to end:
 
 - **Identity is a directory.** `ContainerManager` scans
-  `files/containers/`; a container is a directory named `<id>`; the id comes
-  from `getNextContainerId()` (max+1). Names are display strings inside the
-  config, not the id. `loadContainers()` rebuilds the list every call —
-  the scan *is* the truth, the list is a projection.
-- **Config lives inside the dir.** `.container` is a JSON Object; every
-  `data.get` carries a literal default (`"name"`, `"unknown"`), so a partial
-  or future config loads field-by-field, never throws. `Container`'s
-  fields span display (name, coverArt), run (graphicsDriver, dxwrapper,
-  audioDriver, emulator, wincomponents, drives, showFPS, cpuList,
-  desktopTheme, screenSize, envVars, mouseWarpOverride, locale,
-  midiSoundFont, inputType, lc_all, primaryController, controllerMapping,
-  winVersion, startupSelection, box86Preset, box64Preset,
-  vkbasicHapticFeedback, xvfbW/RefreshRate, desktopFullscreen,
-  sdlHapticFeedback), and state (winePrefixNeedsUpdate).
-- **Acts.** `createContainerAsync` (background thread → `Container.createDir`
-  → save → callback), `duplicateContainerAsync` (`FileUtils.deepCopy` the
-  dir under a fresh id), `removeContainerAsync` (`FileUtils.delete` the dir,
-  `onRemoveContainer` closes `XServerDisplayActivity` if running it),
-  `saveData` (in-place `.container` rewrite, 18 keys), and
-  `activateContainer` — not a user act but the run path's mark: when
-  `XServerDisplayActivity` launches a container it records it as the live
-  one for `XrActivity` to pick up.
-- **Config migration is an act of its own.** `updateWineprefix` flips
-  `winePrefixNeedsUpdate=false` after running `WineRegistryEditor` +
-  `WineStartMenuCreator` + `WineThemeManager` — schema change is a
-  *migration pass on next launch*, not a config rewrite.
-- **The rootfs is separate, versioned, and read-only to containers.**
-  `RootFS.isValid` = `files/rootfs` is a dir + `.winlator/.rfs_version`
-  exists; `getVersion` parses that stamp's first line. `installIfNeeded`
-  extracts `rootfs.tzst` (a top-level asset, with `rootfs_patches.tzst`
-  beside it) whenever `!isValid || version < LATEST_VERSION (=19)` — and
-  `Container.createDir` creates the container's own `root` dir as its
-  `drive_c` view *into* the shared rootfs (`rootfs/home/xuser` ⇄
-  `container/root` via `.sys`). A container is cheap; the image is the
-  heavy thing and it is shared.
+  `files/rootfs/home/` for `xuser-*` dirs — the containers live *inside*
+  the shared rootfs — once, at each screen's manager construction; a container is a directory
+  named `xuser-<id>`; the id comes from `getNextContainerId()` (max+1,
+  derived from that scan). Names are display strings inside the config,
+  not the id. The in-memory list is then maintained incrementally —
+  `containers.add`/`remove`, never re-read.
+- **Config lives inside the dir.** `.container` is a JSON Object;
+  `loadData` is a per-key switch, so an absent key leaves the field's
+  initializer and a partial file loads field-by-field, never throws.
+  `Container`'s fields span display (name), run (screenSize, envVars,
+  graphicsDriver, dxwrapper, dxwrapperConfig, graphicsDriverConfig,
+  audioDriver, audioDriverConfig, wincomponents, drives, wineVersion,
+  hudMode, startupSelection, cpuList, cpuListWoW64, desktopTheme,
+  box64Preset), and state (`extraData`: `rfsVersion`,
+  `wineprefixNeedsUpdate`, `appVersion`).
+- **Acts.** `createContainerAsync` (background thread → `mkdirs` →
+  `extractContainerPatternFile` — `container_pattern.tzst` + the
+  `common_dlls` copies → `saveData` → callback), `duplicateContainerAsync`
+  (`FileUtils.copy` the dir under a fresh id, name suffixed "(copy)"),
+  `removeContainerAsync` (`FileUtils.delete` the dir — nothing at this
+  SHA stops a session already running it),
+  `saveData` (in-place `.container` rewrite), and
+  `activateContainer` — not a user act but the run path's mark:
+  `XServerDisplayActivity` calls it at launch
+  (`XServerDisplayActivity.java:169`) and it repoints the `home/xuser`
+  symlink at `xuser-<id>` so the guest's `/home/xuser` lands there.
+- **Config migration is an act of its own.** A launch that finds
+  `getExtra("wineprefixNeedsUpdate") == "t"` runs `WineUtils.updateWineprefix`
+  — `wine wineboot -u` through a `GuestProgramLauncherComponent` — then
+  clears the extra and restarts: schema change is a
+  *migration pass on next launch*, not a config rewrite. The read side's
+  own migration is `checkObsoleteOrMissingProperties`, merging newly-added
+  default keys into stored `envVars`/`wincomponents` values.
+- **The rootfs is versioned, and read-only-shared by the containers that
+  live inside it.** `RootFS.isValid` = `files/rootfs` is a dir +
+  `.winlator/.rfs_version` exists; `getVersion` parses that stamp's first
+  line. `installIfNeeded` extracts `rootfs.tzst` (a top-level asset, with
+  `rootfs_patches.tzst` beside it) whenever `!isValid || version <
+  LATEST_VERSION (=19)`. A container dir is cheap — `.container`,
+  `.wine` prefix, `.local/share/icons` — and the image it mounts is the
+  heavy, shared thing.
 - **Install clears-then-extracts in place, preserving user dirs, and the
   stamp is written last.** `clearRootDir` deletes everything under
-  `files/rootfs` **except `home` and `opt`** (and `opt`'s `installed-wine`),
+  `files/rootfs` **except `home` and `opt`** (`home` keeps the `xuser-<id>`
+  containers and their prefixes, `opt` keeps `installed-wine`),
   then the extract runs into the live dir, then — on success only —
   `createRFSVersionFile(LATEST_VERSION)` and `resetContainerRFSVersions`:
   every container's `rfsVersion` extra is cleared, and any provisioned
@@ -229,7 +237,7 @@ The lifecycle, end to end:
 - **The surfaces are the app.** `main_menu.xml` drawer: Containers,
   Shortcuts, Input Controls, Settings. `ContainersFragment` is the default
   view — each row carries a Run button (`runContainer` →
-  `XServerDisplayActivity`/`XrActivity`), and the per-item
+  `XServerDisplayActivity`), and the per-item
   `container_popup_menu.xml` holds five verbs: File Manager
   (`ContainerFileManagerFragment` over the container dir — the container is
   also a browsable filesystem), Edit, Duplicate, Remove, Storage Info
@@ -323,7 +331,7 @@ has to do, because neither runs on targetSdk 36.
 | Components | downloadable, versioned, pickable (`GeneralComponents`, `DefaultVersion`) | one blob, one version | absent (GAP candidate) — no per-part upgrade path |
 | Multi-env | many containers share one rootfs read-only | model supports N dirs; runtime + server assume base-only | the audit's spine — N Spaces = N rootfs copies; one server? |
 | Exec model | `files/…` exec under `targetSdk 28` | `jniLibs` + `nativeLibraryDir` relink under `targetSdk 36` | ADR-0002/0003 — ours alone vs Android; no reference authority |
-| Failure arms | staging-rename (termux); `onRemoveContainer` kills the running act | `tmp`-dir + rename; `JupyterServerLauncher.start` kills first; `BaseSpaceServer` mutex/generation | soundness read — the walk verdicts the arms |
+| Failure arms | staging-rename (termux); no remove guard — a running container's dir deletable mid-session | `tmp`-dir + rename; `JupyterServerLauncher.start` kills first; `BaseSpaceServer` mutex/generation | soundness read — the walk verdicts the arms |
 
 ## Deviations
 
@@ -378,7 +386,7 @@ has to do, because neither runs on targetSdk 36.
   carried-ins, and the neighbours. No verdicts; Areas row stays
   `unexamined`; no partition rows; `read_ledger_partition --unassigned` and
   `read_ledger_verdicts --missing` stay at 0.
-- [ ] **T2 — the model and its lifecycle acts.** `Space`/`SpaceConfig`/
+- [x] **T2 — the model and its lifecycle acts.** `Space`/`SpaceConfig`/
   `SpaceRepository`/`DiskSpaceRepository`/`FakeSpaceRepository` vs
   `Container`/`ContainerManager`/`Shortcut`/`.container` — identity,
   config schema/defaults, create/rename/delete/duplicate/activate/browse,
