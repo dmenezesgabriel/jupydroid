@@ -177,7 +177,8 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
   duplicate the focus-on-open fix and the unchanged-is-dismiss rule (both are in its KDoc).
   **Default: parametrise.** Pass the validator, its refusal message and the initial selection, and
   keep the file defaults so that no caller changes. Settle it in T3, red test first, in
-  `RenameFileDialogTest`'s neighbourhood.
+  `RenameFileDialogTest`'s neighbourhood. **Settled in T3: parametrised** with `isValidName`, `refusalMessage`,
+  `initialSelection` and `confirmLabel`. Create needed its own button label, "Create".
 - **Whether `FakeSpaceRepository` gains a `Clock`.** Only if a ViewModel or UI test asserts on a
   row's created time. Decide in T1 when that test is written. If it does, inject the clock the way
   `DiskSpaceRepository` does.
@@ -209,7 +210,7 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
       `SpacesSidePanel` list: each row shows the name with `id · created` underneath, and a
       progress bar shows while busy. An instrumented test proves the panel is reachable from the
       rail and lists base.
-- [ ] T3 — Create and rename: the name dialog is parametrised (blank refused, unchanged rename is a
+- [x] T3 — Create and rename: the name dialog is parametrised (blank refused, unchanged rename is a
       dismiss), an add action sits in the panel's bar, and each row has a rename action except
       base. Instrumented tests cover base having no rename control and a blank name disabling
       confirm.
