@@ -29,7 +29,14 @@ const val RENAME_FIELD_TAG = "rename-field"
  * `DocumentManagerDialogs.rename` and reaches it from the File menu and from the document title
  * alike (`packages/docmanager/src/dialogs.ts:55-100`). Its own title is "Rename File" and its
  * accept button is "Rename" (`dialogs.ts:65-71`), which is the split [heading] keeps: what is
- * being renamed varies, what the button does not.
+ * being renamed varies, what the button does not - unless the dialog names something new, where
+ * [confirmLabel] says "Create", as VS Code's new-profile button does.
+ *
+ * A name that is not a file's passes its own [isValidName], [refusalMessage] and
+ * [initialSelection]: a Space's name is a label in its `config.json`, so only a blank one is
+ * refused and there is no extension to keep out of the selection
+ * ([com.jupydroid.app.ui.spaces.SpacesSidePanel]). The focus fix and the unchanged-is-dismiss rule
+ * stay one copy.
  *
  * [onConfirm] is called **only when the title actually changed**. That is JupyterLab's rule -
  * `if (!newPath || newPath === fileName) return null`, silently, with no error - and it matters
@@ -53,10 +60,14 @@ fun RenameFileDialog(
   onConfirm: (String) -> Unit,
   onDismiss: () -> Unit,
   heading: String = "Rename notebook",
+  isValidName: (String) -> Boolean = ::isValidFileName,
+  refusalMessage: String = INVALID_NAME_MESSAGE,
+  initialSelection: (String) -> TextRange = { TextRange(0, titleStemEnd(it)) },
+  confirmLabel: String = "Rename",
 ) {
   // Selected, not merely filled: typing should replace the name and leave `.py` alone.
   var title by remember(currentTitle) {
-    mutableStateOf(TextFieldValue(currentTitle, TextRange(0, titleStemEnd(currentTitle))))
+    mutableStateOf(TextFieldValue(currentTitle, initialSelection(currentTitle)))
   }
   val field = remember { FocusRequester() }
 
@@ -68,12 +79,12 @@ fun RenameFileDialog(
       // fault rather than turning `a/b` into `a-b` and handing back a notebook the user never
       // named (`packages/docmanager/src/dialogs.ts`). The name *is* the file here, so an
       // invalid one is not a matter of taste - the filesystem cannot store it.
-      val refused = title.text.isNotBlank() && !isValidFileName(title.text)
+      val refused = title.text.isNotBlank() && !isValidName(title.text)
       OutlinedTextField(
         value = title,
         onValueChange = { title = it },
         isError = refused,
-        supportingText = { if (refused) Text(INVALID_NAME_MESSAGE) },
+        supportingText = { if (refused) Text(refusalMessage) },
         modifier = Modifier
           .focusRequester(field)
           .semantics { testTagsAsResourceId = true }
@@ -94,9 +105,9 @@ fun RenameFileDialog(
       val renamed = title.text.trim()
       TextButton(
         onClick = { if (renamed == currentTitle) onDismiss() else onConfirm(renamed) },
-        enabled = isValidFileName(renamed),
+        enabled = isValidName(renamed),
       ) {
-        Text("Rename")
+        Text(confirmLabel)
       }
     },
     dismissButton = {

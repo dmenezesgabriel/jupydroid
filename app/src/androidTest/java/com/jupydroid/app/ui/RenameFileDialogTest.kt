@@ -127,9 +127,46 @@ class RenameFileDialogTest {
     compose.onNodeWithText("Rename").assertIsNotEnabled()
   }
 
+  /**
+   * A caller with its own rule - a Space's name is a label in `config.json`, not a path, so only a
+   * blank one is refused - can confirm what the file rule would not.
+   */
+  @Test
+  fun aCallersOwnRuleDecidesWhatCanBeConfirmed() {
+    showNamingDialog(currentTitle = "Draft")
+
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput("a/b")
+    compose.onNodeWithText("Rename").performClick()
+
+    assertEquals(listOf("a/b"), confirmed)
+  }
+
+  /** A name with no extension to protect opens wholly selected, so typing replaces all of it. */
+  @Test
+  fun aCallersOwnSelectionIsWhatOpensSelected() {
+    showNamingDialog(currentTitle = "my.thesis")
+
+    compose.onNodeWithTag(RENAME_FIELD_TAG).assert(
+      SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(0, 9)),
+    )
+  }
+
+  /** The same dialog names a new thing, and then its button says so. */
+  @Test
+  fun theConfirmButtonCarriesTheCallersLabel() {
+    showNamingDialog(currentTitle = "", confirmLabel = "Create")
+
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput("Thesis")
+    compose.onNodeWithText("Create").performClick()
+
+    assertEquals(listOf("Thesis"), confirmed)
+  }
+
   private val confirmed = mutableListOf<String>()
   private var dismissed = 0
 
+  /** The file defaults, untouched: what every file caller gets. */
   private fun showDialog(currentTitle: String) {
     compose.setContent {
       JupyterDroidTheme {
@@ -137,6 +174,27 @@ class RenameFileDialogTest {
           currentTitle = currentTitle,
           onConfirm = { confirmed += it },
           onDismiss = { dismissed++ },
+        )
+      }
+    }
+  }
+
+  /** Every parameter a non-file caller sets, stated, so no default leaks into what is asserted. */
+  private fun showNamingDialog(
+    currentTitle: String,
+    isValidName: (String) -> Boolean = String::isNotBlank,
+    initialSelection: (String) -> TextRange = { TextRange(0, it.length) },
+    confirmLabel: String = "Rename",
+  ) {
+    compose.setContent {
+      JupyterDroidTheme {
+        RenameFileDialog(
+          currentTitle = currentTitle,
+          onConfirm = { confirmed += it },
+          onDismiss = { dismissed++ },
+          isValidName = isValidName,
+          initialSelection = initialSelection,
+          confirmLabel = confirmLabel,
         )
       }
     }
