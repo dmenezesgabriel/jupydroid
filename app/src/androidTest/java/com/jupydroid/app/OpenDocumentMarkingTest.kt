@@ -73,8 +73,10 @@ class OpenDocumentMarkingTest {
   /**
    * `a.ipynb` open, renamed to `b.ipynb`, closed; a broken `a.ipynb` written again and tapped -
    * the open fails, so no screen reports a live path and whatever the closed tab left in
-   * `openDocumentPaths` is the whole answer. Before the reconcile dropped dead keys the dead
-   * entry titled the tab `b.ipynb` and marked `b.ipynb`'s row for a document that never opened.
+   * `openDocumentPaths` is the whole answer the row marking gets. Before the reconcile dropped
+   * dead keys the dead entry marked `b.ipynb`'s row for a document that never opened - the tab
+   * still titled `a.ipynb`, because `documentIn` answers titles live while `openDocumentPath`
+   * reads the map alone.
    */
   @Test
   fun aClosedTabsLivePathStopsAnswering() {
