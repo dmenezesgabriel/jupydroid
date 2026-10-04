@@ -2,6 +2,7 @@
 
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.defaultSpaceConfig
@@ -51,7 +52,7 @@ class DiskSpaceRepository(
 
   override suspend fun create(name: String): SpaceConfig = withContext(ioDispatcher) {
     val created = SpaceConfig(id = scan().nextSpaceId(), name = name, created = clock.instant())
-    val directory = File(spacesDir, created.id)
+    val directory = spaceDirIn(spacesDir, created.id)
     require(directory.mkdirs()) { "could not create the Space directory '$directory'" }
     write(created)
     created
@@ -71,7 +72,7 @@ class DiskSpaceRepository(
    */
   override suspend fun delete(id: String) = withContext(ioDispatcher) {
     requireDeletableSpace(id)
-    val directory = File(spacesDir, scan().spaceWithId(id).id)
+    val directory = spaceDirIn(spacesDir, scan().spaceWithId(id).id)
     require(directory.deleteRecursively()) { "could not delete the Space directory '$directory'" }
   }
 
@@ -102,7 +103,7 @@ class DiskSpaceRepository(
   }
 
   private fun write(config: SpaceConfig) {
-    File(File(spacesDir, config.id), SPACE_CONFIG_FILE_NAME)
+    File(spaceDirIn(spacesDir, config.id), SPACE_CONFIG_FILE_NAME)
       .writeText(json.encodeToString(StoredSpaceConfig.serializer(), config.stored()))
   }
 }

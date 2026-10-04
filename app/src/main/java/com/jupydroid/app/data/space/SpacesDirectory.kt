@@ -14,3 +14,14 @@ import java.io.File
  * ```
  */
 fun spacesDir(context: Context): File = File(context.filesDir, "spaces")
+
+/**
+ * The directory of the Space named [spaceId]: its id *is* the directory's name, which is how
+ * `DiskSpaceRepository`'s scan derives the id back (ADR-0010). One home for the convention, so the
+ * repository that creates a Space and the runtime that launches one cannot disagree on where it is.
+ *
+ * ```
+ * spaceDirIn(spacesDir(context), BASE_SPACE.id)
+ * ```
+ */
+fun spaceDirIn(spacesDir: File, spaceId: String): File = File(spacesDir, spaceId)

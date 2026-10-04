@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
 import com.jupydroid.app.domain.port.SpaceRepository
@@ -49,7 +50,7 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
 
     assertEquals(
       listOf(SPACE_CONFIG_FILE_NAME),
-      File(spacesDir, created.id).list()?.toList(),
+      spaceDirIn(spacesDir, created.id).list()?.toList(),
     )
     assertEquals(setOf(BASE_SPACE.id, created.id), spacesDir.list()?.toSet())
   }

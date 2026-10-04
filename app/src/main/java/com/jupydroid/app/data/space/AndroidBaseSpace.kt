@@ -43,7 +43,7 @@ fun androidDnsServerSource(context: Context): DnsServerSource = DnsServerSource 
   link?.dnsServers?.mapNotNull { it.hostAddress }.orEmpty()
 }
 
-fun baseSpaceDir(context: Context): File = File(spacesDir(context), BASE_SPACE.id)
+fun baseSpaceDir(context: Context): File = spaceDirIn(spacesDir(context), BASE_SPACE.id)
 
 /**
  * Where notebooks live: the kernel's `HOME`, which is also the server's root and the repository's.
