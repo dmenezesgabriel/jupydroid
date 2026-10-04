@@ -1,7 +1,6 @@
 package com.jupydroid.app.data.space
 
 import android.os.Build
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
@@ -12,10 +11,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
 
 /**
  * **`pylsp` runs in the Space's shell and answers LSP over stdio.**
@@ -70,39 +65,18 @@ class LanguageServerDeviceTest {
   @Test(timeout = 120_000)
   fun pylspAnswersAnInitializeOverStdio() {
     val pylsp = File(baseDir, "usr/local/bin/pylsp")
-    val process = ProcessBuilder(pylsp.path).apply {
-      environment().clear()
-      environment().putAll(baseSpaceRuntime(context).environment())
-    }.start()
-    val stderr = StringBuilder()
-    val drainer = thread {
-      process.errorStream.bufferedReader().useLines { lines ->
-        lines.forEach { stderr.appendLine(it) }
-      }
-    }
-    try {
-      val capabilities =
-        exchange(
-          process,
-          1,
-          """"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}""",
-        )
+    LspStdioSession(baseSpaceRuntime(context).execProcessBuilder(listOf(pylsp.path)).start()).use { session ->
+      val capabilities = session.initialize()
       assertTrue(
-        "no capabilities in the initialize reply: $capabilities; stderr: $stderr",
+        "no capabilities in the initialize reply: $capabilities; stderr: ${session.stderr}",
         "\"capabilities\"" in capabilities,
       )
 
-      exchange(process, 2, """"method":"shutdown","params":null""")
-      writeFrame(process.outputStream, """{"jsonrpc":"2.0","method":"exit"}""")
-      assertTrue("pylsp did not exit on shutdown+exit", process.waitFor(15, TimeUnit.SECONDS))
       assertEquals(
-        "pylsp exited ${process.exitValue()} after a clean shutdown; stderr: $stderr",
+        "pylsp did not exit 0 after a clean shutdown; stderr: ${session.stderr}",
         0,
-        process.exitValue(),
+        session.shutdownAndExit(),
       )
-    } finally {
-      process.destroy()
-      drainer.join(TimeUnit.SECONDS.toMillis(5))
     }
   }
 
@@ -116,53 +90,5 @@ class LanguageServerDeviceTest {
       emptyList<String>(),
       seccompRefusalsIn(baseDir),
     )
-  }
-
-  /**
-   * Sends one request with [id] and [paramsAndMethod] (the `"method":…,"params":…` half of the
-   * JSON body) and returns the response frame carrying `"id":<id>`, reading past any
-   * notifications that land first.
-   */
-  private fun exchange(process: Process, id: Int, paramsAndMethod: String): String {
-    writeFrame(process.outputStream, """{"jsonrpc":"2.0","id":$id,$paramsAndMethod}""")
-    repeat(MAX_FRAMES_PER_REPLY) {
-      val frame = readFrame(process.inputStream).also { Log.i(SPACE_LOG_TAG, "pylsp frame: $it") }
-      if ("\"id\":$id" in frame) return frame
-    }
-    error("no reply to request $id in $MAX_FRAMES_PER_REPLY frames")
-  }
-
-  private fun writeFrame(output: OutputStream, body: String) {
-    val bytes = body.toByteArray(Charsets.UTF_8)
-    output.write("Content-Length: ${bytes.size}\r\n\r\n".toByteArray(Charsets.US_ASCII))
-    output.write(bytes)
-    output.flush()
-  }
-
-  /** Reads one `Content-Length`-framed body; a truncated stream is a failed check, not a hang. */
-  private fun readFrame(input: InputStream): String {
-    val header = StringBuilder()
-    while (!header.endsWith("\r\n\r\n")) {
-      val b = input.read()
-      check(b >= 0) { "pylsp closed stdout mid-header after '$header'" }
-      header.append(b.toChar())
-    }
-    val length = CONTENT_LENGTH.find(header)?.groupValues?.get(1)?.toInt()
-      ?: error("no Content-Length in '$header'")
-    val body = ByteArray(length)
-    var read = 0
-    while (read < length) {
-      val n = input.read(body, read, length - read)
-      check(n > 0) { "pylsp closed stdout mid-body after $read/$length bytes" }
-      read += n
-    }
-    return String(body, Charsets.UTF_8)
-  }
-
-  private companion object {
-    val CONTENT_LENGTH = Regex("""Content-Length:\s*(\d+)""")
-
-    /** Generous for a server that may interleave notifications before its reply. */
-    const val MAX_FRAMES_PER_REPLY = 10
   }
 }

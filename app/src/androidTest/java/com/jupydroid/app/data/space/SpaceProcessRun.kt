@@ -19,19 +19,20 @@ data class SpaceProcessRun(val command: String, val exitCode: Int, val output: S
  * with the same environment. **Nothing that uses this may shell out through `run-as`** - that is
  * the whole defect.
  *
+ * [runtime] is whichever Space the command runs in - `base` unless a caller names another, so a
+ * second Space's process gets that Space's `HOME`, `TMPDIR` and user base rather than base's.
+ *
  * ```
  * val run = runInSpace(spaceShellIn(baseDir).path, "-c", "python3 --version")
  * ```
  */
-fun runInSpace(vararg command: String): SpaceProcessRun {
-  val context = InstrumentationRegistry.getInstrumentation().targetContext
-  val process = ProcessBuilder(command.toList())
-    .apply {
-      // Android's own PATH and linker variables would otherwise leak in, exactly as
-      // SpaceRuntime.processBuilder guards against for the interpreter.
-      environment().clear()
-      environment().putAll(baseSpaceRuntime(context).environment())
-    }
+fun runInSpace(
+  vararg command: String,
+  runtime: SpaceRuntime = baseSpaceRuntime(InstrumentationRegistry.getInstrumentation().targetContext),
+): SpaceProcessRun {
+  // execProcessBuilder replaces Android's own PATH and linker variables with the Space's, the same
+  // way it does for the language server.
+  val process = runtime.execProcessBuilder(command.toList())
     .redirectErrorStream(true)
     .start()
   val output = process.inputStream.bufferedReader().use { it.readText() }
