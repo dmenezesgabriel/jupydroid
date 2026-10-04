@@ -70,7 +70,7 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 | `AUD-007` | Terminal emulator and view, against Termux's state machine and JediTerm | shipped | — | `GAP-081`–`GAP-092` |
 | `AUD-008` | Rendering and formats — markdown, HTML, outputs, nbformat | shipped | — | `GAP-093`–`GAP-119` |
 | `AUD-009` | Chrome and presentation, against VS Code's workbench | shipped | — | `GAP-120`–`GAP-144` |
-| `AUD-010` | Spaces and runtime, against Winlator's container lifecycle | open ← next | — | — |
+| `AUD-010` | Spaces and runtime, against Winlator's container lifecycle | in-progress ← next | [AUD-010](prd/AUD-010-spaces-and-runtime.md) | — |
 | `AUD-011` | Code health, produced — the two gate gaps first, then the measured tail | open | — | `GAP-006`, `GAP-008` |
 
 ### M1 — Spaces
