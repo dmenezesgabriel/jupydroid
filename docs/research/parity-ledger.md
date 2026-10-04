@@ -59,7 +59,7 @@ Five, each obliging something different. The full definition is in
 | Console, sessions, running panel | `AUD-006` | examined — below |
 | Terminal emulator and view | `AUD-007` | examined — below |
 | Rendering and formats | `AUD-008` | examined — below |
-| Chrome and presentation | `AUD-009` | unexamined |
+| Chrome and presentation | `AUD-009` | examined — below |
 | Spaces and runtime | `AUD-010` | unexamined |
 
 ---
@@ -2756,3 +2756,101 @@ reason in nobody's writing.
 | `apputils:notify` — `Notification.manager` toast plus a centre entry, typed with `autoClose` and action buttons (`notificationplugin.tsx:401-500`) | the owner-drawn transient report — `ExportReportSnackbar`, `SaveFailureBanner`, `SearchReplaceReport` — shown where the event lived | adapted | the message exists in place, which is also why the next row's machinery has no operand: a report here is an event on its owner, not an entry in a store |
 | `apputils:update-notification`, `apputils:dismiss-notification`, `apputils:display-notifications` — mutate a store entry by id, and open the `NotificationCenter` popup anchored on the status bell (`notificationplugin.tsx:500-780`) | — | **absent** | `GAP-137`. No notification store exists to update or dismiss, and no centre to open — the transient reports above never join a list |
 | `apputils:print` — `Printing.getPrintFunction(currentWidget)` — a per-widget print the browser owns (`index.ts:303-330`) | — | **absent** | `GAP-138`. The adjacent surface is `NotebookExport`'s convert-and-share; printing the view itself is Android's `PrintManager`, unreached |
+
+### The walk
+
+Four paths end to end — a document through the shell's tab machinery, a settings write through
+its disk store, a theme override through the palettes, a launcher card through its destination.
+**A document:** launch builds the one process-scoped `AppContainer` in `JupydroidApplication` —
+each `Disk*` store's `loadValidated` paying its read on the main thread inside it, `GAP-070` —
+→ `MainActivity` → `JupyterDroidTheme` → `MainNavigation`, where the shell's whole state is
+`remember`ed beside the saveable `rememberNavBackStack` — `sidePanel`, `openTabOrder`,
+`openDocumentPaths`, `liveTabTitles`, `openDocuments`, `consoleSession`, `browseRequest`,
+`revealRequest` — → `NavDisplay` under `ListDetailSceneStrategy` measuring its own panes → a
+rail tap setting `sidePanel` → the list pane's `entry<Explorer>` → `ExplorerScreen`,
+`KeepTheListingFresh` re-reading the directory on the reference's own 10 s interval → a row tap
+→ `viewModel.open` → `onOpenFile` → `rememberDocumentOpener` — the asked path recorded in
+Recents on `applicationScope` — → `openDocument`'s `openOrReveal`: `openDocuments.at(path)`
+matching by *live* path, `?.openedAs` resolving back to the key the entry carries — → the
+`.ipynb` suffix split → `openNotebook`/`openFile` → `openInMainArea`'s `remove`+`add`, the
+equal-key reveal that keeps two entries off one `contentKey` — → `entry<Editor>` inside
+`tabbedPane` → `TabbedDocumentPane` → `MainAreaTabStrip` drawing `orderedTabs` — opening order,
+not the stack's promotion order — → `EditorViewModel` registering `openDocuments.opened`
+*before* its read → the screen's `LaunchedEffect(state.notebookId)` reporting the live path up
+→ `openDocumentPaths[key]` → the strip's title and `openDocumentPath`'s explorer marking → a ✕
+→ `rememberMainAreaCloseGate` — a dirty document queues a `SaveBeforeCloseDialog` whose Save is
+`saveNow`'s continuation, a refused save never closing — → `closeMainAreaTab` re-selecting the
+sibling by opening order → the entry leaves, its `ViewModelStore` clears, `onCleared` runs
+`openDocuments.closed` and the farewell `persist()` → `reconcileOpenTabs` dropping the dead key
+from the order and both maps — `46164a51`, because before it a renamed-then-closed key kept
+answering `liveDocumentPath`, and a reopen of the old name whose open failed marked the renamed
+file's row for a document that never arrived (`aClosedTabsLivePathStopsAnswering`) — → an empty
+main area → `LauncherNavigation`'s `maybeCreate` fill. **A settings write:** `SettingsScreen`
+collects each `observeSettings()` live → a row's tap → the `*Settings` model's callback →
+`applicationScope.launch { repository.update }` → `withContext(ioDispatcher)` →
+`writeMutex.withLock` → `mkdirs` → `writeText` → *then* the `MutableStateFlow` publishes —
+`e31f319b`, since before that order a refused `writeText` broadcast a value the next launch
+never kept, and two writes racing on the scope could leave file and flow disagreeing about
+which update was last — → the same flow collected by the editor, file editor, terminal and
+settings screens themselves → applied live, no restart — → a restart reconstructs the
+repositories in `AppContainer` and `loadValidated` re-reads what the write left. **A theme
+override:** the settings row → the same store → `DiskThemeSettingsRepository` →
+`MainActivity`'s `collectAsStateWithLifecycle` on `observeSettings()` →
+`ThemeOverride.resolvesToDark` → `JupyterDroidTheme` re-providing `LocalEditorPalette` and
+`LocalChromePalette` — *static* locals, so the swap is one deliberate whole-tree recomposition
+rather than per-node notification — → the same `loadValidated` read restoring it after restart.
+**A launcher card:** `SidePanelRail`'s `+` or the empty-dock `maybeCreate` fill → `openLauncher`
+— `remove`+`add` promoting rather than stacking a twin `data object` — → `entry<Launcher>` →
+`LauncherViewModel.launch` → a `LaunchedDocument` → `rememberLaunchHandler`: a created notebook
+or file `openDocument`s into the first path; an opened terminal takes `terminalGateway.open`'s
+minted name to `openTerminal`; a console mints its `NotebookKernelSession` and publishes it into
+`consoleSession` *before* `openStandaloneConsole` pushes — the single-holder rule — → the
+launcher entry disposed of on a card's success, the reference's own `add(panel, 'main', {ref})`
+→ `launcher.dispose()` — → and a refused card lands on `LauncherViewModel.error`, the one
+failure surface this path owns.
+
+What the walk found, beyond the rows above:
+
+- **Growth is paid per recomposition on the tab path, once at launch on the persisted one.**
+  `orderedAsOpened`'s reconcile is a filter+concat per stack change, and the strip redraws on
+  any write to the three per-tab holders; `openDocumentPath` and `runningTabTitle` resolve per
+  pass through `documentIn`-then-map. The theme override is the deliberate inverse: static
+  composition locals make a palette swap a whole-tree recomposition in a single pass, which is
+  why the swap lives in `MainActivity` and nowhere smaller. The asymmetric cost is launch —
+  `GAP-070`, every `Disk*` file `loadValidated` on the main thread before the first frame —
+  while steady-state is all flow replays, and the explorer's 10 s poll is the reference's own
+  `DEFAULT_REFRESH_INTERVAL` rather than a tax this app invented.
+- **Branching forks on the suffix, the dirty bit, the pane count and the kind.**
+  `openDocument`'s `at`-then-`.ipynb` is the whole factory dispatch — one conditional where the
+  reference holds a factory map, sized by there being one factory per type to dispatch.
+  `openInMainArea`'s remove+add is the reveal. The close gate forks a dirty document into a
+  queued dialog — the reference's one-dialog-per-dirty-widget flattened to one modal surface —
+  and a clean one into a straight remove. `TabbedDocumentPane` leads with Up below two panes
+  and nothing beside a browser. `openRunningSession`'s console arm can only *reveal* — a
+  console row without a live tab cannot be synthesised, because `entry<Console>` draws from the
+  one `consoleSession` — while the document arm re-enters the open path. The launcher
+  dispatches on `LaunchedDocument`'s four kinds, and `resolvesToDark` is the tri-state's own
+  fork.
+- **Failure has an honest arm on the write path, and the walk named where it does not.** A
+  refused settings write publishes nothing (`e31f319b`, red first in all six stores); a failed
+  document open lands `EditorUiState.error` with the file's name in it; a refused card mint
+  surfaces on `LauncherViewModel.error`; a dead key stopped answering at `46164a51`. The
+  recorded silences: `importTitle`'s `createNotebook` and the explorer's `openNewTerminal` ride
+  a bare `runCatching` — a user act that lands nowhere, unsaid — `GAP-144`. A `Console` key
+  restored without its session composes a blank pane under a live tab — `GAP-142`. And under
+  the fixed half sits the wound the same stale-key family leaves open: a tab renamed off
+  `a.ipynb` still *is* `Editor("a.ipynb")`, so a file recreated at that name can never open
+  while the tab lives — `openInMainArea`'s equal-key remove reveals the renamed tab instead —
+  `GAP-141`, a key-identity change rather than a walk-time patch.
+- **Coupling is five holders hoisted to `MainNavigation`'s scope and the `WorkspaceChange`
+  nerve between them.** Nav entries own separate `ViewModelStore`s, so what crosses between
+  them — the document registry, the live-path map, the strip's order, the OSC titles, the
+  console's session — lives one level up and is handed down. `WorkspaceChange.Renamed` is what
+  keeps the two "where is it" records coherent: the repository emits, the ViewModels adopt the
+  moved `path`, the screens report it back into `openDocumentPaths`, and the strip, the close
+  gate and the row marker read through `documentIn`-then-map. That is also why `46164a51` was a
+  reconcile fix and not a marking fix — the map can only lie where no document remains to
+  correct it. Three of the holders are plain `remember` where `browsedDirectory` is
+  `rememberSaveable`: a rotation keeps the stack and loses the strip's order, the live titles,
+  and — via `openDocuments` itself resetting — every background tab's `documentIn` until it is
+  revealed, the close gate's dirty read included — `GAP-143`.

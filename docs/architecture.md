@@ -1825,6 +1825,52 @@ and logcat — ADR-0009's recorded answer — and §1 names `logconsole` itself 
 is missing is the window: an in-app reader over the same stream, with the ring's checkpoint and
 level. The repair is a log panel reading the file the launcher already writes.
 
+### GAP-141 — A renamed tab still owns the name it left
+
+A `NavKey` is the path it was opened under — `Editor("a.ipynb")` stays `Editor("a.ipynb")`
+after its document is renamed to `b.ipynb`, because re-keying the entry would drop its
+`ViewModelStore` (`app/src/main/java/com/jupydroid/app/Editor.kt`,
+`MainAreaTabStrip.kt`'s rename flow). `openInMainArea` reveals by key equality, so a file
+recreated at `a.ipynb` while that tab lives can never be opened: every tap resolves to the same
+key and reveals the renamed tab instead — the new document is unreachable without closing the
+old one. JupyterLab keys widgets, not paths — `openOrReveal` matches a live context through
+`_contextsForPath` and a second widget for the old name is lawful
+(`packages/docmanager/src/manager.ts`). The repair is a key identity that is not the path — an
+opaque id per open, so two documents that share a path across time are two keys.
+
+### GAP-142 — A restored console composes nothing
+
+`consoleSession` is process-scoped composition state — a `NotebookKernelSession` cannot
+round-trip a Bundle — so the saveable `Console` key survives a process death and the session it
+draws from does not (`app/src/main/java/com/jupydroid/app/Navigation.kt`). The restored entry
+composes no `ConsoleScreen`: a blank pane under a live tab title. JupyterLab's console tracker
+restores by reconnecting to the kernel session the key names. The repair is reattach-by-name
+through `KernelGateway`'s session list, or dropping the restored key with the stack entry that
+names it.
+
+### GAP-143 — A rotation keeps the stack and forgets its tabs
+
+`rememberNavBackStack` is saveable, but the holders beside it are not: `openTabOrder`,
+`openDocumentPaths`, `liveTabTitles`, `consoleSession`, `browseRequest`, `revealRequest` and
+`openDocuments` are all plain `remember` where `browsedDirectory` is `rememberSaveable`
+(`app/src/main/java/com/jupydroid/app/Navigation.kt`). Across a rotation the entries survive
+but the strip reseeds to the stack's activation order rather than the opening order it drew,
+OSC titles drop until the next report, and — the sharpest edge — background tabs' documents
+never re-enter `openDocuments` because only the top entry composes: their `documentIn` lookups
+miss, so the close gate reads a dirty background tab as clean and closes it with no ask. The
+repair is `rememberSaveable`/saver forms of the per-tab holders, or a re-registration pass for
+stacked entries.
+
+### GAP-144 — A refused import or terminal open lands nowhere
+
+`importTitle`'s `createNotebook` and the explorer's `openNewTerminal` both ride a bare
+`runCatching` — a refused mint is no document and no message
+(`app/src/main/java/com/jupydroid/app/Navigation.kt`'s import effect,
+`DocumentOpeners.kt:93`). The launcher's own card mint already has the arm these two lack —
+`LauncherViewModel.error` carries a refused launch onto the card — and `GAP-069` records the
+same shape on a tab's rename. The repair is one failure surface the shell already owns (the
+snackbar the transient reports use), not new machinery.
+
 ---
 
 ## 12. Glossary

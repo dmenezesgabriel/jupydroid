@@ -385,7 +385,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
       `LauncherItems`, `ui/settings/` + the `*Settings` models and `Disk*` repositories, the
       status items on `EditorTopBar*`/`KernelIndicator`/`DirtyMarker`, logcat (ADR-0009) — plus
       `statusbar:toggle`/`workspace-indicator:toggle` named.
-- [ ] T5 — **The walk.** launch → rail tap → pane → document open → tab → back stack → close;
+- [x] T5 — **The walk.** launch → rail tap → pane → document open → tab → back stack → close;
       settings write → `Disk*` repository → live apply → restart restore; theme override →
       palette swap → restart; launcher card → destination; growth (per-tab recompose, palette
       recomposition, `GAP-070`'s main-thread reads), branching, failure (restore of a missing
