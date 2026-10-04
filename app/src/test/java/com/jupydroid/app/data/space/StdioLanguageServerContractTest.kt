@@ -16,7 +16,7 @@ class StdioLanguageServerContractTest : LanguageServerPortContract() {
 
   override fun languageServer(): LanguageServerPort = StdioLanguageServer(
     installSpace = { InstalledSpace(File("/dev/null"), 7, false) },
-    spawn = { ScriptedLanguageServer().also { spawned = it } },
+    spawn = { _, _ -> ScriptedLanguageServer().also { spawned = it } },
   )
 
   /**

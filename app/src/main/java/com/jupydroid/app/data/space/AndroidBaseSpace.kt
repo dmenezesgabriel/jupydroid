@@ -36,7 +36,7 @@ fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir
 /** Runs jupyter_server out of whichever Space `start` is handed, on loopback, off base's rootfs. */
 fun spaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServerLauncher(
   runtimeFor = { space -> spaceRuntime(context, space) },
-  dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir(context), space.id)) },
+  dirsFor = { space -> spaceDirs(context, space) },
   shell = spaceShellIn(baseSpaceDir(context)),
 )
 
@@ -61,7 +61,8 @@ fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpac
 }
 
 /**
- * The base Space's `pylsp` as the app's [LanguageServerPort], over stdio.
+ * `pylsp` out of base's rootfs as the app's [LanguageServerPort], over stdio - one process per
+ * Space, each in that Space's own environment and workspace ([startPylsp]).
  *
  * The console script execs straight through the `shebang-exec` trampoline ([SpaceRuntime]'s
  * `execProcessBuilder`, which must not prefix the interpreter), no `jupyter_server` in between.
@@ -72,13 +73,10 @@ fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpac
  */
 fun baseSpaceLanguageServerPort(context: Context): LanguageServerPort? {
   if (runCatching { deviceAbi() }.isFailure) return null
-  val runtime = baseSpaceRuntime(context)
   return StdioLanguageServer(
     installSpace = { baseSpaceInstaller(context).installIfNeeded() },
-    spawn = { installed ->
-      runtime.execProcessBuilder(listOf(StdioLanguageServer.pylspIn(installed.baseDir).path))
-        .directory(notebookWorkspaceIn(installed.baseDir))
-        .start()
+    spawn = { space, installed ->
+      startPylsp(spaceRuntime(context, space), spaceDirs(context, space), installed.baseDir)
     },
     log = LogcatSpaceLifecycleLog,
   )

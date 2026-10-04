@@ -20,6 +20,9 @@ fun spaceRuntime(context: Context, space: Space): SpaceRuntime = SpaceRuntime(
   rootfsDir = baseSpaceDir(context),
 )
 
+/** [space]'s writable directories under the app's `files/spaces/`. */
+fun spaceDirs(context: Context, space: Space): SpaceDirs = SpaceDirs(spaceDirIn(spacesDir(context), space.id))
+
 /**
  * The device's current DNS servers, read fresh on every call rather than cached: they can
  * legitimately differ across networks (home Wi-Fi vs. mobile data), and [SpaceRuntime] reads

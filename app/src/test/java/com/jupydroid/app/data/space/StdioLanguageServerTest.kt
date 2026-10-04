@@ -43,10 +43,10 @@ class StdioLanguageServerTest {
 
   private fun languageServer(
     requestTimeout: kotlin.time.Duration = 30.seconds,
-    spawn: () -> ScriptedLanguageServer = { ScriptedLanguageServer().also(servers::add) },
+    spawn: (Space) -> ScriptedLanguageServer = { ScriptedLanguageServer().also(servers::add) },
   ) = StdioLanguageServer(
     installSpace = { InstalledSpace(File("/dev/null"), 7, false) },
-    spawn = { spawn() },
+    spawn = { space, _ -> spawn(space) },
     requestTimeout = requestTimeout,
     log = SpaceLifecycleLog.Silent,
   )
@@ -357,6 +357,17 @@ class StdioLanguageServerTest {
     languageServer.stop(BASE_SPACE)
     assertFalse(servers[0].isAlive)
     assertTrue(servers[1].isAlive)
+  }
+
+  @Test
+  fun eachServer_isSpawnedForTheSpaceItServes() = runBlocking {
+    val other = Space(id = "other", name = "Other", kernels = emptyList())
+    val spawnedFor = mutableListOf<String>()
+    val languageServer = languageServer { space -> ScriptedLanguageServer().also { spawnedFor += space.id } }
+    languageServer.capabilities(BASE_SPACE)
+    languageServer.capabilities(other)
+
+    assertEquals(listOf(BASE_SPACE.id, other.id), spawnedFor)
   }
 
   @Test

@@ -44,7 +44,8 @@ import kotlin.time.Duration.Companion.seconds
  * and [spawn] are the same provisioning seam [BaseSpaceServer] takes, because a language
  * server has no business running on a device that cannot unpack the rootfs, and no business
  * starting at app launch - the port's own rule, and `completionsAt`'s: typing alone boots no
- * Python runtime.
+ * Python runtime. [spawn] is handed the Space it serves, so each process runs in that Space's
+ * own environment and workspace rather than base's - see [startPylsp].
  *
  * The document protocol mirrors `connection.ts`: `didOpen`s before initialization has
  * finished are held by the startup lock and flush once the handshake lands; a change to a
@@ -54,7 +55,8 @@ import kotlin.time.Duration.Companion.seconds
  */
 class StdioLanguageServer(
   private val installSpace: suspend () -> InstalledSpace,
-  private val spawn: suspend (InstalledSpace) -> Process,
+  /** Starts the server for a Space - in that Space's environment, off the installed rootfs. */
+  private val spawn: suspend (Space, InstalledSpace) -> Process,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
   private val requestTimeout: Duration = 30.seconds,
   private val shutdownGrace: Duration = 15.seconds,
@@ -339,7 +341,8 @@ class StdioLanguageServer(
      */
     private suspend fun startServer(space: Space): RunningServer {
       val installed = installSpace()
-      val process = spawn(installed)
+      // Starting a process and provisioning its dirs both block on the filesystem.
+      val process = withContext(ioDispatcher) { spawn(space, installed) }
       log.reached("lsp.start", mapOf("space" to space.id, "rootfs" to "${installed.version}"))
       val channel = JsonRpcChannel(process.inputStream, process.outputStream, log)
       return runCatching {
@@ -361,6 +364,26 @@ class StdioLanguageServer(
   internal companion object {
     fun pylspIn(baseDir: File): File = File(baseDir, "usr/local/bin/pylsp")
   }
+}
+
+/**
+ * `pylsp` for one Space: the console script out of the shared [rootfsDir], run in the Space's own
+ * environment ([runtime]) and workspace ([dirs]), so what it writes and imports is that Space's.
+ *
+ * [SpaceDirs.ensure] runs first, as in `JupyterServerLauncher.start`: a Space that was never
+ * launched holds only `config.json`, and `ProcessBuilder.start` throws on a cwd that does not exist.
+ * The script must run through `execProcessBuilder`, not `processBuilder` - see
+ * [SpaceRuntime.execProcessBuilder].
+ *
+ * ```
+ * startPylsp(spaceRuntime(context, space), spaceDirs(context, space), baseSpaceDir(context))
+ * ```
+ */
+internal fun startPylsp(runtime: SpaceRuntime, dirs: SpaceDirs, rootfsDir: File): Process {
+  dirs.ensure()
+  return runtime.execProcessBuilder(listOf(StdioLanguageServer.pylspIn(rootfsDir).path))
+    .directory(dirs.workspace)
+    .start()
 }
 
 /**

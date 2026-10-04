@@ -40,7 +40,7 @@ class StdioLanguageServerFormattingTest {
     spawn: () -> ScriptedLanguageServer = { ScriptedLanguageServer().also(servers::add) },
   ) = StdioLanguageServer(
     installSpace = { InstalledSpace(File("/dev/null"), 7, false) },
-    spawn = { spawn() },
+    spawn = { _, _ -> spawn() },
     requestTimeout = 30.seconds,
     log = log,
   )
