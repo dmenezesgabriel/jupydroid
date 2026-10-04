@@ -33,14 +33,14 @@ a user browses a list of installed *containers*, each a directory under
 `files/containers/<id>` with a `.container` config inside, sitting on a
 *rootfs* the app extracted once into `files/rootfs`; containers are created,
 edited, duplicated, removed, browsed, run — the run marks one active for
-`XrActivity`; the rootfs carries a `rootfsVersion.txt` stamp the installer
-compares against the app's pinned `LATEST_VERSION`. Its authority here is
-the same shape the app's own ADRs already cite: ADR-0007
-(`rootfsVersion.txt`), ADR-0010 (a Space is a directory; its id comes from
-the scan), ADR-0011 (site-packages inside the Space dir), and three KDocs
-that name winlator paths (`SpaceConfig`'s `container_pattern.tzst`,
-`DiskSpaceRepository`'s `ContainerManager` scan, `BaseSpaceInstaller`'s
-`RootFSInstaller`).
+`XrActivity`; the rootfs carries a `.winlator/.rfs_version` stamp the
+installer compares against the app's pinned `LATEST_VERSION`. Its authority here is
+the same shape the app's own ADRs already cite: ADR-0010 (a Space is a
+directory; its id comes from the scan), ADR-0011 (site-packages inside the
+Space dir), ADR-0012 (zstd), and four KDocs
+that name winlator (`SpaceConfig`'s two `ContainerManager.java` refs,
+`DiskSpaceRepository`'s scan ref, `BaseSpaceInstaller`'s `.rfs_version`,
+`TarZstdExtractor`'s archive-shape note).
 
 The area at five scales:
 
@@ -49,15 +49,18 @@ The area at five scales:
   format (zstd-over-tar, ADR-0012), and its contents (musl Python, pip,
   jupyter_server, terminado, nbconvert, jupyterlab-server; ipykernel;
   `jupydroid_kernel.py`; the `python`/`jupyter`/`pip` busybox-style applets;
-  `etc/resolv.conf` written at install).
-  Reference: `installable_components/` (rootfs, container_pattern, box64,
-  dxvk, turnip, vkd3d, wined3d), `RootFS` (`isValid`, `getVersion`,
-  `isInstalled`), `RootFSInstaller` (`installIfNeeded`).
+  the `getaddrinfo` shim + `DnsServerSource` answers Android's missing
+  resolver rather than a written `resolv.conf`, per ADR-0005).
+  Reference: `installable_components/` (box64, dxvk, turnip, vkd3d, wined3d;
+  `rootfs.tzst` + `rootfs_patches.tzst` + `container_pattern.tzst` are
+  top-level assets), `RootFS` (`isValid`, `getVersion`, `getRFSVersionFile`),
+  `RootFSInstaller` (`installIfNeeded`, `install`, `resetContainerRFSVersions`).
 - **The model and its lifecycle acts.** A Space's identity
   (id-from-directory-name), its config (name, pythonVersion, createdAt),
   its acts (list/create/rename/delete; duplicate? activate? browse?), its
-  version machinery (`rootfs-version` stamp vs `rootfsVersion.txt` +
-  `pkg_version`), its schema (`spaceWithId` defaults vs `.container`
+  version machinery (`.jupydroid/rootfs-version` vs `.winlator/.rfs_version`
+  + `LATEST_VERSION` + `UPDATE_WINEPREFIX_VERSION`), its schema
+  (`spaceWithId` defaults vs `.container`
   `data.put`/`get` fallbacks + `WineUtils.updateWineprefix` migration).
   Reference: `Container`, `ContainerManager`, `Shortcut`,
   `WineUtils.saveToFile`/`updateWineprefix`.
@@ -289,7 +292,7 @@ has to do, because neither runs on targetSdk 36.
 ### Where the references disagree
 
 - **Stamp granularity.** winlator versions the *rootfs* and each
-  *component* (`rootfsVersion.txt` + `DefaultVersion` + `pkg_version` per
+  *component* (`.rfs_version` + `DefaultVersion` + `rfsVersion` extras per
   part); ours versions the whole `files/spaces/base` extraction with one
   `rootfs-version` stamp and no per-part versions.
 - **Shared vs per-env image.** winlator's rootfs is one shared base every
@@ -369,7 +372,7 @@ has to do, because neither runs on targetSdk 36.
 
 ## Tasks
 
-- [ ] **T1 — the surface, produced and opened.** Run the §"The surface,
+- [x] **T1 — the surface, produced and opened.** Run the §"The surface,
   produced" greps; land the `## Spaces and runtime — AUD-010` ledger section
   with the surface paragraphs, the produced commands, the ours-map, the
   carried-ins, and the neighbours. No verdicts; Areas row stays

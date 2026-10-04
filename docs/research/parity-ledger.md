@@ -2854,3 +2854,113 @@ What the walk found, beyond the rows above:
   `rememberSaveable`: a rotation keeps the stack and loses the strip's order, the live titles,
   and — via `openDocuments` itself resetting — every background tab's `documentIn` until it is
   revealed, the close gate's dirty read included — `GAP-143`.
+
+## Spaces and runtime — `AUD-010`
+
+**The surface is not a JupyterLab package — it is the reference app's whole model, and the
+partition claims none of it.** Every slice before this one counted `x:y` command ids because the
+area was a JupyterLab extension; a Space's lifecycle is winlator's: a user browses a list of
+installed *containers*, each a directory under `files/containers/<id>` with a `.container` JSON
+inside, on top of a rootfs the app extracts once into `files/rootfs` behind a
+`.winlator/.rfs_version` stamp. Produced: **9** `ContainerManager` verbs (`getContainers`,
+`activateContainer`, `createContainerAsync`, `duplicateContainerAsync`, `removeContainerAsync`,
+`loadShortcuts`, `loadFiles`, `getNextContainerId`, `getContainerById`), **18** config keys the
+create/edit form persists, a per-row Run button plus a five-item popup (File Manager, Edit,
+Duplicate, Remove, Storage Info), a one-item Add toolbar, seven downloadable
+`GeneralComponents.Type` parts pinned by `DefaultVersion`, two version constants (`LATEST_VERSION = 19`,
+`UPDATE_WINEPREFIX_VERSION = 16`), and eight `xenvironment/components/` classes the run side
+composes. All produced, never stored:
+
+```sh
+grep -n 'public.*(' reference/research_repos/winlator/app/app/src/main/java/com/winlator/container/ContainerManager.java
+grep -o 'data\.put("[a-zA-Z_0-9]*"' reference/research_repos/winlator/app/app/src/main/java/com/winlator/ContainerDetailFragment.java | sort -u
+cat reference/research_repos/winlator/app/app/src/main/res/menu/container_popup_menu.xml \
+    reference/research_repos/winlator/app/app/src/main/res/menu/containers_menu.xml \
+    reference/research_repos/winlator/app/app/src/main/res/menu/main_menu.xml
+ls reference/research_repos/winlator/installable_components/ \
+   reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/components/
+grep -n 'LATEST_VERSION\|UPDATE_WINEPREFIX_VERSION\|getRFSVersionFile\|getVersion\|isValid\|clearRootDir\|resetContainerRFSVersions' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/RootFS.java \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java
+```
+
+**The lifecycle, end to end.** Identity is the directory name: `loadContainers()` rescans
+`files/containers` on every call and `getNextContainerId()` is max+1 — the scan is truth, the
+list a projection. Config lives inside the dir: every `.container` `data.get` carries a literal
+default, so a partial file loads field-by-field; a parallel `putExtra`/`getExtra` extras bag on
+`Container` holds state like `rfsVersion` and `wineprefixNeedsUpdate` that the form never shows.
+Acts: `createContainerAsync`, `duplicateContainerAsync` (`FileUtils.deepCopy` under a fresh id),
+`saveData` in place, `removeContainerAsync` (whose `onRemoveContainer` closes a running
+`XServerDisplayActivity`), and `activateContainer` — the run path's mark for `XrActivity`, not a
+menu verb. Install: `installIfNeeded` fires when `!isValid || version < LATEST_VERSION`;
+`install` is `clearRootDir` — delete everything under `files/rootfs` except `home` and `opt`
+(`opt` keeps `installed-wine`) — then extract `rootfs.tzst` in place, then on success write the
+stamp and `resetContainerRFSVersions`, which clears every container's `rfsVersion` extra and
+flags `wineprefixNeedsUpdate=t` where the old stamp was ≤ 16: a rootfs bump cascades into
+per-container migration. The surfaces are the app itself — `ContainersFragment` is the drawer's
+default, `ContainerDetailFragment` the form over all eighteen keys, `ContainerFileManagerFragment`
+browses the dir, `ShortcutsFragment` lists per-container `.desktop` entries with
+`ShortcutSettingsDialog`'s per-entry overrides, `SettingsFragment` picks component versions. The
+run side composes `EnvironmentComponent`s in `XServerDisplayActivity`
+(`startEnvironmentComponents` clears `files/tmp` first) and `GuestProgramLauncherComponent`
+execs `proot` with a container-built env; `onDestroy` stops them all. Termux is the same shape
+with exactly one environment and the stronger install — extract to `usr-staging`, then
+`renameTo(files/usr)` — and IntelliJ's `python/src/com/jetbrains/python/sdk/` is a registry of
+external interpreters, never a shipped image. JupyterLab and VS Code own nothing here; like
+AUD-007's Termux half, this area is reference-shaped prose and reproduction greps, not partition
+ids.
+
+**Ours** is the same shape in two bands that do not meet. The *unwired* band is the lifecycle
+the port declares: `domain/model/` `Space`/`SpaceConfig` (name, `pythonVersion`, `createdAt`;
+`BASE_SPACE`, `space-<n>` ids from `nextSpaceId` over the scan, `spaceWithId` field-by-field
+defaults, `requireDeletableSpace`), `domain/port/SpaceRepository`'s four ops
+(spaces/create/rename/delete) behind `DiskSpaceRepository` (`config.json` inside the dir, id
+from the name, refuses to delete `base`) and `FakeSpaceRepository`, with
+`SpaceRepositoryContract` pinning both — and zero production callers: `AppContainer` never
+constructs one, the UI never names it, the port-surface counts are `WorkspaceRepository`'s
+same-named ops colliding. The *live* band is the base Space's own chain: `tools/rootfs/build.sh`
+→ `assets/spaces/base/rootfs-arm64-v8a.tzst` (arm64 only; `jniLibs/{arm64-v8a,x86_64}` both ship
+`libbusybox`/`libloader`/`libpython3`/`libshebang` — the ABI gate is `SpaceAbi`/`AndroidBaseSpace`,
+not the package) → `BaseSpaceInstaller` (extract in place, no clear — `NotebookWorkspace`'s KDoc
+stakes the workspace on it: `home/jupydroid` ships empty in the archive and the never-wipe write
+is what makes a bump safe; `.jupydroid/rootfs-version` stamped last; loader+interpreter+busybox+
+console-script links and `SpaceKernelSpec` rewritten every launch) → `BaseSpaceServer` (one lazy
+shared server, mutex, generations) →
+`JupyterServerLauncher` (ephemeral port, `jpserver-<pid>.json` via `JupyterRuntimeFile`, token,
+UDS kernels, contents rooted at `NotebookWorkspace`) over `SpaceRuntime`'s ProcessBuilder+env
+(`JUPYDROID_SPACE_ROOT`, `PYTHONUSERBASE`, `PYTHONHOME`, `LD_LIBRARY_PATH`) →
+`IdleServerStopper`; the `BaseSpace*` adapters (`KernelGateway`, `TerminalGateway`,
+`KernelSessions`, `KernelSpecs`, `KernelDebugger`, `NotebookExporter`, `StdioLanguageServer`)
+serve the wire ports off it, and `AppContainer` defaults to the fakes when `SpaceAbi` says no.
+Outside `data/space/` the literal `spaces/` appears only in `NotebookWorkspaceMigration`,
+`domain/model/Space`/`SpaceConfig`, and `domain/port/SpaceRepository` — `DiskSpaceRepository`
+reaches the dir through `SpacesDirectory`, never the string. Produced:
+
+```sh
+python3 scripts/read_port_surface.py            # SpaceRepository 4 ops, ServerLauncher 3
+python3 scripts/read_port_surface.py --unused
+ls app/src/main/java/com/jupydroid/app/data/space/ app/src/main/java/com/jupydroid/app/data/disk/ \
+   app/src/main/java/com/jupydroid/app/data/fake/
+find tools/rootfs app/src/main/assets/spaces app/src/main/jniLibs -type f | sort
+grep -rln 'spaces/' app/src/main/java/com/jupydroid/app/ --include='*.kt'
+```
+
+**Carried in, recorded not rejudged.** The Space's contents are other slices': the workspace
+and its disk (`AUD-005`, `JD-003`, `JD-007`, `GAP-010`; `NotebookWorkspace` is the served root,
+not this slice's), the kernel it spawns and the `KERNEL_ID` spec (`AUD-001`, `AUD-006`,
+`GAP-007`), the shell terminado hands out (`GAP-003`), the packages inside (`JD-004`, `JD-005`).
+The exec model is already decided ground: `ADR-0002` + `CLOSED-001` (jniLibs + launch-time
+relink because `nativeLibraryDir` moves on updates), `ADR-0003` (musl, arm64-only rootfs —
+where winlator and termux simply hold `targetSdkVersion 28`), `ADR-0004`/`0005`/`0006`/`0008`
+(SIGSYS, getaddrinfo-over-resolv.conf — `DnsServerSource` is its arm — busybox suid-out, the two
+cpython hazards), `ADR-0010`/`0011`/`0012`/`0013`/`0014` (Space-as-directory, site-packages
+inside it, zstd, bytecode invalidation, no RFC-3987 tooling), `ADR-0022` (kernels start through
+sessions; one tree is the contents root — `NotebookWorkspace` is that tree), `ADR-0024` (the
+app stops its own server; `IdleServerStopper` is the arm), `CLOSED-009` (a pty works
+in-process). The `rootfs-version` stamp is no ADR — it lives where it is implemented, in
+`BaseSpaceInstaller`'s KDoc. Four KDocs already cite the
+winlator shapes they adapt — `SpaceConfig`'s two `ContainerManager.java` line refs,
+`DiskSpaceRepository`'s `ContainerManager` scan ref, `BaseSpaceInstaller`'s `.rfs_version`
+trick, `TarZstdExtractor`'s "same archive shape through the same two libraries". The Jupyter wire
+`BaseSpaceServer` serves was `AUD-001`/`003`/`006`/`007`/`008`'s; the Areas row stays
+`unexamined` and no partition rows move — the verdicts land in `T2`–`T5`'s subsections below.
