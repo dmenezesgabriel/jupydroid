@@ -214,7 +214,7 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
       dismiss), an add action sits in the panel's bar, and each row has a rename action except
       base. Instrumented tests cover base having no rename control and a blank name disabling
       confirm.
-- [ ] T4 — Delete: a row action except on base, and `DeleteFileDialog` naming `"<name> (<id>)"`.
+- [x] T4 — Delete: a row action except on base, and `DeleteFileDialog` naming `"<name> (<id>)"`.
       Progress shows while it runs. Instrumented tests cover cancel keeping the row and base having
       no delete control.
 - [ ] T5 — `.maestro/jd-002-manage-spaces.yaml` and its driver on `SM-X216B` in landscape, with
