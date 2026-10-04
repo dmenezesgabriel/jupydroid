@@ -81,7 +81,7 @@ The area at five scales:
   fakes), `BaseSpaceInstaller` (extract-once, relink-always, kernel.json,
   resolv.conf).
   Reference: `XEnvironment` (`EnvironmentComponent` start/stop, tmpdir
-  cleanup), `GuestProgramLauncherComponent` (proot + envvars), the run flow
+  cleanup), `GuestProgramLauncherComponent` (box64 exec + envvars), the run flow
   in `XServerDisplayActivity` (no `XrActivity` exists at this pin).
 - **The exec model and the sandbox.** Where ours must differ absolutely:
   `targetSdkVersion 28` on both reference apps vs `targetSdk 36` here, so
@@ -250,11 +250,12 @@ The lifecycle, end to end:
   container config (`putExtra`/`getExtra` extras bag, read in
   `XServerDisplayActivity`).
 - **The run side composes components.** `XServerDisplayActivity` builds an
-  `XEnvironment`, adds `EnvironmentComponent`s (`XServerComponent`,
-  `PulseAudioComponent`, `XorgComponent`/`XrComponent`, `SteamComponent`,
-  `MidiManagerComponent`, `ALSAServerComponent`, `GuestProgramLauncherComponent`
-  …), `startEnvironmentComponents()` clears `files/tmp` and starts them.
-  `GuestProgramLauncherComponent` execs `proot` with the guest argv +
+  `XEnvironment`, adds `EnvironmentComponent`s (`SysVSharedMemoryComponent`,
+  `XServerComponent`, `NetworkInfoUpdateComponent`, `ALSAServerComponent`/
+  `PulseAudioComponent`, `VortekRendererComponent`/`VirGLRendererComponent`,
+  `GuestProgramLauncherComponent` — the eight `xenvironment/components/` classes
+  at this pin), `startEnvironmentComponents()` clears `files/tmp` and starts them.
+  `GuestProgramLauncherComponent` execs `box64 <argv>` with the guest argv +
   `environment.put(LD_LIBRARY_PATH|PATH|HOME|TMPDIR|WINEPREFIX|…)`; wine runs
   on box64/wow64 per `container.getEmulator`. `onDestroy` calls
   `stopEnvironmentComponents`.
@@ -328,7 +329,7 @@ has to do, because neither runs on targetSdk 36.
 | Install | clear-except-`home`/`opt` → extract in place → stamp last; version bump cascades `wineprefixNeedsUpdate` to containers | `BaseSpaceInstaller`: extract in place (no clear) → relink → stamp last | same stamp-last ordering; **no clear** — entries a new image dropped linger, user files survive by absence from the archive |
 | Reinstall semantic | `clearRootDir` preserves `home/` and `opt` across the bump | `TarZstdExtractor` writes over `files/spaces/base`, leaving `home/jupydroid` (the workspace) untouched by construction | both preserve user files; winlator's is a named exception, ours is absence — stale-entry accretion is ours alone |
 | Surfaces | Containers list/detail/popup, file manager, shortcuts, settings | none — no Space UI exists | absent as a surface; present-but-unreachable underneath (JD-002) |
-| Runtime | `EnvironmentComponent`s + proot + envvars per container run | `SpaceRuntime` ProcessBuilder + env, `JupyterServerLauncher`, one `BaseSpaceServer` | one server vs per-container envs — the coupling the audit reads |
+| Runtime | `EnvironmentComponent`s + box64 + envvars per container run | `SpaceRuntime` ProcessBuilder + env, `JupyterServerLauncher`, one `BaseSpaceServer` | one server vs per-container envs — the coupling the audit reads |
 | Components | downloadable, versioned, pickable (`GeneralComponents`, `DefaultVersion`) | one blob, one version | absent (GAP candidate) — no per-part upgrade path |
 | Multi-env | many containers share one rootfs read-only | model supports N dirs; runtime + server assume base-only | the audit's spine — N Spaces = N rootfs copies; one server? |
 | Exec model | `files/…` exec under `targetSdk 28` | `jniLibs` + `nativeLibraryDir` relink under `targetSdk 36` | ADR-0002/0003 — ours alone vs Android; no reference authority |
@@ -398,7 +399,7 @@ has to do, because neither runs on targetSdk 36.
   `DefaultVersion`/`GeneralComponents` + termux's staging — stamp vs
   validity, staged-vs-stamp order, reinstall-vs-workspace, per-part
   versions, `etc/resolv.conf`, the relink.
-- [ ] **T4 — the runtime and the lifecycle.** `SpaceRuntime`/
+- [x] **T4 — the runtime and the lifecycle.** `SpaceRuntime`/
   `JupyterServerLauncher`/`JupyterRuntimeFile`/`BaseSpaceServer`/
   `IdleServerStopper`/`AndroidBaseSpace`/`SpaceAbi`/`SpaceLifecycleLog`
   vs `XEnvironment`/`GuestProgramLauncherComponent`/`XServerDisplayActivity`

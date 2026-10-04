@@ -2910,7 +2910,7 @@ browses the dir, `ShortcutsFragment` lists per-container `.desktop` entries with
 `ShortcutSettingsDialog`'s per-entry overrides, `SettingsFragment` picks component versions. The
 run side composes `EnvironmentComponent`s in `XServerDisplayActivity`
 (`startEnvironmentComponents` clears `files/tmp` first) and `GuestProgramLauncherComponent`
-execs `proot` with a container-built env; `onDestroy` stops them all. Termux is the same shape
+execs `box64 <argv>` through `ProcessHelper` with a container-built env; `onDestroy` stops them all. Termux is the same shape
 with exactly one environment and the stronger install — extract to `usr-staging`, then
 `renameTo(files/usr)` — and IntelliJ's `python/src/com/jetbrains/python/sdk/` is a registry of
 external interpreters, never a shipped image. JupyterLab and VS Code own nothing here; like
@@ -3184,3 +3184,143 @@ What the read found, beyond the rows:
 - **`getContentLength` pays a whole second decompress for the progress number.** Ours counts
   `entriesWritten` inside the one pass — the measurement half of the absent surface already
   exists and is read by nothing.
+
+### The runtime and the lifecycle — verdicts
+
+`T4`'s entries, read down both sides' own files. Theirs: `xenvironment/XEnvironment.java` (the
+ordered component list, `files/tmp` cleared at every start, the start/stop/pause/resume
+broadcast), `xenvironment/EnvironmentComponent.java` (the four-method contract),
+`xenvironment/components/` — `GuestProgramLauncherComponent.java` (the static `pid`/`lock`,
+`start→stop`, `extractBox64File`/`copyDefaultBox64RCFile`, `execGuestProgram`'s env) and
+`PulseAudioComponent.java` (the same static kill-first) as the process kind, `XServerComponent`/
+`SysVSharedMemoryComponent`/`ALSAServerComponent`/`VirGLRendererComponent`/
+`VortekRendererComponent` as the `XConnectorEpoll` kind (`start` a no-op once up), and
+`NetworkInfoUpdateComponent.java` (`etc/hosts` + `tmp/ifaddrs` rewritten on every connectivity
+broadcast) — `core/ProcessHelper.java` (`exec`, `splitCommand`, the pid read by reflection, the
+`waitFor` thread, `suspendProcess`/`resumeProcess`, the `/proc` scan in `getChildProcesses`),
+`core/EnvVars.java` (the space-split bag), `core/WineInstaller.java:23-79` (the
+generate-wineprefix mode), `xconnector/UnixSocketConfig.java` (the `tmp/.…` socket paths), and
+`XServerDisplayActivity.java` (`activateContainer`, `wineprefixNeedsUpdate`, the single-thread
+executor that runs `setupWineSystemFiles` → `setupXEnvironment`, `terminationCallback` →
+`exit()` → `restartApplication`, `onPause`/`onResume`/`onDestroy`, `singleTask` in the
+manifest). Ours: `data/space/SpaceRuntime.kt`, `JupyterServerLauncher.kt` +
+`jupyterServerProcess`/`jupyterServerArgs`, `JupyterRuntimeFile.kt`, `BaseSpaceServer.kt`,
+`PerRunningServer.kt`, `IdleServerStopper.kt`, `AndroidBaseSpace.kt`, `SpaceAbi.kt`,
+`SpaceLifecycleLog.kt`, `StdioLanguageServer.kt`'s `ServerPool`/`stop`,
+`data/fake/FakeServerLauncher.kt`, `domain/port/ServerLauncher.kt`, `di/AppContainer.kt` (the
+stopper wiring and `stopServer`), `JupydroidApplication.kt` (the `ProcessLifecycleOwner`
+observer and the one-launcher construction), and the suites — `BaseSpaceServerTest`,
+`IdleServerStopperTest`, `JupyterRuntimeFileTest`, `SpaceRuntimeTest`, `SpaceAbiTest`,
+`JupyterServerWorkingDirTest`, `SpaceLogLineTest`. `PythonRunner` is carried in as the
+short-lived arm of `SpaceRuntime` — androidTest probes only, no production caller.
+
+```sh
+grep -n 'public\|static\|synchronized' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/XEnvironment.java \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/components/GuestProgramLauncherComponent.java \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/components/PulseAudioComponent.java \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/components/NetworkInfoUpdateComponent.java
+ls reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/components/
+grep -n 'exec\|ProcessBuilder\|killProcess\|sendSignal\|waitFor\|splitCommand\|getChildProcesses' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/core/ProcessHelper.java
+grep -n 'setupXEnvironment\|addComponent\|envVars.put\|terminationCallback\|stopEnvironmentComponents\|restartApplication\|activateContainer\|wineprefixNeedsUpdate\|singleTask' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/XServerDisplayActivity.java \
+  reference/research_repos/winlator/app/app/src/main/AndroidManifest.xml
+grep -rn 'proot' reference/research_repos/winlator/          # empty — the T1 correction below
+grep -n 'fun \|val ' \
+  app/src/main/java/com/jupydroid/app/data/space/SpaceRuntime.kt \
+  app/src/main/java/com/jupydroid/app/data/space/JupyterServerLauncher.kt \
+  app/src/main/java/com/jupydroid/app/data/space/JupyterRuntimeFile.kt \
+  app/src/main/java/com/jupydroid/app/data/space/BaseSpaceServer.kt \
+  app/src/main/java/com/jupydroid/app/data/space/PerRunningServer.kt \
+  app/src/main/java/com/jupydroid/app/data/space/IdleServerStopper.kt \
+  app/src/main/java/com/jupydroid/app/data/space/AndroidBaseSpace.kt \
+  app/src/main/java/com/jupydroid/app/data/space/SpaceAbi.kt \
+  app/src/main/java/com/jupydroid/app/data/space/SpaceLifecycleLog.kt
+grep -rn 'exitCode()' app/src --include='*.kt'               # the only hit is the definition
+grep -rn 'serverLauncher\|idleServerStopper\|onAppStopped\|onAppStarted\|stopServer' \
+  app/src/main/java/com/jupydroid/app/di/AppContainer.kt \
+  app/src/main/java/com/jupydroid/app/JupydroidApplication.kt
+```
+
+**Two of the surface paragraph's claims were wrong at this SHA and are corrected in place
+above**: there is no `proot` anywhere in the clone — the guest is `box64 <argv>` exec'd
+straight off `files/` paths, which only `targetSdk 28` permits — and the component list it
+named (`XorgComponent`/`XrComponent`/`SteamComponent`/`MidiManagerComponent`) does not exist
+either; the eight classes at this pin are the two kinds the table's first row splits.
+`XServerDisplayActivity` is `singleTask`, which is what makes the components' *static* pids
+work: one instance exists at a time, and the static is what lets a recreated activity's fresh
+component still kill the last instance's processes.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| The environment object — `XEnvironment` is an ordered `ArrayList<EnvironmentComponent>`: `startEnvironmentComponents` clears `files/tmp` then `start()`s each in add-order; stop/pause/resume broadcast the same way (`XEnvironment.java:55-70`) | no component list — the env is one `jupyter_server` process plus the kernels it spawns and one `pylsp`; `SpaceBackedPorts` is the composition (`JupydroidApplication.kt:140-170`) | adapted | the component shape answers services a Wine env needs — X, audio, shm, graphics — that a Python env simply has none of; ours' only component-shaped thing is `DnsServerSource`, and the kernels are the server's own over `--KernelManager.transport=ipc` — the same "local sockets, no TCP" instinct as their `tmp/.X11-unix/X0` (`UnixSocketConfig.java:8-13`, `jupyterServerArgs:158`) |
+| Process components kill-first — `GuestProgramLauncherComponent` and `PulseAudioComponent` hold a `static int pid` + `static final Object lock`; `start()` calls `stop()` inside it (`GuestProgramLauncherComponent.java:36-41`, `PulseAudioComponent.java:28-33`) | `JupyterServerLauncher.start` calls `stop()` first (`JupyterServerLauncher.kt:51-52`) | present | the identical ordering for the identical reason — a second start may not leave two processes; the kill reaches further on theirs (the static pid kills across activity instances), which is the next row |
+| One guest at a time — `singleTask` means one display activity, and the static pid is the belt under it: a second component's `start()` kills the previous instance's process by number | `BaseSpaceServer.startLock` plus the composition rule — one launcher built once per process (`JupydroidApplication.kt:83-91`); `JupyterServerLauncher.start(space)` *ignores* `space` — its `runtime`/`runtimeDir`/`rootDir`/`shell` are bound to `base` at construction (`AndroidBaseSpace.kt:56-61`) | adapted | the same one-env-at-a-time invariant, theirs enforced inside the mechanism across recreations, ours' by one-owner construction — and ours' port advertises a per-Space operand the impl cannot honour, the findings' first edge |
+| Concurrent start — the same `synchronized(lock)` covers `start` and `stop`, so no stop is ever eaten by an in-flight start | `startLock` covers `connection()` end to end (`connection_startsOneServerEvenWhenTwoCallersRaceForIt`), but the launcher's own methods are unserialized — `idleServerStopper`'s `stop()` can land inside a start (the findings' race) | adapted | ours' airtight arm exists one class over — `StdioLanguageServer.ServerPool.startup` makes a racing `remove` queue and land — the launcher's lack of it is recorded rather than verdicted away |
+| The scratch dir — `startEnvironmentComponents` clears `files/tmp`, and `setupXEnvironment` clears `rootFS.tmp` — the component sockets (`tmp/.X11-unix/X0`, `.sound/`, `.virgl/`, `.vortek/`) and `shm/` land there, so a dead env's sockets never collide with the next start (`XEnvironment.java:56`, `XServerDisplayActivity.java:490`) | `JupyterRuntimeFile.clear` removes `jpserver-*.json` alone; `spaces/base/tmp` (the Space's `TMPDIR` — `sigsys.log` appends there, kernel `ipykernel_*` scratch lands there) and `run/`'s `kernel-*.json` connection files are never cleared | **absent** | `GAP-150` — the whole-scratch-dir arm is the reference's; ours clears the one prefix that must not be stale and lets the rest accrete |
+| The stop signal — `Process.killProcess(pid)` is SIGKILL to the component's own child, the pid read by reflection off `java.lang.Process` (`ProcessHelper.java:75-78`, `GuestProgramLauncherComponent.java:48`) | the `Process` handle is held and `destroy()` is SIGTERM — jupyter_server's own handler shuts its kernels down; `StdioLanguageServer.stop` goes one further: `shutdown`/`exit` → `waitFor` inside the grace → `destroy` (`JupyterServerLauncher.kt:62-65`, `StdioLanguageServer.kt:287-299`) | adapted | ours' is the gentler arm and needs to be — an ungraceful server kill orphans kernels mid-execution where theirs' game loop expects a hard stop; a SIGKILLed parent orphans children on *both* sides (theirs scans `/proc` for wine/`.exe` to suspend, never to reap) |
+| Process death — `exec` runs a `waitFor` thread whose callback is `exit()`, which restarts the whole *application* (`ProcessHelper.java:85,108-115`, `XServerDisplayActivity.java:415-427`) | `isRunning()` is asked at the next `connection()`; a dead server is replaced in place and `generation`++ lets each `PerRunningServer` rebuild its clients (`BaseSpaceServer.kt:60-64`, `PerRunningServer.kt:31-39`) | adapted | theirs cannot half-recover — the env *is* the screen, so the app reboots; ours' is a lazy in-place restart `connection_startsAFreshServerWhenThePreviousOneIsNoLongerRunning` pins |
+| Readiness — `preloaderDialog` closes when the first X window maps; a guest whose `exec` throws leaves it up forever (the catch swallows, `pid` stays `-1`, no callback ever fires) (`XServerDisplayActivity.java:243-249`, `ProcessHelper.java:86-88`) | `awaitConnection` polls `jpserver-*.json` for up to 60 s — or until the process dies — then `failStart` throws `IllegalStateException` carrying the server's own log tail (`JupyterServerLauncher.kt:75-93`) | adapted | a probe with a timeout and the log excerpt, vs a painted window as the readiness signal |
+| The connection handshake — none: the guest needs no port and no auth; it execs and draws | `JupyterRuntimeFile` — `clear` before each start so a stale file never advertises a dead port, a truncated read means not-yet, a port-less file throws; the token is minted once per *launcher* so a restart keeps it (`JupyterRuntimeFile.kt`, `JupyterServerLauncher.kt:47-49`) | adapted | ours-only machinery — the server *is* the env's product so it reports where it bound; `JupyterRuntimeFileTest` pins all three arms |
+| Env construction — `EnvVars` layered: activity base (`WINEPREFIX`, `WINEDEBUG`, MESA) + `container.getEnvVars()` + `shortcut.getExtra("envVars")`, `environment.put`ed **over** the inherited Android env (`XServerDisplayActivity.java:481-503`, `ProcessHelper.java:71-72`) | `SpaceRuntime.environment()` — one fixed map + per-call `extraEnv`, and `processBuilder` **clears** the inherited env first (`SpaceRuntime.kt:29-71,123-128`) | adapted | the per-container layer is T2's `JD-001` row; the replace-not-merge is recorded in place — "Android's PATH and linker variables would otherwise leak into the Space" — and `EnvVars(String)` splitting on space means theirs' bag cannot carry a value with a space in it |
+| The command — `guestExecutable` is built by `+` interpolation and re-split by `splitCommand`'s hand-rolled quoting (`XServerDisplayActivity.java:498`, `ProcessHelper.java:136-181`) | `command()`/`jupyterServerArgs` are `List<String>` end to end; the one string-typed setting (`terminado_settings`) is passed a JSON list for the same reason (`jupyterServerArgs:149-174`) | adapted | ours' argv is never re-parsed; theirs' round-trips through a quoting rule one escape away from a torn arg |
+| The cwd — `ProcessHelper.exec(command, envVars, rootDir)` runs the guest with cwd = the rootfs root (`GuestProgramLauncherComponent.java:115`) | `.directory(notebookWorkspace)` — `home/jupydroid`, the served tree (`jupyterServerProcess:131-134`) | adapted | `JupyterServerWorkingDirTest` pins it: `root_dir` defaults to cwd upstream, so the server's root and the kernel's HOME are pinned to one dir — a terminal opens inside the workspace, not at Android's read-only `/` |
+| Pause/resume — `onPause` SIGSTOPs every wine/`.exe` child the `/proc` scan finds, `onResume` SIGCONTs them (`GuestProgramLauncherComponent.java:175-203`, `ProcessHelper.java:45-51,219-284`) | `ProcessLifecycleOwner` ON_STOP → `IdleServerStopper` waits for zero activity → 30 s grace → `serverLauncher.stop()` + `languageServer.stop(BASE_SPACE)`; ON_START cancels (`JupydroidApplication.kt:74-80`, `AppContainer.kt:178-189`) | adapted | freeze is a game's requirement — the same frame resumes; a notebook's is a backgrounded cell *finishing*, which `stoppedWhileACellRuns_waitsForTheCellBeforeStopping` pins and ADR-0024 records |
+| Teardown — `onDestroy` and the drawer's `exit()` stop every component, then `exit()` restarts the app clean (`XServerDisplayActivity.java:329-333,415-427`) | nothing per-activity — the container is per-process, process death reaps the children, and the next `start` clears `run/` residue | adapted | the per-process container is the measured answer to per-activity being a server-per-rotation (`JupydroidApplication`'s KDoc cites the two-server sighting) |
+| The per-launch repair pass — `extractBox64File` re-extracts the picked box64 whenever `box64_version != current_box64_version`, and `copyDefaultBox64RCFile` rewrites `etc/config.box64rc`, on every `start()` (`GuestProgramLauncherComponent.java:118-134`) | the relink pass — loader, interpreter, `busybox` + applets, `shebang-exec` links, `kernel.json` — every launch | adapted | T3's launch-repair row: the same "the tree is repaired at launch because its pointers moved" — theirs' mover is a component version, ours' is `nativeLibraryDir` on every app update (ADR-0002) |
+| Network facts into the env — `NetworkInfoUpdateComponent` rewrites `etc/hosts` and `tmp/ifaddrs` inside the live rootfs on every `CONNECTIVITY_ACTION` (`NetworkInfoUpdateComponent.java:19-42`) | `DnsServerSource` reads `ConnectivityManager` at each process spawn → `JUPYDROID_NAMESERVERS` → the getaddrinfo shim (`AndroidBaseSpace.kt:40-44`, `SpaceRuntime.kt:112-116`) | adapted | ADR-0005; theirs keeps a *running* env updated, ours' is a spawn-time snapshot — a mid-run network switch is the findings' edge |
+| An env nobody uses — none; the components live exactly as long as the activity | three timeouts: `cull_idle_timeout=300` for kernels, `shutdown_no_activity_timeout=300` for the server, `IdleServerStopper`'s 30 s for the backgrounded app (`jupyterServerArgs:175-184`, `AppContainer.kt:191-199`) | adapted | ADR-0024's arm — the app stops its own server; the reference's env IS the activity, so the question never comes up |
+| An env that cannot run — none needed; one `rootfs.tzst` on every device because `files/` exec works at `targetSdk 28` | `SpaceAbi.of(Build.SUPPORTED_ABIS.first())` throws on x86_64 → `baseSpaceServer`/`baseSpaceLanguageServerPort` return `null` → `SpaceBackedPorts` fakes (`SpaceAbi.kt`, `AndroidBaseSpace.kt:74-81,93-105`) | adapted | ADR-0003's arm — the refusal is a port-level null the composition reads, not a crash; the fakes are the reason the UI still composes on an emulator |
+| Deleting the env under its feet — `removeContainerAsync` `FileUtils.delete`s the dir while a session can still be running it; nothing in the run path checks | `requireDeletableSpace` refuses `base` — the only Space that can run — so the arm is unreachable today (`SpaceConfig.kt`, `DiskSpaceRepository.kt`) | adapted | T2's delete row already verdicted the act; from the runtime side the refusal closes the hole by construction, and it reopens the day a second Space can run — `JD-005`'s ground |
+| Observability — `ProcessHelper` debugCallbacks feed the `LogView` pane; `save_logs_to_file` and per-pid `BOX64_TRACE_FILE` dirs under it (`ProcessHelper.java:91-134`, `GuestProgramLauncherComponent.java:147-167`) | stdout+stderr merged into `run/jupyter_server.log`, truncated at every start; `SpaceLifecycleLog` writes structured JSON to logcat under `JupydroidSpace`; `exitCode()` decodes `128+signal` (`JupyterServerLauncher.kt:73,135-136`, `SpaceLifecycleLog.kt`) | adapted | ADR-0009's recorded answer — the in-app window over the same stream is the gap `GAP-140` already names; `exitCode` is dead API, in the findings |
+| The provisioning mode — `generateWineprefix` runs wine's own installer *inside* the env and snapshots the resulting prefix into `container-pattern-<ver>.tzst` (`WineInstaller.java:23-79`, `XServerDisplayActivity.java:546-549`) | the image is provisioned ahead of time — `tools/rootfs/build.sh` in Docker — and nothing is provisioned by running the env | adapted | same question — where a part comes from — answered at build time vs run time; theirs' is also what makes per-container `wineVersion` possible at all (T2's interpreter-pick row, `GAP-148`) |
+| The second process — none: everything guest-side is a child of the one launcher pid | `pylsp` over stdio, one `RunningServer` per `space.id` under `ServerPool`'s `startup` mutex — multi-Space-shaped where the launcher is not (`StdioLanguageServer.kt:308-358`) | adapted | the asymmetry is the audit's spine in miniature: the pool is already keyed for N Spaces and the backstop's `languageServer.stop(BASE_SPACE)` names the one — `JD-001`'s ground from the other side |
+
+What the read found, beyond the rows:
+
+- **`JupyterServerLauncher.start(space)` ignores its operand.** `runtime`, `runtimeDir`,
+  `rootDir` and `shell` are all bound to `base` at construction and the `Space` passed in is
+  never read — `BaseSpaceServer` passes `BASE_SPACE`, which is the only thing that makes the
+  call honest today. `start(space-1)` would `stop()` base's server and start base's again,
+  silently. The general impl is `JD-001`'s; recorded so the port's shape is not mistaken for
+  already-per-Space machinery.
+- **The eaten stop.** The launcher serializes nothing of its own: `idleServerStopper`'s
+  `stop()` can land between `jupyterServerProcess(...).start()` and `process = started`, and is
+  then consumed — the new process runs, is tracked, and the stopper's job is already done, so a
+  server stays up past ON_STOP until `shutdown_no_activity_timeout` (which never fires while a
+  kernel exists). `StdioLanguageServer.ServerPool` shows ours' own airtight arm — a racing
+  `remove` queues on `startup` and finds the registered server — and theirs'
+  `synchronized(lock)` covers start and stop equally, so the hole is the launcher's alone. It
+  is recorded rather than verdicted `defect` because the window is one suspension boundary wide
+  and self-limiting, and because the reference carries the *wider* same-class hole: an
+  `onDestroy` arriving before the setup executor reaches `environment = new XEnvironment(...)`
+  leaves every component the executor then starts running forever
+  (`XServerDisplayActivity.java:268-275,329-333`). The repair — serializing the launcher's
+  start/stop the way `ServerPool` already does — is a `JD-NNN`, not this slice's fix.
+- **`exitCode()` is dead public API.** Nothing calls it and no test pins it — a debugging
+  leftover whose KDoc is the only account of how a seccomp kill (159 = 128+SIGSYS) reads. A
+  `JD-NNN` either removes it or the first caller earns it; recorded so it is not mistaken for a
+  port op.
+- **`FakeServerLauncher` models a flag, not a process.** Its `isRunning` reports a boolean
+  `start`/`stop` set — the real impl asks `process.isAlive` — and its `start` skips the
+  kill-first the port's only real impl performs. No `ServerLauncherContract` exists, so the
+  fake diverges from the load-bearing semantic `BaseSpaceServer`'s one-owner KDoc depends on
+  and nothing fails. Bounded — the fake exists for UI composition and `BaseSpaceServerTest`
+  uses its own `RecordingServerLauncher` — recorded because the contract is where kill-first
+  belongs if it is port semantics.
+- **`stopServer` names `BASE_SPACE`.** `languageServer.stop(BASE_SPACE)` is the backstop's
+  only LSP arm while `ServerPool` is keyed by `space.id` — a second Space's `pylsp` would
+  never be stopped. The mirror of the launcher's blind operand, from the caller's side.
+- **DNS is a spawn-time snapshot.** Theirs rewrites `etc/hosts` on every connectivity
+  broadcast; ours reads `ConnectivityManager` when a process spawns. A Wi-Fi→cellular switch
+  mid-server leaves every Space process resolving through the old nameservers until the next
+  start — the price of the env-var channel, bounded by the shim's own fallthrough.
+- **Theirs' env bag cannot carry a space.** `EnvVars(String)` splits on `" "` and `.container`'s
+  `envVars` value round-trips through it — an env var with a space in its value is
+  unrepresentable (`EnvVars.java:32-35`). Ours' `extraEnv` is a real `Map`; noted as a format
+  constraint, not a defect.
+- **A SIGKILLed server can orphan its kernels.** `destroy()` is SIGTERM, which jupyter_server's
+  handler answers by shutting its kernels — the covered arm. A hard kill (seccomp, OOM) leaves
+  them reparented and dead-ended, their `run/kernel-*.json` files the residue `GAP-150`'s row
+  names; theirs' `killProcess` orphans wine children the same way. Neither side reaps.

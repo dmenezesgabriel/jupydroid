@@ -17,11 +17,12 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Runs stock `jupyter_server` out of a Space, on loopback.
  *
- * Bound to 127.0.0.1 with an ephemeral port and no token: the server is reachable
- * only from inside this app's sandbox, so there is no auth surface beyond the app
- * itself. The port is not chosen by us — `--ServerApp.port=0` lets the OS pick and
- * the server reports what it bound in its runtime file, which removes the race in
- * picking a free port and hoping it is still free a moment later.
+ * Bound to 127.0.0.1 with an ephemeral port: loopback keeps the server inside this
+ * app's sandbox. It still runs token auth — see [token]: rejecting unauthenticated
+ * POSTs is what jupyter_server offers non-browser clients. The port is not chosen
+ * by us — `--ServerApp.port=0` lets the OS pick and the server reports what it
+ * bound in its runtime file, which removes the race in picking a free port and
+ * hoping it is still free a moment later.
  *
  * ```
  * JupyterServerLauncher(baseSpaceRuntime(context), File(filesDir, "spaces/base/run")).start(space)

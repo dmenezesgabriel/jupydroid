@@ -1934,6 +1934,22 @@ full re-extract. The blob is also why the reinstall story stays simple — there
 upgrade but the whole — and per-part archives would reopen it: each part would need its own stamp
 and its own answer to the cascade question the audit's findings already record for `pkgs/`.
 
+### GAP-150 — A Space's scratch dirs are never cleared
+
+`XEnvironment.startEnvironmentComponents` clears `files/tmp` on every run and
+`setupXEnvironment` clears the rootfs's own `tmp` — the component sockets
+(`tmp/.X11-unix/X0`, `.sound/`, `.virgl/`, `.vortek/`) and `shm/` live there, so a dead env's
+sockets and scratch never collide with the next start (`xenvironment/XEnvironment.java:55-58`,
+`XServerDisplayActivity.java:490`, `xconnector/UnixSocketConfig.java:8-13` in the winlator
+clone). Ours clears exactly one prefix — `JupyterRuntimeFile.clear` removes `jpserver-*.json`
+so a stale file never advertises a dead port — and nothing else: `spaces/base/tmp` is the
+Space's `TMPDIR`, where `sigsys.log` appends unbounded and kernel `ipykernel_*` scratch lands,
+and `run/` keeps `kernel-*.json` connection files a hard-killed server never reaped
+(`app/src/main/java/com/jupydroid/app/data/space/JupyterRuntimeFile.kt`,
+`JupyterServerLauncher.kt`, `SpaceRuntime.kt`). The repair is widening `clear`'s reach — the
+launcher's own `run/` residue and the Space's `tmp/` at the next start, the same moment the
+reference picks — not a new lifecycle act.
+
 ---
 
 ## 12. Glossary
