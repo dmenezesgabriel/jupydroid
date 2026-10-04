@@ -1954,6 +1954,85 @@ and `run/` keeps `kernel-*.json` connection files a hard-killed server never rea
 launcher's own `run/` residue and the Space's `tmp/` at the next start, the same moment the
 reference picks — not a new lifecycle act.
 
+### GAP-151 — "Every port gets a `Fake…`" is produced, never refused
+
+§5.3's rule is answered by a `diff` over two sorted listings — the `domain/port/` interfaces
+against `data/fake/Fake*.kt` — and the lists match today. Nothing refuses when they stop
+matching: the same hole `GAP-006` measured for §5.4's rules, one table earlier, repaired there by
+an `ArchitectureGuardTest` arm. The repair here is the same arm asserting the two listings
+equal, not a new mechanism.
+
+### GAP-152 — A driver, its flow and its evidence keep the same name by hand
+
+Every `*-driver.sh` writes `FLOW="$ROOT/.maestro/<stem>.yaml"` and `EVIDENCE="$ROOT/evidence/<stem>"`
+from its own stem, and nothing checks the three agree — `check_driver_isolation` holds the
+seeding, targeting and width arms only. The lockstep is the index `ADR-0001`'s sweep leans on
+(the retired-doc gate reads `*-driver.sh` names for their flows' step codes), so a mis-spelled
+`EVIDENCE` orphans a flow's frames silently.
+
+### GAP-153 — 213 shell scripts and no shellcheck
+
+jupyterlab's `lint` composite ends in `jlpm shellcheck` over its scripts (`package.json` in the
+jupyterlab clone). Ours ships 213 `*.sh` under `scripts/` — the drivers already carry
+`# shellcheck source=` pragmas for `java-home.sh` and `maestro-run.sh`, so the annotations exist
+and the runner does not — and a quoting or `set -u` hazard lives until a run hits it rather than
+a commit.
+
+### GAP-154 — No file carries a licence header, and nothing asks for one
+
+vscode's `build/hygiene.ts` refuses a source file without its copyright block and jupyterlab's
+`license-header.yml` writes headers back onto PR branches. Ours states no header posture
+anywhere — `ADR-0018` covers the licences of *transcribed* code, not whether our own files
+announce one — so the question was never taken, not taken and answered.
+
+### GAP-155 — Import cycles are ungated inside the packages the layer rules leave free
+
+vscode's `build/lib/checkCyclicDependencies.ts` walks the module graph for cycles. Ours is one
+module, so the reference's shape cannot exist here — but `ArchitectureGuardTest` gates direction
+*between* packages, and a cycle *within* `ui/` or `data/` has no arm at all.
+
+### GAP-156 — One `<string>` and no i18n machinery
+
+`check-i18n.yml` keeps jupyterlab's translatable surface extractable. Ours holds a single
+`<string>` in `values/strings.xml` and the rest of the UI text is literals in `ui/` — a check
+would have nothing to read. What is absent is the machinery *and* a written posture: single-locale
+is a fact, not a recorded decision.
+
+### GAP-157 — Sixteen URLs in docs, none checked
+
+jupyterlab's `check-external-links.yml` runs maintainer-tools' `check-links` over its docs.
+Ours cites upstream specs, issues and sources by URL across `docs/` and `AGENTS.md` and nothing
+verifies they still resolve — a dead spec link reads exactly like a live one.
+
+### GAP-158 — No spell-check
+
+jupyterlab's `spell-check.yml` gates its docs prose. Ours has no analogue — the surface is the
+same `docs/`+`AGENTS.md` tree the citation gates already read, and a typo ships until a human
+reads it.
+
+### GAP-159 — Flaky runs are cleared, never counted
+
+`galata-flakiness-report.yml` tracks the reference's UI-test flake rate across runs. Ours clears
+a stuck *system* ANR dialog per driver (`scripts/clear_system_anr.py`,
+`scripts/system_anr_dialog.py`) — a per-run rescue, not a rate — so a flow that fails one run in
+ten is invisible between greens.
+
+### GAP-160 — The committed `gradle-wrapper.jar` is trusted, not verified
+
+termux's `gradle-wrapper-validation.yml` runs the official checksum action over the committed
+wrapper. Ours executes the jar it ships — `gradlew`, and `scripts/gradlew-jbr` through every
+Gradle hook — with no checksum step.
+
+### GAP-161 — There is no pipeline; the commit hooks are the whole gate
+
+Every reference but winlator runs its checks in CI — jupyterlab's ~30 workflows, vscode's
+hygiene and cyclic-dependency pipelines, IntelliJ's Qodana, the termux/jediterm/vscode-jupyter
+build-and-test workflows. Ours gates at commit time locally — `pre-commit install` is opt-in by
+the framework's design — and at step time on a device (AGENTS.md's evidence gates). The tiering
+is deliberate: seconds-scale gates at the commit, a device at the step. What is absent is the
+backstop: nothing refuses a clone that never installed the hooks or a `git commit --no-verify`,
+and the measures in `scripts/` run wherever a human happens to run them.
+
 ---
 
 ## 12. Glossary

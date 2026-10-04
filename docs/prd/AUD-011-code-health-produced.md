@@ -238,7 +238,7 @@ command answers it and nothing gates the answer; **convention** = neither.
 - [x] **T3 — the surface, produced and opened.** The `## Code health — AUD-011` ledger section
   lands: the claims map from §"Gap analysis" re-run, the produced commands, the reference table.
   Areas row added, `unexamined`; no verdicts yet.
-- [ ] **T4 — the verdicts.** Every claim gets a verdict; every gate gets its soundness read (fails
+- [x] **T4 — the verdicts.** Every claim gets a verdict; every gate gets its soundness read (fails
   closed? tested? wired?). Reference parity rows both directions — what they gate that we do not
   (license headers, cyclic deps, i18n/link checks, CI itself) and the bespoke gates no reference
   has (doc citations, device secrets, maestro output assertions, driver isolation). `undocumented`

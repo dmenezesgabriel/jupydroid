@@ -3624,5 +3624,114 @@ the seccomp and shebang gates watch (`AUD-010`), `evidence/`'s content rules. Wh
 cite is `ADR-0001`/`ADR-0066` policy, verdicted here as a *gate* — does it catch, is it tested —
 never re-litigated as a rule.
 
-The Areas row is added `unexamined`, no partition rows move, and no verdicts land — the claims map
-above is the raw material `T4` verdicts.
+### The claims — verdicts
+
+`T4`'s first half, read against the table above. The verdict here judges the *keeping*, not the
+rule's truth — an enforced rule and a convention can both be `present` if nothing in the
+references would keep them truer. The two-tier shape named below is the whole read for every
+staged-scope gate: the hook's `files:` pattern is a fast path with a friendly message, and the
+whole-tree run inside the gate's own `_test.py` under `always_run` `maestro-gate-tests` is what
+refuses — so a violation in a file the trigger misses still fails the commit, under the suite's
+name instead of the gate's.
+
+| Claim | Verdict | Why / id |
+|---|---|---|
+| `domain` imports no `android.*`, `domain` imports no `data`/`ui`/`di`, doc/language packages android-free (all six) | present | the layer gate is the references' own shape — `build/checker/layersChecker.ts`'s per-layer `tsconfig` split in the vscode clone, the `.iml`/Bazel module graph in the intellij clone — at one module's package granularity |
+| `ui` names no real adapter, `data` names no `ui`/`di`, real adapters named only in `data/`/`di/`/`JupydroidApplication.kt` | present | the same arms, in the corrected shape `GAP-006`'s repair wrote — `data.fake` is the DI default §5.6 prescribes, and the scan reads qualified references so a spelled-out name trips it |
+| `androidTest` compiles in the local gate | present | `GAP-008`'s repair — every reference's pipeline compiles its tests; the venue is a commit hook rather than a runner |
+| files ≤ 500 / functions 4–20 / line ≤ 120 / naming | present | the lint-composite rules — `LargeClass`/`LongMethod`/`CyclomaticComplexMethod`/ktlint are the prettier+eslint analogue; the `.kt`-only reach is a finding below |
+| formatters and lint wired into the build | present | the same acts as jupyterlab's `lint` composite — `shellcheck`, which that composite also carries, is `absent` below |
+| hooks gate every commit | adapted | the venue is local pre-commit, `pre-commit install` opt-in — there is no pipeline behind it, and that absence is `GAP-161`, not a footnote on this row |
+| every `check_*`/`read_*`/scanner carries `_test.py` | present | `build/lib/test/` in the vscode clone is the same shape — gates testing their gates — and the one file it does not cover (`check-file-line-length.sh`) is a finding below |
+| comments cite what resolves, evidence names the app, flows observe kernel output | adapted | ours-only machinery — no reference commits device evidence or drives a real kernel — each gate's own docstring is the record |
+| a named gap / one monospace home / palette entries draw / flows start seeded / seccomp / shebang-exec / chrome parts / node fill | adapted | ours-only machinery for the same reason — bespoke gates answering incidents the references never had |
+| a `Fake…` per port, 1:1 | **absent** | `GAP-151` — §5.3's rule is answered by a produced `diff` and nothing refuses; `GAP-006`'s own class, one table earlier |
+| android-free per-package counts | adapted | the *rule* is gated for all six packages; the produced half is the denominators, and produced-not-stored counts are `ADR-0067`'s design |
+| prose-level style — "max 2 levels", "no `any`", "early returns", "exception messages name the value" | adapted | held by review on both sides: no reference gates them either — jupyterlab's `'@typescript-eslint/no-explicit-any': 'error'` is a TS-shaped rule with no Kotlin spelling — and detekt `NestedBlockDepth` sits unset at its default 4 against the stated 2, a finding below |
+| the gates' inputs — retired doc names | present | `check_retired_doc_citations` plus the `git ls-files` sweep in its suite |
+| the gates' inputs — driver↔flow↔evidence name lockstep | **absent** | `GAP-152` — `ADR-0001`'s index is carried by naming alone, and the one gate that reads drivers never checks the three stems agree |
+
+### The gates — soundness
+
+`T4`'s second half, per gate: does it fail closed, is it tested, and is it wired anywhere a
+commit or a run actually executes. Read down the table, the design is one shape repeated — a
+staged-file fast path where the trigger's message names the rule, backed by an always-run suite
+that sweeps the real tree anyway, so *nothing* in the harness fails open. The staged half is
+where the friendly message lives, not where the coverage lives. **No defect.**
+
+| Gate | Fails closed by | Tested by | Wired by | Read |
+|---|---|---|---|---|
+| `check-file-line-length.sh` | a non-blank count over the limit exits 1 | **nothing** — the only gate with no `_test.py` and no planted-violation commit on record | `file-line-length` hook on staged `.kt` | detekt `LargeClass` (500) is the whole-tree Kotlin arm it pairs with; the gate counts *non-blank* lines, so a 608-line file passes at 486 — and the stated rule says "files" where the mechanism sees only `.kt` |
+| `check_maestro_output_assertions.py` | `_test.py` fixtures | its suite — deliberately no real-tree run: a test over live flows "would change meaning every time a flow is edited" (its own docstring) | `maestro-output-assertions` hook on `.maestro/*.{yaml,ipynb}` → scans all flows | the trigger covers the whole scanned surface |
+| `check_ui_dimensions.py` | `_test.py` incl. `ScopeTest` over the real tree | its suite | `ui-dimensions` hook on `app/ui/**.kt` staged | the trigger covers a third of the `app/` tree the gate scans — `ScopeTest` under `always_run` is the arm that actually refuses |
+| `check_busybox_seccomp.py` | `_test.py` incl. `main(REPO)` over the real `jniLibs/` | its suite | `busybox-seccomp` hook on `tools/rootfs/{busybox.config,Dockerfile,stage-app-artifacts.sh}` | the trigger names the recipe while the operand is the committed `libbusybox.so` — the suite's `main(REPO)` is the arm that refuses a binary |
+| `check_shebang_exec.py` | `_test.py` incl. `main(REPO)` | its suite | `shebang-exec` hook on `tools/rootfs/{shebang_exec.c,Dockerfile,stage-app-artifacts.sh}` | same shape |
+| `check_driver_isolation.py` | `_test.py` incl. `test_the_real_drivers_are_clean` | its suite | `driver-isolation` hook on `scripts/*-driver.sh` | four arms — reset-before-seed, `maestro` targeted, `$ADB` not bare `adb`, width-marked evidence — and the trigger matches the scanned set |
+| `check_monospace_home.py` | `_test.py` incl. real-tree run | its suite | `monospace-home` hook `always_run` | scans the whole `app/` tree per commit |
+| `check_device_secrets.py` | `_test.py` incl. the `git ls-files` sweep | its suite | `device-secrets` hook on every staged file | staged-file plus whole-tree: the two-tier shape in its clearest form |
+| `check_palette_consumers.py` | `_test.py` incl. real-tree run | its suite | `palette-consumers` hook `always_run` | — |
+| `check_doc_citations.py` | `_test.py`; the hook run itself is the sweep | its suite | `doc-citations` hook `always_run` | reads every file under `app/src`+`tools` and *fails* on a type with no scanner — the one gate whose absence of a scanner is itself an offence; `scripts/` is deliberately outside it (the quoting question, `backlog.md` "not scheduled") |
+| `check_retired_doc_citations.py` | `_test.py` incl. the `git ls-files` sweep | its suite | `retired-doc-citations` hook on staged `types: [text]` | the suite is the whole-tree arm |
+| `check_chrome_parts.py` | `_test.py` over this repo's committed frames | its suite | `p7a-chrome-parts-driver.sh` | driver-bound: a device frame is its input, so no commit hook could hold it — the wire is the flow itself |
+| `check_node_fill.py` | `_test.py` over a committed frame | its suite | the `p7a-1b-*` drivers | same |
+| `ArchitectureGuardTest` | a planted violation, watched fail, reverted — `f18e2dc1`'s commit body | it *is* the suite | `unit-tests` hook (`testDebugUnitTest`) | asserts the real tree rather than fixtures, so its red-proof lives in git log — the `layersChecker.test.ts` idea at repo scale |
+| ktlint, detekt, `lintDebug` | the build | — | `ktlint-check`, `detekt`, `android-lint` hooks `always_run`, tasks named per `ADR-0016` | detekt `NestedBlockDepth` unset — default allows 4 against the stated 2 |
+| `maestro-gate-tests` | — | it is the runner | `always_run` | the meta-arm: what makes every `_test.py` sweep a gate rather than a document |
+| `unit-tests` | — | runs `testDebugUnitTest` + `compileDebugAndroidTestKotlin` | `always_run` | the second Gradle call a commit pays |
+
+What the read found, beyond the rows:
+
+- **`check-file-line-length.sh` is the one gate that cannot demonstrate it fails.** Every other
+  gate proves red — a `_test.py` fixture for the Python gates, a planted-violation commit body
+  for `ArchitectureGuardTest` — and this one has neither. The convention's own wording covers
+  `check_*.py`, so it slips the stated rule by name-shape while being every bit a gate. The
+  repair is a `check_file_line_length_test.py` invoking the script over fixtures, not a new
+  mechanism — recorded rather than built because nothing in the audit's mandate makes a
+  convention worded around it into a defect.
+- **Its count is not `wc -l`.** `awk 'NF'` skips blanks, so a file can read over the limit by eye
+  and pass — `NotebookBackStackTest.kt` is 608 lines and 486 non-blank. The limit the gate
+  enforces is a different number than the one a reader counts; detekt's `LargeClass` is the
+  arm that reads every `.kt` every run.
+- **"Files ≤ 500" is wider than its mechanism.** Kotlin is covered twice — the staged shell
+  gate and detekt across every source set — and `*.kts`, the 213 `*.sh` and the `*.py` under
+  `scripts/` have no arm at all. Same class as the `ui ↛ data` mis-statement `GAP-006` corrected:
+  the rule's prose outruns the thing that keeps it.
+- **`check_doc_citations` reads `app/src`+`tools` and nothing else.** Its own hook comment is
+  the reason — the whole-tree run exists because a four-extension glob once left `Dockerfile`,
+  the grammars and the manifest unread while reporting them clean — and `scripts/` stays outside
+  until the gate learns to quote its own test data (`backlog.md`, "not scheduled", with the
+  counting already done: 131 citations across 41 files).
+- **`pre-commit install` is the only enrolment.** Nothing refuses a commit from a clone that
+  never installed the hooks, or a `git commit --no-verify` — the whole tier above is the gate
+  *where it runs*, and where it does not run is `GAP-161`'s entry.
+
+### The references' gates — verdicts
+
+Read down both sides' own files at the pins `docs/README.md` names. Ours-side rows carry the
+same `Verdict` column with the direction reversed — an ours-only gate is `adapted`, the same
+verdict `AUD-010` gave machinery no reference has.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| Layer split — `build/checker/layersChecker.ts` + `tsconfig.<layer>.json` per-layer type-checks and a `RULES` table of disallowed types (vscode @ `3f3380c`) | `ArchitectureGuardTest`'s six arms over the `app/` package tree | present | the same mechanism at one module's scale — a rules table over real sources; the reference's own `layersChecker.test.ts` plants violations and ours plants them in commit bodies |
+| Module graph — a JPS `.iml`/Bazel module references only what it declares (intellij @ `406a27a`) | the same arms over packages inside the one `:app` module | adapted | the build model *is* the gate there; ours is a guard test because there is one module and packages are the granularity it has |
+| Lint composite — `prettier` + `eslint` + a second *typed* eslint + `stylelint` + `shellcheck` (jupyterlab @ `7f0e690`) | ktlint + detekt + `lintDebug` | adapted | three of the four acts have our analogue; `shellcheck` does not — `GAP-153` |
+| Copyright header — `build/hygiene.ts` refuses a file without it; `license-header.yml` writes headers back onto PR branches | — | **absent** | `GAP-154` |
+| Cyclic dependencies — `build/lib/checkCyclicDependencies.ts` walks the module graph | — | **absent** | `GAP-155` — one module makes the reference's shape impossible; intra-package cycles are ungated |
+| i18n — `check-i18n.yml` keeps the translatable surface extractable | one `<string>` in `values/strings.xml`; the UI text is literals | **absent** | `GAP-156` — the machinery and the check are absent together, and the single-locale posture is unrecorded |
+| External links — `check-external-links.yml` runs maintainer-tools `check-links` | 16 URLs in `docs/`+`AGENTS.md`, never resolved by a gate | **absent** | `GAP-157` |
+| Spell-check — `spell-check.yml` over docs prose | — | **absent** | `GAP-158` |
+| Workflow security lint — `zizmor.yml` | no workflows exist to lint | adapted | the substrate's absence is `GAP-161`, not a second row |
+| Flakiness tracking — `galata-flakiness-report.yml` counts the UI suite's flakes | `clear_system_anr.py` + `system_anr_dialog.py` — a per-run rescue | **absent** | `GAP-159` — clearing a stuck dialog is not counting a flake |
+| Wrapper validation — `gradle-wrapper-validation.yml` checksums the committed jar (termux @ `3df69d1`) | `gradlew` + `scripts/gradlew-jbr` run the jar unverified | **absent** | `GAP-160` |
+| Deep static analysis — Qodana (`code_quality.yml`), `codeql-analysis.yml` | detekt + `lintDebug` per commit | adapted | same category at lint's depth and the local venue; the scheduled-analysis venue is `GAP-161` |
+| Build + test pipeline — `run_tests.yml`, `debug_build.yml` (termux), `test.yml` (jediterm), `build-test.yml` + `checkDependencies` (vscode-jupyter) | `unit-tests` hook + `assembleDebug` evidence gate | adapted | the same acts at the commit/step tier; `checkDependencies`' consistency half is Gradle resolution, and its native-artifact half is the seccomp/shebang gates' |
+| A pipeline at all — the venue every reference but winlator runs its gates in | — | **absent** | `GAP-161` — the tiering is AGENTS.md's design, and the mechanism that would refuse an uninstalled hook is still absent |
+| Doc-citation, device-secret, kernel-output, driver-isolation, dimension/monospace/palette, seccomp/shebang and file-length gates | — | adapted | ours-only machinery — no reference ships device evidence, a real kernel or a rootfs, so the gates that watch ours have no analogue to compare |
+
+`T4`'s verdicts landed with **no `undocumented` and no `defect`** — the row counts are produced by
+`read_ledger_verdicts.py --counts`, not stored. The absents opened `GAP-151`–`GAP-161` in
+`architecture.md` §11 — two on our side (a produced-not-gated §5.3 rule, the
+driver↔flow↔evidence lockstep) and nine on the references' (shellcheck, licence headers, cyclic
+dependencies, i18n, external links, spell-check, flakiness tracking, wrapper validation, and the
+pipeline itself). The Areas row stays `unexamined` until `T5`'s walk reads a commit end to end.
