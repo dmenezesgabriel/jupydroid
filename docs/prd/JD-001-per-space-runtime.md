@@ -185,7 +185,7 @@ For every FULL or PARTIAL reference — the files an implementer must open:
 
 ## Tasks
 
-- [ ] T1 — `SpaceRuntime` derives env from `(spaceDir, rootfsDir = spaceDir)`;
+- [x] T1 — `SpaceRuntime` derives env from `(spaceDir, rootfsDir = spaceDir)`;
       `JUPYTER_RUNTIME_DIR` joins `environment()`; the launcher drops its `extraEnv` for it.
 - [ ] T2 — `SpaceDirs` (one home for the `<id>` → dir convention + `ensure()` provisioning of
       `home/jupydroid`, `run`, `tmp`, `pkgs`); `DiskSpaceRepository` routes through it.
