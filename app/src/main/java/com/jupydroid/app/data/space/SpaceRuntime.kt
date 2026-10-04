@@ -8,7 +8,7 @@ import java.io.File
  * A runtime is two directories: [spaceDir] is the Space's own writable half - its
  * `home`, `tmp`, `pkgs` and `run` - while [rootfsDir] is the shared image the
  * interpreter, stdlib, shell and CA bundle are read out of. `base` ships both on
- * one directory; any other Space pairs its own dir with base's rootfs.
+ * one directory; any other Space pairs its own dir with base's rootfs (ADR-0072).
  *
  * Two things here are not obvious and both are load-bearing:
  *

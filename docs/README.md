@@ -58,7 +58,7 @@ this repo; a table row or a single-fact statement is never wrapped, so a grep re
 | Everything about one decision | `grep -rn "ADR-0012" docs/ app/src/ tools/` |
 | Everything about one backlog item | `grep -rn "JD-001" docs/` |
 | The next item | `grep -n "← next" docs/backlog.md` |
-| Unchecked tasks in a PRD | `grep -n "\[ \]" docs/prd/JD-001-*.md` |
+| Unchecked tasks in a PRD | `grep -n "\[ \]" docs/prd/JD-NNN-*.md` |
 | Every open gap | `grep -o "GAP-[0-9]*" docs/architecture.md \| sort -u` |
 | Every closed question | `grep -n "^### CLOSED-" docs/research/closed-questions.md` |
 | Which ADR a source file leans on | `grep -rn "ADR-" app/src/main/java/com/jupydroid/app/data/space/` |
