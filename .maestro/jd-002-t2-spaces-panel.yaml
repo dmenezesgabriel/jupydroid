@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# JD-002 T2: the Spaces panel is reachable from the rail and lists what files/spaces/ holds, base
+# first. Runs no cell - the list reads config.json files, not a kernel - and needs two panes, since
+# the panel is on the rail only.
+- launchApp
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-the-rail-with-spaces-under-files
+- tapOn: "Spaces"
+- extendedWaitUntil:
+    visible: "Base"
+    timeout: 10000
+- assertVisible: "base · .*"
+- assertNotVisible: "Workspace"
+- takeScreenshot: 02-the-spaces-panel-lists-base
