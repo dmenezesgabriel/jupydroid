@@ -11,7 +11,7 @@ appId: com.jupydroid.app
 - assertVisible: "Files"
 - tapOn: "New terminal"
 - extendedWaitUntil:
-    visible: "Terminal"
+    visible: "Tab: Terminal .*"
     timeout: 120000
 - assertVisible: "Esc"
 - assertVisible: "Ctrl"

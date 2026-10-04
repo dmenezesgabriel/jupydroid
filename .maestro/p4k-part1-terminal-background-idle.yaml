@@ -37,7 +37,7 @@ appId: com.jupydroid.app
     commands:
       - tapOn: "New terminal"
 - extendedWaitUntil:
-    visible: "Terminal"
+    visible: "Tab: Terminal .*"
     timeout: 120000
 - waitForAnimationToEnd:
     timeout: 5000

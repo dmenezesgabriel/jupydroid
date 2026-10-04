@@ -23,7 +23,7 @@ appId: com.jupydroid.app
 # Generous: this can still own installing the Space and starting jupyter_server on the very first
 # run in a fresh environment, matching notebook-session-reattaches/p1d-part1-run-a-cell.
 - extendedWaitUntil:
-    visible: "Terminal"
+    visible: "Tab: Terminal .*"
     timeout: 120000
 - takeScreenshot: 01-terminal-open
 

@@ -29,7 +29,7 @@ appId: com.jupydroid.app
 # Generous: on the tablet this can still own installing the Space and starting jupyter_server on
 # the very first run - `p4i-terminal-tablet.yaml`'s own timeout.
 - extendedWaitUntil:
-    visible: "Terminal"
+    visible: "Tab: Terminal .*"
     timeout: 120000
 - takeScreenshot: 02-the-terminal-screen
 

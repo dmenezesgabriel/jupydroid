@@ -17,7 +17,7 @@ appId: com.jupydroid.app
 - tapOn:
     id: "launcher-card-NEW_TERMINAL"
 - extendedWaitUntil:
-    visible: "Terminal"
+    visible: "Tab: Terminal .*"
     timeout: 300000
 - waitForAnimationToEnd:
     timeout: 15000

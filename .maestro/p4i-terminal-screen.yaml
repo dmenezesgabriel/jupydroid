@@ -27,7 +27,7 @@ appId: com.jupydroid.app
     commands:
       - tapOn: "New terminal"
 - extendedWaitUntil:
-    visible: "Terminal"
+    visible: "Tab: Terminal .*"
     timeout: 5000
 - takeScreenshot: 02-the-terminal-screen
 

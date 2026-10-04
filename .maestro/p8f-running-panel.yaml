@@ -81,7 +81,7 @@ appId: com.jupydroid.app
 # ---- a terminal is a Terminals row that outlives its tab ----
 - tapOn: "Open tab: Launcher"
 - extendedWaitUntil:
-    visible: "Terminal"
+    visible: "Tab: Terminal .*"
     timeout: 10000
 - tapOn:
     id: "launcher-card-NEW_TERMINAL"
