@@ -5,6 +5,11 @@ import java.io.File
 /**
  * The command line and environment for running a Space's Python.
  *
+ * A runtime is two directories: [spaceDir] is the Space's own writable half - its
+ * `home`, `tmp`, `pkgs` and `run` - while [rootfsDir] is the shared image the
+ * interpreter, stdlib, shell and CA bundle are read out of. `base` ships both on
+ * one directory; any other Space pairs its own dir with base's rootfs.
+ *
  * Two things here are not obvious and both are load-bearing:
  *
  * 1. The interpreter is exec'd from [nativeInterpreter], not from `usr/bin/python3`
@@ -16,23 +21,29 @@ import java.io.File
  *    that now sits in the native library directory, nowhere near the stdlib.
  *
  * ```
- * SpaceRuntime(baseDir, nativeInterpreter).command("-m", "jupyter_server")
+ * SpaceRuntime(spaceDir, nativeInterpreter).command("-m", "jupyter_server")
  * ```
  */
 class SpaceRuntime(
-  private val baseDir: File,
+  private val spaceDir: File,
   private val nativeInterpreter: File,
   private val dnsServers: DnsServerSource = DnsServerSource { emptyList() },
+  private val rootfsDir: File = spaceDir,
 ) {
   fun command(vararg args: String): List<String> = listOf(nativeInterpreter.path) + args
 
   fun environment(): Map<String, String> = mapOf(
-    "PYTHONHOME" to inBase("usr"),
+    "PYTHONHOME" to inRootfs("usr"),
     // No Space process is an Android process, so none of them get a tombstone from
     // debuggerd. Without this a fatal signal leaves nothing at all to debug.
     "PYTHONFAULTHANDLER" to "1",
-    "HOME" to notebookWorkspaceIn(baseDir).path,
-    "TMPDIR" to inBase("tmp"),
+    "HOME" to notebookWorkspaceIn(spaceDir).path,
+    "TMPDIR" to inSpace("tmp"),
+    // jupyter_server writes `jpserver-*.json` and kernel connection files here, and the
+    // app reads the same dir back through `JupyterRuntimeFile` to learn the bound port.
+    // On every Space process, not only the server, so `jupyter --runtime-dir`, kernels
+    // and terminals agree with the app about which Space a runtime file belongs to.
+    "JUPYTER_RUNTIME_DIR" to inSpace("run"),
     // One setting decides the shell for all three things that go looking for one, and it is
     // load-bearing for the third rather than merely tidy:
     //   - jupyter_server_terminals consults it before falling back to `which("sh")`
@@ -42,32 +53,33 @@ class SpaceRuntime(
     //     *capture* escape, `files = !ls`. Unset, that stays None and CPython falls back to the
     //     absolute `/bin/sh`, which does not exist on Android - so the command runs nowhere and the
     //     cell gets an empty string.
-    "SHELL" to spaceShellIn(baseDir).path,
+    "SHELL" to spaceShellIn(rootfsDir).path,
     // The rootfs is not mounted at `/` on the device, so the console-script trampoline
     // (`tools/rootfs/shebang_exec.c`) prefixes this onto an absolute shebang: `#!/usr/bin/python3`
     // becomes `<root>/usr/bin/python3`. One home for what a Space process sees, beside SHELL.
-    "JUPYDROID_SPACE_ROOT" to baseDir.path,
+    "JUPYDROID_SPACE_ROOT" to rootfsDir.path,
     // PEP 668: Alpine marks this interpreter EXTERNALLY-MANAGED, so bare `pip install` is
     // refused - and even `--user` is refused without `--break-system-packages` (measured
     // on-device). The managed answer is the Space's own user base: PYTHONUSERBASE puts
     // `pkgs/lib/...` on sys.path, PIP_USER makes installs ground there unflagged, and the
     // three together are inherited by kernel, terminal, `%pip` and LSP alike.
-    "PYTHONUSERBASE" to inBase("pkgs"),
+    "PYTHONUSERBASE" to inSpace("pkgs"),
     "PIP_USER" to "1",
     "PIP_ONLY_BINARY" to ":all:",
     "PIP_BREAK_SYSTEM_PACKAGES" to "1",
     // pkgs/bin first, so a user's console script shadows the shipped one - the precedence
     // ~/.local/bin takes over /usr/bin on a desktop.
-    "PATH" to listOf(inBase("pkgs/bin"), inBase("usr/local/bin"), inBase("usr/bin"), inBase("bin")).joinToString(":"),
+    "PATH" to
+      listOf(inSpace("pkgs/bin"), inRootfs("usr/local/bin"), inRootfs("usr/bin"), inRootfs("bin")).joinToString(":"),
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.
     // musl has no multiarch directories, so these two cover the whole rootfs.
-    "LD_LIBRARY_PATH" to listOf(inBase("usr/lib"), inBase("lib")).joinToString(":"),
+    "LD_LIBRARY_PATH" to listOf(inRootfs("usr/lib"), inRootfs("lib")).joinToString(":"),
     // The rootfs ships a real CA bundle, and both OpenSSL and musl's own resolver honour these two
     // variables - measured on the device, `ssl.get_default_verify_paths()` reports
     // `openssl_cafile_env='SSL_CERT_FILE'`. Unconditional, unlike the preloads
     // below - the bundle always ships, so there is no older-Space case to guard against.
-    "SSL_CERT_FILE" to inBase("etc/ssl/certs/ca-certificates.crt"),
-    "SSL_CERT_DIR" to inBase("etc/ssl/certs"),
+    "SSL_CERT_FILE" to inRootfs("etc/ssl/certs/ca-certificates.crt"),
+    "SSL_CERT_DIR" to inRootfs("etc/ssl/certs"),
   ) + sigsysHandler() + dnsResolverShim()
 
   /**
@@ -91,9 +103,9 @@ class SpaceRuntime(
    * the user's notebook on every numpy import. Measured on device, not guessed.
    */
   private fun sigsysHandler(): Map<String, String> {
-    val handler = File(baseDir, SIGSYS_HANDLER)
-    val log = if (handler.isFile) mapOf("JUPYDROID_SIGSYS_LOG" to inBase(SIGSYS_LOG)) else emptyMap()
-    val preloads = PRELOADS.map { File(baseDir, it) }.filter { it.isFile }
+    val handler = File(rootfsDir, SIGSYS_HANDLER)
+    val log = if (handler.isFile) mapOf("JUPYDROID_SIGSYS_LOG" to inSpace(SIGSYS_LOG)) else emptyMap()
+    val preloads = PRELOADS.map { File(rootfsDir, it) }.filter { it.isFile }
     if (preloads.isEmpty()) return emptyMap()
     // Space-separated, which is what the musl loader splits `LD_PRELOAD` on - the same as glibc.
     return mapOf("LD_PRELOAD" to preloads.joinToString(" ") { it.path }) + log
@@ -110,7 +122,7 @@ class SpaceRuntime(
    * exactly as if this preload were absent, rather than querying an empty list forever.
    */
   private fun dnsResolverShim(): Map<String, String> {
-    if (!File(baseDir, GETADDRINFO_SHIM).isFile) return emptyMap()
+    if (!File(rootfsDir, GETADDRINFO_SHIM).isFile) return emptyMap()
     val servers = dnsServers.current()
     return if (servers.isEmpty()) emptyMap() else mapOf("JUPYDROID_NAMESERVERS" to servers.joinToString(","))
   }
@@ -141,7 +153,9 @@ class SpaceRuntime(
       environment().putAll(this@SpaceRuntime.environment() + extraEnv)
     }
 
-  private fun inBase(relative: String): String = File(baseDir, relative).path
+  private fun inSpace(relative: String): String = File(spaceDir, relative).path
+
+  private fun inRootfs(relative: String): String = File(rootfsDir, relative).path
 
   private companion object {
     /** Built by tools/rootfs/Dockerfile; see tools/rootfs/sigsys_report.c. */
@@ -156,7 +170,7 @@ class SpaceRuntime(
     /** In load order: the reporter first, so it is armed before the shims' own calls run. */
     val PRELOADS = listOf(SIGSYS_HANDLER, AT_SHIM, GETADDRINFO_SHIM)
 
-    /** In tmp/ because it always exists in the rootfs, unlike run/ before the server starts. */
+    /** In the Space's own tmp/: provisioned before any process runs, unlike run/. */
     const val SIGSYS_LOG = "tmp/sigsys.log"
   }
 }

@@ -14,7 +14,7 @@ import java.io.File
  */
 class PythonRunnerTest {
   private val runtime = SpaceRuntime(
-    baseDir = File("/nonexistent/spaces/base"),
+    spaceDir = File("/nonexistent/spaces/base"),
     nativeInterpreter = File("/bin/sh"),
   )
 

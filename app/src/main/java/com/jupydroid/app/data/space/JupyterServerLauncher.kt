@@ -120,8 +120,9 @@ internal fun jupyterServerProcess(
   shell: File,
   token: String,
 ): ProcessBuilder = runtime.processBuilder(
+  // JUPYTER_RUNTIME_DIR and the faulthandler both come from SpaceRuntime.environment(),
+  // so every Space process - not just the server - agrees on where runtime files live.
   jupyterServerArgs(rootDir, token, shell),
-  mapOf("JUPYTER_RUNTIME_DIR" to runtimeDir.path), // faulthandler comes from SpaceRuntime
 )
   // `root_dir` defaults to `os.getcwd()` (`serverapp.py:1842-1848`), so upstream the two are one
   // directory and everything downstream is written against that. A terminal is the client that

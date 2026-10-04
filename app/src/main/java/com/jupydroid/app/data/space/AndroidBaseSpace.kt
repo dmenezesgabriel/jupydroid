@@ -27,7 +27,7 @@ fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpace
 
 /** Command line and environment for the installed base Space's interpreter. */
 fun baseSpaceRuntime(context: Context): SpaceRuntime = SpaceRuntime(
-  baseDir = baseSpaceDir(context),
+  spaceDir = baseSpaceDir(context),
   nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
   dnsServers = androidDnsServerSource(context),
 )

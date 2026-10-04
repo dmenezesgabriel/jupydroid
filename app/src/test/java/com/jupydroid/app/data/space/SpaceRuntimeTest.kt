@@ -13,7 +13,11 @@ class SpaceRuntimeTest {
 
   private val interpreter = File("/data/app/abc==/lib/arm64/libpython3.so")
   private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")
-  private val runtime = SpaceRuntime(baseDir = baseDir, nativeInterpreter = interpreter)
+  private val runtime = SpaceRuntime(spaceDir = baseDir, nativeInterpreter = interpreter)
+
+  private val spaceDir = File("/data/data/com.jupydroid.app/files/spaces/space-1")
+  private val userSpaceRuntime =
+    SpaceRuntime(spaceDir = spaceDir, nativeInterpreter = interpreter, rootfsDir = baseDir)
 
   @Test
   fun command_execsTheNativeInterpreterNotTheOneInTheRootfs() {
@@ -313,5 +317,125 @@ class SpaceRuntimeTest {
     val path = runtime.environment().getValue("PATH").split(":")
 
     assertEquals("/data/data/com.jupydroid.app/files/spaces/base/pkgs/bin", path.first())
+  }
+
+  /**
+   * A user Space pairs its own directory with the shared rootfs: everything a Space *writes* -
+   * its home, its scratch, its installed packages, its server's runtime files - grounds in
+   * `spaceDir`, so two Spaces cannot collide on any of them.
+   */
+  @Test
+  fun environment_derivesTheWritableDirsFromTheSpaceRatherThanTheSharedRootfs() {
+    val env = userSpaceRuntime.environment()
+
+    assertEquals("/data/data/com.jupydroid.app/files/spaces/space-1/home/jupydroid", env["HOME"])
+    assertEquals("/data/data/com.jupydroid.app/files/spaces/space-1/tmp", env["TMPDIR"])
+    assertEquals("/data/data/com.jupydroid.app/files/spaces/space-1/pkgs", env["PYTHONUSERBASE"])
+    assertEquals("/data/data/com.jupydroid.app/files/spaces/space-1/run", env["JUPYTER_RUNTIME_DIR"])
+  }
+
+  /**
+   * And everything a Space *reads* - the stdlib anchor, the shell, the shebang
+   * trampoline's root, the library path, the CA bundle - comes off the shared
+   * image, so a user Space carries no copy of the toolchain.
+   */
+  @Test
+  fun environment_derivesTheSharedToolsFromTheRootfsRatherThanTheSpace() {
+    val env = userSpaceRuntime.environment()
+
+    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/usr", env["PYTHONHOME"])
+    assertEquals(spaceShellIn(baseDir).path, env["SHELL"])
+    assertEquals(baseDir.path, env["JUPYDROID_SPACE_ROOT"])
+    assertEquals(
+      "/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs/ca-certificates.crt",
+      env["SSL_CERT_FILE"],
+    )
+    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs", env["SSL_CERT_DIR"])
+    assertEquals(
+      "/data/data/com.jupydroid.app/files/spaces/base/usr/lib:/data/data/com.jupydroid.app/files/spaces/base/lib",
+      env["LD_LIBRARY_PATH"],
+    )
+  }
+
+  /**
+   * One runtime dir per Space, and set on *every* process rather than only the server:
+   * kernel connection files, `jupyter --runtime-dir` and the app-side
+   * `JupyterRuntimeFile` poll all agree on where a Space's server is, which is the
+   * assumption [JupyterServerLauncher] was already built on. For `base` the value is
+   * the path the launcher used to inject - unchanged.
+   */
+  @Test
+  fun environment_namesTheSpacesOwnRuntimeDirectory() {
+    assertEquals("$baseDir/run", runtime.environment()["JUPYTER_RUNTIME_DIR"])
+    assertEquals("$spaceDir/run", userSpaceRuntime.environment()["JUPYTER_RUNTIME_DIR"])
+  }
+
+  /**
+   * Same split on PATH: the Space's `pkgs/bin` keeps precedence, but the toolchain
+   * entries it precedes belong to the shared image, not the Space.
+   */
+  @Test
+  fun environment_pairsTheSpacesConsoleScriptsWithTheSharedRootfsOnPath() {
+    val path = userSpaceRuntime.environment().getValue("PATH").split(":")
+
+    assertEquals(
+      listOf(
+        "/data/data/com.jupydroid.app/files/spaces/space-1/pkgs/bin",
+        "/data/data/com.jupydroid.app/files/spaces/base/usr/local/bin",
+        "/data/data/com.jupydroid.app/files/spaces/base/usr/bin",
+        "/data/data/com.jupydroid.app/files/spaces/base/bin",
+      ),
+      path,
+    )
+  }
+
+  /**
+   * The handler is read out of the shared image, but its log is the Space's own -
+   * a second Space's refusals must not write into base's `tmp`.
+   */
+  @Test
+  fun environment_findsTheSigsysHandlerInTheRootfsAndWritesItsLogIntoTheSpace() {
+    val sharedRootfs = tempFolder.newFolder("shared-rootfs").apply {
+      File(this, "lib").mkdirs()
+      File(this, "lib/libsigsys_report.so").writeText("ELF")
+    }
+    val space = tempFolder.newFolder("space-1")
+
+    val env = SpaceRuntime(space, interpreter, rootfsDir = sharedRootfs).environment()
+
+    assertEquals(File(sharedRootfs, "lib/libsigsys_report.so").path, env["LD_PRELOAD"])
+    assertEquals(File(space, "tmp/sigsys.log").path, env["JUPYDROID_SIGSYS_LOG"])
+  }
+
+  /** Same for the resolver shim: probed on the rootfs, since that is where it is built. */
+  @Test
+  fun environment_findsTheGetaddrinfoShimInTheRootfsForASpaceWithItsOwnDir() {
+    val sharedRootfs = tempFolder.newFolder("shared-rootfs-dns").apply {
+      File(this, "lib").mkdirs()
+      File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF")
+    }
+    val runtime = SpaceRuntime(
+      tempFolder.newFolder("space-2"),
+      interpreter,
+      dnsServers = DnsServerSource { listOf("8.8.8.8") },
+      rootfsDir = sharedRootfs,
+    )
+
+    assertEquals("8.8.8.8", runtime.environment()["JUPYDROID_NAMESERVERS"])
+  }
+
+  /** The child env, not only the map: the server's runtime dir reaches it either way. */
+  @Test
+  fun processBuilder_givesTheChildTheSpacesRuntimeDirectory() {
+    val env = userSpaceRuntime.processBuilder(listOf("-c", "pass")).environment()
+
+    assertEquals("$spaceDir/run", env["JUPYTER_RUNTIME_DIR"])
+  }
+
+  @Test
+  fun execProcessBuilder_givesTheChildTheSpacesRuntimeDirectory() {
+    val env = userSpaceRuntime.execProcessBuilder(listOf("$baseDir/bin/sh", "-c", "pass")).environment()
+
+    assertEquals("$spaceDir/run", env["JUPYTER_RUNTIME_DIR"])
   }
 }
