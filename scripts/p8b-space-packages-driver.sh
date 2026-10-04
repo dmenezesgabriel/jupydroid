@@ -22,7 +22,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-EVIDENCE="$ROOT/evidence/p8b-space-packages"
+# EVIDENCE_ROOT lets a later step re-run this gate under its own name, as p7e-1's driver allows.
+EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/p8b-space-packages}"
 mkdir -p "$EVIDENCE"
 
 mapfile -t DEVICE_ADB < <(device_adb)
