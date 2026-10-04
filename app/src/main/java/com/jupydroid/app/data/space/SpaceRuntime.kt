@@ -25,11 +25,14 @@ import java.io.File
  * ```
  */
 class SpaceRuntime(
-  private val spaceDir: File,
+  spaceDir: File,
   private val nativeInterpreter: File,
   private val dnsServers: DnsServerSource = DnsServerSource { emptyList() },
   private val rootfsDir: File = spaceDir,
 ) {
+  /** The writable half's layout, from the one home [SpaceDirs.ensure] provisions too. */
+  private val dirs = SpaceDirs(spaceDir)
+
   fun command(vararg args: String): List<String> = listOf(nativeInterpreter.path) + args
 
   fun environment(): Map<String, String> = mapOf(
@@ -37,13 +40,13 @@ class SpaceRuntime(
     // No Space process is an Android process, so none of them get a tombstone from
     // debuggerd. Without this a fatal signal leaves nothing at all to debug.
     "PYTHONFAULTHANDLER" to "1",
-    "HOME" to notebookWorkspaceIn(spaceDir).path,
-    "TMPDIR" to inSpace("tmp"),
+    "HOME" to dirs.workspace.path,
+    "TMPDIR" to dirs.tmp.path,
     // jupyter_server writes `jpserver-*.json` and kernel connection files here, and the
     // app reads the same dir back through `JupyterRuntimeFile` to learn the bound port.
     // On every Space process, not only the server, so `jupyter --runtime-dir`, kernels
     // and terminals agree with the app about which Space a runtime file belongs to.
-    "JUPYTER_RUNTIME_DIR" to inSpace("run"),
+    "JUPYTER_RUNTIME_DIR" to dirs.runtime.path,
     // One setting decides the shell for all three things that go looking for one, and it is
     // load-bearing for the third rather than merely tidy:
     //   - jupyter_server_terminals consults it before falling back to `which("sh")`
@@ -63,14 +66,14 @@ class SpaceRuntime(
     // on-device). The managed answer is the Space's own user base: PYTHONUSERBASE puts
     // `pkgs/lib/...` on sys.path, PIP_USER makes installs ground there unflagged, and the
     // three together are inherited by kernel, terminal, `%pip` and LSP alike.
-    "PYTHONUSERBASE" to inSpace("pkgs"),
+    "PYTHONUSERBASE" to dirs.pkgs.path,
     "PIP_USER" to "1",
     "PIP_ONLY_BINARY" to ":all:",
     "PIP_BREAK_SYSTEM_PACKAGES" to "1",
     // pkgs/bin first, so a user's console script shadows the shipped one - the precedence
     // ~/.local/bin takes over /usr/bin on a desktop.
-    "PATH" to
-      listOf(inSpace("pkgs/bin"), inRootfs("usr/local/bin"), inRootfs("usr/bin"), inRootfs("bin")).joinToString(":"),
+    "PATH" to listOf(File(dirs.pkgs, "bin").path, inRootfs("usr/local/bin"), inRootfs("usr/bin"), inRootfs("bin"))
+      .joinToString(":"),
     // Inherited by dlopen'd extension modules, unlike the interpreter's DT_RUNPATH.
     // musl has no multiarch directories, so these two cover the whole rootfs.
     "LD_LIBRARY_PATH" to listOf(inRootfs("usr/lib"), inRootfs("lib")).joinToString(":"),
@@ -104,7 +107,7 @@ class SpaceRuntime(
    */
   private fun sigsysHandler(): Map<String, String> {
     val handler = File(rootfsDir, SIGSYS_HANDLER)
-    val log = if (handler.isFile) mapOf("JUPYDROID_SIGSYS_LOG" to inSpace(SIGSYS_LOG)) else emptyMap()
+    val log = if (handler.isFile) mapOf("JUPYDROID_SIGSYS_LOG" to File(dirs.tmp, SIGSYS_LOG).path) else emptyMap()
     val preloads = PRELOADS.map { File(rootfsDir, it) }.filter { it.isFile }
     if (preloads.isEmpty()) return emptyMap()
     // Space-separated, which is what the musl loader splits `LD_PRELOAD` on - the same as glibc.
@@ -153,8 +156,6 @@ class SpaceRuntime(
       environment().putAll(this@SpaceRuntime.environment() + extraEnv)
     }
 
-  private fun inSpace(relative: String): String = File(spaceDir, relative).path
-
   private fun inRootfs(relative: String): String = File(rootfsDir, relative).path
 
   private companion object {
@@ -170,7 +171,7 @@ class SpaceRuntime(
     /** In load order: the reporter first, so it is armed before the shims' own calls run. */
     val PRELOADS = listOf(SIGSYS_HANDLER, AT_SHIM, GETADDRINFO_SHIM)
 
-    /** In the Space's own tmp/: provisioned before any process runs, unlike run/. */
-    const val SIGSYS_LOG = "tmp/sigsys.log"
+    /** In the Space's own tmp/, which [SpaceDirs.ensure] provisions before any process runs. */
+    const val SIGSYS_LOG = "sigsys.log"
   }
 }

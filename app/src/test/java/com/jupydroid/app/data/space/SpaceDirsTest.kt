@@ -52,11 +52,13 @@ class SpaceDirsTest {
   }
 
   @Test
-  fun theWorkspaceIsTheNotebookDirectoryAndTheRuntimeIsRun() {
+  fun eachWritableDirIsNamedOnceUnderTheSpace() {
     val spaceDir = File("/data/data/com.jupydroid.app/files/spaces/space-1")
 
     assertEquals(notebookWorkspaceIn(spaceDir), SpaceDirs(spaceDir).workspace)
     assertEquals(File(spaceDir, "run"), SpaceDirs(spaceDir).runtime)
+    assertEquals(File(spaceDir, "tmp"), SpaceDirs(spaceDir).tmp)
+    assertEquals(File(spaceDir, "pkgs"), SpaceDirs(spaceDir).pkgs)
   }
 
   private fun configOnlySpace(): File = tempFolder.newFolder("space-1").apply {

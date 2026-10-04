@@ -335,6 +335,21 @@ class SpaceRuntimeTest {
   }
 
   /**
+   * The environment and [SpaceDirs.ensure] name the same directories, so a process can never be
+   * pointed at a writable dir the Space's first launch did not provision.
+   */
+  @Test
+  fun environment_namesTheDirsSpaceDirsProvisions() {
+    val env = userSpaceRuntime.environment()
+    val dirs = SpaceDirs(spaceDir)
+
+    assertEquals(dirs.workspace.path, env["HOME"])
+    assertEquals(dirs.tmp.path, env["TMPDIR"])
+    assertEquals(dirs.pkgs.path, env["PYTHONUSERBASE"])
+    assertEquals(dirs.runtime.path, env["JUPYTER_RUNTIME_DIR"])
+  }
+
+  /**
    * And everything a Space *reads* - the stdlib anchor, the shell, the shebang
    * trampoline's root, the library path, the CA bundle - comes off the shared
    * image, so a user Space carries no copy of the toolchain.

@@ -21,9 +21,15 @@ class SpaceDirs(private val spaceDir: File) {
   /** `JUPYTER_RUNTIME_DIR`, where the server's `jpserver-*.json` and its log land. */
   val runtime: File get() = File(spaceDir, "run")
 
+  /** `TMPDIR`, and where the SIGSYS handler's log lands. */
+  val tmp: File get() = File(spaceDir, "tmp")
+
+  /** `PYTHONUSERBASE`: what `pip` installs into this Space, and its console scripts under `bin`. */
+  val pkgs: File get() = File(spaceDir, "pkgs")
+
   /** Creates whichever of the Space's writable directories are missing; never touches their contents. */
   fun ensure() {
-    listOf(workspace, runtime, File(spaceDir, "tmp"), File(spaceDir, "pkgs")).forEach { dir ->
+    listOf(workspace, runtime, tmp, pkgs).forEach { dir ->
       check(dir.isDirectory || dir.mkdirs()) { "could not create '$dir': expected a directory, found ${shapeOf(dir)}" }
     }
   }
