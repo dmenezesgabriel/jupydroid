@@ -193,7 +193,7 @@ For every FULL or PARTIAL reference — the files an implementer must open:
       `start(space)`; `JupyterServerLauncher.start(space)` honours its operand: per-Space `runtimeDir`,
       `rootDir`, `env` (the shell stays one constructor field — after T1 it lives in the shared
       rootfs); composition rewired: `baseSpaceServerLauncher` → `spaceServerLauncher(context)`.
-- [ ] T4 — `StdioLanguageServer.spawn` gains `space`: per-Space env + `cwd`, `ensure()` first.
+- [x] T4 — `StdioLanguageServer.spawn` gains `space`: per-Space env + `cwd`, `ensure()` first.
 - [ ] T5 — device test `PerSpaceRuntimeDeviceTest` + driver + `evidence/jd-001-*`; re-run
       `p8b`/`p7e-1`; `SpaceProcessRun`/`LanguageServerDeviceTest` generalised to take an env (moved
       from T3: no caller until this test); tidy `SpaceDirs` API surface.
