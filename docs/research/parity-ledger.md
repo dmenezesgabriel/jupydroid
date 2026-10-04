@@ -60,7 +60,7 @@ Five, each obliging something different. The full definition is in
 | Terminal emulator and view | `AUD-007` | examined — below |
 | Rendering and formats | `AUD-008` | examined — below |
 | Chrome and presentation | `AUD-009` | examined — below |
-| Spaces and runtime | `AUD-010` | unexamined |
+| Spaces and runtime | `AUD-010` | examined — below |
 
 ---
 
@@ -3324,3 +3324,175 @@ What the read found, beyond the rows:
   handler answers by shutting its kernels — the covered arm. A hard kill (seccomp, OOM) leaves
   them reparented and dead-ended, their `run/kernel-*.json` files the residue `GAP-150`'s row
   names; theirs' `killProcess` orphans wine children the same way. Neither side reaps.
+
+### The walk
+
+Six transitions of the one lifecycle — an install, a create, a run, an idle, a second Space, a
+reinstall — traced down ours' own call chain, the reference's matching act named where the
+shapes fork.
+
+```sh
+grep -n 'startLock\|connection()\|startSpace\|installSpace\|isRunning\|generation\|StartedServer' \
+  app/src/main/java/com/jupydroid/app/data/space/BaseSpaceServer.kt
+grep -n 'installIfNeeded\|installedVersion\|stampVersion\|BUNDLED_ROOTFS_VERSION\|relink' \
+  app/src/main/java/com/jupydroid/app/data/space/BaseSpaceInstaller.kt
+grep -rn 'liveOrNull\|live\.get' \
+  app/src/main/java/com/jupydroid/app/data/space/BaseSpaceTerminalGateway.kt \
+  app/src/main/java/com/jupydroid/app/data/space/BaseSpaceKernelSpecs.kt \
+  app/src/main/java/com/jupydroid/app/data/space/BaseSpaceKernelSessions.kt
+grep -n 'fun \|mkdirs\|delete\|scan\|nextSpaceId\|requireDeletableSpace\|inSpaceOrder' \
+  app/src/main/java/com/jupydroid/app/data/space/DiskSpaceRepository.kt
+grep -rn 'SpaceRepository' app/src/main/java/com/jupydroid/app/di/    # empty — unwired
+grep -n 'ProcessLifecycleOwner\|onStop\|onStart' \
+  app/src/main/java/com/jupydroid/app/JupydroidApplication.kt
+grep -n 'combine\|stopServer\|delay\|onAppStopped\|onAppStarted\|BASE_SPACE' \
+  app/src/main/java/com/jupydroid/app/data/space/IdleServerStopper.kt \
+  app/src/main/java/com/jupydroid/app/di/AppContainer.kt
+zstd -dc app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst | tar -t | \
+  grep -E '^(home|run|tmp|pkgs|\.jupydroid)'        # pkgs/.jupydroid absent — runtime writes
+grep -rn 'activateContainer\|createContainerAsync\|restartApplication\|setupEnvironment' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/XServerDisplayActivity.java \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/container/ContainerManager.java
+```
+
+**An install** is paid by the first ask rather than the launch, which is why none of it sits on
+`JupydroidApplication`'s critical path. `buildContainer` does three Space-touching things and
+none extracts a byte: `baseSpaceServerLauncher` binds `spaces/base`'s runtime, runtime dir,
+root dir and shell into the one `JupyterServerLauncher`; `SpaceBackedPorts` runs the `deviceAbi`
+gate — null on x86_64, so the four wire ports become fakes — and `migrateNotebooksOnce` writes
+`home/jupydroid` and the `.jupydroid/notebooks-migrated` stamp *inside* `spaces/base`, which is
+what creates the `base` directory at all. The first ask that wants a kernel — a cell's
+`execute`, counted in `ActiveCellRuns.whileRunning` from the tap so the backstop cannot kill the
+boot it is protecting — reaches `BaseSpaceKernelGateway.connect` → `IssuedSessions.currentGateway`
+→ `PerRunningServer.get` → `BaseSpaceServer.connection()` under `startLock` → `startSpace` →
+`installSpace` → `BaseSpaceInstaller.installIfNeeded`: `installedVersion()` reads
+`.jupydroid/rootfs-version`, and a miss or a mismatch pays `TarZstdExtractor.extract`
+(`resolveInside`, delete-then-write, no mode bits, devices skipped); then the launch repair pass
+runs *whether or not anything extracted* — the loader link, `usr/bin/python3.12` →
+`libpython3.so`, `bin/busybox` → `libbusybox.so` with its 304 applets repointed relatively,
+`usr/local/bin` → `bin/shebang-exec`, and `kernel.json` rewritten to the same
+`nativeLibraryDir` interpreter — and only then `stampVersion`. A thrown extract or relink leaves
+the old stamp, so the next ask pays the whole pass again; winlator's answer to the same failure
+is a cleared tree and a toast. The language server holds a parallel arm: `ServerPool.startup`
+calls the same `installSpace` on the first `pylsp` ask under its own mutex — two install arms
+writing the same bytes, the stamp making the second one's pass extract-free.
+
+**A create** is the band nothing calls. `DiskSpaceRepository.create` re-scans, mints
+`space-<max+1>` off `nextSpaceId`, `mkdirs`, and writes `config.json` — name, `created`, a
+`pythonVersion` nothing reads — and that is the whole act: a created Space is a config file in
+an otherwise empty directory, with nothing to provision because its runtime is `base`'s shared
+rootfs. The reference's `createContainerAsync` extracts `container_pattern.tzst` into the new
+dir; ours' nearest shape is `JD-001`'s ground, where the runtime learns to want one.
+`AppContainer` never constructs a `SpaceRepository`, so the only way a second directory appears
+under `spaces/` today is a terminal or `run-as` — and the scan would list it all the same,
+because the scan is the truth and a config-less dir reads as `defaultSpaceConfig`.
+
+**A run** is the cached half of `connection()` — `cached` plus `launcher.isRunning()` — which is
+the steady state: `gatewayKnowing` checks the session id against `IssuedSessions`' set,
+`socketFor` reuses the per-session socket, and the frame goes down. The verbs that may boot the
+runtime are the *act* verbs — `connect` and every kernel op through `gatewayKnowing`,
+`TerminalGateway`'s `open`/`send`/`resize`/`attach`, `NotebookExporter`'s two, every
+`LanguageServerPort` ask through `pool.serverFor` — and the verbs that may not are the *report*
+and *undo* ones, passive through `liveOrNull`: `running()`, `close`, `disconnect`, `shutdown`,
+`endingIfStillLive`, `KernelSpecs.specs` (which answers `base`'s declared catalogue while the
+server is down, so the picker never boots a runtime to draw its rows). A first-of-generation
+run pays the install paragraph minus the extract when the stamp matches: the relink pass is the
+per-start cost, and `attach` lands a refused boot as `TerminalEvent.Ended` rather than a thrown
+collect.
+
+**An idle** is three clocks and a backstop. In-server, `cull_idle_timeout=300` reaps a kernel
+with no websocket and `shutdown_no_activity_timeout=300` stops the server once no kernels
+exist — a closed notebook's kernel survives at most ~6 min of one-minute cull polls. Out-of-app,
+`ProcessLifecycleOwner`'s ON_STOP — registered in `JupydroidApplication.onCreate`, the process
+lifecycle that lets a rotation pass but not a cover — drives `IdleServerStopper.onAppStopped` →
+`combine(cellsInFlight, terminalsOpen)` → wait for zero → 30 s of *continued* zero
+(`stoppedWhileACellRuns_waitsForTheCellBeforeStopping` pins the grace) → `stopServer`:
+`serverLauncher.stop()`'s SIGTERM, which jupyter_server's own handler answers by shutting its
+kernels down, plus `languageServer.stop(BASE_SPACE)`'s `shutdown`/`exit` → `waitFor` inside the
+grace → `destroy`. ON_START cancels the countdown. What the stop leaves is `GAP-150`'s arm:
+`run/`'s `kernel-*.json` and a `jpserver-*.json` the next start's `JupyterRuntimeFile.clear`
+removes, plus `tmp/`'s `sigsys.log` and kernel scratch that nothing removes. The next ask
+replays the run paragraph: `isRunning()` false → `startSpace` → generation++ → `IssuedSessions`
+clears its set and `registry.endAll()` lands every held session on the truth, so a stale
+session's next op throws `StaleKernelSessionException` — the UI's No Kernel — where winlator's
+answer to the same event is `exit()` + `restartApplication`, the whole app relaunched.
+
+**A second Space** exists, and nothing notices. `scan()` lists `space-1` after `base`
+(`inSpaceOrder`: base, then numbered by number, then unnumbered by id), `spaceWithId` finds it,
+`rename` writes its `config.json` in place, `delete` `deleteRecursively`s the dir —
+`requireDeletableSpace` refusing `base` alone — and the runtime reads none of it. Every
+Space-keyed operand is bound at composition rather than consulted at use: `JUPYDROID_SPACE_ROOT`,
+`PYTHONUSERBASE`, `HOME`, `JUPYTER_RUNTIME_DIR`, `root_dir`, `spaceShellIn` and the kernelspec
+argv are `spaces/base` paths the launcher was built with, so `connect(space-1)` would mint a
+session on `base`'s server and merely tag it `spaceId`, and `languageServer.*(space-1)` would
+spawn `base`'s `pylsp` keyed `space-1` — a process `stopServer`'s `BASE_SPACE` never stops. The
+audit-spine question answers *by construction*: a second Space's **existence** is inert —
+`base` ignores siblings because nothing but the repository's scan ever reads `spaces/` — while
+its **use** is served by `base` wearing the asked id. The coupling leak is not live; it is the
+port shape `JD-001` inherits.
+
+**A reinstall** is the bump's next start. `BUNDLED_ROOTFS_VERSION` is compiled into the APK, so a
+mismatched stamp can only exist across an app update — which kills the process and its server
+with it. `installedVersion() != bundledVersion` against a *live* server is therefore
+unreachable rather than locked out: the stamp this process wrote is the one every
+`installIfNeeded` in it reads. The next first-ask extracts over the live tree:
+`home/jupydroid` and `pkgs/` survive by absence from the archive, `.jupydroid/`'s two stamps
+survive beside them, `run/` and `tmp/` residue stays (`GAP-150`), and entries the new image
+*dropped* stay too — the accretion `clearRootDir` exists to prevent, the other half of T3's
+never-clear verdict. The relink pass then re-points every `nativeLibraryDir` reference — the
+archive's own `lib/ld-musl-aarch64.so.1` and `usr/bin/python3.12` files are replaced by links —
+and `stampVersion` lands last, so a mid-write death leaves a mixed tree that reads as
+not-installed.
+
+What the walk found, beyond the rows above:
+
+- **Growth is a stub per Space beside one shared image — the asymmetry the layout already
+  prices.** `spaces()` rescans on every op, and `create`/`rename`/`delete` each pay a scan before
+  their own write; `nextSpaceId` mints from the same listing — O(dirs) per call, the shape that
+  costs ours nothing where the reference's once-per-screen list can be stale for its own
+  lifetime. A created Space costs a `mkdirs` and a small `config.json`; a second *runnable*
+  Space is the case that does not exist — `JD-004` prices the server half, and the rootfs half
+  is `files/spaces/<id>`'s one-tree-per-Space layout: N copies of a ~270 MiB image or N views,
+  nobody's yet. A generation bump rebuilds one `KernelSockets` per client and re-opens
+  per-session sockets lazily on next ask, not eagerly.
+- **Branching is three-armed everywhere the lifecycle forks.** `connection()` is
+  cached-and-alive / dead-replaced / never-started; `JupyterRuntimeFile.read` is absent → poll,
+  truncated → poll, port-less → throw; `installIfNeeded` is stamp-match → relink-only / mismatch
+  → extract-then-relink; `deviceAbi` is arm64 → real / anything-else → null → fakes;
+  `requireDeletableSpace` refuses `base` before the lookup it protects; the config `read` falls
+  back per-field where the reference's one catch drops the whole list. The act-vs-passive split
+  is the walk's fourth arm: verbs that *act* may pay a runtime, verbs that *report* or *undo*
+  never do.
+- **Failure is a stamp not written — and the walk found two arms where a failure still rides a
+  live handle.** An extract or relink throw leaves the old stamp and the next ask repays
+  everything; a launch timeout or a dead process throws `failStart` carrying the server's own
+  log tail. The port-less runtime file's `IllegalArgumentException` escapes `awaitConnection`
+  the same way but leaves `process` alive — reaped by the *next* `start`'s kill-first, a
+  self-heal the retry pays for. The eaten stop (T4's finding) has a second boundary the finding
+  did not name: a `stop()` landing inside `awaitConnection` is not consumed — it makes the
+  start *throw*, the exception reaching the asker where the consumed arm reaches nobody. And
+  `IssuedSessions`' bookkeeping is itself unsynchronized: `minted` lands after the whole
+  session-mint REST call while `currentGateway`'s generation turnover `clear`s the set from
+  another coroutine, so a session minted across a restart can register under the new
+  generation, escape `StaleKernelSessionException`, and fail at the REST layer instead — the
+  404 the registry exists to pre-empt, surfacing without its name. Same call T4 made for the
+  eaten stop — recorded, a `JD-NNN`, not this slice's fix: the repair is one lock over the
+  mint-check-mark span, or a mint that names its generation and is refused when it has moved.
+- **Coupling is one composition, two stamps, three blind operands and a stub.** `SpaceBackedPorts`
+  builds one `BaseSpaceServer` for four wire ports, `KernelSockets` is shared by gateway and
+  debugger, and `IssuedSessions` ties session validity to the socket generation — a second
+  `jupyter_server` cannot be started, only killed-and-replaced. `.jupydroid/` holds both the
+  installer's `rootfs-version` and the migration's `notebooks-migrated` — and the ordering that
+  produces: `migrateNotebooksOnce` *creates* `spaces/base` at composition, so the scan lists a
+  stub `base` from the first launch on, and *installed* is a fact only `rootfs-version` knows —
+  `SpaceConfig` exposes no installedness, which is `JD-002`'s list semantics priced early. The
+  blind operands generalize the T4 finding: `connect(space)` tags rather than routes,
+  `specs(space)` answers `base`'s catalogue for any ask, and `languageServer.*(space)` is the
+  one place already keyed for N while `stopServer` names the one. And the ABI gate lives at the
+  two spawn sites, not the mechanism — `baseSpaceServerLauncher` returns a real
+  `JupyterServerLauncher` on x86_64 too, armed but unreachable because only the gated callers
+  ever `start()` it (the stopper's `stop()` is a no-op on a never-started process; a second
+  start-caller would learn at process-death speed what `SpaceAbi` already knew).
+- **And one doc debt the walk corrected in place** — `AppContainer`'s `idleServerStopper` doc
+  said "`MainActivity` drives it"; `JupydroidApplication` has driven it since the composition
+  root moved to the process, and the doc now says so.

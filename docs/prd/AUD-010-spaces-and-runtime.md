@@ -406,7 +406,7 @@ has to do, because neither runs on targetSdk 36.
   — env construction, start/stop ordering, single-server-vs-multi-Space
   coupling, unsupported-ABI arm, stale runtime file, concurrent start,
   process death, delete-while-running.
-- [ ] **T5 — the walk, the verdicts, the debts.** The end-to-end lifecycle
+- [x] **T5 — the walk, the verdicts, the debts.** The end-to-end lifecycle
   walk (install → create → run → idle → second Space → reinstall), the
   ledger rows' verdicts with reproduction commands, ADRs for
   `undocumented`, `GAP`s for `absent`, `JD`s for the non-defect repairs,
