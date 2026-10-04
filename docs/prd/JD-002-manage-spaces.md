@@ -200,7 +200,7 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
 
 ## Tasks
 
-- [ ] T1 — `AppContainer.spaceRepository` (default fake; `JupydroidApplication` wires
+- [x] T1 — `AppContainer.spaceRepository` (default fake; `JupydroidApplication` wires
       `DiskSpaceRepository(spacesDir(this))`) and `SpacesViewModel`. The ViewModel exposes the
       Spaces in `inSpaceOrder`, a `busy` flag, and the last failure's message. `create`, `rename`
       and `delete` each run on `viewModelScope`, refuse to start while busy, and re-list when they
