@@ -2866,10 +2866,11 @@ with a `.container` JSON inside, the whole tree behind a `.winlator/.rfs_version
 `activateContainer`, `createContainerAsync`, `duplicateContainerAsync`, `removeContainerAsync`,
 `loadShortcuts`, `loadFiles`, `getNextContainerId`, `getContainerById`), **18** config keys the
 create/edit form persists, a per-row Run button plus a five-item popup (File Manager, Edit,
-Duplicate, Remove, Storage Info), a one-item Add toolbar, seven downloadable
-`GeneralComponents.Type` parts pinned by `DefaultVersion`, two version constants (`LATEST_VERSION = 19`,
-`UPDATE_WINEPREFIX_VERSION = 16`), and eight `xenvironment/components/` classes the run side
-composes. All produced, never stored:
+Duplicate, Remove, Storage Info), a one-item Add toolbar, seven
+`GeneralComponents.Type` parts — five `isVersioned` and downloadable-or-builtin, SOUNDFONT and
+ADRENOTOOLS_DRIVER installable from file only — against fourteen `DefaultVersion` pins, two
+version constants (`LATEST_VERSION = 19`, `UPDATE_WINEPREFIX_VERSION = 16`), and eight
+`xenvironment/components/` classes the run side composes. All produced, never stored:
 
 ```sh
 grep -n 'public.*(' reference/research_repos/winlator/app/app/src/main/java/com/winlator/container/ContainerManager.java
@@ -3071,3 +3072,115 @@ What the read found, beyond the rows:
   refuses only `delete` — and the file survives a `rootfs-version` bump because the installer
   never clears (`T3`'s arm); the only hazard is a future archive shipping a top-level
   `config.json`, which the image does not carry today.
+
+### The image and the install — verdicts
+
+`T3`'s entries, read down both sides' own files. Theirs: `xenvironment/RootFS.java` (`isValid`,
+`getVersion`, the `imagefs`→`rootfs` rename, `.winlator/.rfs_version`), `xenvironment/
+RootFSInstaller.java` (`LATEST_VERSION`, `UPDATE_WINEPREFIX_VERSION`, `clearRootDir`, `install`,
+`resetContainerRFSVersions`, the progress dialog), `core/TarCompressorUtils.java` (the extract
+loop), `core/GeneralComponents.java` (`Type`, `installed_components`, `extractFile`,
+`getInstallMode`/`isVersioned`), `core/DefaultVersion.java`, the top-level archives
+(`rootfs.tzst`, `rootfs_patches.tzst`, `pulseaudio.tzst`, `container_pattern.tzst`) and the asset
+component folders, `installable_components/` with its `index.txt` manifests,
+`XServerDisplayActivity.java:428-445,1059-1070` (`setupWineSystemFiles` → `applyGeneralPatches`),
+`MainActivity.java:82,102` (where install is kicked), and termux's `TermuxInstaller.java` (the
+staging arm). Ours: `data/space/BaseSpaceInstaller.kt`, `TarZstdExtractor.kt`,
+`SpaceKernelSpec.kt`, `BusyBoxApplets.kt`, `ConsoleScripts.kt`, `SpaceAbi.kt`,
+`AndroidBaseSpace.kt`, `NotebookWorkspace.kt`, `data/disk/NotebookWorkspaceMigration.kt`,
+`BaseSpaceServer.kt` + `StdioLanguageServer.kt` (the two places an install waits),
+`tools/rootfs/` (`Dockerfile`, `build.sh`, `stage-app-artifacts.sh`, `busybox.config`,
+`getaddrinfo_shim.c`, `shebang_exec.c`), the shipped `assets/spaces/base/rootfs-arm64-v8a.tzst`
+read as a tar listing and two extracted members, `jniLibs/`, and the five test suites that pin
+them.
+
+```sh
+grep -n 'isValid\|getVersion\|createRFSVersionFile\|imagefs' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/RootFS.java
+grep -n 'LATEST_VERSION\|UPDATE_WINEPREFIX_VERSION\|clearRootDir\|resetContainerRFSVersions\|getContentLength' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java
+sed -n '148,183p' reference/research_repos/winlator/app/app/src/main/java/com/winlator/core/TarCompressorUtils.java
+grep -n 'enum Type\|isVersioned\|getInstallMode\|installed_components\|index\.txt\|getDestination' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/core/GeneralComponents.java
+grep -n 'setupWineSystemFiles\|applyGeneralPatches\|rootfs_patches\|pulseaudio' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/XServerDisplayActivity.java
+grep -n 'STAGING\|renameTo\|SYMLINKS\|chmod' \
+  reference/research_repos/termux-app/app/src/main/java/com/termux/app/TermuxInstaller.java
+
+zstd -dc app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst | tar -tv > /tmp/rootfs-tv.txt
+grep -c ' -> /bin/busybox' /tmp/rootfs-tv.txt                                    # 304 applet links
+grep -nE 'resolv\.conf|usr/local/bin/|home/jupydroid|kernels/python3/kernel\.json|^.* run/|tmp/' \
+  /tmp/rootfs-tv.txt
+zstd -dc app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst \
+  | tar -xO usr/share/jupyter/kernels/python3/kernel.json                        # the stock spec
+grep -n 'installedVersion\|bundledVersion\|stampVersion\|linkLoader\|linkInterpreter\|relink' \
+  app/src/main/java/com/jupydroid/app/data/space/BaseSpaceInstaller.kt
+git log -G 'BUNDLED_ROOTFS_VERSION' --format='%h' -- \
+  app/src/main/java/com/jupydroid/app/data/space/BaseSpaceInstaller.kt | wc -l   # 9: add + 8 bumps
+```
+
+**One of the surface paragraph's claims was wrong at this SHA and is corrected in place above**:
+`GeneralComponents.Type` has seven members but only five are `isVersioned` and downloadable —
+SOUNDFONT and ADRENOTOOLS_DRIVER install from file alone — and `DefaultVersion` pins fourteen
+names, not one per type (ZINK, VIRGL and friends ride the same class). The install description
+checked out (`clearRootDir` minus `home`/`opt`, stamp on success, `resetContainerRFSVersions`);
+what T1 did not mention is the launch side of that cascade — `setupWineSystemFiles` compares the
+`appVersion`/`rfsVersion` extras and answers a mismatch with `applyGeneralPatches`: a fresh
+`rootfs_patches.tzst` + `pulseaudio.tzst` extract and `WineUtils` tweaks before the
+`wineprefixNeedsUpdate` → `wineboot -u` arm. It is ours' relink, not ours' install, that shares
+that shape.
+
+| Reference entry | Ours | Verdict | Why / id |
+|---|---|---|---|
+| The archive — `rootfs.tzst`: zstd over tar through commons-compress + zstd-jni, a top-level APK asset (`TarCompressorUtils.Type.ZSTD`, `RootFSInstaller.FILENAME`) | `rootfs-arm64-v8a.tzst`: the same format through the same two libraries, an ABI-named asset (`TarZstdExtractor`) | present | `TarZstdExtractor`'s KDoc already cites winlator for "the same archive shape through the same two libraries"; ADR-0012 picked zstd on the measured 16.5 s → 12.3 s |
+| Image provenance — the tzst files are binary assets; no build recipe in the clone | `tools/rootfs/Dockerfile` on digest-pinned `alpine:3.21@sha256` + `requirements.lock` + `busybox.config`, with build-time probes (the trampoline dispatches, the kernel module asserts, `pylsp` starts, the shims interpose, the busybox fingerprint has no suid) | adapted | ours is reproducible from source where theirs is a blob — and the probes fail the image build rather than the device |
+| ABI shape — one `rootfs.tzst` for every device; termux ships a `bootstrap-<abi>.zip` per ABI | `rootfs-arm64-v8a.tzst` alone; `jniLibs` ships both ABIs' ELFs but `SpaceAbi` lists arm64 only and `stage-app-artifacts.sh` deletes the x86_64 asset | adapted | ADR-0003 — x86_64's seccomp filter kills musl startup, so 33 MB nothing could execute is not shipped; the ELFs ride along so the APK installs for UI work |
+| Install-needed — `!isValid \|\| getVersion() < LATEST_VERSION`; `isValid` = dir + stamp file, `getVersion` `Integer.parseInt`s the stamp's first line (garbage or empty throws; absent → 0) (`RootFS.java:37-44`, `RootFSInstaller.java:80-83`) | `installedVersion() != bundledVersion`; a missing or unparsable stamp reads as not-installed (`installedVersion`'s `toIntOrNull`) | adapted | stamp-only trust on both sides — but ours' `!=` re-flashes on a *downgrade* where `<` honours the newer tree, and a corrupt stamp self-heals where `parseInt`/`get(0)` crashes the check itself |
+| Clear-before-extract — `clearRootDir` deletes everything under `files/rootfs` except `home` (the `xuser-<id>` containers) and `opt` (itself cleared minus `installed-wine`), then extracts in place (`RootFSInstaller.java:85-112`) | `TarZstdExtractor.extract` writes over the live tree and never clears | adapted | `home/jupydroid` ships as a bare dir and `pkgs/` is absent from the archive, so user trees survive *by absence* — `NotebookWorkspace`'s KDoc stakes the workspace on the never-wipe; the inverse — entries a new image *dropped* are never removed — is the accretion arm in the findings |
+| Staging — termux extracts to `usr-staging`, builds `SYMLINKS.txt` links, then `renameTo(files/usr)`; a broken staging can never masquerade (`TermuxInstaller.java:154-217`) | none — the extract writes the destination directly | adapted | the stronger variant is termux's; both in-place installers lean on the stamp instead — a mid-write death leaves a mixed or cleared tree *without* the new stamp, so the next check re-extracts either way |
+| Failure arm — extract answers `success`; on `false` a toast, a cleared tree with no stamp, and `installIfNeeded` retries next launch; termux shows an abort/try-again dialog that deletes and re-runs (`RootFSInstaller.java:70-74`, `TermuxInstaller.java:242-264`) | the extract throws → `BaseSpaceServer.startSpace` logs `failed` and rethrows; the old stamp stays → the next start re-extracts | adapted | all three self-heal through the unwritten stamp; ours' residue is a mixed new-over-old tree where theirs' is a cleared one, and logcat stands where they put a dialog — the surface half is the row below |
+| The stamp — `.winlator/.rfs_version` under `.winlator/`, written only on extract `success`; an `IOException` there is `printStackTrace`d and silently retried next launch (`RootFS.java:50-59`, `RootFSInstaller.java:70-73`) | `.jupydroid/rootfs-version`, written only when the extract returned (`stampVersion`, after `entriesWritten`) | present | the same dot-dir-inside-the-tree placement and the same stamp-last ordering — a stamp-write failure means "not installed" on both sides, theirs by swallow, ours by rethrow |
+| The version cascade — a rootfs bump clears every container's `rfsVersion` and flags `wineprefixNeedsUpdate` under ≤ `UPDATE_WINEPREFIX_VERSION`; the next launch's `setupWineSystemFiles` re-extracts the patch layer and `wineboot -u` migrates the prefix (`RootFSInstaller.java:33-45`, `XServerDisplayActivity.java:429-441`) | none — `BUNDLED_ROOTFS_VERSION` is one stamp, bumped eight times since `fc6d171b`, and there are no envs to flag | adapted | the extras-bag carrier exists (T2's row) but there is nothing to cascade into today; `pkgs/lib/python3.12` *would* strand on an interpreter bump — the findings carry that arm |
+| Versioned parts — seven `GeneralComponents.Type`s (five `isVersioned`), fourteen `DefaultVersion` pins, builtin asset folders + `installed_components/<type>/<name>-<ver>.tzst` + `index.txt` manifests, per-type destinations (rootfs / `drive_c/windows` / cache), spinners with a remove-confirm, `generateCompactContainerPattern` repacking the per-container pattern | one blob, one version | **absent** | `GAP-149` — there is no per-part upgrade path: a busybox rebuild or a `jupyter_server` bump costs a whole-image rebuild, a `BUNDLED_ROOTFS_VERSION` bump and a full re-extract |
+| The launch repair pass — `activateContainer` repoints `home/xuser`; `setupWineSystemFiles` compares `appVersion`/`rfsVersion` extras → `applyGeneralPatches` re-extracts `rootfs_patches.tzst` + `pulseaudio.tzst`, applies `WineUtils` tweaks, resets extras (`XServerDisplayActivity.java:169,429-441,1059-1070`) | every launch repoints the loader, the interpreter, `bin/busybox` + its 304 applets and `bin/shebang-exec` + its `usr/local/bin` links, and rewrites `kernel.json` | adapted | the same "the tree is repaired at launch because its pointers moved" shape — ours' mover is `nativeLibraryDir` on every app update (ADR-0002, CLOSED-001), theirs' is the version cascade; the exec model itself is the forced deviation, no parity target |
+| `kernel.json` — the image carries ipykernel's stock spec (`python -m ipykernel_launcher`, `supported_encryption`, `kernel_protocol_version`) and nothing rewrites it — the container's wine path is `setWinePath`'s job at launch | `SpaceKernelSpec.install` rewrites the shipped spec on every launch: argv[0] → the `nativeLibraryDir` interpreter, `-m jupydroid_kernel`, `--log-level=DEBUG`, `metadata.debugger` | adapted | a kernelspec is JSON we own, and argv[0] is the one path execve permits (ADR-0002); the rewrite is total — the two keys it drops ride the findings |
+| Extraction details — every entry `chmod 0771`, `FileUtils.symlink` deletes before linking, hardlinks fall through to plain copies, and `new File(destination, entry.getName())` has no `../` guard (`TarCompressorUtils.java:148-183`, `FileUtils.java:102-108`) | no mode bits at all, a lexical `resolveInside` guard, hardlinks materialised through `copyFrom`, character/block devices and FIFOs skipped | adapted | theirs needs the bits because `filesDir` execve worked at targetSdk 28; ours writes none by design — nothing under `filesDir` can run (ADR-0002) — and guards a crafted archive theirs does not |
+| `etc/resolv.conf` — nothing in the app layer reads or writes one | the image ships it **empty** (0 bytes, mode 0755); DNS is answered by `DnsServerSource` reading `ConnectivityManager` per launch → `JUPYDROID_NAMESERVERS` → `getaddrinfo_shim.c` | adapted | ADR-0005 — musl resolves the *device's* `/etc/resolv.conf`, which Android has never had; the shipped file is residue the findings record |
+| Legacy-dir migration — `RootFS.find` renames `files/imagefs` → `files/rootfs` (`RootFS.java:26-31`) | `NotebookWorkspaceMigration` moves the pre-Space notebooks tree into `home/jupydroid`, stamped under `.jupydroid/` beside the version stamp | adapted | the same "the path moved once; carry the old one forward" act, aimed at the workspace rather than the rootfs |
+| When install runs — `MainActivity` at startup, after permissions, behind `keepScreenOn` and the progress dialog (`MainActivity.java:82,102`, `RootFSInstaller.java:47-77`) | lazily, inside the first `BaseSpaceServer.start` or the first `StdioLanguageServer` spawn | adapted | `baseSpaceLanguageServerPort`'s KDoc states the trade: an app that only browses notebooks never pays for a runtime it did not ask for |
+| Install surface — `DownloadProgressDialog` fed by `getContentLength` (a full decompress pass to count, then a second pass to extract), a toast on failure, termux's abort/retry dialog (`RootFSInstaller.java:54-77`, `TarCompressorUtils.java:185-192`) | `entriesWritten` is counted in the same pass and read by nothing; the kernel indicator's "starting" is the only on-screen account of the install (`KernelStatus`' KDoc names it part of that state) | **absent** | `JD-002` — the Spaces surface this audit already found absent owns the first-install wait, and the count it would display is already produced |
+
+What the read found, beyond the rows:
+
+- **The `ash builtin.md` sentence was mangled by `e421345c`'s citation-drop** — "an ash builtin.
+  Measured in `evidence/…`" became "an ash builtin.md`, which is also where the…" mid-sentence.
+  Repaired in place under T2's KDoc precedent: the naming constraint now cites ADR-0045, which is
+  the decision that records it.
+- **The shipped `etc/resolv.conf` is empty, executable and owned by nothing.** Alpine residue —
+  musl resolves the device's `/etc/resolv.conf`, which Android lacks, so the file is dead weight
+  either way; `JUPYDROID_NAMESERVERS` is the live arm. Recorded because a reader who finds it in
+  the image will ask who maintains it: nobody does, and it costs nothing.
+- **The `kernel.json` rewrite is total.** The image's stock spec carries
+  `supported_encryption: curve` and `kernel_protocol_version: 5.5`; `SpaceKernelSpec` keeps
+  neither. Harmless today — `jupyter_client` defaults both — but any field a future ipykernel
+  adds to the shipped spec is silently lost at install.
+- **`pkgs/` strands on an interpreter bump.** `PYTHONUSERBASE=pkgs` grounds user site-packages
+  under `pkgs/lib/python3.12/`; a rootfs bump shipping 3.13 leaves that tree installed but
+  invisible — `pkgs/lib/python3.13/` starts empty and nothing flags the old one. That is exactly
+  the arm `wineprefixNeedsUpdate` exists for, and all eight bumps so far kept python3.12, so it
+  has never fired — recorded so the first interpreter bump prices it instead of discovering it.
+- **`run/`, `tmp/`, `tmp/spaces/` are image-provided scaffolding.** `JupyterServerLauncher`'s
+  `runtimeDir` and `SpaceRuntime`'s `TMPDIR` exist on device because the archive carries them;
+  nothing at install creates them if a future image drops them.
+- **Two install arms, two mutexes — benign by construction.** `BaseSpaceServer.startLock` and
+  `StdioLanguageServer.ServerPool.startup` each serialize their own `installIfNeeded`, but a
+  first kernel and a first LSP can race into the same `files/spaces/base` tree. Both writers lay
+  the same bytes through delete-then-write, so interleaved writes agree; the worst arm is a
+  `FileAlreadyExistsException` on a shared symlink path, which fails the install and self-heals
+  on the next start.
+- **Winlator's extractor has no `../` guard.** `new File(destination, entry.getName())` writes
+  wherever the name resolves; `resolveInside` is ours' stronger arm, cheap because the archive is
+  ours too — recorded so a later reader does not mistake the guard for parity.
+- **`getContentLength` pays a whole second decompress for the progress number.** Ours counts
+  `entriesWritten` inside the one pass — the measurement half of the absent surface already
+  exists and is read by nothing.

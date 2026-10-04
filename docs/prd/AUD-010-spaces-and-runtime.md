@@ -292,7 +292,8 @@ map `argv[0]`/console-script names to the real entry points), a stripped
 layout (`strip-all`, `rfc3987-syntax-out` ADR-0014). `stage-app-artifacts.sh`
 produces `rootfs-arm64-v8a.tzst` → the APK asset; arm64-only (ADR-0003);
 extracted once at `files/spaces/base/` with `rootfs-version` as the stamp
-(ADR-0007), executable paths relinked into `nativeLibraryDir` *every* launch
+(`BaseSpaceInstaller`'s KDoc — no ADR records it), executable paths relinked into
+`nativeLibraryDir` *every* launch
 (ADR-0002, CLOSED-001 — `nativeLibraryDir` is not stable across updates).
 That last act — the launch-time relink — is the one thing neither reference
 has to do, because neither runs on targetSdk 36.
@@ -391,7 +392,7 @@ has to do, because neither runs on targetSdk 36.
   `Container`/`ContainerManager`/`Shortcut`/`.container` — identity,
   config schema/defaults, create/rename/delete/duplicate/activate/browse,
   the unwired-state verdict, `pythonVersion`'s honesty.
-- [ ] **T3 — the image and the install.** `BaseSpaceInstaller`/
+- [x] **T3 — the image and the install.** `BaseSpaceInstaller`/
   `TarZstdExtractor`/`SpaceKernelSpec`/`BusyBoxApplets`/`ConsoleScripts`/
   `tools/rootfs` vs `RootFS`/`RootFSInstaller`/`installable_components`/
   `DefaultVersion`/`GeneralComponents` + termux's staging — stamp vs

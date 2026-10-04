@@ -17,10 +17,9 @@ import java.nio.file.Files
  *
  * **Repairing `bin/sh` alone is not enough, and the obvious gate hides it.** A shell whose `ls`,
  * `cat`, `grep` and `vi` are all *not found* still answers `sh -c 'echo ok'`, because `echo` is an
- * ash builtin.md`, which is also where the
- * naming constraint comes from: busybox reads its applet from the **basename** of the path it is
- * reached by, and its `argv[1]` fallback engages only for a basename prefixed `busybox` - which
- * `libbusybox.so` is not.
+ * ash builtin. The naming constraint is the one ADR-0045 records: busybox reads its applet from the
+ * **basename** of the path it is reached by, and its `argv[1]` fallback engages only for a basename
+ * prefixed `busybox` - which `libbusybox.so` is not.
  *
  * **One maintained link rather than 305.** `bin/busybox` points into `nativeLibraryDir`, which
  * moves on every app update; the applets point *relatively* at `bin/busybox`, so they can never go

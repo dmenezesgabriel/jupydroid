@@ -1920,6 +1920,20 @@ today — exactly one Python exists — and inert by construction: a hand-edited
 it. The repair is either a real per-Space interpreter story (a second Python in the image, or a
 selection read of the field) or dropping the field until one exists.
 
+### GAP-149 — A rootfs is one blob; no part of it versions alone
+
+`GeneralComponents.Type` enumerates seven installable parts — box64, turnip, dxvk, vkd3d,
+wined3d, soundfont, an adrenotools driver — each with builtin copies in the asset folders,
+downloaded versions under `installed_components/<type>/` listed by `index.txt` manifests, and
+`DefaultVersion` pins to fall back on (`core/GeneralComponents.java`, `core/DefaultVersion.java`
+and `installable_components/` in the winlator clone). A part can be replaced, upgraded or
+uninstalled without touching the image, and `SettingsFragment` picks the version. Ours ships one
+blob: `rootfs-arm64-v8a.tzst` is the only artifact and `BUNDLED_ROOTFS_VERSION` the only version,
+so a busybox rebuild or a `jupyter_server` bump costs a whole-image rebuild, a version bump and a
+full re-extract. The blob is also why the reinstall story stays simple — there is nothing to
+upgrade but the whole — and per-part archives would reopen it: each part would need its own stamp
+and its own answer to the cascade question the audit's findings already record for `pkgs/`.
+
 ---
 
 ## 12. Glossary
