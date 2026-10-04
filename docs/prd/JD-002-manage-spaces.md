@@ -172,7 +172,7 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
   moves no existing item. Placing it after `FILES` matches its importance. **Default: after `FILES`.**
   Every Maestro selector on the rail is a text label rather than an index (checked in T2 by grepping
   `.maestro/` for rail `index:`/`point:`), so the order is free. ADR-0062 gets the sentence either
-  way.
+  way. **Settled in T2: after `FILES`**, and ADR-0062 carries it.
 - **The name dialog: generalise `RenameFileDialog` or write a second one.** Two dialogs would
   duplicate the focus-on-open fix and the unchanged-is-dismiss rule (both are in its KDoc).
   **Default: parametrise.** Pass the validator, its refusal message and the initial selection, and
@@ -205,7 +205,7 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
       Spaces in `inSpaceOrder`, a `busy` flag, and the last failure's message. `create`, `rename`
       and `delete` each run on `viewModelScope`, refuse to start while busy, and re-list when they
       finish. JVM tests come first, including the failure surfacing.
-- [ ] T2 — `SidePanel.SPACES` on the rail (label, icon, position per Open decisions) and the
+- [x] T2 — `SidePanel.SPACES` on the rail (label, icon, position per Open decisions) and the
       `SpacesSidePanel` list: each row shows the name with `id · created` underneath, and a
       progress bar shows while busy. An instrumented test proves the panel is reachable from the
       rail and lists base.
