@@ -79,8 +79,9 @@ done
 ```
 
 The six document-and-language packages read 0. `theme` and `richtext`'s renderer are Compose by
-design. `ArchitectureGuardTest` covers the `domain` half of this claim, so what can go stale in the
-command's output is the denominator, not the rule.
+design. `ArchitectureGuardTest` now covers all six roots the command counts — the one it missed,
+`glob/`, is the drift `GAP-006`'s repair closed — so what can go stale in the command's output is
+the denominator, not the rule.
 
 `terminal` is the one departure a reference forced a choice on: Termux's `TerminalEmulator` reaches
 for `android.util.Base64` on its OSC path, where `java.util.Base64` does the same job — the strict
@@ -143,22 +144,23 @@ already share rather than opening a second one.
 `Space` is a **first-class domain type** (`files/spaces/<id>/`), not a string. Named after SageMaker
 Studio rather than "environment", which would collide with the Python environments living inside one.
 
-## 5.4 Dependency rules — what is enforced, and what is only true
+## 5.4 Dependency rules — all enforced
 
-`ArchitectureGuardTest` enforces the domain layer's purity, and only that. The other three rules hold
-today — checked by grep, zero hits each — with nothing keeping them true.
+`ArchitectureGuardTest` enforces the whole table. One row needed restating before it could be
+gated: the documented "`ui` never imports `data`" was already false when measured — `ui` classes
+take port-typed parameters defaulting to `Fake*`, which *is* the manual-DI mechanism (§5.6) — so
+the rule that holds is that `ui` names no *real* adapter package. And "constructs" reads as
+"names": the guard scans code lines for the qualified package, so an import and a spelled-out
+reference trip it alike while a KDoc `[…]` citation does not.
 
 | Rule | Status |
 |---|---|
 | `domain` imports no `android.*` | **enforced** — `ArchitectureGuardTest.domainLayer_hasSources_withZeroAndroidImports` |
 | `domain` imports no `data`/`ui`/`di` | **enforced** — `ArchitectureGuardTest.domainLayer_doesNotImportOtherLayers` |
-| `ui` never imports `data` | true today, **unguarded** |
-| `data` never imports `ui` | true today, **unguarded** |
-| `AppContainer` is the only place that constructs implementations | true today, **unguarded** — `JupydroidApplication` builds the container; nothing else builds an adapter |
-
-Extending the guard to the last three is a code change, tracked as `GAP-006` in
-[`../architecture.md` §11](../architecture.md). It would go green immediately, which is the point of
-a regression gate.
+| doc/language packages import no `android.*` — all six §5.2 names | **enforced** — `ArchitectureGuardTest.documentAndLanguageModules_haveSources_withZeroAndroidImports` |
+| `ui` names no real adapter (`data.disk`/`space`/`intent`; `data.fake` is the DI default) | **enforced** — `ArchitectureGuardTest.uiLayer_namesNoRealAdapterPackages` |
+| `data` names no `ui`/`di` | **enforced** — `ArchitectureGuardTest.dataLayer_namesNoUiOrDi` |
+| real adapters are named only inside `data/` and at the composition root (`di/`, `JupydroidApplication`) | **enforced** — `ArchitectureGuardTest.realAdapters_areNamedOnlyInsideDataOrTheCompositionRoot` |
 
 ## 5.5 Domain data model
 

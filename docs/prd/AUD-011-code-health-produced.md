@@ -225,7 +225,7 @@ command answers it and nothing gates the answer; **convention** = neither.
 
 ## Tasks
 
-- [ ] **T1 — `GAP-006`: the three dependency rules gated.** `ArchitectureGuardTest` gains the rules
+- [x] **T1 — `GAP-006`: the three dependency rules gated.** `ArchitectureGuardTest` gains the rules
   in their true shape — `ui` names no `data.disk`/`space`/`intent` (a `data.fake` default stays
   legal), `data` names no `ui`/`di`, and `data.{disk,space,intent}` is named only inside `data/`,
   `di/` and `JupydroidApplication.kt`, scanned for the qualified reference rather than `import`

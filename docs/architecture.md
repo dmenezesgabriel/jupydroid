@@ -329,12 +329,16 @@ keyboard, and dismissing it again. Closing it means a press on a cell's chrome s
 command mode, as `applyingFrom` already does for the menu. The four key bindings, and the header's
 Run, then sit on that one primitive. `withCellSelected` already exists and leaves the mode alone.
 
-### GAP-006 — Three dependency rules hold only by convention
+### GAP-006 — Three dependency rules held only by convention
 
-`ui ↛ data`, `data ↛ ui`, and "`AppContainer` is the only place that constructs implementations" are
-true today by grep and unguarded by any test —
-[§5.4](architecture/building-blocks.md). Extending `ArchitectureGuardTest` would go green immediately,
-which is exactly what a regression gate is for.
+Repaired where it was measured, with one correction: the documented `ui ↛ data` was already false —
+eight `ui/` files import `data.fake.*` as constructor defaults, which is the manual-DI mechanism
+[§5.6](architecture/building-blocks.md) prescribes. The rules as they actually hold are now gated by
+`ArchitectureGuardTest`: `ui` names no real-adapter package (`data.disk`/`space`/`intent`), `data`
+names no `ui`/`di`, and a real adapter is named only inside `data/` and at the composition root
+(`di/`, `JupydroidApplication.kt`) — [§5.4](architecture/building-blocks.md). The same pass found
+`glob/` absent from the purity guard's package list — §5.2 counted it, the guard never did — and it
+is in it now.
 
 ### GAP-010 — No server-generation signal reaches the editor
 
