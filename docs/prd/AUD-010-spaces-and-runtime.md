@@ -32,14 +32,15 @@ The reference is `winlator` for what it offers: it is the app's whole model —
 a user browses a list of installed *containers*, each a directory under
 `files/containers/<id>` with a `.container` config inside, sitting on a
 *rootfs* the app extracted once into `files/rootfs`; containers are created,
-edited, duplicated, activated, removed, browsed; the rootfs carries a
-`pkg_version` stamp the installer compares against the app's pinned
-`DefaultVersion`. Its authority here is the same shape the app's own ADRs
-already cite: ADR-0007 (`rootfsVersion.txt`), ADR-0010 (a Space is a
-directory; its id comes from the scan), ADR-0011 (site-packages inside the
-Space dir), and three KDocs that name winlator paths (`SpaceConfig`'s
-`container_pattern.tzst`, `DiskSpaceRepository`'s `ContainerManager.scan`,
-`BaseSpaceInstaller`'s `RootFSInstaller`).
+edited, duplicated, removed, browsed, run — the run marks one active for
+`XrActivity`; the rootfs carries a `rootfsVersion.txt` stamp the installer
+compares against the app's pinned `LATEST_VERSION`. Its authority here is
+the same shape the app's own ADRs already cite: ADR-0007
+(`rootfsVersion.txt`), ADR-0010 (a Space is a directory; its id comes from
+the scan), ADR-0011 (site-packages inside the Space dir), and three KDocs
+that name winlator paths (`SpaceConfig`'s `container_pattern.tzst`,
+`DiskSpaceRepository`'s `ContainerManager` scan, `BaseSpaceInstaller`'s
+`RootFSInstaller`).
 
 The area at five scales:
 
@@ -62,9 +63,9 @@ The area at five scales:
   `WineUtils.saveToFile`/`updateWineprefix`.
 - **The surfaces.** Where the lifecycle is shown: the Space is invisible in
   the UI today — no list, no detail, no menu — while winlator's
-  `ContainersFragment` + `container_popup_menu.xml` (Run, Settings, Duplicate,
-  Export, Remove, Info, file manager) is the app's home screen, and
-  `ContainerDetailFragment` is its form.
+  `ContainersFragment` (a Run button per row; a per-item popup of File
+  Manager, Edit, Duplicate, Remove, Storage Info) is the app's home screen,
+  and `ContainerDetailFragment` is its create/edit form.
   Reference: `ContainersFragment`, `ContainerDetailFragment`,
   `ContainerFileManagerFragment`, `ShortcutsFragment`, `SettingsFragment`,
   `main_menu.xml`, `container_popup_menu.xml`, `containers_menu.xml`.
@@ -114,10 +115,10 @@ comes from a reproducible command:
 
 ```sh
 # the lifecycle verbs the reference ships
-grep -o 'public [A-Za-z<>() ,\[\]]*Container' \
-  reference/research_repos/winlator/app/app/src/main/java/com/winlator/container/ContainerManager.java | sort -u
+grep -n 'public.*(' \
+  reference/research_repos/winlator/app/app/src/main/java/com/winlator/container/ContainerManager.java
 # the config keys a container persists
-grep -o 'data\.put("[A-Z_]*"' \
+grep -o 'data\.put("[a-zA-Z_0-9]*"' \
   reference/research_repos/winlator/app/app/src/main/java/com/winlator/ContainerDetailFragment.java | sort -u
 # the per-container menu and the list's menu
 cat reference/research_repos/winlator/app/app/src/main/res/menu/container_popup_menu.xml
@@ -128,7 +129,7 @@ ls reference/research_repos/winlator/installable_components/
 grep -o 'Type\.[A-Z_]*' \
   reference/research_repos/winlator/app/app/src/main/java/com/winlator/core/GeneralComponents.java | sort -u
 cat reference/research_repos/winlator/app/app/src/main/java/com/winlator/core/DefaultVersion.java
-grep -n 'rootfsVersion.txt\|IMAGE_VERSION\|getVersion\|isInstalled\|isValid' \
+grep -n 'LATEST_VERSION\|UPDATE_WINEPREFIX_VERSION\|getRFSVersionFile\|getVersion\|isValid\|clearRootDir\|resetContainerRFSVersions' \
   reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/RootFS.java \
   reference/research_repos/winlator/app/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java
 # the run side
@@ -185,46 +186,58 @@ The lifecycle, end to end:
   sdlHapticFeedback), and state (winePrefixNeedsUpdate).
 - **Acts.** `createContainerAsync` (background thread → `Container.createDir`
   → save → callback), `duplicateContainerAsync` (`FileUtils.deepCopy` the
-  dir under a fresh id), `activateContainer` (marks `activeContainer` for
-  `XrActivity`), `removeContainerAsync` (`FileUtils.delete` the dir,
+  dir under a fresh id), `removeContainerAsync` (`FileUtils.delete` the dir,
   `onRemoveContainer` closes `XServerDisplayActivity` if running it),
-  `editContainer`/`saveData` (in-place `.container` rewrite), and
-  `importContainer` (reads a `.wic` export tar).
+  `saveData` (in-place `.container` rewrite, 18 keys), and
+  `activateContainer` — not a user act but the run path's mark: when
+  `XServerDisplayActivity` launches a container it records it as the live
+  one for `XrActivity` to pick up.
 - **Config migration is an act of its own.** `updateWineprefix` flips
   `winePrefixNeedsUpdate=false` after running `WineRegistryEditor` +
   `WineStartMenuCreator` + `WineThemeManager` — schema change is a
   *migration pass on next launch*, not a config rewrite.
 - **The rootfs is separate, versioned, and read-only to containers.**
-  `RootFS.isValid` = `usr` + `opt` + `wine` + `home` + `.sys` + `lib` exist;
-  `getVersion` reads `opt/rootfsVersion.txt` (int); `isInstalled` = valid +
-  version equal. `RootFSInstaller.installIfNeeded` compares
-  `IMAGE_VERSION = 18` (or `pkg_version` on a newer scheme) and extracts
-  `rootfs.tzst` only when the stamp differs — and `Container.createDir`
-  creates the container's own `root` dir as its `drive_c` view *into* the
-  shared rootfs (`rootfs/home/xuser` ⇄ `container/root` via `.sys`). A
-  container is cheap; the image is the heavy thing and it is shared.
-- **Install is staged and the stamp is written last-by-construction.**
-  `installIfNeeded` extracts then the caller shows the new version; Termux
-  does the same stronger: zip → `usr-staging` → `renameTo(usr)` — a
-  half-extracted staging dir can never masquerade as installed.
+  `RootFS.isValid` = `files/rootfs` is a dir + `.winlator/.rfs_version`
+  exists; `getVersion` parses that stamp's first line. `installIfNeeded`
+  extracts `rootfs.tzst` (a top-level asset, with `rootfs_patches.tzst`
+  beside it) whenever `!isValid || version < LATEST_VERSION (=19)` — and
+  `Container.createDir` creates the container's own `root` dir as its
+  `drive_c` view *into* the shared rootfs (`rootfs/home/xuser` ⇄
+  `container/root` via `.sys`). A container is cheap; the image is the
+  heavy thing and it is shared.
+- **Install clears-then-extracts in place, preserving user dirs, and the
+  stamp is written last.** `clearRootDir` deletes everything under
+  `files/rootfs` **except `home` and `opt`** (and `opt`'s `installed-wine`),
+  then the extract runs into the live dir, then — on success only —
+  `createRFSVersionFile(LATEST_VERSION)` and `resetContainerRFSVersions`:
+  every container's `rfsVersion` extra is cleared, and any provisioned
+  under ≤ `UPDATE_WINEPREFIX_VERSION (=16)` on the main wine gets
+  `wineprefixNeedsUpdate=t` — the rootfs bump *cascades* into per-container
+  migration flags read on next launch. Termux is the stronger variant:
+  zip → `usr-staging` → `renameTo(usr)` — a half-extracted staging dir can
+  never masquerade as installed.
 - **Components are downloadable.** `installable_components/` carries
-  rootfs, container_pattern, box64, dxvk, turnip, vkd3d, wined3d;
-  `GeneralComponents.Type` enumerates ~19 downloadable parts;
+  box64, dxvk, turnip, vkd3d, wined3d (rootfs + container_pattern ship as
+  top-level assets); `GeneralComponents.Type` enumerates seven downloadable
+  parts;
   `DefaultVersion` pins each (box64 `0.4.0`, turnip `26.1.0`, …);
   `SettingsFragment` shows installed-vs-downloadable and lets the user pick
   versions. The env is a *set of versioned parts*, not one blob.
 - **The surfaces are the app.** `main_menu.xml` drawer: Containers,
   Shortcuts, Input Controls, Settings. `ContainersFragment` is the default
-  view; per-item `container_popup_menu.xml`: Run, Settings, Duplicate,
-  Export (`.wic`), Remove, Storage Info (`StorageInfoDialog`), Open File
-  Manager (`ContainerFileManagerFragment` over the container dir — the
-  container is also a browsable filesystem). `containers_menu.xml` adds
-  New/Import/Sort/View/Refresh. `ContainerDetailFragment` is the create/
-  edit form — every config key above is a field. `ShortcutsFragment` lists
-  per-container `.desktop` entries (from `container/desktop` +
-  `wineprefix/drive_c/.../Desktop`), and `ShortcutSettingsDialog` gives a
-  shortcut *per-entry overrides* of the container config (`putExtra`/
-  `getExtra` extras bag, read in `XServerDisplayActivity`).
+  view — each row carries a Run button (`runContainer` →
+  `XServerDisplayActivity`/`XrActivity`), and the per-item
+  `container_popup_menu.xml` holds five verbs: File Manager
+  (`ContainerFileManagerFragment` over the container dir — the container is
+  also a browsable filesystem), Edit, Duplicate, Remove, Storage Info
+  (`StorageInfoDialog`), Duplicate and Remove behind `ContentDialog.confirm`.
+  The list's toolbar `containers_menu.xml` carries a single Add.
+  `ContainerDetailFragment` is the create/edit form — every config key above
+  is a field. `ShortcutsFragment` lists per-container `.desktop` entries
+  (from `container/desktop` + `wineprefix/drive_c/.../Desktop`), and
+  `ShortcutSettingsDialog` gives a shortcut *per-entry overrides* of the
+  container config (`putExtra`/`getExtra` extras bag, read in
+  `XServerDisplayActivity`).
 - **The run side composes components.** `XServerDisplayActivity` builds an
   `XEnvironment`, adds `EnvironmentComponent`s (`XServerComponent`,
   `PulseAudioComponent`, `XorgComponent`/`XrComponent`, `SteamComponent`,
@@ -298,10 +311,10 @@ has to do, because neither runs on targetSdk 36.
 | --- | --- | --- | --- |
 | Identity | dir name = id; scan is truth | `files/spaces/<id>`; `SPACE_ID_PREFIX`, `nextSpaceId` | shape matches (ADR-0010) |
 | Config | `.container` JSON, literal-default `data.get`, in-dir | `config.json`, `spaceWithId` field-by-field | shape matches; `pythonVersion` is metadata-only — no real selection yet |
-| Acts | create/dup/edit/remove/activate/import/export/browse | `SpaceRepository` (list/create/rename/delete) | exists but **zero production callers** — `AppContainer` never builds it; JD-002's ground |
-| Rootfs | `files/rootfs`, `rootfsVersion.txt` + `isValid` six-dir check | `files/spaces/base`, `rootfs-version` stamp, `isInstallComplete` = stamp equals | stamp matches; validity is stamp-only, no dir-shape check |
-| Install | `installIfNeeded` on version diff; termux's staging rename | `BaseSpaceInstaller`: extract to `tmp`, `renameTo(root)`, write stamp | staged like termux; **stamp written last** — a crash mid-extract can't masquerade |
-| Reinstall semantic | rootfs re-extract *preserves* `home/` (containers' data lives outside) | re-extract `files/spaces/base` — and `home/jupydroid` (the workspace) lives *inside* | **the audit's loudest question**: does a version bump delete user files? |
+| Acts | create/duplicate/edit/remove/browse; activate-by-run | `SpaceRepository` (list/create/rename/delete) | exists but **zero production callers** — `AppContainer` never builds it; JD-002's ground |
+| Rootfs | `files/rootfs`, `.winlator/.rfs_version` stamp; `isValid` = dir + stamp | `files/spaces/base`, `.jupydroid/rootfs-version` stamp; install-needed = `installedVersion != bundledVersion` | same stamp shape; winlator's validity adds only file-existence |
+| Install | clear-except-`home`/`opt` → extract in place → stamp last; version bump cascades `wineprefixNeedsUpdate` to containers | `BaseSpaceInstaller`: extract in place (no clear) → relink → stamp last | same stamp-last ordering; **no clear** — entries a new image dropped linger, user files survive by absence from the archive |
+| Reinstall semantic | `clearRootDir` preserves `home/` and `opt` across the bump | `TarZstdExtractor` writes over `files/spaces/base`, leaving `home/jupydroid` (the workspace) untouched by construction | both preserve user files; winlator's is a named exception, ours is absence — stale-entry accretion is ours alone |
 | Surfaces | Containers list/detail/popup, file manager, shortcuts, settings | none — no Space UI exists | absent as a surface; present-but-unreachable underneath (JD-002) |
 | Runtime | `EnvironmentComponent`s + proot + envvars per container run | `SpaceRuntime` ProcessBuilder + env, `JupyterServerLauncher`, one `BaseSpaceServer` | one server vs per-container envs — the coupling the audit reads |
 | Components | downloadable, versioned, pickable (`GeneralComponents`, `DefaultVersion`) | one blob, one version | absent (GAP candidate) — no per-part upgrade path |
@@ -323,11 +336,12 @@ has to do, because neither runs on targetSdk 36.
   Whether that field is honest metadata or a lie in the file is a verdict,
   not a guess.
 - **The rootfs-per-Space layout changes the reinstall semantics.** winlator
-  can re-extract its rootfs because nothing user-visible lives inside it;
-  `files/spaces/base` contains `home/jupydroid` — the served workspace. The
-  diff between "version bump → fresh rootfs, data preserved" (reference)
-  and "version bump → ???" (ours, if re-extract ever lands) must be read
-  against `NotebookWorkspace`/`JD-003` before any verdict.
+  clears its rootfs on a bump precisely because it names the two dirs to
+  keep (`home`, `opt`); `files/spaces/base` contains `home/jupydroid` —
+  the served workspace — and ours answers the same constraint by *never
+  clearing*: user data survives by absence from the archive, and the cost
+  is that nothing ever removes what a new image dropped. That asymmetry,
+  not a destroy-path, is what the verdict has to weigh.
 - **One server vs N environments is the app's deliberate simplification.**
   `BaseSpaceServer` owns one lazy shared server; winlator runs one env per
   Activity. Whether per-Space servers are a `GAP`, a `JD`, or a documented
@@ -338,11 +352,12 @@ has to do, because neither runs on targetSdk 36.
 - Is `SpaceRepository` shipped-but-unreachable the intended `JD-002` ground
   (a `GAP` for the surface, machinery already `present`), or does the audit
   name its unwired state a `defect`? The ledger verdict decides.
-- What is the *stated* reinstall semantic for `files/spaces/base` —
-  is there a path where `rootfs-version` bumps and the workspace inside is
-  destroyed? Read `NotebookWorkspace`, `JD-003`'s migration
-  (`NotebookWorkspaceMigration`), and the `home/jupydroid` layout before
-  any verdict; a real destroy-path is a `defect`, an absent one is a `GAP`.
+- The reinstall semantic is settled by construction — `TarZstdExtractor`
+  never clears, so a `rootfs-version` bump cannot destroy `home/jupydroid`
+  — but its inverse is the open verdict: entries a new image *dropped* are
+  never removed either (winlator's `clearRootDir` is the absent arm), and
+  `installedVersion` compares stamps only, never a shape check. Stale
+  accretion + stamp-only validity: `adapted`, `GAP`, or `defect`?
 - Does a second Space's *existence* (a `space-1` dir on disk) perturb the
   base server's `JUPYDROID_SPACE_ROOT`/kernelspec/`drive`-equivalent
   (`NotebookWorkspace`) — i.e. is the coupling leak already live, or does
@@ -388,7 +403,7 @@ has to do, because neither runs on targetSdk 36.
 
 - A Spaces UI — the audit *finds* it absent (and likely a `GAP`/`JD`), it
   does not build it.
-- Per-Space servers, downloadable components, `.wic`-style export —
+- Per-Space servers, downloadable components, Space export/import —
   findings, not implementation.
 - The `JD-NNN` items this audit opens — each gets its own session, PRD,
   demo, and commit, per AGENTS.md.
