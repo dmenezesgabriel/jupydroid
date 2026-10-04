@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.flow
  *
  * ```
  * BaseSpaceTerminalGateway(
- *   server = baseSpaceServer(context, baseSpaceServerLauncher(context))!!,
+ *   server = baseSpaceServer(context, spaceServerLauncher(context))!!,
  *   gatewayFor = { RealTerminalGateway(OkHttpTerminalSocketOpener(it), OkHttpTerminalLifecycle(it)) },
  * )
  * ```

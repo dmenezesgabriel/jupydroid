@@ -24,16 +24,18 @@ import kotlin.time.Duration.Companion.seconds
  * bound in its runtime file, which removes the race in picking a free port and
  * hoping it is still free a moment later.
  *
+ * Every per-Space input - the environment, the runtime dir, the Contents API root - is derived
+ * from the Space [start] is handed, so one launcher serves whichever Space it is asked for.
+ *
  * ```
- * JupyterServerLauncher(baseSpaceRuntime(context), File(filesDir, "spaces/base/run")).start(space)
+ * spaceServerLauncher(context).start(space)
  * ```
  */
 class JupyterServerLauncher(
-  private val runtime: SpaceRuntime,
-  private val runtimeDir: File,
-  /** Where the server's Contents API is rooted - the same directory the app reads notebooks from. */
-  private val rootDir: File,
-  /** What terminado spawns in a pseudoterminal; see [jupyterServerArgs]. */
+  private val runtimeFor: (Space) -> SpaceRuntime,
+  /** Where a Space's server writes its runtime files and roots its Contents API. */
+  private val dirsFor: (Space) -> SpaceDirs,
+  /** What terminado spawns in a pseudoterminal; see [jupyterServerArgs]. Shared, like the rootfs it is in. */
   private val shell: File,
   private val startTimeout: Duration = START_TIMEOUT,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -51,13 +53,14 @@ class JupyterServerLauncher(
 
   override suspend fun start(space: Space): ServerConnection {
     stop()
+    val dirs = dirsFor(space)
     val started = withContext(ioDispatcher) {
-      runtimeDir.mkdirs()
-      JupyterRuntimeFile.clear(runtimeDir) // a stale file would advertise a dead port
-      jupyterServerProcess(runtime, runtimeDir, rootDir, shell, token).start()
+      dirs.ensure()
+      JupyterRuntimeFile.clear(dirs.runtime) // a stale file would advertise a dead port
+      jupyterServerProcess(runtimeFor(space), dirs.runtime, dirs.workspace, shell, token).start()
     }
     process = started
-    return awaitConnection() ?: failStart(started)
+    return awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
   }
 
   override suspend fun stop() {
@@ -73,7 +76,7 @@ class JupyterServerLauncher(
    */
   fun exitCode(): Int? = process?.takeIf { !it.isAlive }?.exitValue()
 
-  private suspend fun awaitConnection(): ServerConnection? = withTimeoutOrNull(startTimeout) {
+  private suspend fun awaitConnection(runtimeDir: File): ServerConnection? = withTimeoutOrNull(startTimeout) {
     while (true) {
       val runtimeFile = withContext(ioDispatcher) { JupyterRuntimeFile.read(runtimeDir) }
       if (runtimeFile != null) return@withTimeoutOrNull runtimeFile.toConnection()
@@ -84,16 +87,14 @@ class JupyterServerLauncher(
     null
   }
 
-  private suspend fun failStart(started: Process): Nothing {
+  private suspend fun failStart(started: Process, runtimeDir: File): Nothing {
     stop()
-    val log = withContext(ioDispatcher) { logFile().takeIf { it.isFile }?.readText().orEmpty() }
+    val log = withContext(ioDispatcher) { jupyterServerLogFile(runtimeDir).takeIf { it.isFile }?.readText().orEmpty() }
     throw IllegalStateException(
       "jupyter_server did not report a port within $startTimeout " +
         "(alive=${started.isAlive}); log:\n${log.takeLast(LOG_EXCERPT)}",
     )
   }
-
-  private fun logFile(): File = jupyterServerLogFile(runtimeDir)
 
   private fun JupyterRuntimeFile.toConnection() =
     ServerConnection(baseUrl = url.ifBlank { "http://127.0.0.1:$port/" }, port = port, token = token)
@@ -130,9 +131,8 @@ internal fun jupyterServerProcess(
   // (`terminado/management.py:225-232`). Without this line a shell opens on Android's read-only
   // `/`. See [JupyterServerWorkingDirTest].
   //
-  // [rootDir] is guaranteed to exist rather than created here: the only path that starts this
-  // launcher is `BaseSpaceServer.startSpace`, which calls `installSpace()` first, and the rootfs
-  // tarball carries `home/jupydroid/`. A cwd that does not exist would make `start()` throw.
+  // [rootDir] is guaranteed to exist rather than created here: `JupyterServerLauncher.start` runs
+  // `SpaceDirs.ensure()` first. A cwd that does not exist would make `start()` throw.
   .directory(rootDir)
   .redirectErrorStream(true)
   .redirectOutput(jupyterServerLogFile(runtimeDir))

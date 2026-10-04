@@ -1,7 +1,6 @@
 package com.jupydroid.app.data.space
 
 import android.content.Context
-import android.net.ConnectivityManager
 import android.os.Build
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.port.LanguageServerPort
@@ -25,24 +24,6 @@ fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpace
   loaderLinkPath = abi.loaderLinkPath,
 )
 
-/** Command line and environment for the installed base Space's interpreter. */
-fun baseSpaceRuntime(context: Context): SpaceRuntime = SpaceRuntime(
-  spaceDir = baseSpaceDir(context),
-  nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
-  dnsServers = androidDnsServerSource(context),
-)
-
-/**
- * The device's current DNS servers, read fresh on every call rather than cached: they can
- * legitimately differ across networks (home Wi-Fi vs. mobile data), and [SpaceRuntime] reads
- * this on every process launch rather than once at install.
- */
-fun androidDnsServerSource(context: Context): DnsServerSource = DnsServerSource {
-  val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
-  val link = connectivityManager?.getLinkProperties(connectivityManager.activeNetwork)
-  link?.dnsServers?.mapNotNull { it.hostAddress }.orEmpty()
-}
-
 fun baseSpaceDir(context: Context): File = spaceDirIn(spacesDir(context), BASE_SPACE.id)
 
 /**
@@ -52,11 +33,10 @@ fun baseSpaceDir(context: Context): File = spaceDirIn(spacesDir(context), BASE_S
  */
 fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir(context))
 
-/** Runs jupyter_server out of the installed base Space, on loopback. */
-fun baseSpaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServerLauncher(
-  runtime = baseSpaceRuntime(context),
-  runtimeDir = File(baseSpaceDir(context), "run"),
-  rootDir = notebookWorkspace(context),
+/** Runs jupyter_server out of whichever Space `start` is handed, on loopback, off base's rootfs. */
+fun spaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServerLauncher(
+  runtimeFor = { space -> spaceRuntime(context, space) },
+  dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir(context), space.id)) },
   shell = spaceShellIn(baseSpaceDir(context)),
 )
 

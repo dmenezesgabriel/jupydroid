@@ -32,7 +32,7 @@ data class StartedServer(val connection: ServerConnection, val generation: Int)
  * ```
  * val space = BaseSpaceServer(
  *   installSpace = { baseSpaceInstaller(context).installIfNeeded() },
- *   launcher = baseSpaceServerLauncher(context),
+ *   launcher = spaceServerLauncher(context),
  * )
  * PerRunningServer(space) { RealKernelGateway(OkHttpKernelSocketOpener(it), OkHttpKernelLifecycle(it)) }
  * ```

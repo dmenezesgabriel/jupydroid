@@ -33,9 +33,9 @@ import com.jupydroid.app.data.space.baseSpaceKernelSpecs
 import com.jupydroid.app.data.space.baseSpaceLanguageServerPort
 import com.jupydroid.app.data.space.baseSpaceNotebookExporter
 import com.jupydroid.app.data.space.baseSpaceServer
-import com.jupydroid.app.data.space.baseSpaceServerLauncher
 import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
+import com.jupydroid.app.data.space.spaceServerLauncher
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
@@ -83,7 +83,7 @@ class JupydroidApplication : Application() {
   private fun buildContainer(): AppContainer {
     // The launcher is built once and shared: the gateways start it and the idle backstop stops it,
     // and two launchers would be two processes pretending to be one.
-    val serverLauncher = baseSpaceServerLauncher(this)
+    val serverLauncher = spaceServerLauncher(this)
     val space = SpaceBackedPorts(serverLauncher, this)
     val workspace = notebookWorkspace(this)
     migrateNotebooksOnce(workspace)

@@ -26,7 +26,7 @@ object BaseSpaceUnderTest {
   /** Null where no Space can run at all, which is what the `Assume` in each test class reads. */
   val server: BaseSpaceServer? by lazy {
     val context = InstrumentationRegistry.getInstrumentation().targetContext
-    baseSpaceServer(context, baseSpaceServerLauncher(context))
+    baseSpaceServer(context, spaceServerLauncher(context))
   }
 
   /** The server, or a failure naming the device - for tests that have already assumed a Space. */

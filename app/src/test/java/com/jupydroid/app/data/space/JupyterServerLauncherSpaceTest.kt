@@ -1,0 +1,86 @@
+package com.jupydroid.app.data.space
+
+import com.jupydroid.app.domain.model.Space
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.io.File
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * **`start(space)` launches the Space it is handed**, not a Space baked in at construction: the
+ * server's runtime dir, root, cwd and log all come from that Space's own directory, provisioned on
+ * the spot from a directory holding nothing but `config.json`.
+ *
+ * Real processes, real files: [FakeJupyterServerScript] stands in for the interpreter, so what is
+ * asserted is what the launcher did to the filesystem and the process, not what it meant to do.
+ * `runBlocking`, not `runTest`: the launcher polls with `delay`, which virtual time would skip
+ * straight past a script that has not written its file yet.
+ */
+class JupyterServerLauncherSpaceTest {
+  @get:Rule val tempFolder = TemporaryFolder()
+
+  private val spacesDir by lazy { tempFolder.newFolder("spaces") }
+  private val baseDir by lazy { spaceDirIn(spacesDir, "base").apply { mkdirs() } }
+  private val spaceOne = Space(id = "space-1", name = "One", kernels = emptyList())
+  private var launcher: JupyterServerLauncher? = null
+
+  @After
+  fun stopTheServer() = runBlocking { launcher?.stop() ?: Unit }
+
+  @Test
+  fun start_connectsToTheServerTheSpaceItWasHandedReported() = runBlocking {
+    val connection = launcherWith(FakeJupyterServerScript.listening(tempFolder.root, port = 4321)).start(spaceOne)
+
+    assertEquals(4321, connection.port)
+    assertTrue(File(spaceOneDir(), "run/jpserver-1.json").isFile)
+    assertFalse("base's run/ must stay untouched", File(baseDir, "run").exists())
+  }
+
+  @Test
+  fun start_provisionsASpaceThatHoldsOnlyItsConfig() = runBlocking {
+    launcherWith(FakeJupyterServerScript.listening(tempFolder.root, port = 4321)).start(spaceOne)
+
+    listOf("home/jupydroid", "tmp", "pkgs").forEach { relative ->
+      assertTrue("expected $relative under ${spaceOneDir()}", File(spaceOneDir(), relative).isDirectory)
+    }
+  }
+
+  @Test
+  fun start_runsTheServerInTheSpacesOwnWorkspace() = runBlocking {
+    launcherWith(FakeJupyterServerScript.listening(tempFolder.root, port = 4321)).start(spaceOne)
+
+    val cwd = File(spaceOneDir(), "run/cwd").readText().trim()
+    assertEquals(notebookWorkspaceIn(spaceOneDir()).canonicalPath, File(cwd).canonicalPath)
+  }
+
+  @Test
+  fun start_reportsAFailureFromTheSpacesOwnLog() {
+    val dying = launcherWith(FakeJupyterServerScript.dying(tempFolder.root, last = "space-1 went down"))
+
+    val error = assertThrows(IllegalStateException::class.java) { runBlocking { dying.start(spaceOne) } }
+
+    assertTrue(error.message!!, "space-1 went down" in error.message!!)
+  }
+
+  private fun spaceOneDir(): File = spaceDirIn(spacesDir, spaceOne.id).apply {
+    mkdirs()
+    File(this, "config.json").takeUnless { it.exists() }?.writeText("{}")
+  }
+
+  private fun launcherWith(interpreter: File): JupyterServerLauncher {
+    spaceOneDir()
+    return JupyterServerLauncher(
+      runtimeFor = { space -> SpaceRuntime(spaceDirIn(spacesDir, space.id), interpreter, rootfsDir = baseDir) },
+      dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
+      shell = spaceShellIn(baseDir),
+      startTimeout = 10.seconds,
+    ).also { launcher = it }
+  }
+}
