@@ -28,12 +28,13 @@ class SidePanelRailTest {
 
   private val chosen = mutableListOf<SidePanel>()
 
-  /** Five items - one per [SidePanel], which is what the rail iterates. */
+  /** Six items - one per [SidePanel], which is what the rail iterates. */
   @Test
   fun everyPanelIsOnTheRail() {
     show(SidePanel.FILES)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SPACES).assertIsDisplayed()
     compose.onNodeWithContentDescription(SESSIONS_AND_TABS).assertIsDisplayed()
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertIsDisplayed()
@@ -103,6 +104,7 @@ class SidePanelRailTest {
 
   private companion object {
     const val FILES = "Files"
+    const val SPACES = "Spaces"
     const val SESSIONS_AND_TABS = "Sessions and Tabs"
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"

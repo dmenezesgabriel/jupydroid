@@ -44,6 +44,8 @@ class SidePanelTest {
    * - The file browser is first in both: rank 100
    *   (`packages/filebrowser-extension/src/index.ts:676`), `order: 0`
    *   (`vscode/…/files/browser/explorerViewlet.ts:265`).
+   * - **Spaces is second, and neither reference ranks it**: VS Code's profiles are an editor rather
+   *   than a sidebar container, and JupyterLab has no environments to list - see [SidePanel.SPACES].
    * - **Sessions and Tabs is second, and only JupyterLab says so**: rank 200
    *   (`packages/running-extension/src/index.ts:121`), directly after the file browser's 100.
    *   VS Code has no running-sessions view container - its closest thing is the editor group's
@@ -68,6 +70,7 @@ class SidePanelTest {
     assertEquals(
       listOf(
         SidePanel.FILES,
+        SidePanel.SPACES,
         SidePanel.RUNNING,
         SidePanel.SEARCH,
         SidePanel.TABLE_OF_CONTENTS,
@@ -129,6 +132,16 @@ class SidePanelTest {
   fun aPanelWithNoItemOnTheBarFallsBackToTheBrowser() {
     assertEquals(SidePanel.FILES, SidePanel.TABLE_OF_CONTENTS.showingAtOnePane())
     assertEquals(SidePanel.FILES, SidePanel.DEBUGGER.showingAtOnePane())
+  }
+
+  /**
+   * **Spaces is rail-only, and it falls back like the two above** - but for the bar's ceiling, not
+   * for being document-bound: the bar already carries five items, Material's limit, so a sixth would
+   * demote a panel people already use (ADR-0062).
+   */
+  @Test
+  fun theSpacesPanelIsRailOnlyAndFallsBackToTheBrowser() {
+    assertEquals(SidePanel.FILES, SidePanel.SPACES.showingAtOnePane())
   }
 
   /**

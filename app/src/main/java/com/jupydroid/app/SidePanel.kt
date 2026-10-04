@@ -38,6 +38,19 @@ enum class SidePanel {
   FILES,
 
   /**
+   * Every Space on the device - list, create, rename, delete - where Winlator's equivalent is its
+   * main screen (`winlator@fb66541 app/src/main/java/com/winlator/ContainersFragment.java`) and
+   * VS Code's is an editor
+   * (`vscode@3f3380c src/vs/workbench/contrib/userDataProfile/browser/userDataProfilesEditor.ts`).
+   *
+   * **Neither reference ranks it against [FILES]**, since neither puts it in a side area at all, so
+   * the position is this app's own (ADR-0062): directly behind the file browser, because which
+   * Space is active decides what that browser roots in. Rail-only - it is not in
+   * [onePaneDestinations].
+   */
+  SPACES,
+
+  /**
    * `running:show-panel` - "Sessions and Tabs", the open documents beside the kernels and shells
    * the server still holds (`packages/running-extension/src/index.ts:98-122`).
    *
@@ -102,7 +115,9 @@ internal fun SidePanel?.chosen(panel: SidePanel): SidePanel? = if (this == panel
  * (`TableOfContentsPanel`). A destination for it would be a destination for something that has no
  * meaning where the bar is drawn - the bar shows only when a panel *is* the window, and there is no
  * open document for an outline to belong to. [SidePanel.DEBUGGER] is out for the same reason -
- * its call stack is a stopped document's, not a destination of its own.
+ * its call stack is a stopped document's, not a destination of its own. [SidePanel.SPACES] is out
+ * for a different one: it *is* a destination, but the bar is already at the ceiling below, and a
+ * sixth item would demote a panel people already use (ADR-0062).
  *
  * Three *panels* - the bar's fourth and fifth items are the Launcher and a new terminal, which
  * this list cannot carry: documents, not [SidePanel]s (see this enum's own doc), so `SidePanelBar`
@@ -120,7 +135,7 @@ internal val onePaneDestinations: List<SidePanel> = listOf(SidePanel.FILES, Side
  * override: a tablet rotated from 1280dp to 800dp used to keep drawing whatever panel it had with no
  * rail to switch away from it, and the browser could not be reached again without killing the app.
  * With a bar there, only a panel the bar has no item for still has to fall back - which is the
- * table of contents, and `null`, since a collapsed area over an empty window is not a state.
+ * table of contents, the debugger, Spaces, and `null`, since a collapsed area over an empty window is not a state.
  *
  * An override rather than a reset: [SidePanel] itself is untouched, so rotating back to two panes
  * restores the panel the user had chosen.

@@ -54,3 +54,8 @@ the shell in the reference.
 
 The thing a future reader will be tempted to "fix" is the doc comment's original claim, by finding a JupyterLab
 search rank. There are five `shell.add(…, 'left')` calls in the whole tree and none of them is a search.
+
+**Spaces sits directly behind Files, and that position is this app's own.** Neither reference has a side-area
+container to rank it by — VS Code's profiles are an editor (`userDataProfilesEditor.ts`) and Winlator's
+containers are its main screen (`ContainersFragment.java`) — so it is placed beside the browser whose root the
+active Space will decide. It is on the rail only: the one-pane bar is already at Material's five-item ceiling.
