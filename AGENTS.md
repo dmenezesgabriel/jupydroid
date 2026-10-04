@@ -228,13 +228,16 @@ Local verification command (same as the commit gate):
 ```sh
 JAVA_HOME=<jdk> ./gradlew \
   ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck \
-  detekt lintDebug testDebugUnitTest assembleDebug
+  detekt lintDebug testDebugUnitTest compileDebugAndroidTestKotlin assembleDebug
 ```
 
 **The source sets are named on purpose.** `ktlintCheck` alone is an aggregate over whatever tasks
 the plugin registered, and for months it registered none for Kotlin - so it checked the `.kts`
 build scripts and reported success (`docs/adr/0016-*`). Named, a plugin that stops seeing a
 source set fails with "Task not found" instead of passing quietly.
+`compileDebugAndroidTestKotlin` is named for the same reason: nothing else in the list reaches
+`androidTest` - `assembleDebug` compiles `main`, `testDebugUnitTest` compiles `test`, and the
+ktlint check is a formatter, which parses without resolving.
 
 And `python3 -m unittest discover -s scripts -p '*_test.py'`
 

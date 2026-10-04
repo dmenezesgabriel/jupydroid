@@ -106,9 +106,13 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      # `compileDebugAndroidTestKotlin` rides the same call because nothing else reaches the
+      # source set: `assembleDebug` compiles `main`, `testDebugUnitTest` compiles `test`, and
+      # `ktlintAndroidTestSourceSetCheck` is a formatter, which parses without resolving - so a
+      # test file that cannot compile still passed the gate until it was named (ADR-0016).
       - id: unit-tests
-        name: unit tests
-        entry: scripts/gradlew-jbr :app:testDebugUnitTest
+        name: unit tests, and androidTest compiles
+        entry: scripts/gradlew-jbr :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin
         language: system
         pass_filenames: false
         always_run: true

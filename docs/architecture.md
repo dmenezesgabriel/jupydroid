@@ -367,22 +367,22 @@ which a Console-side call would need its own copy of.
 
 Both are solvable; neither is a control-placement change.
 
-### GAP-008 — The local gate does not compile `androidTest`
+### GAP-008 — The local gate did not compile `androidTest`
 
 Measured, not reasoned about: an instrumented test file with an unresolved reference survived the
 whole documented gate — `ktlintCheck`, the three named source-set checks, `detekt`, `lintDebug`,
 `testDebugUnitTest`, `assembleDebug` — with `BUILD SUCCESSFUL`. The next `connectedDebugAndroidTest`
 failed at `compileDebugAndroidTestKotlin` with `Unresolved reference`.
 
-**Every task in that list stops short of the source set.** `assembleDebug` compiles `main`;
+**Every task in that list stopped short of the source set.** `assembleDebug` compiles `main`;
 `testDebugUnitTest` compiles `test`; `ktlintAndroidTestSourceSetCheck` is a *formatter*, and a
-formatter parses without resolving. The pre-commit hooks inherit the gap, since they run the same
-tasks.
+formatter parses without resolving. The pre-commit hooks inherited the gap, since they ran the same
+tasks. The cost was bounded — a broken instrumented test cannot reach a device — but it surfaced
+only after a device run had been queued, and a commit could carry it.
 
-The cost is bounded: a broken instrumented test cannot reach a device, so it fails loudly at the next
-`connectedDebugAndroidTest` rather than passing quietly. But it fails **after** a 7-minute device run
-has been queued, and a commit can carry it. `compileDebugAndroidTestKotlin` is the one task that
-closes it, and it takes seconds.
+Repaired where it was measured: `compileDebugAndroidTestKotlin` rides the `unit-tests` hook's one
+gradle call, and the documented command names it — seconds, and the gate now compiles the source
+set instead of discovering the break at `connectedDebugAndroidTest`.
 
 ### GAP-012 — `is_complete_request` is never asked, so the Console cannot know a block is unfinished
 

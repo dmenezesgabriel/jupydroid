@@ -232,7 +232,7 @@ command answers it and nothing gates the answer; **convention** = neither.
   lines alone. `glob` joins `documentAndLanguageRoots`. §5.4's table moves three rows to
   **enforced** with the corrected statements; the `GAP-006` entry is restated so §11 stays true.
   Red-proof: a planted violation, watched fail, reverted — the proof goes in the commit body.
-- [ ] **T2 — `GAP-008`: the local gate compiles `androidTest`.** `compileDebugAndroidTestKotlin`
+- [x] **T2 — `GAP-008`: the local gate compiles `androidTest`.** `compileDebugAndroidTestKotlin`
   joins the AGENTS.md command and the `unit-tests` hook entry (one gradle call, seconds); the
   `GAP-008` entry and the `decisions-triage.md` row citing it are restated.
 - [ ] **T3 — the surface, produced and opened.** The `## Code health — AUD-011` ledger section
