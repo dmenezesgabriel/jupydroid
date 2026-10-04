@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# JD-002 T4: a Space is deleted from the Spaces panel only after a question naming it as
+# "<name> (<id>)", Cancel keeps it, and base offers no delete. Runs no cell - delete removes a
+# directory, not a kernel - and needs two panes, since the panel is on the rail only.
+- launchApp
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "Spaces"
+- extendedWaitUntil:
+    visible: "Base"
+    timeout: 10000
+- assertNotVisible: "Delete Base.*"
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Thesis"
+    timeout: 10000
+- assertVisible: "Delete Thesis \\(space-1\\)"
+- takeScreenshot: 01-thesis-has-delete-and-base-has-none
+- tapOn: "Delete Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: Thesis \\(space-1\\)\\?"
+    timeout: 5000
+- takeScreenshot: 02-the-question-names-thesis-space-1
+- tapOn: "Cancel"
+- assertNotVisible: "Are you sure.*"
+- assertVisible: "Thesis"
+- assertVisible: "space-1 · .*"
+- takeScreenshot: 03-cancel-keeps-thesis
+- tapOn: "Delete Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Are you sure.*"
+    timeout: 5000
+# The button, not the title: both read "Delete", and only the button sits below the question.
+- tapOn:
+    text: "Delete"
+    below: "Are you sure.*"
+- extendedWaitUntil:
+    notVisible: "Thesis"
+    timeout: 10000
+- assertNotVisible: "space-1 · .*"
+- assertVisible: "Base"
+- takeScreenshot: 04-deleted-only-base-remains
