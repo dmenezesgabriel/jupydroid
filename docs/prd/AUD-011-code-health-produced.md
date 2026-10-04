@@ -235,7 +235,7 @@ command answers it and nothing gates the answer; **convention** = neither.
 - [x] **T2 — `GAP-008`: the local gate compiles `androidTest`.** `compileDebugAndroidTestKotlin`
   joins the AGENTS.md command and the `unit-tests` hook entry (one gradle call, seconds); the
   `GAP-008` entry and the `decisions-triage.md` row citing it are restated.
-- [ ] **T3 — the surface, produced and opened.** The `## Code health — AUD-011` ledger section
+- [x] **T3 — the surface, produced and opened.** The `## Code health — AUD-011` ledger section
   lands: the claims map from §"Gap analysis" re-run, the produced commands, the reference table.
   Areas row added, `unexamined`; no verdicts yet.
 - [ ] **T4 — the verdicts.** Every claim gets a verdict; every gate gets its soundness read (fails

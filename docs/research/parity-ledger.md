@@ -61,6 +61,7 @@ Five, each obliging something different. The full definition is in
 | Rendering and formats | `AUD-008` | examined — below |
 | Chrome and presentation | `AUD-009` | examined — below |
 | Spaces and runtime | `AUD-010` | examined — below |
+| Code health | `AUD-011` | unexamined |
 
 ---
 
@@ -3496,3 +3497,132 @@ What the walk found, beyond the rows above:
 - **And one doc debt the walk corrected in place** — `AppContainer`'s `idleServerStopper` doc
   said "`MainActivity` drives it"; `JupydroidApplication` has driven it since the composition
   root moved to the process, and the doc now says so.
+
+## Code health — `AUD-011`
+
+**The surface is the repo's own health machinery — there is no reference command surface here, so
+the partition claims none of it.** Every earlier slice examined a JupyterLab package or a
+reference app's model; this one examines what the audit itself runs on: every rule the Working
+Agreement and `docs/architecture/building-blocks.md` §5.1–5.6 state, what keeps each one true, and
+whether each gate of ours is sound — does it fail closed, does it carry its own tests, and is it
+wired anywhere a commit or a step actually runs (the AUD-007 Termux / AUD-010 Winlator precedent:
+reference-shaped prose and reproduction greps, not partition ids). The two repairs the backlog
+row's order was load-bearing for are already landed, so this snapshot describes the harness as it
+ships: `GAP-006`'s three dependency rules are gated arms of `ArchitectureGuardTest` with `glob/`
+inside `documentAndLanguageRoots`, and `GAP-008`'s source set compiles — `compileDebugAndroidTestKotlin`
+rides the `unit-tests` hook's one Gradle call and the documented local command. Produced: **16**
+pre-commit hook ids; **13** gates — `check-file-line-length.sh` plus twelve `check_*.py`, of which
+ten are hook-wired and two are driver-bound because a device frame is their input
+(`check_chrome_parts` inside `scripts/p7a-chrome-parts-driver.sh`, `check_node_fill` inside the
+`p7a-1b-*` drivers); **12** measures (`read_*` and `resolve_vscode_theme`); **3** comment scanners
+(`kotlin_source`, `script_source`, `xml_source`); and **34** `*_test.py` suites the
+`maestro-gate-tests` hook runs `always_run`. The flows the evidence gates watch are produced too —
+**206** `*-driver.sh` over **238** `.maestro/*.yaml`. All produced, never stored:
+
+```sh
+grep -c "id:" .pre-commit-config.yaml                                # 16 hook ids
+ls scripts/check_*.py | grep -cv _test                               # 12, + check-file-line-length.sh
+ls scripts/read_*.py scripts/resolve_*.py | grep -cv _test           # 12 measures
+ls scripts/*_source.py                                               # 3 scanners
+ls scripts/*_test.py | wc -l                                         # 34 suites
+ls scripts/*-driver.sh | wc -l && ls .maestro/*.yaml | wc -l         # 206 / 238
+grep -ln "check_chrome_parts\|check_node_fill" scripts/*-driver.sh   # the two driver-bound
+grep -n "id:\|entry:" .pre-commit-config.yaml                        # what each hook runs
+```
+
+**What the references gate for themselves — real machinery this time**, read at the pins in
+`docs/README.md`:
+
+| Reference | Gates itself? | The health machinery it owns |
+|---|---|---|
+| `vscode` @ `3f3380c668d07649b953eb8278354b2f263ea6ff` | full | `build/checker/layersChecker.ts` — the `src/vs/` layer split as a TS-API checker over `tsconfig.<layer>.json` boundaries plus a `RULES` table of disallowed types — `build/hygiene.ts` (copyright header, indentation and unicode filters, the `.eslint-allowed-javascript-files` allowlist, `checkCopilotEnginesVersion`), `build/lib/checkCyclicDependencies.ts`; `build/lib/test/` tests the gates themselves (`layersChecker.test.ts`, `hygiene.test.ts`, `checkCyclicDependencies.test.ts`) |
+| `jupyterlab` @ `7f0e690680a763d3c3db5dc0231803b0ba0e1e12` | full | `lint` = prettier + eslint (a second *typed* config) + stylelint + shellcheck; 30 workflow files — license-header, check-i18n, check-external-links, spell-check, zizmor, codeql-analysis, galata-flakiness-report, check-release, reject-staging-checks |
+| `intellij-community` @ `406a27a8da071c59b052719fe6f1208c613e96b5` | full | Qodana (`.github/workflows/code_quality.yml`), `jewel-checks.yml`; the JPS `.iml`/Bazel module graph *is* the dependency gate — a module references only what it declares |
+| `termux-app` @ `3df69d1da197dd9bd71a3bafd902dffd720576b4` | partial | six workflows — `run_tests.yml` (`./gradlew test`), `debug_build.yml`, `gradle-wrapper-validation.yml` |
+| `vscode-jupyter` @ `f01d80ca0aa0dfdfa1d2e10a08943e12b776d155` | partial | `checkDependencies` gulp task run by `build-test.yml`; `codeql-analysis.yml` |
+| `jediterm` @ `377b76e682a5f86bcbb18a318386f530dbebf5c1` | partial | `.github/workflows/test.yml` |
+| `winlator` @ `fb66541b93a4eb3ee585a433b4c7b20544d58e40` | absent | `.github/` holds `FUNDING.yml` and an issue template — no workflows |
+| the shipped rootfs | n/a | the artifact the gates watch, not a watcher |
+
+That is **3 of 7** shipping the full shape, and the pattern they share is the one this repo already
+follows: the layer/dependency gate exists *because the codebase is too big for review to hold it*
+(VS Code's checker, IntelliJ's module model), and every gate is cheap enough to run per commit —
+hygiene is a filter stream, not a build. Ours is the same shape at one module's scale: a Kotlin
+guard test instead of a TS-API checker, Python gates instead of gulp filters, pre-commit hooks
+instead of a pipeline.
+
+```sh
+ls reference/research_repos/vscode/build/checker/ reference/research_repos/vscode/build/lib/test/
+grep -o '"lint": "[^"]*"' reference/research_repos/jupyterlab/package.json
+ls reference/research_repos/jupyterlab/.github/workflows/ | wc -l
+ls reference/research_repos/intellij-community/.github/workflows/ | grep "quality\|jewel"
+ls reference/research_repos/termux-app/.github/workflows/
+grep -rn "checkDependencies" reference/research_repos/vscode-jupyter/package.json \
+  reference/research_repos/vscode-jupyter/.github/workflows/
+find reference/research_repos/winlator/.github -type f
+ls reference/research_repos/jediterm/.github/workflows/
+```
+
+**Ours — the claims map, re-run after the two repairs.** Every rule the Working Agreement and §5
+state, classified **enforced** (a gate fails without it), **produced** (a command answers it and
+nothing gates the answer), or **convention** (nothing keeps it true):
+
+| Rule | Where stated | Enforced by | State |
+|---|---|---|---|
+| `domain` imports no `android.*` | §5.4 | `ArchitectureGuardTest.domainLayer_hasSources_withZeroAndroidImports` | enforced |
+| `domain` imports no `data`/`ui`/`di` | §5.4 | `ArchitectureGuardTest.domainLayer_doesNotImportOtherLayers` | enforced |
+| doc/language packages import no `android.*` — all six §5.2 names | §5.2, AGENTS.md | `ArchitectureGuardTest.documentAndLanguageModules_*` | enforced — `glob/` joined the roots with `GAP-006`'s repair |
+| `ui` names no real adapter (`data.disk`/`space`/`intent`; `data.fake` is the DI default) | §5.4 | `ArchitectureGuardTest.uiLayer_namesNoRealAdapterPackages` | enforced — the rule as restated; the written one was already false |
+| `data` names no `ui`/`di` | §5.4 | `ArchitectureGuardTest.dataLayer_namesNoUiOrDi` | enforced |
+| real adapters named only inside `data/` and at the composition root (`di/`, `JupydroidApplication.kt`) | §5.4 | `ArchitectureGuardTest.realAdapters_areNamedOnlyInsideDataOrTheCompositionRoot` | enforced — a qualified-reference scan over code lines, so an inline `com.jupydroid.app.data.disk.*(` trips it and a KDoc `[…]` citation does not |
+| `androidTest` compiles in the local gate | `GAP-008` | the `unit-tests` hook's one Gradle call + the documented command | enforced — `GAP-008`'s repair |
+| files ≤ 500, functions 4–20, line ≤ 120, naming | AGENTS.md r.6 | `check-file-line-length.sh` + detekt `LargeClass`/`LongMethod`/`CyclomaticComplexMethod` + ktlint | enforced |
+| formatters and lint wired into the build | AGENTS.md r.5 | the Gradle plugin wiring + the ktlint/detekt/lint hooks | enforced |
+| hooks gate every commit | AGENTS.md r.7 | `.pre-commit-config.yaml` | enforced where installed — `pre-commit install` is opt-in and there is no CI backstop; a design fact, recorded |
+| every `check_*`/`read_*`/scanner carries `_test.py` | AGENTS.md tooling table | `maestro-gate-tests`, `always_run` | enforced — 34 suites, milliseconds |
+| comments cite what resolves | `docs/README.md` | `check_doc_citations.py` + `check_retired_doc_citations.py` | enforced |
+| evidence names the app, not the house | AGENTS.md r.2 | `check_device_secrets.py` + `.gitignore`'s `evidence/**/*logcat*.txt` | enforced |
+| flows observe kernel output | AGENTS.md | `check_maestro_output_assertions.py` | enforced |
+| a gap has a name / one monospace home / palette entries draw / flows start seeded / seccomp / shebang-exec / chrome parts / node fill | AGENTS.md tooling table | the eight `check_*` | enforced — six hook-wired; `check_chrome_parts`/`check_node_fill` are driver-bound and live inside the flows whose frames they read |
+| a `Fake…` per port, 1:1 | §5.3 | the `diff` below | produced, ungated — empty today |
+| android-free per-package counts | §5.2 | the `for` loop below | produced, ungated — the *rule* is now gated for all six; what stays produced is the denominator |
+| "max 2 levels of indentation", "no `any`", "early returns", "exception messages name the value" | AGENTS.md code style | nothing gates prose-level style — detekt's `NestedBlockDepth` is unset and its default allows 4 | convention |
+| the gates' inputs stay honest (flow/driver/evidence naming) | ADR-0001 | `check_retired_doc_citations.py` covers the doc names; the step-code lockstep is convention | mixed |
+
+Two of the table's mechanisms deserve their own words. **`ArchitectureGuardTest`'s arms prove red
+by a planted violation recorded in a commit body**, not by a suite — the `layersChecker.test.ts`
+idea at repo scale: a synthetic source planted, watched fail, reverted. The `check_*` gates
+instead carry `_test.py` files that feed them fixtures, so "the gate fails closed" is proven
+differently on the two sides — a `T4` soundness question, recorded here as the fact it is. And
+**the driver-bound arms are wired by the flows themselves**, which is why `grep
+"scripts/check_" .pre-commit-config.yaml` finds ten of the twelve `check_*.py` — no commit hook
+could hold a gate whose input is a device frame.
+
+```sh
+# the documented local gate, and the source set it now compiles
+grep -n "gradlew" AGENTS.md
+grep -rn "compileDebugAndroidTestKotlin" AGENTS.md .pre-commit-config.yaml docs/architecture.md
+# the dependency rules as they hold
+grep -rn "^import com.jupydroid.app.data" app/src/main/java/com/jupydroid/app/ui/
+grep -rln "com\.jupydroid\.app\.data\.\(disk\|space\|intent\)" app/src/main/java/com/jupydroid/app/
+grep -rn "^import com.jupydroid.app.\(ui\|di\)" app/src/main/java/com/jupydroid/app/data/
+# the produced counts §5.2 and §5.3 keep un-stored
+for p in glob html import markdown syntax terminal theme richtext; do
+  d=app/src/main/java/com/jupydroid/app/$p
+  printf '%-10s %s of %s import android.*/androidx.*\n' "$p" \
+    "$(grep -rlE '^import (android|androidx)\.' $d | wc -l)" "$(ls $d/*.kt | wc -l)"
+done
+diff <(grep -lE '^(interface|fun interface) ' app/src/main/java/com/jupydroid/app/domain/port/*.kt \
+         | xargs -n1 basename | sed 's/\.kt$//' | sort) \
+     <(ls app/src/main/java/com/jupydroid/app/data/fake/Fake*.kt \
+         | xargs -n1 basename | sed 's/^Fake//;s/\.kt$//' | sort)
+```
+
+**Carried in.** The *behaviour* the gates protect is every earlier slice's. The gates' *inputs*
+are those slices' ground: the `.maestro` flows the driver-bound arms read, the rootfs artifacts
+the seccomp and shebang gates watch (`AUD-010`), `evidence/`'s content rules. What a comment may
+cite is `ADR-0001`/`ADR-0066` policy, verdicted here as a *gate* — does it catch, is it tested —
+never re-litigated as a rule.
+
+The Areas row is added `unexamined`, no partition rows move, and no verdicts land — the claims map
+above is the raw material `T4` verdicts.
