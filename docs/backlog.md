@@ -71,7 +71,7 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 | `AUD-008` | Rendering and formats — markdown, HTML, outputs, nbformat | shipped | — | `GAP-093`–`GAP-119` |
 | `AUD-009` | Chrome and presentation, against VS Code's workbench | shipped | — | `GAP-120`–`GAP-144` |
 | `AUD-010` | Spaces and runtime, against Winlator's container lifecycle | shipped | — | `GAP-145`–`GAP-150` |
-| `AUD-011` | Code health, produced — the two gate gaps first, then the measured tail | in-progress ← next | — | `GAP-006`, `GAP-008` |
+| `AUD-011` | Code health, produced — the two gate gaps first, then the measured tail | shipped | — | `GAP-006`, `GAP-008` |
 
 ### M1 — Spaces
 
@@ -82,7 +82,7 @@ runtime, the UI and one measured decision.
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-001` | A Space's runtime environment is its own — per-Space `PYTHONUSERBASE`, `HOME` and `JUPYTER_RUNTIME_DIR`, generalising what `base` already ships | open | — | — |
+| `JD-001` | A Space's runtime environment is its own — per-Space `PYTHONUSERBASE`, `HOME` and `JUPYTER_RUNTIME_DIR`, generalising what `base` already ships | open ← next | — | — |
 | `JD-002` | List, create, rename and delete a Space from the UI, async with progress, delete asking first | open | — | — |
 | `JD-003` | Install, list and remove packages in a Space, surfacing pip's own message including the offending package and the wheel tag it wanted | open | — | — |
 | `JD-004` | **Decide by measurement:** one `jupyter_server` per Space, or one server with per-Space kernelspecs. A second server costs about what the first does — RSS ~75 MiB, already measured | open | — | — |
