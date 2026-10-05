@@ -1,6 +1,6 @@
 # ADR-0073 — A Space owns its rootfs and runs under proot
 
-Status: proposed
+Status: accepted
 Date: 2026-10-04
 
 ## Context
@@ -66,18 +66,27 @@ The research behind this, including what SageMaker Studio and Winlator actually 
 
 ## Decision
 
-**Proposed: each Space owns a private copy of the rootfs and runs every process under proot,
-shipped in `nativeLibraryDir` with its loader beside it.** A venv inside a Space is the user's tool
-and needs no mechanism of its own.
+**Each Space owns a private copy of the rootfs and runs every process under proot, shipped in
+`nativeLibraryDir` with its loader beside it.** A venv inside a Space is the user's tool and needs no
+mechanism of its own.
 
-This stays **proposed** until the one thing this decision rests on and nobody has measured holds:
-`jupyter_server`, a kernel and `import numpy` running under proot on the tablet. That run covers ZMQ
-over the ipc transport, the SIGSYS handler preloaded inside the translated root, and the idle cull.
-If it fails, the loader option is the fallback, with the shim's gaps stated.
+The decision rested on one unmeasured thing: whether `jupyter_server`, a kernel and `import numpy`
+run under proot on the tablet. `ProotRuntimeProbeDeviceTest` measured it on SM-X216B, with the
+image's own `/usr/bin/python3` and a private copy of the image as `/`:
+- the server reported its port 2.67 s after it started
+- a kernel imported numpy 2.5.1 with `sys.prefix=/usr`, over `ipc:///run/jupyter/kernel-…`, with
+  the socket paths translated by proot
+- the SIGSYS reporter was armed when preloaded by its in-root path, and nothing beyond numpy's
+  tolerated `mbind` was refused
+- an idle kernel was culled after 12 s of inactivity under a 10 s timeout
+
+One thing differs from the shipped server. proot's `-0` makes every process see uid 0, which `apk
+add` needs, and `jupyter_server` refuses to start as root unless given `--allow-root`
+(jupyter_server 2.20.0 `serverapp.py` `ServerApp.start_app`).
 
 ## Consequences
 
-When accepted, this:
+Accepted, this:
 - **supersedes** the part of ADR-0002 that forbids proot, and the part of ADR-0011 that calls a
   virtualenv impossible
 - **narrows** ADR-0072, because the writable/readable split becomes the private root itself

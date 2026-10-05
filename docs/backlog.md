@@ -80,7 +80,7 @@ packages, managed from a home screen before it is entered, and run and stopped a
 once. Python environments live inside it as the user's own tools. The data layer is shipped:
 `SpaceConfig`, the `SpaceRepository` port and `DiskSpaceRepository` scanning `files/spaces/`
 ([ADR-0010](adr/0010-a-space-is-a-directory-and-its-id-comes-from-the-scan.md)). The runtime is
-[ADR-0073](adr/0073-a-space-owns-its-rootfs-and-runs-under-proot.md) (proposed), from the
+[ADR-0073](adr/0073-a-space-owns-its-rootfs-and-runs-under-proot.md) (accepted), from the
 measurements in [`research/space-isolation.md`](research/space-isolation.md).
 
 Order: `JD-002`, `JD-008`, `JD-004`, `JD-005`, `JD-009`, `JD-003`.

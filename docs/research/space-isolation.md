@@ -123,8 +123,11 @@ The numbers and output are in `evidence/space-isolation-probe/`.
 5. proot is distribution-agnostic: a distribution's own loader is found at its own `/lib`. That
    keeps other distributions open, **but it was not measured with a glibc image**.
 
-**Not yet measured**, and these must hold before the Space runtime moves onto proot:
-- `jupyter_server`, a kernel and `import numpy` under proot. That covers ZMQ over the ipc
-  transport, the SIGSYS handler preload inside the translated root, and the idle cull.
+`jupyter_server`, a kernel and `import numpy` run under proot, covering ZMQ over the ipc transport,
+the SIGSYS handler preload inside the translated root and the idle cull
+(`ProotRuntimeProbeDeviceTest`; the numbers are in `evidence/proot-runtime-probe/`). The server
+needs `--allow-root`, because `-0` makes every process see uid 0.
+
+**Not yet measured:**
 - A filesystem-heavy workload, such as a large wheel install or an import-time benchmark.
 - ptrace on devices other than SM-X216B. Termux's own wording is "not stable on all devices".
