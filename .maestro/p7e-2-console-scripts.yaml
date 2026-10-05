@@ -4,8 +4,8 @@ appId: com.jupydroid.app
 #
 # Before this step `pip --version` answered *Permission denied*, rc 126
 # (`evidence/p7e-1-space-python/04-what-the-console-script-still-does.png`) - a `#!` script cannot
-# be `execve`'d out of `filesDir`. Now `usr/local/bin/pip` links to a native trampoline that reads
-# the shebang and execs the interpreter.
+# be `execve`'d out of `filesDir`. Under proot `usr/bin/pip` is the image's own `#!` file and
+# execs through its shebang line inside the translated root.
 #
 # **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell. The
 # terminal draws to a `Canvas`, so nothing here is asserted by Maestro text - the flow redirects

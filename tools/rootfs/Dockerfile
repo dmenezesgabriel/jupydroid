@@ -34,27 +34,6 @@ COPY getaddrinfo_shim.c /tmp/getaddrinfo_shim.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libgetaddrinfo_shim.so /tmp/getaddrinfo_shim.c \
  && strip /tmp/libgetaddrinfo_shim.so
 
-# The console-script trampoline. Static, so it needs no loader and none of stage-app-artifacts.sh's
-# ELF surgery - the one shipped executable that is self-contained. See shebang_exec.c for why a
-# `#!/usr/bin/python3` script cannot be run any other way under `filesDir`.
-COPY shebang_exec.c /tmp/shebang_exec.c
-RUN gcc -static -O2 -Wall -Wextra -Werror -o /tmp/shebang-exec /tmp/shebang_exec.c \
- && strip /tmp/shebang-exec
-# Prove it dispatches, here rather than on the device: reached by a name, it must find the *other*
-# file of that name on PATH (the `#!` script, not its own ELF), read the shebang, exec the
-# interpreter and pass the caller's args through - and honour a `#!/usr/bin/env python3` arg. A
-# trampoline that finds itself, or drops an argument, is a build error.
-# `#!/bin/sh` and `#!/usr/bin/env sh`, not python - this builder stage has no interpreter but the
-# dispatch logic is the interpreter-agnostic part. `JUPYDROID_SPACE_ROOT` is unset here so an
-# absolute shebang keeps its path, which is why `/bin/sh` has to exist (it does, in alpine).
-RUN set -eux; d=$(mktemp -d); mkdir -p "$d/bin" "$d/usr/bin"; \
-    ln -s /tmp/shebang-exec "$d/bin/pip"; ln -s /tmp/shebang-exec "$d/bin/jflag"; \
-    printf '#!/bin/sh\necho "D:$*"\n' > "$d/usr/bin/pip"; \
-    printf '#!/usr/bin/env sh\necho "E:$*"\n' > "$d/usr/bin/jflag"; \
-    test "$(PATH="$d/usr/bin:$PATH" "$d/bin/pip" --version q)" = 'D:--version q'; \
-    test "$(PATH="$d/usr/bin:$PATH" "$d/bin/jflag" x)" = 'E:x'; \
-    rm -rf "$d"; echo 'shebang-exec dispatches'
-
 # busybox is built here rather than taken from `apk add busybox`, and the reason is one config
 # flag: Alpine ships CONFIG_FEATURE_SUID=y, which compiles in check_suid() and makes every applet
 # dispatch call setgid()/setuid() - both refused to app processes by Android's seccomp filter, so
@@ -100,26 +79,13 @@ RUN grep -q '^# CONFIG_FEATURE_SUID is not set$' /tmp/busybox/.config \
  && /tmp/busybox/busybox ls / >/dev/null \
  && /tmp/busybox/busybox | head -1
 
-# Nothing but the ELF crosses over, so `--output type=local` writes exactly one file.
-# stage-app-artifacts.sh builds this target directly; see the note there about why busybox no
-# longer comes out of the rootfs tarball.
-FROM scratch AS busybox-artifact
-COPY --from=busybox-builder /tmp/busybox/busybox /busybox
-
-# Same pattern for the trampoline: one file crosses over, stage-app-artifacts.sh builds this
-# target directly. Static, so unlike libbusybox.so it is shipped as-is with no PT_INTERP edit.
-FROM scratch AS shebang-artifact
-COPY --from=sigsys-builder /tmp/shebang-exec /shebang-exec
-
 FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 
-# patchelf is installed here rather than on the host so the ELF edits in
-# stage-app-artifacts.sh run against the same libc that produced the binaries.
-RUN apk add --no-cache python3 py3-pip patchelf
+RUN apk add --no-cache python3 py3-pip
 
 # --break-system-packages: Alpine marks the system interpreter PEP 668
 # externally-managed. This image *is* the environment, so there is nothing to
-# protect it from; a venv would only add another layer of paths to patch.
+# protect it from; a venv would only add another layer of paths.
 # --only-binary=:all: is a gate, not an optimisation - if a package ever stops
 # publishing a musllinux wheel we want the build to fail loudly rather than
 # quietly start compiling from source under emulation.
@@ -235,8 +201,7 @@ ENV HOME=/home/jupydroid
 # the one built without FEATURE_SUID. The 304 applet symlinks are untouched and still resolve,
 # because that build uses Alpine's own config for the same version.
 #
-# Strictly this is belt and braces for the *device*, where bin/busybox is deleted and re-pointed
-# at nativeLibraryDir on every launch (BusyBoxApplets.relink), so the tarball's copy is never
-# executed there. It is here so the image cannot quietly go back to carrying a binary that dies
-# on the first applet - which is what a reader who greps the rootfs for `sh` would otherwise find.
+# This is the binary the device runs: under proot a Space's `/` is its own directory
+# (ADR-0073), so every applet execs this file through the image's own links. If it carried
+# check_suid, every command in every Space would still die of SIGSYS on the first dispatch.
 COPY --from=busybox-builder /tmp/busybox/busybox /bin/busybox

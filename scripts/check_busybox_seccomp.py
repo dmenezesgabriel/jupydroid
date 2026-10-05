@@ -30,8 +30,10 @@ else, so it is in the binary if and only if every applet call goes through `setg
 So two things are checked, the cause and the artifact, because either alone can rot:
 
   1. `tools/rootfs/busybox.config` keeps the flag off, so a rebuild cannot restore it; and
-  2. no staged `jniLibs/*/libbusybox.so` carries the `check_suid` fingerprint - which is what
-     catches a binary staged from some other build entirely.
+  2. `bin/busybox` inside every shipped `assets/spaces/base/rootfs-*.tzst` - the artifact the
+     APK actually carries - does not. Under proot the image's own binary is the one that runs
+     (ADR-0073): nothing is staged into `jniLibs` any more, so the tarball is the only path a
+     wrong busybox can still take to a device.
 
 Termux, which runs busybox in an Android app process under this same filter, sets
 `# CONFIG_FEATURE_SUID is not set` (`termux-packages/packages/busybox/busybox.config:32`). This is
@@ -43,8 +45,10 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import tarfile
 
-BUSYBOX_ELFS = "app/src/main/jniLibs/*/libbusybox.so"
+ROOTFS_TARBALLS = "app/src/main/assets/spaces/base/rootfs-*.tzst"
+BUSYBOX_MEMBER = "bin/busybox"
 BUSYBOX_CONFIG = pathlib.Path("tools/rootfs/busybox.config")
 SUID_OFF = "# CONFIG_FEATURE_SUID is not set"
 
@@ -59,7 +63,7 @@ def dispatches_through_check_suid(elf: bytes) -> bool:
     """Whether this busybox routes every applet through `setgid`/`setuid`.
 
     ```
-    dispatches_through_check_suid(pathlib.Path("libbusybox.so").read_bytes())  # -> False, once fixed
+    dispatches_through_check_suid(shipped_busybox(pathlib.Path("rootfs-arm64-v8a.tzst")))  # -> False
     ```
     """
     if BUSYBOX_BANNER not in elf:
@@ -70,6 +74,16 @@ def dispatches_through_check_suid(elf: bytes) -> bool:
     return CHECK_SUID_FINGERPRINT in elf
 
 
+def shipped_busybox(tarball: pathlib.Path) -> bytes | None:
+    """`bin/busybox` out of a shipped rootfs tarball, or None if it carries none."""
+    with tarfile.open(tarball, "r:zst") as archive:
+        try:
+            member = archive.extractfile(BUSYBOX_MEMBER)
+        except KeyError:
+            return None
+        return member.read()
+
+
 def main(root: pathlib.Path = pathlib.Path()) -> int:
     """Returns 0 when the shipped busybox asks Android for nothing it refuses."""
     offences: list[str] = []
@@ -78,14 +92,24 @@ def main(root: pathlib.Path = pathlib.Path()) -> int:
         offences.append(f"{BUSYBOX_CONFIG} is missing; the busybox build has no pinned config")
     elif SUID_OFF not in config.read_text():
         offences.append(f"{BUSYBOX_CONFIG}: expected '{SUID_OFF}'; check_suid() calls setgid/setuid")
-    # jniLibs is a gitignored build output (.gitignore:25), so a fresh clone has no ELF to read and
-    # there is nothing to fail about. The config above is committed and always checked; this half
-    # runs wherever stage-app-artifacts.sh has actually put a binary, which is the only place a
-    # bad one can exist.
-    for elf in sorted(root.glob(BUSYBOX_ELFS)):
-        if dispatches_through_check_suid(elf.read_bytes()):
+    # The tarball is a gitignored build output (.gitignore:24), so a fresh clone has no archive to
+    # read and there is nothing to fail about. The config above is committed and always checked;
+    # this half runs wherever stage-app-artifacts.sh has actually put a tarball, which is the only
+    # place a bad one can exist - the image's own bin/busybox is what a Space's shell execs.
+    for tarball in sorted(root.glob(ROOTFS_TARBALLS)):
+        rel = tarball.relative_to(root)
+        busybox = shipped_busybox(tarball)
+        if busybox is None:
+            offences.append(f"{rel}: carries no {BUSYBOX_MEMBER}; the Space has no shell")
+            continue
+        try:
+            bad = dispatches_through_check_suid(busybox)
+        except ValueError as wrong:
+            offences.append(f"{rel}: {BUSYBOX_MEMBER} is not what it claims - {wrong}")
+            continue
+        if bad:
             offences.append(
-                f"{elf.relative_to(root)}: built with CONFIG_FEATURE_SUID, so every applet "
+                f"{rel}: {BUSYBOX_MEMBER} built with CONFIG_FEATURE_SUID, so every applet "
                 f"dispatch calls setgid()/setuid() and dies of SIGSYS in an app process"
             )
     for offence in offences:

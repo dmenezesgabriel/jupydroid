@@ -108,11 +108,10 @@ tap Run
           └─ BaseSpaceKernelGateway            │
               └─ BaseSpaceServer (lazy)        │
                   ├─ BaseSpaceInstaller        │  first launch only: unpack rootfs-<abi>.tzst,
-                  │                            │  relink lib/ld-musl-*.so.1, bin/busybox,
-                  │                            │  usr/bin/python3.12 and bin/shebang-exec
-                  │                            │  into nativeLibraryDir
+                  │                            │  sweep the links a pre-proot install left,
+                  │                            │  write the kernelspec
                   └─ JupyterServerLauncher     │
-                      └─ stop(); ProcessBuilder ──> loader ──> jupyter_server on 127.0.0.1
+                      └─ stop(); ProcessBuilder ──> proot -r <space> ──> jupyter_server on 127.0.0.1
                           └─ POST /api/sessions ──> kernel subprocess
                               └─ KernelSockets (WebSocket, one per session)
                                   ├─ shell    execute_request / execute_reply

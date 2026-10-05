@@ -17,7 +17,7 @@ android {
     // **`targetSdk` deliberately stays at 36**, and nothing here changes runtime behaviour.
     // compileSdk says which APIs may be *called*; targetSdk is what opts the app into new
     // behaviour, and 36 is the number the whole exec model is arranged around
-    // (ADR-0002: everything executable ships in jniLibs and is reached through a symlink).
+    // (ADR-0073: at 36 nothing under filesDir may be execve'd, so a Space runs under proot).
     compileSdk = 37
     defaultConfig {
         applicationId = "com.jupydroid.app"
@@ -52,11 +52,11 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
         jniLibs {
-            // The whole exec model depends on this (ADR-0002):
+            // The whole exec model depends on this (ADR-0073):
             // only files extracted to /data/app/.../lib/<abi>/ get the apk_data_file
             // SELinux context that permits execve. Left at the modern default the
-            // libs stay inside the APK, nativeLibraryDir points into it, and nothing
-            // is executable.
+            // libs stay inside the APK, nativeLibraryDir points into it, and proot
+            // - the one thing that must be execve'd - cannot run.
             useLegacyPackaging = true
         }
     }

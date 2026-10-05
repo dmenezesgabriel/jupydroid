@@ -68,7 +68,7 @@ class TerminalServiceTest {
   /**
    * The extension loaded at all. It is enabled by a config drop-in the rootfs carries at
    * `usr/etc/jupyter/jupyter_server_config.d/jupyter_server_terminals.json`, found because
-   * `PYTHONHOME` makes `sys.prefix` the Space's `usr` and `jupyter_core/paths.py` puts
+   * `sys.prefix` is `/usr` inside the translated root and `jupyter_core/paths.py` puts
    * `sys.prefix/etc/jupyter` on the config path. A 404 here would mean that chain broke.
    */
   @Test

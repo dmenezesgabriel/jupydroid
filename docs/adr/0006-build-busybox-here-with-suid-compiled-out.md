@@ -53,3 +53,11 @@ forks applets from inside the app.
 
 The thing a future reader will be tempted to "fix" is the custom build, on the grounds that a
 distribution package would be simpler to maintain. It would not run.
+
+## Amendment — 2026-10-05
+
+Amended by [ADR-0073](0073-a-space-owns-its-rootfs-and-runs-under-proot.md): nothing ships as
+`libbusybox.so` any more — under proot the rootfs's own `bin/busybox` is what runs, so the gate's
+binary arm moved with the bytes: it reads `bin/busybox` out of the shipped
+`assets/spaces/base/rootfs-*.tzst`, fingerprinting the exact file the APK carries. The config arm
+and the forbids are unchanged.

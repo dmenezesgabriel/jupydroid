@@ -75,10 +75,11 @@ A remote-server mode is not deferred — it is refused. It would make every cons
 
 ### Technical
 
-- **Nothing under `filesDir` can be executed.** Everything executable ships in `jniLibs/<abi>/` and
-  is reached through a symlink. This is the constraint the whole runtime is shaped by —
-  [§8.1](architecture/cross-cutting.md). It forbids proot, chroot, `LD_PRELOAD` exec interceptors, a
-  targetSdk downgrade, and the NDK.
+- **Nothing under `filesDir` can be executed.** Only proot and its loader ship in `jniLibs/<abi>/`
+  and reach `nativeLibraryDir`, the one place execution is permitted; every Space process then runs
+  under proot with the Space's own directory as `/`, so the image execs itself. This is the
+  constraint the whole runtime is shaped by — [§8.1](architecture/cross-cutting.md). It forbids
+  chroot, `LD_PRELOAD` exec interceptors, a targetSdk downgrade, and the NDK.
 - **arm64 only, at runtime.** Only arm64 ships a rootfs; on x86_64 the app falls back to
   `FakeKernelGateway`, which echoes a cell's source back as its output. Anything that runs a cell is
   verified on the arm64 tablet.
@@ -102,7 +103,7 @@ A remote-server mode is not deferred — it is refused. It would make every cons
 
 ktlint · detekt · Android Lint · pre-commit · JUnit · Compose UI test · Maestro · plus the project's
 own Python gates in `scripts/` (file length, Maestro output assertions, device secrets, monospace
-home, busybox seccomp, shebang exec, palette consumers, driver isolation, doc citations).
+home, busybox seccomp, palette consumers, driver isolation, doc citations).
 
 ## 3. Context and scope
 
@@ -140,8 +141,7 @@ home, busybox seccomp, shebang exec, palette consumers, driver isolation, doc ci
 
 | Problem | Approach | Where |
 |---|---|---|
-| Android forbids executing files in `filesDir` | ship executables as `jniLibs` ELFs; relink four rootfs paths into `nativeLibraryDir` on every launch | [§8.1](architecture/cross-cutting.md) |
-| A `#!` script has no ELF to point a symlink at | a static trampoline reads the shebang and execs the interpreter | [§8.1](architecture/cross-cutting.md) |
+| Android forbids executing files in `filesDir` | proot ships in `jniLibs`; every Space process runs under it with the Space's own directory as `/`, so the image's own ELFs and `#!` scripts exec themselves | [§8.1](architecture/cross-cutting.md) |
 | Android's seccomp filter kills a musl process on a refused syscall | handle SIGSYS and return; the kernel has already made the call return `-ENOSYS` | [§8.2](architecture/cross-cutting.md) |
 | Re-implementing Jupyter would lose fidelity | run the **real** server and kernel, and speak their protocol | [§6.3](architecture/runtime-views.md) |
 | A device cannot run a Space at all (x86_64), and tests need no process | every port has a `Fake…`, which is also what the container defaults to | [§5.3](architecture/building-blocks.md) |
@@ -157,7 +157,7 @@ One APK. Three kinds of artifact reach the device inside it.
 |---|---|---|
 | Compose app | `classes.dex` | — |
 | `rootfs-<abi>.tzst` | `assets/spaces/base/` | unpacked once into `filesDir/spaces/base/` by `BaseSpaceInstaller` |
-| `libloader.so`, `libpython3.so`, `libbusybox.so`, `libshebang.so` | `jniLibs/<abi>/` | extracted by the platform to `/data/app/…/lib/<abi>/`, the only place execution is permitted |
+| `libproot.so`, `libproot-loader.so` | `jniLibs/arm64-v8a/` | extracted by the platform to `/data/app/…/lib/arm64-v8a/`, the only place execution is permitted |
 
 The rootfs asset and the ELFs are **build artifacts, not committed files**:
 
@@ -167,10 +167,12 @@ tools/rootfs/stage-app-artifacts.sh arm64-v8a
 ./gradlew :app:assembleDebug
 ```
 
-`nativeLibraryDir` moves on every app update, so `BaseSpaceInstaller` repairs the four rootfs
-symlinks into it on **every launch**, not only on install.
+Every Space process runs under proot with the Space's own directory as `/`, so an install is an
+extract, a sweep of the links a pre-proot install left, and the kernelspec — nothing inside a
+Space may carry a path into `nativeLibraryDir`, which moves on every app update.
 
-x86_64 ships three of the four ELFs and no rootfs, so the app installs and the UI runs against fakes.
+x86_64 ships no rootfs and no proot — no Space can run there — so the app installs and the UI
+runs against fakes.
 
 ## 9. Architectural decisions
 
@@ -185,7 +187,7 @@ grep -rln "^Status: superseded" docs/adr/     # decisions that have been replace
 | ADR | Title | Status |
 |---|---|---|
 | [0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md) | Separate documents by lifetime, not by topic | accepted |
-| [0002](adr/0002-ship-executables-in-jnilibs-and-reach-them-by-symlink.md) | Ship every executable in `jniLibs/` and reach it through a symlink | accepted |
+| [0002](adr/0002-ship-executables-in-jnilibs-and-reach-them-by-symlink.md) | Ship every executable in `jniLibs/` and reach it through a symlink | superseded by [0073](adr/0073-a-space-owns-its-rootfs-and-runs-under-proot.md) |
 | [0003](adr/0003-musl-not-glibc-and-arm64-only-at-runtime.md) | Use musl, not glibc, and ship a runtime for arm64 only | accepted |
 | [0004](adr/0004-handle-sigsys-and-return.md) | Handle SIGSYS and return, rather than avoiding refused syscalls | accepted |
 | [0005](adr/0005-interpose-getaddrinfo-rather-than-redirect-resolv-conf.md) | Interpose `getaddrinfo()` rather than trying to redirect `/etc/resolv.conf` | accepted |

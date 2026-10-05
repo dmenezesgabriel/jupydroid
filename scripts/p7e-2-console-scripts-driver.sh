@@ -6,8 +6,8 @@
 #
 # **The flow is not the oracle.** The terminal draws to a `Canvas`, so no Maestro assertion reads
 # a character off it. The flow redirects each script's output to a file; this driver reads them
-# back with `run-as` and asserts, and also reads the link chain, the one thing a screenshot of a
-# terminal cannot show.
+# back with `run-as` and asserts, and also reads what the installer left behind, the one thing a
+# screenshot of a terminal cannot show.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -42,12 +42,13 @@ jup="$(read_ws p7e2-jupyter.txt)"
   echo "jupyter --version:"; echo "$jup"
 } | tee "$OUT/what-the-shell-parsed.txt"
 
-# The link chain, read off the device - the claim the frames only show the effect of.
+# What the installer left behind - the claim the frames only show the effect of: under proot the
+# image's own `#!` file runs through its own shebang line, so usr/bin/pip is a plain file and
+# bin/shebang-exec, the trampoline a pre-proot install linked here, is gone.
 "$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell "run-as $APP sh -c '
-  echo usr/local/bin/pip: \$(readlink files/spaces/base/usr/local/bin/pip)
-  echo bin/shebang-exec:  \$(readlink files/spaces/base/bin/shebang-exec)
-'" | tr -d '\r' > "$OUT/the-links.txt"
-echo "--- the links ---"; cat "$OUT/the-links.txt"
+  ls -l files/spaces/base/usr/bin/pip files/spaces/base/bin/shebang-exec 2>&1 || true
+'" | tr -d '\r' > "$OUT/the-files.txt"
+echo "--- the files ---"; cat "$OUT/the-files.txt"
 
 fail=0
 case "$pip" in

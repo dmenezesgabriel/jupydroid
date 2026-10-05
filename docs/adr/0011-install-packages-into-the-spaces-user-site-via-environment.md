@@ -54,3 +54,13 @@ clearly.
 The thing a future reader will be tempted to "fix" is the use of environment variables over a config
 file, which is harder to discover. A config file would have to live in `$HOME`, and `$HOME` is the
 user's notebook folder.
+
+## Amendment — 2026-10-05
+
+The "a virtualenv is not available" premise was retired by
+[ADR-0073](0073-a-space-owns-its-rootfs-and-runs-under-proot.md): under proot, `sys.executable`
+is the image's own stable `/usr/bin/python3`, and a venv was measured working. The decision
+stands because it answers a different question than whether a venv can exist — an unflagged
+`%pip install` must land somewhere that is neither the shared system site-packages nor the
+user's visible workspace, and `PYTHONUSERBASE` + `PIP_*` is still that somewhere. A venv inside
+a Space is now the user's own tool, not the install default.

@@ -29,12 +29,6 @@ repos:
         language: system
         files: '^(tools/rootfs/busybox\.config|tools/rootfs/Dockerfile|tools/rootfs/stage-app-artifacts\.sh)$'
         pass_filenames: false
-      - id: shebang-exec
-        name: the console-script trampoline is the one that was built
-        entry: scripts/check_shebang_exec.py
-        language: system
-        files: '^(tools/rootfs/shebang_exec\.c|tools/rootfs/Dockerfile|tools/rootfs/stage-app-artifacts\.sh)$'
-        pass_filenames: false
       - id: driver-isolation
         name: every flow starts from the Home list it seeded
         entry: scripts/check_driver_isolation.py

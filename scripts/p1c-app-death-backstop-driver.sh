@@ -45,9 +45,9 @@ NOTEBOOK="$NOTEBOOK_DIR/Backstop.ipynb"
 IDLE_WAIT=45
 CELL_WAIT=120
 
-# The server is a child of the app process running as `libpython3.so -m jupyter_server ...`.
-# Grep'd out of `ps -A` rather than counted by name, because `ps` reports the executable,
-# not the module.
+# The server runs under the app as a proot tracee, the image's own python3 carrying
+# `-m jupyter_server ...` on its command line. Grep'd out of `ps -A` rather than counted by
+# name, because `ps` reports the executable, not the module.
 server_pids() {
   "$ADB" shell "ps -A -o PID,CMDLINE | grep -- '-m jupyter_server' | grep -v grep" 2>/dev/null || true
 }

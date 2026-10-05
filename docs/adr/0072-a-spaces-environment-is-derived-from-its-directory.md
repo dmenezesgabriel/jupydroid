@@ -65,3 +65,17 @@ their own.
   kernelspec `env`, is not decided here. The one-server lifecycle is unchanged.
 - Proven on device by `PerSpaceRuntimeDeviceTest`: a config-only `space-1`'s server, kernel, shell
   and `pylsp` each report space-1's own directories, and `base` keeps running beside it.
+
+## Amendment — 2026-10-05
+
+Narrowed by [ADR-0073](0073-a-space-owns-its-rootfs-and-runs-under-proot.md): the
+readable/writable split this decision was built on became the Space's private root itself. A
+Space's directory now holds the whole image, and every path a process is handed is named inside
+that root (`SpaceDirs.inRoot`), so `SpaceRuntime` lost its `rootfsDir` and `nativeInterpreter`
+parameters — it is now `(spaceDir, nativeLibraryDir, dnsServers)`, where `nativeLibraryDir` is
+where proot lives rather than the interpreter. `PYTHONHOME`, `JUPYDROID_SPACE_ROOT` and
+`LD_LIBRARY_PATH` are gone with the split.
+
+Unchanged: the environment is still derived, never stored; `SpaceDirs` is still the one home for
+the writable layout and `ensure()` still runs first in every launch; `JUPYTER_RUNTIME_DIR` stays
+in the environment for the same reason it went there.

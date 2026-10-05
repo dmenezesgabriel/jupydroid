@@ -12,28 +12,30 @@ had moved by the time it was next read. A symbol name survives a refactor; `Spac
 under `filesDir`: AOSP's SELinux policy removed `execute_no_trans` from app data files and kept
 `execute`, so `dlopen()` and `mmap(PROT_EXEC)` are allowed and `execve()` is not.
 
-So **anything that must be executed ships in `jniLibs/<abi>/` and is reached through a symlink from
-the rootfs**, because the platform extracts `jniLibs` with SELinux context `apk_data_file`, where
-execution is permitted. Four ELFs ship this way and four rootfs paths are relinked into
-`nativeLibraryDir` on **every launch**, because that directory moves on every app update:
+So **every Space process runs under proot**, with the Space's own directory as `/`. Inside a
+translated root the image runs as it was built — `/usr/bin/python3` is simply itself, and a `#!`
+console script execs through its own shebang line, which proot honours the way the kernel would.
+proot is a ptrace supervisor, so it sees every exec and every path its tracees issue and rewrites
+them into the root.
 
-| Rootfs path | Native library | Reached by |
-|---|---|---|
-| `lib/ld-musl-<arch>.so.1` (`SpaceAbi.loaderLinkPath`) | `libloader.so` | every ELF's `PT_INTERP` |
-| `bin/busybox` (`BusyBoxApplets`) | `libbusybox.so` | the shell and its applet links |
-| `usr/bin/python3.12` (`BaseSpaceInstaller.INTERPRETER_PATH`) | `libpython3.so` | the shell running `python3` |
-| `bin/shebang-exec` (`ConsoleScripts`) | `libshebang.so` | `usr/local/bin/{pip,jupyter,ipython,pylsp,…}` |
+Two files ship in `jniLibs/arm64-v8a/` and are extracted to `nativeLibraryDir`, the only place the
+context above lets anything exec: `libproot.so` and `libproot-loader.so`. The loader is carved out
+beside it and named in `PROOT_LOADER` because unset, proot writes its embedded loader under
+`filesDir` and execs it from there — which the same rule refuses (`scripts/stage_proot.py`). These
+are also the only things execve'd from `nativeLibraryDir`: it moves on every app update, and nothing
+inside a Space may carry a path into it, because proot translates that path into the root, where it
+does not exist.
 
-A `#!` script has no ELF to point a symlink at, so `bin/shebang-exec` reads the shebang the kernel
-will not and execs the interpreter. `SpaceRuntime` sets `PATH` to
-`pkgs/bin:usr/local/bin:usr/bin:bin` under the Space root, which is why the trampoline is reached
-from `usr/local/bin` and not from `bin/`, where the image's own names would shadow it.
+`SpaceRuntime` sets `PATH` to `pkgs/bin:usr/local/bin:usr/bin:bin` under the Space root, so a
+console script the user installs into `pkgs/bin` shadows the image's own names.
 
-The decision, the options weighed, and what it forbids — proot, chroot, `LD_PRELOAD` exec
-interceptors, a `targetSdk` downgrade and the NDK — are in
-[ADR-0002](../adr/0002-ship-executables-in-jnilibs-and-reach-them-by-symlink.md). Why the userland is
-musl and why only arm64 ships a runtime is
-[ADR-0003](../adr/0003-musl-not-glibc-and-arm64-only-at-runtime.md).
+The retired mechanism — four patched ELFs relinked into `nativeLibraryDir` on every launch, and a
+static `shebang-exec` trampoline for `#!` scripts — is recorded in
+[ADR-0002](../adr/0002-ship-executables-in-jnilibs-and-reach-them-by-symlink.md) (superseded). What
+it forbids stands: chroot, `LD_PRELOAD` exec interceptors, a `targetSdk` downgrade and the NDK. Why
+the userland is musl and why only arm64 ships a runtime is
+[ADR-0003](../adr/0003-musl-not-glibc-and-arm64-only-at-runtime.md). The decision is
+[ADR-0073](../adr/0073-a-space-owns-its-rootfs-and-runs-under-proot.md).
 
 ## 8.2 Sandbox fidelity — SIGSYS
 
@@ -72,7 +74,8 @@ notebook *looks*; JupyterLab decides how it *behaves*. IntelliJ stays the editor
 everything below the palette.
 
 `box64` and `box86` are x86 userspace emulators, relevant only if this app ever had to run a
-non-native binary — which §8.1 forbids. `reference/xeus-android/` is two prose documents, not source.
+non-native binary — which the exec model does not do: proot translates paths, it does not emulate an
+ISA. `reference/xeus-android/` is two prose documents, not source.
 
 ## 8.4 Licences — clean-room versus transcription
 
@@ -221,8 +224,7 @@ output. `logcat` is captured as evidence but **never committed** — it is the w
 | **port** | an interface in `domain/port/`, contract-tested, with one `Fake…` and one real adapter |
 | **adapter** | an implementation of a port, in `data/<mechanism>/`, named `<Mechanism><PortConcept>` |
 | **composition root** | `di/AppContainer` — the only place that constructs implementations, built once per *process* |
-| **console script** | a `#!`-headed executable in `usr/local/bin`, reached through the `shebang-exec` trampoline |
-| **trampoline** | `bin/shebang-exec`, the static ELF that reads a shebang the kernel refuses to and execs the interpreter |
+| **console script** | a `#!`-headed executable the image ships in `usr/bin`/`usr/local/bin` (and pip installs into `pkgs/bin`), exec'd through its own shebang line under proot |
 | **nbformat** | the notebook file format. An **open** format: unknown fields ride on the domain type as `PreservedJson` and are written back verbatim |
 | **flow** | a Maestro script in `.maestro/`, driven by a `scripts/*-driver.sh`, with its output in `evidence/<step>/` |
 | **alternate screen** | the VT buffer `vi`, `less` and `htop` switch to; it has no scrollback |

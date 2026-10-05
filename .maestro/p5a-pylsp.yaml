@@ -3,8 +3,8 @@ appId: com.jupydroid.app
 # P5a: `pylsp` runs by name in the Space's shell and answers an LSP `initialize` over stdio.
 #
 # Route 2 for P5 — LSP is `python-lsp-server` as a direct stdio subprocess, and the rootfs v7 bump
-# is what puts its console script in `usr/bin`. `ConsoleScripts.relink()` then links
-# `usr/local/bin/pylsp` to the `bin/shebang-exec` trampoline, the same chain P7e-2 proved for `pip`.
+# is what puts its console script in `usr/bin`. Under proot `usr/bin/pylsp` is the image's own `#!`
+# file and execs through its shebang line, the same route P7e-2 proved for `pip`.
 #
 # **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell. The
 # terminal draws to a `Canvas`, so nothing here is asserted by Maestro text - the flow redirects

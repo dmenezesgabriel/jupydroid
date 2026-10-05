@@ -92,8 +92,9 @@ require_sessions() { # require_sessions <want> <label>
   return 1
 }
 
-# The kernel is a child of the app running as `libpython3.so -m jupydroid_kernel ...`; `ps`
-# reports the executable, not the module, so it is grep'd out of the command line.
+# The kernel runs under the app as a proot tracee, the image's own python3 carrying
+# `-m jupydroid_kernel ...` on its command line; `ps` reports the executable, not the module,
+# so it is grep'd out of the command line.
 kernel_pids() {
   "${DEVICE_ADB[@]}" shell "ps -A -o PID,CMDLINE | grep -- '-m jupydroid_kernel' | grep -v grep" 2>/dev/null || true
 }

@@ -85,6 +85,9 @@ same — and `patchelf` runs in a host-architecture container. The script's old 
 shape as editing *"binaries against the same libc that produced them"*, which is not what `patchelf`
 does; the real reason for a container is that the host needs no `patchelf` installed, and that is kept.
 
+*(Since closed: the `patchelf` step itself is retired — nothing is edited at staging any more, so the
+question no longer arises at all.)*
+
 ### CLOSED-009 — Does a pseudoterminal work inside an Android app process?
 
 **Yes.** Probed on the device before the terminal was designed, so the phase's shape rested on a

@@ -6,7 +6,7 @@
 #
 # **The flow is not the oracle.** The terminal draws to a `Canvas`, so no Maestro assertion reads
 # a character off it. The flow redirects pylsp's output to files; this driver reads them back
-# with `run-as` and asserts - plus the trampoline link and the rootfs stamp, the two things a
+# with `run-as` and asserts - plus what the installer left and the rootfs stamp, the two things a
 # screenshot of a terminal cannot show.
 set -euo pipefail
 
@@ -42,14 +42,14 @@ init="$(read_ws p5a-init.out)"
   echo "initialize over stdio:"; echo "$init"
 } | tee "$OUT/what-the-shell-parsed.txt"
 
-# The link chain and the stamp, read off the device - the claims the frames only show the effect
-# of: v7 is the rootfs that ships pylsp, and the `usr/local/bin` link is how a name reaches it.
+# The stamp and the interpreter's own file, read off the device - the claims the frames only show
+# the effect of: v7 is the rootfs that ships pylsp, and under proot `usr/bin/pylsp` is the image's
+# own `#!` script rather than a link onto the retired `bin/shebang-exec` trampoline.
 "$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell "run-as $APP sh -c '
-  echo rootfs-version:      \$(cat files/spaces/base/.jupydroid/rootfs-version)
-  echo usr/local/bin/pylsp: \$(readlink files/spaces/base/usr/local/bin/pylsp)
-  echo bin/shebang-exec:    \$(readlink files/spaces/base/bin/shebang-exec)
-'" | tr -d '\r' > "$OUT/the-links.txt"
-echo "--- the links ---"; cat "$OUT/the-links.txt"
+  echo rootfs-version: \$(cat files/spaces/base/.jupydroid/rootfs-version)
+  ls -l files/spaces/base/usr/bin/pylsp files/spaces/base/bin/shebang-exec 2>&1 || true
+'" | tr -d '\r' > "$OUT/the-files.txt"
+echo "--- the files ---"; cat "$OUT/the-files.txt"
 
 fail=0
 case "$version" in

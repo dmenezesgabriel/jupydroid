@@ -110,7 +110,9 @@ The numbers and output are in `evidence/space-isolation-probe/`.
 ## 5. What follows
 
 1. **A venv inside a Space works today**, with no new mechanism. Only its console scripts need a
-   route, as the rootfs's own console scripts did (`tools/rootfs/shebang_exec.c`).
+   route, as the rootfs's own console scripts did through the `shebang-exec` trampoline
+   ([ADR-0002](../adr/0002-ship-executables-in-jnilibs-and-reach-them-by-symlink.md), since
+   superseded - proot execs a `#!` script through its own shebang line).
 2. **Full isolation is reachable at targetSdk 36.** A Space can own a private rootfs and install
    system packages into it.
 3. **The loader alone is not enough.** It runs one program, but neither that program's children

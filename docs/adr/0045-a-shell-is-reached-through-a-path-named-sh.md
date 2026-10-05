@@ -49,3 +49,12 @@ copy, which is why the console-script trampoline is reached from `usr/local/bin`
 
 The thing a future reader will be tempted to "fix" is the link count, by passing the applet name as an
 argument. Both argument routes are closed — one by busybox's own basename check, one by terminado's spawn.
+
+## Amendment — 2026-10-05
+
+Narrowed by [ADR-0073](0073-a-space-owns-its-rootfs-and-runs-under-proot.md): what made a path named
+`sh` ours to create is gone. Under proot the Space root is `/`, so `bin/sh`, `bin/busybox` and the
+applet links are the image's own — shipped inside the tarball, created at no launch, and pointing
+nowhere near `nativeLibraryDir`. What stands is the mechanism this decision argued from: busybox
+still dispatches on the basename it is reached by, which is why the image carries the links, and the
+name the runtime reaches a shell by is still `bin/sh`.

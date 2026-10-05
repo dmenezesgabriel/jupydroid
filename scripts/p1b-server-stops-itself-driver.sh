@@ -34,9 +34,10 @@ EVIDENCE="$ROOT/evidence/p1b-server-stops-itself"
 mkdir -p "$EVIDENCE"
 SERVER_LOG_PATH="files/spaces/base/run/jupyter_server.log"
 
-# The server is a child of the app process running as `libpython3.so -m jupyter_server ...`;
-# the kernel is `libpython3.so -m jupydroid_kernel ...`. Both are grep'd out of `ps -A`
-# rather than counted by name, because `ps` reports the executable, not the module.
+# The server runs under the app as a proot tracee, the image's own python3 carrying
+# `-m jupyter_server ...` on its command line; the kernel carries `-m jupydroid_kernel ...`.
+# Both are grep'd out of `ps -A` rather than counted by name, because `ps` reports the
+# executable, not the module.
 server_pids() {
   "$ADB" shell "ps -A -o PID,CMDLINE | grep -- '-m jupyter_server' | grep -v grep" 2>/dev/null || true
 }

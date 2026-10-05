@@ -3,12 +3,15 @@
 #
 #   tools/rootfs/stage-app-artifacts.sh [abi]     abi: x86_64 (default) | arm64-v8a
 #
-# Produces two kinds of output, and the split is the whole exec model (ADR-0002):
+# Produces two kinds of output:
 #
 #   app/src/main/jniLibs/<abi>/        the only files that are ever execve'd.
 #       Android extracts these to /data/app/.../lib/<abi>/ with SELinux context
 #       apk_data_file, where execution is allowed. A targetSdk 36 app cannot
-#       execve anything under filesDir.
+#       execve anything under filesDir, so the two files staged here are proot
+#       and its loader, the pair every Space process runs under (ADR-0073).
+#       Everything else a Space runs lives inside the translated root and is
+#       read, not execve'd, by the kernel.
 #   app/src/main/assets/spaces/base/   the rootfs, which is only ever read and
 #       mmap'd - allowed under filesDir, so it does not need this treatment.
 #
@@ -18,46 +21,30 @@ set -euo pipefail
 
 ABI="${1:-x86_64}"
 case "$ABI" in
-  # LOADER must match SpaceAbi.loaderLinkPath: it is baked into PT_INTERP below and
-  # symlinked into nativeLibraryDir by BaseSpaceInstaller. musl keeps its loader in
-  # /lib on every architecture, named after the architecture.
-  # INTERPRETER must match BaseSpaceInstaller.INTERPRETER_PATH for the same reason: that is the
-  # rootfs path the installer replaces with a link into nativeLibraryDir, and the link is
-  # only right because the file it replaces is the one staged here as libpython3.so.
-  # PLATFORM is the same mapping build.sh uses; busybox is compiled here rather than read out of
-  # the tarball, so this script now needs to know what to build it for.
-  x86_64)    LOADER=lib/ld-musl-x86_64.so.1;  INTERPRETER=usr/bin/python3.12; PLATFORM=linux/amd64 ;;
-  arm64-v8a) LOADER=lib/ld-musl-aarch64.so.1; INTERPRETER=usr/bin/python3.12; PLATFORM=linux/arm64 ;;
+  x86_64|arm64-v8a) ;;
   *) echo "unknown abi '$ABI'; expected x86_64 or arm64-v8a" >&2; exit 1 ;;
 esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DOCKER_DIR="$ROOT/tools/rootfs"
-# patchelf runs on the HOST architecture, whatever ABI is being staged. It rewrites ELF headers
-# and does not execute the binary, so an x86_64 patchelf edits an aarch64 ELF correctly - measured,
-# and the loader it produces is byte-identical (sha256) to one staged the old way. This is what
-# makes the script run on a machine with no arm64 binfmt registered, which is otherwise a silent
-# prerequisite: `docker run --platform linux/arm64` fails with `exec format error`.
-PATCHELF_IMAGE="${PATCHELF_IMAGE:-jupydroid-rootfs:x86_64}"
 TARBALL="$ROOT/build/rootfs/rootfs-$ABI.tzst"
 JNI_DIR="$ROOT/app/src/main/jniLibs/$ABI"
 ASSET_DIR="$ROOT/app/src/main/assets/spaces/base"
 
-# Where the rootfs lands on device. /data/data/<pkg> is stable across installs;
-# nativeLibraryDir is NOT (it carries per-install random path segments), so the
-# baked-in PT_INTERP points here and the installer symlinks it across.
-APP_ID="${APP_ID:-com.jupydroid.app}"
-ROOTFS_ON_DEVICE="/data/data/$APP_ID/files/spaces/base"
-
-[ -f "$TARBALL" ] || { echo "missing $TARBALL; run tools/rootfs/build.sh $ABI first" >&2; exit 1; }
+if [ "$ABI" = "arm64-v8a" ]; then
+  [ -f "$TARBALL" ] || { echo "missing $TARBALL; run tools/rootfs/build.sh $ABI first" >&2; exit 1; }
+fi
 
 mkdir -p "$JNI_DIR" "$ASSET_DIR"
 
-# x86_64 gets the ELFs but not the rootfs. Android's seccomp filter is defined per
-# architecture and its x86_64 policy kills musl's libc startup, so no Space can run on
-# an x86_64 device (ADR-0003) and SpaceAbi lists arm64
-# alone. The native libs still ship so the APK installs on x86_64 emulators for UI work;
-# the 33 MB rootfs would be 33 MB that nothing can ever execute.
+# The surgery these names belonged to is gone (ADR-0073): under proot the image runs as
+# itself, so no ELF is extracted, patched or staged out of the rootfs. rm rather than
+# assume, so a jniLibs staged before the retirement does not keep shipping the dead files.
+rm -f "$JNI_DIR"/libloader.so "$JNI_DIR"/libpython3.so "$JNI_DIR"/libbusybox.so "$JNI_DIR"/libshebang.so
+
+# x86_64 gets nothing at all: Android's seccomp filter is defined per architecture and its
+# x86_64 policy kills musl's libc startup, so no Space can run on an x86_64 device
+# (ADR-0003) and SpaceAbi lists arm64 alone. The APK still installs on x86_64 emulators for
+# UI work; the 33 MB rootfs would be weight nothing can run.
 if [ "$ABI" = "arm64-v8a" ]; then
   echo "==> staging rootfs asset"
   cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tzst"
@@ -66,60 +53,10 @@ else
   rm -f "$ASSET_DIR/rootfs-$ABI.tzst"
 fi
 
-echo "==> extracting the loader and the interpreter from the tarball"
-# From the tarball rather than from the image, because the tarball IS `docker export` of that
-# image - so the bytes are the same - and reading it needs no emulation.
-STAGE_DIR="$(mktemp -d)"
-trap 'rm -rf "$STAGE_DIR"' EXIT
-zstd -dc "$TARBALL" | tar -x -C "$STAGE_DIR" "$LOADER" "$INTERPRETER"
-cp "$STAGE_DIR/$LOADER"      "$STAGE_DIR/libloader.so"
-cp "$STAGE_DIR/$INTERPRETER" "$STAGE_DIR/libpython3.so"
-
-echo "==> building busybox (the one without FEATURE_SUID)"
-# busybox is the exception to "from the tarball", and the reason is ADR-0006: Alpine's stock build
-# sets CONFIG_FEATURE_SUID=y, so every applet dispatch calls setgid()/setuid() and Android's app
-# seccomp filter kills it with SIGSYS before it prints a byte. The Dockerfile builds one without
-# that flag; this takes it from that stage directly, so the ELF staged here is the fixed one even
-# when build/rootfs/*.tzst predates the fix.
-#
-# It is the applets, not this file, that make the shell work: the image ships 304 symlinks
-# pointing absolutely at /bin/busybox, and neither they nor the ELF is reachable on device.
-# BaseSpaceInstaller points bin/busybox at this library and makes the applets relative to it, and
-# busybox reads its applet from the basename of the path it was reached by - which is why the
-# applets are not pointed here directly: busybox dispatches on the basename of the path it is
-# reached by, so each applet needs its own name (ADR-0045).
-docker buildx build --platform "$PLATFORM" --target busybox-artifact \
-  --output "type=local,dest=$STAGE_DIR/busybox-out" "$DOCKER_DIR"
-cp "$STAGE_DIR/busybox-out/busybox" "$STAGE_DIR/libbusybox.so"
-
-echo "==> building the console-script trampoline"
-# Same exception, same reason: static, so the ELF is what ships - no PT_INTERP edit below touches
-# it. See shebang_exec.c for why `pip`, `jupyter` and 29 other `#!` scripts cannot run otherwise.
-docker buildx build --platform "$PLATFORM" --target shebang-artifact \
-  --output "type=local,dest=$STAGE_DIR/shebang-out" "$DOCKER_DIR"
-cp "$STAGE_DIR/shebang-out/shebang-exec" "$STAGE_DIR/libshebang.so"
-
-echo "==> repointing PT_INTERP and RPATH"
-# The stock PT_INTERP is /$LOADER, an absolute path that on Android resolves against the device
-# root, not the rootfs. Repoint it at the rootfs's on-device location, where the installer symlinks
-# it on into nativeLibraryDir - the only place an ELF interpreter may live
-# The loader itself is not patched: it *is* the interpreter.
-docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" -v "$STAGE_DIR:/out" "$PATCHELF_IMAGE" sh -euc "
-  # libshebang.so is deliberately absent: it is static, so it has no PT_INTERP or rpath to set.
-  for elf in /out/libpython3.so /out/libbusybox.so; do
-    patchelf --set-interpreter '$ROOTFS_ON_DEVICE/$LOADER' \
-             --set-rpath '$ROOTFS_ON_DEVICE/usr/lib:$ROOTFS_ON_DEVICE/lib' \
-             \"\$elf\"
-  done
-"
-
-install -m 0644 "$STAGE_DIR/libloader.so" "$STAGE_DIR/libpython3.so" "$STAGE_DIR/libbusybox.so" \
-  "$STAGE_DIR/libshebang.so" "$JNI_DIR/"
-
-# proot is what every Space runs under (ADR-0073), so like the rootfs it ships on arm64 alone: no
-# Space can run on x86_64 (ADR-0003). It comes from a sha-pinned Alpine package, not the image -
-# no release branch packages it for aarch64 - and its loader is carved out beside it, because
-# unset, proot execs that loader from filesDir. stage_proot.py carries both reasons.
+# proot is what every Space runs under (ADR-0073), so like the rootfs it ships on arm64
+# alone. It comes from a sha-pinned Alpine package - no release branch packages it for
+# aarch64 - and its loader is carved out beside it, because unset, proot execs that loader
+# from filesDir. stage_proot.py carries both reasons.
 if [ "$ABI" = "arm64-v8a" ]; then
   echo "==> staging proot and its loader"
   python3 "$ROOT/scripts/stage_proot.py" "$JNI_DIR"
@@ -129,10 +66,3 @@ fi
 
 echo "==> staged:"
 ls -l "$JNI_DIR" "$ASSET_DIR"
-echo
-for elf in libpython3.so libbusybox.so; do
-  echo "$elf interpreter: $(docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" \
-    -v "$JNI_DIR:/out" "$PATCHELF_IMAGE" patchelf --print-interpreter "/out/$elf")"
-  echo "$elf rpath:       $(docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" \
-    -v "$JNI_DIR:/out" "$PATCHELF_IMAGE" patchelf --print-rpath "/out/$elf")"
-done

@@ -63,11 +63,10 @@ init="$(read_ws p5b-init.out)"
 } | tee "$OUT/what-the-shell-parsed.txt"
 
 "$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell "run-as $APP sh -c '
-  echo rootfs-version:      \$(cat files/spaces/base/.jupydroid/rootfs-version)
-  echo usr/local/bin/pylsp: \$(readlink files/spaces/base/usr/local/bin/pylsp)
-  echo bin/shebang-exec:    \$(readlink files/spaces/base/bin/shebang-exec)
-'" | tr -d '\r' > "$OUT/the-links.txt"
-echo "--- the links ---"; cat "$OUT/the-links.txt"
+  echo rootfs-version: \$(cat files/spaces/base/.jupydroid/rootfs-version)
+  ls -l files/spaces/base/usr/bin/pylsp files/spaces/base/bin/shebang-exec 2>&1 || true
+'" | tr -d '\r' > "$OUT/the-files.txt"
+echo "--- the files ---"; cat "$OUT/the-files.txt"
 
 fail=0
 grep -q "OK (3 tests)" "$OUT/instrumentation.txt" &&

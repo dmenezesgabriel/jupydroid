@@ -50,7 +50,7 @@ echo "==> recording manifest"
   echo "tarball-sha256: $(sha256sum "$TARBALL" | cut -d' ' -f1)"
   echo "tarball-bytes: $(stat -c%s "$TARBALL")"
   echo
-  echo "# python + interpreter paths the app needs (Step 8.2 patches these)"
+  echo "# interpreter + loader paths inside the root, as proot runs them"
   docker run --rm --platform "$PLATFORM" "$IMAGE" sh -c '
     echo "python3: $(readlink -f /usr/bin/python3)"
     echo "loader:  $(readlink -f /lib/ld-musl-*.so.1)"

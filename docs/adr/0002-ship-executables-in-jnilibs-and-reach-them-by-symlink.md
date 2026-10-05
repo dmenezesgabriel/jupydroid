@@ -1,6 +1,6 @@
 # ADR-0002 — Ship every executable in `jniLibs/` and reach it through a symlink
 
-Status: accepted
+Status: superseded by [ADR-0073](0073-a-space-owns-its-rootfs-and-runs-under-proot.md)
 Date: 2026-08-14
 
 ## Context
@@ -95,3 +95,21 @@ moves. A contributor testing an install path on a fresh install has tested half 
 The thing a future reader will be tempted to "fix" is the executable bit: setting it changes
 nothing, because SELinux refuses the exec before the permission is consulted. The test that proves
 it is named above; do not delete it.
+
+## Amendment — 2026-10-05
+
+**The mechanism is retired wholesale, not only the proot ban.** Every Space process now runs
+under proot with the Space's own directory as `/`
+([ADR-0073](0073-a-space-owns-its-rootfs-and-runs-under-proot.md)): inside a translated root
+`/usr/bin/python3` is simply itself, so the four symlinks, the `patchelf` `PT_INTERP`/`RPATH`
+edit and the `bin/shebang-exec` trampoline are all gone — the image runs as it was built, and a
+`#!` console script execs through its own shebang line.
+
+What survives is the **context**, and it is still the constraint the runtime is shaped by:
+
+- The SELinux table above is unchanged: at targetSdk 36 `execve` under `filesDir` is refused
+  whatever the mode. That is why proot and its loader are the two files that still ship in
+  `jniLibs/<abi>/`, and the only things execve'd from `nativeLibraryDir`.
+- `nativeLibraryDir` still moves on every app update, which is why nothing inside a Space may
+  carry a path into it: proot translates every path it is handed into the root, where such a
+  target does not exist.

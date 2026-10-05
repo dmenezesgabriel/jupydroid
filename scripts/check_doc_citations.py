@@ -234,7 +234,7 @@ def is_binary(path: Path) -> bool:
     """Whether this file is binary by git's rule: a NUL byte in its first [FIRST_FEW_BYTES].
 
     ```
-    is_binary(Path("app/src/main/jniLibs/arm64-v8a/libpython3.so"))   # True
+    is_binary(Path("app/src/main/jniLibs/arm64-v8a/libproot.so"))   # True
     ```
 
     Args:

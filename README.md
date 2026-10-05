@@ -54,10 +54,9 @@ greps. Documents are separated by **lifetime**, not by topic
 ./gradlew :app:assembleDebug
 ```
 
-Requires the Android SDK at `~/Android/Sdk` (see `local.properties`). The rootfs asset and the four
-native ELFs (`libloader.so`, `libpython3.so`, `libbusybox.so`, `libshebang.so`) are build artifacts,
-not committed files — build them with
-`tools/rootfs/build.sh arm64-v8a` then `tools/rootfs/stage-app-artifacts.sh arm64-v8a`.
+Requires the Android SDK at `~/Android/Sdk` (see `local.properties`). The rootfs asset and the
+proot pair (`libproot.so`, `libproot-loader.so`) are build artifacts, not committed files — build
+them with `tools/rootfs/build.sh arm64-v8a` then `tools/rootfs/stage-app-artifacts.sh arm64-v8a`.
 
 ## Reference
 
