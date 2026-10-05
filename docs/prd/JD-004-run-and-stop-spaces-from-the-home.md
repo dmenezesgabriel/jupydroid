@@ -78,8 +78,8 @@ The backlog asks for "several at once", which is what puts us on SageMaker's sid
 
 **Where they disagree:** Winlator runs one environment at a time, while SageMaker and Termux keep
 several alive. JupyterLab stops gracefully through the server's own API, while Winlator and our
-launcher kill the process. The first disagreement is settled by the backlog. The second is
-measured in T1.
+launcher kill the process. The backlog settles the first disagreement. T1 settled the second in
+JupyterLab's favour (Open decisions).
 
 ## Trade-offs and what we adopt
 
@@ -87,7 +87,7 @@ measured in T1.
 |---|---|---|---|
 | How many run | winlator → one; SageMaker, termux → several | ~130 MB per server against switching cost | **Several**, as the backlog states. A cap only if T1's RSS calls for one |
 | Port shape | today: one `ServerLauncher`, one `BaseSpaceServer` for `BASE_SPACE` | Keyed launcher vs a registry of per-Space servers | **A `SpaceServers` port** (`running: StateFlow<Set<String>>`, `run`, `stop`, `stopAll`) over one generalised `SpaceServer` per id, each with its own `JupyterServerLauncher`. That keeps the launcher's `start`-begins-with-`stop` rule per Space. Base's clients take base's entry, so a lazy start from a cell shows on the home |
-| Stop | jupyterlab → `api/shutdown`; winlator, ours → kill the process | Graceful kernel cleanup vs no dependency on a live HTTP endpoint | **Decided by T1's measurement** |
+| Stop | jupyterlab → `api/shutdown`; winlator, ours → kill the process | Graceful kernel cleanup vs no dependency on a live HTTP endpoint | **`api/shutdown`**, JupyterLab's, because T1 measured that under proot no signal to the tracer stops the tree |
 | Self-stop | the rootfs's idle flags | Polling vs watching the process | **Watch for exit**, so the row flips without polling |
 | App left | ours → `IdleServerStopper` stops the one server | — | `stopAll()`, on the same grace and counters |
 
@@ -110,12 +110,25 @@ measured in T1.
 
 ## Open decisions
 
-To be settled by T1 on SM-X216B:
+**Settled by T1** on SM-X216B (`TwoSpacesAtOnceDeviceTest`, three runs, each a fresh tree per case):
 
-- The RSS of each server, and of each server's kernel, with two Spaces running.
-- Whether `destroy()` on one Space's server takes its kernel with it (no process left under that root)
-  and leaves the other Space's server answering.
-- Whether Stop should stay `destroy()` or become `api/shutdown`, which follows from the answer above.
+- **A running Space costs ~124 MB**: proot ~0.36 MB, `jupyter_server` ~66 MB, and a booted kernel
+  ~57 MB. Two run side by side on distinct ports, and each refuses the other's token. No cap for now.
+- **Only `POST api/shutdown` stops a Space.** It took the whole tree in 772–991 ms, and base's server
+  and kernel kept answering. **SIGTERM to proot, which is what `Process.destroy()` sends, stops
+  nothing**: all three processes were alive 10 s later. **SIGKILL to proot orphans its tracees**: the
+  tracer goes, and the server and kernel run on outside the app's tree. So Stop becomes
+  `api/shutdown`, and neither signal can be the fallback.
+- **That is a defect in what ships today**, not only a JD-004 question. `JupyterServerLauncher.stop()`
+  is `destroy()`, so the app-leave backstop never stops base's server. And `start()` begins with
+  `stop()`, so every restart leaves the old server running beside the new one until the app dies
+  (`CLOSED-001` still holds for app death). That is fixed first, in T2, red test first.
+- **A kernel's websocket upgrade can take longer than OkHttp's default 10 s read timeout.**
+  jupyter_server answers the upgrade only after `kernel_info`, and waits for it up to
+  `kernel_info_timeout` (60 s, jupyter_server 2.20.0 `services/kernels/connection/base.py`). A cold
+  kernel beside a second Space missed 10 s in two runs, once on base and once on the probe. `OkHttpKernelSocketOpener` defaults to
+  a plain `OkHttpClient`, so a notebook opened while another Space runs can fail the same way. The test
+  gives the opener a 60 s client, and the app's own opener is T3.
 
 ## Surface
 
@@ -127,20 +140,25 @@ To be settled by T1 on SM-X216B:
 | `data/fake` | `FakeSpaceServers` |
 | `ui/spaces` | `SpacesViewModel`, `SpacesHomeScreen` |
 | `di/AppContainer` | `spaceServers`, and the backstop's `stopAll` |
-| unit tests | `JupyterSpaceServersTest`, `SpacesViewModelTest` |
+| unit tests | `JupyterServerLauncher` stop, `JupyterSpaceServersTest`, `SpacesViewModelTest` |
 | instrumented tests | `TwoSpacesAtOnceDeviceTest`, `SpacesHomeScreenTest` |
 | `.maestro/` flow + `scripts/` driver | `jd-004-run-and-stop-spaces` |
 
 ## Tasks
 
-- [ ] T1 — Measure two Spaces' servers at once on SM-X216B, each with a kernel: distinct ports, each
-  answering with its own token, the RSS of each, and whether `destroy()` on one leaves no process
-  under its root while the other still answers. This is a measurement only, so no flow
-- [ ] T2 — The `SpaceServers` port, `JupyterSpaceServers` and `FakeSpaceServers`: `BaseSpaceServer`
-  generalised to one `SpaceServer` per Space, base's clients bound to base's entry, `running` observed
-  from the process's exit, and Stop as T1 decided
-- [ ] T3 — The home: Run/Stop and Running/Stopped on every row, and Delete stops a running Space first
-- [ ] T4 — The app-leave backstop stops every running Space. The demo runs on the tablet
+- [x] T1 — Measure two Spaces' servers at once on SM-X216B, each with a kernel: distinct ports, each
+  answering with its own token, the RSS of each, and which stop leaves no process under its root while
+  the other still answers. This is a measurement only, so no flow
+- [ ] T2 — `JupyterServerLauncher.stop()` is `POST api/shutdown` and waits for the process to exit,
+  replacing `destroy()`, which proot ignores. Red first: a JVM test against `FakeJupyterServerScript`
+  whose server ignores SIGTERM, and `TwoSpacesAtOnceDeviceTest` driving the launcher's own `stop()`
+- [ ] T3 — The kernel websocket's upgrade waits as long as jupyter_server's `kernel_info_timeout`, not
+  OkHttp's 10 s default
+- [ ] T4 — The `SpaceServers` port, `JupyterSpaceServers` and `FakeSpaceServers`: `BaseSpaceServer`
+  generalised to one `SpaceServer` per Space, base's clients bound to base's entry, and `running`
+  observed from the process's exit
+- [ ] T5 — The home: Run/Stop and Running/Stopped on every row, and Delete stops a running Space first
+- [ ] T6 — The app-leave backstop stops every running Space. The demo runs on the tablet
 
 ## Out of scope
 
