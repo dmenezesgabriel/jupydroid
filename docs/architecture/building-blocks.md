@@ -108,7 +108,8 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | `TerminalGateway` | open, write to, resize and close a terminado shell | `RealTerminalGateway`, behind `ActivityTrackedTerminalGateway` so a live terminal holds the server up |
 | `ThemeSettingsRepository` | the app-wide theme preference | `DiskThemeSettingsRepository` |
 | `LauncherSettingsRepository` | the launcher's own preferences | `DiskLauncherSettingsRepository` |
-| `ServerLauncher` | start/stop the `jupyter_server` process for a Space | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
+| `ServerLauncher` | start/stop the `jupyter_server` process for a Space, and wait for it to exit | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
+| `SpaceServers` | run and stop each Space's server, several at once, and which are running | `JupyterSpaceServers`, one `SpaceServer` with its own launcher per Space |
 | `EditorSettingsRepository` | the app-wide editor preferences | `DiskEditorSettingsRepository` |
 | `TerminalSettingsRepository` | the app-wide terminal preferences | `DiskTerminalSettingsRepository` |
 | `ExplorerSettingsRepository` | the app-wide explorer preferences | `DiskExplorerSettingsRepository` |
@@ -129,9 +130,10 @@ diff <(grep -lE '^(interface|fun interface) ' $P/*.kt | xargs -n1 basename | sed
 port when it keeps every boundary and operation discoverable in one place; that consistency is the
 map a newcomer navigates by, not ceremony.
 
-**Multiple clients of the Space's server, and one object that starts it.** `BaseSpaceServer` owns the
-lazy install-and-start, and `PerRunningServer` gives each client one instance per server —
-`BaseSpaceKernelGateway` and `BaseSpaceNotebookExporter` each their own. This is not layering for its
+**Multiple clients of the Space's server, and one object that starts it.** `SpaceServer` owns the
+lazy install-and-start, one per Space in `JupyterSpaceServers`, and base's clients all hold base's entry.
+It reports Running when it starts a server and Stopped when that process exits, whoever ended it.
+`PerRunningServer` gives each client one instance per server — `BaseSpaceKernelGateway` and `BaseSpaceNotebookExporter` each their own. This is not layering for its
 own sake: `JupyterServerLauncher.start` begins with `stop()`, so a second starter would kill the
 kernel's server.
 

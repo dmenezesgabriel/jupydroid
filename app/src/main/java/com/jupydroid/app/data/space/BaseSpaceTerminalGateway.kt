@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.flow
  *
  * ```
  * BaseSpaceTerminalGateway(
- *   server = baseSpaceServer(context, spaceServerLauncher(context))!!,
+ *   server = spaceServers(context, scope)!!.server(BASE_SPACE.id),
  *   gatewayFor = { RealTerminalGateway(OkHttpTerminalSocketOpener(it), OkHttpTerminalLifecycle(it)) },
  * )
  * ```
@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.flow
  * [TerminalEvent.Ended] carrying that 404 - which is a truthful answer rather than a protocol
  * error leaking. Adding a registry here would be inventing a state the wire already reports.
  */
-class BaseSpaceTerminalGateway(server: BaseSpaceServer, gatewayFor: (ServerConnection) -> TerminalGateway) :
+class BaseSpaceTerminalGateway(server: SpaceServer, gatewayFor: (ServerConnection) -> TerminalGateway) :
   TerminalGateway {
   private val live = PerRunningServer(server, gatewayFor)
 

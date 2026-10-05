@@ -19,10 +19,10 @@ import com.jupydroid.app.domain.port.ServerConnection
  * list on the first notebook (`packages/notebook-extension/src/index.ts:855-890`).
  *
  * ```
- * BaseSpaceNotebookExporter(baseSpaceServer(context, launcher)!!) { OkHttpNotebookExporter(it) }
+ * BaseSpaceNotebookExporter(spaceServers(context, scope)!!.server(BASE_SPACE.id)) { OkHttpNotebookExporter(it) }
  * ```
  */
-class BaseSpaceNotebookExporter(server: BaseSpaceServer, exporterFor: (ServerConnection) -> NotebookExporter) :
+class BaseSpaceNotebookExporter(server: SpaceServer, exporterFor: (ServerConnection) -> NotebookExporter) :
   NotebookExporter {
   private val live = PerRunningServer(server, exporterFor)
 

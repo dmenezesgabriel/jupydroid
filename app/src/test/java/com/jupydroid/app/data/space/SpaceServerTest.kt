@@ -3,7 +3,10 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -14,7 +17,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class BaseSpaceServerTest {
+class SpaceServerTest {
   @Test
   fun connection_installsTheSpaceAndStartsTheServerBeforeHandingOneOut() = runTest {
     val launcher = RecordingServerLauncher()
@@ -170,12 +173,52 @@ class BaseSpaceServerTest {
     assertEquals(0, launcher.startCount)
   }
 
+  /** What lets the home say Running: the start is reported, not inferred later by asking. */
+  @Test
+  fun connection_reportsTheSpaceRunningOnceItsServerHasStarted() = runTest {
+    server(RecordingServerLauncher()).connection()
+
+    assertEquals(listOf(true), reported)
+  }
+
+  /**
+   * A server that stops itself when idle is reported stopped by its own exit - nothing asked it
+   * to stop, so nothing else could know.
+   */
+  @Test
+  fun connection_reportsTheSpaceStoppedWhenItsServerProcessExits() = runTest {
+    val launcher = RecordingServerLauncher()
+    server(launcher).connection()
+
+    launcher.exit()
+    runCurrent()
+
+    assertEquals(listOf(true, false), reported)
+  }
+
+  @Test
+  fun stop_asksTheLauncherToStopTheServer() = runTest {
+    val launcher = RecordingServerLauncher()
+    val server = server(launcher)
+    server.connection()
+
+    server.stop()
+    runCurrent()
+
+    assertEquals(1, launcher.stopCount)
+    assertEquals(listOf(true, false), reported)
+  }
+
   private val installedThenStarted = mutableListOf<String>()
   private val recordingLog = RecordingSpaceLifecycleLog()
+  private val reported = mutableListOf<Boolean>()
 
-  private fun server(launcher: RecordingServerLauncher) = BaseSpaceServer(
+  private fun TestScope.server(launcher: RecordingServerLauncher) = SpaceServer(
+    space = SPACE,
     installSpace = { installedThenStarted += "install" },
     launcher = launcher,
+    watchScope = backgroundScope,
+    reportRunning = { reported += it },
     log = recordingLog,
   )
 
@@ -191,11 +234,31 @@ class BaseSpaceServerTest {
       failWith?.let { throw it }
       installedThenStarted += "start"
       startCount++
+      exited = CompletableDeferred() // a fresh process, which has not exited yet
       return ServerConnection(baseUrl = "http://127.0.0.1:8888/", port = 8888, token = "t")
     }
 
-    override suspend fun stop() = Unit
+    var stopCount = 0
+      private set
 
-    override fun isRunning(): Boolean = startCount > if (diesAfterFirstStart) 1 else 0
+    private var exited = CompletableDeferred<Unit>()
+
+    /** The process leaving on its own, as an idle server does. */
+    fun exit() {
+      exited.complete(Unit)
+    }
+
+    override suspend fun stop() {
+      stopCount++
+      exit()
+    }
+
+    override fun isRunning(): Boolean = !exited.isCompleted && startCount > if (diesAfterFirstStart) 1 else 0
+
+    override suspend fun awaitExit() = exited.await()
+  }
+
+  private companion object {
+    val SPACE = Space(id = "space-1", name = "One", kernels = emptyList())
   }
 }

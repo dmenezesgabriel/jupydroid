@@ -40,7 +40,7 @@ import kotlin.time.Duration.Companion.seconds
  * `pylsp` - or any LSP server that speaks JSON-RPC over stdio - as a [LanguageServerPort].
  *
  * One process per [Space], started lazily on first use and stopped with it: [installSpace]
- * and [spawn] are the same provisioning seam [BaseSpaceServer] takes, because a language
+ * and [spawn] are the same provisioning seam [SpaceServer] takes, because a language
  * server has no business running on a device that cannot unpack the rootfs, and no business
  * starting at app launch - the port's own rule, and `completionsAt`'s: typing alone boots no
  * Python runtime. [spawn] is handed the Space it serves, so each process runs in that Space's

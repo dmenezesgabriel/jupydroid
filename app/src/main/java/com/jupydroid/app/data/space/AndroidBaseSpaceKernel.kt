@@ -12,7 +12,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
  * [baseSpaceKernelDebugger] - a `debug_request` reuses the identical per-session socket
  * `execute`/`complete`/`history` already share, rather than opening a second one.
  */
-fun baseSpaceKernelSockets(server: BaseSpaceServer): PerRunningServer<KernelSockets> =
+fun baseSpaceKernelSockets(server: SpaceServer): PerRunningServer<KernelSockets> =
   PerRunningServer(server) { connection ->
     KernelSockets(
       opener = OkHttpKernelSocketOpener(connection),

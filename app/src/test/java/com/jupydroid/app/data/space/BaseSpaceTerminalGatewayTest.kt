@@ -88,7 +88,7 @@ class BaseSpaceTerminalGatewayTest {
   }
 
   private fun gateway(launcher: ServerLauncher): TerminalGateway = BaseSpaceTerminalGateway(
-    server = BaseSpaceServer(installSpace = {}, launcher = launcher),
+    server = clientTestSpaceServer(launcher),
     gatewayFor = { FakeTerminalGateway() },
   )
 
@@ -109,5 +109,7 @@ class BaseSpaceTerminalGatewayTest {
     override suspend fun stop() = Unit
 
     override fun isRunning(): Boolean = startCount > if (diesAfterFirstStart) 1 else 0
+
+    override suspend fun awaitExit() = Unit
   }
 }

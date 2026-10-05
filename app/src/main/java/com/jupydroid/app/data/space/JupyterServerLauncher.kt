@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.port.ServerLauncher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
@@ -88,7 +89,7 @@ class JupyterServerLauncher(
   override suspend fun stop() {
     val running = process?.takeIf { it.isAlive }
     connection?.takeIf { running != null }?.let { postShutdown(it) }
-    if (running != null && !awaitExit(running)) {
+    if (running != null && !exitsWithinStopTimeout(running)) {
       val cause =
         IllegalStateException("$running still alive $stopTimeout after api/shutdown; expected exit")
       return log.failed(OUTLIVED_SHUTDOWN, cause)
@@ -100,6 +101,16 @@ class JupyterServerLauncher(
   override fun isRunning(): Boolean = process?.isAlive == true
 
   /**
+   * Blocks a thread in `waitFor()` rather than polling: Android's `Process` has no `onExit()`, and
+   * a poll would wake a backgrounded app for nothing. Interruptible, so cancelling the waiter frees
+   * the thread.
+   */
+  override suspend fun awaitExit() {
+    val running = process ?: return
+    runInterruptible(ioDispatcher) { running.waitFor() }
+  }
+
+  /**
    * Why the server stopped, or null while it is alive. Values above 128 are
    * `128 + signal`, which is how a seccomp kill (SIGSYS, 159) shows up.
    */
@@ -107,7 +118,7 @@ class JupyterServerLauncher(
 
   /**
    * `POST api/shutdown` with the server's token. Its answer is not read, and a failure is not
-   * raised: a server that exits mid-answer has answered, and [awaitExit] is what decides.
+   * raised: a server that exits mid-answer has answered, and [exitsWithinStopTimeout] is what decides.
    */
   private suspend fun postShutdown(server: ServerConnection) {
     val request = Request.Builder()
@@ -118,7 +129,7 @@ class JupyterServerLauncher(
     withContext(ioDispatcher) { runCatching { client.newCall(request).execute().close() } }
   }
 
-  private suspend fun awaitExit(running: Process): Boolean = withContext(ioDispatcher) {
+  private suspend fun exitsWithinStopTimeout(running: Process): Boolean = withContext(ioDispatcher) {
     running.waitFor(stopTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
   }
 

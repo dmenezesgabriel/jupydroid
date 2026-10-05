@@ -1,6 +1,10 @@
 package com.jupydroid.app.data.space
 
 import androidx.test.platform.app.InstrumentationRegistry
+import com.jupydroid.app.domain.model.BASE_SPACE
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * **One `jupyter_server` for the whole instrumentation run**, shared by every device test that
@@ -13,7 +17,7 @@ import androidx.test.platform.app.InstrumentationRegistry
  * port; they would also truncate the same `jupyter_server.log`, which is the log every Space
  * investigation reads.
  *
- * That is the process-wide version of the same rule [BaseSpaceServer] states for the app -
+ * That is the process-wide version of the same rule [SpaceServer] states for the app -
  * `JupyterServerLauncher.start` begins with `stop()`, so one object owns the start - and the app
  * keeps it by building the container once per process ([com.jupydroid.app.JupydroidApplication]).
  * A test suite has no such composition root, so this is it.
@@ -23,12 +27,20 @@ import androidx.test.platform.app.InstrumentationRegistry
  * ```
  */
 object BaseSpaceUnderTest {
-  /** Null where no Space can run at all, which is what the `Assume` in each test class reads. */
-  val server: BaseSpaceServer? by lazy {
-    val context = InstrumentationRegistry.getInstrumentation().targetContext
-    baseSpaceServer(context, spaceServerLauncher(context))
+  /**
+   * Every Space's server for the run, as the app builds them - so a test that runs a second Space
+   * through them shares base's entry with the tests that only want base. Null where no Space can
+   * run at all, which is what the `Assume` in each test class reads.
+   */
+  val servers: JupyterSpaceServers? by lazy {
+    spaceServers(
+      InstrumentationRegistry.getInstrumentation().targetContext,
+      CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    )
   }
 
+  val server: SpaceServer? by lazy { servers?.server(BASE_SPACE.id) }
+
   /** The server, or a failure naming the device - for tests that have already assumed a Space. */
-  fun require(): BaseSpaceServer = requireNotNull(server) { "no Space runs on this device" }
+  fun require(): SpaceServer = requireNotNull(server) { "no Space runs on this device" }
 }

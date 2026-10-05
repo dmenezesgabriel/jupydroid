@@ -82,13 +82,13 @@ class BaseSpaceKernelGatewayTest {
    *
    * `JupyterServerLauncher.start` begins with `stop()`, so an export - or a terminal, or a
    * language server - that brought up its own Space would kill the kernel's server and strand
-   * the session running on it. Sharing one [BaseSpaceServer] is what stops that, and the session
+   * the session running on it. Sharing one [SpaceServer] is what stops that, and the session
    * still working afterwards is the half a start count cannot show.
    */
   @Test
   fun connect_survivesASecondClientOfTheSpaceAskingForTheSameServer() = runTest {
     val launcher = RecordingServerLauncher()
-    val space = BaseSpaceServer(installSpace = {}, launcher = launcher, log = recordingLog)
+    val space = clientTestSpaceServer(launcher, recordingLog)
     val gateway = BaseSpaceKernelGateway(fakeSockets(space), { FakeKernelGateway() }, log = recordingLog)
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
@@ -215,7 +215,7 @@ class BaseSpaceKernelGatewayTest {
     launcher: RecordingServerLauncher,
     registry: KernelSessionRegistry = KernelSessionRegistry(),
   ): KernelGateway {
-    val server = BaseSpaceServer(installSpace = {}, launcher = launcher, log = recordingLog)
+    val server = clientTestSpaceServer(launcher, recordingLog)
     return BaseSpaceKernelGateway(
       sharedSockets = fakeSockets(server),
       gatewayFor = { FakeKernelGateway(registry) },
@@ -225,7 +225,7 @@ class BaseSpaceKernelGatewayTest {
   }
 
   /** `gatewayFor` below never reads it - a placeholder is enough wherever `FakeKernelGateway` stands in. */
-  private fun fakeSockets(server: BaseSpaceServer): PerRunningServer<KernelSockets> = PerRunningServer(server) {
+  private fun fakeSockets(server: SpaceServer): PerRunningServer<KernelSockets> = PerRunningServer(server) {
     KernelSockets(ScriptedKernelSocketOpener(reply = { emptyList() }), FakeKernelLifecycle())
   }
 
@@ -246,6 +246,8 @@ class BaseSpaceKernelGatewayTest {
     override suspend fun stop() = Unit
 
     override fun isRunning(): Boolean = startCount > if (diesAfterFirstStart) 1 else 0
+
+    override suspend fun awaitExit() = Unit
   }
 
   private companion object {

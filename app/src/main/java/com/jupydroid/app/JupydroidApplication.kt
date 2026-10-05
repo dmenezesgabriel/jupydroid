@@ -21,10 +21,10 @@ import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
+import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.intent.IntentDocumentSharer
-import com.jupydroid.app.data.space.BaseSpaceServer
-import com.jupydroid.app.data.space.JupyterServerLauncher
+import com.jupydroid.app.data.space.SpaceServer
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
@@ -33,11 +33,10 @@ import com.jupydroid.app.data.space.baseSpaceKernelSockets
 import com.jupydroid.app.data.space.baseSpaceKernelSpecs
 import com.jupydroid.app.data.space.baseSpaceLanguageServerPort
 import com.jupydroid.app.data.space.baseSpaceNotebookExporter
-import com.jupydroid.app.data.space.baseSpaceServer
 import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.data.space.spaceImageInstaller
-import com.jupydroid.app.data.space.spaceServerLauncher
+import com.jupydroid.app.data.space.spaceServers
 import com.jupydroid.app.data.space.spacesDir
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.BASE_SPACE
@@ -48,7 +47,11 @@ import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
+import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import java.io.File
 
 /**
@@ -84,52 +87,60 @@ class JupydroidApplication : Application() {
   }
 
   private fun buildContainer(): AppContainer {
-    // The launcher is built once and shared: the gateways start it and the idle backstop stops it,
-    // and two launchers would be two processes pretending to be one.
-    val serverLauncher = spaceServerLauncher(this)
-    val space = SpaceBackedPorts(serverLauncher, this)
+    // Built here rather than defaulted inside the container, because the servers watch their
+    // processes' exits on it and are built before the container is.
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // The servers are built once and shared: the gateways start base's and the idle backstop stops
+    // it, and two entries for one Space would be two processes pretending to be one.
+    val servers = spaceServers(this, applicationScope)
+    val space = SpaceBackedPorts(servers?.server(BASE_SPACE.id), this)
     val workspace = notebookWorkspace(this)
     migrateNotebooksOnce(workspace)
-    return containerFor(serverLauncher, space, workspace)
+    return containerFor(servers ?: FakeSpaceServers(), applicationScope, space, workspace)
   }
 
   // One named argument per port and no logic, so its length grows with the ports rather than
   // with what it decides - the reason `config/detekt/detekt.yml` exempts a dispatch-table `when`.
   @Suppress("LongMethod")
-  private fun containerFor(serverLauncher: JupyterServerLauncher, space: SpaceBackedPorts, workspace: File) =
-    AppContainer(
-      notebookRepository = DiskNotebookRepository(workspace),
-      workspaceRepository = DiskWorkspaceRepository(workspace),
-      // The same tree, walked rather than listed. Always real, like the sharer: searching needs no
-      // Space, so it works on a device that cannot run one.
-      workspaceSearcher = DiskWorkspaceSearcher(workspace),
-      // `filesDir`, deliberately not `workspace`: the workspace is the kernel's HOME and the
-      // server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from
-      // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
-      recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
-      kernelGateway = space.kernels,
-      kernelSessions = space.sessions,
-      kernelSpecs = space.specs,
-      kernelDebugger = space.debugger,
-      languageServer = space.languageServer,
-      notebookExporter = space.exporter,
-      terminalGateway = space.terminals,
-      // Always real, unlike the Space-backed three: sharing needs no Space, so it works on a device
-      // that cannot run one - there is nothing to export there, but a file put in the workspace by
-      // any other means can still be sent.
-      documentSharer = IntentDocumentSharer(this, workspace),
-      serverLauncher = serverLauncher,
-      // Always real, like the searcher: listing and editing Space records needs only `filesDir`,
-      // and a create copies the bundled image into the new Space's own directory.
-      spaceRepository = DiskSpaceRepository(spacesDir(this), spaceImageInstaller(this)),
-      // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
-      // state, not a Contents API file.
-      editorSettings = DiskEditorSettingsRepository(filesDir),
-      terminalSettings = DiskTerminalSettingsRepository(filesDir),
-      explorerSettings = DiskExplorerSettingsRepository(filesDir),
-      themeSettings = DiskThemeSettingsRepository(filesDir),
-      launcherSettings = DiskLauncherSettingsRepository(filesDir),
-    )
+  private fun containerFor(
+    spaceServers: SpaceServers,
+    applicationScope: CoroutineScope,
+    space: SpaceBackedPorts,
+    workspace: File,
+  ) = AppContainer(
+    notebookRepository = DiskNotebookRepository(workspace),
+    workspaceRepository = DiskWorkspaceRepository(workspace),
+    // The same tree, walked rather than listed. Always real, like the sharer: searching needs no
+    // Space, so it works on a device that cannot run one.
+    workspaceSearcher = DiskWorkspaceSearcher(workspace),
+    // `filesDir`, deliberately not `workspace`: the workspace is the kernel's HOME and the
+    // server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from
+    // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
+    recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
+    kernelGateway = space.kernels,
+    kernelSessions = space.sessions,
+    kernelSpecs = space.specs,
+    kernelDebugger = space.debugger,
+    languageServer = space.languageServer,
+    notebookExporter = space.exporter,
+    terminalGateway = space.terminals,
+    // Always real, unlike the Space-backed three: sharing needs no Space, so it works on a device
+    // that cannot run one - there is nothing to export there, but a file put in the workspace by
+    // any other means can still be sent.
+    documentSharer = IntentDocumentSharer(this, workspace),
+    spaceServers = spaceServers,
+    // Always real, like the searcher: listing and editing Space records needs only `filesDir`,
+    // and a create copies the bundled image into the new Space's own directory.
+    spaceRepository = DiskSpaceRepository(spacesDir(this), spaceImageInstaller(this)),
+    // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
+    // state, not a Contents API file.
+    editorSettings = DiskEditorSettingsRepository(filesDir),
+    terminalSettings = DiskTerminalSettingsRepository(filesDir),
+    explorerSettings = DiskExplorerSettingsRepository(filesDir),
+    themeSettings = DiskThemeSettingsRepository(filesDir),
+    launcherSettings = DiskLauncherSettingsRepository(filesDir),
+    applicationScope = applicationScope,
+  )
 
   /**
    * The four ports a running Space backs, or the fakes where none can run.
@@ -140,14 +151,14 @@ class JupydroidApplication : Application() {
    * at all, and the UI is better served by fakes than
    * by controls that always fail.
    *
-   * **One server object for all four**, because `JupyterServerLauncher.start` begins with `stop()`
-   * - see [BaseSpaceServer], whose KDoc names an export and a terminal as its clients.
+   * **One server object for all four** - base's entry in the Space servers - because
+   * `JupyterServerLauncher.start` begins with `stop()`; see [SpaceServer], whose KDoc names an export
+   * and a terminal as its clients. Null where no Space can run.
    * [kernels] and [debugger] go one step further, sharing one `PerRunningServer<KernelSockets>`
    * so a `debug_request` reuses the identical per-session socket `execute`/`complete`/`history`
    * already share, rather than opening a second one.
    */
-  private class SpaceBackedPorts(launcher: JupyterServerLauncher, application: Application) {
-    private val space: BaseSpaceServer? = baseSpaceServer(application, launcher)
+  private class SpaceBackedPorts(private val space: SpaceServer?, application: Application) {
     private val kernelSockets = space?.let(::baseSpaceKernelSockets)
 
     /**

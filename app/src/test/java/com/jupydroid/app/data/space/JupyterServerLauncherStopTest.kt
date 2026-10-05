@@ -1,7 +1,10 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.Space
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.RecordedRequest
@@ -91,6 +94,25 @@ class JupyterServerLauncherStopTest {
     assertTrue(isAlive(pid))
     assertTrue("isRunning() must not forget a server that is still there", launcher.isRunning())
     assertEquals("one failure, for the server that outlived its stop", 1, log.failures.size)
+  }
+
+  /** What lets a Space's row flip when its server stops itself: the exit is waited on, not polled. */
+  @Test
+  fun awaitExit_returnsOnceTheServerProcessHasExited() = runBlocking {
+    val launcher = launcher(shutsDown = true)
+    launcher.start(space)
+    val pid = serverPid()
+    val exited = async(Dispatchers.IO) { launcher.awaitExit() }
+
+    File(runDir, "shut-down").createNewFile() // the server leaves on its own, as an idle one does
+    withTimeout(TIMEOUT_SECONDS.seconds) { exited.await() }
+
+    assertFalse(isAlive(pid))
+  }
+
+  @Test
+  fun awaitExit_returnsAtOnceWhenNoServerWasStarted() = runBlocking {
+    withTimeout(TIMEOUT_SECONDS.seconds) { launcher(shutsDown = true).awaitExit() }
   }
 
   private fun launcher(shutsDown: Boolean, stopTimeout: Duration = 10.seconds): JupyterServerLauncher {

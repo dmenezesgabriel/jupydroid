@@ -16,4 +16,11 @@ interface ServerLauncher {
   suspend fun stop()
 
   fun isRunning(): Boolean
+
+  /**
+   * Suspends until the process [start] last launched has exited, and returns at once when none was
+   * ever launched. A server that stops itself when idle is seen here, which no [isRunning] call
+   * made on a schedule could see without polling.
+   */
+  suspend fun awaitExit()
 }

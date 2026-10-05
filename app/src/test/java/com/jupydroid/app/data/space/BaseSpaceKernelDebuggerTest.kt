@@ -62,7 +62,7 @@ class BaseSpaceKernelDebuggerTest {
   @Test
   fun attach_survivesTheGatewayHavingAlreadyBuiltTheSharedSockets() = runTest {
     val launcher = RecordingServerLauncher()
-    val space = BaseSpaceServer(installSpace = {}, launcher = launcher, log = RecordingSpaceLifecycleLog())
+    val space = clientTestSpaceServer(launcher)
     val sockets = fakeSockets(space)
     val gateway = BaseSpaceKernelGateway(sockets, { FakeKernelGateway() })
     val debugger = BaseSpaceKernelDebugger(sockets, { FakeKernelDebugger() })
@@ -74,7 +74,7 @@ class BaseSpaceKernelDebuggerTest {
   }
 
   private fun debugger(launcher: RecordingServerLauncher): BaseSpaceKernelDebugger {
-    val server = BaseSpaceServer(installSpace = {}, launcher = launcher, log = RecordingSpaceLifecycleLog())
+    val server = clientTestSpaceServer(launcher)
     return BaseSpaceKernelDebugger(
       sharedSockets = fakeSockets(server),
       debuggerFor = { FakeKernelDebugger() },
@@ -82,7 +82,7 @@ class BaseSpaceKernelDebuggerTest {
   }
 
   /** `debuggerFor` above never reads it - a placeholder is enough wherever `FakeKernelDebugger` stands in. */
-  private fun fakeSockets(server: BaseSpaceServer): PerRunningServer<KernelSockets> = PerRunningServer(server) {
+  private fun fakeSockets(server: SpaceServer): PerRunningServer<KernelSockets> = PerRunningServer(server) {
     KernelSockets(ScriptedKernelSocketOpener(reply = { emptyList() }), FakeKernelLifecycle())
   }
 
@@ -101,6 +101,8 @@ class BaseSpaceKernelDebuggerTest {
     override suspend fun stop() = Unit
 
     override fun isRunning(): Boolean = startCount > if (diesAfterFirstStart) 1 else 0
+
+    override suspend fun awaitExit() = Unit
   }
 
   private companion object {

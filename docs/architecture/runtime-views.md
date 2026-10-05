@@ -106,7 +106,7 @@ tap Run
   └─ EditorViewModel.runCell
       └─ NotebookKernel  ── ActiveCellRuns++ ──┐
           └─ BaseSpaceKernelGateway            │
-              └─ BaseSpaceServer (lazy)        │
+              └─ SpaceServer base (lazy)       │
                   ├─ BaseSpaceInstaller        │  first launch only: unpack rootfs-<abi>.tzst,
                   │                            │  sweep the links a pre-proot install left,
                   │                            │  write the kernelspec

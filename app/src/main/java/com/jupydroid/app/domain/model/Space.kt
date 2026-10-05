@@ -23,7 +23,7 @@ data class Space(val id: String, val name: String, val kernels: List<KernelSpec>
 /**
  * The one bundled Space - `files/spaces/base` - that every document runs against. It is declared
  * **here and only here**: it used to be a private companion in both `NotebookKernel` and
- * `BaseSpaceServer`, and the launcher's standalone console is a third answerer of "which Space",
+ * `SpaceServer`, and the launcher's standalone console is a third answerer of "which Space",
  * which is where one home stops being a preference.
  *
  * `kernels` names what the rootfs actually ships - `SpaceKernelSpec` writes that exact spec into

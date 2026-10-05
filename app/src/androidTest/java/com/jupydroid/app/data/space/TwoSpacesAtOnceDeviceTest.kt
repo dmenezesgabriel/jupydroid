@@ -10,6 +10,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.ServerConnection
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -122,6 +123,30 @@ class TwoSpacesAtOnceDeviceTest {
     val left = stopAndMeasure("launcher-stop", tree) { runBlocking { probeLauncher.stop() } }
     assertTrue("processes outlived api/shutdown: $left", left.isEmpty())
     assertEquals(HTTP_OK, base.get("api/kernels/$baseKernel", base.token).first)
+  }
+
+  /**
+   * The app's own `SpaceServers`: both Spaces read Running, and stopping the probe leaves base alone
+   * in the set while base still answers. The probe leaves the set because its process exited, not
+   * because `stop` was called.
+   */
+  @Test
+  fun spaceServersRunBothAndAStopLeavesTheOtherRunning() {
+    val servers = requireNotNull(BaseSpaceUnderTest.servers) { "no Space runs on this device" }
+    runBlocking {
+      servers.run(BASE_SPACE.id)
+      servers.run(PROBE_SPACE.id)
+    }
+    probeProcessesSeen += spaceProcessTree(probeRoot.dir)
+    assertEquals(setOf(BASE_SPACE.id, PROBE_SPACE.id), servers.running.value)
+
+    runBlocking {
+      servers.stop(PROBE_SPACE.id)
+      withTimeout(STOP_TIMEOUT) { servers.running.first { it == setOf(BASE_SPACE.id) } }
+    }
+
+    val base = baseServer()
+    assertEquals(HTTP_OK, base.get("api/status", base.token).first)
   }
 
   /**

@@ -24,10 +24,9 @@ class AppContainerTest {
   fun container_wiresPorts() = runTest {
     val container = AppContainer(notebookRepository = FakeNotebookRepository())
 
-    assertTrue(!container.serverLauncher.isRunning())
-    val connection = container.serverLauncher.start(space)
-    assertEquals("http://127.0.0.1:8888", connection.baseUrl)
-    assertTrue(container.serverLauncher.isRunning())
+    assertEquals(emptySet<String>(), container.spaceServers.running.value)
+    container.spaceServers.run(space.id)
+    assertEquals(setOf("base"), container.spaceServers.running.value)
 
     val session = container.kernelGateway.connect(space, "Analysis.ipynb")
     assertEquals("base", session.spaceId)

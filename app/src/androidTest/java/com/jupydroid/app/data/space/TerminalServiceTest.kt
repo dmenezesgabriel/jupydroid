@@ -38,7 +38,7 @@ import kotlin.time.Duration.Companion.seconds
  * argv of the process behind it is read back.
  *
  * **Instrumented, and the first test here that starts a real `jupyter_server`.** It starts one
- * through [BaseSpaceServer] rather than a second launcher, for the reason that class documents:
+ * through [SpaceServer] rather than a second launcher, for the reason that class documents:
  * `JupyterServerLauncher.start` begins with `stop()`, so a second starter kills the first's server.
  *
  * `Assume`-skipped where no rootfs ships, so it is green-by-skip on x86_64 - the same rule

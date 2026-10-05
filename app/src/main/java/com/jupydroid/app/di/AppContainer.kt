@@ -11,8 +11,8 @@ import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
-import com.jupydroid.app.data.fake.FakeServerLauncher
 import com.jupydroid.app.data.fake.FakeSpaceRepository
+import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
@@ -37,8 +37,8 @@ import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
-import com.jupydroid.app.domain.port.ServerLauncher
 import com.jupydroid.app.domain.port.SpaceRepository
+import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
@@ -122,7 +122,11 @@ class AppContainer(
    * browser download. See [DocumentSharer].
    */
   val documentSharer: DocumentSharer = FakeDocumentSharer(),
-  val serverLauncher: ServerLauncher = FakeServerLauncher(),
+  /**
+   * Every Space's server, several at once, and which are running - what the home's Run and Stop
+   * act on and its Running/Stopped reads.
+   */
+  val spaceServers: SpaceServers = FakeSpaceServers(),
   /**
    * The Spaces on this device - their records, not their processes. Needs no runtime, so the app
    * wires it real everywhere; the fake here holds base alone, as an installed device does.
@@ -189,7 +193,7 @@ class AppContainer(
     // The rule for a subprocess the Space owns: the language server dies with the Space too -
     // backgrounded with nothing running, it must not keep ~60 MB of interpreter alive alone.
     stopServer = {
-      serverLauncher.stop()
+      spaceServers.stop(BASE_SPACE.id)
       languageServer.stop(BASE_SPACE)
     },
     grace = IDLE_STOP_GRACE,

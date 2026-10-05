@@ -3,9 +3,11 @@ package com.jupydroid.app.data.space
 import android.content.Context
 import android.os.Build
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.TerminalGateway
+import kotlinx.coroutines.CoroutineScope
 import java.io.File
 
 /**
@@ -47,23 +49,30 @@ fun spaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServer
 )
 
 /**
- * The base Space's server, brought up on first use - or null where no Space can run.
+ * Every Space's server, each brought up on first use - or null where no Space can run.
  *
  * Null rather than a throwing object, so the caller decides: on an x86_64 emulator the runtime
  * cannot work at all and the UI is better served by the
  * fakes than by controls that always fail.
  *
- * **One per process, and shared by every client of the Space**, because
- * `JupyterServerLauncher.start` begins with `stop()` - see [BaseSpaceServer]. [launcher] is the
- * caller's for the same reason from the other side: the idle backstop stops what this starts.
+ * **One per process, and base's entry shared by every client of base**, because
+ * `JupyterServerLauncher.start` begins with `stop()` - see [SpaceServer]. Only base installs on
+ * first use: any other Space had the image copied into it when it was created
+ * (`DiskSpaceRepository`). [watchScope] is where each server's exit is waited on, so it must
+ * outlive every screen.
  */
-fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpaceServer? {
+fun spaceServers(context: Context, watchScope: CoroutineScope): JupyterSpaceServers? {
   if (runCatching { deviceAbi() }.isFailure) return null
-  return BaseSpaceServer(
-    installSpace = { baseSpaceInstaller(context).installIfNeeded() },
-    launcher = launcher,
-    log = LogcatSpaceLifecycleLog,
-  )
+  return JupyterSpaceServers { id, reportRunning ->
+    SpaceServer(
+      space = if (id == BASE_SPACE.id) BASE_SPACE else Space(id = id, name = id, kernels = BASE_SPACE.kernels),
+      installSpace = if (id == BASE_SPACE.id) ({ baseSpaceInstaller(context).installIfNeeded() }) else ({}),
+      launcher = spaceServerLauncher(context),
+      watchScope = watchScope,
+      reportRunning = reportRunning,
+      log = LogcatSpaceLifecycleLog,
+    )
+  }
 }
 
 /**
@@ -73,7 +82,7 @@ fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpac
  * The console script execs under proot through its `#!` line ([SpaceRuntime]'s
  * `execProcessBuilder`, which must not prefix the interpreter), no `jupyter_server` in between.
  *
- * Null where no Space can run, the same guard [baseSpaceServer] keeps. The process is lazier
+ * Null where no Space can run, the same guard [spaceServers] keeps. The process is lazier
  * than the server's own: `installSpace` runs on the port's *first use*, so an app that only
  * browses notebooks never pays for a Python runtime it did not ask for.
  */
@@ -89,11 +98,11 @@ fun baseSpaceLanguageServerPort(context: Context): LanguageServerPort? {
 }
 
 /** The exporter backed by the nbconvert endpoints of [server]'s `jupyter_server`. */
-fun baseSpaceNotebookExporter(server: BaseSpaceServer): NotebookExporter =
+fun baseSpaceNotebookExporter(server: SpaceServer): NotebookExporter =
   BaseSpaceNotebookExporter(server) { OkHttpNotebookExporter(it) }
 
 /** The terminals of [server]'s `jupyter_server`, over one socket per attached shell. */
-fun baseSpaceTerminalGateway(server: BaseSpaceServer): TerminalGateway = BaseSpaceTerminalGateway(
+fun baseSpaceTerminalGateway(server: SpaceServer): TerminalGateway = BaseSpaceTerminalGateway(
   server = server,
   gatewayFor = { connection ->
     RealTerminalGateway(

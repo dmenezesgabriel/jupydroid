@@ -56,11 +56,7 @@ class BaseSpaceKernelSpecsTest : KernelSpecsContract() {
       KernelSockets(ScriptedKernelSocketOpener(reply = { emptyList() }), lifecycle)
     }
 
-  private fun server(launcher: ServerLauncher) = BaseSpaceServer(
-    installSpace = {},
-    launcher = launcher,
-    log = RecordingSpaceLifecycleLog(),
-  )
+  private fun server(launcher: ServerLauncher) = clientTestSpaceServer(launcher)
 
   private inner class OneStartLauncher : ServerLauncher {
     var startCount = 0
@@ -74,6 +70,8 @@ class BaseSpaceKernelSpecsTest : KernelSpecsContract() {
     override suspend fun stop() = Unit
 
     override fun isRunning(): Boolean = startCount > 0
+
+    override suspend fun awaitExit() = Unit
   }
 
   /** Never reports a live server - `liveOrNull` gives null, no start is possible. */
@@ -84,6 +82,8 @@ class BaseSpaceKernelSpecsTest : KernelSpecsContract() {
     override suspend fun stop() = Unit
 
     override fun isRunning(): Boolean = false
+
+    override suspend fun awaitExit() = Unit
   }
 
   private companion object {

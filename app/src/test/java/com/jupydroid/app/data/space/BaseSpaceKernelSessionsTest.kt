@@ -117,14 +117,10 @@ class BaseSpaceKernelSessionsTest {
     serverSessionId,
   )
 
-  private fun server(launcher: ServerLauncher) = BaseSpaceServer(
-    installSpace = {},
-    launcher = launcher,
-    log = recordingLog,
-  )
+  private fun server(launcher: ServerLauncher) = clientTestSpaceServer(launcher, recordingLog)
 
   private fun sockets(
-    server: BaseSpaceServer,
+    server: SpaceServer,
     lifecycle: FakeKernelLifecycle = FakeKernelLifecycle(),
     opener: ScriptedKernelSocketOpener = ScriptedKernelSocketOpener(reply = { emptyList() }),
   ) = PerRunningServer(server) { KernelSockets(opener, lifecycle) }
@@ -141,6 +137,8 @@ class BaseSpaceKernelSessionsTest {
     override suspend fun stop() = Unit
 
     override fun isRunning(): Boolean = startCount > 0
+
+    override suspend fun awaitExit() = Unit
   }
 
   /** Never reports a live server - `liveOrNull` gives null, no start is possible. */
@@ -151,5 +149,7 @@ class BaseSpaceKernelSessionsTest {
     override suspend fun stop() = Unit
 
     override fun isRunning(): Boolean = false
+
+    override suspend fun awaitExit() = Unit
   }
 }

@@ -1,8 +1,10 @@
 package com.jupydroid.app.data.space
 
-import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -17,7 +19,7 @@ import kotlinx.coroutines.sync.withLock
 data class StartedServer(val connection: ServerConnection, val generation: Int)
 
 /**
- * Brings the base Space up on first use, then gets out of the way - and does it **once**, for
+ * Brings one Space's server up on first use, then gets out of the way - and does it **once**, for
  * every client of the Space rather than for one of them.
  *
  * `jupyter_server` takes seconds to start and cannot be waited on while an app is being
@@ -29,17 +31,27 @@ data class StartedServer(val connection: ServerConnection, val generation: Int)
  * gateway would kill the kernel's server the first time anything else - an export, a terminal, a
  * language server - asked for one.
  *
+ * Whether the Space runs goes out through [reportRunning]: true once a server has started, false
+ * once its process has exited, which a watcher on [watchScope] waits for. So a server that stops
+ * itself when idle is reported exactly like one that was told to stop.
+ *
  * ```
- * val space = BaseSpaceServer(
+ * val space = SpaceServer(
+ *   space = BASE_SPACE,
  *   installSpace = { baseSpaceInstaller(context).installIfNeeded() },
  *   launcher = spaceServerLauncher(context),
+ *   watchScope = applicationScope,
+ *   reportRunning = { up -> println("base running: $up") },
  * )
  * PerRunningServer(space) { RealKernelGateway(OkHttpKernelSocketOpener(it), OkHttpKernelLifecycle(it)) }
  * ```
  */
-class BaseSpaceServer(
+class SpaceServer(
+  private val space: Space,
   private val installSpace: suspend () -> Unit,
   private val launcher: ServerLauncher,
+  private val watchScope: CoroutineScope,
+  private val reportRunning: (Boolean) -> Unit,
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
 ) {
   private var started: StartedServer? = null
@@ -60,7 +72,25 @@ class BaseSpaceServer(
   suspend fun connection(): StartedServer = startLock.withLock {
     val cached = started
     if (cached != null && launcher.isRunning()) return@withLock cached
-    StartedServer(startSpace(), (cached?.generation ?: 0) + 1).also { started = it }
+    StartedServer(startSpace(), (cached?.generation ?: 0) + 1).also {
+      started = it
+      reportRunning(true)
+      watchForExit()
+    }
+  }
+
+  /** Stops the server, under the start's own lock so a stop never lands halfway through a start. */
+  suspend fun stop() = startLock.withLock { launcher.stop() }
+
+  /**
+   * Waits for the process just started to exit. The check after the wait is for a launcher whose
+   * stop outlived its timeout: the process it waited on is gone only if the launcher says so.
+   */
+  private fun watchForExit() {
+    watchScope.launch {
+      launcher.awaitExit()
+      if (!launcher.isRunning()) reportRunning(false)
+    }
   }
 
   /**
@@ -69,9 +99,9 @@ class BaseSpaceServer(
    * output, nothing in logcat, and the server log dug out through `run-as`.
    */
   private suspend fun startSpace(): ServerConnection = runCatching {
-    log.reached("installing base Space")
+    log.reached("installing Space ${space.id}")
     installSpace()
-    log.reached("starting jupyter_server")
-    launcher.start(BASE_SPACE).also { log.reached("jupyter_server listening on ${it.baseUrl}") }
-  }.onFailure { log.failed("base Space failed to come up", it) }.getOrThrow()
+    log.reached("starting jupyter_server for Space ${space.id}")
+    launcher.start(space).also { log.reached("jupyter_server listening on ${it.baseUrl}") }
+  }.onFailure { log.failed("Space ${space.id} failed to come up", it) }.getOrThrow()
 }

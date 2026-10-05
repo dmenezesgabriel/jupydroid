@@ -37,16 +37,16 @@ class CompositionRootTest {
     }
   }
 
-  /** The one that costs a process: two launchers are two servers pretending to be one. */
+  /** The one that costs a process: two sets of Space servers are two servers pretending to be one. */
   @Test
-  fun aRelaunchedActivityKeepsTheSameServerLauncher() {
+  fun aRelaunchedActivityKeepsTheSameSpaceServers() {
     ActivityScenario.launch(MainActivity::class.java).use { scenario ->
       var before: Any? = null
-      scenario.onActivity { before = it.appContainer.serverLauncher }
+      scenario.onActivity { before = it.appContainer.spaceServers }
 
       scenario.recreate()
 
-      scenario.onActivity { assertSame(before, it.appContainer.serverLauncher) }
+      scenario.onActivity { assertSame(before, it.appContainer.spaceServers) }
     }
   }
 }

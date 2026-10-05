@@ -155,7 +155,7 @@ JupyterLab's favour (Open decisions).
   whose server ignores SIGTERM, and `TwoSpacesAtOnceDeviceTest` driving the launcher's own `stop()`
 - [x] T3 — The kernel websocket's upgrade waits as long as jupyter_server's `kernel_info_timeout`, not
   OkHttp's 10 s default
-- [ ] T4 — The `SpaceServers` port, `JupyterSpaceServers` and `FakeSpaceServers`: `BaseSpaceServer`
+- [x] T4 — The `SpaceServers` port, `JupyterSpaceServers` and `FakeSpaceServers`: `BaseSpaceServer`
   generalised to one `SpaceServer` per Space, base's clients bound to base's entry, and `running`
   observed from the process's exit
 - [ ] T5 — The home: Run/Stop and Running/Stopped on every row, and Delete stops a running Space first

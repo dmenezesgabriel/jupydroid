@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
  * The kernel gateway for the base Space's server, and the bookkeeping that a server which can be
  * replaced under it forces.
  *
- * Starting the server is [BaseSpaceServer]'s job; [sharedSockets] is the one
+ * Starting the server is [SpaceServer]'s job; [sharedSockets] is the one
  * `PerRunningServer<KernelSockets>` this shares with `BaseSpaceKernelDebugger` - built from that
  * server once, at the composition root - so both read the identical per-session socket rather
  * than each opening their own. What is left here - and it is the whole reason this class still

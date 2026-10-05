@@ -7,7 +7,7 @@ import kotlinx.coroutines.sync.withLock
 /**
  * A client built from a [ServerConnection], rebuilt whenever the server behind it is replaced.
  *
- * Every client of a [BaseSpaceServer] needs the same two things - one instance while the server
+ * Every client of a [SpaceServer] needs the same two things - one instance while the server
  * lives, a fresh one when a new server takes over - and each of them needs it for its own reason:
  * a kernel gateway holds sockets to a process, an exporter holds a base URL and a token. Written
  * once here so the second client does not copy the rule, and so [build] is the single place a
@@ -19,7 +19,7 @@ import kotlinx.coroutines.sync.withLock
  * ```
  */
 class PerRunningServer<T : Any>(
-  private val server: BaseSpaceServer,
+  private val server: SpaceServer,
   /** Called once per server. Anything a client must forget when one is replaced belongs here. */
   private val build: (ServerConnection) -> T,
 ) {

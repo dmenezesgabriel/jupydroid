@@ -30,7 +30,7 @@ import kotlin.time.Duration
  *   scope = appContainer.applicationScope,
  *   cellsInFlight = appContainer.activeCellRuns.inFlight,
  *   terminalsOpen = appContainer.activeTerminals.open,
- *   stopServer = { appContainer.serverLauncher.stop() },
+ *   stopServer = { appContainer.spaceServers.stop(BASE_SPACE.id) },
  *   grace = 30.seconds,
  * )
  * ```
