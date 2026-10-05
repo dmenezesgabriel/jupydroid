@@ -126,7 +126,7 @@ class ProotRuntimeProbeDeviceTest {
       root.prepareForProot()
       hostRuntimeDir.mkdirs()
       File(root.dir, IN_ROOT_HOME.removePrefix("/")).mkdirs()
-      runBlocking { SpaceKernelSpec.install(root.dir, File("/usr/bin/python3")) }
+      runBlocking { SpaceKernelSpec.install(root.dir) }
       val begin = TimeSource.Monotonic.markNow()
       process = ProcessBuilder(root.proot.argv(listOf("/usr/bin/python3") + serverArgs()))
         .apply { environment().clear() }
@@ -143,20 +143,16 @@ class ProotRuntimeProbeDeviceTest {
     }
 
     /**
-     * The shipped command line, read inside the root, with the cull shortened so a test can watch it
-     * and root allowed.
+     * The shipped command line, read inside the root, with the cull shortened so a test can watch it.
      */
-    fun serverArgs(): List<String> = jupyterServerArgs(File(IN_ROOT_HOME), TOKEN, File("/bin/sh")).map {
+    fun serverArgs(): List<String> = jupyterServerArgs(IN_ROOT_HOME, TOKEN).map {
       // traitlets refuses a flag given twice, so the shipped value is replaced rather than overridden.
       when (it.substringBefore("=")) {
         "--MappingKernelManager.cull_idle_timeout" -> "--MappingKernelManager.cull_idle_timeout=$CULL_IDLE_SECONDS"
         "--MappingKernelManager.cull_interval" -> "--MappingKernelManager.cull_interval=$CULL_INTERVAL_SECONDS"
         else -> it
       }
-    } +
-      // proot's `-0` reports uid 0, which `apk add` needs, and jupyter_server refuses to start as
-      // root without this flag (jupyter_server 2.20.0 `serverapp.py` `ServerApp.start_app`).
-      "--allow-root"
+    }
 
     /** Every path is the in-root one: inside the translated root `/usr/bin/python3` is simply itself. */
     fun inRootEnvironment(): Map<String, String> = mapOf(

@@ -27,6 +27,15 @@ class SpaceDirs(private val spaceDir: File) {
   /** `PYTHONUSERBASE`: what `pip` installs into this Space, and its console scripts under `bin`. */
   val pkgs: File get() = File(spaceDir, "pkgs")
 
+  /**
+   * [dir]'s path as a process in this Space sees it: the Space is its own `/` under proot
+   * (ADR-0073), so that is its path under [spaceDir]. `inRoot(workspace)` is `/home/jupydroid`.
+   */
+  fun inRoot(dir: File): String {
+    require(dir.startsWith(spaceDir)) { "'$dir' is outside the Space '$spaceDir'; expected a path under it" }
+    return "/" + dir.relativeTo(spaceDir).invariantSeparatorsPath
+  }
+
   /** Creates whichever of the Space's writable directories are missing; never touches their contents. */
   fun ensure() {
     listOf(workspace, runtime, tmp, pkgs).forEach { dir ->

@@ -10,14 +10,13 @@ import java.io.File
 fun baseSpaceRuntime(context: Context): SpaceRuntime = spaceRuntime(context, BASE_SPACE)
 
 /**
- * Command line and environment for [space]: its own directory for everything it writes, base's
- * rootfs for the interpreter, stdlib and shell. For `base` the two are one directory.
+ * Command line and environment for [space]: its own directory is its whole system and its `/`
+ * under proot (ADR-0073). A Space whose directory carries no image yet has nothing to run.
  */
 fun spaceRuntime(context: Context, space: Space): SpaceRuntime = SpaceRuntime(
   spaceDir = spaceDirIn(spacesDir(context), space.id),
-  nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
+  nativeLibraryDir = File(context.applicationInfo.nativeLibraryDir),
   dnsServers = androidDnsServerSource(context),
-  rootfsDir = baseSpaceDir(context),
 )
 
 /** [space]'s writable directories under the app's `files/spaces/`. */

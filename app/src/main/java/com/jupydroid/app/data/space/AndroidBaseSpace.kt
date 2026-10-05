@@ -17,11 +17,6 @@ import java.io.File
 fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpaceInstaller = BaseSpaceInstaller(
   archive = { context.assets.open("spaces/base/rootfs-${abi.androidAbi}.tzst") },
   baseDir = baseSpaceDir(context),
-  nativeLoader = File(context.applicationInfo.nativeLibraryDir, "libloader.so"),
-  nativeInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so"),
-  nativeBusyBox = File(context.applicationInfo.nativeLibraryDir, "libbusybox.so"),
-  nativeTrampoline = File(context.applicationInfo.nativeLibraryDir, "libshebang.so"),
-  loaderLinkPath = abi.loaderLinkPath,
 )
 
 fun baseSpaceDir(context: Context): File = spaceDirIn(spacesDir(context), BASE_SPACE.id)
@@ -33,11 +28,10 @@ fun baseSpaceDir(context: Context): File = spaceDirIn(spacesDir(context), BASE_S
  */
 fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir(context))
 
-/** Runs jupyter_server out of whichever Space `start` is handed, on loopback, off base's rootfs. */
+/** Runs jupyter_server in whichever Space `start` is handed, on loopback, under proot. */
 fun spaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServerLauncher(
   runtimeFor = { space -> spaceRuntime(context, space) },
   dirsFor = { space -> spaceDirs(context, space) },
-  shell = spaceShellIn(baseSpaceDir(context)),
 )
 
 /**
@@ -61,10 +55,10 @@ fun baseSpaceServer(context: Context, launcher: JupyterServerLauncher): BaseSpac
 }
 
 /**
- * `pylsp` out of base's rootfs as the app's [LanguageServerPort], over stdio - one process per
- * Space, each in that Space's own environment and workspace ([startPylsp]).
+ * `pylsp` out of a Space's own image as the app's [LanguageServerPort], over stdio - one process
+ * per Space, each in that Space's own environment and workspace ([startPylsp]).
  *
- * The console script execs straight through the `shebang-exec` trampoline ([SpaceRuntime]'s
+ * The console script execs under proot through its `#!` line ([SpaceRuntime]'s
  * `execProcessBuilder`, which must not prefix the interpreter), no `jupyter_server` in between.
  *
  * Null where no Space can run, the same guard [baseSpaceServer] keeps. The process is lazier
@@ -75,8 +69,8 @@ fun baseSpaceLanguageServerPort(context: Context): LanguageServerPort? {
   if (runCatching { deviceAbi() }.isFailure) return null
   return StdioLanguageServer(
     installSpace = { baseSpaceInstaller(context).installIfNeeded() },
-    spawn = { space, installed ->
-      startPylsp(spaceRuntime(context, space), spaceDirs(context, space), installed.baseDir)
+    spawn = { space, _ ->
+      startPylsp(spaceRuntime(context, space), spaceDirs(context, space))
     },
     log = LogcatSpaceLifecycleLog,
   )

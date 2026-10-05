@@ -15,10 +15,9 @@ import java.io.File
 /**
  * **The Space's shell can run the Space's Python**.
  *
- * Before this step it could not: `python3 --version` answered *Permission denied* with **rc=126**
- * on the tablet, while `command -v python3` resolved fine. The
- * kernel was never affected - it is exec'd from `nativeLibraryDir` directly - so nothing in the
- * notebook suite could see this, and nothing did.
+ * Under proot the image runs as built (ADR-0073): `python3` is the image's own
+ * `/usr/bin/python3`, resolved by name through the Space's `PATH`, and every name the image
+ * ships reaches it.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
@@ -39,43 +38,41 @@ class PythonInterpreterDeviceTest {
     runBlocking { baseSpaceInstaller(context).installIfNeeded() }
   }
 
-  /**
-   * Unqualified, because `PATH` is what a user types against and `PATH` is what made the plan's
-   * first design wrong: `usr/bin` precedes `bin`, so a link in `bin/` would never have been found.
-   */
+  /** Unqualified, because `PATH` is what a user types against inside the Space. */
   @Test
   fun theShellRunsTheSpacesOwnPython() {
-    val run = runInSpace(spaceShellIn(baseDir).path, "-c", "python3 --version")
+    val run = runInSpace(SPACE_SHELL, "-c", "python3 --version")
 
     assertRan(run)
     assertTrue("expected a CPython version, got: ${run.output.trim()}", run.output.startsWith("Python 3."))
   }
 
-  /** The other two names the image ships, which reach the ELF only because they are relative. */
+  /** The other two names the image ships: relative links onto the one real ELF. */
   @Test
   fun theOtherShippedNamesReachItToo() {
-    val run = runInSpace(spaceShellIn(baseDir).path, "-c", "python --version && python3.12 --version")
+    val run = runInSpace(SPACE_SHELL, "-c", "python --version && python3.12 --version")
 
     assertRan(run)
     assertEquals("both names should have answered", 2, run.output.lines().count { it.startsWith("Python 3.") })
   }
 
   /**
-   * A link that runs but cannot find its own stdlib would pass the version check and fail every
-   * real use, so this is the assertion that says the *interpreter* works rather than the exec.
+   * An interpreter that runs but cannot find its own stdlib would pass the version check and fail
+   * every real use, so this is the assertion that says the *interpreter* works rather than the
+   * exec - and `/usr` is what the image reports under its own root.
    */
   @Test
   fun pythonReachesItsOwnStandardLibrary() {
-    val run = runInSpace(spaceShellIn(baseDir).path, "-c", "python3 -c 'import json, sys; print(sys.prefix)'")
+    val run = runInSpace(SPACE_SHELL, "-c", "python3 -c 'import json, sys; print(sys.prefix)'")
 
     assertRan(run)
-    assertEquals(File(baseDir, "usr").path, run.output.trim())
+    assertEquals("/usr", run.output.trim())
   }
 
   /** A refusal the SIGSYS handler swallowed would leave the interpreter working and the log dirty. */
   @Test
   fun nothingWasRefusedWhileTheInterpreterRan() {
-    runInSpace(spaceShellIn(baseDir).path, "-c", "python3 -c 'import json'")
+    runInSpace(SPACE_SHELL, "-c", "python3 -c 'import json'")
 
     assertEquals(
       "seccomp refused a syscall other than mbind while the interpreter ran",
@@ -85,42 +82,34 @@ class PythonInterpreterDeviceTest {
   }
 
   /**
-   * **The measurement the trampoline's design is written from.**
+   * **The fact proot is built on, from inside the Space.**
    *
-   * An earlier reading took rc=126 for the W^X refusal on
-   * an ELF under `filesDir`. That is an over-attribution: [TarZstdExtractor] writes **no executable
-   * bit at all**, so EACCES is explained by mode 0600 on its own and the two causes were never
-   * separated. They matter separately for `usr/bin/pip`, which is a *script* - there is no ELF to
-   * point a symlink at, so the fix is a `chmod` if the mode was the whole story and a different
-   * design if it was not.
-   *
-   * So: a script this app owns, in this app's own `filesDir`, with its executable bit set, run the
-   * way a shell would run it. The assertion is what the device answers, and 126 is what it answers
-   * today - the exec is refused with the bit set, so **SELinux is the binding cause** and no amount
-   * of `chmod` reaches `pip`. Should a future platform allow it, this goes red, which is the point
-   * of pinning it.
+   * On the host a `#!` script under `filesDir` is refused `execve` whatever its mode
+   * (ADR-0002). Under proot the Space is its own `/`, and the same script - this app's own file,
+   * with its executable bit set - runs through its shebang line, because proot reads the `#!`
+   * and execs the interpreter inside the root. This is why `apk add` and every console script
+   * work inside a Space.
    */
   @Test
-  fun aScriptUnderFilesDirIsRefusedEvenWithItsExecutableBitSet() {
-    val script = File(context.filesDir, "p7e-1-exec-probe.sh").apply {
-      writeText("#!${spaceShellIn(baseDir).path}\necho ran\n")
+  fun aScriptInsideTheSpaceRunsThroughItsShebangLine() {
+    val script = File(baseDir, "tmp/shebang-probe.sh").apply {
+      parentFile?.mkdirs()
+      writeText("#!/bin/sh\necho ran\n")
       check(setExecutable(true, false)) { "could not set the executable bit on '$this'" }
     }
 
-    val run = runInSpace(spaceShellIn(baseDir).path, "-c", "'${script.path}'; echo rc=$?")
+    val run = runInSpace(SPACE_SHELL, "-c", "/tmp/shebang-probe.sh; echo rc=$?")
 
     script.delete()
     assertTrue(
-      "a chmod 0755 script under filesDir now runs: ${run.output.trim()}. " +
-        "The exec bit was the binding cause after all, so the shebang trampoline is answering " +
-        "a constraint that has gone away.",
-      "rc=126" in run.output,
+      "a #! script inside the Space did not run under proot: ${run.output.trim()}",
+      "ran" in run.output && "rc=0" in run.output,
     )
   }
 
   private fun assertRan(run: SpaceProcessRun) {
     // Java reports a signalled child as 128 + signal, so a seccomp kill is 159 - the same
-    // encoding `JupyterServerLauncher.exitCode` documents. 126 is the refusal the trampoline fixes.
+    // encoding `JupyterServerLauncher.exitCode` documents. 126 is the SELinux exec refusal.
     assertEquals(
       "${run.command} exited ${run.exitCode}" +
         (if (run.exitCode == EXEC_REFUSED) " (EACCES: is usr/bin/python3.12 still a plain file?)" else "") +

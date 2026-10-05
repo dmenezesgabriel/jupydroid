@@ -13,7 +13,7 @@ import kotlin.time.TimeSource
  * proot and its loader ship in arm64 `jniLibs`, and [proot] is the shipped command line.
  *
  * ```
- * val root = PrivateRootUnderTest(context, "isolation-private-root")
+ * val root = PrivateRootUnderTest(context, "proot-runtime-probe")
  * root.extract(); root.prepareForProot()
  * ProcessBuilder(root.proot.argv(listOf("/bin/sh", "-c", "true")))
  * ```
@@ -35,22 +35,13 @@ class PrivateRootUnderTest(private val context: Context, name: String) {
     Log.i(PROBE_TAG, "private rootfs extracted entries=$entries ms=${start.elapsedNow().inWholeMilliseconds}")
   }
 
-  /** The extractor writes no executable bit, and proot checks it where the kernel would. */
-  fun prepareForProot() {
-    runInSpace(spaceShellIn(baseSpaceDir(context)).path, "-c", "chmod -R u+x ${dir.path}")
-    File(dir, "etc/resolv.conf").writeText("nameserver $PUBLIC_DNS\n")
-  }
-
   /**
-   * The same launch as a shell string, to be run from inside [nativeDir]: its path holds `==`,
-   * which `env` reads as an assignment. `env -i`, because base's preloads are absolute paths proot
-   * would translate into the private root, where they are not.
+   * The image's own `etc/resolv.conf` ships empty, so a private root gets a public nameserver for
+   * the DNS a probe asks for - the same file a Space's own resolver reads through the translated
+   * root, which is exactly why proot makes it reachable.
    */
-  fun prootShellPrefix(timeoutSeconds: Int): String {
-    val environment = proot.environment() + mapOf("PATH" to IN_ROOT_PATH, "HOME" to "/root")
-    val assignments = environment.entries.joinToString(" ") { "${it.key}=${it.value}" }
-    val args = proot.argv(emptyList()).drop(1).joinToString(" ")
-    return "timeout $timeoutSeconds env -i $assignments ./${ProotCommand.PROOT} $args"
+  fun prepareForProot() {
+    File(dir, "etc/resolv.conf").writeText("nameserver $PUBLIC_DNS\n")
   }
 
   /** 407 MB a copy: not left behind for the next test, or on the device. */

@@ -61,6 +61,27 @@ class SpaceDirsTest {
     assertEquals(File(spaceDir, "pkgs"), SpaceDirs(spaceDir).pkgs)
   }
 
+  /** A Space is its own `/` under proot (ADR-0073), so a process names each dir by its path under the Space. */
+  @Test
+  fun eachWritableDirIsNamedInsideTheRootByItsPathUnderTheSpace() {
+    val dirs = SpaceDirs(File("/data/data/com.jupydroid.app/files/spaces/space-1"))
+
+    assertEquals("/home/jupydroid", dirs.inRoot(dirs.workspace))
+    assertEquals("/run", dirs.inRoot(dirs.runtime))
+    assertEquals("/tmp", dirs.inRoot(dirs.tmp))
+    assertEquals("/pkgs", dirs.inRoot(dirs.pkgs))
+  }
+
+  @Test
+  fun aPathOutsideTheSpaceHasNoNameInsideItsRoot() {
+    val dirs = SpaceDirs(File("/data/data/com.jupydroid.app/files/spaces/space-1"))
+    val elsewhere = File("/data/data/com.jupydroid.app/files/spaces/base/tmp")
+
+    val error = assertThrows(IllegalArgumentException::class.java) { dirs.inRoot(elsewhere) }
+
+    assertTrue(error.message!!, elsewhere.path in error.message!!)
+  }
+
   private fun configOnlySpace(): File = tempFolder.newFolder("space-1").apply {
     File(this, "config.json").writeText("{}")
   }

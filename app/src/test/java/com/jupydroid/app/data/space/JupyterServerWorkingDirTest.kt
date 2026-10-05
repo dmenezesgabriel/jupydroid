@@ -28,11 +28,12 @@ import java.io.File
  */
 class JupyterServerWorkingDirTest {
   private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")
-  private val workspace = notebookWorkspaceIn(baseDir)
+  private val dirs = SpaceDirs(baseDir)
 
+  /** Under proot the cwd is named inside the root by `-w` (ADR-0073); a host cwd would mean nothing there. */
   @Test
   fun theServerRunsInTheDirectoryItIsRootedAt() {
-    assertEquals(workspace, serverProcess().directory())
+    assertEquals("/home/jupydroid", workingDirOf(serverProcess().command()))
   }
 
   /**
@@ -42,17 +43,18 @@ class JupyterServerWorkingDirTest {
    */
   @Test
   fun theWorkingDirectoryIsTheRootDirArgumentAndNotSomeOtherDirectory() {
-    val process = serverProcess()
+    val command = serverProcess().command()
 
-    val rootDirArg = process.command().single { it.startsWith("--ServerApp.root_dir=") }
-    assertEquals("--ServerApp.root_dir=${process.directory()?.path}", rootDirArg)
+    val rootDirArg = command.single { it.startsWith("--ServerApp.root_dir=") }
+    assertEquals("--ServerApp.root_dir=${workingDirOf(command)}", rootDirArg)
   }
 
+  private fun workingDirOf(command: List<String>): String = command[command.indexOf("-w") + 1]
+
   private fun serverProcess() = jupyterServerProcess(
-    runtime = SpaceRuntime(baseDir, File("/lib/libpython3.so")),
-    runtimeDir = File(baseDir, "run"),
-    rootDir = workspace,
-    shell = spaceShellIn(baseDir),
+    runtime = SpaceRuntime(baseDir, File("/data/app/abc==/lib/arm64")),
+    runtimeDir = dirs.runtime,
+    rootDir = dirs.inRoot(dirs.workspace),
     token = "t",
   )
 }

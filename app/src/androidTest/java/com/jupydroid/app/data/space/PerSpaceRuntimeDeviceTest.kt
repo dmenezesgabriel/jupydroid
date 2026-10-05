@@ -34,13 +34,15 @@ import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * **A Space that holds nothing but `config.json` runs its own processes in its own directories.**
+ * **A Space is its own system**: with an image in its own directory, its server, kernel and
+ * language server run under proot with that directory as `/` (ADR-0073).
  *
- * `space-1` is seeded the way `DiskSpaceRepository.create` leaves a Space - a config and nothing
- * else - and then driven through the same composition the app uses: [spaceServerLauncher] for the
- * server, kernel and terminals, [startPylsp] for the language server, [spaceRuntime] for a shell.
- * Each is asked, from inside, where it writes; every answer has to land under `files/spaces/space-1`
- * while the interpreter, stdlib and shell stay base's.
+ * `space-1` is seeded the way creating a Space leaves it - the image extracted into
+ * `files/spaces/space-1`, plus the `config.json` `DiskSpaceRepository.create` writes - and then
+ * driven through the same composition the app uses: [spaceServerLauncher] for the server, kernel
+ * and terminals, [startPylsp] for the language server, [spaceRuntime] for a shell. Each is asked,
+ * from inside, where it writes; every answer has to be space-1's own name inside its root, never
+ * base's.
  *
  * In the app process, where the seccomp filter applies - see [SpaceProcessRun] for why `run-as`
  * would answer a different question. `Assume`-skipped where no rootfs ships.
@@ -59,12 +61,12 @@ class PerSpaceRuntimeDeviceTest {
       runCatching { SpaceAbi.of(Build.SUPPORTED_ABIS.first()) }.isSuccess,
     )
     runBlocking { baseSpaceInstaller(context).installIfNeeded() }
-    seedConfigOnlySpace()
+    check(spaceOneImage) { "space-1's image did not land" }
   }
 
-  /** The server boots from a Space nothing provisioned, and logs into that Space's own `run/`. */
+  /** The server boots out of the Space's own image, and logs into that Space's own `run/`. */
   @Test
-  fun aConfigOnlySpaceBootsItsOwnServer() {
+  fun aSpaceWithItsOwnImageBootsItsOwnServer() {
     assertTrue("space-1's server reported no port", spaceOneServer.port > 0)
     assertTrue("no server log in ${spaceOneDirs.runtime}", jupyterServerLogFile(spaceOneDirs.runtime).isFile)
   }
@@ -78,22 +80,25 @@ class PerSpaceRuntimeDeviceTest {
   }
 
   /**
-   * A kernel on that server places itself in the Space: `HOME`, the temp dir, the user base and the
-   * runtime dir are all space-1's, and its connection file lands in space-1's `run/`. The
-   * interpreter is the one shared native binary, which is the half that must *not* be per-Space.
+   * A kernel on that server sees the Space the way a process inside it does: `HOME`, the temp
+   * dir, the user base and the runtime dir all name space-1's own directories *inside the root*,
+   * the interpreter is the image's own, and the connection file lands in space-1's `run/`.
    */
   @Test(timeout = 120_000)
-  fun aKernelOnThatServerSeesTheSpacesOwnDirs() {
+  fun aKernelOnThatServerSeesTheSpaceAsItsOwnRoot() {
     val placed = Json.parseToJsonElement(runInSpaceOneKernel(KERNEL_PROBE)).jsonObject
     Log.i(SPACE_LOG_TAG, "space-1 kernel: $placed")
 
-    listOf("home", "tmp", "user_base", "runtime_dir").forEach { key ->
-      val path = placed.getValue(key).jsonPrimitive.content
-      assertTrue("$key=$path is not inside $spaceOneDir", path.isInside(spaceOneDir))
+    val expected = mapOf(
+      "home" to "/home/jupydroid",
+      "tmp" to "/tmp",
+      "user_base" to "/pkgs",
+      "runtime_dir" to "/run",
+      "executable" to "/usr/bin/python3",
+    )
+    expected.forEach { (key, inRoot) ->
+      assertEquals("$key names outside space-1's root", inRoot, placed.getValue(key).jsonPrimitive.content)
     }
-    val executable = placed.getValue("executable").jsonPrimitive.content
-    val sharedInterpreter = File(context.applicationInfo.nativeLibraryDir, "libpython3.so")
-    assertEquals(sharedInterpreter.canonicalPath, executable.canonical())
     val connectionFileSeen = placed.getValue("connection_file_seen").jsonPrimitive.content.toBoolean()
     assertTrue("no kernel connection file in ${spaceOneDirs.runtime}", connectionFileSeen)
   }
@@ -104,25 +109,25 @@ class PerSpaceRuntimeDeviceTest {
     assertEquals(HTTP_OK, spaceOneServer.get("api/terminals").first)
   }
 
-  /** A shell process in space-1's environment resolves space-1's user base, and nothing was refused. */
+  /** A shell process in space-1's root resolves space-1's user base, and nothing was refused. */
   @Test
   fun aShellInTheSpaceResolvesItsOwnUserBase() {
     val run = runInSpace(
-      spaceShellIn(baseDir).path,
+      SPACE_SHELL,
       "-c",
       "python3 -c 'import site; print(site.USER_BASE)'",
       runtime = spaceRuntime(context, SPACE_ONE),
     )
 
     assertEquals("${run.command} exited ${run.exitCode}: ${run.output}", 0, run.exitCode)
-    assertEquals(spaceOneDirs.pkgs.canonicalPath, run.output.trim().canonical())
+    assertEquals("/pkgs", run.output.trim())
     assertEquals(emptyList<String>(), seccompRefusalsIn(spaceOneDir))
   }
 
   /** `pylsp` started for space-1, as the port starts it, serves a session and exits cleanly. */
   @Test(timeout = 120_000)
   fun theSpacesLanguageServerServes() {
-    val process = startPylsp(spaceRuntime(context, SPACE_ONE), spaceOneDirs, baseDir)
+    val process = startPylsp(spaceRuntime(context, SPACE_ONE), spaceOneDirs)
 
     LspStdioSession(process).use { session ->
       assertTrue("no capabilities; stderr: ${session.stderr}", "\"capabilities\"" in session.initialize())
@@ -161,10 +166,6 @@ class PerSpaceRuntimeDeviceTest {
     }
   }
 
-  private fun String.isInside(dir: File): Boolean = canonical().startsWith(dir.canonicalPath + "/")
-
-  private fun String.canonical(): String = File(this).canonicalPath
-
   private companion object {
     const val HTTP_OK = 200
     val KERNEL_TIMEOUT = 60.seconds
@@ -195,7 +196,26 @@ class PerSpaceRuntimeDeviceTest {
 
     /** One launcher for the class: `JupyterServerLauncher.start` begins with `stop()`. */
     val spaceOneLauncher by lazy { spaceServerLauncher(context) }
-    val spaceOneServer: ServerConnection by lazy { runBlocking { spaceOneLauncher.start(SPACE_ONE) } }
+
+    /**
+     * space-1's own image, extracted once for the class, with the kernelspec base's installer
+     * writes too: the image's own spec launches stock `ipykernel_launcher`, which dies on
+     * Android before it can serve (tools/rootfs/jupydroid_kernel.py). A server started before
+     * this lands finds no `/usr/bin/python3` to run, which is why every test forces it.
+     */
+    val spaceOneImage: Boolean by lazy {
+      spaceOneRoot.extract()
+      seedConfigOnlySpace()
+      runBlocking { SpaceKernelSpec.install(spaceOneDir) }
+      true
+    }
+
+    val spaceOneRoot by lazy { PrivateRootUnderTest(context, SPACE_ONE.id) }
+
+    val spaceOneServer: ServerConnection by lazy {
+      check(spaceOneImage) { "space-1's image did not land" }
+      runBlocking { spaceOneLauncher.start(SPACE_ONE) }
+    }
 
     /** `config.json` only - what `DiskSpaceRepository.create` writes, and all its scan needs. */
     fun seedConfigOnlySpace() {
@@ -206,8 +226,9 @@ class PerSpaceRuntimeDeviceTest {
 
     @JvmStatic
     @AfterClass
-    fun stopSpaceOne() {
+    fun stopSpaceOneAndRemoveItsImage() {
       runBlocking { spaceOneLauncher.stop() }
+      spaceOneRoot.delete()
     }
 
     /** `GET` [path] with token auth; the status and body. */

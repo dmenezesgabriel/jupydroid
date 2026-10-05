@@ -11,12 +11,6 @@ class SpaceAbiTest {
     assertEquals(SpaceAbi.ARM64, SpaceAbi.of("arm64-v8a"))
   }
 
-  /** musl names its loader per architecture and keeps it in /lib. */
-  @Test
-  fun loaderLinkPath_followsMuslPerArchitecture() {
-    assertEquals("lib/ld-musl-aarch64.so.1", SpaceAbi.ARM64.loaderLinkPath)
-  }
-
   @Test
   fun of_rejectsAbisWeShipNoRootfsFor() {
     try {

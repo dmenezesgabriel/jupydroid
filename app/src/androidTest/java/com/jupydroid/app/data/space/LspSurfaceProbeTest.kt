@@ -48,7 +48,7 @@ import kotlin.time.measureTimedValue
 @RunWith(AndroidJUnit4::class)
 class LspSurfaceProbeTest {
   private val context = InstrumentationRegistry.getInstrumentation().targetContext
-  private val baseDir by lazy { baseSpaceDir(context) }
+
   private val out by lazy { File(context.getExternalFilesDir(null), "lsp-probe.txt") }
   private val report = StringBuilder()
 
@@ -64,9 +64,7 @@ class LspSurfaceProbeTest {
   @Test(timeout = 300_000)
   fun probeEveryAdvertisedMethodAndMeasureSync() = runBlocking {
     val runtime = baseSpaceRuntime(context)
-    val process = runtime.execProcessBuilder(
-      listOf(StdioLanguageServer.pylspIn(baseDir).path),
-    ).directory(File(baseDir, "home/jupydroid")).start()
+    val process = runtime.execProcessBuilder(listOf(SPACE_PYLSP)).start()
     // An undrained stderr pipe is a deadlock a `window/logMessage` flood could cause; a
     // close under a blocked read is teardown noise, not a failure.
     thread(isDaemon = true, name = "probe-stderr") {

@@ -30,7 +30,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import java.io.BufferedReader
-import java.io.File
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -55,7 +54,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 class StdioLanguageServer(
   private val installSpace: suspend () -> InstalledSpace,
-  /** Starts the server for a Space - in that Space's environment, off the installed rootfs. */
+  /** Starts the server for a Space - in that Space's environment and its own image. */
   private val spawn: suspend (Space, InstalledSpace) -> Process,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
   private val requestTimeout: Duration = 30.seconds,
@@ -359,31 +358,24 @@ class StdioLanguageServer(
       }
     }
   }
-
-  /** The pylsp console script a rootfs [baseDir] carries at `usr/local/bin`. */
-  internal companion object {
-    fun pylspIn(baseDir: File): File = File(baseDir, "usr/local/bin/pylsp")
-  }
 }
 
 /**
- * `pylsp` for one Space: the console script out of the shared [rootfsDir], run in the Space's own
- * environment ([runtime]) and workspace ([dirs]), so what it writes and imports is that Space's.
+ * `pylsp` for one Space: the console script the Space's own image ships, run under proot in the
+ * Space's environment ([runtime]) and workspace, so what it writes and imports is that Space's.
  *
  * [SpaceDirs.ensure] runs first, as in `JupyterServerLauncher.start`: a Space that was never
- * launched holds only `config.json`, and `ProcessBuilder.start` throws on a cwd that does not exist.
+ * launched holds only `config.json`, and the workspace must exist before a process starts in it.
  * The script must run through `execProcessBuilder`, not `processBuilder` - see
  * [SpaceRuntime.execProcessBuilder].
  *
  * ```
- * startPylsp(spaceRuntime(context, space), spaceDirs(context, space), baseSpaceDir(context))
+ * startPylsp(spaceRuntime(context, space), spaceDirs(context, space))
  * ```
  */
-internal fun startPylsp(runtime: SpaceRuntime, dirs: SpaceDirs, rootfsDir: File): Process {
+internal fun startPylsp(runtime: SpaceRuntime, dirs: SpaceDirs): Process {
   dirs.ensure()
-  return runtime.execProcessBuilder(listOf(StdioLanguageServer.pylspIn(rootfsDir).path))
-    .directory(dirs.workspace)
-    .start()
+  return runtime.execProcessBuilder(listOf(SPACE_PYLSP)).start()
 }
 
 /**

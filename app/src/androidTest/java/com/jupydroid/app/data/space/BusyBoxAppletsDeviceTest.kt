@@ -10,7 +10,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 /**
  * An applet runs **in this app's process**, which is the only place the question means anything.
@@ -49,7 +48,7 @@ class BusyBoxAppletsDeviceTest {
   /** The shell itself, through an applet rather than a builtin - `echo` alone would prove nothing. */
   @Test
   fun theShellForksAnAppletAndLives() {
-    val run = runInSpace(spaceShellIn(baseDir).path, "-c", "ls -d /")
+    val run = runInSpace(SPACE_SHELL, "-c", "ls -d /")
 
     assertSurvived(run)
     assertEquals("/", run.output.trim())
@@ -58,7 +57,7 @@ class BusyBoxAppletsDeviceTest {
   /** An applet reached directly, so a broken dispatch cannot hide behind the shell. */
   @Test
   fun anAppletReachedByItsOwnNameLives() {
-    val run = runInSpace(File(baseDir, "bin/ls").path, "-d", "/")
+    val run = runInSpace("/bin/ls", "-d", "/")
 
     assertSurvived(run)
     assertEquals("/", run.output.trim())
@@ -71,7 +70,7 @@ class BusyBoxAppletsDeviceTest {
    */
   @Test
   fun anUnqualifiedNameFindsTheSpacesOwnCoreutils() {
-    val run = runInSpace(spaceShellIn(baseDir).path, "-c", "ls --help 2>&1 | head -1")
+    val run = runInSpace(SPACE_SHELL, "-c", "ls --help 2>&1 | head -1")
 
     assertSurvived(run)
     assertTrue("expected BusyBox's ls, got: ${run.output.trim()}", "BusyBox" in run.output)
@@ -89,7 +88,7 @@ class BusyBoxAppletsDeviceTest {
    */
   @Test
   fun nothingWasRefusedWhileTheAppletsRan() {
-    runInSpace(spaceShellIn(baseDir).path, "-c", "ls -d / && echo done")
+    runInSpace(SPACE_SHELL, "-c", "ls -d / && echo done")
 
     assertEquals(
       "seccomp refused a syscall other than mbind while an applet ran",

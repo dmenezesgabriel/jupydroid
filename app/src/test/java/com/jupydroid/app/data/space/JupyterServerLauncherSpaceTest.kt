@@ -18,8 +18,9 @@ import kotlin.time.Duration.Companion.seconds
  * server's runtime dir, root, cwd and log all come from that Space's own directory, provisioned on
  * the spot from a directory holding nothing but `config.json`.
  *
- * Real processes, real files: [FakeJupyterServerScript] stands in for the interpreter, so what is
- * asserted is what the launcher did to the filesystem and the process, not what it meant to do.
+ * Real processes, real files: [FakeProotScript] stands in for proot and [FakeJupyterServerScript]
+ * for the Space's interpreter, so what is asserted is what the launcher did to the filesystem and
+ * the process, not what it meant to do.
  * `runBlocking`, not `runTest`: the launcher polls with `delay`, which virtual time would skip
  * straight past a script that has not written its file yet.
  */
@@ -28,6 +29,7 @@ class JupyterServerLauncherSpaceTest {
 
   private val spacesDir by lazy { tempFolder.newFolder("spaces") }
   private val baseDir by lazy { spaceDirIn(spacesDir, "base").apply { mkdirs() } }
+  private val nativeDir by lazy { FakeProotScript.installIn(tempFolder.newFolder("native")) }
   private val spaceOne = Space(id = "space-1", name = "One", kernels = emptyList())
   private var launcher: JupyterServerLauncher? = null
 
@@ -36,7 +38,7 @@ class JupyterServerLauncherSpaceTest {
 
   @Test
   fun start_connectsToTheServerTheSpaceItWasHandedReported() = runBlocking {
-    val connection = launcherWith(FakeJupyterServerScript.listening(tempFolder.root, port = 4321)).start(spaceOne)
+    val connection = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
 
     assertEquals(4321, connection.port)
     assertTrue(File(spaceOneDir(), "run/jpserver-1.json").isFile)
@@ -45,7 +47,7 @@ class JupyterServerLauncherSpaceTest {
 
   @Test
   fun start_provisionsASpaceThatHoldsOnlyItsConfig() = runBlocking {
-    launcherWith(FakeJupyterServerScript.listening(tempFolder.root, port = 4321)).start(spaceOne)
+    launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
 
     listOf("home/jupydroid", "tmp", "pkgs").forEach { relative ->
       assertTrue("expected $relative under ${spaceOneDir()}", File(spaceOneDir(), relative).isDirectory)
@@ -54,15 +56,14 @@ class JupyterServerLauncherSpaceTest {
 
   @Test
   fun start_runsTheServerInTheSpacesOwnWorkspace() = runBlocking {
-    launcherWith(FakeJupyterServerScript.listening(tempFolder.root, port = 4321)).start(spaceOne)
+    launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
 
-    val cwd = File(spaceOneDir(), "run/cwd").readText().trim()
-    assertEquals(notebookWorkspaceIn(spaceOneDir()).canonicalPath, File(cwd).canonicalPath)
+    assertEquals("/home/jupydroid", File(spaceOneDir(), "run/cwd").readText().trim())
   }
 
   @Test
   fun start_reportsAFailureFromTheSpacesOwnLog() {
-    val dying = launcherWith(FakeJupyterServerScript.dying(tempFolder.root, last = "space-1 went down"))
+    val dying = launcherWith { FakeJupyterServerScript.dying(it, last = "space-1 went down") }
 
     val error = assertThrows(IllegalStateException::class.java) { runBlocking { dying.start(spaceOne) } }
 
@@ -74,12 +75,12 @@ class JupyterServerLauncherSpaceTest {
     File(this, "config.json").takeUnless { it.exists() }?.writeText("{}")
   }
 
-  private fun launcherWith(interpreter: File): JupyterServerLauncher {
-    spaceOneDir()
+  /** [installInterpreter] puts the fake server into space-1's root, where the launcher runs it. */
+  private fun launcherWith(installInterpreter: (File) -> File): JupyterServerLauncher {
+    installInterpreter(spaceOneDir())
     return JupyterServerLauncher(
-      runtimeFor = { space -> SpaceRuntime(spaceDirIn(spacesDir, space.id), interpreter, rootfsDir = baseDir) },
+      runtimeFor = { space -> SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir) },
       dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
-      shell = spaceShellIn(baseDir),
       startTimeout = 10.seconds,
     ).also { launcher = it }
   }

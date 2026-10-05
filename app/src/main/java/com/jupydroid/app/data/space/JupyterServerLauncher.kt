@@ -35,8 +35,6 @@ class JupyterServerLauncher(
   private val runtimeFor: (Space) -> SpaceRuntime,
   /** Where a Space's server writes its runtime files and roots its Contents API. */
   private val dirsFor: (Space) -> SpaceDirs,
-  /** What terminado spawns in a pseudoterminal; see [jupyterServerArgs]. Shared, like the rootfs it is in. */
-  private val shell: File,
   private val startTimeout: Duration = START_TIMEOUT,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ServerLauncher {
@@ -57,7 +55,7 @@ class JupyterServerLauncher(
     val started = withContext(ioDispatcher) {
       dirs.ensure()
       JupyterRuntimeFile.clear(dirs.runtime) // a stale file would advertise a dead port
-      jupyterServerProcess(runtimeFor(space), dirs.runtime, dirs.workspace, shell, token).start()
+      jupyterServerProcess(runtimeFor(space), dirs.runtime, dirs.inRoot(dirs.workspace), token).start()
     }
     process = started
     return awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
@@ -117,23 +115,19 @@ class JupyterServerLauncher(
 internal fun jupyterServerProcess(
   runtime: SpaceRuntime,
   runtimeDir: File,
-  rootDir: File,
-  shell: File,
+  rootDir: String,
   token: String,
 ): ProcessBuilder = runtime.processBuilder(
   // JUPYTER_RUNTIME_DIR and the faulthandler both come from SpaceRuntime.environment(),
   // so every Space process - not just the server - agrees on where runtime files live.
-  jupyterServerArgs(rootDir, token, shell),
-)
-  // `root_dir` defaults to `os.getcwd()` (`serverapp.py:1842-1848`), so upstream the two are one
-  // directory and everything downstream is written against that. A terminal is the client that
-  // proves it: `PtyWithClients` inherits this cwd whenever the POST carries none
-  // (`terminado/management.py:225-232`). Without this line a shell opens on Android's read-only
-  // `/`. See [JupyterServerWorkingDirTest].
   //
-  // [rootDir] is guaranteed to exist rather than created here: `JupyterServerLauncher.start` runs
-  // `SpaceDirs.ensure()` first. A cwd that does not exist would make `start()` throw.
-  .directory(rootDir)
+  // The server's cwd is [rootDir] too, set by the runtime's proot `-w`. `root_dir` defaults to
+  // `os.getcwd()` (`serverapp.py:1842-1848`), so upstream the two are one directory and everything
+  // downstream is written against that. A terminal is the client that proves it: `PtyWithClients`
+  // inherits this cwd whenever the POST carries none (`terminado/management.py:225-232`). See
+  // [JupyterServerWorkingDirTest].
+  jupyterServerArgs(rootDir, token),
+)
   .redirectErrorStream(true)
   .redirectOutput(jupyterServerLogFile(runtimeDir))
 
@@ -148,11 +142,14 @@ internal fun jupyterServerLogFile(runtimeDir: File): File = File(runtimeDir, "ju
  * unset for eight steps, which left the Contents API rooted at whatever cwd `ProcessBuilder` gave
  * it, and nothing noticed because nothing but the app read the files.
  */
-internal fun jupyterServerArgs(rootDir: File, token: String, shell: File): List<String> = listOf(
+internal fun jupyterServerArgs(rootDir: String, token: String): List<String> = listOf(
   "-m", "jupyter_server",
   "--ServerApp.ip=127.0.0.1",
   "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
-  "--ServerApp.root_dir=${rootDir.path}",
+  "--ServerApp.root_dir=$rootDir",
+  // proot's `-0` makes every process see uid 0, which `apk add` needs, and jupyter_server refuses
+  // to start as root without this flag (jupyter_server 2.20.0 `serverapp.py` `ServerApp.start_app`).
+  "--allow-root",
   // Unix domain sockets rather than TCP for the kernel transport. Everything here
   // is one app on one device, so kernels need no ports and no network stack at all.
   // It also avoids jupyter_client validating the kernel IP against every local
@@ -163,17 +160,15 @@ internal fun jupyterServerArgs(rootDir: File, token: String, shell: File): List<
   // `jupyter_server_terminals/app.py:initialize_configurables` resolves it as
   //   [os.environ.get("SHELL") or which("sh")]
   // and then appends `-l`, because that append is guarded on `shell_override is None` and this
-  // server's stdout is a file rather than a tty (`start` calls `redirectOutput`). Both would be
-  // wrong here: SHELL is unset, `which` searches an environment variable for the one binary the
-  // Space cannot substitute, and a login shell would source a profile out of the rootfs that
-  // nothing has audited.
+  // server's stdout is a file rather than a tty (`start` calls `redirectOutput`). The login shell
+  // is the wrong half: it would source a profile out of the image that nothing has audited.
   //
   // A **list**, never a string: the same function runs `shlex.split` over a string value, so a
   // path would be one quoting rule away from being torn in two, while a list reaches ptyprocess
   // as the argv it already is. Measured against jupyter_server 2.20.0 and
   // jupyter_server_terminals 0.5.4 - the versions in `tools/rootfs/requirements.lock` - rather
   // than assumed to parse.
-  """--ServerApp.terminado_settings={"shell_command": ["${shell.path}"]}""",
+  """--ServerApp.terminado_settings={"shell_command": ["$SPACE_SHELL"]}""",
   // The server may stop itself. `shutdown_no_activity_timeout` fires only while **no
   // kernels** exist (serverapp.py `shutdown_no_activity` returns early when `len(km) != 0`),
   // and idle kernels are culled first by `MappingKernelManager.cull_idle_timeout`. Culling

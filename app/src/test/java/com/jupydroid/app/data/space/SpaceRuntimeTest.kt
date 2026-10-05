@@ -8,51 +8,65 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 
+/**
+ * Every Space process runs under proot with the Space as `/` (ADR-0073), so the command line is
+ * proot's and every path the process is handed is named inside the root.
+ */
 class SpaceRuntimeTest {
   @get:Rule val tempFolder = TemporaryFolder()
 
-  private val interpreter = File("/data/app/abc==/lib/arm64/libpython3.so")
+  private val nativeDir = File("/data/app/abc==/lib/arm64")
   private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")
-  private val runtime = SpaceRuntime(spaceDir = baseDir, nativeInterpreter = interpreter)
+  private val runtime = SpaceRuntime(spaceDir = baseDir, nativeLibraryDir = nativeDir)
 
   private val spaceDir = File("/data/data/com.jupydroid.app/files/spaces/space-1")
-  private val userSpaceRuntime =
-    SpaceRuntime(spaceDir = spaceDir, nativeInterpreter = interpreter, rootfsDir = baseDir)
+  private val userSpaceRuntime = SpaceRuntime(spaceDir = spaceDir, nativeLibraryDir = nativeDir)
 
   @Test
-  fun command_execsTheNativeInterpreterNotTheOneInTheRootfs() {
+  fun command_runsTheImagesOwnInterpreterUnderProot() {
     val command = runtime.command("-c", "print(1)")
 
-    assertEquals("/data/app/abc==/lib/arm64/libpython3.so", command.first())
-    assertEquals(listOf("-c", "print(1)"), command.drop(1))
+    assertEquals(File(nativeDir, ProotCommand.PROOT).path, command.first())
+    assertEquals(listOf(SPACE_INTERPRETER, "-c", "print(1)"), command.takeLast(3))
   }
 
+  /** A Space's root is its own directory, `base` included: no Space reads another's system. */
   @Test
-  fun environment_pointsPythonAtTheRootfsRatherThanTheInterpretersOwnDirectory() {
-    val env = runtime.environment()
-
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/usr", env["PYTHONHOME"])
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/home/jupydroid", env["HOME"])
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/tmp", env["TMPDIR"])
+  fun command_makesTheSpaceItselfTheRoot() {
+    assertEquals(spaceDir.path, rootOf(userSpaceRuntime.command()))
+    assertEquals(baseDir.path, rootOf(runtime.command()))
   }
 
   /**
-   * DT_RUNPATH on the interpreter covers its own direct dependencies but is not
-   * inherited, so dlopen'd extension modules (pyzmq's _zmq, and every other native
-   * wheel) would not find libpthread. LD_LIBRARY_PATH is inherited and does.
+   * The workspace is where a process starts, which is what a terminal inherits when its `POST`
+   * names no cwd (`terminado/management.py:225-232`).
    */
   @Test
-  fun environment_setsLdLibraryPathForDlopenedExtensionModules() {
-    val libraryPath = runtime.environment().getValue("LD_LIBRARY_PATH").split(":")
+  fun command_startsInTheWorkspaceInsideTheRoot() {
+    val command = runtime.command()
 
-    // musl has no multiarch directories: everything is in /usr/lib and /lib.
-    assertEquals(
-      listOf(
-        "/data/data/com.jupydroid.app/files/spaces/base/usr/lib",
-        "/data/data/com.jupydroid.app/files/spaces/base/lib",
-      ),
-      libraryPath,
-    )
+    assertEquals("/home/jupydroid", command[command.indexOf("-w") + 1])
+  }
+
+  @Test
+  fun environment_placesHomeAndTmpInsideTheRoot() {
+    val env = runtime.environment()
+
+    assertEquals("/home/jupydroid", env["HOME"])
+    assertEquals("/tmp", env["TMPDIR"])
+  }
+
+  /**
+   * Nothing a Space process is handed may name a host path: proot would translate it into the root,
+   * where it does not exist. This is also what retires `PYTHONHOME`, `LD_LIBRARY_PATH` and
+   * `JUPYDROID_SPACE_ROOT`, which existed only because the image was not mounted at `/`.
+   */
+  @Test
+  fun environment_namesNothingOutsideTheRoot() {
+    val env = SpaceRuntime(spaceWithHandler(), nativeDir).environment()
+
+    assertTrue("a host path leaked into $env", env.values.none { "/data/" in it || tempFolder.root.path in it })
+    assertFalse(env.keys.any { it in setOf("PYTHONHOME", "LD_LIBRARY_PATH", "JUPYDROID_SPACE_ROOT") })
   }
 
   /**
@@ -64,12 +78,10 @@ class SpaceRuntimeTest {
    * the same; a Space where only some processes survive a refusal is the worst outcome.
    */
   @Test
-  fun environment_preloadsTheSigsysHandlerIntoEverySpaceProcess() {
-    val installed = spaceWithHandler()
+  fun environment_preloadsTheSigsysHandlerByItsPathInsideTheRoot() {
+    val preload = SpaceRuntime(spaceWithHandler(), nativeDir).environment().getValue("LD_PRELOAD")
 
-    val preload = SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD")
-
-    assertEquals(File(installed, "lib/libsigsys_report.so").path, preload)
+    assertEquals("/lib/libsigsys_report.so", preload)
   }
 
   /**
@@ -79,11 +91,9 @@ class SpaceRuntimeTest {
    */
   @Test
   fun environment_sendsSigsysReportsToALogFileRatherThanTheUsersCellOutput() {
-    val installed = spaceWithHandler()
+    val env = SpaceRuntime(spaceWithHandler(), nativeDir).environment()
 
-    val env = SpaceRuntime(installed, interpreter).environment()
-
-    assertEquals(File(installed, "tmp/sigsys.log").path, env["JUPYDROID_SIGSYS_LOG"])
+    assertEquals("/tmp/sigsys.log", env["JUPYDROID_SIGSYS_LOG"])
   }
 
   /** A Space extracted before the handler existed must not get a preload pointing at nothing. */
@@ -91,7 +101,7 @@ class SpaceRuntimeTest {
   fun environment_omitsThePreloadWhenTheHandlerIsNotInTheRootfs() {
     val empty = tempFolder.newFolder("space-without-handler")
 
-    assertFalse(SpaceRuntime(empty, interpreter).environment().containsKey("LD_PRELOAD"))
+    assertFalse(SpaceRuntime(empty, nativeDir).environment().containsKey("LD_PRELOAD"))
   }
 
   /**
@@ -104,115 +114,60 @@ class SpaceRuntimeTest {
   fun environment_preloadsTheAtShimBesideTheReporterWhenTheRootfsHasBoth() {
     val installed = spaceWithHandler().apply { File(this, "lib/libmusl_at_shim.so").writeText("ELF") }
 
-    val preload = SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD")
+    val preload = SpaceRuntime(installed, nativeDir).environment().getValue("LD_PRELOAD")
 
-    assertEquals(
-      listOf("lib/libsigsys_report.so", "lib/libmusl_at_shim.so").joinToString(" ") { File(installed, it).path },
-      preload,
-    )
-  }
-
-  /** The arm64 rootfs has the reporter and no shim, and must be preloaded with exactly the one. */
-  @Test
-  fun environment_preloadsOnlyTheReporterWhenThereIsNoAtShim() {
-    val installed = spaceWithHandler()
-
-    assertEquals(
-      File(installed, "lib/libsigsys_report.so").path,
-      SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD"),
-    )
+    assertEquals("/lib/libsigsys_report.so /lib/libmusl_at_shim.so", preload)
   }
 
   /** And a rootfs with the shim but no reporter still gets the shim: they are independent. */
   @Test
   fun environment_preloadsTheAtShimOnItsOwn() {
-    val installed = tempFolder.newFolder("space-with-shim-only").apply {
-      File(this, "lib").mkdirs()
-      File(this, "lib/libmusl_at_shim.so").writeText("ELF")
-    }
+    val installed = spaceWith("lib/libmusl_at_shim.so")
 
-    assertEquals(
-      File(installed, "lib/libmusl_at_shim.so").path,
-      SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD"),
-    )
-  }
-
-  private fun spaceWithHandler(): File = tempFolder.newFolder("space-with-handler").apply {
-    File(this, "lib").mkdirs()
-    File(this, "lib/libsigsys_report.so").writeText("ELF")
+    assertEquals("/lib/libmusl_at_shim.so", SpaceRuntime(installed, nativeDir).environment().getValue("LD_PRELOAD"))
   }
 
   /**
-   * Console scripts (`usr/local/bin/pylsp`) are not Python source: their link resolves to the
-   * native `shebang-exec` trampoline, which execs on its own and reads the `#!` line. Running
-   * one through [SpaceRuntime.command] would produce `python <path>` and feed a shell script's
-   * path to the interpreter as argv - so the direct-exec builder must not prepend it, while
-   * keeping the same environment [SpaceRuntime.processBuilder] carries.
+   * Console scripts are not Python source: `/usr/bin/pylsp` is a `#!` script proot execs as the
+   * kernel would. Running one through [SpaceRuntime.command] would produce `python3 <path>` - so the
+   * direct-exec builder must not prepend the interpreter, while keeping the same environment
+   * [SpaceRuntime.processBuilder] carries.
    */
   @Test
-  fun execProcessBuilder_execsTheScriptDirectlyUnderTheSpaceEnvironment() {
-    val builder = runtime.execProcessBuilder(listOf("$baseDir/usr/local/bin/pylsp", "--version"))
+  fun execProcessBuilder_execsTheProgramDirectlyUnderProot() {
+    val builder = runtime.execProcessBuilder(listOf(SPACE_PYLSP, "--version"))
 
-    assertEquals("$baseDir/usr/local/bin/pylsp", builder.command().first())
-    assertFalse(builder.command().contains(interpreter.path))
-    assertEquals("$baseDir/usr", builder.environment()["PYTHONHOME"])
-    assertEquals(spaceShellIn(baseDir).path, builder.environment()["SHELL"])
+    assertEquals(listOf(SPACE_PYLSP, "--version"), builder.command().takeLast(2))
+    assertFalse(builder.command().contains(SPACE_INTERPRETER))
+    assertEquals(SPACE_SHELL, builder.environment()["SHELL"])
   }
 
-  /** Android's own PATH would leak toybox into the Space; the rootfs supplies its own. */
+  /** What proot itself reads reaches it, beside what the process it runs reads. */
   @Test
-  fun environment_confinesPathToTheRootfs() {
-    val path = runtime.environment().getValue("PATH")
+  fun processBuilder_givesProotItsLoader() {
+    val env = runtime.processBuilder(listOf("-c", "pass")).environment()
 
-    assertTrue("expected only rootfs entries, got $path", path.split(":").all { it.startsWith("/data/data/") })
+    assertEquals(File(nativeDir, ProotCommand.PROOT_LOADER).path, env["PROOT_LOADER"])
+  }
+
+  /** Android's own PATH would leak toybox into the Space; the image supplies its own. */
+  @Test
+  fun environment_confinesPathToTheImage() {
+    assertEquals("/pkgs/bin:/usr/local/bin:/usr/bin:/bin", runtime.environment()["PATH"])
   }
 
   /**
    * `SHELL` names the Space's shell, and it is load-bearing rather than tidy.
    *
-   * A cell's capture escape - `files = !ls` - reaches `IPython/utils/_process_common.py:86-90`:
-   *
-   *     executable = None
-   *     if shell and os.name == 'posix' and 'SHELL' in os.environ:
-   *         executable = os.environ['SHELL']
-   *     p = subprocess.Popen(cmd, shell=shell, executable=executable, ...)
-   *
-   * Unset, `executable` stays None and CPython falls back to the absolute `/bin/sh`, which does
-   * not exist on Android - so the command runs nowhere and the cell gets an empty string back.
-   * Measured before this was set: `getoutput repr: ''` for `echo` itself, while `!echo`, which
-   * takes the pexpect path and searches `PATH`, worked.
-   *
-   * The same variable is what `jupyter_server_terminals` consults before falling back to
-   * `which("sh")`, and what pexpect resolves for the printing escape - so one setting decides
-   * the shell for all three rather than each finding its own.
+   * A cell's capture escape - `files = !ls` - reaches `IPython/utils/_process_common.py:86-90`,
+   * which passes it as `Popen(executable=...)`. It is also what `jupyter_server_terminals` consults
+   * before falling back to `which("sh")`, and what pexpect resolves for the printing escape - so one
+   * setting decides the shell for all three, and it is the one the server pins for terminals.
    */
   @Test
-  fun environment_namesTheSpacesShellSoNothingFallsBackToTheDevicesRoot() {
-    val shell = runtime.environment().getValue("SHELL")
-
-    assertEquals(spaceShellIn(baseDir).path, shell)
-  }
-
-  /**
-   * The rootfs ships a real CA bundle, and OpenSSL/musl both honour these two variables
-   * (measured on device: `openssl_cafile_env='SSL_CERT_FILE'`). Unconditional,
-   * unlike the preloads: the bundle always ships, so there is no older-Space case to guard.
-   */
-  @Test
-  fun environment_pointsOpensslAtTheShippedCaBundle() {
-    val env = runtime.environment()
-
-    assertEquals(
-      "/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs/ca-certificates.crt",
-      env["SSL_CERT_FILE"],
-    )
-  }
-
-  @Test
-  fun environment_pointsOpensslAtTheShippedCaDirectoryToo() {
-    val env = runtime.environment()
-
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs", env["SSL_CERT_DIR"])
+  fun environment_namesTheShellTheServerPinsForTerminals() {
+    assertEquals(SPACE_SHELL, runtime.environment()["SHELL"])
+    assertTrue(jupyterServerArgs("/home/jupydroid", "t").any { "[\"$SPACE_SHELL\"]" in it })
   }
 
   /**
@@ -223,35 +178,16 @@ class SpaceRuntimeTest {
   fun environment_preloadsTheGetaddrinfoShimBesideTheOthersWhenTheRootfsHasIt() {
     val installed = spaceWithHandler().apply { File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF") }
 
-    val preload = SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD")
+    val preload = SpaceRuntime(installed, nativeDir).environment().getValue("LD_PRELOAD")
 
-    assertEquals(
-      listOf("lib/libsigsys_report.so", "lib/libgetaddrinfo_shim.so").joinToString(" ") { File(installed, it).path },
-      preload,
-    )
-  }
-
-  @Test
-  fun environment_preloadsTheGetaddrinfoShimOnItsOwn() {
-    val installed = tempFolder.newFolder("space-with-getaddrinfo-shim-only").apply {
-      File(this, "lib").mkdirs()
-      File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF")
-    }
-
-    assertEquals(
-      File(installed, "lib/libgetaddrinfo_shim.so").path,
-      SpaceRuntime(installed, interpreter).environment().getValue("LD_PRELOAD"),
-    )
+    assertEquals("/lib/libsigsys_report.so /lib/libgetaddrinfo_shim.so", preload)
   }
 
   /** Sourced from Android's ConnectivityManager, bypassing /etc/resolv.conf entirely. */
   @Test
   fun environment_namesTheConfiguredNameserversWhenTheShimIsPresent() {
-    val installed = tempFolder.newFolder("space-with-shim-and-servers").apply {
-      File(this, "lib").mkdirs()
-      File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF")
-    }
-    val runtime = SpaceRuntime(installed, interpreter, dnsServers = DnsServerSource { listOf("8.8.8.8", "1.1.1.1") })
+    val installed = spaceWith("lib/libgetaddrinfo_shim.so")
+    val runtime = SpaceRuntime(installed, nativeDir, dnsServers = DnsServerSource { listOf("8.8.8.8", "1.1.1.1") })
 
     assertEquals("8.8.8.8,1.1.1.1", runtime.environment()["JUPYDROID_NAMESERVERS"])
   }
@@ -259,11 +195,8 @@ class SpaceRuntimeTest {
   /** No servers to report yet (e.g. no network observed since launch) - omitted, not blank. */
   @Test
   fun environment_omitsNameserversWhenNoneAreReported() {
-    val installed = tempFolder.newFolder("space-with-shim-and-no-servers").apply {
-      File(this, "lib").mkdirs()
-      File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF")
-    }
-    val runtime = SpaceRuntime(installed, interpreter, dnsServers = DnsServerSource { emptyList() })
+    val installed = spaceWith("lib/libgetaddrinfo_shim.so")
+    val runtime = SpaceRuntime(installed, nativeDir, dnsServers = DnsServerSource { emptyList() })
 
     assertFalse(runtime.environment().containsKey("JUPYDROID_NAMESERVERS"))
   }
@@ -272,24 +205,20 @@ class SpaceRuntimeTest {
   @Test
   fun environment_omitsNameserversWhenTheShimIsNotInTheRootfs() {
     val installed = tempFolder.newFolder("space-without-getaddrinfo-shim")
-    val runtime = SpaceRuntime(installed, interpreter, dnsServers = DnsServerSource { listOf("8.8.8.8") })
+    val runtime = SpaceRuntime(installed, nativeDir, dnsServers = DnsServerSource { listOf("8.8.8.8") })
 
     assertFalse(runtime.environment().containsKey("JUPYDROID_NAMESERVERS"))
   }
 
   /**
    * PEP 668's answer for this interpreter: installs ground in the Space's own user base,
-   * not the rootfs's site-packages. Measured on-device: bare `pip install` is
+   * not the image's site-packages. Measured on-device: bare `pip install` is
    * refused by `EXTERNALLY-MANAGED` even with `--user`; with `PYTHONUSERBASE` + `PIP_USER`
-   * + `PIP_BREAK_SYSTEM_PACKAGES` the same command lands under `pkgs/` and imports from
-   * there, leaving `usr/lib/python3.12/site-packages` untouched.
+   * + `PIP_BREAK_SYSTEM_PACKAGES` the same command lands under `pkgs/` and imports from there.
    */
   @Test
   fun environment_groundsPipInstallsInTheSpacesOwnUserBase() {
-    assertEquals(
-      "/data/data/com.jupydroid.app/files/spaces/base/pkgs",
-      runtime.environment()["PYTHONUSERBASE"],
-    )
+    assertEquals("/pkgs", runtime.environment()["PYTHONUSERBASE"])
   }
 
   /**
@@ -308,33 +237,6 @@ class SpaceRuntimeTest {
   }
 
   /**
-   * A `--user` install drops console scripts in `pkgs/bin` - pip's own warning on-device was
-   * "which is not on PATH". It precedes the rootfs entries so a user's newer tool shadows the
-   * shipped one, the same precedence `~/.local/bin` takes over `/usr/bin` on a desktop.
-   */
-  @Test
-  fun environment_putsUserInstalledConsoleScriptsOnPathAheadOfTheRootfs() {
-    val path = runtime.environment().getValue("PATH").split(":")
-
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/pkgs/bin", path.first())
-  }
-
-  /**
-   * A user Space pairs its own directory with the shared rootfs: everything a Space *writes* -
-   * its home, its scratch, its installed packages, its server's runtime files - grounds in
-   * `spaceDir`, so two Spaces cannot collide on any of them.
-   */
-  @Test
-  fun environment_derivesTheWritableDirsFromTheSpaceRatherThanTheSharedRootfs() {
-    val env = userSpaceRuntime.environment()
-
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/space-1/home/jupydroid", env["HOME"])
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/space-1/tmp", env["TMPDIR"])
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/space-1/pkgs", env["PYTHONUSERBASE"])
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/space-1/run", env["JUPYTER_RUNTIME_DIR"])
-  }
-
-  /**
    * The environment and [SpaceDirs.ensure] name the same directories, so a process can never be
    * pointed at a writable dir the Space's first launch did not provision.
    */
@@ -343,114 +245,36 @@ class SpaceRuntimeTest {
     val env = userSpaceRuntime.environment()
     val dirs = SpaceDirs(spaceDir)
 
-    assertEquals(dirs.workspace.path, env["HOME"])
-    assertEquals(dirs.tmp.path, env["TMPDIR"])
-    assertEquals(dirs.pkgs.path, env["PYTHONUSERBASE"])
-    assertEquals(dirs.runtime.path, env["JUPYTER_RUNTIME_DIR"])
+    assertEquals(dirs.inRoot(dirs.workspace), env["HOME"])
+    assertEquals(dirs.inRoot(dirs.tmp), env["TMPDIR"])
+    assertEquals(dirs.inRoot(dirs.pkgs), env["PYTHONUSERBASE"])
+    assertEquals(dirs.inRoot(dirs.runtime), env["JUPYTER_RUNTIME_DIR"])
   }
 
   /**
-   * And everything a Space *reads* - the stdlib anchor, the shell, the shebang
-   * trampoline's root, the library path, the CA bundle - comes off the shared
-   * image, so a user Space carries no copy of the toolchain.
+   * One runtime dir per Space, set on *every* process rather than only the server: kernel
+   * connection files, `jupyter --runtime-dir` and the app-side `JupyterRuntimeFile` poll all agree
+   * on where a Space's server is. Inside the root it is `/run`; the app reads it at `<space>/run`.
    */
-  @Test
-  fun environment_derivesTheSharedToolsFromTheRootfsRatherThanTheSpace() {
-    val env = userSpaceRuntime.environment()
-
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/usr", env["PYTHONHOME"])
-    assertEquals(spaceShellIn(baseDir).path, env["SHELL"])
-    assertEquals(baseDir.path, env["JUPYDROID_SPACE_ROOT"])
-    assertEquals(
-      "/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs/ca-certificates.crt",
-      env["SSL_CERT_FILE"],
-    )
-    assertEquals("/data/data/com.jupydroid.app/files/spaces/base/etc/ssl/certs", env["SSL_CERT_DIR"])
-    assertEquals(
-      "/data/data/com.jupydroid.app/files/spaces/base/usr/lib:/data/data/com.jupydroid.app/files/spaces/base/lib",
-      env["LD_LIBRARY_PATH"],
-    )
-  }
-
-  /**
-   * One runtime dir per Space, and set on *every* process rather than only the server:
-   * kernel connection files, `jupyter --runtime-dir` and the app-side
-   * `JupyterRuntimeFile` poll all agree on where a Space's server is, which is the
-   * assumption [JupyterServerLauncher] was already built on. For `base` the value is
-   * the path the launcher used to inject - unchanged.
-   */
-  @Test
-  fun environment_namesTheSpacesOwnRuntimeDirectory() {
-    assertEquals("$baseDir/run", runtime.environment()["JUPYTER_RUNTIME_DIR"])
-    assertEquals("$spaceDir/run", userSpaceRuntime.environment()["JUPYTER_RUNTIME_DIR"])
-  }
-
-  /**
-   * Same split on PATH: the Space's `pkgs/bin` keeps precedence, but the toolchain
-   * entries it precedes belong to the shared image, not the Space.
-   */
-  @Test
-  fun environment_pairsTheSpacesConsoleScriptsWithTheSharedRootfsOnPath() {
-    val path = userSpaceRuntime.environment().getValue("PATH").split(":")
-
-    assertEquals(
-      listOf(
-        "/data/data/com.jupydroid.app/files/spaces/space-1/pkgs/bin",
-        "/data/data/com.jupydroid.app/files/spaces/base/usr/local/bin",
-        "/data/data/com.jupydroid.app/files/spaces/base/usr/bin",
-        "/data/data/com.jupydroid.app/files/spaces/base/bin",
-      ),
-      path,
-    )
-  }
-
-  /**
-   * The handler is read out of the shared image, but its log is the Space's own -
-   * a second Space's refusals must not write into base's `tmp`.
-   */
-  @Test
-  fun environment_findsTheSigsysHandlerInTheRootfsAndWritesItsLogIntoTheSpace() {
-    val sharedRootfs = tempFolder.newFolder("shared-rootfs").apply {
-      File(this, "lib").mkdirs()
-      File(this, "lib/libsigsys_report.so").writeText("ELF")
-    }
-    val space = tempFolder.newFolder("space-1")
-
-    val env = SpaceRuntime(space, interpreter, rootfsDir = sharedRootfs).environment()
-
-    assertEquals(File(sharedRootfs, "lib/libsigsys_report.so").path, env["LD_PRELOAD"])
-    assertEquals(File(space, "tmp/sigsys.log").path, env["JUPYDROID_SIGSYS_LOG"])
-  }
-
-  /** Same for the resolver shim: probed on the rootfs, since that is where it is built. */
-  @Test
-  fun environment_findsTheGetaddrinfoShimInTheRootfsForASpaceWithItsOwnDir() {
-    val sharedRootfs = tempFolder.newFolder("shared-rootfs-dns").apply {
-      File(this, "lib").mkdirs()
-      File(this, "lib/libgetaddrinfo_shim.so").writeText("ELF")
-    }
-    val runtime = SpaceRuntime(
-      tempFolder.newFolder("space-2"),
-      interpreter,
-      dnsServers = DnsServerSource { listOf("8.8.8.8") },
-      rootfsDir = sharedRootfs,
-    )
-
-    assertEquals("8.8.8.8", runtime.environment()["JUPYDROID_NAMESERVERS"])
-  }
-
-  /** The child env, not only the map: the server's runtime dir reaches it either way. */
   @Test
   fun processBuilder_givesTheChildTheSpacesRuntimeDirectory() {
     val env = userSpaceRuntime.processBuilder(listOf("-c", "pass")).environment()
 
-    assertEquals("$spaceDir/run", env["JUPYTER_RUNTIME_DIR"])
+    assertEquals("/run", env["JUPYTER_RUNTIME_DIR"])
   }
 
   @Test
   fun execProcessBuilder_givesTheChildTheSpacesRuntimeDirectory() {
-    val env = userSpaceRuntime.execProcessBuilder(listOf("$baseDir/bin/sh", "-c", "pass")).environment()
+    val env = userSpaceRuntime.execProcessBuilder(listOf(SPACE_SHELL, "-c", "pass")).environment()
 
-    assertEquals("$spaceDir/run", env["JUPYTER_RUNTIME_DIR"])
+    assertEquals("/run", env["JUPYTER_RUNTIME_DIR"])
+  }
+
+  private fun rootOf(command: List<String>): String = command[command.indexOf("-r") + 1]
+
+  private fun spaceWithHandler(): File = spaceWith("lib/libsigsys_report.so")
+
+  private fun spaceWith(library: String): File = tempFolder.newFolder().apply {
+    File(this, library).apply { parentFile!!.mkdirs() }.writeText("ELF")
   }
 }

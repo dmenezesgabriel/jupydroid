@@ -10,7 +10,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 /**
  * **`pylsp` runs in the Space's shell and answers LSP over stdio.**
@@ -21,8 +20,8 @@ import java.io.File
  * through [runInSpace]/`ProcessBuilder`, the only place the seccomp filter applies
  * (a `run-as` probe would answer a question nobody asked - see [SpaceProcessRun]):
  *
- *  1. the console script runs by name - `usr/local/bin/pylsp` -> `bin/shebang-exec`
- *     -> the interpreter, under the same trampoline chain `pip` goes through; and
+ *  1. the console script runs by name - `/usr/bin/pylsp`, the image's own `#!` file,
+ *     which proot execs through its shebang line; and
  *  2. it *serves* - a `Content-Length`-framed `initialize` gets a framed response with
  *     `capabilities`, and `shutdown`/`exit` ends the process cleanly. `pylsp --version`
  *     alone only proves the import; debugpy is the record of a package that imported
@@ -37,7 +36,6 @@ import java.io.File
 class LanguageServerDeviceTest {
   private val context = InstrumentationRegistry.getInstrumentation().targetContext
   private val baseDir by lazy { baseSpaceDir(context) }
-  private val shell by lazy { spaceShellIn(baseDir).path }
 
   @Before
   fun onlyWhereASpaceCanRun() {
@@ -48,10 +46,10 @@ class LanguageServerDeviceTest {
     runBlocking { baseSpaceInstaller(context).installIfNeeded() }
   }
 
-  /** By name, through the trampoline - the way the terminal and [StdioLanguageServer] reach it. */
+  /** By name, through the Space's PATH - the way the terminal and [StdioLanguageServer] reach it. */
   @Test
   fun pylspRunsByNameAndReportsItsVersion() {
-    val run = runInSpace(shell, "-c", "pylsp --version")
+    val run = runInSpace(SPACE_SHELL, "-c", "pylsp --version")
 
     assertEquals("pylsp --version exited ${run.exitCode}: ${run.output.trim()}", 0, run.exitCode)
     assertTrue("expected a pylsp version, got: ${run.output.trim()}", run.output.trim().startsWith("pylsp v"))
@@ -59,13 +57,12 @@ class LanguageServerDeviceTest {
 
   /**
    * The premise itself: `pylsp` spawned with piped stdio, as the adapter spawns it, answers a real
-   * `initialize`. Exec'd straight off the `usr/local/bin` link rather than
-   * through a shell, so the request goes through `bin/shebang-exec` and nothing else.
+   * `initialize`. Exec'd straight off its in-root path rather than
+   * through a shell, so the request goes through proot and nothing else.
    */
   @Test(timeout = 120_000)
   fun pylspAnswersAnInitializeOverStdio() {
-    val pylsp = File(baseDir, "usr/local/bin/pylsp")
-    LspStdioSession(baseSpaceRuntime(context).execProcessBuilder(listOf(pylsp.path)).start()).use { session ->
+    LspStdioSession(baseSpaceRuntime(context).execProcessBuilder(listOf(SPACE_PYLSP)).start()).use { session ->
       val capabilities = session.initialize()
       assertTrue(
         "no capabilities in the initialize reply: $capabilities; stderr: ${session.stderr}",
@@ -83,7 +80,7 @@ class LanguageServerDeviceTest {
   /** No syscall was refused while pylsp ran - a refusal the SIGSYS handler swallowed would hide. */
   @Test
   fun nothingWasRefusedWhilePylspRan() {
-    runInSpace(shell, "-c", "pylsp --version")
+    runInSpace(SPACE_SHELL, "-c", "pylsp --version")
 
     assertEquals(
       "seccomp refused a syscall other than mbind while pylsp ran",

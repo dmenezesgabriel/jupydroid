@@ -7,19 +7,14 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * Points the Space's `python3` kernelspec at an interpreter that can actually be run.
+ * Points the Space's `python3` kernelspec at the image's own interpreter and our kernel module.
  *
- * The kernelspec shipped in the image launches bare `python`, which PATH resolves
- * inside the rootfs - and a rootfs file cannot be execve'd at targetSdk 36. A
- * kernelspec is just JSON we own, so argv[0] becomes the interpreter in
- * nativeLibraryDir, which is the one place execution is permitted
- * (ADR-0002).
+ * The kernelspec shipped in the image launches bare `python -m ipykernel_launcher`. Under proot the
+ * image runs as built (ADR-0073), so argv[0] is [SPACE_INTERPRETER], the same `/usr/bin/python3`
+ * the server was started as; the module is what this file exists to replace.
  *
- * Written over the shipped kernelspec in `usr/share/jupyter/kernels/`. The tidier
- * `usr/local/share/...` override directory is not an option here: jupyter_core builds
- * that search path from an absolute `/usr/local/share/jupyter`, which does not exist
- * on the device. With `PYTHONHOME=<base>/usr` the only directory actually searched is
- * `<sys.prefix>/share/jupyter`, verified against GET /api/kernelspecs.
+ * Written over the shipped kernelspec in `usr/share/jupyter/kernels/`, which is
+ * `<sys.prefix>/share/jupyter`, a directory jupyter_core searches.
  */
 object SpaceKernelSpec {
   private const val KERNEL_PATH = "usr/share/jupyter/kernels/python3/kernel.json"
@@ -52,22 +47,17 @@ object SpaceKernelSpec {
    */
   private const val KERNEL_LOG_LEVEL = "--log-level=DEBUG"
 
-  /**
-   * Rewritten on every launch, not just on a fresh install: nativeLibraryDir carries
-   * per-install path segments, so after an app update a baked argv points at a
-   * directory that no longer exists.
-   */
-  suspend fun install(baseDir: File, interpreter: File, ioDispatcher: CoroutineDispatcher = Dispatchers.IO) =
-    withContext(ioDispatcher) {
-      val kernelJson = File(baseDir, KERNEL_PATH)
-      kernelJson.parentFile?.mkdirs()
-      kernelJson.writeText(kernelSpecJson(interpreter))
-    }
+  /** Written on every launch, so a Space extracted by an older version gets today's argv. */
+  suspend fun install(baseDir: File, ioDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(ioDispatcher) {
+    val kernelJson = File(baseDir, KERNEL_PATH)
+    kernelJson.parentFile?.mkdirs()
+    kernelJson.writeText(kernelSpecJson())
+  }
 
-  private fun kernelSpecJson(interpreter: File): String =
+  private fun kernelSpecJson(): String =
     """
     {
-      "argv": ["${interpreter.path}", "-m", "$KERNEL_MODULE", "-f", "{connection_file}", "$KERNEL_LOG_LEVEL"],
+      "argv": ["$SPACE_INTERPRETER", "-m", "$KERNEL_MODULE", "-f", "{connection_file}", "$KERNEL_LOG_LEVEL"],
       "display_name": "$DEFAULT_KERNEL_DISPLAY_NAME",
       "language": "python",
       "env": {"PYTHONFAULTHANDLER": "1"},

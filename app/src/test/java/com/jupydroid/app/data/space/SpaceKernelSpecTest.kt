@@ -15,20 +15,17 @@ import java.io.File
 class SpaceKernelSpecTest {
   @get:Rule val tempFolder = TemporaryFolder()
 
-  private val interpreter = File("/data/app/abc==/lib/arm64/libpython3.so")
-
   /**
-   * The whole point: the shipped kernelspec runs bare "python", which PATH resolves
-   * into the rootfs, and rootfs files cannot be execve'd. argv[0] has to be the
-   * interpreter in nativeLibraryDir.
+   * The kernel is the image's own interpreter, named inside the root the server runs under
+   * (ADR-0073): the same `/usr/bin/python3` the server itself was started as.
    */
   @Test
-  fun install_pointsArgvAtTheExecutableInterpreter() = runTest {
+  fun install_pointsArgvAtTheImagesOwnInterpreter() = runTest {
     val baseDir = tempFolder.newFolder("base")
 
-    SpaceKernelSpec.install(baseDir, interpreter)
+    SpaceKernelSpec.install(baseDir)
 
-    assertTrue(kernelJson(baseDir).readText().contains("\"${interpreter.path}\""))
+    assertEquals(SPACE_INTERPRETER, argv(baseDir).first())
   }
 
   /** A kernel death with no traceback is the failure mode we refuse to ship. */
@@ -36,7 +33,7 @@ class SpaceKernelSpecTest {
   fun install_keepsFaulthandlerOnSoAKernelCrashIsNeverSilent() = runTest {
     val baseDir = tempFolder.newFolder("base")
 
-    SpaceKernelSpec.install(baseDir, interpreter)
+    SpaceKernelSpec.install(baseDir)
 
     assertTrue(kernelJson(baseDir).readText().contains("PYTHONFAULTHANDLER"))
   }
@@ -45,34 +42,21 @@ class SpaceKernelSpecTest {
   fun install_launchesIpykernelWithTheConnectionFilePlaceholder() = runTest {
     val baseDir = tempFolder.newFolder("base")
 
-    SpaceKernelSpec.install(baseDir, interpreter)
+    SpaceKernelSpec.install(baseDir)
 
     val argv = kernelJson(baseDir).readText()
     assertTrue(argv, argv.contains("jupydroid_kernel"))
     assertTrue(argv, argv.contains("{connection_file}"))
   }
 
-  /** The only kernels directory Jupyter searches when PYTHONHOME points into the Space. */
+  /** `<sys.prefix>/share/jupyter`, the kernels directory the image's own Jupyter searches. */
   @Test
   fun install_writesWhereJupyterActuallySearches() = runTest {
     val baseDir = tempFolder.newFolder("base")
 
-    SpaceKernelSpec.install(baseDir, interpreter)
+    SpaceKernelSpec.install(baseDir)
 
     assertTrue(File(baseDir, "usr/share/jupyter/kernels/python3/kernel.json").isFile)
-  }
-
-  /** nativeLibraryDir moves on every app update, so a stale argv must be replaced. */
-  @Test
-  fun install_rewritesAStaleInterpreterPath() = runTest {
-    val baseDir = tempFolder.newFolder("base")
-    SpaceKernelSpec.install(baseDir, File("/data/app/old==/lib/arm64/libpython3.so"))
-
-    SpaceKernelSpec.install(baseDir, interpreter)
-
-    val written = kernelJson(baseDir).readText()
-    assertTrue(written, written.contains(interpreter.path))
-    assertEquals(false, written.contains("/data/app/old=="))
   }
 
   /**
@@ -92,7 +76,7 @@ class SpaceKernelSpecTest {
   fun install_asksTheKernelToReportEveryShellMessageItDispatches() = runTest {
     val baseDir = tempFolder.newFolder("base")
 
-    SpaceKernelSpec.install(baseDir, interpreter)
+    SpaceKernelSpec.install(baseDir)
 
     val argv = argv(baseDir)
     assertTrue(argv.toString(), argv.contains("--log-level=DEBUG"))

@@ -23,7 +23,7 @@ data class SpaceProcessRun(val command: String, val exitCode: Int, val output: S
  * second Space's process gets that Space's `HOME`, `TMPDIR` and user base rather than base's.
  *
  * ```
- * val run = runInSpace(spaceShellIn(baseDir).path, "-c", "python3 --version")
+ * val run = runInSpace(SPACE_SHELL, "-c", "python3 --version")
  * ```
  */
 fun runInSpace(

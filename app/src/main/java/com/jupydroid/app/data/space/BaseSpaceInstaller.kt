@@ -1,6 +1,5 @@
 package com.jupydroid.app.data.space
 
-import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,24 +21,21 @@ data class InstalledSpace(
  * Winlator's `.rfs_version`: re-running is free, and bumping [bundledVersion] in a
  * release re-extracts over the old tree.
  *
+ * Under proot the image runs as built (ADR-0073), so an install is an extract, a sweep of
+ * the links an older install made into `nativeLibraryDir`, and the kernelspec. Nothing a
+ * Space runs may point outside it: proot translates every path it is handed into the
+ * root, where a `nativeLibraryDir` target does not exist.
+ *
  * ```
  * BaseSpaceInstaller(
  *   archive = { assets.open("spaces/base/rootfs-arm64-v8a.tzst") },
  *   baseDir = File(filesDir, "spaces/base"),
- *   nativeLoader = File(applicationInfo.nativeLibraryDir, "libloader.so"),
- *   nativeInterpreter = File(applicationInfo.nativeLibraryDir, "libpython3.so"),
- *   nativeBusyBox = File(applicationInfo.nativeLibraryDir, "libbusybox.so"),
  * ).installIfNeeded()
  * ```
  */
 class BaseSpaceInstaller(
   private val archive: ArchiveSource,
   private val baseDir: File,
-  private val nativeLoader: File,
-  private val nativeInterpreter: File,
-  private val nativeBusyBox: File,
-  private val nativeTrampoline: File,
-  private val loaderLinkPath: String = SpaceAbi.ARM64.loaderLinkPath,
   private val bundledVersion: Int = BUNDLED_ROOTFS_VERSION,
   private val extractor: TarZstdExtractor = TarZstdExtractor(),
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -47,60 +43,34 @@ class BaseSpaceInstaller(
   suspend fun installIfNeeded(): InstalledSpace {
     val alreadyInstalled = installedVersion() == bundledVersion
     val written = if (alreadyInstalled) 0 else extractor.extract(archive, baseDir)
-
-    // Always, not just on a fresh extract: nativeLibraryDir changes on every app
-    // update while the extracted Space survives, so a stale link would leave exec
-    // failing with ENOENT until the user cleared the app's data.
-    linkLoaderToNativeLibrary()
-    linkInterpreterToNativeLibrary()
-    BusyBoxApplets(baseDir, nativeBusyBox, ioDispatcher).relink()
-    ConsoleScripts(baseDir, nativeTrampoline, ioDispatcher).relink()
-    SpaceKernelSpec.install(baseDir, nativeInterpreter, ioDispatcher)
-
+    sweepStaleScriptLinks()
+    SpaceKernelSpec.install(baseDir, ioDispatcher)
     if (!alreadyInstalled) stampVersion()
     return InstalledSpace(baseDir, bundledVersion, !alreadyInstalled, written)
   }
 
   /**
-   * The archive ships `/lib64/<loader>` pointing inside the rootfs, but a rootfs file
-   * cannot be execve'd at targetSdk 36. python3's PT_INTERP is baked with this stable
-   * `/data/data/<pkg>` path, so redirect it at the native library, which can be
-   * (ADR-0002).
-   */
-  private suspend fun linkLoaderToNativeLibrary() {
-    require(nativeLoader.exists()) { "loader missing at '$nativeLoader'; is useLegacyPackaging on?" }
-    linkToNativeLibrary(loaderLinkPath, nativeLoader)
-  }
-
-  /**
-   * Gives the Space's *shell* a `python3` it can actually run.
+   * The console-script links an install from before proot left: `usr/local/bin` held one link
+   * per script onto `bin/shebang-exec`, and neither name exists in the archive, so no re-extract
+   * replaces them. [SHEBANG_EXEC_PATH] goes first, which is what makes the script links
+   * dangling. Run on every launch, not only a re-extract: it is idempotent, and the walk is a
+   * single directory.
    *
-   * The kernel never needed this - it is exec'd from [nativeInterpreter] directly
-   * ([SpaceRuntime]) - but a terminal resolves the name through `PATH` and lands on the rootfs
-   * copy, which is refused twice over: it is an ELF under `filesDir`, and [TarZstdExtractor]
-   * deliberately writes no executable bit. Both refusals are the *file's*, so a symlink settles
-   * them: `execve` walks the link and runs its checks on the target, exactly as `bin/busybox`
-   * relies on ([BusyBoxApplets]).
-   *
-   * **[INTERPRETER_PATH] rather than `bin/python3`, and `PATH` order is why.** [SpaceRuntime]
-   * searches `usr/local/bin:usr/bin:bin`, so a new name in `bin/` is shadowed by the
-   * `usr/bin/python3` the image already ships and is never reached. Replacing the one real ELF
-   * instead leaves that link - and `usr/bin/python` above it - pointing *relatively* at a name
-   * that now resolves, so all three work and only this one can ever go stale.
+   * A user's own entry survives: a regular file is not a link, and a link that still resolves
+   * inside the Space is not stale.
    */
-  private suspend fun linkInterpreterToNativeLibrary() {
-    require(nativeInterpreter.exists()) {
-      "interpreter missing at '$nativeInterpreter'; is useLegacyPackaging on?"
+  private suspend fun sweepStaleScriptLinks() = withContext(ioDispatcher) {
+    File(baseDir, SHEBANG_EXEC_PATH).delete()
+    File(baseDir, CONSOLE_SCRIPT_DIR).listFiles().orEmpty().forEach { entry ->
+      if (entry.isUnresolvedOrExternalLink()) entry.delete()
     }
-    linkToNativeLibrary(INTERPRETER_PATH, nativeInterpreter)
   }
 
-  /** Replaces whatever the archive left at [relativePath] with a link into `nativeLibraryDir`. */
-  private suspend fun linkToNativeLibrary(relativePath: String, nativeLibrary: File) = withContext(ioDispatcher) {
-    val link = File(baseDir, relativePath)
-    link.parentFile?.mkdirs()
-    link.delete()
-    Files.createSymbolicLink(link.toPath(), nativeLibrary.toPath())
+  /** A symlink whose target is gone or points out of the Space - the two shapes the surgery left. */
+  private fun File.isUnresolvedOrExternalLink(): Boolean {
+    if (!Files.isSymbolicLink(toPath())) return false
+    val target = canonicalFile
+    return !target.exists() || !target.path.startsWith(baseDir.canonicalPath + File.separator)
   }
 
   private suspend fun installedVersion(): Int? = withContext(ioDispatcher) {
@@ -116,17 +86,13 @@ class BaseSpaceInstaller(
   private companion object {
     const val STAMP_PATH = ".jupydroid/rootfs-version"
 
-    /**
-     * The image's one real interpreter ELF, which `usr/bin/python3` and `usr/bin/python` both
-     * point at. **It must name the same file `tools/rootfs/stage-app-artifacts.sh` stages as
-     * `libpython3.so`** - the link is only right because the two are the same bytes.
-     *
-     * The version comes from [BUNDLED_PYTHON_VERSION] rather than being spelled again: it is the
-     * same fact a Space's own `pythonVersion` records, and one of the two would go stale.
-     */
-    const val INTERPRETER_PATH = "usr/bin/python$BUNDLED_PYTHON_VERSION"
+    /** `usr/local/bin/<script>` -> `bin/shebang-exec`: the trampoline only the surgery made. */
+    const val SHEBANG_EXEC_PATH = "bin/shebang-exec"
+
+    /** Empty in the image, so every link here is one the surgery or the user made. */
+    const val CONSOLE_SCRIPT_DIR = "usr/local/bin"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
-    const val BUNDLED_ROOTFS_VERSION = 9
+    const val BUNDLED_ROOTFS_VERSION = 10
   }
 }

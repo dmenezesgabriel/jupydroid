@@ -1,11 +1,11 @@
 package com.jupydroid.app.data.space
 
 import android.os.Build
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -15,15 +15,12 @@ import java.io.File
 import java.nio.file.Files
 
 /**
- * **The measurements the trampoline's design is written from, taken before a line of C.**
+ * **The console-script facts a Space under proot rests on, on the device.**
  *
- * `usr/bin/pip` is a `#!/usr/bin/python3` script under `filesDir`, and
- * [PythonInterpreterDeviceTest.aScriptUnderFilesDirIsRefusedEvenWithItsExecutableBitSet] already
- * settled that SELinux refuses to `execve` it whatever its mode. The design is a native trampoline
- * reached by name through `usr/local/bin`, which reads the shebang and execs the interpreter - the
- * fourth use of the pattern ADR-0002 already runs three times. These
- * assertions pin the three facts that design turns on, so a platform change that breaks one goes
- * red here.
+ * The scripts are the image's own `usr/bin` `#!` files, run through their shebang line
+ * by proot - the question [PythonInterpreterDeviceTest] answers for a probe file and this
+ * answers for the shipped ones. It also pins the sweep: `usr/local/bin`, where the pre-proot
+ * install linked every script onto `bin/shebang-exec`, holds none of it afterwards.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
@@ -34,7 +31,6 @@ import java.nio.file.Files
 class ConsoleScriptProbeTest {
   private val context = InstrumentationRegistry.getInstrumentation().targetContext
   private val baseDir by lazy { baseSpaceDir(context) }
-  private val shell by lazy { spaceShellIn(baseDir).path }
 
   @Before
   fun onlyWhereASpaceCanRun() {
@@ -46,99 +42,48 @@ class ConsoleScriptProbeTest {
   }
 
   /**
-   * **The load-bearing one.** If a console script does not run when handed straight to the
-   * interpreter, the trampoline cannot work and the whole design is wrong. `-m pip` proves pip is
-   * importable; this proves the *script file* is too, which is what the trampoline will exec.
+   * The script file itself, by its in-root path - not a `PATH` lookup, so what execs is exactly
+   * the `#!/usr/bin/python3` file the image ships.
    */
   @Test
-  fun theInterpreterRunsAConsoleScriptHandedToItDirectly() {
-    val pip = File(baseDir, "usr/bin/pip").path
-    val run = runInSpace(shell, "-c", "python3 '$pip' --version")
+  fun aShippedConsoleScriptExecsThroughItsOwnShebangLine() {
+    val run = runInSpace(SPACE_SHELL, "-c", "/usr/bin/pip --version")
 
-    assertEquals("python3 $pip --version exited ${run.exitCode}: ${run.output.trim()}", 0, run.exitCode)
+    assertEquals("/usr/bin/pip --version exited ${run.exitCode}: ${run.output.trim()}", 0, run.exitCode)
     assertTrue("expected a pip version, got: ${run.output.trim()}", run.output.trim().startsWith("pip "))
   }
 
   /**
-   * The trampoline lives two symlinks deep: `usr/local/bin/<name>` -> `bin/<trampoline>` ->
-   * `nativeLibraryDir/lib….so`. `bin/busybox`'s own chain is one hop shallower, so this is the one
-   * that has never been exercised - a relative link out of `usr/local/bin` reaching the native
-   * library through `bin/`.
+   * **The installer's sweep, on the device.** `bin/shebang-exec` and the `usr/local/bin` links
+   * onto it are the only surgery the archive cannot restore - they are not in it - so if the
+   * sweep ever stops running, this is the assertion that goes red.
    */
   @Test
-  fun aRelativeTwoLevelSymlinkOutOfUsrLocalBinExecsThroughTheNativeLibrary() {
-    val localBin = File(baseDir, "usr/local/bin").apply { mkdirs() }
-    // Point at a real applet name so busybox dispatches once the chain resolves. The relative
-    // target is computed the way `BusyBoxApplets` computes its own - `usr/local/bin` is one level
-    // deeper than `usr/bin`, so this is `../../../bin/busybox`, and getting it wrong is exactly
-    // what this test is here to catch before the installer hardcodes it.
-    val busyboxRel = localBin.toPath().relativize(File(baseDir, "bin/busybox").toPath()).toString()
-    val link = File(localBin, "true").toPath()
-    Files.deleteIfExists(link)
-    Files.createSymbolicLink(link, File(busyboxRel).toPath())
-    try {
-      val run = runInSpace(shell, "-c", "'$link' ; echo rc=$?")
-      assertTrue("a two-level relative symlink did not exec: ${run.output.trim()}", "rc=0" in run.output)
-    } finally {
-      Files.deleteIfExists(link)
-    }
-  }
+  fun installLeavesNothingOfThePreProotSurgeryInTheSpace() {
+    assertFalse(
+      "bin/shebang-exec survived the sweep",
+      File(baseDir, "bin/shebang-exec").exists(),
+    )
 
-  /**
-   * `usr/local/bin` is empty in the image and first on `PATH` (`SpaceRuntime.kt:42`), which is what
-   * lets the trampoline links shadow the real scripts without touching them. Both halves, on the
-   * device rather than in the tarball.
-   */
-  @Test
-  fun usrLocalBinHoldsOnlyTrampolineLinksAndIsFirstOnThePath() {
-    val localBin = File(baseDir, "usr/local/bin")
-    // The image ships this directory empty; the *installed*
-    // space fills it, by design - `ConsoleScripts.relink` links every `#!` script in `usr/bin`
-    // here, each a relative link to `bin/shebang-exec`. What this asserts is therefore
-    // the installed truth the emptiness probe stood in for: every entry is that link, so nothing
-    // shadows a real binary and nothing else was written past the trampoline.
-    val entries = localBin.list()?.toList().orEmpty().filterNot { it == "true" }
-    val notTrampoline = entries.filterNot { name ->
-      val link = File(localBin, name).toPath()
-      Files.isSymbolicLink(link) && Files.readSymbolicLink(link).toString() == "../../../bin/shebang-exec"
+    val stale = File(baseDir, "usr/local/bin").listFiles().orEmpty().filter { entry ->
+      Files.isSymbolicLink(entry.toPath()) &&
+        (!entry.canonicalFile.exists() || !entry.canonicalPath.startsWith(baseDir.canonicalPath + "/"))
     }
-    assertEquals("usr/local/bin holds an entry that is not the trampoline link", emptyList<String>(), notTrampoline)
-
-    val path = runInSpace(shell, "-c", "echo \$PATH").output.trim()
-    // `pkgs/bin` leads, so user installs come first and the shadowing claim is the *order*:
-    // usr/local/bin ahead of the usr/bin scripts it shadows.
-    val entriesOrder = path.split(":")
-    assertTrue(
-      "usr/local/bin does not precede usr/bin on PATH: $path",
-      entriesOrder.indexOf(File(baseDir, "usr/local/bin").path) in 0 until
-        entriesOrder.indexOf(File(baseDir, "usr/bin").path),
+    assertEquals(
+      "usr/local/bin holds a link the sweep should have removed",
+      emptyList<String>(),
+      stale.map { it.name },
     )
   }
 
   /**
-   * What the shell hands a `usr/local/bin` entry as `argv[0]` when it is reached by name through
-   * `PATH` - the string the trampoline will `basename()`. Measured by shadowing `python3` with a
-   * link and asking the interpreter what it sees: `basename` has to be right for both a bare name
-   * and a full path, and this says which one busybox `ash` actually passes.
+   * `pkgs/bin` first, so a user's console script shadows the shipped one - the precedence
+   * `~/.local/bin` takes over `/usr/bin` on a desktop, named inside the Space's root.
    */
   @Test
-  fun aPathResolvedNameArrivesAsArgv0() {
-    val localBin = File(baseDir, "usr/local/bin").apply { mkdirs() }
-    val interpRel = localBin.toPath().relativize(File(baseDir, "usr/bin/python3.12").toPath()).toString()
-    val link = File(localBin, "python3").toPath()
-    Files.deleteIfExists(link)
-    Files.createSymbolicLink(link, File(interpRel).toPath())
-    try {
-      val run = runInSpace(shell, "-c", "python3 -c 'import sys; print(sys.orig_argv[0])'")
-      val argv0 = run.output.trim()
-      Log.i(SPACE_LOG_TAG, "argv[0] for a PATH-resolved name: '$argv0'")
-      assertEquals("python3 did not run through the shadow link: $argv0", 0, run.exitCode)
-      assertTrue(
-        "argv[0] '$argv0' does not basename to the command name",
-        File(argv0).name == "python3",
-      )
-    } finally {
-      Files.deleteIfExists(link)
-    }
+  fun theSpacesPathPutsTheUsersScriptsFirst() {
+    val path = runInSpace(SPACE_SHELL, "-c", "echo \$PATH").output.trim()
+
+    assertEquals("/pkgs/bin:/usr/local/bin:/usr/bin:/bin", path)
   }
 }

@@ -12,10 +12,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * **`pip` runs by name in the Space's shell**, which it could not before the trampoline shipped:
- * `pip --version` answered *Permission denied*, rc 126, *even with the interpreter linked* - the
- * exec of the script file, refused by
- * SELinux whatever its mode.
+ * **`pip` runs by name in the Space's shell** - under proot the image's own `#!` script
+ * executes as it was built, no trampoline needed (ADR-0073).
  *
  * Runs the commands **in the app process** through [runInSpace], the only place the seccomp filter
  * applies - a `run-as` shell would answer a question nobody asked.
@@ -29,7 +27,6 @@ import org.junit.runner.RunWith
 class ConsoleScriptDeviceTest {
   private val context = InstrumentationRegistry.getInstrumentation().targetContext
   private val baseDir by lazy { baseSpaceDir(context) }
-  private val shell by lazy { spaceShellIn(baseDir).path }
 
   @Before
   fun onlyWhereASpaceCanRun() {
@@ -42,7 +39,7 @@ class ConsoleScriptDeviceTest {
 
   @Test
   fun pipRunsByNameAndReportsItsVersion() {
-    val run = runInSpace(shell, "-c", "pip --version")
+    val run = runInSpace(SPACE_SHELL, "-c", "pip --version")
 
     assertEquals("pip --version exited ${run.exitCode}: ${run.output.trim()}", 0, run.exitCode)
     assertTrue("expected a pip version, got: ${run.output.trim()}", run.output.trim().startsWith("pip "))
@@ -51,7 +48,7 @@ class ConsoleScriptDeviceTest {
   /** A second script, from a different package, so the walk is not proven by `pip` alone. */
   @Test
   fun jupyterRunsByNameToo() {
-    val run = runInSpace(shell, "-c", "jupyter --version")
+    val run = runInSpace(SPACE_SHELL, "-c", "jupyter --version")
 
     assertEquals("jupyter --version exited ${run.exitCode}: ${run.output.trim()}", 0, run.exitCode)
     assertTrue("expected jupyter's version block, got: ${run.output.trim()}", "jupyter_core" in run.output)
@@ -64,7 +61,7 @@ class ConsoleScriptDeviceTest {
    */
   @Test
   fun aConsoleScriptRunsFromANonInteractiveShell() {
-    val run = runInSpace(shell, "-c", "sh -c 'pip --version'")
+    val run = runInSpace(SPACE_SHELL, "-c", "sh -c 'pip --version'")
 
     assertEquals("nested sh -c 'pip --version' exited ${run.exitCode}: ${run.output.trim()}", 0, run.exitCode)
     assertTrue(run.output.trim().startsWith("pip "))
@@ -73,7 +70,7 @@ class ConsoleScriptDeviceTest {
   /** No syscall was refused while a script ran - a refusal the SIGSYS handler swallowed would hide. */
   @Test
   fun nothingWasRefusedWhileAConsoleScriptRan() {
-    runInSpace(shell, "-c", "pip --version")
+    runInSpace(SPACE_SHELL, "-c", "pip --version")
 
     assertEquals(
       "seccomp refused a syscall other than mbind while pip ran",

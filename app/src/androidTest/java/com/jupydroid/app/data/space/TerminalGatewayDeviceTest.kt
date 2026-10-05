@@ -106,10 +106,10 @@ class TerminalGatewayDeviceTest {
   /**
    * **The shell starts in the workspace**, which is the cwd repair seen from the far end.
    *
-   * `JupyterServerWorkingDirTest` asserts the `ProcessBuilder` and
-   * `TerminalServiceTest.theServerProcessRunsInTheWorkspaceItIsRootedAt` asserts the server
-   * process; this is the only one that asks the *shell*, which is the thing a user actually gets.
-   * It read `/` before that commit.
+   * `JupyterServerWorkingDirTest` asserts the `-w` argument; this is the only test that asks the
+   * *shell*, which is the thing a user actually gets - and the only level where the question is
+   * still answerable: proot virtualises a tracee's cwd inside the root, so the host's `/proc`
+   * reports the supervisor's `/` and cannot say where the server landed.
    *
    * **`cwd=$(pwd)` rather than `pwd`, and for a sharper reason than the echo above.** busybox
    * ash's default `PS1` is `\w \$`, so the workspace path is already in the **prompt** - and the
@@ -121,11 +121,9 @@ class TerminalGatewayDeviceTest {
   @Test
   fun theShellStartsInTheWorkspaceRatherThanTheFilesystemRoot(): Unit = runBlocking {
     val session = openTerminal()
-    // `canonicalPath`, because `getcwd(3)` resolves symlinks and Android's `filesDir` is under
-    // `/data/user/0/<pkg>`, which is a link to `/data/data/<pkg>`. A shell started in the workspace
-    // therefore prints the second, and asserting the first fails on the link rather than the cwd -
-    // measured, on the first run of this test. [TerminalServiceTest] canonicalises for this reason.
-    val workspace = notebookWorkspaceIn(baseSpaceDir(context)).canonicalPath
+    // The in-root path, because under proot `getcwd(3)` inside the tracee resolves within the
+    // Space's own `/` - the workspace is `/home/jupydroid` to anything that runs in it.
+    val workspace = "/home/jupydroid"
 
     val printed = outputAfterTyping(session, typed = "echo cwd=\$(pwd)\n", expected = "cwd=$workspace")
 

@@ -3,7 +3,6 @@ package com.jupydroid.app.data.space
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * The shell terminado spawns is a path this app owns, not the result of a `PATH` search.
@@ -19,18 +18,12 @@ import java.io.File
  * gate's to prove.
  */
 class JupyterServerTerminalShellTest {
-  private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")
-  private val args = jupyterServerArgs(
-    rootDir = notebookWorkspaceIn(baseDir),
-    token = "t",
-    shell = spaceShellIn(baseDir),
-  )
+  private val args = jupyterServerArgs(rootDir = "/home/jupydroid", token = "t")
 
   @Test
   fun theShellIsPinnedRatherThanSearchedFor() {
     assertEquals(
-      """--ServerApp.terminado_settings={"shell_command": """ +
-        """["/data/data/com.jupydroid.app/files/spaces/base/bin/sh"]}""",
+      """--ServerApp.terminado_settings={"shell_command": ["/bin/sh"]}""",
       args.single { it.startsWith("--ServerApp.terminado_settings=") },
     )
   }
@@ -47,21 +40,9 @@ class JupyterServerTerminalShellTest {
     assertTrue("expected a JSON list for shell_command, got $value", """"shell_command": [""" in value)
   }
 
-  /**
-   * The shell of the *Space*, not of the workspace. `rootDir` is `<base>/home/jupydroid` and the
-   * shell is `<base>/bin/sh`; passing one where the other belongs is the obvious mistake and it
-   * would produce an argument that looks entirely plausible.
-   */
-  @Test
-  fun theShellIsNotResolvedAgainstTheServersRootDirectory() {
-    val value = args.single { it.startsWith("--ServerApp.terminado_settings=") }
-
-    assertTrue("the pinned shell was resolved against root_dir: $value", "home/jupydroid" !in value)
-  }
-
   @Test
   fun theOtherArgumentsAreStillThere() {
     assertTrue(args.contains("--IdentityProvider.token=t"))
-    assertTrue(args.contains("--ServerApp.root_dir=/data/data/com.jupydroid.app/files/spaces/base/home/jupydroid"))
+    assertTrue(args.contains("--ServerApp.root_dir=/home/jupydroid"))
   }
 }

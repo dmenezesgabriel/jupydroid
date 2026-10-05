@@ -3,20 +3,26 @@ package com.jupydroid.app.data.space
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
-import java.io.File
+import org.junit.rules.TemporaryFolder
 
 /**
- * Runs against the host's `/bin/sh` standing in for the Space interpreter: this class
- * exists to launch a process and collect what it wrote, so faking the process would
- * leave nothing under test. [SpaceRuntime] only ever treats the interpreter as
- * `argv[0]`, which makes the substitution honest rather than a trick.
+ * Runs against the host's `/bin/sh` standing in for the Space interpreter, under [FakeProotScript]:
+ * this class exists to launch a process and collect what it wrote, so faking the process would
+ * leave nothing under test. [SpaceRuntime] only ever treats the interpreter as the program proot
+ * runs, which makes the substitution honest rather than a trick.
  */
 class PythonRunnerTest {
-  private val runtime = SpaceRuntime(
-    spaceDir = File("/nonexistent/spaces/base"),
-    nativeInterpreter = File("/bin/sh"),
-  )
+  @get:Rule val tempFolder = TemporaryFolder()
+
+  private val runtime by lazy {
+    val space = tempFolder.newFolder("base").apply {
+      FakeProotScript.program(this, SPACE_INTERPRETER, "exec /bin/sh \"\$@\"")
+      SpaceDirs(this).ensure()
+    }
+    SpaceRuntime(spaceDir = space, nativeLibraryDir = FakeProotScript.installIn(tempFolder.newFolder("native")))
+  }
 
   @Test
   fun run_collectsOutputAndExitCode() = runTest {
@@ -38,8 +44,8 @@ class PythonRunnerTest {
   /** The Space environment must reach the process, not just the command line. */
   @Test
   fun run_launchesTheProcessWithTheSpaceEnvironment() = runTest {
-    val outcome = PythonRunner(runtime).run("-c", "echo \$PYTHONHOME")
+    val outcome = PythonRunner(runtime).run("-c", "echo \$HOME")
 
-    assertEquals("/nonexistent/spaces/base/usr", outcome.output)
+    assertEquals("/home/jupydroid", outcome.output)
   }
 }

@@ -52,12 +52,12 @@ class PipInstallDeviceTest {
   @Test
   fun anUnflaggedPipInstallLandsInTheSpacesUserBase() {
     runInSpace(
-      spaceShellIn(baseDir).path,
+      SPACE_SHELL,
       "-c",
-      "pip3 uninstall -y $PROBE_PACKAGE >/dev/null 2>&1; rm -rf '$baseDir/pkgs'",
+      "pip3 uninstall -y $PROBE_PACKAGE >/dev/null 2>&1; rm -rf /pkgs",
     )
 
-    val install = runInSpace(spaceShellIn(baseDir).path, "-c", "pip3 install $PROBE_PACKAGE")
+    val install = runInSpace(SPACE_SHELL, "-c", "pip3 install $PROBE_PACKAGE")
     try {
       assertEquals("unflagged pip install failed: ${install.output.take(OUTPUT_EXCERPT)}", 0, install.exitCode)
 
@@ -70,27 +70,27 @@ class PipInstallDeviceTest {
       // maxdepth 1: jedi bundles typeshed *stubs* for tabulate deeper in the tree, and those
       // are not an install.
       val system = runInSpace(
-        spaceShellIn(baseDir).path,
+        SPACE_SHELL,
         "-c",
-        "find '$baseDir/usr/lib/python3.12/site-packages' -maxdepth 1 -name '$PROBE_PACKAGE*'",
+        "find /usr/lib/python3.12/site-packages -maxdepth 1 -name '$PROBE_PACKAGE*'",
       )
       assertEquals("the system site-packages picked up the install", "", system.output.trim())
 
       val imported = runInSpace(
-        spaceShellIn(baseDir).path,
+        SPACE_SHELL,
         "-c",
         "python3 -c 'import $PROBE_PACKAGE; print($PROBE_PACKAGE.__file__)'",
       )
       assertTrue(
         "import resolved outside the user base: ${imported.output.trim()}",
-        imported.output.trim().startsWith("$baseDir/pkgs/"),
+        imported.output.trim().startsWith("/pkgs/"),
       )
 
       // pip's own warning names the gap this closes: "pkgs/bin ... is not on PATH".
-      val script = runInSpace(spaceShellIn(baseDir).path, "-c", "command -v $PROBE_PACKAGE")
-      assertEquals("$baseDir/pkgs/bin/$PROBE_PACKAGE", script.output.trim())
+      val script = runInSpace(SPACE_SHELL, "-c", "command -v $PROBE_PACKAGE")
+      assertEquals("/pkgs/bin/$PROBE_PACKAGE", script.output.trim())
     } finally {
-      runInSpace(spaceShellIn(baseDir).path, "-c", "pip3 uninstall -y $PROBE_PACKAGE >/dev/null 2>&1 || true")
+      runInSpace(SPACE_SHELL, "-c", "pip3 uninstall -y $PROBE_PACKAGE >/dev/null 2>&1 || true")
     }
   }
 

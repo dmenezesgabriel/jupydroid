@@ -2,7 +2,6 @@ package com.jupydroid.app.data.space
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * The server is allowed to stop itself, so an app that sits idle stops leaking
@@ -15,11 +14,9 @@ import java.io.File
  * a tablet gate's to prove.
  */
 class JupyterServerLifecycleArgsTest {
-  private val baseDir = File("/data/data/com.jupydroid.app/files/spaces/base")
-
   @Test
   fun theServerStopsItselfAfterAnIdleWithNoKernels() {
-    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "t", shell = spaceShellIn(baseDir))
+    val args = jupyterServerArgs(rootDir = "/home/jupydroid", token = "t")
 
     assertTrue(
       "expected shutdown_no_activity_timeout, got $args",
@@ -29,7 +26,7 @@ class JupyterServerLifecycleArgsTest {
 
   @Test
   fun idleKernelsAreCulledBeforeTheServerCanStop() {
-    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "t", shell = spaceShellIn(baseDir))
+    val args = jupyterServerArgs(rootDir = "/home/jupydroid", token = "t")
 
     assertTrue(
       "expected cull_idle_timeout, got $args",
@@ -44,7 +41,7 @@ class JupyterServerLifecycleArgsTest {
    */
   @Test
   fun cullingRunsOnAShortEnoughIntervalToBeMeasured() {
-    val args = jupyterServerArgs(rootDir = notebookWorkspaceIn(baseDir), token = "t", shell = spaceShellIn(baseDir))
+    val args = jupyterServerArgs(rootDir = "/home/jupydroid", token = "t")
 
     assertTrue(
       "expected cull_interval, got $args",
