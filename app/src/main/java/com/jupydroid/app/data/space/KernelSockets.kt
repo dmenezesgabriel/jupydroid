@@ -253,8 +253,17 @@ class SessionSocket(
   }
 
   private companion object {
-    /** JupyterLab's `DEFAULT_KERNEL_INFO_TIMEOUT`, which is 3000ms. */
-    val KERNEL_INFO_TIMEOUT = 3.seconds
+    /**
+     * The greeting's failsafe is the reference's, but its number is a workstation's.
+     * JupyterLab's `DEFAULT_KERNEL_INFO_TIMEOUT` is 3000ms and a connection option for
+     * exactly this reason (`packages/services/src/kernel/default.ts:34`,
+     * `packages/services/src/kernel/kernel.ts:698`): a kernel exec'd through proot is
+     * not desktop-localhost, and a cold start here answers in about 3 s - so the
+     * reference default declared a still-booting kernel dead and the restart meant to
+     * save the cell discarded it mid-boot
+     * (KernelGreetingRecoveryTest.aKernelStillBootingAnswersTheGreeting).
+     */
+    val KERNEL_INFO_TIMEOUT = 15.seconds
     const val KERNEL_INFO_REPLY = "kernel_info_reply"
   }
 }

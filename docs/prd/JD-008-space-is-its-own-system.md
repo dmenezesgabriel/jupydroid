@@ -128,7 +128,7 @@ Draft past T1; each one is split here before coding if it is too big.
 - [x] T3a — Base's server, kernels, terminals and pylsp run under proot with base's rootfs as `/`: the installer stops relinking (rootfs version bump, stale console-script links swept), the extractor keeps exec bits, the kernelspec is `/usr/bin/python3 -m jupydroid_kernel`, the server gets `--allow-root`, and the DNS shim and CA variables are re-measured under proot. A non-base Space's root is its own directory, so it cannot run until T4 gives it an image
 - [x] T3b — Retire the surgery's build side: `libpython3.so`, `libloader.so`, `libbusybox.so`, `libshebang.so` out of `jniLibs` and `stage-app-artifacts.sh`, the `PT_INTERP` patch, `shebang_exec.c` and its gate, and the DNS shim if T3a measured it unneeded; ADR-0002/0011/0072 amended
 - [x] T4 — Creating a Space copies the image into it, with progress on the home
-- [ ] T5 — `apk add` in a Space's terminal installs into that Space alone; the demo runs on the tablet
+- [x] T5 — `apk add` in a Space's terminal installs into that Space alone; the demo runs on the tablet
 
 ## Out of scope
 

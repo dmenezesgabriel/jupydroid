@@ -1,10 +1,14 @@
 package com.jupydroid.app.data.space
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlin.time.Duration
 
 /**
  * A [KernelSocketOpener] that answers whatever is sent to it with scripted frames.
@@ -44,6 +48,15 @@ class ScriptedKernelSocketOpener(
    * ```
    */
   private val answerKernelInfo: (ask: Int) -> Boolean = { true },
+  /**
+   * Delivers each `kernel_info_reply` this long after the ask - a kernel that is still
+   * booting, not a dead channel. A proot cold start answers in about 3 s
+   * ([KernelGreetingRecoveryTest.aKernelStillBootingAnswersTheGreeting]), which the
+   * synchronous default cannot express. Requires [replyScope].
+   */
+  private val kernelInfoReplyAfter: Duration = Duration.ZERO,
+  /** Where a delayed reply is posted from - the test's `backgroundScope`, run on its clock. */
+  private val replyScope: CoroutineScope? = null,
 ) : KernelSocketOpener {
   var openedKernelId: String? = null
     private set
@@ -127,7 +140,16 @@ class ScriptedKernelSocketOpener(
       if (msgType == "kernel_info_request") {
         kernelInfoAsks++
         if (answerKernelInfo(kernelInfoAsks)) {
-          emit(JupyterSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId)))
+          val frame = JupyterSocketEvent.Received(KernelFrames.kernelInfoReply(requestMsgId))
+          if (kernelInfoReplyAfter > Duration.ZERO) {
+            requireNotNull(replyScope) { "kernelInfoReplyAfter needs a replyScope" }
+              .launch {
+                delay(kernelInfoReplyAfter)
+                emit(frame)
+              }
+          } else {
+            emit(frame)
+          }
         }
         return
       }

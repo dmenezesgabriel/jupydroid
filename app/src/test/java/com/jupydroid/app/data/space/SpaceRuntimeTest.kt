@@ -153,7 +153,10 @@ class SpaceRuntimeTest {
   /** Android's own PATH would leak toybox into the Space; the image supplies its own. */
   @Test
   fun environment_confinesPathToTheImage() {
-    assertEquals("/pkgs/bin:/usr/local/bin:/usr/bin:/bin", runtime.environment()["PATH"])
+    assertEquals(
+      "/pkgs/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      runtime.environment()["PATH"],
+    )
   }
 
   /**

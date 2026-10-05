@@ -26,8 +26,9 @@ are also the only things execve'd from `nativeLibraryDir`: it moves on every app
 inside a Space may carry a path into it, because proot translates that path into the root, where it
 does not exist.
 
-`SpaceRuntime` sets `PATH` to `pkgs/bin:usr/local/bin:usr/bin:bin` under the Space root, so a
-console script the user installs into `pkgs/bin` shadows the image's own names.
+`SpaceRuntime` sets `PATH` to `pkgs/bin` followed by the image's own `etc/profile` list under the
+Space root, so a console script the user installs into `pkgs/bin` shadows the image's own names and
+`/sbin/apk` resolves by name - the terminal shell is non-login, so this env is the only PATH it sees.
 
 The retired mechanism — four patched ELFs relinked into `nativeLibraryDir` on every launch, and a
 static `shebang-exec` trampoline for `#!` scripts — is recorded in

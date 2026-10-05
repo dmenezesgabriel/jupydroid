@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
@@ -87,6 +88,40 @@ class KernelGreetingRecoveryTest {
 
     assertTrue("the cell did not finish: $events", events.contains(KernelEvent.Idle))
     assertEquals(listOf(session.kernelId), lifecycle.restarted)
+  }
+
+  /**
+   * The eighth sighting, and the one the reference's default cannot tell from a dead
+   * channel: the tablet's server log shows a cold kernel answering the greeting 3.07 s
+   * after the ask, so the greeting window - JupyterLab's workstation-sized 3 s - closed
+   * first. Recovery then did the harmful thing: it restarted a process that was mid-reply,
+   * the replacement booted just as slowly, and the first cell of a cold start reported
+   * `KernelChannelException` as its output.
+   *
+   * A slow kernel is not a dead channel, and the window - not the mechanism - is what is
+   * sized for a workstation. The reply arriving after the ask but before the deadline is
+   * the whole case: the cell must run, and the kernel must not be replaced.
+   */
+  @OptIn(ExperimentalCoroutinesApi::class)
+  @Test
+  fun aKernelStillBootingAnswersTheGreeting() = runTest {
+    val lifecycle = FakeKernelLifecycle()
+    val gateway = RealKernelGateway(
+      KernelSockets(
+        ScriptedKernelSocketOpener(
+          reply = { KernelFrames.successfulExecution(it) },
+          kernelInfoReplyAfter = 3.5.seconds,
+          replyScope = backgroundScope,
+        ),
+        lifecycle,
+      ),
+    )
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    val events = gateway.execute(session, "cell-1", "2 + 2").toList()
+
+    assertTrue("the cell did not finish: $events", events.contains(KernelEvent.Idle))
+    assertEquals("a still-booting kernel was replaced", emptyList<String>(), lifecycle.restarted)
   }
 
   /**

@@ -62,8 +62,18 @@ class SpaceRuntime(
     "PIP_ONLY_BINARY" to ":all:",
     "PIP_BREAK_SYSTEM_PACKAGES" to "1",
     // pkgs/bin first, so a user's console script shadows the shipped one - the precedence
-    // ~/.local/bin takes over /usr/bin on a desktop.
-    "PATH" to listOf(dirs.inRoot(File(dirs.pkgs, "bin")), "/usr/local/bin", "/usr/bin", "/bin").joinToString(":"),
+    // ~/.local/bin takes over /usr/bin on a desktop. The rest is the image's own login PATH
+    // (etc/profile in the shipped rootfs) - a Space's shell is never login, so this is the
+    // only PATH a terminal sees, and /sbin/apk must resolve through it.
+    "PATH" to listOf(
+      dirs.inRoot(File(dirs.pkgs, "bin")),
+      "/usr/local/sbin",
+      "/usr/local/bin",
+      "/usr/sbin",
+      "/usr/bin",
+      "/sbin",
+      "/bin",
+    ).joinToString(":"),
   ) + sigsysHandler() + dnsResolverShim()
 
   /**
