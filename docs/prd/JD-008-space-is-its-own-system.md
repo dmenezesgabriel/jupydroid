@@ -85,7 +85,7 @@ closer to Termux's guarantee. A Space create should keep that guarantee.
 | Kernelspec | `SpaceKernelSpec.kt`: argv names `libpython3.so` | to be rewritten for the translated root |
 | Extraction | `TarZstdExtractor.kt`, `BaseSpaceInstaller.kt` | complete for base; to reuse for create |
 | Create | `app/src/main/java/com/jupydroid/app/data/disk/DiskSpaceRepository.kt` `create` writes `config.json` only | absent |
-| proot | `scripts/stage_isolation_probe.py`, packaged only under `-Pjupydroid.isolationProbe` | present but unreachable |
+| proot | `scripts/stage_proot.py` stages it into arm64 `jniLibs`; `ProotCommand.kt` builds its command line | shipped, and nothing in `main` launches through it yet (T3) |
 
 ## Deviations
 
@@ -106,7 +106,7 @@ closer to Termux's guarantee. A Space create should keep that guarantee.
 |---|---|
 | `domain/model` | `SpaceConfig` unchanged unless T4 needs a "being created" state |
 | `domain/port` | `SpaceRepository.create` (progress) |
-| `data/space` | `SpaceRuntime`, `AndroidSpaceRuntime`, `SpaceKernelSpec`, a proot command value |
+| `data/space` | `SpaceRuntime`, `AndroidSpaceRuntime`, `SpaceKernelSpec`, `ProotCommand` |
 | `data/disk` | `DiskSpaceRepository.create` |
 | `data/fake` | `FakeSpaceRepository` |
 | `ui/spaces` | create progress |
@@ -120,7 +120,7 @@ closer to Termux's guarantee. A Space create should keep that guarantee.
 Draft past T1; each one is split here before coding if it is too big.
 
 - [x] T1 — The run that accepts or rejects ADR-0073: `jupyter_server`, a kernel and `import numpy` under proot in a private root on SM-X216B, covering ipc, the SIGSYS preload and the idle cull. Measurement only: proot is staged by the probe script, and nothing on screen changes, so no flow
-- [ ] T2 — Ship proot and its loader in arm64 `jniLibs` from a sha-pinned stage step, retiring the probe flag, plus a JVM-tested value that builds the proot command line
+- [x] T2 — Ship proot and its loader in arm64 `jniLibs` from a sha-pinned stage step, retiring the probe flag, plus a JVM-tested value that builds the proot command line
 - [ ] T3 — Base's server, kernels, terminal and pylsp run under proot; the base-path surgery retires and ADR-0002/0011/0072 are amended (expected to split)
 - [ ] T4 — Creating a Space copies the image into it, with progress on the home
 - [ ] T5 — `apk add` in a Space's terminal installs into that Space alone; the demo runs on the tablet
