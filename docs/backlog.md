@@ -88,9 +88,9 @@ Order: `JD-002`, `JD-008`, `JD-004`, `JD-005`, `JD-009`, `JD-003`.
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
 | `JD-001` | A Space's runtime environment is its own — per-Space `PYTHONUSERBASE`, `HOME` and `JUPYTER_RUNTIME_DIR`, generalising what `base` already ships | shipped | — | — |
-| `JD-002` | The app opens on a **Spaces home**: every Space listed, created, renamed and deleted with progress, delete asking first. The workspace's side-panel version moves there | open ← next | [JD-002](prd/JD-002-manage-spaces.md) | — |
-| `JD-008` | **A Space is its own system:** creating one copies the image into it, its server, kernels and terminal run inside it under proot, and `apk add` in its terminal installs into that Space alone. Opens on the run that accepts or rejects ADR-0073 (server, kernel, numpy under proot) | open | — | — |
-| `JD-004` | **Run and stop a Space from the home, several at once:** one `jupyter_server` per running Space, Running/Stopped on each row, Stop keeping its files, idle shutdown per Space | open | — | — |
+| `JD-002` | The app opens on a **Spaces home**: every Space listed, created, renamed and deleted with progress, delete asking first | shipped | — | — |
+| `JD-008` | **A Space is its own system:** creating one copies the image into it, its server, kernels and terminal run inside it under proot, and `apk add` in its terminal installs into that Space alone. Opens on the run that accepts or rejects ADR-0073 (server, kernel, numpy under proot) | open ← next | — | — |
+| `JD-004` | **Run and stop a Space from the home, several at once:** one `jupyter_server` per running Space, Running/Stopped on each row, Stop keeping its files, idle shutdown per Space, a running Space stopped before it is deleted | open | — | — |
 | `JD-005` | **Enter a running Space:** the workspace, explorer, kernels, terminal and language server bind to that Space, not to base; new notebooks record it in `metadata.kernelspec.name`; leaving returns to the home | open | — | — |
 | `JD-009` | **Configure a Space:** environment variables with its derived paths locked, a startup script run on each start, idle-shutdown time and default kernel, thread caps — edited from the home before it runs | open | — | — |
 | `JD-003` | **Python environments inside a Space:** venv (measured working) and uv, their console scripts runnable, an environment registered as a kernel, pip's own message surfaced on a failed install | open | — | — |
