@@ -81,6 +81,7 @@ class SaveFailureBannerTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun waitForText(text: String, whole: Boolean = true) = compose.waitUntil(TIMEOUT_MILLIS) {

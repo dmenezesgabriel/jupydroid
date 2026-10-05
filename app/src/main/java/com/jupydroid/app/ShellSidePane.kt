@@ -23,7 +23,6 @@ import com.jupydroid.app.ui.shell.SidePanelBar
 import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
 import com.jupydroid.app.ui.shell.WorkspaceReplace
 import com.jupydroid.app.ui.shell.trailingBorder
-import com.jupydroid.app.ui.spaces.SpacesSidePanel
 
 /**
  * The shell's side pane: the one panel it is showing, and - where it is the whole window - the bar
@@ -114,7 +113,6 @@ fun ShellSidePane(
       // window has no side area to collapse, and `SidePanel.showingAtOnePane` never answers null.
       when (showingPanel) {
         SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
-        SidePanel.SPACES -> SpacesSidePanel(spaceRepository = appContainer.spaceRepository)
         SidePanel.DEBUGGER -> DebuggerSidePanel(
           stack = debugStack.current,
           onExpand = debugStack::expand,

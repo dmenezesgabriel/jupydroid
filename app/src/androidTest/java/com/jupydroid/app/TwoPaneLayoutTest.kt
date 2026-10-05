@@ -208,6 +208,7 @@ class TwoPaneLayoutTest {
         }
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun startAppWithAFileToBrowse(twoPane: Boolean) {
@@ -233,6 +234,7 @@ class TwoPaneLayoutTest {
         }
       }
     }
+    compose.enterBaseSpace()
   }
 
   /** Expanded enough for 360dp of list and a readable notebook, or a phone that fits neither. */

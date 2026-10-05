@@ -35,7 +35,7 @@ const val RENAME_FIELD_TAG = "rename-field"
  * A name that is not a file's passes its own [isValidName], [refusalMessage] and
  * [initialSelection]: a Space's name is a label in its `config.json`, so only a blank one is
  * refused and there is no extension to keep out of the selection
- * ([com.jupydroid.app.ui.spaces.SpacesSidePanel]). The focus fix and the unchanged-is-dismiss rule
+ * ([com.jupydroid.app.ui.spaces.SpacesHomeScreen]). The focus fix and the unchanged-is-dismiss rule
  * stay one copy.
  *
  * [onConfirm] is called **only when the title actually changed**. That is JupyterLab's rule -

@@ -125,23 +125,6 @@ class SidePaneNavigationTest {
     assertGone(WORKSPACE)
   }
 
-  /**
-   * The rail's second item reaches the Spaces panel, and the panel is reading the container's
-   * repository rather than drawing a placeholder: "Base" is the one row `FakeSpaceRepository` is
-   * seeded with. Waited for, not asserted displayed - the list pane lays out at zero height under
-   * `ForcedSize` (see the persistence case below), and the claim here is reach, not layout.
-   */
-  @Test
-  fun theRailSwapsTheFileBrowserForTheSpacesList() {
-    startApp(twoPane = true)
-    waitForText(WORKSPACE)
-
-    compose.onNodeWithContentDescription(SPACES).performClick()
-
-    waitForText(BASE)
-    assertGone(WORKSPACE)
-  }
-
   /** The other half of the toggle, on the search panel - see the ToC's own case above. */
   @Test
   fun pickingSearchAgainCollapsesTheAreaAndLeavesTheRail() {
@@ -369,6 +352,7 @@ class SidePaneNavigationTest {
         }
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun notebook() = Notebook(
@@ -417,10 +401,8 @@ class SidePaneNavigationTest {
     const val NO_HEADINGS = "No headings"
     const val FILES = "Files"
     const val SEARCH = "Search"
-    const val SPACES = "Spaces"
 
     /** The base Space's name - `BASE_SPACE.name`, the one row every device holds. */
-    const val BASE = "Base"
     const val TABLE_OF_CONTENTS = "Table of contents"
 
     /** A workspace the search panel can actually find something in - see the persistence case. */

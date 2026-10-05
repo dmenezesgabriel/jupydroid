@@ -75,11 +75,11 @@ class LauncherAutoCreateTest {
 
   /**
    * `main.title.closable = widgets('main').length > 1` (index.ts:126): alone in the main area, the
-   * launcher gets no close affordance. And Back is swallowed rather than popping it - the pop
-   * would re-trigger `maybeCreate` and put it straight back, a whole-frame flicker.
+   * launcher gets no close affordance. And Back leaves the workspace for the Spaces home rather than
+   * popping the launcher alone - that pop would re-trigger `maybeCreate` and put it straight back.
    */
   @Test
-  fun aLoneLauncherCanNeitherBeClosedNorBackedOutOfAtTwoPanes() {
+  fun aLoneLauncherCannotBeClosedAndBackLeavesTheWorkspaceAtTwoPanes() {
     startApp(twoPane = true, launcherSeen = true)
     waitForTag("launcher-screen")
 
@@ -87,7 +87,8 @@ class LauncherAutoCreateTest {
     compose.onAllNodesWithContentDescription("Close tab: Launcher").assertCountEquals(0)
     Espresso.pressBack()
 
-    compose.onNodeWithTag("launcher-screen").assertIsDisplayed()
+    compose.onNodeWithContentDescription(OPEN_BASE_SPACE).assertIsDisplayed()
+    compose.onNodeWithTag("launcher-screen").assertDoesNotExist()
   }
 
   /** The one-pane half of the decision: first run only, and the push is what marks it seen. */
@@ -132,6 +133,7 @@ class LauncherAutoCreateTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {

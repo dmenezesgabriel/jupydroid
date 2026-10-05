@@ -147,6 +147,7 @@ class OpenDocumentMarkingTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private companion object {

@@ -33,6 +33,7 @@ import com.jupydroid.app.Launcher
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.Settings
+import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.TextEdit
@@ -129,8 +130,8 @@ class MainAreaTabStripTest {
   private val paths = mutableStateMapOf<NavKey, String>()
   private val liveTitles = mutableStateMapOf<NavKey, String>()
 
-  private fun strip(vararg entries: NavKey, twoPane: Boolean = true) {
-    backStack = mutableStateListOf(Explorer, *entries)
+  private fun strip(vararg entries: NavKey, twoPane: Boolean = true, root: NavKey = Explorer) {
+    backStack = mutableStateListOf(root, *entries)
     compose.setContent {
       JupyterDroidTheme {
         // The same reconcile `MainNavigation` runs: the strip is handed opening order while the
@@ -413,6 +414,17 @@ class MainAreaTabStripTest {
     strip(Editor("a.ipynb"), twoPane = false)
 
     compose.onNodeWithContentDescription("Back to files").assertIsDisplayed()
+  }
+
+  /**
+   * The Spaces home is beneath a document only for the frames a popped entry still draws while it
+   * leaves - and it is named like any other destination rather than refused as a non-tab.
+   */
+  @Test
+  fun atOnePaneTheArrowOverTheHomeNamesTheSpaces() {
+    strip(Editor("a.ipynb"), twoPane = false, root = SpacesHome)
+
+    compose.onNodeWithContentDescription("Back to Spaces").assertIsDisplayed()
   }
 
   /** Beside a browser there is nothing to go back to - closing is the tab's ✕, so no arrow. */

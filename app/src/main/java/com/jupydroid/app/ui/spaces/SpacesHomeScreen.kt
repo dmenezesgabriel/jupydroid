@@ -18,6 +18,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,25 +33,22 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jupydroid.app.SidePanel
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.relativeTime
-import com.jupydroid.app.ui.shell.label
-import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
 import java.time.Instant
 
 /**
- * Every Space on the device, base first, each row its name over `id · created`.
+ * The app's first screen: every Space on the device, base first, each row its name over
+ * `id · created` and an **Open** that enters it. Only base opens until a second Space can run.
  *
- * **Progress is a bar across the panel's top, not a modal**, which is VS Code's choice for its
- * profiles over Winlator's full-screen preloader: an act here runs beside an open document, and
- * an inline bar leaves the document usable
+ * **Progress is a bar across the screen's top, not a modal**, which is VS Code's choice for its
+ * profiles over Winlator's full-screen preloader: an inline bar leaves the list readable while an
+ * act runs
  * (`vscode@3f3380c src/vs/workbench/contrib/userDataProfile/browser/userDataProfilesEditor.ts`,
  * `IEditorProgressService.showWhile`).
  *
@@ -71,17 +69,15 @@ import java.time.Instant
  * `removeProfile`), and the id keeps two same-named Spaces apart. **Base has no delete control**;
  * the port refuses it anyway (`requireDeletableSpace`).
  *
- * The same chrome as the panels beside it: a `Scaffold` on the side bar's surface under
- * [sideBarTopAppBarColors].
- *
  * ```
- * SpacesSidePanel(spaceRepository = appContainer.spaceRepository)
+ * SpacesHomeScreen(spaceRepository = appContainer.spaceRepository, onOpen = backStack::enterWorkspace)
  * ```
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SpacesSidePanel(
+fun SpacesHomeScreen(
   spaceRepository: SpaceRepository,
+  onOpen: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: SpacesViewModel = viewModel { SpacesViewModel(spaceRepository) },
 ) {
@@ -91,11 +87,9 @@ fun SpacesSidePanel(
   var deleting by remember { mutableStateOf<SpaceConfig?>(null) }
   Scaffold(
     modifier = modifier.fillMaxSize(),
-    containerColor = chromePalette.sideBarBackground,
     topBar = {
       TopAppBar(
-        colors = sideBarTopAppBarColors(),
-        title = { Text(SidePanel.SPACES.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        title = { Text(SPACES_TITLE, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         actions = {
           IconButton(onClick = { creating = true }, enabled = !state.busy) {
             Icon(Icons.Filled.Add, contentDescription = NEW_SPACE)
@@ -104,9 +98,7 @@ fun SpacesSidePanel(
       )
     },
   ) { padding ->
-    // A `Column` rather than a `LazyColumn`: a device holds a handful of Spaces, and a lazy list
-    // composes nothing inside a pane laid out at zero height, which is what the list pane is under
-    // `ForcedSize` (`SidePaneNavigationTest.whatASearchFoundSurvivesLeavingThePanelAndComingBack`).
+    // A `Column` rather than a `LazyColumn`: a device holds a handful of Spaces.
     Column(modifier = Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
       if (state.busy) {
         LinearProgressIndicator(
@@ -114,7 +106,11 @@ fun SpacesSidePanel(
         )
       }
       state.failure?.let { SpacesFailure(it) }
-      SpaceRows(state.spaces, actsEnabled = !state.busy, onRename = { renaming = it }, onDelete = { deleting = it })
+      SpaceRows(
+        state.spaces,
+        actsEnabled = !state.busy,
+        SpaceRowActs(onOpen = onOpen, onRename = { renaming = it }, onDelete = { deleting = it }),
+      )
     }
   }
   if (creating) {
@@ -166,45 +162,43 @@ private fun SpaceNameDialog(
   )
 }
 
+/** What a row's controls do, held together so a row takes one parameter for all three. */
+private class SpaceRowActs(
+  val onOpen: () -> Unit,
+  val onRename: (SpaceConfig) -> Unit,
+  val onDelete: (SpaceConfig) -> Unit,
+)
+
 /** The rows, aged against one `now` per listing, the way the explorer's rows are. */
 @Composable
-private fun SpaceRows(
-  spaces: List<SpaceConfig>,
-  actsEnabled: Boolean,
-  onRename: (SpaceConfig) -> Unit,
-  onDelete: (SpaceConfig) -> Unit,
-) {
+private fun SpaceRows(spaces: List<SpaceConfig>, actsEnabled: Boolean, acts: SpaceRowActs) {
   val now = remember(spaces) { Instant.now() }
-  spaces.forEach { space ->
-    val isBase = space.id == BASE_SPACE.id
-    SpaceRow(
-      space,
-      now,
-      actsEnabled,
-      onRename = { onRename(space) }.takeUnless { isBase },
-      onDelete = { onDelete(space) }.takeUnless { isBase },
-    )
-  }
+  spaces.forEach { space -> SpaceRow(space, now, actsEnabled, acts) }
 }
 
 /**
  * One Space: its name, and under it the id and age. The id is shown because names may repeat
  * (`SpaceRepositoryContract.twoSpacesMayShareAName`) and the id is what tells two such rows apart.
- * A null [onRename] or [onDelete] draws no control at all, which is base's case.
+ * Base draws no rename or delete control at all.
  */
 @Composable
-private fun SpaceRow(
-  space: SpaceConfig,
-  now: Instant,
-  actsEnabled: Boolean,
-  onRename: (() -> Unit)?,
-  onDelete: (() -> Unit)?,
-) {
+private fun SpaceRow(space: SpaceConfig, now: Instant, actsEnabled: Boolean, acts: SpaceRowActs) {
+  val isBase = space.id == BASE_SPACE.id
+  val onRename = { acts.onRename(space) }.takeUnless { isBase }
+  val onDelete = { acts.onDelete(space) }.takeUnless { isBase }
   Row(
     modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     SpaceRowText(space, now, Modifier.weight(1f))
+    TextButton(
+      onClick = acts.onOpen,
+      // Base is the one Space that runs today, so it is the one that can be entered.
+      enabled = actsEnabled && isBase,
+      modifier = Modifier.semantics { contentDescription = "Open ${space.name} (${space.id})" },
+    ) {
+      Text("Open")
+    }
     onRename?.let {
       // Named with the id, as the row is: "Rename Thesis" would not say which of two Thesis rows.
       IconButton(onClick = it, enabled = actsEnabled) {
@@ -252,6 +246,9 @@ private fun SpacesFailure(message: String) {
     modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
   )
 }
+
+/** The screen's title. */
+private const val SPACES_TITLE = "Spaces"
 
 /** The add action's accessible name, and the heading of the dialog it opens. */
 internal const val NEW_SPACE = "New Space"

@@ -153,6 +153,7 @@ class MultiDocumentNavigationTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun notebook(name: String, source: String) =

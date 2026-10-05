@@ -142,6 +142,7 @@ class NotebookNavigationTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun notebook(name: String, source: String) =

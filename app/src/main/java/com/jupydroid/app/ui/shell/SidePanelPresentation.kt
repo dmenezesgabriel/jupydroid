@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,8 +34,6 @@ import com.jupydroid.app.theme.chromePalette
 internal val SidePanel.label: String
   get() = when (this) {
     SidePanel.FILES -> "Files"
-    // Plural, the way Winlator's own nav item names its list (`@string/containers`).
-    SidePanel.SPACES -> "Spaces"
     // `jpTabLabel` - the tab's own name where the caption "Running Terminals and Kernels" is the
     // longer form for tooltips (`running-extension/src/index.ts:101-105`).
     SidePanel.RUNNING -> "Sessions and Tabs"
@@ -49,10 +46,6 @@ internal val SidePanel.label: String
 internal val SidePanel.icon: ImageVector
   get() = when (this) {
     SidePanel.FILES -> Icons.Filled.Folder
-    // Winlator's `menu_item_containers` draws `icon_container`, a closed box
-    // (`winlator@fb66541 app/src/main/res/menu/main_menu.xml`), and `Inventory2` is Material's box.
-    // VS Code's profile glyph is `Codicon.settingsGear`, which here is already Settings'.
-    SidePanel.SPACES -> Icons.Filled.Inventory2
     // `ui-components:running` (`sidebar/running.svg`) is a circle holding a rounded square - the
     // stop glyph - and `StopCircle` is Material's own drawing of exactly that shape.
     SidePanel.RUNNING -> Icons.Filled.StopCircle

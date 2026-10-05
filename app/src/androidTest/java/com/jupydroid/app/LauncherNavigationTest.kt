@@ -112,6 +112,7 @@ class LauncherNavigationTest {
         )
       }
     }
+    compose.enterBaseSpace()
     waitForText("report.txt")
   }
 

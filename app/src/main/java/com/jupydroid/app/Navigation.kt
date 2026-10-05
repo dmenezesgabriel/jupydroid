@@ -1,6 +1,5 @@
 package com.jupydroid.app
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -25,7 +24,6 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
-import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.TerminalSession
@@ -42,6 +40,7 @@ import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.TabbedDocumentPane
 import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import com.jupydroid.app.ui.shell.trailingBorder
+import com.jupydroid.app.ui.spaces.SpacesHomeScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -75,10 +74,10 @@ fun MainNavigation(
    */
   openDocuments: OpenDocuments = remember { OpenDocuments() },
 ) {
-  // The explorer is what the app opens on. Recents was a scan of one directory and is now a
-  // section of this screen, so there is no second surface left to start from - which is also the
-  // reference's arrangement: JupyterLab has one file browser and no separate recents screen.
-  val backStack = rememberNavBackStack(Explorer)
+  // The Spaces home is what the app opens on: a Space is chosen and managed before it is entered,
+  // never from a panel inside one - see [SpacesHome]. Entering one pushes the explorer, the
+  // workspace's own root, which has no separate recents screen beside it, as JupyterLab has none.
+  val backStack = rememberNavBackStack(SpacesHome)
   // Which side panel is showing, or null when the area is collapsed - see [SidePanel.chosen].
   // Saved rather than remembered, because a rotation is what most often brings the rail into range
   // in the first place, and `SidePanel?` round-trips through a Bundle unaided.
@@ -226,23 +225,10 @@ fun MainNavigation(
   // (`packages/application/src/shell.ts:2383-2394`). So the collapse is spelled here rather
   // than inside the pane, and the notebook actually gains the 360dp.
   val directive = if (twoPane && showingPanel != null) measured else measured.forcedToOnePane()
+  val backSelectsFiles = !twoPane && onePanePanel != SidePanel.FILES && backStack.lastOrNull() == Explorer
 
-  // The VIEW intent, which used to be Home's because Home was the first screen. It is an
-  // app-level act rather than a screen's - nothing about it belongs to the browser - so it lives
-  // here now. Keyed on the title so a second import in the same process is not swallowed.
-  //
-  // **Opened, not merely listed.** Home added a row and left it there, which was defensible when
-  // Home was a list of notebooks; an ACTION_VIEW intent asks to *view* the document, and opening
-  // it is also what makes the result deterministic - a row only appears once the browser has
-  // listed again, and the create races that listing on a cold start. Opening also records it as a
-  // recent, so it is on the browser's first section when the editor is left.
-  LaunchedEffect(importTitle) {
-    importTitle?.let { title ->
-      runCatching { appContainer.notebookRepository.createNotebook(title, DEFAULT_KERNEL_ID) }
-        .onSuccess { openDocument(it.id) }
-      onImportConsumed()
-    }
-  }
+  // The VIEW intent - opened inside base's workspace, see the effect's own KDoc.
+  ImportedNotebookEffect(importTitle, appContainer, backStack, openDocument, onImportConsumed)
 
   // `maybeCreate` and the fill's provenance - extracted with the rest of the launcher lifecycle,
   // for the same reason `openLaunched` below is: a lambda's branches count toward this function's
@@ -276,16 +262,6 @@ fun MainNavigation(
   // function's complexity budget.
   val openLaunched = rememberLaunchHandler(backStack, openDocument) { consoleSession = it }
 
-  // **Back reaches the start destination before it leaves the app.** Android's own principle: the
-  // start destination *"is also the last screen the user sees when they return to the launcher
-  // after pressing the Back button"* (`developer.android.com/guide/navigation/principles`). The
-  // browser is this app's root, so backing out of a one-pane Search selects Files rather than
-  // exiting. `NavDisplay` cannot do it - there is one entry on the stack and nothing to pop - and
-  // it is deliberately off while a document is open, where Back belongs to the document.
-  BackHandler(enabled = !twoPane && onePanePanel != SidePanel.FILES && backStack.lastOrNull() == Explorer) {
-    sidePanel = SidePanel.FILES
-  }
-
   // **The activity bar is beside the whole shell, not inside the side area.** The reference's
   // `hboxPanel` holds `leftHandler.sideBar` next to the split that contains both the panel and the
   // document area (`packages/application/src/shell.ts:468-477`), which is what lets the area
@@ -293,9 +269,10 @@ fun MainNavigation(
   // shell corrected it.
   //
   // Only where there is room for two panes: a compact window gets the bar instead, and a rail
-  // there would spend a quarter of a 320dp screen on chrome.
+  // there would spend a quarter of a 320dp screen on chrome. And only inside a workspace: the bar
+  // is the workspace's, and the Spaces home is entered before any of its panels mean anything.
   Row(modifier = Modifier.fillMaxSize()) {
-    if (twoPane) {
+    if (twoPane && backStack.isInWorkspace()) {
       // The seam between the bar and whatever it is showing, **drawn by the bar** - which is where
       // both references put it, and the reason it is no longer a `VerticalDivider` beside it: the
       // width is budgeted into the bar itself,
@@ -318,7 +295,16 @@ fun MainNavigation(
     }
     NavDisplay(
       backStack = backStack,
-      onBack = { backStack.removeLastOrNull() },
+      // **Back reaches the workspace's root before it leaves the workspace.** Android's own
+      // principle: the start destination *"is also the last screen the user sees when they return
+      // to the launcher after pressing the Back button"*
+      // (`developer.android.com/guide/navigation/principles`). The browser is the workspace's root,
+      // so backing out of a one-pane Search selects Files rather than leaving for the Spaces home -
+      // and only on the browser, since over a document Back belongs to the document. Both rules
+      // live here rather than in a `BackHandler`, which loses the gesture to the display's own.
+      onBack = {
+        if (backSelectsFiles) sidePanel = SidePanel.FILES else backStack.popWorkspaceEntry(twoPane)
+      },
       // NavDisplay's default is the saveable-state decorator ALONE, so without this the
       // ViewModelStoreOwner inside an entry is the Activity: viewModel {} keys on the class name
       // and hands the second notebook the first one's ViewModel, id and all.
@@ -350,6 +336,10 @@ fun MainNavigation(
         directive = directive,
       ),
       entryProvider = entryProvider {
+        // No pane metadata, so the scene strategy declines it and the home takes the whole window.
+        entry<SpacesHome> {
+          SpacesHomeScreen(spaceRepository = appContainer.spaceRepository, onOpen = backStack::enterWorkspace)
+        }
         entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
           ShellSidePane(
             showingPanel = showingPanel,
@@ -501,7 +491,4 @@ fun MainNavigation(
       },
     )
   }
-
-  // The lone-launcher back-swallow - after NavDisplay on purpose, see its KDoc.
-  LoneLauncherBackGuard(backStack, twoPane)
 }

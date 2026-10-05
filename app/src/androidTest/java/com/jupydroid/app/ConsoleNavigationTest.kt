@@ -200,6 +200,7 @@ class ConsoleNavigationTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {

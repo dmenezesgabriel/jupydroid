@@ -33,15 +33,15 @@ import org.junit.runner.RunWith
 import java.time.Instant
 
 /**
- * The Spaces panel: every Space, base first, each named over its id and age, with a bar while an
+ * The Spaces home: every Space, base first, each named over its id and age, with a bar while an
  * act runs and the port's own refusal when one fails; a Space made and renamed by name, deleted
- * only after asking, base's name and existence locked.
+ * only after asking, base's name and existence locked, and only base open to enter.
  *
  * What the ViewModel decides - order, one act at a time, re-listing - is `SpacesViewModelTest`'s.
  * This holds what only a composition can: that the rows, the bar and the refusal reach the screen.
  */
 @RunWith(AndroidJUnit4::class)
-class SpacesSidePanelTest {
+class SpacesHomeScreenTest {
   @get:Rule val compose = createComposeRule()
 
   @Test
@@ -53,7 +53,7 @@ class SpacesSidePanelTest {
     compose.onNodeWithText("${BASE_SPACE.id} · ", substring = true).assertIsDisplayed()
   }
 
-  /** Below base, in the port's order - the panel draws what it is handed and re-sorts nothing. */
+  /** Below base, in the port's order - the home draws what it is handed and re-sorts nothing. */
   @Test
   fun aUserSpaceIsListedBelowBase() {
     show(FakeSpaceRepository(listOf(thesis, base)))
@@ -156,6 +156,39 @@ class SpacesSidePanelTest {
     compose.onNodeWithContentDescription(NEW_SPACE).assertIsEnabled()
   }
 
+  /** Only base can be entered until a second Space can run, so only base's Open is live. */
+  @Test
+  fun onlyBaseCanBeOpened() {
+    show(FakeSpaceRepository(listOf(base, thesis)))
+
+    compose.onNodeWithContentDescription(openBase).assertIsEnabled()
+    compose.onNodeWithContentDescription("Open $THESIS (space-1)").assertIsNotEnabled()
+  }
+
+  @Test
+  fun openingBaseEntersIt() {
+    var opened = 0
+    show(FakeSpaceRepository(), onOpen = { opened++ })
+
+    compose.onNodeWithContentDescription(openBase).performClick()
+
+    compose.runOnIdle { assertEquals(1, opened) }
+  }
+
+  /** Entering a Space mid-act would leave the act's result unseen, so Open is held with the rest. */
+  @Test
+  fun openIsHeldWhileAnActRuns() {
+    val gated = GatedSpaceRepository(FakeSpaceRepository())
+    val model = show(gated)
+
+    compose.runOnIdle { model.create(THESIS) }
+
+    compose.onNodeWithContentDescription(openBase).assertIsNotEnabled()
+    gated.release.complete(Unit)
+    compose.waitUntil(TIMEOUT_MILLIS) { !model.uiState.value.busy }
+    compose.onNodeWithContentDescription(openBase).assertIsEnabled()
+  }
+
   /** The port refuses to delete base; the screen does not offer it, as VS Code does not. */
   @Test
   fun baseHasNoDeleteControlAndAUserSpaceHasOne() {
@@ -197,10 +230,10 @@ class SpacesSidePanelTest {
   /** The dialog's button, not its title - both say "Delete" (`ExplorerScreenTest.confirmDelete`). */
   private fun confirmDelete() = compose.onAllNodesWithText("Delete").filterToOne(hasClickAction()).performClick()
 
-  private fun show(repository: SpaceRepository): SpacesViewModel {
+  private fun show(repository: SpaceRepository, onOpen: () -> Unit = {}): SpacesViewModel {
     val model = SpacesViewModel(repository)
     compose.setContent {
-      JupyterDroidTheme { SpacesSidePanel(spaceRepository = repository, viewModel = model) }
+      JupyterDroidTheme { SpacesHomeScreen(spaceRepository = repository, onOpen = onOpen, viewModel = model) }
     }
     compose.waitUntil(TIMEOUT_MILLIS) { model.uiState.value.spaces.isNotEmpty() }
     return model
@@ -208,13 +241,14 @@ class SpacesSidePanelTest {
 
   private companion object {
     const val THESIS = "Thesis"
+    val openBase = "Open ${BASE_SPACE.name} (${BASE_SPACE.id})"
     const val TIMEOUT_MILLIS = 5_000L
     val base: SpaceConfig = defaultSpaceConfig(BASE_SPACE.id, Instant.EPOCH)
     val thesis = SpaceConfig(id = "space-1", name = THESIS, created = Instant.EPOCH)
   }
 }
 
-/** Holds every `create` and `delete` until [release] completes, so a test can look at the panel mid-act. */
+/** Holds every `create` and `delete` until [release] completes, so a test can look at the home mid-act. */
 private class GatedSpaceRepository(private val fake: SpaceRepository) : SpaceRepository by fake {
   val release = CompletableDeferred<Unit>()
 

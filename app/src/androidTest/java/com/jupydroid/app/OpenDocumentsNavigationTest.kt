@@ -104,6 +104,7 @@ class OpenDocumentsNavigationTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun notebook() = Notebook(TITLE, TITLE, "python3", listOf(Cell("c1", CellKind.CODE, CELL_SOURCE)))

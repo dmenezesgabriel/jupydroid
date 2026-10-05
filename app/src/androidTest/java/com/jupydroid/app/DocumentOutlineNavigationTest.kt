@@ -89,6 +89,7 @@ class DocumentOutlineNavigationTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun notebook() = Notebook(

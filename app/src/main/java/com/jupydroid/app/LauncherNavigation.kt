@@ -1,6 +1,5 @@
 package com.jupydroid.app
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -61,6 +60,8 @@ fun rememberLaunchHandler(
  * is no detail area for it to be a placeholder *for*, and leaving it would bury the side panel the
  * user was in. Only when it is on top and only the fill's own: a tapped `+` is a destination like
  * any other, and [isFill] is the whole difference between the two.
+ *
+ * Only inside an entered workspace: the Spaces home has no main area, so there is nothing to fill.
  */
 @Composable
 fun LauncherFillEffect(
@@ -72,7 +73,7 @@ fun LauncherFillEffect(
   val settings by settingsRepository.observeSettings().collectAsStateWithLifecycle(initialValue = null)
   LaunchedEffect(twoPane, backStack.size, settings) {
     val loaded = settings ?: return@LaunchedEffect
-    val show = backStack.mainAreaIsEmpty() && (twoPane || !loaded.launcherSeen)
+    val show = backStack.isInWorkspace() && backStack.mainAreaIsEmpty() && (twoPane || !loaded.launcherSeen)
     if (!show) return@LaunchedEffect
     backStack.openLauncher()
     isFill.value = true
@@ -85,20 +86,5 @@ fun LauncherFillEffect(
       backStack.removeLastOrNull()
       isFill.value = false
     }
-  }
-}
-
-/**
- * `closable = false`'s other half: with no close affordance drawn, Back is the one remaining way
- * the lone launcher could leave - and letting it pop would only re-trigger the fill, a whole-frame
- * flicker. Called *after* NavDisplay so its handler wins the gesture over the display's own, which
- * would otherwise pop the entry.
- */
-@Composable
-fun LoneLauncherBackGuard(backStack: MutableList<NavKey>, twoPane: Boolean) {
-  BackHandler(
-    enabled = twoPane && backStack.lastOrNull() == Launcher && !backStack.launcherIsClosable(),
-  ) {
-    // Swallowed: the lone launcher is the main area's resting state, not a screen to leave.
   }
 }

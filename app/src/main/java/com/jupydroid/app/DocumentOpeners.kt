@@ -1,10 +1,12 @@
 package com.jupydroid.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.launch
@@ -87,10 +89,49 @@ internal fun rememberNewTerminal(backStack: MutableList<NavKey>, appContainer: A
 /**
  * `terminal:create-new`'s mint and reveal, as a suspend on the stack so the refused half is
  * testable without Compose. **A refused `open` is no terminal opened, not a crash** - the same
- * `runCatching` the VIEW intent gives `createNotebook` (`Navigation.kt`), since this reach has
+ * `runCatching` the VIEW intent gives `createNotebook` ([ImportedNotebookEffect]), since this reach has
  * no error surface the way the launcher card's `LauncherViewModel.error` is.
  */
 internal suspend fun MutableList<NavKey>.openNewTerminal(terminalGateway: TerminalGateway, cwd: String) {
   runCatching { terminalGateway.open(cwd.ifEmpty { null }) }
     .onSuccess { openTerminal(it.name) }
+}
+
+/**
+ * The VIEW intent, which used to be Home's because Home was the first screen. It is an app-level
+ * act rather than a screen's - nothing about it belongs to the browser. Keyed on the title so a
+ * second import in the same process is not swallowed.
+ *
+ * **Opened, not merely listed.** Home added a row and left it there, which was defensible when
+ * Home was a list of notebooks; an ACTION_VIEW intent asks to *view* the document, and opening
+ * it is also what makes the result deterministic - a row only appears once the browser has
+ * listed again, and the create races that listing on a cold start. Opening also records it as a
+ * recent, so it is on the browser's first section when the editor is left.
+ *
+ * **Inside base's workspace.** A document belongs to a workspace, so from the Spaces home it
+ * enters base first: the browser is then the list pane the document pairs with, rather than a
+ * bare home underneath it.
+ *
+ * ```
+ * ImportedNotebookEffect(importTitle, appContainer, backStack, openDocument, onImportConsumed)
+ * ```
+ */
+@Composable
+internal fun ImportedNotebookEffect(
+  importTitle: String?,
+  appContainer: AppContainer,
+  backStack: MutableList<NavKey>,
+  openDocument: (String) -> Unit,
+  onImportConsumed: () -> Unit,
+) {
+  LaunchedEffect(importTitle) {
+    importTitle?.let { title ->
+      runCatching { appContainer.notebookRepository.createNotebook(title, DEFAULT_KERNEL_ID) }
+        .onSuccess {
+          backStack.enterWorkspace()
+          openDocument(it.id)
+        }
+      onImportConsumed()
+    }
+  }
 }

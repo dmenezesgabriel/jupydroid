@@ -1,9 +1,11 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -28,17 +30,24 @@ class SidePanelRailTest {
 
   private val chosen = mutableListOf<SidePanel>()
 
-  /** Six items - one per [SidePanel], which is what the rail iterates. */
+  /** Five items - one per [SidePanel], which is what the rail iterates. */
   @Test
   fun everyPanelIsOnTheRail() {
     show(SidePanel.FILES)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
-    compose.onNodeWithContentDescription(SPACES).assertIsDisplayed()
     compose.onNodeWithContentDescription(SESSIONS_AND_TABS).assertIsDisplayed()
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertIsDisplayed()
     compose.onNodeWithContentDescription(DEBUGGER).assertIsDisplayed()
+  }
+
+  /** Spaces are managed from the home, before one is entered - never from a panel inside one. */
+  @Test
+  fun spacesAreNotOnTheRail() {
+    show(SidePanel.FILES)
+
+    compose.onAllNodesWithContentDescription(SPACES).assertCountEquals(0)
   }
 
   /** Which one is showing is the rail's own answer, and a screen reader's - `selected`, not a tint. */

@@ -57,6 +57,7 @@ import com.jupydroid.app.Launcher
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.Settings
+import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.activateMainAreaTab
 import com.jupydroid.app.documentIn
@@ -280,10 +281,10 @@ private fun MainAreaTabStrip(
 
 /**
  * What the one-pane arrow says it returns to - the entry **beneath** the top, named the way the
- * tabs name themselves: the browser is "files", a document its live title, a terminal its OSC
- * title or "Terminal N". Destination-named because bare "Back" is the system bar's own button
- * and TalkBack deserves "back to *what*" (`DocumentDismissAction`'s old labels, moved here with
- * the affordance).
+ * tabs name themselves: the browser is "files", the Spaces home "Spaces", a document its live
+ * title, a terminal its OSC title or "Terminal N". Destination-named because bare "Back" is the
+ * system bar's own button and TalkBack deserves "back to *what*" (`DocumentDismissAction`'s old
+ * labels, moved here with the affordance).
  */
 private fun upDestinationLabel(
   beneath: NavKey?,
@@ -293,6 +294,7 @@ private fun upDestinationLabel(
 ): String = when (beneath) {
   null -> "Back"
   Explorer -> "Back to files"
+  SpacesHome -> "Back to Spaces"
   else -> "Back to " + (
     beneath.documentIn(openDocuments)?.path?.substringAfterLast('/')
       ?: liveTabTitles[beneath]

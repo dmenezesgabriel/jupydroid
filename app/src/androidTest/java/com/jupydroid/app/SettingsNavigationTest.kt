@@ -60,6 +60,7 @@ class SettingsNavigationTest {
         )
       }
     }
+    compose.enterBaseSpace()
   }
 
   private fun waitForTag(tag: String, present: Boolean = true) = compose.waitUntil(TIMEOUT_MILLIS) {
