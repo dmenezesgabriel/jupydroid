@@ -94,8 +94,10 @@ closer to Termux's guarantee. A Space create should keep that guarantee.
 
 ## Open decisions
 
-- **Settled by T1:** whether `jupyter_server`, a kernel and `import numpy` run under proot (ipc
-  transport, SIGSYS preload, idle cull). If they do not, ADR-0073 falls back to the loader option.
+- **Settled by T1:** `jupyter_server`, a kernel and `import numpy` run under proot, covering ipc, the
+  SIGSYS preload and the idle cull, so ADR-0073 is accepted. T3 inherits two findings. The server
+  needs `--allow-root`, because `-0` makes every process see uid 0. Under proot the image reads
+  `/etc/resolv.conf` itself, so the DNS shim's job has to be re-measured there before it is carried over.
 - How a Space create reports progress over a ~14 s copy, and what a half copy looks like to the scan (T4).
 
 ## Surface
@@ -117,7 +119,7 @@ closer to Termux's guarantee. A Space create should keep that guarantee.
 
 Draft past T1; each one is split here before coding if it is too big.
 
-- [ ] T1 — The run that accepts or rejects ADR-0073: `jupyter_server`, a kernel and `import numpy` under proot in a private root on SM-X216B, covering ipc, the SIGSYS preload and the idle cull. Measurement only: proot is staged by the probe script, and nothing on screen changes, so no flow
+- [x] T1 — The run that accepts or rejects ADR-0073: `jupyter_server`, a kernel and `import numpy` under proot in a private root on SM-X216B, covering ipc, the SIGSYS preload and the idle cull. Measurement only: proot is staged by the probe script, and nothing on screen changes, so no flow
 - [ ] T2 — Ship proot and its loader in arm64 `jniLibs` from a sha-pinned stage step, retiring the probe flag, plus a JVM-tested value that builds the proot command line
 - [ ] T3 — Base's server, kernels, terminal and pylsp run under proot; the base-path surgery retires and ADR-0002/0011/0072 are amended (expected to split)
 - [ ] T4 — Creating a Space copies the image into it, with progress on the home
