@@ -85,7 +85,8 @@ closer to Termux's guarantee. A Space create should keep that guarantee.
 | Kernelspec | `SpaceKernelSpec.kt`: argv names `libpython3.so` | to be rewritten for the translated root |
 | Extraction | `TarZstdExtractor.kt`, `BaseSpaceInstaller.kt` | complete for base; to reuse for create |
 | Create | `app/src/main/java/com/jupydroid/app/data/disk/DiskSpaceRepository.kt` `create` writes `config.json` only | absent |
-| proot | `scripts/stage_proot.py` stages it into arm64 `jniLibs`; `ProotCommand.kt` builds its command line | shipped, and nothing in `main` launches through it yet (T3) |
+| proot | `scripts/stage_proot.py` stages it into arm64 `jniLibs`; `ProotCommand.kt` builds its command line | shipped, and nothing in `main` launches through it yet (T3a) |
+| Base-path surgery | `BaseSpaceInstaller` relinks the loader, interpreter, busybox applets and console scripts into `nativeLibraryDir` | conflicts with proot, whose root translation makes those absolute targets dangle: the relinks stop in T3a, the shipped artifacts go in T3b |
 
 ## Deviations
 
@@ -97,7 +98,7 @@ closer to Termux's guarantee. A Space create should keep that guarantee.
 - **Settled by T1:** `jupyter_server`, a kernel and `import numpy` run under proot, covering ipc, the
   SIGSYS preload and the idle cull, so ADR-0073 is accepted. T3 inherits two findings. The server
   needs `--allow-root`, because `-0` makes every process see uid 0. Under proot the image reads
-  `/etc/resolv.conf` itself, so the DNS shim's job has to be re-measured there before it is carried over.
+  `/etc/resolv.conf` itself, so the DNS shim's job has to be re-measured there before it is carried over (T3a).
 - How a Space create reports progress over a ~14 s copy, and what a half copy looks like to the scan (T4).
 
 ## Surface
@@ -121,7 +122,8 @@ Draft past T1; each one is split here before coding if it is too big.
 
 - [x] T1 — The run that accepts or rejects ADR-0073: `jupyter_server`, a kernel and `import numpy` under proot in a private root on SM-X216B, covering ipc, the SIGSYS preload and the idle cull. Measurement only: proot is staged by the probe script, and nothing on screen changes, so no flow
 - [x] T2 — Ship proot and its loader in arm64 `jniLibs` from a sha-pinned stage step, retiring the probe flag, plus a JVM-tested value that builds the proot command line
-- [ ] T3 — Base's server, kernels, terminal and pylsp run under proot; the base-path surgery retires and ADR-0002/0011/0072 are amended (expected to split)
+- [ ] T3a — Base's server, kernels, terminals and pylsp run under proot with base's rootfs as `/`: the installer stops relinking (rootfs version bump, stale console-script links swept), the extractor keeps exec bits, the kernelspec is `/usr/bin/python3 -m jupydroid_kernel`, the server gets `--allow-root`, and the DNS shim and CA variables are re-measured under proot. A non-base Space's root is its own directory, so it cannot run until T4 gives it an image
+- [ ] T3b — Retire the surgery's build side: `libpython3.so`, `libloader.so`, `libbusybox.so`, `libshebang.so` out of `jniLibs` and `stage-app-artifacts.sh`, the `PT_INTERP` patch, `shebang_exec.c` and its gate, and the DNS shim if T3a measured it unneeded; ADR-0002/0011/0072 amended
 - [ ] T4 — Creating a Space copies the image into it, with progress on the home
 - [ ] T5 — `apk add` in a Space's terminal installs into that Space alone; the demo runs on the tablet
 
