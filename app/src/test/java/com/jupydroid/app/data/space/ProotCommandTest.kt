@@ -27,6 +27,14 @@ class ProotCommandTest {
     )
   }
 
+  /** The working directory is named inside the root, because that is the only filesystem the process sees. */
+  @Test
+  fun theProcessStartsInTheWorkingDirectoryItIsGivenInsideTheRoot() {
+    val argv = ProotCommand(nativeDir, root, inRootWorkingDir = "/home/jupydroid").argv(emptyList())
+
+    assertEquals("/home/jupydroid", argv[argv.indexOf("-w") + 1])
+  }
+
   @Test
   fun theLoaderIsTheOneShippedBesideProot() {
     assertEquals(File(nativeDir, "libproot-loader.so").path, proot.environment().getValue("PROOT_LOADER"))

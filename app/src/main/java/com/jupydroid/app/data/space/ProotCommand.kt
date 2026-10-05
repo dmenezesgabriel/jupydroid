@@ -16,15 +16,18 @@ import java.io.File
  *   .apply { environment().putAll(proot.environment()) }
  * ```
  */
-data class ProotCommand(val nativeLibraryDir: File, val root: File) {
-  /** [command], named by its in-root path, run with [root] as `/` and `/dev` and `/proc` bound through. */
+data class ProotCommand(val nativeLibraryDir: File, val root: File, val inRootWorkingDir: String = "/") {
+  /**
+   * [command], named by its in-root path, run with [root] as `/` from [inRootWorkingDir], and `/dev`
+   * and `/proc` bound through.
+   */
   fun argv(command: List<String>): List<String> = listOf(
     File(nativeLibraryDir, PROOT).path,
     "-r",
     root.path,
     "-0",
     "-w",
-    "/",
+    inRootWorkingDir,
     "-b",
     "/dev",
     "-b",
