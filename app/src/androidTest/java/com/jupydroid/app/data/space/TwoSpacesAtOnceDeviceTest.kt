@@ -42,9 +42,10 @@ import android.os.Process.SIGNAL_KILL as SIGKILL
  * **Two Spaces' servers at once**, each with a kernel, and the three ways one of them could be
  * stopped while the other keeps answering. This is what running several Spaces from the home rests on.
  *
- * Only `POST api/shutdown` stops a Space. proot ignores SIGTERM, which is what `Process.destroy()`
- * sends, and SIGKILL to proot orphans the server and kernel it was tracing. Each of the three is a
- * test, so a device run re-checks the reason as well as the answer.
+ * Only `POST api/shutdown` stops a Space, and that is what `JupyterServerLauncher.stop()` sends.
+ * proot ignores SIGTERM, which is what `Process.destroy()` sends, and SIGKILL to proot orphans the
+ * server and kernel it was tracing. Each of the three is a test, so a device run re-checks the
+ * reason as well as the answer.
  *
  * Base's server is [BaseSpaceUnderTest]'s, the one owner of base's `run/` in this process. The
  * probe Space gets a launcher of its own. That is allowed because its `run/` is its own directory,
@@ -83,9 +84,9 @@ class TwoSpacesAtOnceDeviceTest {
   }
 
   /**
-   * **SIGTERM to proot stops nothing.** `Process.destroy()` sends exactly this, so it is what the
-   * launcher's `stop()` does: the tracer, the server and its kernel all outlive it. Kept as a test
-   * so that the reason for the other stop is something a device run checks.
+   * **SIGTERM to proot stops nothing.** `Process.destroy()` sends exactly this: the tracer, the
+   * server and its kernel all outlive it. Kept as a test so that the reason the launcher stops
+   * through `api/shutdown` is something a device run checks.
    */
   @Test
   fun sigtermToProotLeavesTheWholeTreeRunning() {
@@ -112,11 +113,14 @@ class TwoSpacesAtOnceDeviceTest {
     )
   }
 
-  /** `POST api/shutdown`, JupyterLab's own stop, ends the server, its kernel and the tracer. */
+  /**
+   * The launcher's own `stop()`, which is `POST api/shutdown`, JupyterLab's own stop, ends the
+   * server, its kernel and the tracer, and leaves the other Space answering.
+   */
   @Test
-  fun apiShutdownTakesTheWholeTreeAndLeavesTheOtherSpace() = withBaseKernel { base, baseKernel ->
-    val (probe, tree) = runningProbeWithAKernel()
-    val left = stopAndMeasure("api-shutdown", tree) { probe.post("api/shutdown") }
+  fun launcherStopTakesTheWholeTreeAndLeavesTheOtherSpace() = withBaseKernel { base, baseKernel ->
+    val (_, tree) = runningProbeWithAKernel()
+    val left = stopAndMeasure("launcher-stop", tree) { runBlocking { probeLauncher.stop() } }
     assertTrue("processes outlived api/shutdown: $left", left.isEmpty())
     assertEquals(HTTP_OK, base.get("api/kernels/$baseKernel", base.token).first)
   }
@@ -241,13 +245,6 @@ class TwoSpacesAtOnceDeviceTest {
 
     fun ServerConnection.delete(path: String): Pair<Int, String> =
       call(Request.Builder().url(urlOf(path)).header("Authorization", "token $token").delete().build())
-
-    /** `POST` [path] with an empty body. A server that exits mid-answer is an answer too. */
-    fun ServerConnection.post(path: String) {
-      val request = Request.Builder().url(urlOf(path)).header("Authorization", "token $token")
-        .post("".toRequestBody()).build()
-      runCatching { call(request) }.onFailure { Log.i(SPACE_LOG_TAG, "two-spaces post $path ended: $it") }
-    }
 
     /**
      * Starts a kernel in [space] on this server and runs one statement on it, the way a notebook

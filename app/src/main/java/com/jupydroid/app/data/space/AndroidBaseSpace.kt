@@ -43,6 +43,7 @@ fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir
 fun spaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServerLauncher(
   runtimeFor = { space -> spaceRuntime(context, space) },
   dirsFor = { space -> spaceDirs(context, space) },
+  log = LogcatSpaceLifecycleLog,
 )
 
 /**

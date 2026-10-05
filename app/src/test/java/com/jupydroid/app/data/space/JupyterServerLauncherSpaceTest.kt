@@ -31,10 +31,17 @@ class JupyterServerLauncherSpaceTest {
   private val baseDir by lazy { spaceDirIn(spacesDir, "base").apply { mkdirs() } }
   private val nativeDir by lazy { FakeProotScript.installIn(tempFolder.newFolder("native")) }
   private val spaceOne = Space(id = "space-1", name = "One", kernels = emptyList())
-  private var launcher: JupyterServerLauncher? = null
 
+  /**
+   * Killed by pid rather than through `stop()`: nothing answers `api/shutdown` at the port these
+   * fakes report, so `stop()` would wait out its whole timeout. `JupyterServerLauncherStopTest`
+   * is what tests `stop()`.
+   */
   @After
-  fun stopTheServer() = runBlocking { launcher?.stop() ?: Unit }
+  fun killTheServer() {
+    File(spaceOneDir(), "run/pid").takeIf { it.isFile }?.readText()?.trim()?.toLong()
+      ?.let { pid -> ProcessHandle.of(pid).ifPresent { it.destroyForcibly() } }
+  }
 
   @Test
   fun start_connectsToTheServerTheSpaceItWasHandedReported() = runBlocking {
@@ -82,6 +89,6 @@ class JupyterServerLauncherSpaceTest {
       runtimeFor = { space -> SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir) },
       dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
       startTimeout = 10.seconds,
-    ).also { launcher = it }
+    )
   }
 }

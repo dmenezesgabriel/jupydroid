@@ -8,8 +8,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.security.SecureRandom
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -27,6 +31,12 @@ import kotlin.time.Duration.Companion.seconds
  * Every per-Space input - the environment, the runtime dir, the Contents API root - is derived
  * from the Space [start] is handed, so one launcher serves whichever Space it is asked for.
  *
+ * [stop] asks the server to stop with `POST api/shutdown`, JupyterLab's own stop
+ * (`jupyterlab@7f0e690 packages/mainmenu-extension/src/index.ts`, `CommandIDs.shutdown`). No signal
+ * can do it. The process is proot, which ignores SIGTERM (what `Process.destroy()` sends), and
+ * SIGKILL to proot orphans the server and kernel it traces. `TwoSpacesAtOnceDeviceTest` measures
+ * all three.
+ *
  * ```
  * spaceServerLauncher(context).start(space)
  * ```
@@ -36,9 +46,15 @@ class JupyterServerLauncher(
   /** Where a Space's server writes its runtime files and roots its Contents API. */
   private val dirsFor: (Space) -> SpaceDirs,
   private val startTimeout: Duration = START_TIMEOUT,
+  private val stopTimeout: Duration = STOP_TIMEOUT,
+  private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
+  private val client: OkHttpClient = OkHttpClient(),
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ServerLauncher {
   private var process: Process? = null
+
+  /** What the running server reported, so [stop] knows where to ask it to stop. */
+  private var connection: ServerConnection? = null
 
   /**
    * Fresh per launch. Loopback already keeps the server inside this app's sandbox, but
@@ -58,12 +74,27 @@ class JupyterServerLauncher(
       jupyterServerProcess(runtimeFor(space), dirs.runtime, dirs.inRoot(dirs.workspace), token).start()
     }
     process = started
-    return awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
+    val reported = awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
+    return reported.also { connection = it }
   }
 
+  /**
+   * Asks the server to stop and waits up to [stopTimeout] for its process to exit.
+   *
+   * A server that outlives the wait, or one that never reported a port to ask, is logged and kept
+   * rather than thrown about: [isRunning] stays true, which is what the process actually is, and
+   * the idle backstop that calls this runs on a scope with no handler to catch a throw.
+   */
   override suspend fun stop() {
-    process?.destroy()
+    val running = process?.takeIf { it.isAlive }
+    connection?.takeIf { running != null }?.let { postShutdown(it) }
+    if (running != null && !awaitExit(running)) {
+      val cause =
+        IllegalStateException("$running still alive $stopTimeout after api/shutdown; expected exit")
+      return log.failed(OUTLIVED_SHUTDOWN, cause)
+    }
     process = null
+    connection = null
   }
 
   override fun isRunning(): Boolean = process?.isAlive == true
@@ -73,6 +104,23 @@ class JupyterServerLauncher(
    * `128 + signal`, which is how a seccomp kill (SIGSYS, 159) shows up.
    */
   fun exitCode(): Int? = process?.takeIf { !it.isAlive }?.exitValue()
+
+  /**
+   * `POST api/shutdown` with the server's token. Its answer is not read, and a failure is not
+   * raised: a server that exits mid-answer has answered, and [awaitExit] is what decides.
+   */
+  private suspend fun postShutdown(server: ServerConnection) {
+    val request = Request.Builder()
+      .url(server.baseUrl + "api/shutdown")
+      .header("Authorization", "token ${server.token}")
+      .post(ByteArray(0).toRequestBody())
+      .build()
+    withContext(ioDispatcher) { runCatching { client.newCall(request).execute().close() } }
+  }
+
+  private suspend fun awaitExit(running: Process): Boolean = withContext(ioDispatcher) {
+    running.waitFor(stopTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+  }
 
   private suspend fun awaitConnection(runtimeDir: File): ServerConnection? = withTimeoutOrNull(startTimeout) {
     while (true) {
@@ -100,6 +148,13 @@ class JupyterServerLauncher(
   private companion object {
     const val TOKEN_BYTES = 32
     val START_TIMEOUT = 60.seconds
+
+    /**
+     * The whole tree went 772-991 ms after `api/shutdown` in `TwoSpacesAtOnceDeviceTest`, so ten
+     * times that is slack.
+     */
+    val STOP_TIMEOUT = 10.seconds
+    const val OUTLIVED_SHUTDOWN = "jupyter_server outlived api/shutdown"
     val POLL_INTERVAL = 100.milliseconds
     const val LOG_EXCERPT = 2000
   }

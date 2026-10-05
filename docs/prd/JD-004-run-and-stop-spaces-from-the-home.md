@@ -122,7 +122,8 @@ JupyterLab's favour (Open decisions).
 - **That is a defect in what ships today**, not only a JD-004 question. `JupyterServerLauncher.stop()`
   is `destroy()`, so the app-leave backstop never stops base's server. And `start()` begins with
   `stop()`, so every restart leaves the old server running beside the new one until the app dies
-  (`CLOSED-001` still holds for app death). That is fixed first, in T2, red test first.
+  (`CLOSED-001` still holds for app death). **Fixed by T2**: `stop()` posts `api/shutdown` and waits
+  for the exit. A server that outlives the wait is logged and kept, never signalled.
 - **A kernel's websocket upgrade can take longer than OkHttp's default 10 s read timeout.**
   jupyter_server answers the upgrade only after `kernel_info`, and waits for it up to
   `kernel_info_timeout` (60 s, jupyter_server 2.20.0 `services/kernels/connection/base.py`). A cold
@@ -149,7 +150,7 @@ JupyterLab's favour (Open decisions).
 - [x] T1 — Measure two Spaces' servers at once on SM-X216B, each with a kernel: distinct ports, each
   answering with its own token, the RSS of each, and which stop leaves no process under its root while
   the other still answers. This is a measurement only, so no flow
-- [ ] T2 — `JupyterServerLauncher.stop()` is `POST api/shutdown` and waits for the process to exit,
+- [x] T2 — `JupyterServerLauncher.stop()` is `POST api/shutdown` and waits for the process to exit,
   replacing `destroy()`, which proot ignores. Red first: a JVM test against `FakeJupyterServerScript`
   whose server ignores SIGTERM, and `TwoSpacesAtOnceDeviceTest` driving the launcher's own `stop()`
 - [ ] T3 — The kernel websocket's upgrade waits as long as jupyter_server's `kernel_info_timeout`, not

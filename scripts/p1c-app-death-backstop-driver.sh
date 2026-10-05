@@ -37,7 +37,8 @@ FIXTURE="$ROOT/.maestro/fixtures/p1c-backstop.ipynb"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-EVIDENCE="$ROOT/evidence/p1c-app-death-backstop"
+# Overridable, so a later step that re-proves the backstop keeps its own evidence and not this one.
+EVIDENCE="${EVIDENCE:-$ROOT/evidence/p1c-app-death-backstop}"
 mkdir -p "$EVIDENCE"
 SERVER_LOG_PATH="files/spaces/base/run/jupyter_server.log"
 NOTEBOOK="$NOTEBOOK_DIR/Backstop.ipynb"
