@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.port.SpaceRepository
+import com.jupydroid.app.domain.port.SpaceServers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,16 +19,19 @@ import kotlinx.coroutines.launch
  * @property busy an act is in flight; the panel shows progress and holds its act controls.
  * @property failure the last act's or listing's refusal, verbatim, or null.
  * @property progress the in-flight create's copy fraction - null while an act is indeterminate.
+ * @property running the ids of the Spaces whose server is alive, as [SpaceServers.running] has them.
  */
 data class SpacesPanelState(
   val spaces: List<SpaceConfig> = emptyList(),
   val busy: Boolean = false,
   val failure: String? = null,
   val progress: Float? = null,
+  val running: Set<String> = emptySet(),
 )
 
 /**
- * The Spaces panel's asks of [SpaceRepository]: list, create, rename and delete.
+ * The Spaces panel's asks of [SpaceRepository] - list, create, rename and delete - and of
+ * [SpaceServers]: run, stop, and which are running.
  *
  * **One act at a time.** [busy] is raised before the act launches, so a second tap in the same
  * frame is refused rather than racing the first - two creates would otherwise both read the same
@@ -38,16 +42,23 @@ data class SpacesPanelState(
  * **Every act re-lists, failed or not**: the scan is the source of truth (`DiskSpaceRepository`),
  * and a half-finished act on disk is only visible by reading it again.
  *
+ * **Running follows the port, not the panel's calls**, so a cell's lazy start of base and an idle
+ * server's self-stop reach the rows without a tap here.
+ *
  * ```
- * SpacesViewModel(appContainer.spaceRepository).create("Thesis")
+ * SpacesViewModel(appContainer.spaceRepository, appContainer.spaceServers).run("space-1")
  * ```
  */
-class SpacesViewModel(private val spaceRepository: SpaceRepository) : ViewModel() {
+class SpacesViewModel(private val spaceRepository: SpaceRepository, private val spaceServers: SpaceServers) :
+  ViewModel() {
   private val _uiState = MutableStateFlow(SpacesPanelState())
   val uiState: StateFlow<SpacesPanelState> = _uiState.asStateFlow()
 
   init {
     viewModelScope.launch { relist() }
+    viewModelScope.launch {
+      spaceServers.running.collect { ids -> _uiState.update { it.copy(running = ids) } }
+    }
   }
 
   /** Makes a Space called [name]; the port mints its id and reports the image copy's fraction. */
@@ -60,8 +71,24 @@ class SpacesViewModel(private val spaceRepository: SpaceRepository) : ViewModel(
   /** Renames the Space [id] to [name]; its directory keeps the id. */
   fun rename(id: String, name: String) = act { spaceRepository.rename(id, name) }
 
-  /** Removes the Space [id] and everything in it. The port refuses base. */
-  fun delete(id: String) = act { spaceRepository.delete(id) }
+  /** Starts the Space [id]'s server; the act lasts until it serves. */
+  fun run(id: String) = act { spaceServers.run(id) }
+
+  /** Stops the Space [id]'s server, keeping its files. */
+  fun stop(id: String) = act { spaceServers.stop(id) }
+
+  /**
+   * Stops the Space [id], then removes it and everything in it. The port refuses base. A server
+   * that outlives its stop - `JupyterServerLauncher` keeps one rather than signal it - keeps its
+   * files too, since deleting them would pull the tree out from under a live process.
+   */
+  fun delete(id: String) = act {
+    spaceServers.stop(id)
+    check(id !in spaceServers.running.value) {
+      "Space '$id' is still running after Stop; expected it stopped before delete"
+    }
+    spaceRepository.delete(id)
+  }
 
   private fun act(change: suspend () -> Unit) {
     if (_uiState.value.busy) return

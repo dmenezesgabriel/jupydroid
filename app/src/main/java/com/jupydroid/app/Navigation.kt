@@ -338,7 +338,11 @@ fun MainNavigation(
       entryProvider = entryProvider {
         // No pane metadata, so the scene strategy declines it and the home takes the whole window.
         entry<SpacesHome> {
-          SpacesHomeScreen(spaceRepository = appContainer.spaceRepository, onOpen = backStack::enterWorkspace)
+          SpacesHomeScreen(
+            spaceRepository = appContainer.spaceRepository,
+            spaceServers = appContainer.spaceServers,
+            onOpen = backStack::enterWorkspace,
+          )
         }
         entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
           ShellSidePane(

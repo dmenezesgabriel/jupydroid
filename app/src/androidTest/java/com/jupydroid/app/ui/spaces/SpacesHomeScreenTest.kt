@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeSpaceRepository
+import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.defaultSpaceConfig
@@ -37,7 +38,8 @@ import java.time.Instant
 /**
  * The Spaces home: every Space, base first, each named over its id and age, with a bar while an
  * act runs and the port's own refusal when one fails; a Space made and renamed by name, deleted
- * only after asking, base's name and existence locked, and only base open to enter.
+ * only after asking, base's name and existence locked, and only base open to enter. Every row reads
+ * Running or Stopped and offers the one of Run and Stop that applies.
  *
  * What the ViewModel decides - order, one act at a time, re-listing - is `SpacesViewModelTest`'s.
  * This holds what only a composition can: that the rows, the bar and the refusal reach the screen.
@@ -245,13 +247,65 @@ class SpacesHomeScreenTest {
     compose.onNodeWithText(BASE_SPACE.name).assertIsDisplayed()
   }
 
+  @Test
+  fun everyRowReadsStoppedOnAColdStart() {
+    show(FakeSpaceRepository(listOf(base, thesis)))
+
+    compose.onAllNodesWithText(STOPPED).assertCountEquals(2)
+    compose.onNodeWithContentDescription(runBase).assertIsDisplayed()
+    compose.onNodeWithContentDescription("Run $THESIS (space-1)").assertIsDisplayed()
+  }
+
+  @Test
+  fun runFlipsTheRowToRunningAndOffersStop() {
+    show(FakeSpaceRepository(listOf(base, thesis)))
+
+    compose.onNodeWithContentDescription(runBase).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText(RUNNING).fetchSemanticsNodes().size == 1 }
+    compose.onNodeWithContentDescription(stopBase).assertIsDisplayed()
+    compose.onNodeWithContentDescription("Run $THESIS (space-1)").assertIsDisplayed()
+  }
+
+  @Test
+  fun stopFlipsTheRowBackToStopped() {
+    val servers = FakeSpaceServers()
+    runBlocking { servers.run(BASE_SPACE.id) }
+    show(FakeSpaceRepository(), servers)
+
+    compose.onNodeWithContentDescription(stopBase).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText(STOPPED).fetchSemanticsNodes().size == 1 }
+    compose.onNodeWithContentDescription(runBase).assertIsDisplayed()
+  }
+
+  /** Run is an act like the rest, and a server takes seconds to boot - so it is held with them. */
+  @Test
+  fun runIsHeldWhileAnActRuns() {
+    val gated = GatedSpaceRepository(FakeSpaceRepository())
+    val model = show(gated)
+
+    compose.runOnIdle { model.create(THESIS) }
+
+    compose.onNodeWithContentDescription(runBase).assertIsNotEnabled()
+    gated.release.complete(Unit)
+    compose.waitUntil(TIMEOUT_MILLIS) { !model.uiState.value.busy }
+    compose.onNodeWithContentDescription(runBase).assertIsEnabled()
+  }
+
   /** The dialog's button, not its title - both say "Delete" (`ExplorerScreenTest.confirmDelete`). */
   private fun confirmDelete() = compose.onAllNodesWithText("Delete").filterToOne(hasClickAction()).performClick()
 
-  private fun show(repository: SpaceRepository, onOpen: () -> Unit = {}): SpacesViewModel {
-    val model = SpacesViewModel(repository)
+  private fun show(
+    repository: SpaceRepository,
+    servers: FakeSpaceServers = FakeSpaceServers(),
+    onOpen: () -> Unit = {},
+  ): SpacesViewModel {
+    val model = SpacesViewModel(repository, servers)
     compose.setContent {
-      JupyterDroidTheme { SpacesHomeScreen(spaceRepository = repository, onOpen = onOpen, viewModel = model) }
+      JupyterDroidTheme {
+        SpacesHomeScreen(spaceRepository = repository, spaceServers = servers, onOpen = onOpen, viewModel = model)
+      }
     }
     compose.waitUntil(TIMEOUT_MILLIS) { model.uiState.value.spaces.isNotEmpty() }
     return model
@@ -260,6 +314,8 @@ class SpacesHomeScreenTest {
   private companion object {
     const val THESIS = "Thesis"
     val openBase = "Open ${BASE_SPACE.name} (${BASE_SPACE.id})"
+    val runBase = "Run ${BASE_SPACE.name} (${BASE_SPACE.id})"
+    val stopBase = "Stop ${BASE_SPACE.name} (${BASE_SPACE.id})"
     const val TIMEOUT_MILLIS = 5_000L
     val base: SpaceConfig = defaultSpaceConfig(BASE_SPACE.id, Instant.EPOCH)
     val thesis = SpaceConfig(id = "space-1", name = THESIS, created = Instant.EPOCH)

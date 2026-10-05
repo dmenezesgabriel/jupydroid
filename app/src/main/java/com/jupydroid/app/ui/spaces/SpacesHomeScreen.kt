@@ -36,6 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.port.SpaceRepository
+import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.RenameFileDialog
@@ -44,7 +45,11 @@ import java.time.Instant
 
 /**
  * The app's first screen: every Space on the device, base first, each row its name over
- * `id · created` and an **Open** that enters it. Only base opens until a second Space can run.
+ * `id · created` and an **Open** that enters it. Only base opens until a second Space can be entered.
+ *
+ * **Every row reads Running or Stopped, and offers Run or Stop**: SageMaker Studio's shape, where
+ * several spaces run at once and each is run and stopped by its own control (ADR-0074). The state
+ * is the port's ([SpaceServers.running]), so a server that stopped itself when idle reads Stopped.
  *
  * **Progress is a bar across the screen's top, not a modal**, which is VS Code's choice for its
  * profiles over Winlator's full-screen preloader: an inline bar leaves the list readable while an
@@ -70,16 +75,17 @@ import java.time.Instant
  * the port refuses it anyway (`requireDeletableSpace`).
  *
  * ```
- * SpacesHomeScreen(spaceRepository = appContainer.spaceRepository, onOpen = backStack::enterWorkspace)
+ * SpacesHomeScreen(appContainer.spaceRepository, appContainer.spaceServers, onOpen = backStack::enterWorkspace)
  * ```
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpacesHomeScreen(
   spaceRepository: SpaceRepository,
+  spaceServers: SpaceServers,
   onOpen: () -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: SpacesViewModel = viewModel { SpacesViewModel(spaceRepository) },
+  viewModel: SpacesViewModel = viewModel { SpacesViewModel(spaceRepository, spaceServers) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   var creating by remember { mutableStateOf(false) }
@@ -115,8 +121,15 @@ fun SpacesHomeScreen(
       state.failure?.let { SpacesFailure(it) }
       SpaceRows(
         state.spaces,
+        state.running,
         actsEnabled = !state.busy,
-        SpaceRowActs(onOpen = onOpen, onRename = { renaming = it }, onDelete = { deleting = it }),
+        SpaceRowActs(
+          onOpen = onOpen,
+          onRun = { viewModel.run(it.id) },
+          onStop = { viewModel.stop(it.id) },
+          onRename = { renaming = it },
+          onDelete = { deleting = it },
+        ),
       )
     }
   }
@@ -169,18 +182,20 @@ private fun SpaceNameDialog(
   )
 }
 
-/** What a row's controls do, held together so a row takes one parameter for all three. */
+/** What a row's controls do, held together so a row takes one parameter for all of them. */
 private class SpaceRowActs(
   val onOpen: () -> Unit,
+  val onRun: (SpaceConfig) -> Unit,
+  val onStop: (SpaceConfig) -> Unit,
   val onRename: (SpaceConfig) -> Unit,
   val onDelete: (SpaceConfig) -> Unit,
 )
 
 /** The rows, aged against one `now` per listing, the way the explorer's rows are. */
 @Composable
-private fun SpaceRows(spaces: List<SpaceConfig>, actsEnabled: Boolean, acts: SpaceRowActs) {
+private fun SpaceRows(spaces: List<SpaceConfig>, running: Set<String>, actsEnabled: Boolean, acts: SpaceRowActs) {
   val now = remember(spaces) { Instant.now() }
-  spaces.forEach { space -> SpaceRow(space, now, actsEnabled, acts) }
+  spaces.forEach { space -> SpaceRow(space, now, space.id in running, actsEnabled, acts) }
 }
 
 /**
@@ -190,7 +205,7 @@ private fun SpaceRows(spaces: List<SpaceConfig>, actsEnabled: Boolean, acts: Spa
  * (ADR-0074).
  */
 @Composable
-private fun SpaceRow(space: SpaceConfig, now: Instant, actsEnabled: Boolean, acts: SpaceRowActs) {
+private fun SpaceRow(space: SpaceConfig, now: Instant, isRunning: Boolean, actsEnabled: Boolean, acts: SpaceRowActs) {
   val isBase = space.id == BASE_SPACE.id
   val onRename = { acts.onRename(space) }.takeUnless { isBase }
   val onDelete = { acts.onDelete(space) }.takeUnless { isBase }
@@ -198,7 +213,8 @@ private fun SpaceRow(space: SpaceConfig, now: Instant, actsEnabled: Boolean, act
     modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    SpaceRowText(space, now, Modifier.weight(1f))
+    SpaceRowText(space, now, isRunning, Modifier.weight(1f))
+    RunOrStopButton(space, isRunning, actsEnabled, acts)
     TextButton(
       onClick = acts.onOpen,
       // Base is the one Space that runs today, so it is the one that can be entered.
@@ -221,8 +237,21 @@ private fun SpaceRow(space: SpaceConfig, now: Instant, actsEnabled: Boolean, act
   }
 }
 
+/** The one of Run and Stop that applies; named with the id, as Open is, so same-named rows differ. */
 @Composable
-private fun SpaceRowText(space: SpaceConfig, now: Instant, modifier: Modifier) {
+private fun RunOrStopButton(space: SpaceConfig, isRunning: Boolean, actsEnabled: Boolean, acts: SpaceRowActs) {
+  val label = if (isRunning) "Stop" else "Run"
+  TextButton(
+    onClick = { if (isRunning) acts.onStop(space) else acts.onRun(space) },
+    enabled = actsEnabled,
+    modifier = Modifier.semantics { contentDescription = "$label ${space.name} (${space.id})" },
+  ) {
+    Text(label)
+  }
+}
+
+@Composable
+private fun SpaceRowText(space: SpaceConfig, now: Instant, isRunning: Boolean, modifier: Modifier) {
   // One accessible item, so a row reads as "Thesis, space-1 · just now" rather than two nodes.
   // The act buttons stay outside it, each a control of its own.
   Column(
@@ -240,6 +269,12 @@ private fun SpaceRowText(space: SpaceConfig, now: Instant, modifier: Modifier) {
       text = "${space.id} · ${relativeTime(space.created, now)}",
       style = MaterialTheme.typography.bodySmall,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    // A line of its own rather than a third field on the id's: it is the one that changes.
+    Text(
+      text = if (isRunning) RUNNING else STOPPED,
+      style = MaterialTheme.typography.labelMedium,
+      color = if (isRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
     )
   }
 }
@@ -263,3 +298,9 @@ internal const val NEW_SPACE = "New Space"
 
 /** The bar's accessible name: a progress indicator carries no text of its own to find it by. */
 internal const val SPACES_BUSY = "Working on Spaces"
+
+/** A row's state while its Space's server is alive. */
+internal const val RUNNING = "Running"
+
+/** A row's state while it is not. */
+internal const val STOPPED = "Stopped"
