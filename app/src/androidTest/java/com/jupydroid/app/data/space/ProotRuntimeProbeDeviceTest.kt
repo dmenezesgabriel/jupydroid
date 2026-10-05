@@ -132,9 +132,9 @@ class ProotRuntimeProbeDeviceTest {
       File(root.dir, IN_ROOT_HOME.removePrefix("/")).mkdirs()
       runBlocking { SpaceKernelSpec.install(root.dir, File("/usr/bin/python3")) }
       val begin = TimeSource.Monotonic.markNow()
-      process = ProcessBuilder(root.prootCommand(listOf("/usr/bin/python3") + serverArgs()))
+      process = ProcessBuilder(root.proot.argv(listOf("/usr/bin/python3") + serverArgs()))
         .apply { environment().clear() }
-        .apply { environment().putAll(root.prootEnvironment() + inRootEnvironment()) }
+        .apply { environment().putAll(root.proot.environment() + inRootEnvironment()) }
         .redirectErrorStream(true)
         .redirectOutput(jupyterServerLogFile(hostRuntimeDir))
         .start()

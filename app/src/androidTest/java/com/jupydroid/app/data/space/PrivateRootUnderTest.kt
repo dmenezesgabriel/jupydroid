@@ -16,14 +16,17 @@ import kotlin.time.TimeSource
  * ```
  * val root = PrivateRootUnderTest(context, "isolation-private-root")
  * root.extract(); root.prepareForProot()
- * ProcessBuilder(root.prootCommand(listOf("/bin/sh", "-c", "true")))
+ * ProcessBuilder(root.proot.argv(listOf("/bin/sh", "-c", "true")))
  * ```
  */
 class PrivateRootUnderTest(private val context: Context, name: String) {
   val dir: File = File(spacesDir(context), name)
   val nativeDir: String = context.applicationInfo.nativeLibraryDir
 
-  val hasProot: Boolean get() = File(nativeDir, PROOT).exists()
+  /** How every process in [dir] is launched: the shipped command line, not a copy of it. */
+  val proot = ProotCommand(File(nativeDir), dir)
+
+  val hasProot: Boolean get() = File(nativeDir, ProotCommand.PROOT).exists()
 
   /** Fresh for every caller that asks, so nothing reads what an earlier run installed. */
   fun extract() {
@@ -42,29 +45,15 @@ class PrivateRootUnderTest(private val context: Context, name: String) {
   }
 
   /**
-   * The environment proot itself reads. `PROOT_LOADER` names the loader carved out beside it,
-   * because unset proot writes its embedded one under `PROOT_TMP_DIR` - `filesDir` - and execs it
-   * there, which targetSdk 36 refuses.
-   */
-  fun prootEnvironment(): Map<String, String> = mapOf(
-    "PROOT_LOADER" to File(nativeDir, PROOT_LOADER).path,
-    "PROOT_TMP_DIR" to File(dir, "tmp").path,
-  )
-
-  /** [command] run with [dir] as `/` and uid 0, `/dev` and `/proc` bound through. */
-  fun prootCommand(command: List<String>): List<String> =
-    listOf(File(nativeDir, PROOT).path, "-r", dir.path, "-0", "-w", "/", "-b", "/dev", "-b", "/proc") + command
-
-  /**
    * The same launch as a shell string, to be run from inside [nativeDir]: its path holds `==`,
    * which `env` reads as an assignment. `env -i`, because base's preloads are absolute paths proot
    * would translate into the private root, where they are not.
    */
   fun prootShellPrefix(timeoutSeconds: Int): String {
-    val environment = prootEnvironment() + mapOf("PATH" to IN_ROOT_PATH, "HOME" to "/root")
+    val environment = proot.environment() + mapOf("PATH" to IN_ROOT_PATH, "HOME" to "/root")
     val assignments = environment.entries.joinToString(" ") { "${it.key}=${it.value}" }
-    val args = prootCommand(emptyList()).drop(1).joinToString(" ")
-    return "timeout $timeoutSeconds env -i $assignments ./$PROOT $args"
+    val args = proot.argv(emptyList()).drop(1).joinToString(" ")
+    return "timeout $timeoutSeconds env -i $assignments ./${ProotCommand.PROOT} $args"
   }
 
   /** 407 MB a copy: not left behind for the next test, or on the device. */
@@ -75,8 +64,6 @@ class PrivateRootUnderTest(private val context: Context, name: String) {
   companion object {
     const val PROBE_TAG = "JupydroidIsolation"
     const val IN_ROOT_PATH = "/usr/sbin:/usr/bin:/sbin:/bin"
-    private const val PROOT = "libproot.so"
-    private const val PROOT_LOADER = "libproot-loader.so"
     private const val PUBLIC_DNS = "1.1.1.1"
   }
 }
