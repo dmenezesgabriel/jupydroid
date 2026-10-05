@@ -7,9 +7,11 @@ arc42 §6. How the parts in [building-blocks.md](building-blocks.md) behave whil
 Navigation3 (`androidx.navigation3`), not Jetpack Navigation. It lives at the root package because it
 wires `ui/` screens together and belongs to none of them.
 
-**Four destinations, and there is no Home.** `Explorer`, `FileEditor`, `Editor`, `Terminal`, declared
-as entries in `Navigation.kt`. The explorer is the first screen; the notebook-list Home it replaced
-was removed, and Recents became a section of the explorer.
+**The Spaces home is the first screen, and the explorer is the workspace's root.** The destinations are
+declared as entries in `Navigation.kt`. `SpacesHome` lists every Space, and its Open pushes `Explorer`
+([ADR-0074](../adr/0074-the-app-opens-on-a-spaces-home.md)). Back from the workspace's root returns to
+the home. The notebook-list Home that the explorer replaced was removed, and Recents became a section
+of the explorer.
 
 **One opener, not one per screen.** `rememberDocumentOpener` sends a `.ipynb` to the notebook editor
 and anything else to the plain one, and records the recent. That is JupyterLab's own split — a single

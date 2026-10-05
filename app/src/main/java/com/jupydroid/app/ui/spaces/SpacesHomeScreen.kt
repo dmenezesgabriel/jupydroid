@@ -179,7 +179,8 @@ private fun SpaceRows(spaces: List<SpaceConfig>, actsEnabled: Boolean, acts: Spa
 /**
  * One Space: its name, and under it the id and age. The id is shown because names may repeat
  * (`SpaceRepositoryContract.twoSpacesMayShareAName`) and the id is what tells two such rows apart.
- * Base draws no rename or delete control at all.
+ * Base draws no rename or delete control at all: its directory is the rootfs every Space reads
+ * (ADR-0074).
  */
 @Composable
 private fun SpaceRow(space: SpaceConfig, now: Instant, actsEnabled: Boolean, acts: SpaceRowActs) {

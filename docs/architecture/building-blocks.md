@@ -59,7 +59,7 @@ which is checkable.
 | `glob`, `html`, `import`, `markdown`, `syntax`, `terminal` | **document and language logic** — a glob pattern as the regex it denotes, parsing HTML into blocks, an import's title, commonmark, the ANTLR lexer, and the VT screen a shell writes into | **pure JVM, zero `android.*`.** Not `domain/`, because they model *documents and languages* rather than this app's domain; not `data/`, because they implement no port. Every test for them is a plain JVM test |
 | `richtext` | **mixed on purpose**: `RichBlock` is the model, `RichInlineString` renders it | the split is the point — the model is testable without Compose, and only the renderer imports it |
 | `theme` | Compose design tokens on VS Code's resolved Dark/Light palette (`ColorRamp.kt`) | Compose throughout; `EditorPaletteTest` pins its contrast ratios |
-| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, the four `NavKey`s | the app shell and its navigation | see [runtime-views.md §6.1](runtime-views.md) |
+| root — `JupydroidApplication`, `MainActivity`, `Navigation`, `PaneDirective`, `NotebookBackStack`, `SidePanel`, `DocumentOutline`, `SpacesHome` and the other `NavKey`s | the app shell and its navigation | see [runtime-views.md §6.1](runtime-views.md) |
 
 **The practical test for a new file:** if it needs Compose it belongs in `ui/` or `theme/`; if it
 implements a port it belongs in `data/`; if it is one of the app's own nouns it belongs in `domain/`;
