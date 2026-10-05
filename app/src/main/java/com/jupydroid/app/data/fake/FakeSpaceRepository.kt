@@ -28,9 +28,12 @@ class FakeSpaceRepository(initial: List<SpaceConfig> = listOf(defaultSpaceConfig
 
   override suspend fun spaces(): List<SpaceConfig> = spaces.value.inSpaceOrder()
 
-  override suspend fun create(name: String): SpaceConfig {
+  override suspend fun create(name: String, onProgress: suspend (Float) -> Unit): SpaceConfig {
     val created = SpaceConfig(id = spaces.value.nextSpaceId(), name = name, created = Instant.now())
     spaces.value = spaces.value + created
+    // The fake's copy is instant, so the port's contract leaves it a single emission: `1f`,
+    // said only once the Space is listed - the same edge the disk one reports at.
+    onProgress(1f)
     return created
   }
 

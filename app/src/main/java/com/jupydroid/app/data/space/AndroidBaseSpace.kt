@@ -19,6 +19,17 @@ fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpace
   baseDir = baseSpaceDir(context),
 )
 
+/**
+ * The bundled image a create copies into a new Space, wired to the app's assets.
+ *
+ * [deviceAbi] is resolved inside the lambda rather than here, so on an ABI with no rootfs
+ * (x86_64) the refusal lands when a Space is *created* - as the act's on-screen failure - and
+ * not while the composition root is being built.
+ */
+fun spaceImageInstaller(context: Context): SpaceImageInstaller = SpaceImageInstaller(
+  archive = ArchiveSource { context.assets.open("spaces/base/rootfs-${deviceAbi().androidAbi}.tzst") },
+)
+
 fun baseSpaceDir(context: Context): File = spaceDirIn(spacesDir(context), BASE_SPACE.id)
 
 /**

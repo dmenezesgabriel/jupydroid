@@ -36,6 +36,7 @@ import com.jupydroid.app.data.space.baseSpaceNotebookExporter
 import com.jupydroid.app.data.space.baseSpaceServer
 import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
+import com.jupydroid.app.data.space.spaceImageInstaller
 import com.jupydroid.app.data.space.spaceServerLauncher
 import com.jupydroid.app.data.space.spacesDir
 import com.jupydroid.app.di.AppContainer
@@ -118,8 +119,9 @@ class JupydroidApplication : Application() {
       // any other means can still be sent.
       documentSharer = IntentDocumentSharer(this, workspace),
       serverLauncher = serverLauncher,
-      // Always real, like the searcher: listing and editing Space records needs only `filesDir`.
-      spaceRepository = DiskSpaceRepository(spacesDir(this)),
+      // Always real, like the searcher: listing and editing Space records needs only `filesDir`,
+      // and a create copies the bundled image into the new Space's own directory.
+      spaceRepository = DiskSpaceRepository(spacesDir(this), spaceImageInstaller(this)),
       // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
       // state, not a Contents API file.
       editorSettings = DiskEditorSettingsRepository(filesDir),

@@ -1,9 +1,6 @@
 package com.jupydroid.app.data.space
 
 import kotlinx.coroutines.test.runTest
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
-import org.apache.commons.compress.compressors.zstandard.ZstdCompressorOutputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,8 +8,9 @@ import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.ByteArrayOutputStream
+import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.InputStream
 import java.nio.file.Files
 
 class TarZstdExtractorTest {
@@ -127,45 +125,46 @@ class TarZstdExtractorTest {
     }
   }
 
+  /**
+   * The fraction reported is of the *compressed* stream consumed: it is the one denominator the
+   * archive answers for free, so progress needs no second pass over it.
+   */
+  @Test
+  fun extract_reportsARisingFractionOfTheArchiveConsumed() = runTest {
+    val archive = tarZst {
+      file("usr/bin/a", "aaa")
+      file("usr/bin/b", "bbb")
+      file("usr/bin/c", "ccc")
+    }
+    val fractions = mutableListOf<Float>()
+
+    extractor.extract({ archive.inputStream() }, tempFolder.newFolder("rootfs")) { fractions += it }
+
+    assertTrue("expected at least one progress emission", fractions.isNotEmpty())
+    assertTrue("fractions out of [0,1]: $fractions", fractions.all { it in 0f..1f })
+    assertEquals("fractions must not decrease", fractions.sorted(), fractions)
+  }
+
+  /** A stream that cannot say its own length still extracts; it just has nothing to divide by. */
+  @Test
+  fun extract_reportsNoFractionWhenTheArchiveLengthIsUnknown() = runTest {
+    val archive = tarZst { file("usr/bin/a", "aaa") }
+    val lengthless: ArchiveSource = ArchiveSource {
+      object : InputStream() {
+        private val delegate = ByteArrayInputStream(archive)
+        override fun read(): Int = delegate.read()
+        override fun read(b: ByteArray, off: Int, len: Int): Int = delegate.read(b, off, len)
+        override fun available(): Int = 0
+      }
+    }
+    val fractions = mutableListOf<Float>()
+    val target = tempFolder.newFolder("rootfs")
+
+    extractor.extract(lengthless, target) { fractions += it }
+
+    assertEquals("aaa", File(target, "usr/bin/a").readText())
+    assertTrue("expected no emissions, got $fractions", fractions.isEmpty())
+  }
+
   private fun File.isSymlink(): Boolean = Files.isSymbolicLink(toPath())
-
-  private fun tarZst(build: TarBuilder.() -> Unit): ByteArray {
-    val bytes = ByteArrayOutputStream()
-    TarArchiveOutputStream(ZstdCompressorOutputStream(bytes)).use { tar ->
-      tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
-      TarBuilder(tar).build()
-    }
-    return bytes.toByteArray()
-  }
-
-  private class TarBuilder(private val tar: TarArchiveOutputStream) {
-    fun directory(name: String) {
-      tar.putArchiveEntry(TarArchiveEntry("$name/"))
-      tar.closeArchiveEntry()
-    }
-
-    fun file(name: String, content: String, mode: Int = TarArchiveEntry.DEFAULT_FILE_MODE) {
-      val entry = TarArchiveEntry(name)
-      entry.mode = mode
-      entry.size = content.toByteArray().size.toLong()
-      tar.putArchiveEntry(entry)
-      tar.write(content.toByteArray())
-      tar.closeArchiveEntry()
-    }
-
-    fun symlink(name: String, target: String) {
-      val entry = TarArchiveEntry(name, TarArchiveEntry.LF_SYMLINK)
-      entry.linkName = target
-      tar.putArchiveEntry(entry)
-      tar.closeArchiveEntry()
-    }
-
-    fun hardlink(name: String, target: String, mode: Int = TarArchiveEntry.DEFAULT_FILE_MODE) {
-      val entry = TarArchiveEntry(name, TarArchiveEntry.LF_LINK)
-      entry.mode = mode
-      entry.linkName = target
-      tar.putArchiveEntry(entry)
-      tar.closeArchiveEntry()
-    }
-  }
 }

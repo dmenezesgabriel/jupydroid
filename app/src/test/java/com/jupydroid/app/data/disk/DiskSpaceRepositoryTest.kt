@@ -1,6 +1,8 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.data.space.SpaceImageInstaller
 import com.jupydroid.app.data.space.spaceDirIn
+import com.jupydroid.app.data.space.tarZst
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
 import com.jupydroid.app.domain.port.SpaceRepository
@@ -32,7 +34,11 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
     return openStore()
   }
 
-  private fun openStore() = DiskSpaceRepository(spacesDir, clock = Clock.fixed(CREATED, ZoneOffset.UTC))
+  private fun openStore(image: ByteArray = IMAGE) = DiskSpaceRepository(
+    spacesDir,
+    SpaceImageInstaller(archive = { image.inputStream() }),
+    clock = Clock.fixed(CREATED, ZoneOffset.UTC),
+  )
 
   @Test
   fun survivesTheNextLaunch() = runTest {
@@ -43,16 +49,61 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
     assertEquals(created, reopened)
   }
 
-  /** A Space is a directory with a config beside its contents, so the write lands inside it. */
+  /**
+   * A Space's own record lands inside its directory - beside the copied image, which is the rest
+   * of what a create puts there.
+   */
   @Test
   fun createWritesTheConfigInsideTheNewDirectoryAndNothingBeside() = runTest {
     val created = repository().create("Thesis")
 
-    assertEquals(
-      listOf(SPACE_CONFIG_FILE_NAME),
-      spaceDirIn(spacesDir, created.id).list()?.toList(),
-    )
+    val directory = spaceDirIn(spacesDir, created.id)
+    assertTrue(File(directory, SPACE_CONFIG_FILE_NAME).isFile)
+    assertTrue("the image was not copied", File(directory, "usr/bin/python3").isFile)
     assertEquals(setOf(BASE_SPACE.id, created.id), spacesDir.list()?.toSet())
+  }
+
+  /** The copy is staged under a dot name and renamed into place, so a half copy is never listed. */
+  @Test
+  fun aSpaceUnderConstructionIsInvisibleToTheScan() = runTest {
+    val repository = repository()
+    val sightings = mutableListOf<Boolean>()
+
+    repository.create("Thesis") { sightings += repository.spaces().any { it.id == "space-1" } }
+
+    assertTrue(sightings.isNotEmpty())
+    assertFalse("a staging directory was listed as a Space", sightings.dropLast(1).any { it })
+    assertTrue("the finished Space must be listed at 1f", sightings.last())
+  }
+
+  /** An interrupted copy leaves only the staging directory - and the listing never shows it. */
+  @Test
+  fun aFailedCopyLeavesNothingListedAndSweepsItsStaging() = runTest {
+    repository()
+    val brokenStore = openStore(image = IMAGE.copyOf(16))
+
+    val refusal = runCatching { brokenStore.create("Thesis") }.exceptionOrNull()
+
+    assertTrue("expected the broken archive to refuse", refusal != null)
+    assertEquals(listOf(BASE_SPACE.id), brokenStore.spaces().map { it.id })
+    assertEquals(
+      "staging must not linger: ${spacesDir.list()?.toList()}",
+      listOf(BASE_SPACE.id),
+      spacesDir.list()?.toList(),
+    )
+  }
+
+  /** Termux's rule: a leftover staging directory is a killed create's, cleared before the next. */
+  @Test
+  fun aKilledCreatesStagingDirectoryIsSweptOnTheNextCreate() = runTest {
+    val repository = repository()
+    val leftover = File(spacesDir, ".installing").apply { mkdirs() }
+    File(leftover, "half").writeText("a killed copy")
+
+    repository.create("Thesis")
+
+    assertFalse("staging must not survive a successful create", leftover.exists())
+    assertEquals("elf", File(spaceDirIn(spacesDir, "space-1"), "usr/bin/python3").readText())
   }
 
   /**
@@ -178,5 +229,11 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
   private companion object {
     /** Fixed, so `created` is an assertion rather than a race with the clock. */
     val CREATED: Instant = Instant.parse("2026-09-28T12:00:00Z")
+
+    /** The smallest "rootfs" that still proves a copy happened: one file plus a directory. */
+    val IMAGE: ByteArray = tarZst {
+      directory("usr/bin")
+      file("usr/bin/python3", "elf")
+    }
   }
 }

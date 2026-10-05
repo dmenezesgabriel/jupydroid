@@ -1,11 +1,13 @@
 package com.jupydroid.app.ui.spaces
 
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -77,6 +79,22 @@ class SpacesHomeScreenTest {
       compose.onAllNodesWithContentDescription(SPACES_BUSY).fetchSemanticsNodes().isEmpty()
     }
     compose.onNodeWithText(THESIS).assertIsDisplayed()
+  }
+
+  /**
+   * A create is a ~14 s image copy, so its bar is determinate: the semantics carry the port's
+   * fraction, which is what a flow can now catch that the old record-only create never drew.
+   */
+  @Test
+  fun theBarShowsTheCopysFraction() {
+    val copying = CopyingSpaceRepository(FakeSpaceRepository())
+    val model = show(copying)
+
+    compose.runOnIdle { model.create(THESIS) }
+
+    compose.onNode(hasProgressBarRangeInfo(ProgressBarRangeInfo(0.5f, 0f..1f))).assertIsDisplayed()
+    copying.release.complete(Unit)
+    compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText(THESIS).fetchSemanticsNodes().isNotEmpty() }
   }
 
   /** The port's message verbatim - it names the id at fault, which a generic "failed" would not. */
@@ -252,13 +270,24 @@ class SpacesHomeScreenTest {
 private class GatedSpaceRepository(private val fake: SpaceRepository) : SpaceRepository by fake {
   val release = CompletableDeferred<Unit>()
 
-  override suspend fun create(name: String): SpaceConfig {
+  override suspend fun create(name: String, onProgress: suspend (Float) -> Unit): SpaceConfig {
     release.await()
-    return fake.create(name)
+    return fake.create(name, onProgress)
   }
 
   override suspend fun delete(id: String) {
     release.await()
     fake.delete(id)
+  }
+}
+
+/** Reports a half-done copy, then holds until [release] - a create caught mid-copy. */
+private class CopyingSpaceRepository(private val fake: SpaceRepository) : SpaceRepository by fake {
+  val release = CompletableDeferred<Unit>()
+
+  override suspend fun create(name: String, onProgress: suspend (Float) -> Unit): SpaceConfig {
+    onProgress(0.5f)
+    release.await()
+    return fake.create(name, onProgress)
   }
 }

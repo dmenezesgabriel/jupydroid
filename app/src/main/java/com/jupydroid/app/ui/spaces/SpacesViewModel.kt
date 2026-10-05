@@ -17,11 +17,13 @@ import kotlinx.coroutines.launch
  * @property spaces every Space on the device, in the port's own order - base first.
  * @property busy an act is in flight; the panel shows progress and holds its act controls.
  * @property failure the last act's or listing's refusal, verbatim, or null.
+ * @property progress the in-flight create's copy fraction - null while an act is indeterminate.
  */
 data class SpacesPanelState(
   val spaces: List<SpaceConfig> = emptyList(),
   val busy: Boolean = false,
   val failure: String? = null,
+  val progress: Float? = null,
 )
 
 /**
@@ -48,8 +50,12 @@ class SpacesViewModel(private val spaceRepository: SpaceRepository) : ViewModel(
     viewModelScope.launch { relist() }
   }
 
-  /** Makes a Space called [name]; the port mints its id. */
-  fun create(name: String) = act { spaceRepository.create(name) }
+  /** Makes a Space called [name]; the port mints its id and reports the image copy's fraction. */
+  fun create(name: String) = act {
+    spaceRepository.create(name) { fraction ->
+      _uiState.update { it.copy(progress = fraction) }
+    }
+  }
 
   /** Renames the Space [id] to [name]; its directory keeps the id. */
   fun rename(id: String, name: String) = act { spaceRepository.rename(id, name) }
@@ -63,7 +69,7 @@ class SpacesViewModel(private val spaceRepository: SpaceRepository) : ViewModel(
     viewModelScope.launch {
       reportingFailure { change() }
       relist()
-      _uiState.update { it.copy(busy = false) }
+      _uiState.update { it.copy(busy = false, progress = null) }
     }
   }
 

@@ -32,19 +32,31 @@ fun interface ArchiveSource {
  * ```
  */
 class TarZstdExtractor(private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO) {
-  /** Returns the number of entries written. */
-  suspend fun extract(source: ArchiveSource, targetDir: File): Int = withContext(ioDispatcher) {
-    targetDir.mkdirs()
-    val root = targetDir.canonicalFile
-    var written = 0
-    TarArchiveInputStream(ZstdCompressorInputStream(source.open().buffered())).use { tar ->
-      while (true) {
-        val entry = tar.nextEntry ?: break
-        if (writeEntry(tar, entry, root)) written++
+  /**
+   * Returns the number of entries written.
+   *
+   * [onProgress] gets the fraction of the archive consumed so far, after each entry - the
+   * stream's own `available()` answers both the total and how much of it is left, so progress
+   * needs no second pass over the bytes. A source that cannot say its length emits nothing.
+   */
+  suspend fun extract(source: ArchiveSource, targetDir: File, onProgress: suspend (Float) -> Unit = {}): Int =
+    withContext(ioDispatcher) {
+      targetDir.mkdirs()
+      val root = targetDir.canonicalFile
+      var written = 0
+      val raw = source.open()
+      val total = raw.available().takeIf { it > 0 }?.toFloat()
+      TarArchiveInputStream(ZstdCompressorInputStream(raw.buffered())).use { tar ->
+        while (true) {
+          val entry = tar.nextEntry ?: break
+          if (writeEntry(tar, entry, root)) {
+            written++
+            if (total != null) onProgress(((total - raw.available()) / total).coerceIn(0f, 1f))
+          }
+        }
       }
+      written
     }
-    written
-  }
 
   private fun writeEntry(tar: TarArchiveInputStream, entry: TarArchiveEntry, root: File): Boolean {
     val destination = resolveInside(root, entry.name)

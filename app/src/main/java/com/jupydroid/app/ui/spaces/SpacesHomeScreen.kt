@@ -101,7 +101,14 @@ fun SpacesHomeScreen(
     // A `Column` rather than a `LazyColumn`: a device holds a handful of Spaces.
     Column(modifier = Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
       if (state.busy) {
-        LinearProgressIndicator(
+        // Determinate while the act can say how far it is - a create's copy reports its fraction
+        // (SpaceRepository.create); rename and delete land in milliseconds and report nothing.
+        state.progress?.let { fraction ->
+          LinearProgressIndicator(
+            progress = { fraction },
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = SPACES_BUSY },
+          )
+        } ?: LinearProgressIndicator(
           modifier = Modifier.fillMaxWidth().semantics { contentDescription = SPACES_BUSY },
         )
       }

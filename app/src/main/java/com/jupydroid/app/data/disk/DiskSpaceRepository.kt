@@ -2,6 +2,7 @@
 
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.data.space.SpaceImageInstaller
 import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
 import com.jupydroid.app.domain.model.SpaceConfig
@@ -39,24 +40,44 @@ internal const val SPACE_CONFIG_FILE_NAME = "config.json"
  * has ever written.
  *
  * ```
- * DiskSpaceRepository(spacesDir(context))
+ * DiskSpaceRepository(spacesDir(context), spaceImageInstaller(context))
  * ```
  */
 class DiskSpaceRepository(
   private val spacesDir: File,
+  private val imageInstaller: SpaceImageInstaller,
   private val json: Json = Json { ignoreUnknownKeys = true },
   private val clock: Clock = Clock.systemUTC(),
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : SpaceRepository {
   override suspend fun spaces(): List<SpaceConfig> = withContext(ioDispatcher) { scan() }
 
-  override suspend fun create(name: String): SpaceConfig = withContext(ioDispatcher) {
-    val created = SpaceConfig(id = scan().nextSpaceId(), name = name, created = clock.instant())
-    val directory = spaceDirIn(spacesDir, created.id)
-    require(directory.mkdirs()) { "could not create the Space directory '$directory'" }
-    write(created)
-    created
-  }
+  /**
+   * Stages the copy, then renames it into place - Termux's `TermuxInstaller` model
+   * (`termux-app@3df69d1 app/src/main/java/com/termux/app/TermuxInstaller.java`): the extract
+   * goes to [STAGING_DIR_NAME], dot-prefixed because [scan] cannot show a half copy - it skips
+   * `.` names - and one `renameTo` publishes the finished Space. A leftover staging directory
+   * is an interrupted create's, and is cleared before the next copy, exactly as the reference
+   * clears its own. The config is written inside the staging tree so the Space that appears is
+   * already complete.
+   */
+  override suspend fun create(name: String, onProgress: suspend (Float) -> Unit): SpaceConfig =
+    withContext(ioDispatcher) {
+      val created = SpaceConfig(id = scan().nextSpaceId(), name = name, created = clock.instant())
+      val staging = File(spacesDir, STAGING_DIR_NAME)
+      staging.deleteRecursively()
+      try {
+        imageInstaller.install(staging, onProgress)
+        writeInto(staging, created)
+        require(staging.renameTo(spaceDirIn(spacesDir, created.id))) {
+          "could not move the new Space into place: '$staging' -> '${spaceDirIn(spacesDir, created.id)}'"
+        }
+      } finally {
+        staging.deleteRecursively()
+      }
+      onProgress(1f)
+      created
+    }
 
   override suspend fun rename(id: String, name: String): SpaceConfig = withContext(ioDispatcher) {
     val renamed = scan().spaceWithId(id).copy(name = name)
@@ -102,9 +123,20 @@ class DiskSpaceRepository(
     }
   }
 
-  private fun write(config: SpaceConfig) {
-    File(spaceDirIn(spacesDir, config.id), SPACE_CONFIG_FILE_NAME)
+  private fun write(config: SpaceConfig) = writeInto(spaceDirIn(spacesDir, config.id), config)
+
+  private fun writeInto(directory: File, config: SpaceConfig) {
+    File(directory, SPACE_CONFIG_FILE_NAME)
       .writeText(json.encodeToString(StoredSpaceConfig.serializer(), config.stored()))
+  }
+
+  private companion object {
+    /**
+     * The directory a create copies into before it is a Space. `.`-prefixed because [scan]
+     * skips dot names: a half copy on disk must never read as a Space, and one rename moves it
+     * to its real name only once it is complete.
+     */
+    const val STAGING_DIR_NAME = ".installing"
   }
 }
 

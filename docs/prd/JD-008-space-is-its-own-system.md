@@ -99,7 +99,10 @@ closer to Termux's guarantee. A Space create should keep that guarantee.
   SIGSYS preload and the idle cull, so ADR-0073 is accepted. T3 inherits two findings. The server
   needs `--allow-root`, because `-0` makes every process see uid 0. Under proot the image reads
   `/etc/resolv.conf` itself, so the DNS shim's job has to be re-measured there before it is carried over (T3a).
-- How a Space create reports progress over a ~14 s copy, and what a half copy looks like to the scan (T4).
+- **Settled by T4:** a create extracts into `files/spaces/.installing` - a name the scan's dot
+  rule keeps unlisted - and renames it into place once complete, so a half copy is never a Space.
+  Progress is the fraction of the compressed archive consumed, ending at `1f` once the Space is
+  listed; the home draws it as a determinate bar.
 
 ## Surface
 
@@ -124,7 +127,7 @@ Draft past T1; each one is split here before coding if it is too big.
 - [x] T2 — Ship proot and its loader in arm64 `jniLibs` from a sha-pinned stage step, retiring the probe flag, plus a JVM-tested value that builds the proot command line
 - [x] T3a — Base's server, kernels, terminals and pylsp run under proot with base's rootfs as `/`: the installer stops relinking (rootfs version bump, stale console-script links swept), the extractor keeps exec bits, the kernelspec is `/usr/bin/python3 -m jupydroid_kernel`, the server gets `--allow-root`, and the DNS shim and CA variables are re-measured under proot. A non-base Space's root is its own directory, so it cannot run until T4 gives it an image
 - [x] T3b — Retire the surgery's build side: `libpython3.so`, `libloader.so`, `libbusybox.so`, `libshebang.so` out of `jniLibs` and `stage-app-artifacts.sh`, the `PT_INTERP` patch, `shebang_exec.c` and its gate, and the DNS shim if T3a measured it unneeded; ADR-0002/0011/0072 amended
-- [ ] T4 — Creating a Space copies the image into it, with progress on the home
+- [x] T4 — Creating a Space copies the image into it, with progress on the home
 - [ ] T5 — `apk add` in a Space's terminal installs into that Space alone; the demo runs on the tablet
 
 ## Out of scope

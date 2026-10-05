@@ -26,8 +26,13 @@ interface SpaceRepository {
    * The id is minted by [com.jupydroid.app.domain.model.nextSpaceId], never from [name]: a rename
    * must not have to move a directory a kernel, a server root or an open document is standing in.
    * Two Spaces may share a name, as two of the reference's containers may.
+   *
+   * Making one is a ~400 MB image copy (~14 s on the tablet, `ProotRuntimeProbeDeviceTest`), so
+   * [onProgress] is handed the fraction done: every emission below `1f` happens while the Space
+   * is still unlisted - a half copy must never be mistaken for a Space - and the last emission
+   * is `1f`, emitted once the scan could show it.
    */
-  suspend fun create(name: String): SpaceConfig
+  suspend fun create(name: String, onProgress: suspend (Float) -> Unit = {}): SpaceConfig
 
   /**
    * Renames the Space [id] to [name] and answers with its updated record.

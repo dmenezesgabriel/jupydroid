@@ -86,6 +86,27 @@ class SpacesViewModelTest {
     assertFalse(model.uiState.value.busy)
   }
 
+  /**
+   * The port hands the create's copy fraction up; the panel shows it for the copy's whole length
+   * and drops it with `busy` when the act lands.
+   */
+  @Test
+  fun aCreateShowsItsCopyFractionWhileInFlight() = runTest {
+    val reporting = ReportingSpaceRepository(repository)
+    val model = SpacesViewModel(reporting)
+    advanceUntilIdle()
+
+    model.create("Thesis")
+    advanceUntilIdle()
+    assertEquals(0.5f, model.uiState.value.progress)
+    assertTrue(model.uiState.value.busy)
+
+    reporting.release.complete(Unit)
+    advanceUntilIdle()
+    assertNull(model.uiState.value.progress)
+    assertEquals(listOf(BASE_SPACE.id, "space-1"), ids(model))
+  }
+
   /** Two taps in one frame make one Space: an act does not start while another is in flight. */
   @Test
   fun anActIsRefusedWhileAnotherIsInFlight() = runTest {
@@ -146,9 +167,20 @@ class SpacesViewModelTest {
 private class GatedSpaceRepository(private val fake: SpaceRepository) : SpaceRepository by fake {
   val release = CompletableDeferred<Unit>()
 
-  override suspend fun create(name: String): SpaceConfig {
+  override suspend fun create(name: String, onProgress: suspend (Float) -> Unit): SpaceConfig {
     release.await()
-    return fake.create(name)
+    return fake.create(name, onProgress)
+  }
+}
+
+/** Reports one mid-copy fraction, then holds until [release] - a create caught mid-copy. */
+private class ReportingSpaceRepository(private val fake: SpaceRepository) : SpaceRepository by fake {
+  val release = CompletableDeferred<Unit>()
+
+  override suspend fun create(name: String, onProgress: suspend (Float) -> Unit): SpaceConfig {
+    onProgress(0.5f)
+    release.await()
+    return fake.create(name, onProgress)
   }
 }
 

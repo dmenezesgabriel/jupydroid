@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SPACE_ID_PREFIX
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -54,6 +55,32 @@ abstract class SpaceRepositoryContract {
     repository.create("Thesis")
 
     assertEquals(SPACE_ID_PREFIX + "2", repository.create("Scratch").id)
+  }
+
+  /**
+   * The copy is ~14 s, so create reports its fraction - and a Space under construction is never
+   * listed: every emission below `1f` comes before the scan could see the id, `1f` once it can.
+   * The fake's copy is instant, so the contract asks the pair to agree on the *edges* - the
+   * rising order and which listing each side of `1f` sees.
+   */
+  @Test
+  fun createReportsRisingProgressAndListsTheSpaceOnlyAtTheEnd() = runTest {
+    val repository = repository()
+    val seen = mutableListOf<Pair<Float, List<String>>>()
+
+    val created = repository.create("Thesis") { fraction ->
+      seen += fraction to repository.spaces().map { it.id }
+    }
+
+    val fractions = seen.map { it.first }
+    assertTrue("expected progress emissions, got none", fractions.isNotEmpty())
+    assertTrue("fractions out of [0,1]: $fractions", fractions.all { it in 0f..1f })
+    assertEquals("fractions must not decrease: $fractions", fractions.sorted(), fractions)
+    assertEquals("the last emission must be the whole copy, was $fractions", 1f, fractions.last())
+    seen.dropLast(1).forEach { (fraction, ids) ->
+      assertFalse("${created.id} was listed at fraction $fraction: $ids", created.id in ids)
+    }
+    assertTrue("the final emission must see ${created.id} listed: $seen", created.id in seen.last().second)
   }
 
   /**
