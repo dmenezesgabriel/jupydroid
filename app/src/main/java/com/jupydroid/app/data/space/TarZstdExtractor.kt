@@ -23,9 +23,9 @@ fun interface ArchiveSource {
  * go under. Winlator's rootfs installer runs the same
  * archive shape through the same two libraries.
  *
- * Nothing here sets an executable bit, and nothing needs to: the rootfs is only ever
- * read and `mmap`'d. The two files that are genuinely execve'd ship as APK native
- * libraries instead (ADR-0002).
+ * An entry's owner-executable bit survives the extract, because a Space runs under proot
+ * (ADR-0073), which checks that bit where the kernel would: `/bin/sh` without it is refused
+ * before proot's loader is ever reached.
  *
  * ```
  * val written = TarZstdExtractor().extract({ assets.open("spaces/base/rootfs-arm64-v8a.tzst") }, baseDir)
@@ -51,10 +51,20 @@ class TarZstdExtractor(private val ioDispatcher: CoroutineDispatcher = Dispatche
     return when {
       entry.isDirectory -> destination.mkdirs()
       entry.isSymbolicLink -> destination.linkTo(entry.linkName)
-      entry.isLink -> destination.copyFrom(resolveInside(root, entry.linkName))
-      entry.isFile -> destination.writeFrom(tar)
+      entry.isLink -> destination.copyFrom(resolveInside(root, entry.linkName)) && destination.keepExecutableBit(entry)
+      entry.isFile -> destination.writeFrom(tar) && destination.keepExecutableBit(entry)
       else -> false // character/block devices and FIFOs: a docker export has none we need
     }
+  }
+
+  /** Owner only: a Space's files belong to the app's one uid, so group and other bits mean nothing. */
+  private fun File.keepExecutableBit(entry: TarArchiveEntry): Boolean {
+    if (entry.mode and OWNER_EXECUTE != 0) setExecutable(true, true)
+    return true
+  }
+
+  private companion object {
+    const val OWNER_EXECUTE = 0b001_000_000
   }
 
   /**
