@@ -224,7 +224,7 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
 - [x] T4 — Delete: a row action except on base, and `DeleteFileDialog` naming `"<name> (<id>)"`.
       Progress shows while it runs. Instrumented tests cover cancel keeping the row and base having
       no delete control.
-- [ ] T5 — The home: a `SpacesHome` start destination replaces `Explorer` as the first screen
+- [x] T5 — The home: a `SpacesHome` start destination replaces `Explorer` as the first screen
       (`Navigation.kt`), the panel becomes a full-screen `SpacesHomeScreen` with **Open** on each
       row (enabled on base only), Open pushes the workspace and Back returns, and
       `SidePanel.SPACES` with its rail and presentation entries is removed.
