@@ -1,26 +1,31 @@
-# JD-002 — list, create, rename and delete a Space from the UI
+# JD-002 — a Spaces home: list, create, rename and delete a Space
 
 Milestone: `M1` · State: `open` · Depends on: JD-001 (shipped) · Closes: —
 
 ## Outcome
 
-A user opens a **Spaces** panel from the activity rail and sees every Space on the device, base
-first. From there they can create one by name, rename one, and delete one after confirming. Each act
-shows progress while it runs. Today the port exists and has no caller, so none of this is reachable.
+The app opens on a **Spaces home**, a full screen that lists every Space on the device, base first,
+before any workspace is entered. From there the user creates one by name, renames one, and deletes
+one after confirming, with progress shown while each act runs. Opening base enters today's workspace.
+Running, stopping and entering any other Space are JD-004 and JD-005; configuring one is JD-009.
+
+T1–T4 built this as a side panel inside the workspace. The concept was corrected afterwards: a
+Space is managed **before** it is entered, the way SageMaker Studio lists its spaces and Winlator's
+`ContainersFragment` is its first screen (`docs/research/space-isolation.md`). T5 moves the list
+there. Its ViewModel, dialogs and tests carry over unchanged.
 
 ## Demo
 
 Who: a human on **`SM-X216B` in landscape**. Nothing here runs a cell, so rule 2 does not require
-the tablet. It is chosen for its **width**: the panel lives on the two-pane rail only (see
-Trade-offs), and `dev36` is a 320dp one-pane window that draws the bottom bar instead
-(`docs/architecture/cross-cutting.md` §8.6, "The 320dp emulator…"). Prereq:
+the tablet; it is the device the rest of M1 is demonstrated on, and the home is full-screen at any
+width. Prereq:
 `./gradlew installDebug` on a synced repo. The driver is `scripts/jd-002-manage-spaces-driver.sh`,
 and its artefacts go to `evidence/jd-002-manage-spaces/`.
 
 1. **Cold start** with `files/spaces/` holding only `base`. The driver removes any `space-*` with
    `run-as` and lists the directory before the flow.
-2. Tap **Spaces** on the rail. One row, "Base", appears with no delete control and no rename
-   control.
+2. The app opens on **Spaces**, not on the explorer. One row, "Base", appears with no delete
+   control and no rename control; it has **Open**.
 3. **Create** "Thesis". Progress shows. A row "Thesis · space-1" appears below Base, and
    `files/spaces/space-1/config.json` exists on disk.
 4. Try to create with a blank name. The confirm button stays disabled.
@@ -31,7 +36,9 @@ and its artefacts go to `evidence/jd-002-manage-spaces/`.
    - **Cancel** keeps the row and the directory.
    - Delete again and **confirm**: progress shows, the row goes, and `files/spaces/space-1` is gone.
 7. Create "Scratch". It mints `space-1` again: deleting the highest id hands it back (ADR-0010).
-8. **Kill and relaunch.** The panel lists Base and Scratch.
+8. **Kill and relaunch.** The home lists Base and Scratch.
+9. **Open** base: the workspace appears. **Back** returns to the home. Scratch's Open is disabled
+   until JD-005 makes a second Space enterable.
 
 The driver checks each disk claim (steps 3, 5, 6 and 7) with `adb shell run-as`, because a row on
 screen does not prove what the filesystem holds. Commit the screenshots, `maestro.log` and the
@@ -122,8 +129,8 @@ decisions below.
 
 | Axis | Options seen (project → approach) | Trade-off | Our choice, and why |
 |---|---|---|---|
-| Where the list lives | winlator → the main screen. vscode → an editor. jupyterlab → a section of the Running sidebar | A main screen would be a second top-level navigation next to the shell. A Running section mixes a configuration list with live sessions | **A new `SidePanel.SPACES` on the two-pane rail**, chosen by the user in the session that wrote this PRD. It sits beside Files, where JD-005's "active Space roots the explorer" will need it |
-| One-pane reach | The bar already carries 5 items (`SidePanel.kt` `onePaneDestinations` KDoc: 3 panels + Launcher + Terminal), which is Material's ceiling | A sixth item breaks the ceiling. Swapping one out demotes a panel people already use | **Rail only**, like `TABLE_OF_CONTENTS` and `DEBUGGER`. `showingAtOnePane()` already falls back to Files. Also the user's choice. Reach at phone width goes to JD-005, whose switcher needs a one-pane surface anyway |
+| Where the list lives | winlator → the main screen, before any container runs. SageMaker Studio → a Spaces page, with Run then Open. vscode → an editor. jupyterlab → a section of the Running sidebar | A panel inside the workspace manages Spaces from inside one of them, which inverts the model | **A full-screen home and the app's start destination**, the user's correction after T4. T1–T4 had placed it on the two-pane rail as `SidePanel.SPACES`; T5 removes that entry |
+| One-pane reach | The rail-only panel was unreachable at one pane | A full screen needs no bar slot | **Every width**, because the home is not a panel |
 | What create asks for | winlator → 18-key form. vscode/intellij/jupyterlab → a name | `SpaceConfig` has one user-mutable field. A form would be a form for one field | **A name-only dialog** for both create and rename |
 | Name validation | vscode/intellij → refuse blank and duplicate. winlator → refuse nothing | Ours permits a duplicate on purpose: the id is the identity (ADR-0010) | **Refuse blank (trimmed), allow duplicate.** The confirm button is disabled on a blank name, as `RenameFileDialog` does it, and an unchanged rename is a dismiss, as JupyterLab and `RenameFileDialog` do it |
 | Renaming base | vscode → the built-in name is locked | Lawful at the port. AUD-010 notes that it writes `config.json` into the extracted rootfs | **No rename control on base**, VS Code's rule. The port stays as it is: this is a screen decision |
@@ -133,8 +140,8 @@ decisions below.
 | Wiring | `AppContainer` defaults every port to its fake (`FakeSpaceRepository` KDoc). `DocumentSharer`, `WorkspaceSearcher` and the settings repositories are "always real" | `DiskSpaceRepository` needs only `filesDir`, no runtime | **Always real** in `JupydroidApplication`: `DiskSpaceRepository(spacesDir(this))`. `FakeSpaceRepository` is the `AppContainer` default |
 
 Anything here that outlives the item becomes an ADR before the PRD is deleted. That means at least
-the rail-only placement and why the bottom bar does not carry it, and the decision that base cannot
-be renamed from the UI.
+the home as the start destination (ADR-0062 says Spaces sits on the rail, so it is amended), and
+the decision that base cannot be renamed from the UI.
 
 ## Gap analysis — what we already have vs the references
 
@@ -154,9 +161,9 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
 
 ## Deviations
 
-- **No Run button, no file manager, no storage info, no duplicate.** Winlator's row carries all
-  four. Run/activate is JD-005's switching, storage info is GAP-147, duplicate is GAP-145, and
-  browsing a Space is the explorer's job once JD-005 roots it there.
+- **Open only on base; no Run/Stop, file manager, storage info or duplicate.** Winlator's row
+  carries Run and a menu of the rest. Run/Stop is JD-004, entering a Space is JD-005, storage info is
+  GAP-147, duplicate is GAP-145, and browsing a Space is the explorer's job once JD-005 roots it there.
 - **Deleting a running Space is unreachable, not handled.** Only `base` ever runs today
   (`BASE_SPACE` is the compile-time answer everywhere a Space is chosen), and `base` cannot be
   deleted. Winlator deletes a running container without a check. JD-005 makes a second Space
@@ -191,9 +198,9 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
 | `domain/port` | — (`SpaceRepository` unchanged) |
 | `data/disk` | — (`DiskSpaceRepository` unchanged) |
 | `data/fake` | `FakeSpaceRepository.kt`: its KDoc's "nothing constructs the port yet" becomes false, and `Clock` is added only if T1 needs it |
-| `ui/spaces/` (new) | `SpacesViewModel.kt` (list, busy, failure, create/rename/delete), `SpacesSidePanel.kt` (rows, actions, progress, dialogs) |
+| `ui/spaces/` (new) | `SpacesViewModel.kt` (list, busy, failure, create/rename/delete), `SpacesSidePanel.kt` (rows, actions, progress, dialogs) — renamed `SpacesHomeScreen.kt` in T5 |
 | `ui/` | `RenameFileDialog.kt` parametrised (T3). `DeleteFileDialog.kt` reused as is |
-| shell | `SidePanel.kt` (`SPACES`, with its KDoc's reference argument), `ui/shell/SidePanelPresentation.kt` (label "Spaces", icon), `ShellSidePane.kt` (the `SPACES ->` branch) |
+| shell | T2 added `SPACES` to `SidePanel.kt`, `ui/shell/SidePanelPresentation.kt` and `ShellSidePane.kt`; T5 removes all three and adds the `SpacesHome` destination to `Navigation.kt` |
 | `di/AppContainer` | `val spaceRepository: SpaceRepository = FakeSpaceRepository()`. `JupydroidApplication.containerFor` passes `DiskSpaceRepository(spacesDir(this))` |
 | unit tests | new `SpacesViewModelTest` over `FakeSpaceRepository`, and a fake that fails for the error path |
 | instrumented tests | new `SpacesSidePanelTest`: base has no delete or rename control, and a user Space has both. `RenameFileDialogTest` covers the new parameters |
@@ -217,17 +224,23 @@ Overall: **present but unreachable.** Everything below the UI exists, and nothin
 - [x] T4 — Delete: a row action except on base, and `DeleteFileDialog` naming `"<name> (<id>)"`.
       Progress shows while it runs. Instrumented tests cover cancel keeping the row and base having
       no delete control.
-- [ ] T5 — `.maestro/jd-002-manage-spaces.yaml` and its driver on `SM-X216B` in landscape, with
+- [ ] T5 — The home: a `SpacesHome` start destination replaces `Explorer` as the first screen
+      (`Navigation.kt`), the panel becomes a full-screen `SpacesHomeScreen` with **Open** on each
+      row (enabled on base only), Open pushes the workspace and Back returns, and
+      `SidePanel.SPACES` with its rail and presentation entries is removed.
+      `SpacesSidePanelTest` is ported, red first, plus a navigation test that a cold start lands on
+      the home.
+- [ ] T6 — `.maestro/jd-002-manage-spaces.yaml` and its driver on `SM-X216B` in landscape, with
       evidence in `evidence/jd-002-manage-spaces/`. Run the demo above, look at every screenshot,
-      then ship: ADR(s) for the rail-only placement and the locked base name, delete this PRD, and
-      update the backlog row.
+      then ship: the ADR for the home as start destination (amending ADR-0062) and the locked base
+      name, delete this PRD, and update the backlog row.
 
 ## Out of scope
 
 - Duplicating a Space (GAP-145), measuring its size (GAP-147), picking its interpreter (GAP-148).
-- Making a Space active, rooting the explorer in it, binding notebooks to it, and reaching Spaces at
-  one pane: JD-005.
-- Packages inside a Space: JD-003.
-- One server per Space vs. one shared server: JD-004.
-- Stopping a Space's processes before deleting it: JD-005, once a second Space can run.
+- A Space's own rootfs and system packages: JD-008.
+- Running and stopping a Space, several at once: JD-004.
+- Entering a Space, rooting the explorer in it, binding notebooks to it: JD-005.
+- Configuring a Space: JD-009. Python environments inside one: JD-003.
+- Stopping a Space's processes before deleting it: JD-004, once a second Space can run.
 - Atomic `config.json` writes: AUD-010 records parity with the reference, and no item owns it.

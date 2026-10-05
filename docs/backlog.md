@@ -75,18 +75,28 @@ growth, branching, failure handling, coupling. Never four horizontal sweeps.
 
 ### M1 — Spaces
 
-The product's headline concept. Its data layer is shipped — `SpaceConfig`, the `SpaceRepository` port and
-`DiskSpaceRepository` scanning `files/spaces/`
-([ADR-0010](adr/0010-a-space-is-a-directory-and-its-id-comes-from-the-scan.md)) — so what remains is the
-runtime, the UI and one measured decision.
+The product's headline concept: **a Space is an isolated system** with its own rootfs and system
+packages, managed from a home screen before it is entered, and run and stopped as a unit, several at
+once. Python environments live inside it as the user's own tools. The data layer is shipped:
+`SpaceConfig`, the `SpaceRepository` port and `DiskSpaceRepository` scanning `files/spaces/`
+([ADR-0010](adr/0010-a-space-is-a-directory-and-its-id-comes-from-the-scan.md)). The runtime is
+[ADR-0073](adr/0073-a-space-owns-its-rootfs-and-runs-under-proot.md) (proposed), from the
+measurements in [`research/space-isolation.md`](research/space-isolation.md).
+
+Order: `JD-002`, `JD-008`, `JD-004`, `JD-005`, `JD-009`, `JD-003`.
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
 | `JD-001` | A Space's runtime environment is its own — per-Space `PYTHONUSERBASE`, `HOME` and `JUPYTER_RUNTIME_DIR`, generalising what `base` already ships | shipped | — | — |
-| `JD-002` | List, create, rename and delete a Space from the UI, async with progress, delete asking first | open ← next | — | — |
-| `JD-003` | Install, list and remove packages in a Space, surfacing pip's own message including the offending package and the wheel tag it wanted | open | — | — |
-| `JD-004` | **Decide by measurement:** one `jupyter_server` per Space, or one server with per-Space kernelspecs. A second server costs about what the first does — RSS ~75 MiB, already measured | open | — | — |
-| `JD-005` | Switching Spaces: the active Space roots the explorer and binds new notebooks, persisted in the notebook's own `metadata.kernelspec.name` | open | — | — |
+| `JD-002` | The app opens on a **Spaces home**: every Space listed, created, renamed and deleted with progress, delete asking first. The workspace's side-panel version moves there | open ← next | [JD-002](prd/JD-002-manage-spaces.md) | — |
+| `JD-008` | **A Space is its own system:** creating one copies the image into it, its server, kernels and terminal run inside it under proot, and `apk add` in its terminal installs into that Space alone. Opens on the run that accepts or rejects ADR-0073 (server, kernel, numpy under proot) | open | — | — |
+| `JD-004` | **Run and stop a Space from the home, several at once:** one `jupyter_server` per running Space, Running/Stopped on each row, Stop keeping its files, idle shutdown per Space | open | — | — |
+| `JD-005` | **Enter a running Space:** the workspace, explorer, kernels, terminal and language server bind to that Space, not to base; new notebooks record it in `metadata.kernelspec.name`; leaving returns to the home | open | — | — |
+| `JD-009` | **Configure a Space:** environment variables with its derived paths locked, a startup script run on each start, idle-shutdown time and default kernel, thread caps — edited from the home before it runs | open | — | — |
+| `JD-003` | **Python environments inside a Space:** venv (measured working) and uv, their console scripts runnable, an environment registered as a kernel, pip's own message surfaced on a failed install | open | — | — |
+
+Not scheduled: **other distributions as a Space's image** (Debian, Fedora, Arch). proot keeps this
+open because it runs any image's own loader, but no glibc image has been measured.
 
 ### M2 — Cold start
 
@@ -116,7 +126,6 @@ Listed so nobody re-derives them, with no commitment to build them. What is out 
 
 | What | Why not now |
 |---|---|
-| uv in `jniLibs`, patchelf'd like `libpython3.so`, selectable per Space | Costed, not scheduled. Every tool costs an ABI-sized ELF ([ADR-0002](adr/0002-ship-executables-in-jnilibs-and-reach-them-by-symlink.md)), and pip already works |
 | Snippet completion with tabstops | `include_params` defaults true, which makes advertising `snippetSupport` a defect without a placeholder engine — measured on the tablet |
 | Code folding | A large Compose surface, and no port question to answer first |
 | `resize: vertical` on a scrolled output | A drag handle is not a touch idiom, and there is no pointer to hover it into view ([ADR-0036](adr/0036-three-view-toggles-and-two-defaults-kept-against-the-reference.md)) |
