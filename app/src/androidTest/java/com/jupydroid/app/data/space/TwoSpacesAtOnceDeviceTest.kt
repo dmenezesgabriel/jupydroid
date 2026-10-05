@@ -35,7 +35,6 @@ import java.io.File
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
-import kotlin.time.toJavaDuration
 import android.os.Process.SIGNAL_KILL as SIGKILL
 
 /**
@@ -252,7 +251,7 @@ class TwoSpacesAtOnceDeviceTest {
      * because jupyter_server tracks its state only once a client's websocket is attached.
      */
     fun ServerConnection.bootKernel(space: Space): String = runBlocking {
-      val opener = OkHttpKernelSocketOpener(this@bootKernel, upgradeClient)
+      val opener = OkHttpKernelSocketOpener(this@bootKernel)
       val gateway = RealKernelGateway(KernelSockets(opener, OkHttpKernelLifecycle(this@bootKernel)))
       // A path of its own each time: a reused one rejoins the session whose kernel the last test deleted.
       val session = gateway.connect(space, "two-spaces-probe-${UUID.randomUUID()}.ipynb")
@@ -261,14 +260,6 @@ class TwoSpacesAtOnceDeviceTest {
       }
       session.kernelId
     }
-
-    /**
-     * The websocket upgrade is answered only once the kernel has replied to `kernel_info`, which
-     * jupyter_server waits up to `kernel_info_timeout` (60 s) for (jupyter_server 2.20.0
-     * `services/kernels/connection/base.py`). A cold kernel beside a second Space was measured
-     * missing OkHttp's default 10 s, so this client waits as long as the server does.
-     */
-    val upgradeClient: OkHttpClient = OkHttpClient.Builder().readTimeout(KERNEL_TIMEOUT.toJavaDuration()).build()
 
     /** `POST api/kernels`; the new kernel's id. */
     fun ServerConnection.startKernel(): String {

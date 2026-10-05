@@ -99,9 +99,22 @@ class OkHttpKernelSocketOpenerTest {
     assertTrue("reason must name the status, was '${ended.reason}'", ended.reason.contains("404"))
   }
 
-  private fun echoServer(): MockWebServer = serverRule.server.apply {
+  /**
+   * jupyter_server answers the upgrade only once the kernel has replied to `kernel_info`, and waits
+   * up to `kernel_info_timeout` (60 s) for it. A cold kernel can take longer than OkHttp's default
+   * 10 s read timeout, so the opener's own client must outwait the server rather than give up first.
+   */
+  @Test
+  fun open_waitsForAnUpgradeSlowerThanOkHttpsDefaultReadTimeout() {
+    opener(echoServer(upgradeDelaySeconds = SLOW_UPGRADE_SECONDS)).open("kernel-1", "session-9") { events.put(it) }
+
+    val first = events.poll(SLOW_UPGRADE_SECONDS + TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    assertTrue("a slow upgrade must still open, was $first", first is JupyterSocketEvent.Opened)
+  }
+
+  private fun echoServer(upgradeDelaySeconds: Long = 0): MockWebServer = serverRule.server.apply {
     enqueue(
-      MockResponse.Builder().webSocketUpgrade(
+      MockResponse.Builder().headersDelay(upgradeDelaySeconds, TimeUnit.SECONDS).webSocketUpgrade(
         object : WebSocketListener() {
           override fun onMessage(webSocket: WebSocket, text: String) {
             webSocket.send("echo:$text")
@@ -132,5 +145,8 @@ class OkHttpKernelSocketOpenerTest {
 
   private companion object {
     const val TIMEOUT_SECONDS = 5L
+
+    /** Just past OkHttp's default 10 s read timeout, and well inside `kernel_info_timeout`. */
+    const val SLOW_UPGRADE_SECONDS = 11L
   }
 }

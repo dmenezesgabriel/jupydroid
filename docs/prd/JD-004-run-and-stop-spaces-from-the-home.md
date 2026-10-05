@@ -127,9 +127,9 @@ JupyterLab's favour (Open decisions).
 - **A kernel's websocket upgrade can take longer than OkHttp's default 10 s read timeout.**
   jupyter_server answers the upgrade only after `kernel_info`, and waits for it up to
   `kernel_info_timeout` (60 s, jupyter_server 2.20.0 `services/kernels/connection/base.py`). A cold
-  kernel beside a second Space missed 10 s in two runs, once on base and once on the probe. `OkHttpKernelSocketOpener` defaults to
-  a plain `OkHttpClient`, so a notebook opened while another Space runs can fail the same way. The test
-  gives the opener a 60 s client, and the app's own opener is T3.
+  kernel beside a second Space missed 10 s in two runs, once on base and once on the probe. `OkHttpKernelSocketOpener` defaulted to
+  a plain `OkHttpClient`, so a notebook opened while another Space ran could fail the same way. **Fixed
+  by T3**: the opener's default client waits 60 s, and the test drives that opener as the app does.
 
 ## Surface
 
@@ -153,7 +153,7 @@ JupyterLab's favour (Open decisions).
 - [x] T2 — `JupyterServerLauncher.stop()` is `POST api/shutdown` and waits for the process to exit,
   replacing `destroy()`, which proot ignores. Red first: a JVM test against `FakeJupyterServerScript`
   whose server ignores SIGTERM, and `TwoSpacesAtOnceDeviceTest` driving the launcher's own `stop()`
-- [ ] T3 — The kernel websocket's upgrade waits as long as jupyter_server's `kernel_info_timeout`, not
+- [x] T3 — The kernel websocket's upgrade waits as long as jupyter_server's `kernel_info_timeout`, not
   OkHttp's 10 s default
 - [ ] T4 — The `SpaceServers` port, `JupyterSpaceServers` and `FakeSpaceServers`: `BaseSpaceServer`
   generalised to one `SpaceServer` per Space, base's clients bound to base's entry, and `running`
