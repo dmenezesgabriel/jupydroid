@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# Base's cell runs on the server the home started, and back on the home Base still reads Running.
+# Not stopped first: Maestro's default launch kills the app, and every server with it.
+- launchApp:
+    stopApp: false
+- runFlow: open-base-space.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Real Kernel.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Real Kernel.ipynb"
+- assertVisible: "print(6 * 7)"
+- tapOn:
+    text: "Run cell"
+    index: 0
+# 42 is the kernel's answer: the source reads `6 * 7`, and the fake echo would print that.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- takeScreenshot: 03-base-printed-42
+- repeat:
+    while:
+      notVisible: "Open Base \\(base\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Stop Thesis \\(space-1\\)"
+- takeScreenshot: 04-home-base-still-running

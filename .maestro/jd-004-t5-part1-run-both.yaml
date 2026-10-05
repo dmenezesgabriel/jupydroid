@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# The home runs two Spaces at once: Base and Thesis both read Stopped on a cold start, and each
+# reads Running once its own Run has returned. The driver checks `ps -A` for one server per root.
+# Tablet only: a Run boots a real jupyter_server, and only arm64 ships a rootfs.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- assertNotVisible: "Working on Spaces"
+- assertVisible: "Run Base \\(base\\)"
+- assertNotVisible: ".*Running.*"
+- takeScreenshot: 01-both-stopped
+
+- tapOn: "Run Base \\(base\\)"
+# Run lasts until the server serves, and the row's state comes from the process, not the tap.
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 120000
+- tapOn: "Run Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- assertNotVisible: ".*Stopped.*"
+- takeScreenshot: 02-both-running

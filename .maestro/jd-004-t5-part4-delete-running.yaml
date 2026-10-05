@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# A running Space is stopped before it is deleted; the driver checks no process is left under it.
+# Not stopped first: Maestro's default launch kills the app, and every server with it.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- takeScreenshot: 06-thesis-running-again
+- tapOn: "Delete Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Are you sure.*Thesis \\(space-1\\)\\?"
+    timeout: 5000
+# The button, not the title: both read "Delete", and only the button sits below the question.
+- tapOn:
+    text: "Delete"
+    below: "Are you sure.*"
+- extendedWaitUntil:
+    notVisible: "Thesis"
+    timeout: 60000
+- assertVisible: "Stop Base \\(base\\)"
+- takeScreenshot: 07-thesis-deleted

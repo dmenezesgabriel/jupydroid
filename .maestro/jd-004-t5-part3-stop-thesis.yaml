@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# Stop on Thesis's row stops its server alone; the driver checks `ps -A` and that its files stay.
+# Not stopped first: Maestro's default launch kills the app, and every server with it.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Stop Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 30000
+- assertVisible: "Stop Base \\(base\\)"
+- takeScreenshot: 05-thesis-stopped-base-running
