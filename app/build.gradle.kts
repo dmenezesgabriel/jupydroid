@@ -66,6 +66,12 @@ android {
         // costs build time and buys nothing.
         noCompress += "tzst"
     }
+
+    // Measurement-only: proot and its loader for SpaceIsolationProbeDeviceTest, staged by
+    // scripts/stage_isolation_probe.py. Absent the property, no build ever packages them.
+    if (providers.gradleProperty("jupydroid.isolationProbe").isPresent) {
+        sourceSets.getByName("main").jniLibs.srcDir(rootProject.file("build/isolation-probe/jniLibs"))
+    }
 }
 
 kotlin {
