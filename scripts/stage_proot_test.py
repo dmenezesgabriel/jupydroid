@@ -1,11 +1,15 @@
-"""Tests for stage_isolation_probe.py: the carve and the pin, on synthetic bytes."""
+"""Tests for stage_proot.py: the carve, the pin and the staged files, on synthetic bytes."""
 from __future__ import annotations
 
 import hashlib
+import io
+import pathlib
 import struct
+import tarfile
+import tempfile
 import unittest
 
-import stage_isolation_probe as stage
+import stage_proot as stage
 
 
 def elf64(section_offset: int, section_count: int, body_size: int) -> bytes:
@@ -42,6 +46,37 @@ class RequirePinnedTest(unittest.TestCase):
     def test_a_mismatch_names_both_digests(self):
         with self.assertRaisesRegex(ValueError, "proot.apk: sha256 .* expected 00"):
             stage.require_pinned(b"proot", "00", "proot.apk")
+
+
+def apk_holding(member: str, payload: bytes) -> bytes:
+    """A one-member gzip tar, which is what an Alpine `.apk` reads as."""
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        info = tarfile.TarInfo(member)
+        info.size = len(payload)
+        archive.addfile(info, io.BytesIO(payload))
+    return buffer.getvalue()
+
+
+class StageIntoTest(unittest.TestCase):
+    def setUp(self):
+        self.inner = elf64(section_offset=200, section_count=3, body_size=0)
+        self.proot = elf64(section_offset=64, section_count=0, body_size=128) + self.inner
+        self.out = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory()))
+
+    def test_proot_ships_as_it_came_out_of_the_package(self):
+        stage.stage_into(apk_holding(stage.PROOT_MEMBER, self.proot), self.out)
+
+        self.assertEqual(self.proot, (self.out / "libproot.so").read_bytes())
+
+    def test_its_loader_ships_beside_it(self):
+        stage.stage_into(apk_holding(stage.PROOT_MEMBER, self.proot), self.out)
+
+        self.assertEqual(self.inner, (self.out / "libproot-loader.so").read_bytes())
+
+    def test_a_package_without_proot_names_the_missing_member(self):
+        with self.assertRaisesRegex(KeyError, "proot.static"):
+            stage.stage_into(apk_holding("usr/bin/other", self.proot), self.out)
 
 
 if __name__ == "__main__":

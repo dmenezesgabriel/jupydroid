@@ -116,6 +116,17 @@ docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" -v "$STAGE_DIR
 install -m 0644 "$STAGE_DIR/libloader.so" "$STAGE_DIR/libpython3.so" "$STAGE_DIR/libbusybox.so" \
   "$STAGE_DIR/libshebang.so" "$JNI_DIR/"
 
+# proot is what every Space runs under (ADR-0073), so like the rootfs it ships on arm64 alone: no
+# Space can run on x86_64 (ADR-0003). It comes from a sha-pinned Alpine package, not the image -
+# no release branch packages it for aarch64 - and its loader is carved out beside it, because
+# unset, proot execs that loader from filesDir. stage_proot.py carries both reasons.
+if [ "$ABI" = "arm64-v8a" ]; then
+  echo "==> staging proot and its loader"
+  python3 "$ROOT/scripts/stage_proot.py" "$JNI_DIR"
+else
+  rm -f "$JNI_DIR/libproot.so" "$JNI_DIR/libproot-loader.so"
+fi
+
 echo "==> staged:"
 ls -l "$JNI_DIR" "$ASSET_DIR"
 echo

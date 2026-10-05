@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
-"""Stages proot for `SpaceIsolationProbeDeviceTest` - a measurement, never a shipped artifact.
+"""Stages proot and its loader into arm64 `jniLibs`, the runtime every Space runs under (ADR-0073).
 
 Alpine's `proot-static` is a static-pie ELF, so it runs from `nativeLibraryDir` with no loader
 surgery (ADR-0002). It carries its own exec loader embedded and, unset, writes that out under
 `PROOT_TMP_DIR` and execs it from there - which is `filesDir`, where SELinux refuses `execve` at
 targetSdk 36. So the loader is carved out here and shipped beside it as `libproot-loader.so`, and
-the probe points `PROOT_LOADER` at it: the bytes are exactly the ones proot would have written.
+`ProotCommand` points `PROOT_LOADER` at it: the bytes are exactly the ones proot would have written.
 
-Output goes to `build/isolation-probe/jniLibs/arm64-v8a/`, which `app/build.gradle.kts` adds as a
-jniLibs source only under `-Pjupydroid.isolationProbe`; a normal build never sees it.
+The package is pinned by sha256 and lives in Alpine *edge* - no release branch packages proot for
+aarch64 - and edge drops superseded revisions, so a 404 here means the pin needs a deliberate bump,
+not a silent float. `tools/rootfs/stage-app-artifacts.sh arm64-v8a` runs it:
 
-The package is pinned by sha256 and lives in Alpine *edge*, which drops superseded revisions, so a
-404 here means the pin needs a deliberate bump, not a silent float.
+    python3 scripts/stage_proot.py app/src/main/jniLibs/arm64-v8a
 
-    python3 scripts/stage_isolation_probe.py
-
-Tests in stage_isolation_probe_test.py.
+Tests in stage_proot_test.py.
 """
 from __future__ import annotations
 
@@ -30,7 +28,6 @@ import urllib.request
 PROOT_URL = "https://dl-cdn.alpinelinux.org/alpine/edge/community/aarch64/proot-static-5.4.0-r2.apk"
 PROOT_SHA256 = "6965c02f281b4d2c46e69f28b48eb9ceea443eb7bc2b9cad3af5163906a184c3"
 PROOT_MEMBER = "usr/bin/proot.static"
-OUT_DIR = pathlib.Path("build/isolation-probe/jniLibs/arm64-v8a")
 
 ELF_MAGIC = b"\x7fELF"
 ELFCLASS64 = 2
@@ -73,16 +70,25 @@ def proot_from_apk(apk: bytes) -> bytes:
         return member.read()
 
 
-def main() -> int:
+def stage_into(apk: bytes, out_dir: pathlib.Path) -> None:
+    """Writes proot and its carved-out loader into `out_dir`, e.g. `stage_into(apk, jni_dir)`."""
+    proot = proot_from_apk(apk)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "libproot.so").write_bytes(proot)
+    (out_dir / "libproot-loader.so").write_bytes(carve_embedded_elf(proot))
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2:
+        print(f"usage: {argv[0]} <jniLibs/arm64-v8a dir>; got {argv[1:]}", file=sys.stderr)
+        return 2
     apk = urllib.request.urlopen(PROOT_URL).read()
     require_pinned(apk, PROOT_SHA256, PROOT_URL)
-    proot = proot_from_apk(apk)
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    (OUT_DIR / "libproot.so").write_bytes(proot)
-    (OUT_DIR / "libproot-loader.so").write_bytes(carve_embedded_elf(proot))
-    print(f"staged libproot.so and libproot-loader.so into {OUT_DIR}")
+    out_dir = pathlib.Path(argv[1])
+    stage_into(apk, out_dir)
+    print(f"staged libproot.so and libproot-loader.so into {out_dir}")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv))

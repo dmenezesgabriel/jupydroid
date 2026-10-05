@@ -10,8 +10,7 @@ import kotlin.time.TimeSource
  * **A private copy of base's image, and proot to run it as `/`**, for the device probes that
  * measure what a Space owning its whole system can do (ADR-0073).
  *
- * proot and its loader ship only in a build made with `-Pjupydroid.isolationProbe` after
- * `scripts/stage_isolation_probe.py`; [hasProot] is what a probe `Assume`s on.
+ * proot and its loader ship in arm64 `jniLibs`, and [proot] is the shipped command line.
  *
  * ```
  * val root = PrivateRootUnderTest(context, "isolation-private-root")
@@ -25,8 +24,6 @@ class PrivateRootUnderTest(private val context: Context, name: String) {
 
   /** How every process in [dir] is launched: the shipped command line, not a copy of it. */
   val proot = ProotCommand(File(nativeDir), dir)
-
-  val hasProot: Boolean get() = File(nativeDir, ProotCommand.PROOT).exists()
 
   /** Fresh for every caller that asks, so nothing reads what an earlier run installed. */
   fun extract() {

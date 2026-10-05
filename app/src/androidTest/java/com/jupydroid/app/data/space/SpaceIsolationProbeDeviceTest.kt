@@ -21,14 +21,11 @@ import java.io.File
  * rootfs of its own, a package manager writing into it, and the programs it installs running. Each
  * test pins what the tablet answers, so a later design argues with a number rather than a belief.
  *
- * Runs in this app's process ([runInSpace]), never `run-as`, which carries no seccomp filter. The
- * proot test runs only in a build made with `-Pjupydroid.isolationProbe` after
- * `scripts/stage_isolation_probe.py`; every other test needs only the shipped APK and, for `apk`
- * and `pip`, the network.
+ * Runs in this app's process ([runInSpace]), never `run-as`, which carries no seccomp filter. Every
+ * test needs only the shipped APK and, for `apk` and `pip`, the network.
  *
  * ```
- * python3 scripts/stage_isolation_probe.py
- * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest -Pjupydroid.isolationProbe \
+ * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
  *   -Pandroid.testInstrumentationRunnerArguments.class=com.jupydroid.app.data.space.SpaceIsolationProbeDeviceTest
  * ```
  */
@@ -168,7 +165,6 @@ class SpaceIsolationProbeDeviceTest {
   /** proot in `nativeLibraryDir`, its loader beside it: the private rootfs as `/`, with every exec translated. */
   @Test
   fun prootRunsAPrivateRootfsAsItsRoot() {
-    assumeTrue("proot ships only under -Pjupydroid.isolationProbe", root.hasProot)
     root.extract()
     root.prepareForProot()
 

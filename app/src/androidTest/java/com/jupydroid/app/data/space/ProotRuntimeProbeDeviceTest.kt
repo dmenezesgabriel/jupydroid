@@ -44,11 +44,8 @@ import kotlin.time.TimeSource
  * things nobody had measured: ZMQ over the ipc transport through a translated root, the SIGSYS
  * reporter preloaded from inside that root, and the idle cull.
  *
- * Only in a build made with `-Pjupydroid.isolationProbe` after `scripts/stage_isolation_probe.py`.
- *
  * ```
- * python3 scripts/stage_isolation_probe.py
- * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest -Pjupydroid.isolationProbe \
+ * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
  *   -Pandroid.testInstrumentationRunnerArguments.class=com.jupydroid.app.data.space.ProotRuntimeProbeDeviceTest
  * ```
  */
@@ -61,7 +58,6 @@ class ProotRuntimeProbeDeviceTest {
       runCatching { SpaceAbi.of(Build.SUPPORTED_ABIS.first()) }.isSuccess,
     )
     runBlocking { baseSpaceInstaller(context).installIfNeeded() }
-    assumeTrue("proot ships only under -Pjupydroid.isolationProbe", root.hasProot)
   }
 
   @Test
