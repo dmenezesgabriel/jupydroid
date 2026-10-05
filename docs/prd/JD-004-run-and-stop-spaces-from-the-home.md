@@ -21,7 +21,8 @@ Entering a non-base Space is JD-005, so Thesis's server is checked from outside 
    unchanged (`run-as … ls`).
 5. **Run** Thesis again, then **Delete** it and confirm. The row goes away, and no process under its
    root is left in `ps -A`.
-6. Leave the app for more than 30 s with nothing running. Back on the home, every row reads Stopped.
+6. Create a second Space and Run it beside Base, then leave the app for more than 30 s with nothing
+   running. `ps -A` shows no server, and back on the home every row reads Stopped.
 7. Kill and relaunch. Every row reads Stopped, because no server outlives its app (`CLOSED-001`).
 
 Commit the screenshots, `maestro.log` and the `ps`/`ls` captures under

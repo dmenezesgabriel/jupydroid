@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# Back after the grace: the app-leave backstop stopped both Spaces, and both rows read Stopped.
+# Not stopped first: a relaunch would read Stopped whatever the backstop did.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Run Notes \\(space-\\d+\\)"
+- assertNotVisible: ".*Running.*"
+- takeScreenshot: 09-back-both-stopped

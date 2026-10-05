@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# Two Spaces run when the app is left: Base from part 2, and Notes run here. The driver waits out
+# the app-leave grace and checks `ps -A` for no server under either root.
+# Not stopped first: Maestro's default launch kills the app, and every server with it.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 10000
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Notes"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Notes \\(space-\\d+\\)"
+    timeout: 60000
+- tapOn: "Run Notes \\(space-\\d+\\)"
+- extendedWaitUntil:
+    visible: "Stop Notes \\(space-\\d+\\)"
+    timeout: 120000
+- assertVisible: "Stop Base \\(base\\)"
+- takeScreenshot: 08-base-and-notes-running
+- pressKey: Home

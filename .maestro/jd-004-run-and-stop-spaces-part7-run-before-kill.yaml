@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# Base runs again, so the kill that follows has a server to take with it.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 10000
+- tapOn: "Run Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 120000
+- takeScreenshot: 10-base-running-before-kill

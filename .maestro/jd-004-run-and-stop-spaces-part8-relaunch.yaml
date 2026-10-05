@@ -1,0 +1,11 @@
+appId: com.jupydroid.app
+---
+# After a kill every row reads Stopped: no server outlives its app (CLOSED-001), and the home
+# reads the processes rather than a remembered state.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Run Notes \\(space-\\d+\\)"
+- assertNotVisible: ".*Running.*"
+- takeScreenshot: 11-relaunched-all-stopped

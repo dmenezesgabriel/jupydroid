@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# JD-004 T5: the home runs and stops each Space, several at once, and a running Space is stopped
-# before it is deleted. Demo steps 1-5 of the PRD; the app-leave backstop is T6's.
+# JD-004: the item's whole demo on one tablet run. The home runs and stops each Space, several at
+# once, a running Space is stopped before it is deleted, leaving the app idle stops every running
+# Space, and a kill leaves none running.
+#
+#   scripts/jd-004-run-and-stop-spaces-driver.sh
 #
 # TABLET ONLY (SM-X216B): Run boots a real jupyter_server and part 2 runs a cell, and only arm64
 # ships a rootfs - on x86_64 the home's servers are FakeSpaceServers and nothing would start.
@@ -21,8 +24,8 @@ case "$MODEL" in
   *) echo "refused: this driver must run on the tablet (SM-X216B); this is '$MODEL'"; exit 1 ;;
 esac
 
-EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/jd-004-run-and-stop-spaces/t5-home}"
-FLOWS="$ROOT/.maestro/jd-004-t5"
+EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/jd-004-run-and-stop-spaces/demo}"
+FLOWS="$ROOT/.maestro/jd-004-run-and-stop-spaces"
 CAPTURES="$EVIDENCE/ps-and-ls.txt"
 mkdir -p "$EVIDENCE"
 
@@ -54,6 +57,13 @@ space_files() {
   "$ADB" shell run-as "$APP" ls -A files/spaces/space-1
   "$ADB" shell run-as "$APP" ls -laR files/spaces/space-1/home
 }
+
+# The id the scan gave Notes: the one Space on the device besides base (ADR-0010).
+the_one_user_space() {
+  "$ADB" shell run-as "$APP" ls files/spaces | tr -d '\r' | grep -v '^base$'
+}
+
+LEFT_IDLE_WAIT=45
 
 run_part() { run_flow "$FLOWS-$1.yaml" "$EVIDENCE/$1" || exit 1; }
 
@@ -89,4 +99,28 @@ expect_servers space-1 0
 expect_servers base 1
 ! "$ADB" shell run-as "$APP" test -e files/spaces/space-1 || { echo "space-1 is still on disk" >&2; exit 1; }
 
-echo "two Spaces ran at once, Stop kept Thesis's files, and Delete stopped it before removing it"
+run_part part5-left-idle
+NOTES="$(the_one_user_space)"
+capture "after Run Notes ($NOTES), with the app left" servers
+expect_servers base 1
+expect_servers "$NOTES" 1
+# The grace is 30 s (AppContainer's IDLE_STOP_GRACE), ProcessLifecycleOwner reports ON_STOP
+# ~0.7 s after the last activity stops, and each api/shutdown took under 1 s on this tablet.
+sleep "$LEFT_IDLE_WAIT"
+capture "${LEFT_IDLE_WAIT} s after leaving the app idle" servers
+expect_servers base 0
+expect_servers "$NOTES" 0
+
+run_part part6-back-on-home
+
+run_part part7-run-before-kill
+expect_servers base 1
+"$ADB" shell am force-stop "$APP"
+capture "after a force-stop with Base running" servers
+expect_servers base 0
+run_part part8-relaunch
+expect_servers base 0
+expect_servers "$NOTES" 0
+
+echo "two Spaces ran at once, Stop kept Thesis's files, Delete stopped it first, leaving the app idle"
+echo "stopped Base and Notes, and a kill left no server"
