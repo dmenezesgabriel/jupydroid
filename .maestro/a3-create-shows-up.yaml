@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 # first then naturally by name (`Private.sort`), where Home prepended by recency - so this asserts
 # the row itself rather than a timestamp at the top.
 - launchApp
+- runFlow: open-base-space.yaml
 # No scroll here - this flow watches a new row arrive. It does need the settle: tapping before the
 # disk listing has rendered races the cold start.
 - waitForAnimationToEnd:

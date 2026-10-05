@@ -16,6 +16,7 @@ appId: com.jupydroid.app
 #
 # TABLET ONLY (SM-X216B): a real shell, not `FakeTerminalGateway`'s echo.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn:
     id: "launcher-card-NEW_TERMINAL"
@@ -41,6 +42,10 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 # The resume re-composes the field and re-runs its autofocus - the same race the tap above took.
 - tapOn:
     id: "terminal-input"

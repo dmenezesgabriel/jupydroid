@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 # Seeded by scripts/notebook-switch-driver.sh with two fixtures whose cell sources share no
 # words, so neither can be matched by the other's.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list comes from a disk scan, and a scroll started before it has rendered ends rather
 # than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

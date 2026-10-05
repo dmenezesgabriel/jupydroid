@@ -22,6 +22,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - assertVisible: "Workspace"
 # --- what the notebook looks like when nothing has revealed anything -----------------------------
 # Scrolled to, because the heading is the fourteenth cell and nothing about *this* half is on

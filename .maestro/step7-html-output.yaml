@@ -4,6 +4,7 @@ appId: com.jupydroid.app
 # `text/plain` twin and not shown as its own tags. Seeded by the driver; needs a real kernel,
 # so this runs on the tablet.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

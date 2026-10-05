@@ -15,6 +15,10 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 - assertVisible: "\\[\\*\\]:"
 - takeScreenshot: 05-before-stepping
 - tapOn: "Debugger"

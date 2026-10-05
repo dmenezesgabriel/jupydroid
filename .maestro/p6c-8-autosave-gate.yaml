@@ -18,7 +18,8 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-# The workspace is the first screen since X2h - there is no "Browse files" to tap.
+- runFlow: open-base-space.yaml
+# The workspace opens on its browser - there is no "Browse files" to tap.
 - assertVisible: "Files"
 - tapOn: "autosave_gate.py"
 # Two-pane draws the tab's ✕ where one-pane draws the strip's labelled arrow -

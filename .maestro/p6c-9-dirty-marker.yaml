@@ -13,6 +13,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 # ---- Arm 1: the file editor's own bar ----
 - tapOn: "marker_file.py"

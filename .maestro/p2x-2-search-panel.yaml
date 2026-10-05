@@ -34,6 +34,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 # Files is the panel that opens with the shell - `filebrowser` is the lowest rank and VS Code's
 # `isDefault: true`. `Workspace` is the breadcrumb only the browser draws.
 - assertVisible: "Workspace"

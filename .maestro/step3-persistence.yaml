@@ -4,6 +4,7 @@ appId: com.jupydroid.app
 # listing is read from disk on every launch.
 - launchApp:
     clearState: true
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn: "New"
 - extendedWaitUntil:
@@ -14,5 +15,6 @@ appId: com.jupydroid.app
 - stopApp
 - launchApp:
     clearState: false
+- runFlow: open-base-space.yaml
 - assertVisible: "Untitled.ipynb"
 - takeScreenshot: 01-persisted-after-restart

@@ -12,6 +12,7 @@ appId: com.jupydroid.app
 # + `seed_file` already put a clean workspace and the marker file in place, and `clearState` would
 # wipe both and the already-installed Space, forcing a full reinstall this flow does not need.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn:
     id: "launcher-card-NEW_TERMINAL"

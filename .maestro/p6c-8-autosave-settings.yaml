@@ -18,6 +18,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - tapOn: "Settings"
 - scrollUntilVisible:
     element:
@@ -42,6 +43,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - tapOn: "Settings"
 - scrollUntilVisible:
     element:

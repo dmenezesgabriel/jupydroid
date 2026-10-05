@@ -25,6 +25,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 # Files is the panel that opens with the shell, which is the reference's own default.
 - assertVisible: "Workspace"
 - takeScreenshot: 01-files-is-the-panel-the-shell-opens-with

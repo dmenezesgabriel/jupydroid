@@ -15,6 +15,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 # The notebook is on Home at all, which means the repository found it at the new root.
 - scrollUntilVisible:
     element:

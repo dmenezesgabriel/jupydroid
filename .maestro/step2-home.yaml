@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 # there with nothing on it, which is the same claim without inventing a message.
 - launchApp:
     clearState: true
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - assertVisible: "Workspace"
 # Nothing has been created and nothing opened, so neither section has a row.

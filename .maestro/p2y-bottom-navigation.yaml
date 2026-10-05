@@ -42,6 +42,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 # --- 1. the bar is under the panel, and not under the document ------------------------------------
 # `Workspace` is the breadcrumb only the file browser draws.
 - assertVisible: "Workspace"

@@ -19,6 +19,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 # The browser is showing the root, and the file the cell will write is not there yet. Asserting
 # its absence first is what makes its arrival mean something.

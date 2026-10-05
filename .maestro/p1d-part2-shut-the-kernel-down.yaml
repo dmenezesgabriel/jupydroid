@@ -18,6 +18,10 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 - tapOn: "Kernel actions"
 - assertVisible: "Shut Down Kernel"
 - takeScreenshot: 03-kernel-menu

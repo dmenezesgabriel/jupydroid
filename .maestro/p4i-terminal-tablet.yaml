@@ -17,6 +17,7 @@ appId: com.jupydroid.app
 # installed Space, forcing a full rootfs reinstall this flow does not need - `a2-empty-notebook`'s
 # own precedent, a bare `launchApp` after the driver's cleanup.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn:
     id: "launcher-card-NEW_TERMINAL"

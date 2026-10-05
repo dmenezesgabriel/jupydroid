@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - scrollUntilVisible:
     element:
       text: "Kernel History Setting.ipynb"
@@ -42,6 +43,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - scrollUntilVisible:
     element:
       text: "Kernel History Setting.ipynb"

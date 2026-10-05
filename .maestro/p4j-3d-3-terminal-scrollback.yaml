@@ -9,6 +9,7 @@ appId: com.jupydroid.app
 # TABLET ONLY (SM-X216B): a real shell, not `FakeTerminalGateway`'s echo.
 # NOT A SUITE FLOW: the driver rotates the device, which every flow running after it would inherit.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 # The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
 # launcher's Terminal card at two - several drivers below force portrait (`rotate_to 0`) for their

@@ -24,6 +24,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - assertVisible: "Workspace"
 # --- the document, open, in the detail pane -------------------------------------------------------
 - tapOn: "notes.py"

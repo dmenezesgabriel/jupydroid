@@ -4,6 +4,7 @@ appId: com.jupydroid.app
 # launcher is not closable - `main.title.closable = widgets('main').length > 1`. The close is the
 # tab's ✕, which is why "Close tab:" is the string asserted rather than the pane's own.
 - launchApp
+- runFlow: open-base-space.yaml
 # "Launcher" is the tab's label since P8e - no in-pane title row survives, so the strip node is
 # the oracle, not a text "Launcher" that used to sit in the pane's bar.
 - assertVisible: "Tab: Launcher"

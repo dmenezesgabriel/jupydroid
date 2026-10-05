@@ -11,6 +11,7 @@ appId: com.jupydroid.app
 #
 # Not `clearState` - `p4i-terminal-tablet.yaml`'s own reason: wipes the already-installed Space.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn:
     id: "launcher-card-NEW_TERMINAL"

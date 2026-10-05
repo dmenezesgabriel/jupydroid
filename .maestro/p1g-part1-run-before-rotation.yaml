@@ -6,6 +6,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - scrollUntilVisible:
     element:
       text: "Rotation.ipynb"

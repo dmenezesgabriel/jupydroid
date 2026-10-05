@@ -19,6 +19,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - tapOn: "Word Wrap.ipynb"
 - extendedWaitUntil:
     visible: ".*x = 1.*"
@@ -89,6 +90,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - tapOn: "Settings"
 - extendedWaitUntil:
     visible: "Wrap code lines"

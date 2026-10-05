@@ -5,6 +5,7 @@ appId: com.jupydroid.app
 # widget (`packages/filebrowser-extension`).
 - launchApp:
     clearState: true
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn: "New"
 - extendedWaitUntil:

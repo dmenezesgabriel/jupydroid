@@ -2,6 +2,7 @@ appId: com.jupydroid.app
 ---
 # Seeded by scripts/step7-outputs-driver.sh; clearState would delete the fixture.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:
@@ -24,6 +25,7 @@ appId: com.jupydroid.app
 # The whole point: kill the app, come back, and the result is still there without re-running.
 - stopApp
 - launchApp
+- runFlow: open-base-space.yaml
 # The relaunch needs the same settle and scroll as the first launch, and used to have neither -
 # so it failed here with the row present all along (evidence/relaunch-settles/). Running a cell
 # does now move the notebook up Recents, since `updatedAt` is the file's mtime (audit A6), but

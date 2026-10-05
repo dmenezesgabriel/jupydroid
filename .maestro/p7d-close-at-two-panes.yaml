@@ -17,6 +17,7 @@ appId: com.jupydroid.app
 # WIDE WINDOW (>= 840dp). Runs no cell: the notebook is opened and read, never executed, so
 # `FakeKernelGateway` is never asked anything.
 - launchApp
+- runFlow: open-base-space.yaml
 - extendedWaitUntil:
     visible: "Files"
     timeout: 10000

@@ -17,6 +17,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn: "close_gate.py"
 - assertVisible: "Back to files|Close tab: close_gate.py"

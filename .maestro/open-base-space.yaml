@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# Enters base from the Spaces home, where a launched app starts (`Navigation.kt`, `SpacesHome`).
+#
+# **Not a flow.** No driver runs this; every flow that launches the app calls it with `runFlow`
+# right after the launch settles, so the step from the home into the workspace is written once.
+#
+# Waited for rather than tapped at once: the home lists the Spaces from disk, so the row is not
+# there on the first frame. "Files" afterwards is the workspace's own first panel, which is what
+# every caller went on to assume when the app still opened on the browser.
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- tapOn: "Open Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000

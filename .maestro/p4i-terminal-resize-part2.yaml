@@ -7,6 +7,10 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 # vi reflowed to the portrait grid - the on-screen witness to the same resize the file oracle
 # measures.
 - takeScreenshot: 02-vi-after-rotation

@@ -3,12 +3,14 @@ appId: com.jupydroid.app
 # The driver deletes files/launcher-settings.json after reset_notebooks seeds it, so this launch
 # *is* a first run: at one pane the launcher is pushed once, and the relaunch proves the flag kept.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Launcher"
 - assertVisible: "Python 3"
 - assertVisible: "Terminal"
 - takeScreenshot: 01-first-run-launcher
 - stopApp
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - assertNotVisible: "Launcher"
 - takeScreenshot: 02-relaunch-lands-on-files

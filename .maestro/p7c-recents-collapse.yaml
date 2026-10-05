@@ -16,6 +16,7 @@ appId: com.jupydroid.app
 # Plain `launchApp`: the driver's own `reset_notebooks` is what isolates this run, and
 # `clearState` would delete the workspace it just seeded along with the recents store.
 - launchApp
+- runFlow: open-base-space.yaml
 - extendedWaitUntil:
     visible: "Files"
     timeout: 10000

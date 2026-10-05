@@ -2,6 +2,7 @@ appId: com.jupydroid.app
 ---
 # Seeded by scripts/step5-edit-driver.sh; clearState would delete the fixture.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:
@@ -25,6 +26,7 @@ appId: com.jupydroid.app
 # The debounce is 500 ms; stopping the app is the harder case - it must already be on disk.
 - stopApp
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

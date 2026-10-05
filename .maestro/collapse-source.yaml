@@ -7,6 +7,7 @@ appId: com.jupydroid.app
 # Titled "Collapse Source" rather than "Collapse": the latter is a prefix of the sibling
 # flow's "Collapse Outputs", and scrollUntilVisible could not tell them apart.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:
@@ -54,6 +55,7 @@ appId: com.jupydroid.app
 # is gone by the relaunch.
 - stopApp
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

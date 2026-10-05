@@ -5,6 +5,7 @@ appId: com.jupydroid.app
 # and it is the reference's right-click context menu adapted to a finger.
 - launchApp:
     clearState: true
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn: "New"
 - extendedWaitUntil:

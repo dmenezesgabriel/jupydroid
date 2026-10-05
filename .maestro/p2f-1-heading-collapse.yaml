@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 # The fixture is six cells - two H1s with an H2 nested inside the first - because five of the six
 # assertions below need a *level* difference to mean anything.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:
@@ -89,6 +90,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - scrollUntilVisible:
     element:
       text: "Heading Collapse.ipynb"

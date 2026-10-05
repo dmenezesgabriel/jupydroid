@@ -8,6 +8,7 @@ appId: com.jupydroid.app
 # Space), and since P6d-4 a second one: it also wipes the seeded `launcherSeen`, so the launch
 # would land on the first-run launcher instead of the browser this asserts.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - takeScreenshot: 01-the-workspace
 

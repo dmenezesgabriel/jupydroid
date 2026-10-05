@@ -7,6 +7,7 @@ appId: com.jupydroid.app
 # Runs on both devices - the reach differs by width and both halves are the gate. The
 # `when:`-guarded taps are `p6c-8`'s and `reveal-the-symbol-row-arrows`'s own idiom.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 # The negative half: beside two panes no "New terminal" node exists at all - the FilesBar icon is
 # gone and the rail carries none, which is exactly what the card's presence must not shadow.

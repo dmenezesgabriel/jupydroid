@@ -7,7 +7,8 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-# The workspace is the first screen since X2h, so there is no "Browse files" to tap: Recents
+- runFlow: open-base-space.yaml
+# The workspace opens on its browser, so there is no "Browse files" to tap: Recents
 # stopped being a screen and became a section of this one.
 - assertVisible: "Files"
 - assertVisible: "Workspace"

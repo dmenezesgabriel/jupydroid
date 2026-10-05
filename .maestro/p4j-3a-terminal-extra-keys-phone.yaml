@@ -8,6 +8,7 @@ appId: com.jupydroid.app
 # wire content: `TerminalExtraKeysRowTest` already proves the bytes themselves reach a recording
 # fake, on this same emulator, which a screen a control byte cannot draw never could.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - tapOn: "New terminal"
 - extendedWaitUntil:

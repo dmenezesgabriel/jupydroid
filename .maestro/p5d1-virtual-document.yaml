@@ -24,6 +24,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - tapOn: "Virtual Document.ipynb"
 - extendedWaitUntil:
     visible: ".*import os.*"

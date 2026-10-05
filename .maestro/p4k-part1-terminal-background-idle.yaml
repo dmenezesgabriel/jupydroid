@@ -19,6 +19,7 @@ appId: com.jupydroid.app
 # NOT A SUITE FLOW: the driver's own sleep past the grace is the gate; running this alone proves
 # nothing without `scripts/p4k-idle-stopper-terminal-driver.sh` around it.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 # The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
 # launcher's Terminal card at two - several drivers below force portrait (`rotate_to 0`) for their

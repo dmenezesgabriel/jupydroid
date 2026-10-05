@@ -4,6 +4,7 @@ appId: com.jupydroid.app
 # dark. Run once per theme - the driver flips the device between them, because a single-theme
 # check is exactly what let this through.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

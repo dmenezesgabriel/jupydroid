@@ -7,6 +7,7 @@ appId: com.jupydroid.app
 # Seeded by scripts/a5-markdown-editor-driver.sh; until 2026-08-07 it had none and leaned on
 # whatever a1c's driver had left on the device.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

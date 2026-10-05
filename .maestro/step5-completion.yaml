@@ -6,6 +6,7 @@ appId: com.jupydroid.app
 # kernel, because typing must not boot a Python runtime the user has not asked for. So the
 # popup can only appear at all if a real kernel is already answering - which is the gate.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

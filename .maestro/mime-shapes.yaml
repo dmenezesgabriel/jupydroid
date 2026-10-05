@@ -7,6 +7,7 @@ appId: com.jupydroid.app
 # The flow only has to make the app run a cell and save. The assertion is the file, which the
 # driver reads back off the device.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

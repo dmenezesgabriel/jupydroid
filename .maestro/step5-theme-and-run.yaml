@@ -4,6 +4,7 @@ appId: com.jupydroid.app
 # Mod-Enter is not driven here: Maestro has no modifier chord, so the driver script sends it
 # with `adb shell input keycombination` once this flow has focused the cell.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

@@ -6,7 +6,8 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
-# The workspace is the first thing on screen since X2h - there is no door to walk through, because
+- runFlow: open-base-space.yaml
+# The workspace opens on its browser - there is no second door to walk through, because
 # Recents stopped being a screen and became a section of this one.
 - assertVisible: "Files"
 # "Workspace" is the root crumb; the reference labels its own root the same way rather than

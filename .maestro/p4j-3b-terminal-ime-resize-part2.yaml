@@ -8,6 +8,10 @@ appId: com.jupydroid.app
 # `hideKeyboard` only now, with `vi` already idle rather than mid-startup - part1's own reason.
 - launchApp:
     stopApp: false
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 - hideKeyboard
 - waitForAnimationToEnd:
     timeout: 5000

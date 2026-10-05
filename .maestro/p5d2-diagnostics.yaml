@@ -21,6 +21,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - tapOn: "Diagnostics.ipynb"
 - extendedWaitUntil:
     # The warm-up cell's own source is the anchor, not an observation - what is asserted

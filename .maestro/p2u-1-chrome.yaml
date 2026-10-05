@@ -35,13 +35,14 @@ appId: com.jupydroid.app
 # Runs no cell, so it needs no Space runtime and either device will do - but the step's gate asks
 # for both, so the driver is run once per device with its own evidence half.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends rather
 # than retrying - so let the launch settle first.
 - waitForAnimationToEnd:
     timeout: 5000
 
 # --- the explorer -----------------------------------------------------------------------------
-# The workspace is the launch screen since X2h. Three row kinds - a folder, a notebook and a file
+# The workspace opens on its browser. Three row kinds - a folder, a notebook and a file
 # that is neither - because they are what the list chrome has to tell apart.
 - assertVisible: "Files"
 - assertVisible: "Workspace"

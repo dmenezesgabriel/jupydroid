@@ -8,6 +8,7 @@ appId: com.jupydroid.app
 # `p4i-terminal-tablet.yaml`'s own reason: it would wipe the tablet's already installed Space,
 # forcing a full rootfs reinstall this flow does not need.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 - takeScreenshot: 01-the-workspace
 

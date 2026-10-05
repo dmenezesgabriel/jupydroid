@@ -26,6 +26,7 @@ appId: com.jupydroid.app
 # NOT A SUITE FLOW: it leaves a `vi` session running, which a flow run after it in the same sweep
 # would inherit.
 - launchApp
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 # The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
 # launcher's Terminal card at two - several drivers below force portrait (`rotate_to 0`) for their

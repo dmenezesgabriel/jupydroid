@@ -13,6 +13,10 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 - tapOn:
     text: "Run cell"
     index: 1

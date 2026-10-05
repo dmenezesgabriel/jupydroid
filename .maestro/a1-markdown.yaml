@@ -3,6 +3,7 @@ appId: com.jupydroid.app
 # Audit finding A1: markdown cells were read-only, so an existing one could not be edited and
 # an inserted one was a bare header with nothing under it. Seeded by scripts/a1-markdown-driver.sh.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:
@@ -34,6 +35,7 @@ appId: com.jupydroid.app
 # The debounce is 500 ms; stopping the app is the harder case - it must already be on disk.
 - stopApp
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

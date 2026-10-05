@@ -17,6 +17,10 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 - takeScreenshot: 03-resumed-before-typing
 - inputText: "echo p4k-after-idle > p4k-marker-after.txt"
 - pressKey: Enter

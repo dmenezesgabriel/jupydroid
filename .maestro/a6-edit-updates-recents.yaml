@@ -15,6 +15,7 @@ appId: com.jupydroid.app
 # Seeded by scripts/a6-edit-updates-recents-driver.sh, which backdates the file to 2020 - a
 # fixture pushed by a driver has this moment's mtime, so without that there is nothing to see.
 - launchApp
+- runFlow: open-base-space.yaml
 # The listing is read from disk, and a scroll started before it has rendered ends rather than
 # retrying - so let the launch settle first.
 - waitForAnimationToEnd:

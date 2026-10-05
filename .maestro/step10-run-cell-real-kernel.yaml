@@ -6,6 +6,7 @@ appId: com.jupydroid.app
 # satisfied and a real kernel never did. This asserts computed values instead, which no echo can
 # fabricate.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

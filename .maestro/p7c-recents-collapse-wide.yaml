@@ -9,6 +9,7 @@ appId: com.jupydroid.app
 #
 # WIDE WINDOW (>= 840dp). Runs no cell: the document is a plain file.
 - launchApp
+- runFlow: open-base-space.yaml
 - extendedWaitUntil:
     visible: "Files"
     timeout: 10000

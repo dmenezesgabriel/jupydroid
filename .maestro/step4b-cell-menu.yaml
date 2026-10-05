@@ -6,6 +6,7 @@ appId: com.jupydroid.app
 # soft keyboard and the app's own text both offer competing matches for words like "Delete",
 # and step 5.5b showed what a flow that matches the wrong node looks like — green.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

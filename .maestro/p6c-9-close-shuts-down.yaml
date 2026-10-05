@@ -15,6 +15,10 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 - tapOn: "Kernel Shutdown.ipynb"
 - assertVisible: "Back to files|Close tab: Kernel Shutdown.ipynb"
 - tapOn:

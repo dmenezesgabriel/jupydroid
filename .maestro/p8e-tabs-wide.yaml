@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - assertVisible: "Files"
 # The launcher fill arrives as a tab of its own before any document opens.
 - extendedWaitUntil:

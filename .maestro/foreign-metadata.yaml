@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 # It has no `metadata.jupydroid`, which is the realistic case for a notebook another tool
 # wrote - so Home shows the file's own name rather than a title.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:
@@ -38,6 +39,7 @@ appId: com.jupydroid.app
 # stopApp forces the pending save to have landed by the time the driver reads the file.
 - stopApp
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
 # rather than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

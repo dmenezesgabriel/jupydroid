@@ -12,6 +12,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 10000
+- runFlow: open-base-space.yaml
 # Terminal first - the install happens before the kernel exists, which is also the order a
 # user hits this in: "let me install the thing my notebook needs."
 - runFlow:

@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 #
 # ONE PANE (<840dp). Runs no cell: the documents are plain files.
 - launchApp
+- runFlow: open-base-space.yaml
 - extendedWaitUntil:
     visible: "Files"
     timeout: 10000
@@ -41,6 +42,7 @@ appId: com.jupydroid.app
 - stopApp
 - launchApp:
     clearState: false
+- runFlow: open-base-space.yaml
 - extendedWaitUntil:
     visible: "Files"
     timeout: 15000
@@ -58,6 +60,7 @@ appId: com.jupydroid.app
 - stopApp
 - launchApp:
     clearState: false
+- runFlow: open-base-space.yaml
 - extendedWaitUntil:
     visible: "reports/data.csv"
     timeout: 15000

@@ -14,6 +14,10 @@ appId: com.jupydroid.app
     stopApp: false
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
 # `Workspace` is the breadcrumb only the file browser draws.
 - assertVisible: "Workspace"
 # And no rail, because there is no side area at this width.

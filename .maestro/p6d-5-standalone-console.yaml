@@ -13,6 +13,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 - extendedWaitUntil:
     visible: "Console"
     timeout: 30000

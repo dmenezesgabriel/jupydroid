@@ -10,6 +10,7 @@ appId: com.jupydroid.app
 # afterwards: the title lives in metadata.jupydroid.title, and the screen agreeing is only half
 # the claim.
 - launchApp
+- runFlow: open-base-space.yaml
 # Home's list comes from a disk scan, and a scroll started before it has rendered ends rather
 # than retrying - so let the launch settle first.
 - waitForAnimationToEnd:

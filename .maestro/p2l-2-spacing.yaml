@@ -16,6 +16,7 @@ appId: com.jupydroid.app
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
+- runFlow: open-base-space.yaml
 # A folder, so the breadcrumb has two crumbs and a separator to draw.
 - assertVisible: "reports"
 - takeScreenshot: 01-rows-and-recents
