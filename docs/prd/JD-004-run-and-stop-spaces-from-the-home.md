@@ -159,7 +159,7 @@ JupyterLab's favour (Open decisions).
   generalised to one `SpaceServer` per Space, base's clients bound to base's entry, and `running`
   observed from the process's exit
 - [x] T5 — The home: Run/Stop and Running/Stopped on every row, and Delete stops a running Space first
-- [ ] T6 — The app-leave backstop stops every running Space. The demo runs on the tablet
+- [x] T6 — The app-leave backstop stops every running Space. The demo runs on the tablet
 
 ## Out of scope
 

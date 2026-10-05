@@ -7,11 +7,14 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import kotlin.time.Duration.Companion.seconds
 
 class AppContainerTest {
   private val space = Space(
@@ -30,6 +33,23 @@ class AppContainerTest {
 
     val session = container.kernelGateway.connect(space, "Analysis.ipynb")
     assertEquals("base", session.spaceId)
+  }
+
+  /**
+   * Leaving the app idle stops every Space the home ran, not base alone - a second Space's server
+   * left behind holds ~124 MB until the app dies (`TwoSpacesAtOnceDeviceTest`).
+   */
+  @Test
+  fun leavingTheAppIdle_stopsEverySpacesServer() = runTest {
+    val container = AppContainer(notebookRepository = FakeNotebookRepository(), applicationScope = backgroundScope)
+    container.spaceServers.run("base")
+    container.spaceServers.run("space-1")
+
+    container.idleServerStopper.onAppStopped()
+    advanceTimeBy(31.seconds)
+    runCurrent()
+
+    assertEquals(emptySet<String>(), container.spaceServers.running.value)
   }
 
   /** A device with no Space wiring still lists the base Space, as every installed device holds it. */

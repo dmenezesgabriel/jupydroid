@@ -180,7 +180,7 @@ class AppContainer(
   val terminalGateway: TerminalGateway = ActivityTrackedTerminalGateway(terminalGateway, activeTerminals)
 
   /**
-   * Stop the server when the app goes away - but only once nothing is still running,
+   * Stop every running Space's server when the app goes away - but only once nothing is still running,
    * a live terminal included. `JupydroidApplication` drives it from `ProcessLifecycleOwner`'s
    * ON_STOP/ON_START; the counters the stopper reads are moved by every run for the whole of its
    * life, kernel start included, and by every terminal for the whole of its life, so a
@@ -193,7 +193,7 @@ class AppContainer(
     // The rule for a subprocess the Space owns: the language server dies with the Space too -
     // backgrounded with nothing running, it must not keep ~60 MB of interpreter alive alone.
     stopServer = {
-      spaceServers.stop(BASE_SPACE.id)
+      spaceServers.stopAll()
       languageServer.stop(BASE_SPACE)
     },
     grace = IDLE_STOP_GRACE,
