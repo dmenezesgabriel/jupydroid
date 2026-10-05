@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# JD-002 demo, steps 8-9: after the driver kills the process, the home lists Base and Scratch
+# from disk; only base opens, Open enters its workspace, and Back returns to the home. Runs no
+# cell. Landscape, so Back leaves from the lone launcher (`SpacesHome.kt`, `popWorkspaceEntry`).
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Scratch \\(space-1\\)"
+    timeout: 10000
+- assertVisible: "Open Base \\(base\\)"
+- takeScreenshot: 09-relaunch-lists-base-and-scratch
+# Pressed, not inspected: the hierarchy puts the label on the button's inner node and `enabled` on
+# the outer one, so what a disabled Open is shown by is that pressing it enters nothing.
+- tapOn: "Open Scratch \\(space-1\\)"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Open Base \\(base\\)"
+- assertNotVisible: "Files"
+- tapOn: "Open Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- takeScreenshot: 10-base-workspace
+- back
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- assertNotVisible: "Files"
+- takeScreenshot: 11-back-returns-to-the-home

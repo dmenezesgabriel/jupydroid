@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# JD-002 demo, step 6 second half: a confirmed delete removes the row. Runs no cell.
+# `scripts/jd-002-manage-spaces-driver.sh` checks that `files/spaces/space-1` is gone.
+#
+# Cannot assert the progress bar: a delete on disk ends before Maestro can capture it. What sees
+# it is `SpacesHomeScreenTest.aConfirmedDeleteShowsProgressThenRemovesTheRow`.
+- launchApp
+- extendedWaitUntil:
+    visible: "Delete Dissertation \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Delete Dissertation \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Are you sure.*"
+    timeout: 5000
+# The button, not the title: both read "Delete", and only the button sits below the question.
+- tapOn:
+    text: "Delete"
+    below: "Are you sure.*"
+- extendedWaitUntil:
+    notVisible: "Dissertation"
+    timeout: 10000
+- assertNotVisible: "space-1 · .*"
+- takeScreenshot: 07-deleted-only-base-remains
