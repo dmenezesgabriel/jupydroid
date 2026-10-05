@@ -13,7 +13,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import kotlin.time.TimeSource
 
 /**
  * **What a Space that owns its whole system can run at targetSdk 36 - measured, not assumed.**
@@ -37,9 +36,10 @@ import kotlin.time.TimeSource
 class SpaceIsolationProbeDeviceTest {
   private val context = InstrumentationRegistry.getInstrumentation().targetContext
   private val baseDir by lazy { baseSpaceDir(context) }
-  private val nativeDir by lazy { context.applicationInfo.nativeLibraryDir }
+  private val root by lazy { PrivateRootUnderTest(context, PRIVATE_ROOT) }
+  private val nativeDir by lazy { root.nativeDir }
   private val loader by lazy { File(nativeDir, "libloader.so").path }
-  private val privateRoot by lazy { File(spacesDir(context), PRIVATE_ROOT) }
+  private val privateRoot by lazy { root.dir }
 
   @Before
   fun onlyWhereASpaceCanRun() {
@@ -50,10 +50,9 @@ class SpaceIsolationProbeDeviceTest {
     runBlocking { baseSpaceInstaller(context).installIfNeeded() }
   }
 
-  /** 407 MB a copy: not left behind for the next test, or on the device. */
   @After
   fun removeThePrivateRoot() {
-    privateRoot.deleteRecursively()
+    root.delete()
   }
 
   /**
@@ -114,7 +113,7 @@ class SpaceIsolationProbeDeviceTest {
   /** A second copy of the image, with base's interpreter pointed at it by `PYTHONHOME` and the loader's library path. */
   @Test
   fun aPrivateRootfsCopyRunsTheInterpreterAgainstItsOwnPrefix() {
-    extractPrivateRoot()
+    root.extract()
     val run = sh("${inPrivatePython()} -c 'import sys, ssl; print(sys.prefix)'")
     record("private rootfs size", sh("du -sm ${privateRoot.path}"))
 
@@ -136,7 +135,7 @@ class SpaceIsolationProbeDeviceTest {
    */
   @Test
   fun apkInstallsIntoAPrivateRootfsAndLeavesBaseAlone() {
-    extractPrivateRoot()
+    root.extract()
     // The same two packages the proot test installs, so the two timings compare like for like.
     val added = sh(
       "time sh -c '${inPrivateRoot("sbin/apk")} --root ${privateRoot.path} --no-scripts --no-cache add jq git " +
@@ -157,7 +156,7 @@ class SpaceIsolationProbeDeviceTest {
    */
   @Test
   fun aProgramThatExecsByAbsolutePathFailsWithoutATranslatedRoot() {
-    extractPrivateRoot()
+    root.extract()
     sh("${inPrivateRoot("sbin/apk")} --root ${privateRoot.path} --no-scripts --no-cache add git >/dev/null 2>&1")
     val git = inPrivateRoot("usr/bin/git")
     val run = sh("$git --exec-path; timeout $NETWORK_SECONDS $git ls-remote $PUBLIC_REPO 2>&1 | head -1")
@@ -169,11 +168,9 @@ class SpaceIsolationProbeDeviceTest {
   /** proot in `nativeLibraryDir`, its loader beside it: the private rootfs as `/`, with every exec translated. */
   @Test
   fun prootRunsAPrivateRootfsAsItsRoot() {
-    assumeTrue("proot ships only under -Pjupydroid.isolationProbe", File(nativeDir, "libproot.so").exists())
-    extractPrivateRoot()
-    // The extractor writes no executable bit; proot checks it where the kernel would.
-    sh("chmod -R u+x ${privateRoot.path}")
-    File(privateRoot, "etc/resolv.conf").writeText("nameserver $PUBLIC_DNS\n")
+    assumeTrue("proot ships only under -Pjupydroid.isolationProbe", root.hasProot)
+    root.extract()
+    root.prepareForProot()
 
     val python = inNativeDir("${proot()} /usr/bin/python3.12 -c 'import sys, os; print(sys.prefix, os.getuid())'")
     val shell = inNativeDir("${proot()} /bin/sh -c 'cat /etc/alpine-release'")
@@ -195,7 +192,8 @@ class SpaceIsolationProbeDeviceTest {
 
   private fun sh(script: String): SpaceProcessRun = runInSpace(spaceShellIn(baseDir).path, "-c", script)
 
-  private fun record(label: String, run: SpaceProcessRun) = Log.i(PROBE_TAG, "$label rc=${run.exitCode}\n${run.output}")
+  private fun record(label: String, run: SpaceProcessRun) =
+    Log.i(PrivateRootUnderTest.PROBE_TAG, "$label rc=${run.exitCode}\n${run.output}")
 
   private fun inPrivateRoot(program: String): String =
     "$loader --library-path ${privateRoot.path}/usr/lib:${privateRoot.path}/lib ${privateRoot.path}/$program"
@@ -205,29 +203,11 @@ class SpaceIsolationProbeDeviceTest {
     "PYTHONHOME=${privateRoot.path}/usr $loader --library-path ${privateRoot.path}/usr/lib:${privateRoot.path}/lib " +
       File(nativeDir, "libpython3.so").path
 
-  /**
-   * Run from inside `nativeLibraryDir` ([inNativeDir]): its path holds `==`, which `env` reads as an
-   * assignment. `env -i`, because base's preloads are absolute paths proot would translate into the
-   * private root, where they are not.
-   */
-  private fun proot(): String = "timeout $NETWORK_SECONDS env -i PROOT_LOADER=$nativeDir/libproot-loader.so " +
-    "PROOT_TMP_DIR=${privateRoot.path}/tmp PATH=/usr/sbin:/usr/bin:/sbin:/bin HOME=/root " +
-    "./libproot.so -r ${privateRoot.path} -0 -w / -b /dev -b /proc"
+  private fun proot(): String = root.prootShellPrefix(NETWORK_SECONDS)
 
   private fun inNativeDir(script: String): SpaceProcessRun = sh("cd $nativeDir && $script")
 
-  /** Fresh for every test that asks, so no test reads what another installed. */
-  private fun extractPrivateRoot() {
-    privateRoot.deleteRecursively()
-    val start = TimeSource.Monotonic.markNow()
-    val entries = runBlocking {
-      TarZstdExtractor().extract({ context.assets.open("spaces/base/rootfs-arm64-v8a.tzst") }, privateRoot)
-    }
-    Log.i(PROBE_TAG, "private rootfs extracted entries=$entries ms=${start.elapsedNow().inWholeMilliseconds}")
-  }
-
   companion object {
-    private const val PROBE_TAG = "JupydroidIsolation"
     private const val PRIVATE_ROOT = "isolation-private-root"
     private const val EXEC_REFUSED = 126
     private const val NETWORK_SECONDS = 180
@@ -235,6 +215,5 @@ class SpaceIsolationProbeDeviceTest {
     /** Small, pure-Python and absent from the rootfs, so "already satisfied" cannot fake a pass. */
     private const val PURE_WHEEL = "tabulate"
     private const val PUBLIC_REPO = "https://github.com/octocat/Hello-World"
-    private const val PUBLIC_DNS = "1.1.1.1"
   }
 }
