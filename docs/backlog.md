@@ -91,8 +91,8 @@ Order: `JD-002`, `JD-008`, `JD-004`, `JD-005`, `JD-009`, `JD-003`.
 | `JD-002` | The app opens on a **Spaces home**: every Space listed, created, renamed and deleted with progress, delete asking first | shipped | — | — |
 | `JD-008` | **A Space is its own system:** creating one copies the image into it, its server, kernels and terminal run inside it under proot, and `apk add` in its terminal installs into that Space alone | shipped | — | — |
 | `JD-004` | **Run and stop a Space from the home, several at once:** one `jupyter_server` per running Space, Running/Stopped on each row, Stop keeping its files, idle shutdown per Space, a running Space stopped before it is deleted | shipped | — | — |
-| `JD-005` | **Enter a running Space:** the workspace, explorer, kernels, terminal and language server bind to that Space, not to base; new notebooks record that Space's own kernel in `metadata.kernelspec.name`; leaving returns to the home | in-progress ← next | [PRD](prd/JD-005-enter-a-running-space.md) | — |
-| `JD-009` | **Configure a Space:** environment variables with its derived paths locked, a startup script run on each start, idle-shutdown time and default kernel, thread caps — edited from the home before it runs | open | — | — |
+| `JD-005` | **Enter a running Space:** the workspace, explorer, kernels, terminal and language server bind to that Space, not to base; new notebooks record that Space's own kernel in `metadata.kernelspec.name`; leaving returns to the home | shipped | — | — |
+| `JD-009` | **Configure a Space:** environment variables with its derived paths locked, a startup script run on each start, idle-shutdown time and default kernel, thread caps — edited from the home before it runs | open ← next | — | — |
 | `JD-003` | **Python environments inside a Space:** venv (measured working) and uv, their console scripts runnable, an environment registered as a kernel, pip's own message surfaced on a failed install | open | — | — |
 
 Not scheduled: **other distributions as a Space's image** (Debian, Fedora, Arch). proot keeps this
