@@ -20,18 +20,34 @@ import kotlinx.serialization.Serializable
  * if (backStack.isInWorkspace()) backStack.openLauncher()
  * ```
  */
-fun List<NavKey>.isInWorkspace(): Boolean = Explorer in this
+fun List<NavKey>.isInWorkspace(): Boolean = any { it is Explorer }
 
 /**
- * Enters the workspace from the home. Already entered is a no-op, so an import that may arrive
- * either side of the door can call it unconditionally.
+ * Enters [spaceId]'s workspace from the home. Already entered is a no-op, so an import that may
+ * arrive either side of the door can call it unconditionally - and lands in the Space already
+ * entered rather than switching, which the workspace never does in place.
  *
  * ```
- * backStack.enterWorkspace()   // [SpacesHome] -> [SpacesHome, Explorer]
+ * backStack.enterWorkspace("space-1")   // [SpacesHome] -> [SpacesHome, Explorer("space-1")]
  * ```
  */
-fun MutableList<NavKey>.enterWorkspace() {
-  if (!isInWorkspace()) add(Explorer)
+fun MutableList<NavKey>.enterWorkspace(spaceId: String) {
+  if (!isInWorkspace()) add(Explorer(spaceId))
+}
+
+/**
+ * Moves the browser to the top, keeping its Space and every entry beneath it: at one pane only the
+ * top entry is drawn, and the entries under the browser are still-open tabs.
+ *
+ * ```
+ * // [SpacesHome, Explorer("base"), Editor("nb-1")] -> [SpacesHome, Editor("nb-1"), Explorer("base")]
+ * backStack.bringBrowserForward()
+ * ```
+ */
+fun MutableList<NavKey>.bringBrowserForward() {
+  val browser = firstOrNull { it is Explorer } ?: return
+  remove(browser)
+  add(browser)
 }
 
 /**

@@ -13,6 +13,7 @@ import com.jupydroid.app.Editor
 import com.jupydroid.app.Explorer
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
@@ -38,7 +39,7 @@ import org.junit.runner.RunWith
 class MainAreaCloseGateTest {
   @get:Rule val compose = createComposeRule()
 
-  private val backStack = mutableStateListOf<NavKey>(Explorer, Editor(FIRST), Editor(SECOND))
+  private val backStack = mutableStateListOf<NavKey>(Explorer(BASE_SPACE.id), Editor(FIRST), Editor(SECOND))
   private val open = OpenDocuments()
   private val paths = mutableStateMapOf<NavKey, String>()
   private val order = mutableStateListOf<NavKey>()
@@ -62,7 +63,7 @@ class MainAreaCloseGateTest {
     compose.onNodeWithText("Discard").performClick()
     compose.waitForIdle()
 
-    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id)), backStack.toList())
   }
 
   /** A clean tab beside a dirty one still leaves immediately - no queue position to wait for. */
@@ -77,7 +78,7 @@ class MainAreaCloseGateTest {
     }
 
     compose.onNodeWithText("Save changes in \"$FIRST\" before closing?").assertIsDisplayed()
-    assertEquals(listOf<NavKey>(Explorer, Editor(FIRST)), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id), Editor(FIRST)), backStack.toList())
   }
 
   /**
@@ -97,7 +98,7 @@ class MainAreaCloseGateTest {
     compose.onNodeWithText("Discard").performClick()
     compose.waitForIdle()
 
-    assertEquals(listOf<NavKey>(Explorer, Editor(SECOND)), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id), Editor(SECOND)), backStack.toList())
     compose.onNodeWithText("Save your work").assertDoesNotExist()
   }
 

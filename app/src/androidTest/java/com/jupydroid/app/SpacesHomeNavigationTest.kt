@@ -13,9 +13,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
+import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -34,6 +37,8 @@ class SpacesHomeNavigationTest {
   @get:Rule val compose = createComposeRule()
 
   @get:Rule val tempFolder = TemporaryFolder()
+
+  private val spaceServers = FakeSpaceServers()
 
   @Test
   fun aColdStartLandsOnTheHome() {
@@ -104,7 +109,8 @@ class SpacesHomeNavigationTest {
 
   /**
    * An imported notebook opens inside base's workspace, with the browser beside it - not on the
-   * bare home, where there is no list pane for it to pair with.
+   * bare home, where there is no list pane for it to pair with. Base is run on the way in, since a
+   * Space is only entered running.
    */
   @Test
   fun anImportOpensInsideTheWorkspace() {
@@ -112,6 +118,7 @@ class SpacesHomeNavigationTest {
 
     waitForText(LISTED_FILE)
     compose.onNodeWithContentDescription(OPEN_BASE_SPACE).assertDoesNotExist()
+    assertEquals(setOf(BASE_SPACE.id), spaceServers.running.value)
   }
 
   private fun startApp(twoPane: Boolean, importTitle: String? = null) {
@@ -123,6 +130,7 @@ class SpacesHomeNavigationTest {
             notebookRepository = DiskNotebookRepository(tempFolder.root),
             workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
+            spaceServers = spaceServers,
           ),
           importTitle = importTitle,
           onImportConsumed = {},

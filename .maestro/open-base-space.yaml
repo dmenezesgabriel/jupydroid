@@ -11,6 +11,19 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Open Base \\(base\\)"
     timeout: 10000
+# Open is enabled only on a running Space (`SpacesHomeScreen`), so a stopped base is run first. A
+# caller that already ran it - or kept the app alive with `stopApp: false` - skips the tap.
+- runFlow:
+    when:
+      visible: "Run Base \\(base\\)"
+    commands:
+      - tapOn: "Run Base \\(base\\)"
+# Stop, not an enabled Open: the node Maestro finds by Open's name is a child that reads enabled
+# whatever the button's state, while Stop is drawn only once Run has returned. Long enough for a
+# real server's first start on the tablet, not only the emulator's fake.
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 120000
 - tapOn: "Open Base \\(base\\)"
 - extendedWaitUntil:
     visible: "Files"

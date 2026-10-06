@@ -225,9 +225,9 @@ fun MainNavigation(
   // (`packages/application/src/shell.ts:2383-2394`). So the collapse is spelled here rather
   // than inside the pane, and the notebook actually gains the 360dp.
   val directive = if (twoPane && showingPanel != null) measured else measured.forcedToOnePane()
-  val backSelectsFiles = !twoPane && onePanePanel != SidePanel.FILES && backStack.lastOrNull() == Explorer
+  val backSelectsFiles = !twoPane && onePanePanel != SidePanel.FILES && backStack.lastOrNull() is Explorer
 
-  // The VIEW intent - opened inside base's workspace, see the effect's own KDoc.
+  // The VIEW intent - opened in the Space entered, or in base from the home; see the effect's own KDoc.
   ImportedNotebookEffect(importTitle, appContainer, backStack, openDocument, onImportConsumed)
 
   // `maybeCreate` and the fill's provenance - extracted with the rest of the launcher lifecycle,
@@ -252,8 +252,7 @@ fun MainNavigation(
       // One pane, and the browser is only ever shown as the top entry: bring it forward rather
       // than popping the document - the entries beneath are still-open tabs, so Back
       // from the browser returns to the document exactly as activating a tab would.
-      backStack.remove(Explorer)
-      backStack.add(Explorer)
+      backStack.bringBrowserForward()
     }
   }
 

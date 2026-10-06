@@ -45,11 +45,15 @@ import java.time.Instant
 
 /**
  * The app's first screen: every Space on the device, base first, each row its name over
- * `id · created` and an **Open** that enters it. Only base opens until a second Space can be entered.
+ * `id · created` and an **Open** that enters it.
  *
  * **Every row reads Running or Stopped, and offers Run or Stop**: SageMaker Studio's shape, where
  * several spaces run at once and each is run and stopped by its own control (ADR-0074). The state
  * is the port's ([SpaceServers.running]), so a server that stopped itself when idle reads Stopped.
+ *
+ * **Open is enabled only while the row reads Running**, SageMaker Studio's *Run space* then *Open
+ * JupyterLab* (ADR-0074): the row's state is the one gate, so a Space is never entered stopped.
+ * [onOpen] receives the Space's id, which the workspace carries on its key.
  *
  * **Progress is a bar across the screen's top, not a modal**, which is VS Code's choice for its
  * profiles over Winlator's full-screen preloader: an inline bar leaves the list readable while an
@@ -83,7 +87,7 @@ import java.time.Instant
 fun SpacesHomeScreen(
   spaceRepository: SpaceRepository,
   spaceServers: SpaceServers,
-  onOpen: () -> Unit,
+  onOpen: (spaceId: String) -> Unit,
   modifier: Modifier = Modifier,
   viewModel: SpacesViewModel = viewModel { SpacesViewModel(spaceRepository, spaceServers) },
 ) {
@@ -124,7 +128,7 @@ fun SpacesHomeScreen(
         state.running,
         actsEnabled = !state.busy,
         SpaceRowActs(
-          onOpen = onOpen,
+          onOpen = { onOpen(it.id) },
           onRun = { viewModel.run(it.id) },
           onStop = { viewModel.stop(it.id) },
           onRename = { renaming = it },
@@ -184,7 +188,7 @@ private fun SpaceNameDialog(
 
 /** What a row's controls do, held together so a row takes one parameter for all of them. */
 private class SpaceRowActs(
-  val onOpen: () -> Unit,
+  val onOpen: (SpaceConfig) -> Unit,
   val onRun: (SpaceConfig) -> Unit,
   val onStop: (SpaceConfig) -> Unit,
   val onRename: (SpaceConfig) -> Unit,
@@ -216,9 +220,8 @@ private fun SpaceRow(space: SpaceConfig, now: Instant, isRunning: Boolean, actsE
     SpaceRowText(space, now, isRunning, Modifier.weight(1f))
     RunOrStopButton(space, isRunning, actsEnabled, acts)
     TextButton(
-      onClick = acts.onOpen,
-      // Base is the one Space that runs today, so it is the one that can be entered.
-      enabled = actsEnabled && isBase,
+      onClick = { acts.onOpen(space) },
+      enabled = actsEnabled && isRunning,
       modifier = Modifier.semantics { contentDescription = "Open ${space.name} (${space.id})" },
     ) {
       Text("Open")

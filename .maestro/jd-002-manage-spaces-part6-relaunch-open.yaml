@@ -16,10 +16,7 @@ appId: com.jupydroid.app
     timeout: 3000
 - assertVisible: "Open Base \\(base\\)"
 - assertNotVisible: "Files"
-- tapOn: "Open Base \\(base\\)"
-- extendedWaitUntil:
-    visible: "Files"
-    timeout: 10000
+- runFlow: open-base-space.yaml
 - takeScreenshot: 10-base-workspace
 - back
 - extendedWaitUntil:

@@ -20,6 +20,7 @@ import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.mainAreaTabs
@@ -58,7 +59,7 @@ class FileEditorCloseGateTest {
   @get:Rule val temp = TemporaryFolder()
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-  private val backStack = mutableStateListOf<NavKey>(Explorer, FileEditor("notes.py"))
+  private val backStack = mutableStateListOf<NavKey>(Explorer(BASE_SPACE.id), FileEditor("notes.py"))
   private val open = OpenDocuments()
   private val paths = mutableStateMapOf<NavKey, String>()
   private val liveTitles = mutableStateMapOf<NavKey, String>()
@@ -79,7 +80,7 @@ class FileEditorCloseGateTest {
 
     compose.onNodeWithContentDescription("Back to files").performClick()
 
-    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id)), backStack.toList())
   }
 
   @Test
@@ -128,7 +129,7 @@ class FileEditorCloseGateTest {
 
     compose.onNodeWithText("Discard").performClick()
 
-    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id)), backStack.toList())
     assertEquals("cat", File(temp.root, "notes.py").readText())
   }
 
@@ -145,7 +146,7 @@ class FileEditorCloseGateTest {
     compose.onNodeWithText("Save").performClick()
     compose.waitForIdle()
 
-    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id)), backStack.toList())
     assertEquals("catx", File(temp.root, "notes.py").readText())
   }
 

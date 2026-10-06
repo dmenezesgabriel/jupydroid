@@ -293,7 +293,7 @@ private fun upDestinationLabel(
   liveTabTitles: Map<NavKey, String>,
 ): String = when (beneath) {
   null -> "Back"
-  Explorer -> "Back to files"
+  is Explorer -> "Back to files"
   SpacesHome -> "Back to Spaces"
   else -> "Back to " + (
     beneath.documentIn(openDocuments)?.path?.substringAfterLast('/')

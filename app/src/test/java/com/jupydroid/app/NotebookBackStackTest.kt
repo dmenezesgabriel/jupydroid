@@ -1,6 +1,7 @@
 package com.jupydroid.app
 
 import androidx.navigation3.runtime.NavKey
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.TextEdit
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -20,20 +21,20 @@ import org.junit.Test
 class NotebookBackStackTest {
   @Test
   fun openingANotebookPushesItsEditor() {
-    val backStack = mutableListOf<NavKey>(Explorer)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id))
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1")), backStack)
   }
 
   @Test
   fun openingTheNotebookAlreadyOnTopChangesNothing() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"))
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1")), backStack)
   }
 
   /**
@@ -43,11 +44,11 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingADifferentNotebookKeepsTheOneOpen() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"))
 
     backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Editor("nb-2")), backStack)
   }
 
   /**
@@ -57,11 +58,11 @@ class NotebookBackStackTest {
    */
   @Test
   fun reopeningAnOpenNotebookPromotesItToTheTop() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Editor("nb-2"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Editor("nb-2"))
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-2"), Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-2"), Editor("nb-1")), backStack)
   }
 
   /**
@@ -78,13 +79,13 @@ class NotebookBackStackTest {
     val open = OpenDocuments()
     val document = MovedDocument("a.ipynb")
     open.opened(document)
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("a.ipynb"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("a.ipynb"))
 
     // The `changes` adoption: the file was renamed beside its open document, which re-keyed.
     document.path = "b.ipynb"
     backStack.openDocument("b.ipynb", open)
 
-    assertEquals(listOf(Explorer, Editor("a.ipynb")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("a.ipynb")), backStack)
   }
 
   /**
@@ -93,41 +94,44 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingAPathNothingIsOpenOnPushesByItsSuffix() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("a.ipynb"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("a.ipynb"))
 
     backStack.openDocument("b.ipynb", OpenDocuments())
-    assertEquals(listOf(Explorer, Editor("a.ipynb"), Editor("b.ipynb")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("a.ipynb"), Editor("b.ipynb")), backStack)
 
     backStack.openDocument("c.py", OpenDocuments())
-    assertEquals(listOf(Explorer, Editor("a.ipynb"), Editor("b.ipynb"), FileEditor("c.py")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("a.ipynb"), Editor("b.ipynb"), FileEditor("c.py")), backStack)
   }
 
   /** A plain file opens the same way a notebook does: pushed onto whatever is open. */
   @Test
   fun openingAFilePushesItsEditor() {
-    val backStack = mutableListOf<NavKey>(Explorer, Explorer)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id))
 
     backStack.openFile("data.csv")
 
-    assertEquals(listOf(Explorer, Explorer, FileEditor("data.csv")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), FileEditor("data.csv")), backStack)
   }
 
   @Test
   fun openingTheFileAlreadyOnTopChangesNothing() {
-    val backStack = mutableListOf<NavKey>(Explorer, Explorer, FileEditor("data.csv"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), FileEditor("data.csv"))
 
     backStack.openFile("data.csv")
 
-    assertEquals(listOf(Explorer, Explorer, FileEditor("data.csv")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), FileEditor("data.csv")), backStack)
   }
 
   @Test
   fun openingADifferentFileStacksOnTheOneOpen() {
-    val backStack = mutableListOf<NavKey>(Explorer, Explorer, FileEditor("a.csv"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), FileEditor("a.csv"))
 
     backStack.openFile("b.csv")
 
-    assertEquals(listOf(Explorer, Explorer, FileEditor("a.csv"), FileEditor("b.csv")), backStack)
+    assertEquals(
+      listOf(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), FileEditor("a.csv"), FileEditor("b.csv")),
+      backStack,
+    )
   }
 
   /**
@@ -136,23 +140,26 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingANotebookStacksOnAPlainFileAndViceVersa() {
-    val fromFile = mutableListOf<NavKey>(Explorer, Explorer, FileEditor("a.py"))
+    val fromFile = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), FileEditor("a.py"))
     fromFile.openNotebook("nb-1")
-    assertEquals(listOf(Explorer, Explorer, FileEditor("a.py"), Editor("nb-1")), fromFile)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), FileEditor("a.py"), Editor("nb-1")), fromFile)
 
-    val fromNotebook = mutableListOf<NavKey>(Explorer, Explorer, Editor("nb-1"))
+    val fromNotebook = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), Editor("nb-1"))
     fromNotebook.openFile("a.py")
-    assertEquals(listOf(Explorer, Explorer, Editor("nb-1"), FileEditor("a.py")), fromNotebook)
+    assertEquals(
+      listOf(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), Editor("nb-1"), FileEditor("a.py")),
+      fromNotebook,
+    )
   }
 
   /** A terminal opens the same way: a document of its own kind, pushed onto the browser. */
   @Test
   fun openingATerminalPushesItsScreen() {
-    val backStack = mutableListOf<NavKey>(Explorer)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id))
 
     backStack.openTerminal("1")
 
-    assertEquals(listOf(Explorer, Terminal("1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Terminal("1")), backStack)
   }
 
   /**
@@ -162,23 +169,23 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingASecondTerminalStacksOnTheOneOpen() {
-    val backStack = mutableListOf<NavKey>(Explorer, Terminal("1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Terminal("1"))
 
     backStack.openTerminal("2")
 
-    assertEquals(listOf(Explorer, Terminal("1"), Terminal("2")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Terminal("1"), Terminal("2")), backStack)
   }
 
   /** A terminal stacks on a document exactly as the other two kinds stack on each other. */
   @Test
   fun openingATerminalStacksOnAnEditorAndViceVersa() {
-    val fromEditor = mutableListOf<NavKey>(Explorer, Explorer, Editor("nb-1"))
+    val fromEditor = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), Editor("nb-1"))
     fromEditor.openTerminal("1")
-    assertEquals(listOf(Explorer, Explorer, Editor("nb-1"), Terminal("1")), fromEditor)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), Editor("nb-1"), Terminal("1")), fromEditor)
 
-    val fromTerminal = mutableListOf<NavKey>(Explorer, Explorer, Terminal("1"))
+    val fromTerminal = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), Terminal("1"))
     fromTerminal.openNotebook("nb-1")
-    assertEquals(listOf(Explorer, Explorer, Terminal("1"), Editor("nb-1")), fromTerminal)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Explorer(BASE_SPACE.id), Terminal("1"), Editor("nb-1")), fromTerminal)
   }
 
   /**
@@ -191,11 +198,11 @@ class NotebookBackStackTest {
    */
   @Test
   fun reopeningANotebookStackedBeneathSomethingElsePromotesItInstead() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Terminal("1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Terminal("1"))
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Terminal("1"), Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Terminal("1"), Editor("nb-1")), backStack)
   }
 
   /**
@@ -205,20 +212,20 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingAConsolePushesItOnTopOfTheOpenNotebook() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"))
 
     backStack.openConsole("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("nb-1")), backStack)
   }
 
   @Test
   fun openingTheConsoleAlreadyOnTopChangesNothing() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("nb-1"))
 
     backStack.openConsole("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("nb-1")), backStack)
   }
 
   /**
@@ -227,11 +234,11 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingADifferentNotebookWhileAConsoleIsOpenLeavesEverythingBeneath() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("nb-1"))
 
     backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1"), Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("nb-1"), Editor("nb-2")), backStack)
   }
 
   /**
@@ -241,30 +248,30 @@ class NotebookBackStackTest {
    */
   @Test
   fun reopeningTheNotebookUnderAnOpenConsolePromotesItPastTheConsole() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("nb-1"))
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Console("nb-1"), Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Console("nb-1"), Editor("nb-1")), backStack)
   }
 
   /** Settings, opened with nothing else showing, pushes onto the bare browser. */
   @Test
   fun openingSettingsPushesItsScreen() {
-    val backStack = mutableListOf<NavKey>(Explorer)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id))
 
     backStack.openSettings()
 
-    assertEquals(listOf(Explorer, Settings), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Settings), backStack)
   }
 
   @Test
   fun openingSettingsAlreadyOnTopChangesNothing() {
-    val backStack = mutableListOf<NavKey>(Explorer, Settings)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Settings)
 
     backStack.openSettings()
 
-    assertEquals(listOf(Explorer, Settings), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Settings), backStack)
   }
 
   /**
@@ -273,11 +280,11 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingSettingsStacksOnTopOfAnOpenNotebook() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"))
 
     backStack.openSettings()
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Settings), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Settings), backStack)
   }
 
   /**
@@ -286,30 +293,30 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingANotebookWhileSettingsIsOpenLeavesBothBeneath() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Settings)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Settings)
 
     backStack.openNotebook("nb-2")
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Settings, Editor("nb-2")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Settings, Editor("nb-2")), backStack)
   }
 
   /** The Launcher is a detail-pane destination: it pushes onto the bare browser. */
   @Test
   fun openingTheLauncherPushesIt() {
-    val backStack = mutableListOf<NavKey>(Explorer)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id))
 
     backStack.openLauncher()
 
-    assertEquals(listOf(Explorer, Launcher), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Launcher), backStack)
   }
 
   @Test
   fun openingTheLauncherAlreadyOnTopChangesNothing() {
-    val backStack = mutableListOf<NavKey>(Explorer, Launcher)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Launcher)
 
     backStack.openLauncher()
 
-    assertEquals(listOf(Explorer, Launcher), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Launcher), backStack)
   }
 
   /**
@@ -319,11 +326,11 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingTheLauncherStacksOnTopOfAnOpenDocument() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"))
 
     backStack.openLauncher()
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Launcher), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Launcher), backStack)
   }
 
   /**
@@ -334,11 +341,11 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingTheLauncherWithOneDeeperInTheStackPromotesIt() {
-    val backStack = mutableListOf<NavKey>(Explorer, Launcher, Settings)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Launcher, Settings)
 
     backStack.openLauncher()
 
-    assertEquals(listOf(Explorer, Settings, Launcher), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Settings, Launcher), backStack)
   }
 
   /**
@@ -349,21 +356,21 @@ class NotebookBackStackTest {
    */
   @Test
   fun openingANotebookFromTheListLeavesTheLauncherOpen() {
-    val backStack = mutableListOf<NavKey>(Explorer, Launcher)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Launcher)
 
     backStack.openNotebook("nb-1")
 
-    assertEquals(listOf(Explorer, Launcher, Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Launcher, Editor("nb-1")), backStack)
   }
 
   /** The launcher stays open even with documents stacked between. */
   @Test
   fun openingAFileLeavesALauncherStackedOverTheOpenDocument() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Launcher)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Launcher)
 
     backStack.openFile("a.py")
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Launcher, FileEditor("a.py")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Launcher, FileEditor("a.py")), backStack)
   }
 
   /**
@@ -372,10 +379,10 @@ class NotebookBackStackTest {
    */
   @Test
   fun theMainAreaIsEmptyOnlyWhenNoDetailEntryExists() {
-    assertEquals(true, listOf<NavKey>(Explorer).mainAreaIsEmpty())
-    assertEquals(false, listOf<NavKey>(Explorer, Launcher).mainAreaIsEmpty())
-    assertEquals(false, listOf<NavKey>(Explorer, Editor("nb-1")).mainAreaIsEmpty())
-    assertEquals(false, listOf<NavKey>(Explorer, Launcher, Settings).mainAreaIsEmpty())
+    assertEquals(true, listOf<NavKey>(Explorer(BASE_SPACE.id)).mainAreaIsEmpty())
+    assertEquals(false, listOf<NavKey>(Explorer(BASE_SPACE.id), Launcher).mainAreaIsEmpty())
+    assertEquals(false, listOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1")).mainAreaIsEmpty())
+    assertEquals(false, listOf<NavKey>(Explorer(BASE_SPACE.id), Launcher, Settings).mainAreaIsEmpty())
   }
 
   /**
@@ -386,10 +393,10 @@ class NotebookBackStackTest {
    */
   @Test
   fun aLauncherIsClosableOnlyWhileAnotherMainWidgetExists() {
-    assertEquals(false, listOf<NavKey>(Explorer).launcherIsClosable())
-    assertEquals(false, listOf<NavKey>(Explorer, Launcher).launcherIsClosable())
-    assertEquals(true, listOf<NavKey>(Explorer, Editor("nb-1"), Launcher).launcherIsClosable())
-    assertEquals(true, listOf<NavKey>(Explorer, Launcher, Settings).launcherIsClosable())
+    assertEquals(false, listOf<NavKey>(Explorer(BASE_SPACE.id)).launcherIsClosable())
+    assertEquals(false, listOf<NavKey>(Explorer(BASE_SPACE.id), Launcher).launcherIsClosable())
+    assertEquals(true, listOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Launcher).launcherIsClosable())
+    assertEquals(true, listOf<NavKey>(Explorer(BASE_SPACE.id), Launcher, Settings).launcherIsClosable())
   }
 
   /**
@@ -399,12 +406,12 @@ class NotebookBackStackTest {
    */
   @Test
   fun aStandaloneConsoleStacksOnTheDetail() {
-    val backStack = mutableListOf<NavKey>(Explorer, Launcher)
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Launcher)
 
     backStack.openStandaloneConsole("console-1-x", "Console 1")
 
     assertEquals(
-      listOf(Explorer, Launcher, Console("console-1-x", "Console 1")),
+      listOf(Explorer(BASE_SPACE.id), Launcher, Console("console-1-x", "Console 1")),
       backStack,
     )
   }
@@ -416,12 +423,12 @@ class NotebookBackStackTest {
    */
   @Test
   fun aStandaloneConsoleSweepsAnAttachedOne() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Console("nb-1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("nb-1"))
 
     backStack.openStandaloneConsole("console-1-x", "Console 1")
 
     assertEquals(
-      listOf(Explorer, Editor("nb-1"), Console("console-1-x", "Console 1")),
+      listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("console-1-x", "Console 1")),
       backStack,
     )
   }
@@ -429,24 +436,24 @@ class NotebookBackStackTest {
   @Test
   fun aSecondStandaloneConsoleReplacesTheFirst() {
     val backStack =
-      mutableListOf<NavKey>(Explorer, Console("console-1-x", "Console 1"))
+      mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Console("console-1-x", "Console 1"))
 
     backStack.openStandaloneConsole("console-2-y", "Console 2")
 
-    assertEquals(listOf(Explorer, Console("console-2-y", "Console 2")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Console("console-2-y", "Console 2")), backStack)
   }
 
   @Test
   fun openingAnAttachedConsoleSweepsAStandaloneOneFromTheStack() {
     val backStack = mutableListOf<NavKey>(
-      Explorer,
+      Explorer(BASE_SPACE.id),
       Editor("nb-1"),
       Console("console-1-x", "Console 1"),
     )
 
     backStack.openConsole("nb-1")
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Console("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Console("nb-1")), backStack)
   }
 
   /**
@@ -456,7 +463,7 @@ class NotebookBackStackTest {
   @Test
   fun theTabListIsEveryMainAreaEntryInStackOrder() {
     val backStack = mutableListOf<NavKey>(
-      Explorer,
+      Explorer(BASE_SPACE.id),
       Editor("nb-1"),
       FileEditor("a.py"),
       Terminal("1"),
@@ -477,20 +484,20 @@ class NotebookBackStackTest {
    */
   @Test
   fun activatingATabBringsItsEntryToTheTop() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), FileEditor("a.py"), Terminal("1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), FileEditor("a.py"), Terminal("1"))
 
     backStack.activateMainAreaTab(Editor("nb-1"))
 
-    assertEquals(listOf(Explorer, FileEditor("a.py"), Terminal("1"), Editor("nb-1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), FileEditor("a.py"), Terminal("1"), Editor("nb-1")), backStack)
   }
 
   @Test
   fun activatingTheTabAlreadyOnTopChangesNothing() {
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("nb-1"), Terminal("1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("nb-1"), Terminal("1"))
 
     backStack.activateMainAreaTab(Terminal("1"))
 
-    assertEquals(listOf(Explorer, Editor("nb-1"), Terminal("1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("nb-1"), Terminal("1")), backStack)
   }
 
   /**
@@ -503,7 +510,7 @@ class NotebookBackStackTest {
   @Test
   fun activatingATabDoesNotMoveItInTheStrip() {
     var order = emptyList<NavKey>()
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("a.ipynb"), FileEditor("b.py"), Terminal("1"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("a.ipynb"), FileEditor("b.py"), Terminal("1"))
     order = backStack.mainAreaTabs().orderedAsOpened(order)
 
     backStack.activateMainAreaTab(Editor("a.ipynb"))
@@ -521,7 +528,7 @@ class NotebookBackStackTest {
   @Test
   fun revealingKeepsItsPlaceOpeningAppendsAndClosingDrops() {
     var order = emptyList<NavKey>()
-    val backStack = mutableListOf<NavKey>(Explorer, Editor("a.ipynb"), FileEditor("b.py"))
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("a.ipynb"), FileEditor("b.py"))
     order = backStack.mainAreaTabs().orderedAsOpened(order)
 
     backStack.openNotebook("a.ipynb")
@@ -546,7 +553,7 @@ class NotebookBackStackTest {
   @Test
   fun closingTheCurrentTabRevealsItsNeighbourNotTheBrowser() {
     val backStack =
-      mutableListOf<NavKey>(Explorer, Editor("a.ipynb"), Editor("b.ipynb"), FileEditor("c.py"))
+      mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("a.ipynb"), Editor("b.ipynb"), FileEditor("c.py"))
     val order = listOf(Editor("a.ipynb"), Editor("b.ipynb"), FileEditor("c.py"))
 
     backStack.closeMainAreaTab(FileEditor("c.py"), order)
@@ -556,7 +563,7 @@ class NotebookBackStackTest {
     assertEquals("a background tab closes quietly", Editor("b.ipynb"), backStack.last())
 
     backStack.closeMainAreaTab(Editor("b.ipynb"), order)
-    assertEquals("the last tab leaves the browser", Explorer, backStack.last())
+    assertEquals("the last tab leaves the browser", Explorer(BASE_SPACE.id), backStack.last())
   }
 
   /**
@@ -585,13 +592,13 @@ class NotebookBackStackTest {
    */
   @Test
   fun theReconcileDropsAClosedTabsKeys() {
-    val order = mutableListOf<NavKey>(Editor("a.ipynb"), Explorer, Terminal("1"))
+    val order = mutableListOf<NavKey>(Editor("a.ipynb"), Explorer(BASE_SPACE.id), Terminal("1"))
     val titles = mutableMapOf<NavKey, String>(Terminal("1") to "bash", Editor("a.ipynb") to "b.ipynb")
     val paths = mutableMapOf<NavKey, String>(Editor("a.ipynb") to "b.ipynb")
 
-    reconcileOpenTabs(listOf(Explorer, Terminal("1")), order, titles, paths)
+    reconcileOpenTabs(listOf(Explorer(BASE_SPACE.id), Terminal("1")), order, titles, paths)
 
-    assertEquals(listOf(Explorer, Terminal("1")), order)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Terminal("1")), order)
     assertEquals(mapOf(Terminal("1") to "bash"), titles)
     assertEquals(emptyMap<NavKey, String>(), paths)
   }

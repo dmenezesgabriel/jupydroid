@@ -176,30 +176,39 @@ class SpacesHomeScreenTest {
     compose.onNodeWithContentDescription(NEW_SPACE).assertIsEnabled()
   }
 
-  /** Only base can be entered until a second Space can run, so only base's Open is live. */
+  /** A Space is entered only running, so each row's Open follows its own Running and no other's. */
   @Test
-  fun onlyBaseCanBeOpened() {
+  fun openIsEnabledExactlyWhileTheRowIsRunning() {
     show(FakeSpaceRepository(listOf(base, thesis)))
+    compose.onNodeWithContentDescription(openBase).assertIsNotEnabled()
+    compose.onNodeWithContentDescription(openThesis).assertIsNotEnabled()
 
-    compose.onNodeWithContentDescription(openBase).assertIsEnabled()
-    compose.onNodeWithContentDescription("Open $THESIS (space-1)").assertIsNotEnabled()
+    compose.onNodeWithContentDescription("Run $THESIS (space-1)").performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText(RUNNING).fetchSemanticsNodes().size == 1 }
+    compose.onNodeWithContentDescription(openThesis).assertIsEnabled()
+    compose.onNodeWithContentDescription(openBase).assertIsNotEnabled()
   }
 
   @Test
-  fun openingBaseEntersIt() {
-    var opened = 0
-    show(FakeSpaceRepository(), onOpen = { opened++ })
+  fun openingARunningSpaceEntersItById() {
+    val servers = FakeSpaceServers()
+    runBlocking { servers.run("space-1") }
+    val opened = mutableListOf<String>()
+    show(FakeSpaceRepository(listOf(base, thesis)), servers, onOpen = { opened += it })
 
-    compose.onNodeWithContentDescription(openBase).performClick()
+    compose.onNodeWithContentDescription(openThesis).performClick()
 
-    compose.runOnIdle { assertEquals(1, opened) }
+    compose.runOnIdle { assertEquals(listOf("space-1"), opened) }
   }
 
   /** Entering a Space mid-act would leave the act's result unseen, so Open is held with the rest. */
   @Test
   fun openIsHeldWhileAnActRuns() {
     val gated = GatedSpaceRepository(FakeSpaceRepository())
-    val model = show(gated)
+    val servers = FakeSpaceServers()
+    runBlocking { servers.run(BASE_SPACE.id) }
+    val model = show(gated, servers)
 
     compose.runOnIdle { model.create(THESIS) }
 
@@ -299,7 +308,7 @@ class SpacesHomeScreenTest {
   private fun show(
     repository: SpaceRepository,
     servers: FakeSpaceServers = FakeSpaceServers(),
-    onOpen: () -> Unit = {},
+    onOpen: (String) -> Unit = {},
   ): SpacesViewModel {
     val model = SpacesViewModel(repository, servers)
     compose.setContent {
@@ -314,6 +323,7 @@ class SpacesHomeScreenTest {
   private companion object {
     const val THESIS = "Thesis"
     val openBase = "Open ${BASE_SPACE.name} (${BASE_SPACE.id})"
+    val openThesis = "Open $THESIS (space-1)"
     val runBase = "Run ${BASE_SPACE.name} (${BASE_SPACE.id})"
     val stopBase = "Stop ${BASE_SPACE.name} (${BASE_SPACE.id})"
     const val TIMEOUT_MILLIS = 5_000L

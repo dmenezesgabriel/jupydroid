@@ -141,9 +141,9 @@ its kernel, not its Space*.
 
 ## Open decisions
 
-- **The import intent** (`DocumentOpeners.kt` `ImportedNotebookEffect`) enters base today without
-  running it. With Open gated on Running, it must either run base first or land in the entered Space when
-  one is entered. Settle this in T1 against the flow, and test both cases.
+- ~~**The import intent**~~ settled in T1: from the home it runs base and then enters it, and inside a
+  workspace it stays in the Space already entered (`DocumentOpeners.kt` `importNotebook`,
+  `DocumentOpenersTest`).
 - **The Running panel and the session registry.** One `KernelSessionRegistry` app-wide, or one per
   Space? `KernelSession.spaceId` already exists. Settle in T3 from what `RunningPanelViewModel` lists.
 - **A Space stopped while it is entered**, either by itself when idle or from outside: does the workspace
@@ -169,7 +169,7 @@ its kernel, not its Space*.
 
 ## Tasks
 
-- [ ] T1 — The home's Open is enabled iff the row is Running and enters that Space: `onOpen(spaceId)`,
+- [x] T1 — The home's Open is enabled iff the row is Running and enters that Space: `onOpen(spaceId)`,
   with `Explorer` carrying the id. The import path is settled (open decision 1). Ports are still base's,
   so a flow on the emulator shows only the gate
 - [ ] T2 — The files side binds to the entered Space: notebook repository, workspace, searcher and sharer

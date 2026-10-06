@@ -41,10 +41,7 @@ appId: com.jupydroid.app
     timeout: 10000
 
 # Two panes: Open lands on the browser beside the launcher that fills the empty main area.
-- tapOn: "Open Base \\(base\\)"
-- extendedWaitUntil:
-    visible: "Files"
-    timeout: 10000
+- runFlow: open-base-space.yaml
 - extendedWaitUntil:
     visible:
       id: "launcher-screen"

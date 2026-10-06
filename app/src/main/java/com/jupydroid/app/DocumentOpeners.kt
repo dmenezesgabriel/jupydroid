@@ -6,8 +6,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
+import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.launch
 
@@ -108,9 +111,9 @@ internal suspend fun MutableList<NavKey>.openNewTerminal(terminalGateway: Termin
  * listed again, and the create races that listing on a cold start. Opening also records it as a
  * recent, so it is on the browser's first section when the editor is left.
  *
- * **Inside base's workspace.** A document belongs to a workspace, so from the Spaces home it
- * enters base first: the browser is then the list pane the document pairs with, rather than a
- * bare home underneath it.
+ * **Inside a workspace.** A document belongs to one, so the act itself is [importNotebook]: it lands
+ * in the Space already entered, or from the Spaces home runs and enters base. The browser is then the
+ * list pane the document pairs with, rather than a bare home underneath it.
  *
  * ```
  * ImportedNotebookEffect(importTitle, appContainer, backStack, openDocument, onImportConsumed)
@@ -126,12 +129,32 @@ internal fun ImportedNotebookEffect(
 ) {
   LaunchedEffect(importTitle) {
     importTitle?.let { title ->
-      runCatching { appContainer.notebookRepository.createNotebook(title, DEFAULT_KERNEL_ID) }
-        .onSuccess {
-          backStack.enterWorkspace()
-          openDocument(it.id)
-        }
+      backStack.importNotebook(title, appContainer.notebookRepository, appContainer.spaceServers)
+        ?.let(openDocument)
       onImportConsumed()
     }
   }
+}
+
+/**
+ * The VIEW intent's act on the stack, testable without Compose: create the notebook, and land in a
+ * workspace for it. **Inside one it stays in the Space entered**, since the workspace never switches
+ * Space in place. **From the home it runs base first**, because a Space is only entered running (the
+ * home's Open is gated on it). A refused run or create opens nothing and returns null, the
+ * `runCatching` [openNewTerminal] gives a refused mint.
+ *
+ * ```
+ * backStack.importNotebook("Imported", notebookRepository, spaceServers)?.let(openDocument)
+ * ```
+ */
+internal suspend fun MutableList<NavKey>.importNotebook(
+  title: String,
+  notebookRepository: NotebookRepository,
+  spaceServers: SpaceServers,
+): String? = runCatching {
+  if (!isInWorkspace()) spaceServers.run(BASE_SPACE.id)
+  notebookRepository.createNotebook(title, DEFAULT_KERNEL_ID)
+}.getOrNull()?.let { notebook ->
+  enterWorkspace(BASE_SPACE.id)
+  notebook.id
 }

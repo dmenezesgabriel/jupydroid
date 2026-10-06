@@ -26,6 +26,7 @@ import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.EditorSettings
@@ -67,7 +68,7 @@ class EditorCloseGateTest {
 
   // The real stack the strip closes against - what `MainNavigation` hands `TabbedDocumentPane`,
   // shrunk to a browser under one notebook.
-  private val backStack = mutableStateListOf<NavKey>(Explorer, Editor(NOTEBOOK_ID))
+  private val backStack = mutableStateListOf<NavKey>(Explorer(BASE_SPACE.id), Editor(NOTEBOOK_ID))
   private val open = OpenDocuments()
   private val paths = mutableStateMapOf<NavKey, String>()
   private val liveTitles = mutableStateMapOf<NavKey, String>()
@@ -81,7 +82,7 @@ class EditorCloseGateTest {
 
     compose.onNodeWithContentDescription("Back to files").performClick()
 
-    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id)), backStack.toList())
   }
 
   @Test
@@ -114,7 +115,7 @@ class EditorCloseGateTest {
 
     compose.onNodeWithText("Discard").performClick()
 
-    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id)), backStack.toList())
     assertEquals("pass", runBlocking { repository.readNotebook(NOTEBOOK_ID).cells[0].source })
   }
 
@@ -128,7 +129,7 @@ class EditorCloseGateTest {
     compose.onNodeWithText("Save").performClick()
     compose.waitForIdle()
 
-    assertEquals(listOf<NavKey>(Explorer), backStack.toList())
+    assertEquals(listOf<NavKey>(Explorer(BASE_SPACE.id)), backStack.toList())
     assertEquals("x = 1", runBlocking { repository.readNotebook(NOTEBOOK_ID).cells[0].source })
   }
 

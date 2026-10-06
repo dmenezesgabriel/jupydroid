@@ -8,10 +8,7 @@ appId: com.jupydroid.app
     visible: "Open Base \\(base\\)"
     timeout: 10000
 - takeScreenshot: 05-home-at-one-pane
-- tapOn: "Open Base \\(base\\)"
-- extendedWaitUntil:
-    visible: "Files"
-    timeout: 10000
+- runFlow: open-base-space.yaml
 - takeScreenshot: 06-base-workspace-one-pane
 - back
 - extendedWaitUntil:

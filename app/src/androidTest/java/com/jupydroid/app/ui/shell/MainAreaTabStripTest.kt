@@ -36,6 +36,7 @@ import com.jupydroid.app.Settings
 import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -130,7 +131,7 @@ class MainAreaTabStripTest {
   private val paths = mutableStateMapOf<NavKey, String>()
   private val liveTitles = mutableStateMapOf<NavKey, String>()
 
-  private fun strip(vararg entries: NavKey, twoPane: Boolean = true, root: NavKey = Explorer) {
+  private fun strip(vararg entries: NavKey, twoPane: Boolean = true, root: NavKey = Explorer(BASE_SPACE.id)) {
     backStack = mutableStateListOf(root, *entries)
     compose.setContent {
       JupyterDroidTheme {
@@ -183,7 +184,7 @@ class MainAreaTabStripTest {
 
     closeTab("b.py").performClick()
 
-    assertEquals(listOf(Explorer, Editor("a.ipynb"), Terminal("1")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), Editor("a.ipynb"), Terminal("1")), backStack)
     tab("b.py").assertIsNotDisplayed()
     tab("Terminal 1").assertIsDisplayed()
   }
@@ -226,7 +227,7 @@ class MainAreaTabStripTest {
     compose.onNodeWithText("Discard").performClick()
 
     assertEquals(1, document.discards)
-    assertEquals(listOf(Explorer, FileEditor("b.py")), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id), FileEditor("b.py")), backStack)
   }
 
   /** Save writes first and closes only when nothing is left owed - the flush's own continuation. */
@@ -446,7 +447,7 @@ class MainAreaTabStripTest {
 
     compose.onNodeWithContentDescription("Back to files").performClick()
 
-    assertEquals(listOf(Explorer), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id)), backStack)
   }
 
   /**
@@ -485,6 +486,6 @@ class MainAreaTabStripTest {
 
     compose.onNodeWithContentDescription("Back to files").performClick()
 
-    assertEquals(listOf(Explorer), backStack)
+    assertEquals(listOf(Explorer(BASE_SPACE.id)), backStack)
   }
 }
