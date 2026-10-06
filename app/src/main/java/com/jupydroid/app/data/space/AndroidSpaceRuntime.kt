@@ -11,13 +11,16 @@ fun baseSpaceRuntime(context: Context): SpaceRuntime = spaceRuntime(context, BAS
 
 /**
  * Command line and environment for [space]: its own directory is its whole system and its `/`
- * under proot (ADR-0073). A Space whose directory carries no image yet has nothing to run.
+ * under proot (ADR-0073), with [variables] - the Space's own, from its settings - under the derived
+ * set. A Space whose directory carries no image yet has nothing to run.
  */
-fun spaceRuntime(context: Context, space: Space): SpaceRuntime = SpaceRuntime(
-  spaceDir = spaceDirIn(spacesDir(context), space.id),
-  nativeLibraryDir = File(context.applicationInfo.nativeLibraryDir),
-  dnsServers = androidDnsServerSource(context),
-)
+fun spaceRuntime(context: Context, space: Space, variables: Map<String, String> = emptyMap()): SpaceRuntime =
+  SpaceRuntime(
+    spaceDir = spaceDirIn(spacesDir(context), space.id),
+    nativeLibraryDir = File(context.applicationInfo.nativeLibraryDir),
+    dnsServers = androidDnsServerSource(context),
+    variables = variables,
+  )
 
 /** [space]'s writable directories under the app's `files/spaces/`. */
 fun spaceDirs(context: Context, space: Space): SpaceDirs = SpaceDirs(spaceDirIn(spacesDir(context), space.id))

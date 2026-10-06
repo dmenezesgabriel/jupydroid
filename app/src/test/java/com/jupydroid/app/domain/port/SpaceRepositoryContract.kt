@@ -182,6 +182,41 @@ abstract class SpaceRepositoryContract {
     assertEquals(created, repository.spaces().single { it.id == created.id })
   }
 
+  /** A Space's own variables are stored in the order they were given, and read back as written. */
+  @Test
+  fun configuredVariablesAreStoredInTheirOrder() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+    val variables = linkedMapOf("ZETA" to "last letter", "GREETING" to "hello world", "EMPTY" to "")
+
+    repository.configure(created.id, SpaceSettings(environmentVariables = variables))
+
+    val stored = repository.spaces().single { it.id == created.id }.settings.environmentVariables
+    assertEquals(variables.toList(), stored.toList())
+  }
+
+  /**
+   * A name the app derives from the Space's directory is refused **by name**, since a `HOME` that
+   * disagrees with the disk breaks the Space (ADR-0072) - and so is a name no shell could export, and a
+   * value no process environment can carry.
+   */
+  @Test
+  fun aDerivedOrMalformedVariableIsRefusedByNameAndNothingIsWritten() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+    val refused = mapOf("HOME" to "/tmp", "PATH" to "/bin", "1X" to "v", "A=B" to "v", "" to "v", "NUL" to "a\u0000b")
+
+    refused.forEach { (name, value) ->
+      val refusal = runCatching {
+        repository.configure(created.id, SpaceSettings(environmentVariables = mapOf(name to value)))
+      }.exceptionOrNull()
+
+      assertTrue("expected IllegalArgumentException for '$name', was $refusal", refusal is IllegalArgumentException)
+      assertTrue("message must name '$name', was '${refusal?.message}'", refusal?.message?.contains("'$name'") == true)
+    }
+    assertEquals(created, repository.spaces().single { it.id == created.id })
+  }
+
   @Test
   fun deletingASpaceTakesItOutOfTheListing() = runTest {
     val repository = repository()

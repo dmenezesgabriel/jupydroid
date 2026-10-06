@@ -155,7 +155,7 @@ class JupydroidApplication : Application() {
     // Off the servers, unlike the kernels: `pylsp` is a direct stdio process - it never passes
     // through `jupyter_server`, so it shares only the condition, not the launcher's life. One port
     // for every Space, since it already keeps one process per Space it is asked about.
-    languageServer = baseSpaceLanguageServerPort(this) ?: FakeLanguageServerPort(),
+    languageServer = baseSpaceLanguageServerPort(this, spaceRepository) ?: FakeLanguageServerPort(),
     spaceServers = servers ?: FakeSpaceServers(),
     spaceRepository = spaceRepository,
     // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app

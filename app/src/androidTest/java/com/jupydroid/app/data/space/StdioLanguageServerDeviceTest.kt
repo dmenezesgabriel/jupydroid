@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.jupydroid.app.data.disk.DiskSpaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.LanguagePosition
@@ -39,6 +40,7 @@ import kotlin.time.Duration.Companion.seconds
 class StdioLanguageServerDeviceTest {
   private val context = InstrumentationRegistry.getInstrumentation().targetContext
   private val baseDir by lazy { baseSpaceDir(context) }
+  private val spaceRepository by lazy { DiskSpaceRepository(spacesDir(context), spaceImageInstaller(context)) }
 
   @Before
   fun onlyWhereASpaceCanRun() {
@@ -57,7 +59,7 @@ class StdioLanguageServerDeviceTest {
    */
   @Test(timeout = 120_000)
   fun thePortDrivesARealPylspSession() = runBlocking {
-    val languageServer = baseSpaceLanguageServerPort(context)!!
+    val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
       assertTrue("pylsp must declare completionProvider, or completion has no source", capabilities.completionProvider)
@@ -88,7 +90,7 @@ class StdioLanguageServerDeviceTest {
    */
   @Test(timeout = 120_000)
   fun publishDiagnosticsFromRealPylsp_arrivesOnThePortStream() = runBlocking {
-    val languageServer = baseSpaceLanguageServerPort(context)!!
+    val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
       val uri = "file:///home/jupydroid/p5d2-probe.py"
       val received = async { languageServer.diagnostics.first { it.uri == uri } }
@@ -113,7 +115,7 @@ class StdioLanguageServerDeviceTest {
    */
   @Test(timeout = 120_000)
   fun hoverOnADefinedName_answersItsMarkdown() = runBlocking {
-    val languageServer = baseSpaceLanguageServerPort(context)!!
+    val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
       val uri = "file:///home/jupydroid/p5e3-probe.py"
       languageServer.openDocument(
@@ -149,7 +151,7 @@ class StdioLanguageServerDeviceTest {
    */
   @Test(timeout = 120_000)
   fun signatureHelpInsideACall_answersTheSignature() = runBlocking {
-    val languageServer = baseSpaceLanguageServerPort(context)!!
+    val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
       assertTrue(
@@ -183,7 +185,7 @@ class StdioLanguageServerDeviceTest {
    */
   @Test(timeout = 120_000)
   fun definitionOnACallSite_answersTheDefLine() = runBlocking {
-    val languageServer = baseSpaceLanguageServerPort(context)!!
+    val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
       assertTrue(
@@ -223,7 +225,7 @@ class StdioLanguageServerDeviceTest {
    */
   @Test(timeout = 120_000)
   fun rangeFormattingOnSloppySpacing_answersAutopep8sWholeDocumentEdit() = runBlocking {
-    val languageServer = baseSpaceLanguageServerPort(context)!!
+    val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
       assertTrue(
@@ -260,7 +262,7 @@ class StdioLanguageServerDeviceTest {
    */
   @Test(timeout = 120_000)
   fun renameOnACallSite_answersTheWholeDocumentEdit() = runBlocking {
-    val languageServer = baseSpaceLanguageServerPort(context)!!
+    val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
       val capabilities = languageServer.capabilities(BASE_SPACE)
       assertTrue("pylsp must declare renameProvider, or rename has nothing to call", capabilities.renameProvider)
@@ -292,7 +294,7 @@ class StdioLanguageServerDeviceTest {
   /** Lazy means lazy: a port never called leaves no process behind to stop. */
   @Test(timeout = 60_000)
   fun stopOnANeverStartedServerIsANoOp() = runBlocking {
-    val languageServer = baseSpaceLanguageServerPort(context)!!
+    val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     languageServer.stopAll()
   }
 

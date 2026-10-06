@@ -47,7 +47,7 @@ class JupyterSpaceServersExitTest {
   }
 
   private fun launcher() = JupyterServerLauncher(
-    runtimeFor = { SpaceRuntime(root, nativeDir) },
+    runtimeFor = { _, _ -> SpaceRuntime(root, nativeDir) },
     dirsFor = { SpaceDirs(root) },
     settingsFor = { SpaceSettings() },
     startTimeout = EXIT_TIMEOUT,

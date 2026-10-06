@@ -66,8 +66,15 @@ val IDLE_SHUTDOWN_MINUTES_RANGE: IntRange = 0..MAX_IDLE_SHUTDOWN_MINUTES
  *   stop themselves; `0` means never. It becomes both of `jupyter_server`'s own timers, which read
  *   `0` the same way (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`,
  *   `shutdown_no_activity_timeout`; `services/kernels/kernelmanager.py`, `cull_idle_timeout`).
+ * @property environmentVariables the person's own variables, in the order they were added, given to
+ *   the Space's server - and so to its kernels and terminals, which inherit its environment - and to
+ *   its `pylsp`. Layered *under* the derived set, and no name may be one of
+ *   [DERIVED_VARIABLE_NAMES].
  */
-data class SpaceSettings(val idleShutdownMinutes: Int = DEFAULT_IDLE_SHUTDOWN_MINUTES)
+data class SpaceSettings(
+  val idleShutdownMinutes: Int = DEFAULT_IDLE_SHUTDOWN_MINUTES,
+  val environmentVariables: Map<String, String> = emptyMap(),
+)
 
 /**
  * Refuses settings no Space may hold, whatever asks - the fake and the disk adapter both call it,
@@ -80,6 +87,10 @@ data class SpaceSettings(val idleShutdownMinutes: Int = DEFAULT_IDLE_SHUTDOWN_MI
 fun requireValidSpaceSettings(settings: SpaceSettings) {
   require(settings.idleShutdownMinutes in IDLE_SHUTDOWN_MINUTES_RANGE) {
     "idle shutdown of ${settings.idleShutdownMinutes} minutes; expected $IDLE_SHUTDOWN_MINUTES_RANGE, where 0 is never"
+  }
+  settings.environmentVariables.forEach { (name, value) ->
+    val refusal = variableNameRefusal(name) ?: variableValueRefusal(name, value)
+    require(refusal == null) { refusal.orEmpty() }
   }
 }
 

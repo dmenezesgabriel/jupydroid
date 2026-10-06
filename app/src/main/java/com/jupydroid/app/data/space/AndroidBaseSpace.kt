@@ -50,7 +50,7 @@ fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir
  */
 fun spaceServerLauncher(context: Context, settingsFor: suspend (Space) -> SpaceSettings): JupyterServerLauncher =
   JupyterServerLauncher(
-    runtimeFor = { space -> spaceRuntime(context, space) },
+    runtimeFor = { space, settings -> spaceRuntime(context, space, settings.environmentVariables) },
     dirsFor = { space -> spaceDirs(context, space) },
     settingsFor = settingsFor,
     log = LogcatSpaceLifecycleLog,
@@ -76,7 +76,7 @@ fun spaceServers(context: Context, watchScope: CoroutineScope, spaceRepository: 
     SpaceServer(
       space = spaceWithId(id),
       installSpace = if (id == BASE_SPACE.id) ({ baseSpaceInstaller(context).installIfNeeded() }) else ({}),
-      launcher = spaceServerLauncher(context) { space -> spaceRepository.spaces().spaceWithId(space.id).settings },
+      launcher = spaceServerLauncher(context) { space -> spaceRepository.storedSettingsOf(space) },
       watchScope = watchScope,
       reportRunning = reportRunning,
       log = LogcatSpaceLifecycleLog,
@@ -88,6 +88,11 @@ fun spaceServers(context: Context, watchScope: CoroutineScope, spaceRepository: 
  * `pylsp` out of a Space's own image as the app's [LanguageServerPort], over stdio - one process
  * per Space, each in that Space's own environment and workspace ([startPylsp]).
  *
+ * The Space's own variables reach it as they reach a kernel, read from [spaceRepository] at each
+ * spawn, so a `PYTHONPATH` resolves an `import` the same in the editor as in a cell. A spawn never
+ * holds stale ones: Settings is editable only while the Space is stopped, and leaving a Space stops
+ * every `pylsp` (`StdioLanguageServer.stopAll`).
+ *
  * The console script execs under proot through its `#!` line ([SpaceRuntime]'s
  * `execProcessBuilder`, which must not prefix the interpreter), no `jupyter_server` in between.
  *
@@ -95,16 +100,21 @@ fun spaceServers(context: Context, watchScope: CoroutineScope, spaceRepository: 
  * than the server's own: `installSpace` runs on the port's *first use*, so an app that only
  * browses notebooks never pays for a Python runtime it did not ask for.
  */
-fun baseSpaceLanguageServerPort(context: Context): LanguageServerPort? {
+fun baseSpaceLanguageServerPort(context: Context, spaceRepository: SpaceRepository): LanguageServerPort? {
   if (runCatching { deviceAbi() }.isFailure) return null
   return StdioLanguageServer(
     installSpace = { baseSpaceInstaller(context).installIfNeeded() },
     spawn = { space, _ ->
-      startPylsp(spaceRuntime(context, space), spaceDirs(context, space))
+      val variables = spaceRepository.storedSettingsOf(space).environmentVariables
+      startPylsp(spaceRuntime(context, space, variables), spaceDirs(context, space))
     },
     log = LogcatSpaceLifecycleLog,
   )
 }
+
+/** [space]'s settings as its `config.json` holds them now - what the home's Settings last saved. */
+private suspend fun SpaceRepository.storedSettingsOf(space: Space): SpaceSettings =
+  spaces().spaceWithId(space.id).settings
 
 /** The exporter backed by the nbconvert endpoints of [server]'s `jupyter_server`. */
 fun baseSpaceNotebookExporter(server: SpaceServer): NotebookExporter =

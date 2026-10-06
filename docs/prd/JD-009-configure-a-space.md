@@ -145,9 +145,10 @@ amends ADR-0072, which forbids a stored environment per Space.
   `settingsFor` on every start, and `spaceServers` answers from the `SpaceRepository` the home writes
   through. Both start paths go through `SpaceServer.connection()` → `start`, so neither caller hands
   in values. Held by `JupyterServerLauncherSpaceTest.eachStartReadsTheSpacesIdleShutdownAsItIsThen`.
-- **`pylsp`.** It is not a child of the server, so it does not inherit its environment.
-  `startPylsp` builds its own through `SpaceRuntime`. Decide in T2 whether it gets the user's
-  variables too. Probably yes, so that `import` resolves the same in the editor as in the kernel.
+- **`pylsp` — settled in T2: yes.** It is not a child of the server, so it does not inherit its
+  environment; `baseSpaceLanguageServerPort` reads the Space's stored settings at each spawn, so a
+  `PYTHONPATH` resolves an `import` the same in the editor as in a kernel. No spawn can hold stale
+  variables: Settings is editable only while Stopped, and leaving a Space stops every `pylsp`.
 - **Where the script's output goes**, between `run/` and `tmp/`, and the timeout's length. SageMaker
   uses 5 minutes, and the home has a progress state already. Settle in T4.
 - **The idle field's unit and range — settled in T1.** Whole minutes, `0..1440`, default 5, `0`
@@ -172,7 +173,7 @@ amends ADR-0072, which forbids a stored environment per Space.
 - [x] T1 — **Settings** on a stopped row opens the Space's settings with **idle shutdown** as the
   first field. `SpaceRepository.configure` runs across domain, port, disk, fake and UI. The launch
   reads it into `jupyterServerArgs`'s two timers. Open decisions 1 and 4 are settled
-- [ ] T2 — **Environment variables**: added, edited and removed in settings, with a derived name
+- [x] T2 — **Environment variables**: added, edited and removed in settings, with a derived name
   refused by name. They are layered under the derived environment in `SpaceRuntime`, so the server,
   kernels and terminals see them. `pylsp` is settled
 - [ ] T3 — **Thread cap**: one number written as `OPENBLAS_NUM_THREADS` and `OMP_NUM_THREADS`, both

@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.DEFAULT_IDLE_SHUTDOWN_MINUTES
+import com.jupydroid.app.domain.model.DERIVED_VARIABLE_NAMES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -276,6 +277,46 @@ class SpaceRuntimeTest {
     val env = userSpaceRuntime.execProcessBuilder(listOf(SPACE_SHELL, "-c", "pass")).environment()
 
     assertEquals("/run", env["JUPYTER_RUNTIME_DIR"])
+  }
+
+  /** A Space's own variables reach both kinds of process, beside the derived set. */
+  @Test
+  fun bothProcessBuildersGiveTheChildTheSpacesOwnVariables() {
+    val runtime = SpaceRuntime(spaceDir, nativeDir, variables = mapOf("GREETING" to "hello"))
+
+    assertEquals("hello", runtime.processBuilder(listOf("-c", "pass")).environment()["GREETING"])
+    assertEquals("hello", runtime.execProcessBuilder(listOf(SPACE_PYLSP)).environment()["GREETING"])
+    assertEquals("/run", runtime.processBuilder(listOf("-c", "pass")).environment()["JUPYTER_RUNTIME_DIR"])
+  }
+
+  /**
+   * The person's variables lie *under* the derived set: should a derived name ever get past the
+   * port's refusal, the Space's own `HOME` still wins, because a `HOME` that disagrees with the disk
+   * breaks the Space (ADR-0072).
+   */
+  @Test
+  fun aDerivedNameAmongTheSpacesVariablesLosesToTheDerivedValue() {
+    val runtime = SpaceRuntime(spaceDir, nativeDir, variables = mapOf("HOME" to "/tmp", "PROOT_LOADER" to "/x"))
+
+    val env = runtime.processBuilder(listOf("-c", "pass")).environment()
+
+    assertEquals(SpaceDirs(spaceDir).let { it.inRoot(it.workspace) }, env["HOME"])
+    assertEquals(File(nativeDir, ProotCommand.PROOT_LOADER).path, env["PROOT_LOADER"])
+  }
+
+  /**
+   * The names the Settings dialog refuses are exactly the names a process is given, on a rootfs
+   * carrying every preload with nameservers reported - so a variable added here without being
+   * locked, or locked without being set, fails.
+   */
+  @Test
+  fun derivedVariableNamesAreExactlyWhatEveryProcessIsGiven() {
+    val everyPreload = spaceWith("lib/libsigsys_report.so").apply {
+      listOf("lib/libmusl_at_shim.so", "lib/libgetaddrinfo_shim.so").forEach { File(this, it).writeText("ELF") }
+    }
+    val runtime = SpaceRuntime(everyPreload, nativeDir, dnsServers = DnsServerSource { listOf("8.8.8.8") })
+
+    assertEquals(DERIVED_VARIABLE_NAMES, runtime.processBuilder(listOf("-c", "pass")).environment().keys)
   }
 
   private fun rootOf(command: List<String>): String = command[command.indexOf("-r") + 1]

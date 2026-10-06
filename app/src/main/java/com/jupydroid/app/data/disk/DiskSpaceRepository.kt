@@ -177,14 +177,22 @@ private data class StoredSpaceConfig(
  * field defaults, by [StoredSpaceConfig]'s own rule.
  */
 @Serializable
-private data class StoredSpaceSettings(val idleShutdownMinutes: Int = SpaceSettings().idleShutdownMinutes)
+private data class StoredSpaceSettings(
+  val idleShutdownMinutes: Int = SpaceSettings().idleShutdownMinutes,
+  // A JSON object keeps the order the person added them in: kotlinx decodes it into a LinkedHashMap.
+  val environmentVariables: Map<String, String> = emptyMap(),
+)
+
+private fun SpaceSettings.stored() = StoredSpaceSettings(idleShutdownMinutes, environmentVariables)
+
+private fun StoredSpaceSettings.toDomain() = SpaceSettings(idleShutdownMinutes, environmentVariables)
 
 private fun SpaceConfig.stored() = StoredSpaceConfig(
   name = name,
   created = created.toString(),
   pythonVersion = pythonVersion,
   requestedPackages = requestedPackages,
-  settings = StoredSpaceSettings(idleShutdownMinutes = settings.idleShutdownMinutes),
+  settings = settings.stored(),
   extra = extra,
 )
 
@@ -194,6 +202,6 @@ private fun StoredSpaceConfig.toDomain(default: SpaceConfig) = default.copy(
   created = created?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: default.created,
   pythonVersion = pythonVersion,
   requestedPackages = requestedPackages,
-  settings = SpaceSettings(idleShutdownMinutes = settings.idleShutdownMinutes),
+  settings = settings.toDomain(),
   extra = extra,
 )

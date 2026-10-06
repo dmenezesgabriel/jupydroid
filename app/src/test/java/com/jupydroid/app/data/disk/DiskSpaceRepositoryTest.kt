@@ -203,6 +203,28 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
     assertEquals(2, openStore().spaces().single { it.id == created.id }.settings.idleShutdownMinutes)
   }
 
+  @Test
+  fun variablesSurviveTheNextLaunch() = runTest {
+    val created = repository().create("Thesis")
+
+    openStore().configure(created.id, SpaceSettings(environmentVariables = mapOf("GREETING" to "hello")))
+
+    val read = openStore().spaces().single { it.id == created.id }.settings
+    assertEquals(mapOf("GREETING" to "hello"), read.environmentVariables)
+  }
+
+  /** Settings written before a Space had variables keep their idle time and read no variables. */
+  @Test
+  fun settingsWithNoVariablesReadNone() = runTest {
+    val created = repository().create("Thesis")
+    File(File(spacesDir, created.id), SPACE_CONFIG_FILE_NAME)
+      .writeText("""{"name":"Thesis","settings":{"idleShutdownMinutes":2}}""")
+
+    val read = openStore().spaces().single { it.id == created.id }.settings
+
+    assertEquals(SpaceSettings(idleShutdownMinutes = 2, environmentVariables = emptyMap()), read)
+  }
+
   /** A config written before Spaces had settings reads the default and keeps its name. */
   @Test
   fun aConfigWithNoSettingsReadsTheDefaultSettings() = runTest {

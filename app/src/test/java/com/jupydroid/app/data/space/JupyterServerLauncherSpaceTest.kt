@@ -67,7 +67,29 @@ class JupyterServerLauncherSpaceTest {
     assertTrue(serverArgs().toString(), "--ServerApp.shutdown_no_activity_timeout=0" in serverArgs())
   }
 
+  /**
+   * The Space's own variables reach the server as they are stored at that start - and through it
+   * every kernel and terminal, which `jupyter_client` and terminado start from a copy of the
+   * server's `os.environ`.
+   */
+  @Test
+  fun eachStartGivesTheServerTheSpacesVariablesAsTheyAreThen() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    spaceOneSettings = SpaceSettings(environmentVariables = mapOf("GREETING" to "hello"))
+    launcher.start(spaceOne)
+    val first = serverEnv()
+    killSpaceOnesServer()
+
+    spaceOneSettings = SpaceSettings(environmentVariables = mapOf("GREETING" to "bye"))
+    launcher.start(spaceOne)
+
+    assertTrue(first.toString(), "GREETING=hello" in first)
+    assertTrue(serverEnv().toString(), "GREETING=bye" in serverEnv())
+  }
+
   private fun serverArgs(): List<String> = File(spaceOneDir(), "run/args").readLines()
+
+  private fun serverEnv(): List<String> = File(spaceOneDir(), "run/env").readLines()
 
   private fun killSpaceOnesServer() {
     File(spaceOneDir(), "run/pid").takeIf { it.isFile }?.readText()?.trim()?.toLong()
@@ -117,7 +139,9 @@ class JupyterServerLauncherSpaceTest {
   private fun launcherWith(installInterpreter: (File) -> File): JupyterServerLauncher {
     installInterpreter(spaceOneDir())
     return JupyterServerLauncher(
-      runtimeFor = { space -> SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir) },
+      runtimeFor = { space, settings ->
+        SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir, variables = settings.environmentVariables)
+      },
       dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
       settingsFor = { spaceOneSettings },
       startTimeout = 10.seconds,

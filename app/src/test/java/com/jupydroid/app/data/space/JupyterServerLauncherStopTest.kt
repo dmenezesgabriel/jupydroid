@@ -122,7 +122,7 @@ class JupyterServerLauncherStopTest {
     FakeJupyterServerScript.ignoringSigterm(root, serverRule.server.port)
     serverRule.server.dispatcher = ShutdownLikeJupyterServer(runDir.takeIf { shutsDown })
     return JupyterServerLauncher(
-      runtimeFor = { SpaceRuntime(root, nativeDir) },
+      runtimeFor = { _, _ -> SpaceRuntime(root, nativeDir) },
       dirsFor = { SpaceDirs(root) },
       settingsFor = { SpaceSettings() },
       startTimeout = 10.seconds,

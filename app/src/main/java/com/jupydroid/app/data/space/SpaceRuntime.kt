@@ -22,6 +22,8 @@ class SpaceRuntime(
   private val spaceDir: File,
   nativeLibraryDir: File,
   private val dnsServers: DnsServerSource = DnsServerSource { emptyList() },
+  /** The Space's own variables from its settings, laid under [environment] in every process. */
+  private val variables: Map<String, String> = emptyMap(),
 ) {
   /** The writable half's layout, from the one home [SpaceDirs.ensure] provisions too. */
   private val dirs = SpaceDirs(spaceDir)
@@ -141,9 +143,11 @@ class SpaceRuntime(
 
   private fun spaceProcess(argv: List<String>, extraEnv: Map<String, String>): ProcessBuilder =
     ProcessBuilder(argv).apply {
-      // Android's PATH and linker variables would otherwise leak into the Space.
+      // Android's PATH and linker variables would otherwise leak into the Space. The Space's own
+      // variables go first, so a derived name always wins: the port refuses one, and this keeps a
+      // Space whose disk and processes agree even if one got past it (ADR-0072).
       environment().clear()
-      environment().putAll(proot.environment() + this@SpaceRuntime.environment() + extraEnv)
+      environment().putAll(variables + proot.environment() + this@SpaceRuntime.environment() + extraEnv)
     }
 
   private fun inImage(relative: String): Boolean = File(spaceDir, relative).isFile

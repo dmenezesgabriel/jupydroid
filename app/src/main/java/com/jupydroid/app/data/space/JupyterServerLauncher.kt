@@ -47,7 +47,8 @@ import kotlin.time.Duration.Companion.seconds
  * ```
  */
 class JupyterServerLauncher(
-  private val runtimeFor: (Space) -> SpaceRuntime,
+  /** How a process runs in the Space under the settings it starts with - its variables among them. */
+  private val runtimeFor: (Space, SpaceSettings) -> SpaceRuntime,
   /** Where a Space's server writes its runtime files and roots its Contents API. */
   private val dirsFor: (Space) -> SpaceDirs,
   /** The Space's settings as stored now - asked once per [start]. */
@@ -79,7 +80,13 @@ class JupyterServerLauncher(
     val started = withContext(ioDispatcher) {
       dirs.ensure()
       JupyterRuntimeFile.clear(dirs.runtime) // a stale file would advertise a dead port
-      jupyterServerProcess(runtimeFor(space), dirs.runtime, dirs.inRoot(dirs.workspace), token, settings).start()
+      jupyterServerProcess(
+        runtimeFor(space, settings),
+        dirs.runtime,
+        dirs.inRoot(dirs.workspace),
+        token,
+        settings,
+      ).start()
     }
     process = started
     val reported = awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
