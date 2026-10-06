@@ -1,0 +1,85 @@
+appId: com.jupydroid.app
+---
+# The terminal and the language server belong to the entered Space.
+#
+# The shell's answer is proved by the driver, not read off the canvas (cross-cutting.md §8.6): it
+# writes what `ls ~` lists into `~/terminal-saw`, which must land in Thesis's home, name the
+# marker seeded there alone, and never appear in base's.
+#
+# The diagnostics are pushed by `pylsp` alone - the marked name is never run, so no kernel can
+# have produced them - and the driver's `ps` says whose `pylsp` that is: Thesis's, and no base.
+#
+# The terminal is shut down from the Running panel before the app is left: an open shell holds
+# the idle backstop off by design, and the driver measures what that backstop leaves behind.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- assertVisible: "Run Base \\(base\\)"
+- takeScreenshot: 02-thesis-running-base-stopped
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Diagnostics.ipynb"
+    timeout: 10000
+
+# The Launcher's card: at two panes it fills the main area, and the explorer's own terminal icon
+# is the one-pane reach (`TerminalNavigationTest`).
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap on the field settles the IME's connection before typing - `p7e-1-space-python.yaml`.
+- tapOn:
+    id: "terminal-input"
+# No punctuation straight after a word: one character can drop out of a long `inputText`
+# (`p7e-1-space-python.yaml`).
+- inputText: "ls ~ > ~/terminal-saw"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- takeScreenshot: 03-thesis-shell-ran
+
+- tapOn: "Sessions and Tabs"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Shut Down: terminals/1"
+- takeScreenshot: 04-running-panel-lists-thesiss-terminal
+- tapOn: "Shut Down: terminals/1"
+- extendedWaitUntil:
+    notVisible: "Shut Down: terminals/1"
+    timeout: 15000
+- takeScreenshot: 05-thesiss-terminal-shut-down
+
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "Diagnostics.ipynb"
+    timeout: 10000
+- tapOn: "Diagnostics.ipynb"
+- extendedWaitUntil:
+    # The warm-up cell's own source is the anchor, not an observation - what is asserted
+    # after is `ran in`, the kernel's own output.
+    # matches-source: as above
+    visible: '.*x = 1 \+ 1.*'
+    timeout: 15000
+- tapOn:
+    text: "Run cell"
+    index: 0
+# `ran in` rather than an output value - the run's job is the open session, which is what
+# opens the sync gate the diagnostics ride on.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- extendedWaitUntil:
+    visible: ".*diagnostic on line 1: error, undefined name 'never_defined_lsp_name'.*"
+    timeout: 60000
+- takeScreenshot: 06-thesiss-pylsp-marks-the-never-run-name
+- pressKey: Home
